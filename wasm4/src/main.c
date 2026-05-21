@@ -31,8 +31,9 @@ void pixel (int x, int y) {
     FRAMEBUFFER[idx] = (uint8_t)((color << shift) | (FRAMEBUFFER[idx] & ~mask));
 }
 
-const int WINDOW_WIDTH = 160;
-const int WINDOW_HEIGHT = 160;
+#define WINDOW_WIDTH 160
+#define WINDOW_HEIGHT 160
+#define MAX_ROUNDS 4
 
 uint32_t radius = 25;
 uint8_t dir = 0;
@@ -44,8 +45,16 @@ int frame_count = 0;
 char count[4] = "000";
 char max_breaths[4] = "030";
 uint8_t phase = 0;
-uint8_t rounds = 0;
-uint8_t max_rounds = 4;
+uint8_t round = 0;
+uint8_t state = 0;
+
+
+char results[MAX_ROUNDS][4] = {
+    "052",
+    "040",
+    "064",
+    "020"
+};
 
 void incrstr(char *str) {
     int len = 0;
@@ -60,7 +69,7 @@ void incrstr(char *str) {
         }
         str[i] = '0';
     }
-    
+
     // fallback
     str[0] = '0';
     str[1] = '0';
@@ -86,6 +95,32 @@ char* strcpy(char *dest, const char *src) {
     return start;
 }
 
+int strlen(const char *s1) {
+    int len = 0;
+    while (s1[len] != '\0') {
+        len++;
+    }
+    return len;
+}
+int drawbtn(int16_t mx, int16_t my, uint8_t mb, int32_t x, int32_t y, const char *label) {
+    uint32_t w = (uint32_t)strlen(label) * 8;
+    uint32_t h = 10;
+    x = x - (int32_t)(w / 2);
+    if( mx > x && mx < x + (int16_t)w && my > y && my < y + (int16_t)h) {
+        *DRAW_COLORS = 4;
+        if (mb & MOUSE_LEFT) {
+            return 1;
+        }
+    } else {
+        *DRAW_COLORS = 3;
+    }
+
+    rect(x, y, w, h);
+
+    *DRAW_COLORS = 2;
+    text(label, x, y + 1);
+    return 0;
+}
 void update () {
     *DRAW_COLORS = 4;
     int16_t mx = *MOUSE_X;
@@ -96,84 +131,102 @@ void update () {
     int32_t center_x = (int32_t) (WINDOW_WIDTH * 0.5);
     int32_t center_y = (int32_t) (WINDOW_HEIGHT* 0.5);
 
-    switch (phase) {
-        case 0:
-            if (frame_count % speed == 0) {
-                if (dir == 0) {
-                    if (radius < maxr) {
-                        radius++;
+    if (state == 0) {
+        if (drawbtn(mx, my, mb, center_x, center_y + 40, "PLAY") == 1) {
+            state++;
+        }
+    }
+    else if (state == 1) {
+        switch (phase) {
+            case 0:
+                if (frame_count % speed == 0) {
+                    if (dir == 0) {
+                        if (radius < maxr) {
+                            radius++;
+                        } else {
+                            dir = 1;
+                        }
                     } else {
-                        dir = 1;
-                    }
-                } else {
-                    if (radius > minr) {
-                        radius--;
-                    } else {
-                        dir = 0;
-                        incrstr(count);
+                        if (radius > minr) {
+                            radius--;
+                        } else {
+                            dir = 0;
+                            incrstr(count);
+                        }
                     }
                 }
-            }
 
-            if (strcmp(count, max_breaths) == 0) {
-                strcpy(count, "000");
-                phase++;
-            }
-            break;
-        case 1:
-            if (frame_count % 60 == 0)
-                incrstr(count);
-
-    
-            uint32_t rect_w = 50;
-            uint32_t rect_h = 10;
-            int32_t rect_x = center_x - 25;
-            int32_t rect_y = center_y + 40;
-            if( mx > rect_x && mx < rect_x + (int16_t)rect_w && my > rect_y && my < rect_y + (int16_t)rect_h) {
-                *DRAW_COLORS = 4;
-                if (mb & MOUSE_LEFT) {
+                if (strcmp(count, max_breaths) == 0) {
                     strcpy(count, "000");
                     phase++;
                 }
-
-            } else {
-                *DRAW_COLORS = 3;
-            }
-            rect(rect_x, rect_y, rect_w, rect_h);
-            *DRAW_COLORS = 2;
-            text("BREATH", center_x - (6 * 4), rect_y + 1);
-        
-            break;
-        case 2:
-            if (radius < maxr && strcmp(count, "000") == 0) {
-                radius++;
-            } else {
-                if (strcmp(count, "015") == 0 && radius > minr) {
-                    radius--;
-                    if (radius == minr)
-                        phase++;
-                }
+                break;
+            case 1:
                 if (frame_count % 60 == 0)
                     incrstr(count);
-            }
-            break;
-        case 3:
-            if (rounds < max_rounds) {
-                strcpy(count, "000");
-                rounds++;
-                phase = 0;
-            }
-            break;
+
+                if (drawbtn(mx, my, mb, center_x, center_y + 40, "BREATH") == 1) {
+                    strcpy(results[round], count);
+                    strcpy(count, "000");
+                    phase++;
+                }
+                break;
+            case 2:
+                if (radius < maxr && strcmp(count, "000") == 0) {
+                    if (frame_count % 30 == 0)
+                        radius++;
+
+                } else {
+                    if (strcmp(count, "015") == 0 && radius > minr) {
+                        if (frame_count % 30 == 0)
+                            radius--;
+                        
+                        if (radius == minr)
+                            phase++;
+                    }
+                    if (frame_count % 60 == 0)
+                        incrstr(count);
+                }
+                break;
+            case 3:
+                if (round < MAX_ROUNDS) {
+                    strcpy(count, "000");
+                    round++;
+                    phase = 0;
+                } else {
+                    state++;
+                }
+                break;
+        }
+    } else {
+
     }
-    *DRAW_COLORS = 3;
-    int32_t current_x = center_x - (int32_t)radius;
-    int32_t current_y = center_y - (int32_t)radius;
-    oval(current_x, current_y, radius * 2, radius * 2);
+   
+    if (state < 2) {
+        *DRAW_COLORS = 3;
+        int32_t current_x = center_x - (int32_t)radius;
+        int32_t current_y = center_y - (int32_t)radius;
+        oval(current_x, current_y, radius * 2, radius * 2);
 
-
-            
-    *DRAW_COLORS = 2;
-    text(count, center_x - (3 * 4), center_y - 4);
+        *DRAW_COLORS = 2;
+        text(count, center_x - (3 * 4), center_y - 4);
+    } else {
+        text("RESULTS", center_x - 4 * 7, 10);
+        for (int i = 0; i < MAX_ROUNDS; i++) {
+            char txt_r[4];
+            txt_r[0] = 'R';
+            txt_r[1] = (char)(i + '1');
+            txt_r[2] = ':';
+            txt_r[3] = '\0';
+            text(txt_r, center_x - 30, 40 + i * 20);
+            text(&results[i][0], center_x - 4*3 + 20, 40 +i * 20); 
+          
+        }
+        if (drawbtn(mx, my, mb, center_x, WINDOW_HEIGHT - 40, "RESTART") == 1) {
+            state = 1;
+            round = 0;        
+        }
+    }
 
 
 
