@@ -1,0 +1,114 @@
+@font-face {
+	font-family: departure;
+	src: url('/style.css');
+	font-display: swap;
+}
+
+body {
+	background-color: #5566aa;
+	background-image: url('/assets/tile2.png');
+	background-repeat: repeat;
+	background-size: 128px 128px;
+	image-rendering: pixelated;
+}
+
+.content {
+	background-color: #eaeaff;
+	border: 2px solid #445588;
+	box-shadow:
+		inset 2px 2px 0 0 #445588,
+		2px 2px 0 0 #ccddee;
+}
+
+button, .start-btn {
+	background-color: #aabbdd;
+	border: 2px solid #ccddee;
+	border-right-color: #445588;
+	border-bottom-color: #445588;
+	box-shadow:
+		1px 1px 0 0 #334477,
+		inset 1px 1px 0 0 #ddeeff;
+}
+
+button:active, .start-btn:active {
+	border-color: #445588;
+	border-right-color: #ccddee;
+	border-bottom-color: #ccddee;
+	box-shadow:
+		1px 1px 0 0 #ccddee,
+		inset 1px 1px 0 0 #334477;
+}
+
+.tk-img {
+	border: 2px solid #445588;
+	border-right-color: #ccddee;
+	border-bottom-color: #ccddee;
+	box-shadow:
+		inset 1px 1px 0 0 #334477,
+		1px 1px 0 0 #ccddee;
+}
+
+input[type="text"] {
+	border: 2px solid #445588;
+	border-right-color: #ccddee;
+	border-bottom-color: #ccddee;
+	box-shadow:
+		inset 1px 1px 0 0 #334477,
+		1px 1px 0 0 #ccddee;
+}
+
+a {
+	color: #3355bb;
+}
+
+a:hover {
+	color: #5577dd;
+}
+
+.app {
+	border: 2px solid #445588;
+	box-shadow:
+		inset 1px 1px 0 0 #334477,
+		1px 1px 0 0 #ccddee;
+}
+
+.life-grid {
+	background-color: #445588;
+	border: 2px solid #445588;
+	border-right-color: #ccddee;
+	border-bottom-color: #ccddee;
+	box-shadow:
+		inset 1px 1px 0 0 #334477,
+		1px 1px 0 0 #ccddee;
+}
+
+.life-cell {
+	border: 1px solid #445588;
+	background-color: #eaeaff;
+}
+
+.life-legend-color {
+	border: 1px solid #445588;
+	border-right-color: #ccddee;
+	border-bottom-color: #ccddee;
+	box-shadow:
+		inset 1px 1px 0 0 #334477,
+		1px 1px 0 0 #ccddee;
+}
+
+.bloat-meter-container {
+	border: 1px solid #5566aa;
+	background-color: rgba(85, 102, 170, 0.05);
+}
+
+.bloat-meter-container h3 {
+	color: #5566aa;
+}
+
+h1, h2, h3 {
+	color: #445588;
+}
+
+meta[name="theme-color"] {
+	content: "#5566aa";
+}
