@@ -62,11 +62,10 @@ clean:
 	rm -rf build
 
 bundle: build/cart.wasm
-	w4 bundle build/cart.wasm --title "Inner Breeze" --html ../inbe.html
+	w4 bundle build/cart.wasm --title "Inner Breeze" --html build/index.html
 
 dist: build/cart.wasm
-	cp build/cart.wasm ../inbe.wasm
-	w4 bundle build/cart.wasm --title "Inner Breeze" --windows ../inbe_x86_64.exe --linux ../inbe_x86_64
+	w4 bundle build/cart.wasm --title "Inner Breeze" --windows build/inbe_x86_64.exe --linux build/inbe_x86_64
 
 .PHONY: all
 all: build/cart.wasm
