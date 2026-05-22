@@ -115,24 +115,20 @@ update(void)
 	center_x = (int32_t)(WINDOW_WIDTH * 0.5);
 	center_y = (int32_t)(WINDOW_HEIGHT * 0.5);
 
+
 	if(lotus.screen == LotusScreenStart){
 		if(drawbtn(mx, my, mb, center_x, center_y + 40, "PLAY") == 1)
 			lotus.screen = LotusScreenSession;
 	}else if(lotus.screen == LotusScreenSession){
+        lotusstep(&lotus);
+
 		switch(lotus.phase){
-		case LotusPhaseBreathe:
-			lotusbreath(&lotus);
-			break;
-
 		case LotusPhaseHold:
-			if(lotus.frame % 60 == 0)
-				inccount(lotus.count);
-
 			if(drawbtn(mx, my, mb, center_x, center_y + 40, "BREATH") == 1){
-				cpcount(results[lotus.round], lotus.count);
-				cpcount(lotus.count, "000");
-				lotus.phase = LotusPhaseRecover;
-			}
+                cpcount(results[lotus.round], lotus.count);
+                cpcount(lotus.count, "000");
+                lotus.phase = LotusPhaseRecover;
+            }
 			break;
 
 		case LotusPhaseRecover:
