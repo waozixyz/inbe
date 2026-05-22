@@ -2,6 +2,11 @@
 #define LOTUS_H
 
 enum {
+	Rshift = 3,
+	Runit = 1 << Rshift
+};
+
+enum {
     CountSize = 4,
     MaxRounds = 4
 };
@@ -34,6 +39,7 @@ struct Lotus {
     int frame;
 
 	int breathtick;
+	int breathtickmax;
 	int sectick;
 	int halftick;
 
@@ -42,7 +48,7 @@ struct Lotus {
 };
 
 void lotusinit(Lotus *l);
-void lotusbreath(Lotus *l);
+void lotusstep(Lotus *l);
 void inccount(char v[CountSize]);
 
 #endif

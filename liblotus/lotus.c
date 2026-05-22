@@ -52,45 +52,73 @@ lotusinit(Lotus *l)
 	l->rmin = 25;
 	l->rmax = 50;
 	l->dir = 0;
-	l->speed = 2;
+	l->speed = 1;
 	l->frame = 0;
+	l->breathtick = 0;
+	l->breathtickmax = 3;
+	l->sectick = 0;
+	l->halftick = 0;
 
 	cpcount(l->count, "000");
 	cpcount(l->maxbreaths, "030");
 }
 
 
-void
-lotusbreath(Lotus *l)
+static void
+breathe(Lotus *l)
 {
-	if(l == 0)
-		return;
-
-	if(l->phase != LotusPhaseBreathe)
-		return;
-
 	l->breathtick++;
-	if(l->breathtick < l->speed)
+	if(l->breathtick < l->breathtickmax)
 		return;
 	l->breathtick = 0;
 
 	if(l->dir == 0){
 		if(l->r < l->rmax)
-			l->r++;
+			l->r += l->speed;
 		else
 			l->dir = 1;
 	}else{
 		if(l->r > l->rmin){
-			l->r--;
+			l->r -= l->speed;
 		}else{
 			l->dir = 0;
 			inccount(l->count);
 		}
 	}
 
-
 	if(eqcount(l->count, l->maxbreaths)){
 		cpcount(l->count, "000");
 		l->phase = LotusPhaseHold;
+	}
+}
+
+static void
+hold(Lotus *l)
+{
+	l->sectick++;
+	if(l->sectick < 60)
+		return;
+	l->sectick = 0;
+
+	inccount(l->count);
+}
+
+void
+lotusstep(Lotus *l)
+{
+	if(l == 0)
+		return;
+
+	switch(l->phase){
+	case LotusPhaseBreathe:
+		breathe(l);
+		break;
+	case LotusPhaseHold:
+		hold(l);
+		break;
+	case LotusPhaseRecover:
+		break;
+	case LotusPhaseNext:
+		break;
 	}
 }

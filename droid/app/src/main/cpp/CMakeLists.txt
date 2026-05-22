@@ -14,6 +14,7 @@ target_include_directories(lotus PUBLIC
 
 add_library(inbe SHARED
     main.c
+    draw.c
 )
 
 target_compile_options(inbe PRIVATE -fno-builtin -fno-stack-protector)
