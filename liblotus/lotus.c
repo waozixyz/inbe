@@ -1,6 +1,22 @@
 #include "lotus.h"
 
-static void
+static int
+eqcount(const char a[CountSize], const char b[CountSize])
+{
+	return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
+}
+
+static int
+strcmp(const char *s1, const char *s2)
+{
+	while(*s1 != 0 && *s1 == *s2){
+		s1++;
+		s2++;
+	}
+	return *(const uint8_t*)s1 - *(const uint8_t*)s2;
+}
+
+void
 cpcount(char dst[CountSize], const char src[CountSize])
 {
 	dst[0] = src[0];
@@ -9,11 +25,6 @@ cpcount(char dst[CountSize], const char src[CountSize])
 	dst[3] = 0;
 }
 
-static int
-eqcount(const char a[CountSize], const char b[CountSize])
-{
-	return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
-}
 
 void
 inccount(char v[CountSize])
@@ -58,6 +69,10 @@ lotusinit(Lotus *l)
 	l->breathtickmax = 3;
 	l->sectick = 0;
 	l->halftick = 0;
+	cpcount(l->results[0], "052");
+    cpcount(l->results[1], "040");
+    cpcount(l->results[2], "064");
+    cpcount(l->results[3], "020");
 
 	cpcount(l->count, "000");
 	cpcount(l->maxbreaths, "030");
@@ -93,6 +108,60 @@ breathe(Lotus *l)
 }
 
 static void
+next(Lotus *l)
+{
+    l->sectick++;
+    if(l->sectick < 60)
+        return;
+    l->sectick = 0;
+
+    if(l->round < MaxRounds - 1){
+        cpcount(l->count, "000");
+        l->round++;
+        l->phase = LotusPhaseBreathe;
+    }else{
+        l->screen = LotusScreenResults;
+    }
+}
+
+static void
+recover(Lotus *l)
+{
+    if(l->r < l->rmax && strcmp(l->count, "000") == 0) {
+        
+        l->breathtick++;
+        if(l->breathtick < l->breathtickmax)
+            return;
+        l->breathtick = 0;
+
+        l->r += l->speed;
+        
+    } else {
+
+        if(strcmp(l->count, "015") == 0 && l->r > l->rmin) {
+
+            l->breathtick++;
+            if(l->breathtick < l->breathtickmax)
+                return;
+            l->breathtick = 0;
+
+            l->r -= l->speed;
+
+            if(l->r == l->rmin)
+                l->phase = LotusPhaseNext;
+        } else {
+
+            l->sectick++;
+            if(l->sectick < 60)
+                return;
+            l->sectick = 0;
+            
+            inccount(l->count);
+        }
+    }
+}
+
+static void
 hold(Lotus *l)
 {
 	l->sectick++;
@@ -117,8 +186,10 @@ lotusstep(Lotus *l)
 		hold(l);
 		break;
 	case LotusPhaseRecover:
+		recover(l);
 		break;
 	case LotusPhaseNext:
+		next(l);
 		break;
 	}
 }
