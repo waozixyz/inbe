@@ -6,6 +6,7 @@
 #include <pthread.h>
 #include <unistd.h>
 #include <stdbool.h>
+#include <time.h>
 
 #include "lotus.h"
 #include "draw.h"
@@ -35,6 +36,7 @@ struct Theme {
 	uint32_t panel;
 	uint32_t hot;
 	uint32_t text;
+	uint32_t text_inner;
 	uint32_t muted;
 	uint32_t circle;
 
@@ -48,6 +50,7 @@ static Theme theme = {
 	.panel = 0xff75a8f9,
 	.hot = 0xff6f6beb,
 	.text = 0xff583f7c,
+	.text_inner = 0xff75a8f9,
 	.muted = 0xff583f7c,
 	.circle = 0xff6f6beb,
 
@@ -89,56 +92,71 @@ drain_input(void)
 	}
 }
 
+static uint64_t
+get_time_ns(void)
+{
+    struct timespec now;
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    return (uint64_t)now.tv_sec * 1000000000ULL + (uint64_t)now.tv_nsec;
+}
 static void*
 render_loop(void *arg)
 {
-	ANativeWindow_Buffer buffer;
-	int cx;
-	int cy;
-	int r;
+    ANativeWindow_Buffer buffer;
+    int cx, cy, r;
+    uint64_t frame_start, frame_time;
+    const uint64_t target_ns = 16666666ULL;
 
-	(void)arg;
+    (void)arg;
 
-	while(app.running){
-		drain_input();
+    while(app.running){
+        frame_start = get_time_ns();
 
-		if(app.window != 0){
-			if(ANativeWindow_lock(app.window, &buffer, 0) == 0){
-				clearbuffer(&buffer, theme.bg);
+        drain_input();
 
-				cx = buffer.width / 2;
-				cy = buffer.height / 2;
+        if(app.window != 0){
+            if(ANativeWindow_lock(app.window, &buffer, 0) == 0){
+                clearbuffer(&buffer, theme.bg);
 
-				drawstring(&buffer, "INNER BREEZE", cx, 150, theme.title_scale, theme.text);
+                cx = buffer.width / 2;
+                cy = buffer.height / 2;
 
-				r = app.lotus.r * 6;
-				drawcircle(&buffer, cx, cy, r, theme.circle);
-				drawstring(&buffer, app.lotus.count, cx, cy, theme.text_scale, theme.text);
+                drawstring(&buffer, "INNER BREEZE", cx, 150, theme.title_scale, theme.text);
 
-				if(app.lotus.screen == LotusScreenStart){
-					if(drawbtn(&buffer, app.mx, app.my, app.down, cx, cy + 240,
-						"PLAY", theme.button_scale, theme.panel, theme.hot, theme.text))
-						app.lotus.screen = LotusScreenSession;
-				}else if(app.lotus.screen == LotusScreenSession){
-					lotusstep(&app.lotus);
+                r = app.lotus.r * 6;
+                drawcircle(&buffer, cx, cy, r, theme.circle);
+                drawstring(&buffer, app.lotus.count, cx, cy, theme.text_scale, theme.text);
 
-					if(app.lotus.phase == LotusPhaseHold){
-						if(drawbtn(&buffer, app.mx, app.my, app.down, cx, cy + 240,
-							"BREATH", theme.button_scale, theme.panel, theme.hot, theme.text)){
-						}
-					}
-				}
+                if(app.lotus.screen == LotusScreenStart){
+                    if(drawbtn(&buffer, app.mx, app.my, app.down, cx, cy + 240,
+                        "PLAY", theme.button_scale, theme.panel, theme.hot, theme.text))
+                        app.lotus.screen = LotusScreenSession;
+                }else if(app.lotus.screen == LotusScreenSession){
+                    lotusstep(&app.lotus);
 
-				ANativeWindow_unlockAndPost(app.window);
-			}
-		}
+                    if(app.lotus.phase == LotusPhaseHold){
+                        if(drawbtn(&buffer, app.mx, app.my, app.down, cx, cy + 240,
+                            "BREATH", theme.button_scale, theme.panel, theme.hot, theme.text)){
+							cpcount(app.lotus.results[app.lotus.round], app.lotus.count);
+							cpcount(app.lotus.count, "000");
+							app.lotus.phase = LotusPhaseRecover;
+                        }
+                    }
+                }
 
-		app.lotus.frame++;
+                ANativeWindow_unlockAndPost(app.window);
+            }
+        }
 
-		usleep(16000);
-	}
+        app.lotus.frame++;
 
-	return 0;
+        frame_time = get_time_ns() - frame_start;
+        if(frame_time < target_ns){
+            usleep((useconds_t)((uint32_t)(target_ns - frame_time) / 1000));
+        }
+    }
+
+    return 0;
 }
 
 static void
@@ -153,7 +171,7 @@ onNativeWindowCreated(ANativeActivity *activity, ANativeWindow *window)
 
 	lotusinit(&app.lotus);
     app.lotus.speed = 1;
-	app.lotus.breathtickmax = 1;
+	app.lotus.breathtickmax = 2;
 
 	app.lotus.screen = LotusScreenStart;
 

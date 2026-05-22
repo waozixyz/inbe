@@ -18,32 +18,6 @@ memset(void *dest, int byte, unsigned long n)
 
 Lotus lotus;
 
-char results[MaxRounds][CountSize] = {
-	"052",
-	"040",
-	"064",
-	"020"
-};
-
-static void
-cpcount(char dst[CountSize], const char src[CountSize])
-{
-	dst[0] = src[0];
-	dst[1] = src[1];
-	dst[2] = src[2];
-	dst[3] = 0;
-}
-
-int
-strcmp(const char *s1, const char *s2)
-{
-	while(*s1 != 0 && *s1 == *s2){
-		s1++;
-		s2++;
-	}
-	return *(const uint8_t*)s1 - *(const uint8_t*)s2;
-}
-
 int
 strlen(const char *s1)
 {
@@ -125,40 +99,13 @@ update(void)
 		switch(lotus.phase){
 		case LotusPhaseHold:
 			if(drawbtn(mx, my, mb, center_x, center_y + 40, "BREATH") == 1){
-                cpcount(results[lotus.round], lotus.count);
+                cpcount(lotus.results[lotus.round], lotus.count);
                 cpcount(lotus.count, "000");
                 lotus.phase = LotusPhaseRecover;
             }
 			break;
+        }
 
-		case LotusPhaseRecover:
-			if(lotus.r < lotus.rmax && strcmp(lotus.count, "000") == 0){
-				if(lotus.frame % 30 == 0)
-					lotus.r++;
-			}else{
-				if(strcmp(lotus.count, "015") == 0 && lotus.r > lotus.rmin){
-					if(lotus.frame % 30 == 0)
-						lotus.r--;
-
-					if(lotus.r == lotus.rmin)
-						lotus.phase = LotusPhaseNext;
-				}
-
-				if(lotus.frame % 60 == 0)
-					inccount(lotus.count);
-			}
-			break;
-
-		case LotusPhaseNext:
-			if(lotus.round < MaxRounds - 1){
-				cpcount(lotus.count, "000");
-				lotus.round++;
-				lotus.phase = LotusPhaseBreathe;
-			}else{
-				lotus.screen = LotusScreenResults;
-			}
-			break;
-		}
 	}
 
 	if(lotus.screen < LotusScreenResults){
@@ -181,7 +128,7 @@ update(void)
 			txt_r[3] = 0;
 
 			text(txt_r, center_x - 30, 40 + i * 20);
-			text(results[i], center_x - 4 * 3 + 20, 40 + i * 20);
+			text(lotus.results[i], center_x - 4 * 3 + 20, 40 + i * 20);
 		}
 
 		if(drawbtn(mx, my, mb, center_x, WINDOW_HEIGHT - 40, "RESTART") == 1)
