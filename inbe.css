@@ -54,3 +54,68 @@ h1, h2, h3 {
 .implementation-legend code {
 	white-space: nowrap;
 }
+
+.platform-buttons {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 16px;
+	justify-content: center;
+	margin: 24px 0;
+}
+
+.platform-btn {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+	padding: 16px 24px;
+	background-color: var(--button-bg);
+	border: 2px solid var(--button-highlight);
+	border-right-color: var(--dark);
+	border-bottom-color: var(--dark);
+	box-shadow:
+		1px 1px 0 0 var(--shadow),
+		inset 1px 1px 0 0 var(--button-inset);
+	text-decoration: none;
+	color: var(--dark);
+	border-radius: 8px;
+	transition: transform 0.1s, box-shadow 0.1s;
+	min-width: 100px;
+}
+
+.platform-btn img {
+	width: 32px;
+	height: 32px;
+}
+
+.platform-btn span {
+	font-family: departure;
+	font-size: 14px;
+	font-weight: bold;
+}
+
+.platform-btn:active {
+	border-color: var(--dark);
+	border-right-color: var(--button-highlight);
+	border-bottom-color: var(--button-highlight);
+	box-shadow:
+		1px 1px 0 0 var(--button-highlight),
+		inset 1px 1px 0 0 var(--shadow);
+	transform: translate(1px, 1px);
+}
+
+.platform-btn.web:hover {
+	background-color: #ddeeff;
+}
+
+.platform-btn.android:hover {
+	background-color: #ddffdd;
+}
+
+.platform-btn.windows:hover {
+	background-color: #ffdddd;
+}
+
+.platform-btn.linux:hover {
+	background-color: #ffffdd;
+}
