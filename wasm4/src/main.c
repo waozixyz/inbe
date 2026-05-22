@@ -1,5 +1,5 @@
 #include "wasm4.h"
-
+#include "lotus.h"
 
 void* memset(void* dest, int byte, unsigned long n) {
     uint8_t* d = dest;
@@ -16,7 +16,7 @@ void start() {
     PALETTE[3] = 0x7c3f58;
 }
 
-void pixel (int x, int y) {
+void pixel(int x, int y) {
     int idx = (y*160 + x) >> 2;
 
     int shift = (x & 0b11) << 1;
@@ -56,26 +56,6 @@ char results[MAX_ROUNDS][4] = {
     "020"
 };
 
-void incrstr(char *str) {
-    int len = 0;
-    while (str[len] != '\0') {
-        len++;
-    }
-
-    for (int i = len - 1; i >= 0; i--) {
-        if (str[i] < '9') {
-            str[i]++;
-            return;
-        }
-        str[i] = '0';
-    }
-
-    // fallback
-    str[0] = '0';
-    str[1] = '0';
-    str[2] = '0';
-    str[3] = '\0';
-}
 
 int strcmp(const char *s1, const char *s2) {
     while (*s1 != '\0' && *s1 == *s2) {
@@ -151,7 +131,7 @@ void update () {
                             radius--;
                         } else {
                             dir = 0;
-                            incrstr(count);
+                            inccount(count);
                         }
                     }
                 }
@@ -163,7 +143,7 @@ void update () {
                 break;
             case 1:
                 if (frame_count % 60 == 0)
-                    incrstr(count);
+                    inccount(count);
 
                 if (drawbtn(mx, my, mb, center_x, center_y + 40, "BREATH") == 1) {
                     strcpy(results[round], count);
@@ -185,7 +165,7 @@ void update () {
                             phase++;
                     }
                     if (frame_count % 60 == 0)
-                        incrstr(count);
+                        inccount(count);
                 }
                 break;
             case 3:

@@ -31,8 +31,14 @@ else
 	LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3
 endif
 
+LOTUS_DIR = ../liblotus
+LOTUS_SRC = $(LOTUS_DIR)/lotus.c
+LOTUS_OBJ = build/lotus.o
+
+CFLAGS += -I$(LOTUS_DIR)
+
 SOURCES = $(wildcard src/*.c) $(wildcard src/*.cpp)
-OBJECTS = $(patsubst src/%.c, build/%.o, $(patsubst src/%.cpp, build/%.o, $(SOURCES)))
+OBJECTS = $(patsubst src/%.c, build/%.o, $(patsubst src/%.cpp, build/%.o, $(SOURCES))) $(LOTUS_OBJ)
 DEPS = $(OBJECTS:.o=.d)
 
 all: build/cart.wasm
@@ -49,6 +55,10 @@ ifneq ($(DEBUG), 1)
 	fi
 endif
 
+$(LOTUS_OBJ): $(LOTUS_SRC) $(LOTUS_DIR)/lotus.h
+	@mkdir -p build
+	$(CC) -c $(LOTUS_SRC) -o $(LOTUS_OBJ) $(CFLAGS)
+	
 build/%.o: src/%.c
 	@mkdir -p build
 	$(CC) -c $< -o $@ $(CFLAGS)
