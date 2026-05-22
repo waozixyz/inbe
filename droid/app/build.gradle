@@ -5,14 +5,52 @@ plugins {
 android {
     namespace 'xyz.waozi.inbe'
     compileSdk 34
-    
+
+    def keystorePropsFile = rootProject.file("local.properties")
+    def keystoreProps = new Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+    }
+
+    def getKeystorePath = { -> keystoreProps['keystore.path'] }
+
+    def getPassword = { ->
+        def password = project.findProperty('keystore.password')
+        if (password != null) return password
+
+        def console = System.console()
+        if (console != null) {
+            return new String(console.readPassword("\n> Enter keystore password: "))
+        }
+        throw new GradleException("No console available. Use: make release PASSWORD=your-password")
+    }
+
+    signingConfigs {
+        release {
+            storeFile file(getKeystorePath())
+            storePassword getPassword()
+            keyAlias "inbe-key"
+            keyPassword getPassword()
+        }
+    }
+
     defaultConfig {
         minSdk 19
         targetSdk 34
         versionCode 1
         versionName "1.0"
     }
-    
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
     externalNativeBuild {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
