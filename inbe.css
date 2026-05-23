@@ -17,32 +17,72 @@ h1, h2, h3 {
 	color: var(--dark);
 }
 
-.implementation-legend {
-	margin-top: 32px;
-	max-width: 720px;
+.platform-section {
+	margin-bottom: 32px;
 }
 
-.implementation-legend ul {
-	margin: 14px 0 0;
-	padding-left: 0;
-	list-style: none;
-}
-
-.implementation-legend li {
-	margin-bottom: 14px;
-	text-align: left;
-}
-
-.legend-title {
+.platform-header {
 	display: flex;
-	align-items: center;
-	gap: 10px;
-	font-weight: bold;
+	align-items: flex-start;
+	gap: 12px;
+	margin-bottom: 16px;
 }
 
-.implementation-legend p {
-	margin: 6px 0 0 34px;
-	text-align: left;
+.platform-header img {
+	flex: 0 0 48px;
+	width: 48px;
+	height: 48px;
+}
+
+.platform-header p {
+	margin: 4px 0 0 0;
+	font-size: 13px;
+}
+
+.platform-header strong {
+	display: block;
+}
+
+.downloads-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+	gap: 8px;
+}
+
+.download-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	padding: 8px 12px;
+	background-color: var(--button-bg);
+	border: 2px solid var(--button-highlight);
+	border-right-color: var(--dark);
+	border-bottom-color: var(--dark);
+	box-shadow:
+		1px 1px 0 0 var(--shadow),
+		inset 1px 1px 0 0 var(--button-inset);
+	text-decoration: none;
+	color: var(--dark);
+	border-radius: 8px;
+	transition: transform 0.1s, box-shadow 0.1s;
+	text-align: center;
+	font-size: 13px;
+	min-height: 40px;
+}
+
+.download-item:active {
+	border-color: var(--dark);
+	border-right-color: var(--button-highlight);
+	border-bottom-color: var(--button-highlight);
+	box-shadow:
+		1px 1px 0 0 var(--button-highlight),
+		inset 1px 1px 0 0 var(--shadow);
+	transform: translate(1px, 1px);
+}
+
+.download-item:hover {
+	background-color: var(--button-highlight);
 }
 
 .file-icon {
@@ -51,48 +91,6 @@ h1, h2, h3 {
 
 .platform-icon {
 	width: 32px;
-}
-
-.grid {
-	display: flex;
-	flex-wrap: wrap;
-	justify-content: center;
-	gap: 16px;
-}
-
-.grid > div {
-	box-sizing: border-box;
-	flex: 0 0 calc(50% - 8px);
-	max-width: calc(50% - 8px);
-	width: calc(50% - 8px);
-	overflow: visible;
-}
-
-.app-platform {
-	align-items: flex-start;
-	justify-content: flex-start;
-}
-
-.app-platform .row {
-	align-items: center;
-	flex-wrap: nowrap;
-	white-space: nowrap;
-}
-
-.app-platform a,
-.app-platform small {
-	white-space: nowrap;
-}
-
-.implementation-legend img {
-	flex: 0 0 24px;
-	width: 24px;
-	height: 24px;
-}
-
-.implementation-legend a,
-.implementation-legend code {
-	white-space: nowrap;
 }
 
 .platform-buttons {
