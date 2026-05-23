@@ -1,6 +1,7 @@
 :root {
-	--page-bg: #5566aa;
-	--page-tile: url('/assets/tile2.png');
+	--page-bg: #000000;
+	--page-tile: url('/icons/tile2.png');
+	--page-tile-opacity: 0.86;
 	--panel-bg: #eaeaff;
 	--dark: #445588;
 	--shadow: #334477;

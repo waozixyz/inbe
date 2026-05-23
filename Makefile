@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c
+SRC = src/main.c src/inbe_raylib.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -40,6 +40,10 @@ endif
 BUILD_DIR = build
 LINUX_BUILD_DIR = $(BUILD_DIR)/linux
 WINDOWS_BUILD_DIR = $(BUILD_DIR)/windows
+ANDROID_BUILD_DIR = $(BUILD_DIR)/android
+WEB_BUILD_DIR = $(BUILD_DIR)/web
+LINUX_ARCHES = x86_64 aarch64
+ANDROID_DIST ?= release
 
 # Linux/native target
 BINARY_NAME = inbe-$(PLATFORM)-$(ARCH)
@@ -51,8 +55,29 @@ WIN_CC = x86_64-w64-mingw32-gcc
 WIN_AR = x86_64-w64-mingw32-ar
 WIN_WINDRES = x86_64-w64-mingw32-windres
 WIN_TARGET = $(WINDOWS_BUILD_DIR)/inbe-windows-x86_64.exe
-WIN_RAYLIB_A = ../vendor/raylib/build/desktop/libraylib.a
+WIN_RAYLIB_BUILD_DIR = $(WINDOWS_BUILD_DIR)/raylib
+WIN_RAYLIB_A = $(WIN_RAYLIB_BUILD_DIR)/libraylib.a
+WIN_RAYLIB_OBJS = \
+	$(WIN_RAYLIB_BUILD_DIR)/rcore.o \
+	$(WIN_RAYLIB_BUILD_DIR)/rshapes.o \
+	$(WIN_RAYLIB_BUILD_DIR)/rtextures.o \
+	$(WIN_RAYLIB_BUILD_DIR)/rtext.o
 WIN_INBE_A = $(WINDOWS_BUILD_DIR)/libinbe.a
+
+# WebAssembly
+WEB_CC ?= emcc
+WEB_AR ?= emar
+WEB_TARGET = $(WEB_BUILD_DIR)/index.html
+WEB_RAYLIB_BUILD_DIR = $(WEB_BUILD_DIR)/raylib
+WEB_RAYLIB_A = $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
+WEB_RAYLIB_OBJS = \
+	$(WEB_RAYLIB_BUILD_DIR)/rcore.o \
+	$(WEB_RAYLIB_BUILD_DIR)/rshapes.o \
+	$(WEB_RAYLIB_BUILD_DIR)/rtextures.o \
+	$(WEB_RAYLIB_BUILD_DIR)/rtext.o
+WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE
+WEB_SHELL = src/web_shell.html
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL)
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections
 LDFLAGS = -Wl,--gc-sections -s
@@ -76,7 +101,9 @@ ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
 $(error RAY_RAYLIB_CONFIG is not set. Enter the ray flake shell with 'nix develop')
 endif
 
-all: $(TARGET)
+all: native
+
+native: $(TARGET)
 
 build:
 	mkdir -p $(BUILD_DIR)
@@ -85,6 +112,18 @@ $(LINUX_BUILD_DIR):
 	mkdir -p $@
 
 $(WINDOWS_BUILD_DIR):
+	mkdir -p $@
+
+$(WIN_RAYLIB_BUILD_DIR):
+	mkdir -p $@
+
+$(ANDROID_BUILD_DIR):
+	mkdir -p $@
+
+$(WEB_BUILD_DIR):
+	mkdir -p $@
+
+$(WEB_RAYLIB_BUILD_DIR):
 	mkdir -p $@
 
 $(RAYLIB_BUILD_DIR): build
@@ -128,26 +167,122 @@ $(TARGET): $(SRC) $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
 run: $(TARGET)
 	./$(TARGET)
 
+linux: $(LINUX_ARCHES:%=linux-%)
+
+linux-x86_64: | $(LINUX_BUILD_DIR)
+	$(MAKE) build-linux-arch \
+		ARCH_NAME=x86_64 \
+		LINUX_CC="$(CC)" \
+		LINUX_AR=ar \
+		LINUX_RAY_CFLAGS="$(RAY_CFLAGS)" \
+		LINUX_RAY_LDLIBS="$(RAY_LDLIBS)" \
+		LINUX_RAY_SDL_LDLIBS="$(RAY_SDL_LDLIBS)" \
+		LINUX_RAY_SDL_INCLUDE_DIR="$(RAY_SDL_INCLUDE_DIR)"
+
+linux-aarch64: | $(LINUX_BUILD_DIR)
+	@if [ -z "$(AARCH64_CC)" ] || [ -z "$(AARCH64_AR)" ] || [ -z "$(AARCH64_RAY_CFLAGS)" ] || [ -z "$(AARCH64_RAY_LDLIBS)" ] || [ -z "$(AARCH64_RAY_SDL_LDLIBS)" ] || [ -z "$(AARCH64_RAY_SDL_INCLUDE_DIR)" ]; then \
+		echo "AARCH64 cross-build variables are missing. Enter the flake shell with 'nix develop'."; \
+		exit 1; \
+	fi
+	$(MAKE) build-linux-arch \
+		ARCH_NAME=aarch64 \
+		LINUX_CC="$(AARCH64_CC)" \
+		LINUX_AR="$(AARCH64_AR)" \
+		LINUX_RAY_CFLAGS="$(AARCH64_RAY_CFLAGS)" \
+		LINUX_RAY_LDLIBS="$(AARCH64_RAY_LDLIBS)" \
+		LINUX_RAY_SDL_LDLIBS="$(AARCH64_RAY_SDL_LDLIBS)" \
+		LINUX_RAY_SDL_INCLUDE_DIR="$(AARCH64_RAY_SDL_INCLUDE_DIR)"
+
+build-linux-arch:
+	@mkdir -p $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME) ../vendor/raylib/build/sdl-$(ARCH_NAME)
+	$(MAKE) -C $(RAYLIB_DIR) clean
+	$(MAKE) -j1 -C $(RAYLIB_DIR) \
+		CC="$(LINUX_CC)" \
+		AR="$(LINUX_AR)" \
+		PLATFORM=PLATFORM_DESKTOP_SDL \
+		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
+		RAYLIB_LIBTYPE=STATIC \
+		RAYLIB_RELEASE_PATH=../build/sdl-$(ARCH_NAME) \
+		RAYLIB_MODULE_AUDIO=FALSE \
+		RAYLIB_MODULE_MODELS=FALSE \
+		SDL_INCLUDE_PATH="$(LINUX_RAY_SDL_INCLUDE_DIR)" \
+		SDL_LIBRARIES="$(LINUX_RAY_SDL_LDLIBS)" \
+		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(LINUX_RAY_CFLAGS) $(RAY_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+	$(MAKE) -C $(RAYLIB_DIR) clean
+	$(LINUX_CC) $(CFLAGS) -I$(INBE_DIR) -c $(INBE_DIR)/inbe.c -o $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
+	$(LINUX_AR) rcs $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
+	$(LINUX_CC) $(CFLAGS) \
+		-I$(RAYLIB_DIR) \
+		-I$(INBE_DIR) \
+		$(LINUX_RAY_CFLAGS) \
+		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
+		$(SRC) \
+		$(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a \
+		../vendor/raylib/build/sdl-$(ARCH_NAME)/libraylib.a \
+		$(LINUX_RAY_LDLIBS) \
+		-lm -lpthread -ldl -lrt \
+		$(LDFLAGS)
+
 # Windows cross-compilation target
 windows: $(WIN_TARGET)
 
 # Windows raylib build
-$(WIN_RAYLIB_A): FORCE | $(WINDOWS_BUILD_DIR)
-	mkdir -p ../vendor/raylib/build/desktop
-	$(MAKE) -C $(RAYLIB_DIR) clean
-	$(MAKE) -j1 -C $(RAYLIB_DIR) \
-		CC=$(WIN_CC) \
-		AR=$(WIN_AR) \
-		WINDRES=$(WIN_WINDRES) \
-		OS=Windows_NT \
-		PLATFORM=PLATFORM_DESKTOP_WIN32 \
-		GRAPHICS=GRAPHICS_API_OPENGL_33 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../build/desktop \
-		RAYLIB_MODULE_AUDIO=FALSE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CUSTOM_CFLAGS="-DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0 -Os -ffunction-sections -fdata-sections"
-	$(MAKE) -C $(RAYLIB_DIR) clean
+$(WIN_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WIN_RAYLIB_BUILD_DIR)
+	$(WIN_CC) \
+		-c $< \
+		-o $@ \
+		-Wall \
+		-D_GNU_SOURCE \
+		-DPLATFORM_DESKTOP_WIN32 \
+		-DGRAPHICS_API_OPENGL_33 \
+		-Wno-missing-braces \
+		-Werror=pointer-arith \
+		-fno-strict-aliasing \
+		-std=gnu99 \
+		-DUNICODE \
+		$(RAY_RAYLIB_CONFIG) \
+		-Os \
+		-ffunction-sections \
+		-fdata-sections \
+		-I$(RAYLIB_DIR)
+
+$(WIN_RAYLIB_A): $(WIN_RAYLIB_OBJS)
+	$(WIN_AR) rcs $@ $(WIN_RAYLIB_OBJS)
+
+# WebAssembly target
+web: $(WEB_TARGET)
+
+$(WEB_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WEB_RAYLIB_BUILD_DIR)
+	$(WEB_CC) \
+		-c $< \
+		-o $@ \
+		-Wall \
+		-D_GNU_SOURCE \
+		-DPLATFORM_WEB \
+		-DGRAPHICS_API_OPENGL_ES2 \
+		-Wno-missing-braces \
+		-Werror=pointer-arith \
+		-fno-strict-aliasing \
+		-std=gnu99 \
+		-D_DEFAULT_SOURCE \
+		$(RAY_RAYLIB_CONFIG) \
+		-Os \
+		-ffunction-sections \
+		-fdata-sections \
+		-I$(RAYLIB_DIR)
+
+$(WEB_RAYLIB_A): $(WEB_RAYLIB_OBJS)
+	$(WEB_AR) rcs $@ $(WEB_RAYLIB_OBJS)
+
+$(WEB_TARGET): $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) | $(WEB_BUILD_DIR)
+	$(WEB_CC) $(WEB_CFLAGS) \
+		-I$(RAYLIB_DIR) \
+		-I$(INBE_DIR) \
+		-o $@ \
+		$(SRC) \
+		$(INBE_DIR)/inbe.c \
+		$(WEB_RAYLIB_A) \
+		$(WEB_LDFLAGS)
 
 # Build Windows libinbe, then copy it into build/windows
 $(WIN_INBE_A): FORCE | $(WINDOWS_BUILD_DIR)
@@ -180,8 +315,10 @@ clean-linux:
 
 clean-windows:
 	rm -rf $(WINDOWS_BUILD_DIR)
-	rm -rf ../vendor/raylib/build/desktop
 	$(MAKE) -C $(INBE_DIR) clean
+
+clean-web:
+	rm -rf $(WEB_BUILD_DIR)
 
 clean-raylib:
 	$(MAKE) -C $(RAYLIB_DIR) clean
@@ -198,12 +335,14 @@ clean-raylib:
 # platform's build folder.
 
 dist:
-	$(MAKE) all
+	$(MAKE) linux
 	$(MAKE) windows
+	$(MAKE) web
+	$(MAKE) android-$(ANDROID_DIST)
 	$(MAKE) dist-linux
 	$(MAKE) dist-windows
 
-dist-linux:
+dist-linux: linux
 	@echo "Creating Linux tar.gz package with all Linux arch binaries..."
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux
 	@for bin in $(LINUX_BUILD_DIR)/inbe-linux-*; do \
@@ -255,14 +394,46 @@ android-init-signing:
 
 android-debug:
 	$(GRADLE) -p $(ANDROID_DIR) assembleDebug
+	$(MAKE) android-copy-debug-apks
 
 android-release:
 	@if [ -n "$(PASSWORD)" ]; then \
-		$(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password=$(PASSWORD); \
+		PASSWORD_VALUE="$(PASSWORD)"; \
+	elif [ -t 0 ]; then \
+		printf "Keystore password: "; \
+		stty -echo; \
+		read PASSWORD_VALUE; \
+		stty echo; \
+		printf "\n"; \
 	else \
-		echo "Usage: make android-release PASSWORD=your-password"; \
+		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
+		exit 1; \
+	fi; \
+	if [ -n "$$PASSWORD_VALUE" ]; then \
+		$(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		$(MAKE) android-copy-release-apks; \
+	else \
+		echo "Keystore password is required"; \
 		exit 1; \
 	fi
+
+android-copy-apks: android-copy-debug-apks android-copy-release-apks
+
+android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
+	@for apk in $(ANDROID_DIR)/app/build/outputs/apk/debug/*.apk; do \
+		if [ -f "$$apk" ]; then \
+			echo "Copying $$apk"; \
+			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
+		fi; \
+	done
+
+android-copy-release-apks: | $(ANDROID_BUILD_DIR)
+	@for apk in $(ANDROID_DIR)/app/build/outputs/apk/release/*.apk; do \
+		if [ -f "$$apk" ]; then \
+			echo "Copying $$apk"; \
+			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
+		fi; \
+	done
 
 android-install: android-debug
 	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
@@ -290,16 +461,23 @@ android-install-release: android-release
 
 android-clean:
 	$(GRADLE) -p $(ANDROID_DIR) clean
+	rm -rf $(ANDROID_BUILD_DIR)
 
 FORCE:
 
 .PHONY: \
 	all \
+	native \
 	run \
+	linux \
+	$(LINUX_ARCHES:%=linux-%) \
+	build-linux-arch \
 	windows \
+	web \
 	clean \
 	clean-linux \
 	clean-windows \
+	clean-web \
 	clean-raylib \
 	dist \
 	dist-linux \
@@ -307,6 +485,9 @@ FORCE:
 	android-init-signing \
 	android-debug \
 	android-release \
+	android-copy-apks \
+	android-copy-debug-apks \
+	android-copy-release-apks \
 	android-install \
 	android-install-release \
 	android-clean \
