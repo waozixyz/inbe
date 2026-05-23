@@ -79,5 +79,7 @@ dist: build/cart.wasm
 
 package: dist
 	cd build && zip -q -9 inbe-windows.zip inbe-*.exe
+	chmod 755 build/inbe-x86_64
+	cd build && tar -czf inbe-linux.tar.gz inbe-x86_64
 
 -include $(DEPS)
