@@ -5,6 +5,7 @@ plugins {
 android {
     namespace 'xyz.waozi.inbe'
     compileSdk 34
+    ndkVersion "25.1.8937393"
 
     def keystorePropsFile = rootProject.file("local.properties")
     def keystoreProps = new Properties()
@@ -12,7 +13,7 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
 
-    def getKeystorePath = { -> keystoreProps['keystore.path'] }
+    def getKeystorePath = { -> keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/inbe-release.keystore" }
 
     def releasePassword = project.findProperty('keystore.password') ?: ""
 
@@ -26,12 +27,12 @@ android {
     }
 
     defaultConfig {
-        applicationId 'xyz.waozi.inbe'
         minSdk 19
         targetSdk 34
         versionCode 1
-        versionName '1.0'
+        versionName "1.0"
     }
+    
 
     buildTypes {
         release {
@@ -55,7 +56,7 @@ android {
             enable true
             reset()
             include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
-            universalApk false
+            universalApk true
         }
     }
 }
