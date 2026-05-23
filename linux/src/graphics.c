@@ -65,26 +65,74 @@ draw_circle(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screenin
 void
 clear_screen(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screeninfo *finfo, uint32_t color)
 {
-	for(int y = 0; y < (int)vinfo->yres; y++)
-		for(int x = 0; x < (int)vinfo->xres; x++)
-			put_pixel(fb, vinfo, finfo, x, y, color);
+	int bytes_per_pixel = vinfo->bits_per_pixel / 8;
+	long total_pixels = (long)vinfo->xres * (long)vinfo->yres;
+
+	if(bytes_per_pixel == 4){
+		uint32_t *fb32 = (uint32_t *)fb;
+		for(long i = 0; i < total_pixels; i++)
+			fb32[i] = color;
+	}else if(bytes_per_pixel == 2){
+		uint8_t r = (color >> 16) & 0xff;
+		uint8_t g = (color >> 8) & 0xff;
+		uint8_t b = color & 0xff;
+		uint16_t rgb565 = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+		uint16_t *fb16 = (uint16_t *)fb;
+		for(long i = 0; i < total_pixels; i++)
+			fb16[i] = rgb565;
+	}
 }
 
 void
 draw_char(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screeninfo *finfo, char c, int x, int y, int scale, uint32_t color)
 {
 	const uint8_t *glyph = font_8x8[(unsigned char)c];
+	int bytes_per_pixel = vinfo->bits_per_pixel / 8;
 
-	for(int row = 0; row < 8; row++){
-		uint8_t rowbits = glyph[row];
-		for(int col = 0; col < 8; col++){
-			if(rowbits & (1 << (7 - col))){
-				for(int sy = 0; sy < scale; sy++){
-					for(int sx = 0; sx < scale; sx++){
-						int px = x + col * scale + sx;
-						int py = y + row * scale + sy;
-						if(px >= 0 && px < (int)vinfo->xres && py >= 0 && py < (int)vinfo->yres)
-							put_pixel(fb, vinfo, finfo, px, py, color);
+	if(bytes_per_pixel == 4){
+		for(int row = 0; row < 8; row++){
+			uint8_t rowbits = glyph[row];
+			for(int col = 0; col < 8; col++){
+				if(rowbits & (1 << (7 - col))){
+					int px = x + col * scale;
+					int py = y + row * scale;
+					for(int sy = 0; sy < scale && py + sy < (int)vinfo->yres; sy++){
+						if(py + sy < 0) continue;
+						int clip_x = px < 0 ? 0 : px;
+						int clip_w = scale;
+						if(px < 0) clip_w += px;
+						if(px + scale > (int)vinfo->xres) clip_w = vinfo->xres - px;
+						if(clip_w > 0){
+							uint32_t *dst = (uint32_t *)(fb + (py + sy) * finfo->line_length + clip_x * 4);
+							for(int sx = 0; sx < clip_w; sx++)
+								dst[sx] = color;
+						}
+					}
+				}
+			}
+		}
+	}else if(bytes_per_pixel == 2){
+		uint8_t r = (color >> 16) & 0xff;
+		uint8_t g = (color >> 8) & 0xff;
+		uint8_t b = color & 0xff;
+		uint16_t rgb565 = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+		for(int row = 0; row < 8; row++){
+			uint8_t rowbits = glyph[row];
+			for(int col = 0; col < 8; col++){
+				if(rowbits & (1 << (7 - col))){
+					int px = x + col * scale;
+					int py = y + row * scale;
+					for(int sy = 0; sy < scale && py + sy < (int)vinfo->yres; sy++){
+						if(py + sy < 0) continue;
+						int clip_x = px < 0 ? 0 : px;
+						int clip_w = scale;
+						if(px < 0) clip_w += px;
+						if(px + scale > (int)vinfo->xres) clip_w = vinfo->xres - px;
+						if(clip_w > 0){
+							uint16_t *dst = (uint16_t *)(fb + (py + sy) * finfo->line_length + clip_x * 2);
+							for(int sx = 0; sx < clip_w; sx++)
+								dst[sx] = rgb565;
+						}
 					}
 				}
 			}
@@ -115,10 +163,39 @@ draw_string(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screenin
 static void
 draw_rect(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screeninfo *finfo, int x, int y, int w, int h, uint32_t color)
 {
-	for(int yy = y; yy < y + h; yy++){
-		for(int xx = x; xx < x + w; xx++){
-			if(xx >= 0 && xx < (int)vinfo->xres && yy >= 0 && yy < (int)vinfo->yres)
-				put_pixel(fb, vinfo, finfo, xx, yy, color);
+	int bytes_per_pixel = vinfo->bits_per_pixel / 8;
+
+	if(bytes_per_pixel == 4){
+		for(int yy = y; yy < y + h; yy++){
+			if(yy >= 0 && yy < (int)vinfo->yres){
+				int clip_x = x < 0 ? 0 : x;
+				int clip_w = w;
+				if(x < 0) clip_w += x;
+				if(x + w > (int)vinfo->xres) clip_w = vinfo->xres - x;
+				if(clip_w > 0){
+					uint32_t *dst = (uint32_t *)(fb + yy * finfo->line_length + clip_x * 4);
+					for(int xx = 0; xx < clip_w; xx++)
+						dst[xx] = color;
+				}
+			}
+		}
+	}else if(bytes_per_pixel == 2){
+		uint8_t r = (color >> 16) & 0xff;
+		uint8_t g = (color >> 8) & 0xff;
+		uint8_t b = color & 0xff;
+		uint16_t rgb565 = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+		for(int yy = y; yy < y + h; yy++){
+			if(yy >= 0 && yy < (int)vinfo->yres){
+				int clip_x = x < 0 ? 0 : x;
+				int clip_w = w;
+				if(x < 0) clip_w += x;
+				if(x + w > (int)vinfo->xres) clip_w = vinfo->xres - x;
+				if(clip_w > 0){
+					uint16_t *dst = (uint16_t *)(fb + yy * finfo->line_length + clip_x * 2);
+					for(int xx = 0; xx < clip_w; xx++)
+						dst[xx] = rgb565;
+				}
+			}
 		}
 	}
 }
@@ -159,28 +236,72 @@ draw_cursor(uint8_t *fb, struct fb_var_screeninfo *vinfo, struct fb_fix_screenin
 		".......X...."
 	};
 	int rows = (int)(sizeof(shape) / sizeof(shape[0]));
+	int bytes_per_pixel = vinfo->bits_per_pixel / 8;
 
+	/* Precompute edge pixels */
+	char edge[17][14] = {0};
 	for(int yy = -1; yy <= rows; yy++){
 		for(int xx = -1; xx <= 12; xx++){
-			int edge = 0;
-
 			for(int oy = -1; oy <= 1; oy++){
 				for(int ox = -1; ox <= 1; ox++){
 					int sy = yy + oy;
 					int sx = xx + ox;
-
 					if(sy >= 0 && sy < rows && sx >= 0 && sx < 12 && shape[sy][sx] == 'X')
-						edge = 1;
+						edge[yy + 1][xx + 1] = 1;
 				}
 			}
-
-			if(edge)
-				put_pixel(fb, vinfo, finfo, x + xx, y + yy, COLOR_WHITE);
 		}
 	}
 
-	for(int yy = 0; yy < rows; yy++)
-		for(int xx = 0; xx < 12; xx++)
-			if(shape[yy][xx] == 'X')
-				put_pixel(fb, vinfo, finfo, x + xx, y + yy, COLOR_TEXT);
+	if(bytes_per_pixel == 4){
+		/* Draw white edge */
+		for(int yy = 0; yy < rows + 2; yy++){
+			for(int xx = 0; xx < 14; xx++){
+				if(edge[yy][xx] && !(yy > 0 && yy <= rows && xx > 0 && xx <= 12 && shape[yy-1][xx-1] == 'X')){
+					int px = x + xx - 1;
+					int py = y + yy - 1;
+					if(px >= 0 && px < (int)vinfo->xres && py >= 0 && py < (int)vinfo->yres)
+						*(uint32_t *)(fb + py * finfo->line_length + px * 4) = COLOR_WHITE;
+				}
+			}
+		}
+		/* Draw main cursor */
+		for(int yy = 0; yy < rows; yy++){
+			for(int xx = 0; xx < 12; xx++){
+				if(shape[yy][xx] == 'X'){
+					int px = x + xx;
+					int py = y + yy;
+					if(px >= 0 && px < (int)vinfo->xres && py >= 0 && py < (int)vinfo->yres)
+						*(uint32_t *)(fb + py * finfo->line_length + px * 4) = COLOR_TEXT;
+				}
+			}
+		}
+	}else if(bytes_per_pixel == 2){
+		uint16_t white565 = ((0xff & 0xf8) << 8) | ((0xff & 0xfc) << 3) | (0xff >> 3);
+		uint8_t tr = (COLOR_TEXT >> 16) & 0xff;
+		uint8_t tg = (COLOR_TEXT >> 8) & 0xff;
+		uint8_t tb = COLOR_TEXT & 0xff;
+		uint16_t text565 = ((tr & 0xf8) << 8) | ((tg & 0xfc) << 3) | (tb >> 3);
+
+		for(int yy = 0; yy < rows + 2; yy++){
+			for(int xx = 0; xx < 14; xx++){
+				if(edge[yy][xx] && !(yy > 0 && yy <= rows && xx > 0 && xx <= 12 && shape[yy-1][xx-1] == 'X')){
+					int px = x + xx - 1;
+					int py = y + yy - 1;
+					if(px >= 0 && px < (int)vinfo->xres && py >= 0 && py < (int)vinfo->yres)
+						*(uint16_t *)(fb + py * finfo->line_length + px * 2) = white565;
+				}
+			}
+		}
+		for(int yy = 0; yy < rows; yy++){
+			for(int xx = 0; xx < 12; xx++){
+				if(shape[yy][xx] == 'X'){
+					int px = x + xx;
+					int py = y + yy;
+					if(px >= 0 && px < (int)vinfo->xres && py >= 0 && py < (int)vinfo->yres)
+						*(uint16_t *)(fb + py * finfo->line_length + px * 2) = text565;
+				}
+			}
+		}
+	}
 }
