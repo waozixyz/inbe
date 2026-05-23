@@ -1,0 +1,64 @@
+plugins {
+    id 'com.android.application'
+}
+
+android {
+    namespace 'xyz.waozi.inbe'
+    compileSdk 34
+
+    def keystorePropsFile = rootProject.file("local.properties")
+    def keystoreProps = new Properties()
+    if (keystorePropsFile.exists()) {
+        keystoreProps.load(new FileInputStream(keystorePropsFile))
+    }
+
+    def getKeystorePath = { -> keystoreProps['keystore.path'] }
+
+    def releasePassword = project.findProperty('keystore.password') ?: ""
+
+    signingConfigs {
+        release {
+            storeFile getKeystorePath() ? file(getKeystorePath()) : null
+            storePassword releasePassword
+            keyAlias "inbe-key"
+            keyPassword releasePassword
+        }
+    }
+
+    defaultConfig {
+        applicationId 'xyz.waozi.inbe'
+        minSdk 23
+        targetSdk 34
+        versionCode 1
+        versionName '1.0'
+
+        externalNativeBuild {
+            cmake {
+                arguments '-DANDROID_STL=c++_static'
+            }
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled false
+        }
+        debug {
+            signingConfig signingConfigs.debug
+        }
+    }
+
+    externalNativeBuild {
+        cmake {
+            path 'src/main/cpp/CMakeLists.txt'
+            version '3.22.1'
+        }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(":app:assembleRelease") && !project.findProperty('keystore.password')) {
+        throw new GradleException("Use: make android-release PASSWORD=your-password")
+    }
+}
