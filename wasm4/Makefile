@@ -1,5 +1,5 @@
-CC = clang
-CXX = clang++
+CC = $(if $(WASM_CC),$(WASM_CC),clang)
+CXX = $(if $(WASM_CXX),$(WASM_CXX),clang++)
 
 WASM_OPT = wasm-opt
 WASM_OPT_FLAGS = -Oz --zero-filled-memory --strip-producers --enable-bulk-memory
@@ -41,7 +41,7 @@ SOURCES = $(wildcard src/*.c) $(wildcard src/*.cpp)
 OBJECTS = $(patsubst src/%.c, build/%.o, $(patsubst src/%.cpp, build/%.o, $(SOURCES))) $(LOTUS_OBJ)
 DEPS = $(OBJECTS:.o=.d)
 
-all: build/cart.wasm
+all: build/cart.wasm bundle dist package
 
 build/cart.wasm: $(OBJECTS)
 	@mkdir -p build
@@ -67,7 +67,7 @@ build/%.o: src/%.cpp
 	@mkdir -p build
 	$(CXX) -c $< -o $@ $(CFLAGS)
 
-.PHONY: clean bundle dist
+.PHONY: clean bundle dist package
 clean:
 	rm -rf build
 
@@ -75,9 +75,9 @@ bundle: build/cart.wasm
 	w4 bundle build/cart.wasm --title "Inner Breeze" --html build/index.html
 
 dist: build/cart.wasm
-	w4 bundle build/cart.wasm --title "Inner Breeze" --windows build/inbe_x86_64.exe --linux build/inbe_x86_64
+	w4 bundle build/cart.wasm --title "Inner Breeze" --windows build/inbe-x86_64.exe --linux build/inbe-x86_64
 
-.PHONY: all
-all: build/cart.wasm
+package: dist
+	cd build && zip -q -9 inbe-windows.zip inbe-*.exe
 
 -include $(DEPS)

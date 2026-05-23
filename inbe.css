@@ -29,10 +29,20 @@ h1, h2, h3 {
 }
 
 .implementation-legend li {
-	display: flex;
-	align-items: flex-start;
-	gap: 12px;
 	margin-bottom: 14px;
+	text-align: left;
+}
+
+.legend-title {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	font-weight: bold;
+}
+
+.implementation-legend p {
+	margin: 6px 0 0 34px;
+	text-align: left;
 }
 
 .file-icon {
@@ -43,11 +53,41 @@ h1, h2, h3 {
 	width: 32px;
 }
 
+.grid {
+	display: flex;
+	flex-wrap: wrap;
+	justify-content: center;
+	gap: 16px;
+}
+
+.grid > div {
+	box-sizing: border-box;
+	flex: 0 0 calc(50% - 8px);
+	max-width: calc(50% - 8px);
+	width: calc(50% - 8px);
+	overflow: visible;
+}
+
+.app-platform {
+	align-items: flex-start;
+	justify-content: flex-start;
+}
+
+.app-platform .row {
+	align-items: center;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+}
+
+.app-platform a,
+.app-platform small {
+	white-space: nowrap;
+}
+
 .implementation-legend img {
 	flex: 0 0 24px;
 	width: 24px;
 	height: 24px;
-	margin-top: 2px;
 }
 
 .implementation-legend a,
@@ -118,4 +158,9 @@ h1, h2, h3 {
 
 .platform-btn.linux:hover {
 	background-color: #ffffdd;
+}
+
+.donation-buttons {
+	display: flex;
+	justify-content: space-around;
 }

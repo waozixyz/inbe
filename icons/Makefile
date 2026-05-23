@@ -1,7 +1,7 @@
 # Icon sizes for Inner Breeze
-# Run 'make' to regenerate from ../assets/inbe.png
+# Run 'make' to regenerate from ../../assets/inbe.png
 
-SOURCE_PNG := ../assets/inbe.png
+SOURCE_PNG := ../../assets/inbe.png
 
 .PHONY: all clean
 

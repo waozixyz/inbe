@@ -14,23 +14,14 @@ android {
 
     def getKeystorePath = { -> keystoreProps['keystore.path'] }
 
-    def getPassword = { ->
-        def password = project.findProperty('keystore.password')
-        if (password != null) return password
-
-        def console = System.console()
-        if (console != null) {
-            return new String(console.readPassword("\n> Enter keystore password: "))
-        }
-        throw new GradleException("No console available. Use: make release PASSWORD=your-password")
-    }
+    def releasePassword = project.findProperty('keystore.password') ?: ""
 
     signingConfigs {
         release {
-            storeFile file(getKeystorePath())
-            storePassword getPassword()
+            storeFile getKeystorePath() ? file(getKeystorePath()) : null
+            storePassword releasePassword
             keyAlias "inbe-key"
-            keyPassword getPassword()
+            keyPassword releasePassword
         }
     }
 
@@ -56,5 +47,11 @@ android {
             path "src/main/cpp/CMakeLists.txt"
             version "3.22.1"
         }
+    }
+}
+
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.hasTask(":app:assembleRelease") && !project.findProperty('keystore.password')) {
+        throw new GradleException("Use: make release PASSWORD=your-password")
     }
 }

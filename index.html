@@ -46,12 +46,12 @@
                     <img src="/assets/droid.png" alt="android"/>
                     <span>Download APK</span>
                 </a>
-                <a href="/inbe/wasm4/build/inbe_x86_64.exe" class="platform-btn windows">
+                <a href="/inbe/wasm4/build/inbe-windows.zip" class="platform-btn windows">
                     <img src="/assets/wasm4.png" alt="windows"/>
                     <span>Windows</span>
                 </a>
-                <a href="/inbe/wasm4/build/inbe_x86_64" class="platform-btn linux">
-                    <img src="/assets/wasm4.png" alt="linux"/>
+                <a href="/inbe/linux/build/inbe-linux.tar.gz" class="platform-btn linux">
+                    <img src="/assets/tux.png" alt="linux"/>
                     <span>Linux</span>
                 </a>
             </div>
@@ -80,7 +80,7 @@
                     <div class="app-platform">
                         <strong>Windows</strong>
                         <div class="row">
-                            <img class="file-icon" src="/assets/wasm4.png" alt="wasm4"/> <a href="/inbe/wasm4/build/inbe_x86_64.exe">inbe_x86_64.exe</a> <small>(240K)</small>
+                            <img class="file-icon" src="/assets/wasm4.png" alt="wasm4"/> <a href="/inbe/wasm4/build/inbe-windows.zip">inbe-windows.zip</a> <small>(WASM-4)</small>
                         </div>
                     </div>
                     <div class="app-platform">
@@ -92,7 +92,10 @@
                     <div class="app-platform">
                         <strong>Linux</strong>
                         <div class="row">
-                            <img class="file-icon" src="/assets/wasm4.png" alt="wasm4"/> <a href="/inbe/wasm4/build/inbe_x86_64">inbe_x86_64</a> <small>(212K)</small>
+                            <img class="file-icon" src="/assets/tux.png" alt="linux"/> <a href="/inbe/linux/build/inbe-linux.tar.gz">inbe-linux.tar.gz</a> <small>(X11 + fb)</small>
+                        </div>
+                        <div class="row">
+                            <img class="file-icon" src="/assets/wasm4.png" alt="wasm4"/> <a href="/inbe/wasm4/build/inbe-x86_64">inbe-x86_64</a> <small>(WASM-4)</small>
                         </div>
                     </div>
                     <div class="app-platform">
@@ -105,13 +108,44 @@
                 <div class="implementation-legend">
                     <strong>Legend</strong>
                     <ul>
-                        <li><img src="/assets/wasm4.png" alt="wasm4"/> <a href="https://wasm4.org">WASM-4</a> is a tiny fantasy console that runs WebAssembly cartridges.</li>
-                        <li><img src="/assets/uxn.png" alt="uxn"/> <a href="https://100r.co/site/uxn.html">Uxn</a> is a small virtual computer; <code>.rom</code> runs in a Uxn emulator.</li>
-                        <li><img src="/assets/cli.png" alt="cli"/> <a href="https://9fans.github.io/plan9port/man/man1/rc.html"><code>.rc</code></a> is a script for the Plan 9 rc shell.</li>
+                        <li>
+                            <div class="legend-title"><img src="/assets/wasm4.png" alt="wasm4"/> <a href="https://wasm4.org">WASM-4</a></div>
+                            <p>A tiny fantasy console that runs WebAssembly cartridges.</p>
+                        </li>
+                        <li>
+                            <div class="legend-title"><img src="/assets/uxn.png" alt="uxn"/> <a href="https://100r.co/site/uxn.html">Uxn</a></div>
+                            <p>A small virtual computer; <code>.rom</code> runs in a Uxn emulator.</p>
+                        </li>
+                        <li>
+                            <div class="legend-title"><img src="/assets/tux.png" alt="linux"/> <span>Linux</span></div>
+                            <p>Native Linux builds packaged as <code>.tar.gz</code>.</p>
+                        </li>
+                        <li>
+                            <div class="legend-title"><img src="/assets/cli.png" alt="cli"/> <a href="https://9fans.github.io/plan9port/man/man1/rc.html"><code>.rc</code></a></div>
+                            <p>A script for the Plan 9 rc shell.</p>
+                        </li>
                     </ul>
                 </div>
             </details>
+            <details>
+                <summary>donate</summary>
+                <br/>
+                <div class="donation-buttons">
+                    <!-- Stripe Redirect Button -->
+                    <a href="https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04" target="_blank" rel="noopener" class="platform-btn stripe-btn">
+                        <img src="/assets/stripe.png" alt="stripe" class="platform-icon-btn"/> <!-- Swap with a stripe/card icon if you have one -->
+                        <span>Donate via Stripe</span>
+                    </a>
+
+                    <!-- Trocador Monero Redirect Button -->
+                    <a href="https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff" target="_blank" rel="noopener" class="platform-btn xmr-btn">
+                        <img src="/assets/monero.png" alt="monero" class="platform-icon-btn"/> <!-- Swap with an XMR icon if you have one -->
+                        <span>Donate via Crypto</span>
+                    </a>
+                </div>
+            </details>
         </section>
+        
         <footer>
             <p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="https://git.sr.ht/~waozi/waozi" target="_blank" rel="noopener">hosted on sr.ht</a></p>
         </footer>
