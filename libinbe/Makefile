@@ -5,8 +5,8 @@ RANLIB ?= ranlib
 CFLAGS ?= -Wall -Wextra -O2
 CFLAGS += -I.
 
-LIB = liblotus.a
-OBJS = lotus.o
+LIB = libinbe.a
+OBJS = inbe.o
 
 all: $(LIB)
 
@@ -14,8 +14,8 @@ $(LIB): $(OBJS)
 	$(AR) rcs $(LIB) $(OBJS)
 	$(RANLIB) $(LIB)
 
-lotus.o: lotus.c lotus.h
-	$(CC) $(CFLAGS) -c lotus.c -o lotus.o
+inbe.o: inbe.c inbe.h
+	$(CC) $(CFLAGS) -c inbe.c -o inbe.o
 
 clean:
 	rm -f $(OBJS) $(LIB) test

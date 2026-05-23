@@ -1,4 +1,4 @@
-#include "lotus.h"
+#include "inbe.h"
 
 static int
 eqcount(const char a[CountSize], const char b[CountSize])
@@ -50,13 +50,13 @@ inccount(char v[CountSize])
 
 
 void
-lotusinit(Lotus *l)
+inbeinit(Inbe *l)
 {
 	if(l == 0)
 		return;
 
-    l->screen = LotusScreenStart;
-    l->phase = LotusPhaseBreathe;
+    l->screen = InbeScreenStart;
+    l->phase = InbePhaseBreathe;
     l->round = 0;
 
 	l->r = 25;
@@ -80,7 +80,7 @@ lotusinit(Lotus *l)
 
 
 static void
-breathe(Lotus *l)
+breathe(Inbe *l)
 {
 	l->breathtick++;
 	if(l->breathtick < l->breathtickmax)
@@ -103,12 +103,12 @@ breathe(Lotus *l)
 
 	if(eqcount(l->count, l->maxbreaths)){
 		cpcount(l->count, "000");
-		l->phase = LotusPhaseHold;
+		l->phase = InbePhaseHold;
 	}
 }
 
 static void
-next(Lotus *l)
+next(Inbe *l)
 {
     l->sectick++;
     if(l->sectick < 60)
@@ -118,24 +118,24 @@ next(Lotus *l)
     if(l->round < MaxRounds - 1){
         cpcount(l->count, "000");
         l->round++;
-        l->phase = LotusPhaseBreathe;
+        l->phase = InbePhaseBreathe;
     }else{
-        l->screen = LotusScreenResults;
+        l->screen = InbeScreenResults;
     }
 }
 
 static void
-recover(Lotus *l)
+recover(Inbe *l)
 {
     if(l->r < l->rmax && strcmp(l->count, "000") == 0) {
-        
+
         l->breathtick++;
         if(l->breathtick < l->breathtickmax)
             return;
         l->breathtick = 0;
 
         l->r += l->speed;
-        
+
     } else {
 
         if(strcmp(l->count, "015") == 0 && l->r > l->rmin) {
@@ -148,21 +148,21 @@ recover(Lotus *l)
             l->r -= l->speed;
 
             if(l->r == l->rmin)
-                l->phase = LotusPhaseNext;
+                l->phase = InbePhaseNext;
         } else {
 
             l->sectick++;
             if(l->sectick < 60)
                 return;
             l->sectick = 0;
-            
+
             inccount(l->count);
         }
     }
 }
 
 static void
-hold(Lotus *l)
+hold(Inbe *l)
 {
 	l->sectick++;
 	if(l->sectick < 60)
@@ -173,22 +173,22 @@ hold(Lotus *l)
 }
 
 void
-lotusstep(Lotus *l)
+inbestep(Inbe *l)
 {
 	if(l == 0)
 		return;
 
 	switch(l->phase){
-	case LotusPhaseBreathe:
+	case InbePhaseBreathe:
 		breathe(l);
 		break;
-	case LotusPhaseHold:
+	case InbePhaseHold:
 		hold(l);
 		break;
-	case LotusPhaseRecover:
+	case InbePhaseRecover:
 		recover(l);
 		break;
-	case LotusPhaseNext:
+	case InbePhaseNext:
 		next(l);
 		break;
 	}

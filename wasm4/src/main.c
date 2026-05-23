@@ -1,5 +1,5 @@
 #include "wasm4.h"
-#include "lotus.h"
+#include "../../libinbe/inbe.h"
 
 void*
 memset(void *dest, int byte, unsigned long n)
@@ -16,7 +16,7 @@ memset(void *dest, int byte, unsigned long n)
 #define WINDOW_WIDTH 160
 #define WINDOW_HEIGHT 160
 
-Lotus lotus;
+Inbe inbe;
 
 int
 strlen(const char *s1)
@@ -64,7 +64,7 @@ start(void)
 	PALETTE[2] = 0xeb6b6f;
 	PALETTE[3] = 0x7c3f58;
 
-	lotusinit(&lotus);
+	inbeinit(&inbe);
 }
 
 void
@@ -90,35 +90,23 @@ update(void)
 	center_y = (int32_t)(WINDOW_HEIGHT * 0.5);
 
 
-	if(lotus.screen == LotusScreenStart){
+	if(inbe.screen == InbeScreenStart){
 		if(drawbtn(mx, my, mb, center_x, center_y + 40, "PLAY") == 1)
-			lotus.screen = LotusScreenSession;
-	}else if(lotus.screen == LotusScreenSession){
-        lotusstep(&lotus);
+			inbe.screen = InbeScreenSession;
+	}else if(inbe.screen == InbeScreenSession){
+        inbestep(&inbe);
 
-		switch(lotus.phase){
-		case LotusPhaseHold:
+		switch(inbe.phase){
+		case InbePhaseHold:
 			if(drawbtn(mx, my, mb, center_x, center_y + 40, "BREATH") == 1){
-                cpcount(lotus.results[lotus.round], lotus.count);
-                cpcount(lotus.count, "000");
-                lotus.phase = LotusPhaseRecover;
+                cpcount(inbe.results[inbe.round], inbe.count);
+                cpcount(inbe.count, "000");
+                inbe.phase = InbePhaseRecover;
             }
 			break;
         }
 
-	}
-
-	if(lotus.screen < LotusScreenResults){
-		*DRAW_COLORS = 3;
-
-		current_x = center_x - (int32_t)lotus.r;
-		current_y = center_y - (int32_t)lotus.r;
-
-		oval(current_x, current_y, (uint32_t)lotus.r * 2, (uint32_t)lotus.r * 2);
-
-		*DRAW_COLORS = 2;
-		text(lotus.count, center_x - (3 * 4), center_y - 4);
-	}else{
+	}else if(inbe.screen == InbeScreenResults){
 		text("RESULTS", center_x - 4 * 7, 10);
 
 		for(i = 0; i < MaxRounds; i++){
@@ -128,12 +116,24 @@ update(void)
 			txt_r[3] = 0;
 
 			text(txt_r, center_x - 30, 40 + i * 20);
-			text(lotus.results[i], center_x - 4 * 3 + 20, 40 + i * 20);
+			text(inbe.results[i], center_x - 4 * 3 + 20, 40 + i * 20);
 		}
 
 		if(drawbtn(mx, my, mb, center_x, WINDOW_HEIGHT - 40, "RESTART") == 1)
-			lotusinit(&lotus);
+			inbeinit(&inbe);
 	}
 
-	lotus.frame++;
+	if(inbe.screen < InbeScreenResults){
+		*DRAW_COLORS = 3;
+
+		current_x = center_x - (int32_t)inbe.r;
+		current_y = center_y - (int32_t)inbe.r;
+
+		oval(current_x, current_y, (uint32_t)inbe.r * 2, (uint32_t)inbe.r * 2);
+
+		*DRAW_COLORS = 2;
+		text(inbe.count, center_x - 3, center_y - 4);
+	}
+
+	inbe.frame++;
 }

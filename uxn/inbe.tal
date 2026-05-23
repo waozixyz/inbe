@@ -695,8 +695,6 @@ JMP2r
 @txt-out      "OUT $1
 @txt-it       "IT $1
 @txt-hold     "HOLD $1
-( Tab names )
-@tab-back     "LOTUS $1
 
 @potato-rom-path "bin/potato.rom $1
 @inbe-rom-path "bin/inbe.rom $1
