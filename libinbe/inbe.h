@@ -1,5 +1,5 @@
-#ifndef LOTUS_H
-#define LOTUS_H
+#ifndef INBE_H
+#define INBE_H
 
 #if defined(__PLAN9__) || (!defined(__STDC__) && (defined(__i386__) || defined(__amd64__) || defined(__arm__)))
     typedef unsigned char      uint8_t;
@@ -25,21 +25,21 @@ enum {
 };
 
 enum {
-	LotusScreenStart = 0,
-	LotusScreenSession,
-	LotusScreenResults
+	InbeScreenStart = 0,
+	InbeScreenSession,
+	InbeScreenResults
 };
 
 enum {
-	LotusPhaseBreathe = 0,
-	LotusPhaseHold,
-	LotusPhaseRecover,
-	LotusPhaseNext
+	InbePhaseBreathe = 0,
+	InbePhaseHold,
+	InbePhaseRecover,
+	InbePhaseNext
 };
 
-typedef struct Lotus Lotus;
+typedef struct Inbe Inbe;
 
-struct Lotus {
+struct Inbe {
 	int screen;
 	int phase;
 	int round;
@@ -62,8 +62,8 @@ struct Lotus {
 	char results[MaxRounds][CountSize];
 };
 
-void lotusinit(Lotus *l);
-void lotusstep(Lotus *l);
+void inbeinit(Inbe *l);
+void inbestep(Inbe *l);
 void inccount(char v[CountSize]);
 void cpcount(char dst[CountSize], const char src[CountSize]);
 

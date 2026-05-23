@@ -27,16 +27,10 @@ android {
 
     defaultConfig {
         applicationId 'xyz.waozi.inbe'
-        minSdk 23
+        minSdk 19
         targetSdk 34
         versionCode 1
         versionName '1.0'
-
-        externalNativeBuild {
-            cmake {
-                arguments '-DANDROID_STL=c++_static'
-            }
-        }
     }
 
     buildTypes {

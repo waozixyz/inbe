@@ -76,8 +76,10 @@
           export RAY_RAYLIB_CONFIG="-DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0"
           export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
 
-          if [ ! -f android/local.properties ]; then
-            cat > android/local.properties <<EOF
+
+          if [ ! -f local.properties ] && \
+             { [ -f settings.gradle ] || [ -f settings.gradle.kts ] || [ -f build.gradle ] || [ -f build.gradle.kts ]; }; then
+            cat > local.properties <<EOF
 sdk.dir=$ANDROID_SDK_ROOT
 ndk.dir=$ANDROID_NDK_ROOT
 cmake.dir=$ANDROID_SDK_ROOT/cmake/3.22.1
