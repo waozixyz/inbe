@@ -64,15 +64,19 @@ inbeinit(Inbe *l)
 	l->rmax = 50;
 	l->dir = 0;
 	l->speed = 1;
+    l->speed_level = 3;
+    l->breath_frame = 0;
+    l->breath_half_ticks = 120;
 	l->frame = 0;
 	l->breathtick = 0;
 	l->breathtickmax = 3;
 	l->sectick = 0;
 	l->halftick = 0;
-	cpcount(l->results[0], "052");
-    cpcount(l->results[1], "040");
-    cpcount(l->results[2], "064");
-    cpcount(l->results[3], "020");
+    l->max_rounds = DefaultMaxRounds;
+    l->pause_seconds = DefaultPauseSeconds;
+
+    for(int i = 0; i < MaxRounds; i++)
+        cpcount(l->results[i], "000");
 
 	cpcount(l->count, "000");
 	cpcount(l->maxbreaths, "030");
@@ -82,24 +86,33 @@ inbeinit(Inbe *l)
 static void
 breathe(Inbe *l)
 {
-	l->breathtick++;
-	if(l->breathtick < l->breathtickmax)
-		return;
-	l->breathtick = 0;
+    int span = l->rmax - l->rmin;
+    int eased;
 
-	if(l->dir == 0){
-		if(l->r < l->rmax)
-			l->r += l->speed;
-		else
-			l->dir = 1;
-	}else{
-		if(l->r > l->rmin){
-			l->r -= l->speed;
-		}else{
-			l->dir = 0;
-			inccount(l->count);
-		}
-	}
+    if(span <= 0 || l->breath_half_ticks <= 0)
+        return;
+
+    l->breath_frame++;
+    if(l->breath_frame > l->breath_half_ticks)
+        l->breath_frame = l->breath_half_ticks;
+
+    eased = (l->breath_frame * span) / l->breath_half_ticks;
+    if(l->dir == 0)
+        l->r = l->rmin + eased;
+    else
+        l->r = l->rmax - eased;
+
+    if(l->breath_frame >= l->breath_half_ticks) {
+        l->breath_frame = 0;
+        if(l->dir == 0) {
+            l->dir = 1;
+            l->r = l->rmax;
+        } else {
+            l->dir = 0;
+            l->r = l->rmin;
+            inccount(l->count);
+        }
+    }
 
 	if(eqcount(l->count, l->maxbreaths)){
 		cpcount(l->count, "000");
@@ -110,12 +123,14 @@ breathe(Inbe *l)
 static void
 next(Inbe *l)
 {
+    int pause_ticks = l->pause_seconds * 60;
+
     l->sectick++;
-    if(l->sectick < 60)
+    if(l->sectick < pause_ticks)
         return;
     l->sectick = 0;
 
-    if(l->round < MaxRounds - 1){
+    if(l->round < l->max_rounds - 1){
         cpcount(l->count, "000");
         l->round++;
         l->phase = InbePhaseBreathe;

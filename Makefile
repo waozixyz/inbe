@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c
+SRC = src/main.c src/app.c ../liblotus/src/theme.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -77,7 +77,8 @@ WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/rtext.o
 WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE
 WEB_SHELL = src/web_shell.html
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png
+INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_FILEFORMAT_PNG=0,$(RAY_RAYLIB_CONFIG))
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections
 LDFLAGS = -Wl,--gc-sections -s
@@ -141,7 +142,7 @@ $(RAYLIB_A): FORCE | $(RAYLIB_BUILD_DIR)
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(RAY_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(INBE_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 	$(MAKE) -C $(RAYLIB_DIR) clean
 
 # Build native libinbe, then copy it into build/linux
@@ -151,7 +152,7 @@ $(LINUX_INBE_A): FORCE | $(LINUX_BUILD_DIR)
 	cp $(INBE_A) $@
 
 # Native executable
-$(TARGET): $(SRC) $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
+$(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -208,7 +209,7 @@ build-linux-arch:
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(LINUX_RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(LINUX_RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(LINUX_RAY_CFLAGS) $(RAY_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(LINUX_RAY_CFLAGS) $(INBE_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 	$(MAKE) -C $(RAYLIB_DIR) clean
 	$(LINUX_CC) $(CFLAGS) -I$(INBE_DIR) -c $(INBE_DIR)/inbe.c -o $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
 	$(LINUX_AR) rcs $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
@@ -242,7 +243,7 @@ $(WIN_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WIN_RAYLIB_BUILD_DIR)
 		-fno-strict-aliasing \
 		-std=gnu99 \
 		-DUNICODE \
-		$(RAY_RAYLIB_CONFIG) \
+		$(INBE_RAYLIB_CONFIG) \
 		-Os \
 		-ffunction-sections \
 		-fdata-sections \
@@ -267,7 +268,7 @@ $(WEB_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WEB_RAYLIB_BUILD_DIR)
 		-fno-strict-aliasing \
 		-std=gnu99 \
 		-D_DEFAULT_SOURCE \
-		$(RAY_RAYLIB_CONFIG) \
+		$(INBE_RAYLIB_CONFIG) \
 		-Os \
 		-ffunction-sections \
 		-fdata-sections \
@@ -359,6 +360,9 @@ dist-linux: linux
 		echo "No Linux binaries found in $(LINUX_BUILD_DIR)"; \
 		exit 1; \
 	fi
+	@cp inbe.ini theme.ini $(LINUX_BUILD_DIR)/dist/inbe-linux/
+	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
+	@cp ../icons/gear.png ../icons/x.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
 	@rm -rf $(LINUX_BUILD_DIR)/dist
 	@echo "Created $(LINUX_BUILD_DIR)/inbe-linux.tar.gz"
@@ -376,6 +380,9 @@ dist-windows:
 		echo "No Windows binaries found in $(WINDOWS_BUILD_DIR)"; \
 		exit 1; \
 	fi
+	@cp inbe.ini theme.ini $(WINDOWS_BUILD_DIR)/dist/inbe-windows/
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
+	@cp ../icons/gear.png ../icons/x.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/
 	@rm -rf $(WINDOWS_BUILD_DIR)/dist
 	@echo "Created $(WINDOWS_BUILD_DIR)/inbe-windows.zip"
@@ -400,6 +407,9 @@ android-copy-assets:
 	rm -rf $(ANDROID_DIR)/app/src/main/assets
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets
 	cp inbe.ini $(ANDROID_DIR)/app/src/main/assets/inbe.ini
+	cp theme.ini $(ANDROID_DIR)/app/src/main/assets/theme.ini
+	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
+	cp ../icons/gear.png ../icons/x.png $(ANDROID_DIR)/app/src/main/assets/icons/
 
 android-debug:
 	$(MAKE) android-copy-assets

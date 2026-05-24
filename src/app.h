@@ -9,8 +9,15 @@ typedef struct InbeApp InbeApp;
 
 struct InbeApp {
     Inbe inbe;
+    Inbe settings_preview;
     Camera2D camera;
     int cursor_clickable;
+    Texture2D gear_icon;
+    Texture2D x_icon;
+    int settings_scroll;
+    int settings_drag_slider;
+    int settings_drag_scrollbar;
+    int settings_dirty;
 };
 
 void inbe_app_init(void *app);

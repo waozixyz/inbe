@@ -1,39 +1,48 @@
 #include "raylib.h"
 #include "app.h"
 
-#if defined(PLATFORM_ANDROID)
-#include <android/native_app_glue.h>
-#endif
-
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif
 
 static InbeApp inbe_app;
 
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#define INBE_ANDROID_BUILD 1
+#else
+#define INBE_ANDROID_BUILD 0
+#endif
+
 static void
 frame(void)
 {
+    int width = GetScreenWidth();
+    int height = GetScreenHeight();
+    int render_width = GetRenderWidth();
+    int render_height = GetRenderHeight();
+
+    if(render_width > width)
+        width = render_width;
+    if(render_height > height)
+        height = render_height;
+
     BeginDrawing();
+    ClearBackground(BLACK);
     inbe_app_update_draw(&inbe_app, (Rectangle){
         0,
         0,
-        (float)GetScreenWidth(),
-        (float)GetScreenHeight()
+        (float)width,
+        (float)height
     });
     EndDrawing();
 }
 
-#if defined(PLATFORM_ANDROID)
-void android_main(struct android_app *app) {
-    (void)app;
-    InitWindow(0, 0, inbe_app_title());
-#else
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    InitWindow(inbe_app_width(), inbe_app_height(), inbe_app_title());
-#endif
+    int window_w = INBE_ANDROID_BUILD ? 0 : inbe_app_width();
+    int window_h = INBE_ANDROID_BUILD ? 0 : inbe_app_height();
+    InitWindow(window_w, window_h, inbe_app_title());
 
     inbe_app_init(&inbe_app);
     SetTargetFPS(60);
@@ -47,7 +56,5 @@ int main(int argc, char **argv) {
 
     CloseWindow();
 #endif
-#if !defined(PLATFORM_ANDROID)
     return 0;
-#endif
 }
