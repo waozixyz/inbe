@@ -109,7 +109,7 @@ update(void)
 	}else if(inbe.screen == InbeScreenResults){
 		text("RESULTS", center_x - 4 * 7, 10);
 
-		for(i = 0; i < MaxRounds; i++){
+		for(i = 0; i < inbe.max_rounds; i++){
 			txt_r[0] = 'R';
 			txt_r[1] = (char)(i + '1');
 			txt_r[2] = ':';

@@ -21,13 +21,17 @@ enum {
 
 enum {
     CountSize = 4,
-    MaxRounds = 4
+    MaxRounds = 12,
+    DefaultMaxRounds = 4,
+    DefaultMaxBreaths = 30,
+    DefaultPauseSeconds = 2
 };
 
 enum {
 	InbeScreenStart = 0,
 	InbeScreenSession,
-	InbeScreenResults
+	InbeScreenResults,
+    InbeScreenSettings
 };
 
 enum {
@@ -46,15 +50,20 @@ struct Inbe {
 
     int r;
     int rmin;
-    int rmax;
-    int dir;
-    int speed;
-    int frame;
+	int rmax;
+	int dir;
+	int speed;
+    int speed_level;
+    int breath_frame;
+    int breath_half_ticks;
+	int frame;
 
 	int breathtick;
 	int breathtickmax;
 	int sectick;
 	int halftick;
+    int max_rounds;
+    int pause_seconds;
 
     char count[CountSize];
     char maxbreaths[CountSize];
