@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/inbe_raylib.c
+SRC = src/main.c src/app.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -77,7 +77,7 @@ WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/rtext.o
 WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE
 WEB_SHELL = src/web_shell.html
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL)
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections
 LDFLAGS = -Wl,--gc-sections -s
@@ -155,6 +155,7 @@ $(TARGET): $(SRC) $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		-I../liblotus/include \
 		$(RAY_CFLAGS) \
 		-o $@ \
 		$(SRC) \
@@ -214,6 +215,7 @@ build-linux-arch:
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		-I../liblotus/include \
 		$(LINUX_RAY_CFLAGS) \
 		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
 		$(SRC) \
@@ -278,6 +280,7 @@ $(WEB_TARGET): $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) | $(WEB_BU
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		-I../liblotus/include \
 		-o $@ \
 		$(SRC) \
 		$(INBE_DIR)/inbe.c \
@@ -295,6 +298,7 @@ $(WIN_TARGET): $(SRC) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
 	$(WIN_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		-I../liblotus/include \
 		-o $@ \
 		$(SRC) \
 		$(WIN_INBE_A) \
@@ -392,11 +396,18 @@ android-init-signing:
 	@echo "Add this line to $(ANDROID_DIR)/local.properties:"
 	@echo "  keystore.path=$$HOME/.android/inbe-release.keystore"
 
+android-copy-assets:
+	rm -rf $(ANDROID_DIR)/app/src/main/assets
+	mkdir -p $(ANDROID_DIR)/app/src/main/assets
+	cp inbe.ini $(ANDROID_DIR)/app/src/main/assets/inbe.ini
+
 android-debug:
+	$(MAKE) android-copy-assets
 	$(GRADLE) -p $(ANDROID_DIR) assembleDebug
 	$(MAKE) android-copy-debug-apks
 
 android-release:
+	$(MAKE) android-copy-assets
 	@if [ -n "$(PASSWORD)" ]; then \
 		PASSWORD_VALUE="$(PASSWORD)"; \
 	elif [ -t 0 ]; then \
@@ -485,6 +496,7 @@ FORCE:
 	android-init-signing \
 	android-debug \
 	android-release \
+	android-copy-assets \
 	android-copy-apks \
 	android-copy-debug-apks \
 	android-copy-release-apks \
