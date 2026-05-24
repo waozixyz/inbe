@@ -6,79 +6,57 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Inner Breeze</title>
     <link href="/style.css" rel="stylesheet">
-    <link href="/inbe.css" rel="stylesheet">
+    <link href="../../inbe.css" rel="stylesheet">
     <style>
       .web-shell {
-        max-width: 560px;
-      }
-
-      #status {
-        margin: 0;
-        color: var(--dark);
-        font-size: 13px;
-        text-align: center;
-      }
-
-      #progress {
-        width: min(480px, 100%);
-      }
-
-      .web-player {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        box-sizing: border-box;
         display: flex;
         flex-direction: column;
         align-items: center;
+        justify-content: flex-start;
         gap: 12px;
+        padding: 24px 12px;
+        font-family: departure;
       }
 
-      .web-canvas-frame {
-        width: 480px;
-        max-width: 100%;
-        background: #000000;
-        border: 2px solid var(--dark);
-        border-right-color: var(--button-highlight);
-        border-bottom-color: var(--button-highlight);
-        box-shadow:
-          inset 1px 1px 0 0 var(--shadow),
-          1px 1px 0 0 var(--button-highlight);
+      #status,
+      #progress {
+        display: none;
       }
 
       canvas.emscripten {
+        position: relative;
+        z-index: 1;
         display: block;
         width: 480px;
         height: 640px;
         max-width: 100%;
         aspect-ratio: 3 / 4;
         border: 0;
-        background: black;
+        background: #000000;
         image-rendering: pixelated;
+      }
+
+      .web-back {
+        position: relative;
+        z-index: 1;
+        flex-direction: row;
+        min-width: 0;
+        padding: 10px 16px;
       }
     </style>
   </head>
   <body>
-    <div class="content web-shell">
-      <section>
-        <div class="platform-header">
-          <img src="/icons/inbe.png" alt="Inner Breeze">
-          <div>
-            <strong>Inner Breeze</strong>
-            <p>WebAssembly build</p>
-          </div>
-        </div>
-
-        <div class="web-player">
-          <div id="status">Downloading...</div>
-          <progress value="0" max="100" id="progress" hidden></progress>
-          <div class="web-canvas-frame">
-            <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-          </div>
-          <div class="platform-buttons">
-            <a class="platform-btn web" href="https://inbe.waozi.xyz/">
-              <img src="/icons/inbe.png" alt="">
-              <span>Back to Inner Breeze</span>
-            </a>
-          </div>
-        </div>
-      </section>
+    <div class="web-shell">
+      <div id="status">Downloading...</div>
+      <progress value="0" max="100" id="progress" hidden></progress>
+      <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+      <a class="platform-btn web web-back" href="https://inbe.waozi.xyz/">
+        <span>Back to Inner Breeze</span>
+      </a>
     </div>
 
     <script>
