@@ -27,14 +27,23 @@
         display: none;
       }
 
-      canvas.emscripten {
+      .canvas-frame {
         position: relative;
         z-index: 1;
-        display: block;
-        width: 480px;
-        height: 640px;
-        max-width: 100%;
+        width: min(480px, calc(100vw - 24px), calc(max(160px, 100vh - 108px) * 3 / 4));
         aspect-ratio: 3 / 4;
+        background: #000000;
+        overflow: hidden;
+      }
+
+      canvas.emscripten {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
         border: 0;
         background: #000000;
         image-rendering: pixelated;
@@ -53,7 +62,9 @@
     <div class="web-shell">
       <div id="status">Downloading...</div>
       <progress value="0" max="100" id="progress" hidden></progress>
-      <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+      <div class="canvas-frame">
+        <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+      </div>
       <a class="platform-btn web web-back" href="https://inbe.waozi.xyz/">
         <span>Back to Inner Breeze</span>
       </a>
