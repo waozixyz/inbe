@@ -1,5 +1,5 @@
 #include "raylib.h"
-#include "inbe_raylib.h"
+#include "app.h"
 
 #if defined(PLATFORM_ANDROID)
 #include <android/native_app_glue.h>
@@ -15,7 +15,7 @@ static void
 frame(void)
 {
     BeginDrawing();
-    inbe_raylib_update_draw(&inbe_app, (Rectangle){
+    inbe_app_update_draw(&inbe_app, (Rectangle){
         0,
         0,
         (float)GetScreenWidth(),
@@ -27,15 +27,15 @@ frame(void)
 #if defined(PLATFORM_ANDROID)
 void android_main(struct android_app *app) {
     (void)app;
-    InitWindow(0, 0, INBE_TITLE);
+    InitWindow(0, 0, inbe_app_title());
 #else
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    InitWindow(INBE_WIDTH, INBE_HEIGHT, INBE_TITLE);
+    InitWindow(inbe_app_width(), inbe_app_height(), inbe_app_title());
 #endif
 
-    inbe_raylib_init(&inbe_app);
+    inbe_app_init(&inbe_app);
     SetTargetFPS(60);
 
 #if defined(PLATFORM_WEB)
