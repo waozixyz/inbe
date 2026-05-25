@@ -56,7 +56,7 @@ inbeinit(Inbe *l)
 		return;
 
     l->screen = InbeScreenStart;
-    l->phase = InbePhaseBreathe;
+    l->phase = InbePhaseStarting;
     l->round = 0;
 
 	l->r = 25;
@@ -82,6 +82,25 @@ inbeinit(Inbe *l)
 	cpcount(l->maxbreaths, "030");
 }
 
+
+static void
+starting(Inbe *l)
+{
+    int pause_ticks = l->pause_seconds * 60;
+
+    if(pause_ticks <= 0) {
+        l->sectick = 0;
+        l->phase = InbePhaseBreathe;
+        return;
+    }
+
+    l->sectick++;
+    if(l->sectick < pause_ticks)
+        return;
+
+    l->sectick = 0;
+    l->phase = InbePhaseBreathe;
+}
 
 static void
 breathe(Inbe *l)
@@ -123,17 +142,10 @@ breathe(Inbe *l)
 static void
 next(Inbe *l)
 {
-    int pause_ticks = l->pause_seconds * 60;
-
-    l->sectick++;
-    if(l->sectick < pause_ticks)
-        return;
-    l->sectick = 0;
-
     if(l->round < l->max_rounds - 1){
         cpcount(l->count, "000");
         l->round++;
-        l->phase = InbePhaseBreathe;
+        l->phase = InbePhaseStarting;
     }else{
         l->screen = InbeScreenResults;
     }
@@ -142,38 +154,52 @@ next(Inbe *l)
 static void
 recover(Inbe *l)
 {
+    int span = l->rmax - l->rmin;
+    int eased;
+
+    if(span <= 0 || l->breath_half_ticks <= 0)
+        return;
+
     if(l->r < l->rmax && strcmp(l->count, "000") == 0) {
+        l->breath_frame++;
+        if(l->breath_frame > l->breath_half_ticks)
+            l->breath_frame = l->breath_half_ticks;
 
-        l->breathtick++;
-        if(l->breathtick < l->breathtickmax)
-            return;
-        l->breathtick = 0;
+        eased = (l->breath_frame * span) / l->breath_half_ticks;
+        l->r = l->rmin + eased;
 
-        l->r += l->speed;
-
-    } else {
-
-        if(strcmp(l->count, "015") == 0 && l->r > l->rmin) {
-
-            l->breathtick++;
-            if(l->breathtick < l->breathtickmax)
-                return;
-            l->breathtick = 0;
-
-            l->r -= l->speed;
-
-            if(l->r == l->rmin)
-                l->phase = InbePhaseNext;
-        } else {
-
-            l->sectick++;
-            if(l->sectick < 60)
-                return;
+        if(l->breath_frame >= l->breath_half_ticks) {
+            l->breath_frame = 0;
             l->sectick = 0;
-
-            inccount(l->count);
+            l->r = l->rmax;
         }
+        return;
     }
+
+    if(strcmp(l->count, "015") == 0 && l->r > l->rmin) {
+        l->breath_frame++;
+        if(l->breath_frame > l->breath_half_ticks)
+            l->breath_frame = l->breath_half_ticks;
+
+        eased = (l->breath_frame * span) / l->breath_half_ticks;
+        l->r = l->rmax - eased;
+
+        if(l->breath_frame >= l->breath_half_ticks) {
+            l->breath_frame = 0;
+            l->sectick = 0;
+            l->r = l->rmin;
+            cpcount(l->count, "000");
+            l->phase = InbePhaseNext;
+        }
+        return;
+    }
+
+    l->sectick++;
+    if(l->sectick < 60)
+        return;
+    l->sectick = 0;
+
+    inccount(l->count);
 }
 
 static void
@@ -194,6 +220,9 @@ inbestep(Inbe *l)
 		return;
 
 	switch(l->phase){
+	case InbePhaseStarting:
+		starting(l);
+		break;
 	case InbePhaseBreathe:
 		breathe(l);
 		break;

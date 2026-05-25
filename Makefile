@@ -77,7 +77,7 @@ WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/rtext.o
 WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE
 WEB_SHELL = src/web_shell.html
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png --preload-file ../icons/manual.png@icons/manual.png --preload-file ../icons/return.png@icons/return.png --preload-file ../icons/backward.png@icons/backward.png --preload-file ../icons/forward.png@icons/forward.png --preload-file ../icons/play.png@icons/play.png --preload-file ../icons/pause.png@icons/pause.png --preload-file ../icons/stat.png@icons/stat.png --preload-file assets/angel.png@assets/angel.png --preload-file assets/begin.png@assets/begin.png
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_FILEFORMAT_PNG=0,$(RAY_RAYLIB_CONFIG))
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections
@@ -362,7 +362,9 @@ dist-linux: linux
 	fi
 	@cp inbe.ini theme.ini $(LINUX_BUILD_DIR)/dist/inbe-linux/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
-	@cp ../icons/gear.png ../icons/x.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
+	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
+	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
+	@cp assets/angel.png assets/begin.png $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
 	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
 	@rm -rf $(LINUX_BUILD_DIR)/dist
 	@echo "Created $(LINUX_BUILD_DIR)/inbe-linux.tar.gz"
@@ -382,7 +384,9 @@ dist-windows:
 	fi
 	@cp inbe.ini theme.ini $(WINDOWS_BUILD_DIR)/dist/inbe-windows/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
-	@cp ../icons/gear.png ../icons/x.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
+	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
+	@cp assets/angel.png assets/begin.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
 	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/
 	@rm -rf $(WINDOWS_BUILD_DIR)/dist
 	@echo "Created $(WINDOWS_BUILD_DIR)/inbe-windows.zip"
@@ -409,7 +413,9 @@ android-copy-assets:
 	cp inbe.ini $(ANDROID_DIR)/app/src/main/assets/inbe.ini
 	cp theme.ini $(ANDROID_DIR)/app/src/main/assets/theme.ini
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
-	cp ../icons/gear.png ../icons/x.png $(ANDROID_DIR)/app/src/main/assets/icons/
+	cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(ANDROID_DIR)/app/src/main/assets/icons/
+	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets
+	cp assets/angel.png assets/begin.png $(ANDROID_DIR)/app/src/main/assets/assets/
 
 android-debug:
 	$(MAKE) android-copy-assets
