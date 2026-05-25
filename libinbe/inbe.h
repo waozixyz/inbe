@@ -31,11 +31,14 @@ enum {
 	InbeScreenStart = 0,
 	InbeScreenSession,
 	InbeScreenResults,
-    InbeScreenSettings
+    InbeScreenSettings,
+    InbeScreenManual,
+    InbeScreenHistory
 };
 
 enum {
-	InbePhaseBreathe = 0,
+    InbePhaseStarting = 0,
+	InbePhaseBreathe,
 	InbePhaseHold,
 	InbePhaseRecover,
 	InbePhaseNext

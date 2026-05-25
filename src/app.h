@@ -14,10 +14,25 @@ struct InbeApp {
     int cursor_clickable;
     Texture2D gear_icon;
     Texture2D x_icon;
+    Texture2D manual_icon;
+    Texture2D return_icon;
+    Texture2D backward_icon;
+    Texture2D forward_icon;
+    Texture2D play_icon;
+    Texture2D pause_icon;
+    Texture2D stat_icon;
+    Texture2D angel_image;
+    Texture2D begin_image;
     int settings_scroll;
     int settings_drag_slider;
     int settings_drag_scrollbar;
     int settings_dirty;
+    int manual_scroll;
+    int tutorial_step;
+    int tutorial_seen;
+    int history_scroll;
+    int session_paused;
+    int results_saved;
 };
 
 void inbe_app_init(void *app);
