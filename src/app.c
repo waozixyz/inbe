@@ -11,8 +11,8 @@
 #include <time.h>
 
 #define INBE_DEFAULT_TITLE "Inner Breeze"
-#define INBE_DEFAULT_WIDTH 272
-#define INBE_DEFAULT_HEIGHT 400
+#define INBE_DEFAULT_WIDTH 320
+#define INBE_DEFAULT_HEIGHT 560
 typedef struct InbeConfig {
     char title[64];
     int width;
@@ -29,7 +29,6 @@ static InbeConfig config = {
 
 static int view_width = INBE_DEFAULT_WIDTH;
 static int view_height = INBE_DEFAULT_HEIGHT;
-
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 enum {
@@ -40,8 +39,11 @@ enum {
     SETTINGS_PAUSE_MIN = 0,
     SETTINGS_PAUSE_MAX = 30,
     SETTINGS_TITLE_H = 38,
-    TAB_BAR_H = 56,
-    SETTINGS_CONTENT_H = 398,
+    TAB_BAR_H = 48,
+    SETTINGS_CONTENT_H = 460,
+    CONTENT_MAX_W = 440,
+    CONTENT_SIDE_PAD = 16,
+    CIRCLE_SIDE_PAD = 24,
     TUTORIAL_STEPS = 5,
     HISTORY_MAX_SESSIONS = 48,
     HISTORY_PATH_SIZE = 96,
@@ -73,6 +75,141 @@ refresh_theme_colors(void)
     c_button = theme_get("inbe", "button");
     c_button_hover = theme_get("inbe", "button_hover");
     c_icon = theme_get("inbe", "icon");
+}
+
+static int
+ui_px(int px)
+{
+    return px;
+}
+
+static int
+ui_clamp_px(int px, int min_px, int max_px)
+{
+    int value = px;
+    int min_value = min_px;
+    int max_value = max_px;
+
+    if(value < min_value)
+        value = min_value;
+    if(value > max_value)
+        value = max_value;
+    return value;
+}
+
+static void
+centered_column(int max_w, int side_pad, int *x, int *w)
+{
+    int available_w = view_width - side_pad * 2;
+
+    if(available_w < 0)
+        available_w = 0;
+    if(max_w > available_w)
+        max_w = available_w;
+    if(max_w < 0)
+        max_w = 0;
+
+    if(x != NULL)
+        *x = (view_width - max_w) / 2;
+    if(w != NULL)
+        *w = max_w;
+}
+
+static int
+clampi(int value, int min, int max);
+
+static void
+set_circle_bounds(Inbe *inbe, int rmin, int rmax)
+{
+    int old_rmin;
+    int old_rmax;
+    int old_span;
+    int new_span;
+
+    if(inbe == NULL)
+        return;
+
+    if(rmin < 8)
+        rmin = 8;
+    if(rmax < rmin + 8)
+        rmax = rmin + 8;
+
+    old_rmin = inbe->rmin;
+    old_rmax = inbe->rmax;
+    old_span = old_rmax - old_rmin;
+    new_span = rmax - rmin;
+
+    if(old_span > 0) {
+        float t = (float)(inbe->r - old_rmin) / (float)old_span;
+
+        if(t < 0.0f)
+            t = 0.0f;
+        if(t > 1.0f)
+            t = 1.0f;
+
+        inbe->r = rmin + t * (float)new_span;
+    } else {
+        inbe->r = rmin;
+    }
+
+    inbe->rmin = rmin;
+    inbe->rmax = rmax;
+    if(inbe->r < rmin)
+        inbe->r = rmin;
+    if(inbe->r > rmax)
+        inbe->r = rmax;
+}
+
+static void
+update_circle_bounds_for_view(Inbe *inbe, int top_reserve, int bottom_reserve)
+{
+    int available_w = view_width - CIRCLE_SIDE_PAD * 2;
+    int available_h = view_height - top_reserve - bottom_reserve - CIRCLE_SIDE_PAD * 2;
+    int rmax;
+    int rmin;
+
+    if(available_w < 0)
+        available_w = 0;
+    if(available_h < 0)
+        available_h = 0;
+
+    rmax = available_w / 2;
+    if(available_h / 2 < rmax)
+        rmax = available_h / 2;
+    if(rmax < 24)
+        rmax = 24;
+
+    rmin = rmax / 2;
+    if(rmin < 16)
+        rmin = 16;
+    if(rmin > rmax - 8)
+        rmin = rmax - 8;
+
+    set_circle_bounds(inbe, rmin, rmax);
+}
+
+static void
+update_preview_bounds(Inbe *inbe, int content_w, int content_h)
+{
+    int span = content_w;
+    int rmax;
+    int rmin;
+
+    if(content_h > 0 && content_h < span)
+        span = content_h;
+
+    rmax = span / 2;
+    if(rmax < 60)
+        rmax = 60;
+    if(rmax > 120)
+        rmax = 120;
+    rmin = rmax / 2;
+    if(rmin < 24)
+        rmin = 24;
+    if(rmin > rmax - 10)
+        rmin = rmax - 10;
+
+    set_circle_bounds(inbe, rmin, rmax);
 }
 
 static void
@@ -225,14 +362,10 @@ reset_round_recover(Inbe *inbe)
 static void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
-    static const int breath_half_ticks[] = {180, 156, 132, 114, 96, 78, 66, 54, 45};
-    static const int recover_pixels[] = {1, 1, 2, 2, 3, 3, 4, 4, 5};
-    static const int recover_ticks[] = {4, 3, 5, 4, 5, 4, 5, 4, 4};
+    static const int breath_half_ticks[] = {66, 60, 54, 48, 42, 36, 30, 24, 18};
 
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
-    inbe->speed = recover_pixels[speed - 1];
-    inbe->breathtickmax = recover_ticks[speed - 1];
     inbe->breath_half_ticks = breath_half_ticks[speed - 1];
     inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
     inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
@@ -246,11 +379,12 @@ reset_settings_preview(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int content_w;
 
     inbeinit(&app->settings_preview);
+    centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
+    update_preview_bounds(&app->settings_preview, content_w, 132);
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-    app->settings_preview.rmin = view_width * 0.2f;
-    app->settings_preview.rmax = view_width * 0.4f;
     reset_round_breathe(&app->settings_preview);
 }
 
@@ -274,7 +408,7 @@ load_settings(InbeApp *app)
 {
     rini_data settings = rini_load("settings.ini");
 
-    int speed = rini_get_value_fallback(settings, "speed", 6);
+    int speed = rini_get_value_fallback(settings, "speed", 3);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
@@ -340,10 +474,8 @@ start_session(InbeApp *app)
     int pause_seconds = app->inbe.pause_seconds;
 
     inbeinit(&app->inbe);
-    app->inbe.rmax = view_width * 0.4f;
-    app->inbe.rmin = view_width * 0.2f;
-    app->inbe.r = app->inbe.rmin;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+    update_circle_bounds_for_view(&app->inbe, 0, ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
@@ -937,9 +1069,9 @@ drawbtn(InbeApp *app, int x, int y, const char *label, int *hover)
 
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = 20;
-    int w = (int)MeasureText(label, font) + 20;
-    int h = 30;
+    int font = ui_clamp_px(20, 16, 22);
+    int w = (int)MeasureText(label, font) + ui_px(20);
+    int h = ui_clamp_px(30, 26, 34);
 
     x = x - w / 2;
 
@@ -962,7 +1094,7 @@ drawbtn(InbeApp *app, int x, int y, const char *label, int *hover)
         *hover = 0;
     }
 
-    DrawText(label, x + 10, y + 5, font, c_text);
+    DrawText(label, x + ui_px(10), y + ui_px(5), font, c_text);
 
     return pressed;
 }
@@ -1007,37 +1139,97 @@ drawiconbtn(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
     return pressed;
 }
 
+static int
+nav_button_width(const char *label, int icon_size, int show_label, int font)
+{
+    int width = icon_size + 8;
+
+    if(show_label && label != NULL && label[0] != '\0')
+        width += 10 + MeasureText(label, font);
+    return width;
+}
+
+static int
+draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const char *label,
+                int show_label, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int font = ui_clamp_px(14, 12, 16);
+    int w = nav_button_width(label, icon_size, show_label, font);
+    int h = ui_clamp_px(30, 26, 34);
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        draw_bevel(x, y, w, h, darken(c_button_hover, 40), lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb)
+            draw_bevel(x, y, w, h, lighten(c_button_hover, 40), darken(c_button_hover, 40));
+        if(released)
+            pressed = 1;
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        draw_bevel(x, y, w, h, lighten(c_button, 40), darken(c_button, 40));
+        *hover = 0;
+    }
+
+    if(icon.id != 0) {
+        Rectangle src = {0, 0, icon.width, icon.height};
+        Rectangle dst = {x + 4, y + 4, (float)icon_size, (float)icon_size};
+        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    }
+
+    if(show_label && label != NULL && label[0] != '\0') {
+        int text_x = x + icon_size + 12;
+        int text_y = y + 5;
+        DrawText(label, text_x, text_y, font, c_text);
+    }
+
+    return pressed;
+}
+
 static void
 draw_tab_bar(InbeApp *app)
 {
-    int bar_y = view_height - TAB_BAR_H;
-    int button_size = 32;
-    int button_w = button_size + 12;
-    int gap = 16;
-    int total_w = button_w * 3 + gap * 2;
-    int start_x = view_width / 2 - total_w / 2;
-    int stat_x = start_x;
-    int manual_x = stat_x + button_w + gap;
-    int gear_x = manual_x + button_w + gap;
+    int bar_h = ui_clamp_px(TAB_BAR_H, 44, 56);
+    int bar_y = view_height - bar_h;
+    int button_size = ui_clamp_px(20, 18, 24);
+    int show_labels = view_width >= 420;
+    int font = ui_clamp_px(14, 12, 16);
+    int stat_w = nav_button_width("History", button_size, show_labels, font);
+    int manual_w = nav_button_width("Manual", button_size, show_labels, font);
+    int gear_w = nav_button_width("Settings", button_size, show_labels, font);
+    int group_gap = 10;
+    int group_w = stat_w + manual_w + gear_w + group_gap * 2;
+    int group_x = (view_width - group_w) / 2;
+    int button_y = bar_y + (bar_h - ui_clamp_px(30, 26, 34)) / 2;
     int tab_hover = 0;
 
-    DrawRectangle(0, bar_y, view_width, TAB_BAR_H, darken(c_bg, 10));
+    DrawRectangle(0, bar_y, view_width, bar_h, darken(c_bg, 10));
     DrawLine(0, bar_y, view_width, bar_y, darken(c_bg, 42));
 
     if(app->stat_icon.id != 0) {
-        if(drawiconbtn(app, stat_x, bar_y + 10, button_size, app->stat_icon, &tab_hover)) {
+        if(draw_nav_button(app, group_x, button_y, button_size, app->stat_icon,
+                           "History", show_labels, &tab_hover)) {
             history_open_latest(app);
             app->inbe.screen = InbeScreenHistory;
         }
     }
     if(app->manual_icon.id != 0) {
-        if(drawiconbtn(app, manual_x, bar_y + 10, button_size, app->manual_icon, &tab_hover)) {
+        if(draw_nav_button(app, group_x + stat_w + group_gap, button_y, button_size,
+                           app->manual_icon, "Manual", show_labels, &tab_hover)) {
             app->tutorial_step = 0;
             app->inbe.screen = InbeScreenManual;
         }
     }
     if(app->gear_icon.id != 0) {
-        if(drawiconbtn(app, gear_x, bar_y + 10, button_size, app->gear_icon, &tab_hover)) {
+        if(draw_nav_button(app, group_x + stat_w + manual_w + group_gap * 2, button_y,
+                           button_size, app->gear_icon, "Settings", show_labels, &tab_hover)) {
             reset_settings_preview(app);
             app->inbe.screen = InbeScreenSettings;
         }
@@ -1061,6 +1253,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     char text[32];
     int remaining;
     int text_w;
+    int text_y;
 
     if(app->inbe.phase != InbePhaseStarting || app->inbe.pause_seconds <= 0)
         return;
@@ -1071,7 +1264,10 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
 
     snprintf(text, sizeof(text), "STARTING IN %d", remaining);
     text_w = MeasureText(text, 18);
-    DrawText(text, center_x - text_w / 2, center_y + app->inbe.rmin + 12, 18, c_text);
+    text_y = center_y + app->inbe.rmax + 12;
+    if(text_y > view_height - 72)
+        text_y = view_height - 72;
+    DrawText(text, center_x - text_w / 2, text_y, 18, c_text);
 }
 
 static void
@@ -1110,7 +1306,7 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 static void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
-    int r = (int)((float)inbe->r * 0.48f);
+    int r = (int)((float)inbe->r * 0.72f);
     DrawCircle(center_x, center_y, r, c_circle);
     DrawCircleLines(center_x, center_y, r, c_text);
 }
@@ -1121,12 +1317,12 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
-    int label_font = 16;
-    int value_font = 16;
-    int track_y = y + 28;
-    int track_h = 8;
-    int knob_w = 12;
-    int knob_h = 22;
+    int label_font = ui_clamp_px(16, 14, 18);
+    int value_font = ui_clamp_px(16, 14, 18);
+    int track_y = y + ui_px(28);
+    int track_h = ui_px(8);
+    int knob_w = ui_px(12);
+    int knob_h = ui_px(22);
     int changed = 0;
     char value_text[32];
     Rectangle hit = {(float)(x - 6), (float)(track_y - 10), (float)(w + 12), 32};
@@ -1171,10 +1367,11 @@ draw_scrollbar(InbeApp *app, int *scroll, int content_h, int viewport_h)
         return;
 
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int bar_x = view_width - 8;
-    int bar_y = SETTINGS_TITLE_H + 4;
-    int bar_w = 4;
-    int bar_h = viewport_h - 8;
+    int title_h = ui_clamp_px(SETTINGS_TITLE_H, 34, 44);
+    int bar_x = view_width - 6;
+    int bar_y = title_h;
+    int bar_w = 6;
+    int bar_h = viewport_h;
     int thumb_h = (viewport_h * bar_h) / content_h;
     if(thumb_h < 24)
         thumb_h = 24;
@@ -1202,22 +1399,27 @@ draw_scrollbar(InbeApp *app, int *scroll, int content_h, int viewport_h)
 static void
 draw_settings(InbeApp *app)
 {
-    int center_x = view_width / 2;
-    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
+    int title_h = ui_clamp_px(SETTINGS_TITLE_H, 34, 44);
+    int tab_h = ui_clamp_px(TAB_BAR_H, 44, 56);
+    int viewport_h = view_height - title_h - tab_h;
     int max_scroll = SETTINGS_CONTENT_H - viewport_h;
     int gear_hover = 0;
+    int content_x;
+    int content_w;
 
     if(max_scroll < 0)
         max_scroll = 0;
 
+    centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+
     app->settings_scroll -= (int)(GetMouseWheelMove() * 24.0f);
     app->settings_scroll = clampi(app->settings_scroll, 0, max_scroll);
 
-    DrawRectangle(0, 0, view_width, SETTINGS_TITLE_H, darken(c_bg, 14));
-    DrawLine(0, SETTINGS_TITLE_H - 1, view_width, SETTINGS_TITLE_H - 1, darken(c_bg, 42));
-    DrawText("Settings", 12, 11, 18, c_text);
+    DrawRectangle(0, 0, view_width, title_h, darken(c_bg, 14));
+    DrawLine(0, title_h - 1, view_width, title_h - 1, darken(c_bg, 42));
+    DrawText("Settings", ui_px(12), ui_px(11), ui_clamp_px(18, 16, 20), c_text);
 
-    if(drawiconbtn(app, view_width - 34, 7, 16, app->x_icon, &gear_hover)) {
+    if(drawiconbtn(app, view_width - ui_px(34), ui_px(7), ui_clamp_px(16, 14, 18), app->x_icon, &gear_hover)) {
         if(app->settings_dirty)
             save_settings(app);
         app->inbe.screen = InbeScreenStart;
@@ -1225,46 +1427,48 @@ draw_settings(InbeApp *app)
     }
 
     BeginScissorMode((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + SETTINGS_TITLE_H * app->camera.zoom),
+                     (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        int yoff = SETTINGS_TITLE_H - app->settings_scroll;
+        int yoff = title_h - app->settings_scroll;
         int speed = app->inbe.speed_level;
         int max_rounds = app->inbe.max_rounds;
         int max_breaths = int_from_count(app->inbe.maxbreaths);
         int pause_seconds = app->inbe.pause_seconds;
 
+        update_preview_bounds(&app->settings_preview, content_w, 240);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         inbestep(&app->settings_preview);
         if(app->settings_preview.phase != InbePhaseBreathe) {
             reset_settings_preview(app);
+            update_preview_bounds(&app->settings_preview, content_w, 240);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         }
 
-        draw_preview_inbe(&app->settings_preview, center_x, yoff + 48);
+        draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + 96);
 
-        if(draw_slider(app, 1, 28, yoff + 104, 184, "Speed", SETTINGS_SPEED_MIN,
+        if(draw_slider(app, 1, content_x, yoff + 212, content_w, "Speed", SETTINGS_SPEED_MIN,
                        SETTINGS_SPEED_MAX, &speed, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 2, 28, yoff + 170, 184, "Max rounds", 1,
+        if(draw_slider(app, 2, content_x, yoff + 278, content_w, "Max rounds", 1,
                        MaxRounds, &max_rounds, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 3, 28, yoff + 236, 184, "Max breaths", SETTINGS_BREATHS_MIN,
+        if(draw_slider(app, 3, content_x, yoff + 344, content_w, "Max breaths", SETTINGS_BREATHS_MIN,
                        SETTINGS_BREATHS_MAX, &max_breaths, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 4, 28, yoff + 302, 184, "Pause after round", SETTINGS_PAUSE_MIN,
+        if(draw_slider(app, 4, content_x, yoff + 410, content_w, "Pause after round", SETTINGS_PAUSE_MIN,
                        SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -1273,7 +1477,6 @@ draw_settings(InbeApp *app)
     EndScissorMode();
 
     draw_scrollbar(app, &app->settings_scroll, SETTINGS_CONTENT_H, viewport_h);
-    draw_tab_bar(app);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         app->settings_drag_slider = 0;
@@ -1337,17 +1540,20 @@ draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w
 static void
 draw_manual(InbeApp *app)
 {
-    int x = 14;
-    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
+    int title_h = ui_clamp_px(SETTINGS_TITLE_H, 34, 44);
+    int tab_h = ui_clamp_px(TAB_BAR_H, 44, 56);
+    int viewport_h = view_height - title_h - tab_h;
     int content_h = 430;
-    int title_font = 18;
-    int body_font = 14;
+    int title_font = ui_clamp_px(18, 16, 20);
+    int body_font = ui_clamp_px(14, 12, 16);
     int title_w;
     int previous_step;
     int max_scroll;
+    int content_x;
+    int content_w;
     const char *title = "Tutorial";
-    int footer_y = view_height - TAB_BAR_H - 46;
-    int footer_mid_y = footer_y + 7;
+    int footer_y = view_height - ui_px(38);
+    int footer_mid_y = footer_y + ui_px(7);
     char page_label[16];
 
     app->tutorial_step = clampi(app->tutorial_step, 0, TUTORIAL_STEPS - 1);
@@ -1376,7 +1582,6 @@ draw_manual(InbeApp *app)
     case 4: title = "Step 3: Inhale & Hold"; content_h = 440; break;
     default: break;
     }
-    content_h += 28;
 
     max_scroll = content_h - viewport_h;
     if(max_scroll < 0)
@@ -1384,20 +1589,22 @@ draw_manual(InbeApp *app)
     app->manual_scroll -= (int)(GetMouseWheelMove() * 24.0f);
     app->manual_scroll = clampi(app->manual_scroll, 0, max_scroll);
 
-    DrawRectangle(0, 0, view_width, SETTINGS_TITLE_H, darken(c_bg, 14));
-    DrawLine(0, SETTINGS_TITLE_H - 1, view_width, SETTINGS_TITLE_H - 1, darken(c_bg, 42));
+    centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+
+    DrawRectangle(0, 0, view_width, title_h, darken(c_bg, 14));
+    DrawLine(0, title_h - 1, view_width, title_h - 1, darken(c_bg, 42));
     title_w = MeasureText(title, title_font);
-    DrawText(title, view_width / 2 - title_w / 2, 11, title_font, c_text);
+    DrawText(title, view_width / 2 - title_w / 2, ui_px(11), title_font, c_text);
 
     int x_hover = 0;
-    if(drawiconbtn(app, view_width - 34, 7, 16, app->x_icon, &x_hover))
+    if(drawiconbtn(app, view_width - ui_px(34), ui_px(7), ui_clamp_px(16, 14, 18), app->x_icon, &x_hover))
         tutorial_close(app, 1);
 
     BeginScissorMode((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + SETTINGS_TITLE_H * app->camera.zoom),
+                     (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        int y = SETTINGS_TITLE_H + 16 - app->manual_scroll;
+        int y = title_h + ui_px(16) - app->manual_scroll;
         if(app->tutorial_step == 0) {
             const char *lines[] = {
                 "This breathing practice can be",
@@ -1407,9 +1614,9 @@ draw_manual(InbeApp *app)
                 "Never use it while driving,",
                 "standing, or in water."
             };
-            draw_tutorial_image(app->angel_image, "angel.png", 18, y, view_width - 36, 240);
+            draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, 240);
             y += 262;
-            draw_text_lines(lines, 6, x, &y, body_font, 20);
+            draw_text_lines(lines, 6, content_x, &y, body_font, 20);
         } else if(app->tutorial_step == 1) {
             const char *lines[] = {
                 "Simply follow 4 steps:",
@@ -1423,11 +1630,11 @@ draw_manual(InbeApp *app)
                 "title screen to adjust rounds,",
                 "breaths, speed, and pauses."
             };
-            draw_text_lines(lines, 10, x, &y, body_font, 19);
+            draw_text_lines(lines, 10, content_x, &y, body_font, 19);
             if(app->gear_icon.id != 0) {
                 int gear_hover = 0;
-                DrawText("Settings", x, y + 7, 14, c_text);
-                drawiconbtn(app, x + 80, y, 16, app->gear_icon, &gear_hover);
+                DrawText("Settings", content_x, y + 7, 14, c_text);
+                drawiconbtn(app, content_x + 80, y, 16, app->gear_icon, &gear_hover);
             }
         } else if(app->tutorial_step == 2) {
             int speed = app->inbe.speed_level;
@@ -1438,21 +1645,23 @@ draw_manual(InbeApp *app)
                 "Use this slider to set the",
                 "pace of the breathing circle."
             };
-            draw_text_lines(lines, 5, x, &y, body_font, 19);
+            draw_text_lines(lines, 5, content_x, &y, body_font, 19);
             y += 8;
 
+            update_preview_bounds(&app->settings_preview, content_w, 132);
             apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                            int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             inbestep(&app->settings_preview);
             if(app->settings_preview.phase != InbePhaseBreathe) {
                 reset_settings_preview(app);
+                update_preview_bounds(&app->settings_preview, content_w, 132);
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             }
-            draw_preview_inbe(&app->settings_preview, view_width / 2, y + 40);
-            y += 86;
+            draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + 40);
+            y += app->settings_preview.rmax + 54;
 
-            if(draw_slider(app, 10, 28, y, 184, "Speed", SETTINGS_SPEED_MIN,
+            if(draw_slider(app, 10, content_x, y, content_w, "Speed", SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
                 apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
@@ -1468,7 +1677,7 @@ draw_manual(InbeApp *app)
                 "Release when your body asks",
                 "for air. Do not force it."
             };
-            draw_text_lines(lines, 5, x, &y, body_font, 20);
+            draw_text_lines(lines, 5, content_x, &y, body_font, 20);
         } else {
             const char *lines[] = {
                 "Inhale fully and hold for",
@@ -1478,14 +1687,13 @@ draw_manual(InbeApp *app)
                 "next round. Over time, each",
                 "round may feel deeper."
             };
-            draw_tutorial_image(app->begin_image, "begin.png", 18, y, view_width - 36, 250);
+            draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, 250);
             y += 272;
-            draw_text_lines(lines, 6, x, &y, body_font, 20);
+            draw_text_lines(lines, 6, content_x, &y, body_font, 20);
         }
     EndScissorMode();
 
     draw_scrollbar(app, &app->manual_scroll, content_h, viewport_h);
-    draw_tab_bar(app);
     snprintf(page_label, sizeof(page_label), "%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS);
     DrawText(page_label,
              view_width / 2 - MeasureText(page_label, 14) / 2,
@@ -1494,16 +1702,16 @@ draw_manual(InbeApp *app)
     int left_hover = 0;
     int right_hover = 0;
     if(app->tutorial_step == 0) {
-        if(drawbtn(app, 50, footer_y, "SKIP", &left_hover))
+        if(drawbtn(app, content_x + 48, footer_y, "SKIP", &left_hover))
             tutorial_close(app, 1);
     } else {
-        if(drawbtn(app, 50, footer_y, "BACK", &left_hover)) {
+        if(drawbtn(app, content_x + 48, footer_y, "BACK", &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
-    if(drawbtn(app, view_width - 52, footer_y,
+    if(drawbtn(app, content_x + content_w - 48, footer_y,
                app->tutorial_step == TUTORIAL_STEPS - 1 ? "FINISH" : "NEXT", &right_hover)) {
         if(app->tutorial_step == TUTORIAL_STEPS - 1)
             tutorial_close(app, 1);
@@ -1526,8 +1734,10 @@ draw_history(InbeApp *app)
 {
     HistoryEntry entries[HISTORY_MAX_SESSIONS];
     int count = 0;
-    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
-    int row_h = 28;
+    int title_h = ui_clamp_px(SETTINGS_TITLE_H, 34, 44);
+    int tab_h = ui_clamp_px(TAB_BAR_H, 44, 56);
+    int viewport_h = view_height - title_h - tab_h;
+    int row_h = ui_clamp_px(28, 24, 32);
     int content_rows = 0;
     int content_h = 0;
     int max_scroll;
@@ -1537,6 +1747,8 @@ draw_history(InbeApp *app)
     int has_month = 0;
     int has_day = 0;
     int selected_index = -1;
+    int content_x;
+    int content_w;
 
     scan_history_tree(entries, &count);
     qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
@@ -1600,8 +1812,10 @@ draw_history(InbeApp *app)
     app->history_scroll -= (int)(GetMouseWheelMove() * 24.0f);
     app->history_scroll = clampi(app->history_scroll, 0, max_scroll);
 
-    DrawRectangle(0, 0, view_width, SETTINGS_TITLE_H, darken(c_bg, 14));
-    DrawLine(0, SETTINGS_TITLE_H - 1, view_width, SETTINGS_TITLE_H - 1, darken(c_bg, 42));
+    centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+
+    DrawRectangle(0, 0, view_width, title_h, darken(c_bg, 14));
+    DrawLine(0, title_h - 1, view_width, title_h - 1, darken(c_bg, 42));
     DrawText("History", 12, 11, 18, c_text);
 
     if(drawiconbtn(app, view_width - 34, 7, 16, app->x_icon, &close_hover)) {
@@ -1610,13 +1824,13 @@ draw_history(InbeApp *app)
     }
 
     BeginScissorMode((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + SETTINGS_TITLE_H * app->camera.zoom),
+                     (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        y = SETTINGS_TITLE_H + 12 - app->history_scroll;
+        y = title_h + 12 - app->history_scroll;
         if(count == 0) {
-            DrawText("No saved sessions yet.", 14, y, 14, c_text);
-            DrawText("Complete a session to add data.", 14, y + 22, 14, c_text);
+            DrawText("No saved sessions yet.", content_x, y, 14, c_text);
+            DrawText("Complete a session to add data.", content_x, y + 22, 14, c_text);
         } else {
             int year = -1;
             int month = -1;
@@ -1629,7 +1843,7 @@ draw_history(InbeApp *app)
                     int selected = app->history_year == entries[i].year && app->history_level >= 1;
 
                     snprintf(label, sizeof(label), "%04d", entries[i].year);
-                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 10)) {
+                    if(draw_history_row(app, content_x, y, content_w, row_h, label, selected, 10)) {
                         app->history_year = entries[i].year;
                         app->history_month = 0;
                         app->history_day = 0;
@@ -1650,7 +1864,7 @@ draw_history(InbeApp *app)
                     int selected = app->history_month == entries[i].month && app->history_level >= 2;
 
                     snprintf(label, sizeof(label), "Month %02d", entries[i].month);
-                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 22)) {
+                    if(draw_history_row(app, content_x, y, content_w, row_h, label, selected, 22)) {
                         app->history_month = entries[i].month;
                         app->history_day = 0;
                         history_clear_record_selection(app);
@@ -1669,7 +1883,7 @@ draw_history(InbeApp *app)
                     int selected = app->history_day == entries[i].day && app->history_level >= 3;
 
                     snprintf(label, sizeof(label), "Day %02d", entries[i].day);
-                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 34)) {
+                    if(draw_history_row(app, content_x, y, content_w, row_h, label, selected, 34)) {
                         app->history_day = entries[i].day;
                         history_clear_record_selection(app);
                         app->history_level = 3;
@@ -1691,7 +1905,7 @@ draw_history(InbeApp *app)
                              entries[i].hour, entries[i].minute, entries[i].second);
                     history_format_session_label(&entries[i], time_label, sizeof(time_label));
                     selected = strcmp(app->history_record, record_name) == 0;
-                    if(draw_history_row(app, 12, y, view_width - 24, row_h, time_label, selected, 46)) {
+                    if(draw_history_row(app, content_x, y, content_w, row_h, time_label, selected, 46)) {
                         history_set_selected_record(app, &entries[i]);
                         app->history_level = 3;
                         selected_index = i;
@@ -1702,9 +1916,9 @@ draw_history(InbeApp *app)
                         for(int r = 0; r < entries[i].round_count; r++) {
                             char round_label[HISTORY_TEXT_SIZE];
                             history_format_round_label(&entries[i], r, round_label, sizeof(round_label));
-                            DrawRectangle(12, y, view_width - 24, row_h, darken(c_bg, 4));
-                            draw_bevel(12, y, view_width - 24, row_h, darken(c_bg, 24), lighten(c_bg, 14));
-                            DrawText(round_label, 58, y + 6, 14, c_text);
+                            DrawRectangle(content_x, y, content_w, row_h, darken(c_bg, 4));
+                            draw_bevel(content_x, y, content_w, row_h, darken(c_bg, 24), lighten(c_bg, 14));
+                            DrawText(round_label, content_x + 46, y + 6, 14, c_text);
                             y += row_h;
                         }
                     }
@@ -1714,7 +1928,6 @@ draw_history(InbeApp *app)
     EndScissorMode();
 
     draw_scrollbar(app, &app->history_scroll, content_h, viewport_h);
-    draw_tab_bar(app);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_scrollbar = 0;
@@ -1728,10 +1941,11 @@ inbe_app_init(void *vapp) {
 
     load_config();
     inbeinit(&app->inbe);
-    app->inbe.rmax = view_width * 0.4f;
-    app->inbe.rmin = view_width * 0.2f;
-    app->inbe.r = app->inbe.rmin;
+    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
+                                  ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     load_settings(app);
+    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
+                                  ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     prepare_history_storage();
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
@@ -1785,10 +1999,10 @@ inbe_app_init(void *vapp) {
         app->trash_icon = load_icon_texture("trash.png");
     }
     if(app->angel_image.id == 0) {
-        app->angel_image = load_asset_texture("angel.png");
+        app->angel_image = load_asset_texture("angel.jpg");
     }
     if(app->begin_image.id == 0) {
-        app->begin_image = load_asset_texture("begin.png");
+        app->begin_image = load_asset_texture("begin.jpg");
     }
 
     if(!app->tutorial_seen)
@@ -1820,19 +2034,32 @@ updateapp(InbeApp *app)
         return;
     }
 
+    if(app->inbe.screen == InbeScreenStart) {
+        update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
+                                      ui_clamp_px(TAB_BAR_H, 44, 56) + 96);
+    } else if(app->inbe.screen == InbeScreenSession) {
+        update_circle_bounds_for_view(&app->inbe, 0, 84);
+    }
+
     if(app->inbe.screen != InbeScreenResults)
         drawinbe(app, center_x, center_y);
-    int title_font = 30;
+    int title_font = ui_clamp_px(30, 24, 34);
     int title_w = 30;
 
 
     switch (app->inbe.screen) {
     case InbeScreenStart:
         title_w = MeasureText(config.title, title_font);
-        DrawText(config.title, center_x - title_w / 2, 20, title_font, c_text);
+        DrawText(config.title, center_x - title_w / 2, ui_px(20), title_font, c_text);
 
-        if (drawbtn(app, center_x, center_y + (int)app->inbe.rmin + 20, "PLAY", &hover)) {
+        {
+            int play_y = center_y + (int)app->inbe.rmax + 20;
+            int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 44, 56) - 48;
+            if(play_y > play_limit)
+                play_y = play_limit;
+            if (drawbtn(app, center_x, play_y, "PLAY", &hover)) {
             start_session(app);
+            }
         }
         draw_tab_bar(app);
         break;
@@ -1852,12 +2079,13 @@ updateapp(InbeApp *app)
         int back_hover = 0;
         int pause_hover = 0;
         int forward_hover = 0;
-        int control_y = view_height - 40;
-        int control_size = 16;
-        int control_gap = 8;
-        int pause_x = center_x - (control_size + 8) / 2;
-        int back_x = pause_x - control_size - 8 - control_gap;
-        int forward_x = pause_x + control_size + 8 + control_gap;
+        int control_y = view_height - ui_px(40);
+        int control_size = ui_clamp_px(16, 14, 20);
+        int control_gap = ui_px(8);
+        int control_pad = ui_px(8);
+        int pause_x = center_x - (control_size + control_pad) / 2;
+        int back_x = pause_x - control_size - control_pad - control_gap;
+        int forward_x = pause_x + control_size + control_pad + control_gap;
 
         if(app->backward_icon.id != 0 && drawiconbtn(app, back_x, control_y, control_size,
                                                      app->backward_icon, &back_hover)) {
@@ -1878,8 +2106,8 @@ updateapp(InbeApp *app)
             inbestep(&app->inbe);
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + app->inbe.rmin + 24;
-            int breath_max_y = control_y - 44;
+            int breath_y = center_y + app->inbe.rmax + ui_px(24);
+            int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
             if (drawbtn(app, center_x, breath_y, "BREATH", &hover)) {
@@ -1892,17 +2120,18 @@ updateapp(InbeApp *app)
 
     case InbeScreenResults:
         {
-            int box_x = 12;
-            int box_y = 78;
-            int box_w = view_width - 24;
-            int row_y = 180;
-            int row_h = 26;
+            int box_x;
+            int box_y = ui_px(78);
+            int box_w;
+            int row_y = ui_px(180);
+            int row_h = ui_clamp_px(26, 22, 30);
             int total = 0;
             int best = -1;
             int rounds = app->inbe.round + 1;
 
+            centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &box_x, &box_w);
             title_w = MeasureText("RESULTS", title_font);
-            DrawText("RESULTS", center_x - title_w / 2, 34, title_font, c_text);
+            DrawText("RESULTS", center_x - title_w / 2, ui_px(34), title_font, c_text);
 
             if(rounds < 1)
                 rounds = 1;
@@ -1922,22 +2151,22 @@ updateapp(InbeApp *app)
             DrawRectangle(box_x, box_y, box_w, 78, darken(c_bg, 6));
             DrawLine(box_x, box_y + 26, box_x + box_w, box_y + 26, darken(c_bg, 30));
             DrawLine(box_x, box_y + 52, box_x + box_w, box_y + 52, darken(c_bg, 30));
-            DrawText(TextFormat("%d rounds", rounds), box_x + 10, box_y + 8, 16, c_text);
-            DrawText(TextFormat("best %ds", best), box_x + 10, box_y + 34, 16, c_text);
-            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + 10, box_y + 60, 16, c_text);
+            DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(8), ui_clamp_px(16, 14, 18), c_text);
+            DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(34), ui_clamp_px(16, 14, 18), c_text);
+            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(60), ui_clamp_px(16, 14, 18), c_text);
 
-            DrawText("Round times", box_x, 168, 14, darken(c_text, 20));
+            DrawText("Round times", box_x, ui_px(168), ui_clamp_px(14, 12, 16), darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = int_from_count(app->inbe.results[i]);
                 snprintf(row, sizeof(row), "Round %d  %ds", i + 1, seconds);
                 DrawRectangle(box_x, row_y - 1, box_w, row_h, darken(c_bg, 4));
                 DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, darken(c_bg, 26));
-                DrawText(row, box_x + 10, row_y + 5, 14, c_text);
+                DrawText(row, box_x + ui_px(10), row_y + ui_px(5), ui_clamp_px(14, 12, 16), c_text);
                 row_y += row_h;
             }
 
-            if (drawbtn(app, center_x, view_height - 40, "HOME", &hover)) {
+            if (drawbtn(app, center_x, view_height - ui_px(40), "HOME", &hover)) {
                 inbe_app_init(app);
             }
 
@@ -1959,29 +2188,16 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 
     refresh_theme_colors();
 
-    float scale_x = viewport.width / (float)config.width;
-    float scale_y = viewport.height / (float)config.height;
-    float scale = scale_x;
-
-    view_width = config.width;
-    view_height = (int)(viewport.height / scale + 0.5f);
-    if(view_height < config.height) {
-        scale = scale_y;
-        view_height = config.height;
-        view_width = (int)(viewport.width / scale + 0.5f);
-    }
-    if(view_width < config.width)
-        view_width = config.width;
-    if(view_height < config.height)
-        view_height = config.height;
+    view_width = (int)viewport.width;
+    view_height = (int)viewport.height;
 
     app->cursor_clickable = 0;
-    app->camera.zoom = scale;
+    app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x;
     app->camera.offset.y = viewport.y;
 
+    DrawRectangleRec(viewport, c_bg);
     BeginScissorMode((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
-        DrawRectangleRec(viewport, c_bg);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, c_bg);
             updateapp(app);
