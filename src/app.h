@@ -21,6 +21,8 @@ struct InbeApp {
     Texture2D play_icon;
     Texture2D pause_icon;
     Texture2D stat_icon;
+    Texture2D home_icon;
+    Texture2D trash_icon;
     Texture2D angel_image;
     Texture2D begin_image;
     int settings_scroll;
@@ -31,6 +33,11 @@ struct InbeApp {
     int tutorial_step;
     int tutorial_seen;
     int history_scroll;
+    int history_level;
+    int history_year;
+    int history_month;
+    int history_day;
+    char history_record[16];
     int session_paused;
     int results_saved;
 };

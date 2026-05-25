@@ -413,7 +413,11 @@ android-copy-assets:
 	cp inbe.ini $(ANDROID_DIR)/app/src/main/assets/inbe.ini
 	cp theme.ini $(ANDROID_DIR)/app/src/main/assets/theme.ini
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
-	cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(ANDROID_DIR)/app/src/main/assets/icons/
+	@for icon in ../icons/*.png; do \
+		base=$$(basename "$$icon"); \
+		size=$$(identify -format '%wx%h' "$$icon"); \
+		magick "$$icon" -filter point -resize "$$size!" "$(ANDROID_DIR)/app/src/main/assets/icons/$$base"; \
+	done
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets
 	cp assets/angel.png assets/begin.png $(ANDROID_DIR)/app/src/main/assets/assets/
 
