@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<head>
+	<title>Inner Breeze - Guided Breathing Meditation</title>
+	<link href="/style.css" rel="stylesheet" />
+	<link href="inbe.css" rel="stylesheet" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method. Available for web, Android, Windows, and Linux.">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://inbe.waozi.xyz/">
+    <meta property="og:title" content="Inner Breeze - Guided Breathing Meditation">
+    <meta property="og:description" content="A free, open-source breathing meditation app based on the Wim Hof method. Available for web, Android, Windows, and Linux.">
+    <meta property="og:image" content="https://inbe.waozi.xyz/og.png">
+    <meta property="og:site_name" content="Inner Breeze">
+
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://inbe.waozi.xyz/">
+    <meta name="twitter:title" content="Inner Breeze - Guided Breathing Meditation">
+    <meta name="twitter:description" content="A free, open-source breathing meditation app based on the Wim Hof method.">
+    <meta name="twitter:image" content="https://inbe.waozi.xyz/og.png">
+    <meta name="twitter:site" content="@waozixyz">
+    <meta name="twitter:creator" content="@waozixyz">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192x192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512x512.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="theme-color" content="#5566aa">
+
+</head>
+
+<body>
+	<div class="content">
+	    <section>
+	        <img class="tk-img" src="/icons/inbe.png" width="128px" alt="Inner Breeze"/>
+
+	        <h1>Inner Breeze</h1>
+	        <p>guided breathing meditation based on the Wim Hof method</p>
+
+	        <div class="platform-buttons">
+	            <a href="/inbe/build/web/index.html" class="platform-btn web">
+	                <img src="/icons/wasm.png" alt="raylib"/>
+	                <span>Run Web</span>
+	            </a>
+	            <a href="/inbe/build/android/app-universal-release.apk" class="platform-btn android">
+	                <img src="/icons/droid.png" alt="android"/>
+	                <span>Download APK</span>
+	            </a>
+	            <a href="/inbe/build/windows/inbe-windows.zip" class="platform-btn windows">
+	                <img src="/icons/win.png" alt="windows"/>
+	                <span>Windows</span>
+	            </a>
+	            <a href="/inbe/build/linux/inbe-linux.tar.gz" class="platform-btn linux">
+	                <img src="/icons/tux.png" alt="linux"/>
+	                <span>Linux</span>
+	            </a>
+	        </div>
+	    </section>
+	    <section>
+	        <details>
+	            <summary>All implementations</summary>
+	            <br/>
+	            <div class="platform-section">
+	                <div class="platform-header">
+	                    <img src="/icons/ray.png" alt="raylib"/>
+	                    <div>
+	                        <strong><a href="https://raylib.com">Raylib</a></strong>
+	                        <p>A C library for video game programming - the primary implementation.</p>
+	                    </div>
+	                </div>
+	                <div class="downloads-grid">
+	                    <a href="/inbe/build/web/index.html" class="download-item">Web (WASM)</a>
+	                    <a href="/inbe/build/linux/inbe-linux.tar.gz" class="download-item">Linux</a>
+	                    <a href="/inbe/build/windows/inbe-windows.zip" class="download-item">Windows</a>
+	                    <a href="/inbe/build/android/app-universal-release.apk" class="download-item">Android APK</a>
+	                </div>
+	            </div>
+	            <div class="platform-section">
+	                <div class="platform-header">
+	                    <img src="/icons/wasm4.png" alt="wasm4"/>
+	                    <div>
+	                        <strong><a href="https://wasm4.org">WASM-4</a></strong>
+	                        <p>A tiny fantasy console that runs WebAssembly cartridges.</p>
+	                    </div>
+	                </div>
+	                <div class="downloads-grid">
+	                    <a href="/inbe/wasm4/build/index.html" class="download-item">Web</a>
+	                    <a href="/inbe/wasm4/build/cart.wasm" class="download-item">cart.wasm</a>
+	                    <a href="/inbe/wasm4/build/inbe-windows.zip" class="download-item">Windows</a>
+	                    <a href="/inbe/wasm4/build/inbe-linux.tar.gz" class="download-item">Linux</a>
+	                </div>
+	            </div>
+	            <div class="platform-section">
+	                <div class="platform-header">
+	                    <img src="/icons/uxn.png" alt="uxn"/>
+	                    <div>
+	                        <strong><a href="https://100r.co/site/uxn.html">Uxn</a></strong>
+	                        <p>A small virtual computer; <code>.rom</code> runs in a Uxn emulator.</p>
+	                    </div>
+	                </div>
+	                <div class="downloads-grid">
+	                    <a href="/inbe/uxn/index.html" class="download-item">Web</a>
+	                    <a href="/inbe/uxn/inbe.rom" class="download-item">inbe.rom</a>
+	                </div>
+	            </div>
+	        </details>
+	        <details>
+	            <summary>donate</summary>
+	            <br/>
+	            <div class="donation-buttons">
+	                <!-- Stripe Redirect Button -->
+	                <a href="https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04" target="_blank" rel="noopener" class="platform-btn stripe-btn">
+	                    <img src="/icons/stripe.png" alt="stripe" class="platform-icon-btn"/>
+	                    <span>Donate via Stripe</span>
+	                </a>
+
+	                <!-- Trocador Monero Redirect Button -->
+	                <a href="https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff" target="_blank" rel="noopener" class="platform-btn xmr-btn">
+	                    <img src="/icons/monero.png" alt="monero" class="platform-icon-btn"/>
+	                    <span>Donate via Crypto</span>
+	                </a>
+	            </div>
+	        </details>
+	    </section>
+
+	    <footer>
+	        <p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="https://git.sr.ht/~waozi/waozi" target="_blank" rel="noopener">hosted on sr.ht</a></p>
+	    </footer>
+	</div>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Inner Breeze</title>
+    <link href="/style.css" rel="stylesheet">
+    <link href="../../inbe.css" rel="stylesheet">
+    <style>
+      .web-shell {
+        position: relative;
+        z-index: 1;
+        min-height: 100vh;
+        box-sizing: border-box;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: flex-start;
+        gap: 12px;
+        padding: 24px 12px;
+        font-family: departure;
+      }
+
+      #status,
+      #progress {
+        display: none;
+      }
+
+      .canvas-frame {
+        position: relative;
+        z-index: 1;
+        width: min(480px, calc(100vw - 24px), calc(max(160px, 100vh - 108px) * 3 / 4));
+        aspect-ratio: 3 / 4;
+        background: #000000;
+        overflow: hidden;
+      }
+
+      canvas.emscripten {
+        position: absolute;
+        inset: 0;
+        display: block;
+        width: 100% !important;
+        height: 100% !important;
+        max-width: none !important;
+        max-height: none !important;
+        border: 0;
+        background: #000000;
+        image-rendering: auto;
+      }
+
+      .canvas-stage {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .canvas-stage:fullscreen {
+        width: 100vw;
+        height: 100vh;
+        background: #000000;
+      }
+
+      .canvas-stage:-webkit-full-screen {
+        width: 100vw;
+        height: 100vh;
+        background: #000000;
+      }
+
+      .canvas-stage:fullscreen .canvas-frame {
+        width: min(100vw, calc(100vh * 3 / 4));
+      }
+
+      .canvas-stage:-webkit-full-screen .canvas-frame {
+        width: min(100vw, calc(100vh * 3 / 4));
+      }
+
+      .web-actions {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        justify-content: center;
+      }
+
+      .fullscreen-btn {
+        border: 1px solid rgba(255, 255, 255, 0.45);
+        background: rgba(0, 0, 0, 0.68);
+        color: #ffffff;
+        font: inherit;
+        font-size: 13px;
+        line-height: 1;
+        padding: 8px 10px;
+        cursor: pointer;
+      }
+
+      .fullscreen-btn:hover {
+        background: rgba(24, 24, 24, 0.86);
+      }
+
+      .web-back {
+        position: relative;
+        flex-direction: row;
+        min-width: 0;
+        padding: 10px 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="web-shell">
+      <div id="status">Downloading...</div>
+      <progress value="0" max="100" id="progress" hidden></progress>
+      <div class="canvas-stage" id="canvas-stage">
+        <div class="canvas-frame">
+          <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+        </div>
+      </div>
+      <div class="web-actions">
+        <a class="platform-btn web web-back" href="https://inbe.waozi.xyz/">
+          <span>Back to Inner Breeze</span>
+        </a>
+        <button class="fullscreen-btn" id="fullscreen-btn" type="button">Fullscreen</button>
+      </div>
+    </div>
+
+    <script>
+      var statusElement = document.querySelector('#status');
+      var progressElement = document.querySelector('#progress');
+      var fullscreenButton = document.querySelector('#fullscreen-btn');
+      var canvasStage = document.querySelector('#canvas-stage');
+
+      function fullscreenElement() {
+        return document.fullscreenElement || document.webkitFullscreenElement || null;
+      }
+
+      function updateFullscreenButton() {
+        fullscreenButton.textContent = fullscreenElement() ? 'Exit fullscreen' : 'Fullscreen';
+      }
+
+      fullscreenButton.addEventListener('click', function() {
+        if (fullscreenElement()) {
+          var exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
+          if (exitFullscreen) exitFullscreen.call(document);
+        } else {
+          var requestFullscreen = canvasStage.requestFullscreen || canvasStage.webkitRequestFullscreen;
+          if (requestFullscreen) requestFullscreen.call(canvasStage);
+        }
+      });
+      document.addEventListener('fullscreenchange', updateFullscreenButton);
+      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
+
+      var Module = {
+        preRun: [],
+        postRun: [],
+        print: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.log(text);
+        },
+        printErr: function(text) {
+          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+          console.error(text);
+        },
+        canvas: (function() {
+          var canvas = document.querySelector('#canvas');
+          canvas.addEventListener('webglcontextlost', function(e) {
+            alert('WebGL context lost. Reload the page to continue.');
+            e.preventDefault();
+          }, false);
+          return canvas;
+        })(),
+        setStatus: function(text) {
+          if (!Module.setStatus.last) Module.setStatus.last = { time: Date.now(), text: '' };
+          if (text === Module.setStatus.last.text) return;
+
+          var match = text.match(/([^(]+)\((\d+(\.\d+)?)\/(\d+)\)/);
+          var now = Date.now();
+          if (match && now - Module.setStatus.last.time < 30) return;
+
+          Module.setStatus.last.time = now;
+          Module.setStatus.last.text = text;
+
+          if (match) {
+            statusElement.textContent = match[1];
+            progressElement.value = parseInt(match[2], 10) * 100;
+            progressElement.max = parseInt(match[4], 10) * 100;
+            progressElement.hidden = false;
+          } else {
+            statusElement.textContent = text;
+            progressElement.hidden = true;
+            if (!text) statusElement.style.display = 'none';
+          }
+        },
+        totalDependencies: 0,
+        monitorRunDependencies: function(left) {
+          this.totalDependencies = Math.max(this.totalDependencies, left);
+          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+        }
+      };
+
+      Module.setStatus('Downloading...');
+      window.onerror = function() {
+        Module.setStatus('Exception thrown, see JavaScript console');
+        Module.setStatus = function(text) {
+          if (text) Module.printErr('[post-exception status] ' + text);
+        };
+      };
+    </script>
+    {{{ SCRIPT }}}
+  </body>
+</html>

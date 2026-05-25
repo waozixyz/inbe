@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8"/>
+	<meta property='og:type' content='website'/>
+	<meta property='og:site_name' content='Inbe'/>
+	<meta property='og:description' content="Inbe - Guided Wim Hof Breathing"/>
+	<meta property="og:title" content="Inbe - Guided Breathing"/>
+	<meta property="og:url" content="https://waozi.xyz/inbe.html">
+	<meta name="viewport" content="width=device-width" />
+
+	<!-- Twitter -->
+	<meta property="twitter:card" content="summary_large_image">
+	<meta property="twitter:url" content="https://waozi.xyz/inbe.html">
+	<meta property="twitter:title" content="Inbe - Guided Breathing">
+	<meta property="twitter:description" content="Inbe - Guided Wim Hof Breathing">
+	<title>Inner Breeze - Guided Breathing</title>
+	<link href="/style.css" rel="stylesheet" />
+</head>
+<body>
+	<div class="content">
+		<h1>Inner Breeze</h1>
+		<p>Guided Wim Hof Breathing</p>
+
+		<div id="emulator">
+			<canvas id="display" width="100" height="100"></canvas>
+			<div id='console'>
+				<pre id='console_std'></pre>
+				<pre id='console_err'></pre>
+			</div>
+			<center id='metadata'>
+		
+				<ul>
+					<li><button onclick="emulator.screen.toggle_zoom()">Zoom</button></li>
+					<li><a href="inbe.rom" download>Download inbe.rom</a></li>
+					<li><span id='metarom'>Loading inbe.rom...</span></li>
+				</ul>
+			</center>
+		</div>
+		<a href='https://inbe.waozi.xyz'>back to inbe</a>
+		<script src="/uxn/uxn.js"></script>
+		<script src="/uxn/uxn-wasm.js"></script>
+		<script src="/uxn/emu.js"></script>
+		<script src="/uxn/devices/system.js"></script>
+		<script src="/uxn/devices/console.js"></script>
+		<script src="/uxn/devices/controller.js"></script>
+		<script src="/uxn/devices/datetime.js"></script>
+		<script src="/uxn/devices/mouse.js"></script>
+		<script src="/uxn/devices/screen.js"></script>
+		<script src="/uxn/boot.js"></script>
+		<script>
+			const emulator = new Emu(false)
+			emulator.init()
+
+			fetch('inbe.rom')
+				.then(response => {
+					if (!response.ok) {
+						throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+					}
+					return response.arrayBuffer();
+				})
+				.then(arrayBuffer => {
+					const rom = new Uint8Array(arrayBuffer);
+					emulator.load(rom);
+					document.getElementById('metarom').textContent = `Running inbe.rom (${rom.length} bytes)`;
+				})
+				.catch(error => {
+					console.error('Failed to load inbe.rom:', error);
+					document.getElementById('console_err').textContent = `Failed to load inbe.rom: ${error.message}`;
+					document.getElementById('metarom').textContent = 'Failed to load ROM';
+				});
+		</script>
+	</div>
+</body>
+</html>
