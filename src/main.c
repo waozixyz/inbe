@@ -18,6 +18,7 @@ frame(void)
 {
     int width = GetScreenWidth();
     int height = GetScreenHeight();
+#if !defined(PLATFORM_WEB)
     int render_width = GetRenderWidth();
     int render_height = GetRenderHeight();
 
@@ -25,6 +26,7 @@ frame(void)
         width = render_width;
     if(render_height > height)
         height = render_height;
+#endif
 
     BeginDrawing();
     ClearBackground(BLACK);
@@ -43,7 +45,7 @@ int main(int argc, char **argv) {
     int window_w = INBE_ANDROID_BUILD ? 0 : inbe_app_width();
     int window_h = INBE_ANDROID_BUILD ? 0 : inbe_app_height();
 
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
     InitWindow(window_w, window_h, inbe_app_title());
