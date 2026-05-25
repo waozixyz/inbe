@@ -3,6 +3,7 @@
 #include "theme.h"
 #include "../../vendor/rini/src/rini.h"
 #include <dirent.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,8 +11,8 @@
 #include <time.h>
 
 #define INBE_DEFAULT_TITLE "Inner Breeze"
-#define INBE_DEFAULT_WIDTH 240
-#define INBE_DEFAULT_HEIGHT 320
+#define INBE_DEFAULT_WIDTH 272
+#define INBE_DEFAULT_HEIGHT 400
 typedef struct InbeConfig {
     char title[64];
     int width;
@@ -39,6 +40,7 @@ enum {
     SETTINGS_PAUSE_MIN = 0,
     SETTINGS_PAUSE_MAX = 30,
     SETTINGS_TITLE_H = 38,
+    TAB_BAR_H = 56,
     SETTINGS_CONTENT_H = 398,
     TUTORIAL_STEPS = 5,
     HISTORY_MAX_SESSIONS = 48,
@@ -48,8 +50,19 @@ enum {
 
 typedef struct HistoryEntry {
     char path[HISTORY_PATH_SIZE];
-    char label[HISTORY_TEXT_SIZE];
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+    int round_count;
+    int avg_seconds;
+    int rounds[MaxRounds];
 } HistoryEntry;
+
+static void save_session_results(InbeApp *app);
+static void load_session_file(const char *path, HistoryEntry *entry);
 
 static void
 refresh_theme_colors(void)
@@ -359,6 +372,7 @@ finish_round(InbeApp *app)
         app->inbe.round++;
         reset_round_start(&app->inbe);
     } else {
+        save_session_results(app);
         app->inbe.screen = InbeScreenResults;
     }
 }
@@ -386,14 +400,18 @@ session_step_back(InbeApp *app)
         }
         break;
     case InbePhaseHold:
-        reset_round_breathe(&app->inbe);
-        break;
-    case InbePhaseRecover:
-    case InbePhaseNext:
-        app->inbe.phase = InbePhaseHold;
+        app->inbe.phase = InbePhaseBreathe;
         app->inbe.r = app->inbe.rmin;
         app->inbe.breath_frame = 0;
         app->inbe.breathtick = 0;
+        app->inbe.sectick = 0;
+        cpcount(app->inbe.count, "000");
+        break;
+    case InbePhaseRecover:
+    case InbePhaseNext:
+        app->inbe.phase = InbePhaseRecover;
+        app->inbe.r = app->inbe.rmax;
+        app->inbe.breath_frame = 0;
         app->inbe.sectick = 0;
         cpcount(app->inbe.count, "000");
         break;
@@ -419,6 +437,11 @@ session_step_forward(InbeApp *app)
         finish_hold(app);
         break;
     case InbePhaseRecover:
+        app->inbe.phase = InbePhaseNext;
+        app->inbe.breath_frame = 0;
+        app->inbe.sectick = 0;
+        cpcount(app->inbe.count, "000");
+        break;
     case InbePhaseNext:
         finish_round(app);
         break;
@@ -432,6 +455,29 @@ ensure_dir(const char *path)
         MakeDirectory(path);
 }
 
+static const char *
+history_root(void)
+{
+    static char root[PATH_MAX];
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    return "data";
+#else
+    const char *xdg = getenv("XDG_DATA_HOME");
+    const char *home = getenv("HOME");
+
+    if(root[0] != '\0')
+        return root;
+    if(xdg != NULL && xdg[0] != '\0')
+        snprintf(root, sizeof(root), "%s/lotus/home", xdg);
+    else if(home != NULL && home[0] != '\0')
+        snprintf(root, sizeof(root), "%s/.local/share/lotus/home", home);
+    else
+        snprintf(root, sizeof(root), ".local/lotus/home");
+    return root;
+#endif
+}
+
 static void
 save_session_results(InbeApp *app)
 {
@@ -443,6 +489,7 @@ save_session_results(InbeApp *app)
     char path[96];
     char text[MaxRounds * 8];
     int offset = 0;
+    int played_rounds;
 
     if(app->results_saved)
         return;
@@ -452,8 +499,14 @@ save_session_results(InbeApp *app)
     if(tm == NULL)
         return;
 
-    ensure_dir("data");
-    snprintf(dir_year, sizeof(dir_year), "data/%04d", tm->tm_year + 1900);
+    played_rounds = app->inbe.round + 1;
+    if(played_rounds < 1)
+        played_rounds = 1;
+    if(played_rounds > app->inbe.max_rounds)
+        played_rounds = app->inbe.max_rounds;
+
+    ensure_dir(history_root());
+    snprintf(dir_year, sizeof(dir_year), "%s/%04d", history_root(), tm->tm_year + 1900);
     ensure_dir(dir_year);
     snprintf(dir_month, sizeof(dir_month), "%s/%02d", dir_year, tm->tm_mon + 1);
     ensure_dir(dir_month);
@@ -462,74 +515,103 @@ save_session_results(InbeApp *app)
     snprintf(path, sizeof(path), "%s/inbe-%02d%02d%02d",
              dir_day, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-    for(int i = 0; i < app->inbe.max_rounds && i < MaxRounds; i++) {
+    for(int i = 0; i < played_rounds && i < MaxRounds; i++) {
         int seconds = int_from_count(app->inbe.results[i]);
         if(offset >= (int)sizeof(text))
             break;
         offset += snprintf(text + offset, sizeof(text) - (size_t)offset, "%d\n", seconds);
     }
 
-    SaveFileText(path, text);
-    app->results_saved = 1;
-}
-
-static int
-read_result_line(const char *path, char *out, int out_size)
-{
-    FILE *file = fopen(path, "r");
-    int offset = 0;
-    int value;
-    int count = 0;
-    int total = 0;
-    int best = 0;
-
-    if(file == NULL)
-        return 0;
-
-    while(fscanf(file, "%d", &value) == 1) {
-        if(value > best)
-            best = value;
-        total += value;
-        count++;
+    ensure_dir(history_root());
+    TraceLog(LOG_INFO, "INBE: saving results to %s", path);
+    if(SaveFileText(path, text)) {
+        TraceLog(LOG_INFO, "INBE: saved results to %s", path);
+        app->results_saved = 1;
+    } else {
+        TraceLog(LOG_WARNING, "INBE: failed to save results to %s", path);
     }
-    fclose(file);
-
-    if(count == 0)
-        return 0;
-
-    offset += snprintf(out + offset, (size_t)(out_size - offset),
-                       "%d rounds  best %ds  avg %ds", count, best, total / count);
-    return offset > 0;
 }
 
 static void
-add_history_entry(HistoryEntry *entries, int *count, const char *path)
+prepare_history_storage(void)
+{
+    time_t now;
+    struct tm *tm;
+    char dir_year[32];
+    char dir_month[48];
+    char dir_day[64];
+
+    now = time(NULL);
+    tm = localtime(&now);
+    if(tm == NULL)
+        return;
+
+    ensure_dir(history_root());
+    snprintf(dir_year, sizeof(dir_year), "%s/%04d", history_root(), tm->tm_year + 1900);
+    ensure_dir(dir_year);
+    snprintf(dir_month, sizeof(dir_month), "%s/%02d", dir_year, tm->tm_mon + 1);
+    ensure_dir(dir_month);
+    snprintf(dir_day, sizeof(dir_day), "%s/%02d", dir_month, tm->tm_mday);
+    ensure_dir(dir_day);
+}
+
+static void
+add_history_entry(HistoryEntry *entries, int *count, int year, int month, int day, const char *path)
 {
     const char *name;
-    char summary[HISTORY_TEXT_SIZE];
-    int year = 0;
-    int month = 0;
-    int day = 0;
     int hh = 0;
     int mm = 0;
     int ss = 0;
+    HistoryEntry entry;
 
-    if(*count >= HISTORY_MAX_SESSIONS || !read_result_line(path, summary, sizeof(summary)))
+    if(*count >= HISTORY_MAX_SESSIONS)
         return;
 
     name = strrchr(path, '/');
     name = name != NULL ? name + 1 : path;
-    sscanf(path, "data/%d/%d/%d/inbe-%2d%2d%2d", &year, &month, &day, &hh, &mm, &ss);
+    if(sscanf(name, "inbe-%2d%2d%2d", &hh, &mm, &ss) != 3)
+        return;
 
-    snprintf(entries[*count].path, sizeof(entries[*count].path), "%s", path);
-    snprintf(entries[*count].label, sizeof(entries[*count].label),
-             "%04d-%02d-%02d %02d:%02d:%02d  %s",
-             year, month, day, hh, mm, ss, summary[0] != '\0' ? summary : name);
+    memset(&entry, 0, sizeof(entry));
+    snprintf(entry.path, sizeof(entry.path), "%s", path);
+    entry.year = year;
+    entry.month = month;
+    entry.day = day;
+    entry.hour = hh;
+    entry.minute = mm;
+    entry.second = ss;
+    load_session_file(path, &entry);
+    if(entry.round_count <= 0)
+        return;
+    entries[*count] = entry;
     (*count)++;
 }
 
+static int
+compare_history_entries(const void *a, const void *b)
+{
+    const HistoryEntry *ea = a;
+    const HistoryEntry *eb = b;
+
+    return strcmp(eb->path, ea->path);
+}
+
+static int
+name_is_digits(const char *name, int len)
+{
+    int i;
+
+    if(name == NULL)
+        return 0;
+    for(i = 0; i < len; i++) {
+        if(name[i] == '\0' || name[i] < '0' || name[i] > '9')
+            return 0;
+    }
+    return name[len] == '\0';
+}
+
 static void
-scan_history_day(HistoryEntry *entries, int *count, const char *path)
+scan_history_day(HistoryEntry *entries, int *count, int year, int month, int day, const char *path)
 {
     DIR *dir = opendir(path);
     struct dirent *ent;
@@ -543,7 +625,7 @@ scan_history_day(HistoryEntry *entries, int *count, const char *path)
             continue;
         snprintf(child, sizeof(child), "%s/%s", path, ent->d_name);
         if(strncmp(ent->d_name, "inbe-", 5) == 0)
-            add_history_entry(entries, count, child);
+            add_history_entry(entries, count, year, month, day, child);
     }
 
     closedir(dir);
@@ -552,7 +634,7 @@ scan_history_day(HistoryEntry *entries, int *count, const char *path)
 static void
 scan_history_tree(HistoryEntry *entries, int *count)
 {
-    DIR *years = opendir("data");
+    DIR *years = opendir(history_root());
     struct dirent *year;
     char ypath[HISTORY_PATH_SIZE];
     char mpath[HISTORY_PATH_SIZE];
@@ -563,15 +645,15 @@ scan_history_tree(HistoryEntry *entries, int *count)
         return;
 
     while((year = readdir(years)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-        if(year->d_name[0] == '.')
+        if(!name_is_digits(year->d_name, 4))
             continue;
-        snprintf(ypath, sizeof(ypath), "data/%s", year->d_name);
+        snprintf(ypath, sizeof(ypath), "%s/%s", history_root(), year->d_name);
         DIR *months = opendir(ypath);
         struct dirent *month;
         if(months == NULL)
             continue;
         while((month = readdir(months)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-            if(month->d_name[0] == '.')
+            if(!name_is_digits(month->d_name, 2))
                 continue;
             snprintf(mpath, sizeof(mpath), "%s/%s", ypath, month->d_name);
             DIR *days = opendir(mpath);
@@ -579,10 +661,10 @@ scan_history_tree(HistoryEntry *entries, int *count)
             if(days == NULL)
                 continue;
             while((day = readdir(days)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-                if(day->d_name[0] == '.')
+                if(!name_is_digits(day->d_name, 2))
                     continue;
                 snprintf(dpath, sizeof(dpath), "%s/%s", mpath, day->d_name);
-                scan_history_day(entries, count, dpath);
+                scan_history_day(entries, count, atoi(year->d_name), atoi(month->d_name), atoi(day->d_name), dpath);
             }
             closedir(days);
         }
@@ -590,6 +672,260 @@ scan_history_tree(HistoryEntry *entries, int *count)
     }
 
     closedir(years);
+}
+
+static int
+history_has_match(const HistoryEntry *entries, int count, int year, int month, int day)
+{
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year == year && entries[i].month == month && entries[i].day == day)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+history_has_year(const HistoryEntry *entries, int count, int year)
+{
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year == year)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+history_has_month(const HistoryEntry *entries, int count, int year, int month)
+{
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year == year && entries[i].month == month)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+history_has_day_only(const HistoryEntry *entries, int count, int year, int month, int day)
+{
+    return history_has_match(entries, count, year, month, day);
+}
+
+static void
+history_set_selected_record(InbeApp *app, const HistoryEntry *entry)
+{
+    snprintf(app->history_record, sizeof(app->history_record), "inbe-%02d%02d%02d",
+             entry->hour, entry->minute, entry->second);
+}
+
+static void
+history_set_selection(InbeApp *app, const HistoryEntry *entry, int level)
+{
+    app->history_year = entry->year;
+    app->history_month = entry->month;
+    app->history_day = entry->day;
+    app->history_level = level;
+    history_set_selected_record(app, entry);
+}
+
+static void
+history_clear_record_selection(InbeApp *app)
+{
+    app->history_record[0] = 0;
+}
+
+static void
+history_open_latest(InbeApp *app)
+{
+    HistoryEntry entries[HISTORY_MAX_SESSIONS];
+    int count = 0;
+    time_t now;
+    struct tm *tm;
+
+    scan_history_tree(entries, &count);
+    qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
+
+    if(count > 0) {
+        now = time(NULL);
+        tm = localtime(&now);
+        if(tm != NULL) {
+            for(int i = 0; i < count; i++) {
+                if(entries[i].year == tm->tm_year + 1900 &&
+                   entries[i].month == tm->tm_mon + 1 &&
+                   entries[i].day == tm->tm_mday) {
+                    history_set_selection(app, &entries[i], 3);
+                    app->history_scroll = 0;
+                    return;
+                }
+            }
+        }
+
+        history_set_selection(app, &entries[0], 3);
+        app->history_scroll = 0;
+        return;
+    }
+
+    now = time(NULL);
+    tm = localtime(&now);
+    if(tm != NULL) {
+        app->history_year = tm->tm_year + 1900;
+        app->history_month = tm->tm_mon + 1;
+        app->history_day = tm->tm_mday;
+    } else {
+        app->history_year = 0;
+        app->history_month = 0;
+        app->history_day = 0;
+    }
+    app->history_level = 0;
+    history_clear_record_selection(app);
+    app->history_scroll = 0;
+}
+
+static int
+draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected, int indent)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int hover = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, selected ? c_button_hover : darken(c_button_hover, 6));
+        draw_bevel(x, y, w, h, darken(c_button_hover, 40), lighten(c_button_hover, 40));
+        hover = 1;
+        app->cursor_clickable = 1;
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            draw_bevel(x, y, w, h, lighten(c_button_hover, 40), darken(c_button_hover, 40));
+        }
+    } else {
+        DrawRectangle(x, y, w, h, selected ? c_button : darken(c_bg, 6));
+        draw_bevel(x, y, w, h, lighten(c_button, 28), darken(c_button, 20));
+    }
+
+    DrawText(text, x + indent, y + 6, 14, c_text);
+    return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+}
+
+static int
+history_count_year_rows(const HistoryEntry *entries, int count)
+{
+    int rows = 0;
+    int last_year = 0;
+
+    for(int i = 0; i < count; i++) {
+        if(i == 0 || entries[i].year != last_year) {
+            rows++;
+            last_year = entries[i].year;
+        }
+    }
+
+    return rows;
+}
+
+static int
+history_count_month_rows(const HistoryEntry *entries, int count, int year)
+{
+    int rows = 0;
+    int last_month = 0;
+    int seen = 0;
+
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year != year)
+            continue;
+        if(!seen || entries[i].month != last_month) {
+            rows++;
+            last_month = entries[i].month;
+            seen = 1;
+        }
+    }
+
+    return rows;
+}
+
+static int
+history_count_day_rows(const HistoryEntry *entries, int count, int year, int month)
+{
+    int rows = 0;
+    int last_day = 0;
+    int seen = 0;
+
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year != year || entries[i].month != month)
+            continue;
+        if(!seen || entries[i].day != last_day) {
+            rows++;
+            last_day = entries[i].day;
+            seen = 1;
+        }
+    }
+
+    return rows;
+}
+
+static int
+history_count_record_rows(const HistoryEntry *entries, int count, int year, int month, int day)
+{
+    int rows = 0;
+
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year == year && entries[i].month == month && entries[i].day == day)
+            rows++;
+    }
+
+    return rows;
+}
+
+static void
+load_session_file(const char *path, HistoryEntry *entry)
+{
+    FILE *file;
+    int value;
+    int total = 0;
+    int count = 0;
+
+    if(entry == NULL)
+        return;
+
+    entry->round_count = 0;
+    entry->avg_seconds = 0;
+    for(int i = 0; i < MaxRounds; i++)
+        entry->rounds[i] = 0;
+
+    file = fopen(path, "r");
+    if(file == NULL)
+        return;
+
+    while(count < MaxRounds && fscanf(file, "%d", &value) == 1) {
+        entry->rounds[count] = value;
+        total += value;
+        count++;
+    }
+    fclose(file);
+
+    entry->round_count = count;
+    if(count > 0)
+        entry->avg_seconds = total / count;
+}
+
+static void
+history_format_session_label(const HistoryEntry *entry, char *out, int out_size)
+{
+    if(out == NULL || out_size <= 0)
+        return;
+
+    snprintf(out, (size_t)out_size, "%02d:%02d:%02d  avg %ds",
+             entry->hour, entry->minute, entry->second, entry->avg_seconds);
+}
+
+static void
+history_format_round_label(const HistoryEntry *entry, int round_index, char *out, int out_size)
+{
+    if(out == NULL || out_size <= 0)
+        return;
+
+    if(round_index >= 0 && round_index < entry->round_count)
+        snprintf(out, (size_t)out_size, "R%d  %ds", round_index + 1, entry->rounds[round_index]);
+    else
+        snprintf(out, (size_t)out_size, "R%d", round_index + 1);
 }
 
 static int
@@ -672,6 +1008,43 @@ drawiconbtn(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
 }
 
 static void
+draw_tab_bar(InbeApp *app)
+{
+    int bar_y = view_height - TAB_BAR_H;
+    int button_size = 32;
+    int button_w = button_size + 12;
+    int gap = 16;
+    int total_w = button_w * 3 + gap * 2;
+    int start_x = view_width / 2 - total_w / 2;
+    int stat_x = start_x;
+    int manual_x = stat_x + button_w + gap;
+    int gear_x = manual_x + button_w + gap;
+    int tab_hover = 0;
+
+    DrawRectangle(0, bar_y, view_width, TAB_BAR_H, darken(c_bg, 10));
+    DrawLine(0, bar_y, view_width, bar_y, darken(c_bg, 42));
+
+    if(app->stat_icon.id != 0) {
+        if(drawiconbtn(app, stat_x, bar_y + 10, button_size, app->stat_icon, &tab_hover)) {
+            history_open_latest(app);
+            app->inbe.screen = InbeScreenHistory;
+        }
+    }
+    if(app->manual_icon.id != 0) {
+        if(drawiconbtn(app, manual_x, bar_y + 10, button_size, app->manual_icon, &tab_hover)) {
+            app->tutorial_step = 0;
+            app->inbe.screen = InbeScreenManual;
+        }
+    }
+    if(app->gear_icon.id != 0) {
+        if(drawiconbtn(app, gear_x, bar_y + 10, button_size, app->gear_icon, &tab_hover)) {
+            reset_settings_preview(app);
+            app->inbe.screen = InbeScreenSettings;
+        }
+    }
+}
+
+static void
 draw_session_counter(InbeApp *app, int center_x, int center_y);
 
 static void
@@ -709,6 +1082,11 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     int text_w;
 
     if(app->inbe.phase == InbePhaseRecover) {
+        if(app->inbe.r < app->inbe.rmax) {
+            DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+            return;
+        }
+
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
@@ -716,6 +1094,13 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
             DrawText(text, center_x - text_w / 2, center_y - 10, 20, c_text);
             return;
         }
+        DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+        return;
+    }
+
+    if(app->inbe.phase == InbePhaseNext) {
+        DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+        return;
     }
 
     text_w = MeasureText(app->inbe.count, 20);
@@ -736,7 +1121,6 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
     int label_font = 16;
     int value_font = 16;
     int track_y = y + 28;
@@ -819,7 +1203,7 @@ static void
 draw_settings(InbeApp *app)
 {
     int center_x = view_width / 2;
-    int viewport_h = view_height - SETTINGS_TITLE_H;
+    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
     int max_scroll = SETTINGS_CONTENT_H - viewport_h;
     int gear_hover = 0;
 
@@ -889,6 +1273,7 @@ draw_settings(InbeApp *app)
     EndScissorMode();
 
     draw_scrollbar(app, &app->settings_scroll, SETTINGS_CONTENT_H, viewport_h);
+    draw_tab_bar(app);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         app->settings_drag_slider = 0;
@@ -953,15 +1338,17 @@ static void
 draw_manual(InbeApp *app)
 {
     int x = 14;
-    int viewport_h = view_height - SETTINGS_TITLE_H - 50;
+    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
     int content_h = 430;
-    int button_y = view_height - 42;
     int title_font = 18;
     int body_font = 14;
     int title_w;
     int previous_step;
     int max_scroll;
     const char *title = "Tutorial";
+    int footer_y = view_height - TAB_BAR_H - 46;
+    int footer_mid_y = footer_y + 7;
+    char page_label[16];
 
     app->tutorial_step = clampi(app->tutorial_step, 0, TUTORIAL_STEPS - 1);
     previous_step = app->tutorial_step;
@@ -989,6 +1376,7 @@ draw_manual(InbeApp *app)
     case 4: title = "Step 3: Inhale & Hold"; content_h = 440; break;
     default: break;
     }
+    content_h += 28;
 
     max_scroll = content_h - viewport_h;
     if(max_scroll < 0)
@@ -1097,24 +1485,25 @@ draw_manual(InbeApp *app)
     EndScissorMode();
 
     draw_scrollbar(app, &app->manual_scroll, content_h, viewport_h);
-
-    DrawRectangle(0, view_height - 50, view_width, 50, darken(c_bg, 8));
-    DrawText(TextFormat("%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS),
-             view_width / 2 - 12, view_height - 31, 14, c_text);
+    draw_tab_bar(app);
+    snprintf(page_label, sizeof(page_label), "%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS);
+    DrawText(page_label,
+             view_width / 2 - MeasureText(page_label, 14) / 2,
+             footer_mid_y, 14, c_text);
 
     int left_hover = 0;
     int right_hover = 0;
     if(app->tutorial_step == 0) {
-        if(drawbtn(app, 50, button_y, "SKIP", &left_hover))
+        if(drawbtn(app, 50, footer_y, "SKIP", &left_hover))
             tutorial_close(app, 1);
     } else {
-        if(drawbtn(app, 50, button_y, "BACK", &left_hover)) {
+        if(drawbtn(app, 50, footer_y, "BACK", &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
-    if(drawbtn(app, view_width - 52, button_y,
+    if(drawbtn(app, view_width - 52, footer_y,
                app->tutorial_step == TUTORIAL_STEPS - 1 ? "FINISH" : "NEXT", &right_hover)) {
         if(app->tutorial_step == TUTORIAL_STEPS - 1)
             tutorial_close(app, 1);
@@ -1137,14 +1526,73 @@ draw_history(InbeApp *app)
 {
     HistoryEntry entries[HISTORY_MAX_SESSIONS];
     int count = 0;
-    int viewport_h = view_height - SETTINGS_TITLE_H;
-    int row_h = 42;
-    int content_h;
+    int viewport_h = view_height - SETTINGS_TITLE_H - TAB_BAR_H;
+    int row_h = 28;
+    int content_rows = 0;
+    int content_h = 0;
     int max_scroll;
     int close_hover = 0;
+    int y;
+    int has_year = 0;
+    int has_month = 0;
+    int has_day = 0;
+    int selected_index = -1;
 
     scan_history_tree(entries, &count);
+    qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
+
+    if(count > 0) {
+        if(app->history_level <= 0 || app->history_year == 0) {
+            history_open_latest(app);
+        } else if(app->history_level == 1 && !history_has_year(entries, count, app->history_year)) {
+            history_open_latest(app);
+        } else if(app->history_level == 2 && !history_has_month(entries, count, app->history_year, app->history_month)) {
+            history_open_latest(app);
+        } else if(app->history_level >= 3 &&
+                  !history_has_day_only(entries, count, app->history_year, app->history_month, app->history_day)) {
+            history_open_latest(app);
+        }
+    }
+
+    has_year = history_has_year(entries, count, app->history_year);
+    has_month = history_has_month(entries, count, app->history_year, app->history_month);
+    has_day = history_has_day_only(entries, count, app->history_year, app->history_month, app->history_day);
+    if(count > 0 && has_day && app->history_level >= 3) {
+        for(int i = 0; i < count; i++) {
+            char record_name[16];
+
+            if(entries[i].year != app->history_year ||
+               entries[i].month != app->history_month ||
+               entries[i].day != app->history_day)
+                continue;
+
+            snprintf(record_name, sizeof(record_name), "inbe-%02d%02d%02d",
+                     entries[i].hour, entries[i].minute, entries[i].second);
+            if(strcmp(app->history_record, record_name) == 0) {
+                selected_index = i;
+                break;
+            }
+        }
+    }
+
+    content_rows = history_count_year_rows(entries, count);
+    if(count > 0 && has_year && app->history_level >= 1) {
+        content_rows += history_count_month_rows(entries, count, app->history_year);
+        if(has_month && app->history_level >= 2) {
+            content_rows += history_count_day_rows(entries, count, app->history_year, app->history_month);
+            if(has_day && app->history_level >= 3) {
+                content_rows += history_count_record_rows(entries, count,
+                                                         app->history_year, app->history_month,
+                                                         app->history_day);
+                if(selected_index >= 0)
+                    content_rows += entries[selected_index].round_count;
+            }
+        }
+    }
+
     content_h = count > 0 ? count * row_h + 18 : viewport_h;
+    if(content_rows > 0)
+        content_h = 18 + content_rows * row_h;
     max_scroll = content_h - viewport_h;
     if(max_scroll < 0)
         max_scroll = 0;
@@ -1165,21 +1613,108 @@ draw_history(InbeApp *app)
                      (int)(app->camera.offset.y + SETTINGS_TITLE_H * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        int y = SETTINGS_TITLE_H + 12 - app->history_scroll;
+        y = SETTINGS_TITLE_H + 12 - app->history_scroll;
         if(count == 0) {
             DrawText("No saved sessions yet.", 14, y, 14, c_text);
             DrawText("Complete a session to add data.", 14, y + 22, 14, c_text);
         } else {
-            for(int i = count - 1; i >= 0; i--) {
-                DrawText(entries[i].label, 12, y, 12, c_text);
-                DrawText(entries[i].path, 12, y + 18, 10, darken(c_text, 40));
-                DrawLine(12, y + row_h - 7, view_width - 16, y + row_h - 7, darken(c_bg, 35));
-                y += row_h;
+            int year = -1;
+            int month = -1;
+            int day = -1;
+
+            for(int i = 0; i < count; i++) {
+                char label[HISTORY_TEXT_SIZE];
+
+                if(entries[i].year != year) {
+                    int selected = app->history_year == entries[i].year && app->history_level >= 1;
+
+                    snprintf(label, sizeof(label), "%04d", entries[i].year);
+                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 10)) {
+                        app->history_year = entries[i].year;
+                        app->history_month = 0;
+                        app->history_day = 0;
+                        history_clear_record_selection(app);
+                        app->history_level = 1;
+                        app->history_scroll = 0;
+                    }
+                    y += row_h;
+                    year = entries[i].year;
+                    month = -1;
+                    day = -1;
+                }
+
+                if(app->history_level < 1 || entries[i].year != app->history_year)
+                    continue;
+
+                if(entries[i].month != month) {
+                    int selected = app->history_month == entries[i].month && app->history_level >= 2;
+
+                    snprintf(label, sizeof(label), "Month %02d", entries[i].month);
+                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 22)) {
+                        app->history_month = entries[i].month;
+                        app->history_day = 0;
+                        history_clear_record_selection(app);
+                        app->history_level = 2;
+                        app->history_scroll = 0;
+                    }
+                    y += row_h;
+                    month = entries[i].month;
+                    day = -1;
+                }
+
+                if(app->history_level < 2 || entries[i].month != app->history_month)
+                    continue;
+
+                if(entries[i].day != day) {
+                    int selected = app->history_day == entries[i].day && app->history_level >= 3;
+
+                    snprintf(label, sizeof(label), "Day %02d", entries[i].day);
+                    if(draw_history_row(app, 12, y, view_width - 24, row_h, label, selected, 34)) {
+                        app->history_day = entries[i].day;
+                        history_clear_record_selection(app);
+                        app->history_level = 3;
+                        app->history_scroll = 0;
+                    }
+                    y += row_h;
+                    day = entries[i].day;
+                }
+
+                if(app->history_level < 3 || entries[i].day != app->history_day)
+                    continue;
+
+                {
+                    char time_label[HISTORY_TEXT_SIZE];
+                    char record_name[16];
+                    int selected;
+
+                    snprintf(record_name, sizeof(record_name), "inbe-%02d%02d%02d",
+                             entries[i].hour, entries[i].minute, entries[i].second);
+                    history_format_session_label(&entries[i], time_label, sizeof(time_label));
+                    selected = strcmp(app->history_record, record_name) == 0;
+                    if(draw_history_row(app, 12, y, view_width - 24, row_h, time_label, selected, 46)) {
+                        history_set_selected_record(app, &entries[i]);
+                        app->history_level = 3;
+                        selected_index = i;
+                    }
+                    y += row_h;
+
+                    if(selected) {
+                        for(int r = 0; r < entries[i].round_count; r++) {
+                            char round_label[HISTORY_TEXT_SIZE];
+                            history_format_round_label(&entries[i], r, round_label, sizeof(round_label));
+                            DrawRectangle(12, y, view_width - 24, row_h, darken(c_bg, 4));
+                            draw_bevel(12, y, view_width - 24, row_h, darken(c_bg, 24), lighten(c_bg, 14));
+                            DrawText(round_label, 58, y + 6, 14, c_text);
+                            y += row_h;
+                        }
+                    }
+                }
             }
         }
     EndScissorMode();
 
     draw_scrollbar(app, &app->history_scroll, content_h, viewport_h);
+    draw_tab_bar(app);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_scrollbar = 0;
@@ -1197,6 +1732,7 @@ inbe_app_init(void *vapp) {
     app->inbe.rmin = view_width * 0.2f;
     app->inbe.r = app->inbe.rmin;
     load_settings(app);
+    prepare_history_storage();
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
     app->settings_scroll = 0;
@@ -1206,6 +1742,11 @@ inbe_app_init(void *vapp) {
     app->manual_scroll = 0;
     app->tutorial_step = 0;
     app->history_scroll = 0;
+    app->history_level = 0;
+    app->history_year = 0;
+    app->history_month = 0;
+    app->history_day = 0;
+    app->history_record[0] = 0;
     app->session_paused = 0;
     app->results_saved = 0;
     reset_settings_preview(app);
@@ -1236,6 +1777,12 @@ inbe_app_init(void *vapp) {
     }
     if(app->stat_icon.id == 0) {
         app->stat_icon = load_icon_texture("stat.png");
+    }
+    if(app->home_icon.id == 0) {
+        app->home_icon = load_icon_texture("home.png");
+    }
+    if(app->trash_icon.id == 0) {
+        app->trash_icon = load_icon_texture("trash.png");
     }
     if(app->angel_image.id == 0) {
         app->angel_image = load_asset_texture("angel.png");
@@ -1273,7 +1820,8 @@ updateapp(InbeApp *app)
         return;
     }
 
-    drawinbe(app, center_x, center_y);
+    if(app->inbe.screen != InbeScreenResults)
+        drawinbe(app, center_x, center_y);
     int title_font = 30;
     int title_w = 30;
 
@@ -1281,42 +1829,12 @@ updateapp(InbeApp *app)
     switch (app->inbe.screen) {
     case InbeScreenStart:
         title_w = MeasureText(config.title, title_font);
-        DrawText(config.title, center_x - title_w / 2, 80, title_font, c_text);
+        DrawText(config.title, center_x - title_w / 2, 20, title_font, c_text);
 
         if (drawbtn(app, center_x, center_y + (int)app->inbe.rmin + 20, "PLAY", &hover)) {
             start_session(app);
         }
-
-        int gear_hover = 0;
-        int gear_size = 32;
-        int padding = 8;
-        int gear_x = view_width - gear_size - 18;
-        int gear_y = 10;
-
-        int manual_hover = 0;
-        int manual_x = gear_x - gear_size - padding - 8;
-        int stat_hover = 0;
-        int stat_x = manual_x - gear_size - padding - 8;
-
-        if (app->stat_icon.id != 0) {
-            if (drawiconbtn(app, stat_x, gear_y, gear_size, app->stat_icon, &stat_hover)) {
-                app->history_scroll = 0;
-                app->inbe.screen = InbeScreenHistory;
-            }
-        }
-
-        if (app->manual_icon.id != 0) {
-            if (drawiconbtn(app, manual_x, gear_y, gear_size, app->manual_icon, &manual_hover)) {
-                app->tutorial_step = 0;
-                app->inbe.screen = InbeScreenManual;
-            }
-        }
-        if (app->gear_icon.id != 0) {
-            if (drawiconbtn(app, gear_x, gear_y, gear_size, app->gear_icon, &gear_hover)) {
-                reset_settings_preview(app);
-                app->inbe.screen = InbeScreenSettings;
-            }
-        }
+        draw_tab_bar(app);
         break;
 
     case InbeScreenSession:
@@ -1373,42 +1891,58 @@ updateapp(InbeApp *app)
         break;
 
     case InbeScreenResults:
-        save_session_results(app);
-        title_w = MeasureText("RESULTS", title_font);
-        DrawText("RESULTS", center_x - title_w / 2, 50, title_font, c_text);
+        {
+            int box_x = 12;
+            int box_y = 78;
+            int box_w = view_width - 24;
+            int row_y = 180;
+            int row_h = 26;
+            int total = 0;
+            int best = -1;
+            int rounds = app->inbe.round + 1;
 
-        for (int i = 0; i < app->inbe.max_rounds; i++) {
-            char txt[16];
-            int col = i / 6;
-            int row = i % 6;
-            int x = col == 0 ? center_x - 78 : center_x + 20;
-            int y = 112 + row * 24;
-            txt[0] = 'R';
+            title_w = MeasureText("RESULTS", title_font);
+            DrawText("RESULTS", center_x - title_w / 2, 34, title_font, c_text);
 
-            if (i < 9) {
-                txt[1] = (char)('1' + i);
-                txt[2] = ':';
-                txt[3] = ' ';
-                txt[4] = app->inbe.results[i][0];
-                txt[5] = app->inbe.results[i][1];
-                txt[6] = app->inbe.results[i][2];
-                txt[7] = 0;
-            } else {
-                txt[1] = '1';
-                txt[2] = (char)('0' + (i - 9));
-                txt[3] = ':';
-                txt[4] = ' ';
-                txt[5] = app->inbe.results[i][0];
-                txt[6] = app->inbe.results[i][1];
-                txt[7] = app->inbe.results[i][2];
-                txt[8] = 0;
+            if(rounds < 1)
+                rounds = 1;
+            if(rounds > app->inbe.max_rounds)
+                rounds = app->inbe.max_rounds;
+
+            for(int i = 0; i < rounds; i++) {
+                int seconds = int_from_count(app->inbe.results[i]);
+                total += seconds;
+                if(seconds > 0 && (best < 0 || seconds < best))
+                    best = seconds;
             }
 
-            DrawText(txt, x, y, 18, c_text);
-        }
+            if(best < 0)
+                best = 0;
 
-        if (drawbtn(app, center_x, view_height - 140, "RESTART", &hover)) {
-            inbe_app_init(app);
+            DrawRectangle(box_x, box_y, box_w, 78, darken(c_bg, 6));
+            DrawLine(box_x, box_y + 26, box_x + box_w, box_y + 26, darken(c_bg, 30));
+            DrawLine(box_x, box_y + 52, box_x + box_w, box_y + 52, darken(c_bg, 30));
+            DrawText(TextFormat("%d rounds", rounds), box_x + 10, box_y + 8, 16, c_text);
+            DrawText(TextFormat("best %ds", best), box_x + 10, box_y + 34, 16, c_text);
+            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + 10, box_y + 60, 16, c_text);
+
+            DrawText("Round times", box_x, 168, 14, darken(c_text, 20));
+            for(int i = 0; i < rounds; i++) {
+                char row[48];
+                int seconds = int_from_count(app->inbe.results[i]);
+                snprintf(row, sizeof(row), "Round %d  %ds", i + 1, seconds);
+                DrawRectangle(box_x, row_y - 1, box_w, row_h, darken(c_bg, 4));
+                DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, darken(c_bg, 26));
+                DrawText(row, box_x + 10, row_y + 5, 14, c_text);
+                row_y += row_h;
+            }
+
+            if (drawbtn(app, center_x, view_height - 40, "HOME", &hover)) {
+                inbe_app_init(app);
+            }
+
+            if(!app->results_saved)
+                save_session_results(app);
         }
         break;
 
@@ -1486,6 +2020,10 @@ inbe_app_destroy(void *vapp)
             UnloadTexture(app->pause_icon);
         if(app->stat_icon.id != 0)
             UnloadTexture(app->stat_icon);
+        if(app->home_icon.id != 0)
+            UnloadTexture(app->home_icon);
+        if(app->trash_icon.id != 0)
+            UnloadTexture(app->trash_icon);
         if(app->angel_image.id != 0)
             UnloadTexture(app->angel_image);
         if(app->begin_image.id != 0)

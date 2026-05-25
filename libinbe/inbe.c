@@ -142,12 +142,29 @@ breathe(Inbe *l)
 static void
 next(Inbe *l)
 {
-    if(l->round < l->max_rounds - 1){
+    int span = l->rmax - l->rmin;
+    int eased;
+
+    if(span <= 0 || l->breath_half_ticks <= 0)
+        return;
+
+    l->breath_frame++;
+    if(l->breath_frame > l->breath_half_ticks)
+        l->breath_frame = l->breath_half_ticks;
+
+    eased = (l->breath_frame * span) / l->breath_half_ticks;
+    l->r = l->rmax - eased;
+
+    if(l->breath_frame >= l->breath_half_ticks) {
+        l->breath_frame = 0;
+        l->r = l->rmin;
         cpcount(l->count, "000");
-        l->round++;
-        l->phase = InbePhaseStarting;
-    }else{
-        l->screen = InbeScreenResults;
+        if(l->round < l->max_rounds - 1){
+            l->round++;
+            l->phase = InbePhaseStarting;
+        }else{
+            l->screen = InbeScreenResults;
+        }
     }
 }
 
@@ -160,7 +177,7 @@ recover(Inbe *l)
     if(span <= 0 || l->breath_half_ticks <= 0)
         return;
 
-    if(l->r < l->rmax && strcmp(l->count, "000") == 0) {
+    if(l->r < l->rmax) {
         l->breath_frame++;
         if(l->breath_frame > l->breath_half_ticks)
             l->breath_frame = l->breath_half_ticks;
@@ -176,19 +193,16 @@ recover(Inbe *l)
         return;
     }
 
-    if(strcmp(l->count, "015") == 0 && l->r > l->rmin) {
-        l->breath_frame++;
-        if(l->breath_frame > l->breath_half_ticks)
-            l->breath_frame = l->breath_half_ticks;
+    if(l->count[0] != '0' || l->count[1] != '0' || l->count[2] != '0') {
+        l->sectick++;
+        if(l->sectick < 60)
+            return;
+        l->sectick = 0;
 
-        eased = (l->breath_frame * span) / l->breath_half_ticks;
-        l->r = l->rmax - eased;
-
-        if(l->breath_frame >= l->breath_half_ticks) {
-            l->breath_frame = 0;
-            l->sectick = 0;
-            l->r = l->rmin;
+        inccount(l->count);
+        if(eqcount(l->count, "015")) {
             cpcount(l->count, "000");
+            l->breath_frame = 0;
             l->phase = InbePhaseNext;
         }
         return;
