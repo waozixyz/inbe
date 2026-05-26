@@ -350,6 +350,7 @@ dist:
 	$(MAKE) windows
 	$(MAKE) web
 	$(MAKE) android-$(ANDROID_DIST)
+	$(MAKE) android-bundle
 	$(MAKE) dist-linux
 	$(MAKE) dist-windows
 
@@ -460,6 +461,42 @@ android-release:
 		exit 1; \
 	fi
 
+android-bundle:
+	$(MAKE) android-copy-assets
+	@if [ -n "$(PASSWORD)" ]; then \
+		PASSWORD_VALUE="$(PASSWORD)"; \
+	elif [ -t 0 ]; then \
+		printf "Keystore password: "; \
+		stty -echo; \
+		read PASSWORD_VALUE; \
+		stty echo; \
+		printf "\n"; \
+	else \
+		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
+		exit 1; \
+	fi; \
+	if [ -n "$$PASSWORD_VALUE" ]; then \
+		$(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		$(MAKE) android-copy-bundle; \
+	else \
+		echo "Keystore password is required"; \
+		exit 1; \
+	fi
+
+android-copy-bundle: | $(ANDROID_BUILD_DIR)
+	@VERSION=$$(grep -m1 '^## \[' CHANGELOG.md | sed 's/^## \[\([^]]*\)\].*/\1/'); \
+		BUNDLE=$$(find $(ANDROID_DIR)/app/build/outputs/bundle/release -name "*.aab" 2>/dev/null | head -1); \
+		if [ -n "$$BUNDLE" ] && [ -f "$$BUNDLE" ]; then \
+			VERSIONED_BUNDLE="$(ANDROID_BUILD_DIR)/inbe-$$VERSION.aab"; \
+			echo "Copying and renaming $$BUNDLE to $$VERSIONED_BUNDLE"; \
+			cp "$$BUNDLE" "$$VERSIONED_BUNDLE"; \
+			ln -sf "$$(basename "$$VERSIONED_BUNDLE")" "$(ANDROID_BUILD_DIR)/inbe-latest.aab"; \
+			echo "Created symlink: inbe-latest.aab → $$(basename "$$VERSIONED_BUNDLE")"; \
+		else \
+			echo "Bundle not found in $(ANDROID_DIR)/app/build/outputs/bundle/release/"; \
+			exit 1; \
+		fi
+
 android-copy-apks: android-copy-debug-apks android-copy-release-apks
 
 android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
@@ -538,10 +575,12 @@ FORCE:
 	android-init-signing \
 	android-debug \
 	android-release \
+	android-bundle \
 	android-copy-assets \
 	android-copy-apks \
 	android-copy-debug-apks \
 	android-copy-release-apks \
+	android-copy-bundle \
 	android-install \
 	android-install-release \
 	android-clean \
