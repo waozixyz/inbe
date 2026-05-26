@@ -640,6 +640,9 @@ start_session(InbeApp *app)
 
     inbeinit(&app->inbe);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+    /* Save user's pause preference and use 3 seconds for first round */
+    app->saved_pause_seconds = app->inbe.pause_seconds;
+    app->inbe.pause_seconds = 3;
     update_circle_bounds_for_view(&app->inbe, 0, ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
@@ -668,6 +671,10 @@ finish_round(InbeApp *app)
 
     if(app->inbe.round < app->inbe.max_rounds - 1) {
         app->inbe.round++;
+        /* Restore user's pause preference after round 0 */
+        if(app->inbe.round == 1) {
+            app->inbe.pause_seconds = app->saved_pause_seconds;
+        }
         reset_round_start(&app->inbe);
     } else {
         save_session_results(app);
@@ -1027,16 +1034,6 @@ history_set_selected_record(InbeApp *app, const HistoryEntry *entry)
 }
 
 static void
-history_set_selection(InbeApp *app, const HistoryEntry *entry, int level)
-{
-    app->history_year = entry->year;
-    app->history_month = entry->month;
-    app->history_day = entry->day;
-    app->history_level = level;
-    history_set_selected_record(app, entry);
-}
-
-static void
 history_clear_record_selection(InbeApp *app)
 {
     app->history_record[0] = 0;
@@ -1122,6 +1119,59 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
 
     DrawText(text, x + ui_px(indent), y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+}
+
+static int
+draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int hover = 0;
+    int icon_size = ui_clamp_px(16, 14, 18);
+    int font = ui_clamp_px(14, 12, 16);
+    (void)font; /* Currently unused but may be needed for future */
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, selected ? c_button_hover : darken(c_button_hover, 6));
+        draw_bevel(x, y, w, h, darken(c_button_hover, 40), lighten(c_button_hover, 40));
+        hover = 1;
+        app->cursor_clickable = 1;
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            draw_bevel(x, y, w, h, lighten(c_button_hover, 40), darken(c_button_hover, 40));
+        }
+    } else {
+        DrawRectangle(x, y, w, h, selected ? c_button : darken(c_bg, 6));
+        draw_bevel(x, y, w, h, lighten(c_button, 28), darken(c_button, 20));
+    }
+
+    /* Draw text */
+    DrawText(text, x + ui_px(46), y + ui_px(6), font, c_text);
+
+    /* Draw trash icon on the right */
+    if(app->trash_icon.id != 0) {
+        int trash_hover = 0;
+        int trash_x = x + w - icon_size - ui_px(8);
+        int trash_y = y + (h - icon_size) / 2;
+        Rectangle src = {0, 0, app->trash_icon.width, app->trash_icon.height};
+        Rectangle dst = {trash_x, trash_y, (float)icon_size, (float)icon_size};
+
+        /* Check if trash icon is hovered */
+        if(mx > trash_x && mx < trash_x + icon_size && my > trash_y && my < trash_y + icon_size) {
+            (void)trash_hover; /* Mark as intentionally unused for future hover effects */
+            app->cursor_clickable = 1;
+            DrawTexturePro(app->trash_icon, src, dst, (Vector2){0}, 0, darken(c_icon, 30));
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                return 2; /* Return 2 to indicate trash clicked */
+        } else {
+            DrawTexturePro(app->trash_icon, src, dst, (Vector2){0}, 0, c_icon);
+        }
+    }
+
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        return 1; /* Return 1 to indicate row clicked */
+
+    return 0;
 }
 
 static int
@@ -1231,8 +1281,8 @@ history_format_session_label(const HistoryEntry *entry, char *out, int out_size)
     if(out == NULL || out_size <= 0)
         return;
 
-    snprintf(out, (size_t)out_size, "%02d:%02d:%02d  avg %ds",
-             entry->hour, entry->minute, entry->second, entry->avg_seconds);
+    snprintf(out, (size_t)out_size, "%02d:%02d  avg %ds",
+             entry->hour, entry->minute, entry->avg_seconds);
 }
 
 static void
@@ -1373,7 +1423,7 @@ draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const
 
     if(show_label && label != NULL && label[0] != '\0') {
         int text_x = x + icon_size + ui_px(12);
-        int text_y = y + ui_px(5);
+        int text_y = y + (h - font) / 2;
         DrawText(label, text_x, text_y, font, c_text);
     }
 
@@ -1445,24 +1495,37 @@ static void
 draw_session_status(InbeApp *app, int center_x, int center_y)
 {
     char text[32];
+    char max_text[32];
+    int total_seconds;
     int remaining;
-    int text_w;
+    int max_text_w;
     int text_y;
 
-    if(app->inbe.phase != InbePhaseStarting || app->inbe.pause_seconds <= 0)
+    if(app->inbe.phase != InbePhaseStarting)
         return;
 
-    remaining = app->inbe.pause_seconds - app->inbe.sectick / 60;
+    if(app->inbe.round == 0) {
+        total_seconds = 3;
+    } else {
+        if(app->inbe.pause_seconds <= 0)
+            return;
+        total_seconds = app->inbe.pause_seconds;
+    }
+
+    remaining = total_seconds - app->inbe.sectick / 60;
     if(remaining < 1)
         remaining = 1;
 
-    snprintf(text, sizeof(text), "STARTING IN %d", remaining);
     int font = ui_clamp_px(18, 16, 20);
-    text_w = MeasureText(text, font);
-    text_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(12);
-    if(text_y > view_height - ui_px(72))
-        text_y = view_height - ui_px(72);
-    DrawText(text, center_x - text_w / 2, text_y, font, c_text);
+    /* Calculate fixed width based on maximum possible value */
+    snprintf(max_text, sizeof(max_text), "STARTING IN %2d", 30);
+    max_text_w = MeasureText(max_text, font);
+
+    snprintf(text, sizeof(text), "STARTING IN %2d", remaining);
+    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ui_px(40);
+    if(text_y < ui_px(20))
+        text_y = ui_px(20);
+    DrawText(text, center_x - max_text_w / 2, text_y, font, c_text);
 }
 
 static void
@@ -1520,9 +1583,11 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
     int track_h = ui_px(8);
     int knob_w = ui_px(12);
     int knob_h = ui_px(22);
+    int knob_y = track_y - (knob_h - track_h) / 2;
+    int hit_padding = ui_px(16);
     int changed = 0;
     char value_text[32];
-    Rectangle hit = {(float)(x - 6), (float)(track_y - 10), (float)(w + 12), 32};
+    Rectangle hit = {(float)(x - hit_padding), (float)(knob_y - hit_padding), (float)(w + hit_padding * 2), (float)(knob_h + hit_padding * 2)};
 
     snprintf(value_text, sizeof(value_text), "%d%s", *value, suffix != NULL ? suffix : "");
     DrawText(label, x, y, label_font, c_text);
@@ -1551,8 +1616,8 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 
     float t = (float)(*value - min) / (float)(max - min);
     int knob_x = x + (int)(t * (float)w) - knob_w / 2;
-    DrawRectangle(knob_x, track_y - 7, knob_w, knob_h, c_button);
-    draw_bevel(knob_x, track_y - 7, knob_w, knob_h, lighten(c_button, 40), darken(c_button, 40));
+    DrawRectangle(knob_x, knob_y, knob_w, knob_h, c_button);
+    draw_bevel(knob_x, knob_y, knob_w, knob_h, lighten(c_button, 40), darken(c_button, 40));
 
     return changed;
 }
@@ -1866,7 +1931,7 @@ draw_manual(InbeApp *app)
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             }
             draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + ui_px(40));
-            y += (int)(app->settings_preview.rmax * dpi_scale + 0.5f) + ui_px(54);
+            y += (int)(app->settings_preview.rmax * 0.72f) + ui_px(54);
 
             if(draw_slider(app, 10, content_x, y, content_w, "Speed", SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
@@ -1904,8 +1969,8 @@ draw_manual(InbeApp *app)
     draw_scrollbar(app, &app->manual_scroll, content_h, viewport_h);
     snprintf(page_label, sizeof(page_label), "%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS);
     DrawText(page_label,
-             view_width / 2 - MeasureText(page_label, 14) / 2,
-             footer_mid_y, 14, c_text);
+             view_width / 2 - MeasureText(page_label, ui_clamp_px(14, 14, 16)) / 2,
+             footer_mid_y, ui_clamp_px(14, 14, 16), c_text);
 
     int left_hover = 0;
     int right_hover = 0;
@@ -2109,15 +2174,52 @@ draw_history(InbeApp *app)
                     char time_label[HISTORY_TEXT_SIZE];
                     char record_name[16];
                     int selected;
+                    int result;
 
                     snprintf(record_name, sizeof(record_name), "inbe-%02d%02d%02d",
                              entries[i].hour, entries[i].minute, entries[i].second);
                     history_format_session_label(&entries[i], time_label, sizeof(time_label));
                     selected = strcmp(app->history_record, record_name) == 0;
-                    if(draw_history_row(app, content_x, y, content_w, row_h, time_label, selected, 46)) {
+                    result = draw_history_session_row(app, content_x, y, content_w, row_h, time_label, selected);
+
+                    if(result == 1) {
+                        /* Row clicked - select session */
                         history_set_selected_record(app, &entries[i]);
                         app->history_level = 3;
                         selected_index = i;
+                    } else if(result == 2) {
+                        /* Trash clicked - delete session file */
+                        char dir_day[FS_PATH_MAX];
+                        char path[FS_PATH_MAX];
+                        snprintf(dir_day, sizeof(dir_day), "%s/%04d/%02d/%02d",
+                                 history_root(), entries[i].year, entries[i].month, entries[i].day);
+                        snprintf(path, sizeof(path), "%s/%s", dir_day, record_name);
+                        remove(path);
+                        /* Reload history */
+                        scan_history_tree(entries, &count);
+                        qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
+                        history_clear_record_selection(app);
+                        selected_index = -1;
+                        /* Rebuild content rows */
+                        content_rows = history_count_year_rows(entries, count);
+                        if(count > 0 && has_year && app->history_level >= 1) {
+                            content_rows += history_count_month_rows(entries, count, app->history_year);
+                            if(has_month && app->history_level >= 2) {
+                                content_rows += history_count_day_rows(entries, count, app->history_year, app->history_month);
+                                if(has_day && app->history_level >= 3) {
+                                    content_rows += history_count_record_rows(entries, count,
+                                                                             app->history_year, app->history_month,
+                                                                             app->history_day);
+                                }
+                            }
+                        }
+                        content_h = 18 + content_rows * row_h;
+                        max_scroll = content_h - viewport_h;
+                        if(max_scroll < 0)
+                            max_scroll = 0;
+                        app->history_scroll = clampi(app->history_scroll, 0, max_scroll);
+                        y -= row_h;  /* Don't advance y since we removed this row */
+                        continue;
                     }
                     y += row_h;
 
@@ -2329,8 +2431,6 @@ updateapp(InbeApp *app)
                 finish_hold(app);
             }
         }
-        if(app->inbe.screen == InbeScreenResults)
-            save_session_results(app);
         break;
 
     case InbeScreenResults:
@@ -2363,9 +2463,9 @@ updateapp(InbeApp *app)
             if(best < 0)
                 best = 0;
 
-            DrawRectangle(box_x, box_y, box_w, 78, darken(c_bg, 6));
-            DrawLine(box_x, box_y + 26, box_x + box_w, box_y + 26, darken(c_bg, 30));
-            DrawLine(box_x, box_y + 52, box_x + box_w, box_y + 52, darken(c_bg, 30));
+            DrawRectangle(box_x, box_y, box_w, ui_px(78), darken(c_bg, 6));
+            DrawLine(box_x, box_y + ui_px(26), box_x + box_w, box_y + ui_px(26), darken(c_bg, 30));
+            DrawLine(box_x, box_y + ui_px(52), box_x + box_w, box_y + ui_px(52), darken(c_bg, 30));
             DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(8), ui_clamp_px(16, 14, 18), c_text);
             DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(34), ui_clamp_px(16, 14, 18), c_text);
             DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(60), ui_clamp_px(16, 14, 18), c_text);
@@ -2384,9 +2484,6 @@ updateapp(InbeApp *app)
             if (drawbtn(app, center_x, view_height - ui_px(40), "HOME", &hover)) {
                 inbe_app_init(app);
             }
-
-            if(!app->results_saved)
-                save_session_results(app);
         }
         break;
 
