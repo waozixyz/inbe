@@ -34,7 +34,7 @@ static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 enum {
     SETTINGS_SPEED_MIN = 1,
-    SETTINGS_SPEED_MAX = 9,
+    SETTINGS_SPEED_MAX = 16,
     SETTINGS_BREATHS_MIN = 15,
     SETTINGS_BREATHS_MAX = 80,
     SETTINGS_PAUSE_MIN = 0,
@@ -369,7 +369,7 @@ reset_round_recover(Inbe *inbe)
 static void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
-    static const int breath_half_ticks[] = {66, 60, 54, 48, 42, 36, 30, 24, 18};
+    static const int breath_half_ticks[] = {108, 100, 93, 86, 80, 74, 68, 63, 58, 53, 48, 42, 36, 30, 24, 18};
 
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
@@ -416,7 +416,7 @@ load_settings(InbeApp *app)
 {
     rini_data settings = rini_load("settings.ini");
 
-    int speed = rini_get_value_fallback(settings, "speed", 3);
+    int speed = rini_get_value_fallback(settings, "speed", 6);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
@@ -1035,7 +1035,7 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
         draw_bevel(x, y, w, h, lighten(c_button, 28), darken(c_button, 20));
     }
 
-    DrawText(text, x + indent, y + 6, 14, c_text);
+    DrawText(text, x + ui_px(indent), y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 

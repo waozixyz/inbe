@@ -1,0 +1,4 @@
+
+ - fix saving sessions in wasm version
+ - implement export and import data 
+
