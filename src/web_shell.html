@@ -3,8 +3,24 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>Inner Breeze</title>
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://inbe.waozi.xyz/">
+    <meta property="og:title" content="Inner Breeze">
+    <meta property="og:description" content="guided breathing meditation based on the Wim Hof method">
+    <meta property="og:image" content="https://inbe.waozi.xyz/og.jpg">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:url" content="https://inbe.waozi.xyz/">
+    <meta name="twitter:title" content="Inner Breeze">
+    <meta name="twitter:description" content="guided breathing meditation based on the Wim Hof method">
+    <meta name="twitter:image" content="https://inbe.waozi.xyz/og.jpg">
+    <meta name="twitter:site" content="@waozixyz">
+    <meta name="twitter:creator" content="@waozixyz">
+    <link rel="icon" type="image/png" sizes="32x32" href="/site-icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/site-icons/apple-icon-180x180.png">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#779999">
     <link href="/style.css" rel="stylesheet">
     <link href="../../inbe.css" rel="stylesheet">
     <style>
@@ -17,8 +33,8 @@
         flex-direction: column;
         align-items: center;
         justify-content: flex-start;
-        gap: 12px;
-        padding: 24px 12px;
+        gap: 8px;
+        padding: 16px 12px;
         font-family: departure;
       }
 
@@ -30,10 +46,11 @@
       .canvas-frame {
         position: relative;
         z-index: 1;
-        width: min(480px, calc(100vw - 24px), calc(max(160px, 100vh - 108px) * 3 / 4));
-        aspect-ratio: 3 / 4;
-        background: #000000;
+        width: min(calc(100vw - 24px), calc((100vh - 96px) * 4 / 7));
+        max-width: calc(100vw - 24px);
+        aspect-ratio: 4 / 7;
         overflow: hidden;
+        background: transparent;
       }
 
       canvas.emscripten {
@@ -45,36 +62,44 @@
         max-width: none !important;
         max-height: none !important;
         border: 0;
-        background: #000000;
+        background: transparent;
         image-rendering: auto;
       }
 
       .canvas-stage {
         position: relative;
         z-index: 1;
-        display: flex;
+        flex: 1 1 auto;
+        min-height: 0;
+        width: 100%;
+        display: grid;
         align-items: center;
         justify-content: center;
+        place-items: center;
       }
 
       .canvas-stage:fullscreen {
+        display: grid;
         width: 100vw;
         height: 100vh;
-        background: #000000;
       }
 
       .canvas-stage:-webkit-full-screen {
+        display: grid;
         width: 100vw;
         height: 100vh;
-        background: #000000;
       }
 
       .canvas-stage:fullscreen .canvas-frame {
-        width: min(100vw, calc(100vh * 3 / 4));
+        width: min(100vw, calc(100vh * 4 / 7));
+        max-width: none;
+        max-height: 100vh;
       }
 
       .canvas-stage:-webkit-full-screen .canvas-frame {
-        width: min(100vw, calc(100vh * 3 / 4));
+        width: min(100vw, calc(100vh * 4 / 7));
+        max-width: none;
+        max-height: 100vh;
       }
 
       .web-actions {
@@ -84,24 +109,24 @@
         flex-wrap: wrap;
         gap: 8px;
         justify-content: center;
+        align-items: center;
       }
 
-      .fullscreen-btn {
-        border: 1px solid rgba(255, 255, 255, 0.45);
-        background: rgba(0, 0, 0, 0.68);
-        color: #ffffff;
+      .web-actions button.platform-btn {
+        appearance: none;
+        -webkit-appearance: none;
         font: inherit;
-        font-size: 13px;
-        line-height: 1;
-        padding: 8px 10px;
         cursor: pointer;
       }
 
-      .fullscreen-btn:hover {
-        background: rgba(24, 24, 24, 0.86);
+      .web-back {
+        position: relative;
+        flex-direction: row;
+        min-width: 0;
+        padding: 10px 16px;
       }
 
-      .web-back {
+      .web-fullscreen {
         position: relative;
         flex-direction: row;
         min-width: 0;
@@ -115,14 +140,16 @@
       <progress value="0" max="100" id="progress" hidden></progress>
       <div class="canvas-stage" id="canvas-stage">
         <div class="canvas-frame">
-          <canvas class="emscripten" id="canvas" width="480" height="640" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+          <canvas class="emscripten" id="canvas" width="320" height="560" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
         </div>
       </div>
       <div class="web-actions">
         <a class="platform-btn web web-back" href="https://inbe.waozi.xyz/">
           <span>Back to Inner Breeze</span>
         </a>
-        <button class="fullscreen-btn" id="fullscreen-btn" type="button">Fullscreen</button>
+        <button class="platform-btn web web-back web-fullscreen" id="fullscreen-btn" type="button">
+          <span>Fullscreen</span>
+        </button>
       </div>
     </div>
 

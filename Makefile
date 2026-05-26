@@ -61,7 +61,8 @@ WIN_RAYLIB_OBJS = \
 	$(WIN_RAYLIB_BUILD_DIR)/rcore.o \
 	$(WIN_RAYLIB_BUILD_DIR)/rshapes.o \
 	$(WIN_RAYLIB_BUILD_DIR)/rtextures.o \
-	$(WIN_RAYLIB_BUILD_DIR)/rtext.o
+	$(WIN_RAYLIB_BUILD_DIR)/rtext.o \
+	$(WIN_RAYLIB_BUILD_DIR)/raudio.o
 WIN_INBE_A = $(WINDOWS_BUILD_DIR)/libinbe.a
 
 # WebAssembly
@@ -74,13 +75,14 @@ WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/rcore.o \
 	$(WEB_RAYLIB_BUILD_DIR)/rshapes.o \
 	$(WEB_RAYLIB_BUILD_DIR)/rtextures.o \
-	$(WEB_RAYLIB_BUILD_DIR)/rtext.o
-WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE
+	$(WEB_RAYLIB_BUILD_DIR)/rtext.o \
+	$(WEB_RAYLIB_BUILD_DIR)/raudio.o
+WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 WEB_SHELL = src/web_shell.html
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png --preload-file ../icons/manual.png@icons/manual.png --preload-file ../icons/return.png@icons/return.png --preload-file ../icons/backward.png@icons/backward.png --preload-file ../icons/forward.png@icons/forward.png --preload-file ../icons/play.png@icons/play.png --preload-file ../icons/pause.png@icons/pause.png --preload-file ../icons/stat.png@icons/stat.png --preload-file assets/angel.png@assets/angel.png --preload-file assets/begin.png@assets/begin.png
-INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_FILEFORMAT_PNG=0,$(RAY_RAYLIB_CONFIG))
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png --preload-file ../icons/manual.png@icons/manual.png --preload-file ../icons/return.png@icons/return.png --preload-file ../icons/backward.png@icons/backward.png --preload-file ../icons/forward.png@icons/forward.png --preload-file ../icons/play.png@icons/play.png --preload-file ../icons/pause.png@icons/pause.png --preload-file ../icons/stat.png@icons/stat.png --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg --preload-file assets/sounds/breath-in.ogg@assets/sounds/breath-in.ogg --preload-file assets/sounds/breath-out.ogg@assets/sounds/breath-out.ogg --preload-file assets/sounds/bell.ogg@assets/sounds/bell.ogg
+INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
-CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections
+CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1
 LDFLAGS = -Wl,--gc-sections -s
 
 .NOTPARALLEL:
@@ -131,19 +133,17 @@ $(RAYLIB_BUILD_DIR): build
 	mkdir -p $@
 
 # Native Linux/macOS raylib build
-$(RAYLIB_A): FORCE | $(RAYLIB_BUILD_DIR)
-	$(MAKE) -C $(RAYLIB_DIR) clean
+$(RAYLIB_A): | $(RAYLIB_BUILD_DIR)
 	$(MAKE) -j1 -C $(RAYLIB_DIR) \
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
 		RAYLIB_RELEASE_PATH=../build/sdl \
-		RAYLIB_MODULE_AUDIO=FALSE \
+		RAYLIB_MODULE_AUDIO=TRUE \
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(INBE_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-	$(MAKE) -C $(RAYLIB_DIR) clean
 
 # Build native libinbe, then copy it into build/linux
 $(LINUX_INBE_A): FORCE | $(LINUX_BUILD_DIR)
@@ -158,6 +158,8 @@ $(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD
 		-I$(INBE_DIR) \
 		-I../liblotus/include \
 		$(RAY_CFLAGS) \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-o $@ \
 		$(SRC) \
 		$(LINUX_INBE_A) \
@@ -205,7 +207,7 @@ build-linux-arch:
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
 		RAYLIB_RELEASE_PATH=../build/sdl-$(ARCH_NAME) \
-		RAYLIB_MODULE_AUDIO=FALSE \
+		RAYLIB_MODULE_AUDIO=TRUE \
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(LINUX_RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(LINUX_RAY_SDL_LDLIBS)" \
@@ -218,6 +220,8 @@ build-linux-arch:
 		-I$(INBE_DIR) \
 		-I../liblotus/include \
 		$(LINUX_RAY_CFLAGS) \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
 		$(SRC) \
 		$(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a \
@@ -238,6 +242,8 @@ $(WIN_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WIN_RAYLIB_BUILD_DIR)
 		-D_GNU_SOURCE \
 		-DPLATFORM_DESKTOP_WIN32 \
 		-DGRAPHICS_API_OPENGL_33 \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-Wno-missing-braces \
 		-Werror=pointer-arith \
 		-fno-strict-aliasing \
@@ -364,7 +370,9 @@ dist-linux: linux
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
 	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
-	@cp assets/angel.png assets/begin.png $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
+	@cp assets/angel.jpg assets/begin.jpg $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
+	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds
+	@cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds/
 	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
 	@rm -rf $(LINUX_BUILD_DIR)/dist
 	@echo "Created $(LINUX_BUILD_DIR)/inbe-linux.tar.gz"
@@ -386,7 +394,9 @@ dist-windows:
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
 	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
-	@cp assets/angel.png assets/begin.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
+	@cp assets/angel.jpg assets/begin.jpg $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds
+	@cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds/
 	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/
 	@rm -rf $(WINDOWS_BUILD_DIR)/dist
 	@echo "Created $(WINDOWS_BUILD_DIR)/inbe-windows.zip"
@@ -413,9 +423,15 @@ android-copy-assets:
 	cp inbe.ini $(ANDROID_DIR)/app/src/main/assets/inbe.ini
 	cp theme.ini $(ANDROID_DIR)/app/src/main/assets/theme.ini
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
-	cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(ANDROID_DIR)/app/src/main/assets/icons/
+	@for icon in ../icons/*.png; do \
+		base=$$(basename "$$icon"); \
+		size=$$(identify -format '%wx%h' "$$icon"); \
+		magick "$$icon" -filter point -resize "$$size!" "$(ANDROID_DIR)/app/src/main/assets/icons/$$base"; \
+	done
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets
-	cp assets/angel.png assets/begin.png $(ANDROID_DIR)/app/src/main/assets/assets/
+	cp assets/angel.jpg assets/begin.jpg $(ANDROID_DIR)/app/src/main/assets/assets/
+	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets/sounds
+	cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg $(ANDROID_DIR)/app/src/main/assets/assets/sounds/
 
 android-debug:
 	$(MAKE) android-copy-assets
@@ -455,12 +471,22 @@ android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
 	done
 
 android-copy-release-apks: | $(ANDROID_BUILD_DIR)
-	@for apk in $(ANDROID_DIR)/app/build/outputs/apk/release/*.apk; do \
-		if [ -f "$$apk" ]; then \
-			echo "Copying $$apk"; \
-			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
-		fi; \
-	done
+	@VERSION=$$(grep INBE_VERSION_STRING src/version.h | grep -o '"[^"]*"' | tr -d '"'); \
+	UNIVERSAL_APK=$$(find $(ANDROID_DIR)/app/build/outputs/apk/release -name "app-universal-release.apk" 2>/dev/null); \
+	if [ -n "$$UNIVERSAL_APK" ] && [ -f "$$UNIVERSAL_APK" ]; then \
+		VERSIONED_APK="$(ANDROID_BUILD_DIR)/inbe-$$VERSION.apk"; \
+		echo "Copying and renaming $$UNIVERSAL_APK to $$VERSIONED_APK"; \
+		cp "$$UNIVERSAL_APK" "$$VERSIONED_APK"; \
+		ln -sf "$$(basename "$$VERSIONED_APK")" "$(ANDROID_BUILD_DIR)/inbe-latest.apk"; \
+		echo "Created symlink: inbe-latest.apk → $$(basename "$$VERSIONED_APK")"; \
+	else \
+		for apk in $(ANDROID_DIR)/app/build/outputs/apk/release/*.apk; do \
+			if [ -f "$$apk" ]; then \
+				echo "Copying $$apk"; \
+				cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
+			fi; \
+		done; \
+	fi
 
 android-install: android-debug
 	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \

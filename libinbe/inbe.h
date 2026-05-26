@@ -54,17 +54,15 @@ struct Inbe {
     int r;
     int rmin;
 	int rmax;
-	int dir;
-	int speed;
+    int dir;
     int speed_level;
     int breath_frame;
     int breath_half_ticks;
 	int frame;
 
-	int breathtick;
-	int breathtickmax;
-	int sectick;
-	int halftick;
+    int breathtick;
+    int sectick;
+    int halftick;
     int max_rounds;
     int pause_seconds;
 
