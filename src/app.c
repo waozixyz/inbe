@@ -2,6 +2,7 @@
 #include "app.h"
 #include "theme.h"
 #include "../../vendor/rini/src/rini.h"
+
 #include <dirent.h>
 #include <limits.h>
 #include <stdio.h>
@@ -9,6 +10,10 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
+
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
 
 #define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
@@ -65,6 +70,49 @@ typedef struct HistoryEntry {
     int avg_seconds;
     int rounds[MaxRounds];
 } HistoryEntry;
+
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+
+static int web_storage_ready = 0;
+
+static void
+init_web_storage(void)
+{
+    if(web_storage_ready)
+        return;
+    EM_ASM({
+        try {
+            FS.mkdir('/home');
+            FS.mount(IDBFS, {root: '/'}, '/home');
+            FS.syncfs(true, function(err) {
+                if(err) console.error('IDBFS init sync failed:', err);
+                else console.log('IDBFS initialized');
+            });
+        } catch(e) {
+            console.error('IDBFS mount failed:', e);
+        }
+    });
+    web_storage_ready = 1;
+}
+
+static void
+sync_web_storage(void)
+{
+    EM_ASM({
+        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
+            try {
+                FS.syncfs(false, function(err) {
+                    if(err) console.error('IDBFS save failed:', err);
+                    else console.log('IDBFS synced');
+                });
+            } catch(e) {
+                console.error('IDBFS sync error:', e);
+            }
+        }
+    });
+}
+#endif
 
 static void save_session_results(InbeApp *app);
 static void load_session_file(const char *path, HistoryEntry *entry);
@@ -399,6 +447,12 @@ static void
 save_settings(InbeApp *app)
 {
     char text[192];
+    const char *settings_path =
+#if defined(PLATFORM_WEB)
+        "/home/settings.ini";
+#else
+        "settings.ini";
+#endif
     snprintf(text, sizeof(text),
              "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\n",
              app->inbe.speed_level,
@@ -407,14 +461,23 @@ save_settings(InbeApp *app)
              app->inbe.pause_seconds,
              app->sound_volume,
              app->tutorial_seen ? 1 : 0);
-    SaveFileText("settings.ini", text);
+    SaveFileText(settings_path, text);
+#if defined(PLATFORM_WEB)
+    sync_web_storage();
+#endif
     app->settings_dirty = 0;
 }
 
 static void
 load_settings(InbeApp *app)
 {
-    rini_data settings = rini_load("settings.ini");
+    const char *settings_path =
+#if defined(PLATFORM_WEB)
+        "/home/settings.ini";
+#else
+        "settings.ini";
+#endif
+    rini_data settings = rini_load(settings_path);
 
     int speed = rini_get_value_fallback(settings, "speed", 6);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
@@ -692,9 +755,20 @@ ensure_dir(const char *path)
 static const char *
 history_root(void)
 {
-    static char root[PATH_MAX];
+    static char root[1024];
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if defined(PLATFORM_WEB)
+    if(root[0] == '\0') {
+        snprintf(root, sizeof(root), "/home/lotus/home");
+        EM_ASM({
+            try {
+                FS.mkdir('/lotus');
+                FS.mkdir('/lotus/home');
+            } catch(e) {}
+        });
+    }
+    return root;
+#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     return "data";
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
@@ -702,6 +776,7 @@ history_root(void)
 
     if(root[0] != '\0')
         return root;
+
     if(xdg != NULL && xdg[0] != '\0')
         snprintf(root, sizeof(root), "%s/lotus/home", xdg);
     else if(home != NULL && home[0] != '\0')
@@ -715,18 +790,18 @@ history_root(void)
 static void
 save_session_results(InbeApp *app)
 {
+    if(app->results_saved)
+        return;
+
     time_t now;
     struct tm *tm;
-    char dir_year[32];
-    char dir_month[48];
-    char dir_day[64];
-    char path[96];
+    char dir_year[128];
+    char dir_month[128];
+    char dir_day[128];
+    char path[256];
     char text[MaxRounds * 8];
     int offset = 0;
     int played_rounds;
-
-    if(app->results_saved)
-        return;
 
     now = time(NULL);
     tm = localtime(&now);
@@ -761,6 +836,9 @@ save_session_results(InbeApp *app)
     if(SaveFileText(path, text)) {
         TraceLog(LOG_INFO, "INBE: saved results to %s", path);
         app->results_saved = 1;
+#if defined(PLATFORM_WEB)
+        sync_web_storage();
+#endif
     } else {
         TraceLog(LOG_WARNING, "INBE: failed to save results to %s", path);
     }
@@ -771,9 +849,9 @@ prepare_history_storage(void)
 {
     time_t now;
     struct tm *tm;
-    char dir_year[32];
-    char dir_month[48];
-    char dir_day[64];
+    char dir_year[128];
+    char dir_month[128];
+    char dir_day[128];
 
     now = time(NULL);
     tm = localtime(&now);
@@ -2063,6 +2141,9 @@ inbe_app_init(void *vapp) {
     if(app == 0)
         return;
 
+#if defined(PLATFORM_WEB)
+    init_web_storage();
+#endif
     load_config();
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
@@ -2268,7 +2349,7 @@ updateapp(InbeApp *app)
             for(int i = 0; i < rounds; i++) {
                 int seconds = int_from_count(app->inbe.results[i]);
                 total += seconds;
-                if(seconds > 0 && (best < 0 || seconds < best))
+                if(seconds > 0 && (best < 0 || seconds > best))
                     best = seconds;
             }
 
