@@ -2,7 +2,6 @@
 #include "app.h"
 #include "theme.h"
 #include "../../vendor/rini/src/rini.h"
-
 #include <dirent.h>
 #include <limits.h>
 #include <stdio.h>
@@ -10,10 +9,6 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <time.h>
-
-#if defined(PLATFORM_WEB)
-#include <emscripten.h>
-#endif
 
 #define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
@@ -55,8 +50,7 @@ enum {
     TUTORIAL_STEPS = 5,
     HISTORY_MAX_SESSIONS = 48,
     HISTORY_PATH_SIZE = 96,
-    HISTORY_TEXT_SIZE = 96,
-    FS_PATH_MAX = 256
+    HISTORY_TEXT_SIZE = 96
 };
 
 typedef struct HistoryEntry {
@@ -71,49 +65,6 @@ typedef struct HistoryEntry {
     int avg_seconds;
     int rounds[MaxRounds];
 } HistoryEntry;
-
-#if defined(PLATFORM_WEB)
-#include <emscripten.h>
-
-static int web_storage_ready = 0;
-
-static void
-init_web_storage(void)
-{
-    if(web_storage_ready)
-        return;
-    EM_ASM({
-        try {
-            FS.mkdir('/home');
-            FS.mount(IDBFS, {root: '/'}, '/home');
-            FS.syncfs(true, function(err) {
-                if(err) console.error('IDBFS init sync failed:', err);
-                else console.log('IDBFS initialized');
-            });
-        } catch(e) {
-            console.error('IDBFS mount failed:', e);
-        }
-    });
-    web_storage_ready = 1;
-}
-
-static void
-sync_web_storage(void)
-{
-    EM_ASM({
-        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
-            try {
-                FS.syncfs(false, function(err) {
-                    if(err) console.error('IDBFS save failed:', err);
-                    else console.log('IDBFS synced');
-                });
-            } catch(e) {
-                console.error('IDBFS sync error:', e);
-            }
-        }
-    });
-}
-#endif
 
 static void save_session_results(InbeApp *app);
 static void load_session_file(const char *path, HistoryEntry *entry);
@@ -448,12 +399,6 @@ static void
 save_settings(InbeApp *app)
 {
     char text[192];
-    const char *settings_path =
-#if defined(PLATFORM_WEB)
-        "/home/settings.ini";
-#else
-        "settings.ini";
-#endif
     snprintf(text, sizeof(text),
              "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\n",
              app->inbe.speed_level,
@@ -462,23 +407,14 @@ save_settings(InbeApp *app)
              app->inbe.pause_seconds,
              app->sound_volume,
              app->tutorial_seen ? 1 : 0);
-    SaveFileText(settings_path, text);
-#if defined(PLATFORM_WEB)
-    sync_web_storage();
-#endif
+    SaveFileText("settings.ini", text);
     app->settings_dirty = 0;
 }
 
 static void
 load_settings(InbeApp *app)
 {
-    const char *settings_path =
-#if defined(PLATFORM_WEB)
-        "/home/settings.ini";
-#else
-        "settings.ini";
-#endif
-    rini_data settings = rini_load(settings_path);
+    rini_data settings = rini_load("settings.ini");
 
     int speed = rini_get_value_fallback(settings, "speed", 6);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
@@ -640,9 +576,6 @@ start_session(InbeApp *app)
 
     inbeinit(&app->inbe);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-    /* Save user's pause preference and use 3 seconds for first round */
-    app->saved_pause_seconds = app->inbe.pause_seconds;
-    app->inbe.pause_seconds = 3;
     update_circle_bounds_for_view(&app->inbe, 0, ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
@@ -671,10 +604,6 @@ finish_round(InbeApp *app)
 
     if(app->inbe.round < app->inbe.max_rounds - 1) {
         app->inbe.round++;
-        /* Restore user's pause preference after round 0 */
-        if(app->inbe.round == 1) {
-            app->inbe.pause_seconds = app->saved_pause_seconds;
-        }
         reset_round_start(&app->inbe);
     } else {
         save_session_results(app);
@@ -763,20 +692,9 @@ ensure_dir(const char *path)
 static const char *
 history_root(void)
 {
-    static char root[1024];
+    static char root[PATH_MAX];
 
-#if defined(PLATFORM_WEB)
-    if(root[0] == '\0') {
-        snprintf(root, sizeof(root), "/home/lotus/home");
-        EM_ASM({
-            try {
-                FS.mkdir('/lotus');
-                FS.mkdir('/lotus/home');
-            } catch(e) {}
-        });
-    }
-    return root;
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     return "data";
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
@@ -784,7 +702,6 @@ history_root(void)
 
     if(root[0] != '\0')
         return root;
-
     if(xdg != NULL && xdg[0] != '\0')
         snprintf(root, sizeof(root), "%s/lotus/home", xdg);
     else if(home != NULL && home[0] != '\0')
@@ -798,25 +715,29 @@ history_root(void)
 static void
 save_session_results(InbeApp *app)
 {
-    if(app->results_saved)
-        return;
-
     time_t now;
     struct tm *tm;
-    char dir_year[FS_PATH_MAX];
-    char dir_month[FS_PATH_MAX];
-    char dir_day[FS_PATH_MAX];
-    char path[FS_PATH_MAX];
+    char dir_year[32];
+    char dir_month[48];
+    char dir_day[64];
+    char path[96];
     char text[MaxRounds * 8];
     int offset = 0;
     int played_rounds;
+
+    if(app->results_saved)
+        return;
 
     now = time(NULL);
     tm = localtime(&now);
     if(tm == NULL)
         return;
 
-    played_rounds = app->inbe.max_rounds;
+    played_rounds = app->inbe.round + 1;
+    if(played_rounds < 1)
+        played_rounds = 1;
+    if(played_rounds > app->inbe.max_rounds)
+        played_rounds = app->inbe.max_rounds;
 
     ensure_dir(history_root());
     snprintf(dir_year, sizeof(dir_year), "%s/%04d", history_root(), tm->tm_year + 1900);
@@ -840,9 +761,6 @@ save_session_results(InbeApp *app)
     if(SaveFileText(path, text)) {
         TraceLog(LOG_INFO, "INBE: saved results to %s", path);
         app->results_saved = 1;
-#if defined(PLATFORM_WEB)
-        sync_web_storage();
-#endif
     } else {
         TraceLog(LOG_WARNING, "INBE: failed to save results to %s", path);
     }
@@ -853,9 +771,9 @@ prepare_history_storage(void)
 {
     time_t now;
     struct tm *tm;
-    char dir_year[FS_PATH_MAX];
-    char dir_month[FS_PATH_MAX];
-    char dir_day[FS_PATH_MAX];
+    char dir_year[32];
+    char dir_month[48];
+    char dir_day[64];
 
     now = time(NULL);
     tm = localtime(&now);
@@ -931,7 +849,7 @@ scan_history_day(HistoryEntry *entries, int *count, int year, int month, int day
 {
     DIR *dir = opendir(path);
     struct dirent *ent;
-    char child[FS_PATH_MAX];
+    char child[HISTORY_PATH_SIZE];
 
     if(dir == NULL)
         return;
@@ -952,9 +870,9 @@ scan_history_tree(HistoryEntry *entries, int *count)
 {
     DIR *years = opendir(history_root());
     struct dirent *year;
-    char ypath[FS_PATH_MAX];
-    char mpath[FS_PATH_MAX];
-    char dpath[FS_PATH_MAX];
+    char ypath[HISTORY_PATH_SIZE];
+    char mpath[HISTORY_PATH_SIZE];
+    char dpath[HISTORY_PATH_SIZE];
 
     *count = 0;
     if(years == NULL)
@@ -1034,6 +952,16 @@ history_set_selected_record(InbeApp *app, const HistoryEntry *entry)
 }
 
 static void
+history_set_selection(InbeApp *app, const HistoryEntry *entry, int level)
+{
+    app->history_year = entry->year;
+    app->history_month = entry->month;
+    app->history_day = entry->day;
+    app->history_level = level;
+    history_set_selected_record(app, entry);
+}
+
+static void
 history_clear_record_selection(InbeApp *app)
 {
     app->history_record[0] = 0;
@@ -1058,24 +986,14 @@ history_open_latest(InbeApp *app)
                 if(entries[i].year == tm->tm_year + 1900 &&
                    entries[i].month == tm->tm_mon + 1 &&
                    entries[i].day == tm->tm_mday) {
-                    // Set to day level (2) without selecting specific time
-                    app->history_year = entries[i].year;
-                    app->history_month = entries[i].month;
-                    app->history_day = entries[i].day;
-                    app->history_level = 2;
-                    app->history_record[0] = 0;
+                    history_set_selection(app, &entries[i], 3);
                     app->history_scroll = 0;
                     return;
                 }
             }
         }
 
-        // Default to day level for most recent entry, no specific time
-        app->history_year = entries[0].year;
-        app->history_month = entries[0].month;
-        app->history_day = entries[0].day;
-        app->history_level = 2;
-        app->history_record[0] = 0;
+        history_set_selection(app, &entries[0], 3);
         app->history_scroll = 0;
         return;
     }
@@ -1119,59 +1037,6 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
 
     DrawText(text, x + ui_px(indent), y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-}
-
-static int
-draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected)
-{
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
-    int hover = 0;
-    int icon_size = ui_clamp_px(16, 14, 18);
-    int font = ui_clamp_px(14, 12, 16);
-    (void)font; /* Currently unused but may be needed for future */
-
-    if(mx > x && mx < x + w && my > y && my < y + h) {
-        DrawRectangle(x, y, w, h, selected ? c_button_hover : darken(c_button_hover, 6));
-        draw_bevel(x, y, w, h, darken(c_button_hover, 40), lighten(c_button_hover, 40));
-        hover = 1;
-        app->cursor_clickable = 1;
-        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            draw_bevel(x, y, w, h, lighten(c_button_hover, 40), darken(c_button_hover, 40));
-        }
-    } else {
-        DrawRectangle(x, y, w, h, selected ? c_button : darken(c_bg, 6));
-        draw_bevel(x, y, w, h, lighten(c_button, 28), darken(c_button, 20));
-    }
-
-    /* Draw text */
-    DrawText(text, x + ui_px(46), y + ui_px(6), font, c_text);
-
-    /* Draw trash icon on the right */
-    if(app->trash_icon.id != 0) {
-        int trash_hover = 0;
-        int trash_x = x + w - icon_size - ui_px(8);
-        int trash_y = y + (h - icon_size) / 2;
-        Rectangle src = {0, 0, app->trash_icon.width, app->trash_icon.height};
-        Rectangle dst = {trash_x, trash_y, (float)icon_size, (float)icon_size};
-
-        /* Check if trash icon is hovered */
-        if(mx > trash_x && mx < trash_x + icon_size && my > trash_y && my < trash_y + icon_size) {
-            (void)trash_hover; /* Mark as intentionally unused for future hover effects */
-            app->cursor_clickable = 1;
-            DrawTexturePro(app->trash_icon, src, dst, (Vector2){0}, 0, darken(c_icon, 30));
-            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-                return 2; /* Return 2 to indicate trash clicked */
-        } else {
-            DrawTexturePro(app->trash_icon, src, dst, (Vector2){0}, 0, c_icon);
-        }
-    }
-
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-        return 1; /* Return 1 to indicate row clicked */
-
-    return 0;
 }
 
 static int
@@ -1281,8 +1146,8 @@ history_format_session_label(const HistoryEntry *entry, char *out, int out_size)
     if(out == NULL || out_size <= 0)
         return;
 
-    snprintf(out, (size_t)out_size, "%02d:%02d  avg %ds",
-             entry->hour, entry->minute, entry->avg_seconds);
+    snprintf(out, (size_t)out_size, "%02d:%02d:%02d  avg %ds",
+             entry->hour, entry->minute, entry->second, entry->avg_seconds);
 }
 
 static void
@@ -1423,7 +1288,7 @@ draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const
 
     if(show_label && label != NULL && label[0] != '\0') {
         int text_x = x + icon_size + ui_px(12);
-        int text_y = y + (h - font) / 2;
+        int text_y = y + ui_px(5);
         DrawText(label, text_x, text_y, font, c_text);
     }
 
@@ -1495,37 +1360,24 @@ static void
 draw_session_status(InbeApp *app, int center_x, int center_y)
 {
     char text[32];
-    char max_text[32];
-    int total_seconds;
     int remaining;
-    int max_text_w;
+    int text_w;
     int text_y;
 
-    if(app->inbe.phase != InbePhaseStarting)
+    if(app->inbe.phase != InbePhaseStarting || app->inbe.pause_seconds <= 0)
         return;
 
-    if(app->inbe.round == 0) {
-        total_seconds = 3;
-    } else {
-        if(app->inbe.pause_seconds <= 0)
-            return;
-        total_seconds = app->inbe.pause_seconds;
-    }
-
-    remaining = total_seconds - app->inbe.sectick / 60;
+    remaining = app->inbe.pause_seconds - app->inbe.sectick / 60;
     if(remaining < 1)
         remaining = 1;
 
+    snprintf(text, sizeof(text), "STARTING IN %d", remaining);
     int font = ui_clamp_px(18, 16, 20);
-    /* Calculate fixed width based on maximum possible value */
-    snprintf(max_text, sizeof(max_text), "STARTING IN %2d", 30);
-    max_text_w = MeasureText(max_text, font);
-
-    snprintf(text, sizeof(text), "STARTING IN %2d", remaining);
-    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ui_px(40);
-    if(text_y < ui_px(20))
-        text_y = ui_px(20);
-    DrawText(text, center_x - max_text_w / 2, text_y, font, c_text);
+    text_w = MeasureText(text, font);
+    text_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(12);
+    if(text_y > view_height - ui_px(72))
+        text_y = view_height - ui_px(72);
+    DrawText(text, center_x - text_w / 2, text_y, font, c_text);
 }
 
 static void
@@ -1583,11 +1435,9 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
     int track_h = ui_px(8);
     int knob_w = ui_px(12);
     int knob_h = ui_px(22);
-    int knob_y = track_y - (knob_h - track_h) / 2;
-    int hit_padding = ui_px(16);
     int changed = 0;
     char value_text[32];
-    Rectangle hit = {(float)(x - hit_padding), (float)(knob_y - hit_padding), (float)(w + hit_padding * 2), (float)(knob_h + hit_padding * 2)};
+    Rectangle hit = {(float)(x - 6), (float)(track_y - 10), (float)(w + 12), 32};
 
     snprintf(value_text, sizeof(value_text), "%d%s", *value, suffix != NULL ? suffix : "");
     DrawText(label, x, y, label_font, c_text);
@@ -1616,8 +1466,8 @@ draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 
     float t = (float)(*value - min) / (float)(max - min);
     int knob_x = x + (int)(t * (float)w) - knob_w / 2;
-    DrawRectangle(knob_x, knob_y, knob_w, knob_h, c_button);
-    draw_bevel(knob_x, knob_y, knob_w, knob_h, lighten(c_button, 40), darken(c_button, 40));
+    DrawRectangle(knob_x, track_y - 7, knob_w, knob_h, c_button);
+    draw_bevel(knob_x, track_y - 7, knob_w, knob_h, lighten(c_button, 40), darken(c_button, 40));
 
     return changed;
 }
@@ -1931,7 +1781,7 @@ draw_manual(InbeApp *app)
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             }
             draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + ui_px(40));
-            y += (int)(app->settings_preview.rmax * 0.72f) + ui_px(54);
+            y += (int)(app->settings_preview.rmax * dpi_scale + 0.5f) + ui_px(54);
 
             if(draw_slider(app, 10, content_x, y, content_w, "Speed", SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
@@ -1969,8 +1819,8 @@ draw_manual(InbeApp *app)
     draw_scrollbar(app, &app->manual_scroll, content_h, viewport_h);
     snprintf(page_label, sizeof(page_label), "%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS);
     DrawText(page_label,
-             view_width / 2 - MeasureText(page_label, ui_clamp_px(14, 14, 16)) / 2,
-             footer_mid_y, ui_clamp_px(14, 14, 16), c_text);
+             view_width / 2 - MeasureText(page_label, 14) / 2,
+             footer_mid_y, 14, c_text);
 
     int left_hover = 0;
     int right_hover = 0;
@@ -2174,52 +2024,15 @@ draw_history(InbeApp *app)
                     char time_label[HISTORY_TEXT_SIZE];
                     char record_name[16];
                     int selected;
-                    int result;
 
                     snprintf(record_name, sizeof(record_name), "inbe-%02d%02d%02d",
                              entries[i].hour, entries[i].minute, entries[i].second);
                     history_format_session_label(&entries[i], time_label, sizeof(time_label));
                     selected = strcmp(app->history_record, record_name) == 0;
-                    result = draw_history_session_row(app, content_x, y, content_w, row_h, time_label, selected);
-
-                    if(result == 1) {
-                        /* Row clicked - select session */
+                    if(draw_history_row(app, content_x, y, content_w, row_h, time_label, selected, 46)) {
                         history_set_selected_record(app, &entries[i]);
                         app->history_level = 3;
                         selected_index = i;
-                    } else if(result == 2) {
-                        /* Trash clicked - delete session file */
-                        char dir_day[FS_PATH_MAX];
-                        char path[FS_PATH_MAX];
-                        snprintf(dir_day, sizeof(dir_day), "%s/%04d/%02d/%02d",
-                                 history_root(), entries[i].year, entries[i].month, entries[i].day);
-                        snprintf(path, sizeof(path), "%s/%s", dir_day, record_name);
-                        remove(path);
-                        /* Reload history */
-                        scan_history_tree(entries, &count);
-                        qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
-                        history_clear_record_selection(app);
-                        selected_index = -1;
-                        /* Rebuild content rows */
-                        content_rows = history_count_year_rows(entries, count);
-                        if(count > 0 && has_year && app->history_level >= 1) {
-                            content_rows += history_count_month_rows(entries, count, app->history_year);
-                            if(has_month && app->history_level >= 2) {
-                                content_rows += history_count_day_rows(entries, count, app->history_year, app->history_month);
-                                if(has_day && app->history_level >= 3) {
-                                    content_rows += history_count_record_rows(entries, count,
-                                                                             app->history_year, app->history_month,
-                                                                             app->history_day);
-                                }
-                            }
-                        }
-                        content_h = 18 + content_rows * row_h;
-                        max_scroll = content_h - viewport_h;
-                        if(max_scroll < 0)
-                            max_scroll = 0;
-                        app->history_scroll = clampi(app->history_scroll, 0, max_scroll);
-                        y -= row_h;  /* Don't advance y since we removed this row */
-                        continue;
                     }
                     y += row_h;
 
@@ -2250,9 +2063,6 @@ inbe_app_init(void *vapp) {
     if(app == 0)
         return;
 
-#if defined(PLATFORM_WEB)
-    init_web_storage();
-#endif
     load_config();
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
@@ -2431,6 +2241,8 @@ updateapp(InbeApp *app)
                 finish_hold(app);
             }
         }
+        if(app->inbe.screen == InbeScreenResults)
+            save_session_results(app);
         break;
 
     case InbeScreenResults:
@@ -2456,16 +2268,16 @@ updateapp(InbeApp *app)
             for(int i = 0; i < rounds; i++) {
                 int seconds = int_from_count(app->inbe.results[i]);
                 total += seconds;
-                if(seconds > 0 && (best < 0 || seconds > best))
+                if(seconds > 0 && (best < 0 || seconds < best))
                     best = seconds;
             }
 
             if(best < 0)
                 best = 0;
 
-            DrawRectangle(box_x, box_y, box_w, ui_px(78), darken(c_bg, 6));
-            DrawLine(box_x, box_y + ui_px(26), box_x + box_w, box_y + ui_px(26), darken(c_bg, 30));
-            DrawLine(box_x, box_y + ui_px(52), box_x + box_w, box_y + ui_px(52), darken(c_bg, 30));
+            DrawRectangle(box_x, box_y, box_w, 78, darken(c_bg, 6));
+            DrawLine(box_x, box_y + 26, box_x + box_w, box_y + 26, darken(c_bg, 30));
+            DrawLine(box_x, box_y + 52, box_x + box_w, box_y + 52, darken(c_bg, 30));
             DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(8), ui_clamp_px(16, 14, 18), c_text);
             DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(34), ui_clamp_px(16, 14, 18), c_text);
             DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(60), ui_clamp_px(16, 14, 18), c_text);
@@ -2484,6 +2296,9 @@ updateapp(InbeApp *app)
             if (drawbtn(app, center_x, view_height - ui_px(40), "HOME", &hover)) {
                 inbe_app_init(app);
             }
+
+            if(!app->results_saved)
+                save_session_results(app);
         }
         break;
 

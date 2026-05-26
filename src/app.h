@@ -49,7 +49,6 @@ struct InbeApp {
     char history_record[16];
     int session_paused;
     int results_saved;
-    int saved_pause_seconds;
 };
 
 void inbe_app_init(void *app);
