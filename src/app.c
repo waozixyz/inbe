@@ -29,6 +29,7 @@ static InbeConfig config = {
 
 static int view_width = INBE_DEFAULT_WIDTH;
 static int view_height = INBE_DEFAULT_HEIGHT;
+static float dpi_scale = 1.0f;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 enum {
@@ -38,9 +39,11 @@ enum {
     SETTINGS_BREATHS_MAX = 80,
     SETTINGS_PAUSE_MIN = 0,
     SETTINGS_PAUSE_MAX = 30,
+    SETTINGS_VOLUME_MIN = 0,
+    SETTINGS_VOLUME_MAX = 100,
     SETTINGS_TITLE_H = 38,
     TAB_BAR_H = 48,
-    SETTINGS_CONTENT_H = 460,
+    SETTINGS_CONTENT_H = 526,
     CONTENT_MAX_W = 440,
     CONTENT_SIDE_PAD = 16,
     CIRCLE_SIDE_PAD = 24,
@@ -80,15 +83,15 @@ refresh_theme_colors(void)
 static int
 ui_px(int px)
 {
-    return px;
+    return (int)(px * dpi_scale + 0.5f);
 }
 
 static int
 ui_clamp_px(int px, int min_px, int max_px)
 {
-    int value = px;
-    int min_value = min_px;
-    int max_value = max_px;
+    int value = (int)(px * dpi_scale + 0.5f);
+    int min_value = (int)(min_px * dpi_scale + 0.5f);
+    int max_value = (int)(max_px * dpi_scale + 0.5f);
 
     if(value < min_value)
         value = min_value;
@@ -100,6 +103,10 @@ ui_clamp_px(int px, int min_px, int max_px)
 static void
 centered_column(int max_w, int side_pad, int *x, int *w)
 {
+    /* Scale parameters by DPI */
+    max_w = (int)(max_w * dpi_scale + 0.5f);
+    side_pad = (int)(side_pad * dpi_scale + 0.5f);
+
     int available_w = view_width - side_pad * 2;
 
     if(available_w < 0)
@@ -199,15 +206,15 @@ update_preview_bounds(Inbe *inbe, int content_w, int content_h)
         span = content_h;
 
     rmax = span / 2;
-    if(rmax < 60)
-        rmax = 60;
-    if(rmax > 120)
-        rmax = 120;
+    if(rmax < ui_px(60))
+        rmax = ui_px(60);
+    if(rmax > ui_px(120))
+        rmax = ui_px(120);
     rmin = rmax / 2;
-    if(rmin < 24)
-        rmin = 24;
-    if(rmin > rmax - 10)
-        rmin = rmax - 10;
+    if(rmin < ui_px(24))
+        rmin = ui_px(24);
+    if(rmin > rmax - ui_px(10))
+        rmin = rmax - ui_px(10);
 
     set_circle_bounds(inbe, rmin, rmax);
 }
@@ -383,7 +390,7 @@ reset_settings_preview(InbeApp *app)
 
     inbeinit(&app->settings_preview);
     centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
-    update_preview_bounds(&app->settings_preview, content_w, 132);
+    update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
     reset_round_breathe(&app->settings_preview);
 }
@@ -391,13 +398,14 @@ reset_settings_preview(InbeApp *app)
 static void
 save_settings(InbeApp *app)
 {
-    char text[160];
+    char text[192];
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\ntutorial_seen %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
              app->inbe.pause_seconds,
+             app->sound_volume,
              app->tutorial_seen ? 1 : 0);
     SaveFileText("settings.ini", text);
     app->settings_dirty = 0;
@@ -412,8 +420,10 @@ load_settings(InbeApp *app)
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
+    int sound_volume = rini_get_value_fallback(settings, "sound_volume", 100);
 
     app->tutorial_seen = rini_get_value_fallback(settings, "tutorial_seen", 0) != 0;
+    app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     rini_unload(&settings);
 }
@@ -465,6 +475,97 @@ load_asset_texture(const char *name)
 #endif
 }
 
+static Sound
+load_sound_asset(const char *name)
+{
+    char path[96];
+
+    snprintf(path, sizeof(path), "assets/sounds/%s", name);
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
+    return LoadSound(path);
+#else
+    if(FileExists(path))
+        return LoadSound(path);
+
+    snprintf(path, sizeof(path), "../inbe/assets/sounds/%s", name);
+    if(FileExists(path))
+        return LoadSound(path);
+
+    snprintf(path, sizeof(path), "../assets/sounds/%s", name);
+    return LoadSound(path);
+#endif
+}
+
+static void
+init_audio(InbeApp *app)
+{
+    if(app == NULL || app->audio_ready)
+        return;
+
+    InitAudioDevice();
+    app->audio_ready = IsAudioDeviceReady();
+    if(!app->audio_ready)
+        return;
+
+    app->breath_in_sound = load_sound_asset("breath-in.ogg");
+    app->breath_out_sound = load_sound_asset("breath-out.ogg");
+    app->bell_sound = load_sound_asset("bell.ogg");
+}
+
+static void
+remember_sound_state(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    app->sound_last_screen = app->inbe.screen;
+    app->sound_last_phase = app->inbe.phase;
+    app->sound_last_dir = app->inbe.dir;
+    cpcount(app->sound_last_count, app->inbe.count);
+}
+
+static void
+play_app_sound(InbeApp *app, Sound sound, float scale)
+{
+    float volume;
+
+    if(app == NULL || !app->audio_ready || sound.frameCount == 0 || app->sound_volume <= 0)
+        return;
+
+    volume = ((float)app->sound_volume / 100.0f) * scale;
+    if(volume < 0.0f)
+        volume = 0.0f;
+    if(volume > 1.0f)
+        volume = 1.0f;
+
+    StopSound(sound);
+    SetSoundVolume(sound, volume);
+    PlaySound(sound);
+}
+
+static void
+update_session_sounds(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    if(app->inbe.screen == InbeScreenSession && !app->session_paused) {
+        if(app->sound_last_screen != InbeScreenSession) {
+            if(app->inbe.phase == InbePhaseBreathe)
+                play_app_sound(app, app->inbe.dir == 0 ? app->breath_in_sound : app->breath_out_sound, 1.0f);
+        } else if(app->sound_last_phase != app->inbe.phase) {
+            if(app->inbe.phase == InbePhaseBreathe)
+                play_app_sound(app, app->inbe.dir == 0 ? app->breath_in_sound : app->breath_out_sound, 1.0f);
+            else if(app->inbe.phase == InbePhaseHold)
+                play_app_sound(app, app->bell_sound, 0.8f);
+        } else if(app->inbe.phase == InbePhaseBreathe && app->sound_last_dir != app->inbe.dir) {
+            play_app_sound(app, app->inbe.dir == 0 ? app->breath_in_sound : app->breath_out_sound, 1.0f);
+        }
+    }
+
+    remember_sound_state(app);
+}
+
 static void
 start_session(InbeApp *app)
 {
@@ -479,6 +580,7 @@ start_session(InbeApp *app)
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
+    remember_sound_state(app);
 }
 
 static void
@@ -1142,10 +1244,10 @@ drawiconbtn(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
 static int
 nav_button_width(const char *label, int icon_size, int show_label, int font)
 {
-    int width = icon_size + 8;
+    int width = icon_size + ui_px(8);
 
     if(show_label && label != NULL && label[0] != '\0')
-        width += 10 + MeasureText(label, font);
+        width += ui_px(10) + MeasureText(label, font);
     return width;
 }
 
@@ -1180,13 +1282,13 @@ draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const
 
     if(icon.id != 0) {
         Rectangle src = {0, 0, icon.width, icon.height};
-        Rectangle dst = {x + 4, y + 4, (float)icon_size, (float)icon_size};
+        Rectangle dst = {x + ui_px(4), y + ui_px(4), (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
-        int text_x = x + icon_size + 12;
-        int text_y = y + 5;
+        int text_x = x + icon_size + ui_px(12);
+        int text_y = y + ui_px(5);
         DrawText(label, text_x, text_y, font, c_text);
     }
 
@@ -1199,15 +1301,22 @@ draw_tab_bar(InbeApp *app)
     int bar_h = ui_clamp_px(TAB_BAR_H, 44, 56);
     int bar_y = view_height - bar_h;
     int button_size = ui_clamp_px(20, 18, 24);
-    int show_labels = view_width >= 420;
+    int show_labels = view_width >= ui_px(420);
     int font = ui_clamp_px(14, 12, 16);
     int stat_w = nav_button_width("History", button_size, show_labels, font);
     int manual_w = nav_button_width("Manual", button_size, show_labels, font);
     int gear_w = nav_button_width("Settings", button_size, show_labels, font);
-    int group_gap = 10;
+    int group_gap = ui_px(10);
+    int side_margin = ui_px(16);
     int group_w = stat_w + manual_w + gear_w + group_gap * 2;
-    int group_x = (view_width - group_w) / 2;
-    int button_y = bar_y + (bar_h - ui_clamp_px(30, 26, 34)) / 2;
+    int available_w = view_width - side_margin * 2;
+    int group_x, button_y;
+
+    /* Center the button group, but don't exceed margins */
+    if(group_w > available_w)
+        group_w = available_w;
+    group_x = side_margin + (available_w - group_w) / 2;
+    button_y = bar_y + (bar_h - ui_clamp_px(30, 26, 34)) / 2;
     int tab_hover = 0;
 
     DrawRectangle(0, bar_y, view_width, bar_h, darken(c_bg, 10));
@@ -1263,11 +1372,12 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
         remaining = 1;
 
     snprintf(text, sizeof(text), "STARTING IN %d", remaining);
-    text_w = MeasureText(text, 18);
-    text_y = center_y + app->inbe.rmax + 12;
-    if(text_y > view_height - 72)
-        text_y = view_height - 72;
-    DrawText(text, center_x - text_w / 2, text_y, 18, c_text);
+    int font = ui_clamp_px(18, 16, 20);
+    text_w = MeasureText(text, font);
+    text_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(12);
+    if(text_y > view_height - ui_px(72))
+        text_y = view_height - ui_px(72);
+    DrawText(text, center_x - text_w / 2, text_y, font, c_text);
 }
 
 static void
@@ -1276,31 +1386,33 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     char text[CountSize];
     int count;
     int text_w;
+    int font = ui_clamp_px(20, 18, 24);
+    int y_off = ui_px(10);
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+            DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            text_w = MeasureText(text, 20);
-            DrawText(text, center_x - text_w / 2, center_y - 10, 20, c_text);
+            text_w = MeasureText(text, font);
+            DrawText(text, center_x - text_w / 2, center_y - y_off, font, c_text);
             return;
         }
-        DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+        DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        DrawText("000", center_x - MeasureText("000", 20) / 2, center_y - 10, 20, c_text);
+        DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
         return;
     }
 
-    text_w = MeasureText(app->inbe.count, 20);
-    DrawText(app->inbe.count, center_x - text_w / 2, center_y - 10, 20, c_text);
+    text_w = MeasureText(app->inbe.count, font);
+    DrawText(app->inbe.count, center_x - text_w / 2, center_y - y_off, font, c_text);
 }
 
 static void
@@ -1419,7 +1531,7 @@ draw_settings(InbeApp *app)
     DrawLine(0, title_h - 1, view_width, title_h - 1, darken(c_bg, 42));
     DrawText("Settings", ui_px(12), ui_px(11), ui_clamp_px(18, 16, 20), c_text);
 
-    if(drawiconbtn(app, view_width - ui_px(34), ui_px(7), ui_clamp_px(16, 14, 18), app->x_icon, &gear_hover)) {
+    if(drawiconbtn(app, view_width - ui_px(40), ui_px(8), ui_clamp_px(16, 14, 18), app->x_icon, &gear_hover)) {
         if(app->settings_dirty)
             save_settings(app);
         app->inbe.screen = InbeScreenStart;
@@ -1435,43 +1547,50 @@ draw_settings(InbeApp *app)
         int max_rounds = app->inbe.max_rounds;
         int max_breaths = int_from_count(app->inbe.maxbreaths);
         int pause_seconds = app->inbe.pause_seconds;
+        int sound_volume = app->sound_volume;
 
-        update_preview_bounds(&app->settings_preview, content_w, 240);
+        update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         inbestep(&app->settings_preview);
         if(app->settings_preview.phase != InbePhaseBreathe) {
             reset_settings_preview(app);
-            update_preview_bounds(&app->settings_preview, content_w, 240);
+            update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         }
 
-        draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + 96);
+        draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + ui_px(96));
 
-        if(draw_slider(app, 1, content_x, yoff + 212, content_w, "Speed", SETTINGS_SPEED_MIN,
+        if(draw_slider(app, 1, content_x, yoff + ui_px(212), content_w, "Speed", SETTINGS_SPEED_MIN,
                        SETTINGS_SPEED_MAX, &speed, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 2, content_x, yoff + 278, content_w, "Max rounds", 1,
+        if(draw_slider(app, 2, content_x, yoff + ui_px(278), content_w, "Max rounds", 1,
                        MaxRounds, &max_rounds, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 3, content_x, yoff + 344, content_w, "Max breaths", SETTINGS_BREATHS_MIN,
+        if(draw_slider(app, 3, content_x, yoff + ui_px(344), content_w, "Max breaths", SETTINGS_BREATHS_MIN,
                        SETTINGS_BREATHS_MAX, &max_breaths, "")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
             app->settings_dirty = 1;
         }
 
-        if(draw_slider(app, 4, content_x, yoff + 410, content_w, "Pause after round", SETTINGS_PAUSE_MIN,
+        if(draw_slider(app, 4, content_x, yoff + ui_px(410), content_w, "Pause after round", SETTINGS_PAUSE_MIN,
                        SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
             apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+            app->settings_dirty = 1;
+        }
+
+        if(draw_slider(app, 5, content_x, yoff + ui_px(476), content_w, "Volume", SETTINGS_VOLUME_MIN,
+                       SETTINGS_VOLUME_MAX, &sound_volume, "")) {
+            app->sound_volume = sound_volume;
             app->settings_dirty = 1;
         }
     EndScissorMode();
@@ -1512,8 +1631,9 @@ draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h)
 {
     DrawRectangle(x, y, w, h, darken(c_bg, 12));
     draw_bevel(x, y, w, h, darken(c_bg, 45), lighten(c_bg, 35));
-    int tw = MeasureText(label, 14);
-    DrawText(label, x + w / 2 - tw / 2, y + h / 2 - 7, 14, c_text);
+    int font = ui_clamp_px(14, 12, 16);
+    int tw = MeasureText(label, font);
+    DrawText(label, x + w / 2 - tw / 2, y + h / 2 - ui_px(7), font, c_text);
 }
 
 static void
@@ -1614,9 +1734,10 @@ draw_manual(InbeApp *app)
                 "Never use it while driving,",
                 "standing, or in water."
             };
-            draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, 240);
-            y += 262;
-            draw_text_lines(lines, 6, content_x, &y, body_font, 20);
+            int img_h = ui_px(240);
+            draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, img_h);
+            y += img_h + ui_px(22);
+            draw_text_lines(lines, 6, content_x, &y, body_font, ui_px(20));
         } else if(app->tutorial_step == 1) {
             const char *lines[] = {
                 "Simply follow 4 steps:",
@@ -1630,11 +1751,12 @@ draw_manual(InbeApp *app)
                 "title screen to adjust rounds,",
                 "breaths, speed, and pauses."
             };
-            draw_text_lines(lines, 10, content_x, &y, body_font, 19);
+            draw_text_lines(lines, 10, content_x, &y, body_font, ui_px(19));
             if(app->gear_icon.id != 0) {
                 int gear_hover = 0;
-                DrawText("Settings", content_x, y + 7, 14, c_text);
-                drawiconbtn(app, content_x + 80, y, 16, app->gear_icon, &gear_hover);
+                int gear_font = ui_clamp_px(14, 12, 16);
+                DrawText("Settings", content_x, y + ui_px(7), gear_font, c_text);
+                drawiconbtn(app, content_x + ui_px(80), y, ui_clamp_px(16, 14, 18), app->gear_icon, &gear_hover);
             }
         } else if(app->tutorial_step == 2) {
             int speed = app->inbe.speed_level;
@@ -1645,21 +1767,21 @@ draw_manual(InbeApp *app)
                 "Use this slider to set the",
                 "pace of the breathing circle."
             };
-            draw_text_lines(lines, 5, content_x, &y, body_font, 19);
-            y += 8;
+            draw_text_lines(lines, 5, content_x, &y, body_font, ui_px(19));
+            y += ui_px(8);
 
-            update_preview_bounds(&app->settings_preview, content_w, 132);
+            update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
             apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                            int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             inbestep(&app->settings_preview);
             if(app->settings_preview.phase != InbePhaseBreathe) {
                 reset_settings_preview(app);
-                update_preview_bounds(&app->settings_preview, content_w, 132);
+                update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             }
-            draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + 40);
-            y += app->settings_preview.rmax + 54;
+            draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + ui_px(40));
+            y += (int)(app->settings_preview.rmax * dpi_scale + 0.5f) + ui_px(54);
 
             if(draw_slider(app, 10, content_x, y, content_w, "Speed", SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
@@ -1677,7 +1799,7 @@ draw_manual(InbeApp *app)
                 "Release when your body asks",
                 "for air. Do not force it."
             };
-            draw_text_lines(lines, 5, content_x, &y, body_font, 20);
+            draw_text_lines(lines, 5, content_x, &y, body_font, ui_px(20));
         } else {
             const char *lines[] = {
                 "Inhale fully and hold for",
@@ -1687,9 +1809,10 @@ draw_manual(InbeApp *app)
                 "next round. Over time, each",
                 "round may feel deeper."
             };
-            draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, 250);
-            y += 272;
-            draw_text_lines(lines, 6, content_x, &y, body_font, 20);
+            int img_h = ui_px(250);
+            draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
+            y += img_h + ui_px(22);
+            draw_text_lines(lines, 6, content_x, &y, body_font, ui_px(20));
         }
     EndScissorMode();
 
@@ -1701,17 +1824,18 @@ draw_manual(InbeApp *app)
 
     int left_hover = 0;
     int right_hover = 0;
+    int button_pad = ui_px(48);
     if(app->tutorial_step == 0) {
-        if(drawbtn(app, content_x + 48, footer_y, "SKIP", &left_hover))
+        if(drawbtn(app, content_x + button_pad, footer_y, "SKIP", &left_hover))
             tutorial_close(app, 1);
     } else {
-        if(drawbtn(app, content_x + 48, footer_y, "BACK", &left_hover)) {
+        if(drawbtn(app, content_x + button_pad, footer_y, "BACK", &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
-    if(drawbtn(app, content_x + content_w - 48, footer_y,
+    if(drawbtn(app, content_x + content_w - button_pad, footer_y,
                app->tutorial_step == TUTORIAL_STEPS - 1 ? "FINISH" : "NEXT", &right_hover)) {
         if(app->tutorial_step == TUTORIAL_STEPS - 1)
             tutorial_close(app, 1);
@@ -1816,9 +1940,9 @@ draw_history(InbeApp *app)
 
     DrawRectangle(0, 0, view_width, title_h, darken(c_bg, 14));
     DrawLine(0, title_h - 1, view_width, title_h - 1, darken(c_bg, 42));
-    DrawText("History", 12, 11, 18, c_text);
+    DrawText("History", ui_px(12), ui_px(11), ui_clamp_px(18, 16, 20), c_text);
 
-    if(drawiconbtn(app, view_width - 34, 7, 16, app->x_icon, &close_hover)) {
+    if(drawiconbtn(app, view_width - ui_px(40), ui_px(8), ui_clamp_px(16, 14, 18), app->x_icon, &close_hover)) {
         app->inbe.screen = InbeScreenStart;
         app->history_scroll = 0;
     }
@@ -1827,10 +1951,10 @@ draw_history(InbeApp *app)
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        y = title_h + 12 - app->history_scroll;
+        y = title_h + ui_px(12) - app->history_scroll;
         if(count == 0) {
-            DrawText("No saved sessions yet.", content_x, y, 14, c_text);
-            DrawText("Complete a session to add data.", content_x, y + 22, 14, c_text);
+            DrawText("No saved sessions yet.", content_x, y, ui_clamp_px(14, 12, 16), c_text);
+            DrawText("Complete a session to add data.", content_x, y + ui_px(22), ui_clamp_px(14, 12, 16), c_text);
         } else {
             int year = -1;
             int month = -1;
@@ -1918,7 +2042,7 @@ draw_history(InbeApp *app)
                             history_format_round_label(&entries[i], r, round_label, sizeof(round_label));
                             DrawRectangle(content_x, y, content_w, row_h, darken(c_bg, 4));
                             draw_bevel(content_x, y, content_w, row_h, darken(c_bg, 24), lighten(c_bg, 14));
-                            DrawText(round_label, content_x + 46, y + 6, 14, c_text);
+                            DrawText(round_label, content_x + ui_px(46), y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
                             y += row_h;
                         }
                     }
@@ -1942,11 +2066,12 @@ inbe_app_init(void *vapp) {
     load_config();
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
-                                  ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
+                                  ui_clamp_px(TAB_BAR_H, 44, 56) + ui_px(80));
     load_settings(app);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 34, 44),
                                   ui_clamp_px(TAB_BAR_H, 44, 56) + 80);
     prepare_history_storage();
+    init_audio(app);
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
     app->settings_scroll = 0;
@@ -1963,6 +2088,7 @@ inbe_app_init(void *vapp) {
     app->history_record[0] = 0;
     app->session_paused = 0;
     app->results_saved = 0;
+    remember_sound_state(app);
     reset_settings_preview(app);
 
     if(app->gear_icon.id == 0) {
@@ -2053,8 +2179,8 @@ updateapp(InbeApp *app)
         DrawText(config.title, center_x - title_w / 2, ui_px(20), title_font, c_text);
 
         {
-            int play_y = center_y + (int)app->inbe.rmax + 20;
-            int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 44, 56) - 48;
+            int play_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(20);
+            int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 44, 56) - ui_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
             if (drawbtn(app, center_x, play_y, "PLAY", &hover)) {
@@ -2071,7 +2197,7 @@ updateapp(InbeApp *app)
         }
 
         int return_hover = 0;
-        if(app->return_icon.id != 0 && drawiconbtn(app, 10, 10, 16, app->return_icon, &return_hover)) {
+        if(app->return_icon.id != 0 && drawiconbtn(app, ui_px(12), ui_px(12), ui_clamp_px(24, 20, 28), app->return_icon, &return_hover)) {
             inbe_app_init(app);
             break;
         }
@@ -2104,9 +2230,10 @@ updateapp(InbeApp *app)
 
         if(!app->session_paused)
             inbestep(&app->inbe);
+        update_session_sounds(app);
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + app->inbe.rmax + ui_px(24);
+            int breath_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(24);
             int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
@@ -2191,6 +2318,11 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     view_width = (int)viewport.width;
     view_height = (int)viewport.height;
 
+    /* Calculate DPI scale based on viewport height vs base design (560) */
+    dpi_scale = (float)view_height / (float)INBE_DEFAULT_HEIGHT;
+    if(dpi_scale < 1.0f)
+        dpi_scale = 1.0f;
+
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x;
@@ -2244,6 +2376,16 @@ inbe_app_destroy(void *vapp)
             UnloadTexture(app->angel_image);
         if(app->begin_image.id != 0)
             UnloadTexture(app->begin_image);
+        if(app->breath_in_sound.frameCount != 0)
+            UnloadSound(app->breath_in_sound);
+        if(app->breath_out_sound.frameCount != 0)
+            UnloadSound(app->breath_out_sound);
+        if(app->bell_sound.frameCount != 0)
+            UnloadSound(app->bell_sound);
+        if(app->audio_ready) {
+            CloseAudioDevice();
+            app->audio_ready = 0;
+        }
         free(app);
     }
 }

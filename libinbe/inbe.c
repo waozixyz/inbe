@@ -6,6 +6,15 @@ eqcount(const char a[CountSize], const char b[CountSize])
 	return a[0] == b[0] && a[1] == b[1] && a[2] == b[2];
 }
 
+static int
+count_value(const char v[CountSize])
+{
+	int a = (v[0] >= '0' && v[0] <= '9') ? v[0] - '0' : 0;
+	int b = (v[1] >= '0' && v[1] <= '9') ? v[1] - '0' : 0;
+	int c = (v[2] >= '0' && v[2] <= '9') ? v[2] - '0' : 0;
+	return a * 100 + b * 10 + c;
+}
+
 void
 cpcount(char dst[CountSize], const char src[CountSize])
 {
@@ -122,7 +131,7 @@ breathe(Inbe *l)
         }
     }
 
-	if(eqcount(l->count, l->maxbreaths)){
+	if(count_value(l->count) >= count_value(l->maxbreaths)){
 		cpcount(l->count, "000");
 		l->phase = InbePhaseHold;
 	}

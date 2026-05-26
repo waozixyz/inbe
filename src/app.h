@@ -25,6 +25,15 @@ struct InbeApp {
     Texture2D trash_icon;
     Texture2D angel_image;
     Texture2D begin_image;
+    Sound breath_in_sound;
+    Sound breath_out_sound;
+    Sound bell_sound;
+    int audio_ready;
+    int sound_volume;
+    int sound_last_screen;
+    int sound_last_phase;
+    int sound_last_dir;
+    char sound_last_count[CountSize];
     int settings_scroll;
     int settings_drag_slider;
     int settings_drag_scrollbar;
