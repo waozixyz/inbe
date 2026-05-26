@@ -1,6 +1,11 @@
 # Changelog
 
-## [1.0.0] - 2025-01-25
+## [1.0.1] - 2026-05-26
+### Fixed
+- Fixed WebAssembly local storage persistence
+- Updated Android target SDK version
+
+## [1.0.0] - 2026-05-25
 ### Added
 - Initial release
 - Breathing exercise tutorial with 5 steps
