@@ -55,7 +55,8 @@ enum {
     TUTORIAL_STEPS = 5,
     HISTORY_MAX_SESSIONS = 48,
     HISTORY_PATH_SIZE = 96,
-    HISTORY_TEXT_SIZE = 96
+    HISTORY_TEXT_SIZE = 96,
+    FS_PATH_MAX = 256
 };
 
 typedef struct HistoryEntry {
@@ -795,10 +796,10 @@ save_session_results(InbeApp *app)
 
     time_t now;
     struct tm *tm;
-    char dir_year[128];
-    char dir_month[128];
-    char dir_day[128];
-    char path[256];
+    char dir_year[FS_PATH_MAX];
+    char dir_month[FS_PATH_MAX];
+    char dir_day[FS_PATH_MAX];
+    char path[FS_PATH_MAX];
     char text[MaxRounds * 8];
     int offset = 0;
     int played_rounds;
@@ -808,11 +809,7 @@ save_session_results(InbeApp *app)
     if(tm == NULL)
         return;
 
-    played_rounds = app->inbe.round + 1;
-    if(played_rounds < 1)
-        played_rounds = 1;
-    if(played_rounds > app->inbe.max_rounds)
-        played_rounds = app->inbe.max_rounds;
+    played_rounds = app->inbe.max_rounds;
 
     ensure_dir(history_root());
     snprintf(dir_year, sizeof(dir_year), "%s/%04d", history_root(), tm->tm_year + 1900);
@@ -849,9 +846,9 @@ prepare_history_storage(void)
 {
     time_t now;
     struct tm *tm;
-    char dir_year[128];
-    char dir_month[128];
-    char dir_day[128];
+    char dir_year[FS_PATH_MAX];
+    char dir_month[FS_PATH_MAX];
+    char dir_day[FS_PATH_MAX];
 
     now = time(NULL);
     tm = localtime(&now);
@@ -927,7 +924,7 @@ scan_history_day(HistoryEntry *entries, int *count, int year, int month, int day
 {
     DIR *dir = opendir(path);
     struct dirent *ent;
-    char child[HISTORY_PATH_SIZE];
+    char child[FS_PATH_MAX];
 
     if(dir == NULL)
         return;
@@ -948,9 +945,9 @@ scan_history_tree(HistoryEntry *entries, int *count)
 {
     DIR *years = opendir(history_root());
     struct dirent *year;
-    char ypath[HISTORY_PATH_SIZE];
-    char mpath[HISTORY_PATH_SIZE];
-    char dpath[HISTORY_PATH_SIZE];
+    char ypath[FS_PATH_MAX];
+    char mpath[FS_PATH_MAX];
+    char dpath[FS_PATH_MAX];
 
     *count = 0;
     if(years == NULL)
@@ -1064,14 +1061,24 @@ history_open_latest(InbeApp *app)
                 if(entries[i].year == tm->tm_year + 1900 &&
                    entries[i].month == tm->tm_mon + 1 &&
                    entries[i].day == tm->tm_mday) {
-                    history_set_selection(app, &entries[i], 3);
+                    // Set to day level (2) without selecting specific time
+                    app->history_year = entries[i].year;
+                    app->history_month = entries[i].month;
+                    app->history_day = entries[i].day;
+                    app->history_level = 2;
+                    app->history_record[0] = 0;
                     app->history_scroll = 0;
                     return;
                 }
             }
         }
 
-        history_set_selection(app, &entries[0], 3);
+        // Default to day level for most recent entry, no specific time
+        app->history_year = entries[0].year;
+        app->history_month = entries[0].month;
+        app->history_day = entries[0].day;
+        app->history_level = 2;
+        app->history_record[0] = 0;
         app->history_scroll = 0;
         return;
     }
