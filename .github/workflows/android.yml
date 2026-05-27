@@ -89,3 +89,15 @@ jobs:
           git tag -a "$TAG" -m "Release $VERSION"
           git push origin "$TAG"
         fi
+
+    - name: Create GitHub Release
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          inbe-universal.apk
+          inbe.apk
+        generate_release_notes: true
+        draft: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
