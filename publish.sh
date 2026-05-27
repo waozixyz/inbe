@@ -51,6 +51,7 @@ rsync -av --delete \
     --exclude='.codex' \
     --exclude='.npm' \
     --exclude='.local' \
+    --exclude='vendor' \
     . "$TMPDIR/"
 
 mkdir -p "$TMPDIR/rc"
@@ -59,11 +60,8 @@ mkdir -p "$TMPDIR/rc"
 mkdir -p "$TMPDIR/uxn/devices"
 [ -f "uxn/index.html" ] && cp uxn/index.html "$TMPDIR/uxn/"
 [ -f "uxn/inbe.rom" ] && cp uxn/inbe.* "$TMPDIR/uxn/"
-if [ -f "../uxn/devices/system.js" ]; then
-    rsync -av --exclude='*.sym' ../uxn/devices/*.js "$TMPDIR/uxn/devices/"
-fi
-if [ -f "../uxn/uxn.js" ]; then
-    rsync -av --exclude='*.sym' ../uxn/*.js "$TMPDIR/uxn/" 2>/dev/null || true
+if [ -d "uxn/devices" ]; then
+    rsync -av --exclude='*.sym' uxn/devices/*.js "$TMPDIR/uxn/devices/" 2>/dev/null || true
 fi
 
 # Raylib builds (primary implementation)
@@ -119,11 +117,13 @@ mkdir -p "$TMPDIR/tcl"
 mkdir -p "$TMPDIR/droid"
 [ -f "build/android/app-universal-release.apk" ] && cp build/android/app-universal-release.apk "$TMPDIR/droid/app-release.apk"
 
-rsync -av --exclude='.*' --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' ../icons/ "$TMPDIR/icons/"
-rsync -av --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' ../cursors/ "$TMPDIR/cursors/"
+# Icons (cursors not used - deleted)
 rsync -av --exclude='.*' --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='Makefile' --exclude='.npm' --exclude='.local' --exclude='.codex' icons/ "$TMPDIR/icons/"
-cp ../style.css ../assets/DepartureMono-Regular.otf inbe.css og.png "$TMPDIR/"
-cp -R ../assets "$TMPDIR/"
+
+rsync -av --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' cursors/ "$TMPDIR/cursors/"  
+
+cp style.css assets/DepartureMono-Regular.otf og.png "$TMPDIR/"
+cp -R assets "$TMPDIR/"
 
 if [ -f "$TMPDIR/index.html" ]; then
     sed -e 's|/inbe/droid/app/build/outputs/apk/release/app-release.apk|/build/android/app-universal-release.apk|g' \
