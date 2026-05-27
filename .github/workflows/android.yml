@@ -9,6 +9,9 @@ on:
       - master
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   release:
     name: Build Release APK
