@@ -2,8 +2,16 @@
 #define INBE_APP_H
 
 #include "raylib.h"
-#include "lotus_app.h"
 #include "../libinbe/inbe.h"
+
+typedef struct LotusAppApi {
+    const char *id;
+    void *(*create)(void);
+    void (*init)(void *state);
+    void (*init_args)(void *state, int argc, char **argv);
+    void (*update_draw)(void *state, Rectangle viewport);
+    void (*destroy)(void *state);
+} LotusAppApi;
 
 typedef struct InbeApp InbeApp;
 
@@ -23,6 +31,11 @@ struct InbeApp {
     Texture2D stat_icon;
     Texture2D home_icon;
     Texture2D trash_icon;
+    Texture2D telegram_icon;
+    Texture2D globe_icon;
+    Texture2D stripe_icon;
+    Texture2D monero_icon;
+
     Texture2D angel_image;
     Texture2D begin_image;
     Sound breath_in_sound;
@@ -37,11 +50,23 @@ struct InbeApp {
     int settings_scroll;
     int settings_drag_slider;
     int settings_drag_scrollbar;
+    int settings_drag_content;  /* Drag content area to scroll */
+    int settings_drag_content_y;  /* Initial Y position when drag starts */
     int settings_dirty;
+    int settings_tab;
+    int fullscreen_enabled;  /* Fullscreen mode */
     int manual_scroll;
+    int manual_drag_scrollbar;
+    int manual_drag_content;
+    int manual_drag_content_y;
     int tutorial_step;
     int tutorial_seen;
+    int theme_id;
+    int dark_mode;
     int history_scroll;
+    int history_drag_scrollbar;
+    int history_drag_content;
+    int history_drag_content_y;
     int history_level;
     int history_year;
     int history_month;
@@ -49,6 +74,7 @@ struct InbeApp {
     char history_record[16];
     int session_paused;
     int results_saved;
+    int saved_pause_seconds;
 };
 
 void inbe_app_init(void *app);

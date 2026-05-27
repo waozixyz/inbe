@@ -29,8 +29,8 @@ android {
     defaultConfig {
         minSdk 19
         targetSdk 35
-        versionCode 1
-        versionName "1.0.0"
+        versionCode 8
+        versionName "1.0.7"
     }
     
 
@@ -65,4 +65,7 @@ gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.hasTask(":app:assembleRelease") && !project.findProperty('keystore.password')) {
         throw new GradleException("Use: make android-release PASSWORD=your-password")
     }
+}
+
+dependencies {
 }

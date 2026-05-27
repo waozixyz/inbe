@@ -13,6 +13,11 @@ pkgs.mkShell {
     export CC_UNWRAPPED="${pkgs.llvmPackages.clang-unwrapped}/bin/clang"
     export CXX_UNWRAPPED="${pkgs.llvmPackages.clang-unwrapped}/bin/clang++"
 
+    # For wasm4 Makefile
+    export WASM_CC="${pkgs.llvmPackages.clang-unwrapped}/bin/clang"
+    export WASM_CXX="${pkgs.llvmPackages.clang-unwrapped}/bin/clang++"
+    export WASM_OPT="${pkgs.binaryen}/bin/wasm-opt"
+
     # Native display dependencies for w4 run-native
     export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath (with pkgs; [
       xorg.libX11
