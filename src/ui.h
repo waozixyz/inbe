@@ -94,6 +94,13 @@ int ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value);
 /* Draw a checkbox toggle with label */
 int ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *value);
 
+/* Draw a dropdown button only (call inside scissor mode) */
+int ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h,
+                            const char **options, int option_count, int *selected_index);
+
+/* Draw a dropdown menu (call outside scissor mode, after button) */
+void ui_draw_dropdown_menu(InbeApp *app, int id);
+
 /* Draw a scrollbar with thumb and handle content dragging */
 void ui_draw_scrollbar(InbeApp *app, int *scroll, int content_h, int viewport_h,
                        int *drag_scrollbar, int *drag_content, int *drag_content_y);
@@ -121,6 +128,10 @@ int ui_nav_button_width(const char *label, int icon_size, int show_label, int fo
 /* Draw a navigation button with icon and optional label */
 int ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon,
                        const char *label, int show_label, int *hover);
+
+/* Draw a navigation button with explicit width (expands to fill space) */
+int ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Texture2D icon,
+                               const char *label, int show_label, int *hover);
 
 /* Draw the bottom tab bar - automatic, data-driven */
 void ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app);
