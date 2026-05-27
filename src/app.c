@@ -4,7 +4,7 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "ui.h"
-#include "../../vendor/rini/src/rini.h"
+#include "../vendor/rini/src/rini.h"
 
 #include <dirent.h>
 #include <limits.h>
@@ -561,7 +561,7 @@ load_icon_texture(const char *name)
     if(FileExists(path))
         return load_pixel_texture(path);
 
-    snprintf(path, sizeof(path), "../icons/%s", name);
+    snprintf(path, sizeof(path), "icons/%s", name);
     return load_pixel_texture(path);
 #endif
 }

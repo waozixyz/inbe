@@ -1,12 +1,12 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/ui.c src/theme_meta.c ../liblotus/src/theme.c
+SRC = src/main.c src/app.c src/ui.c src/theme_meta.c src/theme.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
-RAYLIB_DIR = ../vendor/raylib/src
-RAYLIB_BUILD_DIR = ../vendor/raylib/build/sdl
+RAYLIB_DIR = vendor/raylib/src
+RAYLIB_BUILD_DIR = vendor/raylib/build/sdl
 RAYLIB_A = $(RAYLIB_BUILD_DIR)/libraylib.a
 
 ANDROID_DIR = droid
@@ -79,7 +79,7 @@ WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/raudio.o
 WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_ES2 -D_DEFAULT_SOURCE -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 WEB_SHELL = src/web_shell.html
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file themes/sky.ini@themes/sky.ini --preload-file themes/sky_dark.ini@themes/sky_dark.ini --preload-file themes/ocean.ini@themes/ocean.ini --preload-file themes/ocean_dark.ini@themes/ocean_dark.ini --preload-file themes/forest.ini@themes/forest.ini --preload-file themes/forest_dark.ini@themes/forest_dark.ini --preload-file themes/sunset.ini@themes/sunset.ini --preload-file themes/sunset_dark.ini@themes/sunset_dark.ini --preload-file themes/lavender.ini@themes/lavender.ini --preload-file themes/lavender_dark.ini@themes/lavender_dark.ini --preload-file themes/cherry.ini@themes/cherry.ini --preload-file themes/cherry_dark.ini@themes/cherry_dark.ini --preload-file ../icons/gear.png@icons/gear.png --preload-file ../icons/x.png@icons/x.png --preload-file ../icons/manual.png@icons/manual.png --preload-file ../icons/return.png@icons/return.png --preload-file ../icons/backward.png@icons/backward.png --preload-file ../icons/forward.png@icons/forward.png --preload-file ../icons/play.png@icons/play.png --preload-file ../icons/pause.png@icons/pause.png --preload-file ../icons/stat.png@icons/stat.png --preload-file ../icons/home.png@icons/home.png --preload-file ../icons/trash.png@icons/trash.png --preload-file ../icons/telegram.png@icons/telegram.png --preload-file ../icons/globe.png@icons/globe.png --preload-file ../icons/stripe.png@icons/stripe.png --preload-file ../icons/monero.png@icons/monero.png --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg --preload-file assets/sounds/breath-in.ogg@assets/sounds/breath-in.ogg --preload-file assets/sounds/breath-out.ogg@assets/sounds/breath-out.ogg --preload-file assets/sounds/bell.ogg@assets/sounds/bell.ogg
+WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file themes/sky.ini@themes/sky.ini --preload-file themes/sky_dark.ini@themes/sky_dark.ini --preload-file themes/ocean.ini@themes/ocean.ini --preload-file themes/ocean_dark.ini@themes/ocean_dark.ini --preload-file themes/forest.ini@themes/forest.ini --preload-file themes/forest_dark.ini@themes/forest_dark.ini --preload-file themes/sunset.ini@themes/sunset.ini --preload-file themes/sunset_dark.ini@themes/sunset_dark.ini --preload-file themes/lavender.ini@themes/lavender.ini --preload-file themes/lavender_dark.ini@themes/lavender_dark.ini --preload-file themes/cherry.ini@themes/cherry.ini --preload-file themes/cherry_dark.ini@themes/cherry_dark.ini --preload-file icons/gear.png@icons/gear.png --preload-file icons/x.png@icons/x.png --preload-file icons/manual.png@icons/manual.png --preload-file icons/return.png@icons/return.png --preload-file icons/backward.png@icons/backward.png --preload-file icons/forward.png@icons/forward.png --preload-file icons/play.png@icons/play.png --preload-file icons/pause.png@icons/pause.png --preload-file icons/stat.png@icons/stat.png --preload-file icons/home.png@icons/home.png --preload-file icons/trash.png@icons/trash.png --preload-file icons/telegram.png@icons/telegram.png --preload-file icons/globe.png@icons/globe.png --preload-file icons/stripe.png@icons/stripe.png --preload-file icons/monero.png@icons/monero.png --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg --preload-file assets/sounds/breath-in.ogg@assets/sounds/breath-in.ogg --preload-file assets/sounds/breath-out.ogg@assets/sounds/breath-out.ogg --preload-file assets/sounds/bell.ogg@assets/sounds/bell.ogg
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1
@@ -156,7 +156,7 @@ $(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-I../liblotus/include \
+		-Isrc \
 		$(RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -198,7 +198,7 @@ linux-aarch64: | $(LINUX_BUILD_DIR)
 		LINUX_RAY_SDL_INCLUDE_DIR="$(AARCH64_RAY_SDL_INCLUDE_DIR)"
 
 build-linux-arch:
-	@mkdir -p $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME) ../vendor/raylib/build/sdl-$(ARCH_NAME)
+	@mkdir -p $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME) vendor/raylib/build/sdl-$(ARCH_NAME)
 	$(MAKE) -C $(RAYLIB_DIR) clean
 	$(MAKE) -j1 -C $(RAYLIB_DIR) \
 		CC="$(LINUX_CC)" \
@@ -218,14 +218,14 @@ build-linux-arch:
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-I../liblotus/include \
+		-Isrc \
 		$(LINUX_RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
 		$(SRC) \
 		$(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a \
-		../vendor/raylib/build/sdl-$(ARCH_NAME)/libraylib.a \
+		vendor/raylib/build/sdl-$(ARCH_NAME)/libraylib.a \
 		$(LINUX_RAY_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
@@ -287,7 +287,7 @@ $(WEB_TARGET): $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) | $(WEB_BU
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-I../liblotus/include \
+		-Isrc \
 		-o $@ \
 		$(SRC) \
 		$(INBE_DIR)/inbe.c \
@@ -305,7 +305,7 @@ $(WIN_TARGET): $(SRC) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
 	$(WIN_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-I../liblotus/include \
+		-Isrc \
 		-o $@ \
 		$(SRC) \
 		$(WIN_INBE_A) \
@@ -333,7 +333,7 @@ clean-web:
 
 clean-raylib:
 	$(MAKE) -C $(RAYLIB_DIR) clean
-	rm -rf ../vendor/raylib/build
+	rm -rf vendor/raylib/build
 
 # Distribution targets
 #
@@ -371,7 +371,7 @@ dist-linux: linux
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/themes
 	@cp themes/*.ini $(LINUX_BUILD_DIR)/dist/inbe-linux/themes/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
-	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
+	@cp icons/gear.png icons/x.png icons/manual.png icons/return.png icons/backward.png icons/forward.png icons/play.png icons/pause.png icons/stat.png $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
 	@cp assets/angel.jpg assets/begin.jpg $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds
@@ -397,7 +397,7 @@ dist-windows:
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes
 	@cp themes/*.ini $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
-	@cp ../icons/gear.png ../icons/x.png ../icons/manual.png ../icons/return.png ../icons/backward.png ../icons/forward.png ../icons/play.png ../icons/pause.png ../icons/stat.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
+	@cp icons/gear.png icons/x.png icons/manual.png icons/return.png icons/backward.png icons/forward.png icons/play.png icons/pause.png icons/stat.png $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
 	@cp assets/angel.jpg assets/begin.jpg $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds
@@ -430,7 +430,7 @@ android-copy-assets:
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/themes
 	cp themes/*.ini $(ANDROID_DIR)/app/src/main/assets/themes/
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
-	@for icon in ../icons/*.png; do \
+	@for icon in icons/*.png; do \
 		base=$$(basename "$$icon"); \
 		size=$$(identify -format '%wx%h' "$$icon"); \
 		magick "$$icon" -filter point -resize "$$size!" "$(ANDROID_DIR)/app/src/main/assets/icons/$$base"; \
