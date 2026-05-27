@@ -2,8 +2,16 @@
 #define INBE_APP_H
 
 #include "raylib.h"
-#include "lotus_app.h"
 #include "../libinbe/inbe.h"
+
+typedef struct LotusAppApi {
+    const char *id;
+    void *(*create)(void);
+    void (*init)(void *state);
+    void (*init_args)(void *state, int argc, char **argv);
+    void (*update_draw)(void *state, Rectangle viewport);
+    void (*destroy)(void *state);
+} LotusAppApi;
 
 typedef struct InbeApp InbeApp;
 

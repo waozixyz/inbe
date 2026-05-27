@@ -6,7 +6,7 @@ WASM_OPT_FLAGS = -Oz --zero-filled-memory --strip-producers --enable-bulk-memory
 
 DEBUG = 0
 
-CFLAGS = -target wasm32 -W -Wall -Wextra -Werror -Wno-unused -Wconversion -Wsign-conversion \
+CFLAGS = -target wasm32 -W -Wall -Wextra -Wno-unused-command-line-argument -Werror -Wno-unused -Wconversion -Wsign-conversion \
          -MMD -MP -nostdlib -ffreestanding -mbulk-memory
 
 ifeq ($(DEBUG), 1)

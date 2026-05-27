@@ -1,0 +1,159 @@
+name: Android Build
+
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v*'
+  pull_request:
+    branches:
+      - master
+  workflow_dispatch:
+
+jobs:
+  android:
+    name: Build APK
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x droid/gradlew
+
+    - name: Build Debug APK (unsigned)
+      working-directory: ./droid
+      run: ./gradlew assembleDebug --stacktrace
+
+    - name: Build Release APK (unsigned, for F-Droid)
+      working-directory: ./droid
+      run: ./gradlew assembleRelease --stacktrace
+
+    - name: Rename APKs
+      run: |
+        # Debug APK
+        mv droid/app/build/outputs/apk/debug/app-debug.apk inbe-debug.apk 2>/dev/null || true
+        # Release APKs (unsigned, for F-Droid)
+        find droid/app/build/outputs/apk/release -name "*.apk" -exec cp {} inbe-release.apk \; 2>/dev/null || true
+
+    - name: Upload Debug APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: debug-apk
+        path: inbe-debug.apk
+        if-no-files-found: warn
+
+    - name: Upload Release APK (unsigned, for F-Droid)
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-apk
+        path: inbe-release.apk
+        if-no-files-found: warn
+
+  signed-release:
+    name: Build Signed Release APK
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Setup Gradle
+      uses: gradle/actions/setup-gradle@v3
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x droid/gradlew
+
+    - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        if [ -n "$KEYSTORE_BASE64" ]; then
+          echo "$KEYSTORE_BASE64" | base64 -d > droid/app/release-keystore.jks
+          echo "Keystore decoded successfully"
+        else
+          echo "No keystore found, skipping signed build"
+          exit 1
+        fi
+
+    - name: Build Signed Release APK
+      working-directory: ./droid
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        ./gradlew assembleRelease \
+          -Pkeystore.password="$KEYSTORE_PASSWORD" \
+          -Pkeystore.path="release-keystore.jks" \
+          --stacktrace
+
+    - name: Rename Signed APK
+      run: |
+        find droid/app/build/outputs/apk/release -name "*.apk" ! -name "*unsigned*" -exec cp {} inbe-signed-release.apk \; 2>/dev/null || true
+
+    - name: Upload Signed Release APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: signed-release-apk
+        path: inbe-signed-release.apk
+        if-no-files-found: warn
+
+  release:
+    name: Create Release
+    needs: [android, signed-release]
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Download Release APK
+      uses: actions/download-artifact@v4
+      with:
+        name: release-apk
+        path: .
+
+    - name: Download Signed APK (if available)
+      uses: actions/download-artifact@v4
+      with:
+        name: signed-release-apk
+        path: .
+        if-no-files-found: warn
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          inbe-release.apk
+          inbe-signed-release.apk
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

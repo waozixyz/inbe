@@ -31,6 +31,69 @@ strlen(const char *s1)
 }
 
 int
+int_from_count(const char v[4])
+{
+	int a = (v[0] >= '0' && v[0] <= '9') ? v[0] - '0' : 0;
+	int b = (v[1] >= '0' && v[1] <= '9') ? v[1] - '0' : 0;
+	int c = (v[2] >= '0' && v[2] <= '9') ? v[2] - '0' : 0;
+	return a * 100 + b * 10 + c;
+}
+
+void
+int_from_str(int *out, const char *s)
+{
+	int v, sign;
+
+	v = 0;
+	sign = 1;
+
+	if(*s == '-'){
+		sign = -1;
+		s++;
+	}
+
+	while(*s >= '0' && *s <= '9'){
+		v = v * 10 + (*s - '0');
+		s++;
+	}
+
+	*out = v * sign;
+}
+
+void
+int_to_str(int v, char *out)
+{
+	char tmp[16];
+	int i, len, sign;
+
+	if(v == 0){
+		out[0] = '0';
+		out[1] = 0;
+		return;
+	}
+
+	sign = 0;
+	if(v < 0){
+		sign = 1;
+		v = -v;
+	}
+
+	i = 0;
+	while(v > 0){
+		tmp[i++] = '0' + (v % 10);
+		v /= 10;
+	}
+	len = i;
+
+	if(sign)
+		out[0] = '-';
+
+	for(i = 0; i < len; i++)
+		out[sign + i] = tmp[len - 1 - i];
+	out[sign + len] = 0;
+}
+
+int
 drawbtn(int16_t mx, int16_t my, uint8_t mb, int32_t x, int32_t y, const char *label)
 {
 	uint32_t w;
@@ -65,6 +128,9 @@ start(void)
 	PALETTE[3] = 0x7c3f58;
 
 	inbeinit(&inbe);
+
+	/* Faster speed for wasm4: 60 ticks per half-breath instead of 120 */
+	inbe.breath_half_ticks = 60;
 }
 
 void
@@ -79,6 +145,8 @@ update(void)
 	int32_t current_y;
 	int i;
 	char txt_r[4];
+	char txt_tmp[16];
+	int remaining;
 
 	*DRAW_COLORS = 4;
 
@@ -132,7 +200,36 @@ update(void)
 		oval(current_x, current_y, (uint32_t)inbe.r * 2, (uint32_t)inbe.r * 2);
 
 		*DRAW_COLORS = 2;
-		text(inbe.count, center_x - 3, center_y - 4);
+
+		/* Only show "STARTING IN" after pressing PLAY (session screen, round 0) */
+		if(inbe.screen == InbeScreenSession && inbe.phase == InbePhaseStarting && inbe.round == 0){
+			remaining = inbe.pause_seconds - inbe.sectick / 60;
+			if(remaining < 1)
+				remaining = 1;
+
+			/* "STARTING IN X..." - single line, higher up, left-aligned with padding */
+			text("STARTING IN  ", 12, center_y - (int32_t)inbe.r - 14);
+			int_to_str(remaining, txt_tmp);
+			text(txt_tmp, 12 + 104, center_y - (int32_t)inbe.r - 14);
+			text("...", 12 + 104 + (int32_t)strlen(txt_tmp) * 8, center_y - (int32_t)inbe.r - 14);
+		}else if(inbe.phase == InbePhaseRecover){
+			/* Show countdown from 15 during recover */
+			if(inbe.r >= inbe.rmax){
+				i = int_from_count(inbe.count);
+				if(i < 15){
+					int_to_str(15 - i, txt_tmp);
+					text(txt_tmp, center_x - 4 * (int)strlen(txt_tmp) / 2, center_y - 4);
+				}else{
+					text(inbe.count, center_x - 4 * 3, center_y - 4);
+				}
+			}else{
+				text("000", center_x - 4 * 3, center_y - 4);
+			}
+		}else if(inbe.phase == InbePhaseNext){
+			text("000", center_x - 4 * 3, center_y - 4);
+		}else{
+			text(inbe.count, center_x - 4 * 3, center_y - 4);
+		}
 	}
 
 	inbe.frame++;

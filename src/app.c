@@ -59,7 +59,7 @@ enum {
     HISTORY_MAX_SESSIONS = 48,
     HISTORY_PATH_SIZE = 256,
     HISTORY_TEXT_SIZE = 96,
-    FS_PATH_MAX = 256
+    FS_PATH_MAX = 512
 };
 
 enum {

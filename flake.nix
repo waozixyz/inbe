@@ -126,6 +126,7 @@
             profile = ''
               export JAVA_HOME="${pkgs.jdk17.home}"
 
+              # Android SDK - override any system ANDROID_HOME
               export ANDROID_HOME="${sdk}/libexec/android-sdk"
               export ANDROID_SDK_ROOT="${sdk}/libexec/android-sdk"
               export ANDROID_NDK_ROOT="${ndkPath}"
@@ -162,7 +163,7 @@
 
               ${windowsProfile}
 
-              for project in inbe lotus; do
+              for project in inbe; do
                 if [ -d "$project/droid" ]; then
                   cat > "$project/droid/local.properties" <<EOF
 sdk.dir=$ANDROID_SDK_ROOT

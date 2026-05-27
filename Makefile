@@ -442,7 +442,7 @@ android-copy-assets:
 
 android-debug:
 	$(MAKE) android-copy-assets
-	$(GRADLE) -p $(ANDROID_DIR) assembleDebug
+	unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) assembleDebug
 	$(MAKE) android-copy-debug-apks
 
 android-release:
@@ -460,7 +460,7 @@ android-release:
 		exit 1; \
 	fi; \
 	if [ -n "$$PASSWORD_VALUE" ]; then \
-		$(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
 		$(MAKE) android-copy-release-apks; \
 	else \
 		echo "Keystore password is required"; \
@@ -482,7 +482,7 @@ android-bundle:
 		exit 1; \
 	fi; \
 	if [ -n "$$PASSWORD_VALUE" ]; then \
-		$(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
 		$(MAKE) android-copy-bundle; \
 	else \
 		echo "Keystore password is required"; \

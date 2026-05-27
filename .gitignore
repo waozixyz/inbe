@@ -22,7 +22,9 @@ node_modules
 *.exe
 *_x86_64
 *.xdp*
-main
+/main
+!droid/app/src/main
+droid/app/src/main/assets
 
 .direnv/
 .node-repl-history
