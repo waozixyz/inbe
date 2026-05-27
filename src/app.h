@@ -23,6 +23,11 @@ struct InbeApp {
     Texture2D stat_icon;
     Texture2D home_icon;
     Texture2D trash_icon;
+    Texture2D telegram_icon;
+    Texture2D globe_icon;
+    Texture2D stripe_icon;
+    Texture2D monero_icon;
+
     Texture2D angel_image;
     Texture2D begin_image;
     Sound breath_in_sound;
@@ -37,11 +42,25 @@ struct InbeApp {
     int settings_scroll;
     int settings_drag_slider;
     int settings_drag_scrollbar;
+    int settings_drag_content;  /* Drag content area to scroll */
+    int settings_drag_content_y;  /* Initial Y position when drag starts */
     int settings_dirty;
+    int settings_tab;
+    int settings_dropdown_open;
+    int last_bell_enabled;  /* Play bell on last breath */
+    int fullscreen_enabled;  /* Fullscreen mode */
     int manual_scroll;
+    int manual_drag_scrollbar;
+    int manual_drag_content;
+    int manual_drag_content_y;
     int tutorial_step;
     int tutorial_seen;
+    int theme_id;
+    int dark_mode;
     int history_scroll;
+    int history_drag_scrollbar;
+    int history_drag_content;
+    int history_drag_content_y;
     int history_level;
     int history_year;
     int history_month;

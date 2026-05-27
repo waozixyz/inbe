@@ -56,6 +56,13 @@ int main(int argc, char **argv) {
 #endif
 
     inbe_app_init(&inbe_app);
+
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+    /* Apply fullscreen setting on startup */
+    if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
+        ToggleFullscreen();
+#endif
+
     SetTargetFPS(60);
 
 #if defined(PLATFORM_WEB)

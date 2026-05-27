@@ -1,4 +1,6 @@
-
- - fix saving sessions in wasm version
- - implement export and import data 
+TODO
+- camera hole fix
+- rounded corners fix
+- don't move setting spage if selecting the sliders
+- make a multi page settings panel
 
