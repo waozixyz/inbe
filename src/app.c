@@ -1923,7 +1923,8 @@ draw_settings(InbeApp *app)
                 break;
             }
             case SETTINGS_TAB_APPEARANCE: {
-                /* Fullscreen toggle - shown first */
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+                /* Fullscreen toggle - shown first (desktop only) */
                 int checkbox_y = yoff + content_start_y;
                 if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, "Fullscreen", &app->fullscreen_enabled)) {
                     if(app->fullscreen_enabled && !IsWindowFullscreen())
@@ -1935,6 +1936,10 @@ draw_settings(InbeApp *app)
 
                 /* Theme selector - below fullscreen */
                 int theme_y = yoff + content_start_y + ui_px(50);
+#else
+                /* No fullscreen on Android/Web - theme selector at top */
+                int theme_y = yoff + content_start_y;
+#endif
                 draw_theme_selector(app, content_x, theme_y, content_w);
 
                 /* Language placeholder */

@@ -2,8 +2,6 @@
 
 Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method.
 
-![Screenshot](banner.png)
-
 ## Features
 
 - Guided breathing sessions with visual and audio cues
