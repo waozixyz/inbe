@@ -77,23 +77,28 @@ jobs:
         if-no-files-found: warn
 
     - name: Create and Push Tag (if new version)
+      id: tag_version
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
         VERSION=$(grep "versionName" droid/app/build.gradle | awk '{print $2}' | tr -d '"')
         TAG="v$VERSION"
         if git rev-parse "$TAG" >/dev/null 2>&1; then
           echo "Tag $TAG exists, skipping"
+          echo "tag_pushed=false" >> $GITHUB_OUTPUT
         else
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Release $VERSION"
           git push origin "$TAG"
+          echo "tag_pushed=true" >> $GITHUB_OUTPUT
+          echo "tag_name=$TAG" >> $GITHUB_OUTPUT
         fi
 
     - name: Create GitHub Release
-      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      if: steps.tag_version.outputs.tag_pushed == 'true'
       uses: softprops/action-gh-release@v1
       with:
+        tag_name: ${{ steps.tag_version.outputs.tag_name }}
         files: |
           inbe-universal.apk
           inbe.apk
