@@ -1,4 +1,25 @@
 # Changelog
+## [1.0.4] - 2026-05-26
+### Added
+- Centralized icon size management system (SMALL, MEDIUM, LARGE)
+- Standardized icon button functions for consistent sizing
+### Fixed
+- Improved accessibility with larger icons for older users (+25-37%)
+- DPI scaling for all button padding and bevel borders on mobile
+- X button positioning and scaling on high DPI screens
+- Button dimensions and icon centering across all screens
+- Missing icons (telegram, globe, stripe, monero, home, trash) in WebAssembly build
+
+## [1.0.3] - 2026-05-26
+### Fixed
+- Improved DPI scaling for scrollbars (width and thumb height now scale properly)
+- Fixed scrollbar not appearing on tall viewports/settings screens (content height now scales correctly)
+- Fixed X icon too small on mobile (increased max size from 18px to 28px for better touch targets)
+- Improved scrollbar thumb touch hit area for easier grabbing
+- Fixed missing breath sounds during recovery phase (breath in at start, breath out after 15-second hold)
+### Added
+- Added external links in settings (Telegram, Website, Monero, Stripe donation)
+- Added content-area drag scrolling for mobile (click and drag anywhere to scroll)
 
 ## [1.0.2] - 2026-05-26
 ### Fixed
