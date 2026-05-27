@@ -64,7 +64,7 @@ android {
 gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.hasTask(":app:assembleRelease")
         && !project.findProperty('keystore.password')
-        && !System.getenv("FDROIDBUILD")) {
+        && !project.hasProperty('fDroidBuild')) {
         throw new GradleException("Use: make android-release PASSWORD=your-password")
     }
 }
