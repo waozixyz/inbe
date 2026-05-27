@@ -10,8 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  unsigned-release:
-    name: Build Unsigned Release APK (for F-Droid)
+  release:
+    name: Build Release APK
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
-        fetch-depth: 0  # Need full history for tag checking
+        fetch-depth: 0
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -33,44 +33,56 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x droid/gradlew
 
-    - name: Build Release APK (unsigned)
+    - name: Create keystore directory
+      run: mkdir -p ~/.android
+
+    - name: Decode Keystore
+      env:
+        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+      run: |
+        if [ -z "$KEYSTORE_BASE64" ]; then
+          echo "KEYSTORE_BASE64 secret not set"
+          exit 1
+        fi
+        echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
+        echo "Keystore decoded successfully"
+
+    - name: Build Release APK
       working-directory: ./droid
-      run: ./gradlew assembleRelease --stacktrace
+      env:
+        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      run: |
+        ./gradlew assembleRelease \
+          -Pkeystore.password="$KEYSTORE_PASSWORD" \
+          -Pkeystore.path="/home/runner/.android/inbe-release.keystore" \
+          --stacktrace
 
     - name: Rename APKs
       run: |
-        # Get universal APK
-        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-release-universal.apk \; 2>/dev/null || true
-        # Get any release APK as fallback
-        find droid/app/build/outputs/apk/release -name "*.apk" -exec cp {} inbe-release.apk \; 2>/dev/null || true
+        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-universal.apk \; 2>/dev/null || true
+        find droid/app/build/outputs/apk/release -name "*.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
 
-    - name: Upload Unsigned APK
+    - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
-        name: unsigned-release-apk
+        name: release-apk
         path: |
-          inbe-release-universal.apk
-          inbe-release.apk
+          inbe-universal.apk
+          inbe.apk
         if-no-files-found: warn
 
     - name: Create and Push Tag (if new version)
       if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
-        # Extract versionName from build.gradle
         VERSION=$(grep "versionName" droid/app/build.gradle | awk '{print $2}' | tr -d '"')
         TAG="v$VERSION"
-
-        echo "Found version: $VERSION"
-        echo "Checking for tag: $TAG"
-
-        # Check if tag already exists
         if git rev-parse "$TAG" >/dev/null 2>&1; then
-          echo "Tag $TAG already exists, skipping..."
+          echo "Tag $TAG exists, skipping"
         else
-          echo "Creating new tag: $TAG"
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git tag -a "$TAG" -m "Release $VERSION"
           git push origin "$TAG"
-          echo "Tag $TAG created and pushed!"
         fi
