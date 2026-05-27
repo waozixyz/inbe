@@ -62,18 +62,15 @@ jobs:
           -Pkeystore.path="/home/runner/.android/inbe-release.keystore" \
           --stacktrace
 
-    - name: Rename APKs
+    - name: Rename APK
       run: |
-        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-universal.apk \; 2>/dev/null || true
-        find droid/app/build/outputs/apk/release -name "*.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
+        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: release-apk
-        path: |
-          inbe-universal.apk
-          inbe.apk
+        path: inbe.apk
         if-no-files-found: warn
 
     - name: Create and Push Tag (if new version)
@@ -99,9 +96,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.tag_version.outputs.tag_name }}
-        files: |
-          inbe-universal.apk
-          inbe.apk
+        files: inbe.apk
         generate_release_notes: true
         draft: false
       env:
