@@ -1,4 +1,10 @@
 # Changelog
+## [1.0.7] - 2026-05-27
+### Added
+- F-Droid metadata (screenshots, feature graphic, icon)
+- Automatic version tag generation for releases
+- Fastlane changelog integration
+
 ## [1.0.6] - 2026-05-27
 ### Fixed
 - Bell now plays before the last breath (at maxbreaths - 1) instead of after

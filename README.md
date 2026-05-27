@@ -1,4 +1,4 @@
-# inbe
+# Inner Breeze
 
 Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method.
 
