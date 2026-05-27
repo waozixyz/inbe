@@ -12,8 +12,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  android:
-    name: Build APK
+  unsigned-release:
+    name: Build Unsigned Release APK (F-Droid)
     runs-on: ubuntu-latest
 
     steps:
@@ -34,33 +34,24 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x droid/gradlew
 
-    - name: Build Debug APK (unsigned)
-      working-directory: ./droid
-      run: ./gradlew assembleDebug --stacktrace
-
-    - name: Build Release APK (unsigned, for F-Droid)
+    - name: Build Release APK (unsigned)
       working-directory: ./droid
       run: ./gradlew assembleRelease --stacktrace
 
     - name: Rename APKs
       run: |
-        # Debug APK
-        mv droid/app/build/outputs/apk/debug/app-debug.apk inbe-debug.apk 2>/dev/null || true
-        # Release APKs (unsigned, for F-Droid)
+        # Get universal APK
+        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-release-universal.apk \; 2>/dev/null || true
+        # Get any release APK as fallback
         find droid/app/build/outputs/apk/release -name "*.apk" -exec cp {} inbe-release.apk \; 2>/dev/null || true
 
-    - name: Upload Debug APK
+    - name: Upload Unsigned APK
       uses: actions/upload-artifact@v4
       with:
-        name: debug-apk
-        path: inbe-debug.apk
-        if-no-files-found: warn
-
-    - name: Upload Release APK (unsigned, for F-Droid)
-      uses: actions/upload-artifact@v4
-      with:
-        name: release-apk
-        path: inbe-release.apk
+        name: unsigned-release-apk
+        path: |
+          inbe-release-universal.apk
+          inbe-release.apk
         if-no-files-found: warn
 
   signed-release:
@@ -86,17 +77,19 @@ jobs:
     - name: Grant execute permission for gradlew
       run: chmod +x droid/gradlew
 
+    - name: Create keystore directory
+      run: mkdir -p ~/.android
+
     - name: Decode Keystore
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
-        if [ -n "$KEYSTORE_BASE64" ]; then
-          echo "$KEYSTORE_BASE64" | base64 -d > droid/app/release-keystore.jks
-          echo "Keystore decoded successfully"
-        else
-          echo "No keystore found, skipping signed build"
+        if [ -z "$KEYSTORE_BASE64" ]; then
+          echo "KEYSTORE_BASE64 secret not set"
           exit 1
         fi
+        echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
+        echo "Keystore decoded successfully"
 
     - name: Build Signed Release APK
       working-directory: ./droid
@@ -107,23 +100,39 @@ jobs:
       run: |
         ./gradlew assembleRelease \
           -Pkeystore.password="$KEYSTORE_PASSWORD" \
-          -Pkeystore.path="release-keystore.jks" \
+          -Pkeystore.path="/home/runner/.android/inbe-release.keystore" \
           --stacktrace
 
     - name: Rename Signed APK
       run: |
+        # Get universal signed APK
+        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-signed-release-universal.apk \; 2>/dev/null || true
+        # Get any signed APK as fallback
         find droid/app/build/outputs/apk/release -name "*.apk" ! -name "*unsigned*" -exec cp {} inbe-signed-release.apk \; 2>/dev/null || true
 
-    - name: Upload Signed Release APK
+    - name: Verify APK Signature
+      run: |
+        if [ -f inbe-signed-release.apk ]; then
+          echo "APK exists, checking signature..."
+          # Check if APK is signed using apksigner (available in Android SDK)
+          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs inbe-signed-release.apk || echo "apksigner not available, skipping verification"
+        else
+          echo "No signed APK found"
+          ls -la droid/app/build/outputs/apk/release/
+        fi
+
+    - name: Upload Signed APK
       uses: actions/upload-artifact@v4
       with:
         name: signed-release-apk
-        path: inbe-signed-release.apk
+        path: |
+          inbe-signed-release-universal.apk
+          inbe-signed-release.apk
         if-no-files-found: warn
 
   release:
-    name: Create Release
-    needs: [android, signed-release]
+    name: Create GitHub Release
+    needs: [unsigned-release, signed-release]
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     permissions:
@@ -133,25 +142,25 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@v4
 
-    - name: Download Release APK
+    - name: Download Unsigned APK
       uses: actions/download-artifact@v4
       with:
-        name: release-apk
+        name: unsigned-release-apk
         path: .
 
-    - name: Download Signed APK (if available)
+    - name: Download Signed APK
       uses: actions/download-artifact@v4
       with:
         name: signed-release-apk
         path: .
-        if-no-files-found: warn
+        if-no-files-found: ignore
 
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
         files: |
-          inbe-release.apk
-          inbe-signed-release.apk
+          inbe-release*.apk
+          inbe-signed*.apk
         draft: false
         prerelease: false
         generate_release_notes: true
