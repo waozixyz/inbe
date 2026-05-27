@@ -1,4 +1,20 @@
 # Changelog
+## [1.0.6] - 2026-05-27
+### Fixed
+- Bell now plays before the last breath (at maxbreaths - 1) instead of after
+- Session history not loading and potential segfault due to path buffer overflow (increased HISTORY_PATH_SIZE from 96 to 256)
+- Tutorial text clarified to explicitly mention Wim Hof Method
+
+## [1.0.5] - 2026-05-27
+### Added
+- Theme system with 8 color themes (Forest, Ocean, Sky, Sunset, Lavender - each with light/dark variants)
+- Settings dropdown menu for easier navigation
+- Improved fullscreen mode with better DPI scaling
+### Fixed
+- Touch input scaling for dropdown menus and toggle switches
+- Tab bar positioning on Android (now accounts for system navbar)
+- Removed toggle switch circle indicator for cleaner UI
+
 ## [1.0.4] - 2026-05-26
 ### Added
 - Centralized icon size management system (SMALL, MEDIUM, LARGE)

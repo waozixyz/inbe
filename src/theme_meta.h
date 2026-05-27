@@ -1,14 +1,15 @@
 #ifndef THEME_META_H
 #define THEME_META_H
 
-#define THEME_COUNT 5
+#define THEME_COUNT 6
 
 typedef enum {
     ThemeSky = 0,
     ThemeOcean = 1,
     ThemeForest = 2,
     ThemeSunset = 3,
-    ThemeLavender = 4
+    ThemeLavender = 4,
+    ThemeCherry = 5
 } ThemeId;
 
 typedef struct {

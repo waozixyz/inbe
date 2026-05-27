@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "android_insets.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,10 +22,6 @@ static float dpi_scale = 1.0f;
 static int view_width = 320;
 static int view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
-
-/* ================================================================
- * INITIALIZATION
- * ================================================================ */
 
 void
 ui_init(int width, int height, float dpi)
@@ -333,10 +330,11 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 int
 ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
 {
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int hover = 0;
     Rectangle bounds = {x, y, w, h};
 
-    if(CheckCollisionPointRec(GetMousePosition(), bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds)) {
         hover = 1;
         app->cursor_clickable = 1;
     }
@@ -357,11 +355,6 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
     int active_x = *value ? x + w - active_w - 3 : x + 3;
     DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_circle);
 
-    int circle_size = h - 10;
-    int circle_x = *value ? x + w - circle_size / 2 - 5 : x + circle_size / 2 + 5;
-    int circle_y = y + h / 2;
-    DrawCircle(circle_x, circle_y, circle_size / 2, c_button);
-
     int font = ui_clamp_px(12, 10, 14);
     const char *light_label = "Light";
     const char *dark_label = "Dark";
@@ -369,8 +362,12 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
     int dark_w = MeasureText(dark_label, font);
 
     Color label_color = c_text;
-    DrawText(light_label, x + 10 + active_w / 2 - light_w / 2, y + h / 2 - font / 2 - 1, font, label_color);
-    DrawText(dark_label, x + w - 10 - active_w / 2 - dark_w / 2, y + h / 2 - font / 2 - 1, font, label_color);
+    /* Center text in each half of the toggle */
+    int light_x = x + w / 4 - light_w / 2;
+    int dark_x = x + w * 3 / 4 - dark_w / 2;
+    int text_y = y + h / 2 - font / 2;
+    DrawText(light_label, light_x, text_y, font, label_color);
+    DrawText(dark_label, dark_x, text_y, font, label_color);
 
     return pressed;
 }
@@ -382,8 +379,9 @@ ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *valu
     int box_size = ui_px(22);
     int hover = 0;
     Rectangle bounds = {x, y, box_size, box_size};
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
 
-    if(CheckCollisionPointRec(GetMousePosition(), bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds)) {
         hover = 1;
         app->cursor_clickable = 1;
     }
@@ -404,6 +402,214 @@ ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *valu
     DrawText(label, x + box_size + ui_px(10), y + (box_size - font) / 2, font, c_text);
 
     return pressed;
+}
+
+/* Per-dropdown state to track open/closed and click handling */
+typedef struct UIDropdownState {
+    int id;
+    int open;
+    int just_opened;
+    int scroll_offset;
+    int x, y, w, h;
+    const char **options;
+    int option_count;
+    int *selected_index;
+} UIDropdownState;
+
+#define MAX_DROPDOWNS 8
+static UIDropdownState dropdown_states[MAX_DROPDOWNS];
+static int dropdown_state_count = 0;
+
+static UIDropdownState *
+get_or_create_dropdown_state(int id)
+{
+    /* Find existing state */
+    for(int i = 0; i < dropdown_state_count; i++) {
+        if(dropdown_states[i].id == id)
+            return &dropdown_states[i];
+    }
+
+    /* Create new state */
+    if(dropdown_state_count < MAX_DROPDOWNS) {
+        dropdown_states[dropdown_state_count].id = id;
+        dropdown_states[dropdown_state_count].open = 0;
+        dropdown_states[dropdown_state_count].just_opened = 0;
+        dropdown_states[dropdown_state_count].scroll_offset = 0;
+        dropdown_states[dropdown_state_count].options = NULL;
+        dropdown_states[dropdown_state_count].option_count = 0;
+        dropdown_states[dropdown_state_count].selected_index = NULL;
+        return &dropdown_states[dropdown_state_count++];
+    }
+
+    /* Fallback - use first slot */
+    dropdown_states[0].id = id;
+    return &dropdown_states[0];
+}
+
+int
+ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h,
+                        const char **options, int option_count, int *selected_index)
+{
+    UIDropdownState *state = get_or_create_dropdown_state(id);
+    int font = ui_clamp_px(14, 12, 16);
+    int arrow_pad = ui_px(24);
+    int arrow_size = ui_px(6);
+    int changed = 0;
+    Rectangle btn_bounds = {x, y, w, h};
+    Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int hover = CheckCollisionPointRec(mouse, btn_bounds);
+
+    /* Calculate arrow position */
+    int arrow_x = x + w - arrow_pad;
+    int arrow_y = y + h / 2;
+
+    /* Store state for menu drawing */
+    state->x = x;
+    state->y = y;
+    state->w = w;
+    state->h = h;
+    state->options = options;
+    state->option_count = option_count;
+    state->selected_index = selected_index;
+
+    if(hover)
+        app->cursor_clickable = 1;
+
+    /* Handle click on button */
+    if(hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        state->open = !state->open;
+        if(state->open)
+            state->just_opened = 1;
+    }
+
+    /* Mouse wheel to cycle through options */
+    float wheel = GetMouseWheelMove();
+    if(hover && wheel != 0 && !state->open) {
+        if(wheel > 0)
+            *selected_index = (*selected_index + 1) % option_count;
+        else
+            *selected_index = (*selected_index - 1 + option_count) % option_count;
+        state->open = 0;
+        changed = 1;
+    }
+
+    /* Draw button background */
+    DrawRectangleRounded(btn_bounds, 0.3f, 8, ui_darken(c_bg, 8));
+
+    /* Draw current selection text */
+    const char *current_name = options[*selected_index];
+    DrawText(current_name, x + ui_px(12), y + h / 2 - font / 2 - 1, font, c_text);
+
+    /* Draw dropdown X icon */
+    int x_size = arrow_size;
+    int x_half = x_size / 2;
+    int x1 = arrow_x - x_half;
+    int x2 = arrow_x + x_half;
+    int y1 = arrow_y - x_half;
+    int y2 = arrow_y + x_half;
+    DrawLine(x1, y1, x2, y2, BLACK);
+    DrawLine(x1, y2, x2, y1, BLACK);
+
+    return changed;
+}
+
+void
+ui_draw_dropdown_menu(InbeApp *app, int id)
+{
+    UIDropdownState *state = get_or_create_dropdown_state(id);
+
+    if(!state->open || state->options == NULL || state->selected_index == NULL)
+        return;
+
+    int font = ui_clamp_px(14, 12, 16);
+    int x = state->x;
+    int y = state->y;
+    int w = state->w;
+    int h = state->h;
+    int option_count = state->option_count;
+    int *selected_index = state->selected_index;
+    const char **options = state->options;
+
+    int option_h = h;
+    int menu_gap = ui_px(4);
+    int dropdown_y = y + h + menu_gap;
+    int dropdown_h = option_h * option_count + ui_px(8);
+    int max_visible_h = view_height - dropdown_y - ui_px(16);
+    int need_scroll = dropdown_h > max_visible_h;
+    int visible_options = option_count;
+
+    if(need_scroll) {
+        visible_options = (max_visible_h - ui_px(8)) / option_h;
+        if(visible_options < 1)
+            visible_options = 1;
+        dropdown_h = visible_options * option_h + ui_px(8);
+    }
+
+    Rectangle menu_bounds = {x, dropdown_y, w, dropdown_h};
+    Rectangle btn_bounds = {x, y, w, h};
+    Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
+
+    /* Click outside closes dropdown */
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(!state->just_opened &&
+           !CheckCollisionPointRec(mouse, btn_bounds) &&
+           !CheckCollisionPointRec(mouse, menu_bounds)) {
+            state->open = 0;
+        }
+    }
+
+    if(state->just_opened && !IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        state->just_opened = 0;
+
+    /* Draw dropdown background */
+    DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
+    ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
+
+    /* Clip to menu area */
+    BeginScissorMode(x, dropdown_y, w, dropdown_h);
+
+    /* Draw options */
+    for(int i = 0; i < option_count; i++) {
+        int option_y = dropdown_y + ui_px(4) + (i - state->scroll_offset) * option_h;
+        Rectangle option_bounds = {x, option_y, w, option_h};
+
+        /* Skip if outside visible area */
+        if(option_y + option_h < dropdown_y || option_y > dropdown_y + dropdown_h)
+            continue;
+
+        int option_hover = CheckCollisionPointRec(mouse, option_bounds);
+
+        if(option_hover) {
+            DrawRectangle(x, option_y, w, option_h, c_button_hover);
+            app->cursor_clickable = 1;
+
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !state->just_opened) {
+                *selected_index = i;
+                state->open = 0;
+                state->just_opened = 0;
+            }
+        }
+
+        DrawText(options[i], x + ui_px(12), option_y + option_h / 2 - font / 2 - 1, font, c_text);
+    }
+
+    EndScissorMode();
+
+    /* Redraw arrow on top of everything */
+    int arrow_pad = ui_px(24);
+    int arrow_size = ui_px(6);
+    int arrow_x = x + w - arrow_pad;
+    int arrow_y = y + h / 2;
+
+    /* Draw dropdown X icon */
+    int x_size = arrow_size;
+    int x_half = x_size / 2;
+    int x1 = arrow_x - x_half;
+    int x2 = arrow_x + x_half;
+    int y1 = arrow_y - x_half;
+    int y2 = arrow_y + x_half;
+    DrawLine(x1, y1, x2, y2, c_text);
+    DrawLine(x1, y2, x2, y1, c_text);
 }
 
 void
@@ -512,7 +718,55 @@ ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon,
 
     if(icon.id != 0) {
         Rectangle src = {0, 0, icon.width, icon.height};
-        Rectangle dst = {x + padding, y + padding, (float)icon_size, (float)icon_size};
+        /* Center icon horizontally when no label, otherwise align left */
+        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
+        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
+        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    }
+
+    if(show_label && label != NULL && label[0] != '\0') {
+        int text_x = x + icon_size + padding * 2 + ui_px(10);
+        int text_y = y + (h - font) / 2;
+        DrawText(label, text_x, text_y, font, c_text);
+    }
+
+    return pressed;
+}
+
+int
+ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Texture2D icon,
+                           const char *label, int show_label, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int font = ui_clamp_px(14, 12, 16);
+    int padding = ui_px(6);
+    int h = icon_size + padding * 2;
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb)
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        if(released)
+            pressed = 1;
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        *hover = 0;
+    }
+
+    if(icon.id != 0) {
+        Rectangle src = {0, 0, icon.width, icon.height};
+        /* Center icon horizontally when no label, otherwise align left */
+        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
+        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
@@ -533,6 +787,8 @@ void
 ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 {
     int bar_h = ui_clamp_px(58, 54, 66);
+    AndroidInsets insets = {0};
+    android_insets_get(&insets);
     int bar_y = view_height - bar_h;
     int button_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
     int button_h = button_size + ui_px(12);
@@ -559,8 +815,13 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 
     /* Only show labels if all buttons with labels fit */
     int show_labels = group_w_label <= available_w;
+    int base_group_w = show_labels ? group_w_label : group_w_no_label;
 
-    int group_x = side_margin + (available_w - (show_labels ? group_w_label : group_w_no_label)) / 2;
+    /* Calculate extra space to distribute among buttons */
+    int extra_w = available_w - base_group_w;
+    int extra_per_button = count > 0 ? extra_w / count : 0;
+
+    int group_x = side_margin;
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
 
@@ -569,11 +830,12 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 
     int x = group_x;
     for(int i = 0; i < count; i++) {
-        int w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
+        int base_w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
+        int w = base_w + extra_per_button;
 
         if(tabs[i].icon.id != 0) {
-            if(ui_draw_nav_button(app, x, button_y, button_size, tabs[i].icon,
-                                  tabs[i].label, show_labels, &tab_hover)) {
+            if(ui_draw_nav_button_expand(app, x, button_y, button_size, w, tabs[i].icon,
+                                        tabs[i].label, show_labels, &tab_hover)) {
                 if(tabs[i].on_click)
                     tabs[i].on_click(tabs[i].user_data);
             }

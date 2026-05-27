@@ -6,8 +6,8 @@ set -e
 # 1. Define paths and package configuration
 APK_PATH="build/android/app-universal-debug.apk"
 # TODO: Replace with your actual Android package name from AndroidManifest.xml
-PACKAGE_NAME="xyz.waozi.inbe" 
-LAUNCHER_ACTIVITY="xyz.waozi.inbe.MainActivity"
+PACKAGE_NAME="xyz.waozi.inbe"
+LAUNCHER_ACTIVITY="android.app.NativeActivity"
 
 echo "🔄 Waiting for device..."
 adb wait-for-device

@@ -1,6 +1,0 @@
-TODO
-- camera hole fix
-- rounded corners fix
-- don't move setting spage if selecting the sliders
-- make a multi page settings panel
-

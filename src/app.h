@@ -46,8 +46,6 @@ struct InbeApp {
     int settings_drag_content_y;  /* Initial Y position when drag starts */
     int settings_dirty;
     int settings_tab;
-    int settings_dropdown_open;
-    int last_bell_enabled;  /* Play bell on last breath */
     int fullscreen_enabled;  /* Fullscreen mode */
     int manual_scroll;
     int manual_drag_scrollbar;

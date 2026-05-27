@@ -21,21 +21,10 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/site-icons/apple-icon-180x180.png">
     <link rel="manifest" href="/manifest.json">
     <meta name="theme-color" content="#779999">
-    <link href="/style.css" rel="stylesheet">
-    <link href="../../inbe.css" rel="stylesheet">
     <style>
-      .web-shell {
-        position: relative;
-        z-index: 1;
-        min-height: 100vh;
-        box-sizing: border-box;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 8px;
-        padding: 16px 12px;
-        font-family: departure;
+      html, body {
+        height: 100%;
+        margin: 0;
       }
 
       #status,
@@ -43,141 +32,55 @@
         display: none;
       }
 
+      .canvas-stage {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      body {
+        background: #1a1a2e;
+      }
+
       .canvas-frame {
-        position: relative;
-        z-index: 1;
-        width: min(calc(100vw - 24px), calc((100vh - 96px) * 4 / 7));
-        max-width: calc(100vw - 24px);
+        width: min(100vw, calc(100vh * 4 / 7));
         aspect-ratio: 4 / 7;
-        overflow: hidden;
-        background: transparent;
+        position: relative;
       }
 
       canvas.emscripten {
         position: absolute;
         inset: 0;
-        display: block;
         width: 100% !important;
         height: 100% !important;
         max-width: none !important;
         max-height: none !important;
         border: 0;
-        background: transparent;
         image-rendering: auto;
       }
 
-      .canvas-stage {
-        position: relative;
-        z-index: 1;
-        flex: 1 1 auto;
-        min-height: 0;
-        width: 100%;
-        display: grid;
-        align-items: center;
-        justify-content: center;
-        place-items: center;
-      }
-
-      .canvas-stage:fullscreen {
-        display: grid;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      .canvas-stage:-webkit-full-screen {
-        display: grid;
-        width: 100vw;
-        height: 100vh;
-      }
-
-      .canvas-stage:fullscreen .canvas-frame {
+      .canvas-frame:fullscreen,
+      .canvas-frame:-webkit-full-screen {
         width: min(100vw, calc(100vh * 4 / 7));
-        max-width: none;
-        max-height: 100vh;
-      }
-
-      .canvas-stage:-webkit-full-screen .canvas-frame {
-        width: min(100vw, calc(100vh * 4 / 7));
-        max-width: none;
-        max-height: 100vh;
-      }
-
-      .web-actions {
-        position: relative;
-        z-index: 1;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        justify-content: center;
-        align-items: center;
-      }
-
-      .web-actions button.platform-btn {
-        appearance: none;
-        -webkit-appearance: none;
-        font: inherit;
-        cursor: pointer;
-      }
-
-      .web-back {
-        position: relative;
-        flex-direction: row;
-        min-width: 0;
-        padding: 10px 16px;
-      }
-
-      .web-fullscreen {
-        position: relative;
-        flex-direction: row;
-        min-width: 0;
-        padding: 10px 16px;
+        height: min(100vh, calc(100vw * 7 / 4));
+        margin: auto;
       }
     </style>
   </head>
   <body>
-    <div class="web-shell">
-      <div id="status">Downloading...</div>
-      <progress value="0" max="100" id="progress" hidden></progress>
-      <div class="canvas-stage" id="canvas-stage">
-        <div class="canvas-frame">
-          <canvas class="emscripten" id="canvas" width="320" height="560" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
-        </div>
-      </div>
-      <div class="web-actions">
-        <a class="platform-btn web web-back" href="https://inbe.waozi.xyz/">
-          <span>Back to Inner Breeze</span>
-        </a>
-        <button class="platform-btn web web-back web-fullscreen" id="fullscreen-btn" type="button">
-          <span>Fullscreen</span>
-        </button>
+    <div id="status">Downloading...</div>
+    <progress value="0" max="100" id="progress" hidden></progress>
+    <div class="canvas-stage">
+      <div class="canvas-frame" id="canvas-frame">
+        <canvas class="emscripten" id="canvas" width="320" height="560" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
       </div>
     </div>
 
     <script>
       var statusElement = document.querySelector('#status');
       var progressElement = document.querySelector('#progress');
-      var fullscreenButton = document.querySelector('#fullscreen-btn');
-      var canvasStage = document.querySelector('#canvas-stage');
-
-      function fullscreenElement() {
-        return document.fullscreenElement || document.webkitFullscreenElement || null;
-      }
-
-      function updateFullscreenButton() {
-        fullscreenButton.textContent = fullscreenElement() ? 'Exit fullscreen' : 'Fullscreen';
-      }
-
-      fullscreenButton.addEventListener('click', function() {
-        if (fullscreenElement()) {
-          var exitFullscreen = document.exitFullscreen || document.webkitExitFullscreen;
-          if (exitFullscreen) exitFullscreen.call(document);
-        } else {
-          var requestFullscreen = canvasStage.requestFullscreen || canvasStage.webkitRequestFullscreen;
-          if (requestFullscreen) requestFullscreen.call(canvasStage);
-        }
-      });
-      document.addEventListener('fullscreenchange', updateFullscreenButton);
-      document.addEventListener('webkitfullscreenchange', updateFullscreenButton);
 
       var Module = {
         preRun: [],
