@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - master
-    tags:
-      - 'v*'
   pull_request:
     branches:
       - master
@@ -13,7 +11,7 @@ on:
 
 jobs:
   unsigned-release:
-    name: Build Unsigned Release APK (F-Droid)
+    name: Build Unsigned Release APK (for F-Droid)
     runs-on: ubuntu-latest
 
     steps:
@@ -21,6 +19,7 @@ jobs:
       uses: actions/checkout@v4
       with:
         submodules: recursive
+        fetch-depth: 0  # Need full history for tag checking
 
     - name: Set up JDK 17
       uses: actions/setup-java@v4
@@ -54,115 +53,24 @@ jobs:
           inbe-release.apk
         if-no-files-found: warn
 
-  signed-release:
-    name: Build Signed Release APK
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || startsWith(github.ref, 'refs/tags/')
-
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-      with:
-        submodules: recursive
-
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
-
-    - name: Setup Gradle
-      uses: gradle/actions/setup-gradle@v3
-
-    - name: Grant execute permission for gradlew
-      run: chmod +x droid/gradlew
-
-    - name: Create keystore directory
-      run: mkdir -p ~/.android
-
-    - name: Decode Keystore
-      env:
-        KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+    - name: Create and Push Tag (if new version)
+      if: github.event_name == 'push' && github.ref == 'refs/heads/master'
       run: |
-        if [ -z "$KEYSTORE_BASE64" ]; then
-          echo "KEYSTORE_BASE64 secret not set"
-          exit 1
-        fi
-        echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
-        echo "Keystore decoded successfully"
+        # Extract versionName from build.gradle
+        VERSION=$(grep "versionName" droid/app/build.gradle | awk '{print $2}' | tr -d '"')
+        TAG="v$VERSION"
 
-    - name: Build Signed Release APK
-      working-directory: ./droid
-      env:
-        KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-        KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      run: |
-        ./gradlew assembleRelease \
-          -Pkeystore.password="$KEYSTORE_PASSWORD" \
-          -Pkeystore.path="/home/runner/.android/inbe-release.keystore" \
-          --stacktrace
+        echo "Found version: $VERSION"
+        echo "Checking for tag: $TAG"
 
-    - name: Rename Signed APK
-      run: |
-        # Get universal signed APK
-        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-signed-release-universal.apk \; 2>/dev/null || true
-        # Get any signed APK as fallback
-        find droid/app/build/outputs/apk/release -name "*.apk" ! -name "*unsigned*" -exec cp {} inbe-signed-release.apk \; 2>/dev/null || true
-
-    - name: Verify APK Signature
-      run: |
-        if [ -f inbe-signed-release.apk ]; then
-          echo "APK exists, checking signature..."
-          # Check if APK is signed using apksigner (available in Android SDK)
-          $ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs inbe-signed-release.apk || echo "apksigner not available, skipping verification"
+        # Check if tag already exists
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          echo "Tag $TAG already exists, skipping..."
         else
-          echo "No signed APK found"
-          ls -la droid/app/build/outputs/apk/release/
+          echo "Creating new tag: $TAG"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "$TAG" -m "Release $VERSION"
+          git push origin "$TAG"
+          echo "Tag $TAG created and pushed!"
         fi
-
-    - name: Upload Signed APK
-      uses: actions/upload-artifact@v4
-      with:
-        name: signed-release-apk
-        path: |
-          inbe-signed-release-universal.apk
-          inbe-signed-release.apk
-        if-no-files-found: warn
-
-  release:
-    name: Create GitHub Release
-    needs: [unsigned-release, signed-release]
-    if: startsWith(github.ref, 'refs/tags/')
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-
-    steps:
-    - name: Checkout Repository
-      uses: actions/checkout@v4
-
-    - name: Download Unsigned APK
-      uses: actions/download-artifact@v4
-      with:
-        name: unsigned-release-apk
-        path: .
-
-    - name: Download Signed APK
-      uses: actions/download-artifact@v4
-      with:
-        name: signed-release-apk
-        path: .
-        if-no-files-found: ignore
-
-    - name: Create Release
-      uses: softprops/action-gh-release@v1
-      with:
-        files: |
-          inbe-release*.apk
-          inbe-signed*.apk
-        draft: false
-        prerelease: false
-        generate_release_notes: true
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
