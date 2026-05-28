@@ -4,6 +4,21 @@
 #include "raylib.h"
 #include "../libinbe/inbe.h"
 
+/* ================================================================
+ * MODAL DIALOG TYPES
+ * ================================================================ */
+
+typedef enum {
+    UIModalNone,
+    UIModalConfirmExitSession,
+} UIModalType;
+
+typedef struct {
+    int active;
+    UIModalType type;
+    int selected_button;  /* 0 = cancel/left, 1 = confirm/right */
+} UIModal;
+
 typedef struct LotusAppApi {
     const char *id;
     void *(*create)(void);
@@ -75,6 +90,7 @@ struct InbeApp {
     int session_paused;
     int results_saved;
     int saved_pause_seconds;
+    UIModal modal;
 };
 
 void inbe_app_init(void *app);

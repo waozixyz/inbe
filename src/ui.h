@@ -146,4 +146,18 @@ void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, 
 /* Draw tutorial images with fallback to placeholder */
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
 
+/* ================================================================
+ * MODAL DIALOGS
+ * ================================================================ */
+
+/* Draw a modal dialog overlay with title, message, and two buttons.
+ * Returns: 0 if no button clicked, 1 if cancel clicked, 2 if confirm clicked */
+int ui_draw_modal(InbeApp *app, const char *title, const char *message,
+                   const char *cancel_btn, const char *confirm_btn);
+
+/* Draw a modal dialog overlay with title, message, and three buttons.
+ * Returns: 0 if no button clicked, 1 if left clicked, 2 if middle clicked, 3 if right clicked */
+int ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
+                        const char *left_btn, const char *middle_btn, const char *right_btn);
+
 #endif
