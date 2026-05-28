@@ -1,1 +1,9 @@
-
+### Added
+- Centralized icon size management system (SMALL, MEDIUM, LARGE)
+- Standardized icon button functions for consistent sizing
+### Fixed
+- Improved accessibility with larger icons for older users (+25-37%)
+- DPI scaling for all button padding and bevel borders on mobile
+- X button positioning and scaling on high DPI screens
+- Button dimensions and icon centering across all screens
+- Missing icons (telegram, globe, stripe, monero, home, trash) in WebAssembly build
