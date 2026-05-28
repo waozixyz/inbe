@@ -64,6 +64,10 @@ android {
             universalApk true
         }
     }
+
+    dependenciesInfo {
+        includeInApk = false
+    }
 }
 
 gradle.taskGraph.whenReady { taskGraph ->
