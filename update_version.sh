@@ -20,30 +20,16 @@ fi
 # Get latest version for gradle update
 LATEST_VERSION=$(echo "$VERSIONS" | head -n 1)
 
-# Count total versions for versionCode (position-based: 11 versions = code 11)
-VERSION_COUNT=$(echo "$VERSIONS" | wc -l)
-
 # Get current gradle values
 CURRENT_NAME=$(grep "versionName" "$GRADLE_FILE" | sed 's/.*"\([^"]*\)".*/\1/')
 CURRENT_CODE=$(grep "versionCode" "$GRADLE_FILE" | awk '{print $2}')
 
-# Only increment versionCode if versionName actually changed
-# Otherwise, use the position count (in case we're fixing a broken code)
+# Android versionCode: just increment by 1 for new versions
+# If version hasn't changed, keep the same code
 if [ "$LATEST_VERSION" = "$CURRENT_NAME" ]; then
-    # Version same - if current code is wrong (too low), fix it
-    if [ "$CURRENT_CODE" -lt "$VERSION_COUNT" ]; then
-        VERSION_CODE=$VERSION_COUNT
-    else
-        VERSION_CODE=$CURRENT_CODE
-    fi
+    VERSION_CODE=$CURRENT_CODE
 else
-    # New version - use max of (current+1) or (version count)
-    MAX_CODE=$((CURRENT_CODE + 1))
-    if [ "$VERSION_COUNT" -gt "$MAX_CODE" ]; then
-        VERSION_CODE=$VERSION_COUNT
-    else
-        VERSION_CODE=$MAX_CODE
-    fi
+    VERSION_CODE=$((CURRENT_CODE + 1))
 fi
 
 echo "Updating to: $LATEST_VERSION (code $VERSION_CODE)"
