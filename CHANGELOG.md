@@ -1,4 +1,13 @@
 # Changelog
+## [1.0.9] - 2026-05-28
+### Added
+- Android share sheet for data export (native Intent integration)
+- Direct sharing to Telegram, Downloads, or any app that handles ZIP files
+- FileProvider support for secure file sharing on Android 7.0+
+### Fixed
+- ZIP export now uses native Android share sheet instead of saving to private storage
+- JNI class loading fix for ShareHelper on native threads
+
 ## [1.0.8] - 2026-05-28
 ### Added
 - Android back button support with screen-aware behavior
