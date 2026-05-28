@@ -77,6 +77,12 @@ int ui_draw_icon_btn_medium(InbeApp *app, int x, int y, Texture2D icon, int *hov
 /* Convenience wrapper for large icon buttons */
 int ui_draw_icon_btn_large(InbeApp *app, int x, int y, Texture2D icon, int *hover);
 
+/* Draw an icon button with padding (icon at top-left inside button) */
+int ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover);
+
+/* Draw a text button with label */
+int ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover);
+
 /* Draw an icon link button that opens a URL when clicked */
 void ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const char *url);
 
@@ -159,5 +165,18 @@ int ui_draw_modal(InbeApp *app, const char *title, const char *message,
  * Returns: 0 if no button clicked, 1 if left clicked, 2 if middle clicked, 3 if right clicked */
 int ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
                         const char *left_btn, const char *middle_btn, const char *right_btn);
+
+/* ================================================================
+ * SCREEN HEADER (TITLE BAR)
+ * ================================================================ */
+
+/* Draw a screen header with title and optional close button.
+ * title: Screen title text (centered)
+ * show_close: Whether to show X close button on the right
+ * Returns: 1 if close button was clicked, 0 otherwise */
+int ui_draw_screen_header(InbeApp *app, const char *title, int show_close);
+
+/* Get the standard screen header height */
+int ui_screen_header_height(void);
 
 #endif

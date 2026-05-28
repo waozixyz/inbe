@@ -1,21 +1,9 @@
 #include "ui.h"
 #include "android_insets.h"
+#include "app.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* Constants */
-enum {
-    ICON_SIZE_SMALL = 22,
-    ICON_SIZE_MEDIUM = 26,
-    ICON_SIZE_LARGE = 30,
-    ICON_SIZE_SMALL_MIN = 20,
-    ICON_SIZE_SMALL_MAX = 36,
-    ICON_SIZE_MEDIUM_MIN = 24,
-    ICON_SIZE_MEDIUM_MAX = 40,
-    ICON_SIZE_LARGE_MIN = 28,
-    ICON_SIZE_LARGE_MAX = 44
-};
 
 /* Global UI state */
 static float dpi_scale = 1.0f;
@@ -225,6 +213,84 @@ ui_draw_icon_btn_large(InbeApp *app, int x, int y, Texture2D icon, int *hover)
     return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_LARGE, icon, hover);
 }
 
+int
+ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int padding = ui_px(10);
+    int w = size + padding * 2;
+    int h = size + padding * 2;
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb) {
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        }
+        if(released) {
+            pressed = 1;
+        }
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 20));
+        *hover = 0;
+    }
+
+    if(icon.id != 0) {
+        Rectangle src = {0, 0, icon.width, icon.height};
+        Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
+        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    }
+
+    return pressed;
+}
+
+int
+ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int font = ui_clamp_px(20, 16, 22);
+    int w = (int)MeasureText(label, font) + ui_px(20);
+    int h = ui_clamp_px(30, 26, 34);
+
+    x = x - w / 2;
+
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb) {
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        }
+        if(released) {
+            pressed = 1;
+        }
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        *hover = 0;
+    }
+
+    DrawText(label, x + ui_px(10), y + ui_px(5), font, c_text);
+
+    return pressed;
+}
+
 void
 ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const char *url)
 {
@@ -265,16 +331,6 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, con
 /* ================================================================
  * CONTROLS
  * ================================================================ */
-
-static int
-clampi(int value, int min, int max)
-{
-    if(value < min)
-        return min;
-    if(value > max)
-        return max;
-    return value;
-}
 
 int
 ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
@@ -817,11 +873,16 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int show_labels = group_w_label <= available_w;
     int base_group_w = show_labels ? group_w_label : group_w_no_label;
 
-    /* Calculate extra space to distribute among buttons */
-    int extra_w = available_w - base_group_w;
+    /* Calculate extra space and distribute evenly among buttons */
+    int extra_w = available_w - base_group_w - group_gap * (count - 1);
     int extra_per_button = count > 0 ? extra_w / count : 0;
+    int remainder = count > 0 ? extra_w % count : 0;
 
-    int group_x = side_margin;
+    /* Calculate total width with extra space included */
+    int total_w = base_group_w + extra_per_button * count + group_gap * (count - 1);
+
+    /* Center the tab group - remainder adds extra left margin for true centering */
+    int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
 
@@ -1143,4 +1204,42 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     DrawText(right_btn, right_x + (btn_w - right_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
 
     return result;
+}
+
+/* ================================================================
+ * SCREEN HEADER (TITLE BAR)
+ * ================================================================ */
+
+int
+ui_screen_header_height(void)
+{
+    return ui_clamp_px(60, 48, 60);
+}
+
+int
+ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
+{
+    (void)c_bg; /* unused */
+    int title_h = ui_screen_header_height();
+    int title_font = ui_clamp_px(16, 14, 18);
+    int close_hover = 0;
+    int close_clicked = 0;
+
+    /* Draw header background */
+    DrawRectangle(0, 0, view_width, title_h, ui_darken(c_bg, 14));
+    DrawLine(0, title_h - 1, view_width, title_h - 1, ui_darken(c_bg, 42));
+
+    /* Draw centered title */
+    int title_w = MeasureText(title, title_font);
+    int title_y = (title_h - title_font) / 2;
+    DrawText(title, (view_width - title_w) / 2, title_y, title_font, c_text);
+
+    /* Draw close button if requested */
+    if(show_close) {
+        int close_size = ui_icon_btn_size(UI_ICON_SIZE_TINY);
+        close_clicked = ui_draw_icon_btn(app, view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
+                                         UI_ICON_SIZE_TINY, app->x_icon, &close_hover);
+    }
+
+    return close_clicked;
 }
