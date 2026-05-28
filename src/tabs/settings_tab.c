@@ -8,6 +8,7 @@
 #include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
+#include <string.h>
 
 /* Theme colors - set by ui_set_colors */
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
@@ -19,8 +20,8 @@ static const char *settings_tab_names[] = {
     "Breathing",
     "Session",
     "Appearance",
-    "About",
-    "Data"
+    "Data",
+    "About"
 };
 
 extern int view_width;
@@ -101,6 +102,7 @@ settings_tab_draw(InbeApp *app)
     int content_w;
     static FileDialog export_dlg;
     static int export_dlg_initialized = 0;
+    static char export_result[128] = "";  /* Store export result message */
 
     ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
 
@@ -129,7 +131,7 @@ settings_tab_draw(InbeApp *app)
             reset_settings_preview(app);
         }
 
-        int yoff = title_h;
+        int yoff = ui_px(16);
         int speed = app->inbe.speed_level;
         int max_rounds = app->inbe.max_rounds;
         int max_breaths = int_from_count(app->inbe.maxbreaths);
@@ -252,42 +254,6 @@ settings_tab_draw(InbeApp *app)
                 DrawText("Coming soon...", content_x, label_y + ui_px(30), font, ui_darken(c_text, 40));
                 break;
             }
-            case SETTINGS_TAB_ABOUT: {
-                int font = ui_clamp_px(14, 12, 16);
-                int small_font = ui_clamp_px(12, 10, 14);
-                int text_y = yoff + content_start_y;
-
-                /* App description */
-                const char *desc_lines[] = {
-                    "Inner Breeze is a simple breathing",
-                    "meditation app to help you relax",
-                    "and find your calm."
-                };
-                for(int i = 0; i < 3; i++) {
-                    DrawText(desc_lines[i], content_x, text_y, font, c_text);
-                    text_y += ui_px(22);
-                }
-
-                /* Version info */
-                text_y += ui_px(20);
-                char version_text[32];
-                snprintf(version_text, sizeof(version_text), "Version %s", INBE_VERSION_STRING);
-                DrawText(version_text, content_x, text_y, small_font, ui_darken(c_text, 40));
-
-                /* Icon links */
-                int links_y = text_y + ui_px(40);
-                int icon_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
-                int icon_padding = ui_px(4);
-                int icon_spacing = ui_px(20);
-                int icon_btn_w = icon_size + icon_padding * 2;
-                int total_w = icon_btn_w * 4 + icon_spacing * 3;
-                int links_start_x = content_x + (content_w - total_w) / 2;
-                ui_draw_icon_link(app, links_start_x + icon_padding, links_y, icon_size, app->telegram_icon, "https://t.me/lotusinbe");
-                ui_draw_icon_link(app, links_start_x + icon_btn_w + icon_spacing + icon_padding, links_y, icon_size, app->globe_icon, "https://inbe.waozi.xyz/");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 2 + icon_padding, links_y, icon_size, app->monero_icon, "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
-                break;
-            }
             case SETTINGS_TAB_DATA: {
                 int font = ui_clamp_px(14, 12, 16);
                 int text_y = yoff + content_start_y;
@@ -310,7 +276,11 @@ settings_tab_draw(InbeApp *app)
                 text_y += ui_px(30);
 
                 /* Statistics box */
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
                 int stats_box_h = ui_px(90);
+#else
+                int stats_box_h = ui_px(66);  /* Smaller on Android (no storage line) */
+#endif
                 DrawRectangle(content_x, text_y, content_w, stats_box_h, ui_darken(c_bg, 8));
                 ui_draw_bevel(content_x, text_y, content_w, stats_box_h, ui_lighten(c_bg, 35), ui_darken(c_bg, 45));
 
@@ -326,7 +296,20 @@ settings_tab_draw(InbeApp *app)
                 DrawText(stat_text, stat_x, stat_y, font, c_text);
                 stat_y += ui_px(22);
 
-                DrawText("Storage: ~/.local/share/lotus", stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+                const char *storage_path = data_root();
+                /* Replace /home/user/ with ~ for display */
+                const char *display_path = storage_path;
+                char home_buf[FS_PATH_MAX];
+                if (strncmp(storage_path, "/home/", 6) == 0) {
+                    const char *slash_after_user = strchr(storage_path + 6, '/');
+                    if (slash_after_user != NULL) {
+                        snprintf(home_buf, sizeof(home_buf), "~%s", slash_after_user);
+                        display_path = home_buf;
+                    }
+                }
+                DrawText(TextFormat("Storage: %s", display_path), stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
+#endif
 
                 text_y += stats_box_h + ui_px(24);
 
@@ -370,8 +353,12 @@ settings_tab_draw(InbeApp *app)
                     if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
                         const char *path = file_dialog_get_path(&export_dlg);
                         if(path != NULL && data_export(path)) {
+                            /* Extract just the filename for display */
+                            const char *filename = GetFileName(path);
+                            snprintf(export_result, sizeof(export_result), "Exported: %s", filename);
                             TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
                         } else {
+                            snprintf(export_result, sizeof(export_result), "Export failed - no data");
                             TraceLog(LOG_ERROR, "DATA: Export failed");
                         }
                     }
@@ -384,6 +371,51 @@ settings_tab_draw(InbeApp *app)
                     }
                 }
 
+                /* Draw export result message under Export button */
+                if(export_result[0] != '\0') {
+                    int result_font = ui_clamp_px(12, 10, 14);
+                    int result_x = export_x;
+                    int result_y = export_y + export_h + ui_px(8);
+                    DrawText(export_result, result_x, result_y, result_font, c_text);
+                }
+
+                break;
+            }
+
+            case SETTINGS_TAB_ABOUT: {
+                int font = ui_clamp_px(14, 12, 16);
+                int small_font = ui_clamp_px(12, 10, 14);
+                int text_y = yoff + content_start_y;
+
+                /* App description */
+                const char *desc_lines[] = {
+                    "Inner Breeze is a simple breathing",
+                    "meditation app to help you relax",
+                    "and find your calm."
+                };
+                for(int i = 0; i < 3; i++) {
+                    DrawText(desc_lines[i], content_x, text_y, font, c_text);
+                    text_y += ui_px(22);
+                }
+
+                /* Version info */
+                text_y += ui_px(20);
+                char version_text[32];
+                snprintf(version_text, sizeof(version_text), "Version %s", INBE_VERSION_STRING);
+                DrawText(version_text, content_x, text_y, small_font, ui_darken(c_text, 40));
+
+                /* Icon links */
+                int links_y = text_y + ui_px(40);
+                int icon_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+                int icon_padding = ui_px(4);
+                int icon_spacing = ui_px(20);
+                int icon_btn_w = icon_size + icon_padding * 2;
+                int total_w = icon_btn_w * 4 + icon_spacing * 3;
+                int links_start_x = content_x + (content_w - total_w) / 2;
+                ui_draw_icon_link(app, links_start_x + icon_padding, links_y, icon_size, app->telegram_icon, "https://t.me/lotusinbe");
+                ui_draw_icon_link(app, links_start_x + icon_btn_w + icon_spacing + icon_padding, links_y, icon_size, app->globe_icon, "https://inbe.waozi.xyz/");
+                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 2 + icon_padding, links_y, icon_size, app->monero_icon, "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff");
+                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
                 break;
             }
         }

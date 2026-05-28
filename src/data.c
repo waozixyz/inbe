@@ -1,5 +1,5 @@
 #include "data.h"
-#include "zip_writer.h"
+#include "miniz.h"
 #include "version.h"
 
 #include "raylib.h"
@@ -53,6 +53,8 @@ ensure_dir(const char *path)
     if(path == NULL || path[0] == '\0')
         return 0;
 
+    TraceLog(LOG_INFO, "DATA: ensure_dir: %s", path);
+
     if(DirectoryExists(path))
         return 1;
 
@@ -67,8 +69,10 @@ ensure_dir(const char *path)
     while((p = strchr(p, '/')) != NULL) {
         *p = '\0';
         if(!DirectoryExists(temp)) {
+            TraceLog(LOG_INFO, "DATA: Creating directory: %s", temp);
             if(!MakeDirectory(temp)) {
                 /* Parent directory creation failed */
+                TraceLog(LOG_ERROR, "DATA: Failed to create directory: %s", temp);
                 *p = '/';
                 return 0;
             }
@@ -78,6 +82,7 @@ ensure_dir(const char *path)
     }
 
     /* Now create the final directory */
+    TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
     if(MakeDirectory(path))
         return 1;
 
@@ -85,10 +90,19 @@ ensure_dir(const char *path)
     return 0;
 }
 
-/* Check if a path refers to a session file (starts with "inbe-") */
+/* Check if a path refers to a session file (starts with "inbe-")
+ * Handles both filenames and full paths */
 static int
-is_session_file(const char *filename)
+is_session_file(const char *path)
 {
+    const char *filename;
+
+    if(path == NULL)
+        return 0;
+
+    /* Extract filename from full path */
+    filename = GetFileName(path);
+
     return strncmp(filename, "inbe-", 5) == 0;
 }
 
@@ -211,7 +225,8 @@ data_root(void)
         } catch(e) {}
     });
 #elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    snprintf(g_data_root, sizeof(g_data_root), "data");
+    /* On Android, use simple relative path - Raylib handles storage */
+    snprintf(g_data_root, sizeof(g_data_root), "lotus");
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
     const char *home = getenv("HOME");
@@ -352,7 +367,7 @@ data_has_any(void)
 
                 /* Check for session files */
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i])) {
                         has_data = 1;
                         break;
@@ -405,7 +420,7 @@ data_get_total_size(void)
                     continue;
 
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i])) {
                         long long size = get_file_size(files.paths[i]);
                         if(size > 0)
@@ -450,7 +465,7 @@ data_get_session_count(void)
                     continue;
 
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i]))
                         count++;
                 }
@@ -492,7 +507,7 @@ data_delete_all(void)
                     continue;
 
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i])) {
                         if(FileExists(files.paths[i])) {
                             /* Delete the file */
@@ -523,8 +538,10 @@ data_delete_all(void)
 int
 data_export(const char *path)
 {
+    mz_zip_archive archive;
     FILE *fp;
-    ZIPWriter writer;
+    void *zip_data;
+    size_t zip_size;
     int year, month, day;
     FilePathList files;
     int session_count = 0;
@@ -544,15 +561,13 @@ data_export(const char *path)
         return 0;
     }
 
-    /* Open output file */
-    fp = fopen(path, "wb");
-    if(fp == NULL) {
-        TraceLog(LOG_ERROR, "DATA: failed to open export file: %s", path);
+    /* Initialize ZIP archive */
+    memset(&archive, 0, sizeof(archive));
+    if(!mz_zip_writer_init_heap(&archive, 0, 0)) {
+        TraceLog(LOG_ERROR, "DATA: failed to initialize ZIP archive");
         return 0;
     }
 
-    /* Initialize ZIP writer */
-    writer = zip_writer_init(fp);
     session_count = data_get_session_count();
 
     /* Create metadata file */
@@ -575,9 +590,9 @@ data_export(const char *path)
              date_str,
              session_count);
 
-    if(!zip_write_file(&writer, "lotus-data/metadata.txt", metadata, (int)strlen(metadata))) {
+    if(!mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt", metadata, strlen(metadata), MZ_NO_COMPRESSION)) {
         TraceLog(LOG_ERROR, "DATA: failed to write metadata");
-        fclose(fp);
+        mz_zip_writer_end(&archive);
         return 0;
     }
 
@@ -604,7 +619,7 @@ data_export(const char *path)
                     continue;
 
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i])) {
                         char *content;
                         char zip_path[FS_PATH_MAX];
@@ -618,8 +633,8 @@ data_export(const char *path)
                         /* Read file content */
                         content = LoadFileText(files.paths[i]);
                         if(content != NULL) {
-                            int size = (int)strlen(content);
-                            if(!zip_write_file(&writer, zip_path, content, size)) {
+                            size_t size = strlen(content);
+                            if(!mz_zip_writer_add_mem(&archive, zip_path, content, size, MZ_NO_COMPRESSION)) {
                                 TraceLog(LOG_WARNING, "DATA: failed to add file: %s", files.paths[i]);
                             }
                             UnloadFileText(content);
@@ -631,11 +646,36 @@ data_export(const char *path)
         }
     }
 
-    /* Finalize ZIP */
-    if(!zip_finalize(&writer)) {
-        TraceLog(LOG_ERROR, "DATA: failed to finalize ZIP");
+    /* Finalize heap archive and get buffer */
+    if(!mz_zip_writer_finalize_heap_archive(&archive, &zip_data, &zip_size)) {
+        TraceLog(LOG_ERROR, "DATA: failed to finalize ZIP archive");
+        mz_zip_writer_end(&archive);
         return 0;
     }
+
+    if(zip_data == NULL || zip_size == 0) {
+        TraceLog(LOG_ERROR, "DATA: failed to get ZIP data");
+        mz_zip_writer_end(&archive);
+        return 0;
+    }
+
+    /* Write to file */
+    fp = fopen(path, "wb");
+    if(fp == NULL) {
+        TraceLog(LOG_ERROR, "DATA: failed to open export file: %s", path);
+        mz_zip_writer_end(&archive);
+        return 0;
+    }
+
+    if(fwrite(zip_data, 1, zip_size, fp) != zip_size) {
+        TraceLog(LOG_ERROR, "DATA: failed to write ZIP data");
+        fclose(fp);
+        mz_zip_writer_end(&archive);
+        return 0;
+    }
+
+    fclose(fp);
+    mz_zip_writer_end(&archive);
 
     TraceLog(LOG_INFO, "DATA: exported %d sessions to %s", session_count, path);
     return 1;
@@ -687,7 +727,7 @@ data_list_sessions(data_session_callback callback, void *user)
                          year, month, day);
 
                 files = LoadDirectoryFiles(day_path);
-                for(int i = 0; i < files.count; i++) {
+                for(unsigned int i = 0; i < files.count; i++) {
                     if(is_session_file(files.paths[i])) {
                         char time_str[16] = "00:00:00";
                         int best = 0;

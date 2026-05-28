@@ -1,7 +1,6 @@
 #define RINI_IMPLEMENTATION
 #include "app.h"
 #include "data.h"
-#include "tabs/data_tab.h"
 #include "tabs/history_tab.h"
 #include "tabs/manual_tab.h"
 #include "tabs/settings_tab.h"
@@ -49,8 +48,8 @@ static const char *settings_tab_names[] = {
     "Breathing",
     "Session",
     "Appearance",
-    "About",
-    "Data"
+    "Data",
+    "About"
 };
 
 /* Forward declarations for tab callbacks */

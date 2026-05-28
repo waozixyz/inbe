@@ -5,7 +5,6 @@
 #include <string.h>
 #include <stdlib.h>
 
-/* Platform-specific include for home directory */
 #if defined(_WIN32)
 #include <shlobj.h>
 #else
@@ -25,7 +24,6 @@ void file_dialog_init(FileDialog *dlg)
     dlg->cursor = 0;
 }
 
-/* Get default export path (Downloads or home directory) */
 static void get_default_export_path(char *path, size_t size, const char *filename)
 {
     const char *base = NULL;
