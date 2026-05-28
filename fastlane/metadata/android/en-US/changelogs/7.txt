@@ -1,1 +1,4 @@
-
+### Fixed
+- Bell now plays before the last breath (at maxbreaths - 1) instead of after
+- Session history not loading and potential segfault due to path buffer overflow (increased HISTORY_PATH_SIZE from 96 to 256)
+- Tutorial text clarified to explicitly mention Wim Hof Method

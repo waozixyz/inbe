@@ -1,4 +1,3 @@
-#define RINI_IMPLEMENTATION
 #include "app.h"
 #include "data.h"
 #include "tabs/history_tab.h"
@@ -8,6 +7,9 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "ui.h"
+#if !defined(LOTUS_BUILD)
+#define RINI_IMPLEMENTATION
+#endif
 #include "../vendor/rini/src/rini.h"
 
 #include <dirent.h>

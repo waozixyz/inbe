@@ -1,4 +1,10 @@
 # Changelog
+## [1.1.0] - 2026-05-28
+### Added
+- Tiny version bump
+### Fixed
+- Changelog extraction now correctly populates fastlane metadata
+
 ## [1.0.9] - 2026-05-28
 ### Added
 - Android share sheet for data export (native Intent integration)

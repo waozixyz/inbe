@@ -1,0 +1,4 @@
+### Added
+- Tiny version bump
+### Fixed
+- Changelog extraction now correctly populates fastlane metadata

@@ -1,1 +1,8 @@
-
+### Added
+- Theme system with 8 color themes (Forest, Ocean, Sky, Sunset, Lavender - each with light/dark variants)
+- Settings dropdown menu for easier navigation
+- Improved fullscreen mode with better DPI scaling
+### Fixed
+- Touch input scaling for dropdown menus and toggle switches
+- Tab bar positioning on Android (now accounts for system navbar)
+- Removed toggle switch circle indicator for cleaner UI

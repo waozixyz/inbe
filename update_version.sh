@@ -19,12 +19,18 @@ fi
 
 # Get latest version for gradle update
 LATEST_VERSION=$(echo "$VERSIONS" | head -n 1)
-# versionCode = patch + 1 (since 1.0.0 = code 1)
-VERSION_CODE=$(($(echo "$LATEST_VERSION" | cut -d. -f3) + 1))
 
-# Get current versionName
+# Get current gradle values
 CURRENT_NAME=$(grep "versionName" "$GRADLE_FILE" | sed 's/.*"\([^"]*\)".*/\1/')
 CURRENT_CODE=$(grep "versionCode" "$GRADLE_FILE" | awk '{print $2}')
+
+# Android versionCode: just increment by 1 for new versions
+# If version hasn't changed, keep the same code
+if [ "$LATEST_VERSION" = "$CURRENT_NAME" ]; then
+    VERSION_CODE=$CURRENT_CODE
+else
+    VERSION_CODE=$((CURRENT_CODE + 1))
+fi
 
 echo "Updating to: $LATEST_VERSION (code $VERSION_CODE)"
 echo "Current: $CURRENT_NAME (code $CURRENT_CODE)"
@@ -51,10 +57,14 @@ echo "✓ Updated $VERSION_H_FILE"
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
 
-# Generate only missing changelog files
+# Generate changelog files (position-based: oldest = 1, newest = N)
+# Reverse versions so oldest is processed first
+TOTAL_VERSIONS=$(echo "$VERSIONS" | wc -l)
+POSITION=0
 while IFS= read -r VERSION; do
-    # versionCode = patch + 1
-    CODE=$(($(echo "$VERSION" | cut -d. -f3) + 1))
+    POSITION=$((POSITION + 1))
+    # Calculate position from end (newest gets highest number)
+    CODE=$((TOTAL_VERSIONS - POSITION + 1))
     OUTPUT_FILE="$CHANGELOG_DIR/$CODE.txt"
 
     # Skip if file already exists
@@ -63,17 +73,20 @@ while IFS= read -r VERSION; do
     fi
 
     # Extract changelog content for this version
-    CHANGELOG_CONTENT=$(awk -v version="[$VERSION]" '
+    CHANGELOG_CONTENT=$(awk -v ver="$VERSION" '
+        BEGIN { in_section=0 }
         /^## \[/ {
-            if (found) exit
-            if ($0 ~ "\\[\\[" version "\\]\\]") {
-                found=1
+            if (in_section) exit
+            if (index($0, ver) > 0) {
+                in_section=1
                 next
             }
         }
-        found && /^### / { subsection=1 }
-        found { print }
-    ' "$CHANGELOG_FILE" | sed '1d;/^$/d' | head -n -1)
+        in_section {
+            # Print section headers and bullet points
+            if (/^### / || /^- /) print
+        }
+    ' "$CHANGELOG_FILE")
 
     echo "$CHANGELOG_CONTENT" > "$OUTPUT_FILE"
     echo "✓ Created $OUTPUT_FILE"

@@ -1,1 +1,3 @@
-
+### Fixed
+- Fixed WebAssembly local storage persistence
+- Updated Android target SDK version
