@@ -196,24 +196,6 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, in
 }
 
 int
-ui_draw_icon_btn_small(InbeApp *app, int x, int y, Texture2D icon, int *hover)
-{
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_SMALL, icon, hover);
-}
-
-int
-ui_draw_icon_btn_medium(InbeApp *app, int x, int y, Texture2D icon, int *hover)
-{
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_MEDIUM, icon, hover);
-}
-
-int
-ui_draw_icon_btn_large(InbeApp *app, int x, int y, Texture2D icon, int *hover)
-{
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_LARGE, icon, hover);
-}
-
-int
 ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -667,69 +649,6 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     DrawLine(x1, y1, x2, y2, c_text);
     DrawLine(x1, y2, x2, y1, c_text);
 }
-
-void
-ui_draw_scrollbar(InbeApp *app, int *scroll, int content_h, int viewport_h,
-                  int *drag_scrollbar, int *drag_content, int *drag_content_y)
-{
-    if(content_h <= viewport_h)
-        return;
-
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int bar_w = ui_px(8);
-    int bar_x = view_width - bar_w;
-    int bar_y = 0;
-    int bar_h = viewport_h;
-    int thumb_h = (viewport_h * bar_h) / content_h;
-    int min_thumb_h = ui_px(32);
-    if(thumb_h < min_thumb_h)
-        thumb_h = min_thumb_h;
-    int max_scroll = content_h - viewport_h;
-    int thumb_y = bar_y + (*scroll * (bar_h - thumb_h)) / max_scroll;
-    int hit_w = ui_px(16);
-    Rectangle thumb = {(float)(bar_x - (hit_w - bar_w) / 2), (float)thumb_y, (float)hit_w, (float)thumb_h};
-    Rectangle content_area = {(float)0, (float)bar_y, (float)bar_x, (float)bar_h};
-
-    DrawRectangle(bar_x, bar_y, bar_w, bar_h, ui_darken(c_bg, 18));
-    DrawRectangle(bar_x, thumb_y, bar_w, thumb_h, c_button_hover);
-
-    if(CheckCollisionPointRec(mouse_world, thumb)) {
-        app->cursor_clickable = 1;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            *drag_scrollbar = 1;
-    }
-
-    if(*drag_scrollbar && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int usable = bar_h - thumb_h;
-        int y = (int)mouse_world.y - bar_y - thumb_h / 2;
-        y = clampi(y, 0, usable);
-        *scroll = (y * max_scroll) / usable;
-        return;
-    }
-
-    if(CheckCollisionPointRec(mouse_world, content_area)) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            *drag_content = 1;
-            *drag_content_y = (int)mouse_world.y;
-        }
-    }
-
-    if(*drag_content && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int delta = *drag_content_y - (int)mouse_world.y;
-        *scroll += delta;
-        *scroll = clampi(*scroll, 0, max_scroll);
-        *drag_content_y = (int)mouse_world.y;
-    }
-
-    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        *drag_scrollbar = 0;
-        *drag_content = 0;
-    }
-}
-
-/* ================================================================
- * NAVIGATION
- * ================================================================ */
 
 int
 ui_nav_button_width(const char *label, int icon_size, int show_label, int font)

@@ -11,7 +11,6 @@
 extern int view_width;
 extern int view_height;
 
-/* Theme colors - set by ui_set_colors */
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 
@@ -194,8 +193,6 @@ manual_tab_draw(InbeApp *app)
         }
     EndScissorMode();
 
-    ui_draw_scrollbar(app, &app->manual_scroll, ui_px(content_h), viewport_h,
-                   &app->manual_drag_scrollbar, &app->manual_drag_content, &app->manual_drag_content_y);
     snprintf(page_label, sizeof(page_label), "%d/%d", app->tutorial_step + 1, TUTORIAL_STEPS);
     DrawText(page_label,
              view_width / 2 - MeasureText(page_label, ui_clamp_px(14, 14, 16)) / 2,

@@ -2,6 +2,7 @@
 #include "data.h"
 #include "app.h"
 #include "ui.h"
+#include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
 
@@ -49,6 +50,8 @@ data_tab_draw(InbeApp *app)
     int center_x = view_width / 2;
     int title_h = ui_screen_header_height();
     int close_clicked = 0;
+    static FileDialog export_dlg;
+    static int export_dlg_initialized = 0;
 
     (void)c_bg; /* unused */
 
@@ -57,6 +60,12 @@ data_tab_draw(InbeApp *app)
     if(close_clicked) {
         app->inbe.screen = InbeScreenStart;
         return;
+    }
+
+    /* Initialize export dialog on first call */
+    if(!export_dlg_initialized) {
+        file_dialog_init(&export_dlg);
+        export_dlg_initialized = 1;
     }
 
     /* Calculate stats */
@@ -103,8 +112,14 @@ data_tab_draw(InbeApp *app)
     /* Export button */
     int export_x = center_x - btn_w - ui_px(10);
     if(ui_draw_text_btn(app, export_x, btn_y, "EXPORT", &hover_export)) {
-        /* TODO: Open file dialog for export */
-        TraceLog(LOG_INFO, "DATA: Export button clicked (not yet implemented)");
+        if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
+            const char *path = file_dialog_get_path(&export_dlg);
+            if(path != NULL && data_export(path)) {
+                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+            } else {
+                TraceLog(LOG_ERROR, "DATA: Export failed");
+            }
+        }
     }
 
     /* Import button */
