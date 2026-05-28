@@ -1,4 +1,6 @@
 #include "data.h"
+#include "zip_writer.h"
+#include "version.h"
 
 #include "raylib.h"
 #include <time.h>
@@ -40,17 +42,42 @@ int_from_count(const char src[4])
     return a * 100 + b * 10 + c;
 }
 
-/* Ensure directory exists
+/* Ensure directory exists (creates parent directories recursively)
  * Returns: 1 if directory exists or was created, 0 on failure */
 static int
 ensure_dir(const char *path)
 {
+    char temp[FS_PATH_MAX];
+    char *p;
+
     if(path == NULL || path[0] == '\0')
         return 0;
 
     if(DirectoryExists(path))
         return 1;
 
+    /* Make a temporary copy to modify */
+    strncpy(temp, path, sizeof(temp) - 1);
+    temp[sizeof(temp) - 1] = '\0';
+
+    /* Create parent directories first */
+    p = temp;
+    if(p[0] == '/') p++; /* Skip root if absolute path */
+
+    while((p = strchr(p, '/')) != NULL) {
+        *p = '\0';
+        if(!DirectoryExists(temp)) {
+            if(!MakeDirectory(temp)) {
+                /* Parent directory creation failed */
+                *p = '/';
+                return 0;
+            }
+        }
+        *p = '/';
+        p++;
+    }
+
+    /* Now create the final directory */
     if(MakeDirectory(path))
         return 1;
 
@@ -299,8 +326,8 @@ data_has_any(void)
     FilePathList files;
     int has_data = 0;
 
-    /* Scan year directories */
-    for(year = 0; year <= 99; year++) {
+    /* Scan year directories (1970-2100 covers reasonable range) */
+    for(year = 1970; year <= 2100; year++) {
         char year_path[FS_PATH_MAX];
         snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
 
@@ -356,7 +383,7 @@ data_get_total_size(void)
     FilePathList files;
 
     /* Scan all year/month/day directories and sum file sizes */
-    for(year = 0; year <= 99; year++) {
+    for(year = 1970; year <= 2100; year++) {
         char year_path[FS_PATH_MAX];
         snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
 
@@ -401,7 +428,7 @@ data_get_session_count(void)
     FilePathList files;
 
     /* Count all session files */
-    for(year = 0; year <= 99; year++) {
+    for(year = 1970; year <= 2100; year++) {
         char year_path[FS_PATH_MAX];
         snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
 
@@ -442,8 +469,8 @@ data_delete_all(void)
     int year, month, day;
     FilePathList files;
 
-    /* Delete all session files and empty directories */
-    for(year = 0; year <= 99; year++) {
+    /* Delete all session files */
+    for(year = 1970; year <= 2100; year++) {
         char year_path[FS_PATH_MAX];
         snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
 
@@ -483,23 +510,8 @@ data_delete_all(void)
                     }
                 }
                 UnloadDirectoryFiles(files);
-
-                /* Try to remove empty day directory */
-#if !defined(PLATFORM_WEB)
-                rmdir(day_path);
-#endif
             }
-
-            /* Try to remove empty month directory */
-#if !defined(PLATFORM_WEB)
-            rmdir(month_path);
-#endif
         }
-
-        /* Try to remove empty year directory */
-#if !defined(PLATFORM_WEB)
-        rmdir(year_path);
-#endif
     }
 
     if(deleted > 0)
@@ -511,11 +523,122 @@ data_delete_all(void)
 int
 data_export(const char *path)
 {
-    /* TODO: Implement ZIP export
-     * For now, this is a placeholder */
-    TraceLog(LOG_WARNING, "DATA: export not yet implemented");
-    (void)path;
-    return 0;
+    FILE *fp;
+    ZIPWriter writer;
+    int year, month, day;
+    FilePathList files;
+    int session_count = 0;
+    char metadata[512];
+    time_t now;
+    struct tm *tm;
+    char date_str[64];
+
+    if(path == NULL || path[0] == '\0') {
+        TraceLog(LOG_ERROR, "DATA: export path is empty");
+        return 0;
+    }
+
+    /* Check if any data exists */
+    if(!data_has_any()) {
+        TraceLog(LOG_WARNING, "DATA: no data to export");
+        return 0;
+    }
+
+    /* Open output file */
+    fp = fopen(path, "wb");
+    if(fp == NULL) {
+        TraceLog(LOG_ERROR, "DATA: failed to open export file: %s", path);
+        return 0;
+    }
+
+    /* Initialize ZIP writer */
+    writer = zip_writer_init(fp);
+    session_count = data_get_session_count();
+
+    /* Create metadata file */
+    now = time(NULL);
+    tm = localtime(&now);
+    if(tm != NULL) {
+        snprintf(date_str, sizeof(date_str), "%04d-%02d-%02d %02d:%02d:%02d",
+                 tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
+                 tm->tm_hour, tm->tm_min, tm->tm_sec);
+    } else {
+        strcpy(date_str, "Unknown");
+    }
+
+    snprintf(metadata, sizeof(metadata),
+             "Inner Breeze Data Export\n"
+             "Version: %s\n"
+             "Export Date: %s\n"
+             "Session Count: %d\n",
+             INBE_VERSION_STRING,
+             date_str,
+             session_count);
+
+    if(!zip_write_file(&writer, "lotus-data/metadata.txt", metadata, (int)strlen(metadata))) {
+        TraceLog(LOG_ERROR, "DATA: failed to write metadata");
+        fclose(fp);
+        return 0;
+    }
+
+    /* Add all session files to ZIP */
+    for(year = 1970; year <= 2100; year++) {
+        char year_path[FS_PATH_MAX];
+        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
+
+        if(!DirectoryExists(year_path))
+            continue;
+
+        for(month = 1; month <= 12; month++) {
+            char month_path[FS_PATH_MAX];
+            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
+
+            if(!DirectoryExists(month_path))
+                continue;
+
+            for(day = 1; day <= 31; day++) {
+                char day_path[FS_PATH_MAX];
+                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
+
+                if(!DirectoryExists(day_path))
+                    continue;
+
+                files = LoadDirectoryFiles(day_path);
+                for(int i = 0; i < files.count; i++) {
+                    if(is_session_file(files.paths[i])) {
+                        char *content;
+                        char zip_path[FS_PATH_MAX];
+                        const char *filename = GetFileName(files.paths[i]);
+
+                        /* Build path inside ZIP */
+                        snprintf(zip_path, sizeof(zip_path),
+                                 "lotus-data/sessions/%04d/%02d/%02d/%s",
+                                 year, month, day, filename);
+
+                        /* Read file content */
+                        content = LoadFileText(files.paths[i]);
+                        if(content != NULL) {
+                            int size = (int)strlen(content);
+                            if(!zip_write_file(&writer, zip_path, content, size)) {
+                                TraceLog(LOG_WARNING, "DATA: failed to add file: %s", files.paths[i]);
+                            }
+                            UnloadFileText(content);
+                        }
+                    }
+                }
+                UnloadDirectoryFiles(files);
+            }
+        }
+    }
+
+    /* Finalize ZIP */
+    if(!zip_finalize(&writer)) {
+        TraceLog(LOG_ERROR, "DATA: failed to finalize ZIP");
+        return 0;
+    }
+
+    TraceLog(LOG_INFO, "DATA: exported %d sessions to %s", session_count, path);
+    return 1;
 }
 
 int
@@ -538,7 +661,7 @@ data_list_sessions(data_session_callback callback, void *user)
         return;
 
     /* Scan all directories and call callback for each session */
-    for(year = 0; year <= 99; year++) {
+    for(year = 1970; year <= 2100; year++) {
         char year_path[FS_PATH_MAX];
         snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
 

@@ -5,6 +5,7 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "data.h"
+#include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
 
@@ -32,7 +33,6 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
     int small_font = ui_clamp_px(12, 10, 14);
     const char *label = "Theme";
 
-    /* Draw label */
     DrawText(label, x, y, font, c_text);
 
     /* Light/Dark toggle */
@@ -46,14 +46,13 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
         app->settings_dirty = 1;
     }
 
-    /* Theme circles in 2 rows, 3 per row */
     int circle_size = ui_px(36);
     int circle_spacing = ui_px(24);
     int row_spacing = ui_px(36);
     int per_row = 3;
     int row_width = per_row * circle_size + (per_row - 1) * circle_spacing;
     int start_x = x + (w - row_width) / 2;
-    int circle_y = y + ui_px(48);
+    int circle_y = y + ui_px(64);
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
 
     for(int i = 0; i < THEME_COUNT; i++) {
@@ -100,6 +99,8 @@ settings_tab_draw(InbeApp *app)
     int close_clicked = 0;
     int content_x;
     int content_w;
+    static FileDialog export_dlg;
+    static int export_dlg_initialized = 0;
 
     ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
 
@@ -110,6 +111,12 @@ settings_tab_draw(InbeApp *app)
         app->inbe.screen = InbeScreenStart;
     }
 
+    /* Initialize export dialog on first call */
+    if(!export_dlg_initialized) {
+        file_dialog_init(&export_dlg);
+        export_dlg_initialized = 1;
+    }
+
     /* Dropdown for tab selection */
     int dropdown_h = ui_px(36);
     int dropdown_y = title_h + ui_px(8);
@@ -118,9 +125,7 @@ settings_tab_draw(InbeApp *app)
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        /* Draw dropdown button (scrolls with content) */
-        if(ui_draw_dropdown_button(app, 100, content_x, dropdown_y, content_w, dropdown_h,
-                                   settings_tab_names, SETTINGS_TAB_COUNT, &app->settings_tab)) {
+        if(ui_draw_dropdown_button(app, 100, content_x, dropdown_y, content_w, dropdown_h, settings_tab_names, SETTINGS_TAB_COUNT, &app->settings_tab)) {
             reset_settings_preview(app);
         }
 
@@ -141,16 +146,13 @@ settings_tab_draw(InbeApp *app)
         }
 
         /* Content starts after dropdown */
-        int content_start_y = dropdown_y + dropdown_h + ui_px(8);
+        int content_start_y = dropdown_y + dropdown_h;
 
         switch(app->settings_tab) {
             case SETTINGS_TAB_BREATHING: {
-                /* Circle preview */
                 draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + content_start_y + ui_px(100));
 
-                /* Speed slider */
-                if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, "Speed", SETTINGS_SPEED_MIN,
-                               SETTINGS_SPEED_MAX, &speed, "")) {
+                if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, "Speed", SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
                     app->settings_dirty = 1;
@@ -228,7 +230,6 @@ settings_tab_draw(InbeApp *app)
             }
             case SETTINGS_TAB_APPEARANCE: {
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-                /* Fullscreen toggle - shown first (desktop only) */
                 int checkbox_y = yoff + content_start_y;
                 if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, "Fullscreen", &app->fullscreen_enabled)) {
                     if(app->fullscreen_enabled && !IsWindowFullscreen())
@@ -241,12 +242,10 @@ settings_tab_draw(InbeApp *app)
                 /* Theme selector - below fullscreen */
                 int theme_y = yoff + content_start_y + ui_px(50);
 #else
-                /* No fullscreen on Android/Web - theme selector at top */
                 int theme_y = yoff + content_start_y;
 #endif
                 draw_theme_selector(app, content_x, theme_y, content_w);
 
-                /* Language placeholder */
                 int font = ui_clamp_px(14, 12, 16);
                 int label_y = theme_y + ui_px(220);
                 DrawText("Language", content_x, label_y, font, c_text);
@@ -368,7 +367,14 @@ settings_tab_draw(InbeApp *app)
 
                 /* Handle button clicks */
                 if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                    /* TODO: Implement export */
+                    if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
+                        const char *path = file_dialog_get_path(&export_dlg);
+                        if(path != NULL && data_export(path)) {
+                            TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+                        } else {
+                            TraceLog(LOG_ERROR, "DATA: Export failed");
+                        }
+                    }
                 }
                 if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                     if(data_has_any()) {
