@@ -1,33 +1,21 @@
 #include "ui.h"
 #include "android_insets.h"
+#include "app.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-/* Constants */
-enum {
-    ICON_SIZE_SMALL = 22,
-    ICON_SIZE_MEDIUM = 26,
-    ICON_SIZE_LARGE = 30,
-    ICON_SIZE_SMALL_MIN = 20,
-    ICON_SIZE_SMALL_MAX = 36,
-    ICON_SIZE_MEDIUM_MIN = 24,
-    ICON_SIZE_MEDIUM_MAX = 40,
-    ICON_SIZE_LARGE_MIN = 28,
-    ICON_SIZE_LARGE_MAX = 44
-};
-
 /* Global UI state */
 static float dpi_scale = 1.0f;
-static int view_width = 320;
-static int view_height = 560;
+static int ui_view_width = 320;
+static int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 void
 ui_init(int width, int height, float dpi)
 {
-    view_width = width;
-    view_height = height;
+    ui_view_width = width;
+    ui_view_height = height;
     dpi_scale = dpi;
 }
 
@@ -102,7 +90,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
     max_w = (int)(max_w * dpi_scale + 0.5f);
     side_pad = (int)(side_pad * dpi_scale + 0.5f);
 
-    int available_w = view_width - side_pad * 2;
+    int available_w = ui_view_width - side_pad * 2;
 
     if(available_w < 0)
         available_w = 0;
@@ -112,7 +100,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
         max_w = 0;
 
     if(x != NULL)
-        *x = (view_width - max_w) / 2;
+        *x = (ui_view_width - max_w) / 2;
     if(w != NULL)
         *w = max_w;
 }
@@ -189,7 +177,7 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, in
         if(mb) {
             ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
         }
-        if(released) {
+        if(released && !ui_dropdown_captures_click(mouse_world)) {
             pressed = 1;
         }
     } else {
@@ -208,21 +196,81 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, in
 }
 
 int
-ui_draw_icon_btn_small(InbeApp *app, int x, int y, Texture2D icon, int *hover)
+ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
 {
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_SMALL, icon, hover);
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int padding = ui_px(10);
+    int w = size + padding * 2;
+    int h = size + padding * 2;
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb) {
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        }
+        if(released && !ui_dropdown_captures_click(mouse_world)) {
+            pressed = 1;
+        }
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 20));
+        *hover = 0;
+    }
+
+    if(icon.id != 0) {
+        Rectangle src = {0, 0, icon.width, icon.height};
+        Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
+        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    }
+
+    return pressed;
 }
 
 int
-ui_draw_icon_btn_medium(InbeApp *app, int x, int y, Texture2D icon, int *hover)
+ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover)
 {
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_MEDIUM, icon, hover);
-}
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
 
-int
-ui_draw_icon_btn_large(InbeApp *app, int x, int y, Texture2D icon, int *hover)
-{
-    return ui_draw_icon_btn(app, x, y, UI_ICON_SIZE_LARGE, icon, hover);
+    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int font = ui_clamp_px(20, 16, 22);
+    int w = (int)MeasureText(label, font) + ui_px(20);
+    int h = ui_clamp_px(30, 26, 34);
+
+    x = x - w / 2;
+
+    int pressed = 0;
+
+    if(mx > x && mx < x + w && my > y && my < y + h) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(mb) {
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        }
+        if(released && !ui_dropdown_captures_click(mouse_world)) {
+            pressed = 1;
+        }
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        *hover = 0;
+    }
+
+    DrawText(label, x + ui_px(10), y + ui_px(5), font, c_text);
+
+    return pressed;
 }
 
 void
@@ -257,7 +305,7 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, con
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
         OpenURL(url);
     }
 }
@@ -265,16 +313,6 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, con
 /* ================================================================
  * CONTROLS
  * ================================================================ */
-
-static int
-clampi(int value, int min, int max)
-{
-    if(value < min)
-        return min;
-    if(value > max)
-        return max;
-    return value;
-}
 
 int
 ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
@@ -303,7 +341,7 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 
     if(CheckCollisionPointRec(mouse_world, hit)) {
         app->cursor_clickable = 1;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
             app->settings_drag_slider = id;
     }
 
@@ -339,7 +377,7 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
         app->cursor_clickable = 1;
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
 
     if(pressed)
         *value = !(*value);
@@ -386,7 +424,7 @@ ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *valu
         app->cursor_clickable = 1;
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
     if(pressed)
         *value = !(*value);
 
@@ -419,6 +457,35 @@ typedef struct UIDropdownState {
 #define MAX_DROPDOWNS 8
 static UIDropdownState dropdown_states[MAX_DROPDOWNS];
 static int dropdown_state_count = 0;
+
+/* Check if any dropdown is currently open and the given point is within its menu bounds.
+ * Other UI elements should call this to avoid handling clicks that should go to dropdowns. */
+int
+ui_dropdown_captures_click(Vector2 point)
+{
+    for(int i = 0; i < dropdown_state_count; i++) {
+        UIDropdownState *state = &dropdown_states[i];
+        if(state->open && state->option_count > 0) {
+            int option_h = state->h;
+            int menu_gap = ui_px(4);
+            int dropdown_y = state->y + state->h + menu_gap;
+            int dropdown_h = option_h * state->option_count + ui_px(8);
+            int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
+
+            if(dropdown_h > max_visible_h) {
+                int visible_options = (max_visible_h - ui_px(8)) / option_h;
+                if(visible_options < 1)
+                    visible_options = 1;
+                dropdown_h = visible_options * option_h + ui_px(8);
+            }
+
+            Rectangle menu_bounds = {state->x, dropdown_y, state->w, dropdown_h};
+            if(CheckCollisionPointRec(point, menu_bounds))
+                return 1;
+        }
+    }
+    return 0;
+}
 
 static UIDropdownState *
 get_or_create_dropdown_state(int id)
@@ -534,7 +601,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int menu_gap = ui_px(4);
     int dropdown_y = y + h + menu_gap;
     int dropdown_h = option_h * option_count + ui_px(8);
-    int max_visible_h = view_height - dropdown_y - ui_px(16);
+    int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
     int need_scroll = dropdown_h > max_visible_h;
     int visible_options = option_count;
 
@@ -611,69 +678,6 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     DrawLine(x1, y1, x2, y2, c_text);
     DrawLine(x1, y2, x2, y1, c_text);
 }
-
-void
-ui_draw_scrollbar(InbeApp *app, int *scroll, int content_h, int viewport_h,
-                  int *drag_scrollbar, int *drag_content, int *drag_content_y)
-{
-    if(content_h <= viewport_h)
-        return;
-
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int bar_w = ui_px(8);
-    int bar_x = view_width - bar_w;
-    int bar_y = 0;
-    int bar_h = viewport_h;
-    int thumb_h = (viewport_h * bar_h) / content_h;
-    int min_thumb_h = ui_px(32);
-    if(thumb_h < min_thumb_h)
-        thumb_h = min_thumb_h;
-    int max_scroll = content_h - viewport_h;
-    int thumb_y = bar_y + (*scroll * (bar_h - thumb_h)) / max_scroll;
-    int hit_w = ui_px(16);
-    Rectangle thumb = {(float)(bar_x - (hit_w - bar_w) / 2), (float)thumb_y, (float)hit_w, (float)thumb_h};
-    Rectangle content_area = {(float)0, (float)bar_y, (float)bar_x, (float)bar_h};
-
-    DrawRectangle(bar_x, bar_y, bar_w, bar_h, ui_darken(c_bg, 18));
-    DrawRectangle(bar_x, thumb_y, bar_w, thumb_h, c_button_hover);
-
-    if(CheckCollisionPointRec(mouse_world, thumb)) {
-        app->cursor_clickable = 1;
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
-            *drag_scrollbar = 1;
-    }
-
-    if(*drag_scrollbar && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int usable = bar_h - thumb_h;
-        int y = (int)mouse_world.y - bar_y - thumb_h / 2;
-        y = clampi(y, 0, usable);
-        *scroll = (y * max_scroll) / usable;
-        return;
-    }
-
-    if(CheckCollisionPointRec(mouse_world, content_area)) {
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-            *drag_content = 1;
-            *drag_content_y = (int)mouse_world.y;
-        }
-    }
-
-    if(*drag_content && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        int delta = *drag_content_y - (int)mouse_world.y;
-        *scroll += delta;
-        *scroll = clampi(*scroll, 0, max_scroll);
-        *drag_content_y = (int)mouse_world.y;
-    }
-
-    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        *drag_scrollbar = 0;
-        *drag_content = 0;
-    }
-}
-
-/* ================================================================
- * NAVIGATION
- * ================================================================ */
 
 int
 ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
@@ -789,13 +793,13 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int bar_h = ui_clamp_px(58, 54, 66);
     AndroidInsets insets = {0};
     android_insets_get(&insets);
-    int bar_y = view_height - bar_h;
+    int bar_y = ui_view_height - bar_h;
     int button_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
     int button_h = button_size + ui_px(12);
     int font = ui_clamp_px(14, 12, 16);
     int side_margin = ui_px(16);
     int group_gap = ui_px(10);
-    int available_w = view_width - side_margin * 2;
+    int available_w = ui_view_width - side_margin * 2;
 
     /* Calculate widths with labels */
     int group_w_label = 0;
@@ -817,16 +821,21 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int show_labels = group_w_label <= available_w;
     int base_group_w = show_labels ? group_w_label : group_w_no_label;
 
-    /* Calculate extra space to distribute among buttons */
-    int extra_w = available_w - base_group_w;
+    /* Calculate extra space and distribute evenly among buttons */
+    int extra_w = available_w - base_group_w - group_gap * (count - 1);
     int extra_per_button = count > 0 ? extra_w / count : 0;
+    int remainder = count > 0 ? extra_w % count : 0;
 
-    int group_x = side_margin;
+    /* Calculate total width with extra space included */
+    int total_w = base_group_w + extra_per_button * count + group_gap * (count - 1);
+
+    /* Center the tab group - remainder adds extra left margin for true centering */
+    int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
 
-    DrawRectangle(0, bar_y, view_width, bar_h, ui_darken(c_bg, 10));
-    DrawLine(0, bar_y, view_width, bar_y, ui_darken(c_bg, 42));
+    DrawRectangle(0, bar_y, ui_view_width, bar_h, ui_darken(c_bg, 10));
+    DrawLine(0, bar_y, ui_view_width, bar_y, ui_darken(c_bg, 42));
 
     int x = group_x;
     for(int i = 0; i < count; i++) {
@@ -890,8 +899,8 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
 {
     int modal_w = ui_px(280);
     int modal_h = ui_px(160);
-    int modal_x = (view_width - modal_w) / 2;
-    int modal_y = (view_height - modal_h) / 2;
+    int modal_x = (ui_view_width - modal_w) / 2;
+    int modal_y = (ui_view_height - modal_h) / 2;
     int title_font = ui_clamp_px(16, 14, 18);
     int msg_font = ui_clamp_px(14, 12, 16);
     int btn_font = ui_clamp_px(14, 12, 16);
@@ -907,7 +916,7 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int my = (int)mouse_world.y;
 
     /* Dim background */
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
@@ -970,14 +979,11 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
     int confirm_x = cancel_x + btn_w + btn_gap;
     int result = 0;
-    int cancel_hover = 0, confirm_hover = 0;
 
     /* Cancel button */
-    Rectangle cancel_rect = {cancel_x, btn_y, btn_w, btn_h};
     if(mx >= cancel_x && mx < cancel_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button_hover);
         ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
-        cancel_hover = 1;
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 1;
@@ -989,11 +995,9 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     DrawText(cancel_btn, cancel_x + (btn_w - cancel_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
 
     /* Confirm button */
-    Rectangle confirm_rect = {confirm_x, btn_y, btn_w, btn_h};
     if(mx >= confirm_x && mx < confirm_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button_hover);
         ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
-        confirm_hover = 1;
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
@@ -1013,8 +1017,8 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
 {
     int modal_w = ui_px(300);
     int modal_h = ui_px(160);
-    int modal_x = (view_width - modal_w) / 2;
-    int modal_y = (view_height - modal_h) / 2;
+    int modal_x = (ui_view_width - modal_w) / 2;
+    int modal_y = (ui_view_height - modal_h) / 2;
     int title_font = ui_clamp_px(16, 14, 18);
     int msg_font = ui_clamp_px(14, 12, 16);
     int btn_font = ui_clamp_px(14, 12, 16);
@@ -1030,7 +1034,7 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int my = (int)mouse_world.y;
 
     /* Dim background */
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
@@ -1098,7 +1102,6 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int result = 0;
 
     /* Left button (Cancel) */
-    Rectangle left_rect = {left_x, btn_y, btn_w, btn_h};
     if(mx >= left_x && mx < left_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button_hover);
         ui_draw_bevel(left_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
@@ -1113,7 +1116,6 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     DrawText(left_btn, left_x + (btn_w - left_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
 
     /* Middle button (Save) - primary action */
-    Rectangle middle_rect = {middle_x, btn_y, btn_w, btn_h};
     if(mx >= middle_x && mx < middle_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button_hover);
         ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
@@ -1128,7 +1130,6 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     DrawText(middle_btn, middle_x + (btn_w - middle_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
 
     /* Right button (Discard) */
-    Rectangle right_rect = {right_x, btn_y, btn_w, btn_h};
     if(mx >= right_x && mx < right_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button_hover);
         ui_draw_bevel(right_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
@@ -1144,3 +1145,44 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
 
     return result;
 }
+
+/* ================================================================
+ * SCREEN HEADER (TITLE BAR)
+ * ================================================================ */
+
+int
+ui_screen_header_height(void)
+{
+    return ui_clamp_px(60, 48, 60);
+}
+
+int
+ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
+{
+    (void)c_bg; /* unused */
+    int title_h = ui_screen_header_height();
+    int title_font = ui_clamp_px(16, 14, 18);
+    int close_hover = 0;
+    int close_clicked = 0;
+
+    /* Draw header background */
+    DrawRectangle(0, 0, ui_view_width, title_h, ui_darken(c_bg, 14));
+    DrawLine(0, title_h - 1, ui_view_width, title_h - 1, ui_darken(c_bg, 42));
+
+    /* Draw centered title */
+    int title_w = MeasureText(title, title_font);
+    int title_y = (title_h - title_font) / 2;
+    DrawText(title, (ui_view_width - title_w) / 2, title_y, title_font, c_text);
+
+    /* Draw close button if requested */
+    if(show_close) {
+        close_clicked = ui_draw_icon_btn(app, ui_view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
+                                         UI_ICON_SIZE_TINY, app->x_icon, &close_hover);
+    }
+
+    return close_clicked;
+}
+
+/* ================================================================
+ * END OF UI FUNCTIONS
+ * ================================================================ */
