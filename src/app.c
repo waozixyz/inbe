@@ -1,4 +1,3 @@
-#define RINI_IMPLEMENTATION
 #include "app.h"
 #include "data.h"
 #include "tabs/history_tab.h"
