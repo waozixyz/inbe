@@ -2,6 +2,12 @@
 #include "app.h"
 #include "android_insets.h"
 
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#include <android/log.h>
+#include <android_native_app_glue.h>
+extern struct android_app *GetAndroidApp(void);
+#endif
+
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif

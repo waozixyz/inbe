@@ -61,6 +61,7 @@ add_library(main SHARED
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/miniz.c"
     "${SRC_DIR}/file_dialog.c"
+    "${SRC_DIR}/android_share.c"
     "${SRC_DIR}/tabs/history_tab.c"
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
