@@ -71,11 +71,15 @@ echo "✓ Updated $VERSION_H_FILE"
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
 
-# Generate changelog files (position-based: 1st version = code 1, etc.)
+# Generate changelog files (position-based: oldest = 1, newest = N)
+# Reverse versions so oldest is processed first
+TOTAL_VERSIONS=$(echo "$VERSIONS" | wc -l)
 POSITION=0
 while IFS= read -r VERSION; do
     POSITION=$((POSITION + 1))
-    OUTPUT_FILE="$CHANGELOG_DIR/$POSITION.txt"
+    # Calculate position from end (newest gets highest number)
+    CODE=$((TOTAL_VERSIONS - POSITION + 1))
+    OUTPUT_FILE="$CHANGELOG_DIR/$CODE.txt"
 
     # Skip if file already exists
     if [ -f "$OUTPUT_FILE" ]; then
