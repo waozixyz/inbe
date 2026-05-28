@@ -7,7 +7,9 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "ui.h"
+#if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
+#endif
 #include "../vendor/rini/src/rini.h"
 
 #include <dirent.h>
