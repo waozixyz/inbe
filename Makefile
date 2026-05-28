@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/ui.c src/theme_meta.c src/theme.c src/data.c src/zip_writer.c src/file_dialog.c src/tabs/data_tab.c src/tabs/history_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
+SRC = src/main.c src/app.c src/ui.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/tabs/history_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -82,7 +82,7 @@ WEB_SHELL = src/web_shell.html
 WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file themes/sky.ini@themes/sky.ini --preload-file themes/sky_dark.ini@themes/sky_dark.ini --preload-file themes/ocean.ini@themes/ocean.ini --preload-file themes/ocean_dark.ini@themes/ocean_dark.ini --preload-file themes/forest.ini@themes/forest.ini --preload-file themes/forest_dark.ini@themes/forest_dark.ini --preload-file themes/sunset.ini@themes/sunset.ini --preload-file themes/sunset_dark.ini@themes/sunset_dark.ini --preload-file themes/lavender.ini@themes/lavender.ini --preload-file themes/lavender_dark.ini@themes/lavender_dark.ini --preload-file themes/cherry.ini@themes/cherry.ini --preload-file themes/cherry_dark.ini@themes/cherry_dark.ini --preload-file icons/gear.png@icons/gear.png --preload-file icons/x.png@icons/x.png --preload-file icons/manual.png@icons/manual.png --preload-file icons/return.png@icons/return.png --preload-file icons/backward.png@icons/backward.png --preload-file icons/forward.png@icons/forward.png --preload-file icons/play.png@icons/play.png --preload-file icons/pause.png@icons/pause.png --preload-file icons/stat.png@icons/stat.png --preload-file icons/home.png@icons/home.png --preload-file icons/trash.png@icons/trash.png --preload-file icons/telegram.png@icons/telegram.png --preload-file icons/globe.png@icons/globe.png --preload-file icons/stripe.png@icons/stripe.png --preload-file icons/monero.png@icons/monero.png --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg --preload-file assets/sounds/breath-in.ogg@assets/sounds/breath-in.ogg --preload-file assets/sounds/breath-out.ogg@assets/sounds/breath-out.ogg --preload-file assets/sounds/bell.ogg@assets/sounds/bell.ogg
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
-CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1
+CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
 LDFLAGS = -Wl,--gc-sections -s
 
 .NOTPARALLEL:

@@ -7,15 +7,15 @@
 
 /* Global UI state */
 static float dpi_scale = 1.0f;
-static int view_width = 320;
-static int view_height = 560;
+static int ui_view_width = 320;
+static int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 void
 ui_init(int width, int height, float dpi)
 {
-    view_width = width;
-    view_height = height;
+    ui_view_width = width;
+    ui_view_height = height;
     dpi_scale = dpi;
 }
 
@@ -90,7 +90,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
     max_w = (int)(max_w * dpi_scale + 0.5f);
     side_pad = (int)(side_pad * dpi_scale + 0.5f);
 
-    int available_w = view_width - side_pad * 2;
+    int available_w = ui_view_width - side_pad * 2;
 
     if(available_w < 0)
         available_w = 0;
@@ -100,7 +100,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
         max_w = 0;
 
     if(x != NULL)
-        *x = (view_width - max_w) / 2;
+        *x = (ui_view_width - max_w) / 2;
     if(w != NULL)
         *w = max_w;
 }
@@ -572,7 +572,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int menu_gap = ui_px(4);
     int dropdown_y = y + h + menu_gap;
     int dropdown_h = option_h * option_count + ui_px(8);
-    int max_visible_h = view_height - dropdown_y - ui_px(16);
+    int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
     int need_scroll = dropdown_h > max_visible_h;
     int visible_options = option_count;
 
@@ -764,13 +764,13 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int bar_h = ui_clamp_px(58, 54, 66);
     AndroidInsets insets = {0};
     android_insets_get(&insets);
-    int bar_y = view_height - bar_h;
+    int bar_y = ui_view_height - bar_h;
     int button_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
     int button_h = button_size + ui_px(12);
     int font = ui_clamp_px(14, 12, 16);
     int side_margin = ui_px(16);
     int group_gap = ui_px(10);
-    int available_w = view_width - side_margin * 2;
+    int available_w = ui_view_width - side_margin * 2;
 
     /* Calculate widths with labels */
     int group_w_label = 0;
@@ -805,8 +805,8 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
 
-    DrawRectangle(0, bar_y, view_width, bar_h, ui_darken(c_bg, 10));
-    DrawLine(0, bar_y, view_width, bar_y, ui_darken(c_bg, 42));
+    DrawRectangle(0, bar_y, ui_view_width, bar_h, ui_darken(c_bg, 10));
+    DrawLine(0, bar_y, ui_view_width, bar_y, ui_darken(c_bg, 42));
 
     int x = group_x;
     for(int i = 0; i < count; i++) {
@@ -870,8 +870,8 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
 {
     int modal_w = ui_px(280);
     int modal_h = ui_px(160);
-    int modal_x = (view_width - modal_w) / 2;
-    int modal_y = (view_height - modal_h) / 2;
+    int modal_x = (ui_view_width - modal_w) / 2;
+    int modal_y = (ui_view_height - modal_h) / 2;
     int title_font = ui_clamp_px(16, 14, 18);
     int msg_font = ui_clamp_px(14, 12, 16);
     int btn_font = ui_clamp_px(14, 12, 16);
@@ -887,7 +887,7 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int my = (int)mouse_world.y;
 
     /* Dim background */
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
@@ -993,8 +993,8 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
 {
     int modal_w = ui_px(300);
     int modal_h = ui_px(160);
-    int modal_x = (view_width - modal_w) / 2;
-    int modal_y = (view_height - modal_h) / 2;
+    int modal_x = (ui_view_width - modal_w) / 2;
+    int modal_y = (ui_view_height - modal_h) / 2;
     int title_font = ui_clamp_px(16, 14, 18);
     int msg_font = ui_clamp_px(14, 12, 16);
     int btn_font = ui_clamp_px(14, 12, 16);
@@ -1010,7 +1010,7 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int my = (int)mouse_world.y;
 
     /* Dim background */
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
@@ -1145,20 +1145,24 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
     int close_clicked = 0;
 
     /* Draw header background */
-    DrawRectangle(0, 0, view_width, title_h, ui_darken(c_bg, 14));
-    DrawLine(0, title_h - 1, view_width, title_h - 1, ui_darken(c_bg, 42));
+    DrawRectangle(0, 0, ui_view_width, title_h, ui_darken(c_bg, 14));
+    DrawLine(0, title_h - 1, ui_view_width, title_h - 1, ui_darken(c_bg, 42));
 
     /* Draw centered title */
     int title_w = MeasureText(title, title_font);
     int title_y = (title_h - title_font) / 2;
-    DrawText(title, (view_width - title_w) / 2, title_y, title_font, c_text);
+    DrawText(title, (ui_view_width - title_w) / 2, title_y, title_font, c_text);
 
     /* Draw close button if requested */
     if(show_close) {
         int close_size = ui_icon_btn_size(UI_ICON_SIZE_TINY);
-        close_clicked = ui_draw_icon_btn(app, view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
+        close_clicked = ui_draw_icon_btn(app, ui_view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
                                          UI_ICON_SIZE_TINY, app->x_icon, &close_hover);
     }
 
     return close_clicked;
 }
+
+/* ================================================================
+ * END OF UI FUNCTIONS
+ * ================================================================ */
