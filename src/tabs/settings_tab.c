@@ -352,15 +352,25 @@ settings_tab_draw(InbeApp *app)
                 if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                     if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
                         const char *path = file_dialog_get_path(&export_dlg);
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+                        /* On Android: don't show success message (share sheet is the feedback) */
                         if(path != NULL && data_export(path)) {
-                            /* Extract just the filename for display */
+                            TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
+                        } else {
+                            snprintf(export_result, sizeof(export_result), "Export failed");
+                            TraceLog(LOG_ERROR, "DATA: Export failed");
+                        }
+#else
+                        /* Other platforms: show success message */
+                        if(path != NULL && data_export(path)) {
                             const char *filename = GetFileName(path);
                             snprintf(export_result, sizeof(export_result), "Exported: %s", filename);
                             TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
                         } else {
-                            snprintf(export_result, sizeof(export_result), "Export failed - no data");
+                            snprintf(export_result, sizeof(export_result), "Export failed");
                             TraceLog(LOG_ERROR, "DATA: Export failed");
                         }
+#endif
                     }
                 }
                 if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {

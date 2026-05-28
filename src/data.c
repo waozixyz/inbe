@@ -2,6 +2,10 @@
 #include "miniz.h"
 #include "version.h"
 
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#include "android_share.h"
+#endif
+
 #include "raylib.h"
 #include <time.h>
 #include <stdio.h>
@@ -538,6 +542,11 @@ data_delete_all(void)
 int
 data_export(const char *path)
 {
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    /* On Android: use share sheet instead of file path */
+    (void)path;
+    return android_share_export("inbe-export.zip");
+#else
     mz_zip_archive archive;
     FILE *fp;
     void *zip_data;
@@ -679,6 +688,7 @@ data_export(const char *path)
 
     TraceLog(LOG_INFO, "DATA: exported %d sessions to %s", session_count, path);
     return 1;
+#endif
 }
 
 int

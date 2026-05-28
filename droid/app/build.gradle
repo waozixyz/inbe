@@ -7,6 +7,11 @@ android {
     compileSdk 35
     ndkVersion "25.1.8937393"
 
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     def keystorePropsFile = rootProject.file("local.properties")
     def keystoreProps = new Properties()
     if (keystorePropsFile.exists()) {
@@ -70,4 +75,5 @@ gradle.taskGraph.whenReady { taskGraph ->
 }
 
 dependencies {
+    implementation 'androidx.core:core:1.12.0'
 }
