@@ -1,16 +1,29 @@
 #include "file_dialog.h"
-#include "raylib.h"
 #include <stdio.h>
 #include <time.h>
 #include <string.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 
 #if defined(_WIN32)
+/* Windows headers must be included first, before any raylib includes */
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
 #include <shlobj.h>
 #else
 #include <unistd.h>
 #include <sys/types.h>
 #include <pwd.h>
+#endif
+
+/* Simple DirectoryExists implementation to avoid pulling in raylib.h */
+/* Only used on Linux */
+#if !defined(_WIN32) && !defined(__APPLE__)
+static int DirectoryExists(const char *path)
+{
+    struct stat st;
+    return (stat(path, &st) == 0 && S_ISDIR(st.st_mode));
+}
 #endif
 
 void file_dialog_init(FileDialog *dlg)
@@ -26,17 +39,18 @@ void file_dialog_init(FileDialog *dlg)
 
 static void get_default_export_path(char *path, size_t size, const char *filename)
 {
-    const char *base = NULL;
+    (void)filename; /* Will use in the Windows path */
 
 #if defined(_WIN32)
     char home[MAX_PATH];
-    if(SHGetFolderPathA(NULL, CSIDL_DOWNLOADS, NULL, 0, home) == S_OK) {
+    /* CSIDL_DOWNLOADS = 0x0006 */
+    if(SHGetFolderPathA(NULL, 0x0006, NULL, 0, home) == S_OK) {
         snprintf(path, size, "%s\\%s", home, filename);
     } else {
         snprintf(path, size, "%s", filename);
     }
 #elif defined(__APPLE__)
-    base = getenv("HOME");
+    const char *base = getenv("HOME");
     if(base != NULL) {
         snprintf(path, size, "%s/Downloads/%s", base, filename);
     } else {
@@ -44,7 +58,7 @@ static void get_default_export_path(char *path, size_t size, const char *filenam
     }
 #else
     /* Linux and other Unix-like systems */
-    base = getenv("HOME");
+    const char *base = getenv("HOME");
     if(base != NULL) {
         /* Try Downloads first, fall back to home */
         char downloads[512];

@@ -35,6 +35,19 @@ sed -i "s/versionName \"$CURRENT_NAME\"/versionName \"$LATEST_VERSION\"/" "$GRAD
 
 echo "✓ Updated $GRADLE_FILE"
 
+# Update version.h
+VERSION_H_FILE="src/version.h"
+MAJOR=$(echo "$LATEST_VERSION" | cut -d. -f1)
+MINOR=$(echo "$LATEST_VERSION" | cut -d. -f2)
+PATCH=$(echo "$LATEST_VERSION" | cut -d. -f3)
+
+sed -i "s/^#define INBE_VERSION_MAJOR .*/#define INBE_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
+sed -i "s/^#define INBE_VERSION_MINOR .*/#define INBE_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"
+sed -i "s/^#define INBE_VERSION_PATCH .*/#define INBE_VERSION_PATCH $PATCH/" "$VERSION_H_FILE"
+sed -i "s/^#define INBE_VERSION_STRING .*/#define INBE_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
+
+echo "✓ Updated $VERSION_H_FILE"
+
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
 

@@ -44,14 +44,6 @@ int view_height = INBE_DEFAULT_HEIGHT;
 static float dpi_scale = 1.0f;
 Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
-static const char *settings_tab_names[] = {
-    "Breathing",
-    "Session",
-    "Appearance",
-    "Data",
-    "About"
-};
-
 /* Forward declarations for tab callbacks */
 void reset_settings_preview(InbeApp *app);
 

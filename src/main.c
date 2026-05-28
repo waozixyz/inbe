@@ -20,7 +20,9 @@ static InbeApp inbe_app;
 #define INBE_ANDROID_BUILD 0
 #endif
 
+#if INBE_ANDROID_BUILD
 static AndroidInsets insets;
+#endif
 
 static void
 frame(void)
