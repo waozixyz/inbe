@@ -33,7 +33,7 @@ enum {
 	InbeScreenResults,
     InbeScreenSettings,
     InbeScreenManual,
-    InbeScreenHistory
+    InbeScreenHistory,
 };
 
 enum {

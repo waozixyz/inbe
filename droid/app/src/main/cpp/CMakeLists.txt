@@ -58,6 +58,11 @@ add_library(main SHARED
     "${SRC_DIR}/ui.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
+    "${SRC_DIR}/data.c"
+    "${SRC_DIR}/tabs/data_tab.c"
+    "${SRC_DIR}/tabs/history_tab.c"
+    "${SRC_DIR}/tabs/manual_tab.c"
+    "${SRC_DIR}/tabs/settings_tab.c"
     "${SRC_DIR}/android_insets.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )

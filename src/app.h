@@ -5,12 +5,59 @@
 #include "../libinbe/inbe.h"
 
 /* ================================================================
+ * SETTINGS CONSTANTS
+ * ================================================================ */
+
+enum {
+    SETTINGS_SPEED_MIN = 1,
+    SETTINGS_SPEED_MAX = 16,
+    SETTINGS_BREATHS_MIN = 15,
+    SETTINGS_BREATHS_MAX = 80,
+    SETTINGS_PAUSE_MIN = 0,
+    SETTINGS_PAUSE_MAX = 30,
+    SETTINGS_VOLUME_MIN = 0,
+    SETTINGS_VOLUME_MAX = 100,
+    SETTINGS_TITLE_H = 50,
+    TAB_BAR_H = 58,
+    SETTINGS_CONTENT_H = 400,
+    CONTENT_MAX_W = 440,
+    CONTENT_SIDE_PAD = 16,
+    CIRCLE_SIDE_PAD = 24,
+    TUTORIAL_STEPS = 5,
+    FS_PATH_MAX = 512
+};
+
+enum {
+    /* Icon sizes (base values in logical pixels) */
+    ICON_SIZE_SMALL = 22,
+    ICON_SIZE_MEDIUM = 26,
+    ICON_SIZE_LARGE = 30,
+    /* Min/max ranges for DPI scaling */
+    ICON_SIZE_SMALL_MIN = 20,
+    ICON_SIZE_SMALL_MAX = 36,
+    ICON_SIZE_MEDIUM_MIN = 24,
+    ICON_SIZE_MEDIUM_MAX = 40,
+    ICON_SIZE_LARGE_MIN = 28,
+    ICON_SIZE_LARGE_MAX = 44
+};
+
+enum {
+    SETTINGS_TAB_BREATHING = 0,
+    SETTINGS_TAB_SESSION,
+    SETTINGS_TAB_APPEARANCE,
+    SETTINGS_TAB_ABOUT,
+    SETTINGS_TAB_DATA,
+    SETTINGS_TAB_COUNT
+};
+
+/* ================================================================
  * MODAL DIALOG TYPES
  * ================================================================ */
 
 typedef enum {
     UIModalNone,
     UIModalConfirmExitSession,
+    UIModalConfirmDeleteData,
 } UIModalType;
 
 typedef struct {
@@ -45,7 +92,6 @@ struct InbeApp {
     Texture2D pause_icon;
     Texture2D stat_icon;
     Texture2D home_icon;
-    Texture2D trash_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D stripe_icon;
@@ -99,5 +145,16 @@ const char *inbe_app_title(void);
 int inbe_app_width(void);
 int inbe_app_height(void);
 const LotusAppApi *inbe_app_api(void);
+
+/* Helper functions */
+int clampi(int x, int min, int max);
+int int_from_count(const char src[4]);
+void count_from_int(char dst[4], int value);
+void save_settings(InbeApp *app);
+void reset_settings_preview(InbeApp *app);
+void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
+void apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds);
+void refresh_theme_colors(int theme_id, int dark_mode);
+void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 
 #endif
