@@ -2607,6 +2607,69 @@ inbe_app_init(void *vapp) {
     }
     if(!app->tutorial_seen)
         app->inbe.screen = InbeScreenManual;
+
+    /* Reset modal state */
+    app->modal.active = 0;
+    app->modal.type = UIModalNone;
+    app->modal.selected_button = 0;
+}
+
+/* Check if session has any completed rounds */
+static int
+session_has_completed_rounds(InbeApp *app)
+{
+    for(int i = 0; i < app->inbe.round; i++) {
+        if(int_from_count(app->inbe.results[i]) > 0)
+            return 1;
+    }
+    return 0;
+}
+
+static void
+handle_back_button(InbeApp *app)
+{
+    /* If modal is active, let modal drawing handle it */
+    if(app->modal.active) {
+        return;
+    }
+
+    switch(app->inbe.screen) {
+    case InbeScreenSettings:
+        if(app->settings_dirty)
+            save_settings(app);
+        app->inbe.screen = InbeScreenStart;
+        app->settings_scroll = 0;
+        break;
+
+    case InbeScreenHistory:
+        app->inbe.screen = InbeScreenStart;
+        break;
+
+    case InbeScreenManual:
+        tutorial_close(app, 1);
+        break;
+
+    case InbeScreenResults:
+        inbe_app_init(app);
+        break;
+
+    case InbeScreenSession:
+        /* When paused, exit immediately */
+        if(app->session_paused) {
+            inbe_app_init(app);
+        } else {
+            /* Show confirmation modal */
+            app->modal.active = 1;
+            app->modal.type = UIModalConfirmExitSession;
+            app->modal.selected_button = 0;
+        }
+        break;
+
+    case InbeScreenStart:
+    default:
+        /* Let default Android behavior handle exit */
+        break;
+    }
 }
 
 static void
@@ -2615,6 +2678,18 @@ updateapp(InbeApp *app)
     int center_x = view_width / 2;
     int center_y = view_height / 2;
     int hover = 0;
+    int modal_result = 0;
+
+    /* Handle Android back button and desktop backspace */
+    if(IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_BACKSPACE)) {
+        if(app->modal.active) {
+            /* Modal active - close it on cancel/confirm */
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        } else {
+            handle_back_button(app);
+        }
+    }
 
     if(app->inbe.screen == InbeScreenSettings) {
         draw_settings(app);
@@ -2664,15 +2739,56 @@ updateapp(InbeApp *app)
         ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count, app);
         break;
 
-    case InbeScreenSession:
-        if(IsKeyPressed(KEY_BACKSPACE)) {
-            inbe_app_init(app);
-            break;
-        }
-
+    case InbeScreenSession: {
         int return_hover = 0;
         if(app->return_icon.id != 0 && drawiconbtn(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), app->return_icon, &return_hover)) {
-            inbe_app_init(app);
+            handle_back_button(app);
+        }
+
+        /* Draw modal if active */
+        if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
+            int has_rounds = session_has_completed_rounds(app);
+
+            if(has_rounds) {
+                /* 3-button modal: Cancel, Save, Discard */
+                modal_result = ui_draw_modal_3btn(app, "Exit Session?",
+                                                   "Save completed rounds before exit?",
+                                                   "Cancel", "Save", "Discard");
+                if(modal_result == 1) {
+                    /* Cancel - close modal and continue session */
+                    app->modal.active = 0;
+                    app->modal.type = UIModalNone;
+                } else if(modal_result == 2) {
+                    /* Save - save rounds and exit */
+                    if(!app->results_saved) {
+                        save_session_results(app);
+                    }
+                    app->modal.active = 0;
+                    app->modal.type = UIModalNone;
+                    inbe_app_init(app);
+                } else if(modal_result == 3) {
+                    /* Discard - exit without saving */
+                    app->modal.active = 0;
+                    app->modal.type = UIModalNone;
+                    inbe_app_init(app);
+                }
+            } else {
+                /* 2-button modal: Cancel, Exit */
+                modal_result = ui_draw_modal(app, "Exit Session?",
+                                             "All progress will be lost.",
+                                             "Cancel", "Exit");
+                if(modal_result == 1) {
+                    /* Cancel - close modal and continue session */
+                    app->modal.active = 0;
+                    app->modal.type = UIModalNone;
+                } else if(modal_result == 2) {
+                    /* Exit - no data to save, just exit */
+                    app->modal.active = 0;
+                    app->modal.type = UIModalNone;
+                    inbe_app_init(app);
+                }
+            }
+            /* If modal_result == 0, no button clicked, modal stays open */
             break;
         }
 
@@ -2717,6 +2833,7 @@ updateapp(InbeApp *app)
             }
         }
         break;
+    }
 
     case InbeScreenResults:
         {
