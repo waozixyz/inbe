@@ -76,7 +76,8 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
 
         /* Check for click */
         Rectangle bounds = {cx - circle_size / 2 - 4, cy - circle_size / 2 - 4, circle_size + 8, circle_size + 8};
-        if(CheckCollisionPointRec(mouse_world, bounds) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(CheckCollisionPointRec(mouse_world, bounds) && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+           !ui_dropdown_captures_click(mouse_world)) {
             app->theme_id = i;
             refresh_theme_colors(app->theme_id, app->dark_mode);
             app->settings_dirty = 1;
@@ -218,7 +219,8 @@ settings_tab_draw(InbeApp *app)
                 int reset_font = ui_clamp_px(14, 12, 16);
                 DrawText("Reset to defaults", reset_x + ui_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
 
-                if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                   !ui_dropdown_captures_click(mouse_world)) {
                     /* Reset to default values */
                     speed = 6;
                     max_rounds = DefaultMaxRounds;
@@ -349,7 +351,8 @@ settings_tab_draw(InbeApp *app)
                 DrawText("Delete All Data", delete_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
 
                 /* Handle button clicks */
-                if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                   !ui_dropdown_captures_click(mouse_world)) {
                     if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
                         const char *path = file_dialog_get_path(&export_dlg);
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
@@ -373,7 +376,8 @@ settings_tab_draw(InbeApp *app)
 #endif
                     }
                 }
-                if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                   !ui_dropdown_captures_click(mouse_world)) {
                     if(data_has_any()) {
                         app->modal.active = 1;
                         app->modal.type = UIModalConfirmDeleteData;

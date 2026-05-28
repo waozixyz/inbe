@@ -31,6 +31,7 @@ int ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value);
 int ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *value);
 int ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, const char **options, int option_count, int *selected_index);
 void ui_draw_dropdown_menu(InbeApp *app, int id);
+int ui_dropdown_captures_click(Vector2 point);
 typedef struct UITab {
     const char *label;
     Texture2D icon;
