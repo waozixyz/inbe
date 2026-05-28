@@ -7,6 +7,7 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "ui.h"
+#define RINI_IMPLEMENTATION
 #include "../vendor/rini/src/rini.h"
 
 #include <dirent.h>
