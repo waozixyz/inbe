@@ -879,3 +879,268 @@ ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, in
     ui_draw_bevel(x, y, w, h, ui_darken(c_bg, 45), ui_lighten(c_bg, 35));
     DrawTexturePro(texture, src, dst, (Vector2){0}, 0, WHITE);
 }
+
+/* ================================================================
+ * MODAL DIALOGS
+ * ================================================================ */
+
+int
+ui_draw_modal(InbeApp *app, const char *title, const char *message,
+               const char *cancel_btn, const char *confirm_btn)
+{
+    int modal_w = ui_px(280);
+    int modal_h = ui_px(160);
+    int modal_x = (view_width - modal_w) / 2;
+    int modal_y = (view_height - modal_h) / 2;
+    int title_font = ui_clamp_px(16, 14, 18);
+    int msg_font = ui_clamp_px(14, 12, 16);
+    int btn_font = ui_clamp_px(14, 12, 16);
+    int btn_h = ui_clamp_px(36, 32, 40);
+    int btn_w = ui_px(100);
+    int btn_gap = ui_px(12);
+    int title_h = ui_px(32);
+    int msg_y = modal_y + title_h;
+    int btn_y = modal_y + modal_h - btn_h - ui_px(16);
+
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+
+    /* Dim background */
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+
+    /* Modal background */
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+
+    /* Title */
+    int title_w = MeasureText(title, title_font);
+    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
+
+    /* Message (word wrap) */
+    const char *msg = message;
+    int msg_x = modal_x + ui_px(16);
+    int msg_w = modal_w - ui_px(32);
+    int line_y = msg_y;
+    char word_buf[64];
+    int word_len = 0;
+    int line_w = 0;
+    int msg_lines = 0;
+
+    while(*msg && msg_lines < 4) {
+        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
+            if(word_len > 0) {
+                word_buf[word_len] = '\0';
+                int word_w = MeasureText(word_buf, msg_font);
+                if(line_w == 0 || line_w + word_w <= msg_w) {
+                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
+                    line_w += word_w + MeasureText(" ", msg_font);
+                } else {
+                    line_y += msg_font + ui_px(4);
+                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
+                    line_w = word_w;
+                    msg_lines++;
+                }
+                word_len = 0;
+            }
+            if(*msg == '\n') {
+                line_y += msg_font + ui_px(4);
+                line_w = 0;
+                msg_lines++;
+            }
+        } else if(word_len < (int)sizeof(word_buf) - 1) {
+            word_buf[word_len++] = *msg;
+        }
+        msg++;
+    }
+
+    /* Draw any remaining word after loop ends */
+    if(word_len > 0 && msg_lines < 4) {
+        word_buf[word_len] = '\0';
+        int word_w = MeasureText(word_buf, msg_font);
+        if(line_w == 0 || line_w + word_w <= msg_w) {
+            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
+        } else {
+            line_y += msg_font + ui_px(4);
+            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
+        }
+    }
+
+    /* Buttons */
+    int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
+    int confirm_x = cancel_x + btn_w + btn_gap;
+    int result = 0;
+    int cancel_hover = 0, confirm_hover = 0;
+
+    /* Cancel button */
+    Rectangle cancel_rect = {cancel_x, btn_y, btn_w, btn_h};
+    if(mx >= cancel_x && mx < cancel_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
+        DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button_hover);
+        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        cancel_hover = 1;
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            result = 1;
+    } else {
+        DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    }
+    int cancel_text_w = MeasureText(cancel_btn, btn_font);
+    DrawText(cancel_btn, cancel_x + (btn_w - cancel_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
+
+    /* Confirm button */
+    Rectangle confirm_rect = {confirm_x, btn_y, btn_w, btn_h};
+    if(mx >= confirm_x && mx < confirm_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
+        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button_hover);
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        confirm_hover = 1;
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            result = 2;
+    } else {
+        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_circle);
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, ui_lighten(c_circle, 40), ui_darken(c_circle, 40));
+    }
+    int confirm_text_w = MeasureText(confirm_btn, btn_font);
+    DrawText(confirm_btn, confirm_x + (btn_w - confirm_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
+
+    return result;
+}
+
+int
+ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
+                    const char *left_btn, const char *middle_btn, const char *right_btn)
+{
+    int modal_w = ui_px(300);
+    int modal_h = ui_px(160);
+    int modal_x = (view_width - modal_w) / 2;
+    int modal_y = (view_height - modal_h) / 2;
+    int title_font = ui_clamp_px(16, 14, 18);
+    int msg_font = ui_clamp_px(14, 12, 16);
+    int btn_font = ui_clamp_px(14, 12, 16);
+    int btn_h = ui_clamp_px(36, 32, 40);
+    int btn_w = ui_px(90);
+    int btn_gap = ui_px(8);
+    int title_h = ui_px(32);
+    int msg_y = modal_y + title_h;
+    int btn_y = modal_y + modal_h - btn_h - ui_px(16);
+
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+
+    /* Dim background */
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+
+    /* Modal background */
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+
+    /* Title */
+    int title_w = MeasureText(title, title_font);
+    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
+
+    /* Message (word wrap) - same as 2-button version */
+    const char *msg = message;
+    int msg_x = modal_x + ui_px(16);
+    int msg_w = modal_w - ui_px(32);
+    int line_y = msg_y;
+    char word_buf[64];
+    int word_len = 0;
+    int line_w = 0;
+    int msg_lines = 0;
+
+    while(*msg && msg_lines < 4) {
+        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
+            if(word_len > 0) {
+                word_buf[word_len] = '\0';
+                int word_w = MeasureText(word_buf, msg_font);
+                if(line_w == 0 || line_w + word_w <= msg_w) {
+                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
+                    line_w += word_w + MeasureText(" ", msg_font);
+                } else {
+                    line_y += msg_font + ui_px(4);
+                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
+                    line_w = word_w;
+                    msg_lines++;
+                }
+                word_len = 0;
+            }
+            if(*msg == '\n') {
+                line_y += msg_font + ui_px(4);
+                line_w = 0;
+                msg_lines++;
+            }
+        } else if(word_len < (int)sizeof(word_buf) - 1) {
+            word_buf[word_len++] = *msg;
+        }
+        msg++;
+    }
+
+    /* Draw any remaining word after loop ends */
+    if(word_len > 0 && msg_lines < 4) {
+        word_buf[word_len] = '\0';
+        int word_w = MeasureText(word_buf, msg_font);
+        if(line_w == 0 || line_w + word_w <= msg_w) {
+            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
+        } else {
+            line_y += msg_font + ui_px(4);
+            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
+        }
+    }
+
+    /* Calculate button positions */
+    int total_btn_w = btn_w * 3 + btn_gap * 2;
+    int left_x = modal_x + (modal_w - total_btn_w) / 2;
+    int middle_x = left_x + btn_w + btn_gap;
+    int right_x = middle_x + btn_w + btn_gap;
+
+    int result = 0;
+
+    /* Left button (Cancel) */
+    Rectangle left_rect = {left_x, btn_y, btn_w, btn_h};
+    if(mx >= left_x && mx < left_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
+        DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button_hover);
+        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            result = 1;
+    } else {
+        DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    }
+    int left_text_w = MeasureText(left_btn, btn_font);
+    DrawText(left_btn, left_x + (btn_w - left_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
+
+    /* Middle button (Save) - primary action */
+    Rectangle middle_rect = {middle_x, btn_y, btn_w, btn_h};
+    if(mx >= middle_x && mx < middle_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
+        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button_hover);
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            result = 2;
+    } else {
+        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_circle);
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, ui_lighten(c_circle, 40), ui_darken(c_circle, 40));
+    }
+    int middle_text_w = MeasureText(middle_btn, btn_font);
+    DrawText(middle_btn, middle_x + (btn_w - middle_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
+
+    /* Right button (Discard) */
+    Rectangle right_rect = {right_x, btn_y, btn_w, btn_h};
+    if(mx >= right_x && mx < right_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
+        DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button_hover);
+        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            result = 3;
+    } else {
+        DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    }
+    int right_text_w = MeasureText(right_btn, btn_font);
+    DrawText(right_btn, right_x + (btn_w - right_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
+
+    return result;
+}

@@ -1,4 +1,13 @@
 # Changelog
+## [1.0.8] - 2026-05-28
+### Added
+- Android back button support with screen-aware behavior
+- Confirmation modal when exiting active sessions (Save & Exit, Discard, or Cancel)
+- Session data preservation: completed rounds can be saved before exiting
+### Fixed
+- Modal text word wrap to handle last word correctly
+- Back button closes modal (cancel action) when pressed during confirmation
+
 ## [1.0.7] - 2026-05-27
 ### Added
 - F-Droid metadata (screenshots, feature graphic, icon)
