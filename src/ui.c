@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 
 /* Global UI state */
 static float dpi_scale = 1.0f;
@@ -153,8 +154,96 @@ ui_icon_btn_padding(UIIconSize size)
     }
 }
 
+static void
+ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
+{
+    int center = size / 2;
+    int thickness = size / 8;
+    if(thickness < 1) thickness = 1;
+
+    switch(type) {
+        case UI_ICON_TYPE_X: {
+            int p = thickness / 2;
+            DrawLine(x + p, y + p, x + size - p, y + size - p, color);
+            DrawLine(x + size - p, y + p, x + p, y + size - p, color);
+            break;
+        }
+        case UI_ICON_TYPE_GEAR: {
+            int outer = size / 2 - thickness;
+            int inner = size / 4;
+            DrawCircle(x + center, y + center, outer, color);
+            for(int i = 0; i < 6; i++) {
+                float angle = i * 60.0f * DEG2RAD;
+                int cx = x + center + (int)(cos(angle) * inner);
+                int cy = y + center + (int)(sin(angle) * inner);
+                DrawLine(x + center, y + center, cx, cy, color);
+            }
+            break;
+        }
+        case UI_ICON_TYPE_BACKWARD: {
+            int p = thickness;
+            DrawTriangle(
+                (Vector2){x + size - p, y + p},
+                (Vector2){x + p, y + center},
+                (Vector2){x + size - p, y + size - p},
+                color
+            );
+            break;
+        }
+        case UI_ICON_TYPE_FORWARD: {
+            int p = thickness;
+            DrawTriangle(
+                (Vector2){x + p, y + p},
+                (Vector2){x + size - p, y + center},
+                (Vector2){x + p, y + size - p},
+                color
+            );
+            break;
+        }
+        case UI_ICON_TYPE_PLAY: {
+            int p = thickness;
+            DrawTriangle(
+                (Vector2){x + p, y + p},
+                (Vector2){x + size - p, y + center},
+                (Vector2){x + p, y + size - p},
+                color
+            );
+            break;
+        }
+        case UI_ICON_TYPE_PAUSE: {
+            int w = size / 3;
+            int p = (size - w * 2) / 3;
+            DrawRectangle(x + p, y + thickness, w, size - thickness * 2, color);
+            DrawRectangle(x + p + w + p, y + thickness, w, size - thickness * 2, color);
+            break;
+        }
+        case UI_ICON_TYPE_RETURN:
+        case UI_ICON_TYPE_HOME: {
+            int p = thickness;
+            DrawLine(x + center, y + size - p, x + center, y + p, color);
+            DrawLine(x + center, y + p, x + p, y + p + (size / 3), color);
+            DrawLine(x + center, y + p, x + size - p, y + p + (size / 3), color);
+            if(type == UI_ICON_TYPE_RETURN) {
+                DrawLine(x + p, y + center, x + size - p, y + center, color);
+            }
+            break;
+        }
+        case UI_ICON_TYPE_MANUAL:
+        case UI_ICON_TYPE_STAT: {
+            DrawRectangle(x + thickness, y + thickness, size - thickness * 2, size - thickness * 2, color);
+            DrawLine(x + thickness, y + thickness + size / 3, x + size - thickness, y + thickness + size / 3, color);
+            DrawLine(x + thickness, y + thickness + size * 2 / 3, x + size - thickness, y + thickness + size * 2 / 3, color);
+            break;
+        }
+        default: {
+            DrawCircle(x + center, y + center, size / 3, color);
+            break;
+        }
+    }
+}
+
 int
-ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, int *hover)
+ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover)
 {
     int btn_size = ui_icon_btn_size(size);
     int padding = ui_icon_btn_padding(size);
@@ -189,13 +278,15 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, in
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)btn_size, (float)btn_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    } else {
+        ui_draw_icon_fallback(icon_type, x + padding, y + padding, btn_size, c_icon);
     }
 
     return pressed;
 }
 
 int
-ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, int *hover)
+ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, UIIconType icon_type, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
@@ -228,6 +319,8 @@ ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, in
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    } else {
+        ui_draw_icon_fallback(icon_type, x + padding, y + padding, size, c_icon);
     }
 
     return pressed;
@@ -273,7 +366,7 @@ ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover)
 }
 
 void
-ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, const char *url)
+ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
@@ -302,6 +395,8 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, con
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x, y, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    } else {
+        ui_draw_icon_fallback(icon_type, x, y, icon_size, c_icon);
     }
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
@@ -690,7 +785,7 @@ ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
 }
 
 int
-ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon,
+ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UIIconType icon_type,
                    const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -725,6 +820,9 @@ ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon,
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    } else {
+        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
+        ui_draw_icon_fallback(icon_type, icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -737,7 +835,7 @@ ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon,
 }
 
 int
-ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Texture2D icon,
+ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Texture2D icon, UIIconType icon_type,
                            const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -771,6 +869,9 @@ ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Text
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
+    } else {
+        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
+        ui_draw_icon_fallback(icon_type, icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -839,12 +940,10 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
         int base_w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
         int w = base_w + extra_per_button;
 
-        if(tabs[i].icon.id != 0) {
-            if(ui_draw_nav_button_expand(app, x, button_y, button_size, w, tabs[i].icon,
+        if(ui_draw_nav_button_expand(app, x, button_y, button_size, w, tabs[i].icon, tabs[i].icon_type,
                                         tabs[i].label, show_labels, &tab_hover)) {
-                if(tabs[i].on_click)
-                    tabs[i].on_click(tabs[i].user_data);
-            }
+            if(tabs[i].on_click)
+                tabs[i].on_click(tabs[i].user_data);
         }
 
         x += w + group_gap;
@@ -1174,7 +1273,7 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
     /* Draw close button if requested */
     if(show_close) {
         close_clicked = ui_draw_icon_btn(app, ui_view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
-                                         UI_ICON_SIZE_TINY, app->x_icon, &close_hover);
+                                         UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
     }
 
     return close_clicked;

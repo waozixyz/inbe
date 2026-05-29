@@ -431,10 +431,10 @@ settings_tab_draw(InbeApp *app)
                 int icon_btn_w = icon_size + icon_padding * 2;
                 int total_w = icon_btn_w * 4 + icon_spacing * 3;
                 int links_start_x = content_x + (content_w - total_w) / 2;
-                ui_draw_icon_link(app, links_start_x + icon_padding, links_y, icon_size, app->telegram_icon, "https://t.me/lotusinbe");
-                ui_draw_icon_link(app, links_start_x + icon_btn_w + icon_spacing + icon_padding, links_y, icon_size, app->globe_icon, "https://inbe.waozi.xyz/");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 2 + icon_padding, links_y, icon_size, app->monero_icon, "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
+                ui_draw_icon_link(app, links_start_x + icon_padding, links_y, icon_size, app->telegram_icon, UI_ICON_TYPE_TELEGRAM, "https://t.me/lotusinbe");
+                ui_draw_icon_link(app, links_start_x + icon_btn_w + icon_spacing + icon_padding, links_y, icon_size, app->globe_icon, UI_ICON_TYPE_GLOBE, "https://inbe.waozi.xyz/");
+                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 2 + icon_padding, links_y, icon_size, app->monero_icon, UI_ICON_TYPE_MONERO, "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff");
+                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, UI_ICON_TYPE_STRIPE, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
                 break;
             }
         }

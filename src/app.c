@@ -66,9 +66,9 @@ static void on_settings_tab_click(void *user_data) {
 }
 
 static UITab g_tabs[] = {
-    {"History", {0}, history_tab_on_click, NULL},
-    {"Manual", {0}, on_manual_tab_click, NULL},
-    {"Settings", {0}, on_settings_tab_click, NULL}
+    {"History", {0}, UI_ICON_TYPE_STAT, history_tab_on_click, NULL},
+    {"Manual", {0}, UI_ICON_TYPE_MANUAL, on_manual_tab_click, NULL},
+    {"Settings", {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
@@ -933,10 +933,13 @@ inbe_app_init(void *vapp) {
     }
     /* Update tab bar icons */
     g_tabs[0].icon = app->stat_icon;
+    g_tabs[0].icon_type = UI_ICON_TYPE_STAT;
     g_tabs[0].user_data = app;
     g_tabs[1].icon = app->manual_icon;
+    g_tabs[1].icon_type = UI_ICON_TYPE_MANUAL;
     g_tabs[1].user_data = app;
     g_tabs[2].icon = app->gear_icon;
+    g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
     g_tabs[2].user_data = app;
 
     if(app->telegram_icon.id == 0) {
@@ -1095,7 +1098,7 @@ updateapp(InbeApp *app)
 
     case InbeScreenSession: {
         int return_hover = 0;
-        if(app->return_icon.id != 0 && ui_draw_icon_btn_padded(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), app->return_icon, &return_hover)) {
+        if(ui_draw_icon_btn_padded(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
         }
 
@@ -1161,16 +1164,16 @@ updateapp(InbeApp *app)
         int back_x = pause_x - control_btn_w - control_gap;
         int forward_x = pause_x + control_btn_w + control_gap;
 
-        if(app->backward_icon.id != 0 && ui_draw_icon_btn_padded(app, back_x, control_y, control_size,
-                                                     app->backward_icon, &back_hover)) {
+        if(ui_draw_icon_btn_padded(app, back_x, control_y, control_size,
+                                                     app->backward_icon, UI_ICON_TYPE_BACKWARD, &back_hover)) {
             session_step_back(app);
         }
         if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size,
-                       app->session_paused ? app->play_icon : app->pause_icon, &pause_hover)) {
+                       app->session_paused ? app->play_icon : app->pause_icon, app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE, &pause_hover)) {
             app->session_paused = !app->session_paused;
         }
-        if(app->forward_icon.id != 0 && ui_draw_icon_btn_padded(app, forward_x, control_y, control_size,
-                                                    app->forward_icon, &forward_hover)) {
+        if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size,
+                                                    app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover)) {
             session_step_forward(app);
         }
 
