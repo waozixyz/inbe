@@ -14,9 +14,6 @@
 /* Theme colors - set by ui_set_colors */
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
-#define CONTENT_MAX_W 600
-#define CONTENT_SIDE_PAD 20
-
 static const char *settings_tab_names[] = {
     "Breathing",
     "Session",
@@ -106,7 +103,13 @@ settings_tab_draw(InbeApp *app)
     static int export_dlg_initialized = 0;
     static char export_result[128] = "";  /* Store export result message */
 
-    ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+    /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
+    int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
+    int min_content_w = ui_px(320);
+    if(responsive_max_w < min_content_w)
+        responsive_max_w = min_content_w;
+    int side_padding = ui_px(32);  /* Match tutorial spacing */
+    ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     /* Reset slider drag state when mouse is released */
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
@@ -342,19 +345,20 @@ settings_tab_draw(InbeApp *app)
 
                 /* Delete All button */
                 int delete_w = MeasureText("Delete All Data", font) + ui_px(24);
-                int delete_x = content_x + content_w - delete_w;
-                Rectangle delete_rect = {delete_x, export_y, delete_w, export_h};
+                int delete_x = content_x;
+                int delete_y = export_y + export_h + ui_px(12);
+                Rectangle delete_rect = {delete_x, delete_y, delete_w, delete_h};
 
                 if(CheckCollisionPointRec(mouse_world, delete_rect)) {
-                    DrawRectangle(delete_x, export_y, delete_w, export_h, c_button_hover);
-                    ui_draw_bevel(delete_x, export_y, delete_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+                    DrawRectangle(delete_x, delete_y, delete_w, delete_h, c_button_hover);
+                    ui_draw_bevel(delete_x, delete_y, delete_w, delete_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
                     hover_delete = 1;
                     app->cursor_clickable = 1;
                 } else {
-                    DrawRectangle(delete_x, export_y, delete_w, export_h, c_button);
-                    ui_draw_bevel(delete_x, export_y, delete_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+                    DrawRectangle(delete_x, delete_y, delete_w, delete_h, c_button);
+                    ui_draw_bevel(delete_x, delete_y, delete_w, delete_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
                 }
-                DrawText("Delete All Data", delete_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
+                DrawText("Delete All Data", delete_x + ui_px(12), delete_y + delete_h / 2 - font / 2 - 1, font, c_text);
 
                 /* Handle button clicks */
                 if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&

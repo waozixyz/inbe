@@ -1201,13 +1201,20 @@ updateapp(InbeApp *app)
             int box_x;
             int box_y = ui_px(78);
             int box_w;
-            int row_y = ui_px(180);
-            int row_h = ui_clamp_px(26, 22, 30);
+            int row_y = ui_px(200);
+            int row_h = ui_clamp_px(32, 28, 36);
             int total = 0;
             int best = -1;
             int rounds = app->inbe.round + 1;
 
-            ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &box_x, &box_w);
+            /* Responsive width like other tabs - not fixed CONTENT_MAX_W */
+            int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
+            int min_content_w = ui_px(320);
+            if(responsive_max_w < min_content_w)
+                responsive_max_w = min_content_w;
+            int side_padding = ui_px(32);  /* More spacious than CONTENT_SIDE_PAD=16 */
+
+            ui_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
             title_w = MeasureText("RESULTS", title_font);
             DrawText("RESULTS", center_x - title_w / 2, ui_px(34), title_font, c_text);
 
@@ -1226,14 +1233,14 @@ updateapp(InbeApp *app)
             if(best < 0)
                 best = 0;
 
-            DrawRectangle(box_x, box_y, box_w, ui_px(78), ui_darken(c_bg, 6));
-            DrawLine(box_x, box_y + ui_px(26), box_x + box_w, box_y + ui_px(26), ui_darken(c_bg, 30));
-            DrawLine(box_x, box_y + ui_px(52), box_x + box_w, box_y + ui_px(52), ui_darken(c_bg, 30));
-            DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(8), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
-            DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(34), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
-            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(60), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+            DrawRectangle(box_x, box_y, box_w, ui_px(88), ui_darken(c_bg, 6));
+            DrawLine(box_x, box_y + ui_px(29), box_x + box_w, box_y + ui_px(29), ui_darken(c_bg, 30));
+            DrawLine(box_x, box_y + ui_px(58), box_x + box_w, box_y + ui_px(58), ui_darken(c_bg, 30));
+            DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(10), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+            DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(39), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(68), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
 
-            DrawText("Round times", box_x, ui_px(168), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
+            DrawText("Round times", box_x, ui_px(188), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = int_from_count(app->inbe.results[i]);
