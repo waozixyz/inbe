@@ -60,12 +60,14 @@ frame(void)
 
     BeginDrawing();
     ClearBackground(BLACK);
+    BeginScissorMode(content_x, content_y, content_width, content_height);
     inbe_app_update_draw(&inbe_app, (Rectangle){
         (float)content_x,
         (float)content_y,
         (float)content_width,
         (float)content_height
     });
+    EndScissorMode();
     if(inbe_app.cursor_clickable)
         SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     else
@@ -96,17 +98,22 @@ int main(int argc, char **argv) {
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
-    InitWindow(window_w, window_h, inbe_app_title());
 
 #if INBE_ANDROID_BUILD
+    android_insets_init();  // MUST be first, before app init
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
-    android_insets_init();
 #endif
+
+
+    InitWindow(window_w, window_h, inbe_app_title());
 
     inbe_app_init(&inbe_app);
 
     /* Apply fullscreen setting on startup */
+    #if INBE_ANDROID_BUILD
+    inbe_app.fullscreen_enabled = 0;  // Force fullscreen off on Android
+    #endif
     if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
         ToggleFullscreen();
 

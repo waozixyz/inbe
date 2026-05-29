@@ -23,8 +23,6 @@ typedef struct {
 	int cutout_bottom;
 } AndroidInsets;
 
-static inline void android_insets_init(void) {}
-static inline void android_insets_get(AndroidInsets *out) { (void)out; }
 #endif
 
 #endif

@@ -1,117 +1,165 @@
 package xyz.waozi.inbe;
 
 import android.app.NativeActivity;
+import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
-import android.view.WindowManager;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
 
-    // Cache latest inset values for JNI access
+    static {
+        System.loadLibrary("main");
+    }
+
     // [status_bar, nav_bar, cutout_left, cutout_top, cutout_right, cutout_bottom]
     private final int[] cachedInsets = new int[6];
     private boolean insetsInitialized = false;
+
+    private native void nativeSetInsets(int status, int nav,
+        int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Initialize with zeros
-        for (int i = 0; i < 6; i++) {
-            cachedInsets[i] = 0;
+        synchronized (cachedInsets) {
+            for (int i = 0; i < 6; i++) {
+                cachedInsets[i] = 0;
+            }
         }
 
-        // Set up window insets listener
         setupInsetsListener();
     }
 
     private void setupInsetsListener() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            View decorView = getWindow().getDecorView();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final View decorView = getWindow().getDecorView();
 
-            // Use ViewTreeObserver to listen for inset changes
+            // 1. Primary listener for runtime inset modifications (swiping, rotating)
             decorView.setOnApplyWindowInsetsListener(new View.OnApplyWindowInsetsListener() {
                 @Override
                 public WindowInsets onApplyWindowInsets(View v, WindowInsets insets) {
                     updateInsets(insets);
-                    // Consume the insets to prevent them from being passed to child views
-                    return v.onApplyWindowInsets(insets);
+                    return insets;
                 }
             });
 
-            // Force an initial update
+            // 2. Startup safety net: Catches frame sizing on the initial layout pass
+            decorView.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+                @Override
+                public void onGlobalLayout() {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        WindowInsets insets = decorView.getRootWindowInsets();
+                        if (insets != null) {
+                            updateInsets(insets);
+                        }
+                    }
+                    decorView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+                }
+            });
+
+            // 3. Force synchronous scheduling update pass
             decorView.post(new Runnable() {
                 @Override
                 public void run() {
-                    WindowInsets insets = decorView.getRootWindowInsets();
-                    if (insets != null) {
-                        updateInsets(insets);
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        decorView.requestApplyInsets();
                     }
                 }
             });
+        } else {
+            fallbackForOldPhones();
         }
     }
 
+    private void fallbackForOldPhones() {
+        int statusBarHeight = 0;
+        int navBarHeight = 0;
+
+        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
+        if (resourceId > 0) {
+            statusBarHeight = getResources().getDimensionPixelSize(resourceId);
+        }
+
+        int navResourceId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
+        if (navResourceId > 0) {
+            navBarHeight = getResources().getDimensionPixelSize(navResourceId);
+        }
+
+        synchronized (cachedInsets) {
+            cachedInsets[0] = statusBarHeight;
+            cachedInsets[1] = navBarHeight;
+            cachedInsets[2] = 0;
+            cachedInsets[3] = 0;
+            cachedInsets[4] = 0;
+            cachedInsets[5] = 0;
+        }
+        
+        insetsInitialized = true;
+        nativeSetInsets(statusBarHeight, navBarHeight, 0, 0, 0, 0);
+    }
+
     private void updateInsets(WindowInsets insets) {
+        if (insets == null) return;
+
         try {
-            // System bars (status and navigation)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                cachedInsets[0] = insets.getSystemWindowInsetTop();     // status bar
-                cachedInsets[1] = insets.getSystemWindowInsetBottom();  // navigation bar
+            int statusBar = 0;
+            int navBar = 0;
+            int cLeft = 0, cTop = 0, cRight = 0, cBottom = 0;
+
+            // System bar calculations
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
+                statusBar = systemBars.top;
+                navBar = systemBars.bottom;
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                statusBar = insets.getSystemWindowInsetTop();
+                navBar = insets.getSystemWindowInsetBottom();
             }
 
-            // Display cutout (punch hole / notch) - API 28+
+            // Display cutout calculations
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 DisplayCutout cutout = insets.getDisplayCutout();
                 if (cutout != null) {
-                    cachedInsets[2] = cutout.getSafeInsetLeft();
-                    cachedInsets[3] = cutout.getSafeInsetTop();
-                    cachedInsets[4] = cutout.getSafeInsetRight();
-                    cachedInsets[5] = cutout.getSafeInsetBottom();
-
-                    Log.d(TAG, "Display cutout detected: left=" + cachedInsets[2] +
-                          ", top=" + cachedInsets[3] + ", right=" + cachedInsets[4] +
-                          ", bottom=" + cachedInsets[5]);
-                } else {
-                    // No cutout
-                    cachedInsets[2] = 0;
-                    cachedInsets[3] = 0;
-                    cachedInsets[4] = 0;
-                    cachedInsets[5] = 0;
+                    cLeft = cutout.getSafeInsetLeft();
+                    cTop = cutout.getSafeInsetTop();
+                    cRight = cutout.getSafeInsetRight();
+                    cBottom = cutout.getSafeInsetBottom();
                 }
             }
 
-            insetsInitialized = true;
+            synchronized (cachedInsets) {
+                cachedInsets[0] = statusBar;
+                cachedInsets[1] = navBar;
+                cachedInsets[2] = cLeft;
+                cachedInsets[3] = cTop;
+                cachedInsets[4] = cRight;
+                cachedInsets[5] = cBottom;
+            }
 
-            Log.d(TAG, "Insets updated: status=" + cachedInsets[0] +
-                  ", nav=" + cachedInsets[1] + ", cutout_top=" + cachedInsets[3]);
+            insetsInitialized = true;
+            nativeSetInsets(statusBar, navBar, cLeft, cTop, cRight, cBottom);
 
         } catch (Exception e) {
-            Log.e(TAG, "Error updating insets: " + e.getMessage(), e);
+            Log.e(TAG, "Error structuralizing window layout properties: " + e.getMessage());
         }
     }
 
     /**
-     * Called from native code via JNI to get current window insets.
-     * Returns array of 6 ints: [status_bar, nav_bar, cutout_left, cutout_top, cutout_right, cutout_bottom]
-     *
-     * @return Array of inset values in pixels
+     * Called from native code via JNI to pull array memory safely.
+     * * @return Array copy containing [status, nav, left, top, right, bottom]
      */
     public int[] getInsetsNative() {
-        // Return a copy to avoid race conditions
         int[] result = new int[6];
         synchronized (cachedInsets) {
             System.arraycopy(cachedInsets, 0, result, 0, 6);
         }
-
-        Log.d(TAG, "getInsetsNative called, returning: [" + result[0] + ", " + result[1] +
-              ", " + result[2] + ", " + result[3] + ", " + result[4] + ", " + result[5] + "]");
-
         return result;
     }
 }
