@@ -133,43 +133,64 @@ static LotusThemeValue *scope_add_value(LotusThemeScope *scope, const char *key,
 
 static void load_scope_file(LotusThemeScope *scope)
 {
-    FILE *file;
-    char line[256];
+    char *fileText;
+    char *cursor;
+    char lineBuffer[256];
 
     if(scope == NULL || scope->path[0] == '\0')
         return;
 
-    file = fopen(scope->path, "r");
-    if(file == NULL)
+    // Use raylib's file loading which works with Android assets
+    fileText = LoadFileText(scope->path);
+    if(fileText == NULL || fileText[0] == '\0') {
+        TraceLog(LOG_WARNING, "THEME: Failed to load theme file: %s", scope->path);
         return;
+    }
 
-    while(fgets(line, sizeof(line), file) != NULL) {
+    // Parse line by line
+    cursor = fileText;
+    while(*cursor != '\0') {
+        // Extract single line
+        char *newline = strchr(cursor, '\n');
+        if(newline != NULL) {
+            *newline = '\0';  // Temporarily null-terminate
+            strncpy(lineBuffer, cursor, sizeof(lineBuffer) - 1);
+            lineBuffer[sizeof(lineBuffer) - 1] = '\0';
+            *newline = '\n';   // Restore for next iteration
+            cursor = newline + 1;
+        } else {
+            strncpy(lineBuffer, cursor, sizeof(lineBuffer) - 1);
+            lineBuffer[sizeof(lineBuffer) - 1] = '\0';
+            cursor += strlen(cursor);
+        }
+
+        // Parse line (same logic as before)
+        char *line_cursor = lineBuffer;
         char key[LOTUS_THEME_NAME_SIZE];
         char value[32];
-        char *cursor = line;
         int key_len = 0;
         Color color;
 
-        while(isspace((unsigned char)*cursor))
-            cursor++;
-        if(*cursor == '#' || *cursor == '\0')
+        while(isspace((unsigned char)*line_cursor))
+            line_cursor++;
+        if(*line_cursor == '#' || *line_cursor == '\0')
             continue;
 
-        while(*cursor != '\0' && !isspace((unsigned char)*cursor) &&
+        while(*line_cursor != '\0' && !isspace((unsigned char)*line_cursor) &&
               key_len < LOTUS_THEME_NAME_SIZE - 1) {
-            key[key_len++] = *cursor++;
+            key[key_len++] = *line_cursor++;
         }
         key[key_len] = '\0';
 
-        while(isspace((unsigned char)*cursor))
-            cursor++;
-        if(*cursor == '"')
-            cursor++;
+        while(isspace((unsigned char)*line_cursor))
+            line_cursor++;
+        if(*line_cursor == '"')
+            line_cursor++;
 
         int value_len = 0;
-        while(*cursor != '\0' && *cursor != '"' && *cursor != '\n' &&
-              !isspace((unsigned char)*cursor) && value_len < (int)sizeof(value) - 1) {
-            value[value_len++] = *cursor++;
+        while(*line_cursor != '\0' && *line_cursor != '"' && *line_cursor != '\n' &&
+              !isspace((unsigned char)*line_cursor) && value_len < (int)sizeof(value) - 1) {
+            value[value_len++] = *line_cursor++;
         }
         value[value_len] = '\0';
 
@@ -177,7 +198,7 @@ static void load_scope_file(LotusThemeScope *scope)
             scope_add_value(scope, key, color);
     }
 
-    fclose(file);
+    UnloadFileText(fileText);
 }
 
 LotusThemeScope *theme_register_scope(const char *name, const char *path)
