@@ -87,8 +87,6 @@ jobs:
           exit 0
         fi
         find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
-      run: |
-        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
 
     - name: Upload APK to Artifacts
       uses: actions/upload-artifact@v4
