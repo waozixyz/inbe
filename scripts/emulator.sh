@@ -3,20 +3,15 @@
 set -e
 
 AVD_NAME="inbe-test"
-APK_PATH="build/android/app-universal-debug.apk"
-PACKAGE_NAME="xyz.waozi.inbe"
 
-echo "🚀 Complete Android Emulator Setup"
-echo "   This script will:"
-echo "   1. Create AVD if missing"
-echo "   2. Launch emulator"
-echo "   3. Build APK"
-echo "   4. Install and run app"
+echo "🚀 Android Emulator Manager"
+echo "   This script handles emulator creation and launching"
+echo "   Use './scripts/run-android.sh' to build and install the app"
 echo ""
 
-# Check for ANDROID_HOME
-if [ -z "$ANDROID_HOME" ]; then
-  echo "❌ Error: ANDROID_HOME environment variable not set"
+# Check for Android SDK location
+if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
+  echo "❌ Error: Neither ANDROID_SDK_ROOT nor ANDROID_HOME environment variable is set"
   echo "   Make sure to run this script within 'nix develop'"
   exit 1
 fi
@@ -43,20 +38,17 @@ else
   echo ""
 fi
 
-# Step 2: Build APK
-echo "🔨 Building APK..."
-make android-debug
-echo "✅ APK built: $APK_PATH"
-echo ""
-
-# Step 3: Check if emulator is running
+# Step 2: Check if emulator is running
 if adb devices | grep -q "emulator"; then
   echo "✅ Emulator already running"
+  echo ""
+  echo "To stop the emulator:"
+  echo "  adb emu kill"
 else
   echo "🚀 Launching emulator..."
 
-  # Set environment for emulator
-  export ANDROID_HOME="$ANDROID_SDK_ROOT"
+  # Set environment for emulator (unset ANDROID_HOME to avoid conflicts)
+  unset ANDROID_HOME
   export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 
   # Launch emulator in background
@@ -96,18 +88,8 @@ else
   echo ""
 fi
 
-# Step 4: Install and run app
-echo "📦 Installing APK..."
-adb install -r "$APK_PATH"
-
-echo "🚀 Launching app..."
-adb shell am start -n "$PACKAGE_NAME/.MainActivity"
-
+echo "📱 Emulator ready!"
 echo ""
-echo "🎉 App is running on emulator!"
-echo ""
-echo "To stop the emulator:"
-echo "  adb emu kill"
-echo ""
-echo "To rebuild and restart:"
-echo "  ./scripts/emulator.sh"
+echo "Next steps:"
+echo "  1. Build and install the app:"
+echo "     ./scripts/run-android.sh"

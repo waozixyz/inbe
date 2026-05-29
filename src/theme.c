@@ -202,10 +202,30 @@ Color theme_get(const char *scope_name, const char *key)
     if(value != NULL)
         return value->value;
 
-    fprintf(stderr, "missing theme color: %s.%s\n",
+    fprintf(stderr, "missing theme color: %s.%s, using clean light sky default\n",
             scope_name != NULL ? scope_name : "(null)",
             key != NULL ? key : "(null)");
-    abort();
+
+    // Use clean light sky theme colors as defaults
+    if(key != NULL) {
+        if(strstr(key, "background") != NULL)
+            return (Color){0xE2, 0xEE, 0xFC, 0xFF}; // #E2EEFCFF
+        if(strstr(key, "text") != NULL || strstr(key, "foreground") != NULL)
+            return (Color){0x24, 0x48, 0x7C, 0xFF}; // #24487CFF
+        if(strstr(key, "circle") != NULL)
+            return (Color){0x7E, 0xB7, 0xE6, 0xFF}; // #7EB7E6FF
+        if(strstr(key, "button_hover") != NULL)
+            return (Color){0x68, 0x9E, 0xD7, 0xFF}; // #689ED7FF
+        if(strstr(key, "button") != NULL)
+            return (Color){0xA6, 0xCF, 0xF2, 0xFF}; // #A6CFF2FF
+        if(strstr(key, "icon") != NULL)
+            return (Color){0xE2, 0xEE, 0xFC, 0xFF}; // #E2EEFCFF
+        if(strstr(key, "link") != NULL)
+            return (Color){0x4A, 0x90, 0xE2, 0xFF}; // #4A90E2FF
+    }
+
+    // Default fallback: sky background
+    return (Color){0xE2, 0xEE, 0xFC, 0xFF};
 }
 
 bool theme_set_color(const char *scope_name, const char *key, Color color)

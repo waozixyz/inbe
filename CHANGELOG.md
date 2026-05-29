@@ -1,4 +1,10 @@
 # Changelog
+## [1.1.2] - 2026-05-29
+## Fixed
+- Data storage location
+- Punch hole spacing
+- Crashes on newer devices
+
 ## [1.1.1] - 2026-05-28
 ### Fixed
 - Slider focus now properly releases when mouse button is released (prevented adjusting sliders when clicking outside)
