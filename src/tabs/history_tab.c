@@ -516,7 +516,7 @@ history_tab_draw(InbeApp *app)
         content_h = ui_px(12) + content_rows * row_h;
     content_h += ui_px(12);  /* Bottom padding */
     max_scroll = content_h - viewport_h;
-    if(max_scroll < 0)
+    if(max_scroll < 0 || count == 0)
         max_scroll = 0;
 
     app->history_scroll -= (int)(GetMouseWheelMove() * 24.0f);
