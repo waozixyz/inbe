@@ -1,6 +1,12 @@
 # Changelog
+## [1.1.3] - 2026-05-29
+### Fixed
+- Icon button fallback system - buttons now render with procedural graphics when asset images fail to load (prevents empty buttons on devices with asset loading issues)
+- Added UIIconType system for icon identification and fallback rendering
+- Updated all icon button functions to support fallback graphics (ui_draw_icon_btn, ui_draw_icon_btn_padded, ui_draw_icon_link, ui_draw_nav_button, ui_draw_nav_button_expand)
+
 ## [1.1.2] - 2026-05-29
-## Fixed
+### Fixed
 - Data storage location
 - Punch hole spacing
 - Crashes on newer devices
