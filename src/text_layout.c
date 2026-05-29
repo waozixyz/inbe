@@ -15,11 +15,8 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
     TextLayout layout = {0};
 
     if(input == NULL || input[0] == '\0') {
-        printf("PARSE: Empty input\n");
         return layout;
     }
-
-    printf("PARSE: Input text: '%s'\n", input);
 
     /* First pass: count word/phrase elements */
     int element_count = 0;
@@ -34,7 +31,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
             /* Explicit newline - count as forced line break element */
             element_count++;
             p++;
-            printf("PARSE: Found explicit newline - creating line break element\n");
         } else {
             /* Skip whitespace and count word/phrase segments */
             const char *word_start = p;
@@ -45,7 +41,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
             /* Only count if we found actual text content */
             if(p > word_start) {
                 element_count++;
-                printf("PARSE: Found word '%.*s' (len=%zu)\n", (int)(p - word_start), word_start, p - word_start);
             }
 
             /* Skip whitespace (spaces only, not newlines) */
@@ -55,7 +50,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
         }
     }
 
-    printf("PARSE: Counted %d word/phrase elements\n", element_count);
 
     /* Allocate elements array */
     layout.elements = (TextElement *)calloc(element_count, sizeof(TextElement));
@@ -85,7 +79,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
             layout.elements[element_idx].text_width = 0;
             element_idx++;
             p++;
-            printf("PARSE: Created LINE_BREAK element at index %d\n", element_idx - 1);
         } else {
             /* Extract word/phrase segment */
             const char *word_start = p;
@@ -103,7 +96,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
                     layout.elements[element_idx].type = TEXT_ELEMENT_TYPE_TEXT;
                     layout.elements[element_idx].text = text_copy;
                     layout.elements[element_idx].text_width = 0;
-                    printf("PARSE: Stored element %d: '%s'\n", element_idx, text_copy);
                     element_idx++;
                 }
             }
@@ -112,15 +104,6 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
             if(*p == ' ') {
                 p++;
             }
-        }
-    }
-
-    printf("PARSE: Created %d elements\n", element_count);
-    for(int i = 0; i < element_count; i++) {
-        if(layout.elements[i].type == TEXT_ELEMENT_TYPE_TEXT) {
-            printf("  Element %d: TEXT '%s' (width=%d)\n", i, layout.elements[i].text, layout.elements[i].text_width);
-        } else {
-            printf("  Element %d: ICON\n", i);
         }
     }
 
@@ -155,13 +138,9 @@ text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_he
     }
 
     /* Cache text widths for all text elements */
-    printf("REFLOW: Measuring %d elements with font_size=%d\n", layout->element_count, font_size);
     for(int i = 0; i < layout->element_count; i++) {
         if(layout->elements[i].type == TEXT_ELEMENT_TYPE_TEXT && layout->elements[i].text != NULL) {
             layout->elements[i].text_width = MeasureText(layout->elements[i].text, font_size);
-            printf("  Element %d: TEXT '%s' -> width=%d\n", i, layout->elements[i].text, layout->elements[i].text_width);
-        } else if(layout->elements[i].type == TEXT_ELEMENT_TYPE_LINE_BREAK) {
-            printf("  Element %d: LINE_BREAK (forced newline)\n", i);
         }
     }
 
@@ -170,12 +149,10 @@ text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_he
     layout->line_breaks[0] = 0;  /* First line starts at element 0 */
     int current_line_width = 0;
 
-    printf("REFLOW: max_width=%d, calculating line breaks...\n", max_width);
 
     for(int i = 0; i < layout->element_count; i++) {
         /* Handle forced line breaks from explicit newlines */
         if(layout->elements[i].type == TEXT_ELEMENT_TYPE_LINE_BREAK) {
-            printf("  Element %d: FORCED LINE BREAK\n", i);
             layout->line_count++;
             layout->line_breaks[layout->line_count] = i;
             layout->line_widths[layout->line_count - 1] = current_line_width;
@@ -194,16 +171,11 @@ text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_he
             spacing = (current_line_width > 0) ? ui_px(4) : 0; /* Small spacing around icons */
         }
 
-        printf("  Element %d: width=%d, spacing=%d, current_line_width=%d, fits=%d\n",
-               i, element_width, spacing, current_line_width,
-               (current_line_width + spacing + element_width <= max_width));
-
         /* Check if element fits on current line */
         if(current_line_width + spacing + element_width <= max_width) {
             current_line_width += spacing + element_width;
         } else {
             /* Start new line */
-            printf("  LINE BREAK at element %d\n", i);
             layout->line_count++;
             layout->line_breaks[layout->line_count] = i;
             layout->line_widths[layout->line_count - 1] = current_line_width;
@@ -214,9 +186,15 @@ text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_he
     /* Store last line width and count */
     layout->line_widths[layout->line_count] = current_line_width;
     layout->line_count++;
-    layout->total_height = layout->line_count * line_height;
+    /* Calculate total height properly.
+     * For N lines, we have N * font_size for text height + (N-1) * ui_px(4) for spacing between lines.
+     * The last line doesn't have spacing after it. */
+    if(layout->line_count > 0) {
+        layout->total_height = layout->line_count * font_size + (layout->line_count - 1) * ui_px(4);
+    } else {
+        layout->total_height = 0;
+    }
 
-    printf("REFLOW: Complete! line_count=%d, total_height=%d\n", layout->line_count, layout->total_height);
 }
 
 /* ================================================================
@@ -234,12 +212,10 @@ text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
     int current_y = *y;
     int current_line = 0;
 
-    printf("DRAW: Starting render at x=%d, y=%d, line_count=%d\n", x, *y, layout->line_count);
 
     for(int i = 0; i < layout->element_count; i++) {
         /* Handle forced line breaks from explicit newlines */
         if(layout->elements[i].type == TEXT_ELEMENT_TYPE_LINE_BREAK) {
-            printf("DRAW: Element %d is LINE_BREAK - moving to next line\n", i);
             current_line++;
             current_y += font_size + ui_px(4);  /* Move to next line */
             current_x = x;
@@ -251,7 +227,6 @@ text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
         for(int j = 0; j < layout->line_count; j++) {
             if(layout->line_breaks[j] == i) {
                 is_line_break = 1;
-                printf("DRAW: Element %d starts line %d\n", i, j);
                 break;
             }
         }
@@ -260,7 +235,6 @@ text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
             current_line++;
             current_y += font_size + ui_px(4);  /* Move to next line */
             current_x = x;
-            printf("DRAW: Moved to line %d, y=%d\n", current_line, current_y);
         }
 
         if(layout->elements[i].type == TEXT_ELEMENT_TYPE_TEXT) {
@@ -291,7 +265,11 @@ text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
                      MeasureText(" ", font_size) : ui_px(4);
     }
 
-    *y = current_y + font_size + ui_px(4);
+    /* Set final Y position to match total_height calculation.
+     * After drawing all lines, current_y is at the top of the last line.
+     * Add font_size to account for the height of the last line itself.
+     * This matches: total_height = N*font_size + (N-1)*ui_px(4) */
+    *y = current_y + font_size;
 }
 
 /* ================================================================

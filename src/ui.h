@@ -74,6 +74,7 @@ int ui_draw_modal(InbeApp *app, const char *title, const char *message, const ch
 int ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message, const char *left_btn, const char *middle_btn, const char *right_btn);
 int ui_draw_screen_header(InbeApp *app, const char *title, int show_close);
 int ui_screen_header_height(void);
+int ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);
 
 /* ================================================================
  * TEXT LAYOUT UTILITIES
