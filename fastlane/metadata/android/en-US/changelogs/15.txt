@@ -1,0 +1,4 @@
+### Added
+- Proper text reflow with word wrapping
+### Fixed
+- GitHub releases and F-Droid builds now include all assets

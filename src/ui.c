@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "app.h"
+#include "text_layout.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -154,7 +155,7 @@ ui_icon_btn_padding(UIIconSize size)
     }
 }
 
-static void
+void
 ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
 {
     int center = size / 2;
@@ -1022,54 +1023,17 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int title_w = MeasureText(title, title_font);
     DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
 
-    /* Message (word wrap) */
-    const char *msg = message;
+    /* Message (text layout with icon support) */
     int msg_x = modal_x + ui_px(16);
     int msg_w = modal_w - ui_px(32);
-    int line_y = msg_y;
-    char word_buf[64];
-    int word_len = 0;
-    int line_w = 0;
-    int msg_lines = 0;
 
-    while(*msg && msg_lines < 4) {
-        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
-            if(word_len > 0) {
-                word_buf[word_len] = '\0';
-                int word_w = MeasureText(word_buf, msg_font);
-                if(line_w == 0 || line_w + word_w <= msg_w) {
-                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-                    line_w += word_w + MeasureText(" ", msg_font);
-                } else {
-                    line_y += msg_font + ui_px(4);
-                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-                    line_w = word_w;
-                    msg_lines++;
-                }
-                word_len = 0;
-            }
-            if(*msg == '\n') {
-                line_y += msg_font + ui_px(4);
-                line_w = 0;
-                msg_lines++;
-            }
-        } else if(word_len < (int)sizeof(word_buf) - 1) {
-            word_buf[word_len++] = *msg;
-        }
-        msg++;
-    }
+    /* Parse message with icon support - use GEAR icon for warnings */
+    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
 
-    /* Draw any remaining word after loop ends */
-    if(word_len > 0 && msg_lines < 4) {
-        word_buf[word_len] = '\0';
-        int word_w = MeasureText(word_buf, msg_font);
-        if(line_w == 0 || line_w + word_w <= msg_w) {
-            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-        } else {
-            line_y += msg_font + ui_px(4);
-            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-        }
-    }
+    /* Draw the layout */
+    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    ui_text_layout_free(&msg_layout);
 
     /* Buttons */
     int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
@@ -1140,54 +1104,17 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int title_w = MeasureText(title, title_font);
     DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
 
-    /* Message (word wrap) - same as 2-button version */
-    const char *msg = message;
+    /* Message (text layout with icon support) */
     int msg_x = modal_x + ui_px(16);
     int msg_w = modal_w - ui_px(32);
-    int line_y = msg_y;
-    char word_buf[64];
-    int word_len = 0;
-    int line_w = 0;
-    int msg_lines = 0;
 
-    while(*msg && msg_lines < 4) {
-        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
-            if(word_len > 0) {
-                word_buf[word_len] = '\0';
-                int word_w = MeasureText(word_buf, msg_font);
-                if(line_w == 0 || line_w + word_w <= msg_w) {
-                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-                    line_w += word_w + MeasureText(" ", msg_font);
-                } else {
-                    line_y += msg_font + ui_px(4);
-                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-                    line_w = word_w;
-                    msg_lines++;
-                }
-                word_len = 0;
-            }
-            if(*msg == '\n') {
-                line_y += msg_font + ui_px(4);
-                line_w = 0;
-                msg_lines++;
-            }
-        } else if(word_len < (int)sizeof(word_buf) - 1) {
-            word_buf[word_len++] = *msg;
-        }
-        msg++;
-    }
+    /* Parse message with icon support - use GEAR icon for warnings */
+    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
 
-    /* Draw any remaining word after loop ends */
-    if(word_len > 0 && msg_lines < 4) {
-        word_buf[word_len] = '\0';
-        int word_w = MeasureText(word_buf, msg_font);
-        if(line_w == 0 || line_w + word_w <= msg_w) {
-            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-        } else {
-            line_y += msg_font + ui_px(4);
-            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-        }
-    }
+    /* Draw the layout */
+    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    ui_text_layout_free(&msg_layout);
 
     /* Calculate button positions */
     int total_btn_w = btn_w * 3 + btn_gap * 2;
@@ -1277,6 +1204,48 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
     }
 
     return close_clicked;
+}
+
+/* ================================================================
+ * TEXT LAYOUT UTILITIES
+ * ================================================================ */
+
+TextLayout
+ui_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size)
+{
+    return text_layout_parse(input, icon, icon_type, icon_size);
+}
+
+void
+ui_text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_height)
+{
+    text_layout_reflow(layout, max_width, font_size, line_height);
+}
+
+void
+ui_text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
+{
+    text_layout_draw(layout, x, y, font_size, color);
+}
+
+int
+ui_text_layout_get_height(TextLayout *layout)
+{
+    return text_layout_get_height(layout);
+}
+
+void
+ui_text_layout_free(TextLayout *layout)
+{
+    text_layout_free(layout);
+}
+
+void
+ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width)
+{
+    if(layout == NULL || layout->last_reflow_width != max_width) {
+        ui_text_layout_reflow(layout, max_width, ui_clamp_px(14, 12, 16), ui_clamp_px(18, 16, 20));
+    }
 }
 
 /* ================================================================

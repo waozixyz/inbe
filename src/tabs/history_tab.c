@@ -2,6 +2,7 @@
 #include "app.h"
 #include "data.h"
 #include "ui.h"
+#include "text_layout.h"
 #include "raylib.h"
 
 #include <dirent.h>
@@ -536,8 +537,12 @@ history_tab_draw(InbeApp *app)
                      (int)(viewport_h * app->camera.zoom));
         y = title_h + ui_px(12) - app->history_scroll;
         if(count == 0) {
-            DrawText("No saved sessions yet.", content_x, y, ui_clamp_px(14, 12, 16), c_text);
-            DrawText("Complete a session to add data.", content_x, y + ui_px(22), ui_clamp_px(14, 12, 16), c_text);
+            int font = ui_clamp_px(14, 12, 16);
+            const char *empty_text = "No saved sessions yet.\nComplete a session to add data.";
+            TextLayout empty_layout = ui_text_layout_parse(empty_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
+            ui_text_layout_reflow(&empty_layout, content_w, font, ui_px(22));
+            ui_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
+            ui_text_layout_free(&empty_layout);
         } else {
             int year = -1;
             int month = -1;

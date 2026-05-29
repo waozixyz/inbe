@@ -890,6 +890,7 @@ inbe_app_init(void *vapp) {
     app->manual_drag_content = 0;
     app->manual_drag_content_y = 0;
     app->tutorial_step = 0;
+    app->tutorial_layouts_initialized = 0;
     app->history_scroll = 0;
     app->history_drag_scrollbar = 0;
     app->history_drag_content = 0;
@@ -1326,6 +1327,22 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->stripe_icon);
     SafeUnloadTexture(app->angel_image);
     SafeUnloadTexture(app->begin_image);
+
+    /* Cleanup tutorial text layouts */
+    if(app->tutorial_layouts_initialized) {
+        ui_text_layout_free(app->tutorial_step0_layout);
+        ui_text_layout_free(app->tutorial_step1_layout);
+        ui_text_layout_free(app->tutorial_step2_layout);
+        ui_text_layout_free(app->tutorial_step3_layout);
+        ui_text_layout_free(app->tutorial_step4_layout);
+
+        /* Free the layout memory */
+        free(app->tutorial_step0_layout);
+        free(app->tutorial_step1_layout);
+        free(app->tutorial_step2_layout);
+        free(app->tutorial_step3_layout);
+        free(app->tutorial_step4_layout);
+    }
 
     // Unload Sounds
     SafeUnloadSound(app->breath_in_sound);
