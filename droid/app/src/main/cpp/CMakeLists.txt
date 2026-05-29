@@ -56,6 +56,7 @@ add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
     "${SRC_DIR}/ui.c"
+    "${SRC_DIR}/text_layout.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
