@@ -50,6 +50,28 @@ make android
 make web
 ```
 
+### Android Emulator Testing
+
+For automated testing with camera notch (cutout) support:
+
+```bash
+# Enter the development shell and run everything automatically
+nix develop
+./scripts/emulator.sh    # Creates AVD, launches emulator, builds & runs app
+```
+
+This single script handles:
+- AVD creation (if missing)
+- Emulator launch
+- APK build
+- App installation and launch
+
+The AVD is configured with:
+- **Device**: Pixel 6 (punch-hole camera style)
+- **Display**: 1080×2400 @ 420dpi
+- **RAM**: 4GB with hardware acceleration
+- **Cutout**: Punch-hole camera for testing window insets
+
 ### Platform-Specific Notes
 
 - **Linux**: Requires SDL2 runtime libraries

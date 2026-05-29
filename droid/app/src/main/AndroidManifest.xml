@@ -10,8 +10,8 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:exported="true"
             android:screenOrientation="portrait"
-            android:theme="@android:style/Theme.DeviceDefault.NoActionBar.Fullscreen"
-            android:windowLayoutInDisplayCutoutMode="shortEdges">
+            android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:windowLayoutInDisplayCutoutMode="never">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="main" />

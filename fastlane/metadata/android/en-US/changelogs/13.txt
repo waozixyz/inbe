@@ -1,0 +1,3 @@
+- Data storage location
+- Punch hole spacing
+- Crashes on newer devices

@@ -133,43 +133,64 @@ static LotusThemeValue *scope_add_value(LotusThemeScope *scope, const char *key,
 
 static void load_scope_file(LotusThemeScope *scope)
 {
-    FILE *file;
-    char line[256];
+    char *fileText;
+    char *cursor;
+    char lineBuffer[256];
 
     if(scope == NULL || scope->path[0] == '\0')
         return;
 
-    file = fopen(scope->path, "r");
-    if(file == NULL)
+    // Use raylib's file loading which works with Android assets
+    fileText = LoadFileText(scope->path);
+    if(fileText == NULL || fileText[0] == '\0') {
+        TraceLog(LOG_WARNING, "THEME: Failed to load theme file: %s", scope->path);
         return;
+    }
 
-    while(fgets(line, sizeof(line), file) != NULL) {
+    // Parse line by line
+    cursor = fileText;
+    while(*cursor != '\0') {
+        // Extract single line
+        char *newline = strchr(cursor, '\n');
+        if(newline != NULL) {
+            *newline = '\0';  // Temporarily null-terminate
+            strncpy(lineBuffer, cursor, sizeof(lineBuffer) - 1);
+            lineBuffer[sizeof(lineBuffer) - 1] = '\0';
+            *newline = '\n';   // Restore for next iteration
+            cursor = newline + 1;
+        } else {
+            strncpy(lineBuffer, cursor, sizeof(lineBuffer) - 1);
+            lineBuffer[sizeof(lineBuffer) - 1] = '\0';
+            cursor += strlen(cursor);
+        }
+
+        // Parse line (same logic as before)
+        char *line_cursor = lineBuffer;
         char key[LOTUS_THEME_NAME_SIZE];
         char value[32];
-        char *cursor = line;
         int key_len = 0;
         Color color;
 
-        while(isspace((unsigned char)*cursor))
-            cursor++;
-        if(*cursor == '#' || *cursor == '\0')
+        while(isspace((unsigned char)*line_cursor))
+            line_cursor++;
+        if(*line_cursor == '#' || *line_cursor == '\0')
             continue;
 
-        while(*cursor != '\0' && !isspace((unsigned char)*cursor) &&
+        while(*line_cursor != '\0' && !isspace((unsigned char)*line_cursor) &&
               key_len < LOTUS_THEME_NAME_SIZE - 1) {
-            key[key_len++] = *cursor++;
+            key[key_len++] = *line_cursor++;
         }
         key[key_len] = '\0';
 
-        while(isspace((unsigned char)*cursor))
-            cursor++;
-        if(*cursor == '"')
-            cursor++;
+        while(isspace((unsigned char)*line_cursor))
+            line_cursor++;
+        if(*line_cursor == '"')
+            line_cursor++;
 
         int value_len = 0;
-        while(*cursor != '\0' && *cursor != '"' && *cursor != '\n' &&
-              !isspace((unsigned char)*cursor) && value_len < (int)sizeof(value) - 1) {
-            value[value_len++] = *cursor++;
+        while(*line_cursor != '\0' && *line_cursor != '"' && *line_cursor != '\n' &&
+              !isspace((unsigned char)*line_cursor) && value_len < (int)sizeof(value) - 1) {
+            value[value_len++] = *line_cursor++;
         }
         value[value_len] = '\0';
 
@@ -177,7 +198,7 @@ static void load_scope_file(LotusThemeScope *scope)
             scope_add_value(scope, key, color);
     }
 
-    fclose(file);
+    UnloadFileText(fileText);
 }
 
 LotusThemeScope *theme_register_scope(const char *name, const char *path)
@@ -202,10 +223,30 @@ Color theme_get(const char *scope_name, const char *key)
     if(value != NULL)
         return value->value;
 
-    fprintf(stderr, "missing theme color: %s.%s\n",
+    fprintf(stderr, "missing theme color: %s.%s, using clean light sky default\n",
             scope_name != NULL ? scope_name : "(null)",
             key != NULL ? key : "(null)");
-    abort();
+
+    // Use clean light sky theme colors as defaults
+    if(key != NULL) {
+        if(strstr(key, "background") != NULL)
+            return (Color){0xE2, 0xEE, 0xFC, 0xFF}; // #E2EEFCFF
+        if(strstr(key, "text") != NULL || strstr(key, "foreground") != NULL)
+            return (Color){0x24, 0x48, 0x7C, 0xFF}; // #24487CFF
+        if(strstr(key, "circle") != NULL)
+            return (Color){0x7E, 0xB7, 0xE6, 0xFF}; // #7EB7E6FF
+        if(strstr(key, "button_hover") != NULL)
+            return (Color){0x68, 0x9E, 0xD7, 0xFF}; // #689ED7FF
+        if(strstr(key, "button") != NULL)
+            return (Color){0xA6, 0xCF, 0xF2, 0xFF}; // #A6CFF2FF
+        if(strstr(key, "icon") != NULL)
+            return (Color){0xE2, 0xEE, 0xFC, 0xFF}; // #E2EEFCFF
+        if(strstr(key, "link") != NULL)
+            return (Color){0x4A, 0x90, 0xE2, 0xFF}; // #4A90E2FF
+    }
+
+    // Default fallback: sky background
+    return (Color){0xE2, 0xEE, 0xFC, 0xFF};
 }
 
 bool theme_set_color(const char *scope_name, const char *key, Color color)

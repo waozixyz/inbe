@@ -1,5 +1,4 @@
 #include "ui.h"
-#include "android_insets.h"
 #include "app.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -791,8 +790,6 @@ void
 ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 {
     int bar_h = ui_clamp_px(58, 54, 66);
-    AndroidInsets insets = {0};
-    android_insets_get(&insets);
     int bar_y = ui_view_height - bar_h;
     int button_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
     int button_h = button_size + ui_px(12);
