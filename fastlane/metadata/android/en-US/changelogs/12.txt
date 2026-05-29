@@ -1,0 +1,2 @@
+### Fixed
+- Slider focus now properly releases when mouse button is released (prevented adjusting sliders when clicking outside)
