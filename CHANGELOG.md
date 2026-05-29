@@ -1,4 +1,10 @@
 # Changelog
+## [1.1.4] - 2026-05-29
+### Added
+- Proper text reflow with word wrapping
+### Fixed
+- GitHub releases and F-Droid builds now include all assets
+
 ## [1.1.3] - 2026-05-29
 ### Fixed
 - Icon button fallback system - buttons now render with procedural graphics when asset images fail to load (prevents empty buttons on devices with asset loading issues)

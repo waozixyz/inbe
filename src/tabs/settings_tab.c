@@ -1,6 +1,7 @@
 #include "settings_tab.h"
 #include "app.h"
 #include "ui.h"
+#include "text_layout.h"
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
@@ -407,15 +408,11 @@ settings_tab_draw(InbeApp *app)
                 int text_y = yoff + content_start_y;
 
                 /* App description */
-                const char *desc_lines[] = {
-                    "Inner Breeze is a simple breathing",
-                    "meditation app to help you relax",
-                    "and find your calm."
-                };
-                for(int i = 0; i < 3; i++) {
-                    DrawText(desc_lines[i], content_x, text_y, font, c_text);
-                    text_y += ui_px(22);
-                }
+                const char *desc_text = "Inner Breeze is a simple breathing\nmeditation app to help you relax\nand find your calm.";
+                TextLayout desc_layout = ui_text_layout_parse(desc_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
+                ui_text_layout_reflow(&desc_layout, content_w, font, ui_px(22));
+                ui_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
+                ui_text_layout_free(&desc_layout);
 
                 /* Version info */
                 text_y += ui_px(20);
