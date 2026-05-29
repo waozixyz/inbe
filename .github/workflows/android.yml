@@ -47,7 +47,7 @@ jobs:
         echo "Keystore decoded successfully"
 
     - name: Copy Assets to Android Project
-      run: make android-copy-assets
+      run: ./scripts/copy-android-assets.sh
 
     - name: Build Release APK
       working-directory: ./droid
