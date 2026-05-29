@@ -26,7 +26,6 @@ enum {
     CONTENT_MAX_W = 440,
     CONTENT_SIDE_PAD = 16,
     CIRCLE_SIDE_PAD = 32,
-    TUTORIAL_STEPS = 5,
     FS_PATH_MAX = 512
 };
 
@@ -127,11 +126,7 @@ struct InbeApp {
     int tutorial_seen;
 
     /* Tutorial text layouts - persistent for automatic reflow */
-    TextLayout *tutorial_step0_layout;
-    TextLayout *tutorial_step1_layout;
-    TextLayout *tutorial_step2_layout;
-    TextLayout *tutorial_step3_layout;
-    TextLayout *tutorial_step4_layout;
+    TextLayout *tutorial_layouts[5];
     int tutorial_layouts_initialized;
 
     int theme_id;

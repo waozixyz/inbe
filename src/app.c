@@ -1337,18 +1337,10 @@ inbe_app_destroy(void *vapp)
 
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {
-        ui_text_layout_free(app->tutorial_step0_layout);
-        ui_text_layout_free(app->tutorial_step1_layout);
-        ui_text_layout_free(app->tutorial_step2_layout);
-        ui_text_layout_free(app->tutorial_step3_layout);
-        ui_text_layout_free(app->tutorial_step4_layout);
-
-        /* Free the layout memory */
-        free(app->tutorial_step0_layout);
-        free(app->tutorial_step1_layout);
-        free(app->tutorial_step2_layout);
-        free(app->tutorial_step3_layout);
-        free(app->tutorial_step4_layout);
+        for(int i = 0; i < 5; i++) {
+            ui_text_layout_free(app->tutorial_layouts[i]);
+            free(app->tutorial_layouts[i]);
+        }
     }
 
     // Unload Sounds
