@@ -1,4 +1,8 @@
 # Changelog
+## [1.1.1] - 2026-05-28
+### Fixed
+- Slider focus now properly releases when mouse button is released (prevented adjusting sliders when clicking outside)
+
 ## [1.1.0] - 2026-05-28
 ### Added
 - Tiny version bump
