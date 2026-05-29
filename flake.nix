@@ -94,6 +94,7 @@
             targetPkgs = pkgs: with pkgs; [
               SDL2
               SDL2.dev
+	      butler
               cmake
               emscripten
               gcc

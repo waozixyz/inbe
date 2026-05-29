@@ -107,6 +107,11 @@ settings_tab_draw(InbeApp *app)
 
     ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
 
+    /* Reset slider drag state when mouse is released */
+    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        app->settings_drag_slider = 0;
+    }
+
     close_clicked = ui_draw_screen_header(app, "Settings", 1);
     if(close_clicked) {
         if(app->settings_dirty)

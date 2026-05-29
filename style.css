@@ -6,17 +6,17 @@
 
 :root {
 	--page-bg: #000000;
-	--page-tile: url('/icons/tile.png');
+	--page-tile: url('/icons/tile2.png');
 	--page-tile-opacity: 0.32;
-	--panel-bg: #ffffea;
-	--dark: #557777;
+	--panel-bg: #E2EEFC;
+	--dark: #24487C;
 	--shadow: #000000;
 	--light: #ffffff;
-	--button-bg: #d9d9d9;
+	--button-bg: #A6CFF2;
 	--button-highlight: #ffffff;
 	--button-inset: #ffffff;
-	--link: #1133aa;
-	--link-hover: #0044cc;
+	--link: #4A90E2;
+	--link-hover: #689ED7;
 }
 
 html, body {
@@ -62,6 +62,14 @@ body::before {
 		2px 2px 0 0 var(--light);
 }
 
+.hero {
+	text-align: center;
+}
+
+.hero img {
+	margin: 0 auto;
+}
+
 section {
 	margin-bottom: 80px;
 }
@@ -79,6 +87,10 @@ img {
 	max-width: 100%;
 	height: auto;
 	image-rendering: pixelated;
+}
+
+.hero .tk-img {
+	margin-bottom: 24px;
 }
 
 .tk-img {
@@ -276,6 +288,10 @@ input[type="text"] {
 
 .download-item:hover {
 	background-color: var(--button-highlight);
+}
+
+details {
+	text-align: center;
 }
 
 .donation-buttons {
