@@ -48,6 +48,7 @@
             includeNDK = true;
             ndkVersions = [ "25.1.8937393" ];
             cmakeVersions = [ "3.22.1" ];
+            includeEmulator = true;
           };
 
           sdk = androidComposition.androidsdk;
@@ -145,7 +146,7 @@
 
               export RAY_RAYLIB_CONFIG="-DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0"
 
-              export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+              export PATH="$ANDROID_HOME/cmdline-tools/11.0/bin:$ANDROID_HOME/platform-tools:$ANDROID_HOME/emulator:$PATH"
 
               export WEB_CC="emcc"
               export WEB_AR="emar"

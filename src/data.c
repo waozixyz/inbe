@@ -51,9 +51,6 @@ int_from_count(const char src[4])
 static int
 ensure_dir(const char *path)
 {
-    char temp[FS_PATH_MAX];
-    char *p;
-
     if(path == NULL || path[0] == '\0')
         return 0;
 
@@ -61,6 +58,18 @@ ensure_dir(const char *path)
 
     if(DirectoryExists(path))
         return 1;
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    /* On Android, just create the full path directly - Raylib's MakeDirectory handles recursion */
+    TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
+    if(MakeDirectory(path))
+        return 1;
+
+    TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", path);
+    return 0;
+#else
+    char temp[FS_PATH_MAX];
+    char *p;
 
     /* Make a temporary copy to modify */
     strncpy(temp, path, sizeof(temp) - 1);
@@ -92,6 +101,7 @@ ensure_dir(const char *path)
 
     TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", path);
     return 0;
+#endif
 }
 
 /* Check if a path refers to a session file (starts with "inbe-")
@@ -229,8 +239,8 @@ data_root(void)
         } catch(e) {}
     });
 #elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    /* On Android, use simple relative path - Raylib handles storage */
-    snprintf(g_data_root, sizeof(g_data_root), "lotus");
+    /* On Android, use app's files directory which is already created */
+    snprintf(g_data_root, sizeof(g_data_root), "/data/data/xyz.waozi.inbe/files/lotus");
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
     const char *home = getenv("HOME");

@@ -50,6 +50,33 @@ make android
 make web
 ```
 
+### Android Emulator Testing
+
+For testing the Android app with camera notch (cutout) support:
+
+```bash
+# Enter the development shell
+nix develop
+
+# Create an AVD with punch-hole camera configuration (first time only)
+./scripts/create-avd.sh
+
+# Launch the emulator
+./scripts/launch-emulator.sh
+
+# Build and deploy the debug APK
+make android-debug
+
+# Install and run on the emulator
+./scripts/run-android.sh
+```
+
+The AVD is configured with:
+- **Device**: Pixel 6 (punch-hole camera style)
+- **Display**: 1080×2400 @ 420dpi
+- **RAM**: 4GB with hardware acceleration
+- **Cutout**: Punch-hole camera for testing window insets
+
 ### Platform-Specific Notes
 
 - **Linux**: Requires SDL2 runtime libraries
