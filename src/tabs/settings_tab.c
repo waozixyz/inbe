@@ -347,18 +347,18 @@ settings_tab_draw(InbeApp *app)
                 int delete_w = MeasureText("Delete All Data", font) + ui_px(24);
                 int delete_x = content_x;
                 int delete_y = export_y + export_h + ui_px(12);
-                Rectangle delete_rect = {delete_x, delete_y, delete_w, delete_h};
+                Rectangle delete_rect = {delete_x, delete_y, delete_w, export_h};
 
                 if(CheckCollisionPointRec(mouse_world, delete_rect)) {
-                    DrawRectangle(delete_x, delete_y, delete_w, delete_h, c_button_hover);
-                    ui_draw_bevel(delete_x, delete_y, delete_w, delete_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+                    DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button_hover);
+                    ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
                     hover_delete = 1;
                     app->cursor_clickable = 1;
                 } else {
-                    DrawRectangle(delete_x, delete_y, delete_w, delete_h, c_button);
-                    ui_draw_bevel(delete_x, delete_y, delete_w, delete_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+                    DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button);
+                    ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
                 }
-                DrawText("Delete All Data", delete_x + ui_px(12), delete_y + delete_h / 2 - font / 2 - 1, font, c_text);
+                DrawText("Delete All Data", delete_x + ui_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
 
                 /* Handle button clicks */
                 if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
