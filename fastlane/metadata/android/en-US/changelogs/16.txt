@@ -1,0 +1,5 @@
+### Fixed
+- Results page layout improvements:
+- Dropdown menu hover highlighting no longer clipped at bottom edge
+- Text layout height calculation now matches actual rendered height
+- Tutorial page content height calculations fixed (no more premature scrollbars)

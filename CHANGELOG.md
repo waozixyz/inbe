@@ -1,4 +1,22 @@
 # Changelog
+## [1.1.5] - 2026-05-29
+### Fixed
+- Results page layout improvements:
+  - Consistent side padding (32px) across all pages
+  - Increased spacing between average time and round times
+  - Left-aligned round times for better readability
+  - Fixed scrollbar appearing prematurely (corrected height calculations)
+  - Accurate content height measurements for better scroll behavior
+- Dropdown menu hover highlighting no longer clipped at bottom edge
+- Text layout height calculation now matches actual rendered height
+- Tutorial page content height calculations fixed (no more premature scrollbars)
+
+## [1.1.4] - 2026-05-29
+### Added
+- Proper text reflow with word wrapping
+### Fixed
+- GitHub releases and F-Droid builds now include all assets
+
 ## [1.1.3] - 2026-05-29
 ### Fixed
 - Icon button fallback system - buttons now render with procedural graphics when asset images fail to load (prevents empty buttons on devices with asset loading issues)

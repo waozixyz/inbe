@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "app.h"
+#include "text_layout.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -87,9 +88,6 @@ ui_darken(Color c, int amount)
 void
 ui_centered_column(int max_w, int side_pad, int *x, int *w)
 {
-    max_w = (int)(max_w * dpi_scale + 0.5f);
-    side_pad = (int)(side_pad * dpi_scale + 0.5f);
-
     int available_w = ui_view_width - side_pad * 2;
 
     if(available_w < 0)
@@ -154,7 +152,7 @@ ui_icon_btn_padding(UIIconSize size)
     }
 }
 
-static void
+void
 ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
 {
     int center = size / 2;
@@ -563,7 +561,8 @@ ui_dropdown_captures_click(Vector2 point)
             int option_h = state->h;
             int menu_gap = ui_px(4);
             int dropdown_y = state->y + state->h + menu_gap;
-            int dropdown_h = option_h * state->option_count + ui_px(8);
+            /* Calculate dropdown height: top padding + all options + extra bottom padding for hover */
+            int dropdown_h = ui_px(4) + option_h * state->option_count + ui_px(12);
             int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
 
             if(dropdown_h > max_visible_h) {
@@ -694,7 +693,8 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int option_h = h;
     int menu_gap = ui_px(4);
     int dropdown_y = y + h + menu_gap;
-    int dropdown_h = option_h * option_count + ui_px(8);
+    /* Calculate dropdown height: top padding + all options + extra bottom padding for hover */
+    int dropdown_h = ui_px(4) + option_h * option_count + ui_px(12);
     int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
     int need_scroll = dropdown_h > max_visible_h;
     int visible_options = option_count;
@@ -726,16 +726,19 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
 
-    /* Clip to menu area */
-    BeginScissorMode(x, dropdown_y, w, dropdown_h);
+    /* Clip to menu area - expand to ensure bevel and highlights aren't clipped */
+    int bevel_width = (int)(dpi_scale + 0.5f);
+    if(bevel_width < 1) bevel_width = 1;
+    int expand = bevel_width + ui_px(2);  /* Extra expansion for hover highlights */
+    BeginScissorMode(x - expand, dropdown_y - expand, w + expand * 2, dropdown_h + expand * 2);
 
     /* Draw options */
     for(int i = 0; i < option_count; i++) {
         int option_y = dropdown_y + ui_px(4) + (i - state->scroll_offset) * option_h;
         Rectangle option_bounds = {x, option_y, w, option_h};
 
-        /* Skip if outside visible area */
-        if(option_y + option_h < dropdown_y || option_y > dropdown_y + dropdown_h)
+        /* Skip if outside visible area - use inclusive bounds for last item */
+        if(option_y + option_h < dropdown_y || option_y >= dropdown_y + dropdown_h)
             continue;
 
         int option_hover = CheckCollisionPointRec(mouse, option_bounds);
@@ -1022,54 +1025,17 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int title_w = MeasureText(title, title_font);
     DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
 
-    /* Message (word wrap) */
-    const char *msg = message;
+    /* Message (text layout with icon support) */
     int msg_x = modal_x + ui_px(16);
     int msg_w = modal_w - ui_px(32);
-    int line_y = msg_y;
-    char word_buf[64];
-    int word_len = 0;
-    int line_w = 0;
-    int msg_lines = 0;
 
-    while(*msg && msg_lines < 4) {
-        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
-            if(word_len > 0) {
-                word_buf[word_len] = '\0';
-                int word_w = MeasureText(word_buf, msg_font);
-                if(line_w == 0 || line_w + word_w <= msg_w) {
-                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-                    line_w += word_w + MeasureText(" ", msg_font);
-                } else {
-                    line_y += msg_font + ui_px(4);
-                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-                    line_w = word_w;
-                    msg_lines++;
-                }
-                word_len = 0;
-            }
-            if(*msg == '\n') {
-                line_y += msg_font + ui_px(4);
-                line_w = 0;
-                msg_lines++;
-            }
-        } else if(word_len < (int)sizeof(word_buf) - 1) {
-            word_buf[word_len++] = *msg;
-        }
-        msg++;
-    }
+    /* Parse message with icon support - use GEAR icon for warnings */
+    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
 
-    /* Draw any remaining word after loop ends */
-    if(word_len > 0 && msg_lines < 4) {
-        word_buf[word_len] = '\0';
-        int word_w = MeasureText(word_buf, msg_font);
-        if(line_w == 0 || line_w + word_w <= msg_w) {
-            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-        } else {
-            line_y += msg_font + ui_px(4);
-            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-        }
-    }
+    /* Draw the layout */
+    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    ui_text_layout_free(&msg_layout);
 
     /* Buttons */
     int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
@@ -1140,54 +1106,17 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int title_w = MeasureText(title, title_font);
     DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
 
-    /* Message (word wrap) - same as 2-button version */
-    const char *msg = message;
+    /* Message (text layout with icon support) */
     int msg_x = modal_x + ui_px(16);
     int msg_w = modal_w - ui_px(32);
-    int line_y = msg_y;
-    char word_buf[64];
-    int word_len = 0;
-    int line_w = 0;
-    int msg_lines = 0;
 
-    while(*msg && msg_lines < 4) {
-        if(*msg == ' ' || *msg == '\0' || *msg == '\n') {
-            if(word_len > 0) {
-                word_buf[word_len] = '\0';
-                int word_w = MeasureText(word_buf, msg_font);
-                if(line_w == 0 || line_w + word_w <= msg_w) {
-                    DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-                    line_w += word_w + MeasureText(" ", msg_font);
-                } else {
-                    line_y += msg_font + ui_px(4);
-                    DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-                    line_w = word_w;
-                    msg_lines++;
-                }
-                word_len = 0;
-            }
-            if(*msg == '\n') {
-                line_y += msg_font + ui_px(4);
-                line_w = 0;
-                msg_lines++;
-            }
-        } else if(word_len < (int)sizeof(word_buf) - 1) {
-            word_buf[word_len++] = *msg;
-        }
-        msg++;
-    }
+    /* Parse message with icon support - use GEAR icon for warnings */
+    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
 
-    /* Draw any remaining word after loop ends */
-    if(word_len > 0 && msg_lines < 4) {
-        word_buf[word_len] = '\0';
-        int word_w = MeasureText(word_buf, msg_font);
-        if(line_w == 0 || line_w + word_w <= msg_w) {
-            DrawText(word_buf, msg_x + line_w, line_y, msg_font, c_text);
-        } else {
-            line_y += msg_font + ui_px(4);
-            DrawText(word_buf, msg_x, line_y, msg_font, c_text);
-        }
-    }
+    /* Draw the layout */
+    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    ui_text_layout_free(&msg_layout);
 
     /* Calculate button positions */
     int total_btn_w = btn_w * 3 + btn_gap * 2;
@@ -1277,6 +1206,125 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
     }
 
     return close_clicked;
+}
+
+/* ================================================================
+ * TEXT LAYOUT UTILITIES
+ * ================================================================ */
+
+TextLayout
+ui_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size)
+{
+    return text_layout_parse(input, icon, icon_type, icon_size);
+}
+
+void
+ui_text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_height)
+{
+    text_layout_reflow(layout, max_width, font_size, line_height);
+}
+
+void
+ui_text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
+{
+    text_layout_draw(layout, x, y, font_size, color);
+}
+
+int
+ui_text_layout_get_height(TextLayout *layout)
+{
+    return text_layout_get_height(layout);
+}
+
+void
+ui_text_layout_free(TextLayout *layout)
+{
+    text_layout_free(layout);
+}
+
+void
+ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width)
+{
+    if(layout == NULL || layout->last_reflow_width != max_width) {
+        ui_text_layout_reflow(layout, max_width, ui_clamp_px(14, 12, 16), ui_clamp_px(18, 16, 20));
+    }
+}
+
+/* ================================================================
+ * SCROLLBAR
+ * ================================================================ */
+
+int
+ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll)
+{
+    /* Don't show scrollbar if no scrolling needed */
+    if(max_scroll <= 0)
+        return 0;
+
+    static int scrollbar_drag_active = 0;
+    static int scrollbar_drag_start_y = 0;
+    static int scrollbar_drag_start_scroll = 0;
+
+    int scrollbar_width = ui_px(8);
+    int scrollbar_min_thumb = ui_px(24);
+    int track_padding = ui_px(2);
+
+    /* Calculate thumb size and position */
+    float content_ratio = (float)viewport_h / (float)content_h;
+    int thumb_height = (int)(viewport_h * content_ratio);
+    if(thumb_height < scrollbar_min_thumb)
+        thumb_height = scrollbar_min_thumb;
+    if(thumb_height > viewport_h)
+        thumb_height = viewport_h;
+
+    float scroll_ratio = max_scroll > 0 ? (float)*scroll_offset / (float)max_scroll : 0.0f;
+    int thumb_y = y + (int)(scroll_ratio * (viewport_h - thumb_height));
+
+    /* Get mouse position in screen coordinates (not world coordinates) */
+    Vector2 mouse_pos = GetMousePosition();
+    int my = (int)mouse_pos.y;
+
+    /* Thumb bounds in screen coordinates */
+    Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
+
+    /* Check for hover */
+    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds);
+
+    /* Handle drag state */
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if(!scrollbar_drag_active) {
+            /* Start drag if clicking on thumb */
+            if(thumb_hover) {
+                scrollbar_drag_active = 1;
+                scrollbar_drag_start_y = my;
+                scrollbar_drag_start_scroll = *scroll_offset;
+            }
+        } else {
+            /* Continue drag */
+            int dy = my - scrollbar_drag_start_y;
+            float scroll_per_pixel = (float)max_scroll / (float)(viewport_h - thumb_height);
+            int new_scroll = scrollbar_drag_start_scroll + (int)(dy * scroll_per_pixel);
+            *scroll_offset = new_scroll;
+            if(*scroll_offset < 0) *scroll_offset = 0;
+            if(*scroll_offset > max_scroll) *scroll_offset = max_scroll;
+        }
+    } else {
+        scrollbar_drag_active = 0;
+    }
+
+    /* Draw track */
+    DrawRectangle(x, y, scrollbar_width, viewport_h, ui_darken(c_bg, 20));
+
+    /* Draw thumb */
+    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : ui_lighten(c_button, 20);
+    DrawRectangleRec(thumb_bounds, thumb_color);
+
+    /* Draw bevel on thumb */
+    ui_draw_bevel((int)thumb_bounds.x, (int)thumb_bounds.y,
+                  (int)thumb_bounds.width, (int)thumb_bounds.height,
+                  ui_darken(thumb_color, 40), ui_lighten(thumb_color, 40));
+
+    return 1;
 }
 
 /* ================================================================

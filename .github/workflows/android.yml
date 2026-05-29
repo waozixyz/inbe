@@ -46,6 +46,9 @@ jobs:
         echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
         echo "Keystore decoded successfully"
 
+    - name: Copy Assets to Android Project
+      run: ./scripts/copy-android-assets.sh
+
     - name: Build Release APK
       working-directory: ./droid
       env:
@@ -60,13 +63,14 @@ jobs:
 
     - name: Rename APK
       run: |
-        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe.apk \; 2>/dev/null || true
+        VERSION=$(grep "versionName" droid/app/build.gradle | awk '{print $2}' | tr -d '"')
+        find droid/app/build/outputs/apk/release -name "*-universal-release.apk" -exec cp {} inbe-$VERSION.apk \; 2>/dev/null || true
 
     - name: Upload APK to Artifacts
       uses: actions/upload-artifact@v4
       with:
         name: release-apk
-        path: inbe.apk
+        path: inbe-*.apk
         if-no-files-found: warn
 
     - name: Create and Push Tag (if new version)
@@ -92,7 +96,7 @@ jobs:
       uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ steps.tag_version.outputs.tag_name }}
-        files: inbe.apk
+        files: inbe-*.apk
         generate_release_notes: true
         draft: false
       env:

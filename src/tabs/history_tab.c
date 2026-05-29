@@ -2,6 +2,7 @@
 #include "app.h"
 #include "data.h"
 #include "ui.h"
+#include "text_layout.h"
 #include "raylib.h"
 
 #include <dirent.h>
@@ -16,14 +17,6 @@
 /* Suppress GCC format-truncation warnings - paths are safely sized in practice */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
-
-#define CONTENT_MAX_W 440
-#define CONTENT_SIDE_PAD 16
-#define SETTINGS_TITLE_H 60
-#define TAB_BAR_H 54
-#define ICON_SIZE_SMALL 16
-#define ICON_SIZE_SMALL_MIN 14
-#define ICON_SIZE_SMALL_MAX 18
 
 /* Viewport dimensions - set by inbe_app_update_draw before calling draw functions */
 extern int view_width;
@@ -512,17 +505,30 @@ history_tab_draw(InbeApp *app)
         }
     }
 
-    content_h = count > 0 ? count * row_h + 18 : viewport_h;
+    /* Calculate content height with proper top and bottom padding */
+    content_h = ui_px(12);  /* Top padding */
+    if(count > 0) {
+        content_h += count * row_h;
+    } else {
+        content_h += viewport_h;
+    }
     if(content_rows > 0)
-        content_h = 18 + content_rows * row_h;
+        content_h = ui_px(12) + content_rows * row_h;
+    content_h += ui_px(12);  /* Bottom padding */
     max_scroll = content_h - viewport_h;
-    if(max_scroll < 0)
+    if(max_scroll < 0 || count == 0)
         max_scroll = 0;
 
     app->history_scroll -= (int)(GetMouseWheelMove() * 24.0f);
     app->history_scroll = (app->history_scroll < 0) ? 0 : (app->history_scroll > max_scroll ? max_scroll : app->history_scroll);
 
-    ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+    /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
+    int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
+    int min_content_w = ui_px(320);
+    if(responsive_max_w < min_content_w)
+        responsive_max_w = min_content_w;
+    int side_padding = ui_px(32);  /* Match tutorial spacing */
+    ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     close_clicked = ui_draw_screen_header(app, "History", 1);
     if(close_clicked) {
@@ -536,8 +542,12 @@ history_tab_draw(InbeApp *app)
                      (int)(viewport_h * app->camera.zoom));
         y = title_h + ui_px(12) - app->history_scroll;
         if(count == 0) {
-            DrawText("No saved sessions yet.", content_x, y, ui_clamp_px(14, 12, 16), c_text);
-            DrawText("Complete a session to add data.", content_x, y + ui_px(22), ui_clamp_px(14, 12, 16), c_text);
+            int font = ui_clamp_px(14, 12, 16);
+            const char *empty_text = "No saved sessions yet.\nComplete a session to add data.";
+            TextLayout empty_layout = ui_text_layout_parse(empty_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
+            ui_text_layout_reflow(&empty_layout, content_w, font, ui_px(22));
+            ui_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
+            ui_text_layout_free(&empty_layout);
         } else {
             int year = -1;
             int month = -1;
@@ -638,10 +648,11 @@ history_tab_draw(InbeApp *app)
                     y += row_h;
 
                     if(selected_index == i) {
+                        y += row_h * 2;  /* Extra spacing before round items */
                         for(int r = 0; r < entries[i].round_count; r++) {
                             char round_label[HISTORY_TEXT_SIZE];
                             history_format_round_label(&entries[i], r, round_label, sizeof(round_label));
-                            if(draw_history_row(app, content_x, y, content_w, row_h, round_label, 0, 46)) {
+                            if(draw_history_row(app, content_x, y, content_w, row_h, round_label, 0, 10)) {
                                 /* Round clicked - could do something here */
                             }
                             y += row_h;

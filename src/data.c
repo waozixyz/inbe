@@ -56,14 +56,22 @@ ensure_dir(const char *path)
 
     TraceLog(LOG_INFO, "DATA: ensure_dir: %s", path);
 
-    if(DirectoryExists(path))
+    if(DirectoryExists(path)) {
+        TraceLog(LOG_INFO, "DATA: Directory already exists: %s", path);
         return 1;
+    }
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     /* On Android, just create the full path directly - Raylib's MakeDirectory handles recursion */
     TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
     if(MakeDirectory(path))
         return 1;
+
+    /* Check if directory actually exists despite MakeDirectory failure */
+    if(DirectoryExists(path)) {
+        TraceLog(LOG_WARNING, "DATA: MakeDirectory failed but directory exists: %s", path);
+        return 1;
+    }
 
     TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", path);
     return 0;
@@ -84,10 +92,14 @@ ensure_dir(const char *path)
         if(!DirectoryExists(temp)) {
             TraceLog(LOG_INFO, "DATA: Creating directory: %s", temp);
             if(!MakeDirectory(temp)) {
-                /* Parent directory creation failed */
-                TraceLog(LOG_ERROR, "DATA: Failed to create directory: %s", temp);
-                *p = '/';
-                return 0;
+                /* Check if it exists despite failure */
+                if(!DirectoryExists(temp)) {
+                    TraceLog(LOG_ERROR, "DATA: Failed to create directory: %s", temp);
+                    *p = '/';
+                    return 0;
+                } else {
+                    TraceLog(LOG_WARNING, "DATA: Directory already exists: %s", temp);
+                }
             }
         }
         *p = '/';
@@ -98,6 +110,12 @@ ensure_dir(const char *path)
     TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
     if(MakeDirectory(path))
         return 1;
+
+    /* Check if directory actually exists despite MakeDirectory failure */
+    if(DirectoryExists(path)) {
+        TraceLog(LOG_WARNING, "DATA: MakeDirectory failed but directory exists: %s", path);
+        return 1;
+    }
 
     TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", path);
     return 0;

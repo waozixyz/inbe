@@ -44,11 +44,14 @@
           androidComposition = pkgs.androidenv.composeAndroidPackages {
             cmdLineToolsVersion = "11.0";
             buildToolsVersions = [ "34.0.0" ];
-            platformVersions = [ "35" ];
+            platformVersions = [ "34" "35" ];
             includeNDK = true;
             ndkVersions = [ "25.1.8937393" ];
             cmakeVersions = [ "3.22.1" ];
             includeEmulator = true;
+            includeSystemImages = true;
+            systemImageTypes = [ "google_apis_playstore" "default" ];
+            abiVersions = [ "arm64-v8a" "x86_64" ];
           };
 
           sdk = androidComposition.androidsdk;

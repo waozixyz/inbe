@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/ui.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/android_share.c src/tabs/history_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
+SRC = src/main.c src/app.c src/ui.c src/text_layout.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/android_share.c src/tabs/history_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
