@@ -1,8 +1,19 @@
 #!/bin/bash
 # Copy assets to Android project without requiring nix-shell or Makefile dependencies
 # This script is used by GitHub Actions and F-Droid builds
+# This script works from any directory by detecting the repository root
 
 set -e
+
+# Find the repository root by locating this script's directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+REPO_ROOT="$(dirname "$SCRIPT_DIR")"
+
+# Change to repository root so all relative paths work correctly
+cd "$REPO_ROOT" || exit 1
+
+echo "Running from repository root: $(pwd)"
+echo "Copying assets to Android project..."
 
 ANDROID_DIR="droid"
 ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
