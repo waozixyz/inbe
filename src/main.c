@@ -2,6 +2,8 @@
 #include "app.h"
 #include "ui/dpi.h"
 #include "android_insets.h"
+#include "android_wakelock.h"
+#include "android_timer.h"
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include <android/log.h>
@@ -96,12 +98,22 @@ int main(int argc, char **argv) {
     int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
     int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
 
+#if INBE_ANDROID_BUILD
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
+#endif
+
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
 #if INBE_ANDROID_BUILD
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_insets_init");
     android_insets_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_wakelock_init");
+    android_wakelock_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_timer_init");
+    android_timer_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Init calls done");
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
 #endif

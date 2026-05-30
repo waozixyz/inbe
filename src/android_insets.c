@@ -6,12 +6,41 @@
 #include <pthread.h>
 #include <android_native_app_glue.h>
 #include <jni.h>
+#include <android/log.h>
+
+#define LOG_TAG "INBE_INSETS"
 
 #ifndef JNI_VERSION_1_6
 #define JNI_VERSION_1_6 0x10060000
 #endif
 
 extern struct android_app *GetAndroidApp(void);
+extern void android_wakelock_set_activity(JNIEnv *env, jobject activity);
+extern void android_wakelock_set_jvm(JavaVM *vm);
+extern void android_timer_activate(void);
+extern void android_timer_deactivate(void);
+
+// Called from Java when activity is ready for wake lock
+static void android_wakelock_set_activity_impl(JNIEnv *env, jobject thiz) {
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Wake lock ready callback from Java");
+    android_wakelock_set_activity(env, thiz);
+}
+
+// Called from Java when activity is paused
+static void android_timer_activate_impl(JNIEnv *env, jobject thiz) {
+    (void)env;
+    (void)thiz;
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "JNI: Timer ACTIVATE callback");
+    android_timer_activate();
+}
+
+// Called from Java when activity is resumed
+static void android_timer_deactivate_impl(JNIEnv *env, jobject thiz) {
+    (void)env;
+    (void)thiz;
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "JNI: Timer DEACTIVATE callback");
+    android_timer_deactivate();
+}
 
 static JavaVM *g_jvm = NULL;
 static jobject g_activity = NULL;
@@ -50,6 +79,9 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
 // JNI method table
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
+    {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
+    {"nativeTimerActivate", "()V", (void*)android_timer_activate_impl},
+    {"nativeTimerDeactivate", "()V", (void*)android_timer_deactivate_impl},
 };
 
 // JNI_OnLoad - Register native methods
@@ -59,6 +91,9 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
     jint result;
 
     g_jvm = vm;
+
+    // Also set JVM for wake lock module
+    android_wakelock_set_jvm(vm);
 
     result = (*vm)->GetEnv(vm, (void**)&env, JNI_VERSION_1_6);
     if (result != JNI_OK) {
@@ -84,9 +119,11 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 }
 
 void android_insets_init(void) {
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== android_insets_init ===");
     pthread_mutex_lock(&insets_mutex);
     memset((void *)&current_insets, 0, sizeof(current_insets));
     pthread_mutex_unlock(&insets_mutex);
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== android_insets_init DONE ===");
 }
 
 void android_insets_get(AndroidInsets *out) {

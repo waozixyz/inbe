@@ -1,0 +1,18 @@
+#ifndef INBE_ANDROID_WAKELOCK_H
+#define INBE_ANDROID_WAKELOCK_H
+
+#ifdef __ANDROID__
+#include <jni.h>
+void android_wakelock_init(void);
+void android_wakelock_acquire(void);
+void android_wakelock_release(void);
+void android_wakelock_set_activity(JNIEnv *env, jobject activity);
+void android_wakelock_set_jvm(JavaVM *vm);
+#else
+// Stub functions for non-Android platforms
+static inline void android_wakelock_init(void) {}
+static inline void android_wakelock_acquire(void) {}
+static inline void android_wakelock_release(void) {}
+#endif
+
+#endif

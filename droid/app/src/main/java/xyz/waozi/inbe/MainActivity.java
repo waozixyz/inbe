@@ -1,9 +1,11 @@
 package xyz.waozi.inbe;
 
 import android.app.NativeActivity;
+import android.content.Context;
 import android.graphics.Insets;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.PowerManager;
 import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.View;
@@ -20,9 +22,41 @@ public class MainActivity extends NativeActivity {
     // [status_bar, nav_bar, cutout_left, cutout_top, cutout_right, cutout_bottom]
     private final int[] cachedInsets = new int[6];
     private boolean insetsInitialized = false;
+    private PowerManager.WakeLock wakeLock = null;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
+    private native void nativeWakeLockReady();
+    private native void nativeTimerActivate();
+    private native void nativeTimerDeactivate();
+
+    public void acquireWakeLock() {
+        Log.d(TAG, "acquireWakeLock called - wakeLock=" + wakeLock);
+        if (wakeLock == null) {
+            Log.d(TAG, "Creating new PARTIAL_WAKE_LOCK");
+            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            wakeLock = pm.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "inbe:meditation_session"
+            );
+            wakeLock.acquire();
+            Log.d(TAG, "Wake lock acquired successfully - held=" + wakeLock.isHeld());
+        } else {
+            Log.d(TAG, "Wake lock already exists - held=" + wakeLock.isHeld());
+        }
+    }
+
+    public void releaseWakeLock() {
+        Log.d(TAG, "releaseWakeLock called - wakeLock=" + wakeLock);
+        if (wakeLock != null && wakeLock.isHeld()) {
+            Log.d(TAG, "Releasing wake lock - was held=" + wakeLock.isHeld());
+            wakeLock.release();
+            Log.d(TAG, "Wake lock released successfully");
+            wakeLock = null;
+        } else {
+            Log.d(TAG, "Wake lock not held - wakeLock=" + wakeLock + " isHeld=" + (wakeLock != null ? wakeLock.isHeld() : "null"));
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -35,6 +69,9 @@ public class MainActivity extends NativeActivity {
         }
 
         setupInsetsListener();
+
+        // Notify native code that activity is ready for wake lock
+        nativeWakeLockReady();
     }
 
     private void setupInsetsListener() {
@@ -161,5 +198,26 @@ public class MainActivity extends NativeActivity {
             System.arraycopy(cachedInsets, 0, result, 0, 6);
         }
         return result;
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "onPause: activating background timer");
+        nativeTimerActivate();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        Log.d(TAG, "onResume: deactivating background timer");
+        nativeTimerDeactivate();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        Log.d(TAG, "onDestroy called - releasing wake lock");
+        releaseWakeLock();
     }
 }

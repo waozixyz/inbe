@@ -68,6 +68,8 @@ add_library(main SHARED
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
     "${SRC_DIR}/android_insets.c"
+    "${SRC_DIR}/android_wakelock.c"
+    "${SRC_DIR}/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 
