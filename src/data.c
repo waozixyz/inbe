@@ -231,9 +231,102 @@ analyze_session_file(const char *path, int *best)
     return round_count;
 }
 
-/* ================================================================
- * PUBLIC API
- * ================================================================ */
+typedef int (*SessionFileCallbackEx)(const char *path, int year, int month, int day, void *user_data);
+typedef int (*SessionFileCallback)(const char *path, void *user_data);
+
+static int
+iterate_session_dates(SessionFileCallback callback, void *user_data)
+{
+    int year, month, day;
+    FilePathList files;
+
+    if(callback == NULL)
+        return 0;
+
+    for(year = 1970; year <= 2100; year++) {
+        char year_path[FS_PATH_MAX];
+        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
+
+        if(!DirectoryExists(year_path))
+            continue;
+
+        for(month = 1; month <= 12; month++) {
+            char month_path[FS_PATH_MAX];
+            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
+
+            if(!DirectoryExists(month_path))
+                continue;
+
+            for(day = 1; day <= 31; day++) {
+                char day_path[FS_PATH_MAX];
+                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
+
+                if(!DirectoryExists(day_path))
+                    continue;
+
+                files = LoadDirectoryFiles(day_path);
+                for(unsigned int i = 0; i < files.count; i++) {
+                    if(is_session_file(files.paths[i])) {
+                        if(!callback(files.paths[i], user_data)) {
+                            UnloadDirectoryFiles(files);
+                            return 0;
+                        }
+                    }
+                }
+                UnloadDirectoryFiles(files);
+            }
+        }
+    }
+
+    return 1;
+}
+
+static int
+iterate_session_dates_ex(SessionFileCallbackEx callback, void *user_data)
+{
+    int year, month, day;
+    FilePathList files;
+
+    if(callback == NULL)
+        return 0;
+
+    for(year = 1970; year <= 2100; year++) {
+        char year_path[FS_PATH_MAX];
+        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
+
+        if(!DirectoryExists(year_path))
+            continue;
+
+        for(month = 1; month <= 12; month++) {
+            char month_path[FS_PATH_MAX];
+            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
+
+            if(!DirectoryExists(month_path))
+                continue;
+
+            for(day = 1; day <= 31; day++) {
+                char day_path[FS_PATH_MAX];
+                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
+
+                if(!DirectoryExists(day_path))
+                    continue;
+
+                files = LoadDirectoryFiles(day_path);
+                for(unsigned int i = 0; i < files.count; i++) {
+                    if(is_session_file(files.paths[i])) {
+                        if(!callback(files.paths[i], year, month, day, user_data)) {
+                            UnloadDirectoryFiles(files);
+                            return 0;
+                        }
+                    }
+                }
+                UnloadDirectoryFiles(files);
+            }
+        }
+    }
+
+    return 1;
+}
 
 void
 data_init(void)
@@ -366,200 +459,83 @@ data_save_session(const int *round_times, int round_count)
     }
 }
 
+static int
+has_any_callback(const char *path, void *user_data)
+{
+    (void)path;
+    int *found = user_data;
+    *found = 1;
+    return 0;
+}
+
 int
 data_has_any(void)
 {
-    int year, month, day;
-    FilePathList files;
-    int has_data = 0;
+    int found = 0;
+    iterate_session_dates(has_any_callback, &found);
+    return found;
+}
 
-    /* Scan year directories (1970-2100 covers reasonable range) */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        /* Scan month directories */
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            /* Scan day directories */
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                /* Check for session files */
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        has_data = 1;
-                        break;
-                    }
-                }
-                UnloadDirectoryFiles(files);
-
-                if(has_data)
-                    break;
-            }
-
-            if(has_data)
-                break;
-        }
-
-        if(has_data)
-            break;
-    }
-
-    return has_data;
+static int
+total_size_callback(const char *path, void *user_data)
+{
+    long long *total = user_data;
+    long long size = get_file_size(path);
+    if(size > 0)
+        *total += size;
+    return 1;
 }
 
 long long
 data_get_total_size(void)
 {
     long long total = 0;
-    int year, month, day;
-    FilePathList files;
-
-    /* Scan all year/month/day directories and sum file sizes */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        long long size = get_file_size(files.paths[i]);
-                        if(size > 0)
-                            total += size;
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
-
+    iterate_session_dates(total_size_callback, &total);
     return total;
+}
+
+/* Callback for data_get_session_count - counts each session file */
+static int
+count_callback(const char *path, void *user_data)
+{
+    (void)path;
+    int *count = user_data;
+    (*count)++;
+    return 1;
 }
 
 int
 data_get_session_count(void)
 {
     int count = 0;
-    int year, month, day;
-    FilePathList files;
-
-    /* Count all session files */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i]))
-                        count++;
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
-
+    iterate_session_dates(count_callback, &count);
     return count;
+}
+
+static int
+delete_callback(const char *path, void *user_data)
+{
+    long long *deleted = user_data;
+    if(FileExists(path)) {
+#if defined(PLATFORM_WEB)
+        EM_ASM({
+            try {
+                FS.unlink(UTF8ToString($0));
+            } catch(e) {}
+        }, path);
+#else
+        remove(path);
+#endif
+        (*deleted)++;
+    }
+    return 1;
 }
 
 long long
 data_delete_all(void)
 {
     long long deleted = 0;
-    int year, month, day;
-    FilePathList files;
-
-    /* Delete all session files */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        if(FileExists(files.paths[i])) {
-                            /* Delete the file */
-#if defined(PLATFORM_WEB)
-                            EM_ASM({
-                                try {
-                                    FS.unlink(UTF8ToString($0));
-                                } catch(e) {}
-                            }, files.paths[i]);
-#else
-                            remove(files.paths[i]);
-#endif
-                            deleted++;
-                        }
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
+    iterate_session_dates(delete_callback, &deleted);
 
     if(deleted > 0)
         TraceLog(LOG_INFO, "DATA: deleted %lld session files", deleted);
@@ -567,11 +543,37 @@ data_delete_all(void)
     return deleted;
 }
 
+typedef struct {
+    mz_zip_archive *archive;
+} ExportContext;
+
+static int
+export_callback_ex(const char *path, int year, int month, int day, void *user_data)
+{
+    ExportContext *ctx = user_data;
+    char zip_path[FS_PATH_MAX];
+    const char *filename = GetFileName(path);
+
+    snprintf(zip_path, sizeof(zip_path),
+             "lotus-data/sessions/%04d/%02d/%02d/%s",
+             year, month, day, filename);
+
+    char *content = LoadFileText(path);
+    if(content != NULL) {
+        size_t size = strlen(content);
+        if(!mz_zip_writer_add_mem(ctx->archive, zip_path, content, size, MZ_NO_COMPRESSION)) {
+            TraceLog(LOG_WARNING, "DATA: failed to add file: %s", path);
+        }
+        UnloadFileText(content);
+    }
+
+    return 1;
+}
+
 int
 data_export(const char *path)
 {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    /* On Android: use share sheet instead of file path */
     (void)path;
     return android_share_export("inbe-export.zip");
 #else
@@ -579,26 +581,23 @@ data_export(const char *path)
     FILE *fp;
     void *zip_data;
     size_t zip_size;
-    int year, month, day;
-    FilePathList files;
     int session_count = 0;
     char metadata[512];
     time_t now;
     struct tm *tm;
     char date_str[64];
+    ExportContext export_ctx;
 
     if(path == NULL || path[0] == '\0') {
         TraceLog(LOG_ERROR, "DATA: export path is empty");
         return 0;
     }
 
-    /* Check if any data exists */
     if(!data_has_any()) {
         TraceLog(LOG_WARNING, "DATA: no data to export");
         return 0;
     }
 
-    /* Initialize ZIP archive */
     memset(&archive, 0, sizeof(archive));
     if(!mz_zip_writer_init_heap(&archive, 0, 0)) {
         TraceLog(LOG_ERROR, "DATA: failed to initialize ZIP archive");
@@ -607,7 +606,6 @@ data_export(const char *path)
 
     session_count = data_get_session_count();
 
-    /* Create metadata file */
     now = time(NULL);
     tm = localtime(&now);
     if(tm != NULL) {
@@ -633,57 +631,9 @@ data_export(const char *path)
         return 0;
     }
 
-    /* Add all session files to ZIP */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
+    export_ctx.archive = &archive;
+    iterate_session_dates_ex(export_callback_ex, &export_ctx);
 
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        char *content;
-                        char zip_path[FS_PATH_MAX];
-                        const char *filename = GetFileName(files.paths[i]);
-
-                        /* Build path inside ZIP */
-                        snprintf(zip_path, sizeof(zip_path),
-                                 "lotus-data/sessions/%04d/%02d/%02d/%s",
-                                 year, month, day, filename);
-
-                        /* Read file content */
-                        content = LoadFileText(files.paths[i]);
-                        if(content != NULL) {
-                            size_t size = strlen(content);
-                            if(!mz_zip_writer_add_mem(&archive, zip_path, content, size, MZ_NO_COMPRESSION)) {
-                                TraceLog(LOG_WARNING, "DATA: failed to add file: %s", files.paths[i]);
-                            }
-                            UnloadFileText(content);
-                        }
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
-
-    /* Finalize heap archive and get buffer */
     if(!mz_zip_writer_finalize_heap_archive(&archive, &zip_data, &zip_size)) {
         TraceLog(LOG_ERROR, "DATA: failed to finalize ZIP archive");
         mz_zip_writer_end(&archive);
@@ -696,7 +646,6 @@ data_export(const char *path)
         return 0;
     }
 
-    /* Write to file */
     fp = fopen(path, "wb");
     if(fp == NULL) {
         TraceLog(LOG_ERROR, "DATA: failed to open export file: %s", path);
@@ -722,75 +671,46 @@ data_export(const char *path)
 int
 data_import(const char *path)
 {
-    /* TODO: Implement ZIP import
-     * For now, this is a placeholder */
     TraceLog(LOG_WARNING, "DATA: import not yet implemented");
     (void)path;
     return 0;
 }
 
+typedef struct {
+    data_session_callback user_callback;
+    void *user_data;
+} ListSessionContext;
+
+static int
+list_sessions_callback_ex(const char *path, int year, int month, int day, void *user_data)
+{
+    ListSessionContext *ctx = user_data;
+    char time_str[16] = "00:00:00";
+    int best = 0;
+    int rounds;
+    char date_str[16];
+
+    snprintf(date_str, sizeof(date_str), "%04d-%02d-%02d", year, month, day);
+
+    const char *filename = GetFileName(path);
+    if(strlen(filename) >= 10) {
+        snprintf(time_str, sizeof(time_str), "%c%c:%c%c:%c%c",
+                 filename[5], filename[6],
+                 filename[7], filename[8],
+                 filename[9], filename[10]);
+    }
+
+    rounds = analyze_session_file(path, &best);
+    ctx->user_callback(date_str, time_str, rounds, best, ctx->user_data);
+    return 1;
+}
+
 void
 data_list_sessions(data_session_callback callback, void *user)
 {
-    int year, month, day;
-    FilePathList files;
-
-    if(callback == NULL)
-        return;
-
-    /* Scan all directories and call callback for each session */
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                char date_str[16];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                snprintf(date_str, sizeof(date_str), "%04d-%02d-%02d",
-                         year, month, day);
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        char time_str[16] = "00:00:00";
-                        int best = 0;
-                        int rounds;
-
-                        /* Parse time from filename (inbe-HHMMSS) */
-                        const char *filename = GetFileName(files.paths[i]);
-                        if(strlen(filename) >= 10) {
-                            snprintf(time_str, sizeof(time_str), "%c%c:%c%c:%c%c",
-                                     filename[5], filename[6],
-                                     filename[7], filename[8],
-                                     filename[9], filename[10]);
-                        }
-
-                        /* Analyze session file */
-                        rounds = analyze_session_file(files.paths[i], &best);
-
-                        /* Call callback */
-                        callback(date_str, time_str, rounds, best, user);
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
+    ListSessionContext ctx = {callback, user};
+    if(callback != NULL)
+        iterate_session_dates_ex(list_sessions_callback_ex, &ctx);
 }
 
 #pragma GCC diagnostic pop

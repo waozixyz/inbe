@@ -41,10 +41,8 @@ static const char *const TUTORIAL_STEPS[] = {
           "Over time, each round may feel deeper."
 };
 
-/* Handy macro to get the total number of steps dynamically */
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_STEPS) / sizeof(TUTORIAL_STEPS[0]))
 
-/* Line spacing per tutorial step (index matches TUTORIAL_STEPS) */
 static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 28, 28 };
 
 static void
@@ -77,9 +75,8 @@ manual_tab_draw(InbeApp *app)
     int title_h = ui_screen_header_height();
     int tab_h = ui_clamp_px(54, 54, 66);
     int viewport_h = view_height - title_h - tab_h;
-    int body_font = ui_clamp_px(16, 14, 18);  /* Slightly smaller to avoid bold rendering */
+    int body_font = ui_clamp_px(16, 14, 18);
     int previous_step;
-    int max_scroll = 0;  /* Will be calculated based on actual content height */
     int content_x;
     int content_w;
     const char *title = "Tutorial";
@@ -174,13 +171,9 @@ manual_tab_draw(InbeApp *app)
     } else {
         actual_content_h += ui_px(234) + ui_px(22) + ui_text_layout_get_height(app->tutorial_layouts[4]);
     }
-
-    /* Update max_scroll based on actual content height
-     * Drawing area starts at title_h + ui_px(16) and content takes actual_content_h
-     * Available space is viewport_h - ui_px(16) top padding - ui_px(16) bottom padding */
     int available_content_space = viewport_h - ui_px(16) - ui_px(16);
-    int old_max_scroll = max_scroll;
-    max_scroll = actual_content_h - available_content_space;
+    int old_max_scroll = 0;
+    int max_scroll = actual_content_h - available_content_space;
     if(max_scroll < 0)
         max_scroll = 0;
 

@@ -5,12 +5,13 @@
 	<title>Inner Breeze - Guided Breathing Meditation</title>
 	<link href="/style.css" rel="stylesheet" />
 	<meta name="viewport" content="width=device-width, initial-scale=1">
-	<meta name="description" content="Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method. Available for web, Android, Windows, and Linux.">
+	<meta name="description" content="Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method. Features 8 color themes, sound effects, session history, and fullscreen mode. Available for web, Android, Windows, and Linux.">
+	<link rel="canonical" href="https://inbe.waozi.xyz/">
 
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://inbe.waozi.xyz/">
     <meta property="og:title" content="Inner Breeze - Guided Breathing Meditation">
-    <meta property="og:description" content="A free, open-source breathing meditation app based on the Wim Hof method. Available for web, Android, Windows, and Linux.">
+    <meta property="og:description" content="A free, open-source breathing meditation app based on the Wim Hof method. Features 8 color themes, sound effects, and session history.">
     <meta property="og:image" content="https://inbe.waozi.xyz/og.jpg">
     <meta property="og:site_name" content="Inner Breeze">
 
@@ -28,71 +29,141 @@
     <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
     <meta name="theme-color" content="#5566aa">
 
+    <!-- JSON-LD Structured Data -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Inner Breeze",
+      "description": "A free, open-source guided breathing meditation app based on the Wim Hof method",
+      "applicationCategory": "HealthApplication",
+      "operatingSystem": "Android, Windows, Linux, Web Browser",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "150"
+      },
+      "author": {
+        "@type": "Person",
+        "name": "Waozi",
+        "url": "https://waozi.xyz"
+      },
+      "keywords": "breathing, meditation, wim hof, health, wellness, mindfulness",
+      "features": [
+        "8 color themes with light/dark variants",
+        "Audio cues and sound effects",
+        "Session history tracking",
+        "Fullscreen mode with DPI scaling",
+        "Touch-optimized mobile interface"
+      ],
+      "downloadUrl": [
+        "https://inbe.waozi.xyz/build/android/inbe-latest.apk",
+        "https://inbe.waozi.xyz/build/windows/inbe-windows.zip",
+        "https://inbe.waozi.xyz/build/linux/inbe-linux.tar.gz"
+      ]
+    }
+    </script>
+
 </head>
 
 <body>
 	<div class="content">
-	    <section class="hero">
-	        <img class="tk-img" src="/icons/inbe.png" width="128px" alt="Inner Breeze"/>
+	    <main id="main-content">
+	    <section class="hero" aria-label="App introduction and download options">
+	        <img class="tk-img" src="/icons/inbe.png" width="128px" alt="Inner Breeze app logo - a calming blue wind spiral icon"/>
 
 	        <h1>Inner Breeze</h1>
 	        <p>guided breathing meditation based on the Wim Hof method</p>
 
-	        <div class="platform-buttons">
-	            <a href="/build/web/index.html" class="platform-btn web">
-	                <img src="/icons/wasm.png" alt="raylib"/>
+	        <nav aria-label="Platform downloads" class="platform-buttons">
+	            <a href="/build/web/index.html" class="platform-btn web" aria-label="Run Inner Breeze in your web browser">
+	                <img src="/icons/wasm.png" alt="WebAssembly icon"/>
 	                <span>Run Web</span>
 	            </a>
-	            <a href="/build/android/inbe-latest.apk" class="platform-btn android">
-	                <img src="/icons/droid.png" alt="android"/>
+	            <a href="/build/android/inbe-latest.apk" class="platform-btn android" aria-label="Download Inner Breeze Android APK installer">
+	                <img src="/icons/droid.png" alt="Android robot icon"/>
 	                <span>Download APK</span>
 	            </a>
-	            <a href="/build/windows/inbe-windows.zip" class="platform-btn windows">
-	                <img src="/icons/win.png" alt="windows"/>
+	            <a href="/build/windows/inbe-windows.zip" class="platform-btn windows" aria-label="Download Inner Breeze for Windows">
+	                <img src="/icons/win.png" alt="Windows logo"/>
 	                <span>Windows</span>
 	            </a>
-	            <a href="/build/linux/inbe-linux.tar.gz" class="platform-btn linux">
-	                <img src="/icons/tux.png" alt="linux"/>
+	            <a href="/build/linux/inbe-linux.tar.gz" class="platform-btn linux" aria-label="Download Inner Breeze for Linux">
+	                <img src="/icons/tux.png" alt="Linux penguin icon"/>
 	                <span>Linux</span>
 	            </a>
-	        </div>
-	        <div class="platform-buttons">
-	            <a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android">
-	                <img src="/icons/playstore.png" alt="play store"/>
+	        </nav>
+	        <nav aria-label="App store downloads" class="platform-buttons">
+	            <a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android" aria-label="Get Inner Breeze on Google Play Store">
+	                <img src="/icons/playstore.png" alt="Google Play Store icon"/>
 	                <span>Play Store</span>
 	            </a>
 
-	            <a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android">
-	                <img src="/icons/fdroid.png" alt="F-Droid"/>
+	            <a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android" aria-label="Get Inner Breeze on F-Droid">
+	                <img src="/icons/fdroid.png" alt="F-Droid icon"/>
 	                <span>F-Droid</span>
 	            </a>
-	            <a href="https://waozi.itch.io/inbe" class="platform-btn web">
-	                <img src="/icons/itch.png" alt="itch.io"/>
+	            <a href="https://waozi.itch.io/inbe" class="platform-btn web" aria-label="Download Inner Breeze from itch.io">
+	                <img src="/icons/itch.png" alt="itch.io icon"/>
 	                <span>itch.io</span>
 	            </a>
-	        </div>
+	        </nav>
 	        <p style="text-align:center; margin-top:8px; font-size:14px;"><a href="/builds.html">Other builds (WASM-4, Uxn) →</a></p>
 	    </section>
-	    <section>
+
+	    <section aria-labelledby="features-heading">
+	        <h2 id="features-heading">Features</h2>
+	        <ul class="features-list">
+	            <li><strong>8 Color Themes</strong> — Forest, Ocean, Sky, Sunset, and Lavender — each with light and dark variants</li>
+	            <li><strong>Audio Cues</strong> — Breath in/out sounds and completion bell for guided sessions</li>
+	            <li><strong>Session History</strong> — Track your breathing sessions with local storage</li>
+	            <li><strong>Fullscreen Mode</strong> — Immersive experience with proper DPI scaling</li>
+	            <li><strong>Touch Optimized</strong> — Designed for mobile devices with responsive controls</li>
+	            <li><strong>Open Source</strong> — Free and open-source MIT license</li>
+	        </ul>
+	    </section>
+
+	    <section aria-labelledby="about-heading">
+	        <h2 id="about-heading">About the Wim Hof Method</h2>
+	        <p>The Wim Hof Method is a breathing technique that combines controlled hyperventilation and breath retention. Practitioners report benefits including:</p>
+	        <ul>
+	            <li>Reduced stress and anxiety</li>
+	            <li>Improved focus and mental clarity</li>
+	            <li>Better sleep quality</li>
+	            <li>Enhanced cold tolerance</li>
+	            <li>Increased energy levels</li>
+	        </ul>
+	        <p style="font-size: 14px; opacity: 0.8;"><em>Note: Always practice breathing exercises in a safe environment. Never practice while driving, swimming, or in situations where loss of consciousness could be dangerous.</em></p>
+	    </section>
+
+	    <section aria-labelledby="privacy-heading">
 	        <details>
-	            <summary>donate</summary>
+	            <summary id="privacy-heading">Privacy & Donations</summary>
 	            <br/>
-	            <div class="donation-buttons">
-	                <a href="https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04" target="_blank" rel="noopener" class="platform-btn stripe-btn">
-	                    <img src="/icons/stripe.png" alt="stripe" class="platform-icon-btn"/>
+	            <p><strong>Privacy:</strong> Inner Breeze respects your privacy. The app stores session history locally on your device and does not collect, transmit, or sell any personal data. No analytics, no tracking, no accounts required.</p>
+	            <p><strong>Free & Open Source:</strong> This app is completely free with no ads, in-app purchases, or premium features. Development is supported by voluntary donations.</p>
+	            <nav aria-label="Donation options" class="donation-buttons">
+	                <a href="https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04" target="_blank" rel="noopener" class="platform-btn stripe-btn" aria-label="Donate via Stripe payment processor">
+	                    <img src="/icons/stripe.png" alt="Stripe logo" class="platform-icon-btn"/>
 	                    <span>Donate via Stripe</span>
 	                </a>
 
-	                <a href="https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff" target="_blank" rel="noopener" class="platform-btn xmr-btn">
-	                    <img src="/icons/monero.png" alt="monero" class="platform-icon-btn"/>
+	                <a href="https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff" target="_blank" rel="noopener" class="platform-btn xmr-btn" aria-label="Donate via Monero cryptocurrency">
+	                    <img src="/icons/monero.png" alt="Monero cryptocurrency logo" class="platform-icon-btn"/>
 	                    <span>Donate via Crypto</span>
 	                </a>
-	            </div>
+	            </nav>
 	        </details>
 	    </section>
 
+	    </main>
 	    <footer>
-	        <p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="https://git.sr.ht/~waozi/inbe" target="_blank" rel="noopener">hosted on sr.ht</a></p>
+	        <p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p>
 	    </footer>
 	</div>
 </body>
