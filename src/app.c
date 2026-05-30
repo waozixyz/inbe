@@ -25,6 +25,11 @@
 #include <emscripten.h>
 #endif
 
+#ifdef __ANDROID__
+#include "android_wakelock.h"
+#include "android_timer.h"
+#endif
+
 #define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
@@ -560,7 +565,7 @@ play_app_sound(InbeApp *app, Sound sound, float scale)
     PlaySound(sound);
 }
 
-static void
+void
 update_session_sounds(InbeApp *app)
 {
     if (app == NULL) return;
@@ -630,6 +635,12 @@ start_session(InbeApp *app)
     app->session_paused = 0;
     app->results_saved = 0;
     remember_sound_state(app);
+
+#ifdef __ANDROID__
+    android_wakelock_acquire();
+    android_timer_set_app(app);
+    android_timer_start();
+#endif
 }
 
 static void
@@ -842,6 +853,11 @@ inbe_app_init(void *vapp) {
     if(app == 0)
         return;
 
+#ifdef __ANDROID__
+    android_timer_stop();
+    android_wakelock_release();
+#endif
+
 #if defined(PLATFORM_WEB)
     init_web_storage();
 #endif
@@ -993,6 +1009,9 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
+#ifdef __ANDROID__
+            android_wakelock_release();
+#endif
             inbe_app_init(app);
         } else {
             /* Show confirmation modal */
@@ -1102,11 +1121,17 @@ updateapp(InbeApp *app)
                             app->results_saved = 1;
                         }
                     }
+#ifdef __ANDROID__
+                    android_wakelock_release();
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
                 } else if(modal_result == 3) {
                     /* Discard - exit without saving */
+#ifdef __ANDROID__
+                    android_wakelock_release();
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
@@ -1122,6 +1147,9 @@ updateapp(InbeApp *app)
                     app->modal.type = UIModalNone;
                 } else if(modal_result == 2) {
                     /* Exit - no data to save, just exit */
+#ifdef __ANDROID__
+                    android_wakelock_release();
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
@@ -1150,6 +1178,14 @@ updateapp(InbeApp *app)
         if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size,
                        app->session_paused ? app->play_icon : app->pause_icon, app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE, &pause_hover)) {
             app->session_paused = !app->session_paused;
+
+#ifdef __ANDROID__
+            if(app->session_paused) {
+                android_wakelock_release();
+            } else {
+                android_wakelock_acquire();
+            }
+#endif
         }
         if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size,
                                                     app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover)) {
@@ -1158,9 +1194,23 @@ updateapp(InbeApp *app)
 
         draw_session_status(app, center_x, center_y);
 
-        if(!app->session_paused)
+        if(!app->session_paused) {
+#ifdef __ANDROID__
+            pthread_mutex_t *timer_mutex = android_timer_get_mutex();
+            if (timer_mutex) {
+                pthread_mutex_lock(timer_mutex);
+                inbestep(&app->inbe);
+                update_session_sounds(app);
+                pthread_mutex_unlock(timer_mutex);
+            } else {
+                inbestep(&app->inbe);
+                update_session_sounds(app);
+            }
+#else
             inbestep(&app->inbe);
-        update_session_sounds(app);
+            update_session_sounds(app);
+#endif
+        }
 
         if (app->inbe.phase == InbePhaseHold) {
             int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(24);
