@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include "app.h"
-#include "dpi.h"
+#include "ui/dpi.h"
 #include "android_insets.h"
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
@@ -93,28 +93,27 @@ frame(void)
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    int window_w = INBE_ANDROID_BUILD ? 0 : inbe_app_width();
-    int window_h = INBE_ANDROID_BUILD ? 0 : inbe_app_height();
+    int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
+    int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
 #if INBE_ANDROID_BUILD
-    android_insets_init();  // MUST be first, before app init
+    android_insets_init();
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
 #endif
 
 
-    InitWindow(window_w, window_h, inbe_app_title());
+    InitWindow(window_w, window_h, config.title);
 
     dpi_init();
     inbe_app_init(&inbe_app);
 
-    /* Apply fullscreen setting on startup */
     #if INBE_ANDROID_BUILD
-    inbe_app.fullscreen_enabled = 0;  // Force fullscreen off on Android
+    inbe_app.fullscreen_enabled = 0;
     #endif
     if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
         ToggleFullscreen();

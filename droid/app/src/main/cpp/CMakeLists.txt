@@ -55,8 +55,9 @@ target_include_directories(inbe PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
-    "${SRC_DIR}/ui.c"
-    "${SRC_DIR}/text_layout.c"
+    "${SRC_DIR}/ui/ui.c"
+    "${SRC_DIR}/ui/text_layout.c"
+    "${SRC_DIR}/ui/dpi.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
@@ -67,7 +68,6 @@ add_library(main SHARED
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
     "${SRC_DIR}/android_insets.c"
-    "${SRC_DIR}/dpi.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 

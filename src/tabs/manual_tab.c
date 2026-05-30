@@ -1,7 +1,7 @@
 #include "manual_tab.h"
 #include "app.h"
-#include "ui.h"
-#include "text_layout.h"
+#include "ui/ui.h"
+#include "ui/text_layout.h"
 #include "theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
