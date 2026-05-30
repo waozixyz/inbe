@@ -15,6 +15,14 @@ fi
 
 echo "Publishing inbe.waozi.xyz..."
 
+# Update metadata before publishing
+if [ -f "./update_metadata.sh" ]; then
+    echo "Running metadata update..."
+    ./update_metadata.sh || echo "Warning: Metadata update failed, continuing anyway"
+else
+    echo "Warning: update_metadata.sh not found, skipping metadata update"
+fi
+
 TMPDIR=$(mktemp -d -p /tmp)
 
 # Base site files
