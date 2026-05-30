@@ -4,12 +4,9 @@
 #include "raylib.h"
 #include "../libinbe/inbe.h"
 
-/* Forward declaration for text layout system */
 typedef struct TextLayout TextLayout;
 
-/* ================================================================
- * SETTINGS CONSTANTS
- * ================================================================ */
+
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -30,11 +27,9 @@ enum {
 };
 
 enum {
-    /* Icon sizes (base values in logical pixels) */
     ICON_SIZE_SMALL = 22,
     ICON_SIZE_MEDIUM = 26,
     ICON_SIZE_LARGE = 30,
-    /* Min/max ranges for DPI scaling */
     ICON_SIZE_SMALL_MIN = 20,
     ICON_SIZE_SMALL_MAX = 36,
     ICON_SIZE_MEDIUM_MIN = 24,
@@ -52,10 +47,6 @@ enum {
     SETTINGS_TAB_COUNT
 };
 
-/* ================================================================
- * MODAL DIALOG TYPES
- * ================================================================ */
-
 typedef enum {
     UIModalNone,
     UIModalConfirmExitSession,
@@ -65,8 +56,17 @@ typedef enum {
 typedef struct {
     int active;
     UIModalType type;
-    int selected_button;  /* 0 = cancel/left, 1 = confirm/right */
+    int selected_button;
 } UIModal;
+
+typedef struct InbeConfig {
+	char title[64];
+	int width;
+	int height;
+	int loaded;
+} InbeConfig;
+
+extern InbeConfig config;
 
 typedef struct LotusAppApi {
     const char *id;
@@ -113,11 +113,11 @@ struct InbeApp {
     int settings_scroll;
     int settings_drag_slider;
     int settings_drag_scrollbar;
-    int settings_drag_content;  /* Drag content area to scroll */
-    int settings_drag_content_y;  /* Initial Y position when drag starts */
+    int settings_drag_content;
+    int settings_drag_content_y;
     int settings_dirty;
     int settings_tab;
-    int fullscreen_enabled;  /* Fullscreen mode */
+    int fullscreen_enabled;
     int manual_scroll;
     int manual_drag_scrollbar;
     int manual_drag_content;
@@ -125,7 +125,6 @@ struct InbeApp {
     int tutorial_step;
     int tutorial_seen;
 
-    /* Tutorial text layouts - persistent for automatic reflow */
     TextLayout *tutorial_layouts[5];
     int tutorial_layouts_initialized;
 
@@ -148,12 +147,8 @@ struct InbeApp {
 
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
-const char *inbe_app_title(void);
-int inbe_app_width(void);
-int inbe_app_height(void);
 const LotusAppApi *inbe_app_api(void);
 
-/* Helper functions */
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);
 void count_from_int(char dst[4], int value);

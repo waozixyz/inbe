@@ -16,7 +16,6 @@
 
 #define FS_PATH_MAX 512
 
-/* Suppress GCC format-truncation warnings - paths are safely sized in practice */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 
@@ -24,19 +23,9 @@
 #include <emscripten.h>
 #endif
 
-/* ================================================================
- * INTERNAL STATE
- * ================================================================ */
-
 static char g_data_root[FS_PATH_MAX] = "";
 static char g_today_dir[FS_PATH_MAX] = "";
 
-/* ================================================================
- * INTERNAL HELPER FUNCTIONS
- * ================================================================ */
-
-/* Convert a 3-digit count string to integer
- * String format: "000" to "999" */
 static int __attribute__((unused))
 int_from_count(const char src[4])
 {
@@ -46,8 +35,6 @@ int_from_count(const char src[4])
     return a * 100 + b * 10 + c;
 }
 
-/* Ensure directory exists (creates parent directories recursively)
- * Returns: 1 if directory exists or was created, 0 on failure */
 static int
 ensure_dir(const char *path)
 {
@@ -62,12 +49,10 @@ ensure_dir(const char *path)
     }
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    /* On Android, just create the full path directly - Raylib's MakeDirectory handles recursion */
     TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
     if(MakeDirectory(path))
         return 1;
 
-    /* Check if directory actually exists despite MakeDirectory failure */
     if(DirectoryExists(path)) {
         TraceLog(LOG_WARNING, "DATA: MakeDirectory failed but directory exists: %s", path);
         return 1;
@@ -79,20 +64,17 @@ ensure_dir(const char *path)
     char temp[FS_PATH_MAX];
     char *p;
 
-    /* Make a temporary copy to modify */
     strncpy(temp, path, sizeof(temp) - 1);
     temp[sizeof(temp) - 1] = '\0';
 
-    /* Create parent directories first */
     p = temp;
-    if(p[0] == '/') p++; /* Skip root if absolute path */
+    if(p[0] == '/') p++;
 
     while((p = strchr(p, '/')) != NULL) {
         *p = '\0';
         if(!DirectoryExists(temp)) {
             TraceLog(LOG_INFO, "DATA: Creating directory: %s", temp);
             if(!MakeDirectory(temp)) {
-                /* Check if it exists despite failure */
                 if(!DirectoryExists(temp)) {
                     TraceLog(LOG_ERROR, "DATA: Failed to create directory: %s", temp);
                     *p = '/';
@@ -106,12 +88,10 @@ ensure_dir(const char *path)
         p++;
     }
 
-    /* Now create the final directory */
     TraceLog(LOG_INFO, "DATA: Creating final directory: %s", path);
     if(MakeDirectory(path))
         return 1;
 
-    /* Check if directory actually exists despite MakeDirectory failure */
     if(DirectoryExists(path)) {
         TraceLog(LOG_WARNING, "DATA: MakeDirectory failed but directory exists: %s", path);
         return 1;
@@ -122,8 +102,6 @@ ensure_dir(const char *path)
 #endif
 }
 
-/* Check if a path refers to a session file (starts with "inbe-")
- * Handles both filenames and full paths */
 static int
 is_session_file(const char *path)
 {
@@ -132,19 +110,15 @@ is_session_file(const char *path)
     if(path == NULL)
         return 0;
 
-    /* Extract filename from full path */
     filename = GetFileName(path);
 
     return strncmp(filename, "inbe-", 5) == 0;
 }
 
-/* Get file size in bytes
- * Returns: File size in bytes, or -1 on error */
 static long long
 get_file_size(const char *path)
 {
 #if defined(PLATFORM_WEB)
-    /* Web platform: use JS to get file size */
     int size = 0;
     EM_ASM({
         try {
@@ -165,11 +139,6 @@ get_file_size(const char *path)
 #endif
 }
 
-/* Read a session file and parse round times
- * path: Full path to session file
- * round_times: Output array for round times
- * max_rounds: Maximum rounds to read
- * Returns: Number of rounds read, or -1 on error */
 static int
 read_session_file(const char *path, int *round_times, int max_rounds)
 {
@@ -180,7 +149,6 @@ read_session_file(const char *path, int *round_times, int max_rounds)
     if(content == NULL)
         return -1;
 
-    /* Parse each line as a round time */
     char *line = content;
     char *next_line;
     while(line != NULL && round_count < max_rounds) {
@@ -190,7 +158,6 @@ read_session_file(const char *path, int *round_times, int max_rounds)
             next_line++;
         }
 
-        /* Skip empty lines */
         while(*line == ' ' || *line == '\t')
             line++;
 
@@ -208,8 +175,6 @@ read_session_file(const char *path, int *round_times, int max_rounds)
     return round_count;
 }
 
-/* Count total rounds and find best time in a session file
- * Returns: Number of rounds, sets *best to best time */
 static int
 analyze_session_file(const char *path, int *best)
 {
@@ -331,7 +296,6 @@ iterate_session_dates_ex(SessionFileCallbackEx callback, void *user_data)
 void
 data_init(void)
 {
-    /* Initialize on first call to data_root() */
     (void)data_root();
 }
 
@@ -350,7 +314,6 @@ data_root(void)
         } catch(e) {}
     });
 #elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    /* On Android, use app's files directory which is already created */
     snprintf(g_data_root, sizeof(g_data_root), "/data/data/xyz.waozi.inbe/files/lotus");
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
@@ -364,7 +327,6 @@ data_root(void)
         snprintf(g_data_root, sizeof(g_data_root), ".local/lotus");
 #endif
 
-    /* Ensure root directory exists */
     ensure_dir(g_data_root);
 
     TraceLog(LOG_INFO, "DATA: root directory: %s", g_data_root);
@@ -414,7 +376,6 @@ data_save_session(const int *round_times, int round_count)
     if(tm == NULL)
         return 0;
 
-    /* Create directory structure: YYYY/MM/DD */
     snprintf(dir_year, sizeof(dir_year), "%s/%04d",
              data_root(), tm->tm_year + 1900);
     if(!ensure_dir(dir_year))
@@ -428,11 +389,9 @@ data_save_session(const int *round_times, int round_count)
     if(!ensure_dir(dir_day))
         return 0;
 
-    /* Create session filename: inbe-HHMMSS */
     snprintf(path, sizeof(path), "%s/inbe-%02d%02d%02d",
              dir_day, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
-    /* Build session content */
     for(int i = 0; i < round_count; i++) {
         if(offset >= (int)sizeof(text) - 8)
             break;
@@ -494,7 +453,6 @@ data_get_total_size(void)
     return total;
 }
 
-/* Callback for data_get_session_count - counts each session file */
 static int
 count_callback(const char *path, void *user_data)
 {

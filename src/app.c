@@ -6,8 +6,8 @@
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
-#include "ui.h"
-#include "dpi.h"
+#include "ui/ui.h"
+#include "ui/dpi.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -28,14 +28,8 @@
 #define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
-typedef struct InbeConfig {
-    char title[64];
-    int width;
-    int height;
-    int loaded;
-} InbeConfig;
 
-static InbeConfig config = {
+InbeConfig config = {
     .title = INBE_DEFAULT_TITLE,
     .width = INBE_DEFAULT_WIDTH,
     .height = INBE_DEFAULT_HEIGHT,
@@ -302,24 +296,6 @@ load_config(void)
     refresh_theme_colors(ThemeSky, 0);  /* Default: Sky light mode */
 
     config.loaded = 1;
-}
-
-const char *
-inbe_app_title(void)
-{
-    return config.title;
-}
-
-int
-inbe_app_width(void)
-{
-    return config.width;
-}
-
-int
-inbe_app_height(void)
-{
-    return config.height;
 }
 
 int
@@ -618,17 +594,17 @@ update_session_sounds(InbeApp *app)
         switch (app->inbe.phase) {
             case InbePhaseHold:
                 break;
-                
+
             case InbePhaseRecover:
-                play_app_sound(app, app->breath_in_sound, 1.0f);
+                /* Sound already played in finish_hold() */
                 break;
-                
+
             case InbePhaseNext:
                 if (app->sound_last_phase == InbePhaseRecover) {
                     play_app_sound(app, app->breath_out_sound, 1.0f);
                 }
                 break;
-                
+
             default:
                 break;
         }
@@ -666,6 +642,8 @@ finish_hold(InbeApp *app)
     app->inbe.breath_frame = 0;
     app->inbe.breathtick = 0;
     app->inbe.sectick = 0;
+    /* Play breath-in sound when user finishes hold and starts recovery */
+    play_app_sound(app, app->breath_in_sound, 1.0f);
 }
 
 static void
@@ -1342,7 +1320,6 @@ inbe_app_destroy(void *vapp)
         }
     }
 
-    // Unload Sounds
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);

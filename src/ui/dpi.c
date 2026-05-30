@@ -23,20 +23,24 @@ dpi_update(int view_width, int view_height)
 	int previous_width = g_dpi.view_width;
 	int previous_height = g_dpi.view_height;
 
-	g_dpi.view_width = view_width;
-	g_dpi.view_height = view_height;
+	/* Only recalculate if viewport actually changed */
+	if(previous_width != view_width || previous_height != view_height) {
+		g_dpi.view_width = view_width;
+		g_dpi.view_height = view_height;
 
-	/* Calculate UI scale based on viewport height vs base design */
-	g_dpi.ui_scale = (float)view_height / (float)g_dpi.base_height;
+		/* Calculate UI scale based on viewport height vs base design */
+		g_dpi.ui_scale = (float)view_height / (float)g_dpi.base_height;
 
-	/* Clamp to minimum 1.0 (no downscaling) */
-	if(g_dpi.ui_scale < 1.0f)
-		g_dpi.ui_scale_clamped = 1.0f;
-	else
-		g_dpi.ui_scale_clamped = g_dpi.ui_scale;
+		/* Clamp to minimum 1.0 (no downscaling) */
+		if(g_dpi.ui_scale < 1.0f)
+			g_dpi.ui_scale_clamped = 1.0f;
+		else
+			g_dpi.ui_scale_clamped = g_dpi.ui_scale;
 
-	/* Set dirty flag if dimensions changed */
-	g_dpi.needs_update = (previous_width != view_width || previous_height != view_height);
+		g_dpi.needs_update = 1;
+	} else {
+		g_dpi.needs_update = 0;
+	}
 }
 
 int
