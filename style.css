@@ -383,3 +383,66 @@ div.noscript a {
 	text-decoration: underline;
 	font-weight: bold;
 }
+
+/* Features section styling */
+.features-list {
+	list-style: none;
+	padding: 0;
+	margin: 24px 0;
+}
+
+.features-list li {
+	padding: 12px 16px;
+	margin-bottom: 8px;
+	background-color: var(--button-bg);
+	border: 2px solid var(--button-highlight);
+	border-right-color: var(--dark);
+	border-bottom-color: var(--dark);
+	box-shadow:
+		1px 1px 0 0 var(--shadow),
+		inset 1px 1px 0 0 var(--button-inset);
+	border-radius: 4px;
+}
+
+.features-list li strong {
+	display: block;
+	margin-bottom: 4px;
+	color: var(--dark);
+}
+
+section h2 {
+	margin-top: 32px;
+	margin-bottom: 16px;
+	color: var(--dark);
+	font-size: 18px;
+}
+
+section ul {
+	padding-left: 20px;
+}
+
+section ul li {
+	margin-bottom: 8px;
+	line-height: 1.4;
+}
+
+/* Improved responsive design */
+@media (max-width: 768px) {
+	.content {
+		padding: 12px 16px;
+		margin: 8px auto;
+	}
+
+	.platform-buttons {
+		gap: 12px;
+	}
+
+	.platform-btn {
+		width: 100px;
+		padding: 12px 8px;
+	}
+
+	.features-list li {
+		padding: 10px 12px;
+	}
+}
