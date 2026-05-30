@@ -1,0 +1,7 @@
+### Added
+- Background meditation timer - sessions continue when screen is off
+- Android wake lock support
+- Background sound playback
+### Fixed
+- Meditation pausing when screen turns off
+- Thread synchronization issues between main loop and background timer

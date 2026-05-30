@@ -1,7 +1,6 @@
 #include "android_wakelock.h"
 #include <string.h>
 
-#ifdef __ANDROID__
 #include <raylib.h>
 #include <pthread.h>
 #include <android/log.h>
@@ -47,6 +46,11 @@ void android_wakelock_acquire(void) {
 
     pthread_mutex_lock(&wakelock_mutex);
 
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "ACQUIRE: Checking if g_jvm and g_activity are set");
+    char msg[128];
+    snprintf(msg, sizeof(msg), "ACQUIRE: g_jvm=%p, g_activity=%p", g_jvm, g_activity);
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, msg);
+
     if (!g_jvm || !g_activity) {
         __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "ACQUIRE: JNI not initialized - skipping wake lock");
         pthread_mutex_unlock(&wakelock_mutex);
@@ -73,6 +77,11 @@ void android_wakelock_release(void) {
 
     pthread_mutex_lock(&wakelock_mutex);
 
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "RELEASE: Checking if g_jvm and g_activity are set");
+    char msg[128];
+    snprintf(msg, sizeof(msg), "RELEASE: g_jvm=%p, g_activity=%p", g_jvm, g_activity);
+    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, msg);
+
     if (!g_jvm || !g_activity) {
         __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "RELEASE: JNI not initialized - skipping wake lock");
         pthread_mutex_unlock(&wakelock_mutex);
@@ -98,5 +107,3 @@ void android_wakelock_release(void) {
 void android_wakelock_set_jvm(JavaVM *vm) {
     g_jvm = vm;
 }
-
-#endif

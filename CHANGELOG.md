@@ -1,4 +1,15 @@
 # Changelog
+## [1.1.6] - 2026-05-30
+### Added
+- Background meditation timer - sessions continue when screen is off
+- "Play in background" toggle in breathing settings (Android only)
+- Android wake lock support with user control
+- Background sound playback
+### Fixed
+- Meditation pausing when screen turns off
+- Thread synchronization issues between main loop and background timer
+- Toggle button now uses theme colors instead of hardcoded colors
+
 ## [1.1.5] - 2026-05-29
 ### Fixed
 - Results page layout improvements:

@@ -47,6 +47,11 @@ inccount(char v[CountSize])
 	v[0] = '0';
 }
 
+int
+inbe_get_play_in_background(Inbe *inbe)
+{
+	return inbe->play_in_background;
+}
 
 void
 inbeinit(Inbe *l)
@@ -71,6 +76,11 @@ inbeinit(Inbe *l)
 	l->halftick = 0;
     l->max_rounds = DefaultMaxRounds;
     l->pause_seconds = DefaultPauseSeconds;
+#ifdef __ANDROID__
+    l->play_in_background = 1;  // Enabled by default on Android
+#else
+    l->play_in_background = 0;  // Disabled on other platforms
+#endif
 
     for(int i = 0; i < MaxRounds; i++) {
         cpcount(l->results[i], "000");

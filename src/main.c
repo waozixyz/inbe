@@ -1,11 +1,11 @@
 #include "raylib.h"
 #include "app.h"
 #include "ui/dpi.h"
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_insets.h"
 #include "android_wakelock.h"
 #include "android_timer.h"
-
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include <android/log.h>
 #include <android_native_app_glue.h>
 extern struct android_app *GetAndroidApp(void);
@@ -16,6 +16,16 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 static InbeApp inbe_app;
+static InbeApp *g_inbe_app_ptr = NULL;  // Global pointer for JNI access
+
+InbeApp* get_global_inbe_app(void) {
+    if (g_inbe_app_ptr == NULL) {
+        TraceLog(LOG_WARNING, "WARNING: get_global_inbe_app called with NULL pointer");
+    }
+    return g_inbe_app_ptr;
+}
+
+void set_global_inbe_app(InbeApp *app);
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #define INBE_ANDROID_BUILD 1
@@ -123,6 +133,8 @@ int main(int argc, char **argv) {
 
     dpi_init();
     inbe_app_init(&inbe_app);
+    set_global_inbe_app(&inbe_app);
+    TraceLog(LOG_INFO, "INBE: Global app pointer set");
 
     #if INBE_ANDROID_BUILD
     inbe_app.fullscreen_enabled = 0;
@@ -142,4 +154,9 @@ int main(int argc, char **argv) {
     CloseWindow();
 #endif
     return 0;
+}
+
+void set_global_inbe_app(InbeApp *app) {
+    g_inbe_app_ptr = app;
+    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
 }
