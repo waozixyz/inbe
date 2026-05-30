@@ -46,7 +46,8 @@ int ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon
 int ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover);
 void ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url);
 int ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label, int min, int max, int *value, const char *suffix);
-int ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value);
+int ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
+                         const char *off_label, const char *on_label);
 int ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *value);
 int ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, const char **options, int option_count, int *selected_index);
 void ui_draw_dropdown_menu(InbeApp *app, int id);

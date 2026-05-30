@@ -6,7 +6,8 @@
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
-#include "ui.h"
+#include "ui/ui.h"
+#include "ui/dpi.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -24,17 +25,16 @@
 #include <emscripten.h>
 #endif
 
+#ifdef __ANDROID__
+#include "android_wakelock.h"
+#include "android_timer.h"
+#endif
+
 #define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
-typedef struct InbeConfig {
-    char title[64];
-    int width;
-    int height;
-    int loaded;
-} InbeConfig;
 
-static InbeConfig config = {
+InbeConfig config = {
     .title = INBE_DEFAULT_TITLE,
     .width = INBE_DEFAULT_WIDTH,
     .height = INBE_DEFAULT_HEIGHT,
@@ -43,7 +43,6 @@ static InbeConfig config = {
 
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
-static float dpi_scale = 1.0f;
 Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 /* Forward declarations for tab callbacks */
@@ -304,24 +303,6 @@ load_config(void)
     config.loaded = 1;
 }
 
-const char *
-inbe_app_title(void)
-{
-    return config.title;
-}
-
-int
-inbe_app_width(void)
-{
-    return config.width;
-}
-
-int
-inbe_app_height(void)
-{
-    return config.height;
-}
-
 int
 clampi(int value, int min, int max)
 {
@@ -423,6 +404,20 @@ save_settings(InbeApp *app)
 #else
         "settings.ini";
 #endif
+#ifdef __ANDROID__
+    snprintf(text, sizeof(text),
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nplay_in_background %d\n",
+             app->inbe.speed_level,
+             app->inbe.max_rounds,
+             int_from_count(app->inbe.maxbreaths),
+             app->inbe.pause_seconds,
+             app->sound_volume,
+             app->tutorial_seen ? 1 : 0,
+             app->theme_id,
+             app->dark_mode,
+             app->fullscreen_enabled ? 1 : 0,
+             app->inbe.play_in_background);
+#else
     snprintf(text, sizeof(text),
              "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\n",
              app->inbe.speed_level,
@@ -434,6 +429,7 @@ save_settings(InbeApp *app)
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0);
+#endif
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
     sync_web_storage();
@@ -463,6 +459,14 @@ load_settings(InbeApp *app)
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
+#ifdef __ANDROID__
+    app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
+        1  // Default to enabled on Android
+    );
+    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d", app->inbe.play_in_background);
+#else
+    app->inbe.play_in_background = 0;
+#endif
 
     refresh_theme_colors(app->theme_id, app->dark_mode);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
@@ -584,7 +588,7 @@ play_app_sound(InbeApp *app, Sound sound, float scale)
     PlaySound(sound);
 }
 
-static void
+void
 update_session_sounds(InbeApp *app)
 {
     if (app == NULL) return;
@@ -618,17 +622,17 @@ update_session_sounds(InbeApp *app)
         switch (app->inbe.phase) {
             case InbePhaseHold:
                 break;
-                
+
             case InbePhaseRecover:
-                play_app_sound(app, app->breath_in_sound, 1.0f);
+                /* Sound already played in finish_hold() */
                 break;
-                
+
             case InbePhaseNext:
                 if (app->sound_last_phase == InbePhaseRecover) {
                     play_app_sound(app, app->breath_out_sound, 1.0f);
                 }
                 break;
-                
+
             default:
                 break;
         }
@@ -643,8 +647,10 @@ start_session(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int play_in_background = app->inbe.play_in_background;
 
     inbeinit(&app->inbe);
+    app->inbe.play_in_background = play_in_background;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     /* Save user's pause preference and use 3 seconds for first round */
     app->saved_pause_seconds = app->inbe.pause_seconds;
@@ -654,6 +660,20 @@ start_session(InbeApp *app)
     app->session_paused = 0;
     app->results_saved = 0;
     remember_sound_state(app);
+
+#ifdef __ANDROID__
+    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
+    if (app->inbe.play_in_background) {
+        TraceLog(LOG_INFO, "INBE: Acquiring wake lock and starting timer");
+        android_wakelock_acquire();
+        android_timer_set_app(app);
+        set_global_inbe_app(app);  // Update global pointer for JNI
+        android_timer_start();
+    } else {
+        TraceLog(LOG_INFO, "INBE: SKIPPING wake lock and timer (play_in_background disabled)");
+        set_global_inbe_app(app);  // Still set pointer for JNI access
+    }
+#endif
 }
 
 static void
@@ -666,6 +686,8 @@ finish_hold(InbeApp *app)
     app->inbe.breath_frame = 0;
     app->inbe.breathtick = 0;
     app->inbe.sectick = 0;
+    /* Play breath-in sound when user finishes hold and starts recovery */
+    play_app_sound(app, app->breath_in_sound, 1.0f);
 }
 
 static void
@@ -864,6 +886,13 @@ inbe_app_init(void *vapp) {
     if(app == 0)
         return;
 
+#ifdef __ANDROID__
+    if (app->inbe.play_in_background) {
+        android_timer_stop();
+        android_wakelock_release();
+    }
+#endif
+
 #if defined(PLATFORM_WEB)
     init_web_storage();
 #endif
@@ -1015,6 +1044,12 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
+#ifdef __ANDROID__
+            if (app->inbe.play_in_background) {
+                android_wakelock_release();
+                android_timer_stop();
+            }
+#endif
             inbe_app_init(app);
         } else {
             /* Show confirmation modal */
@@ -1086,7 +1121,7 @@ updateapp(InbeApp *app)
         DrawText(config.title, center_x - title_w / 2, ui_px(20), title_font, c_text);
 
         {
-            int play_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(20);
+            int play_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(20);
             int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 54, 66) - ui_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
@@ -1124,11 +1159,23 @@ updateapp(InbeApp *app)
                             app->results_saved = 1;
                         }
                     }
+#ifdef __ANDROID__
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
                 } else if(modal_result == 3) {
                     /* Discard - exit without saving */
+#ifdef __ANDROID__
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
@@ -1144,6 +1191,12 @@ updateapp(InbeApp *app)
                     app->modal.type = UIModalNone;
                 } else if(modal_result == 2) {
                     /* Exit - no data to save, just exit */
+#ifdef __ANDROID__
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
+#endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
                     inbe_app_init(app);
@@ -1180,12 +1233,26 @@ updateapp(InbeApp *app)
 
         draw_session_status(app, center_x, center_y);
 
-        if(!app->session_paused)
+        if(!app->session_paused) {
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+            pthread_mutex_t *timer_mutex = android_timer_get_mutex();
+            if (timer_mutex) {
+                pthread_mutex_lock(timer_mutex);
+                inbestep(&app->inbe);
+                update_session_sounds(app);
+                pthread_mutex_unlock(timer_mutex);
+            } else {
+                inbestep(&app->inbe);
+                update_session_sounds(app);
+            }
+#else
             inbestep(&app->inbe);
-        update_session_sounds(app);
+            update_session_sounds(app);
+#endif
+        }
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(24);
+            int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(24);
             int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
@@ -1271,12 +1338,10 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     view_width = (int)viewport.width;
     view_height = (int)viewport.height;
 
-    /* Calculate DPI scale based on viewport height vs base design (560) */
-    dpi_scale = (float)view_height / (float)INBE_DEFAULT_HEIGHT;
-    if(dpi_scale < 1.0f)
-        dpi_scale = 1.0f;
+    /* Update DPI cache */
+    dpi_update(view_width, view_height);
 
-    ui_init(view_width, view_height, dpi_scale);
+    ui_init(view_width, view_height, dpi_ui_scale());
 
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;
@@ -1295,6 +1360,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 static void *
 inbe_app_create(void)
 {
+    dpi_init();
     InbeApp *app = calloc(1, sizeof(InbeApp));
     inbe_app_init(app);
     return app;
@@ -1337,21 +1403,12 @@ inbe_app_destroy(void *vapp)
 
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {
-        ui_text_layout_free(app->tutorial_step0_layout);
-        ui_text_layout_free(app->tutorial_step1_layout);
-        ui_text_layout_free(app->tutorial_step2_layout);
-        ui_text_layout_free(app->tutorial_step3_layout);
-        ui_text_layout_free(app->tutorial_step4_layout);
-
-        /* Free the layout memory */
-        free(app->tutorial_step0_layout);
-        free(app->tutorial_step1_layout);
-        free(app->tutorial_step2_layout);
-        free(app->tutorial_step3_layout);
-        free(app->tutorial_step4_layout);
+        for(int i = 0; i < 5; i++) {
+            ui_text_layout_free(app->tutorial_layouts[i]);
+            free(app->tutorial_layouts[i]);
+        }
     }
 
-    // Unload Sounds
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);

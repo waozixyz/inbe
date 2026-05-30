@@ -2,6 +2,8 @@
 #define INBE_ANDROID_INSETS_H
 
 #ifdef __ANDROID__
+#include <jni.h>
+
 typedef struct {
 	int status_bar;
 	int nav_bar;
@@ -13,6 +15,7 @@ typedef struct {
 
 void android_insets_init(void);
 void android_insets_get(AndroidInsets *out);
+void android_wakelock_set_activity(JNIEnv *env, jobject activity);
 #else
 typedef struct {
 	int status_bar;

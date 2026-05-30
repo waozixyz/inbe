@@ -1,7 +1,7 @@
 #include "settings_tab.h"
 #include "app.h"
-#include "ui.h"
-#include "text_layout.h"
+#include "ui/ui.h"
+#include "ui/text_layout.h"
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
@@ -40,7 +40,7 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
     int toggle_x = x + w - toggle_w;
     int toggle_y = y - 2;
 
-    if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode)) {
+    if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode, "OFF", "ON")) {
         refresh_theme_colors(app->theme_id, app->dark_mode);
         app->settings_dirty = 1;
     }
@@ -169,6 +169,22 @@ settings_tab_draw(InbeApp *app)
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
                     app->settings_dirty = 1;
                 }
+
+#ifdef __ANDROID__
+                /* Play in background (Android only) - under Speed slider */
+                int play_in_background = app->inbe.play_in_background;
+                int toggle_y = yoff + content_start_y + ui_px(275);
+                int toggle_w = ui_px(44);
+                int toggle_h = ui_px(24);
+                int toggle_x = content_x + content_w - toggle_w - ui_px(16);
+                if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &play_in_background, "OFF", "ON")) {
+                    app->inbe.play_in_background = play_in_background;
+                    app->settings_dirty = 1;
+                    TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
+                }
+                int label_x = content_x;
+                DrawText("Play in background", label_x, toggle_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
+#endif
                 break;
             }
             case SETTINGS_TAB_SESSION: {

@@ -15,6 +15,14 @@ fi
 
 echo "Publishing inbe.waozi.xyz..."
 
+# Update metadata before publishing
+if [ -f "./update_metadata.sh" ]; then
+    echo "Running metadata update..."
+    ./update_metadata.sh || echo "Warning: Metadata update failed, continuing anyway"
+else
+    echo "Warning: update_metadata.sh not found, skipping metadata update"
+fi
+
 TMPDIR=$(mktemp -d -p /tmp)
 
 # Base site files
@@ -122,7 +130,7 @@ rsync -av --exclude='.*' --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exc
 
 rsync -av --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' cursors/ "$TMPDIR/cursors/"  
 
-cp style.css assets/DepartureMono-Regular.otf og.png "$TMPDIR/"
+cp style.css assets/DepartureMono-Regular.otf og.png sitemap.xml robots.txt "$TMPDIR/"
 cp -R assets "$TMPDIR/"
 
 if [ -f "$TMPDIR/index.html" ]; then

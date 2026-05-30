@@ -2,7 +2,7 @@
 #define INBE_TEXT_LAYOUT_H
 
 #include "raylib.h"
-#include "ui.h"
+#include "ui/ui.h"
 
 /* ================================================================
  * TEXT LAYOUT ENGINE

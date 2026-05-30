@@ -1,13 +1,13 @@
 #include "ui.h"
 #include "app.h"
 #include "text_layout.h"
+#include "dpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 /* Global UI state */
-static float dpi_scale = 1.0f;
 static int ui_view_width = 320;
 static int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
@@ -17,7 +17,7 @@ ui_init(int width, int height, float dpi)
 {
     ui_view_width = width;
     ui_view_height = height;
-    dpi_scale = dpi;
+    /* dpi parameter is now ignored - we use the global DPI cache */
 }
 
 void
@@ -38,15 +38,15 @@ ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hov
 int
 ui_px(int px)
 {
-    return (int)(px * dpi_scale + 0.5f);
+    return (int)(px * dpi_ui_scale() + 0.5f);
 }
 
 int
 ui_clamp_px(int px, int min_px, int max_px)
 {
-    int value = (int)(px * dpi_scale + 0.5f);
-    int min_value = (int)(min_px * dpi_scale + 0.5f);
-    int max_value = (int)(max_px * dpi_scale + 0.5f);
+    int value = (int)(px * dpi_ui_scale() + 0.5f);
+    int min_value = (int)(min_px * dpi_ui_scale() + 0.5f);
+    int max_value = (int)(max_px * dpi_ui_scale() + 0.5f);
 
     if(value < min_value)
         value = min_value;
@@ -106,7 +106,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
 void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
-    int border = (int)(dpi_scale + 0.5f);
+    int border = (int)(dpi_ui_scale() + 0.5f);
     if(border < 1) border = 1;
 
     DrawRectangle(x, y, w, border, light);
@@ -458,7 +458,8 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 }
 
 int
-ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
+ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
+                     const char *off_label, const char *on_label)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int hover = 0;
@@ -483,21 +484,19 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
 
     int active_w = (w - 6) / 2;
     int active_x = *value ? x + w - active_w - 3 : x + 3;
-    DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_circle);
+    DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_button);
 
     int font = ui_clamp_px(12, 10, 14);
-    const char *light_label = "Light";
-    const char *dark_label = "Dark";
-    int light_w = MeasureText(light_label, font);
-    int dark_w = MeasureText(dark_label, font);
+    int off_w = MeasureText(off_label, font);
+    int on_w = MeasureText(on_label, font);
 
     Color label_color = c_text;
     /* Center text in each half of the toggle */
-    int light_x = x + w / 4 - light_w / 2;
-    int dark_x = x + w * 3 / 4 - dark_w / 2;
+    int off_x = x + w / 4 - off_w / 2;
+    int on_x = x + w * 3 / 4 - on_w / 2;
     int text_y = y + h / 2 - font / 2;
-    DrawText(light_label, light_x, text_y, font, label_color);
-    DrawText(dark_label, dark_x, text_y, font, label_color);
+    DrawText(off_label, off_x, text_y, font, label_color);
+    DrawText(on_label, on_x, text_y, font, label_color);
 
     return pressed;
 }
@@ -727,7 +726,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
 
     /* Clip to menu area - expand to ensure bevel and highlights aren't clipped */
-    int bevel_width = (int)(dpi_scale + 0.5f);
+    int bevel_width = (int)(dpi_ui_scale() + 0.5f);
     if(bevel_width < 1) bevel_width = 1;
     int expand = bevel_width + ui_px(2);  /* Extra expansion for hover highlights */
     BeginScissorMode(x - expand, dropdown_y - expand, w + expand * 2, dropdown_h + expand * 2);

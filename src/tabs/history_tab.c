@@ -1,8 +1,8 @@
 #include "history_tab.h"
 #include "app.h"
 #include "data.h"
-#include "ui.h"
-#include "text_layout.h"
+#include "ui/ui.h"
+#include "ui/text_layout.h"
 #include "raylib.h"
 
 #include <dirent.h>

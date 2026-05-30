@@ -1,8 +1,12 @@
 #include "raylib.h"
 #include "app.h"
-#include "android_insets.h"
+#include "ui/dpi.h"
+#include <stddef.h>
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#include "android_insets.h"
+#include "android_wakelock.h"
+#include "android_timer.h"
 #include <android/log.h>
 #include <android_native_app_glue.h>
 extern struct android_app *GetAndroidApp(void);
@@ -13,6 +17,16 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 static InbeApp inbe_app;
+static InbeApp *g_inbe_app_ptr = NULL;  // Global pointer for JNI access
+
+InbeApp* get_global_inbe_app(void) {
+    if (g_inbe_app_ptr == NULL) {
+        TraceLog(LOG_WARNING, "WARNING: get_global_inbe_app called with NULL pointer");
+    }
+    return g_inbe_app_ptr;
+}
+
+void set_global_inbe_app(InbeApp *app);
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #define INBE_ANDROID_BUILD 1
@@ -92,27 +106,39 @@ frame(void)
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
-    int window_w = INBE_ANDROID_BUILD ? 0 : inbe_app_width();
-    int window_h = INBE_ANDROID_BUILD ? 0 : inbe_app_height();
+    int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
+    int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
+
+#if INBE_ANDROID_BUILD
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
+#endif
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
 #if INBE_ANDROID_BUILD
-    android_insets_init();  // MUST be first, before app init
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_insets_init");
+    android_insets_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_wakelock_init");
+    android_wakelock_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_timer_init");
+    android_timer_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Init calls done");
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
 #endif
 
 
-    InitWindow(window_w, window_h, inbe_app_title());
+    InitWindow(window_w, window_h, config.title);
 
+    dpi_init();
     inbe_app_init(&inbe_app);
+    set_global_inbe_app(&inbe_app);
+    TraceLog(LOG_INFO, "INBE: Global app pointer set");
 
-    /* Apply fullscreen setting on startup */
     #if INBE_ANDROID_BUILD
-    inbe_app.fullscreen_enabled = 0;  // Force fullscreen off on Android
+    inbe_app.fullscreen_enabled = 0;
     #endif
     if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
         ToggleFullscreen();
@@ -129,4 +155,9 @@ int main(int argc, char **argv) {
     CloseWindow();
 #endif
     return 0;
+}
+
+void set_global_inbe_app(InbeApp *app) {
+    g_inbe_app_ptr = app;
+    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
 }
