@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "app.h"
 #include "ui/dpi.h"
+#include <stddef.h>
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_insets.h"
