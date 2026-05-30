@@ -130,7 +130,7 @@ rsync -av --exclude='.*' --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exc
 
 rsync -av --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' cursors/ "$TMPDIR/cursors/"  
 
-cp style.css assets/DepartureMono-Regular.otf og.png "$TMPDIR/"
+cp style.css assets/DepartureMono-Regular.otf og.png sitemap.xml robots.txt "$TMPDIR/"
 cp -R assets "$TMPDIR/"
 
 if [ -f "$TMPDIR/index.html" ]; then

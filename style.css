@@ -93,21 +93,13 @@ img {
 	margin-bottom: 24px;
 }
 
-.version-info {
+.version {
 	font-size: 14px;
 	font-weight: bold;
 	color: var(--dark);
 	margin: 8px 0 16px 0;
 	opacity: 0.7;
-}
-
-.download-info {
-	text-align: center;
-	font-size: 12px;
-	color: var(--dark);
-	margin: 4px 0 8px 0;
-	opacity: 0.6;
-	font-style: italic;
+	font-family: departure;
 }
 
 .tk-img {
