@@ -65,6 +65,7 @@ struct Inbe {
     int halftick;
     int max_rounds;
     int pause_seconds;
+    int play_in_background;
 
     char count[CountSize];
     char maxbreaths[CountSize];
@@ -76,5 +77,6 @@ void inbeinit(Inbe *l);
 void inbestep(Inbe *l);
 void inccount(char v[CountSize]);
 void cpcount(char dst[CountSize], const char src[CountSize]);
+int inbe_get_play_in_background(Inbe *inbe);
 
 #endif

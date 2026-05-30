@@ -1,9 +1,7 @@
 #include "android_timer.h"
 #include "app.h"
-#include "../libinbe/inbe.h"
 #include <time.h>
 
-#ifdef __ANDROID__
 #include <raylib.h>
 #include <pthread.h>
 #include <android/log.h>
@@ -148,4 +146,12 @@ android_timer_deactivate(void) {
     TraceLog(LOG_INFO, "INBE: Background timer DEACTIVATED - screen on");
 }
 
-#endif
+void*
+android_timer_get_app(void)
+{
+    void *app;
+    pthread_mutex_lock(&timer_mutex);
+    app = g_app;
+    pthread_mutex_unlock(&timer_mutex);
+    return app;
+}

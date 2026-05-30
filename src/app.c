@@ -405,7 +405,7 @@ save_settings(InbeApp *app)
         "settings.ini";
 #endif
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nplay_in_background %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -414,7 +414,8 @@ save_settings(InbeApp *app)
              app->tutorial_seen ? 1 : 0,
              app->theme_id,
              app->dark_mode,
-             app->fullscreen_enabled ? 1 : 0);
+             app->fullscreen_enabled ? 1 : 0,
+             app->inbe.play_in_background);
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
     sync_web_storage();
@@ -444,6 +445,14 @@ load_settings(InbeApp *app)
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
+    app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
+#ifdef __ANDROID__
+        1  // Default to enabled on Android
+#else
+        0  // Default to disabled on other platforms
+#endif
+    );
+    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d", app->inbe.play_in_background);
 
     refresh_theme_colors(app->theme_id, app->dark_mode);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
@@ -624,8 +633,10 @@ start_session(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int play_in_background = app->inbe.play_in_background;
 
     inbeinit(&app->inbe);
+    app->inbe.play_in_background = play_in_background;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     /* Save user's pause preference and use 3 seconds for first round */
     app->saved_pause_seconds = app->inbe.pause_seconds;
@@ -637,9 +648,17 @@ start_session(InbeApp *app)
     remember_sound_state(app);
 
 #ifdef __ANDROID__
-    android_wakelock_acquire();
-    android_timer_set_app(app);
-    android_timer_start();
+    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
+    if (app->inbe.play_in_background) {
+        TraceLog(LOG_INFO, "INBE: Acquiring wake lock and starting timer");
+        android_wakelock_acquire();
+        android_timer_set_app(app);
+        set_global_inbe_app(app);  // Update global pointer for JNI
+        android_timer_start();
+    } else {
+        TraceLog(LOG_INFO, "INBE: SKIPPING wake lock and timer (play_in_background disabled)");
+        set_global_inbe_app(app);  // Still set pointer for JNI access
+    }
 #endif
 }
 
@@ -854,8 +873,10 @@ inbe_app_init(void *vapp) {
         return;
 
 #ifdef __ANDROID__
-    android_timer_stop();
-    android_wakelock_release();
+    if (app->inbe.play_in_background) {
+        android_timer_stop();
+        android_wakelock_release();
+    }
 #endif
 
 #if defined(PLATFORM_WEB)
@@ -1010,7 +1031,10 @@ handle_back_button(InbeApp *app)
         /* When paused, exit immediately */
         if(app->session_paused) {
 #ifdef __ANDROID__
-            android_wakelock_release();
+            if (app->inbe.play_in_background) {
+                android_wakelock_release();
+                android_timer_stop();
+            }
 #endif
             inbe_app_init(app);
         } else {
@@ -1122,7 +1146,10 @@ updateapp(InbeApp *app)
                         }
                     }
 #ifdef __ANDROID__
-                    android_wakelock_release();
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
 #endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
@@ -1130,7 +1157,10 @@ updateapp(InbeApp *app)
                 } else if(modal_result == 3) {
                     /* Discard - exit without saving */
 #ifdef __ANDROID__
-                    android_wakelock_release();
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
 #endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
@@ -1148,7 +1178,10 @@ updateapp(InbeApp *app)
                 } else if(modal_result == 2) {
                     /* Exit - no data to save, just exit */
 #ifdef __ANDROID__
-                    android_wakelock_release();
+                    if (app->inbe.play_in_background) {
+                        android_wakelock_release();
+                        android_timer_stop();
+                    }
 #endif
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
@@ -1178,14 +1211,6 @@ updateapp(InbeApp *app)
         if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size,
                        app->session_paused ? app->play_icon : app->pause_icon, app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE, &pause_hover)) {
             app->session_paused = !app->session_paused;
-
-#ifdef __ANDROID__
-            if(app->session_paused) {
-                android_wakelock_release();
-            } else {
-                android_wakelock_acquire();
-            }
-#endif
         }
         if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size,
                                                     app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover)) {
@@ -1195,7 +1220,6 @@ updateapp(InbeApp *app)
         draw_session_status(app, center_x, center_y);
 
         if(!app->session_paused) {
-#ifdef __ANDROID__
             pthread_mutex_t *timer_mutex = android_timer_get_mutex();
             if (timer_mutex) {
                 pthread_mutex_lock(timer_mutex);
@@ -1206,10 +1230,6 @@ updateapp(InbeApp *app)
                 inbestep(&app->inbe);
                 update_session_sounds(app);
             }
-#else
-            inbestep(&app->inbe);
-            update_session_sounds(app);
-#endif
         }
 
         if (app->inbe.phase == InbePhaseHold) {

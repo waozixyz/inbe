@@ -29,6 +29,9 @@ public class MainActivity extends NativeActivity {
     private native void nativeWakeLockReady();
     private native void nativeTimerActivate();
     private native void nativeTimerDeactivate();
+    private native int nativeGetPlayInBackground();
+    private native void nativePauseSession();
+    private native void nativeResumeSession();
 
     public void acquireWakeLock() {
         Log.d(TAG, "acquireWakeLock called - wakeLock=" + wakeLock);
@@ -203,15 +206,33 @@ public class MainActivity extends NativeActivity {
     @Override
     protected void onPause() {
         super.onPause();
-        Log.d(TAG, "onPause: activating background timer");
-        nativeTimerActivate();
+        int playInBackground = nativeGetPlayInBackground();
+        Log.d(TAG, "onPause: play_in_background = " + playInBackground);
+        if (playInBackground == 0) {
+            // Auto-pause if play in background is disabled
+            Log.d(TAG, "onPause: Auto-pausing session (play in background disabled)");
+            nativePauseSession();
+        } else {
+            // Continue in background
+            Log.d(TAG, "onPause: Continuing in background (play in background enabled)");
+            nativeTimerActivate();
+        }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d(TAG, "onResume: deactivating background timer");
-        nativeTimerDeactivate();
+        int playInBackground = nativeGetPlayInBackground();
+        Log.d(TAG, "onResume: play_in_background = " + playInBackground);
+        if (playInBackground == 0) {
+            // Auto-resume if play in background is disabled
+            Log.d(TAG, "onResume: Auto-resuming session (play in background disabled)");
+            nativeResumeSession();
+        } else {
+            // Just deactivate timer (session continued in background)
+            Log.d(TAG, "onResume: Deactivating background timer");
+            nativeTimerDeactivate();
+        }
     }
 
     @Override

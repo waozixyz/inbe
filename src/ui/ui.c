@@ -458,7 +458,8 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 }
 
 int
-ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
+ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
+                     const char *off_label, const char *on_label)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int hover = 0;
@@ -483,21 +484,19 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value)
 
     int active_w = (w - 6) / 2;
     int active_x = *value ? x + w - active_w - 3 : x + 3;
-    DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_circle);
+    DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_button);
 
     int font = ui_clamp_px(12, 10, 14);
-    const char *light_label = "Light";
-    const char *dark_label = "Dark";
-    int light_w = MeasureText(light_label, font);
-    int dark_w = MeasureText(dark_label, font);
+    int off_w = MeasureText(off_label, font);
+    int on_w = MeasureText(on_label, font);
 
     Color label_color = c_text;
     /* Center text in each half of the toggle */
-    int light_x = x + w / 4 - light_w / 2;
-    int dark_x = x + w * 3 / 4 - dark_w / 2;
+    int off_x = x + w / 4 - off_w / 2;
+    int on_x = x + w * 3 / 4 - on_w / 2;
     int text_y = y + h / 2 - font / 2;
-    DrawText(light_label, light_x, text_y, font, label_color);
-    DrawText(dark_label, dark_x, text_y, font, label_color);
+    DrawText(off_label, off_x, text_y, font, label_color);
+    DrawText(on_label, on_x, text_y, font, label_color);
 
     return pressed;
 }
