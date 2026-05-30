@@ -7,6 +7,7 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "ui.h"
+#include "dpi.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -43,7 +44,6 @@ static InbeConfig config = {
 
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
-static float dpi_scale = 1.0f;
 Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 /* Forward declarations for tab callbacks */
@@ -1086,7 +1086,7 @@ updateapp(InbeApp *app)
         DrawText(config.title, center_x - title_w / 2, ui_px(20), title_font, c_text);
 
         {
-            int play_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(20);
+            int play_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(20);
             int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 54, 66) - ui_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
@@ -1185,7 +1185,7 @@ updateapp(InbeApp *app)
         update_session_sounds(app);
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + (int)(app->inbe.rmax * dpi_scale + 0.5f) + ui_px(24);
+            int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(24);
             int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
@@ -1271,12 +1271,10 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     view_width = (int)viewport.width;
     view_height = (int)viewport.height;
 
-    /* Calculate DPI scale based on viewport height vs base design (560) */
-    dpi_scale = (float)view_height / (float)INBE_DEFAULT_HEIGHT;
-    if(dpi_scale < 1.0f)
-        dpi_scale = 1.0f;
+    /* Update DPI cache */
+    dpi_update(view_width, view_height);
 
-    ui_init(view_width, view_height, dpi_scale);
+    ui_init(view_width, view_height, dpi_ui_scale());
 
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;
@@ -1295,6 +1293,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 static void *
 inbe_app_create(void)
 {
+    dpi_init();
     InbeApp *app = calloc(1, sizeof(InbeApp));
     inbe_app_init(app);
     return app;

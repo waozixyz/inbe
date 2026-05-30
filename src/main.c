@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "app.h"
+#include "dpi.h"
 #include "android_insets.h"
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
@@ -108,6 +109,7 @@ int main(int argc, char **argv) {
 
     InitWindow(window_w, window_h, inbe_app_title());
 
+    dpi_init();
     inbe_app_init(&inbe_app);
 
     /* Apply fullscreen setting on startup */

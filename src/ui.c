@@ -1,13 +1,13 @@
 #include "ui.h"
 #include "app.h"
 #include "text_layout.h"
+#include "dpi.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
 
 /* Global UI state */
-static float dpi_scale = 1.0f;
 static int ui_view_width = 320;
 static int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
@@ -17,7 +17,7 @@ ui_init(int width, int height, float dpi)
 {
     ui_view_width = width;
     ui_view_height = height;
-    dpi_scale = dpi;
+    /* dpi parameter is now ignored - we use the global DPI cache */
 }
 
 void
@@ -38,15 +38,15 @@ ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hov
 int
 ui_px(int px)
 {
-    return (int)(px * dpi_scale + 0.5f);
+    return (int)(px * dpi_ui_scale() + 0.5f);
 }
 
 int
 ui_clamp_px(int px, int min_px, int max_px)
 {
-    int value = (int)(px * dpi_scale + 0.5f);
-    int min_value = (int)(min_px * dpi_scale + 0.5f);
-    int max_value = (int)(max_px * dpi_scale + 0.5f);
+    int value = (int)(px * dpi_ui_scale() + 0.5f);
+    int min_value = (int)(min_px * dpi_ui_scale() + 0.5f);
+    int max_value = (int)(max_px * dpi_ui_scale() + 0.5f);
 
     if(value < min_value)
         value = min_value;
@@ -106,7 +106,7 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
 void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
-    int border = (int)(dpi_scale + 0.5f);
+    int border = (int)(dpi_ui_scale() + 0.5f);
     if(border < 1) border = 1;
 
     DrawRectangle(x, y, w, border, light);
@@ -727,7 +727,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
 
     /* Clip to menu area - expand to ensure bevel and highlights aren't clipped */
-    int bevel_width = (int)(dpi_scale + 0.5f);
+    int bevel_width = (int)(dpi_ui_scale() + 0.5f);
     if(bevel_width < 1) bevel_width = 1;
     int expand = bevel_width + ui_px(2);  /* Extra expansion for hover highlights */
     BeginScissorMode(x - expand, dropdown_y - expand, w + expand * 2, dropdown_h + expand * 2);
