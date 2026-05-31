@@ -1,5 +1,6 @@
 #include "manual_tab.h"
 #include "app.h"
+#include "locale.h"
 #include "ui/ui.h"
 #include "ui/text_layout.h"
 #include "theme_meta.h"
@@ -15,33 +16,15 @@ extern int view_height;
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 /* Tutorial text content ordered by step */
-static const char *const TUTORIAL_STEPS[] = {
-    [0] = "This breathing practice is based on the Wim Hof Method.\n\n"
-          "It can be powerful. Use it with care.\n\n"
-          "Practice sitting or lying down.\n"
-          "Never use it while driving,\nstanding, or in water.",
-
-    [1] = "Simply follow 4 steps:\n\n"
-          "1. Breathe rhythmically.\n"
-          "2. Exhale and hold.\n"
-          "3. Inhale deeply and hold.\n"
-          "4. Exhale and repeat.\n\n"
-          "Use the gear icon %i to adjust rounds, breaths, speed, and pauses.",
-
-    [2] = "Fill your lungs fully, then let the breath flow out.\n\n"
-          "Use this slider to set the pace of the breathing circle.\n\n"
-          "Find a rhythm that feels natural for you.\n\n",
-
-    [3] = "After the breathing round,\nexhale normally and hold.\n\n"
-          "Release when your body asks\n"
-          "for air. Do not force it.",
-
-    [4] = "Inhale fully and hold for about 15 seconds.\n\n"
-          "Then exhale and begin the next round.\n"
-          "Over time, each round may feel deeper."
+static const char *const TUTORIAL_KEYS[] = {
+    "tutorial_step_intro",
+    "tutorial_step_method",
+    "tutorial_step_breathe",
+    "tutorial_step_exhale_hold",
+    "tutorial_step_inhale_hold"
 };
 
-#define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_STEPS) / sizeof(TUTORIAL_STEPS[0]))
+#define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
 
 static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 28, 28 };
 
@@ -51,10 +34,26 @@ init_tutorial_layouts(InbeApp *app, int body_font)
     if(!app->tutorial_layouts_initialized) {
         for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
             app->tutorial_layouts[i] = calloc(1, sizeof(TextLayout));
-            *app->tutorial_layouts[i] = ui_text_layout_parse(TUTORIAL_STEPS[i], (Texture2D){0}, UI_ICON_TYPE_NONE, body_font);
+            *app->tutorial_layouts[i] = ui_text_layout_parse(locale_get(TUTORIAL_KEYS[i]), (Texture2D){0}, UI_ICON_TYPE_NONE, body_font);
         }
         app->tutorial_layouts_initialized = 1;
     }
+}
+
+void
+manual_tab_reset_layouts(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
+        if(app->tutorial_layouts[i] != NULL) {
+            ui_text_layout_free(app->tutorial_layouts[i]);
+            free(app->tutorial_layouts[i]);
+            app->tutorial_layouts[i] = NULL;
+        }
+    }
+    app->tutorial_layouts_initialized = 0;
 }
 
 void
@@ -79,7 +78,7 @@ manual_tab_draw(InbeApp *app)
     int previous_step;
     int content_x;
     int content_w;
-    const char *title = "Tutorial";
+    const char *title = locale_get("tutorial_title");
     int footer_y = view_height - ui_px(38);
     int footer_mid_y = footer_y + ui_px(7);
     char page_label[16];
@@ -108,10 +107,10 @@ manual_tab_draw(InbeApp *app)
     }
 
     switch(step) {
-    case 1: title = "Method"; break;
-    case 2: title = "Step 1: In & Out"; break;
-    case 3: title = "Step 2: Exhale & Hold"; break;
-    case 4: title = "Step 3: Inhale & Hold"; break;
+    case 1: title = locale_get("tutorial_method_title"); break;
+    case 2: title = locale_get("tutorial_step1_title"); break;
+    case 3: title = locale_get("tutorial_step2_title"); break;
+    case 4: title = locale_get("tutorial_step3_title"); break;
     default: break;
     }
 
@@ -150,7 +149,7 @@ manual_tab_draw(InbeApp *app)
         /* Image height must match drawing code which uses ui_px(200), not ui_px(224) */
     } else if(step == 1) {
         /* Step 1 uses a fresh gear_layout for drawing - calculate height from it */
-        TextLayout temp_gear = ui_text_layout_parse(TUTORIAL_STEPS[1], app->gear_icon, UI_ICON_TYPE_GEAR, ui_px(14));
+        TextLayout temp_gear = ui_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, UI_ICON_TYPE_GEAR, ui_px(14));
         ui_text_layout_reflow(&temp_gear, content_w, body_font, ui_px(24));
         actual_content_h += ui_text_layout_get_height(&temp_gear);
         ui_text_layout_free(&temp_gear);
@@ -231,7 +230,7 @@ manual_tab_draw(InbeApp *app)
         } else if(step == 1) {
             /* Step 1 text with gear icon - parse fresh each frame for proper icon binding */
             int icon_size = ui_px(14);
-            TextLayout gear_layout = ui_text_layout_parse(TUTORIAL_STEPS[1], app->gear_icon, UI_ICON_TYPE_GEAR, icon_size);
+            TextLayout gear_layout = ui_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, UI_ICON_TYPE_GEAR, icon_size);
             ui_text_layout_reflow(&gear_layout, content_w, body_font, ui_px(24));
             ui_text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
             ui_text_layout_free(&gear_layout);
@@ -245,22 +244,25 @@ manual_tab_draw(InbeApp *app)
             update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
             apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                            int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
+            app->settings_preview.progressive_speed = 0;
             inbestep(&app->settings_preview);
             if(app->settings_preview.phase != InbePhaseBreathe) {
                 reset_settings_preview(app);
                 update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
+                app->settings_preview.progressive_speed = 0;
             }
             draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + ui_px(40));
             y += (int)(app->settings_preview.rmax * 0.72f) + ui_px(54);
 
-            if(ui_draw_slider(app, 10, content_x, y, content_w, "Speed", SETTINGS_SPEED_MIN,
+            if(ui_draw_slider(app, 10, content_x, y, content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
                 apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
+                app->settings_preview.progressive_speed = 0;
                 app->settings_dirty = 1;
             }
         } else if(step == 3) {
@@ -294,17 +296,17 @@ manual_tab_draw(InbeApp *app)
     int right_hover = 0;
     int button_pad = ui_px(48);
     if(step == 0) {
-        if(ui_draw_text_btn(app, content_x + button_pad, footer_y, "SKIP", &left_hover))
-            manual_tab_close_tutorial(app, 1);
+    if(ui_draw_text_btn(app, content_x + button_pad, footer_y, locale_get("tutorial_skip_button"), &left_hover))
+        manual_tab_close_tutorial(app, 1);
     } else {
-        if(ui_draw_text_btn(app, content_x + button_pad, footer_y, "BACK", &left_hover)) {
+        if(ui_draw_text_btn(app, content_x + button_pad, footer_y, locale_get("tutorial_back_button"), &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
     if(ui_draw_text_btn(app, content_x + content_w - button_pad, footer_y,
-               step == (int)TUTORIAL_STEPS_COUNT - 1 ? "FINISH" : "NEXT", &right_hover)) {
+               step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_finish_button") : locale_get("tutorial_next_button"), &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_tab_close_tutorial(app, 1);
         else {

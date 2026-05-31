@@ -1,4 +1,17 @@
 # Changelog
+## [1.1.7] - 2026-05-31
+### Added
+- First-run language picker and in-app language switching
+- Spanish, French, and Portuguese translations
+- Localized Android/F-Droid metadata for German, Spanish, French, and Portuguese
+- Explicit Save Results and Discard actions on the results screen
+### Fixed
+- Language dropdown now renders above other controls
+- Tutorial blank lines now render correctly from locale files
+- Preview breathing circle now reflects the selected speed directly
+- History round details now appear directly under the selected session
+- Removed confusing delete button from history session rows
+
 ## [1.1.6] - 2026-05-30
 ### Added
 - Background meditation timer - sessions continue when screen is off

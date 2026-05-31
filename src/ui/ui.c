@@ -672,13 +672,14 @@ ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h,
     return changed;
 }
 
-void
+int
 ui_draw_dropdown_menu(InbeApp *app, int id)
 {
     UIDropdownState *state = get_or_create_dropdown_state(id);
+    int changed = 0;
 
     if(!state->open || state->options == NULL || state->selected_index == NULL)
-        return;
+        return 0;
 
     int font = ui_clamp_px(14, 12, 16);
     int x = state->x;
@@ -750,6 +751,9 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
                 *selected_index = i;
                 state->open = 0;
                 state->just_opened = 0;
+                changed = 1;
+                EndScissorMode();
+                goto draw_arrow;
             }
         }
 
@@ -757,6 +761,9 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     }
 
     EndScissorMode();
+
+draw_arrow:
+    ;
 
     /* Redraw arrow on top of everything */
     int arrow_pad = ui_px(24);
@@ -773,6 +780,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int y2 = arrow_y + x_half;
     DrawLine(x1, y1, x2, y2, c_text);
     DrawLine(x1, y2, x2, y1, c_text);
+    return changed;
 }
 
 int

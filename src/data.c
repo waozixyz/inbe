@@ -1,5 +1,6 @@
 #include "data.h"
 #include "miniz.h"
+#include "locale.h"
 #include "version.h"
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
@@ -357,7 +358,7 @@ data_today_dir(void)
 }
 
 int
-data_save_session(const int *round_times, int round_count)
+data_save_session_path(const int *round_times, int round_count, char *out_path, size_t out_path_size)
 {
     time_t now;
     struct tm *tm;
@@ -402,6 +403,8 @@ data_save_session(const int *round_times, int round_count)
     TraceLog(LOG_INFO, "DATA: saving session to %s", path);
     if(SaveFileText(path, text)) {
         TraceLog(LOG_INFO, "DATA: saved session to %s", path);
+        if(out_path != NULL && out_path_size > 0)
+            snprintf(out_path, out_path_size, "%s", path);
 #if defined(PLATFORM_WEB)
         EM_ASM({
             try {
@@ -416,6 +419,39 @@ data_save_session(const int *round_times, int round_count)
         TraceLog(LOG_ERROR, "DATA: failed to save session to %s", path);
         return 0;
     }
+}
+
+int
+data_save_session(const int *round_times, int round_count)
+{
+    return data_save_session_path(round_times, round_count, NULL, 0);
+}
+
+int
+data_delete_session(const char *path)
+{
+    if(path == NULL || path[0] == '\0')
+        return 0;
+
+    if(!FileExists(path))
+        return 1;
+
+#if defined(PLATFORM_WEB)
+    EM_ASM({
+        try {
+            FS.unlink(UTF8ToString($0));
+            FS.syncfs(false, function(err) {
+                if(err) console.error("syncfs error:", err);
+            });
+        } catch(e) {}
+    }, path);
+#else
+    if(remove(path) != 0)
+        return 0;
+#endif
+
+    TraceLog(LOG_INFO, "DATA: deleted session %s", path);
+    return 1;
 }
 
 static int
@@ -574,14 +610,22 @@ data_export(const char *path)
         strcpy(date_str, "Unknown");
     }
 
-    snprintf(metadata, sizeof(metadata),
-             "Inner Breeze Data Export\n"
-             "Version: %s\n"
-             "Export Date: %s\n"
-             "Session Count: %d\n",
-             INBE_VERSION_STRING,
-             date_str,
-             session_count);
+    {
+        char metadata_header[128];
+        char metadata_version[128];
+        char metadata_date[128];
+        char metadata_count[128];
+
+        locale_format(metadata_header, sizeof(metadata_header), "export_metadata_header");
+        locale_format(metadata_version, sizeof(metadata_version), "export_metadata_version", INBE_VERSION_STRING);
+        locale_format(metadata_date, sizeof(metadata_date), "export_metadata_date", date_str);
+        locale_format(metadata_count, sizeof(metadata_count), "export_metadata_count", session_count);
+        snprintf(metadata, sizeof(metadata), "%s\n%s\n%s\n%s\n",
+                 metadata_header,
+                 metadata_version,
+                 metadata_date,
+                 metadata_count);
+    }
 
     if(!mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt", metadata, strlen(metadata), MZ_NO_COMPRESSION)) {
         TraceLog(LOG_ERROR, "DATA: failed to write metadata");

@@ -42,6 +42,7 @@ enum {
     SETTINGS_TAB_BREATHING = 0,
     SETTINGS_TAB_SESSION,
     SETTINGS_TAB_APPEARANCE,
+    SETTINGS_TAB_LANGUAGE,
     SETTINGS_TAB_DATA,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
@@ -64,6 +65,7 @@ typedef struct InbeConfig {
 	int width;
 	int height;
 	int loaded;
+    int title_custom;
 } InbeConfig;
 
 extern InbeConfig config;
@@ -118,6 +120,9 @@ struct InbeApp {
     int settings_dirty;
     int settings_tab;
     int fullscreen_enabled;
+    char language[16];
+    int language_selected;
+    int language_index;
     int manual_scroll;
     int manual_drag_scrollbar;
     int manual_drag_content;
@@ -141,6 +146,7 @@ struct InbeApp {
     char history_record[16];
     int session_paused;
     int results_saved;
+    char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     UIModal modal;
 };
@@ -158,6 +164,8 @@ void reset_settings_preview(InbeApp *app);
 void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
 void apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds);
 void refresh_theme_colors(int theme_id, int dark_mode);
+void refresh_locale_dependent_text(InbeApp *app);
+void apply_language_selection(InbeApp *app, int language_index, int save_now);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 
 #endif

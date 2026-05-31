@@ -55,6 +55,7 @@ target_include_directories(inbe PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
+    "${SRC_DIR}/locale.c"
     "${SRC_DIR}/ui/ui.c"
     "${SRC_DIR}/ui/text_layout.c"
     "${SRC_DIR}/ui/dpi.c"
@@ -63,18 +64,20 @@ add_library(main SHARED
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/miniz.c"
     "${SRC_DIR}/file_dialog.c"
-    "${SRC_DIR}/android_share.c"
+    "${SRC_DIR}/android/android_share.c"
     "${SRC_DIR}/tabs/history_tab.c"
+    "${SRC_DIR}/tabs/language_tab.c"
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
-    "${SRC_DIR}/android_insets.c"
-    "${SRC_DIR}/android_wakelock.c"
-    "${SRC_DIR}/android_timer.c"
+    "${SRC_DIR}/android/android_insets.c"
+    "${SRC_DIR}/android/android_wakelock.c"
+    "${SRC_DIR}/android/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 
 target_include_directories(main PRIVATE
     "${SRC_DIR}"
+    "${SRC_DIR}/android"
     "${NATIVE_APP_GLUE_DIR}"
     "${LIBINBE_DIR}"
 )
