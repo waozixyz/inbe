@@ -150,11 +150,13 @@ settings_tab_draw(InbeApp *app)
         /* Update preview for breathing tab */
         update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_preview.progressive_speed = app->inbe.progressive_speed;
         inbestep(&app->settings_preview);
         if(app->settings_preview.phase != InbePhaseBreathe) {
             reset_settings_preview(app);
             update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+            app->settings_preview.progressive_speed = app->inbe.progressive_speed;
         }
 
         /* Content starts after dropdown */
@@ -167,23 +169,34 @@ settings_tab_draw(InbeApp *app)
                 if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, "Speed", SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                    app->settings_preview.progressive_speed = app->inbe.progressive_speed;
                     app->settings_dirty = 1;
                 }
 
-#ifdef __ANDROID__
-                /* Play in background (Android only) - under Speed slider */
-                int play_in_background = app->inbe.play_in_background;
-                int toggle_y = yoff + content_start_y + ui_px(275);
+                /* Progressive speed - under Speed slider */
+                int progressive_speed = app->inbe.progressive_speed;
                 int toggle_w = ui_px(44);
                 int toggle_h = ui_px(24);
                 int toggle_x = content_x + content_w - toggle_w - ui_px(16);
-                if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &play_in_background, "OFF", "ON")) {
+                int progressive_y = yoff + content_start_y + ui_px(275);
+                if(ui_draw_toggle_switch(app, toggle_x, progressive_y, toggle_w, toggle_h, &progressive_speed, "OFF", "ON")) {
+                    app->inbe.progressive_speed = progressive_speed;
+                    app->settings_preview.progressive_speed = progressive_speed;
+                    app->settings_dirty = 1;
+                    TraceLog(LOG_INFO, "INBE: Settings toggled progressive_speed to %d", progressive_speed);
+                }
+                DrawText("Progressive speed", content_x, progressive_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
+
+#ifdef __ANDROID__
+                /* Play in background (Android only) */
+                int play_in_background = app->inbe.play_in_background;
+                int play_bg_y = progressive_y + ui_px(40);
+                if(ui_draw_toggle_switch(app, toggle_x, play_bg_y, toggle_w, toggle_h, &play_in_background, "OFF", "ON")) {
                     app->inbe.play_in_background = play_in_background;
                     app->settings_dirty = 1;
                     TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
                 }
-                int label_x = content_x;
-                DrawText("Play in background", label_x, toggle_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
+                DrawText("Play in background", content_x, play_bg_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
 #endif
                 break;
             }
