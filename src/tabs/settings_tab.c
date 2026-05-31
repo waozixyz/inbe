@@ -1,5 +1,7 @@
 #include "settings_tab.h"
 #include "app.h"
+#include "language_tab.h"
+#include "locale.h"
 #include "ui/ui.h"
 #include "ui/text_layout.h"
 #include "theme.h"
@@ -15,11 +17,12 @@
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 static const char *settings_tab_names[] = {
-    "Breathing",
-    "Session",
-    "Appearance",
-    "Data",
-    "About"
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL
 };
 
 extern int view_width;
@@ -30,7 +33,7 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
 {
     int font = ui_clamp_px(14, 12, 16);
     int small_font = ui_clamp_px(12, 10, 14);
-    const char *label = "Theme";
+    const char *label = locale_get("theme_label");
 
     DrawText(label, x, y, font, c_text);
 
@@ -40,7 +43,8 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
     int toggle_x = x + w - toggle_w;
     int toggle_y = y - 2;
 
-    if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode, "OFF", "ON")) {
+    if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode,
+                             locale_get("toggle_off"), locale_get("toggle_on"))) {
         refresh_theme_colors(app->theme_id, app->dark_mode);
         app->settings_dirty = 1;
     }
@@ -116,7 +120,7 @@ settings_tab_draw(InbeApp *app)
         app->settings_drag_slider = 0;
     }
 
-    close_clicked = ui_draw_screen_header(app, "Settings", 1);
+    close_clicked = ui_draw_screen_header(app, locale_get("settings_title"), 1);
     if(close_clicked) {
         if(app->settings_dirty)
             save_settings(app);
@@ -137,6 +141,14 @@ settings_tab_draw(InbeApp *app)
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
+        int language_menu_changed = 0;
+        int draw_language_menu = 0;
+        settings_tab_names[0] = locale_get("settings_tab_breathing");
+        settings_tab_names[1] = locale_get("settings_tab_session");
+        settings_tab_names[2] = locale_get("settings_tab_appearance");
+        settings_tab_names[3] = locale_get("settings_tab_language");
+        settings_tab_names[4] = locale_get("settings_tab_data");
+        settings_tab_names[5] = locale_get("settings_tab_about");
         if(ui_draw_dropdown_button(app, 100, content_x, dropdown_y, content_w, dropdown_h, settings_tab_names, SETTINGS_TAB_COUNT, &app->settings_tab)) {
             reset_settings_preview(app);
         }
@@ -150,13 +162,13 @@ settings_tab_draw(InbeApp *app)
         /* Update preview for breathing tab */
         update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-        app->settings_preview.progressive_speed = app->inbe.progressive_speed;
+        app->settings_preview.progressive_speed = 0;
         inbestep(&app->settings_preview);
         if(app->settings_preview.phase != InbePhaseBreathe) {
             reset_settings_preview(app);
             update_preview_bounds(&app->settings_preview, content_w, ui_px(240));
             apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-            app->settings_preview.progressive_speed = app->inbe.progressive_speed;
+            app->settings_preview.progressive_speed = 0;
         }
 
         /* Content starts after dropdown */
@@ -166,37 +178,39 @@ settings_tab_draw(InbeApp *app)
             case SETTINGS_TAB_BREATHING: {
                 draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + content_start_y + ui_px(100));
 
-                if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, "Speed", SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
+                if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_preview.progressive_speed = app->inbe.progressive_speed;
+                    app->settings_preview.progressive_speed = 0;
                     app->settings_dirty = 1;
                 }
 
                 /* Progressive speed - under Speed slider */
                 int progressive_speed = app->inbe.progressive_speed;
-                int toggle_w = ui_px(44);
-                int toggle_h = ui_px(24);
-                int toggle_x = content_x + content_w - toggle_w - ui_px(16);
-                int progressive_y = yoff + content_start_y + ui_px(275);
-                if(ui_draw_toggle_switch(app, toggle_x, progressive_y, toggle_w, toggle_h, &progressive_speed, "OFF", "ON")) {
+                int toggle_w = ui_px(56);
+                int toggle_h = ui_px(30);
+                int toggle_x = content_x;
+                int progressive_label_y = yoff + content_start_y + ui_px(275);
+                int progressive_toggle_y = progressive_label_y + ui_px(26);
+                DrawText(locale_get("progressive_speed_label"), content_x, progressive_label_y, ui_clamp_px(14, 12, 16), c_text);
+                if(ui_draw_toggle_switch(app, toggle_x, progressive_toggle_y, toggle_w, toggle_h, &progressive_speed, locale_get("toggle_off"), locale_get("toggle_on"))) {
                     app->inbe.progressive_speed = progressive_speed;
-                    app->settings_preview.progressive_speed = progressive_speed;
+                    app->settings_preview.progressive_speed = 0;
                     app->settings_dirty = 1;
                     TraceLog(LOG_INFO, "INBE: Settings toggled progressive_speed to %d", progressive_speed);
                 }
-                DrawText("Progressive speed", content_x, progressive_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
 
 #ifdef __ANDROID__
                 /* Play in background (Android only) */
                 int play_in_background = app->inbe.play_in_background;
-                int play_bg_y = progressive_y + ui_px(40);
-                if(ui_draw_toggle_switch(app, toggle_x, play_bg_y, toggle_w, toggle_h, &play_in_background, "OFF", "ON")) {
+                int play_bg_label_y = progressive_toggle_y + toggle_h + ui_px(18);
+                int play_bg_toggle_y = play_bg_label_y + ui_px(26);
+                DrawText(locale_get("play_in_background_label"), content_x, play_bg_label_y, ui_clamp_px(14, 12, 16), c_text);
+                if(ui_draw_toggle_switch(app, toggle_x, play_bg_toggle_y, toggle_w, toggle_h, &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
                     app->inbe.play_in_background = play_in_background;
                     app->settings_dirty = 1;
                     TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
                 }
-                DrawText("Play in background", content_x, play_bg_y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
 #endif
                 break;
             }
@@ -204,7 +218,7 @@ settings_tab_draw(InbeApp *app)
                 int slider_y = yoff + content_start_y + ui_px(20);
 
                 /* Max rounds */
-                if(ui_draw_slider(app, 2, content_x, slider_y, content_w, "Max rounds", 1,
+                if(ui_draw_slider(app, 2, content_x, slider_y, content_w, locale_get("max_rounds_label"), 1,
                                MaxRounds, &max_rounds, "")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -212,7 +226,7 @@ settings_tab_draw(InbeApp *app)
                 }
 
                 /* Max breaths */
-                if(ui_draw_slider(app, 3, content_x, slider_y + ui_px(66), content_w, "Max breaths", SETTINGS_BREATHS_MIN,
+                if(ui_draw_slider(app, 3, content_x, slider_y + ui_px(66), content_w, locale_get("max_breaths_label"), SETTINGS_BREATHS_MIN,
                                SETTINGS_BREATHS_MAX, &max_breaths, "")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -220,7 +234,7 @@ settings_tab_draw(InbeApp *app)
                 }
 
                 /* Pause */
-                if(ui_draw_slider(app, 4, content_x, slider_y + ui_px(132), content_w, "Pause after round", SETTINGS_PAUSE_MIN,
+                if(ui_draw_slider(app, 4, content_x, slider_y + ui_px(132), content_w, locale_get("pause_after_round_label"), SETTINGS_PAUSE_MIN,
                                SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -229,7 +243,7 @@ settings_tab_draw(InbeApp *app)
 
                 /* Volume */
                 int sound_volume = app->sound_volume;
-                if(ui_draw_slider(app, 6, content_x, slider_y + ui_px(198), content_w, "Volume", SETTINGS_VOLUME_MIN,
+                if(ui_draw_slider(app, 6, content_x, slider_y + ui_px(198), content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
                                SETTINGS_VOLUME_MAX, &sound_volume, "")) {
                     app->sound_volume = sound_volume;
                     app->settings_dirty = 1;
@@ -237,7 +251,7 @@ settings_tab_draw(InbeApp *app)
 
                 /* Reset to defaults button */
                 int reset_y = slider_y + ui_px(265);
-                int reset_w = MeasureText("Reset to defaults", ui_clamp_px(14, 12, 16)) + ui_px(24);
+                int reset_w = MeasureText(locale_get("reset_to_defaults_label"), ui_clamp_px(14, 12, 16)) + ui_px(24);
                 int reset_h = ui_px(36);
                 int reset_x = content_x + content_w - reset_w;
                 int reset_hover = 0;
@@ -255,7 +269,7 @@ settings_tab_draw(InbeApp *app)
                 }
 
                 int reset_font = ui_clamp_px(14, 12, 16);
-                DrawText("Reset to defaults", reset_x + ui_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
+                DrawText(locale_get("reset_to_defaults_label"), reset_x + ui_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
 
                 if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
                    !ui_dropdown_captures_click(mouse_world)) {
@@ -273,7 +287,7 @@ settings_tab_draw(InbeApp *app)
             case SETTINGS_TAB_APPEARANCE: {
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
                 int checkbox_y = yoff + content_start_y;
-                if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, "Fullscreen", &app->fullscreen_enabled)) {
+                if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
                     if(app->fullscreen_enabled && !IsWindowFullscreen())
                         ToggleFullscreen();
                     else if(!app->fullscreen_enabled && IsWindowFullscreen())
@@ -287,11 +301,17 @@ settings_tab_draw(InbeApp *app)
                 int theme_y = yoff + content_start_y;
 #endif
                 draw_theme_selector(app, content_x, theme_y, content_w);
-
+                break;
+            }
+            case SETTINGS_TAB_LANGUAGE: {
                 int font = ui_clamp_px(14, 12, 16);
-                int label_y = theme_y + ui_px(220);
-                DrawText("Language", content_x, label_y, font, c_text);
-                DrawText("Coming soon...", content_x, label_y + ui_px(30), font, ui_darken(c_text, 40));
+                int label_y = yoff + content_start_y;
+                int dropdown_y = label_y + ui_px(28);
+
+                DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
+                if(language_dropdown_button(app, 101, content_x, dropdown_y, content_w, ui_px(36), &app->language_index))
+                    language_menu_changed = 1;
+                draw_language_menu = 1;
                 break;
             }
             case SETTINGS_TAB_DATA: {
@@ -312,7 +332,7 @@ settings_tab_draw(InbeApp *app)
                     snprintf(size_str, sizeof(size_str), "%.1f MB", (float)data_size / (1024 * 1024));
 
                 /* Title */
-                DrawText("Data Management", content_x, text_y, font, c_text);
+                DrawText(locale_get("data_management_label"), content_x, text_y, font, c_text);
                 text_y += ui_px(30);
 
                 /* Statistics box */
@@ -328,11 +348,11 @@ settings_tab_draw(InbeApp *app)
                 int stat_y = text_y + ui_px(16);
                 char stat_text[64];
 
-                snprintf(stat_text, sizeof(stat_text), "Total Sessions: %d", session_count);
+                locale_format(stat_text, sizeof(stat_text), "total_sessions_label", session_count);
                 DrawText(stat_text, stat_x, stat_y, font, c_text);
                 stat_y += ui_px(22);
 
-                snprintf(stat_text, sizeof(stat_text), "Data Size: %s", size_str);
+                locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
                 DrawText(stat_text, stat_x, stat_y, font, c_text);
                 stat_y += ui_px(22);
 
@@ -348,14 +368,18 @@ settings_tab_draw(InbeApp *app)
                         display_path = home_buf;
                     }
                 }
-                DrawText(TextFormat("Storage: %s", display_path), stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
+                {
+                    char storage_text[FS_PATH_MAX + 32];
+                    locale_format(storage_text, sizeof(storage_text), "storage_label", display_path);
+                    DrawText(storage_text, stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
+                }
 #endif
 
                 text_y += stats_box_h + ui_px(24);
 
                 /* Export button */
                 int export_h = ui_px(36);
-                int export_w = MeasureText("Export Data", font) + ui_px(24);
+                int export_w = MeasureText(locale_get("export_data_button"), font) + ui_px(24);
                 int export_x = content_x;
                 int export_y = text_y;
                 Rectangle export_rect = {export_x, export_y, export_w, export_h};
@@ -370,10 +394,10 @@ settings_tab_draw(InbeApp *app)
                     DrawRectangle(export_x, export_y, export_w, export_h, c_button);
                     ui_draw_bevel(export_x, export_y, export_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
                 }
-                DrawText("Export Data", export_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
+                DrawText(locale_get("export_data_button"), export_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
 
                 /* Delete All button */
-                int delete_w = MeasureText("Delete All Data", font) + ui_px(24);
+                int delete_w = MeasureText(locale_get("delete_all_data_button"), font) + ui_px(24);
                 int delete_x = content_x;
                 int delete_y = export_y + export_h + ui_px(12);
                 Rectangle delete_rect = {delete_x, delete_y, delete_w, export_h};
@@ -387,29 +411,29 @@ settings_tab_draw(InbeApp *app)
                     DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button);
                     ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
                 }
-                DrawText("Delete All Data", delete_x + ui_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
+                DrawText(locale_get("delete_all_data_button"), delete_x + ui_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
 
                 /* Handle button clicks */
                 if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
                    !ui_dropdown_captures_click(mouse_world)) {
-                    if(file_dialog_save(&export_dlg, "Export Data", "inbe-export.zip")) {
+                    if(file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
                         const char *path = file_dialog_get_path(&export_dlg);
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
                         /* On Android: don't show success message (share sheet is the feedback) */
                         if(path != NULL && data_export(path)) {
                             TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
                         } else {
-                            snprintf(export_result, sizeof(export_result), "Export failed");
+                            locale_format(export_result, sizeof(export_result), "export_failed");
                             TraceLog(LOG_ERROR, "DATA: Export failed");
                         }
 #else
                         /* Other platforms: show success message */
                         if(path != NULL && data_export(path)) {
                             const char *filename = GetFileName(path);
-                            snprintf(export_result, sizeof(export_result), "Exported: %s", filename);
+                            locale_format(export_result, sizeof(export_result), "exported_label", filename);
                             TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
                         } else {
-                            snprintf(export_result, sizeof(export_result), "Export failed");
+                            locale_format(export_result, sizeof(export_result), "export_failed");
                             TraceLog(LOG_ERROR, "DATA: Export failed");
                         }
 #endif
@@ -441,7 +465,7 @@ settings_tab_draw(InbeApp *app)
                 int text_y = yoff + content_start_y;
 
                 /* App description */
-                const char *desc_text = "Inner Breeze is a simple breathing\nmeditation app to help you relax\nand find your calm.";
+                const char *desc_text = locale_get("about_description");
                 TextLayout desc_layout = ui_text_layout_parse(desc_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
                 ui_text_layout_reflow(&desc_layout, content_w, font, ui_px(22));
                 ui_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
@@ -450,7 +474,7 @@ settings_tab_draw(InbeApp *app)
                 /* Version info */
                 text_y += ui_px(20);
                 char version_text[32];
-                snprintf(version_text, sizeof(version_text), "Version %s", INBE_VERSION_STRING);
+                locale_format(version_text, sizeof(version_text), "version_label", INBE_VERSION_STRING);
                 DrawText(version_text, content_x, text_y, small_font, ui_darken(c_text, 40));
 
                 /* Icon links */
@@ -467,11 +491,17 @@ settings_tab_draw(InbeApp *app)
                 ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, UI_ICON_TYPE_STRIPE, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
                 break;
             }
-        }
+    }
     EndScissorMode();
 
     /* Draw dropdown menu (floats above content) */
     ui_draw_dropdown_menu(app, 100);
+
+    if(draw_language_menu && language_dropdown_menu(app, 101))
+        language_menu_changed = 1;
+
+    if(language_menu_changed)
+        apply_language_selection(app, app->language_index, 1);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         if(app->settings_dirty)

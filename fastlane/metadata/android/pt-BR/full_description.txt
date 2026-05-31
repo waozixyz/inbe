@@ -1,0 +1,12 @@
+Um app livre e de código aberto de meditação respiratória guiada baseada no método Wim Hof.
+
+Recursos:
+- Sessões de respiração guiadas com sinais visuais e sonoros
+- Quantidade de respirações e tempos de retenção configuráveis
+- Histórico de sessões com armazenamento local
+- 8 temas de cores (Forest, Ocean, Sky, Sunset, Lavender, cada um com claro/escuro)
+- Efeitos sonoros (inspirar/expirar, sino)
+- Modo de tela cheia com escala DPI correta
+- Interface otimizada para toque em dispositivos móveis
+
+Plataformas disponíveis: Linux, Windows, Android, WebAssembly.

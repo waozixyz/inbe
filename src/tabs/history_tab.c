@@ -1,6 +1,7 @@
 #include "history_tab.h"
 #include "app.h"
 #include "data.h"
+#include "locale.h"
 #include "ui/ui.h"
 #include "ui/text_layout.h"
 #include "raylib.h"
@@ -240,9 +241,9 @@ history_format_round_label(const HistoryEntry *entry, int round_index, char *out
     if(out == NULL || out_size <= 0)
         return;
     if(round_index >= 0 && round_index < entry->round_count)
-        snprintf(out, (size_t)out_size, "R%d  %ds", round_index + 1, entry->rounds[round_index]);
+        locale_format(out, (size_t)out_size, "history_round_label", round_index + 1, entry->rounds[round_index]);
     else
-        snprintf(out, (size_t)out_size, "R%d", round_index + 1);
+        locale_format(out, (size_t)out_size, "history_round_short_label", round_index + 1);
 }
 
 /* Draw a clickable history row */
@@ -271,7 +272,7 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
-/* Draw a history session row with trash icon */
+/* Draw a clickable history session row */
 static int
 draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected)
 {
@@ -279,9 +280,7 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
     int hover = 0;
-    int icon_size = ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
     int font = ui_clamp_px(14, 12, 16);
-    (void)font;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, selected ? c_button_hover : ui_darken(c_button_hover, 6));
@@ -297,22 +296,6 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
     }
 
     DrawText(text, x + ui_px(46), y + ui_px(6), font, c_text);
-
-    if(app->x_icon.id != 0) {
-        int trash_x = x + w - icon_size - ui_px(8);
-        int trash_y = y + (h - icon_size) / 2;
-        Rectangle src = {0, 0, app->x_icon.width, app->x_icon.height};
-        Rectangle dst = {trash_x, trash_y, (float)icon_size, (float)icon_size};
-
-        if(mx > trash_x && mx < trash_x + icon_size && my > trash_y && my < trash_y + icon_size) {
-            app->cursor_clickable = 1;
-            DrawTexturePro(app->x_icon, src, dst, (Vector2){0}, 0, ui_darken(c_icon, 30));
-            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-                return 2;
-        } else {
-            DrawTexturePro(app->x_icon, src, dst, (Vector2){0}, 0, c_icon);
-        }
-    }
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return 1;
@@ -429,8 +412,7 @@ history_format_session_label(const HistoryEntry *entry, char *out, size_t out_si
 {
     if(out == NULL || out_size == 0)
         return;
-    snprintf(out, out_size, "%02d:%02d  avg %ds",
-             entry->hour, entry->minute, entry->avg_seconds);
+    locale_format(out, out_size, "history_session_label", entry->hour, entry->minute, entry->avg_seconds);
 }
 
 void
@@ -530,7 +512,7 @@ history_tab_draw(InbeApp *app)
     int side_padding = ui_px(32);  /* Match tutorial spacing */
     ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    close_clicked = ui_draw_screen_header(app, "History", 1);
+    close_clicked = ui_draw_screen_header(app, locale_get("history_title"), 1);
     if(close_clicked) {
         app->inbe.screen = InbeScreenStart;
         app->history_scroll = 0;
@@ -543,7 +525,7 @@ history_tab_draw(InbeApp *app)
         y = title_h + ui_px(12) - app->history_scroll;
         if(count == 0) {
             int font = ui_clamp_px(14, 12, 16);
-            const char *empty_text = "No saved sessions yet.\nComplete a session to add data.";
+            const char *empty_text = locale_get("history_empty");
             TextLayout empty_layout = ui_text_layout_parse(empty_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
             ui_text_layout_reflow(&empty_layout, content_w, font, ui_px(22));
             ui_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
@@ -578,7 +560,7 @@ history_tab_draw(InbeApp *app)
 
                 if(entries[i].month != month) {
                     int selected = app->history_month == entries[i].month && app->history_level >= 2;
-                    snprintf(label, sizeof(label), "Month %02d", entries[i].month);
+                    locale_format(label, sizeof(label), "history_month_label", entries[i].month);
                     if(draw_history_row(app, content_x, y, content_w, row_h, label, selected, 22)) {
                         app->history_month = entries[i].month;
                         app->history_day = 0;
@@ -596,7 +578,7 @@ history_tab_draw(InbeApp *app)
 
                 if(entries[i].day != day) {
                     int selected = app->history_day == entries[i].day && app->history_level >= 3;
-                    snprintf(label, sizeof(label), "Day %02d", entries[i].day);
+                    locale_format(label, sizeof(label), "history_day_label", entries[i].day);
                     if(draw_history_row(app, content_x, y, content_w, row_h, label, selected, 34)) {
                         app->history_day = entries[i].day;
                         history_clear_record_selection(app);
@@ -627,28 +609,10 @@ history_tab_draw(InbeApp *app)
                                  entries[i].hour, entries[i].minute, entries[i].second);
                         app->history_level = 3;
                         selected_index = i;
-                    } else if(result == 2) {
-                        char dir_day[FS_PATH_MAX];
-                        char path[FS_PATH_MAX];
-                        snprintf(dir_day, sizeof(dir_day), "%s/%04d/%02d/%02d",
-                                 data_root(), entries[i].year, entries[i].month, entries[i].day);
-                        snprintf(path, sizeof(path), "%s/%s", dir_day, record_name);
-                        remove(path);
-                        scan_history_tree(entries, &count);
-                        qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
-                        selected_index = -1;
-                        app->history_record[0] = 0;
-                        if(count == 0) {
-                            app->history_level = 0;
-                            app->history_year = 0;
-                            app->history_month = 0;
-                            app->history_day = 0;
-                        }
                     }
                     y += row_h;
 
                     if(selected_index == i) {
-                        y += row_h * 2;  /* Extra spacing before round items */
                         for(int r = 0; r < entries[i].round_count; r++) {
                             char round_label[HISTORY_TEXT_SIZE];
                             history_format_round_label(&entries[i], r, round_label, sizeof(round_label));

@@ -1,5 +1,6 @@
 #include "android_share.h"
 #include "data.h"
+#include "locale.h"
 #include "version.h"
 #include "raylib.h"
 #include "miniz.h"
@@ -36,6 +37,10 @@ int android_share_export(const char *filename)
     FilePathList files;
     int session_count = 0;
     char metadata[512];
+    char metadata_header[128];
+    char metadata_version[128];
+    char metadata_date[128];
+    char metadata_count[128];
     time_t now;
     struct tm *tm;
     char date_str[64];
@@ -69,14 +74,16 @@ int android_share_export(const char *filename)
         strcpy(date_str, "Unknown");
     }
 
-    snprintf(metadata, sizeof(metadata),
-             "Inner Breeze Data Export\n"
-             "Version: %s\n"
-             "Export Date: %s\n"
-             "Session Count: %d\n",
-             INBE_VERSION_STRING,
-             date_str,
-             session_count);
+    locale_format(metadata_header, sizeof(metadata_header), "export_metadata_header");
+    locale_format(metadata_version, sizeof(metadata_version), "export_metadata_version", INBE_VERSION_STRING);
+    locale_format(metadata_date, sizeof(metadata_date), "export_metadata_date", date_str);
+    locale_format(metadata_count, sizeof(metadata_count), "export_metadata_count", session_count);
+
+    snprintf(metadata, sizeof(metadata), "%s\n%s\n%s\n%s\n",
+             metadata_header,
+             metadata_version,
+             metadata_date,
+             metadata_count);
 
     if(!mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt", metadata, strlen(metadata), MZ_NO_COMPRESSION)) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to write metadata");
@@ -208,7 +215,7 @@ int android_share_export(const char *filename)
     }
 
     jmethodID method = (*env)->GetStaticMethodID(env, share_helper_class, "shareZipFile",
-        "(Landroid/app/Activity;[BLjava/lang/String;)V");
+        "(Landroid/app/Activity;[BLjava/lang/String;Ljava/lang/String;)V");
 
     if(!method) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: shareZipFile method not found");
@@ -221,10 +228,12 @@ int android_share_export(const char *filename)
     (*env)->SetByteArrayRegion(env, jarr, 0, zip_size, (jbyte*)zip_data);
 
     jstring jname = (*env)->NewStringUTF(env, filename);
-    (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz, jarr, jname);
+    jstring jtitle = (*env)->NewStringUTF(env, locale_get("share_sheet_title"));
+    (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz, jarr, jname, jtitle);
 
     (*env)->DeleteLocalRef(env, jarr);
     (*env)->DeleteLocalRef(env, jname);
+    (*env)->DeleteLocalRef(env, jtitle);
     (*env)->DeleteLocalRef(env, class_loader);
     (*jvm)->DetachCurrentThread(jvm);
 

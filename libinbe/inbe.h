@@ -32,6 +32,7 @@ enum {
 	InbeScreenSession,
 	InbeScreenResults,
     InbeScreenSettings,
+    InbeScreenLanguage,
     InbeScreenManual,
     InbeScreenHistory,
 };

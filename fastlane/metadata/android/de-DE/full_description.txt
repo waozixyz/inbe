@@ -1,0 +1,12 @@
+Eine freie, quelloffene App für geführte Atemmeditation nach der Wim-Hof-Methode.
+
+Funktionen:
+- Geführte Atemsitzungen mit visuellen und akustischen Hinweisen
+- Anpassbare Atemanzahl und Haltezeiten
+- Sitzungsverlauf mit lokaler Speicherung
+- 8 Farbthemen (Forest, Ocean, Sky, Sunset, Lavender - jeweils hell/dunkel)
+- Soundeffekte (Einatmen/Ausatmen, Glocke)
+- Vollbildmodus mit korrekter DPI-Skalierung
+- Touch-optimierte Oberfläche für Mobilgeräte
+
+Verfügbare Plattformen: Linux, Windows, Android, WebAssembly.

@@ -1,4 +1,5 @@
 #include "android_wakelock.h"
+#include <stdio.h>
 #include <string.h>
 
 #include <raylib.h>

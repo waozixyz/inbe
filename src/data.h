@@ -8,6 +8,8 @@ void data_init(void);
 const char *data_root(void);
 const char *data_today_dir(void);
 int data_save_session(const int *round_times, int round_count);
+int data_save_session_path(const int *round_times, int round_count, char *out_path, size_t out_path_size);
+int data_delete_session(const char *path);
 int data_has_any(void);
 long long data_get_total_size(void);
 int data_get_session_count(void);

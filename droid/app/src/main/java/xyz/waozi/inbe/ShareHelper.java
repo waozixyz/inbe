@@ -11,7 +11,7 @@ import java.io.FileOutputStream;
 public class ShareHelper {
     private static final String TAG = "InbeShare";
 
-    public static void shareZipFile(Activity activity, byte[] zipData, String filename) {
+    public static void shareZipFile(Activity activity, byte[] zipData, String filename, String chooserTitle) {
         if (activity == null || zipData == null) return;
 
         activity.runOnUiThread(new Runnable() {
@@ -34,7 +34,7 @@ public class ShareHelper {
                     sendIntent.putExtra(Intent.EXTRA_STREAM, contentUri);
                     sendIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
-                    Intent shareIntent = Intent.createChooser(sendIntent, "Export Session Data");
+                    Intent shareIntent = Intent.createChooser(sendIntent, chooserTitle);
                     activity.startActivity(shareIntent);
 
                     Log.i(TAG, "Share sheet shown");
