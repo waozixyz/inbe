@@ -1,0 +1,272 @@
+[app_title]
+Inner Breeze
+---
+[tab_history]
+Verlauf
+---
+[tab_manual]
+Tutorial
+---
+[tab_settings]
+Einstellungen
+---
+[play_button]
+START
+---
+[breath_button]
+ATEM
+---
+[results_title]
+ERGEBNISSE
+---
+[home_button]
+START
+---
+[exit_session_title]
+Sitzung beenden?
+---
+[save_completed_rounds_message]
+Abgeschlossene Runden vor dem Beenden speichern?
+---
+[cancel_button]
+Abbrechen
+---
+[save_button]
+Speichern
+---
+[save_results_button]
+Speichern
+---
+[discard_button]
+Verwerfen
+---
+[all_progress_lost_message]
+Alle Fortschritte gehen verloren.
+---
+[exit_button]
+Beenden
+---
+[round_times_title]
+Rundenzeiten
+---
+[results_rounds]
+%d Runden
+---
+[results_best]
+beste %ds
+---
+[results_avg]
+durchschn. %ds
+---
+[round_result_label]
+Runde %d  %ds
+---
+[starting_in]
+START IN %2d
+---
+[settings_title]
+Einstellungen
+---
+[settings_tab_breathing]
+Atmung
+---
+[settings_tab_session]
+Sitzung
+---
+[settings_tab_appearance]
+Darstellung
+---
+[settings_tab_language]
+Sprache
+---
+[settings_tab_data]
+Daten
+---
+[settings_tab_about]
+Über
+---
+[theme_label]
+Thema
+---
+[speed_label]
+Geschwindigkeit
+---
+[progressive_speed_label]
+Progressive Geschwindigkeit
+---
+[play_in_background_label]
+Im Hintergrund abspielen
+---
+[max_rounds_label]
+Max. Runden
+---
+[max_breaths_label]
+Max. Atemzüge
+---
+[pause_after_round_label]
+Pause nach Runde
+---
+[volume_label]
+Lautstärke
+---
+[reset_to_defaults_label]
+Auf Standard zurücksetzen
+---
+[fullscreen_label]
+Vollbild
+---
+[language_label]
+Sprache
+---
+[language_picker_title]
+Sprache wählen
+---
+[next_button]
+Weiter
+---
+[coming_soon_label]
+Demnächst...
+---
+[data_management_label]
+Datenverwaltung
+---
+[total_sessions_label]
+Gesamtsitzungen: %d
+---
+[data_size_label]
+Datengröße: %s
+---
+[storage_label]
+Speicher: %s
+---
+[export_data_button]
+Daten exportieren
+---
+[delete_all_data_button]
+Alle Daten löschen
+---
+[export_data_dialog_title]
+Daten exportieren
+---
+[export_failed]
+Export fehlgeschlagen
+---
+[exported_label]
+Exportiert: %s
+---
+[version_label]
+Version %s
+---
+[about_description]
+Inner Breeze ist eine einfache Atem-
+Meditations-App, die Ihnen hilft, sich zu
+entspannen und Ruhe zu finden.
+---
+[toggle_off]
+AUS
+---
+[toggle_on]
+AN
+---
+[history_title]
+Verlauf
+---
+[history_empty]
+Noch keine gespeicherten Sitzungen.
+Schließen Sie eine Sitzung ab, um Daten hinzuzufügen.
+---
+[history_month_label]
+Monat %02d
+---
+[history_day_label]
+Tag %02d
+---
+[history_round_short_label]
+R%d
+---
+[history_round_label]
+R%d  %ds
+---
+[history_session_label]
+%02d:%02d  durchschn. %ds
+---
+[tutorial_title]
+Tutorial
+---
+[tutorial_method_title]
+Methode
+---
+[tutorial_step1_title]
+Schritt 1: Ein & Aus
+---
+[tutorial_step2_title]
+Schritt 2: Ausatmen & Halten
+---
+[tutorial_step3_title]
+Schritt 3: Einatmen & Halten
+---
+[tutorial_step_intro]
+Diese Atemübung basiert auf der Wim Hof-Methode.
+
+Sie kann kraftvoll sein. Nutzen Sie sie mit Vorsicht.
+
+Üben Sie im Sitzen oder Liegen.
+Benutzen Sie sie niemals beim Fahren,
+Stehen oder im Wasser.
+---
+[tutorial_step_method]
+Folgen Sie einfach 4 Schritten:
+
+1. Atmen Sie rhythmisch.
+2. Atmen Sie aus und halten Sie.
+3. Atmen Sie tief ein und halten Sie.
+4. Atmen Sie aus und wiederholen Sie.
+
+Nutzen Sie das Zahnrad-Symbol %i, um Runden, Atemzüge, Geschwindigkeit und Pausen anzupassen.
+---
+[tutorial_step_breathe]
+Füllen Sie Ihre Lungen vollständig, dann lassen Sie den Atem herausfließen.
+
+Nutzen Sie diesen Schieberegler, um das Tempo des Atemkreises einzustellen.
+
+Finden Sie einen Rhythmus, der sich natürlich für Sie anfühlt.
+---
+[tutorial_step_exhale_hold]
+Nach der Atemrunde,
+atmen Sie normal aus und halten Sie.
+
+Lassen Sie los, wenn Ihr Körper
+nach Luft verlangt. Zwängen Sie es nicht.
+---
+[tutorial_step_inhale_hold]
+Atmen Sie vollständig ein und halten Sie etwa 15 Sekunden.
+
+Dann atmen Sie aus und beginnen die nächste Runde.
+Mit der Zeit kann sich jede Runde tiefer anfühlen.
+---
+[tutorial_skip_button]
+SKIP
+---
+[tutorial_back_button]
+ZURÜCK
+---
+[tutorial_next_button]
+WEITER
+---
+[tutorial_finish_button]
+BEENDEN
+---
+[share_sheet_title]
+Sitzungsdaten exportieren
+---
+[export_metadata_header]
+Inner Breeze Datenexport
+---
+[export_metadata_version]
+Version: %s
+---
+[export_metadata_date]
+Exportdatum: %s
+---
+[export_metadata_count]
+Sitzungsanzahl: %d

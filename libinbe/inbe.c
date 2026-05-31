@@ -15,6 +15,19 @@ count_value(const char v[CountSize])
 	return a * 100 + b * 10 + c;
 }
 
+int
+inbe_breath_half_ticks_for_speed(int speed)
+{
+	static const int breath_half_ticks[] = {108, 100, 93, 86, 80, 74, 68, 63, 58, 53, 48, 42, 36, 30, 24, 18};
+
+	if(speed < 1)
+		speed = 1;
+	if(speed > 16)
+		speed = 16;
+
+	return breath_half_ticks[speed - 1];
+}
+
 void
 cpcount(char dst[CountSize], const char src[CountSize])
 {
@@ -76,6 +89,7 @@ inbeinit(Inbe *l)
 	l->halftick = 0;
     l->max_rounds = DefaultMaxRounds;
     l->pause_seconds = DefaultPauseSeconds;
+    l->progressive_speed = 1;
 #ifdef __ANDROID__
     l->play_in_background = 1;  // Enabled by default on Android
 #else
@@ -88,6 +102,44 @@ inbeinit(Inbe *l)
 
 	cpcount(l->count, "000");
 	cpcount(l->maxbreaths, "030");
+}
+
+static int
+lerp_int(int a, int b, int num, int den)
+{
+    int delta = b - a;
+    int scaled = delta * num;
+
+    if(scaled >= 0)
+        scaled += den / 2;
+    else
+        scaled -= den / 2;
+
+    return a + scaled / den;
+}
+
+static int
+effective_breath_half_ticks(const Inbe *l)
+{
+    int target_ticks = inbe_breath_half_ticks_for_speed(l->speed_level);
+
+    if(!l->progressive_speed || l->round != 0)
+        return target_ticks;
+
+    int completed_breaths = count_value(l->count);
+
+    if(completed_breaths < 5)
+        return inbe_breath_half_ticks_for_speed(1);
+
+    if(completed_breaths >= 10)
+        return target_ticks;
+
+    return lerp_int(
+        inbe_breath_half_ticks_for_speed(1),
+        target_ticks,
+        completed_breaths - 4,
+        5
+    );
 }
 
 
@@ -115,21 +167,22 @@ breathe(Inbe *l)
 {
     int span = l->rmax - l->rmin;
     int eased;
+    int half_ticks = effective_breath_half_ticks(l);
 
-    if(span <= 0 || l->breath_half_ticks <= 0)
+    if(span <= 0 || half_ticks <= 0)
         return;
 
     l->breath_frame++;
-    if(l->breath_frame > l->breath_half_ticks)
-        l->breath_frame = l->breath_half_ticks;
+    if(l->breath_frame > half_ticks)
+        l->breath_frame = half_ticks;
 
-    eased = (l->breath_frame * span) / l->breath_half_ticks;
+    eased = (l->breath_frame * span) / half_ticks;
     if(l->dir == 0)
         l->r = l->rmin + eased;
     else
         l->r = l->rmax - eased;
 
-    if(l->breath_frame >= l->breath_half_ticks) {
+    if(l->breath_frame >= half_ticks) {
         l->breath_frame = 0;
         if(l->dir == 0) {
             l->dir = 1;

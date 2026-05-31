@@ -32,6 +32,7 @@ enum {
 	InbeScreenSession,
 	InbeScreenResults,
     InbeScreenSettings,
+    InbeScreenLanguage,
     InbeScreenManual,
     InbeScreenHistory,
 };
@@ -66,6 +67,7 @@ struct Inbe {
     int max_rounds;
     int pause_seconds;
     int play_in_background;
+    int progressive_speed;
 
     char count[CountSize];
     char maxbreaths[CountSize];
@@ -77,6 +79,7 @@ void inbeinit(Inbe *l);
 void inbestep(Inbe *l);
 void inccount(char v[CountSize]);
 void cpcount(char dst[CountSize], const char src[CountSize]);
+int inbe_breath_half_ticks_for_speed(int speed);
 int inbe_get_play_in_background(Inbe *inbe);
 
 #endif

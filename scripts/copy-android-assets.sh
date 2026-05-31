@@ -29,6 +29,11 @@ echo "Copying config files..."
 cp inbe.ini "$ASSETS_DIR/inbe.ini"
 cp theme.ini "$ASSETS_DIR/theme.ini"
 
+# Copy locales
+echo "Copying locales..."
+mkdir -p "$ASSETS_DIR/locales"
+cp locales/*.txt "$ASSETS_DIR/locales/"
+
 # Copy themes
 echo "Copying themes..."
 mkdir -p "$ASSETS_DIR/themes"

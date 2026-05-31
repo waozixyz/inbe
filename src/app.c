@@ -1,5 +1,7 @@
 #include "app.h"
 #include "data.h"
+#include "locale.h"
+#include "tabs/language_tab.h"
 #include "tabs/history_tab.h"
 #include "tabs/manual_tab.h"
 #include "tabs/settings_tab.h"
@@ -28,17 +30,18 @@
 #ifdef __ANDROID__
 #include "android_wakelock.h"
 #include "android_timer.h"
+void set_global_inbe_app(InbeApp *app);
 #endif
 
-#define INBE_DEFAULT_TITLE "Inner Breeze"
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 
 InbeConfig config = {
-    .title = INBE_DEFAULT_TITLE,
+    .title = "",
     .width = INBE_DEFAULT_WIDTH,
     .height = INBE_DEFAULT_HEIGHT,
-    .loaded = 0
+    .loaded = 0,
+    .title_custom = 0
 };
 
 int view_width = INBE_DEFAULT_WIDTH;
@@ -65,12 +68,64 @@ static void on_settings_tab_click(void *user_data) {
 }
 
 static UITab g_tabs[] = {
-    {"History", {0}, UI_ICON_TYPE_STAT, history_tab_on_click, NULL},
-    {"Manual", {0}, UI_ICON_TYPE_MANUAL, on_manual_tab_click, NULL},
-    {"Settings", {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
+    {NULL, {0}, UI_ICON_TYPE_STAT, history_tab_on_click, NULL},
+    {NULL, {0}, UI_ICON_TYPE_MANUAL, on_manual_tab_click, NULL},
+    {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
+
+static void
+refresh_tab_labels(void)
+{
+    g_tabs[0].label = locale_get("tab_history");
+    g_tabs[1].label = locale_get("tab_manual");
+    g_tabs[2].label = locale_get("tab_settings");
+}
+
+void
+refresh_locale_dependent_text(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    refresh_tab_labels();
+    if(!config.title_custom) {
+        snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
+    }
+    manual_tab_reset_layouts(app);
+    app->language_index = locale_current_index();
+    if(app->language_index < 0)
+        app->language_index = 0;
+}
+
+void
+apply_language_selection(InbeApp *app, int language_index, int save_now)
+{
+    const char *code;
+
+    if(app == NULL)
+        return;
+
+    if(language_index < 0 || language_index >= locale_count())
+        language_index = 0;
+
+    code = locale_code_at(language_index);
+    if(code == NULL || code[0] == '\0')
+        code = "en";
+
+    if(!locale_set(code)) {
+        code = "en";
+        locale_set(code);
+    }
+
+    snprintf(app->language, sizeof(app->language), "%s", code);
+    app->language_selected = 1;
+    refresh_locale_dependent_text(app);
+
+    if(save_now)
+        save_settings(app);
+}
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
@@ -289,12 +344,23 @@ load_config(void)
             continue;
         }
 
-        snprintf(config.title, sizeof(config.title), "%s",
-                 rini_get_value_text_fallback(ini, "title", INBE_DEFAULT_TITLE));
+        const char *title = rini_get_value_text(ini, "title");
+        if(title != NULL && title[0] != '\0') {
+            snprintf(config.title, sizeof(config.title), "%s", title);
+            config.title_custom = 1;
+        } else {
+            snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
+            config.title_custom = 0;
+        }
         config.width = rini_get_value_fallback(ini, "width", INBE_DEFAULT_WIDTH);
         config.height = rini_get_value_fallback(ini, "height", INBE_DEFAULT_HEIGHT);
         rini_unload(&ini);
         break;
+    }
+
+    if(config.title[0] == '\0') {
+        snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
+        config.title_custom = 0;
     }
 
     register_all_themes();
@@ -368,11 +434,9 @@ reset_round_recover(Inbe *inbe)
 void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
-    static const int breath_half_ticks[] = {108, 100, 93, 86, 80, 74, 68, 63, 58, 53, 48, 42, 36, 30, 24, 18};
-
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
-    inbe->breath_half_ticks = breath_half_ticks[speed - 1];
+    inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
     inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
     inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
     count_from_int(inbe->maxbreaths, clampi(max_breaths, SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX));
@@ -385,9 +449,12 @@ reset_settings_preview(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int play_in_background = app->inbe.play_in_background;
     int content_w;
 
     inbeinit(&app->settings_preview);
+    app->settings_preview.progressive_speed = 0;
+    app->settings_preview.play_in_background = play_in_background;
     ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
     update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -406,7 +473,7 @@ save_settings(InbeApp *app)
 #endif
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nplay_in_background %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -416,10 +483,14 @@ save_settings(InbeApp *app)
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
-             app->inbe.play_in_background);
+             app->inbe.progressive_speed,
+             app->inbe.play_in_background,
+             (app->language_selected && app->language[0] != '\0')
+                 ? app->language
+                 : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -428,7 +499,11 @@ save_settings(InbeApp *app)
              app->tutorial_seen ? 1 : 0,
              app->theme_id,
              app->dark_mode,
-             app->fullscreen_enabled ? 1 : 0);
+             app->fullscreen_enabled ? 1 : 0,
+             app->inbe.progressive_speed,
+             (app->language_selected && app->language[0] != '\0')
+                 ? app->language
+                 : "");
 #endif
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
@@ -459,6 +534,25 @@ load_settings(InbeApp *app)
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
+    app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
+    {
+        const char *language = rini_get_value_text(settings, "language");
+        if(language != NULL && language[0] != '\0') {
+            snprintf(app->language, sizeof(app->language), "%s", language);
+            app->language_selected = 1;
+            if(!locale_set(app->language)) {
+                snprintf(app->language, sizeof(app->language), "%s", "en");
+                locale_set(app->language);
+            }
+        } else {
+            snprintf(app->language, sizeof(app->language), "%s", "en");
+            app->language_selected = 0;
+            locale_set(app->language);
+        }
+        app->language_index = locale_current_index();
+        if(app->language_index < 0)
+            app->language_index = 0;
+    }
 #ifdef __ANDROID__
     app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
         1  // Default to enabled on Android
@@ -470,6 +564,7 @@ load_settings(InbeApp *app)
 
     refresh_theme_colors(app->theme_id, app->dark_mode);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+    refresh_locale_dependent_text(app);
     rini_unload(&settings);
 }
 
@@ -647,9 +742,11 @@ start_session(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int progressive_speed = app->inbe.progressive_speed;
     int play_in_background = app->inbe.play_in_background;
 
     inbeinit(&app->inbe);
+    app->inbe.progressive_speed = progressive_speed;
     app->inbe.play_in_background = play_in_background;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     /* Save user's pause preference and use 3 seconds for first round */
@@ -659,6 +756,7 @@ start_session(InbeApp *app)
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
+    app->results_path[0] = '\0';
     remember_sound_state(app);
 
 #ifdef __ANDROID__
@@ -674,6 +772,67 @@ start_session(InbeApp *app)
         set_global_inbe_app(app);  // Still set pointer for JNI access
     }
 #endif
+}
+
+static int
+collect_result_rounds(InbeApp *app, int *round_times, int max_rounds)
+{
+    int rounds;
+
+    if(app == NULL || round_times == NULL || max_rounds <= 0)
+        return 0;
+
+    rounds = app->inbe.round + 1;
+    if(rounds < 1)
+        rounds = 1;
+    if(rounds > app->inbe.max_rounds)
+        rounds = app->inbe.max_rounds;
+    if(rounds > max_rounds)
+        rounds = max_rounds;
+
+    for(int i = 0; i < rounds; i++)
+        round_times[i] = int_from_count(app->inbe.results[i]);
+
+    return rounds;
+}
+
+static int
+ensure_results_saved(InbeApp *app)
+{
+    int round_times[MaxRounds];
+    int rounds;
+
+    if(app == NULL)
+        return 0;
+    if(app->results_saved)
+        return 1;
+
+    rounds = collect_result_rounds(app, round_times, MaxRounds);
+    if(rounds <= 0)
+        return 0;
+
+    if(data_save_session_path(round_times, rounds, app->results_path, sizeof(app->results_path))) {
+        app->results_saved = 1;
+        TraceLog(LOG_INFO, "INBE: session saved successfully");
+        return 1;
+    }
+
+    TraceLog(LOG_WARNING, "INBE: session save failed");
+    return 0;
+}
+
+static void
+discard_saved_results(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    if(app->results_saved && app->results_path[0] != '\0') {
+        if(data_delete_session(app->results_path)) {
+            app->results_saved = 0;
+            app->results_path[0] = '\0';
+        }
+    }
 }
 
 static void
@@ -705,17 +864,7 @@ finish_round(InbeApp *app)
         }
         reset_round_start(&app->inbe);
     } else {
-        /* Save session results using data module */
-        int round_times[MaxRounds];
-        for(int i = 0; i < app->inbe.max_rounds && i < MaxRounds; i++) {
-            round_times[i] = int_from_count(app->inbe.results[i]);
-        }
-        if(data_save_session(round_times, app->inbe.max_rounds)) {
-            app->results_saved = 1;
-            TraceLog(LOG_INFO, "INBE: session saved successfully");
-        } else {
-            TraceLog(LOG_WARNING, "INBE: session save failed");
-        }
+        ensure_results_saved(app);
         app->inbe.screen = InbeScreenResults;
     }
 }
@@ -862,10 +1011,10 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
 
     int font = ui_clamp_px(18, 16, 20);
     /* Calculate fixed width based on maximum possible value */
-    snprintf(max_text, sizeof(max_text), "STARTING IN %2d", 30);
+    locale_format(max_text, sizeof(max_text), "starting_in", 30);
     max_text_w = MeasureText(max_text, font);
 
-    snprintf(text, sizeof(text), "STARTING IN %2d", remaining);
+    locale_format(text, sizeof(text), "starting_in", remaining);
     text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ui_px(40);
     if(text_y < ui_px(20))
         text_y = ui_px(20);
@@ -896,6 +1045,8 @@ inbe_app_init(void *vapp) {
 #if defined(PLATFORM_WEB)
     init_web_storage();
 #endif
+    locale_init();
+    refresh_tab_labels();
     load_config();
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
@@ -931,6 +1082,7 @@ inbe_app_init(void *vapp) {
     app->history_record[0] = 0;
     app->session_paused = 0;
     app->results_saved = 0;
+    app->results_path[0] = '\0';
     remember_sound_state(app);
     reset_settings_preview(app);
 
@@ -993,8 +1145,12 @@ inbe_app_init(void *vapp) {
     if(app->begin_image.id == 0) {
         app->begin_image = load_asset_texture("begin.jpg");
     }
-    if(!app->tutorial_seen)
+    if(!app->language_selected)
+        app->inbe.screen = InbeScreenLanguage;
+    else if(!app->tutorial_seen)
         app->inbe.screen = InbeScreenManual;
+    else
+        app->inbe.screen = InbeScreenStart;
 
     /* Reset modal state */
     app->modal.active = 0;
@@ -1033,11 +1189,15 @@ handle_back_button(InbeApp *app)
         app->inbe.screen = InbeScreenStart;
         break;
 
+    case InbeScreenLanguage:
+        break;
+
     case InbeScreenManual:
         manual_tab_close_tutorial(app, 1);
         break;
 
     case InbeScreenResults:
+        ensure_results_saved(app);
         inbe_app_init(app);
         break;
 
@@ -1090,6 +1250,12 @@ updateapp(InbeApp *app)
         return;
     }
 
+    if(app->inbe.screen == InbeScreenLanguage) {
+        language_tab_draw(app);
+        app->inbe.frame++;
+        return;
+    }
+
     if(app->inbe.screen == InbeScreenManual) {
         manual_tab_draw(app);
         app->inbe.frame++;
@@ -1125,7 +1291,7 @@ updateapp(InbeApp *app)
             int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 54, 66) - ui_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
-            if (ui_draw_text_btn(app, center_x, play_y, "PLAY", &hover)) {
+            if (ui_draw_text_btn(app, center_x, play_y, locale_get("play_button"), &hover)) {
             start_session(app);
             }
         }
@@ -1142,9 +1308,12 @@ updateapp(InbeApp *app)
             int has_rounds = session_has_completed_rounds(app);
 
             if(has_rounds) {
-                modal_result = ui_draw_modal_3btn(app, "Exit Session?",
-                                                   "Save completed rounds before exit?",
-                                                   "Cancel", "Save", "Discard");
+                modal_result = ui_draw_modal_3btn(app,
+                                                   locale_get("exit_session_title"),
+                                                   locale_get("save_completed_rounds_message"),
+                                                   locale_get("cancel_button"),
+                                                   locale_get("save_button"),
+                                                   locale_get("discard_button"));
                 if(modal_result == 1) {
                     app->modal.active = 0;
                     app->modal.type = UIModalNone;
@@ -1182,9 +1351,11 @@ updateapp(InbeApp *app)
                 }
             } else {
                 /* 2-button modal: Cancel, Exit */
-                modal_result = ui_draw_modal(app, "Exit Session?",
-                                             "All progress will be lost.",
-                                             "Cancel", "Exit");
+                modal_result = ui_draw_modal(app,
+                                             locale_get("exit_session_title"),
+                                             locale_get("all_progress_lost_message"),
+                                             locale_get("cancel_button"),
+                                             locale_get("exit_button"));
                 if(modal_result == 1) {
                     /* Cancel - close modal and continue session */
                     app->modal.active = 0;
@@ -1256,7 +1427,7 @@ updateapp(InbeApp *app)
             int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
-            if (ui_draw_text_btn(app, center_x, breath_y, "BREATH", &hover)) {
+            if (ui_draw_text_btn(app, center_x, breath_y, locale_get("breath_button"), &hover)) {
                 finish_hold(app);
             }
         }
@@ -1273,6 +1444,9 @@ updateapp(InbeApp *app)
             int total = 0;
             int best = -1;
             int rounds = app->inbe.round + 1;
+            int discard_hover = 0;
+            int save_hover = 0;
+            int action_y = view_height - ui_px(40);
 
             /* Responsive width like other tabs - not fixed CONTENT_MAX_W */
             int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
@@ -1282,8 +1456,8 @@ updateapp(InbeApp *app)
             int side_padding = ui_px(32);  /* More spacious than CONTENT_SIDE_PAD=16 */
 
             ui_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
-            title_w = MeasureText("RESULTS", title_font);
-            DrawText("RESULTS", center_x - title_w / 2, ui_px(34), title_font, c_text);
+            title_w = MeasureText(locale_get("results_title"), title_font);
+            DrawText(locale_get("results_title"), center_x - title_w / 2, ui_px(34), title_font, c_text);
 
             if(rounds < 1)
                 rounds = 1;
@@ -1303,24 +1477,37 @@ updateapp(InbeApp *app)
             DrawRectangle(box_x, box_y, box_w, ui_px(88), ui_darken(c_bg, 6));
             DrawLine(box_x, box_y + ui_px(29), box_x + box_w, box_y + ui_px(29), ui_darken(c_bg, 30));
             DrawLine(box_x, box_y + ui_px(58), box_x + box_w, box_y + ui_px(58), ui_darken(c_bg, 30));
-            DrawText(TextFormat("%d rounds", rounds), box_x + ui_px(10), box_y + ui_px(10), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
-            DrawText(TextFormat("best %ds", best), box_x + ui_px(10), box_y + ui_px(39), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
-            DrawText(TextFormat("avg %ds", rounds > 0 ? total / rounds : 0), box_x + ui_px(10), box_y + ui_px(68), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+            {
+                char line[64];
+                locale_format(line, sizeof(line), "results_rounds", rounds);
+                DrawText(line, box_x + ui_px(10), box_y + ui_px(10), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                locale_format(line, sizeof(line), "results_best", best);
+                DrawText(line, box_x + ui_px(10), box_y + ui_px(39), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
+                DrawText(line, box_x + ui_px(10), box_y + ui_px(68), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+            }
 
-            DrawText("Round times", box_x, ui_px(188), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
+            DrawText(locale_get("round_times_title"), box_x, ui_px(188), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = int_from_count(app->inbe.results[i]);
-                snprintf(row, sizeof(row), "Round %d  %ds", i + 1, seconds);
+                locale_format(row, sizeof(row), "round_result_label", i + 1, seconds);
                 DrawRectangle(box_x, row_y - 1, box_w, row_h, ui_darken(c_bg, 4));
                 DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, ui_darken(c_bg, 26));
                 DrawText(row, box_x + ui_px(10), row_y + ui_px(5), ui_clamp_px(14, 12, 16), c_text);
                 row_y += row_h;
             }
 
-            if (ui_draw_text_btn(app, center_x, view_height - ui_px(40), "HOME", &hover)) {
+            if (ui_draw_text_btn(app, center_x - box_w / 4, action_y, locale_get("discard_button"), &discard_hover)) {
+                discard_saved_results(app);
                 inbe_app_init(app);
             }
+            if (ui_draw_text_btn(app, center_x + box_w / 4, action_y, locale_get("save_results_button"), &save_hover)) {
+                if(ensure_results_saved(app))
+                    inbe_app_init(app);
+            }
+            if(discard_hover || save_hover)
+                hover = 1;
         }
         break;
 
