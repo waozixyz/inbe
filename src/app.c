@@ -368,11 +368,9 @@ reset_round_recover(Inbe *inbe)
 void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
-    static const int breath_half_ticks[] = {108, 100, 93, 86, 80, 74, 68, 63, 58, 53, 48, 42, 36, 30, 24, 18};
-
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
-    inbe->breath_half_ticks = breath_half_ticks[speed - 1];
+    inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
     inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
     inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
     count_from_int(inbe->maxbreaths, clampi(max_breaths, SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX));
@@ -385,9 +383,13 @@ reset_settings_preview(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int progressive_speed = app->inbe.progressive_speed;
+    int play_in_background = app->inbe.play_in_background;
     int content_w;
 
     inbeinit(&app->settings_preview);
+    app->settings_preview.progressive_speed = progressive_speed;
+    app->settings_preview.play_in_background = play_in_background;
     ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
     update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -406,7 +408,7 @@ save_settings(InbeApp *app)
 #endif
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nplay_in_background %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nplay_in_background %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -416,10 +418,11 @@ save_settings(InbeApp *app)
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
+             app->inbe.progressive_speed,
              app->inbe.play_in_background);
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -428,7 +431,8 @@ save_settings(InbeApp *app)
              app->tutorial_seen ? 1 : 0,
              app->theme_id,
              app->dark_mode,
-             app->fullscreen_enabled ? 1 : 0);
+             app->fullscreen_enabled ? 1 : 0,
+             app->inbe.progressive_speed);
 #endif
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
@@ -459,6 +463,7 @@ load_settings(InbeApp *app)
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
+    app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
 #ifdef __ANDROID__
     app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
         1  // Default to enabled on Android
@@ -647,9 +652,11 @@ start_session(InbeApp *app)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int progressive_speed = app->inbe.progressive_speed;
     int play_in_background = app->inbe.play_in_background;
 
     inbeinit(&app->inbe);
+    app->inbe.progressive_speed = progressive_speed;
     app->inbe.play_in_background = play_in_background;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     /* Save user's pause preference and use 3 seconds for first round */
