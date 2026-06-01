@@ -29,6 +29,12 @@ enum {
     HISTORY_EDIT_ROUND = 2
 };
 
+enum {
+    HISTORY_DELETE_NONE = 0,
+    HISTORY_DELETE_SESSION = 1,
+    HISTORY_DELETE_ROUND = 2
+};
+
 /* Suppress GCC format-truncation warnings - paths are safely sized in practice */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
@@ -363,6 +369,49 @@ history_cancel_edit(InbeApp *app)
 }
 
 static void
+history_cancel_pending_delete(InbeApp *app)
+{
+    app->history_delete_kind = HISTORY_DELETE_NONE;
+    app->history_delete_round = -1;
+    app->history_delete_path[0] = '\0';
+    if(app->modal.type == UIModalConfirmDeleteHistory) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+        app->modal.selected_button = 0;
+    }
+}
+
+static void
+history_request_delete_session(InbeApp *app, const HistoryEntry *entry)
+{
+    if(entry == NULL)
+        return;
+
+    history_cancel_edit(app);
+    app->history_delete_kind = HISTORY_DELETE_SESSION;
+    app->history_delete_round = -1;
+    snprintf(app->history_delete_path, sizeof(app->history_delete_path), "%s", entry->path);
+    app->modal.active = 1;
+    app->modal.type = UIModalConfirmDeleteHistory;
+    app->modal.selected_button = 0;
+}
+
+static void
+history_request_delete_round(InbeApp *app, const HistoryEntry *entry, int round_index)
+{
+    if(entry == NULL || round_index < 0 || round_index >= entry->round_count)
+        return;
+
+    history_cancel_edit(app);
+    app->history_delete_kind = HISTORY_DELETE_ROUND;
+    app->history_delete_round = round_index;
+    snprintf(app->history_delete_path, sizeof(app->history_delete_path), "%s", entry->path);
+    app->modal.active = 1;
+    app->modal.type = UIModalConfirmDeleteHistory;
+    app->modal.selected_button = 0;
+}
+
+static void
 history_begin_edit_time(InbeApp *app, const HistoryEntry *entry)
 {
     if(entry == NULL)
@@ -618,6 +667,94 @@ history_insert_edit_char(InbeApp *app, char c)
     }
 }
 
+static int
+history_should_show_keyboard(const InbeApp *app)
+{
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    return app != NULL && app->history_edit_active;
+#else
+    return app != NULL && app->history_edit_active && app->on_screen_keyboard_enabled;
+#endif
+}
+
+static int
+history_keyboard_height(void)
+{
+    int key_h = ui_clamp_px(42, 38, 54);
+    int gap = ui_px(6);
+    int pad = ui_px(10);
+    return pad * 2 + key_h * 4 + gap * 3;
+}
+
+static int
+history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
+    int font = ui_clamp_px(16, 14, 18);
+    int text_w;
+    int pressed = 0;
+
+    if(CheckCollisionPointRec(mouse_world, bounds)) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        app->cursor_clickable = 1;
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            pressed = 1;
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    }
+
+    text_w = MeasureText(label, font);
+    DrawText(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+    return pressed;
+}
+
+static int
+history_draw_keyboard(InbeApp *app, const HistoryEntry *entry)
+{
+    const char *labels[12] = {
+        "1", "2", "3",
+        "4", "5", "6",
+        "7", "8", "9",
+        "DEL", "0", "OK"
+    };
+    int keyboard_h = history_keyboard_height();
+    int pad = ui_px(10);
+    int gap = ui_px(6);
+    int key_h = ui_clamp_px(42, 38, 54);
+    int x = ui_page_side_padding();
+    int y = view_height - keyboard_h;
+    int w = view_width - x * 2;
+    int key_w = (w - gap * 2) / 3;
+
+    DrawRectangle(0, y, view_width, keyboard_h, ui_darken(c_bg, 10));
+    DrawLine(0, y, view_width, y, ui_darken(c_bg, 42));
+
+    for(int i = 0; i < 12; i++) {
+        int col = i % 3;
+        int row = i / 3;
+        int key_x = x + col * (key_w + gap);
+        int key_y = y + pad + row * (key_h + gap);
+
+        if(history_keyboard_key(app, key_x, key_y, key_w, key_h, labels[i])) {
+            if(i == 9) {
+                history_delete_before_cursor(app);
+            } else if(i == 11) {
+                if(history_commit_edit(app, entry))
+                    return 1;
+            } else {
+                history_insert_edit_char(app, labels[i][0]);
+            }
+        }
+    }
+
+    return 0;
+}
+
 static void
 history_update_edit_input(InbeApp *app, const HistoryEntry *entry,
                           int field_x, int field_y, int field_w, int field_h,
@@ -745,6 +882,32 @@ delete_history_round(const HistoryEntry *entry, int round_index)
     return data_replace_session(entry->path, round_times, count);
 }
 
+static int
+history_execute_pending_delete(InbeApp *app)
+{
+    if(app->history_delete_kind == HISTORY_DELETE_SESSION) {
+        if(data_delete_session(app->history_delete_path)) {
+            history_clear_record_selection(app);
+            history_cancel_pending_delete(app);
+            app->history_scroll = 0;
+            return 1;
+        }
+    } else if(app->history_delete_kind == HISTORY_DELETE_ROUND) {
+        HistoryEntry entry;
+        memset(&entry, 0, sizeof(entry));
+        snprintf(entry.path, sizeof(entry.path), "%s", app->history_delete_path);
+        history_load_session_file(entry.path, &entry);
+        if(delete_history_round(&entry, app->history_delete_round)) {
+            history_clear_record_selection(app);
+            history_cancel_pending_delete(app);
+            app->history_scroll = 0;
+            return 1;
+        }
+    }
+
+    return 0;
+}
+
 /* ================================================================
  * PUBLIC API
  * ================================================================ */
@@ -770,6 +933,7 @@ history_tab_reset(InbeApp *app)
     app->history_day = 0;
     app->history_record[0] = 0;
     history_cancel_edit(app);
+    history_cancel_pending_delete(app);
 }
 
 int
@@ -912,10 +1076,12 @@ void
 history_tab_draw(InbeApp *app)
 {
     HistoryEntry entries[HISTORY_MAX_SESSIONS];
+    HistoryEntry *keyboard_entry = NULL;
     int count = 0;
     int title_h = ui_screen_header_height();
     int tab_h = ui_clamp_px(TAB_BAR_H, 54, 66);
-    int viewport_h = view_height - title_h - tab_h;
+    int keyboard_h = history_should_show_keyboard(app) ? history_keyboard_height() : 0;
+    int viewport_h = view_height - title_h - tab_h - keyboard_h;
     int row_h = ui_clamp_px(28, 24, 32);
     int content_rows = 0;
     int content_h = 0;
@@ -931,6 +1097,15 @@ history_tab_draw(InbeApp *app)
 
     scan_history_tree(entries, &count);
     qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
+
+    if(app->history_edit_active) {
+        for(int i = 0; i < count; i++) {
+            if(strcmp(app->history_edit_path, entries[i].path) == 0) {
+                keyboard_entry = &entries[i];
+                break;
+            }
+        }
+    }
 
     if(count > 0) {
         if(app->history_level <= 0 || app->history_year == 0) {
@@ -1095,10 +1270,7 @@ history_tab_draw(InbeApp *app)
                     }
                     if(draw_history_action_button(app, right_edge, y, row_h, 0,
                                                   app->trash_icon, UI_ICON_TYPE_TRASH)) {
-                        data_delete_session(entries[i].path);
-                        history_clear_record_selection(app);
-                        history_cancel_edit(app);
-                        app->history_scroll = 0;
+                        history_request_delete_session(app, &entries[i]);
                         EndScissorMode();
                         return;
                     }
@@ -1135,10 +1307,7 @@ history_tab_draw(InbeApp *app)
                         }
                         if(draw_history_action_button(app, right_edge, y, row_h, 0,
                                                       app->trash_icon, UI_ICON_TYPE_TRASH)) {
-                            delete_history_round(&entries[i], r);
-                            history_clear_record_selection(app);
-                            history_cancel_edit(app);
-                            app->history_scroll = 0;
+                            history_request_delete_round(app, &entries[i], r);
                             EndScissorMode();
                             return;
                         }
@@ -1258,6 +1427,28 @@ history_tab_draw(InbeApp *app)
         int scrollbar_y = title_h + (app->history_scroll * (viewport_h - scrollbar_h)) / max_scroll;
 
         DrawRectangle(scrollbar_x, scrollbar_y, scrollbar_w, scrollbar_h, ui_darken(c_text, 40));
+    }
+
+    if(history_should_show_keyboard(app) && keyboard_entry != NULL) {
+        if(history_draw_keyboard(app, keyboard_entry))
+            app->history_scroll = 0;
+    }
+
+    if(app->modal.active && app->modal.type == UIModalConfirmDeleteHistory) {
+        int modal_result = ui_draw_modal(app,
+                                         locale_get("delete_history_title"),
+                                         app->history_delete_kind == HISTORY_DELETE_ROUND
+                                             ? locale_get("delete_round_message")
+                                             : locale_get("delete_session_message"),
+                                         locale_get("cancel_button"),
+                                         locale_get("delete_button"));
+        if(modal_result == 1) {
+            history_cancel_pending_delete(app);
+        } else if(modal_result == 2) {
+            history_execute_pending_delete(app);
+        }
+    } else if(app->history_delete_kind != HISTORY_DELETE_NONE) {
+        history_cancel_pending_delete(app);
     }
 }
 

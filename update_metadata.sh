@@ -19,6 +19,18 @@ echo "=== Updating Build Metadata ==="
 VERSION=$(get_version)
 echo "Current version: $VERSION"
 
+update_version_in_file() {
+    local file="$1"
+
+    # Replace explicit placeholders in templates.
+    sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" "$file"
+
+    # Replace the already-rendered website version tag too. Older generated
+    # pages no longer contain VERSION_PLACEHOLDER, so the previous script left
+    # stale versions such as 1.1.5 in place forever.
+    sed -i -E "s|(<p[[:space:]]+class=\"version\">)[^<]*(</p>)|\\1$VERSION\\2|g" "$file"
+}
+
 # Update index.html
 if [ -f "index.html" ]; then
     echo "Updating index.html..."
@@ -26,8 +38,7 @@ if [ -f "index.html" ]; then
     # Create backup
     cp index.html index.html.bak
 
-    # Update version placeholder
-    sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" index.html
+    update_version_in_file index.html
 
     echo "✓ index.html updated with version $VERSION"
 else
@@ -41,8 +52,7 @@ if [ -f "builds.html" ]; then
     # Create backup
     cp builds.html builds.html.bak
 
-    # Update version placeholder
-    sed -i "s|VERSION_PLACEHOLDER|$VERSION|g" builds.html
+    update_version_in_file builds.html
 
     echo "✓ builds.html updated with version $VERSION"
 else

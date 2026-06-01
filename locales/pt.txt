@@ -174,6 +174,9 @@ OFF
 [toggle_on]
 ON
 ---
+[on_screen_keyboard_label]
+Teclado na tela
+---
 [history_title]
 Histórico
 ---
@@ -211,6 +214,9 @@ Passo 2: Expirar e segurar
 [tutorial_step3_title]
 Passo 3: Inspirar e segurar
 ---
+[tutorial_progressive_speed_title]
+Velocidade progressiva
+---
 [tutorial_step_intro]
 Esta prática de respiração é baseada no Método Wim Hof.
 
@@ -235,9 +241,12 @@ Encha totalmente os pulmões e deixe o ar sair.
 
 Use este controle para definir o ritmo do círculo de respiração.
 
-Com a velocidade progressiva ativada, a primeira rodada começa na velocidade 1 nas primeiras 5 respirações e depois aumenta gradualmente até a velocidade escolhida.
-
 Encontre um ritmo que pareça natural para você.
+---
+[tutorial_step_progressive_speed]
+A velocidade progressiva torna a primeira rodada mais fácil de começar.
+
+Quando ativada, a primeira rodada começa na velocidade 1 nas primeiras 5 respirações e depois aumenta gradualmente até a velocidade escolhida.
 ---
 [tutorial_step_exhale_hold]
 Depois da rodada de respiração,
@@ -278,4 +287,16 @@ Data de exportação: %s
 ---
 [export_metadata_count]
 Total de sessões: %d
+---
+[delete_history_title]
+Excluir?
+---
+[delete_session_message]
+Excluir esta sessão? Isso não pode ser desfeito.
+---
+[delete_round_message]
+Excluir esta rodada? Isso não pode ser desfeito.
+---
+[delete_button]
+Excluir
 ---

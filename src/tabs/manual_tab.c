@@ -19,6 +19,7 @@ extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 static const char *const TUTORIAL_KEYS[] = {
     "tutorial_step_intro",
     "tutorial_step_method",
+    "tutorial_step_progressive_speed",
     "tutorial_step_breathe",
     "tutorial_step_exhale_hold",
     "tutorial_step_inhale_hold"
@@ -26,7 +27,7 @@ static const char *const TUTORIAL_KEYS[] = {
 
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
 
-static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 28, 28 };
+static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 24, 28, 28 };
 
 static int
 draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char *label, int *hover)
@@ -145,9 +146,10 @@ manual_tab_draw(InbeApp *app)
 
     switch(step) {
     case 1: title = locale_get("tutorial_method_title"); break;
-    case 2: title = locale_get("tutorial_step1_title"); break;
-    case 3: title = locale_get("tutorial_step2_title"); break;
-    case 4: title = locale_get("tutorial_step3_title"); break;
+    case 2: title = locale_get("tutorial_progressive_speed_title"); break;
+    case 3: title = locale_get("tutorial_step1_title"); break;
+    case 4: title = locale_get("tutorial_step2_title"); break;
+    case 5: title = locale_get("tutorial_step3_title"); break;
     default: break;
     }
 
@@ -191,7 +193,9 @@ manual_tab_draw(InbeApp *app)
         actual_content_h += ui_text_layout_get_height(&temp_gear);
         ui_text_layout_free(&temp_gear);
     } else if(step == 2) {
-        actual_content_h += ui_text_layout_get_height(app->tutorial_layouts[2]) + ui_px(20);
+        actual_content_h += ui_text_layout_get_height(app->tutorial_layouts[2]) + ui_px(68);
+    } else if(step == 3) {
+        actual_content_h += ui_text_layout_get_height(app->tutorial_layouts[3]) + ui_px(20);
         /* Circle preview height - calculate actual rmax based on content_w */
         /* update_preview_bounds uses min(content_w, 132)/2 clamped to 60-120 for rmax */
         int preview_span = (content_w < ui_px(132)) ? content_w : ui_px(132);
@@ -202,10 +206,10 @@ manual_tab_draw(InbeApp *app)
         actual_content_h += ui_px(40) + (int)((float)preview_rmax * 0.72f) + ui_px(14);
         int slider_h = ui_clamp_px(36, 32, 40);
         actual_content_h += slider_h + ui_px(8);
-    } else if(step == 3) {
-        actual_content_h += ui_text_layout_get_height(app->tutorial_layouts[3]);
+    } else if(step == 4) {
+        actual_content_h += ui_text_layout_get_height(app->tutorial_layouts[4]);
     } else {
-        actual_content_h += ui_px(234) + ui_px(22) + ui_text_layout_get_height(app->tutorial_layouts[4]);
+        actual_content_h += ui_px(234) + ui_px(22) + ui_text_layout_get_height(app->tutorial_layouts[5]);
     }
     int available_content_space = viewport_h - footer_content_pad - ui_px(16) - ui_px(16);
     int old_max_scroll = 0;
@@ -272,9 +276,29 @@ manual_tab_draw(InbeApp *app)
             ui_text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
             ui_text_layout_free(&gear_layout);
         } else if(step == 2) {
-            int speed = app->inbe.speed_level;
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[2] != NULL) {
                 ui_text_layout_draw(app->tutorial_layouts[2], content_x, &y, body_font, c_text);
+            }
+            y += ui_px(18);
+            {
+                int progressive_speed = app->inbe.progressive_speed;
+                int toggle_w = ui_px(56);
+                int toggle_h = ui_px(30);
+                DrawText(locale_get("progressive_speed_label"), content_x, y,
+                         ui_clamp_px(14, 12, 16), c_text);
+                y += ui_px(26);
+                if(ui_draw_toggle_switch(app, content_x, y, toggle_w, toggle_h,
+                                         &progressive_speed, locale_get("toggle_off"),
+                                         locale_get("toggle_on"))) {
+                    app->inbe.progressive_speed = progressive_speed;
+                    app->settings_preview.progressive_speed = progressive_speed;
+                    app->settings_dirty = 1;
+                }
+            }
+        } else if(step == 3) {
+            int speed = app->inbe.speed_level;
+            if(app->tutorial_layouts_initialized && app->tutorial_layouts[3] != NULL) {
+                ui_text_layout_draw(app->tutorial_layouts[3], content_x, &y, body_font, c_text);
             }
             y += ui_px(20);  /* Increased spacing between text and circle */
 
@@ -302,16 +326,16 @@ manual_tab_draw(InbeApp *app)
                 app->settings_preview.progressive_speed = 0;
                 app->settings_dirty = 1;
             }
-        } else if(step == 3) {
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[3] != NULL) {
-                ui_text_layout_draw(app->tutorial_layouts[3], content_x, &y, body_font, c_text);
+        } else if(step == 4) {
+            if(app->tutorial_layouts_initialized && app->tutorial_layouts[4] != NULL) {
+                ui_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
             }
         } else {
             int img_h = ui_px(234);
             ui_draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
             y += img_h + ui_px(22);
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[4] != NULL) {
-                ui_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
+            if(app->tutorial_layouts_initialized && app->tutorial_layouts[5] != NULL) {
+                ui_text_layout_draw(app->tutorial_layouts[5], content_x, &y, body_font, c_text);
             }
         }
     EndScissorMode();

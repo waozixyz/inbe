@@ -302,6 +302,12 @@ settings_tab_draw(InbeApp *app)
                 break;
             }
             case SETTINGS_TAB_APPEARANCE: {
+                int keyboard_toggle = app->on_screen_keyboard_enabled;
+                int toggle_w = ui_px(56);
+                int toggle_h = ui_px(30);
+                int keyboard_label_y;
+                int keyboard_toggle_y;
+                int theme_y;
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
                 int checkbox_y = yoff + content_start_y;
                 if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
@@ -312,11 +318,19 @@ settings_tab_draw(InbeApp *app)
                     app->settings_dirty = 1;
                 }
 
-                /* Theme selector - below fullscreen */
-                int theme_y = yoff + content_start_y + ui_px(50);
+                keyboard_label_y = yoff + content_start_y + ui_px(50);
 #else
-                int theme_y = yoff + content_start_y;
+                keyboard_label_y = yoff + content_start_y;
 #endif
+                keyboard_toggle_y = keyboard_label_y + ui_px(26);
+                DrawText(locale_get("on_screen_keyboard_label"), content_x, keyboard_label_y, ui_clamp_px(14, 12, 16), c_text);
+                if(ui_draw_toggle_switch(app, content_x, keyboard_toggle_y, toggle_w, toggle_h,
+                                         &keyboard_toggle, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                    app->on_screen_keyboard_enabled = keyboard_toggle;
+                    app->settings_dirty = 1;
+                }
+
+                theme_y = keyboard_toggle_y + toggle_h + ui_px(24);
                 draw_theme_selector(app, content_x, theme_y, content_w);
                 break;
             }

@@ -448,6 +448,20 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UII
  * CONTROLS
  * ================================================================ */
 
+static Rectangle
+ui_centered_min_hit_rect(int x, int y, int w, int h, int min_w, int min_h)
+{
+    int hit_w = w < min_w ? min_w : w;
+    int hit_h = h < min_h ? min_h : h;
+
+    return (Rectangle){
+        (float)(x + w / 2 - hit_w / 2),
+        (float)(y + h / 2 - hit_h / 2),
+        (float)hit_w,
+        (float)hit_h
+    };
+}
+
 int
 ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
                int min, int max, int *value, const char *suffix)
@@ -461,10 +475,10 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
     int knob_w = ui_px(12);
     int knob_h = ui_px(22);
     int knob_y = track_y - (knob_h - track_h) / 2;
-    int hit_padding = ui_px(16);
+    int min_touch_h = ui_px(36);
     int changed = 0;
     char value_text[32];
-    Rectangle hit = {(float)(x - hit_padding), (float)(knob_y - hit_padding), (float)(w + hit_padding * 2), (float)(knob_h + hit_padding * 2)};
+    Rectangle hit = ui_centered_min_hit_rect(x, knob_y, w, knob_h, w, min_touch_h);
 
     snprintf(value_text, sizeof(value_text), "%d%s", *value, suffix != NULL ? suffix : "");
     DrawText(label, x, y, label_font, c_text);
@@ -505,7 +519,8 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int hover = 0;
-    Rectangle bounds = {x, y, w, h};
+    int min_touch = ui_px(36);
+    Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
     if(CheckCollisionPointRec(mouse_world, bounds)) {
         hover = 1;
