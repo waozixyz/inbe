@@ -259,6 +259,16 @@ ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
             DrawLine(x + p, y + size - p, x + p * 3, y + size - p, color);
             break;
         }
+        case UI_ICON_TYPE_SAVE: {
+            int p = thickness;
+            DrawLineEx((Vector2){x + p * 2, y + center},
+                       (Vector2){x + center - p, y + size - p * 2},
+                       (float)(thickness + 1), color);
+            DrawLineEx((Vector2){x + center - p, y + size - p * 2},
+                       (Vector2){x + size - p, y + p * 2},
+                       (float)(thickness + 1), color);
+            break;
+        }
         case UI_ICON_TYPE_MANUAL:
         case UI_ICON_TYPE_STAT: {
             DrawRectangle(x + thickness, y + thickness, size - thickness * 2, size - thickness * 2, color);

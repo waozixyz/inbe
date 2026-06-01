@@ -28,7 +28,8 @@ typedef enum {
     UI_ICON_TYPE_MONERO,
     UI_ICON_TYPE_HOME,
     UI_ICON_TYPE_TRASH,
-    UI_ICON_TYPE_PENCIL
+    UI_ICON_TYPE_PENCIL,
+    UI_ICON_TYPE_SAVE
 } UIIconType;
 
 void ui_init(int width, int height, float dpi);

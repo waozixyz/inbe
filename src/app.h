@@ -99,6 +99,7 @@ struct InbeApp {
     Texture2D home_icon;
     Texture2D trash_icon;
     Texture2D pencil_icon;
+    Texture2D save_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D stripe_icon;
@@ -150,6 +151,7 @@ struct InbeApp {
     int history_edit_active;
     int history_edit_kind;
     int history_edit_round;
+    int history_edit_cursor;
     char history_edit_path[FS_PATH_MAX];
     char history_edit_text[16];
     int advanced_session_controls;
