@@ -441,7 +441,7 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[384];
+    char text[512];
     const char *settings_path =
 #if defined(PLATFORM_WEB)
         "/home/settings.ini";
@@ -450,7 +450,7 @@ save_settings(InbeApp *app)
 #endif
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -460,6 +460,7 @@ save_settings(InbeApp *app)
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
+             app->on_screen_keyboard_enabled ? 1 : 0,
              app->inbe.progressive_speed,
              app->advanced_session_controls ? 1 : 0,
              app->inbe.play_in_background,
@@ -468,7 +469,7 @@ save_settings(InbeApp *app)
                  : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -478,6 +479,7 @@ save_settings(InbeApp *app)
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
+             app->on_screen_keyboard_enabled ? 1 : 0,
              app->inbe.progressive_speed,
              app->advanced_session_controls ? 1 : 0,
              (app->language_selected && app->language[0] != '\0')
@@ -512,6 +514,11 @@ load_settings(InbeApp *app)
     app->theme_id = clampi(rini_get_value_fallback(settings, "theme", 0), 0, THEME_COUNT - 1);
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
+#ifdef __ANDROID__
+    app->on_screen_keyboard_enabled = rini_get_value_fallback(settings, "on_screen_keyboard", 1) != 0;
+#else
+    app->on_screen_keyboard_enabled = rini_get_value_fallback(settings, "on_screen_keyboard", 0) != 0;
+#endif
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
     app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;

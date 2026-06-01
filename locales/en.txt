@@ -174,6 +174,9 @@ OFF
 [toggle_on]
 ON
 ---
+[on_screen_keyboard_label]
+On-screen keyboard
+---
 [history_title]
 History
 ---
@@ -211,6 +214,9 @@ Step 2: Exhale & Hold
 [tutorial_step3_title]
 Step 3: Inhale & Hold
 ---
+[tutorial_progressive_speed_title]
+Progressive Speed
+---
 [tutorial_step_intro]
 This breathing practice is based on the Wim Hof Method.
 
@@ -235,9 +241,12 @@ Fill your lungs fully, then let the breath flow out.
 
 Use this slider to set the pace of the breathing circle.
 
-With Progressive speed on, the first round starts at speed 1 for the first 5 breaths, then gradually increases to your selected speed.
-
 Find a rhythm that feels natural for you.
+---
+[tutorial_step_progressive_speed]
+Progressive speed makes the first round easier to enter.
+
+When it is on, the first round starts at speed 1 for the first 5 breaths, then gradually increases to your selected speed.
 ---
 [tutorial_step_exhale_hold]
 After the breathing round,
@@ -278,4 +287,16 @@ Export Date: %s
 ---
 [export_metadata_count]
 Session Count: %d
+---
+[delete_history_title]
+Delete?
+---
+[delete_session_message]
+Delete this session? This cannot be undone.
+---
+[delete_round_message]
+Delete this round? This cannot be undone.
+---
+[delete_button]
+Delete
 ---

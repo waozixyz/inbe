@@ -1,4 +1,16 @@
 # Changelog
+## [1.1.8] - 2026-06-01
+### Added
+- Editable history days with pencil actions for sessions and rounds
+- Inline history editing for session time and round seconds with cursor movement, click-to-position, validation, and save action
+- Confirmation modal before deleting history sessions or rounds
+- Sound settings page and optional advanced session controls setting
+### Fixed
+- Incomplete or zero-second rounds are discarded instead of being saved or shown in results
+- History edit view no longer shows average time on session rows
+- Tutorial and navigation buttons resize more reliably across narrow viewports
+- Reduced excessive page side padding and improved small-screen layout behavior
+
 ## [1.1.7] - 2026-05-31
 ### Added
 - First-run language picker and in-app language switching
