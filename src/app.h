@@ -53,6 +53,7 @@ typedef enum {
     UIModalNone,
     UIModalConfirmExitSession,
     UIModalConfirmDeleteData,
+    UIModalConfirmDeleteHistory,
 } UIModalType;
 
 typedef struct {
@@ -124,6 +125,7 @@ struct InbeApp {
     int settings_dirty;
     int settings_tab;
     int fullscreen_enabled;
+    int on_screen_keyboard_enabled;
     char language[16];
     int language_selected;
     int language_index;
@@ -134,7 +136,7 @@ struct InbeApp {
     int tutorial_step;
     int tutorial_seen;
 
-    TextLayout *tutorial_layouts[5];
+    TextLayout *tutorial_layouts[6];
     int tutorial_layouts_initialized;
 
     int theme_id;
@@ -154,6 +156,9 @@ struct InbeApp {
     int history_edit_cursor;
     char history_edit_path[FS_PATH_MAX];
     char history_edit_text[16];
+    int history_delete_kind;
+    int history_delete_round;
+    char history_delete_path[FS_PATH_MAX];
     int advanced_session_controls;
     int session_paused;
     int results_saved;

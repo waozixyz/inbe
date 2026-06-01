@@ -85,10 +85,6 @@ frame(void)
     int content_width = width - safe_left - safe_right;
     int content_height = height - safe_top - safe_bottom;
 
-    TraceLog(LOG_INFO, "FRAME: screen=%dx%d safe=%d,%d,%d,%d content=%d,%d,%dx%d",
-	     width, height, safe_left, safe_top, safe_right, safe_bottom,
-	     content_x, content_y, content_width, content_height);
-
     BeginDrawing();
     ClearBackground(BLACK);
     BeginScissorMode(content_x, content_y, content_width, content_height);
@@ -99,10 +95,6 @@ frame(void)
         (float)content_height
     });
     EndScissorMode();
-    if(inbe_app.cursor_clickable)
-        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-    else
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 #else
     BeginDrawing();
     ClearBackground(BLACK);

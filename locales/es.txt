@@ -174,6 +174,9 @@ APAGADO
 [toggle_on]
 ENCENDIDO
 ---
+[on_screen_keyboard_label]
+Teclado en pantalla
+---
 [history_title]
 Historial
 ---
@@ -211,6 +214,9 @@ Paso 2: Exhalar y Retener
 [tutorial_step3_title]
 Paso 3: Inhalar y Retener
 ---
+[tutorial_progressive_speed_title]
+Velocidad progresiva
+---
 [tutorial_step_intro]
 Esta práctica de respiración se basa en el Método Wim Hof.
 
@@ -235,9 +241,12 @@ Llene sus pulmones completamente, luego deje que el respiración fluya hacia afu
 
 Use este control deslizante para establecer el ritmo del círculo de respiración.
 
-Con la velocidad progresiva activada, la primera ronda comienza en velocidad 1 durante las primeras 5 respiraciones y luego aumenta gradualmente hasta la velocidad elegida.
-
 Encuentre un ritmo que se sienta natural para usted.
+---
+[tutorial_step_progressive_speed]
+La velocidad progresiva hace que la primera ronda sea más fácil de empezar.
+
+Cuando está activada, la primera ronda comienza en velocidad 1 durante las primeras 5 respiraciones y luego aumenta gradualmente hasta la velocidad elegida.
 ---
 [tutorial_step_exhale_hold]
 Después de la ronda de respiración,
@@ -278,3 +287,16 @@ Fecha de exportación: %s
 ---
 [export_metadata_count]
 Recuento de sesiones: %d
+---
+[delete_history_title]
+¿Eliminar?
+---
+[delete_session_message]
+¿Eliminar esta sesión? No se puede deshacer.
+---
+[delete_round_message]
+¿Eliminar esta ronda? No se puede deshacer.
+---
+[delete_button]
+Eliminar
+---

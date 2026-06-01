@@ -83,8 +83,39 @@
       var progressElement = document.querySelector('#progress');
 
       var Module = {
-        preRun: [],
+        preRun: [function() {
+          if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
+            console.error('IDBFS unavailable');
+            return;
+          }
+
+          try {
+            FS.mkdir('/home');
+          } catch (e) {}
+
+          try {
+            FS.mount(IDBFS, { root: '/' }, '/home');
+          } catch (e) {
+            if (e.errno !== 10 && String(e).indexOf('already mounted') === -1) {
+              console.error('IDBFS mount failed:', e);
+              return;
+            }
+          }
+
+          addRunDependency('inbe-idbfs');
+          FS.syncfs(true, function(err) {
+            if (err) console.error('IDBFS init sync failed:', err);
+            else console.log('IDBFS initialized');
+            removeRunDependency('inbe-idbfs');
+          });
+        }],
         postRun: [],
+        locateFile: function(path, prefix) {
+          if (path === 'index.wasm' || path === 'index.data') {
+            return prefix + path + '?v=WEB_CACHE_BUSTER';
+          }
+          return prefix + path;
+        },
         print: function(text) {
           if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
           console.log(text);
