@@ -357,6 +357,7 @@ history_cancel_edit(InbeApp *app)
     app->history_edit_active = 0;
     app->history_edit_kind = HISTORY_EDIT_NONE;
     app->history_edit_round = -1;
+    app->history_edit_cursor = 0;
     app->history_edit_path[0] = '\0';
     app->history_edit_text[0] = '\0';
 }
@@ -373,6 +374,7 @@ history_begin_edit_time(InbeApp *app, const HistoryEntry *entry)
     snprintf(app->history_edit_path, sizeof(app->history_edit_path), "%s", entry->path);
     snprintf(app->history_edit_text, sizeof(app->history_edit_text), "%02d:%02d",
              entry->hour, entry->minute);
+    app->history_edit_cursor = (int)strlen(app->history_edit_text);
 }
 
 static void
@@ -387,6 +389,7 @@ history_begin_edit_round(InbeApp *app, const HistoryEntry *entry, int round_inde
     snprintf(app->history_edit_path, sizeof(app->history_edit_path), "%s", entry->path);
     snprintf(app->history_edit_text, sizeof(app->history_edit_text), "%d",
              entry->rounds[round_index]);
+    app->history_edit_cursor = (int)strlen(app->history_edit_text);
 }
 
 static int
@@ -513,13 +516,131 @@ history_commit_edit(InbeApp *app, const HistoryEntry *entry)
 }
 
 static void
-history_update_edit_input(InbeApp *app, const HistoryEntry *entry)
+history_clamp_edit_cursor(InbeApp *app)
+{
+    int len = (int)strlen(app->history_edit_text);
+
+    if(app->history_edit_cursor < 0)
+        app->history_edit_cursor = 0;
+    if(app->history_edit_cursor > len)
+        app->history_edit_cursor = len;
+}
+
+static int
+history_edit_cursor_from_x(const char *text, int font, int text_x, int target_x)
+{
+    int len;
+    char prefix[16];
+
+    if(text == NULL || target_x <= text_x)
+        return 0;
+
+    len = (int)strlen(text);
+    for(int i = 0; i < len; i++) {
+        int left_w;
+        int right_w;
+
+        snprintf(prefix, sizeof(prefix), "%.*s", i, text);
+        left_w = MeasureText(prefix, font);
+        snprintf(prefix, sizeof(prefix), "%.*s", i + 1, text);
+        right_w = MeasureText(prefix, font);
+
+        if(target_x < text_x + (left_w + right_w) / 2)
+            return i;
+    }
+
+    return len;
+}
+
+static void
+history_delete_before_cursor(InbeApp *app)
+{
+    size_t len = strlen(app->history_edit_text);
+    int cursor = app->history_edit_cursor;
+
+    if(cursor <= 0 || len == 0)
+        return;
+
+    memmove(app->history_edit_text + cursor - 1,
+            app->history_edit_text + cursor,
+            len - (size_t)cursor + 1);
+    app->history_edit_cursor--;
+}
+
+static void
+history_delete_at_cursor(InbeApp *app)
+{
+    size_t len = strlen(app->history_edit_text);
+    int cursor = app->history_edit_cursor;
+
+    if(cursor < 0 || cursor >= (int)len)
+        return;
+
+    memmove(app->history_edit_text + cursor,
+            app->history_edit_text + cursor + 1,
+            len - (size_t)cursor);
+}
+
+static void
+history_insert_edit_char(InbeApp *app, char c)
+{
+    size_t len = strlen(app->history_edit_text);
+    int max_len = (app->history_edit_kind == HISTORY_EDIT_TIME) ? 5 : 3;
+    int cursor = app->history_edit_cursor;
+
+    history_clamp_edit_cursor(app);
+    cursor = app->history_edit_cursor;
+
+    if(app->history_edit_kind == HISTORY_EDIT_TIME &&
+       c >= '0' && c <= '9' &&
+       cursor < (int)len &&
+       app->history_edit_text[cursor] == ':') {
+        cursor++;
+        app->history_edit_cursor = cursor;
+    }
+
+    if(len < (size_t)max_len) {
+        memmove(app->history_edit_text + cursor + 1,
+                app->history_edit_text + cursor,
+                len - (size_t)cursor + 1);
+        app->history_edit_text[cursor] = c;
+        app->history_edit_cursor = cursor + 1;
+        return;
+    }
+
+    if(cursor < (int)len) {
+        if(app->history_edit_kind == HISTORY_EDIT_TIME &&
+           app->history_edit_text[cursor] == ':' &&
+           c != ':')
+            return;
+        app->history_edit_text[cursor] = c;
+        app->history_edit_cursor = cursor + 1;
+    }
+}
+
+static void
+history_update_edit_input(InbeApp *app, const HistoryEntry *entry,
+                          int field_x, int field_y, int field_w, int field_h,
+                          int text_x, int font)
 {
     int ch;
-    int max_len;
 
     if(!app->history_edit_active)
         return;
+
+    history_clamp_edit_cursor(app);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+        int mx = (int)mouse_world.x;
+        int my = (int)mouse_world.y;
+
+        if(mx >= field_x && mx <= field_x + field_w &&
+           my >= field_y && my <= field_y + field_h) {
+            app->history_edit_cursor = history_edit_cursor_from_x(app->history_edit_text,
+                                                                  font, text_x, mx);
+        }
+    }
 
     if(IsKeyPressed(KEY_ESCAPE)) {
         history_cancel_edit(app);
@@ -531,16 +652,25 @@ history_update_edit_input(InbeApp *app, const HistoryEntry *entry)
         return;
     }
 
+    if(IsKeyPressed(KEY_LEFT))
+        app->history_edit_cursor--;
+    if(IsKeyPressed(KEY_RIGHT))
+        app->history_edit_cursor++;
+    if(IsKeyPressed(KEY_HOME))
+        app->history_edit_cursor = 0;
+    if(IsKeyPressed(KEY_END))
+        app->history_edit_cursor = (int)strlen(app->history_edit_text);
+    history_clamp_edit_cursor(app);
+
     if(IsKeyPressed(KEY_BACKSPACE)) {
-        size_t len = strlen(app->history_edit_text);
-        if(len > 0)
-            app->history_edit_text[len - 1] = '\0';
+        history_delete_before_cursor(app);
+    }
+    if(IsKeyPressed(KEY_DELETE)) {
+        history_delete_at_cursor(app);
     }
 
-    max_len = (app->history_edit_kind == HISTORY_EDIT_TIME) ? 5 : 3;
     ch = GetCharPressed();
     while(ch > 0) {
-        size_t len = strlen(app->history_edit_text);
         int allowed = 0;
 
         if(ch >= '0' && ch <= '9')
@@ -548,12 +678,12 @@ history_update_edit_input(InbeApp *app, const HistoryEntry *entry)
         if(app->history_edit_kind == HISTORY_EDIT_TIME && ch == ':')
             allowed = 1;
 
-        if(allowed && len < (size_t)max_len) {
-            app->history_edit_text[len] = (char)ch;
-            app->history_edit_text[len + 1] = '\0';
-        }
+        if(allowed)
+            history_insert_edit_char(app, (char)ch);
         ch = GetCharPressed();
     }
+
+    history_clamp_edit_cursor(app);
 }
 
 static void
@@ -561,6 +691,16 @@ history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, i
 {
     int font = ui_clamp_px(14, 12, 16);
     int valid = 0;
+    int field_y = y + ui_px(3);
+    int field_h = h - ui_px(6);
+    int text_x = x + ui_px(8);
+    int text_y = y + ui_px(7);
+    int caret_x;
+
+    history_update_edit_input(app, entry, x, field_y, w, field_h, text_x, font);
+
+    if(!app->history_edit_active)
+        return;
 
     if(app->history_edit_kind == HISTORY_EDIT_TIME) {
         int hour;
@@ -571,13 +711,20 @@ history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, i
         valid = history_parse_edit_seconds(app->history_edit_text, &seconds);
     }
 
-    history_update_edit_input(app, entry);
+    history_clamp_edit_cursor(app);
 
-    DrawRectangle(x, y + ui_px(3), w, h - ui_px(6), ui_darken(c_bg, 10));
-    ui_draw_bevel(x, y + ui_px(3), w, h - ui_px(6),
+    DrawRectangle(x, field_y, w, field_h, ui_darken(c_bg, 10));
+    ui_draw_bevel(x, field_y, w, field_h,
                   valid ? ui_lighten(c_button_hover, 35) : ui_lighten(c_button, 16),
                   valid ? ui_darken(c_button_hover, 30) : ui_darken(c_button, 34));
-    DrawText(app->history_edit_text, x + ui_px(8), y + ui_px(7), font, c_text);
+    DrawText(app->history_edit_text, text_x, text_y, font, c_text);
+    if((app->inbe.frame / 24) % 2 == 0) {
+        char prefix[16];
+        snprintf(prefix, sizeof(prefix), "%.*s", app->history_edit_cursor,
+                 app->history_edit_text);
+        caret_x = text_x + MeasureText(prefix, font) + ui_px(1);
+        DrawLine(caret_x, text_y, caret_x, text_y + font, c_text);
+    }
 }
 
 static int
@@ -930,13 +1077,21 @@ history_tab_draw(InbeApp *app)
                             EndScissorMode();
                             return;
                         }
+                        if(draw_history_action_button(app, right_edge, y, row_h, 1,
+                                                      app->save_icon, UI_ICON_TYPE_SAVE)) {
+                            if(history_commit_edit(app, &entries[i])) {
+                                app->history_scroll = 0;
+                                EndScissorMode();
+                                return;
+                            }
+                        }
                     } else {
                         DrawText(time_label, content_x + ui_px(10), y + ui_px(6),
                                  ui_clamp_px(14, 12, 16), c_text);
-                    }
-                    if(draw_history_action_button(app, right_edge, y, row_h, 1,
-                                                  app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
-                        history_begin_edit_time(app, &entries[i]);
+                        if(draw_history_action_button(app, right_edge, y, row_h, 1,
+                                                      app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
+                            history_begin_edit_time(app, &entries[i]);
+                        }
                     }
                     if(draw_history_action_button(app, right_edge, y, row_h, 0,
                                                   app->trash_icon, UI_ICON_TYPE_TRASH)) {
@@ -962,13 +1117,21 @@ history_tab_draw(InbeApp *app)
                                 EndScissorMode();
                                 return;
                             }
+                            if(draw_history_action_button(app, right_edge, y, row_h, 1,
+                                                          app->save_icon, UI_ICON_TYPE_SAVE)) {
+                                if(history_commit_edit(app, &entries[i])) {
+                                    app->history_scroll = 0;
+                                    EndScissorMode();
+                                    return;
+                                }
+                            }
                         } else {
                             DrawText(round_label, content_x + ui_px(22), y + ui_px(6),
                                      ui_clamp_px(14, 12, 16), c_text);
-                        }
-                        if(draw_history_action_button(app, right_edge, y, row_h, 1,
-                                                      app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
-                            history_begin_edit_round(app, &entries[i], r);
+                            if(draw_history_action_button(app, right_edge, y, row_h, 1,
+                                                          app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
+                                history_begin_edit_round(app, &entries[i], r);
+                            }
                         }
                         if(draw_history_action_button(app, right_edge, y, row_h, 0,
                                                       app->trash_icon, UI_ICON_TYPE_TRASH)) {

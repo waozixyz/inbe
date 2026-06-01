@@ -1103,6 +1103,9 @@ inbe_app_init(void *vapp) {
     if(app->pencil_icon.id == 0) {
         app->pencil_icon = load_icon_texture("pencil.png");
     }
+    if(app->save_icon.id == 0) {
+        app->save_icon = load_icon_texture("save.png");
+    }
     /* Update tab bar icons */
     g_tabs[0].icon = app->stat_icon;
     g_tabs[0].icon_type = UI_ICON_TYPE_STAT;
@@ -1607,6 +1610,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->home_icon);
     SafeUnloadTexture(app->trash_icon);
     SafeUnloadTexture(app->pencil_icon);
+    SafeUnloadTexture(app->save_icon);
     SafeUnloadTexture(app->telegram_icon);
     SafeUnloadTexture(app->globe_icon);
     SafeUnloadTexture(app->monero_icon);
