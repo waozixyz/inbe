@@ -73,6 +73,9 @@ Respiração
 [settings_tab_session]
 Sessão
 ---
+[settings_tab_sound]
+Som
+---
 [settings_tab_appearance]
 Aparência
 ---
@@ -105,6 +108,9 @@ Máx. de respirações
 ---
 [pause_after_round_label]
 Pausa após rodada
+---
+[advanced_session_controls_label]
+Controles avançados da sessão
 ---
 [volume_label]
 Volume
@@ -228,6 +234,8 @@ Use o ícone de engrenagem %i para ajustar rodadas, respirações, velocidade e 
 Encha totalmente os pulmões e deixe o ar sair.
 
 Use este controle para definir o ritmo do círculo de respiração.
+
+Com a velocidade progressiva ativada, a primeira rodada começa na velocidade 1 nas primeiras 5 respirações e depois aumenta gradualmente até a velocidade escolhida.
 
 Encontre um ritmo que pareça natural para você.
 ---

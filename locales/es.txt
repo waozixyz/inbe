@@ -73,6 +73,9 @@ Respiración
 [settings_tab_session]
 Sesión
 ---
+[settings_tab_sound]
+Sonido
+---
 [settings_tab_appearance]
 Apariencia
 ---
@@ -105,6 +108,9 @@ Respiraciones máximas
 ---
 [pause_after_round_label]
 Pausa después de ronda
+---
+[advanced_session_controls_label]
+Controles avanzados de sesión
 ---
 [volume_label]
 Volumen
@@ -228,6 +234,8 @@ Use el icono de engranaje %i para ajustar rondas, respiraciones, velocidad y pau
 Llene sus pulmones completamente, luego deje que el respiración fluya hacia afuera.
 
 Use este control deslizante para establecer el ritmo del círculo de respiración.
+
+Con la velocidad progresiva activada, la primera ronda comienza en velocidad 1 durante las primeras 5 respiraciones y luego aumenta gradualmente hasta la velocidad elegida.
 
 Encuentre un ritmo que se sienta natural para usted.
 ---

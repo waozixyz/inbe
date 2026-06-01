@@ -73,6 +73,9 @@ Breathing
 [settings_tab_session]
 Session
 ---
+[settings_tab_sound]
+Sound
+---
 [settings_tab_appearance]
 Appearance
 ---
@@ -105,6 +108,9 @@ Max breaths
 ---
 [pause_after_round_label]
 Pause after round
+---
+[advanced_session_controls_label]
+Advanced session controls
 ---
 [volume_label]
 Volume
@@ -228,6 +234,8 @@ Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
 Fill your lungs fully, then let the breath flow out.
 
 Use this slider to set the pace of the breathing circle.
+
+With Progressive speed on, the first round starts at speed 1 for the first 5 breaths, then gradually increases to your selected speed.
 
 Find a rhythm that feels natural for you.
 ---

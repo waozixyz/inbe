@@ -16,6 +16,8 @@ typedef struct {
     const char *name;
     const char *light_scope;
     const char *dark_scope;
+    const char *light_path;
+    const char *dark_path;
 } ThemeMeta;
 
 extern const ThemeMeta g_themes[THEME_COUNT];
