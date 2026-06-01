@@ -103,6 +103,18 @@ ui_centered_column(int max_w, int side_pad, int *x, int *w)
         *w = max_w;
 }
 
+int
+ui_page_side_padding(void)
+{
+    int padding = ui_view_width / 50;
+
+    if(padding < 12)
+        padding = 12;
+    if(padding > 24)
+        padding = 24;
+    return padding;
+}
+
 void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
@@ -226,6 +238,27 @@ ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
             }
             break;
         }
+        case UI_ICON_TYPE_TRASH: {
+            int p = thickness;
+            DrawRectangle(x + p * 2, y + size / 3, size - p * 4, size - p * 3, color);
+            DrawRectangle(x + size / 3, y + p, size / 3, p, color);
+            DrawLine(x + p, y + size / 4, x + size - p, y + size / 4, color);
+            DrawLine(x + size / 3, y + size / 3 + p, x + size / 3, y + size - p * 2, ui_darken(color, 70));
+            DrawLine(x + size * 2 / 3, y + size / 3 + p, x + size * 2 / 3, y + size - p * 2, ui_darken(color, 70));
+            break;
+        }
+        case UI_ICON_TYPE_PENCIL: {
+            int p = thickness;
+            DrawLineEx((Vector2){x + p * 2, y + size - p * 2},
+                       (Vector2){x + size - p * 2, y + p * 2},
+                       (float)(thickness + 1), color);
+            DrawTriangle((Vector2){x + size - p * 2, y + p * 2},
+                         (Vector2){x + size - p, y + p},
+                         (Vector2){x + size - p, y + p * 3},
+                         color);
+            DrawLine(x + p, y + size - p, x + p * 3, y + size - p, color);
+            break;
+        }
         case UI_ICON_TYPE_MANUAL:
         case UI_ICON_TYPE_STAT: {
             DrawRectangle(x + thickness, y + thickness, size - thickness * 2, size - thickness * 2, color);
@@ -284,14 +317,13 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UI
 }
 
 int
-ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, UIIconType icon_type, int *hover)
+ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, int padding, Texture2D icon, UIIconType icon_type, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int padding = ui_px(10);
     int w = size + padding * 2;
     int h = size + padding * 2;
     int pressed = 0;
@@ -549,6 +581,60 @@ typedef struct UIDropdownState {
 static UIDropdownState dropdown_states[MAX_DROPDOWNS];
 static int dropdown_state_count = 0;
 
+static void
+dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdown_h,
+                     int *visible_options, int *open_up)
+{
+    int option_h;
+    int menu_gap;
+    int padding_top;
+    int padding_bottom;
+    int below_y;
+    int below_space;
+    int above_space;
+    int max_visible_h;
+    int total_h;
+
+    if(state == NULL || dropdown_y == NULL || dropdown_h == NULL)
+        return;
+
+    option_h = state->h;
+    menu_gap = ui_px(4);
+    padding_top = ui_px(4);
+    padding_bottom = ui_px(12);
+    total_h = padding_top + option_h * state->option_count + padding_bottom;
+    below_y = state->y + state->h + menu_gap;
+    below_space = ui_view_height - below_y - ui_px(16);
+    above_space = state->y - ui_px(16);
+
+    if(below_space < 0)
+        below_space = 0;
+    if(above_space < 0)
+        above_space = 0;
+
+    if(open_up != NULL)
+        *open_up = (above_space > below_space);
+
+    max_visible_h = (above_space > below_space) ? above_space : below_space;
+    if(total_h > max_visible_h) {
+        int count = (max_visible_h - ui_px(8)) / option_h;
+        if(count < 1)
+            count = 1;
+        total_h = count * option_h + ui_px(8);
+        if(visible_options != NULL)
+            *visible_options = count;
+    } else if(visible_options != NULL) {
+        *visible_options = state->option_count;
+    }
+
+    if(open_up != NULL && *open_up)
+        *dropdown_y = state->y - menu_gap - total_h;
+    else
+        *dropdown_y = below_y;
+
+    *dropdown_h = total_h;
+}
+
 /* Check if any dropdown is currently open and the given point is within its menu bounds.
  * Other UI elements should call this to avoid handling clicks that should go to dropdowns. */
 int
@@ -557,20 +643,9 @@ ui_dropdown_captures_click(Vector2 point)
     for(int i = 0; i < dropdown_state_count; i++) {
         UIDropdownState *state = &dropdown_states[i];
         if(state->open && state->option_count > 0) {
-            int option_h = state->h;
-            int menu_gap = ui_px(4);
-            int dropdown_y = state->y + state->h + menu_gap;
-            /* Calculate dropdown height: top padding + all options + extra bottom padding for hover */
-            int dropdown_h = ui_px(4) + option_h * state->option_count + ui_px(12);
-            int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
-
-            if(dropdown_h > max_visible_h) {
-                int visible_options = (max_visible_h - ui_px(8)) / option_h;
-                if(visible_options < 1)
-                    visible_options = 1;
-                dropdown_h = visible_options * option_h + ui_px(8);
-            }
-
+            int dropdown_y = 0;
+            int dropdown_h = 0;
+            dropdown_menu_layout(state, &dropdown_y, &dropdown_h, NULL, NULL);
             Rectangle menu_bounds = {state->x, dropdown_y, state->w, dropdown_h};
             if(CheckCollisionPointRec(point, menu_bounds))
                 return 1;
@@ -686,25 +761,30 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int y = state->y;
     int w = state->w;
     int h = state->h;
+    int option_h = h;
     int option_count = state->option_count;
     int *selected_index = state->selected_index;
     const char **options = state->options;
 
-    int option_h = h;
-    int menu_gap = ui_px(4);
-    int dropdown_y = y + h + menu_gap;
-    /* Calculate dropdown height: top padding + all options + extra bottom padding for hover */
-    int dropdown_h = ui_px(4) + option_h * option_count + ui_px(12);
-    int max_visible_h = ui_view_height - dropdown_y - ui_px(16);
-    int need_scroll = dropdown_h > max_visible_h;
-    int visible_options = option_count;
+    int dropdown_y = 0;
+    int dropdown_h = 0;
+    int padding_top = ui_px(4);
+    int padding_bottom = ui_px(12);
+    int content_h = padding_top + option_h * option_count + padding_bottom;
+    int max_scroll;
+    int scrollbar_w = ui_px(8);
+    int option_w = w;
 
-    if(need_scroll) {
-        visible_options = (max_visible_h - ui_px(8)) / option_h;
-        if(visible_options < 1)
-            visible_options = 1;
-        dropdown_h = visible_options * option_h + ui_px(8);
-    }
+    dropdown_menu_layout(state, &dropdown_y, &dropdown_h, NULL, NULL);
+    max_scroll = content_h - dropdown_h;
+    if(max_scroll < 0)
+        max_scroll = 0;
+    if(state->scroll_offset > max_scroll)
+        state->scroll_offset = max_scroll;
+    if(state->scroll_offset < 0)
+        state->scroll_offset = 0;
+    if(max_scroll > 0)
+        option_w = w - scrollbar_w - ui_px(2);
 
     Rectangle menu_bounds = {x, dropdown_y, w, dropdown_h};
     Rectangle btn_bounds = {x, y, w, h};
@@ -722,6 +802,17 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     if(state->just_opened && !IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
         state->just_opened = 0;
 
+    if(CheckCollisionPointRec(mouse, menu_bounds)) {
+        float wheel = GetMouseWheelMove();
+        if(wheel != 0.0f && max_scroll > 0) {
+            state->scroll_offset -= (int)(wheel * (float)option_h);
+            if(state->scroll_offset < 0)
+                state->scroll_offset = 0;
+            if(state->scroll_offset > max_scroll)
+                state->scroll_offset = max_scroll;
+        }
+    }
+
     /* Draw dropdown background */
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
@@ -734,8 +825,8 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
 
     /* Draw options */
     for(int i = 0; i < option_count; i++) {
-        int option_y = dropdown_y + ui_px(4) + (i - state->scroll_offset) * option_h;
-        Rectangle option_bounds = {x, option_y, w, option_h};
+        int option_y = dropdown_y + padding_top + i * option_h - state->scroll_offset;
+        Rectangle option_bounds = {x, option_y, option_w, option_h};
 
         /* Skip if outside visible area - use inclusive bounds for last item */
         if(option_y + option_h < dropdown_y || option_y >= dropdown_y + dropdown_h)
@@ -761,6 +852,10 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     }
 
     EndScissorMode();
+
+    if(max_scroll > 0)
+        ui_draw_scrollbar(app, x + w - scrollbar_w, dropdown_y + ui_px(2),
+                          dropdown_h - ui_px(4), content_h, &state->scroll_offset, max_scroll);
 
 draw_arrow:
     ;
@@ -908,6 +1003,7 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int side_margin = ui_px(16);
     int group_gap = ui_px(10);
     int available_w = ui_view_width - side_margin * 2;
+    int label_safety_w = group_gap * (count + 1);
 
     /* Calculate widths with labels */
     int group_w_label = 0;
@@ -925,17 +1021,19 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
             group_w_no_label += group_gap;
     }
 
-    /* Only show labels if all buttons with labels fit */
-    int show_labels = group_w_label <= available_w;
+    /* Only show labels if all buttons fit with breathing room for longer locales. */
+    int show_labels = group_w_label + label_safety_w <= available_w;
     int base_group_w = show_labels ? group_w_label : group_w_no_label;
 
     /* Calculate extra space and distribute evenly among buttons */
-    int extra_w = available_w - base_group_w - group_gap * (count - 1);
+    int extra_w = available_w - base_group_w;
+    if(extra_w < 0)
+        extra_w = 0;
     int extra_per_button = count > 0 ? extra_w / count : 0;
     int remainder = count > 0 ? extra_w % count : 0;
 
     /* Calculate total width with extra space included */
-    int total_w = base_group_w + extra_per_button * count + group_gap * (count - 1);
+    int total_w = base_group_w + extra_per_button * count;
 
     /* Center the tab group - remainder adds extra left margin for true centering */
     int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;

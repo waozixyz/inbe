@@ -26,7 +26,9 @@ typedef enum {
     UI_ICON_TYPE_GLOBE,
     UI_ICON_TYPE_STRIPE,
     UI_ICON_TYPE_MONERO,
-    UI_ICON_TYPE_HOME
+    UI_ICON_TYPE_HOME,
+    UI_ICON_TYPE_TRASH,
+    UI_ICON_TYPE_PENCIL
 } UIIconType;
 
 void ui_init(int width, int height, float dpi);
@@ -38,11 +40,12 @@ Color ui_darken(Color c, int amount);
 void ui_centered_column(int max_w, int side_pad, int *x, int *w);
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
 void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h);
+int ui_page_side_padding(void);
 void ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color);
 int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
 int ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover);
-int ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, Texture2D icon, UIIconType icon_type, int *hover);
+int ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, int padding, Texture2D icon, UIIconType icon_type, int *hover);
 int ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover);
 void ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url);
 int ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label, int min, int max, int *value, const char *suffix);

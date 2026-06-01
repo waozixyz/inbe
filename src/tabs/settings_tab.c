@@ -22,6 +22,7 @@ static const char *settings_tab_names[] = {
     NULL,
     NULL,
     NULL,
+    NULL,
     NULL
 };
 
@@ -108,11 +109,11 @@ settings_tab_draw(InbeApp *app)
     static char export_result[128] = "";  /* Store export result message */
 
     /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
-    int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
+    int responsive_max_w = (int)(view_width * 0.96f);
     int min_content_w = ui_px(320);
     if(responsive_max_w < min_content_w)
         responsive_max_w = min_content_w;
-    int side_padding = ui_px(32);  /* Match tutorial spacing */
+    int side_padding = ui_page_side_padding();
     ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     /* Reset slider drag state when mouse is released */
@@ -145,10 +146,11 @@ settings_tab_draw(InbeApp *app)
         int draw_language_menu = 0;
         settings_tab_names[0] = locale_get("settings_tab_breathing");
         settings_tab_names[1] = locale_get("settings_tab_session");
-        settings_tab_names[2] = locale_get("settings_tab_appearance");
-        settings_tab_names[3] = locale_get("settings_tab_language");
-        settings_tab_names[4] = locale_get("settings_tab_data");
-        settings_tab_names[5] = locale_get("settings_tab_about");
+        settings_tab_names[2] = locale_get("settings_tab_sound");
+        settings_tab_names[3] = locale_get("settings_tab_appearance");
+        settings_tab_names[4] = locale_get("settings_tab_language");
+        settings_tab_names[5] = locale_get("settings_tab_data");
+        settings_tab_names[6] = locale_get("settings_tab_about");
         if(ui_draw_dropdown_button(app, 100, content_x, dropdown_y, content_w, dropdown_h, settings_tab_names, SETTINGS_TAB_COUNT, &app->settings_tab)) {
             reset_settings_preview(app);
         }
@@ -241,16 +243,20 @@ settings_tab_draw(InbeApp *app)
                     app->settings_dirty = 1;
                 }
 
-                /* Volume */
-                int sound_volume = app->sound_volume;
-                if(ui_draw_slider(app, 6, content_x, slider_y + ui_px(198), content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
-                               SETTINGS_VOLUME_MAX, &sound_volume, "")) {
-                    app->sound_volume = sound_volume;
+                /* Advanced controls */
+                int advanced_session_controls = app->advanced_session_controls;
+                int toggle_w = ui_px(56);
+                int toggle_h = ui_px(30);
+                int advanced_label_y = slider_y + ui_px(198);
+                int advanced_toggle_y = advanced_label_y + ui_px(26);
+                DrawText(locale_get("advanced_session_controls_label"), content_x, advanced_label_y, ui_clamp_px(14, 12, 16), c_text);
+                if(ui_draw_toggle_switch(app, content_x, advanced_toggle_y, toggle_w, toggle_h, &advanced_session_controls, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                    app->advanced_session_controls = advanced_session_controls;
                     app->settings_dirty = 1;
                 }
 
                 /* Reset to defaults button */
-                int reset_y = slider_y + ui_px(265);
+                int reset_y = advanced_toggle_y + toggle_h + ui_px(20);
                 int reset_w = MeasureText(locale_get("reset_to_defaults_label"), ui_clamp_px(14, 12, 16)) + ui_px(24);
                 int reset_h = ui_px(36);
                 int reset_x = content_x + content_w - reset_w;
@@ -278,8 +284,19 @@ settings_tab_draw(InbeApp *app)
                     max_rounds = DefaultMaxRounds;
                     max_breaths = DefaultMaxBreaths;
                     pause_seconds = DefaultPauseSeconds;
+                    app->advanced_session_controls = 0;
                     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                    app->settings_dirty = 1;
+                }
+                break;
+            }
+            case SETTINGS_TAB_SOUND: {
+                int slider_y = yoff + content_start_y + ui_px(20);
+                int sound_volume = app->sound_volume;
+                if(ui_draw_slider(app, 6, content_x, slider_y, content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
+                               SETTINGS_VOLUME_MAX, &sound_volume, "")) {
+                    app->sound_volume = sound_volume;
                     app->settings_dirty = 1;
                 }
                 break;
@@ -484,11 +501,26 @@ settings_tab_draw(InbeApp *app)
                 int icon_spacing = ui_px(20);
                 int icon_btn_w = icon_size + icon_padding * 2;
                 int total_w = icon_btn_w * 4 + icon_spacing * 3;
-                int links_start_x = content_x + (content_w - total_w) / 2;
-                ui_draw_icon_link(app, links_start_x + icon_padding, links_y, icon_size, app->telegram_icon, UI_ICON_TYPE_TELEGRAM, "https://t.me/lotusinbe");
-                ui_draw_icon_link(app, links_start_x + icon_btn_w + icon_spacing + icon_padding, links_y, icon_size, app->globe_icon, UI_ICON_TYPE_GLOBE, "https://inbe.waozi.xyz/");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 2 + icon_padding, links_y, icon_size, app->monero_icon, UI_ICON_TYPE_MONERO, "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff");
-                ui_draw_icon_link(app, links_start_x + (icon_btn_w + icon_spacing) * 3 + icon_padding, links_y, icon_size, app->stripe_icon, UI_ICON_TYPE_STRIPE, "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04");
+                int columns = total_w <= content_w ? 4 : 2;
+                int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
+                int links_start_x = content_x + (content_w - grid_w) / 2;
+                int row_spacing = ui_px(16);
+                Texture2D icons[4] = {app->telegram_icon, app->globe_icon, app->monero_icon, app->stripe_icon};
+                UIIconType icon_types[4] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_GLOBE, UI_ICON_TYPE_MONERO, UI_ICON_TYPE_STRIPE};
+                const char *urls[4] = {
+                    "https://t.me/lotusinbe",
+                    "https://inbe.waozi.xyz/",
+                    "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
+                    "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04"
+                };
+
+                for(int i = 0; i < 4; i++) {
+                    int col = i % columns;
+                    int row = i / columns;
+                    int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
+                    int icon_y = links_y + row * (icon_btn_w + row_spacing);
+                    ui_draw_icon_link(app, icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+                }
                 break;
             }
     }

@@ -78,7 +78,7 @@ language_tab_draw(InbeApp *app)
     if(*selected_index < 0 || *selected_index >= language_count)
         *selected_index = 0;
 
-    ui_centered_column(ui_px(340), ui_px(32), &content_x, &content_w);
+    ui_centered_column(ui_px(340), ui_page_side_padding(), &content_x, &content_w);
     dropdown_w = content_w;
     dropdown_x = content_x;
     dropdown_y = view_height / 2 - dropdown_h / 2;
