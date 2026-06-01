@@ -86,7 +86,14 @@ WEB_CFLAGS = -Wall -Wextra -std=gnu99 -Os -DPLATFORM_WEB -DGRAPHICS_API_OPENGL_E
 WEB_SHELL = src/web_shell.html
 WEB_LOCALE_FILES = $(wildcard locales/*.txt)
 WEB_LOCALE_PRELOADS = $(foreach file,$(WEB_LOCALE_FILES),--preload-file $(file)@locales/$(notdir $(file)))
-WEB_LDFLAGS = -sUSE_GLFW=3 -sASYNCIFY -sALLOW_MEMORY_GROWTH=1 --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file themes/sky.ini@themes/sky.ini --preload-file themes/sky_dark.ini@themes/sky_dark.ini --preload-file themes/ocean.ini@themes/ocean.ini --preload-file themes/ocean_dark.ini@themes/ocean_dark.ini --preload-file themes/forest.ini@themes/forest.ini --preload-file themes/forest_dark.ini@themes/forest_dark.ini --preload-file themes/sunset.ini@themes/sunset.ini --preload-file themes/sunset_dark.ini@themes/sunset_dark.ini --preload-file themes/lavender.ini@themes/lavender.ini --preload-file themes/lavender_dark.ini@themes/lavender_dark.ini --preload-file themes/cherry.ini@themes/cherry.ini --preload-file themes/cherry_dark.ini@themes/cherry_dark.ini --preload-file icons/gear.png@icons/gear.png --preload-file icons/x.png@icons/x.png --preload-file icons/manual.png@icons/manual.png --preload-file icons/return.png@icons/return.png --preload-file icons/backward.png@icons/backward.png --preload-file icons/forward.png@icons/forward.png --preload-file icons/play.png@icons/play.png --preload-file icons/pause.png@icons/pause.png --preload-file icons/stat.png@icons/stat.png --preload-file icons/home.png@icons/home.png --preload-file icons/trash.png@icons/trash.png --preload-file icons/telegram.png@icons/telegram.png --preload-file icons/globe.png@icons/globe.png --preload-file icons/stripe.png@icons/stripe.png --preload-file icons/monero.png@icons/monero.png --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg --preload-file assets/sounds/breath-in.ogg@assets/sounds/breath-in.ogg --preload-file assets/sounds/breath-out.ogg@assets/sounds/breath-out.ogg --preload-file assets/sounds/bell.ogg@assets/sounds/bell.ogg
+WEB_ICON_FILES = $(wildcard icons/*.png)
+WEB_ICON_PRELOADS = $(foreach file,$(WEB_ICON_FILES),--preload-file $(file)@icons/$(notdir $(file)))
+WEB_THEME_FILES = $(wildcard themes/*.ini)
+WEB_THEME_PRELOADS = $(foreach file,$(WEB_THEME_FILES),--preload-file $(file)@themes/$(notdir $(file)))
+WEB_SOUND_FILES = $(wildcard assets/sounds/*)
+WEB_SOUND_PRELOADS = $(foreach file,$(WEB_SOUND_FILES),--preload-file $(file)@assets/sounds/$(notdir $(file)))
+WEB_ASSET_FILES = inbe.ini theme.ini assets/angel.jpg assets/begin.jpg $(WEB_LOCALE_FILES) $(WEB_ICON_FILES) $(WEB_THEME_FILES) $(WEB_SOUND_FILES)
+WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_ICON_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
 CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
@@ -290,7 +297,7 @@ $(WEB_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WEB_RAYLIB_BUILD_DIR)
 $(WEB_RAYLIB_A): $(WEB_RAYLIB_OBJS)
 	$(WEB_AR) rcs $@ $(WEB_RAYLIB_OBJS)
 
-$(WEB_TARGET): $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) | $(WEB_BUILD_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) $(WEB_ASSET_FILES) | $(WEB_BUILD_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -300,6 +307,8 @@ $(WEB_TARGET): $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) | $(WEB_BU
 		$(INBE_DIR)/inbe.c \
 		$(WEB_RAYLIB_A) \
 		$(WEB_LDFLAGS)
+	cache_buster=$$(cksum $(WEB_BUILD_DIR)/index.js $(WEB_BUILD_DIR)/index.data $(WEB_BUILD_DIR)/index.wasm | cksum | cut -d ' ' -f 1); \
+		sed -i "s#src=\"index.js\"#src=\"index.js?v=$$cache_buster\"#; s#WEB_CACHE_BUSTER#$$cache_buster#g" $(WEB_TARGET)
 
 # Build Windows libinbe, then copy it into build/windows
 $(WIN_INBE_A): FORCE | $(WINDOWS_BUILD_DIR)
