@@ -135,21 +135,32 @@ static int web_storage_ready = 0;
 static void
 init_web_storage(void)
 {
+    int ok;
+
     if(web_storage_ready)
         return;
-    EM_ASM({
+
+    ok = EM_ASM_INT({
+        if(typeof FS === 'undefined' || typeof IDBFS === 'undefined')
+            return 0;
+
         try {
             FS.mkdir('/home');
+        } catch(e) {}
+
+        try {
+            if(!FS.analyzePath('/home').object.isFolder) return 0;
             FS.mount(IDBFS, {root: '/'}, '/home');
-            FS.syncfs(true, function(err) {
-                if(err) console.error('IDBFS init sync failed:', err);
-                else console.log('IDBFS initialized');
-            });
         } catch(e) {
-            console.error('IDBFS mount failed:', e);
+            if(e.errno !== 10 && String(e).indexOf('already mounted') === -1) {
+                console.error('IDBFS mount failed:', e);
+                return 0;
+            }
         }
+
+        return 1;
     });
-    web_storage_ready = 1;
+    web_storage_ready = ok != 0;
 }
 
 static void
