@@ -164,7 +164,7 @@ read_session_file(const char *path, int *round_times, int max_rounds)
 
         if(*line != '\0') {
             int seconds = atoi(line);
-            if(seconds >= 0 && seconds <= 999) {
+            if(seconds > 0 && seconds <= 999) {
                 round_times[round_count++] = seconds;
             }
         }
@@ -368,8 +368,16 @@ data_save_session_path(const int *round_times, int round_count, char *out_path, 
     char path[FS_PATH_MAX];
     char text[MaxRounds * 8];
     int offset = 0;
+    int saved_round_count = 0;
 
     if(round_times == NULL || round_count <= 0 || round_count > MaxRounds)
+        return 0;
+
+    for(int i = 0; i < round_count; i++) {
+        if(round_times[i] > 0)
+            saved_round_count++;
+    }
+    if(saved_round_count <= 0)
         return 0;
 
     now = time(NULL);
@@ -394,6 +402,8 @@ data_save_session_path(const int *round_times, int round_count, char *out_path, 
              dir_day, tm->tm_hour, tm->tm_min, tm->tm_sec);
 
     for(int i = 0; i < round_count; i++) {
+        if(round_times[i] <= 0)
+            continue;
         if(offset >= (int)sizeof(text) - 8)
             break;
         offset += snprintf(text + offset, sizeof(text) - (size_t)offset,
@@ -425,6 +435,86 @@ int
 data_save_session(const int *round_times, int round_count)
 {
     return data_save_session_path(round_times, round_count, NULL, 0);
+}
+
+int
+data_replace_session(const char *path, const int *round_times, int round_count)
+{
+    char text[MaxRounds * 8];
+    int offset = 0;
+    int saved_round_count = 0;
+
+    if(path == NULL || path[0] == '\0' || round_times == NULL || round_count < 0 || round_count > MaxRounds)
+        return 0;
+
+    for(int i = 0; i < round_count; i++) {
+        if(round_times[i] > 0)
+            saved_round_count++;
+    }
+
+    if(saved_round_count <= 0)
+        return data_delete_session(path);
+
+    for(int i = 0; i < round_count; i++) {
+        if(round_times[i] <= 0)
+            continue;
+        if(offset >= (int)sizeof(text) - 8)
+            break;
+        offset += snprintf(text + offset, sizeof(text) - (size_t)offset,
+                           "%d\n", round_times[i]);
+    }
+
+    if(SaveFileText(path, text)) {
+#if defined(PLATFORM_WEB)
+        EM_ASM({
+            try {
+                FS.syncfs(false, function(err) {
+                    if(err) console.error("syncfs error:", err);
+                });
+            } catch(e) {}
+        });
+#endif
+        TraceLog(LOG_INFO, "DATA: replaced session %s", path);
+        return 1;
+    }
+
+    TraceLog(LOG_ERROR, "DATA: failed to replace session %s", path);
+    return 0;
+}
+
+int
+data_rename_session(const char *old_path, const char *new_path)
+{
+    if(old_path == NULL || old_path[0] == '\0' ||
+       new_path == NULL || new_path[0] == '\0')
+        return 0;
+
+    if(strcmp(old_path, new_path) == 0)
+        return 1;
+
+    if(!FileExists(old_path) || FileExists(new_path))
+        return 0;
+
+#if defined(PLATFORM_WEB)
+    int ok = 0;
+    EM_ASM({
+        try {
+            FS.rename(UTF8ToString($0), UTF8ToString($1));
+            FS.syncfs(false, function(err) {
+                if(err) console.error("syncfs error:", err);
+            });
+            setValue($2, 1, 'i32');
+        } catch(e) {}
+    }, old_path, new_path, &ok);
+    if(!ok)
+        return 0;
+#else
+    if(rename(old_path, new_path) != 0)
+        return 0;
+#endif
+
+    TraceLog(LOG_INFO, "DATA: renamed session %s to %s", old_path, new_path);
+    return 1;
 }
 
 int

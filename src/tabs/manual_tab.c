@@ -28,6 +28,44 @@ static const char *const TUTORIAL_KEYS[] = {
 
 static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 28, 28 };
 
+static int
+draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char *label, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
+    int min_font = ui_clamp_px(14, 14, 16);
+    int font = ui_clamp_px(16, 14, 18);
+    int text_w;
+    int text_x;
+    int text_y;
+    int pressed = 0;
+
+    while(label[0] != '\0' && font > min_font && MeasureText(label, font) > w - ui_px(12))
+        font--;
+
+    if(CheckCollisionPointRec(mouse_world, bounds)) {
+        DrawRectangle(x, y, w, h, c_button_hover);
+        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+            pressed = 1;
+    } else {
+        DrawRectangle(x, y, w, h, c_button);
+        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        *hover = 0;
+    }
+
+    text_w = MeasureText(label, font);
+    text_x = x + (w - text_w) / 2;
+    text_y = y + (h - font) / 2;
+    DrawText(label, text_x, text_y, font, c_text);
+
+    return pressed;
+}
+
 static void
 init_tutorial_layouts(InbeApp *app, int body_font)
 {
@@ -75,12 +113,11 @@ manual_tab_draw(InbeApp *app)
     int tab_h = ui_clamp_px(54, 54, 66);
     int viewport_h = view_height - title_h - tab_h;
     int body_font = ui_clamp_px(16, 14, 18);
+    int footer_content_pad = ui_clamp_px(14, 12, 16) / 2;
     int previous_step;
     int content_x;
     int content_w;
     const char *title = locale_get("tutorial_title");
-    int footer_y = view_height - ui_px(38);
-    int footer_mid_y = footer_y + ui_px(7);
     char page_label[16];
     int close_clicked = 0;
     int step = app->tutorial_step;
@@ -116,7 +153,7 @@ manual_tab_draw(InbeApp *app)
 
     /* Content width responds to window size - with DPI scaling consideration */
     /* On high-DPI Android, view_width is already large, so we use a reasonable percentage */
-    int responsive_max_w = (int)(view_width * 0.92f);
+    int responsive_max_w = (int)(view_width * 0.96f);
     int max_content_w = ui_px(CONTENT_MAX_W);  /* DPI-scaled max width */
     if(responsive_max_w > max_content_w)
         responsive_max_w = max_content_w;
@@ -124,7 +161,7 @@ manual_tab_draw(InbeApp *app)
     if(responsive_max_w < min_width)
         responsive_max_w = min_width;
 
-    int side_padding = ui_px(32);  /* Increased from CONTENT_SIDE_PAD=20 for more space */
+    int side_padding = ui_page_side_padding();
     ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     /* Auto-reflow every frame - like HTML, no tracking needed */
@@ -170,7 +207,7 @@ manual_tab_draw(InbeApp *app)
     } else {
         actual_content_h += ui_px(234) + ui_px(22) + ui_text_layout_get_height(app->tutorial_layouts[4]);
     }
-    int available_content_space = viewport_h - ui_px(16) - ui_px(16);
+    int available_content_space = viewport_h - footer_content_pad - ui_px(16) - ui_px(16);
     int old_max_scroll = 0;
     int max_scroll = actual_content_h - available_content_space;
     if(max_scroll < 0)
@@ -192,7 +229,7 @@ manual_tab_draw(InbeApp *app)
 
     Vector2 mouse_pos = GetMousePosition();
     int content_area_y = title_h;
-    int content_area_h = viewport_h;
+    int content_area_h = viewport_h - footer_content_pad;
 
     Rectangle content_bounds = {content_x, content_area_y, content_w, content_area_h};
 
@@ -217,7 +254,7 @@ manual_tab_draw(InbeApp *app)
     BeginScissorMode((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
-                     (int)(viewport_h * app->camera.zoom));
+                     (int)(content_area_h * app->camera.zoom));
         int y = title_h + ui_px(16) - app->manual_scroll;
         if(step == 0) {
             int img_h = ui_px(200);
@@ -288,25 +325,34 @@ manual_tab_draw(InbeApp *app)
     }
 
     snprintf(page_label, sizeof(page_label), "%d/%d", step + 1, (int)TUTORIAL_STEPS_COUNT);
-    DrawText(page_label,
-             view_width / 2 - MeasureText(page_label, ui_clamp_px(14, 14, 16)) / 2,
-             footer_mid_y, ui_clamp_px(14, 14, 16), c_text);
 
     int left_hover = 0;
     int right_hover = 0;
-    int button_pad = ui_px(48);
+    const char *left_label = step == 0 ? locale_get("tutorial_skip_button") : locale_get("tutorial_back_button");
+    const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_finish_button") : locale_get("tutorial_next_button");
+    int footer_gap = ui_px(10);
+    int page_font = ui_clamp_px(14, 12, 16);
+    int button_h = ui_px(34);
+    int button_w = (content_w - footer_gap) / 2;
+    int footer_y = view_height - ui_px(38);
+    int counter_gap = ui_px(6);
+
+
+    DrawText(page_label,
+             view_width / 2 - MeasureText(page_label, page_font) / 2,
+             footer_y - page_font - counter_gap, page_font, c_text);
+
     if(step == 0) {
-    if(ui_draw_text_btn(app, content_x + button_pad, footer_y, locale_get("tutorial_skip_button"), &left_hover))
-        manual_tab_close_tutorial(app, 1);
+        if(draw_tutorial_footer_button(app, content_x, footer_y, button_w, button_h, left_label, &left_hover))
+            manual_tab_close_tutorial(app, 1);
     } else {
-        if(ui_draw_text_btn(app, content_x + button_pad, footer_y, locale_get("tutorial_back_button"), &left_hover)) {
+        if(draw_tutorial_footer_button(app, content_x, footer_y, button_w, button_h, left_label, &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
-    if(ui_draw_text_btn(app, content_x + content_w - button_pad, footer_y,
-               step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_finish_button") : locale_get("tutorial_next_button"), &right_hover)) {
+    if(draw_tutorial_footer_button(app, content_x + button_w + footer_gap, footer_y, button_w, button_h, right_label, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_tab_close_tutorial(app, 1);
         else {

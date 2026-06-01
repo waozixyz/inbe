@@ -41,6 +41,7 @@ enum {
 enum {
     SETTINGS_TAB_BREATHING = 0,
     SETTINGS_TAB_SESSION,
+    SETTINGS_TAB_SOUND,
     SETTINGS_TAB_APPEARANCE,
     SETTINGS_TAB_LANGUAGE,
     SETTINGS_TAB_DATA,
@@ -96,6 +97,8 @@ struct InbeApp {
     Texture2D pause_icon;
     Texture2D stat_icon;
     Texture2D home_icon;
+    Texture2D trash_icon;
+    Texture2D pencil_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D stripe_icon;
@@ -144,6 +147,12 @@ struct InbeApp {
     int history_month;
     int history_day;
     char history_record[16];
+    int history_edit_active;
+    int history_edit_kind;
+    int history_edit_round;
+    char history_edit_path[FS_PATH_MAX];
+    char history_edit_text[16];
+    int advanced_session_controls;
     int session_paused;
     int results_saved;
     char results_path[FS_PATH_MAX];

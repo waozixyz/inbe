@@ -73,6 +73,9 @@ Atmung
 [settings_tab_session]
 Sitzung
 ---
+[settings_tab_sound]
+Ton
+---
 [settings_tab_appearance]
 Darstellung
 ---
@@ -105,6 +108,9 @@ Max. Atemzüge
 ---
 [pause_after_round_label]
 Pause nach Runde
+---
+[advanced_session_controls_label]
+Erweiterte Sitzungssteuerung
 ---
 [volume_label]
 Lautstärke
@@ -228,6 +234,8 @@ Nutzen Sie das Zahnrad-Symbol %i, um Runden, Atemzüge, Geschwindigkeit und Paus
 Füllen Sie Ihre Lungen vollständig, dann lassen Sie den Atem herausfließen.
 
 Nutzen Sie diesen Schieberegler, um das Tempo des Atemkreises einzustellen.
+
+Wenn Progressive Geschwindigkeit aktiviert ist, beginnt die erste Runde bei Geschwindigkeit 1 für die ersten 5 Atemzüge und steigt dann schrittweise auf Ihre gewählte Geschwindigkeit.
 
 Finden Sie einen Rhythmus, der sich natürlich für Sie anfühlt.
 ---

@@ -34,6 +34,15 @@ void history_tab_draw(InbeApp *app);
 /* Handle tab click - switch to history screen */
 void history_tab_on_click(void *user_data);
 
+/* Reset all history viewer state */
+void history_tab_reset(InbeApp *app);
+
+/* Handle history-specific back behavior, returning non-zero when handled */
+int history_tab_handle_back(InbeApp *app);
+
+/* Return non-zero while the history tab owns keyboard text input */
+int history_tab_is_editing(const InbeApp *app);
+
 /* Open the latest session in history viewer */
 void history_open_latest(InbeApp *app);
 

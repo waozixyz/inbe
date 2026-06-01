@@ -293,34 +293,11 @@ update_preview_bounds(Inbe *inbe, int content_w, int content_h)
 static void
 register_all_themes(void)
 {
-    const char *theme_files[] = {
-        "themes/sky.ini",
-        "themes/sky_dark.ini",
-        "themes/ocean.ini",
-        "themes/ocean_dark.ini",
-        "themes/forest.ini",
-        "themes/forest_dark.ini",
-        "themes/sunset.ini",
-        "themes/sunset_dark.ini",
-        "themes/lavender.ini",
-        "themes/lavender_dark.ini",
-        "themes/cherry.ini",
-        "themes/cherry_dark.ini",
-        NULL
-    };
-
-    const char *scopes[] = {
-        "sky_light", "sky_dark",
-        "ocean_light", "ocean_dark",
-        "forest_light", "forest_dark",
-        "sunset_light", "sunset_dark",
-        "lavender_light", "lavender_dark",
-        "cherry_light", "cherry_dark"
-    };
-
-    for (int i = 0; theme_files[i] != NULL; i++) {
-        if (theme_scope(scopes[i]) == NULL)
-            theme_register_scope(scopes[i], theme_files[i]);
+    for(int i = 0; i < THEME_COUNT; i++) {
+        if(theme_scope(g_themes[i].light_scope) == NULL)
+            theme_register_scope(g_themes[i].light_scope, g_themes[i].light_path);
+        if(theme_scope(g_themes[i].dark_scope) == NULL)
+            theme_register_scope(g_themes[i].dark_scope, g_themes[i].dark_path);
     }
 }
 
@@ -464,7 +441,7 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[256];
+    char text[384];
     const char *settings_path =
 #if defined(PLATFORM_WEB)
         "/home/settings.ini";
@@ -473,7 +450,7 @@ save_settings(InbeApp *app)
 #endif
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nplay_in_background %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -484,13 +461,14 @@ save_settings(InbeApp *app)
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
              app->inbe.progressive_speed,
+             app->advanced_session_controls ? 1 : 0,
              app->inbe.play_in_background,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -501,6 +479,7 @@ save_settings(InbeApp *app)
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
              app->inbe.progressive_speed,
+             app->advanced_session_controls ? 1 : 0,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
@@ -535,6 +514,7 @@ load_settings(InbeApp *app)
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
+    app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
     {
         const char *language = rini_get_value_text(settings, "language");
         if(language != NULL && language[0] != '\0') {
@@ -778,6 +758,7 @@ static int
 collect_result_rounds(InbeApp *app, int *round_times, int max_rounds)
 {
     int rounds;
+    int count = 0;
 
     if(app == NULL || round_times == NULL || max_rounds <= 0)
         return 0;
@@ -790,10 +771,13 @@ collect_result_rounds(InbeApp *app, int *round_times, int max_rounds)
     if(rounds > max_rounds)
         rounds = max_rounds;
 
-    for(int i = 0; i < rounds; i++)
-        round_times[i] = int_from_count(app->inbe.results[i]);
+    for(int i = 0; i < rounds; i++) {
+        int seconds = int_from_count(app->inbe.results[i]);
+        if(seconds > 0)
+            round_times[count++] = seconds;
+    }
 
-    return rounds;
+    return count;
 }
 
 static int
@@ -864,8 +848,10 @@ finish_round(InbeApp *app)
         }
         reset_round_start(&app->inbe);
     } else {
-        ensure_results_saved(app);
-        app->inbe.screen = InbeScreenResults;
+        if(ensure_results_saved(app))
+            app->inbe.screen = InbeScreenResults;
+        else
+            inbe_app_init(app);
     }
 }
 
@@ -1048,6 +1034,12 @@ inbe_app_init(void *vapp) {
     locale_init();
     refresh_tab_labels();
     load_config();
+
+    view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
+    view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
+    dpi_update(view_width, view_height);
+    ui_init(view_width, view_height, dpi_ui_scale());
+
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
@@ -1071,15 +1063,7 @@ inbe_app_init(void *vapp) {
     app->manual_drag_content_y = 0;
     app->tutorial_step = 0;
     app->tutorial_layouts_initialized = 0;
-    app->history_scroll = 0;
-    app->history_drag_scrollbar = 0;
-    app->history_drag_content = 0;
-    app->history_drag_content_y = 0;
-    app->history_level = 0;
-    app->history_year = 0;
-    app->history_month = 0;
-    app->history_day = 0;
-    app->history_record[0] = 0;
+    history_tab_reset(app);
     app->session_paused = 0;
     app->results_saved = 0;
     app->results_path[0] = '\0';
@@ -1112,6 +1096,12 @@ inbe_app_init(void *vapp) {
     }
     if(app->stat_icon.id == 0) {
         app->stat_icon = load_icon_texture("stat.png");
+    }
+    if(app->trash_icon.id == 0) {
+        app->trash_icon = load_icon_texture("trash.png");
+    }
+    if(app->pencil_icon.id == 0) {
+        app->pencil_icon = load_icon_texture("pencil.png");
     }
     /* Update tab bar icons */
     g_tabs[0].icon = app->stat_icon;
@@ -1162,11 +1152,8 @@ inbe_app_init(void *vapp) {
 static int
 session_has_completed_rounds(InbeApp *app)
 {
-    for(int i = 0; i < app->inbe.round; i++) {
-        if(int_from_count(app->inbe.results[i]) > 0)
-            return 1;
-    }
-    return 0;
+    int round_times[MaxRounds];
+    return collect_result_rounds(app, round_times, MaxRounds) > 0;
 }
 
 static void
@@ -1186,7 +1173,8 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenHistory:
-        app->inbe.screen = InbeScreenStart;
+        if(!history_tab_handle_back(app))
+            app->inbe.screen = InbeScreenStart;
         break;
 
     case InbeScreenLanguage:
@@ -1234,7 +1222,9 @@ updateapp(InbeApp *app)
     int modal_result = 0;
 
     /* Handle Android back button and desktop backspace */
-    if(IsKeyPressed(KEY_BACK) || IsKeyPressed(KEY_BACKSPACE)) {
+    if(IsKeyPressed(KEY_BACK) ||
+       (IsKeyPressed(KEY_BACKSPACE) &&
+        !(app->inbe.screen == InbeScreenHistory && history_tab_is_editing(app)))) {
         if(app->modal.active) {
             /* Modal active - close it on cancel/confirm */
             app->modal.active = 0;
@@ -1300,7 +1290,8 @@ updateapp(InbeApp *app)
 
     case InbeScreenSession: {
         int return_hover = 0;
-        if(ui_draw_icon_btn_padded(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
+        if(ui_draw_icon_btn_padded(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX),
+                                   ui_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
         }
 
@@ -1319,15 +1310,7 @@ updateapp(InbeApp *app)
                     app->modal.type = UIModalNone;
                 } else if(modal_result == 2) {
                     /* Save - save rounds and exit */
-                    if(!app->results_saved) {
-                        int round_times[MaxRounds];
-                        for(int i = 0; i < app->inbe.round + 1 && i < MaxRounds; i++) {
-                            round_times[i] = int_from_count(app->inbe.results[i]);
-                        }
-                        if(data_save_session(round_times, app->inbe.round + 1)) {
-                            app->results_saved = 1;
-                        }
-                    }
+                    ensure_results_saved(app);
 #ifdef __ANDROID__
                     if (app->inbe.play_in_background) {
                         android_wakelock_release();
@@ -1381,25 +1364,62 @@ updateapp(InbeApp *app)
         int pause_hover = 0;
         int forward_hover = 0;
         int control_y = view_height - ui_px(50);
+        int breath_max_y = view_height - ui_px(44);
+
+        if(app->advanced_session_controls) {
         int control_size = ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
         int control_padding = ui_px(10);
-        int control_btn_w = control_size + control_padding * 2;
         int control_gap = ui_px(12);
-        int pause_x = center_x - control_btn_w / 2;
-        int back_x = pause_x - control_btn_w - control_gap;
-        int forward_x = pause_x + control_btn_w + control_gap;
+        int min_view_dim = view_width < view_height ? view_width : view_height;
+        int available_row_w = view_width - ui_px(48);
+        int max_btn_w = min_view_dim / 6;
+        int max_btn_w_by_row;
+        int control_btn_w;
+        int pause_x;
+        int back_x;
+        int forward_x;
 
-        if(ui_draw_icon_btn_padded(app, back_x, control_y, control_size,
+        if(available_row_w < ui_px(120))
+            available_row_w = ui_px(120);
+
+        max_btn_w_by_row = (available_row_w - control_gap * 2) / 3;
+        if(max_btn_w <= 0 || max_btn_w > max_btn_w_by_row)
+            max_btn_w = max_btn_w_by_row;
+
+        control_btn_w = control_size + control_padding * 2;
+        if(control_btn_w > max_btn_w) {
+            control_btn_w = max_btn_w;
+            control_padding = control_btn_w / 4;
+            control_size = control_btn_w - control_padding * 2;
+        }
+
+        if(control_padding < ui_px(6))
+            control_padding = ui_px(6);
+        if(control_size < ui_px(16))
+            control_size = ui_px(16);
+
+        control_btn_w = control_size + control_padding * 2;
+        control_gap = control_btn_w / 4;
+        if(control_gap < ui_px(8))
+            control_gap = ui_px(8);
+        control_y = view_height - ui_px(6) - control_btn_w;
+        breath_max_y = control_y - ui_px(44);
+        pause_x = center_x - control_btn_w / 2;
+        back_x = pause_x - control_btn_w - control_gap;
+        forward_x = pause_x + control_btn_w + control_gap;
+
+        if(ui_draw_icon_btn_padded(app, back_x, control_y, control_size, control_padding,
                                                      app->backward_icon, UI_ICON_TYPE_BACKWARD, &back_hover)) {
             session_step_back(app);
         }
-        if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size,
+        if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size, control_padding,
                        app->session_paused ? app->play_icon : app->pause_icon, app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE, &pause_hover)) {
             app->session_paused = !app->session_paused;
         }
-        if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size,
+        if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size, control_padding,
                                                     app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover)) {
             session_step_forward(app);
+        }
         }
 
         draw_session_status(app, center_x, center_y);
@@ -1424,7 +1444,6 @@ updateapp(InbeApp *app)
 
         if (app->inbe.phase == InbePhaseHold) {
             int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(24);
-            int breath_max_y = control_y - ui_px(44);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
             if (ui_draw_text_btn(app, center_x, breath_y, locale_get("breath_button"), &hover)) {
@@ -1443,31 +1462,32 @@ updateapp(InbeApp *app)
             int row_h = ui_clamp_px(32, 28, 36);
             int total = 0;
             int best = -1;
-            int rounds = app->inbe.round + 1;
+            int round_times[MaxRounds];
+            int rounds = collect_result_rounds(app, round_times, MaxRounds);
             int discard_hover = 0;
             int save_hover = 0;
             int action_y = view_height - ui_px(40);
 
+            if(rounds <= 0) {
+                inbe_app_init(app);
+                break;
+            }
+
             /* Responsive width like other tabs - not fixed CONTENT_MAX_W */
-            int responsive_max_w = (int)(view_width * 0.90f);  /* 90% of screen width */
+            int responsive_max_w = (int)(view_width * 0.96f);
             int min_content_w = ui_px(320);
             if(responsive_max_w < min_content_w)
                 responsive_max_w = min_content_w;
-            int side_padding = ui_px(32);  /* More spacious than CONTENT_SIDE_PAD=16 */
+            int side_padding = ui_page_side_padding();
 
             ui_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
             title_w = MeasureText(locale_get("results_title"), title_font);
             DrawText(locale_get("results_title"), center_x - title_w / 2, ui_px(34), title_font, c_text);
 
-            if(rounds < 1)
-                rounds = 1;
-            if(rounds > app->inbe.max_rounds)
-                rounds = app->inbe.max_rounds;
-
             for(int i = 0; i < rounds; i++) {
-                int seconds = int_from_count(app->inbe.results[i]);
+                int seconds = round_times[i];
                 total += seconds;
-                if(seconds > 0 && (best < 0 || seconds > best))
+                if(best < 0 || seconds > best)
                     best = seconds;
             }
 
@@ -1484,13 +1504,15 @@ updateapp(InbeApp *app)
                 locale_format(line, sizeof(line), "results_best", best);
                 DrawText(line, box_x + ui_px(10), box_y + ui_px(39), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
                 locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
+                if(view_width < 420 && MeasureText(line, ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX)) > box_w - ui_px(20))
+                    snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
                 DrawText(line, box_x + ui_px(10), box_y + ui_px(68), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
             }
 
             DrawText(locale_get("round_times_title"), box_x, ui_px(188), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
-                int seconds = int_from_count(app->inbe.results[i]);
+                int seconds = round_times[i];
                 locale_format(row, sizeof(row), "round_result_label", i + 1, seconds);
                 DrawRectangle(box_x, row_y - 1, box_w, row_h, ui_darken(c_bg, 4));
                 DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, ui_darken(c_bg, 26));
@@ -1529,6 +1551,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     dpi_update(view_width, view_height);
 
     ui_init(view_width, view_height, dpi_ui_scale());
+    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
+                                  ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
 
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;
@@ -1581,6 +1605,8 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->pause_icon);
     SafeUnloadTexture(app->stat_icon);
     SafeUnloadTexture(app->home_icon);
+    SafeUnloadTexture(app->trash_icon);
+    SafeUnloadTexture(app->pencil_icon);
     SafeUnloadTexture(app->telegram_icon);
     SafeUnloadTexture(app->globe_icon);
     SafeUnloadTexture(app->monero_icon);

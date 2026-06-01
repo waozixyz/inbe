@@ -73,6 +73,9 @@ Respiration
 [settings_tab_session]
 Séance
 ---
+[settings_tab_sound]
+Son
+---
 [settings_tab_appearance]
 Apparence
 ---
@@ -105,6 +108,9 @@ Respirations max.
 ---
 [pause_after_round_label]
 Pause après cycle
+---
+[advanced_session_controls_label]
+Contrôles avancés de séance
 ---
 [volume_label]
 Volume
@@ -228,6 +234,8 @@ Utilisez l'icône d'engrenage %i pour régler les cycles, respirations, vitesse 
 Remplissez complètement vos poumons, puis laissez le souffle sortir.
 
 Utilisez ce curseur pour régler le rythme du cercle de respiration.
+
+Avec la vitesse progressive activée, le premier cycle commence à la vitesse 1 pendant les 5 premières respirations, puis augmente progressivement jusqu'à la vitesse choisie.
 
 Trouvez un rythme naturel pour vous.
 ---
