@@ -437,6 +437,26 @@ load_locale_file_for_code(const char *code, char **out_text)
 #endif
 }
 
+#if defined(LOTUS_BUILD)
+static void
+load_locale_overlay_for_code(LocaleEntry **entries, size_t *count, size_t *cap, const char *scope, const char *code)
+{
+    char path[96];
+    char *text = NULL;
+
+    if(scope == NULL || scope[0] == '\0')
+        return;
+    if(code == NULL || code[0] == '\0')
+        code = "en";
+
+    snprintf(path, sizeof(path), "locales/%s/%s.txt", scope, code);
+    if(load_file_text_from_paths(path, &text)) {
+        load_locale_text_into(entries, count, cap, text);
+        UnloadFileText(text);
+    }
+}
+#endif
+
 static void
 load_defaults(void)
 {
@@ -483,6 +503,9 @@ load_base_locale(void)
         load_locale_text_into(&g_base_entries, &g_base_count, &g_base_cap, text);
         UnloadFileText(text);
     }
+#if defined(LOTUS_BUILD)
+    load_locale_overlay_for_code(&g_base_entries, &g_base_count, &g_base_cap, "lotus", "en");
+#endif
 }
 
 static void
@@ -549,6 +572,9 @@ locale_set(const char *code)
     if(load_locale_file_for_code(code, &text)) {
         load_locale_text_into(&g_active_entries, &g_active_count, &g_active_cap, text);
         UnloadFileText(text);
+#if defined(LOTUS_BUILD)
+        load_locale_overlay_for_code(&g_active_entries, &g_active_count, &g_active_cap, "lotus", code);
+#endif
         set_current_code(code);
         return 1;
     }

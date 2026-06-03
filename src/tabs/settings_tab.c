@@ -8,6 +8,7 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "data.h"
+#include "lyra_client.h"
 #include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -29,6 +30,51 @@ static const char *settings_tab_names[] = {
 extern int view_width;
 extern int view_height;
 
+static void
+draw_data_button(InbeApp *app, Rectangle rect, const char *label, int *hover)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int font = ui_clamp_px(14, 12, 16);
+    if(CheckCollisionPointRec(mouse_world, rect)) {
+        DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, c_button_hover);
+        ui_draw_bevel((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height,
+                      ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        *hover = 1;
+        app->cursor_clickable = 1;
+    } else {
+        DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, c_button);
+        ui_draw_bevel((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height,
+                      ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    }
+    DrawText(label, (int)rect.x + ui_px(10), (int)rect.y + (int)rect.height / 2 - font / 2 - 1, font, c_text);
+}
+
+static void
+draw_lyra_url_input(InbeApp *app, int x, int y, int w, int h)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    DrawRectangle(x, y, w, h, ui_darken(c_bg, 8));
+    ui_draw_bevel(x, y, w, h, ui_darken(c_button, 35), ui_lighten(c_button, 20));
+    DrawText(app->lyra.url, x + ui_px(8), y + h / 2 - ui_clamp_px(13, 11, 15) / 2, ui_clamp_px(13, 11, 15), c_text);
+    if(!CheckCollisionPointRec(mouse_world, (Rectangle){x, y, w, h}))
+        return;
+    app->cursor_clickable = 1;
+    int key;
+    while((key = GetCharPressed()) > 0) {
+        size_t len = strlen(app->lyra.url);
+        if(key >= 32 && key <= 126 && len + 1 < sizeof(app->lyra.url)) {
+            app->lyra.url[len] = (char)key;
+            app->lyra.url[len + 1] = '\0';
+        }
+    }
+    if(IsKeyPressed(KEY_BACKSPACE)) {
+        size_t len = strlen(app->lyra.url);
+        if(len > 0)
+            app->lyra.url[len - 1] = '\0';
+    }
+}
+
+#if !defined(LOTUS_BUILD)
 static void
 draw_theme_selector(InbeApp *app, int x, int y, int w)
 {
@@ -95,6 +141,7 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
         DrawText(name, cx - name_w / 2, cy + circle_size / 2 + ui_px(6), small_font, c_text);
     }
 }
+#endif
 
 void
 settings_tab_draw(InbeApp *app)
@@ -330,19 +377,27 @@ settings_tab_draw(InbeApp *app)
                     app->settings_dirty = 1;
                 }
 
+#if !defined(LOTUS_BUILD)
                 theme_y = keyboard_toggle_y + toggle_h + ui_px(24);
                 draw_theme_selector(app, content_x, theme_y, content_w);
+#else
+                (void)theme_y;
+#endif
                 break;
             }
             case SETTINGS_TAB_LANGUAGE: {
                 int font = ui_clamp_px(14, 12, 16);
                 int label_y = yoff + content_start_y;
+#if defined(LOTUS_BUILD)
+                DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
+                DrawText(locale_current_code(), content_x, label_y + ui_px(28), font, c_text);
+#else
                 int dropdown_y = label_y + ui_px(28);
-
                 DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
                 if(language_dropdown_button(app, 101, content_x, dropdown_y, content_w, ui_px(36), &app->language_index))
                     language_menu_changed = 1;
                 draw_language_menu = 1;
+#endif
                 break;
             }
             case SETTINGS_TAB_DATA: {
@@ -487,6 +542,56 @@ settings_tab_draw(InbeApp *app)
                     DrawText(export_result, result_x, result_y, result_font, c_text);
                 }
 
+                {
+                    int lyra_y = delete_y + export_h + ui_px(28);
+                    int btn_h = ui_px(34);
+                    int gap = ui_px(8);
+                    int hover_scope_data = 0;
+                    int hover_scope_settings = 0;
+                    int hover_connect = 0;
+                    int hover_disconnect = 0;
+                    int hover_server = 0;
+                    int hover_merge = 0;
+                    Rectangle data_scope = {content_x, lyra_y + ui_px(58), (content_w - gap) / 2, btn_h};
+                    Rectangle settings_scope = {content_x + (content_w + gap) / 2, lyra_y + ui_px(58), (content_w - gap) / 2, btn_h};
+                    Rectangle connect_rect = {content_x, lyra_y + ui_px(104), (content_w - gap) / 2, btn_h};
+                    Rectangle disconnect_rect = {content_x + (content_w + gap) / 2, lyra_y + ui_px(104), (content_w - gap) / 2, btn_h};
+                    Rectangle server_rect = {content_x, lyra_y + ui_px(176), (content_w - gap) / 2, btn_h};
+                    Rectangle merge_rect = {content_x + (content_w + gap) / 2, lyra_y + ui_px(176), (content_w - gap) / 2, btn_h};
+
+                    DrawText("Lyra", content_x, lyra_y, ui_clamp_px(16, 14, 18), c_text);
+                    draw_lyra_url_input(app, content_x, lyra_y + ui_px(24), content_w, ui_px(34));
+                    draw_data_button(app, data_scope, app->lyra.mode == LYRA_CLIENT_MODE_DATA ? "[x] Data only" : "[ ] Data only", &hover_scope_data);
+                    draw_data_button(app, settings_scope, app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? "[x] Data + settings" : "[ ] Data + settings", &hover_scope_settings);
+                    draw_data_button(app, connect_rect, "Connect to Lyra", &hover_connect);
+                    draw_data_button(app, disconnect_rect, "Disconnect", &hover_disconnect);
+                    DrawText(app->lyra.status, content_x, lyra_y + ui_px(148), ui_clamp_px(12, 10, 14), c_text);
+
+                    if(app->lyra.differs && app->lyra.has_local_data && app->lyra.policy == LYRA_CLIENT_POLICY_NONE) {
+                        DrawText("Different data found", content_x, lyra_y + ui_px(160), ui_clamp_px(12, 10, 14), c_text);
+                        draw_data_button(app, server_rect, "Server data only", &hover_server);
+                        draw_data_button(app, merge_rect, "Merge", &hover_merge);
+                    }
+
+                    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+                        if(hover_scope_data) {
+                            app->lyra.mode = LYRA_CLIENT_MODE_DATA;
+                            lyra_client_save_settings(&app->lyra);
+                        } else if(hover_scope_settings) {
+                            app->lyra.mode = LYRA_CLIENT_MODE_DATA_SETTINGS;
+                            lyra_client_save_settings(&app->lyra);
+                        } else if(hover_connect) {
+                            lyra_client_connect(&app->lyra, app->lyra.url);
+                        } else if(hover_disconnect) {
+                            lyra_client_disconnect(&app->lyra);
+                        } else if(hover_server) {
+                            lyra_client_choose_server_only(&app->lyra);
+                        } else if(hover_merge) {
+                            lyra_client_choose_merge(&app->lyra);
+                        }
+                    }
+                }
+
                 break;
             }
 
@@ -514,21 +619,19 @@ settings_tab_draw(InbeApp *app)
                 int icon_padding = ui_px(4);
                 int icon_spacing = ui_px(20);
                 int icon_btn_w = icon_size + icon_padding * 2;
-                int total_w = icon_btn_w * 4 + icon_spacing * 3;
-                int columns = total_w <= content_w ? 4 : 2;
+                int total_w = icon_btn_w * 2 + icon_spacing * 1;
+                int columns = total_w <= content_w ? 2 : 2;
                 int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
                 int links_start_x = content_x + (content_w - grid_w) / 2;
                 int row_spacing = ui_px(16);
-                Texture2D icons[4] = {app->telegram_icon, app->globe_icon, app->monero_icon, app->stripe_icon};
-                UIIconType icon_types[4] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_GLOBE, UI_ICON_TYPE_MONERO, UI_ICON_TYPE_STRIPE};
-                const char *urls[4] = {
+                Texture2D icons[2] = {app->telegram_icon, app->monero_icon};
+                UIIconType icon_types[2] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
+                const char *urls[2] = {
                     "https://t.me/lotusinbe",
-                    "https://inbe.waozi.xyz/",
-                    "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
-                    "https://donate.stripe.com/4gM3cv5boaR98HH9VvfAc04"
+                    "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
                 };
 
-                for(int i = 0; i < 4; i++) {
+                for(int i = 0; i < 2; i++) {
                     int col = i % columns;
                     int row = i / columns;
                     int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
