@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/ui/ui.c src/ui/text_layout.c src/ui/dpi.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
+SRC = src/main.c src/app.c src/ui/ui.c src/ui/text_layout.c src/ui/dpi.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c ../lyra/src/lyra_proto.c ../lyra/src/lyra_client.c ../lyra/vendor/mongoose/mongoose.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -93,10 +93,10 @@ WEB_THEME_PRELOADS = $(foreach file,$(WEB_THEME_FILES),--preload-file $(file)@th
 WEB_SOUND_FILES = $(wildcard assets/sounds/*)
 WEB_SOUND_PRELOADS = $(foreach file,$(WEB_SOUND_FILES),--preload-file $(file)@assets/sounds/$(notdir $(file)))
 WEB_ASSET_FILES = inbe.ini theme.ini assets/angel.jpg assets/begin.jpg $(WEB_LOCALE_FILES) $(WEB_ICON_FILES) $(WEB_THEME_FILES) $(WEB_SOUND_FILES)
-WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_ICON_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
+WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -sWEBSOCKET=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_ICON_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
-CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
+CFLAGS = -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
 LDFLAGS = -Wl,--gc-sections -s
 
 .NOTPARALLEL:
@@ -170,7 +170,7 @@ $(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android \
+		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
 		$(RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -232,7 +232,7 @@ build-linux-arch:
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android \
+		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
 		$(LINUX_RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -301,7 +301,7 @@ $(WEB_TARGET): Makefile $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) $
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android \
+		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
 		-o $@ \
 		$(SRC) \
 		$(INBE_DIR)/inbe.c \
@@ -321,13 +321,13 @@ $(WIN_TARGET): $(SRC) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
 	$(WIN_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android \
+		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
 		-o $@ \
 		$(SRC) \
 		$(WIN_INBE_A) \
 		$(WIN_RAYLIB_A) \
 		-L$(MCFGTHREADS)/lib \
-		-lopengl32 -lgdi32 -lwinmm \
+		-lopengl32 -lgdi32 -lwinmm -lws2_32 \
 		-mwindows \
 		$(LDFLAGS)
 

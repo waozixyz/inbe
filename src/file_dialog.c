@@ -37,6 +37,45 @@ void file_dialog_init(FileDialog *dlg)
     dlg->cursor = 0;
 }
 
+static void copy_text_bounded(char *dst, size_t dst_size, const char *src)
+{
+    size_t len = 0;
+
+    if(dst == NULL || dst_size == 0)
+        return;
+    if(src == NULL)
+        src = "";
+
+    while(len + 1 < dst_size && src[len] != '\0')
+        len++;
+    memcpy(dst, src, len);
+    dst[len] = '\0';
+}
+
+static void join_path_bounded(char *dst, size_t dst_size, const char *base, const char *name, char sep)
+{
+    size_t len = 0;
+
+    if(dst == NULL || dst_size == 0)
+        return;
+
+    dst[0] = '\0';
+    if(base == NULL || base[0] == '\0') {
+        copy_text_bounded(dst, dst_size, name);
+        return;
+    }
+
+    while(len + 1 < dst_size && base[len] != '\0') {
+        dst[len] = base[len];
+        len++;
+    }
+    if(len + 1 < dst_size && len > 0 && dst[len - 1] != '/' && dst[len - 1] != '\\')
+        dst[len++] = sep;
+    for(size_t i = 0; len + 1 < dst_size && name != NULL && name[i] != '\0'; i++)
+        dst[len++] = name[i];
+    dst[len] = '\0';
+}
+
 static void get_default_export_path(char *path, size_t size, const char *filename)
 {
     (void)filename; /* Will use in the Windows path */
@@ -45,16 +84,18 @@ static void get_default_export_path(char *path, size_t size, const char *filenam
     char home[MAX_PATH];
     /* CSIDL_DOWNLOADS = 0x0006 */
     if(SHGetFolderPathA(NULL, 0x0006, NULL, 0, home) == S_OK) {
-        snprintf(path, size, "%s\\%s", home, filename);
+        join_path_bounded(path, size, home, filename, '\\');
     } else {
-        snprintf(path, size, "%s", filename);
+        copy_text_bounded(path, size, filename);
     }
 #elif defined(__APPLE__)
     const char *base = getenv("HOME");
     if(base != NULL) {
-        snprintf(path, size, "%s/Downloads/%s", base, filename);
+        char downloads[512];
+        join_path_bounded(downloads, sizeof(downloads), base, "Downloads", '/');
+        join_path_bounded(path, size, downloads, filename, '/');
     } else {
-        snprintf(path, size, "%s", filename);
+        copy_text_bounded(path, size, filename);
     }
 #else
     /* Linux and other Unix-like systems */
@@ -62,19 +103,19 @@ static void get_default_export_path(char *path, size_t size, const char *filenam
     if(base != NULL) {
         /* Try Downloads first, fall back to home */
         char downloads[512];
-        snprintf(downloads, sizeof(downloads), "%s/Downloads", base);
+        join_path_bounded(downloads, sizeof(downloads), base, "Downloads", '/');
         if(DirectoryExists(downloads)) {
-            snprintf(path, size, "%s/%s", downloads, filename);
+            join_path_bounded(path, size, downloads, filename, '/');
         } else {
-            snprintf(path, size, "%s/%s", base, filename);
+            join_path_bounded(path, size, base, filename, '/');
         }
     } else {
         /* Fallback to current directory */
         struct passwd *pw = getpwuid(getuid());
         if(pw != NULL && pw->pw_dir != NULL) {
-            snprintf(path, size, "%s/%s", pw->pw_dir, filename);
+            join_path_bounded(path, size, pw->pw_dir, filename, '/');
         } else {
-            snprintf(path, size, "%s", filename);
+            copy_text_bounded(path, size, filename);
         }
     }
 #endif

@@ -117,12 +117,12 @@
 
 
 
-#if defined(__STRICT_ANSI__)
-#define MZ_FORCEINLINE
-#elif defined(_MSC_VER)
+#if defined(_MSC_VER)
 #define MZ_FORCEINLINE __forceinline
 #elif defined(__GNUC__)
-#define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__))
+#define MZ_FORCEINLINE __inline__ __attribute__((__always_inline__, __unused__))
+#elif defined(__STRICT_ANSI__)
+#define MZ_FORCEINLINE
 #else
 #define MZ_FORCEINLINE inline
 #endif

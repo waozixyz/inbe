@@ -117,6 +117,8 @@ text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int i
 void
 text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_height)
 {
+    (void)line_height;
+
     if(layout == NULL || layout->elements == NULL || layout->element_count == 0) {
         return;
     }

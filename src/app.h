@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "../libinbe/inbe.h"
+#include "lyra_client.h"
 
 typedef struct TextLayout TextLayout;
 
@@ -102,8 +103,6 @@ struct InbeApp {
     Texture2D pencil_icon;
     Texture2D save_icon;
     Texture2D telegram_icon;
-    Texture2D globe_icon;
-    Texture2D stripe_icon;
     Texture2D monero_icon;
 
     Texture2D angel_image;
@@ -141,6 +140,9 @@ struct InbeApp {
 
     int theme_id;
     int dark_mode;
+#if defined(LOTUS_BUILD)
+    unsigned int lotus_settings_version;
+#endif
     int history_scroll;
     int history_drag_scrollbar;
     int history_drag_content;
@@ -164,6 +166,7 @@ struct InbeApp {
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
+    LyraClientState lyra;
     UIModal modal;
 };
 

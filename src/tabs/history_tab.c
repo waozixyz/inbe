@@ -36,8 +36,10 @@ enum {
 };
 
 /* Suppress GCC format-truncation warnings - paths are safely sized in practice */
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 
 /* Viewport dimensions - set by inbe_app_update_draw before calling draw functions */
 extern int view_width;
@@ -1452,4 +1454,6 @@ history_tab_draw(InbeApp *app)
     }
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif

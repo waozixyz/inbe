@@ -5,8 +5,12 @@
 #include "tabs/history_tab.h"
 #include "tabs/manual_tab.h"
 #include "tabs/settings_tab.h"
+#include "lyra_client.h"
 #include "theme.h"
 #include "theme_meta.h"
+#if defined(LOTUS_BUILD)
+#include "lotus_settings.h"
+#endif
 #include "version.h"
 #include "ui/ui.h"
 #include "ui/dpi.h"
@@ -50,6 +54,37 @@ Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 /* Forward declarations for tab callbacks */
 void reset_settings_preview(InbeApp *app);
+
+#if defined(LOTUS_BUILD)
+static void
+sync_lotus_settings(InbeApp *app)
+{
+    const LotusSettings *lotus;
+    unsigned int version;
+
+    if(app == NULL)
+        return;
+
+    version = lotus_settings_version();
+    if(app->lotus_settings_version == version)
+        return;
+
+    lotus = lotus_settings_get();
+    app->theme_id = lotus->theme;
+    app->dark_mode = lotus->dark_mode ? 1 : 0;
+    snprintf(app->language, sizeof(app->language), "%.*s",
+             (int)sizeof(app->language) - 1, lotus->language);
+    app->language_selected = 1;
+    if(!locale_set(app->language)) {
+        snprintf(app->language, sizeof(app->language), "%s", "en");
+        locale_set(app->language);
+    }
+
+    refresh_theme_colors(app->theme_id, app->dark_mode);
+    refresh_locale_dependent_text(app);
+    app->lotus_settings_version = version;
+}
+#endif
 
 /* ================================================================
  * TAB BAR DEFINITIONS
@@ -184,6 +219,18 @@ sync_web_storage(void)
 void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
+#if defined(LOTUS_BUILD)
+    (void)theme_id;
+    (void)dark_mode;
+    c_bg = lotus_alias_color("background");
+    c_text = lotus_alias_color("text");
+    c_circle = lotus_alias_color("circle");
+    c_button = lotus_alias_color("button");
+    c_button_hover = lotus_alias_color("button_hover");
+    c_icon = lotus_alias_color("icon");
+    ui_set_colors(c_text, c_bg, c_circle, c_button, c_button_hover, c_icon);
+    return;
+#endif
     if (theme_id < 0 || theme_id >= THEME_COUNT)
         theme_id = ThemeSky;
 
@@ -302,6 +349,41 @@ update_preview_bounds(Inbe *inbe, int content_w, int content_h)
 }
 
 static void
+inbe_settings_path(char *out, size_t out_size)
+{
+    char apps_path[FS_PATH_MAX];
+    char inbe_path[FS_PATH_MAX];
+    snprintf(apps_path, sizeof(apps_path), "%s/apps", data_root());
+    if(!DirectoryExists(apps_path))
+        MakeDirectory(apps_path);
+    snprintf(inbe_path, sizeof(inbe_path), "%s/apps/inbe", data_root());
+    if(!DirectoryExists(inbe_path))
+        MakeDirectory(inbe_path);
+    snprintf(out, out_size, "%s/apps/inbe/settings.ini", data_root());
+}
+
+static void
+inbe_lyra_manifest(LyraClientState *state, LyraClientManifest *manifest, void *user_data)
+{
+    char settings_path[FS_PATH_MAX];
+    (void)user_data;
+
+    manifest->files = (uint64_t)data_get_session_count();
+    manifest->bytes = (uint64_t)data_get_total_size();
+
+    if(state->mode == LYRA_CLIENT_MODE_DATA_SETTINGS) {
+        inbe_settings_path(settings_path, sizeof(settings_path));
+        if(FileExists(settings_path)) {
+            int size = GetFileLength(settings_path);
+            manifest->files++;
+            if(size > 0)
+                manifest->bytes += (uint64_t)size;
+        }
+    }
+    manifest->has_data = manifest->files > 0;
+}
+
+static void
 register_all_themes(void)
 {
     for(int i = 0; i < THEME_COUNT; i++) {
@@ -320,7 +402,7 @@ load_config(void)
 
     const char *paths[] = {
         "inbe.ini",
-        "apps/inbe.ini",
+        "apps/inbe/inbe.ini",
         "../inbe/inbe.ini",
         0
     };
@@ -452,16 +534,12 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[512];
-    const char *settings_path =
-#if defined(PLATFORM_WEB)
-        "/home/settings.ini";
-#else
-        "settings.ini";
-#endif
+    char text[1024];
+    char settings_path[FS_PATH_MAX];
+    inbe_settings_path(settings_path, sizeof(settings_path));
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\nlyra_url %s\nlyra_autoconnect %d\nlyra_mode %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -477,10 +555,13 @@ save_settings(InbeApp *app)
              app->inbe.play_in_background,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
-                 : "");
+                 : "",
+             app->lyra.url,
+             app->lyra.auto_connect ? 1 : 0,
+             app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? 1 : 0);
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\nlyra_url %s\nlyra_autoconnect %d\nlyra_mode %d\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -495,7 +576,10 @@ save_settings(InbeApp *app)
              app->advanced_session_controls ? 1 : 0,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
-                 : "");
+                 : "",
+             app->lyra.url,
+             app->lyra.auto_connect ? 1 : 0,
+             app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? 1 : 0);
 #endif
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
@@ -507,12 +591,8 @@ save_settings(InbeApp *app)
 static void
 load_settings(InbeApp *app)
 {
-    const char *settings_path =
-#if defined(PLATFORM_WEB)
-        "/home/settings.ini";
-#else
-        "settings.ini";
-#endif
+    char settings_path[FS_PATH_MAX];
+    inbe_settings_path(settings_path, sizeof(settings_path));
     rini_data settings = rini_load(settings_path);
 
     int speed = rini_get_value_fallback(settings, "speed", 6);
@@ -551,6 +631,10 @@ load_settings(InbeApp *app)
         if(app->language_index < 0)
             app->language_index = 0;
     }
+#if defined(LOTUS_BUILD)
+    sync_lotus_settings(app);
+#endif
+
 #ifdef __ANDROID__
     app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
         1  // Default to enabled on Android
@@ -1062,6 +1146,14 @@ inbe_app_init(void *vapp) {
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
     load_settings(app);
+    {
+        char lyra_settings_path[FS_PATH_MAX];
+        inbe_settings_path(lyra_settings_path, sizeof(lyra_settings_path));
+        lyra_client_set_identity(&app->lyra, "inbe", "Inner Breeze");
+        lyra_client_set_settings_path(&app->lyra, lyra_settings_path);
+        lyra_client_set_manifest_callback(&app->lyra, inbe_lyra_manifest, NULL);
+    }
+    lyra_client_load_settings(&app->lyra);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + 80);
     data_init();
@@ -1138,14 +1230,6 @@ inbe_app_init(void *vapp) {
     if(app->telegram_icon.id == 0) {
         app->telegram_icon = load_icon_texture("telegram.png");
     }
-    if(app->globe_icon.id == 0) {
-        app->globe_icon = load_icon_texture("globe.png");
-    }
-    if(app->stripe_icon.id == 0) {
-        app->stripe_icon = load_icon_texture("stripe.png");
-    }
-
-
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
     }
@@ -1156,17 +1240,27 @@ inbe_app_init(void *vapp) {
     if(app->begin_image.id == 0) {
         app->begin_image = load_asset_texture("begin.jpg");
     }
+#if !defined(LOTUS_BUILD)
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
     else if(!app->tutorial_seen)
         app->inbe.screen = InbeScreenManual;
     else
         app->inbe.screen = InbeScreenStart;
+#else
+    if(!app->tutorial_seen)
+        app->inbe.screen = InbeScreenManual;
+    else
+        app->inbe.screen = InbeScreenStart;
+#endif
 
     /* Reset modal state */
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal.selected_button = 0;
+
+    if(app->lyra.auto_connect && app->lyra.url[0] != '\0')
+        lyra_client_connect(&app->lyra, app->lyra.url);
 }
 
 /* Check if session has any completed rounds */
@@ -1241,6 +1335,8 @@ updateapp(InbeApp *app)
     int center_y = view_height / 2;
     int hover = 0;
     int modal_result = 0;
+
+    lyra_client_poll(&app->lyra);
 
     /* Handle Android back button and desktop backspace */
     if(IsKeyPressed(KEY_BACK) ||
@@ -1572,6 +1668,9 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     dpi_update(view_width, view_height);
 
     ui_init(view_width, view_height, dpi_ui_scale());
+#if defined(LOTUS_BUILD)
+    sync_lotus_settings(app);
+#endif
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
 
@@ -1630,9 +1729,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->pencil_icon);
     SafeUnloadTexture(app->save_icon);
     SafeUnloadTexture(app->telegram_icon);
-    SafeUnloadTexture(app->globe_icon);
     SafeUnloadTexture(app->monero_icon);
-    SafeUnloadTexture(app->stripe_icon);
     SafeUnloadTexture(app->angel_image);
     SafeUnloadTexture(app->begin_image);
 
