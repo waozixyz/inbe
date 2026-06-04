@@ -1,7 +1,7 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/ui/ui.c src/ui/text_layout.c src/ui/dpi.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c ../lyra/src/lyra_proto.c ../lyra/src/lyra_client.c ../lyra/vendor/mongoose/mongoose.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
+SRC = src/main.c src/app.c src/ui/ui.c src/ui/text_layout.c src/ui/dpi.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
@@ -170,7 +170,7 @@ $(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
+		-Isrc -Isrc/android \
 		$(RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -232,7 +232,7 @@ build-linux-arch:
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
+		-Isrc -Isrc/android \
 		$(LINUX_RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -301,7 +301,7 @@ $(WEB_TARGET): Makefile $(SRC) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) $
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
+		-Isrc -Isrc/android \
 		-o $@ \
 		$(SRC) \
 		$(INBE_DIR)/inbe.c \
@@ -321,7 +321,7 @@ $(WIN_TARGET): $(SRC) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
 	$(WIN_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
-		-Isrc -Isrc/android -I../lyra/include -I../lyra/vendor/mongoose \
+		-Isrc -Isrc/android \
 		-o $@ \
 		$(SRC) \
 		$(WIN_INBE_A) \

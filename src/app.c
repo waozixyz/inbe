@@ -5,7 +5,6 @@
 #include "tabs/history_tab.h"
 #include "tabs/manual_tab.h"
 #include "tabs/settings_tab.h"
-#include "lyra_client.h"
 #include "theme.h"
 #include "theme_meta.h"
 #if defined(LOTUS_BUILD)
@@ -363,27 +362,6 @@ inbe_settings_path(char *out, size_t out_size)
 }
 
 static void
-inbe_lyra_manifest(LyraClientState *state, LyraClientManifest *manifest, void *user_data)
-{
-    char settings_path[FS_PATH_MAX];
-    (void)user_data;
-
-    manifest->files = (uint64_t)data_get_session_count();
-    manifest->bytes = (uint64_t)data_get_total_size();
-
-    if(state->mode == LYRA_CLIENT_MODE_DATA_SETTINGS) {
-        inbe_settings_path(settings_path, sizeof(settings_path));
-        if(FileExists(settings_path)) {
-            int size = GetFileLength(settings_path);
-            manifest->files++;
-            if(size > 0)
-                manifest->bytes += (uint64_t)size;
-        }
-    }
-    manifest->has_data = manifest->files > 0;
-}
-
-static void
 register_all_themes(void)
 {
     for(int i = 0; i < THEME_COUNT; i++) {
@@ -539,7 +517,7 @@ save_settings(InbeApp *app)
     inbe_settings_path(settings_path, sizeof(settings_path));
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\nlyra_url %s\nlyra_autoconnect %d\nlyra_mode %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -555,13 +533,10 @@ save_settings(InbeApp *app)
              app->inbe.play_in_background,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
-                 : "",
-             app->lyra.url,
-             app->lyra.auto_connect ? 1 : 0,
-             app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? 1 : 0);
+                 : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\nlyra_url %s\nlyra_autoconnect %d\nlyra_mode %d\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -576,10 +551,7 @@ save_settings(InbeApp *app)
              app->advanced_session_controls ? 1 : 0,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
-                 : "",
-             app->lyra.url,
-             app->lyra.auto_connect ? 1 : 0,
-             app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? 1 : 0);
+                 : "");
 #endif
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
@@ -613,6 +585,7 @@ load_settings(InbeApp *app)
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
     app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
+    app->language_needs_save = 0;
     {
         const char *language = rini_get_value_text(settings, "language");
         if(language != NULL && language[0] != '\0') {
@@ -624,7 +597,8 @@ load_settings(InbeApp *app)
             }
         } else {
             snprintf(app->language, sizeof(app->language), "%s", "en");
-            app->language_selected = 0;
+            app->language_selected = app->tutorial_seen ? 1 : 0;
+            app->language_needs_save = app->language_selected;
             locale_set(app->language);
         }
         app->language_index = locale_current_index();
@@ -1146,14 +1120,10 @@ inbe_app_init(void *vapp) {
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
     load_settings(app);
-    {
-        char lyra_settings_path[FS_PATH_MAX];
-        inbe_settings_path(lyra_settings_path, sizeof(lyra_settings_path));
-        lyra_client_set_identity(&app->lyra, "inbe", "Inner Breeze");
-        lyra_client_set_settings_path(&app->lyra, lyra_settings_path);
-        lyra_client_set_manifest_callback(&app->lyra, inbe_lyra_manifest, NULL);
+    if(app->language_needs_save) {
+        save_settings(app);
+        app->language_needs_save = 0;
     }
-    lyra_client_load_settings(&app->lyra);
     update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
                                   ui_clamp_px(TAB_BAR_H, 54, 66) + 80);
     data_init();
@@ -1230,6 +1200,9 @@ inbe_app_init(void *vapp) {
     if(app->telegram_icon.id == 0) {
         app->telegram_icon = load_icon_texture("telegram.png");
     }
+    if(app->globe_icon.id == 0) {
+        app->globe_icon = load_icon_texture("globe.png");
+    }
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
     }
@@ -1258,9 +1231,6 @@ inbe_app_init(void *vapp) {
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal.selected_button = 0;
-
-    if(app->lyra.auto_connect && app->lyra.url[0] != '\0')
-        lyra_client_connect(&app->lyra, app->lyra.url);
 }
 
 /* Check if session has any completed rounds */
@@ -1335,8 +1305,6 @@ updateapp(InbeApp *app)
     int center_y = view_height / 2;
     int hover = 0;
     int modal_result = 0;
-
-    lyra_client_poll(&app->lyra);
 
     /* Handle Android back button and desktop backspace */
     if(IsKeyPressed(KEY_BACK) ||

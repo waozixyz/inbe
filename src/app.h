@@ -3,7 +3,6 @@
 
 #include "raylib.h"
 #include "../libinbe/inbe.h"
-#include "lyra_client.h"
 
 typedef struct TextLayout TextLayout;
 
@@ -103,6 +102,7 @@ struct InbeApp {
     Texture2D pencil_icon;
     Texture2D save_icon;
     Texture2D telegram_icon;
+    Texture2D globe_icon;
     Texture2D monero_icon;
 
     Texture2D angel_image;
@@ -123,11 +123,14 @@ struct InbeApp {
     int settings_drag_content_y;
     int settings_dirty;
     int settings_tab;
+    int device_picker_open;
+    int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
     char language[16];
     int language_selected;
     int language_index;
+    int language_needs_save;
     int manual_scroll;
     int manual_drag_scrollbar;
     int manual_drag_content;
@@ -166,7 +169,6 @@ struct InbeApp {
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
-    LyraClientState lyra;
     UIModal modal;
 };
 

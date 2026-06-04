@@ -8,8 +8,8 @@
 #include <math.h>
 
 /* Global UI state */
-static int ui_view_width = 320;
-static int ui_view_height = 560;
+int ui_view_width = 320;
+int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 void
@@ -18,7 +18,6 @@ ui_init(int width, int height, float dpi)
     (void)dpi;
     ui_view_width = width;
     ui_view_height = height;
-    /* dpi parameter is now ignored - we use the global DPI cache */
 }
 
 void
