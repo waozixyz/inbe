@@ -8,7 +8,6 @@
 #include "theme_meta.h"
 #include "version.h"
 #include "data.h"
-#include "lyra_client.h"
 #include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -47,31 +46,6 @@ draw_data_button(InbeApp *app, Rectangle rect, const char *label, int *hover)
                       ui_lighten(c_button, 40), ui_darken(c_button, 40));
     }
     DrawText(label, (int)rect.x + ui_px(10), (int)rect.y + (int)rect.height / 2 - font / 2 - 1, font, c_text);
-}
-
-static void
-draw_lyra_url_input(InbeApp *app, int x, int y, int w, int h)
-{
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    DrawRectangle(x, y, w, h, ui_darken(c_bg, 8));
-    ui_draw_bevel(x, y, w, h, ui_darken(c_button, 35), ui_lighten(c_button, 20));
-    DrawText(app->lyra.url, x + ui_px(8), y + h / 2 - ui_clamp_px(13, 11, 15) / 2, ui_clamp_px(13, 11, 15), c_text);
-    if(!CheckCollisionPointRec(mouse_world, (Rectangle){x, y, w, h}))
-        return;
-    app->cursor_clickable = 1;
-    int key;
-    while((key = GetCharPressed()) > 0) {
-        size_t len = strlen(app->lyra.url);
-        if(key >= 32 && key <= 126 && len + 1 < sizeof(app->lyra.url)) {
-            app->lyra.url[len] = (char)key;
-            app->lyra.url[len + 1] = '\0';
-        }
-    }
-    if(IsKeyPressed(KEY_BACKSPACE)) {
-        size_t len = strlen(app->lyra.url);
-        if(len > 0)
-            app->lyra.url[len - 1] = '\0';
-    }
 }
 
 #if !defined(LOTUS_BUILD)
@@ -540,56 +514,6 @@ settings_tab_draw(InbeApp *app)
                     int result_x = export_x;
                     int result_y = export_y + export_h + ui_px(8);
                     DrawText(export_result, result_x, result_y, result_font, c_text);
-                }
-
-                {
-                    int lyra_y = delete_y + export_h + ui_px(28);
-                    int btn_h = ui_px(34);
-                    int gap = ui_px(8);
-                    int hover_scope_data = 0;
-                    int hover_scope_settings = 0;
-                    int hover_connect = 0;
-                    int hover_disconnect = 0;
-                    int hover_server = 0;
-                    int hover_merge = 0;
-                    Rectangle data_scope = {content_x, lyra_y + ui_px(58), (content_w - gap) / 2, btn_h};
-                    Rectangle settings_scope = {content_x + (content_w + gap) / 2, lyra_y + ui_px(58), (content_w - gap) / 2, btn_h};
-                    Rectangle connect_rect = {content_x, lyra_y + ui_px(104), (content_w - gap) / 2, btn_h};
-                    Rectangle disconnect_rect = {content_x + (content_w + gap) / 2, lyra_y + ui_px(104), (content_w - gap) / 2, btn_h};
-                    Rectangle server_rect = {content_x, lyra_y + ui_px(176), (content_w - gap) / 2, btn_h};
-                    Rectangle merge_rect = {content_x + (content_w + gap) / 2, lyra_y + ui_px(176), (content_w - gap) / 2, btn_h};
-
-                    DrawText("Lyra", content_x, lyra_y, ui_clamp_px(16, 14, 18), c_text);
-                    draw_lyra_url_input(app, content_x, lyra_y + ui_px(24), content_w, ui_px(34));
-                    draw_data_button(app, data_scope, app->lyra.mode == LYRA_CLIENT_MODE_DATA ? "[x] Data only" : "[ ] Data only", &hover_scope_data);
-                    draw_data_button(app, settings_scope, app->lyra.mode == LYRA_CLIENT_MODE_DATA_SETTINGS ? "[x] Data + settings" : "[ ] Data + settings", &hover_scope_settings);
-                    draw_data_button(app, connect_rect, "Connect to Lyra", &hover_connect);
-                    draw_data_button(app, disconnect_rect, "Disconnect", &hover_disconnect);
-                    DrawText(app->lyra.status, content_x, lyra_y + ui_px(148), ui_clamp_px(12, 10, 14), c_text);
-
-                    if(app->lyra.differs && app->lyra.has_local_data && app->lyra.policy == LYRA_CLIENT_POLICY_NONE) {
-                        DrawText("Different data found", content_x, lyra_y + ui_px(160), ui_clamp_px(12, 10, 14), c_text);
-                        draw_data_button(app, server_rect, "Server data only", &hover_server);
-                        draw_data_button(app, merge_rect, "Merge", &hover_merge);
-                    }
-
-                    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
-                        if(hover_scope_data) {
-                            app->lyra.mode = LYRA_CLIENT_MODE_DATA;
-                            lyra_client_save_settings(&app->lyra);
-                        } else if(hover_scope_settings) {
-                            app->lyra.mode = LYRA_CLIENT_MODE_DATA_SETTINGS;
-                            lyra_client_save_settings(&app->lyra);
-                        } else if(hover_connect) {
-                            lyra_client_connect(&app->lyra, app->lyra.url);
-                        } else if(hover_disconnect) {
-                            lyra_client_disconnect(&app->lyra);
-                        } else if(hover_server) {
-                            lyra_client_choose_server_only(&app->lyra);
-                        } else if(hover_merge) {
-                            lyra_client_choose_merge(&app->lyra);
-                        }
-                    }
                 }
 
                 break;

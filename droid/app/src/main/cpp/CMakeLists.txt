@@ -64,9 +64,6 @@ add_library(main SHARED
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/miniz.c"
     "${SRC_DIR}/file_dialog.c"
-    "${REPO_ROOT}/../lyra/src/lyra_proto.c"
-    "${REPO_ROOT}/../lyra/src/lyra_client.c"
-    "${REPO_ROOT}/../lyra/vendor/mongoose/mongoose.c"
     "${SRC_DIR}/android/android_share.c"
     "${SRC_DIR}/tabs/history_tab.c"
     "${SRC_DIR}/tabs/language_tab.c"
@@ -81,8 +78,6 @@ add_library(main SHARED
 target_include_directories(main PRIVATE
     "${SRC_DIR}"
     "${SRC_DIR}/android"
-    "${REPO_ROOT}/../lyra/include"
-    "${REPO_ROOT}/../lyra/vendor/mongoose"
     "${NATIVE_APP_GLUE_DIR}"
     "${LIBINBE_DIR}"
 )
@@ -92,6 +87,7 @@ target_compile_definitions(main PRIVATE
     _DEFAULT_SOURCE
     _GNU_SOURCE
     _FILE_OFFSET_BITS=64
+    MG_TLS=MG_TLS_BUILTIN
     MG_ENABLE_EPOLL=0
     MG_ENABLE_POLL=1
     MG_ENABLE_POSIX_FS=0

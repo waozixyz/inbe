@@ -94,4 +94,7 @@ int ui_text_layout_get_height(TextLayout *layout);
 void ui_text_layout_free(TextLayout *layout);
 void ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width);
 
+extern int ui_view_height;
+extern int ui_view_width;
+
 #endif
