@@ -300,3 +300,21 @@ Diese Runde löschen? Das kann nicht rückgängig gemacht werden.
 [delete_button]
 Löschen
 ---
+[settings_category_practice]
+Praxis-Einstellungen
+---
+[settings_category_practice_desc]
+Atmung und Sitzungen konfigurieren
+---
+[settings_category_app]
+App-Einstellungen
+---
+[settings_category_app_desc]
+Aussehen und Audio anpassen
+---
+[settings_category_about_data]
+Info & Daten
+---
+[settings_category_about_data_desc]
+Informationen anzeigen und Daten verwalten
+---

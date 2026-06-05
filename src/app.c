@@ -1253,8 +1253,17 @@ handle_back_button(InbeApp *app)
     case InbeScreenSettings:
         if(app->settings_dirty)
             save_settings(app);
-        app->inbe.screen = InbeScreenStart;
-        app->settings_scroll = 0;
+        /* Hierarchical navigation: back button goes up one level */
+        if(app->settings_category != -1) {
+            /* In a sub-tab, go back to category selection */
+            app->settings_category = -1;
+            app->settings_sub_tab = 0;
+            app->settings_scroll = 0;
+        } else {
+            /* At category selection, go to homepage */
+            app->inbe.screen = InbeScreenStart;
+            app->settings_scroll = 0;
+        }
         break;
 
     case InbeScreenHistory:
