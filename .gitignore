@@ -1,4 +1,5 @@
 *.sym
+*.backup
 *.tar.gz
 *.zip
 *~

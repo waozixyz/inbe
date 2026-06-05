@@ -88,6 +88,24 @@ Data
 [settings_tab_about]
 About
 ---
+[settings_category_practice]
+Practice Settings
+---
+[settings_category_practice_desc]
+Configure breathing and sessions
+---
+[settings_category_app]
+App Preferences
+---
+[settings_category_app_desc]
+Customize appearance and audio
+---
+[settings_category_about_data]
+About & Data
+---
+[settings_category_about_data_desc]
+View info and manage data
+---
 [theme_label]
 Theme
 ---

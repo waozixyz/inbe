@@ -300,3 +300,21 @@ Excluir esta rodada? Isso não pode ser desfeito.
 [delete_button]
 Excluir
 ---
+[settings_category_practice]
+Configurações de Prática
+---
+[settings_category_practice_desc]
+Configurar respiração e sessões
+---
+[settings_category_app]
+Preferências do Aplicativo
+---
+[settings_category_app_desc]
+Personalizar aparência e áudio
+---
+[settings_category_about_data]
+Sobre e Dados
+---
+[settings_category_about_data_desc]
+Ver informações e gerenciar dados
+---

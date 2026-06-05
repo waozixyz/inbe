@@ -16,25 +16,23 @@
 /* Theme colors - set by ui_set_colors */
 extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
-static const char *settings_tab_names[] = {
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL,
-    NULL
-};
-
 extern int view_width;
 extern int view_height;
 
 static void
-draw_data_button(InbeApp *app, Rectangle rect, const char *label, int *hover)
+draw_category_card(InbeApp *app, const char *title, const char *description,
+                   Rectangle rect, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int font = ui_clamp_px(14, 12, 16);
-    if(CheckCollisionPointRec(mouse_world, rect)) {
+    int title_font = ui_clamp_px(18, 16, 20);
+    int desc_font = ui_clamp_px(14, 12, 16);
+    int padding = ui_px(16);
+
+    int mx = (int)mouse_world.x;
+    int my = (int)mouse_world.y;
+
+    if(mx >= (int)rect.x && mx <= (int)(rect.x + rect.width) &&
+       my >= (int)rect.y && my <= (int)(rect.y + rect.height)) {
         DrawRectangle((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height, c_button_hover);
         ui_draw_bevel((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height,
                       ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
@@ -45,7 +43,107 @@ draw_data_button(InbeApp *app, Rectangle rect, const char *label, int *hover)
         ui_draw_bevel((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height,
                       ui_lighten(c_button, 40), ui_darken(c_button, 40));
     }
-    DrawText(label, (int)rect.x + ui_px(10), (int)rect.y + (int)rect.height / 2 - font / 2 - 1, font, c_text);
+
+    /* Draw title with text reflow for long titles */
+    TextLayout title_layout = ui_text_layout_parse(title, (Texture2D){0}, UI_ICON_TYPE_NONE, title_font);
+    ui_text_layout_reflow(&title_layout, (int)rect.width - padding * 2, title_font, ui_px(22));
+    int title_y = (int)rect.y + padding;
+    ui_text_layout_draw(&title_layout, (int)rect.x + padding, &title_y, title_font, c_text);
+    ui_text_layout_free(&title_layout);
+
+    /* Draw description with text reflow for long descriptions */
+    TextLayout desc_layout = ui_text_layout_parse(description, (Texture2D){0}, UI_ICON_TYPE_NONE, desc_font);
+    ui_text_layout_reflow(&desc_layout, (int)rect.width - padding * 2, desc_font, ui_px(18));
+    int desc_y = title_y + title_font + ui_px(8);
+    ui_text_layout_draw(&desc_layout, (int)rect.x + padding, &desc_y, desc_font, ui_darken(c_text, 30));
+    ui_text_layout_free(&desc_layout);
+}
+
+static void
+settings_draw_category_selection(InbeApp *app, int content_x, int content_w, int start_y)
+{
+    int card_height = ui_px(120);  /* Increased height for multi-line text */
+    int card_spacing = ui_px(12);
+    int current_y = start_y;
+
+    int hover_practice = 0, hover_app = 0, hover_about_data = 0;
+
+    /* Practice Settings Card */
+    Rectangle practice_rect = {content_x, current_y, content_w, card_height};
+    draw_category_card(app, locale_get("settings_category_practice"),
+                      locale_get("settings_category_practice_desc"),
+                      practice_rect, &hover_practice);
+    current_y += card_height + card_spacing;
+
+    /* App Preferences Card */
+    Rectangle app_rect = {content_x, current_y, content_w, card_height};
+    draw_category_card(app, locale_get("settings_category_app"),
+                      locale_get("settings_category_app_desc"),
+                      app_rect, &hover_app);
+    current_y += card_height + card_spacing;
+
+    /* About & Data Card */
+    Rectangle about_data_rect = {content_x, current_y, content_w, card_height};
+    draw_category_card(app, locale_get("settings_category_about_data"),
+                      locale_get("settings_category_about_data_desc"),
+                      about_data_rect, &hover_about_data);
+
+    /* Handle card clicks */
+    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        if(hover_practice) {
+            app->settings_category = SETTINGS_CATEGORY_PRACTICE;
+            app->settings_sub_tab = PRACTICE_SUBTAB_BREATHING;
+        } else if(hover_app) {
+            app->settings_category = SETTINGS_CATEGORY_APP;
+            app->settings_sub_tab = APP_SUBTAB_SOUND;
+        } else if(hover_about_data) {
+            app->settings_category = SETTINGS_CATEGORY_ABOUT_DATA;
+            app->settings_sub_tab = ABOUT_DATA_SUBTAB_DATA;
+        }
+    }
+}
+
+static int
+settings_draw_subtab_bar(InbeApp *app, int x, int y, int w, int h,
+                        const char **tab_names, int tab_count, int selected_tab)
+{
+    int tab_w = w / tab_count;
+    int clicked_tab = -1;
+
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+
+    for(int i = 0; i < tab_count; i++) {
+        int tab_x = x + i * tab_w;
+        Rectangle tab_rect = {tab_x, y, tab_w, h};
+
+        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect);
+        int is_selected = (i == selected_tab);
+
+        if(is_selected) {
+            DrawRectangle((int)tab_x, y, (int)tab_w, h, c_button);
+            ui_draw_bevel((int)tab_x, y, (int)tab_w, h,
+                          ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        } else if(is_hovered) {
+            DrawRectangle((int)tab_x, y, (int)tab_w, h, c_button_hover);
+            ui_draw_bevel((int)tab_x, y, (int)tab_w, h,
+                          ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+            app->cursor_clickable = 1;
+        } else {
+            DrawRectangle((int)tab_x, y, (int)tab_w, h, c_bg);
+            ui_draw_bevel((int)tab_x, y, (int)tab_w, h,
+                          ui_lighten(c_bg, 35), ui_darken(c_bg, 45));
+        }
+
+        int font = ui_clamp_px(14, 12, 16);
+        int text_w = MeasureText(tab_names[i], font);
+        DrawText(tab_names[i], tab_x + (tab_w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+
+        if(is_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+            clicked_tab = i;
+        }
+    }
+
+    return clicked_tab;
 }
 
 #if !defined(LOTUS_BUILD)
@@ -142,40 +240,78 @@ settings_tab_draw(InbeApp *app)
         app->settings_drag_slider = 0;
     }
 
-    close_clicked = ui_draw_screen_header(app, locale_get("settings_title"), 1);
-    if(close_clicked) {
-        if(app->settings_dirty)
-            save_settings(app);
-        app->inbe.screen = InbeScreenStart;
+    /* Draw custom header with back button when in a category */
+    if(app->settings_category != -1) {
+        int title_h = ui_screen_header_height();
+        int title_font = ui_clamp_px(16, 14, 18);
+        int close_hover = 0;
+        int back_hover = 0;
+
+        /* Draw header background */
+        DrawRectangle(0, 0, view_width, title_h, ui_darken(c_bg, 14));
+        DrawLine(0, title_h - 1, view_width, title_h - 1, ui_darken(c_bg, 42));
+
+        /* Draw back button */
+        int back_btn_x = ui_icon_btn_padding(UI_ICON_SIZE_TINY);
+        int back_clicked = ui_draw_icon_btn(app, back_btn_x, ui_px(8),
+                                              UI_ICON_SIZE_TINY, app->return_icon, UI_ICON_TYPE_RETURN, &back_hover);
+
+        /* Draw centered title (offset to account for back button) */
+        const char *title = locale_get("settings_title");
+        int title_w = MeasureText(title, title_font);
+        int title_y = (title_h - title_font) / 2;
+        DrawText(title, (view_width - title_w) / 2, title_y, title_font, c_text);
+
+        /* Draw close button */
+        close_clicked = ui_draw_icon_btn(app, view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
+                                         UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
+
+        /* Handle back button click */
+        if(back_clicked) {
+            app->settings_category = -1;  /* Return to category selection */
+            app->settings_sub_tab = 0;
+        }
+
+        if(close_clicked) {
+            if(app->settings_dirty)
+                save_settings(app);
+            app->inbe.screen = InbeScreenStart;  /* Close button always exits to homepage */
+        }
+    } else {
+        /* Use standard header for category selection */
+        close_clicked = ui_draw_screen_header(app, locale_get("settings_title"), 1);
+        if(close_clicked) {
+            if(app->settings_dirty)
+                save_settings(app);
+            app->settings_category = -1;  /* Reset navigation */
+            app->settings_sub_tab = 0;
+            app->inbe.screen = InbeScreenStart;
+        }
     }
 
     /* Initialize export dialog on first call */
     if(!export_dlg_initialized) {
         file_dialog_init(&export_dlg);
         export_dlg_initialized = 1;
+        app->settings_category = -1;  /* Initialize to category selection */
+        app->settings_sub_tab = 0;
     }
 
-    /* Dropdown for tab selection */
-    int dropdown_h = ui_px(36);
-    int dropdown_y = title_h + ui_px(8);
+    int content_start_y = title_h + ui_px(8);
+    int language_menu_changed = 0;
+    int draw_language_menu = 0;
 
     BeginScissorMode((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        int language_menu_changed = 0;
-        int draw_language_menu = 0;
-        settings_tab_names[0] = locale_get("settings_tab_breathing");
-        settings_tab_names[1] = locale_get("settings_tab_session");
-        settings_tab_names[2] = locale_get("settings_tab_sound");
-        settings_tab_names[3] = locale_get("settings_tab_appearance");
-        settings_tab_names[4] = locale_get("settings_tab_language");
-        settings_tab_names[5] = locale_get("settings_tab_data");
-        settings_tab_names[6] = locale_get("settings_tab_about");
-        if(ui_draw_dropdown_button(app, 100, content_x, dropdown_y, content_w, dropdown_h, settings_tab_names, SETTINGS_TAB_COUNT, &app->settings_tab)) {
-            reset_settings_preview(app);
-        }
 
+    /* Show category selection or sub-tabs based on state */
+    if(app->settings_category == -1) {
+        /* Category selection screen */
+        settings_draw_category_selection(app, content_x, content_w, content_start_y);
+    } else {
+        /* Show sub-tabs for selected category */
         int yoff = ui_px(16);
         int speed = app->inbe.speed_level;
         int max_rounds = app->inbe.max_rounds;
@@ -194,382 +330,417 @@ settings_tab_draw(InbeApp *app)
             app->settings_preview.progressive_speed = 0;
         }
 
-        /* Content starts after dropdown */
-        int content_start_y = dropdown_y + dropdown_h;
+        /* Draw sub-tab bar and handle content based on category */
+        int subtab_h = ui_px(40);
+        int subtab_y = content_start_y;
+        int clicked_subtab = -1;
 
-        switch(app->settings_tab) {
-            case SETTINGS_TAB_BREATHING: {
-                draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, yoff + content_start_y + ui_px(100));
-
-                if(ui_draw_slider(app, 1, content_x, yoff + content_start_y + ui_px(200), content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
-                    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_preview.progressive_speed = 0;
-                    app->settings_dirty = 1;
+        switch(app->settings_category) {
+            case SETTINGS_CATEGORY_PRACTICE: {
+                const char *practice_tabs[] = {
+                    locale_get("settings_tab_breathing"),
+                    locale_get("settings_tab_session")
+                };
+                clicked_subtab = settings_draw_subtab_bar(app, content_x, subtab_y, content_w, subtab_h,
+                                                          practice_tabs, PRACTICE_SUBTAB_COUNT,
+                                                          app->settings_sub_tab);
+                if(clicked_subtab != -1) {
+                    app->settings_sub_tab = clicked_subtab;
+                    reset_settings_preview(app);
                 }
 
-                /* Progressive speed - under Speed slider */
-                int progressive_speed = app->inbe.progressive_speed;
-                int toggle_w = ui_px(56);
-                int toggle_h = ui_px(30);
-                int toggle_x = content_x;
-                int progressive_label_y = yoff + content_start_y + ui_px(275);
-                int progressive_toggle_y = progressive_label_y + ui_px(26);
-                DrawText(locale_get("progressive_speed_label"), content_x, progressive_label_y, ui_clamp_px(14, 12, 16), c_text);
-                if(ui_draw_toggle_switch(app, toggle_x, progressive_toggle_y, toggle_w, toggle_h, &progressive_speed, locale_get("toggle_off"), locale_get("toggle_on"))) {
-                    app->inbe.progressive_speed = progressive_speed;
-                    app->settings_preview.progressive_speed = 0;
-                    app->settings_dirty = 1;
-                    TraceLog(LOG_INFO, "INBE: Settings toggled progressive_speed to %d", progressive_speed);
-                }
+                int tab_content_y = subtab_y + subtab_h + yoff;
+                if(app->settings_sub_tab == PRACTICE_SUBTAB_BREATHING) {
+                    draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, tab_content_y + ui_px(100));
+
+                    if(ui_draw_slider(app, 1, content_x, tab_content_y + ui_px(200), content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
+                        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+                        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                        app->settings_preview.progressive_speed = 0;
+                        app->settings_dirty = 1;
+                    }
+
+                    /* Progressive speed - under Speed slider */
+                    int progressive_speed = app->inbe.progressive_speed;
+                    int toggle_w = ui_px(56);
+                    int toggle_h = ui_px(30);
+                    int toggle_x = content_x;
+                    int progressive_label_y = tab_content_y + ui_px(275);
+                    int progressive_toggle_y = progressive_label_y + ui_px(26);
+                    DrawText(locale_get("progressive_speed_label"), content_x, progressive_label_y, ui_clamp_px(14, 12, 16), c_text);
+                    if(ui_draw_toggle_switch(app, toggle_x, progressive_toggle_y, toggle_w, toggle_h, &progressive_speed, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                        app->inbe.progressive_speed = progressive_speed;
+                        app->settings_preview.progressive_speed = 0;
+                        app->settings_dirty = 1;
+                        TraceLog(LOG_INFO, "INBE: Settings toggled progressive_speed to %d", progressive_speed);
+                    }
 
 #ifdef __ANDROID__
-                /* Play in background (Android only) */
-                int play_in_background = app->inbe.play_in_background;
-                int play_bg_label_y = progressive_toggle_y + toggle_h + ui_px(18);
-                int play_bg_toggle_y = play_bg_label_y + ui_px(26);
-                DrawText(locale_get("play_in_background_label"), content_x, play_bg_label_y, ui_clamp_px(14, 12, 16), c_text);
-                if(ui_draw_toggle_switch(app, toggle_x, play_bg_toggle_y, toggle_w, toggle_h, &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
-                    app->inbe.play_in_background = play_in_background;
-                    app->settings_dirty = 1;
-                    TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
-                }
+                    /* Play in background (Android only) */
+                    int play_in_background = app->inbe.play_in_background;
+                    int play_bg_label_y = progressive_toggle_y + toggle_h + ui_px(18);
+                    int play_bg_toggle_y = play_bg_label_y + ui_px(26);
+                    DrawText(locale_get("play_in_background_label"), content_x, play_bg_label_y, ui_clamp_px(14, 12, 16), c_text);
+                    if(ui_draw_toggle_switch(app, toggle_x, play_bg_toggle_y, toggle_w, toggle_h, &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                        app->inbe.play_in_background = play_in_background;
+                        app->settings_dirty = 1;
+                        TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
+                    }
 #endif
-                break;
-            }
-            case SETTINGS_TAB_SESSION: {
-                int slider_y = yoff + content_start_y + ui_px(20);
+                } else if(app->settings_sub_tab == PRACTICE_SUBTAB_SESSION) {
+                    int slider_y = tab_content_y + ui_px(20);
 
-                /* Max rounds */
-                if(ui_draw_slider(app, 2, content_x, slider_y, content_w, locale_get("max_rounds_label"), 1,
-                               MaxRounds, &max_rounds, "")) {
-                    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_dirty = 1;
-                }
+                    /* Max rounds */
+                    if(ui_draw_slider(app, 2, content_x, slider_y, content_w, locale_get("max_rounds_label"), 1,
+                                   MaxRounds, &max_rounds, "")) {
+                        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+                        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                        app->settings_dirty = 1;
+                    }
 
-                /* Max breaths */
-                if(ui_draw_slider(app, 3, content_x, slider_y + ui_px(66), content_w, locale_get("max_breaths_label"), SETTINGS_BREATHS_MIN,
-                               SETTINGS_BREATHS_MAX, &max_breaths, "")) {
-                    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_dirty = 1;
-                }
+                    /* Max breaths */
+                    if(ui_draw_slider(app, 3, content_x, slider_y + ui_px(66), content_w, locale_get("max_breaths_label"), SETTINGS_BREATHS_MIN,
+                                   SETTINGS_BREATHS_MAX, &max_breaths, "")) {
+                        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+                        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                        app->settings_dirty = 1;
+                    }
 
-                /* Pause */
-                if(ui_draw_slider(app, 4, content_x, slider_y + ui_px(132), content_w, locale_get("pause_after_round_label"), SETTINGS_PAUSE_MIN,
-                               SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
-                    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_dirty = 1;
-                }
+                    /* Pause */
+                    if(ui_draw_slider(app, 4, content_x, slider_y + ui_px(132), content_w, locale_get("pause_after_round_label"), SETTINGS_PAUSE_MIN,
+                                   SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
+                        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+                        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                        app->settings_dirty = 1;
+                    }
 
-                /* Advanced controls */
-                int advanced_session_controls = app->advanced_session_controls;
-                int toggle_w = ui_px(56);
-                int toggle_h = ui_px(30);
-                int advanced_label_y = slider_y + ui_px(198);
-                int advanced_toggle_y = advanced_label_y + ui_px(26);
-                DrawText(locale_get("advanced_session_controls_label"), content_x, advanced_label_y, ui_clamp_px(14, 12, 16), c_text);
-                if(ui_draw_toggle_switch(app, content_x, advanced_toggle_y, toggle_w, toggle_h, &advanced_session_controls, locale_get("toggle_off"), locale_get("toggle_on"))) {
-                    app->advanced_session_controls = advanced_session_controls;
-                    app->settings_dirty = 1;
-                }
+                    /* Advanced controls */
+                    int advanced_session_controls = app->advanced_session_controls;
+                    int toggle_w = ui_px(56);
+                    int toggle_h = ui_px(30);
+                    int advanced_label_y = slider_y + ui_px(198);
+                    int advanced_toggle_y = advanced_label_y + ui_px(26);
+                    DrawText(locale_get("advanced_session_controls_label"), content_x, advanced_label_y, ui_clamp_px(14, 12, 16), c_text);
+                    if(ui_draw_toggle_switch(app, content_x, advanced_toggle_y, toggle_w, toggle_h, &advanced_session_controls, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                        app->advanced_session_controls = advanced_session_controls;
+                        app->settings_dirty = 1;
+                    }
 
-                /* Reset to defaults button */
-                int reset_y = advanced_toggle_y + toggle_h + ui_px(20);
-                int reset_w = MeasureText(locale_get("reset_to_defaults_label"), ui_clamp_px(14, 12, 16)) + ui_px(24);
-                int reset_h = ui_px(36);
-                int reset_x = content_x + content_w - reset_w;
-                int reset_hover = 0;
-                Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+                    /* Reset to defaults button */
+                    int reset_y = advanced_toggle_y + toggle_h + ui_px(20);
+                    int reset_w = MeasureText(locale_get("reset_to_defaults_label"), ui_clamp_px(14, 12, 16)) + ui_px(24);
+                    int reset_h = ui_px(36);
+                    int reset_x = content_x + content_w - reset_w;
+                    int reset_hover = 0;
+                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
 
-                Rectangle reset_bounds = {reset_x, reset_y, reset_w, reset_h};
-                if(CheckCollisionPointRec(mouse_world, reset_bounds)) {
-                    DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button_hover);
-                    ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
-                    reset_hover = 1;
-                    app->cursor_clickable = 1;
-                } else {
-                    DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button);
-                    ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
-                }
+                    Rectangle reset_bounds = {reset_x, reset_y, reset_w, reset_h};
+                    if(CheckCollisionPointRec(mouse_world, reset_bounds)) {
+                        DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button_hover);
+                        ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+                        reset_hover = 1;
+                        app->cursor_clickable = 1;
+                    } else {
+                        DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button);
+                        ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+                    }
 
-                int reset_font = ui_clamp_px(14, 12, 16);
-                DrawText(locale_get("reset_to_defaults_label"), reset_x + ui_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
+                    int reset_font = ui_clamp_px(14, 12, 16);
+                    DrawText(locale_get("reset_to_defaults_label"), reset_x + ui_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
 
-                if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                   !ui_dropdown_captures_click(mouse_world)) {
-                    /* Reset to default values */
-                    speed = 6;
-                    max_rounds = DefaultMaxRounds;
-                    max_breaths = DefaultMaxBreaths;
-                    pause_seconds = DefaultPauseSeconds;
-                    app->advanced_session_controls = 0;
-                    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                    app->settings_dirty = 1;
-                }
-                break;
-            }
-            case SETTINGS_TAB_SOUND: {
-                int slider_y = yoff + content_start_y + ui_px(20);
-                int sound_volume = app->sound_volume;
-                if(ui_draw_slider(app, 6, content_x, slider_y, content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
-                               SETTINGS_VOLUME_MAX, &sound_volume, "")) {
-                    app->sound_volume = sound_volume;
-                    app->settings_dirty = 1;
+                    if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                       !ui_dropdown_captures_click(mouse_world)) {
+                        /* Reset to default values */
+                        speed = 6;
+                        max_rounds = DefaultMaxRounds;
+                        max_breaths = DefaultMaxBreaths;
+                        pause_seconds = DefaultPauseSeconds;
+                        app->advanced_session_controls = 0;
+                        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+                        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+                        app->settings_dirty = 1;
+                    }
                 }
                 break;
             }
-            case SETTINGS_TAB_APPEARANCE: {
-                int keyboard_toggle = app->on_screen_keyboard_enabled;
-                int toggle_w = ui_px(56);
-                int toggle_h = ui_px(30);
-                int keyboard_label_y;
-                int keyboard_toggle_y;
-                int theme_y;
+            case SETTINGS_CATEGORY_APP: {
+                const char *app_tabs[] = {
+                    locale_get("settings_tab_sound"),
+                    locale_get("settings_tab_appearance"),
+                    locale_get("settings_tab_language")
+                };
+                clicked_subtab = settings_draw_subtab_bar(app, content_x, subtab_y, content_w, subtab_h,
+                                                          app_tabs, APP_SUBTAB_COUNT,
+                                                          app->settings_sub_tab);
+                if(clicked_subtab != -1) {
+                    app->settings_sub_tab = clicked_subtab;
+                }
+
+                int tab_content_y = subtab_y + subtab_h + yoff;
+                if(app->settings_sub_tab == APP_SUBTAB_SOUND) {
+                    int slider_y = tab_content_y + ui_px(20);
+                    int sound_volume = app->sound_volume;
+                    if(ui_draw_slider(app, 6, content_x, slider_y, content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
+                                   SETTINGS_VOLUME_MAX, &sound_volume, "")) {
+                        app->sound_volume = sound_volume;
+                        app->settings_dirty = 1;
+                    }
+                } else if(app->settings_sub_tab == APP_SUBTAB_VISUAL) {
+                    int keyboard_toggle = app->on_screen_keyboard_enabled;
+                    int toggle_w = ui_px(56);
+                    int toggle_h = ui_px(30);
+                    int keyboard_label_y;
+                    int keyboard_toggle_y;
+                    int theme_y;
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-                int checkbox_y = yoff + content_start_y;
-                if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
-                    if(app->fullscreen_enabled && !IsWindowFullscreen())
-                        ToggleFullscreen();
-                    else if(!app->fullscreen_enabled && IsWindowFullscreen())
-                        ToggleFullscreen();
-                    app->settings_dirty = 1;
-                }
+                    int checkbox_y = tab_content_y;
+                    if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
+                        if(app->fullscreen_enabled && !IsWindowFullscreen())
+                            ToggleFullscreen();
+                        else if(!app->fullscreen_enabled && IsWindowFullscreen())
+                            ToggleFullscreen();
+                        app->settings_dirty = 1;
+                    }
 
-                keyboard_label_y = yoff + content_start_y + ui_px(50);
+                    keyboard_label_y = tab_content_y + ui_px(50);
 #else
-                keyboard_label_y = yoff + content_start_y;
+                    keyboard_label_y = tab_content_y;
 #endif
-                keyboard_toggle_y = keyboard_label_y + ui_px(26);
-                DrawText(locale_get("on_screen_keyboard_label"), content_x, keyboard_label_y, ui_clamp_px(14, 12, 16), c_text);
-                if(ui_draw_toggle_switch(app, content_x, keyboard_toggle_y, toggle_w, toggle_h,
-                                         &keyboard_toggle, locale_get("toggle_off"), locale_get("toggle_on"))) {
-                    app->on_screen_keyboard_enabled = keyboard_toggle;
-                    app->settings_dirty = 1;
-                }
+                    keyboard_toggle_y = keyboard_label_y + ui_px(26);
+                    DrawText(locale_get("on_screen_keyboard_label"), content_x, keyboard_label_y, ui_clamp_px(14, 12, 16), c_text);
+                    if(ui_draw_toggle_switch(app, content_x, keyboard_toggle_y, toggle_w, toggle_h,
+                                             &keyboard_toggle, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                        app->on_screen_keyboard_enabled = keyboard_toggle;
+                        app->settings_dirty = 1;
+                    }
 
 #if !defined(LOTUS_BUILD)
-                theme_y = keyboard_toggle_y + toggle_h + ui_px(24);
-                draw_theme_selector(app, content_x, theme_y, content_w);
+                    theme_y = keyboard_toggle_y + toggle_h + ui_px(24);
+                    draw_theme_selector(app, content_x, theme_y, content_w);
 #else
-                (void)theme_y;
+                    (void)theme_y;
 #endif
-                break;
-            }
-            case SETTINGS_TAB_LANGUAGE: {
-                int font = ui_clamp_px(14, 12, 16);
-                int label_y = yoff + content_start_y;
+                } else if(app->settings_sub_tab == APP_SUBTAB_LANGUAGE) {
+                    int font = ui_clamp_px(14, 12, 16);
+                    int label_y = tab_content_y;
 #if defined(LOTUS_BUILD)
-                DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
-                DrawText(locale_current_code(), content_x, label_y + ui_px(28), font, c_text);
+                    DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
+                    DrawText(locale_current_code(), content_x, label_y + ui_px(28), font, c_text);
 #else
-                int dropdown_y = label_y + ui_px(28);
-                DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
-                if(language_dropdown_button(app, 101, content_x, dropdown_y, content_w, ui_px(36), &app->language_index))
-                    language_menu_changed = 1;
-                draw_language_menu = 1;
+                    int dropdown_y = label_y + ui_px(28);
+                    DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
+                    if(language_dropdown_button(app, 101, content_x, dropdown_y, content_w, ui_px(36), &app->language_index))
+                        language_menu_changed = 1;
+                    draw_language_menu = 1;
 #endif
+                }
                 break;
             }
-            case SETTINGS_TAB_DATA: {
-                int font = ui_clamp_px(14, 12, 16);
-                int text_y = yoff + content_start_y;
-                int session_count = data_get_session_count();
-                long long data_size = data_get_total_size();
-                char size_str[32];
-                int hover_export = 0;
-                int hover_delete = 0;
-
-                /* Format data size */
-                if(data_size < 1024)
-                    snprintf(size_str, sizeof(size_str), "%lld B", data_size);
-                else if(data_size < 1024 * 1024)
-                    snprintf(size_str, sizeof(size_str), "%.1f KB", (float)data_size / 1024);
-                else
-                    snprintf(size_str, sizeof(size_str), "%.1f MB", (float)data_size / (1024 * 1024));
-
-                /* Title */
-                DrawText(locale_get("data_management_label"), content_x, text_y, font, c_text);
-                text_y += ui_px(30);
-
-                /* Statistics box */
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
-                int stats_box_h = ui_px(90);
-#else
-                int stats_box_h = ui_px(66);  /* Smaller on Android (no storage line) */
-#endif
-                DrawRectangle(content_x, text_y, content_w, stats_box_h, ui_darken(c_bg, 8));
-                ui_draw_bevel(content_x, text_y, content_w, stats_box_h, ui_lighten(c_bg, 35), ui_darken(c_bg, 45));
-
-                int stat_x = content_x + ui_px(16);
-                int stat_y = text_y + ui_px(16);
-                char stat_text[64];
-
-                locale_format(stat_text, sizeof(stat_text), "total_sessions_label", session_count);
-                DrawText(stat_text, stat_x, stat_y, font, c_text);
-                stat_y += ui_px(22);
-
-                locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
-                DrawText(stat_text, stat_x, stat_y, font, c_text);
-                stat_y += ui_px(22);
-
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
-                const char *storage_path = data_root();
-                /* Replace /home/user/ with ~ for display */
-                const char *display_path = storage_path;
-                char home_buf[FS_PATH_MAX];
-                if (strncmp(storage_path, "/home/", 6) == 0) {
-                    const char *slash_after_user = strchr(storage_path + 6, '/');
-                    if (slash_after_user != NULL) {
-                        snprintf(home_buf, sizeof(home_buf), "~%s", slash_after_user);
-                        display_path = home_buf;
-                    }
-                }
-                {
-                    char storage_text[FS_PATH_MAX + 32];
-                    locale_format(storage_text, sizeof(storage_text), "storage_label", display_path);
-                    DrawText(storage_text, stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
-                }
-#endif
-
-                text_y += stats_box_h + ui_px(24);
-
-                /* Export button */
-                int export_h = ui_px(36);
-                int export_w = MeasureText(locale_get("export_data_button"), font) + ui_px(24);
-                int export_x = content_x;
-                int export_y = text_y;
-                Rectangle export_rect = {export_x, export_y, export_w, export_h};
-
-                Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-                if(CheckCollisionPointRec(mouse_world, export_rect)) {
-                    DrawRectangle(export_x, export_y, export_w, export_h, c_button_hover);
-                    ui_draw_bevel(export_x, export_y, export_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
-                    hover_export = 1;
-                    app->cursor_clickable = 1;
-                } else {
-                    DrawRectangle(export_x, export_y, export_w, export_h, c_button);
-                    ui_draw_bevel(export_x, export_y, export_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
-                }
-                DrawText(locale_get("export_data_button"), export_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
-
-                /* Delete All button */
-                int delete_w = MeasureText(locale_get("delete_all_data_button"), font) + ui_px(24);
-                int delete_x = content_x;
-                int delete_y = export_y + export_h + ui_px(12);
-                Rectangle delete_rect = {delete_x, delete_y, delete_w, export_h};
-
-                if(CheckCollisionPointRec(mouse_world, delete_rect)) {
-                    DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button_hover);
-                    ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
-                    hover_delete = 1;
-                    app->cursor_clickable = 1;
-                } else {
-                    DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button);
-                    ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
-                }
-                DrawText(locale_get("delete_all_data_button"), delete_x + ui_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
-
-                /* Handle button clicks */
-                if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                   !ui_dropdown_captures_click(mouse_world)) {
-                    if(file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
-                        const char *path = file_dialog_get_path(&export_dlg);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-                        /* On Android: don't show success message (share sheet is the feedback) */
-                        if(path != NULL && data_export(path)) {
-                            TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
-                        } else {
-                            locale_format(export_result, sizeof(export_result), "export_failed");
-                            TraceLog(LOG_ERROR, "DATA: Export failed");
-                        }
-#else
-                        /* Other platforms: show success message */
-                        if(path != NULL && data_export(path)) {
-                            const char *filename = GetFileName(path);
-                            locale_format(export_result, sizeof(export_result), "exported_label", filename);
-                            TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
-                        } else {
-                            locale_format(export_result, sizeof(export_result), "export_failed");
-                            TraceLog(LOG_ERROR, "DATA: Export failed");
-                        }
-#endif
-                    }
-                }
-                if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                   !ui_dropdown_captures_click(mouse_world)) {
-                    if(data_has_any()) {
-                        app->modal.active = 1;
-                        app->modal.type = UIModalConfirmDeleteData;
-                        app->modal.selected_button = 0;
-                    }
-                }
-
-                /* Draw export result message under Export button */
-                if(export_result[0] != '\0') {
-                    int result_font = ui_clamp_px(12, 10, 14);
-                    int result_x = export_x;
-                    int result_y = export_y + export_h + ui_px(8);
-                    DrawText(export_result, result_x, result_y, result_font, c_text);
-                }
-
-                break;
-            }
-
-            case SETTINGS_TAB_ABOUT: {
-                int font = ui_clamp_px(14, 12, 16);
-                int small_font = ui_clamp_px(12, 10, 14);
-                int text_y = yoff + content_start_y;
-
-                /* App description */
-                const char *desc_text = locale_get("about_description");
-                TextLayout desc_layout = ui_text_layout_parse(desc_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
-                ui_text_layout_reflow(&desc_layout, content_w, font, ui_px(22));
-                ui_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
-                ui_text_layout_free(&desc_layout);
-
-                /* Version info */
-                text_y += ui_px(20);
-                char version_text[32];
-                locale_format(version_text, sizeof(version_text), "version_label", INBE_VERSION_STRING);
-                DrawText(version_text, content_x, text_y, small_font, ui_darken(c_text, 40));
-
-                /* Icon links */
-                int links_y = text_y + ui_px(40);
-                int icon_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
-                int icon_padding = ui_px(4);
-                int icon_spacing = ui_px(20);
-                int icon_btn_w = icon_size + icon_padding * 2;
-                int total_w = icon_btn_w * 2 + icon_spacing * 1;
-                int columns = total_w <= content_w ? 2 : 2;
-                int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
-                int links_start_x = content_x + (content_w - grid_w) / 2;
-                int row_spacing = ui_px(16);
-                Texture2D icons[2] = {app->telegram_icon, app->monero_icon};
-                UIIconType icon_types[2] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
-                const char *urls[2] = {
-                    "https://t.me/lotusinbe",
-                    "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
+            case SETTINGS_CATEGORY_ABOUT_DATA: {
+                const char *about_data_tabs[] = {
+                    locale_get("settings_tab_data"),
+                    locale_get("settings_tab_about")
                 };
+                clicked_subtab = settings_draw_subtab_bar(app, content_x, subtab_y, content_w, subtab_h,
+                                                          about_data_tabs, ABOUT_DATA_SUBTAB_COUNT,
+                                                          app->settings_sub_tab);
+                if(clicked_subtab != -1) {
+                    app->settings_sub_tab = clicked_subtab;
+                }
 
-                for(int i = 0; i < 2; i++) {
-                    int col = i % columns;
-                    int row = i / columns;
-                    int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
-                    int icon_y = links_y + row * (icon_btn_w + row_spacing);
-                    ui_draw_icon_link(app, icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+                int tab_content_y = subtab_y + subtab_h + yoff;
+                if(app->settings_sub_tab == ABOUT_DATA_SUBTAB_DATA) {
+                    int font = ui_clamp_px(14, 12, 16);
+                    int text_y = tab_content_y;
+                    int session_count = data_get_session_count();
+                    long long data_size = data_get_total_size();
+                    char size_str[32];
+                    int hover_export = 0;
+                    int hover_delete = 0;
+
+                    /* Format data size */
+                    if(data_size < 1024)
+                        snprintf(size_str, sizeof(size_str), "%lld B", data_size);
+                    else if(data_size < 1024 * 1024)
+                        snprintf(size_str, sizeof(size_str), "%.1f KB", (float)data_size / 1024);
+                    else
+                        snprintf(size_str, sizeof(size_str), "%.1f MB", (float)data_size / (1024 * 1024));
+
+                    /* Title */
+                    DrawText(locale_get("data_management_label"), content_x, text_y, font, c_text);
+                    text_y += ui_px(30);
+
+                    /* Statistics box */
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+                    int stats_box_h = ui_px(90);
+#else
+                    int stats_box_h = ui_px(66);  /* Smaller on Android (no storage line) */
+#endif
+                    DrawRectangle(content_x, text_y, content_w, stats_box_h, ui_darken(c_bg, 8));
+                    ui_draw_bevel(content_x, text_y, content_w, stats_box_h, ui_lighten(c_bg, 35), ui_darken(c_bg, 45));
+
+                    int stat_x = content_x + ui_px(16);
+                    int stat_y = text_y + ui_px(16);
+                    char stat_text[64];
+
+                    locale_format(stat_text, sizeof(stat_text), "total_sessions_label", session_count);
+                    DrawText(stat_text, stat_x, stat_y, font, c_text);
+                    stat_y += ui_px(22);
+
+                    locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
+                    DrawText(stat_text, stat_x, stat_y, font, c_text);
+                    stat_y += ui_px(22);
+
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+                    const char *storage_path = data_root();
+                    /* Replace /home/user/ with ~ for display */
+                    const char *display_path = storage_path;
+                    char home_buf[FS_PATH_MAX];
+                    if (strncmp(storage_path, "/home/", 6) == 0) {
+                        const char *slash_after_user = strchr(storage_path + 6, '/');
+                        if (slash_after_user != NULL) {
+                            snprintf(home_buf, sizeof(home_buf), "~%s", slash_after_user);
+                            display_path = home_buf;
+                        }
+                    }
+                    {
+                        char storage_text[FS_PATH_MAX + 32];
+                        locale_format(storage_text, sizeof(storage_text), "storage_label", display_path);
+                        DrawText(storage_text, stat_x, stat_y, ui_clamp_px(12, 10, 14), ui_darken(c_text, 40));
+                    }
+#endif
+
+                    text_y += stats_box_h + ui_px(24);
+
+                    /* Export button */
+                    int export_h = ui_px(36);
+                    int export_w = MeasureText(locale_get("export_data_button"), font) + ui_px(24);
+                    int export_x = content_x;
+                    int export_y = text_y;
+                    Rectangle export_rect = {export_x, export_y, export_w, export_h};
+
+                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+                    if(CheckCollisionPointRec(mouse_world, export_rect)) {
+                        DrawRectangle(export_x, export_y, export_w, export_h, c_button_hover);
+                        ui_draw_bevel(export_x, export_y, export_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+                        hover_export = 1;
+                        app->cursor_clickable = 1;
+                    } else {
+                        DrawRectangle(export_x, export_y, export_w, export_h, c_button);
+                        ui_draw_bevel(export_x, export_y, export_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+                    }
+                    DrawText(locale_get("export_data_button"), export_x + ui_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
+
+                    /* Delete All button */
+                    int delete_w = MeasureText(locale_get("delete_all_data_button"), font) + ui_px(24);
+                    int delete_x = content_x;
+                    int delete_y = export_y + export_h + ui_px(12);
+                    Rectangle delete_rect = {delete_x, delete_y, delete_w, export_h};
+
+                    if(CheckCollisionPointRec(mouse_world, delete_rect)) {
+                        DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button_hover);
+                        ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+                        hover_delete = 1;
+                        app->cursor_clickable = 1;
+                    } else {
+                        DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button);
+                        ui_draw_bevel(delete_x, delete_y, delete_w, export_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+                    }
+                    DrawText(locale_get("delete_all_data_button"), delete_x + ui_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
+
+                    /* Handle button clicks */
+                    if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                       !ui_dropdown_captures_click(mouse_world)) {
+                        if(file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
+                            const char *path = file_dialog_get_path(&export_dlg);
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+                            /* On Android: don't show success message (share sheet is the feedback) */
+                            if(path != NULL && data_export(path)) {
+                                TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
+                            } else {
+                                locale_format(export_result, sizeof(export_result), "export_failed");
+                                TraceLog(LOG_ERROR, "DATA: Export failed");
+                            }
+#else
+                            /* Other platforms: show success message */
+                            if(path != NULL && data_export(path)) {
+                                const char *filename = GetFileName(path);
+                                locale_format(export_result, sizeof(export_result), "exported_label", filename);
+                                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+                            } else {
+                                locale_format(export_result, sizeof(export_result), "export_failed");
+                                TraceLog(LOG_ERROR, "DATA: Export failed");
+                            }
+#endif
+                        }
+                    }
+                    if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+                       !ui_dropdown_captures_click(mouse_world)) {
+                        if(data_has_any()) {
+                            app->modal.active = 1;
+                            app->modal.type = UIModalConfirmDeleteData;
+                            app->modal.selected_button = 0;
+                        }
+                    }
+
+                    /* Draw export result message under Export button */
+                    if(export_result[0] != '\0') {
+                        int result_font = ui_clamp_px(12, 10, 14);
+                        int result_x = export_x;
+                        int result_y = export_y + export_h + ui_px(8);
+                        DrawText(export_result, result_x, result_y, result_font, c_text);
+                    }
+                } else if(app->settings_sub_tab == ABOUT_DATA_SUBTAB_ABOUT) {
+                    int font = ui_clamp_px(14, 12, 16);
+                    int small_font = ui_clamp_px(12, 10, 14);
+                    int text_y = tab_content_y;
+
+                    /* App description */
+                    const char *desc_text = locale_get("about_description");
+                    TextLayout desc_layout = ui_text_layout_parse(desc_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
+                    ui_text_layout_reflow(&desc_layout, content_w, font, ui_px(22));
+                    ui_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
+                    ui_text_layout_free(&desc_layout);
+
+                    /* Version info */
+                    text_y += ui_px(20);
+                    char version_text[32];
+                    locale_format(version_text, sizeof(version_text), "version_label", INBE_VERSION_STRING);
+                    DrawText(version_text, content_x, text_y, small_font, ui_darken(c_text, 40));
+
+                    /* Icon links */
+                    int links_y = text_y + ui_px(40);
+                    int icon_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+                    int icon_padding = ui_px(4);
+                    int icon_spacing = ui_px(20);
+                    int icon_btn_w = icon_size + icon_padding * 2;
+                    int total_w = icon_btn_w * 2 + icon_spacing * 1;
+                    int columns = total_w <= content_w ? 2 : 2;
+                    int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
+                    int links_start_x = content_x + (content_w - grid_w) / 2;
+                    int row_spacing = ui_px(16);
+                    Texture2D icons[2] = {app->telegram_icon, app->monero_icon};
+                    UIIconType icon_types[2] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
+                    const char *urls[2] = {
+                        "https://t.me/lotusinbe",
+                        "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
+                    };
+
+                    for(int i = 0; i < 2; i++) {
+                        int col = i % columns;
+                        int row = i / columns;
+                        int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
+                        int icon_y = links_y + row * (icon_btn_w + row_spacing);
+                        ui_draw_icon_link(app, icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+                    }
                 }
                 break;
             }
+        }
     }
     EndScissorMode();
 
     /* Draw dropdown menu (floats above content) */
-    ui_draw_dropdown_menu(app, 100);
-
     if(draw_language_menu && language_dropdown_menu(app, 101))
         language_menu_changed = 1;
 

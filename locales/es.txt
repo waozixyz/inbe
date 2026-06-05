@@ -300,3 +300,21 @@ Recuento de sesiones: %d
 [delete_button]
 Eliminar
 ---
+[settings_category_practice]
+Configuración de Práctica
+---
+[settings_category_practice_desc]
+Configurar respiración y sesiones
+---
+[settings_category_app]
+Preferencias de Aplicación
+---
+[settings_category_app_desc]
+Personalizar apariencia y audio
+---
+[settings_category_about_data]
+Acerca de y Datos
+---
+[settings_category_about_data_desc]
+Ver información y administrar datos
+---

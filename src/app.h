@@ -39,6 +39,32 @@ enum {
 };
 
 enum {
+    SETTINGS_CATEGORY_PRACTICE = 0,
+    SETTINGS_CATEGORY_APP,
+    SETTINGS_CATEGORY_ABOUT_DATA,
+    SETTINGS_CATEGORY_COUNT
+};
+
+enum {
+    PRACTICE_SUBTAB_BREATHING = 0,
+    PRACTICE_SUBTAB_SESSION,
+    PRACTICE_SUBTAB_COUNT
+};
+
+enum {
+    APP_SUBTAB_SOUND = 0,
+    APP_SUBTAB_VISUAL,
+    APP_SUBTAB_LANGUAGE,
+    APP_SUBTAB_COUNT
+};
+
+enum {
+    ABOUT_DATA_SUBTAB_DATA = 0,
+    ABOUT_DATA_SUBTAB_ABOUT,
+    ABOUT_DATA_SUBTAB_COUNT
+};
+
+enum {
     SETTINGS_TAB_BREATHING = 0,
     SETTINGS_TAB_SESSION,
     SETTINGS_TAB_SOUND,
@@ -123,6 +149,8 @@ struct InbeApp {
     int settings_drag_content_y;
     int settings_dirty;
     int settings_tab;
+    int settings_category;
+    int settings_sub_tab;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
