@@ -96,7 +96,7 @@ WEB_ASSET_FILES = inbe.ini theme.ini assets/angel.jpg assets/begin.jpg $(WEB_LOC
 WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_ICON_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
-CFLAGS = -Wall -Wextra -std=c99 -Os -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
+CFLAGS = -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
 LDFLAGS = -Wl,--gc-sections -s
 
 .NOTPARALLEL:
@@ -327,7 +327,7 @@ $(WIN_TARGET): $(SRC) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
 		$(WIN_INBE_A) \
 		$(WIN_RAYLIB_A) \
 		-L$(MCFGTHREADS)/lib \
-		-lopengl32 -lgdi32 -lwinmm \
+		-lopengl32 -lgdi32 -lwinmm -lws2_32 \
 		-mwindows \
 		$(LDFLAGS)
 

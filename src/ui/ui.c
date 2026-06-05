@@ -8,16 +8,16 @@
 #include <math.h>
 
 /* Global UI state */
-static int ui_view_width = 320;
-static int ui_view_height = 560;
+int ui_view_width = 320;
+int ui_view_height = 560;
 static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 void
 ui_init(int width, int height, float dpi)
 {
+    (void)dpi;
     ui_view_width = width;
     ui_view_height = height;
-    /* dpi parameter is now ignored - we use the global DPI cache */
 }
 
 void
@@ -846,7 +846,10 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     int bevel_width = (int)(dpi_ui_scale() + 0.5f);
     if(bevel_width < 1) bevel_width = 1;
     int expand = bevel_width + ui_px(2);  /* Extra expansion for hover highlights */
-    BeginScissorMode(x - expand, dropdown_y - expand, w + expand * 2, dropdown_h + expand * 2);
+    BeginScissorMode((int)(app->camera.offset.x + (float)(x - expand) * app->camera.zoom),
+                     (int)(app->camera.offset.y + (float)(dropdown_y - expand) * app->camera.zoom),
+                     (int)((float)(w + expand * 2) * app->camera.zoom),
+                     (int)((float)(dropdown_h + expand * 2) * app->camera.zoom));
 
     /* Draw options */
     for(int i = 0; i < option_count; i++) {
@@ -1387,6 +1390,8 @@ ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width)
 int
 ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll)
 {
+    (void)app;
+
     /* Don't show scrollbar if no scrolling needed */
     if(max_scroll <= 0)
         return 0;

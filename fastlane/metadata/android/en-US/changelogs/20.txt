@@ -1,0 +1,6 @@
+### Added
+- Hierarchical settings organization with 3 main categories
+- Category selection screen with card-based navigation
+- Back button for hierarchical navigation
+### Fixed
+- Settings navigation state and Android back button behavior

@@ -17,8 +17,10 @@
 
 #define FS_PATH_MAX 512
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
+#endif
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
@@ -805,4 +807,6 @@ data_list_sessions(data_session_callback callback, void *user)
         iterate_session_dates_ex(list_sessions_callback_ex, &ctx);
 }
 
+#if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
+#endif

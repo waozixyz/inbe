@@ -39,6 +39,32 @@ enum {
 };
 
 enum {
+    SETTINGS_CATEGORY_PRACTICE = 0,
+    SETTINGS_CATEGORY_APP,
+    SETTINGS_CATEGORY_ABOUT_DATA,
+    SETTINGS_CATEGORY_COUNT
+};
+
+enum {
+    PRACTICE_SUBTAB_BREATHING = 0,
+    PRACTICE_SUBTAB_SESSION,
+    PRACTICE_SUBTAB_COUNT
+};
+
+enum {
+    APP_SUBTAB_SOUND = 0,
+    APP_SUBTAB_VISUAL,
+    APP_SUBTAB_LANGUAGE,
+    APP_SUBTAB_COUNT
+};
+
+enum {
+    ABOUT_DATA_SUBTAB_DATA = 0,
+    ABOUT_DATA_SUBTAB_ABOUT,
+    ABOUT_DATA_SUBTAB_COUNT
+};
+
+enum {
     SETTINGS_TAB_BREATHING = 0,
     SETTINGS_TAB_SESSION,
     SETTINGS_TAB_SOUND,
@@ -103,7 +129,6 @@ struct InbeApp {
     Texture2D save_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
-    Texture2D stripe_icon;
     Texture2D monero_icon;
 
     Texture2D angel_image;
@@ -124,11 +149,16 @@ struct InbeApp {
     int settings_drag_content_y;
     int settings_dirty;
     int settings_tab;
+    int settings_category;
+    int settings_sub_tab;
+    int device_picker_open;
+    int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
     char language[16];
     int language_selected;
     int language_index;
+    int language_needs_save;
     int manual_scroll;
     int manual_drag_scrollbar;
     int manual_drag_content;
@@ -141,6 +171,9 @@ struct InbeApp {
 
     int theme_id;
     int dark_mode;
+#if defined(LOTUS_BUILD)
+    unsigned int lotus_settings_version;
+#endif
     int history_scroll;
     int history_drag_scrollbar;
     int history_drag_content;

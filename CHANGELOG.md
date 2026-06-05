@@ -1,4 +1,12 @@
 # Changelog
+## [1.1.9] - 2026-06-04
+### Added
+- Hierarchical settings organization with 3 main categories
+- Category selection screen with card-based navigation
+- Back button for hierarchical navigation
+### Fixed
+- Settings navigation state and Android back button behavior
+
 ## [1.1.8] - 2026-06-01
 ### Added
 - Editable history days with pencil actions for sessions and rounds

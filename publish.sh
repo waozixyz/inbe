@@ -24,10 +24,16 @@ else
 fi
 
 TMPDIR=$(mktemp -d -p /tmp)
+cleanup() {
+    rm -rf "$TMPDIR"
+    rm -f "$SITE_DIR/inbe.tar.gz"
+}
+trap cleanup EXIT
 
 # Base site files
 rsync -av --delete \
     --exclude='local.properties' \
+    --exclude='.git' \
     --exclude='*.sym' \
     --exclude='*.o' \
     --exclude='*.a' \
@@ -59,6 +65,7 @@ rsync -av --delete \
     --exclude='.codex' \
     --exclude='.npm' \
     --exclude='.local' \
+    --exclude='droid' \
     --exclude='vendor' \
     . "$TMPDIR/"
 
@@ -149,9 +156,7 @@ if [ ! -f "$SITE_DIR/inbe.tar.gz" ]; then
     exit 1
 fi
 
-rm -rf "$TMPDIR"
 hut pages publish -d inbe.waozi.xyz "$SITE_DIR/inbe.tar.gz"
 echo "✓ Published to https://inbe.waozi.xyz"
-rm -f "$SITE_DIR/inbe.tar.gz"
 
 echo "✓ Done"
