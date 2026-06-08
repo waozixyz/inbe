@@ -13,7 +13,7 @@
 #include "version.h"
 #include "ui/ui.h"
 #include "ui/dpi.h"
-#include "ui/text_layout.h"
+#include "flint_text_layout.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -1717,7 +1717,7 @@ inbe_app_destroy(void *vapp)
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {
         for(int i = 0; i < 5; i++) {
-            text_layout_free(app->tutorial_layouts[i]);
+            flint_text_layout_free(app->tutorial_layouts[i]);
             free(app->tutorial_layouts[i]);
         }
     }

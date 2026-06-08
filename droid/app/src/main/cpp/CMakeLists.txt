@@ -72,7 +72,6 @@ add_library(main SHARED
     "${SRC_DIR}/app.c"
     "${SRC_DIR}/locale.c"
     "${SRC_DIR}/ui/ui.c"
-    "${SRC_DIR}/ui/text_layout.c"
     "${SRC_DIR}/ui/dpi.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"

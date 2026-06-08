@@ -2,7 +2,7 @@
 #include "app.h"
 #include "locale.h"
 #include "ui/ui.h"
-#include "ui/text_layout.h"
+#include "flint_text_layout.h"
 #include "theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -72,8 +72,8 @@ init_tutorial_layouts(InbeApp *app, int body_font)
 {
     if(!app->tutorial_layouts_initialized) {
         for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-            app->tutorial_layouts[i] = calloc(1, sizeof(TextLayout));
-            *app->tutorial_layouts[i] = text_layout_parse(locale_get(TUTORIAL_KEYS[i]), (Texture2D){0}, UI_ICON_TYPE_NONE, body_font);
+            app->tutorial_layouts[i] = calloc(1, sizeof(FlintTextLayout));
+            *app->tutorial_layouts[i] = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[i]), (Texture2D){0}, FLINT_ICON_TYPE_NONE, body_font);
         }
         app->tutorial_layouts_initialized = 1;
     }
@@ -87,7 +87,7 @@ manual_tab_reset_layouts(InbeApp *app)
 
     for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
         if(app->tutorial_layouts[i] != NULL) {
-            text_layout_free(app->tutorial_layouts[i]);
+            flint_text_layout_free(app->tutorial_layouts[i]);
             free(app->tutorial_layouts[i]);
             app->tutorial_layouts[i] = NULL;
         }
@@ -173,7 +173,7 @@ manual_tab_draw(InbeApp *app)
 
     /* Reflow all layouts for current container width - automatic like CSS */
     for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-        text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, flint_px(TUTORIAL_LINE_SPACING[i]));
+        flint_text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, flint_px(TUTORIAL_LINE_SPACING[i]));
     }
 
     close_clicked = ui_draw_screen_header(app, title, 1);
@@ -184,18 +184,18 @@ manual_tab_draw(InbeApp *app)
     /* Don't include padding in this calculation - it's handled separately */
     int actual_content_h = 0;  /* Content only, no padding */
     if(step == 0) {
-        actual_content_h += flint_px(200) + flint_px(22) + text_layout_get_height(app->tutorial_layouts[0]);
+        actual_content_h += flint_px(200) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[0]);
         /* Image height must match drawing code which uses flint_px(200), not flint_px(224) */
     } else if(step == 1) {
         /* Step 1 uses a fresh gear_layout for drawing - calculate height from it */
-        TextLayout temp_gear = text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, UI_ICON_TYPE_GEAR, flint_px(14));
-        text_layout_reflow(&temp_gear, content_w, body_font, flint_px(24));
-        actual_content_h += text_layout_get_height(&temp_gear);
-        text_layout_free(&temp_gear);
+        FlintTextLayout temp_gear = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, flint_px(14));
+        flint_text_layout_reflow(&temp_gear, content_w, body_font, flint_px(24));
+        actual_content_h += flint_text_layout_get_height(&temp_gear);
+        flint_text_layout_free(&temp_gear);
     } else if(step == 2) {
-        actual_content_h += text_layout_get_height(app->tutorial_layouts[2]) + flint_px(68);
+        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[2]) + flint_px(68);
     } else if(step == 3) {
-        actual_content_h += text_layout_get_height(app->tutorial_layouts[3]) + flint_px(20);
+        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[3]) + flint_px(20);
         /* Circle preview height - calculate actual rmax based on content_w */
         /* update_preview_bounds uses min(content_w, 132)/2 clamped to 60-120 for rmax */
         int preview_span = (content_w < flint_px(132)) ? content_w : flint_px(132);
@@ -207,9 +207,9 @@ manual_tab_draw(InbeApp *app)
         int slider_h = flint_clamp_px(36, 32, 40);
         actual_content_h += slider_h + flint_px(8);
     } else if(step == 4) {
-        actual_content_h += text_layout_get_height(app->tutorial_layouts[4]);
+        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[4]);
     } else {
-        actual_content_h += flint_px(234) + flint_px(22) + text_layout_get_height(app->tutorial_layouts[5]);
+        actual_content_h += flint_px(234) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[5]);
     }
     int available_content_space = viewport_h - footer_content_pad - flint_px(16) - flint_px(16);
     int old_max_scroll = 0;
@@ -266,18 +266,18 @@ manual_tab_draw(InbeApp *app)
             y += img_h + flint_px(22);
 
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[0] != NULL) {
-                text_layout_draw(app->tutorial_layouts[0], content_x, &y, body_font, c_text);
+                flint_text_layout_draw(app->tutorial_layouts[0], content_x, &y, body_font, c_text);
             }
         } else if(step == 1) {
             /* Step 1 text with gear icon - parse fresh each frame for proper icon binding */
             int icon_size = flint_px(14);
-            TextLayout gear_layout = text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, UI_ICON_TYPE_GEAR, icon_size);
-            text_layout_reflow(&gear_layout, content_w, body_font, flint_px(24));
-            text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
-            text_layout_free(&gear_layout);
+            FlintTextLayout gear_layout = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, icon_size);
+            flint_text_layout_reflow(&gear_layout, content_w, body_font, flint_px(24));
+            flint_text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
+            flint_text_layout_free(&gear_layout);
         } else if(step == 2) {
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[2] != NULL) {
-                text_layout_draw(app->tutorial_layouts[2], content_x, &y, body_font, c_text);
+                flint_text_layout_draw(app->tutorial_layouts[2], content_x, &y, body_font, c_text);
             }
             y += flint_px(18);
             {
@@ -298,7 +298,7 @@ manual_tab_draw(InbeApp *app)
         } else if(step == 3) {
             int speed = app->inbe.speed_level;
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[3] != NULL) {
-                text_layout_draw(app->tutorial_layouts[3], content_x, &y, body_font, c_text);
+                flint_text_layout_draw(app->tutorial_layouts[3], content_x, &y, body_font, c_text);
             }
             y += flint_px(20);  /* Increased spacing between text and circle */
 
@@ -328,14 +328,14 @@ manual_tab_draw(InbeApp *app)
             }
         } else if(step == 4) {
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[4] != NULL) {
-                text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
+                flint_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
             }
         } else {
             int img_h = flint_px(234);
             ui_draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[5] != NULL) {
-                text_layout_draw(app->tutorial_layouts[5], content_x, &y, body_font, c_text);
+                flint_text_layout_draw(app->tutorial_layouts[5], content_x, &y, body_font, c_text);
             }
         }
     EndScissorMode();

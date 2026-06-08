@@ -3,7 +3,7 @@
 #include "language_tab.h"
 #include "locale.h"
 #include "ui/ui.h"
-#include "ui/text_layout.h"
+#include "flint_text_layout.h"
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
@@ -52,11 +52,11 @@ draw_category_card(InbeApp *app, const char *title, const char *description,
     int title_y = (int)rect.y + padding_y;
     DrawText(title, (int)rect.x + padding_x, title_y, title_font, c_text);
 
-    TextLayout desc_layout = text_layout_parse(description, (Texture2D){0}, UI_ICON_TYPE_NONE, desc_font);
-    text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(18));
+    FlintTextLayout desc_layout = flint_text_layout_parse(description, (Texture2D){0}, FLINT_ICON_TYPE_NONE, desc_font);
+    flint_text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(18));
     int desc_y = title_y + title_font + flint_px(6);
-    text_layout_draw(&desc_layout, (int)rect.x + padding_x, &desc_y, desc_font, flint_darken(c_text, 30));
-    text_layout_free(&desc_layout);
+    flint_text_layout_draw(&desc_layout, (int)rect.x + padding_x, &desc_y, desc_font, flint_darken(c_text, 30));
+    flint_text_layout_free(&desc_layout);
 }
 
 static void
@@ -702,10 +702,10 @@ settings_tab_draw(InbeApp *app)
 
                     /* App description */
                     const char *desc_text = locale_get("about_description");
-                    TextLayout desc_layout = text_layout_parse(desc_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
-                    text_layout_reflow(&desc_layout, content_w, font, flint_px(22));
-                    text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
-                    text_layout_free(&desc_layout);
+                    FlintTextLayout desc_layout = flint_text_layout_parse(desc_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
+                    flint_text_layout_reflow(&desc_layout, content_w, font, flint_px(22));
+                    flint_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
+                    flint_text_layout_free(&desc_layout);
 
                     /* Version info */
                     text_y += flint_px(20);
