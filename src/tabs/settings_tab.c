@@ -183,9 +183,11 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
         int cx = start_x + col * (circle_size + circle_spacing) + circle_size / 2;
         int cy = circle_y + row * (circle_size + row_spacing);
 
-        /* Draw circle - get color from Lotus */
-        const char *scope = app->dark_mode ? g_themes[i].dark_scope : g_themes[i].light_scope;
-        Color theme_color = theme_get(scope, "circle");
+        Color theme_color = c_circle;
+        if(!flint_theme_catalog_color((FlintThemeId)i, app->dark_mode != 0, "circle", &theme_color)) {
+            const char *scope = app->dark_mode ? g_themes[i].dark_scope : g_themes[i].light_scope;
+            theme_color = theme_get(scope, "circle");
+        }
         DrawCircle(cx, cy, circle_size / 2, theme_color);
 
         /* Draw selection ring */
