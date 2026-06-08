@@ -4,7 +4,7 @@
 #include "raylib.h"
 #include "../libinbe/inbe.h"
 
-typedef struct TextLayout TextLayout;
+typedef struct FlintTextLayout FlintTextLayout;
 
 
 
@@ -166,7 +166,7 @@ struct InbeApp {
     int tutorial_step;
     int tutorial_seen;
 
-    TextLayout *tutorial_layouts[6];
+    FlintTextLayout *tutorial_layouts[6];
     int tutorial_layouts_initialized;
 
     int theme_id;

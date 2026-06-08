@@ -1,8 +1,8 @@
 #include "ui.h"
 #include "app.h"
-#include "text_layout.h"
 #include "dpi.h"
 #include "flint.h"
+#include "flint_text_layout.h"
 #include "flint_ui.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -959,12 +959,12 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    TextLayout msg_layout = text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, app->gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
-    text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
-    text_layout_free(&msg_layout);
+    flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    flint_text_layout_free(&msg_layout);
 
     /* Buttons */
     int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
@@ -1040,12 +1040,12 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    TextLayout msg_layout = text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, app->gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
-    text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
-    text_layout_free(&msg_layout);
+    flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    flint_text_layout_free(&msg_layout);
 
     /* Calculate button positions */
     int total_btn_w = btn_w * 3 + btn_gap * 2;

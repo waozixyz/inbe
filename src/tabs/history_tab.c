@@ -3,7 +3,7 @@
 #include "data.h"
 #include "locale.h"
 #include "ui/ui.h"
-#include "ui/text_layout.h"
+#include "flint_text_layout.h"
 #include "raylib.h"
 
 #include <dirent.h>
@@ -1207,10 +1207,10 @@ history_tab_draw(InbeApp *app)
         if(count == 0) {
             int font = flint_clamp_px(14, 12, 16);
             const char *empty_text = locale_get("history_empty");
-            TextLayout empty_layout = text_layout_parse(empty_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
-            text_layout_reflow(&empty_layout, content_w, font, flint_px(22));
-            text_layout_draw(&empty_layout, content_x, &y, font, c_text);
-            text_layout_free(&empty_layout);
+            FlintTextLayout empty_layout = flint_text_layout_parse(empty_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
+            flint_text_layout_reflow(&empty_layout, content_w, font, flint_px(22));
+            flint_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
+            flint_text_layout_free(&empty_layout);
         } else {
             if(app->history_level == HISTORY_LEVEL_EDIT_DAY && has_day) {
                 int return_hover = 0;
