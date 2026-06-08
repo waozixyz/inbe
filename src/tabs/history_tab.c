@@ -2,7 +2,7 @@
 #include "app.h"
 #include "data.h"
 #include "locale.h"
-#include "ui/ui.h"
+#include "flint_ui.h"
 #include "flint_text_layout.h"
 #include "raylib.h"
 

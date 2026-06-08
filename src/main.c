@@ -1,6 +1,6 @@
 #include "raylib.h"
 #include "app.h"
-#include "ui/dpi.h"
+#include "flint_dpi.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -145,7 +145,7 @@ int main(int argc, char **argv) {
 
     InitWindow(window_w, window_h, config.title);
 
-    dpi_init();
+    flint_dpi_init();
     inbe_app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");

@@ -11,9 +11,9 @@
 #include "lotus_settings.h"
 #endif
 #include "version.h"
-#include "ui/ui.h"
-#include "ui/dpi.h"
+#include "flint_ui.h"
 #include "flint_text_layout.h"
+#include "flint_dpi.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -1115,8 +1115,8 @@ inbe_app_init(void *vapp) {
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
-    dpi_update(view_width, view_height);
-    ui_init(view_width, view_height, dpi_ui_scale());
+    flint_dpi_update(view_width, view_height);
+    ui_init(view_width, view_height, flint_dpi_scale());
 
     inbeinit(&app->inbe);
     update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
@@ -1210,6 +1210,8 @@ inbe_app_init(void *vapp) {
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
     }
+
+    ui_set_icons(app->gear_icon, app->x_icon);
 
     if(app->angel_image.id == 0) {
         app->angel_image = load_asset_texture("angel.jpg");
@@ -1375,7 +1377,7 @@ updateapp(InbeApp *app)
         DrawText(config.title, center_x - title_w / 2, flint_px(20), title_font, c_text);
 
         {
-            int play_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + flint_px(20);
+            int play_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(20);
             int play_limit = view_height - flint_clamp_px(TAB_BAR_H, 54, 66) - flint_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
@@ -1541,7 +1543,7 @@ updateapp(InbeApp *app)
         }
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + flint_px(24);
+            int breath_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(24);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
             if (ui_draw_text_btn(app, center_x, breath_y, locale_get("breath_button"), &hover)) {
@@ -1646,9 +1648,9 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     view_height = (int)viewport.height;
 
     /* Update DPI cache */
-    dpi_update(view_width, view_height);
+    flint_dpi_update(view_width, view_height);
 
-    ui_init(view_width, view_height, dpi_ui_scale());
+    ui_init(view_width, view_height, flint_dpi_scale());
 #if defined(LOTUS_BUILD)
     sync_lotus_settings(app);
 #endif
@@ -1659,6 +1661,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x;
     app->camera.offset.y = viewport.y;
+    ui_set_frame(app->camera, &app->cursor_clickable);
 
     DrawRectangleRec(viewport, c_bg);
     BeginScissorMode((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
@@ -1672,7 +1675,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 static void *
 inbe_app_create(void)
 {
-    dpi_init();
+    flint_dpi_init();
     InbeApp *app = calloc(1, sizeof(InbeApp));
     inbe_app_init(app);
     return app;
