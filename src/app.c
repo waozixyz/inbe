@@ -368,12 +368,10 @@ inbe_settings_path(char *out, size_t out_size)
 static void
 register_all_themes(void)
 {
-    for(int i = 0; i < THEME_COUNT; i++) {
-        if(theme_scope(g_themes[i].light_scope) == NULL)
-            theme_register_scope(g_themes[i].light_scope, g_themes[i].light_path);
-        if(theme_scope(g_themes[i].dark_scope) == NULL)
-            theme_register_scope(g_themes[i].dark_scope, g_themes[i].dark_path);
-    }
+    if(DirectoryExists("vendor/flint/themes"))
+        flint_theme_register_defaults("vendor/flint/themes");
+    else
+        flint_theme_register_defaults("themes");
 }
 
 static void
