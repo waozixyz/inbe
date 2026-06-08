@@ -1,25 +1,15 @@
 #ifndef THEME_H
 #define THEME_H
 
-#include "raylib.h"
-#include <stdbool.h>
+#include "flint.h"
 
-#define LOTUS_THEME_MAX_SCOPES 16
-#define LOTUS_THEME_MAX_VALUES 48
-#define LOTUS_THEME_NAME_SIZE 64
-#define LOTUS_THEME_PATH_SIZE 256
+#define LOTUS_THEME_MAX_SCOPES FLINT_THEME_MAX_SCOPES
+#define LOTUS_THEME_MAX_VALUES FLINT_THEME_MAX_VALUES
+#define LOTUS_THEME_NAME_SIZE FLINT_THEME_NAME_SIZE
+#define LOTUS_THEME_PATH_SIZE FLINT_THEME_PATH_SIZE
 
-typedef struct LotusThemeValue {
-    char key[LOTUS_THEME_NAME_SIZE];
-    Color value;
-} LotusThemeValue;
-
-typedef struct LotusThemeScope {
-    char name[LOTUS_THEME_NAME_SIZE];
-    char path[LOTUS_THEME_PATH_SIZE];
-    LotusThemeValue values[LOTUS_THEME_MAX_VALUES];
-    int count;
-} LotusThemeScope;
+typedef FlintThemeValue LotusThemeValue;
+typedef FlintThemeScope LotusThemeScope;
 
 void theme_reset(void);
 LotusThemeScope *theme_register_scope(const char *name, const char *path);

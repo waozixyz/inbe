@@ -9,6 +9,10 @@ RAYLIB_DIR = vendor/raylib/src
 RAYLIB_BUILD_DIR = vendor/raylib/build/sdl
 RAYLIB_A = $(RAYLIB_BUILD_DIR)/libraylib.a
 
+FLINT_DIR = vendor/flint
+FLINT_SRCS = $(wildcard $(FLINT_DIR)/src/*.c)
+FLINT_INCLUDE = -I$(FLINT_DIR)/include
+
 ANDROID_DIR = droid
 GRADLE = gradle
 ANDROID_APP_ID = xyz.waozi.inbe
@@ -49,7 +53,7 @@ TARBALL = $(LINUX_BUILD_DIR)/inbe-linux.tar.gz
 
 CONFIG_FILES = inbe.ini theme.ini
 LOCALE_FILES = $(wildcard locales/*.txt)
-THEME_FILES = $(wildcard themes/*.ini)
+THEME_FILES = $(wildcard $(FLINT_DIR)/themes/*.ini)
 ICON_FILES = $(wildcard icons/*.png)
 WINDOWS_ICON_FILES = icons/gear.png icons/x.png icons/manual.png icons/return.png icons/backward.png icons/forward.png icons/play.png icons/pause.png icons/stat.png
 IMAGE_FILES = assets/angel.jpg assets/begin.jpg

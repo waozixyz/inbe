@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "app.h"
+#include "flint.h"
 
 typedef enum {
     UI_ICON_SIZE_TINY,
@@ -34,15 +35,10 @@ typedef enum {
 
 void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hover, Color icon);
-int ui_px(int px);
-int ui_clamp_px(int px, int min_px, int max_px);
-Color ui_lighten(Color c, int amount);
-Color ui_darken(Color c, int amount);
-void ui_centered_column(int max_w, int side_pad, int *x, int *w);
+/* DPI scaling, color, and layout functions now from Flint: flint_px, flint_clamp_px, flint_lighten, flint_darken, flint_centered_column, flint_page_side_padding */
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
 void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h);
-int ui_page_side_padding(void);
-void ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color);
+/* Icon fallback drawing now from Flint: flint_draw_icon_fallback */
 int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
 int ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover);
@@ -80,19 +76,6 @@ int ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message, con
 int ui_draw_screen_header(InbeApp *app, const char *title, int show_close);
 int ui_screen_header_height(void);
 int ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);
-
-/* ================================================================
- * TEXT LAYOUT UTILITIES
- * ================================================================ */
-
-typedef struct TextLayout TextLayout;
-
-TextLayout ui_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size);
-void ui_text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_height);
-void ui_text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color);
-int ui_text_layout_get_height(TextLayout *layout);
-void ui_text_layout_free(TextLayout *layout);
-void ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width);
 
 extern int ui_view_height;
 extern int ui_view_width;

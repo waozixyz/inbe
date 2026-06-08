@@ -13,6 +13,7 @@
 #include "version.h"
 #include "ui/ui.h"
 #include "ui/dpi.h"
+#include "ui/text_layout.h"
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -98,6 +99,9 @@ static void on_manual_tab_click(void *user_data) {
 static void on_settings_tab_click(void *user_data) {
     InbeApp *app = user_data;
     reset_settings_preview(app);
+    app->settings_category = -1;
+    app->settings_sub_tab = 0;
+    app->settings_scroll = 0;
     app->inbe.screen = InbeScreenSettings;
 }
 
@@ -334,15 +338,15 @@ update_preview_bounds(Inbe *inbe, int content_w, int content_h)
         span = content_h;
 
     rmax = span / 2;
-    if(rmax < ui_px(60))
-        rmax = ui_px(60);
-    if(rmax > ui_px(120))
-        rmax = ui_px(120);
+    if(rmax < flint_px(60))
+        rmax = flint_px(60);
+    if(rmax > flint_px(120))
+        rmax = flint_px(120);
     rmin = rmax / 2;
-    if(rmin < ui_px(24))
-        rmin = ui_px(24);
-    if(rmin > rmax - ui_px(10))
-        rmin = rmax - ui_px(10);
+    if(rmin < flint_px(24))
+        rmin = flint_px(24);
+    if(rmin > rmax - flint_px(10))
+        rmin = rmax - flint_px(10);
 
     set_circle_bounds(inbe, rmin, rmax);
 }
@@ -503,8 +507,8 @@ reset_settings_preview(InbeApp *app)
     inbeinit(&app->settings_preview);
     app->settings_preview.progressive_speed = 0;
     app->settings_preview.play_in_background = play_in_background;
-    ui_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
-    update_preview_bounds(&app->settings_preview, content_w, ui_px(132));
+    flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
+    update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
     reset_round_breathe(&app->settings_preview);
 }
@@ -808,7 +812,7 @@ start_session(InbeApp *app)
     /* Save user's pause preference and use 3 seconds for first round */
     app->saved_pause_seconds = app->inbe.pause_seconds;
     app->inbe.pause_seconds = 3;
-    update_circle_bounds_for_view(&app->inbe, 0, ui_clamp_px(TAB_BAR_H, 54, 66) + 80);
+    update_circle_bounds_for_view(&app->inbe, 0, flint_clamp_px(TAB_BAR_H, 54, 66) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
@@ -1008,8 +1012,8 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     char text[CountSize];
     int count;
     int text_w;
-    int font = ui_clamp_px(20, 18, 24);
-    int y_off = ui_px(10);
+    int font = flint_clamp_px(20, 18, 24);
+    int y_off = flint_px(10);
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -1071,15 +1075,15 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     if(remaining < 1)
         remaining = 1;
 
-    int font = ui_clamp_px(18, 16, 20);
+    int font = flint_clamp_px(18, 16, 20);
     /* Calculate fixed width based on maximum possible value */
     locale_format(max_text, sizeof(max_text), "starting_in", 30);
     max_text_w = MeasureText(max_text, font);
 
     locale_format(text, sizeof(text), "starting_in", remaining);
-    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ui_px(40);
-    if(text_y < ui_px(20))
-        text_y = ui_px(20);
+    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(40);
+    if(text_y < flint_px(20))
+        text_y = flint_px(20);
     DrawText(text, center_x - max_text_w / 2, text_y, font, c_text);
 }
 
@@ -1117,15 +1121,15 @@ inbe_app_init(void *vapp) {
     ui_init(view_width, view_height, dpi_ui_scale());
 
     inbeinit(&app->inbe);
-    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
+    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
+                                  flint_clamp_px(TAB_BAR_H, 54, 66) + flint_px(80));
     load_settings(app);
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  ui_clamp_px(TAB_BAR_H, 54, 66) + 80);
+    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
+                                  flint_clamp_px(TAB_BAR_H, 54, 66) + 80);
     data_init();
     init_audio(app);
     app->camera = (Camera2D){0};
@@ -1137,6 +1141,8 @@ inbe_app_init(void *vapp) {
     app->settings_drag_content_y = 0;
     app->settings_dirty = 0;
     app->settings_tab = SETTINGS_TAB_BREATHING;
+    app->settings_category = -1;
+    app->settings_sub_tab = 0;
     app->manual_scroll = 0;
     app->manual_drag_scrollbar = 0;
     app->manual_drag_content = 0;
@@ -1353,26 +1359,26 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenStart) {
-        update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                      ui_clamp_px(TAB_BAR_H, 54, 66) + 96);
+        update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
+                                      flint_clamp_px(TAB_BAR_H, 54, 66) + 96);
     } else if(app->inbe.screen == InbeScreenSession) {
         update_circle_bounds_for_view(&app->inbe, 0, 84);
     }
 
     if(app->inbe.screen != InbeScreenResults)
         drawinbe(app, center_x, center_y);
-    int title_font = ui_clamp_px(30, 24, 34);
+    int title_font = flint_clamp_px(30, 24, 34);
     int title_w = 30;
 
 
     switch (app->inbe.screen) {
     case InbeScreenStart:
         title_w = MeasureText(config.title, title_font);
-        DrawText(config.title, center_x - title_w / 2, ui_px(20), title_font, c_text);
+        DrawText(config.title, center_x - title_w / 2, flint_px(20), title_font, c_text);
 
         {
-            int play_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(20);
-            int play_limit = view_height - ui_clamp_px(TAB_BAR_H, 54, 66) - ui_px(48);
+            int play_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + flint_px(20);
+            int play_limit = view_height - flint_clamp_px(TAB_BAR_H, 54, 66) - flint_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
             if (ui_draw_text_btn(app, center_x, play_y, locale_get("play_button"), &hover)) {
@@ -1384,8 +1390,8 @@ updateapp(InbeApp *app)
 
     case InbeScreenSession: {
         int return_hover = 0;
-        if(ui_draw_icon_btn_padded(app, ui_px(12), ui_px(12), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX),
-                                   ui_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
+        if(ui_draw_icon_btn_padded(app, flint_px(12), flint_px(12), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX),
+                                   flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
         }
 
@@ -1457,15 +1463,15 @@ updateapp(InbeApp *app)
         int back_hover = 0;
         int pause_hover = 0;
         int forward_hover = 0;
-        int control_y = view_height - ui_px(50);
-        int breath_max_y = view_height - ui_px(44);
+        int control_y = view_height - flint_px(50);
+        int breath_max_y = view_height - flint_px(44);
 
         if(app->advanced_session_controls) {
-        int control_size = ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
-        int control_padding = ui_px(10);
-        int control_gap = ui_px(12);
+        int control_size = flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
+        int control_padding = flint_px(10);
+        int control_gap = flint_px(12);
         int min_view_dim = view_width < view_height ? view_width : view_height;
-        int available_row_w = view_width - ui_px(48);
+        int available_row_w = view_width - flint_px(48);
         int max_btn_w = min_view_dim / 6;
         int max_btn_w_by_row;
         int control_btn_w;
@@ -1473,8 +1479,8 @@ updateapp(InbeApp *app)
         int back_x;
         int forward_x;
 
-        if(available_row_w < ui_px(120))
-            available_row_w = ui_px(120);
+        if(available_row_w < flint_px(120))
+            available_row_w = flint_px(120);
 
         max_btn_w_by_row = (available_row_w - control_gap * 2) / 3;
         if(max_btn_w <= 0 || max_btn_w > max_btn_w_by_row)
@@ -1487,17 +1493,17 @@ updateapp(InbeApp *app)
             control_size = control_btn_w - control_padding * 2;
         }
 
-        if(control_padding < ui_px(6))
-            control_padding = ui_px(6);
-        if(control_size < ui_px(16))
-            control_size = ui_px(16);
+        if(control_padding < flint_px(6))
+            control_padding = flint_px(6);
+        if(control_size < flint_px(16))
+            control_size = flint_px(16);
 
         control_btn_w = control_size + control_padding * 2;
         control_gap = control_btn_w / 4;
-        if(control_gap < ui_px(8))
-            control_gap = ui_px(8);
-        control_y = view_height - ui_px(6) - control_btn_w;
-        breath_max_y = control_y - ui_px(44);
+        if(control_gap < flint_px(8))
+            control_gap = flint_px(8);
+        control_y = view_height - flint_px(6) - control_btn_w;
+        breath_max_y = control_y - flint_px(44);
         pause_x = center_x - control_btn_w / 2;
         back_x = pause_x - control_btn_w - control_gap;
         forward_x = pause_x + control_btn_w + control_gap;
@@ -1537,7 +1543,7 @@ updateapp(InbeApp *app)
         }
 
         if (app->inbe.phase == InbePhaseHold) {
-            int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + ui_px(24);
+            int breath_y = center_y + (int)(app->inbe.rmax * dpi_ui_scale() + 0.5f) + flint_px(24);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
             if (ui_draw_text_btn(app, center_x, breath_y, locale_get("breath_button"), &hover)) {
@@ -1550,17 +1556,17 @@ updateapp(InbeApp *app)
     case InbeScreenResults:
         {
             int box_x;
-            int box_y = ui_px(78);
+            int box_y = flint_px(78);
             int box_w;
-            int row_y = ui_px(200);
-            int row_h = ui_clamp_px(32, 28, 36);
+            int row_y = flint_px(200);
+            int row_h = flint_clamp_px(32, 28, 36);
             int total = 0;
             int best = -1;
             int round_times[MaxRounds];
             int rounds = collect_result_rounds(app, round_times, MaxRounds);
             int discard_hover = 0;
             int save_hover = 0;
-            int action_y = view_height - ui_px(40);
+            int action_y = view_height - flint_px(40);
 
             if(rounds <= 0) {
                 inbe_app_init(app);
@@ -1569,14 +1575,14 @@ updateapp(InbeApp *app)
 
             /* Responsive width like other tabs - not fixed CONTENT_MAX_W */
             int responsive_max_w = (int)(view_width * 0.96f);
-            int min_content_w = ui_px(320);
+            int min_content_w = flint_px(320);
             if(responsive_max_w < min_content_w)
                 responsive_max_w = min_content_w;
-            int side_padding = ui_page_side_padding();
+            int side_padding = flint_page_side_padding();
 
-            ui_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
+            flint_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
             title_w = MeasureText(locale_get("results_title"), title_font);
-            DrawText(locale_get("results_title"), center_x - title_w / 2, ui_px(34), title_font, c_text);
+            DrawText(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, c_text);
 
             for(int i = 0; i < rounds; i++) {
                 int seconds = round_times[i];
@@ -1588,29 +1594,29 @@ updateapp(InbeApp *app)
             if(best < 0)
                 best = 0;
 
-            DrawRectangle(box_x, box_y, box_w, ui_px(88), ui_darken(c_bg, 6));
-            DrawLine(box_x, box_y + ui_px(29), box_x + box_w, box_y + ui_px(29), ui_darken(c_bg, 30));
-            DrawLine(box_x, box_y + ui_px(58), box_x + box_w, box_y + ui_px(58), ui_darken(c_bg, 30));
+            DrawRectangle(box_x, box_y, box_w, flint_px(88), flint_darken(c_bg, 6));
+            DrawLine(box_x, box_y + flint_px(29), box_x + box_w, box_y + flint_px(29), flint_darken(c_bg, 30));
+            DrawLine(box_x, box_y + flint_px(58), box_x + box_w, box_y + flint_px(58), flint_darken(c_bg, 30));
             {
                 char line[64];
                 locale_format(line, sizeof(line), "results_rounds", rounds);
-                DrawText(line, box_x + ui_px(10), box_y + ui_px(10), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(10), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
                 locale_format(line, sizeof(line), "results_best", best);
-                DrawText(line, box_x + ui_px(10), box_y + ui_px(39), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
                 locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
-                if(view_width < 420 && MeasureText(line, ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX)) > box_w - ui_px(20))
+                if(view_width < 420 && MeasureText(line, flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX)) > box_w - flint_px(20))
                     snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-                DrawText(line, box_x + ui_px(10), box_y + ui_px(68), ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
             }
 
-            DrawText(locale_get("round_times_title"), box_x, ui_px(188), ui_clamp_px(14, 12, 16), ui_darken(c_text, 20));
+            DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_clamp_px(14, 12, 16), flint_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = round_times[i];
                 locale_format(row, sizeof(row), "round_result_label", i + 1, seconds);
-                DrawRectangle(box_x, row_y - 1, box_w, row_h, ui_darken(c_bg, 4));
-                DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, ui_darken(c_bg, 26));
-                DrawText(row, box_x + ui_px(10), row_y + ui_px(5), ui_clamp_px(14, 12, 16), c_text);
+                DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(c_bg, 4));
+                DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(c_bg, 26));
+                DrawText(row, box_x + flint_px(10), row_y + flint_px(5), flint_clamp_px(14, 12, 16), c_text);
                 row_y += row_h;
             }
 
@@ -1648,8 +1654,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 #if defined(LOTUS_BUILD)
     sync_lotus_settings(app);
 #endif
-    update_circle_bounds_for_view(&app->inbe, ui_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  ui_clamp_px(TAB_BAR_H, 54, 66) + ui_px(80));
+    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
+                                  flint_clamp_px(TAB_BAR_H, 54, 66) + flint_px(80));
 
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;
@@ -1713,7 +1719,7 @@ inbe_app_destroy(void *vapp)
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {
         for(int i = 0; i < 5; i++) {
-            ui_text_layout_free(app->tutorial_layouts[i]);
+            text_layout_free(app->tutorial_layouts[i]);
             free(app->tutorial_layouts[i]);
         }
     }

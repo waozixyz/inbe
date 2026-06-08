@@ -4,3 +4,6 @@
 [submodule "vendor/rini"]
 	path = vendor/rini
 	url = https://github.com/raysan5/rini.git
+[submodule "vendor/flint"]
+	path = vendor/flint
+	url = https://github.com/waozixyz/flint
