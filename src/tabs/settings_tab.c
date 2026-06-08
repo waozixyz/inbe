@@ -2,7 +2,7 @@
 #include "app.h"
 #include "language_tab.h"
 #include "locale.h"
-#include "ui/ui.h"
+#include "flint_ui.h"
 #include "flint_text_layout.h"
 #include "theme.h"
 #include "theme_meta.h"

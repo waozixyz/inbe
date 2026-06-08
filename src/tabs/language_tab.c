@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "locale.h"
-#include "ui/ui.h"
+#include "flint_ui.h"
 #include "raylib.h"
 
 extern int view_width;
