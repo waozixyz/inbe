@@ -3,6 +3,7 @@
 #include "text_layout.h"
 #include "dpi.h"
 #include "flint.h"
+#include "flint_ui.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,8 +19,7 @@ ui_init(int width, int height, float dpi)
 {
     ui_view_width = width;
     ui_view_height = height;
-    flint_set_dpi_scale(dpi);
-    flint_set_view_size(width, height);
+    flint_ui_init(width, height, dpi);
 }
 
 void
@@ -54,22 +54,13 @@ ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
 void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
-    int border = (int)(dpi_ui_scale() + 0.5f);
-    if(border < 1) border = 1;
-
-    DrawRectangle(x, y, w, border, light);
-    DrawRectangle(x, y, border, h, light);
-    DrawRectangle(x + w - border, y, border, h, dark);
-    DrawRectangle(x, y + h - border, w, border, dark);
+    flint_ui_draw_bevel(x, y, w, h, light, dark);
 }
 
 void
-ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h)
+ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h, Color color)
 {
-    for(int i = 0; i < count; i++) {
-        DrawText(lines[i], x, *y, font, c_text);
-        *y += line_h;
-    }
+    flint_ui_draw_text_lines(lines, count, x, y, font, line_h, color);
 }
 
 /* ================================================================
@@ -79,25 +70,13 @@ ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int l
 int
 ui_icon_btn_size(UIIconSize size)
 {
-    switch(size) {
-        case UI_ICON_SIZE_TINY:    return flint_clamp_px(18, 16, 40);
-        case UI_ICON_SIZE_SMALL:   return flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
-        case UI_ICON_SIZE_MEDIUM:  return flint_clamp_px(ICON_SIZE_MEDIUM, ICON_SIZE_MEDIUM_MIN, ICON_SIZE_MEDIUM_MAX);
-        case UI_ICON_SIZE_LARGE:   return flint_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
-        default: return flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
-    }
+    return flint_ui_icon_btn_size((int)size);
 }
 
 int
 ui_icon_btn_padding(UIIconSize size)
 {
-    switch(size) {
-        case UI_ICON_SIZE_TINY:    return flint_px(8);
-        case UI_ICON_SIZE_SMALL:   return flint_px(10);
-        case UI_ICON_SIZE_MEDIUM:  return flint_px(12);
-        case UI_ICON_SIZE_LARGE:   return flint_px(14);
-        default: return flint_px(10);
-    }
+    return flint_ui_icon_btn_padding((int)size);
 }
 
 int
