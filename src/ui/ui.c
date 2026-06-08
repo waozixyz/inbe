@@ -2,6 +2,7 @@
 #include "app.h"
 #include "text_layout.h"
 #include "dpi.h"
+#include "flint.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -15,9 +16,10 @@ static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 void
 ui_init(int width, int height, float dpi)
 {
-    (void)dpi;
     ui_view_width = width;
     ui_view_height = height;
+    flint_set_dpi_scale(dpi);
+    flint_set_view_size(width, height);
 }
 
 void
@@ -32,87 +34,21 @@ ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hov
 }
 
 /* ================================================================
- * DPI SCALING
+ * DPI SCALING (using Flint directly)
  * ================================================================ */
 
-int
-ui_px(int px)
-{
-    return (int)(px * dpi_ui_scale() + 0.5f);
-}
-
-int
-ui_clamp_px(int px, int min_px, int max_px)
-{
-    int value = (int)(px * dpi_ui_scale() + 0.5f);
-    int min_value = (int)(min_px * dpi_ui_scale() + 0.5f);
-    int max_value = (int)(max_px * dpi_ui_scale() + 0.5f);
-
-    if(value < min_value)
-        value = min_value;
-    if(value > max_value)
-        value = max_value;
-    return value;
-}
+/* ui_px and ui_clamp_px removed - use flint_px and flint_clamp_px directly */
 
 /* ================================================================
- * COLOR HELPERS
+ * LAYOUT HELPERS (using Flint directly)
  * ================================================================ */
 
-Color
-ui_lighten(Color c, int amount)
-{
-    return (Color){
-        (unsigned char)(c.r + amount > 255 ? 255 : c.r + amount),
-        (unsigned char)(c.g + amount > 255 ? 255 : c.g + amount),
-        (unsigned char)(c.b + amount > 255 ? 255 : c.b + amount),
-        c.a
-    };
-}
-
-Color
-ui_darken(Color c, int amount)
-{
-    return (Color){
-        (unsigned char)(c.r < amount ? 0 : c.r - amount),
-        (unsigned char)(c.g < amount ? 0 : c.g - amount),
-        (unsigned char)(c.b < amount ? 0 : c.b - amount),
-        c.a
-    };
-}
-
-/* ================================================================
- * LAYOUT HELPERS
- * ================================================================ */
+/* ui_centered_column and ui_page_side_padding removed - use flint_* directly */
 
 void
-ui_centered_column(int max_w, int side_pad, int *x, int *w)
+ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
 {
-    int available_w = ui_view_width - side_pad * 2;
-
-    if(available_w < 0)
-        available_w = 0;
-    if(max_w > available_w)
-        max_w = available_w;
-    if(max_w < 0)
-        max_w = 0;
-
-    if(x != NULL)
-        *x = (ui_view_width - max_w) / 2;
-    if(w != NULL)
-        *w = max_w;
-}
-
-int
-ui_page_side_padding(void)
-{
-    int padding = ui_view_width / 50;
-
-    if(padding < 12)
-        padding = 12;
-    if(padding > 24)
-        padding = 24;
-    return padding;
+    flint_draw_icon_fallback((FlintIconType)type, x, y, size, color);
 }
 
 void
@@ -144,11 +80,11 @@ int
 ui_icon_btn_size(UIIconSize size)
 {
     switch(size) {
-        case UI_ICON_SIZE_TINY:    return ui_clamp_px(18, 16, 40);
-        case UI_ICON_SIZE_SMALL:   return ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
-        case UI_ICON_SIZE_MEDIUM:  return ui_clamp_px(ICON_SIZE_MEDIUM, ICON_SIZE_MEDIUM_MIN, ICON_SIZE_MEDIUM_MAX);
-        case UI_ICON_SIZE_LARGE:   return ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
-        default: return ui_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
+        case UI_ICON_SIZE_TINY:    return flint_clamp_px(18, 16, 40);
+        case UI_ICON_SIZE_SMALL:   return flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
+        case UI_ICON_SIZE_MEDIUM:  return flint_clamp_px(ICON_SIZE_MEDIUM, ICON_SIZE_MEDIUM_MIN, ICON_SIZE_MEDIUM_MAX);
+        case UI_ICON_SIZE_LARGE:   return flint_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+        default: return flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
     }
 }
 
@@ -156,130 +92,11 @@ int
 ui_icon_btn_padding(UIIconSize size)
 {
     switch(size) {
-        case UI_ICON_SIZE_TINY:    return ui_px(8);
-        case UI_ICON_SIZE_SMALL:   return ui_px(10);
-        case UI_ICON_SIZE_MEDIUM:  return ui_px(12);
-        case UI_ICON_SIZE_LARGE:   return ui_px(14);
-        default: return ui_px(10);
-    }
-}
-
-void
-ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
-{
-    int center = size / 2;
-    int thickness = size / 8;
-    if(thickness < 1) thickness = 1;
-
-    switch(type) {
-        case UI_ICON_TYPE_X: {
-            int p = thickness / 2;
-            DrawLine(x + p, y + p, x + size - p, y + size - p, color);
-            DrawLine(x + size - p, y + p, x + p, y + size - p, color);
-            break;
-        }
-        case UI_ICON_TYPE_GEAR: {
-            int outer = size / 2 - thickness;
-            int inner = size / 4;
-            DrawCircle(x + center, y + center, outer, color);
-            for(int i = 0; i < 6; i++) {
-                float angle = i * 60.0f * DEG2RAD;
-                int cx = x + center + (int)(cos(angle) * inner);
-                int cy = y + center + (int)(sin(angle) * inner);
-                DrawLine(x + center, y + center, cx, cy, color);
-            }
-            break;
-        }
-        case UI_ICON_TYPE_BACKWARD: {
-            int p = thickness;
-            DrawTriangle(
-                (Vector2){x + size - p, y + p},
-                (Vector2){x + p, y + center},
-                (Vector2){x + size - p, y + size - p},
-                color
-            );
-            break;
-        }
-        case UI_ICON_TYPE_FORWARD: {
-            int p = thickness;
-            DrawTriangle(
-                (Vector2){x + p, y + p},
-                (Vector2){x + size - p, y + center},
-                (Vector2){x + p, y + size - p},
-                color
-            );
-            break;
-        }
-        case UI_ICON_TYPE_PLAY: {
-            int p = thickness;
-            DrawTriangle(
-                (Vector2){x + p, y + p},
-                (Vector2){x + size - p, y + center},
-                (Vector2){x + p, y + size - p},
-                color
-            );
-            break;
-        }
-        case UI_ICON_TYPE_PAUSE: {
-            int w = size / 3;
-            int p = (size - w * 2) / 3;
-            DrawRectangle(x + p, y + thickness, w, size - thickness * 2, color);
-            DrawRectangle(x + p + w + p, y + thickness, w, size - thickness * 2, color);
-            break;
-        }
-        case UI_ICON_TYPE_RETURN:
-        case UI_ICON_TYPE_HOME: {
-            int p = thickness;
-            DrawLine(x + center, y + size - p, x + center, y + p, color);
-            DrawLine(x + center, y + p, x + p, y + p + (size / 3), color);
-            DrawLine(x + center, y + p, x + size - p, y + p + (size / 3), color);
-            if(type == UI_ICON_TYPE_RETURN) {
-                DrawLine(x + p, y + center, x + size - p, y + center, color);
-            }
-            break;
-        }
-        case UI_ICON_TYPE_TRASH: {
-            int p = thickness;
-            DrawRectangle(x + p * 2, y + size / 3, size - p * 4, size - p * 3, color);
-            DrawRectangle(x + size / 3, y + p, size / 3, p, color);
-            DrawLine(x + p, y + size / 4, x + size - p, y + size / 4, color);
-            DrawLine(x + size / 3, y + size / 3 + p, x + size / 3, y + size - p * 2, ui_darken(color, 70));
-            DrawLine(x + size * 2 / 3, y + size / 3 + p, x + size * 2 / 3, y + size - p * 2, ui_darken(color, 70));
-            break;
-        }
-        case UI_ICON_TYPE_PENCIL: {
-            int p = thickness;
-            DrawLineEx((Vector2){x + p * 2, y + size - p * 2},
-                       (Vector2){x + size - p * 2, y + p * 2},
-                       (float)(thickness + 1), color);
-            DrawTriangle((Vector2){x + size - p * 2, y + p * 2},
-                         (Vector2){x + size - p, y + p},
-                         (Vector2){x + size - p, y + p * 3},
-                         color);
-            DrawLine(x + p, y + size - p, x + p * 3, y + size - p, color);
-            break;
-        }
-        case UI_ICON_TYPE_SAVE: {
-            int p = thickness;
-            DrawLineEx((Vector2){x + p * 2, y + center},
-                       (Vector2){x + center - p, y + size - p * 2},
-                       (float)(thickness + 1), color);
-            DrawLineEx((Vector2){x + center - p, y + size - p * 2},
-                       (Vector2){x + size - p, y + p * 2},
-                       (float)(thickness + 1), color);
-            break;
-        }
-        case UI_ICON_TYPE_MANUAL:
-        case UI_ICON_TYPE_STAT: {
-            DrawRectangle(x + thickness, y + thickness, size - thickness * 2, size - thickness * 2, color);
-            DrawLine(x + thickness, y + thickness + size / 3, x + size - thickness, y + thickness + size / 3, color);
-            DrawLine(x + thickness, y + thickness + size * 2 / 3, x + size - thickness, y + thickness + size * 2 / 3, color);
-            break;
-        }
-        default: {
-            DrawCircle(x + center, y + center, size / 3, color);
-            break;
-        }
+        case UI_ICON_SIZE_TINY:    return flint_px(8);
+        case UI_ICON_SIZE_SMALL:   return flint_px(10);
+        case UI_ICON_SIZE_MEDIUM:  return flint_px(12);
+        case UI_ICON_SIZE_LARGE:   return flint_px(14);
+        default: return flint_px(10);
     }
 }
 
@@ -300,18 +117,18 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UI
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
         app->cursor_clickable = 1;
         if(mb) {
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released && !ui_dropdown_captures_click(mouse_world)) {
             pressed = 1;
         }
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
         *hover = 0;
     }
 
@@ -320,7 +137,7 @@ ui_draw_icon_btn(InbeApp *app, int x, int y, UIIconSize size, Texture2D icon, UI
         Rectangle dst = {x + padding, y + padding, (float)btn_size, (float)btn_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     } else {
-        ui_draw_icon_fallback(icon_type, x + padding, y + padding, btn_size, c_icon);
+        flint_draw_icon_fallback((FlintIconType)icon_type, x + padding, y + padding, btn_size, c_icon);
     }
 
     return pressed;
@@ -340,18 +157,18 @@ ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, int padding, Textu
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
         app->cursor_clickable = 1;
         if(mb) {
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released && !ui_dropdown_captures_click(mouse_world)) {
             pressed = 1;
         }
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 20));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 20));
         *hover = 0;
     }
 
@@ -360,7 +177,7 @@ ui_draw_icon_btn_padded(InbeApp *app, int x, int y, int size, int padding, Textu
         Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     } else {
-        ui_draw_icon_fallback(icon_type, x + padding, y + padding, size, c_icon);
+        flint_draw_icon_fallback((FlintIconType)icon_type, x + padding, y + padding, size, c_icon);
     }
 
     return pressed;
@@ -375,9 +192,9 @@ ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover)
 
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = ui_clamp_px(20, 16, 22);
-    int w = (int)MeasureText(label, font) + ui_px(20);
-    int h = ui_clamp_px(30, 26, 34);
+    int font = flint_clamp_px(20, 16, 22);
+    int w = (int)MeasureText(label, font) + flint_px(20);
+    int h = flint_clamp_px(30, 26, 34);
 
     x = x - w / 2;
 
@@ -385,22 +202,22 @@ ui_draw_text_btn(InbeApp *app, int x, int y, const char *label, int *hover)
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
         app->cursor_clickable = 1;
         if(mb) {
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released && !ui_dropdown_captures_click(mouse_world)) {
             pressed = 1;
         }
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
         *hover = 0;
     }
 
-    DrawText(label, x + ui_px(10), y + ui_px(5), font, c_text);
+    DrawText(label, x + flint_px(10), y + flint_px(5), font, c_text);
 
     return pressed;
 }
@@ -412,7 +229,7 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UII
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
     int hover = 0;
-    int padding = ui_px(4);
+    int padding = flint_px(4);
     int btn_w = icon_size + padding * 2;
     int btn_h = icon_size + padding * 2;
     int btn_x = x - padding;
@@ -425,10 +242,10 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UII
 
     if(hover) {
         DrawRectangle(btn_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(btn_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(btn_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
     } else {
         DrawRectangle(btn_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(btn_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(btn_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
 
     if(icon.id != 0) {
@@ -436,7 +253,7 @@ ui_draw_icon_link(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UII
         Rectangle dst = {x, y, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     } else {
-        ui_draw_icon_fallback(icon_type, x, y, icon_size, c_icon);
+        flint_draw_icon_fallback((FlintIconType)icon_type, x, y, icon_size, c_icon);
     }
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
@@ -468,14 +285,14 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
-    int label_font = ui_clamp_px(14, 12, 16);
-    int value_font = ui_clamp_px(14, 12, 16);
-    int track_y = y + ui_px(28);
-    int track_h = ui_px(8);
-    int knob_w = ui_px(12);
-    int knob_h = ui_px(22);
+    int label_font = flint_clamp_px(14, 12, 16);
+    int value_font = flint_clamp_px(14, 12, 16);
+    int track_y = y + flint_px(28);
+    int track_h = flint_px(8);
+    int knob_w = flint_px(12);
+    int knob_h = flint_px(22);
     int knob_y = track_y - (knob_h - track_h) / 2;
-    int min_touch_h = ui_px(36);
+    int min_touch_h = flint_px(36);
     int changed = 0;
     char value_text[32];
     Rectangle hit = ui_centered_min_hit_rect(x, knob_y, w, knob_h, w, min_touch_h);
@@ -484,8 +301,8 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
     DrawText(label, x, y, label_font, c_text);
     DrawText(value_text, x + w - MeasureText(value_text, value_font), y, value_font, c_text);
 
-    DrawRectangle(x, track_y, w, track_h, ui_darken(c_bg, 28));
-    ui_draw_bevel(x, track_y, w, track_h, ui_darken(c_bg, 55), ui_lighten(c_bg, 35));
+    DrawRectangle(x, track_y, w, track_h, flint_darken(c_bg, 28));
+    ui_draw_bevel(x, track_y, w, track_h, flint_darken(c_bg, 55), flint_lighten(c_bg, 35));
 
     if(CheckCollisionPointRec(mouse_world, hit)) {
         app->cursor_clickable = 1;
@@ -508,7 +325,7 @@ ui_draw_slider(InbeApp *app, int id, int x, int y, int w, const char *label,
     float t = (float)(*value - min) / (float)(max - min);
     int knob_x = x + (int)(t * (float)w) - knob_w / 2;
     DrawRectangle(knob_x, knob_y, knob_w, knob_h, c_button);
-    ui_draw_bevel(knob_x, knob_y, knob_w, knob_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    ui_draw_bevel(knob_x, knob_y, knob_w, knob_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
 
     return changed;
 }
@@ -519,7 +336,7 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int hover = 0;
-    int min_touch = ui_px(36);
+    int min_touch = flint_px(36);
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
     if(CheckCollisionPointRec(mouse_world, bounds)) {
@@ -532,18 +349,18 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
     if(pressed)
         *value = !(*value);
 
-    Color bg = ui_darken(c_bg, 8);
+    Color bg = flint_darken(c_bg, 8);
     DrawRectangle(x, y, w, h, bg);
 
     int track_h = h - 6;
     int track_y = y + 3;
-    DrawRectangleRounded((Rectangle){x + 3, track_y, w - 6, track_h}, 0.5f, 8, ui_darken(c_bg, 20));
+    DrawRectangleRounded((Rectangle){x + 3, track_y, w - 6, track_h}, 0.5f, 8, flint_darken(c_bg, 20));
 
     int active_w = (w - 6) / 2;
     int active_x = *value ? x + w - active_w - 3 : x + 3;
     DrawRectangleRounded((Rectangle){active_x, track_y, active_w, track_h}, 0.5f, 8, c_button);
 
-    int font = ui_clamp_px(12, 10, 14);
+    int font = flint_clamp_px(12, 10, 14);
     int off_w = MeasureText(off_label, font);
     int on_w = MeasureText(on_label, font);
 
@@ -561,8 +378,8 @@ ui_draw_toggle_switch(InbeApp *app, int x, int y, int w, int h, int *value,
 int
 ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *value)
 {
-    int font = ui_clamp_px(14, 12, 16);
-    int box_size = ui_px(22);
+    int font = flint_clamp_px(14, 12, 16);
+    int box_size = flint_px(22);
     int hover = 0;
     Rectangle bounds = {x, y, box_size, box_size};
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -577,15 +394,15 @@ ui_draw_checkbox_toggle(InbeApp *app, int x, int y, const char *label, int *valu
         *value = !(*value);
 
     DrawRectangle(x, y, box_size, box_size, c_button);
-    ui_draw_bevel(x, y, box_size, box_size, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
+    ui_draw_bevel(x, y, box_size, box_size, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
     if(*value) {
-        int padding = ui_px(4);
+        int padding = flint_px(4);
         DrawLine(x + padding, y + padding, x + box_size / 2, y + box_size - padding, c_text);
         DrawLine(x + box_size / 2, y + box_size - padding, x + box_size - padding, y + padding, c_text);
     }
 
-    DrawText(label, x + box_size + ui_px(10), y + (box_size - font) / 2, font, c_text);
+    DrawText(label, x + box_size + flint_px(10), y + (box_size - font) / 2, font, c_text);
 
     return pressed;
 }
@@ -624,13 +441,13 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
         return;
 
     option_h = state->h;
-    menu_gap = ui_px(4);
-    padding_top = ui_px(4);
-    padding_bottom = ui_px(12);
+    menu_gap = flint_px(4);
+    padding_top = flint_px(4);
+    padding_bottom = flint_px(12);
     total_h = padding_top + option_h * state->option_count + padding_bottom;
     below_y = state->y + state->h + menu_gap;
-    below_space = ui_view_height - below_y - ui_px(16);
-    above_space = state->y - ui_px(16);
+    below_space = ui_view_height - below_y - flint_px(16);
+    above_space = state->y - flint_px(16);
 
     if(below_space < 0)
         below_space = 0;
@@ -642,10 +459,10 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
 
     max_visible_h = (above_space > below_space) ? above_space : below_space;
     if(total_h > max_visible_h) {
-        int count = (max_visible_h - ui_px(8)) / option_h;
+        int count = (max_visible_h - flint_px(8)) / option_h;
         if(count < 1)
             count = 1;
-        total_h = count * option_h + ui_px(8);
+        total_h = count * option_h + flint_px(8);
         if(visible_options != NULL)
             *visible_options = count;
     } else if(visible_options != NULL) {
@@ -710,9 +527,9 @@ ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h,
                         const char **options, int option_count, int *selected_index)
 {
     UIDropdownState *state = get_or_create_dropdown_state(id);
-    int font = ui_clamp_px(14, 12, 16);
-    int arrow_pad = ui_px(24);
-    int arrow_size = ui_px(6);
+    int font = flint_clamp_px(14, 12, 16);
+    int arrow_pad = flint_px(24);
+    int arrow_size = flint_px(6);
     int changed = 0;
     Rectangle btn_bounds = {x, y, w, h};
     Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -753,11 +570,11 @@ ui_draw_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h,
     }
 
     /* Draw button background */
-    DrawRectangleRounded(btn_bounds, 0.3f, 8, ui_darken(c_bg, 8));
+    DrawRectangleRounded(btn_bounds, 0.3f, 8, flint_darken(c_bg, 8));
 
     /* Draw current selection text */
     const char *current_name = options[*selected_index];
-    DrawText(current_name, x + ui_px(12), y + h / 2 - font / 2 - 1, font, c_text);
+    DrawText(current_name, x + flint_px(12), y + h / 2 - font / 2 - 1, font, c_text);
 
     /* Draw dropdown X icon */
     int x_size = arrow_size;
@@ -781,7 +598,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     if(!state->open || state->options == NULL || state->selected_index == NULL)
         return 0;
 
-    int font = ui_clamp_px(14, 12, 16);
+    int font = flint_clamp_px(14, 12, 16);
     int x = state->x;
     int y = state->y;
     int w = state->w;
@@ -793,11 +610,11 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
 
     int dropdown_y = 0;
     int dropdown_h = 0;
-    int padding_top = ui_px(4);
-    int padding_bottom = ui_px(12);
+    int padding_top = flint_px(4);
+    int padding_bottom = flint_px(12);
     int content_h = padding_top + option_h * option_count + padding_bottom;
     int max_scroll;
-    int scrollbar_w = ui_px(8);
+    int scrollbar_w = flint_px(8);
     int option_w = w;
 
     dropdown_menu_layout(state, &dropdown_y, &dropdown_h, NULL, NULL);
@@ -809,7 +626,7 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
     if(state->scroll_offset < 0)
         state->scroll_offset = 0;
     if(max_scroll > 0)
-        option_w = w - scrollbar_w - ui_px(2);
+        option_w = w - scrollbar_w - flint_px(2);
 
     Rectangle menu_bounds = {x, dropdown_y, w, dropdown_h};
     Rectangle btn_bounds = {x, y, w, h};
@@ -840,12 +657,12 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
 
     /* Draw dropdown background */
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
-    ui_draw_bevel(x, dropdown_y, w, dropdown_h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
+    ui_draw_bevel(x, dropdown_y, w, dropdown_h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
     /* Clip to menu area - expand to ensure bevel and highlights aren't clipped */
     int bevel_width = (int)(dpi_ui_scale() + 0.5f);
     if(bevel_width < 1) bevel_width = 1;
-    int expand = bevel_width + ui_px(2);  /* Extra expansion for hover highlights */
+    int expand = bevel_width + flint_px(2);  /* Extra expansion for hover highlights */
     BeginScissorMode((int)(app->camera.offset.x + (float)(x - expand) * app->camera.zoom),
                      (int)(app->camera.offset.y + (float)(dropdown_y - expand) * app->camera.zoom),
                      (int)((float)(w + expand * 2) * app->camera.zoom),
@@ -876,21 +693,21 @@ ui_draw_dropdown_menu(InbeApp *app, int id)
             }
         }
 
-        DrawText(options[i], x + ui_px(12), option_y + option_h / 2 - font / 2 - 1, font, c_text);
+        DrawText(options[i], x + flint_px(12), option_y + option_h / 2 - font / 2 - 1, font, c_text);
     }
 
     EndScissorMode();
 
     if(max_scroll > 0)
-        ui_draw_scrollbar(app, x + w - scrollbar_w, dropdown_y + ui_px(2),
-                          dropdown_h - ui_px(4), content_h, &state->scroll_offset, max_scroll);
+        ui_draw_scrollbar(app, x + w - scrollbar_w, dropdown_y + flint_px(2),
+                          dropdown_h - flint_px(4), content_h, &state->scroll_offset, max_scroll);
 
 draw_arrow:
     ;
 
     /* Redraw arrow on top of everything */
-    int arrow_pad = ui_px(24);
-    int arrow_size = ui_px(6);
+    int arrow_pad = flint_px(24);
+    int arrow_size = flint_px(6);
     int arrow_x = x + w - arrow_pad;
     int arrow_y = y + h / 2;
 
@@ -909,11 +726,11 @@ draw_arrow:
 int
 ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
 {
-    int padding = ui_px(6);
+    int padding = flint_px(6);
     int width = icon_size + padding * 2;
 
     if(show_label && label != NULL && label[0] != '\0')
-        width += ui_px(10) + MeasureText(label, font);
+        width += flint_px(10) + MeasureText(label, font);
     return width;
 }
 
@@ -926,24 +743,24 @@ ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UI
     int my = (int)mouse_world.y;
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = ui_clamp_px(14, 12, 16);
-    int padding = ui_px(6);
+    int font = flint_clamp_px(14, 12, 16);
+    int padding = flint_px(6);
     int w = ui_nav_button_width(label, icon_size, show_label, font);
     int h = icon_size + padding * 2;
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
         app->cursor_clickable = 1;
         if(mb)
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         if(released)
             pressed = 1;
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
         *hover = 0;
     }
 
@@ -955,11 +772,11 @@ ui_draw_nav_button(InbeApp *app, int x, int y, int icon_size, Texture2D icon, UI
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     } else {
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        ui_draw_icon_fallback(icon_type, icon_x, y + padding, icon_size, c_icon);
+        flint_draw_icon_fallback((FlintIconType)icon_type, icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
-        int text_x = x + icon_size + padding * 2 + ui_px(10);
+        int text_x = x + icon_size + padding * 2 + flint_px(10);
         int text_y = y + (h - font) / 2;
         DrawText(label, text_x, text_y, font, c_text);
     }
@@ -976,23 +793,23 @@ ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Text
     int my = (int)mouse_world.y;
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = ui_clamp_px(14, 12, 16);
-    int padding = ui_px(6);
+    int font = flint_clamp_px(14, 12, 16);
+    int padding = flint_px(6);
     int h = icon_size + padding * 2;
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
         app->cursor_clickable = 1;
         if(mb)
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         if(released)
             pressed = 1;
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
         *hover = 0;
     }
 
@@ -1004,11 +821,11 @@ ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Text
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     } else {
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        ui_draw_icon_fallback(icon_type, icon_x, y + padding, icon_size, c_icon);
+        flint_draw_icon_fallback((FlintIconType)icon_type, icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
-        int text_x = x + icon_size + padding * 2 + ui_px(10);
+        int text_x = x + icon_size + padding * 2 + flint_px(10);
         int text_y = y + (h - font) / 2;
         DrawText(label, text_x, text_y, font, c_text);
     }
@@ -1023,13 +840,13 @@ ui_draw_nav_button_expand(InbeApp *app, int x, int y, int icon_size, int w, Text
 void
 ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 {
-    int bar_h = ui_clamp_px(58, 54, 66);
+    int bar_h = flint_clamp_px(58, 54, 66);
     int bar_y = ui_view_height - bar_h;
-    int button_size = ui_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
-    int button_h = button_size + ui_px(12);
-    int font = ui_clamp_px(14, 12, 16);
-    int side_margin = ui_px(16);
-    int group_gap = ui_px(10);
+    int button_size = flint_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+    int button_h = button_size + flint_px(12);
+    int font = flint_clamp_px(14, 12, 16);
+    int side_margin = flint_px(16);
+    int group_gap = flint_px(10);
     int available_w = ui_view_width - side_margin * 2;
     int label_safety_w = group_gap * (count + 1);
 
@@ -1068,8 +885,8 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
 
-    DrawRectangle(0, bar_y, ui_view_width, bar_h, ui_darken(c_bg, 10));
-    DrawLine(0, bar_y, ui_view_width, bar_y, ui_darken(c_bg, 42));
+    DrawRectangle(0, bar_y, ui_view_width, bar_h, flint_darken(c_bg, 10));
+    DrawLine(0, bar_y, ui_view_width, bar_y, flint_darken(c_bg, 42));
 
     int x = group_x;
     for(int i = 0; i < count; i++) {
@@ -1093,11 +910,11 @@ ui_draw_tab_bar(UITab *tabs, int count, InbeApp *app)
 void
 ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h)
 {
-    DrawRectangle(x, y, w, h, ui_darken(c_bg, 12));
-    ui_draw_bevel(x, y, w, h, ui_darken(c_bg, 45), ui_lighten(c_bg, 35));
-    int font = ui_clamp_px(14, 12, 16);
+    DrawRectangle(x, y, w, h, flint_darken(c_bg, 12));
+    ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 45), flint_lighten(c_bg, 35));
+    int font = flint_clamp_px(14, 12, 16);
     int tw = MeasureText(label, font);
-    DrawText(label, x + w / 2 - tw / 2, y + h / 2 - ui_px(7), font, c_text);
+    DrawText(label, x + w / 2 - tw / 2, y + h / 2 - flint_px(7), font, c_text);
 }
 
 void
@@ -1116,8 +933,8 @@ ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, in
     Rectangle src = {0, 0, (float)texture.width, (float)texture.height};
     Rectangle dst = {x + ((float)w - dst_w) * 0.5f, y + ((float)h - dst_h) * 0.5f, dst_w, dst_h};
 
-    DrawRectangle(x, y, w, h, ui_darken(c_bg, 12));
-    ui_draw_bevel(x, y, w, h, ui_darken(c_bg, 45), ui_lighten(c_bg, 35));
+    DrawRectangle(x, y, w, h, flint_darken(c_bg, 12));
+    ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 45), flint_lighten(c_bg, 35));
     DrawTexturePro(texture, src, dst, (Vector2){0}, 0, WHITE);
 }
 
@@ -1129,19 +946,19 @@ int
 ui_draw_modal(InbeApp *app, const char *title, const char *message,
                const char *cancel_btn, const char *confirm_btn)
 {
-    int modal_w = ui_px(280);
-    int modal_h = ui_px(160);
+    int modal_w = flint_px(280);
+    int modal_h = flint_px(160);
     int modal_x = (ui_view_width - modal_w) / 2;
     int modal_y = (ui_view_height - modal_h) / 2;
-    int title_font = ui_clamp_px(16, 14, 18);
-    int msg_font = ui_clamp_px(14, 12, 16);
-    int btn_font = ui_clamp_px(14, 12, 16);
-    int btn_h = ui_clamp_px(36, 32, 40);
-    int btn_w = ui_px(100);
-    int btn_gap = ui_px(12);
-    int title_h = ui_px(32);
+    int title_font = flint_clamp_px(16, 14, 18);
+    int msg_font = flint_clamp_px(14, 12, 16);
+    int btn_font = flint_clamp_px(14, 12, 16);
+    int btn_h = flint_clamp_px(36, 32, 40);
+    int btn_w = flint_px(100);
+    int btn_gap = flint_px(12);
+    int title_h = flint_px(32);
     int msg_y = modal_y + title_h;
-    int btn_y = modal_y + modal_h - btn_h - ui_px(16);
+    int btn_y = modal_y + modal_h - btn_h - flint_px(16);
 
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
@@ -1152,23 +969,23 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
 
     /* Title */
     int title_w = MeasureText(title, title_font);
-    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
+    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + flint_px(12), title_font, c_text);
 
     /* Message (text layout with icon support) */
-    int msg_x = modal_x + ui_px(16);
-    int msg_w = modal_w - ui_px(32);
+    int msg_x = modal_x + flint_px(16);
+    int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
+    TextLayout msg_layout = text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
-    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
-    ui_text_layout_free(&msg_layout);
+    text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    text_layout_free(&msg_layout);
 
     /* Buttons */
     int cancel_x = modal_x + (modal_w - btn_w * 2 - btn_gap) / 2;
@@ -1178,13 +995,13 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     /* Cancel button */
     if(mx >= cancel_x && mx < cancel_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 1;
     } else {
         DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int cancel_text_w = MeasureText(cancel_btn, btn_font);
     DrawText(cancel_btn, cancel_x + (btn_w - cancel_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
@@ -1192,13 +1009,13 @@ ui_draw_modal(InbeApp *app, const char *title, const char *message,
     /* Confirm button */
     if(mx >= confirm_x && mx < confirm_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
         DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, ui_lighten(c_circle, 40), ui_darken(c_circle, 40));
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
     }
     int confirm_text_w = MeasureText(confirm_btn, btn_font);
     DrawText(confirm_btn, confirm_x + (btn_w - confirm_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
@@ -1210,19 +1027,19 @@ int
 ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
                     const char *left_btn, const char *middle_btn, const char *right_btn)
 {
-    int modal_w = ui_px(300);
-    int modal_h = ui_px(160);
+    int modal_w = flint_px(300);
+    int modal_h = flint_px(160);
     int modal_x = (ui_view_width - modal_w) / 2;
     int modal_y = (ui_view_height - modal_h) / 2;
-    int title_font = ui_clamp_px(16, 14, 18);
-    int msg_font = ui_clamp_px(14, 12, 16);
-    int btn_font = ui_clamp_px(14, 12, 16);
-    int btn_h = ui_clamp_px(36, 32, 40);
-    int btn_w = ui_px(90);
-    int btn_gap = ui_px(8);
-    int title_h = ui_px(32);
+    int title_font = flint_clamp_px(16, 14, 18);
+    int msg_font = flint_clamp_px(14, 12, 16);
+    int btn_font = flint_clamp_px(14, 12, 16);
+    int btn_h = flint_clamp_px(36, 32, 40);
+    int btn_w = flint_px(90);
+    int btn_gap = flint_px(8);
+    int title_h = flint_px(32);
     int msg_y = modal_y + title_h;
-    int btn_y = modal_y + modal_h - btn_h - ui_px(16);
+    int btn_y = modal_y + modal_h - btn_h - flint_px(16);
 
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     int mx = (int)mouse_world.x;
@@ -1233,23 +1050,23 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
 
     /* Modal background */
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
 
     /* Title */
     int title_w = MeasureText(title, title_font);
-    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + ui_px(12), title_font, c_text);
+    DrawText(title, modal_x + (modal_w - title_w) / 2, modal_y + flint_px(12), title_font, c_text);
 
     /* Message (text layout with icon support) */
-    int msg_x = modal_x + ui_px(16);
-    int msg_w = modal_w - ui_px(32);
+    int msg_x = modal_x + flint_px(16);
+    int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    TextLayout msg_layout = ui_text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    ui_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + ui_px(4));
+    TextLayout msg_layout = text_layout_parse(message, app->gear_icon, UI_ICON_TYPE_GEAR, msg_font);
+    text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
-    ui_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
-    ui_text_layout_free(&msg_layout);
+    text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
+    text_layout_free(&msg_layout);
 
     /* Calculate button positions */
     int total_btn_w = btn_w * 3 + btn_gap * 2;
@@ -1262,13 +1079,13 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     /* Left button (Cancel) */
     if(mx >= left_x && mx < left_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 1;
     } else {
         DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int left_text_w = MeasureText(left_btn, btn_font);
     DrawText(left_btn, left_x + (btn_w - left_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
@@ -1276,13 +1093,13 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     /* Middle button (Save) - primary action */
     if(mx >= middle_x && mx < middle_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
         DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, ui_lighten(c_circle, 40), ui_darken(c_circle, 40));
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
     }
     int middle_text_w = MeasureText(middle_btn, btn_font);
     DrawText(middle_btn, middle_x + (btn_w - middle_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
@@ -1290,13 +1107,13 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
     /* Right button (Discard) */
     if(mx >= right_x && mx < right_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
         DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 3;
     } else {
         DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int right_text_w = MeasureText(right_btn, btn_font);
     DrawText(right_btn, right_x + (btn_w - right_text_w) / 2, btn_y + (btn_h - btn_font) / 2 - 1, btn_font, c_text);
@@ -1311,7 +1128,7 @@ ui_draw_modal_3btn(InbeApp *app, const char *title, const char *message,
 int
 ui_screen_header_height(void)
 {
-    return ui_clamp_px(60, 48, 60);
+    return flint_clamp_px(60, 48, 60);
 }
 
 int
@@ -1319,13 +1136,13 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
 {
     (void)c_bg; /* unused */
     int title_h = ui_screen_header_height();
-    int title_font = ui_clamp_px(16, 14, 18);
+    int title_font = flint_clamp_px(16, 14, 18);
     int close_hover = 0;
     int close_clicked = 0;
 
     /* Draw header background */
-    DrawRectangle(0, 0, ui_view_width, title_h, ui_darken(c_bg, 14));
-    DrawLine(0, title_h - 1, ui_view_width, title_h - 1, ui_darken(c_bg, 42));
+    DrawRectangle(0, 0, ui_view_width, title_h, flint_darken(c_bg, 14));
+    DrawLine(0, title_h - 1, ui_view_width, title_h - 1, flint_darken(c_bg, 42));
 
     /* Draw centered title */
     int title_w = MeasureText(title, title_font);
@@ -1334,53 +1151,11 @@ ui_draw_screen_header(InbeApp *app, const char *title, int show_close)
 
     /* Draw close button if requested */
     if(show_close) {
-        close_clicked = ui_draw_icon_btn(app, ui_view_width - ui_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), ui_px(8),
+        close_clicked = ui_draw_icon_btn(app, ui_view_width - flint_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), flint_px(8),
                                          UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
     }
 
     return close_clicked;
-}
-
-/* ================================================================
- * TEXT LAYOUT UTILITIES
- * ================================================================ */
-
-TextLayout
-ui_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size)
-{
-    return text_layout_parse(input, icon, icon_type, icon_size);
-}
-
-void
-ui_text_layout_reflow(TextLayout *layout, int max_width, int font_size, int line_height)
-{
-    text_layout_reflow(layout, max_width, font_size, line_height);
-}
-
-void
-ui_text_layout_draw(TextLayout *layout, int x, int *y, int font_size, Color color)
-{
-    text_layout_draw(layout, x, y, font_size, color);
-}
-
-int
-ui_text_layout_get_height(TextLayout *layout)
-{
-    return text_layout_get_height(layout);
-}
-
-void
-ui_text_layout_free(TextLayout *layout)
-{
-    text_layout_free(layout);
-}
-
-void
-ui_text_layout_reflow_if_needed(TextLayout *layout, int max_width)
-{
-    if(layout == NULL || layout->last_reflow_width != max_width) {
-        ui_text_layout_reflow(layout, max_width, ui_clamp_px(14, 12, 16), ui_clamp_px(18, 16, 20));
-    }
 }
 
 /* ================================================================
@@ -1400,9 +1175,9 @@ ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int
     static int scrollbar_drag_start_y = 0;
     static int scrollbar_drag_start_scroll = 0;
 
-    int scrollbar_width = ui_px(8);
-    int scrollbar_min_thumb = ui_px(24);
-    int track_padding = ui_px(2);
+    int scrollbar_width = flint_px(8);
+    int scrollbar_min_thumb = flint_px(24);
+    int track_padding = flint_px(2);
 
     /* Calculate thumb size and position */
     float content_ratio = (float)viewport_h / (float)content_h;
@@ -1448,16 +1223,16 @@ ui_draw_scrollbar(InbeApp *app, int x, int y, int viewport_h, int content_h, int
     }
 
     /* Draw track */
-    DrawRectangle(x, y, scrollbar_width, viewport_h, ui_darken(c_bg, 20));
+    DrawRectangle(x, y, scrollbar_width, viewport_h, flint_darken(c_bg, 20));
 
     /* Draw thumb */
-    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : ui_lighten(c_button, 20);
+    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : flint_lighten(c_button, 20);
     DrawRectangleRec(thumb_bounds, thumb_color);
 
     /* Draw bevel on thumb */
     ui_draw_bevel((int)thumb_bounds.x, (int)thumb_bounds.y,
                   (int)thumb_bounds.width, (int)thumb_bounds.height,
-                  ui_darken(thumb_color, 40), ui_lighten(thumb_color, 40));
+                  flint_darken(thumb_color, 40), flint_lighten(thumb_color, 40));
 
     return 1;
 }

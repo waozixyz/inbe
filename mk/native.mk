@@ -23,16 +23,18 @@ $(LINUX_INBE_A): FORCE | $(LINUX_BUILD_DIR)
 	$(MAKE) -C $(INBE_DIR) CC=$(CC) AR=ar
 	cp $(INBE_A) $@
 
-$(TARGET): $(SRC) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
+$(TARGET): $(SRC) $(FLINT_SRCS) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		$(FLINT_INCLUDE) \
 		-Isrc -Isrc/android \
 		$(RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-o $@ \
 		$(SRC) \
+		$(FLINT_SRCS) \
 		$(LINUX_INBE_A) \
 		$(RAYLIB_A) \
 		$(RAY_LDLIBS) \
@@ -89,12 +91,14 @@ build-linux-arch:
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
+		$(FLINT_INCLUDE) \
 		-Isrc -Isrc/android \
 		$(LINUX_RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
 		$(SRC) \
+		$(FLINT_SRCS) \
 		$(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a \
 		vendor/raylib/build/sdl-$(ARCH_NAME)/libraylib.a \
 		$(LINUX_RAY_LDLIBS) \
