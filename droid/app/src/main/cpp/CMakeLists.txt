@@ -5,6 +5,7 @@ set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
 set(LIBINBE_DIR "${REPO_ROOT}/libinbe")
 set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")
+set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 
 add_library(raylib STATIC
@@ -52,13 +53,24 @@ target_include_directories(inbe PUBLIC
     "${LIBINBE_DIR}"
 )
 
+add_library(flint STATIC
+    "${FLINT_DIR}/src/flint_color.c"
+    "${FLINT_DIR}/src/flint_icons.c"
+    "${FLINT_DIR}/src/flint_layout.c"
+    "${FLINT_DIR}/src/flint_scaling.c"
+    "${FLINT_DIR}/src/flint_theme.c"
+    "${FLINT_DIR}/src/flint_theme_meta.c"
+)
+
+target_include_directories(flint PUBLIC
+    "${FLINT_DIR}/include"
+    "${RAYLIB_DIR}"
+)
+
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
     "${SRC_DIR}/locale.c"
-    "${SRC_DIR}/ui/ui.c"
-    "${SRC_DIR}/ui/text_layout.c"
-    "${SRC_DIR}/ui/dpi.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
@@ -80,6 +92,7 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/android"
     "${NATIVE_APP_GLUE_DIR}"
     "${LIBINBE_DIR}"
+    "${FLINT_DIR}/include"
 )
 
 target_compile_definitions(main PRIVATE
@@ -111,6 +124,7 @@ target_link_options(main PRIVATE
 target_link_libraries(main
     raylib
     inbe
+    flint
     android
     log
     OpenSLES

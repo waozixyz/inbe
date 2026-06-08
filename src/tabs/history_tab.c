@@ -2,8 +2,8 @@
 #include "app.h"
 #include "data.h"
 #include "locale.h"
-#include "ui/ui.h"
-#include "ui/text_layout.h"
+#include "flint_ui.h"
+#include "flint_text_layout.h"
 #include "raylib.h"
 
 #include <dirent.h>
@@ -278,19 +278,19 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
     int hover = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
-        DrawRectangle(x, y, w, h, selected ? c_button_hover : ui_darken(c_button_hover, 6));
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        DrawRectangle(x, y, w, h, selected ? c_button_hover : flint_darken(c_button_hover, 6));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         hover = 1;
         app->cursor_clickable = 1;
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
     } else {
-        DrawRectangle(x, y, w, h, selected ? c_button : ui_darken(c_bg, 6));
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 28), ui_darken(c_button, 20));
+        DrawRectangle(x, y, w, h, selected ? c_button : flint_darken(c_bg, 6));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + ui_px(indent), y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
+    DrawText(text, x + flint_px(indent), y + flint_px(6), flint_clamp_px(14, 12, 16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -302,22 +302,22 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
     int hover = 0;
-    int font = ui_clamp_px(14, 12, 16);
+    int font = flint_clamp_px(14, 12, 16);
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
-        DrawRectangle(x, y, w, h, selected ? c_button_hover : ui_darken(c_button_hover, 6));
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        DrawRectangle(x, y, w, h, selected ? c_button_hover : flint_darken(c_button_hover, 6));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         hover = 1;
         app->cursor_clickable = 1;
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
     } else {
-        DrawRectangle(x, y, w, h, selected ? c_button : ui_darken(c_bg, 6));
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 28), ui_darken(c_button, 20));
+        DrawRectangle(x, y, w, h, selected ? c_button : flint_darken(c_bg, 6));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + ui_px(46), y + ui_px(6), font, c_text);
+    DrawText(text, x + flint_px(46), y + flint_px(6), font, c_text);
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return 1;
@@ -327,13 +327,13 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
 static int
 draw_history_day_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected)
 {
-    int icon_size = ui_clamp_px(16, 14, 20);
-    int icon_padding = ui_px(4);
+    int icon_size = flint_clamp_px(16, 14, 20);
+    int icon_padding = flint_px(4);
     int icon_btn_w = icon_size + icon_padding * 2;
-    int edit_x = x + w - icon_btn_w - ui_px(4);
+    int edit_x = x + w - icon_btn_w - flint_px(4);
     int edit_hover = 0;
 
-    if(draw_history_row(app, x, y, w - icon_btn_w - ui_px(8), h, text, selected, 34))
+    if(draw_history_row(app, x, y, w - icon_btn_w - flint_px(8), h, text, selected, 34))
         return 1;
 
     if(ui_draw_icon_btn_padded(app, edit_x, y + (h - icon_btn_w) / 2, icon_size, icon_padding,
@@ -347,10 +347,10 @@ static int
 draw_history_action_button(InbeApp *app, int right_x, int y, int row_h, int slot,
                            Texture2D icon, UIIconType icon_type)
 {
-    int icon_size = ui_clamp_px(16, 14, 20);
-    int icon_padding = ui_px(4);
+    int icon_size = flint_clamp_px(16, 14, 20);
+    int icon_padding = flint_px(4);
     int btn_w = icon_size + icon_padding * 2;
-    int gap = ui_px(4);
+    int gap = flint_px(4);
     int hover = 0;
     int x = right_x - (slot + 1) * btn_w - (slot + 1) * gap;
 
@@ -682,9 +682,9 @@ history_should_show_keyboard(const InbeApp *app)
 static int
 history_keyboard_height(void)
 {
-    int key_h = ui_clamp_px(42, 38, 54);
-    int gap = ui_px(6);
-    int pad = ui_px(10);
+    int key_h = flint_clamp_px(42, 38, 54);
+    int gap = flint_px(6);
+    int pad = flint_px(10);
     return pad * 2 + key_h * 4 + gap * 3;
 }
 
@@ -693,21 +693,21 @@ history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
-    int font = ui_clamp_px(16, 14, 18);
+    int font = flint_clamp_px(16, 14, 18);
     int text_w;
     int pressed = 0;
 
     if(CheckCollisionPointRec(mouse_world, bounds)) {
         DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_button_hover, 40), ui_lighten(c_button_hover, 40));
+        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         app->cursor_clickable = 1;
         if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-            ui_draw_bevel(x, y, w, h, ui_lighten(c_button_hover, 40), ui_darken(c_button_hover, 40));
+            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             pressed = 1;
     } else {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_lighten(c_button, 40), ui_darken(c_button, 40));
+        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
 
     text_w = MeasureText(label, font);
@@ -725,16 +725,16 @@ history_draw_keyboard(InbeApp *app, const HistoryEntry *entry)
         "DEL", "0", "OK"
     };
     int keyboard_h = history_keyboard_height();
-    int pad = ui_px(10);
-    int gap = ui_px(6);
-    int key_h = ui_clamp_px(42, 38, 54);
-    int x = ui_page_side_padding();
+    int pad = flint_px(10);
+    int gap = flint_px(6);
+    int key_h = flint_clamp_px(42, 38, 54);
+    int x = flint_page_side_padding();
     int y = view_height - keyboard_h;
     int w = view_width - x * 2;
     int key_w = (w - gap * 2) / 3;
 
-    DrawRectangle(0, y, view_width, keyboard_h, ui_darken(c_bg, 10));
-    DrawLine(0, y, view_width, y, ui_darken(c_bg, 42));
+    DrawRectangle(0, y, view_width, keyboard_h, flint_darken(c_bg, 10));
+    DrawLine(0, y, view_width, y, flint_darken(c_bg, 42));
 
     for(int i = 0; i < 12; i++) {
         int col = i % 3;
@@ -828,12 +828,12 @@ history_update_edit_input(InbeApp *app, const HistoryEntry *entry,
 static void
 history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, int w, int h)
 {
-    int font = ui_clamp_px(14, 12, 16);
+    int font = flint_clamp_px(14, 12, 16);
     int valid = 0;
-    int field_y = y + ui_px(3);
-    int field_h = h - ui_px(6);
-    int text_x = x + ui_px(8);
-    int text_y = y + ui_px(7);
+    int field_y = y + flint_px(3);
+    int field_h = h - flint_px(6);
+    int text_x = x + flint_px(8);
+    int text_y = y + flint_px(7);
     int caret_x;
 
     history_update_edit_input(app, entry, x, field_y, w, field_h, text_x, font);
@@ -852,16 +852,16 @@ history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, i
 
     history_clamp_edit_cursor(app);
 
-    DrawRectangle(x, field_y, w, field_h, ui_darken(c_bg, 10));
+    DrawRectangle(x, field_y, w, field_h, flint_darken(c_bg, 10));
     ui_draw_bevel(x, field_y, w, field_h,
-                  valid ? ui_lighten(c_button_hover, 35) : ui_lighten(c_button, 16),
-                  valid ? ui_darken(c_button_hover, 30) : ui_darken(c_button, 34));
+                  valid ? flint_lighten(c_button_hover, 35) : flint_lighten(c_button, 16),
+                  valid ? flint_darken(c_button_hover, 30) : flint_darken(c_button, 34));
     DrawText(app->history_edit_text, text_x, text_y, font, c_text);
     if((app->inbe.frame / 24) % 2 == 0) {
         char prefix[16];
         snprintf(prefix, sizeof(prefix), "%.*s", app->history_edit_cursor,
                  app->history_edit_text);
-        caret_x = text_x + MeasureText(prefix, font) + ui_px(1);
+        caret_x = text_x + MeasureText(prefix, font) + flint_px(1);
         DrawLine(caret_x, text_y, caret_x, text_y + font, c_text);
     }
 }
@@ -1067,7 +1067,7 @@ history_format_session_label(const HistoryEntry *entry, char *out, size_t out_si
 static void
 history_fit_session_label(const HistoryEntry *entry, int available_w, char *out, size_t out_size)
 {
-    int font = ui_clamp_px(14, 12, 16);
+    int font = flint_clamp_px(14, 12, 16);
 
     history_format_session_label(entry, out, out_size);
     if(view_width < 420 && MeasureText(out, font) > available_w)
@@ -1081,10 +1081,10 @@ history_tab_draw(InbeApp *app)
     HistoryEntry *keyboard_entry = NULL;
     int count = 0;
     int title_h = ui_screen_header_height();
-    int tab_h = ui_clamp_px(TAB_BAR_H, 54, 66);
+    int tab_h = flint_clamp_px(TAB_BAR_H, 54, 66);
     int keyboard_h = history_should_show_keyboard(app) ? history_keyboard_height() : 0;
     int viewport_h = view_height - title_h - tab_h - keyboard_h;
-    int row_h = ui_clamp_px(28, 24, 32);
+    int row_h = flint_clamp_px(28, 24, 32);
     int content_rows = 0;
     int content_h = 0;
     int max_scroll;
@@ -1168,15 +1168,15 @@ history_tab_draw(InbeApp *app)
     }
 
     /* Calculate content height with proper top and bottom padding */
-    content_h = ui_px(12);  /* Top padding */
+    content_h = flint_px(12);  /* Top padding */
     if(count > 0) {
         content_h += count * row_h;
     } else {
         content_h += viewport_h;
     }
     if(content_rows > 0)
-        content_h = ui_px(12) + content_rows * row_h;
-    content_h += ui_px(12);  /* Bottom padding */
+        content_h = flint_px(12) + content_rows * row_h;
+    content_h += flint_px(12);  /* Bottom padding */
     max_scroll = content_h - viewport_h;
     if(max_scroll < 0 || count == 0)
         max_scroll = 0;
@@ -1186,11 +1186,11 @@ history_tab_draw(InbeApp *app)
 
     /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
     int responsive_max_w = (int)(view_width * 0.96f);
-    int min_content_w = ui_px(320);
+    int min_content_w = flint_px(320);
     if(responsive_max_w < min_content_w)
         responsive_max_w = min_content_w;
-    int side_padding = ui_page_side_padding();
-    ui_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
+    int side_padding = flint_page_side_padding();
+    flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     close_clicked = ui_draw_screen_header(app, locale_get("history_title"), 1);
     if(close_clicked) {
@@ -1203,19 +1203,19 @@ history_tab_draw(InbeApp *app)
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
-        y = title_h + ui_px(12) - app->history_scroll;
+        y = title_h + flint_px(12) - app->history_scroll;
         if(count == 0) {
-            int font = ui_clamp_px(14, 12, 16);
+            int font = flint_clamp_px(14, 12, 16);
             const char *empty_text = locale_get("history_empty");
-            TextLayout empty_layout = ui_text_layout_parse(empty_text, (Texture2D){0}, UI_ICON_TYPE_NONE, font);
-            ui_text_layout_reflow(&empty_layout, content_w, font, ui_px(22));
-            ui_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
-            ui_text_layout_free(&empty_layout);
+            FlintTextLayout empty_layout = flint_text_layout_parse(empty_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
+            flint_text_layout_reflow(&empty_layout, content_w, font, flint_px(22));
+            flint_text_layout_draw(&empty_layout, content_x, &y, font, c_text);
+            flint_text_layout_free(&empty_layout);
         } else {
             if(app->history_level == HISTORY_LEVEL_EDIT_DAY && has_day) {
                 int return_hover = 0;
-                int icon_size = ui_clamp_px(16, 14, 20);
-                int icon_padding = ui_px(4);
+                int icon_size = flint_clamp_px(16, 14, 20);
+                int icon_padding = flint_px(4);
                 if(ui_draw_icon_btn_padded(app, content_x, y + (row_h - icon_size - icon_padding * 2) / 2,
                                            icon_size, icon_padding, app->return_icon,
                                            UI_ICON_TYPE_RETURN, &return_hover)) {
@@ -1228,15 +1228,15 @@ history_tab_draw(InbeApp *app)
                 {
                     char label[HISTORY_TEXT_SIZE];
                     locale_format(label, sizeof(label), "history_day_label", app->history_day);
-                    DrawText(label, content_x + icon_size + icon_padding * 2 + ui_px(10),
-                             y + ui_px(6), ui_clamp_px(14, 12, 16), c_text);
+                    DrawText(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
+                             y + flint_px(6), flint_clamp_px(14, 12, 16), c_text);
                 }
                 y += row_h;
 
                 for(int i = 0; i < count; i++) {
                     char time_label[HISTORY_TEXT_SIZE];
                     int right_edge = content_x + content_w;
-                    int label_w = content_w - ui_px(76);
+                    int label_w = content_w - flint_px(76);
                     if(entries[i].year != app->history_year ||
                        entries[i].month != app->history_month ||
                        entries[i].day != app->history_day)
@@ -1244,10 +1244,10 @@ history_tab_draw(InbeApp *app)
 
                     snprintf(time_label, sizeof(time_label), "%02d:%02d",
                              entries[i].hour, entries[i].minute);
-                    DrawRectangle(content_x, y, content_w, row_h, ui_darken(c_bg, 6));
-                    ui_draw_bevel(content_x, y, content_w, row_h, ui_lighten(c_button, 28), ui_darken(c_button, 20));
+                    DrawRectangle(content_x, y, content_w, row_h, flint_darken(c_bg, 6));
+                    ui_draw_bevel(content_x, y, content_w, row_h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
                     if(history_edit_matches(app, &entries[i], HISTORY_EDIT_TIME, -1)) {
-                        history_draw_edit_field(app, &entries[i], content_x + ui_px(8), y,
+                        history_draw_edit_field(app, &entries[i], content_x + flint_px(8), y,
                                                 label_w, row_h);
                         if(!app->history_edit_active) {
                             app->history_scroll = 0;
@@ -1263,8 +1263,8 @@ history_tab_draw(InbeApp *app)
                             }
                         }
                     } else {
-                        DrawText(time_label, content_x + ui_px(10), y + ui_px(6),
-                                 ui_clamp_px(14, 12, 16), c_text);
+                        DrawText(time_label, content_x + flint_px(10), y + flint_px(6),
+                                 flint_clamp_px(14, 12, 16), c_text);
                         if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                       app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                             history_begin_edit_time(app, &entries[i]);
@@ -1281,11 +1281,11 @@ history_tab_draw(InbeApp *app)
                     for(int r = 0; r < entries[i].round_count; r++) {
                         char round_label[HISTORY_TEXT_SIZE];
                         history_format_round_label(&entries[i], r, round_label, sizeof(round_label));
-                        DrawRectangle(content_x, y, content_w, row_h, ui_darken(c_bg, 4));
-                        ui_draw_bevel(content_x, y, content_w, row_h, ui_lighten(c_button, 24), ui_darken(c_button, 18));
+                        DrawRectangle(content_x, y, content_w, row_h, flint_darken(c_bg, 4));
+                        ui_draw_bevel(content_x, y, content_w, row_h, flint_lighten(c_button, 24), flint_darken(c_button, 18));
                         if(history_edit_matches(app, &entries[i], HISTORY_EDIT_ROUND, r)) {
-                            history_draw_edit_field(app, &entries[i], content_x + ui_px(20), y,
-                                                    label_w - ui_px(12), row_h);
+                            history_draw_edit_field(app, &entries[i], content_x + flint_px(20), y,
+                                                    label_w - flint_px(12), row_h);
                             if(!app->history_edit_active) {
                                 app->history_scroll = 0;
                                 EndScissorMode();
@@ -1300,8 +1300,8 @@ history_tab_draw(InbeApp *app)
                                 }
                             }
                         } else {
-                            DrawText(round_label, content_x + ui_px(22), y + ui_px(6),
-                                     ui_clamp_px(14, 12, 16), c_text);
+                            DrawText(round_label, content_x + flint_px(22), y + flint_px(6),
+                                     flint_clamp_px(14, 12, 16), c_text);
                             if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                           app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                                 history_begin_edit_round(app, &entries[i], r);
@@ -1393,7 +1393,7 @@ history_tab_draw(InbeApp *app)
 
                     snprintf(record_name, sizeof(record_name), "inbe-%02d%02d%02d",
                              entries[i].hour, entries[i].minute, entries[i].second);
-                    history_fit_session_label(&entries[i], content_w - ui_px(56), time_label, sizeof(time_label));
+                    history_fit_session_label(&entries[i], content_w - flint_px(56), time_label, sizeof(time_label));
                     selected = strcmp(app->history_record, record_name) == 0;
                     result = draw_history_session_row(app, content_x, y, content_w, row_h, time_label, selected);
 
@@ -1423,12 +1423,12 @@ history_tab_draw(InbeApp *app)
 
     /* Draw scrollbar if needed */
     if(max_scroll > 0) {
-        int scrollbar_w = ui_clamp_px(6, 4, 8);
+        int scrollbar_w = flint_clamp_px(6, 4, 8);
         int scrollbar_h = (viewport_h * viewport_h) / (content_h + viewport_h);
-        int scrollbar_x = content_x + content_w + ui_px(10);
+        int scrollbar_x = content_x + content_w + flint_px(10);
         int scrollbar_y = title_h + (app->history_scroll * (viewport_h - scrollbar_h)) / max_scroll;
 
-        DrawRectangle(scrollbar_x, scrollbar_y, scrollbar_w, scrollbar_h, ui_darken(c_text, 40));
+        DrawRectangle(scrollbar_x, scrollbar_y, scrollbar_w, scrollbar_h, flint_darken(c_text, 40));
     }
 
     if(history_should_show_keyboard(app) && keyboard_entry != NULL) {

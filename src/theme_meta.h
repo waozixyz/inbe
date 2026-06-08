@@ -1,25 +1,21 @@
 #ifndef THEME_META_H
 #define THEME_META_H
 
-#define THEME_COUNT 6
+#include "flint_theme_meta.h"
+
+#define THEME_COUNT FLINT_THEME_COUNT
 
 typedef enum {
-    ThemeSky = 0,
-    ThemeOcean = 1,
-    ThemeForest = 2,
-    ThemeSunset = 3,
-    ThemeLavender = 4,
-    ThemeCherry = 5
+    ThemeSky = FLINT_THEME_SKY,
+    ThemeOcean = FLINT_THEME_OCEAN,
+    ThemeForest = FLINT_THEME_FOREST,
+    ThemeSunset = FLINT_THEME_SUNSET,
+    ThemeLavender = FLINT_THEME_LAVENDER,
+    ThemeCherry = FLINT_THEME_CHERRY
 } ThemeId;
 
-typedef struct {
-    const char *name;
-    const char *light_scope;
-    const char *dark_scope;
-    const char *light_path;
-    const char *dark_path;
-} ThemeMeta;
+typedef FlintThemeMeta ThemeMeta;
 
-extern const ThemeMeta g_themes[THEME_COUNT];
+#define g_themes flint_themes
 
 #endif

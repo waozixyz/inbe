@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "locale.h"
-#include "ui/ui.h"
+#include "flint_ui.h"
 #include "raylib.h"
 
 extern int view_width;
@@ -36,9 +36,9 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
     build_language_options(g_language_options, 64, &g_language_option_count);
     if(g_language_option_count <= 0) {
         DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, ui_darken(c_bg, 30), ui_lighten(c_bg, 20));
-        DrawText(locale_get("language_label"), x + ui_px(12), y + h / 2 - ui_clamp_px(14, 12, 16) / 2 - 1,
-                 ui_clamp_px(14, 12, 16), c_text);
+        ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
+        DrawText(locale_get("language_label"), x + flint_px(12), y + h / 2 - flint_clamp_px(14, 12, 16) / 2 - 1,
+                 flint_clamp_px(14, 12, 16), c_text);
         return 0;
     }
 
@@ -57,12 +57,12 @@ language_dropdown_menu(InbeApp *app, int id)
 void
 language_tab_draw(InbeApp *app)
 {
-    int title_font = ui_clamp_px(22, 18, 26);
-    int label_font = ui_clamp_px(14, 12, 16);
+    int title_font = flint_clamp_px(22, 18, 26);
+    int label_font = flint_clamp_px(14, 12, 16);
     int title_w;
     int content_x;
     int content_w;
-    int dropdown_h = ui_px(36);
+    int dropdown_h = flint_px(36);
     int dropdown_w;
     int dropdown_x;
     int dropdown_y;
@@ -78,19 +78,19 @@ language_tab_draw(InbeApp *app)
     if(*selected_index < 0 || *selected_index >= language_count)
         *selected_index = 0;
 
-    ui_centered_column(ui_px(340), ui_page_side_padding(), &content_x, &content_w);
+    flint_centered_column(flint_px(340), flint_page_side_padding(), &content_x, &content_w);
     dropdown_w = content_w;
     dropdown_x = content_x;
     dropdown_y = view_height / 2 - dropdown_h / 2;
     button_x = view_width / 2;
-    button_y = dropdown_y + ui_px(64);
+    button_y = dropdown_y + flint_px(64);
 
     if(language_dropdown_button(app, 200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index))
         selection_changed = 1;
 
     title_w = MeasureText(locale_get("language_picker_title"), title_font);
-    DrawText(locale_get("language_picker_title"), view_width / 2 - title_w / 2, ui_px(28), title_font, c_text);
-    DrawText(locale_get("language_label"), dropdown_x, dropdown_y - ui_px(24), label_font, c_text);
+    DrawText(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
+    DrawText(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
 
     if(ui_draw_text_btn(app, button_x, button_y, locale_get("next_button"), &next_hover)) {
         if(!app->tutorial_seen)
