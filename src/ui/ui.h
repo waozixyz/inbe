@@ -37,7 +37,7 @@ void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hover, Color icon);
 /* DPI scaling, color, and layout functions now from Flint: flint_px, flint_clamp_px, flint_lighten, flint_darken, flint_centered_column, flint_page_side_padding */
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
-void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h);
+void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h, Color color);
 /* Icon fallback drawing now from Flint: flint_draw_icon_fallback */
 int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
