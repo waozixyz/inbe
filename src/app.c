@@ -780,6 +780,16 @@ load_icon_texture(const char *name)
 }
 
 static Texture2D
+get_sound_icon_for_volume(InbeApp *app)
+{
+    int vol = app->sound_volume;
+    if(vol <= 0) return app->sound0_icon;
+    if(vol <= 25) return app->sound1_icon;
+    if(vol <= 75) return app->sound2_icon;
+    return app->sound3_icon;
+}
+
+static Texture2D
 load_asset_texture(const char *name)
 {
     char path[64];
@@ -1337,6 +1347,19 @@ inbe_app_init(void *vapp) {
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
     }
+    if(app->sound0_icon.id == 0) {
+        app->sound0_icon = load_icon_texture("sound0.png");
+    }
+    if(app->sound1_icon.id == 0) {
+        app->sound1_icon = load_icon_texture("sound1.png");
+    }
+    if(app->sound2_icon.id == 0) {
+        app->sound2_icon = load_icon_texture("sound2.png");
+    }
+    if(app->sound3_icon.id == 0) {
+        app->sound3_icon = load_icon_texture("sound3.png");
+    }
+    app->volume_popup_active = 0;
 
     ui_set_icons(app->gear_icon, app->x_icon);
 
@@ -1520,6 +1543,60 @@ updateapp(InbeApp *app)
         if(ui_draw_icon_btn_padded(app, flint_px(12), flint_px(12), flint_px(24),
                                    flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
+        }
+
+        /* Sound volume button at top-right */
+        int sound_btn_x = view_width - flint_px(56);  /* More padding from right edge */
+        int sound_btn_y = flint_px(12);
+        int sound_btn_size = flint_px(24);
+        int sound_btn_padding = flint_px(10);
+
+        int sound_hover = 0;
+        Texture2D sound_icon = get_sound_icon_for_volume(app);
+        if(ui_draw_icon_btn_padded(app, sound_btn_x, sound_btn_y, sound_btn_size,
+                                   sound_btn_padding, sound_icon, UI_ICON_TYPE_SOUND, &sound_hover)) {
+            app->volume_popup_active = !app->volume_popup_active;
+        }
+
+        /* Volume slider popup */
+        if(app->volume_popup_active) {
+            int popup_x = sound_btn_x;
+            int popup_y = sound_btn_y + sound_btn_size + flint_px(8);  /* Fixed: removed extra padding, added proper spacing */
+            int popup_w = flint_px(44);
+            int popup_h = flint_px(200);
+
+            /* Check if click outside popup - close it */
+            Vector2 mouse = GetMousePosition();
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+                if(mouse.x < popup_x || mouse.x > popup_x + popup_w ||
+                   mouse.y < popup_y || mouse.y > popup_y + popup_h) {
+                    app->volume_popup_active = 0;
+                }
+            }
+
+            /* Draw popup background */
+            DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_button);
+            ui_draw_bevel(popup_x, popup_y, popup_w, popup_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+
+            /* Draw vertical slider using Flint UI function */
+            int slider_x = popup_x + popup_w / 2;
+            int slider_y = popup_y + flint_px(10);
+            int slider_h = popup_h - flint_px(20);
+
+            if(ui_draw_slider_vertical(app, 500, slider_x, slider_y, slider_h,
+                                       SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &app->sound_volume)) {
+                /* Volume changed - apply to active sounds */
+                app->settings_dirty = 1;
+                update_session_sounds(app);
+            }
+
+            /* Draw volume level indicator lines */
+            int track_w = flint_px(8);
+            int track_x = slider_x - track_w / 2;
+            for(int i = 1; i <= 3; i++) {
+                int line_y = slider_y + (slider_h * i / 4) - flint_px(1);
+                DrawRectangle(track_x - flint_px(3), line_y, track_w + flint_px(6), flint_px(2), c_icon);
+            }
         }
 
         if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
@@ -1843,6 +1920,10 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->save_icon);
     SafeUnloadTexture(app->telegram_icon);
     SafeUnloadTexture(app->monero_icon);
+    SafeUnloadTexture(app->sound0_icon);
+    SafeUnloadTexture(app->sound1_icon);
+    SafeUnloadTexture(app->sound2_icon);
+    SafeUnloadTexture(app->sound3_icon);
     SafeUnloadTexture(app->angel_image);
     SafeUnloadTexture(app->begin_image);
     SafeUnloadTexture(app->font_shapes_texture);

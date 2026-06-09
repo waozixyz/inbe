@@ -190,6 +190,12 @@ Inner Breeze 是一款简单的呼吸冥想应用，帮助你放松并平静下�
 [toggle_on]
 开
 ---
+[theme_light]
+浅色
+---
+[theme_dark]
+深色
+---
 [on_screen_keyboard_label]
 屏幕键盘
 ---
@@ -214,6 +220,7 @@ Inner Breeze 是一款简单的呼吸冥想应用，帮助你放松并平静下�
 ---
 [history_session_label]
 %02d:%02d  平均 %ds
+---
 [tutorial_title]
 教程
 ---

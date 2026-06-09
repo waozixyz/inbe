@@ -26,8 +26,7 @@ static const char *const TUTORIAL_KEYS[] = {
 };
 
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
-
-static const int TUTORIAL_LINE_SPACING[] = { 28, 24, 24, 24, 28, 28 };
+#define TUTORIAL_LINE_SPACING flint_px(8)  /* Normal readable line spacing */
 
 static int
 draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char *label, int *hover)
@@ -111,6 +110,7 @@ manual_tab_draw(InbeApp *app)
     int viewport_h = view_height - title_h - tab_h;
     int body_font = flint_ui_font();
     int footer_content_pad = flint_ui_font() / 2;
+    int content_area_h = viewport_h - footer_content_pad;  /* For scissor mode and scroll calculations */
     int previous_step;
     int content_x;
     int content_w;
@@ -149,10 +149,9 @@ manual_tab_draw(InbeApp *app)
     default: break;
     }
 
-    /* Content width responds to window size - with DPI scaling consideration */
-    /* On high-DPI Android, view_width is already large, so we use a reasonable percentage */
+    /* Calculate responsive content width */
     int responsive_max_w = (int)(view_width * 0.96f);
-    int max_content_w = flint_px(CONTENT_MAX_W);  /* DPI-scaled max width */
+    int max_content_w = flint_px(CONTENT_MAX_W);
     if(responsive_max_w > max_content_w)
         responsive_max_w = max_content_w;
     int min_width = flint_px(280);
@@ -162,14 +161,14 @@ manual_tab_draw(InbeApp *app)
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    /* Auto-reflow every frame - like HTML, no tracking needed */
+    /* Auto-reflow every frame */
     if(!app->tutorial_layouts_initialized) {
         init_tutorial_layouts(app, body_font);
     }
 
-    /* Reflow all layouts for current container width - automatic like CSS */
+    /* Reflow all layouts for current container width */
     for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-        flint_text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, flint_px(TUTORIAL_LINE_SPACING[i]));
+        flint_text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, TUTORIAL_LINE_SPACING);
     }
 
     close_clicked = ui_draw_screen_header(app, title, 1);
@@ -180,12 +179,11 @@ manual_tab_draw(InbeApp *app)
     /* Don't include padding in this calculation - it's handled separately */
     int actual_content_h = 0;  /* Content only, no padding */
     if(step == 0) {
-        actual_content_h += flint_px(200) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[0]);
-        /* Image height must match drawing code which uses flint_px(200), not flint_px(224) */
+        actual_content_h += flint_px(170) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[0]);
     } else if(step == 1) {
         /* Step 1 uses a fresh gear_layout for drawing - calculate height from it */
         FlintTextLayout temp_gear = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, flint_px(14));
-        flint_text_layout_reflow(&temp_gear, content_w, body_font, flint_px(24));
+        flint_text_layout_reflow(&temp_gear, content_w, body_font, TUTORIAL_LINE_SPACING);
         actual_content_h += flint_text_layout_get_height(&temp_gear);
         flint_text_layout_free(&temp_gear);
     } else if(step == 2) {
@@ -205,16 +203,18 @@ manual_tab_draw(InbeApp *app)
     } else if(step == 4) {
         actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[4]);
     } else {
-        actual_content_h += flint_px(234) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[5]);
+        actual_content_h += flint_px(200) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[5]);
     }
-    int available_content_space = viewport_h - footer_content_pad - flint_px(16) - flint_px(16);
-    int old_max_scroll = 0;
-    int max_scroll = actual_content_h - available_content_space;
+    /* Calculate scroll range for virtual content space */
+    int top_padding = flint_px(16);
+    int total_content_h = actual_content_h + top_padding;
+    int viewport_content_h = content_area_h;
+    int max_scroll = total_content_h - viewport_content_h;
     if(max_scroll < 0)
         max_scroll = 0;
 
     /* Reset scroll position if content now fits in viewport */
-    if(max_scroll == 0 && old_max_scroll > 0) {
+    if(max_scroll == 0) {
         app->manual_scroll = 0;
     }
     /* Clamp scroll position to new max */
@@ -229,8 +229,6 @@ manual_tab_draw(InbeApp *app)
 
     Vector2 mouse_pos = GetMousePosition();
     int content_area_y = title_h;
-    int content_area_h = viewport_h - footer_content_pad;
-
     Rectangle content_bounds = {content_x, content_area_y, content_w, content_area_h};
 
     if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
@@ -257,7 +255,7 @@ manual_tab_draw(InbeApp *app)
                      (int)(content_area_h * app->camera.zoom));
         int y = title_h + flint_px(16) - app->manual_scroll;
         if(step == 0) {
-            int img_h = flint_px(200);
+            int img_h = flint_px(170);
             ui_draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
 
@@ -268,7 +266,7 @@ manual_tab_draw(InbeApp *app)
             /* Step 1 text with gear icon - parse fresh each frame for proper icon binding */
             int icon_size = flint_px(14);
             FlintTextLayout gear_layout = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, icon_size);
-            flint_text_layout_reflow(&gear_layout, content_w, body_font, flint_px(24));
+            flint_text_layout_reflow(&gear_layout, content_w, body_font, TUTORIAL_LINE_SPACING);
             flint_text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
             flint_text_layout_free(&gear_layout);
         } else if(step == 2) {
@@ -327,7 +325,7 @@ manual_tab_draw(InbeApp *app)
                 flint_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
             }
         } else {
-            int img_h = flint_px(234);
+            int img_h = flint_px(200);
             ui_draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[5] != NULL) {
@@ -338,9 +336,12 @@ manual_tab_draw(InbeApp *app)
 
     /* Draw scrollbar if content overflows */
     if(max_scroll > 0) {
-        int scrollbar_x = content_x + content_w + flint_px(4);  /* Reduced spacing */
-        int scrollbar_viewport = available_content_space;  /* Scrollable area only */
-        ui_draw_scrollbar(app, scrollbar_x, title_h + flint_px(16), scrollbar_viewport, actual_content_h,
+        /* Transform world coordinates to screen coordinates for scrollbar function */
+        int scrollbar_x = (int)(app->camera.offset.x + (content_x + content_w + flint_px(4)) * app->camera.zoom);
+        int scrollbar_y = (int)(app->camera.offset.y + title_h * app->camera.zoom);
+        int scrollbar_viewport = (int)(content_area_h * app->camera.zoom);  /* Scaled by camera zoom */
+        int total_content_screen_h = (int)(total_content_h * app->camera.zoom);  /* Also scaled for ratio calculations */
+        ui_draw_scrollbar(app, scrollbar_x, scrollbar_y, scrollbar_viewport, total_content_screen_h,
                           &app->manual_scroll, max_scroll);
     }
 

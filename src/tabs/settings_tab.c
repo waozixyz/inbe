@@ -79,7 +79,7 @@ draw_category_card(InbeApp *app, const char *title, const char *description,
     DrawText(title, (int)rect.x + padding_x, title_y, title_font, c_text);
 
     FlintTextLayout desc_layout = flint_text_layout_parse(description, (Texture2D){0}, FLINT_ICON_TYPE_NONE, desc_font);
-    flint_text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(18));
+    flint_text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(8));
     int desc_y = title_y + title_font + flint_px(8);
     flint_text_layout_draw(&desc_layout, (int)rect.x + padding_x, &desc_y, desc_font, flint_darken(c_text, 30));
     flint_text_layout_free(&desc_layout);
@@ -184,20 +184,30 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
     DrawText(label, x, y, font, c_text);
 
     /* Light/Dark toggle */
-    int toggle_w = flint_px(100);
+    const char *theme_light_label = locale_get("theme_light");
+    const char *theme_dark_label = locale_get("theme_dark");
+    int theme_light_w = MeasureText(theme_light_label, font);
+    int theme_dark_w = MeasureText(theme_dark_label, font);
+    int max_label_w = (theme_light_w > theme_dark_w ? theme_light_w : theme_dark_w);
+
+    /* Calculate toggle width based on text measurements with padding */
+    int toggle_w = max_label_w * 2 + flint_px(32);  /* Space for both labels + padding */
+    int min_toggle_w = flint_px(100);  /* Minimum width */
+    if(toggle_w < min_toggle_w) toggle_w = min_toggle_w;
+
     int toggle_h = flint_px(28);
-    int toggle_x = x + w - toggle_w;
+    int toggle_x = x + w - toggle_w - flint_px(8);  /* Right-aligned with reduced margin */
     int toggle_y = y - 2;
 
     if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+                             theme_light_label, theme_dark_label)) {
         refresh_theme_colors(app->theme_id, app->dark_mode);
         app->settings_dirty = 1;
     }
 
     int circle_size = flint_px(36);
-    int circle_spacing = flint_px(24);
-    int row_spacing = flint_px(36);
+    int circle_spacing = flint_px(32);
+    int row_spacing = flint_px(48);
     int per_row = 3;
     int row_width = per_row * circle_size + (per_row - 1) * circle_spacing;
     int start_x = x + (w - row_width) / 2;
@@ -744,7 +754,7 @@ settings_tab_draw(InbeApp *app)
                     /* App description */
                     const char *desc_text = locale_get("about_description");
                     FlintTextLayout desc_layout = flint_text_layout_parse(desc_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
-                    flint_text_layout_reflow(&desc_layout, content_w, font, flint_px(22));
+                    flint_text_layout_reflow(&desc_layout, content_w, font, flint_px(10));
                     flint_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
                     flint_text_layout_free(&desc_layout);
 

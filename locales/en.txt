@@ -192,6 +192,12 @@ OFF
 [toggle_on]
 ON
 ---
+[theme_light]
+Light
+---
+[theme_dark]
+Dark
+---
 [on_screen_keyboard_label]
 On-screen keyboard
 ---
@@ -216,6 +222,7 @@ R%d  %ds
 ---
 [history_session_label]
 %02d:%02d  avg %ds
+---
 [tutorial_title]
 Tutorial
 ---
