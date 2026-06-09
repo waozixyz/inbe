@@ -1,8 +1,10 @@
 en|English
+es|Español
 cs|Čeština
 de|Deutsch
-es|Español
 fr|Français
-ja|日本語
-zh|中文
+id|Bahasa Indonesia
 pt|Português
+ja|日本語
+ko|한국어
+zh|中文

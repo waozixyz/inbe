@@ -75,7 +75,7 @@ draw_category_card(InbeApp *app, const char *title, const char *description,
     while(title_font > flint_px(12) && MeasureText(title, title_font) > text_w) {
         title_font--;
     }
-    int title_y = (int)rect.y + padding_y;
+    int title_y = flint_ui_text_y(title, (int)rect.y + padding_y, title_font, title_font);
     DrawText(title, (int)rect.x + padding_x, title_y, title_font, c_text);
 
     FlintTextLayout desc_layout = flint_text_layout_parse(description, (Texture2D){0}, FLINT_ICON_TYPE_NONE, desc_font);
@@ -519,6 +519,8 @@ settings_tab_draw(InbeApp *app)
                                    SETTINGS_VOLUME_MAX, &sound_volume, "")) {
                         app->sound_volume = sound_volume;
                         app->settings_dirty = 1;
+                        /* IMMEDIATE SAVE: Persist volume change right away */
+                        save_settings(app);
                     }
 
 #ifdef __ANDROID__
