@@ -44,21 +44,23 @@ android-release:
 	$(MAKE) android-copy-assets
 	@if [ -n "$(PASSWORD)" ]; then \
 		PASSWORD_VALUE="$(PASSWORD)"; \
+		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		$(MAKE) android-copy-release-apks; \
 	elif [ -t 0 ]; then \
 		printf "Keystore password: "; \
 		stty -echo; \
 		read PASSWORD_VALUE; \
 		stty echo; \
 		printf "\n"; \
+		if [ -n "$$PASSWORD_VALUE" ]; then \
+			unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+			$(MAKE) android-copy-release-apks; \
+		else \
+			echo "Keystore password is required"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
-		exit 1; \
-	fi; \
-	if [ -n "$$PASSWORD_VALUE" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) assembleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
-		$(MAKE) android-copy-release-apks; \
-	else \
-		echo "Keystore password is required"; \
 		exit 1; \
 	fi
 
@@ -66,21 +68,23 @@ android-bundle:
 	$(MAKE) android-copy-assets
 	@if [ -n "$(PASSWORD)" ]; then \
 		PASSWORD_VALUE="$(PASSWORD)"; \
+		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+		$(MAKE) android-copy-bundle; \
 	elif [ -t 0 ]; then \
 		printf "Keystore password: "; \
 		stty -echo; \
 		read PASSWORD_VALUE; \
 		stty echo; \
 		printf "\n"; \
+		if [ -n "$$PASSWORD_VALUE" ]; then \
+			unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
+			$(MAKE) android-copy-bundle; \
+		else \
+			echo "Keystore password is required"; \
+			exit 1; \
+		fi; \
 	else \
 		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
-		exit 1; \
-	fi; \
-	if [ -n "$$PASSWORD_VALUE" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p $(ANDROID_DIR) bundleRelease -Pkeystore.password="$$PASSWORD_VALUE" || exit $$?; \
-		$(MAKE) android-copy-bundle; \
-	else \
-		echo "Keystore password is required"; \
 		exit 1; \
 	fi
 
