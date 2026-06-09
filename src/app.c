@@ -937,7 +937,7 @@ start_session(InbeApp *app)
     /* Save user's pause preference and use 3 seconds for first round */
     app->saved_pause_seconds = app->inbe.pause_seconds;
     app->inbe.pause_seconds = 3;
-    update_circle_bounds_for_view(&app->inbe, 0, flint_clamp_px(TAB_BAR_H, 54, 66) + 80);
+    update_circle_bounds_for_view(&app->inbe, 0, flint_px(56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
@@ -1136,7 +1136,7 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 {
     char text[CountSize];
     int count;
-    int font = flint_clamp_px(20, 18, 24);
+    int font = flint_px(16);
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -1196,7 +1196,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     if(remaining < 1)
         remaining = 1;
 
-    int font = flint_clamp_px(18, 16, 20);
+    int font = flint_px(16);
     /* Calculate fixed width based on maximum possible value */
     locale_format(max_text, sizeof(max_text), "starting_in", 30);
     max_text_w = MeasureText(max_text, font);
@@ -1245,15 +1245,15 @@ inbe_app_init(void *vapp) {
     ui_init(view_width, view_height, flint_dpi_scale());
 
     inbeinit(&app->inbe);
-    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  flint_clamp_px(TAB_BAR_H, 54, 66) + flint_px(80));
+    update_circle_bounds_for_view(&app->inbe, flint_px(48),
+                                  flint_px(56) + flint_px(80));
     load_settings(app);
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  flint_clamp_px(TAB_BAR_H, 54, 66) + 80);
+    update_circle_bounds_for_view(&app->inbe, flint_px(48),
+                                  flint_px(56) + 80);
     data_init();
     init_audio(app);
     app->camera = (Camera2D){0};
@@ -1486,15 +1486,15 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenStart) {
-        update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                      flint_clamp_px(TAB_BAR_H, 54, 66) + 96);
+        update_circle_bounds_for_view(&app->inbe, flint_px(48),
+                                      flint_px(56) + 96);
     } else if(app->inbe.screen == InbeScreenSession) {
         update_circle_bounds_for_view(&app->inbe, 0, 84);
     }
 
     if(app->inbe.screen != InbeScreenResults)
         drawinbe(app, center_x, center_y);
-    int title_font = flint_clamp_px(30, 24, 34);
+    int title_font = flint_px(32);
     int title_w = 30;
 
 
@@ -1505,7 +1505,7 @@ updateapp(InbeApp *app)
 
         {
             int play_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(20);
-            int play_limit = view_height - flint_clamp_px(TAB_BAR_H, 54, 66) - flint_px(48);
+            int play_limit = view_height - flint_px(56) - flint_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
             if (ui_draw_text_btn(app, center_x, play_y, locale_get("play_button"), &hover)) {
@@ -1517,7 +1517,7 @@ updateapp(InbeApp *app)
 
     case InbeScreenSession: {
         int return_hover = 0;
-        if(ui_draw_icon_btn_padded(app, flint_px(12), flint_px(12), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX),
+        if(ui_draw_icon_btn_padded(app, flint_px(12), flint_px(12), flint_px(24),
                                    flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
         }
@@ -1594,7 +1594,7 @@ updateapp(InbeApp *app)
         int breath_max_y = view_height - flint_px(44);
 
         if(app->advanced_session_controls) {
-        int control_size = flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX);
+        int control_size = flint_px(24);
         int control_padding = flint_px(10);
         int control_gap = flint_px(12);
         int min_view_dim = view_width < view_height ? view_width : view_height;
@@ -1686,7 +1686,7 @@ updateapp(InbeApp *app)
             int box_y = flint_px(78);
             int box_w;
             int row_y = flint_px(200);
-            int row_h = flint_clamp_px(32, 28, 36);
+            int row_h = flint_px(32);
             int total = 0;
             int best = -1;
             int round_times[MaxRounds];
@@ -1727,13 +1727,13 @@ updateapp(InbeApp *app)
             {
                 char line[64];
                 locale_format(line, sizeof(line), "results_rounds", rounds);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(10), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), c_text);
                 locale_format(line, sizeof(line), "results_best", best);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(ICON_SIZE_SMALL), c_text);
                 locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
-                if(view_width < 420 && MeasureText(line, flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX)) > box_w - flint_px(20))
+                if(view_width < 420 && MeasureText(line, flint_px(16)) > box_w - flint_px(20))
                     snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(ICON_SIZE_SMALL), c_text);
             }
 
             DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_ui_font(), flint_darken(c_text, 20));
@@ -1783,8 +1783,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 #if defined(LOTUS_BUILD)
     sync_lotus_settings(app);
 #endif
-    update_circle_bounds_for_view(&app->inbe, flint_clamp_px(SETTINGS_TITLE_H, 48, 60),
-                                  flint_clamp_px(TAB_BAR_H, 54, 66) + flint_px(80));
+    update_circle_bounds_for_view(&app->inbe, flint_px(48),
+                                  flint_px(56) + flint_px(80));
 
     app->cursor_clickable = 0;
     app->camera.zoom = 1.0f;

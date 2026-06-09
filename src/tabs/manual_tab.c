@@ -107,7 +107,7 @@ void
 manual_tab_draw(InbeApp *app)
 {
     int title_h = ui_screen_header_height();
-    int tab_h = flint_clamp_px(54, 54, 66);
+    int tab_h = flint_px(56);
     int viewport_h = view_height - title_h - tab_h;
     int body_font = flint_ui_font();
     int footer_content_pad = flint_ui_font() / 2;
@@ -200,7 +200,7 @@ manual_tab_draw(InbeApp *app)
         if(preview_rmax > flint_px(120)) preview_rmax = flint_px(120);
         /* Circle is drawn at y+flint_px(40) with radius 0.72*preview_rmax */
         actual_content_h += flint_px(40) + (int)((float)preview_rmax * 0.72f) + flint_px(14);
-        int slider_h = flint_clamp_px(36, 32, 40);
+        int slider_h = flint_px(40);
         actual_content_h += slider_h + flint_px(8);
     } else if(step == 4) {
         actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[4]);
