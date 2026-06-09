@@ -1,4 +1,8 @@
 # Changelog
+## [1.2.0] - 2026-06-08
+### Added
+- Flint-based UI and theme system
+
 ## [1.1.9] - 2026-06-04
 ### Added
 - Hierarchical settings organization with 3 main categories

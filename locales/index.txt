@@ -1,5 +1,8 @@
 en|English
+cs|Čeština
 de|Deutsch
 es|Español
 fr|Français
+ja|日本語
+zh|中文
 pt|Português

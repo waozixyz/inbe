@@ -198,9 +198,11 @@ R%d  %ds
 ---
 [history_session_label]
 %02d:%02d  durchschn. %ds
----
 [tutorial_title]
-Tutorial
+Anleitung
+---
+[tutorial_page_label]
+%d/%d
 ---
 [tutorial_method_title]
 Methode

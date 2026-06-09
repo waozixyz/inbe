@@ -14,6 +14,7 @@ android-init-signing:
 	@echo "  keystore.path=$$HOME/.android/inbe-release.keystore"
 
 android-copy-assets:
+	$(MAKE) $(FONT_FILES)
 	rm -rf $(ANDROID_DIR)/app/src/main/assets
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets
 	cp $(CONFIG_FILES) $(ANDROID_DIR)/app/src/main/assets/
@@ -29,6 +30,8 @@ android-copy-assets:
 	done
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets
 	cp $(IMAGE_FILES) $(ANDROID_DIR)/app/src/main/assets/assets/
+	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets/fonts
+	cp $(FONT_FILES) $(ANDROID_DIR)/app/src/main/assets/assets/fonts/
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets/sounds
 	cp $(SOUND_FILES) $(ANDROID_DIR)/app/src/main/assets/assets/sounds/
 

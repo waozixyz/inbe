@@ -14,6 +14,7 @@
 #include "flint_ui.h"
 #include "flint_text_layout.h"
 #include "flint_dpi.h"
+
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
 #endif
@@ -21,6 +22,7 @@
 
 #include <dirent.h>
 #include <limits.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -51,6 +53,10 @@ InbeConfig config = {
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
 Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+
+#define LOCALE_FONT_PNG "assets/fonts/locales.png"
+#define LOCALE_FONT_DAT "assets/fonts/locales.dat"
+#define LOCALE_FONT_BASE_SIZE 16
 
 /* Forward declarations for tab callbacks */
 void reset_settings_preview(InbeApp *app);
@@ -112,6 +118,126 @@ static UITab g_tabs[] = {
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
+
+typedef struct ChoppedGlyph {
+    int32_t value;
+    int32_t x;
+    int32_t y;
+    int32_t w;
+    int32_t h;
+    int32_t offsetX;
+    int32_t offsetY;
+    int32_t advanceX;
+} ChoppedGlyph;
+
+static Font
+load_chopped_font(const char *png_path, const char *dat_path)
+{
+    Font font = {0};
+    FILE *file = NULL;
+    ChoppedGlyph *glyphs = NULL;
+    GlyphInfo *glyph_infos = NULL;
+    Rectangle *recs = NULL;
+    int32_t glyph_count = 0;
+    Image image = {0};
+    Texture2D texture = {0};
+
+    file = fopen(dat_path, "rb");
+    if(file == NULL)
+        return font;
+
+    if(fread(&glyph_count, sizeof(glyph_count), 1, file) != 1 || glyph_count <= 0) {
+        fclose(file);
+        return font;
+    }
+
+    glyphs = calloc((size_t)glyph_count, sizeof(*glyphs));
+    glyph_infos = calloc((size_t)glyph_count, sizeof(*glyph_infos));
+    recs = calloc((size_t)glyph_count, sizeof(*recs));
+    if(glyphs == NULL || glyph_infos == NULL || recs == NULL)
+        goto cleanup;
+
+    if(fread(glyphs, sizeof(*glyphs), (size_t)glyph_count, file) != (size_t)glyph_count)
+        goto cleanup;
+    fclose(file);
+    file = NULL;
+
+    image = LoadImage(png_path);
+    if(image.data == NULL)
+        goto cleanup;
+
+    texture = LoadTextureFromImage(image);
+    UnloadImage(image);
+    image = (Image){0};
+    if(texture.id == 0)
+        goto cleanup;
+    SetTextureFilter(texture, TEXTURE_FILTER_POINT);
+
+    for(int i = 0; i < glyph_count; i++) {
+        glyph_infos[i].value = glyphs[i].value;
+        glyph_infos[i].offsetX = glyphs[i].offsetX;
+        glyph_infos[i].offsetY = glyphs[i].offsetY;
+        glyph_infos[i].advanceX = glyphs[i].advanceX;
+        glyph_infos[i].image = (Image){0};
+
+        recs[i].x = (float)glyphs[i].x;
+        recs[i].y = (float)glyphs[i].y;
+        recs[i].width = (float)glyphs[i].w;
+        recs[i].height = (float)glyphs[i].h;
+    }
+
+    font.texture = texture;
+    font.glyphs = glyph_infos;
+    font.recs = recs;
+    font.glyphCount = glyph_count;
+    font.baseSize = LOCALE_FONT_BASE_SIZE;
+    font.glyphPadding = 0;
+
+    free(glyphs);
+    return font;
+
+cleanup:
+    if(file != NULL)
+        fclose(file);
+    if(image.data != NULL)
+        UnloadImage(image);
+    if(texture.id != 0)
+        UnloadTexture(texture);
+    free(glyphs);
+    free(glyph_infos);
+    free(recs);
+    return (Font){0};
+}
+
+static int
+load_locale_font(InbeApp *app)
+{
+    Font font;
+    Image white;
+
+    if(app == NULL)
+        return 0;
+
+    font = load_chopped_font(LOCALE_FONT_PNG, LOCALE_FONT_DAT);
+    if(font.texture.id == 0)
+        return 0;
+
+    white = GenImageColor(1, 1, WHITE);
+    app->font_shapes_texture = LoadTextureFromImage(white);
+    UnloadImage(white);
+    if(app->font_shapes_texture.id == 0) {
+        UnloadTexture(font.texture);
+        free(font.glyphs);
+        free(font.recs);
+        return 0;
+    }
+    SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
+
+    UnloadFontDefault();
+    SetFontDefault(font);
+    SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
+    return 1;
+}
 
 static void
 refresh_tab_labels(void)
@@ -619,6 +745,7 @@ load_settings(InbeApp *app)
 #else
     app->inbe.play_in_background = 0;
 #endif
+    app->backgrounded = 0;
 
     refresh_theme_colors(app->theme_id, app->dark_mode);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
@@ -746,7 +873,7 @@ update_session_sounds(InbeApp *app)
 {
     if (app == NULL) return;
 
-    if (app->inbe.screen != InbeScreenSession || app->session_paused) {
+    if (app->inbe.screen != InbeScreenSession || (app->session_paused && !(app->backgrounded && app->inbe.play_in_background))) {
         remember_sound_state(app);
         return;
     }
@@ -1009,34 +1136,30 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 {
     char text[CountSize];
     int count;
-    int text_w;
     int font = flint_clamp_px(20, 18, 24);
-    int y_off = flint_px(10);
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
+            flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            text_w = MeasureText(text, font);
-            DrawText(text, center_x - text_w / 2, center_y - y_off, font, c_text);
+            flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
             return;
         }
-        DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        DrawText("000", center_x - MeasureText("000", font) / 2, center_y - y_off, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
         return;
     }
 
-    text_w = MeasureText(app->inbe.count, font);
-    DrawText(app->inbe.count, center_x - text_w / 2, center_y - y_off, font, c_text);
+    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_text);
 }
 
 
@@ -1110,6 +1233,9 @@ inbe_app_init(void *vapp) {
     init_web_storage();
 #endif
     locale_init();
+    if(!load_locale_font(app)) {
+        TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
+    }
     refresh_tab_labels();
     load_config();
 
@@ -1149,6 +1275,7 @@ inbe_app_init(void *vapp) {
     app->tutorial_layouts_initialized = 0;
     history_tab_reset(app);
     app->session_paused = 0;
+    app->backgrounded = 0;
     app->results_saved = 0;
     app->results_path[0] = '\0';
     remember_sound_state(app);
@@ -1609,14 +1736,15 @@ updateapp(InbeApp *app)
                 DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_clamp_px(ICON_SIZE_SMALL, ICON_SIZE_SMALL_MIN, ICON_SIZE_SMALL_MAX), c_text);
             }
 
-            DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_clamp_px(14, 12, 16), flint_darken(c_text, 20));
+            DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_ui_font(), flint_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = round_times[i];
+                int row_font = flint_ui_font();
                 locale_format(row, sizeof(row), "round_result_label", i + 1, seconds);
                 DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(c_bg, 4));
                 DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(c_bg, 26));
-                DrawText(row, box_x + flint_px(10), row_y + flint_px(5), flint_clamp_px(14, 12, 16), c_text);
+                DrawText(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, c_text);
                 row_y += row_h;
             }
 
@@ -1649,6 +1777,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
 
     /* Update DPI cache */
     flint_dpi_update(view_width, view_height);
+    flint_set_view_size(view_width, view_height);
 
     ui_init(view_width, view_height, flint_dpi_scale());
 #if defined(LOTUS_BUILD)
@@ -1716,6 +1845,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->monero_icon);
     SafeUnloadTexture(app->angel_image);
     SafeUnloadTexture(app->begin_image);
+    SafeUnloadTexture(app->font_shapes_texture);
 
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {

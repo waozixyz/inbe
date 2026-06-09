@@ -55,11 +55,15 @@ target_include_directories(inbe PUBLIC
 
 add_library(flint STATIC
     "${FLINT_DIR}/src/flint_color.c"
+    "${FLINT_DIR}/src/flint_dpi.c"
     "${FLINT_DIR}/src/flint_icons.c"
     "${FLINT_DIR}/src/flint_layout.c"
+    "${FLINT_DIR}/src/flint_locale.c"
     "${FLINT_DIR}/src/flint_scaling.c"
+    "${FLINT_DIR}/src/flint_text_layout.c"
     "${FLINT_DIR}/src/flint_theme.c"
     "${FLINT_DIR}/src/flint_theme_meta.c"
+    "${FLINT_DIR}/src/flint_ui.c"
 )
 
 target_include_directories(flint PUBLIC

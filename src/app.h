@@ -133,6 +133,7 @@ struct InbeApp {
 
     Texture2D angel_image;
     Texture2D begin_image;
+    Texture2D font_shapes_texture;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
@@ -194,6 +195,7 @@ struct InbeApp {
     char history_delete_path[FS_PATH_MAX];
     int advanced_session_controls;
     int session_paused;
+    int backgrounded;
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
