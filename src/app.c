@@ -1150,26 +1150,26 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+            flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
+            flint_ui_draw_text_centered(text, center_x, center_y, font, c_icon);
             return;
         }
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
         return;
     }
 
-    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_text);
+    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_icon);
 }
 
 
@@ -1463,6 +1463,19 @@ handle_back_button(InbeApp *app)
     }
 }
 
+/* Callback to draw volume slider track marks */
+static void
+draw_volume_marks(InbeApp *app, int x, int y, int h, int min, int max, int value)
+{
+	(void)app; (void)x; (void)min; (void)max; (void)value;
+	int track_w = flint_px(8);
+	int track_x = x - track_w / 2;
+	for(int i = 1; i <= 3; i++) {
+		int line_y = y + (h * i / 4) - flint_px(1);
+		DrawRectangle(track_x - flint_px(3), line_y, track_w + flint_px(6), flint_px(2), c_icon);
+	}
+}
+
 static void
 updateapp(InbeApp *app)
 {
@@ -1560,9 +1573,9 @@ updateapp(InbeApp *app)
 
         /* Volume slider popup */
         if(app->volume_popup_active) {
-            int popup_x = sound_btn_x;
-            int popup_y = sound_btn_y + sound_btn_size + flint_px(8);  /* Fixed: removed extra padding, added proper spacing */
             int popup_w = flint_px(44);
+            int popup_x = sound_btn_x;  /* Align with button left edge */
+            int popup_y = sound_btn_y + sound_btn_size + sound_btn_padding * 2;  /* Position right under button */
             int popup_h = flint_px(200);
 
             /* Check if click outside popup - close it */
@@ -1583,19 +1596,13 @@ updateapp(InbeApp *app)
             int slider_y = popup_y + flint_px(10);
             int slider_h = popup_h - flint_px(20);
 
-            if(ui_draw_slider_vertical(app, 500, slider_x, slider_y, slider_h,
-                                       SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &app->sound_volume)) {
+            if(ui_draw_slider_vertical_with_marks(app, 500, slider_x, slider_y, slider_h,
+                                                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &app->sound_volume, draw_volume_marks)) {
                 /* Volume changed - apply to active sounds */
                 app->settings_dirty = 1;
                 update_session_sounds(app);
-            }
-
-            /* Draw volume level indicator lines */
-            int track_w = flint_px(8);
-            int track_x = slider_x - track_w / 2;
-            for(int i = 1; i <= 3; i++) {
-                int line_y = slider_y + (slider_h * i / 4) - flint_px(1);
-                DrawRectangle(track_x - flint_px(3), line_y, track_w + flint_px(6), flint_px(2), c_icon);
+                /* IMMEDIATE SAVE: Persist volume change right away */
+                save_settings(app);
             }
         }
 
@@ -1762,7 +1769,7 @@ updateapp(InbeApp *app)
             int box_x;
             int box_y = flint_px(78);
             int box_w;
-            int row_y = flint_px(200);
+            int row_y = flint_px(215);
             int row_h = flint_px(32);
             int total = 0;
             int best = -1;
@@ -1806,11 +1813,11 @@ updateapp(InbeApp *app)
                 locale_format(line, sizeof(line), "results_rounds", rounds);
                 DrawText(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), c_text);
                 locale_format(line, sizeof(line), "results_best", best);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(ICON_SIZE_SMALL), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), c_text);
                 locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
                 if(view_width < 420 && MeasureText(line, flint_px(16)) > box_w - flint_px(20))
                     snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(ICON_SIZE_SMALL), c_text);
+                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), c_text);
             }
 
             DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_ui_font(), flint_darken(c_text, 20));

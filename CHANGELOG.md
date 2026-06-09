@@ -2,6 +2,9 @@
 ## [1.2.0] - 2026-06-08
 ### Added
 - Flint-based UI and theme system
+- Session volume slider with immediate persistence
+- Additional language support: Czech (Čeština), Indonesian (Bahasa Indonesia), Japanese (日本語), Korean (한국어), and Chinese (中文)
+- Proper font glyphs
 
 ## [1.1.9] - 2026-06-04
 ### Added
