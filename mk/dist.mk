@@ -29,6 +29,8 @@ dist-linux: linux
 	@cp $(ICON_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
 	@cp $(IMAGE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
+	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts
+	@cp $(FONT_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds
 	@cp $(SOUND_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds/
 	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
@@ -108,6 +110,8 @@ dist-windows:
 	@cp $(WINDOWS_ICON_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
 	@cp $(IMAGE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts
+	@cp $(FONT_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds
 	@cp $(SOUND_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds/
 	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/

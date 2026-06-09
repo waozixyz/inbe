@@ -34,15 +34,11 @@ draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
-    int min_font = flint_clamp_px(14, 14, 16);
-    int font = flint_clamp_px(16, 14, 18);
+    int font = flint_ui_font();
     int text_w;
     int text_x;
     int text_y;
     int pressed = 0;
-
-    while(label[0] != '\0' && font > min_font && MeasureText(label, font) > w - flint_px(12))
-        font--;
 
     if(CheckCollisionPointRec(mouse_world, bounds)) {
         DrawRectangle(x, y, w, h, c_button_hover);
@@ -61,7 +57,7 @@ draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char
 
     text_w = MeasureText(label, font);
     text_x = x + (w - text_w) / 2;
-    text_y = y + (h - font) / 2;
+    text_y = flint_ui_text_y(label, y, h, font);
     DrawText(label, text_x, text_y, font, c_text);
 
     return pressed;
@@ -113,13 +109,13 @@ manual_tab_draw(InbeApp *app)
     int title_h = ui_screen_header_height();
     int tab_h = flint_clamp_px(54, 54, 66);
     int viewport_h = view_height - title_h - tab_h;
-    int body_font = flint_clamp_px(16, 14, 18);
-    int footer_content_pad = flint_clamp_px(14, 12, 16) / 2;
+    int body_font = flint_ui_font();
+    int footer_content_pad = flint_ui_font() / 2;
     int previous_step;
     int content_x;
     int content_w;
     const char *title = locale_get("tutorial_title");
-    char page_label[16];
+    char page_label[32];
     int close_clicked = 0;
     int step = app->tutorial_step;
 
@@ -285,7 +281,7 @@ manual_tab_draw(InbeApp *app)
                 int toggle_w = flint_px(56);
                 int toggle_h = flint_px(30);
                 DrawText(locale_get("progressive_speed_label"), content_x, y,
-                         flint_clamp_px(14, 12, 16), c_text);
+                         flint_ui_font(), c_text);
                 y += flint_px(26);
                 if(ui_draw_toggle_switch(app, content_x, y, toggle_w, toggle_h,
                                          &progressive_speed, locale_get("toggle_off"),
@@ -348,14 +344,15 @@ manual_tab_draw(InbeApp *app)
                           &app->manual_scroll, max_scroll);
     }
 
-    snprintf(page_label, sizeof(page_label), "%d/%d", step + 1, (int)TUTORIAL_STEPS_COUNT);
+    locale_format(page_label, sizeof(page_label), "tutorial_page_label",
+                  step + 1, (int)TUTORIAL_STEPS_COUNT);
 
     int left_hover = 0;
     int right_hover = 0;
     const char *left_label = step == 0 ? locale_get("tutorial_skip_button") : locale_get("tutorial_back_button");
     const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_finish_button") : locale_get("tutorial_next_button");
     int footer_gap = flint_px(10);
-    int page_font = flint_clamp_px(14, 12, 16);
+    int page_font = flint_ui_font();
     int button_h = flint_px(34);
     int button_w = (content_w - footer_gap) / 2;
     int footer_y = view_height - flint_px(38);

@@ -35,10 +35,11 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
 
     build_language_options(g_language_options, 64, &g_language_option_count);
     if(g_language_option_count <= 0) {
+        int font = flint_ui_font();
         DrawRectangle(x, y, w, h, c_button);
         ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
-        DrawText(locale_get("language_label"), x + flint_px(12), y + h / 2 - flint_clamp_px(14, 12, 16) / 2 - 1,
-                 flint_clamp_px(14, 12, 16), c_text);
+        DrawText(locale_get("language_label"), x + flint_px(12),
+                 flint_ui_text_y(locale_get("language_label"), y, h, font), font, c_text);
         return 0;
     }
 
@@ -58,7 +59,7 @@ void
 language_tab_draw(InbeApp *app)
 {
     int title_font = flint_clamp_px(22, 18, 26);
-    int label_font = flint_clamp_px(14, 12, 16);
+    int label_font = flint_ui_font();
     int title_w;
     int content_x;
     int content_w;

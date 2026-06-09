@@ -198,9 +198,11 @@ C%d  %ds
 ---
 [history_session_label]
 %02d:%02d  moy. %ds
----
 [tutorial_title]
 Tutoriel
+---
+[tutorial_page_label]
+%d/%d
 ---
 [tutorial_method_title]
 Méthode

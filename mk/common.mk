@@ -8,6 +8,7 @@ INBE_A = $(INBE_DIR)/libinbe.a
 RAYLIB_DIR = vendor/raylib/src
 RAYLIB_BUILD_DIR = vendor/raylib/build/sdl
 RAYLIB_A = $(RAYLIB_BUILD_DIR)/libraylib.a
+RAYLIB_SOURCES = $(wildcard $(RAYLIB_DIR)/*.c) $(wildcard $(RAYLIB_DIR)/*.h)
 
 FLINT_DIR = vendor/flint
 FLINT_SRCS = $(wildcard $(FLINT_DIR)/src/*.c)
@@ -58,7 +59,20 @@ ICON_FILES = $(wildcard icons/*.png)
 WINDOWS_ICON_FILES = icons/gear.png icons/x.png icons/manual.png icons/return.png icons/backward.png icons/forward.png icons/play.png icons/pause.png icons/stat.png
 IMAGE_FILES = assets/angel.jpg assets/begin.jpg
 SOUND_FILES = assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg
+FONT_OUTPUTS = assets/fonts/locales.png assets/fonts/locales.dat
+FONT_FILES = $(FONT_OUTPUTS)
+FONT_TOOL = ../otfchop/otfchop
+FONT_SOURCE = ../otfchop/unifont-17.0.04.otf
 BUILD_MAKEFILES = Makefile mk/common.mk mk/native.mk mk/windows.mk mk/web.mk mk/android.mk mk/dist.mk mk/clean.mk
+
+assets/fonts:
+	mkdir -p $@
+
+$(FONT_OUTPUTS): $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
+	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
+
+$(FONT_TOOL): ../otfchop/otfchop.c ../otfchop/stb_truetype.h ../otfchop/stb_image_write.h
+	$(MAKE) -C ../otfchop otfchop
 
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
