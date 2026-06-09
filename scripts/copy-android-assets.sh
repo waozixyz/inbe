@@ -37,7 +37,7 @@ cp locales/*.txt "$ASSETS_DIR/locales/"
 # Copy themes
 echo "Copying themes..."
 mkdir -p "$ASSETS_DIR/themes"
-cp themes/*.ini "$ASSETS_DIR/themes/"
+cp vendor/flint/themes/*.ini "$ASSETS_DIR/themes/" 2>/dev/null || echo "No theme files found in vendor/flint/themes/"
 
 # Copy icons
 echo "Copying icons..."
@@ -56,5 +56,16 @@ cp assets/angel.jpg assets/begin.jpg "$ASSETS_DIR/assets/"
 echo "Copying sounds..."
 mkdir -p "$ASSETS_DIR/assets/sounds"
 cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg "$ASSETS_DIR/assets/sounds/"
+
+# Copy fonts
+echo "Copying fonts..."
+mkdir -p "$ASSETS_DIR/assets/fonts"
+if [ -f "assets/fonts/locales.png" ] && [ -f "assets/fonts/locales.dat" ]; then
+    cp assets/fonts/locales.png assets/fonts/locales.dat "$ASSETS_DIR/assets/fonts/"
+    echo "Font files copied successfully"
+else
+    echo "Warning: Font files not found. Build may be incomplete."
+    echo "Expected files: assets/fonts/locales.png and assets/fonts/locales.dat"
+fi
 
 echo "Assets copied successfully!"

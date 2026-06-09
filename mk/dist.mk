@@ -1,11 +1,31 @@
 dist:
-	$(MAKE) linux
-	$(MAKE) windows
-	$(MAKE) web
-	$(MAKE) android-$(ANDROID_DIST)
-	$(MAKE) android-bundle
-	$(MAKE) dist-linux
-	$(MAKE) dist-windows
+	@# Get password once for both Android builds
+	@if [ -n "$(PASSWORD)" ]; then \
+		PASSWORD_VALUE="$(PASSWORD)"; \
+	elif [ -t 0 ]; then \
+		printf "Keystore password: "; \
+		stty -echo; \
+		read PASSWORD_VALUE; \
+		stty echo; \
+		printf "\n"; \
+	else \
+		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
+		exit 1; \
+	fi; \
+	if [ -z "$$PASSWORD_VALUE" ]; then \
+		echo "Keystore password is required"; \
+		exit 1; \
+	fi; \
+	echo "Building Android release APK (validating password)..."; \
+	$(MAKE) android-release PASSWORD="$$PASSWORD_VALUE" || exit $$?; \
+	echo "Building Android bundle..."; \
+	$(MAKE) android-bundle PASSWORD="$$PASSWORD_VALUE" || exit $$?; \
+	echo "✓ Android builds complete, proceeding with desktop builds..."; \
+	$(MAKE) linux || exit $$?; \
+	$(MAKE) windows || exit $$?; \
+	$(MAKE) web || exit $$?; \
+	$(MAKE) dist-linux || exit $$?; \
+	$(MAKE) dist-windows || exit $$?
 
 dist-linux: linux
 	@echo "Creating Linux tar.gz package with all Linux arch binaries..."
