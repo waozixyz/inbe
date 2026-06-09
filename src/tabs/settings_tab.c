@@ -756,7 +756,7 @@ settings_tab_draw(InbeApp *app)
 
                     /* Icon links */
                     int links_y = text_y + flint_px(40);
-                    int icon_size = flint_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+                    int icon_size = flint_px(32);
                     int icon_padding = flint_px(4);
                     int icon_spacing = flint_px(20);
                     int icon_btn_w = icon_size + icon_padding * 2;

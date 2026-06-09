@@ -58,7 +58,7 @@ language_dropdown_menu(InbeApp *app, int id)
 void
 language_tab_draw(InbeApp *app)
 {
-    int title_font = flint_clamp_px(22, 18, 26);
+    int title_font = flint_px(24);
     int label_font = flint_ui_font();
     int title_w;
     int content_x;
