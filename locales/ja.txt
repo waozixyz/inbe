@@ -192,6 +192,12 @@ OFF
 [toggle_on]
 ON
 ---
+[theme_light]
+ライト
+---
+[theme_dark]
+ダーク
+---
 [on_screen_keyboard_label]
 オンスクリーンキーボード
 ---
@@ -216,6 +222,7 @@ R%d  %ds
 ---
 [history_session_label]
 %02d:%02d  平均 %ds
+---
 [tutorial_title]
 チュートリアル
 ---

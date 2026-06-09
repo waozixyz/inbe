@@ -130,6 +130,10 @@ struct InbeApp {
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D monero_icon;
+    Texture2D sound0_icon;
+    Texture2D sound1_icon;
+    Texture2D sound2_icon;
+    Texture2D sound3_icon;
 
     Texture2D angel_image;
     Texture2D begin_image;
@@ -199,6 +203,7 @@ struct InbeApp {
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
+    int volume_popup_active;
     UIModal modal;
 };
 

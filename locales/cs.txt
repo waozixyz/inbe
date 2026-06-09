@@ -192,6 +192,12 @@ VYP
 [toggle_on]
 ZAP
 ---
+[theme_light]
+Světlý
+---
+[theme_dark]
+Tmavý
+---
 [on_screen_keyboard_label]
 Klávesnice na obrazovce
 ---
@@ -216,6 +222,7 @@ K%d  %ds
 ---
 [history_session_label]
 %02d:%02d  průměr %ds
+---
 [tutorial_title]
 Návod
 ---
