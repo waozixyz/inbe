@@ -88,8 +88,9 @@ while IFS= read -r VERSION; do
     CODE=$((TOTAL_VERSIONS - POSITION + 1))
     OUTPUT_FILE="$CHANGELOG_DIR/$CODE.txt"
 
-    # Skip if file already exists
-    if [ -f "$OUTPUT_FILE" ]; then
+    # Keep old release changelog files stable, but refresh the current release
+    # so edits to the top CHANGELOG entry are reflected before publishing.
+    if [ -f "$OUTPUT_FILE" ] && [ "$VERSION" != "$LATEST_VERSION" ]; then
         continue
     fi
 
@@ -110,7 +111,11 @@ while IFS= read -r VERSION; do
     ' "$CHANGELOG_FILE")
 
     echo "$CHANGELOG_CONTENT" > "$OUTPUT_FILE"
-    echo "✓ Created $OUTPUT_FILE"
+    if [ "$VERSION" = "$LATEST_VERSION" ]; then
+        echo "✓ Updated $OUTPUT_FILE"
+    else
+        echo "✓ Created $OUTPUT_FILE"
+    fi
 done <<< "$VERSIONS"
 
 echo ""

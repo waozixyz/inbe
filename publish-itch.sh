@@ -39,6 +39,18 @@ echo "  Channel: $ITCH_CHANNEL"
 echo "  Build dir: $WEB_BUILD_DIR"
 echo ""
 
-butler push "$WEB_BUILD_DIR" "$ITCH_USER/$ITCH_GAME:$ITCH_CHANNEL" --userversion "$VERSION"
+TMPDIR=$(mktemp -d -p /tmp)
+cleanup() {
+    rm -rf "$TMPDIR"
+}
+trap cleanup EXIT
+
+rsync -a \
+    --exclude='raylib' \
+    "$WEB_BUILD_DIR/" "$TMPDIR/"
+rsync -a web-assets/ "$TMPDIR/web-assets/"
+cp manifest.json "$TMPDIR/"
+
+butler push "$TMPDIR" "$ITCH_USER/$ITCH_GAME:$ITCH_CHANNEL" --userversion "$VERSION"
 
 echo "✓ Published inbe v$VERSION to https://$ITCH_USER.itch.io/$ITCH_GAME"
