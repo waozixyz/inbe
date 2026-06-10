@@ -158,7 +158,22 @@
 내보내기 실패
 ---
 [exported_label]
-내보내기 완료: %s
+내보내기 완료
+---
+[import_data_button]
+데이터 가져오기
+---
+[import_data_dialog_title]
+데이터 가져오기
+---
+[import_failed]
+가져오기 실패
+---
+[imported_sessions]
+%d개 세션을 가져왔습니다
+---
+[import_invalid_file]
+잘못된 내보내기 파일
 ---
 [version_label]
 버전 %s

@@ -176,7 +176,22 @@ Export Data
 Export failed
 ---
 [exported_label]
-Exported: %s
+Exported
+---
+[import_data_button]
+Import Data
+---
+[import_data_dialog_title]
+Import Data
+---
+[import_failed]
+Import failed
+---
+[imported_sessions]
+Imported %d sessions
+---
+[import_invalid_file]
+Invalid export file
 ---
 [version_label]
 Version %s

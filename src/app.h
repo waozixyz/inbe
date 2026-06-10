@@ -138,6 +138,7 @@ struct InbeApp {
     Texture2D angel_image;
     Texture2D begin_image;
     Texture2D font_shapes_texture;
+    Font locale_font;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;

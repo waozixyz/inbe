@@ -176,7 +176,22 @@
 导出失败
 ---
 [exported_label]
-已导出：%s
+已导出
+---
+[import_data_button]
+导入数据
+---
+[import_data_dialog_title]
+导入数据
+---
+[import_failed]
+导入失败
+---
+[imported_sessions]
+已导入 %d 个会话
+---
+[import_invalid_file]
+无效的导出文件
 ---
 [version_label]
 版本 %s

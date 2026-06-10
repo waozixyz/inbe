@@ -158,7 +158,22 @@ Daten exportieren
 Export fehlgeschlagen
 ---
 [exported_label]
-Exportiert: %s
+Exportiert
+---
+[import_data_button]
+Daten importieren
+---
+[import_data_dialog_title]
+Daten importieren
+---
+[import_failed]
+Import fehlgeschlagen
+---
+[imported_sessions]
+%d Sitzungen importiert
+---
+[import_invalid_file]
+Ungültige Exportdatei
 ---
 [version_label]
 Version %s

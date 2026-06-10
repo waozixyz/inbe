@@ -5,6 +5,7 @@
 - Session volume slider with immediate persistence
 - Additional language support: Czech (Čeština), Indonesian (Bahasa Indonesia), Japanese (日本語), Korean (한국어), and Chinese (中文)
 - Proper font glyphs
+- File picker for import
 
 ## [1.1.9] - 2026-06-04
 ### Added

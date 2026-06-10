@@ -336,7 +336,7 @@ draw_history_day_row(InbeApp *app, int x, int y, int w, int h, const char *text,
     if(draw_history_row(app, x, y, w - icon_btn_w - flint_px(8), h, text, selected, 34))
         return 1;
 
-    if(ui_draw_icon_btn_padded(app, edit_x, y + (h - icon_btn_w) / 2, icon_size, icon_padding,
+    if(ui_draw_icon_btn_padded(edit_x, y + (h - icon_btn_w) / 2, icon_size, icon_padding,
                                app->pencil_icon, UI_ICON_TYPE_PENCIL, &edit_hover))
         return 2;
 
@@ -347,6 +347,7 @@ static int
 draw_history_action_button(InbeApp *app, int right_x, int y, int row_h, int slot,
                            Texture2D icon, UIIconType icon_type)
 {
+    (void)app;
     int icon_size = flint_px(16);
     int icon_padding = flint_px(4);
     int btn_w = icon_size + icon_padding * 2;
@@ -354,7 +355,7 @@ draw_history_action_button(InbeApp *app, int right_x, int y, int row_h, int slot
     int hover = 0;
     int x = right_x - (slot + 1) * btn_w - (slot + 1) * gap;
 
-    return ui_draw_icon_btn_padded(app, x, y + (row_h - btn_w) / 2,
+    return ui_draw_icon_btn_padded(x, y + (row_h - btn_w) / 2,
                                    icon_size, icon_padding, icon, icon_type,
                                    &hover);
 }
@@ -1192,7 +1193,7 @@ history_tab_draw(InbeApp *app)
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    close_clicked = ui_draw_screen_header(app, locale_get("history_title"), 1);
+    close_clicked = ui_draw_screen_header(locale_get("history_title"), 1);
     if(close_clicked) {
         app->inbe.screen = InbeScreenStart;
         app->history_scroll = 0;
@@ -1216,7 +1217,7 @@ history_tab_draw(InbeApp *app)
                 int return_hover = 0;
                 int icon_size = flint_px(16);
                 int icon_padding = flint_px(4);
-                if(ui_draw_icon_btn_padded(app, content_x, y + (row_h - icon_size - icon_padding * 2) / 2,
+                if(ui_draw_icon_btn_padded(content_x, y + (row_h - icon_size - icon_padding * 2) / 2,
                                            icon_size, icon_padding, app->return_icon,
                                            UI_ICON_TYPE_RETURN, &return_hover)) {
                     app->history_level = HISTORY_LEVEL_SESSIONS;
@@ -1437,8 +1438,7 @@ history_tab_draw(InbeApp *app)
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteHistory) {
-        int modal_result = ui_draw_modal(app,
-                                         locale_get("delete_history_title"),
+        int modal_result = ui_draw_modal(locale_get("delete_history_title"),
                                          app->history_delete_kind == HISTORY_DELETE_ROUND
                                              ? locale_get("delete_round_message")
                                              : locale_get("delete_session_message"),

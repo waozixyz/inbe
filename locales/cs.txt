@@ -176,7 +176,7 @@ Exportovat data
 Export selhal
 ---
 [exported_label]
-Exportováno: %s
+Exportováno
 ---
 [version_label]
 Verze %s

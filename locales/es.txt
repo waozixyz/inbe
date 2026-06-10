@@ -158,7 +158,22 @@ Exportar datos
 Error al exportar
 ---
 [exported_label]
-Exportado: %s
+Exportado
+---
+[import_data_button]
+Importar datos
+---
+[import_data_dialog_title]
+Importar datos
+---
+[import_failed]
+Error al importar
+---
+[imported_sessions]
+%d sesiones importadas
+---
+[import_invalid_file]
+Archivo de exportación no válido
 ---
 [version_label]
 Versión %s
