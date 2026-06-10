@@ -176,7 +176,7 @@ Ekspor Data
 Ekspor gagal
 ---
 [exported_label]
-Terekspor: %s
+Terekspor
 ---
 [version_label]
 Versi %s

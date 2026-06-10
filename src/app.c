@@ -233,8 +233,8 @@ load_locale_font(InbeApp *app)
     }
     SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
 
-    UnloadFontDefault();
-    SetFontDefault(font);
+    // Store the locale font in the app for use in text rendering
+    app->locale_font = font;
     SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
     return 1;
 }
@@ -1232,6 +1232,9 @@ inbe_app_init(void *vapp) {
     if(app == 0)
         return;
 
+    // Initialize locale_font to empty
+    app->locale_font = (Font){0};
+
 #ifdef __ANDROID__
     if (app->inbe.play_in_background) {
         android_timer_stop();
@@ -1465,9 +1468,9 @@ handle_back_button(InbeApp *app)
 
 /* Callback to draw volume slider track marks */
 static void
-draw_volume_marks(InbeApp *app, int x, int y, int h, int min, int max, int value)
+draw_volume_marks(void *user_data, int x, int y, int h, int min, int max, int value)
 {
-	(void)app; (void)x; (void)min; (void)max; (void)value;
+	(void)user_data; (void)x; (void)min; (void)max; (void)value;
 	int track_w = flint_px(8);
 	int track_x = x - track_w / 2;
 	for(int i = 1; i <= 3; i++) {
@@ -1544,16 +1547,16 @@ updateapp(InbeApp *app)
             int play_limit = view_height - flint_px(56) - flint_px(48);
             if(play_y > play_limit)
                 play_y = play_limit;
-            if (ui_draw_text_btn(app, center_x, play_y, locale_get("play_button"), &hover)) {
+            if (ui_draw_text_btn(center_x, play_y, locale_get("play_button"), &hover)) {
             start_session(app);
             }
         }
-        ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count, app);
+        ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
         break;
 
     case InbeScreenSession: {
         int return_hover = 0;
-        if(ui_draw_icon_btn_padded(app, flint_px(12), flint_px(12), flint_px(24),
+        if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
                                    flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
             handle_back_button(app);
         }
@@ -1566,7 +1569,7 @@ updateapp(InbeApp *app)
 
         int sound_hover = 0;
         Texture2D sound_icon = get_sound_icon_for_volume(app);
-        if(ui_draw_icon_btn_padded(app, sound_btn_x, sound_btn_y, sound_btn_size,
+        if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size,
                                    sound_btn_padding, sound_icon, UI_ICON_TYPE_SOUND, &sound_hover)) {
             app->volume_popup_active = !app->volume_popup_active;
         }
@@ -1596,8 +1599,8 @@ updateapp(InbeApp *app)
             int slider_y = popup_y + flint_px(10);
             int slider_h = popup_h - flint_px(20);
 
-            if(ui_draw_slider_vertical_with_marks(app, 500, slider_x, slider_y, slider_h,
-                                                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &app->sound_volume, draw_volume_marks)) {
+            if(ui_draw_slider_vertical_with_marks(500, slider_x, slider_y, slider_h,
+                                                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &app->sound_volume, draw_volume_marks, app)) {
                 /* Volume changed - apply to active sounds */
                 app->settings_dirty = 1;
                 update_session_sounds(app);
@@ -1610,8 +1613,7 @@ updateapp(InbeApp *app)
             int has_rounds = session_has_completed_rounds(app);
 
             if(has_rounds) {
-                modal_result = ui_draw_modal_3btn(app,
-                                                   locale_get("exit_session_title"),
+                modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
                                                    locale_get("save_completed_rounds_message"),
                                                    locale_get("cancel_button"),
                                                    locale_get("save_button"),
@@ -1645,8 +1647,7 @@ updateapp(InbeApp *app)
                 }
             } else {
                 /* 2-button modal: Cancel, Exit */
-                modal_result = ui_draw_modal(app,
-                                             locale_get("exit_session_title"),
+                modal_result = ui_draw_modal(locale_get("exit_session_title"),
                                              locale_get("all_progress_lost_message"),
                                              locale_get("cancel_button"),
                                              locale_get("exit_button"));
@@ -1719,15 +1720,15 @@ updateapp(InbeApp *app)
         back_x = pause_x - control_btn_w - control_gap;
         forward_x = pause_x + control_btn_w + control_gap;
 
-        if(ui_draw_icon_btn_padded(app, back_x, control_y, control_size, control_padding,
+        if(ui_draw_icon_btn_padded(back_x, control_y, control_size, control_padding,
                                                      app->backward_icon, UI_ICON_TYPE_BACKWARD, &back_hover)) {
             session_step_back(app);
         }
-        if(ui_draw_icon_btn_padded(app, pause_x, control_y, control_size, control_padding,
+        if(ui_draw_icon_btn_padded(pause_x, control_y, control_size, control_padding,
                        app->session_paused ? app->play_icon : app->pause_icon, app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE, &pause_hover)) {
             app->session_paused = !app->session_paused;
         }
-        if(ui_draw_icon_btn_padded(app, forward_x, control_y, control_size, control_padding,
+        if(ui_draw_icon_btn_padded(forward_x, control_y, control_size, control_padding,
                                                     app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover)) {
             session_step_forward(app);
         }
@@ -1757,7 +1758,7 @@ updateapp(InbeApp *app)
             int breath_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(24);
             if(breath_y > breath_max_y)
                 breath_y = breath_max_y;
-            if (ui_draw_text_btn(app, center_x, breath_y, locale_get("breath_button"), &hover)) {
+            if (ui_draw_text_btn(center_x, breath_y, locale_get("breath_button"), &hover)) {
                 finish_hold(app);
             }
         }
@@ -1832,11 +1833,11 @@ updateapp(InbeApp *app)
                 row_y += row_h;
             }
 
-            if (ui_draw_text_btn(app, center_x - box_w / 4, action_y, locale_get("discard_button"), &discard_hover)) {
+            if (ui_draw_text_btn(center_x - box_w / 4, action_y, locale_get("discard_button"), &discard_hover)) {
                 discard_saved_results(app);
                 inbe_app_init(app);
             }
-            if (ui_draw_text_btn(app, center_x + box_w / 4, action_y, locale_get("save_results_button"), &save_hover)) {
+            if (ui_draw_text_btn(center_x + box_w / 4, action_y, locale_get("save_results_button"), &save_hover)) {
                 if(ensure_results_saved(app))
                     inbe_app_init(app);
             }
@@ -1874,7 +1875,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x;
     app->camera.offset.y = viewport.y;
-    ui_set_frame(app->camera, &app->cursor_clickable);
+    ui_set_frame(app->camera);
+    ui_set_cursor_clickable(&app->cursor_clickable);
 
     DrawRectangleRec(viewport, c_bg);
     BeginScissorMode((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);

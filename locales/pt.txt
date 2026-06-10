@@ -158,7 +158,7 @@ Exportar dados
 Falha ao exportar
 ---
 [exported_label]
-Exportado: %s
+Exportado
 ---
 [version_label]
 Versão %s

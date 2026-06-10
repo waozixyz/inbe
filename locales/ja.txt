@@ -176,7 +176,22 @@
 書き出しに失敗しました
 ---
 [exported_label]
-書き出し済み：%s
+書き出し済み
+---
+[import_data_button]
+データをインポート
+---
+[import_data_dialog_title]
+データをインポート
+---
+[import_failed]
+インポートに失敗しました
+---
+[imported_sessions]
+%dセッションをインポートしました
+---
+[import_invalid_file]
+無効なエクスポートファイル
 ---
 [version_label]
 バージョン %s

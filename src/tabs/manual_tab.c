@@ -28,38 +28,15 @@ static const char *const TUTORIAL_KEYS[] = {
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
 #define TUTORIAL_LINE_SPACING flint_px(8)  /* Normal readable line spacing */
 
+/*
+ * Wrapper for compatibility - using Flint's unified button utility
+ * This function is deprecated - use ui_draw_generic_button() directly
+ */
 static int
 draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char *label, int *hover)
 {
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
-    int font = flint_ui_font();
-    int text_w;
-    int text_x;
-    int text_y;
-    int pressed = 0;
-
-    if(CheckCollisionPointRec(mouse_world, bounds)) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
-        app->cursor_clickable = 1;
-        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
-            pressed = 1;
-    } else {
-        DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-        *hover = 0;
-    }
-
-    text_w = MeasureText(label, font);
-    text_x = x + (w - text_w) / 2;
-    text_y = flint_ui_text_y(label, y, h, font);
-    DrawText(label, text_x, text_y, font, c_text);
-
-    return pressed;
+    (void)app;
+    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, hover);
 }
 
 static void
@@ -171,7 +148,7 @@ manual_tab_draw(InbeApp *app)
         flint_text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, TUTORIAL_LINE_SPACING);
     }
 
-    close_clicked = ui_draw_screen_header(app, title, 1);
+    close_clicked = ui_draw_screen_header(title, 1);
     if(close_clicked)
         manual_tab_close_tutorial(app, 1);
 
@@ -281,7 +258,7 @@ manual_tab_draw(InbeApp *app)
                 DrawText(locale_get("progressive_speed_label"), content_x, y,
                          flint_ui_font(), c_text);
                 y += flint_px(26);
-                if(ui_draw_toggle_switch(app, content_x, y, toggle_w, toggle_h,
+                if(ui_draw_toggle_switch(content_x, y, toggle_w, toggle_h,
                                          &progressive_speed, locale_get("toggle_off"),
                                          locale_get("toggle_on"))) {
                     app->inbe.progressive_speed = progressive_speed;
@@ -311,7 +288,7 @@ manual_tab_draw(InbeApp *app)
             draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + flint_px(40));
             y += (int)(app->settings_preview.rmax * 0.72f) + flint_px(54);
 
-            if(ui_draw_slider(app, 10, content_x, y, content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
+            if(ui_draw_slider(10, content_x, y, content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
                 apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
@@ -341,7 +318,7 @@ manual_tab_draw(InbeApp *app)
         int scrollbar_y = (int)(app->camera.offset.y + title_h * app->camera.zoom);
         int scrollbar_viewport = (int)(content_area_h * app->camera.zoom);  /* Scaled by camera zoom */
         int total_content_screen_h = (int)(total_content_h * app->camera.zoom);  /* Also scaled for ratio calculations */
-        ui_draw_scrollbar(app, scrollbar_x, scrollbar_y, scrollbar_viewport, total_content_screen_h,
+        ui_draw_scrollbar(scrollbar_x, scrollbar_y, scrollbar_viewport, total_content_screen_h,
                           &app->manual_scroll, max_scroll);
     }
 
