@@ -5,6 +5,8 @@
 #include "flint_dpi.h"
 #include "flint_ui.h"
 
+#include <stdio.h>
+
 #ifdef __ANDROID__
 #include "android_timer.h"
 #include "android_wakelock.h"
