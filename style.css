@@ -1,12 +1,12 @@
 @font-face {
 	font-family: departure;
-	src: url('/assets/DepartureMono-Regular.otf');
+	src: url('/web-assets/fonts/DepartureMono-Regular.otf');
 	font-display: swap;
 }
 
 :root {
 	--page-bg: #000000;
-	--page-tile: url('/icons/tile2.png');
+	--page-tile: url('/web-assets/icons/tile2.png');
 	--page-tile-opacity: 0.32;
 	--panel-bg: #E2EEFC;
 	--dark: #24487C;
@@ -29,7 +29,7 @@ body {
 	height: 100%;
 	width: 100%;
 	position: relative;
-	cursor: url('cursors/arrow.png') 0 0, auto;
+	cursor: url('/web-assets/cursors/arrow.png') 0 0, auto;
 }
 
 body::before {
@@ -115,7 +115,7 @@ a {
 	font-family: departure;
 	color: var(--link);
 	text-decoration: none;
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 }
 
 a:hover {
@@ -128,7 +128,7 @@ button {
 	font-family: departure;
 	font-size: 14px;
 	padding: 6px 12px;
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 	outline: none;
 	background-color: var(--button-bg);
 	border: 2px solid var(--button-highlight);
@@ -161,7 +161,39 @@ input[type="text"] {
 	box-shadow:
 		inset 1px 1px 0 0 var(--shadow),
 		1px 1px 0 0 var(--button-highlight);
-	cursor: url('cursors/reading.png') 8 8, text;
+	cursor: url('/web-assets/cursors/reading.png') 8 8, text;
+}
+
+input[type="file"] {
+	display: block;
+	margin: 8px 0 16px 0;
+	font-family: departure;
+	font-size: 14px;
+}
+
+.converter-panel {
+	margin: 24px 0;
+	padding: 16px;
+	background-color: #d7e8fa;
+	border: 2px solid var(--dark);
+	box-shadow:
+		inset 1px 1px 0 0 var(--light),
+		1px 1px 0 0 var(--button-highlight);
+}
+
+.converter-panel label {
+	display: block;
+	font-weight: bold;
+	color: var(--dark);
+}
+
+.converter-status {
+	margin: 16px 0 0 0;
+	font-size: 14px;
+}
+
+.converter-status.error {
+	color: #9b1c1c;
 }
 
 .platform-buttons {
@@ -190,7 +222,7 @@ input[type="text"] {
 	border-radius: 8px;
 	transition: transform 0.1s, box-shadow 0.1s;
 	width: 110px;
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 }
 
 .platform-btn img {
@@ -282,7 +314,7 @@ input[type="text"] {
 	text-align: center;
 	font-size: 13px;
 	min-height: 40px;
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 }
 
 .download-item:active {
@@ -480,7 +512,7 @@ div.noscript a {
 }
 
 .dropdown summary {
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 	font-weight: bold;
 	padding: 8px 12px;
 	background-color: var(--button-bg);
@@ -535,7 +567,7 @@ div.noscript a {
 	border: 1px solid var(--dark);
 	font-family: departure;
 	font-size: 13px;
-	cursor: url('cursors/sight.png') 0 0, pointer;
+	cursor: url('/web-assets/cursors/sight.png') 0 0, pointer;
 }
 
 .dropdown-links a:hover {

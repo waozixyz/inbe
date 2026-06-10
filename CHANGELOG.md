@@ -1,4 +1,9 @@
 # Changelog
+## [1.2.1] - 2026-06-10
+### Added
+- Breath hold display mode setting with circle progress or stopwatch display
+- Slower speed scale and progressive start speed control
+
 ## [1.2.0] - 2026-06-08
 ### Added
 - Flint-based UI and theme system

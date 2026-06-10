@@ -115,6 +115,9 @@ Speed
 [progressive_speed_label]
 Progressive speed
 ---
+[progressive_start_speed_label]
+Start speed
+---
 [play_in_background_label]
 Play in background
 ---
@@ -129,6 +132,15 @@ Pause after round
 ---
 [advanced_session_controls_label]
 Advanced session controls
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Volume
@@ -312,14 +324,14 @@ Find a rhythm that feels natural for you.
 [tutorial_step_progressive_speed]
 Progressive speed makes the first round easier to enter.
 
-When it is on, the first round starts at speed 1 for the first 5 breaths, then gradually increases to your selected speed.
+When it is on, the first round starts slower, then gradually increases to your selected speed.
 ---
 [tutorial_step_exhale_hold]
-After the breathing round,
-exhale normally and hold.
+Exhale normally and hold.
 
-Release when your body asks
-for air. Do not force it.
+The center number keeps counting. Circle mode adds layered progress lines.
+
+Release when your body asks for air.
 ---
 [tutorial_step_inhale_hold]
 Inhale fully and hold for about 15 seconds.

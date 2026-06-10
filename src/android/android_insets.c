@@ -1,4 +1,5 @@
 #include "android_insets.h"
+#include "android_import.h"
 #include "android_timer.h"
 #include "android_wakelock.h"
 #include "app.h"
@@ -179,6 +180,8 @@ static const JNINativeMethod g_methods[] = {
     {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
     {"nativePauseSession", "()V", (void*)nativePauseSession},
     {"nativeResumeSession", "()V", (void*)nativeResumeSession},
+    {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
+    {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},
 };
 
 // JNI_OnLoad - Register native methods

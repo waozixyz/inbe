@@ -14,6 +14,8 @@ static JavaVM *g_jvm = NULL;
 static jobject g_activity = NULL;
 static jmethodID g_acquire_method = NULL;
 static jmethodID g_release_method = NULL;
+static jmethodID g_keep_screen_on_method = NULL;
+static jmethodID g_allow_screen_off_method = NULL;
 static pthread_mutex_t wakelock_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void android_wakelock_init(void) {
@@ -34,6 +36,8 @@ void android_wakelock_set_activity(JNIEnv *env, jobject activity) {
         if (clazz) {
             g_acquire_method = (*env)->GetMethodID(env, clazz, "acquireWakeLock", "()V");
             g_release_method = (*env)->GetMethodID(env, clazz, "releaseWakeLock", "()V");
+            g_keep_screen_on_method = (*env)->GetMethodID(env, clazz, "keepScreenOn", "()V");
+            g_allow_screen_off_method = (*env)->GetMethodID(env, clazz, "allowScreenOff", "()V");
             (*env)->DeleteLocalRef(env, clazz);
             __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Wake lock activity set successfully");
         }
@@ -102,6 +106,52 @@ void android_wakelock_release(void) {
 
     pthread_mutex_unlock(&wakelock_mutex);
     TraceLog(LOG_INFO, "INBE: Wake lock released");
+}
+
+void android_keep_screen_on(void) {
+    pthread_mutex_lock(&wakelock_mutex);
+
+    if (!g_jvm || !g_activity) {
+        __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "KEEP_SCREEN_ON: JNI not initialized - skipping");
+        pthread_mutex_unlock(&wakelock_mutex);
+        return;
+    }
+
+    JNIEnv *env = NULL;
+    jint result = (*g_jvm)->GetEnv(g_jvm, (void**)&env, JNI_VERSION_1_6);
+    if (result == JNI_EDETACHED) {
+        result = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+    }
+
+    if (env && g_keep_screen_on_method) {
+        (*env)->CallVoidMethod(env, g_activity, g_keep_screen_on_method);
+        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "KEEP_SCREEN_ON: SUCCESS");
+    }
+
+    pthread_mutex_unlock(&wakelock_mutex);
+}
+
+void android_allow_screen_off(void) {
+    pthread_mutex_lock(&wakelock_mutex);
+
+    if (!g_jvm || !g_activity) {
+        __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "ALLOW_SCREEN_OFF: JNI not initialized - skipping");
+        pthread_mutex_unlock(&wakelock_mutex);
+        return;
+    }
+
+    JNIEnv *env = NULL;
+    jint result = (*g_jvm)->GetEnv(g_jvm, (void**)&env, JNI_VERSION_1_6);
+    if (result == JNI_EDETACHED) {
+        result = (*g_jvm)->AttachCurrentThread(g_jvm, &env, NULL);
+    }
+
+    if (env && g_allow_screen_off_method) {
+        (*env)->CallVoidMethod(env, g_activity, g_allow_screen_off_method);
+        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "ALLOW_SCREEN_OFF: SUCCESS");
+    }
+
+    pthread_mutex_unlock(&wakelock_mutex);
 }
 
 // Called from JNI to set the JVM reference

@@ -112,8 +112,8 @@ Motiv
 [speed_label]
 Rychlost
 ---
-[progressive_speed_label]
-Postupná rychlost
+
+Start speed
 ---
 [play_in_background_label]
 Přehrávat na pozadí
@@ -129,6 +129,15 @@ Pauza po kole
 ---
 [advanced_session_controls_label]
 Pokročilé ovládání sezení
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Hlasitost

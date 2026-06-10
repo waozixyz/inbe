@@ -94,8 +94,8 @@
 [speed_label]
 속도
 ---
-[progressive_speed_label]
-점진적 속도
+
+Start speed
 ---
 [play_in_background_label]
 백그라운드 재생
@@ -111,6 +111,15 @@
 ---
 [advanced_session_controls_label]
 고급 세션 제어
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 음량

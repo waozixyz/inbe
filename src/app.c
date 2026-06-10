@@ -235,8 +235,23 @@ load_locale_font(InbeApp *app)
 
     // Store the locale font in the app for use in text rendering
     app->locale_font = font;
+    flint_text_set_font(font);
     SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
     return 1;
+}
+
+static void
+unload_locale_font(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    flint_text_set_font((Font){0});
+    if(app->locale_font.texture.id != 0)
+        UnloadTexture(app->locale_font.texture);
+    free(app->locale_font.glyphs);
+    free(app->locale_font.recs);
+    app->locale_font = (Font){0};
 }
 
 static void
@@ -613,6 +628,7 @@ apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
     inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
+    inbe->progressive_start_speed = clampi(inbe->progressive_start_speed, SETTINGS_SPEED_MIN, speed);
     inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
     inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
     count_from_int(inbe->maxbreaths, clampi(max_breaths, SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX));
@@ -640,12 +656,12 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[1024];
+    char text[1200];
     char settings_path[FS_PATH_MAX];
     inbe_settings_path(settings_path, sizeof(settings_path));
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nplay_in_background %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -657,14 +673,16 @@ save_settings(InbeApp *app)
              app->fullscreen_enabled ? 1 : 0,
              app->on_screen_keyboard_enabled ? 1 : 0,
              app->inbe.progressive_speed,
+             app->inbe.progressive_start_speed,
              app->advanced_session_controls ? 1 : 0,
+             app->hold_display_mode,
              app->inbe.play_in_background,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nadvanced_session_controls %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
@@ -676,7 +694,9 @@ save_settings(InbeApp *app)
              app->fullscreen_enabled ? 1 : 0,
              app->on_screen_keyboard_enabled ? 1 : 0,
              app->inbe.progressive_speed,
+             app->inbe.progressive_start_speed,
              app->advanced_session_controls ? 1 : 0,
+             app->hold_display_mode,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
@@ -695,7 +715,7 @@ load_settings(InbeApp *app)
     inbe_settings_path(settings_path, sizeof(settings_path));
     rini_data settings = rini_load(settings_path);
 
-    int speed = rini_get_value_fallback(settings, "speed", 6);
+    int speed = rini_get_value_fallback(settings, "speed", 8);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
@@ -712,7 +732,11 @@ load_settings(InbeApp *app)
 #endif
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
+    app->inbe.progressive_start_speed = clampi(rini_get_value_fallback(settings, "progressive_start_speed", 3),
+                                               SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
+    app->hold_display_mode = clampi(rini_get_value_fallback(settings, "hold_display_mode", HOLD_DISPLAY_CIRCLE),
+                                    HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
     app->language_needs_save = 0;
     {
         const char *language = rini_get_value_text(settings, "language");
@@ -765,18 +789,15 @@ load_pixel_texture(const char *path)
 static Texture2D
 load_icon_texture(const char *name)
 {
-    char path[64];
+    char icon_name[64];
+    char *ext;
 
-    snprintf(path, sizeof(path), "icons/%s", name);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
-    return load_pixel_texture(path);
-#else
-    if(FileExists(path))
-        return load_pixel_texture(path);
+    snprintf(icon_name, sizeof(icon_name), "%s", name);
+    ext = strrchr(icon_name, '.');
+    if(ext != NULL && strcmp(ext, ".png") == 0)
+        *ext = '\0';
 
-    snprintf(path, sizeof(path), "icons/%s", name);
-    return load_pixel_texture(path);
-#endif
+    return flint_load_icon_texture_by_name(icon_name);
 }
 
 static Texture2D
@@ -938,10 +959,12 @@ start_session(InbeApp *app)
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
     int progressive_speed = app->inbe.progressive_speed;
+    int progressive_start_speed = app->inbe.progressive_start_speed;
     int play_in_background = app->inbe.play_in_background;
 
     inbeinit(&app->inbe);
     app->inbe.progressive_speed = progressive_speed;
+    app->inbe.progressive_start_speed = progressive_start_speed;
     app->inbe.play_in_background = play_in_background;
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     /* Save user's pause preference and use 3 seconds for first round */
@@ -955,6 +978,7 @@ start_session(InbeApp *app)
     remember_sound_state(app);
 
 #ifdef __ANDROID__
+    android_keep_screen_on();
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
     if (app->inbe.play_in_background) {
         TraceLog(LOG_INFO, "INBE: Acquiring wake lock and starting timer");
@@ -1063,52 +1087,41 @@ finish_round(InbeApp *app)
         }
         reset_round_start(&app->inbe);
     } else {
-        if(ensure_results_saved(app))
+        if(ensure_results_saved(app)) {
+#ifdef __ANDROID__
+            android_allow_screen_off();
+#endif
             app->inbe.screen = InbeScreenResults;
-        else
+        } else {
             inbe_app_init(app);
+        }
     }
 }
 
 static void
 session_step_back(InbeApp *app)
 {
-    switch(app->inbe.phase) {
-    case InbePhaseStarting:
-        if(app->inbe.round > 0) {
-            app->inbe.round--;
-            reset_round_recover(&app->inbe);
-        } else {
-            reset_round_start(&app->inbe);
-        }
-        break;
-    case InbePhaseBreathe:
-        if(app->inbe.pause_seconds > 0) {
-            reset_round_start(&app->inbe);
-        } else if(app->inbe.round > 0) {
-            app->inbe.round--;
-            reset_round_recover(&app->inbe);
-        } else {
-            reset_round_breathe(&app->inbe);
-        }
-        break;
-    case InbePhaseHold:
-        app->inbe.phase = InbePhaseBreathe;
-        app->inbe.r = app->inbe.rmin;
-        app->inbe.breath_frame = 0;
-        app->inbe.breathtick = 0;
-        app->inbe.sectick = 0;
-        cpcount(app->inbe.count, "000");
-        break;
-    case InbePhaseRecover:
-    case InbePhaseNext:
-        app->inbe.phase = InbePhaseRecover;
-        app->inbe.r = app->inbe.rmax;
-        app->inbe.breath_frame = 0;
-        app->inbe.sectick = 0;
-        cpcount(app->inbe.count, "000");
-        break;
-    }
+    int speed = app->inbe.speed_level;
+    int max_rounds = app->inbe.max_rounds;
+    int max_breaths = int_from_count(app->inbe.maxbreaths);
+    int pause_seconds = app->saved_pause_seconds;
+    int progressive_speed = app->inbe.progressive_speed;
+    int progressive_start_speed = app->inbe.progressive_start_speed;
+    int play_in_background = app->inbe.play_in_background;
+
+    inbeinit(&app->inbe);
+    app->inbe.progressive_speed = progressive_speed;
+    app->inbe.progressive_start_speed = progressive_start_speed;
+    app->inbe.play_in_background = play_in_background;
+    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+    app->saved_pause_seconds = pause_seconds;
+    app->inbe.pause_seconds = 3;
+    update_circle_bounds_for_view(&app->inbe, 0, flint_px(56) + 80);
+    app->inbe.screen = InbeScreenSession;
+    app->session_paused = 0;
+    app->results_saved = 0;
+    app->results_path[0] = '\0';
+    remember_sound_state(app);
 }
 
 static void
@@ -1150,34 +1163,129 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
+            flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            flint_ui_draw_text_centered(text, center_x, center_y, font, c_icon);
+            flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
             return;
         }
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_icon);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
         return;
     }
 
-    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_icon);
+    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_text);
 }
 
+int
+draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
+{
+    const char *labels[2] = {
+        locale_get("hold_display_circle"),
+        locale_get("hold_display_stopwatch")
+    };
+    int selected = clampi(app->hold_display_mode, HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
+    int h = flint_px(36);
+    int segment_w = w / 2;
+    int clicked = 0;
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+
+    for(int i = 0; i < 2; i++) {
+        int segment_x = x + i * segment_w;
+        int current_w = (i == 1) ? (x + w - segment_x) : segment_w;
+        Rectangle rect = {segment_x, y, current_w, h};
+        int hovered = CheckCollisionPointRec(mouse_world, rect);
+        int active = (i == selected);
+        Color fill = active ? c_button : flint_darken(c_bg, 10);
+        Color top = flint_lighten(fill, 35);
+        Color bottom = flint_darken(fill, 45);
+        int font = flint_ui_font();
+        int text_w;
+
+        if(hovered && !active) {
+            fill = c_button_hover;
+            top = flint_darken(c_button_hover, 40);
+            bottom = flint_lighten(c_button_hover, 40);
+            app->cursor_clickable = 1;
+        } else if(hovered) {
+            app->cursor_clickable = 1;
+        }
+
+        DrawRectangle(segment_x, y, current_w, h, fill);
+        ui_draw_bevel(segment_x, y, current_w, h, top, bottom);
+
+        while(font > flint_px(11) && flint_text_measure(labels[i], font) > current_w - flint_px(12))
+            font--;
+        text_w = flint_text_measure(labels[i], font);
+        flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
+                 flint_ui_text_y(labels[i], y, h, font), font, c_text);
+
+        if(hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+           !ui_dropdown_captures_click(mouse_world) && selected != i) {
+            app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH;
+            app->settings_dirty = 1;
+            clicked = 1;
+        }
+    }
+
+    return clicked;
+}
+
+static void
+draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
+{
+    int seconds = int_from_count(app->inbe.count);
+    int total_frames = seconds * 60 + app->inbe.sectick;
+    int minute_frames = 60 * 60;
+    int completed_minutes = total_frames / minute_frames;
+    int frame_in_minute = total_frames % minute_frames;
+    float sweep = 360.0f * (float)frame_in_minute / (float)minute_frames;
+    int thickness = flint_px(5);
+    int gap = flint_px(18);
+    int radius = app->inbe.r + flint_px(12);
+    int min_radius = app->inbe.r / 2;
+
+    if(thickness < 3)
+        thickness = 3;
+    if(min_radius < flint_px(16))
+        min_radius = flint_px(16);
+
+    for(int i = 0; i <= completed_minutes; i++) {
+        int ring_radius = radius - i * gap;
+        if(ring_radius <= min_radius)
+            break;
+
+        if(i < completed_minutes) {
+            DrawRing((Vector2){center_x, center_y},
+                     (float)(ring_radius - thickness / 2),
+                     (float)(ring_radius + thickness / 2),
+                     -90.0f, 270.0f, 96, c_text);
+        } else if(sweep > 0.0f) {
+            DrawRing((Vector2){center_x, center_y},
+                     (float)(ring_radius - thickness / 2),
+                     (float)(ring_radius + thickness / 2),
+                     -90.0f, -90.0f + sweep, 96, c_text);
+        }
+    }
+}
 
 static void
 drawinbe(InbeApp *app, int center_x, int center_y)
 {
-    DrawCircle(center_x, center_y, app->inbe.r, c_circle);
-    DrawCircleLines(center_x, center_y, app->inbe.r, c_text);
+    if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
+        draw_hold_progress_outline(app, center_x, center_y);
+    } else {
+        DrawCircle(center_x, center_y, app->inbe.r, c_circle);
+        DrawCircleLines(center_x, center_y, app->inbe.r, c_text);
+    }
     draw_session_counter(app, center_x, center_y);
 }
 
@@ -1209,13 +1317,13 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     int font = flint_px(16);
     /* Calculate fixed width based on maximum possible value */
     locale_format(max_text, sizeof(max_text), "starting_in", 30);
-    max_text_w = MeasureText(max_text, font);
+    max_text_w = flint_text_measure(max_text, font);
 
     locale_format(text, sizeof(text), "starting_in", remaining);
     text_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(40);
     if(text_y < flint_px(20))
         text_y = flint_px(20);
-    DrawText(text, center_x - max_text_w / 2, text_y, font, c_text);
+    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, c_text);
 }
 
 void
@@ -1236,6 +1344,9 @@ inbe_app_init(void *vapp) {
     app->locale_font = (Font){0};
 
 #ifdef __ANDROID__
+    if (app->inbe.screen == InbeScreenSession) {
+        android_allow_screen_off();
+    }
     if (app->inbe.play_in_background) {
         android_timer_stop();
         android_wakelock_release();
@@ -1540,8 +1651,8 @@ updateapp(InbeApp *app)
 
     switch (app->inbe.screen) {
     case InbeScreenStart:
-        title_w = MeasureText(config.title, title_font);
-        DrawText(config.title, center_x - title_w / 2, flint_px(20), title_font, c_text);
+        title_w = flint_text_measure(config.title, title_font);
+        flint_text_draw(config.title, center_x - title_w / 2, flint_px(20), title_font, c_text);
 
         {
             int play_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(20);
@@ -1794,8 +1905,8 @@ updateapp(InbeApp *app)
             int side_padding = flint_page_side_padding();
 
             flint_centered_column(responsive_max_w, side_padding, &box_x, &box_w);
-            title_w = MeasureText(locale_get("results_title"), title_font);
-            DrawText(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, c_text);
+            title_w = flint_text_measure(locale_get("results_title"), title_font);
+            flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, c_text);
 
             for(int i = 0; i < rounds; i++) {
                 int seconds = round_times[i];
@@ -1813,16 +1924,16 @@ updateapp(InbeApp *app)
             {
                 char line[64];
                 locale_format(line, sizeof(line), "results_rounds", rounds);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), c_text);
+                flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), c_text);
                 locale_format(line, sizeof(line), "results_best", best);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), c_text);
+                flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), c_text);
                 locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
-                if(view_width < 420 && MeasureText(line, flint_px(16)) > box_w - flint_px(20))
+                if(view_width < 420 && flint_text_measure(line, flint_px(16)) > box_w - flint_px(20))
                     snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-                DrawText(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), c_text);
+                flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), c_text);
             }
 
-            DrawText(locale_get("round_times_title"), box_x, flint_px(188), flint_ui_font(), flint_darken(c_text, 20));
+            flint_text_draw(locale_get("round_times_title"), box_x, flint_px(188), flint_ui_font(), flint_darken(c_text, 20));
             for(int i = 0; i < rounds; i++) {
                 char row[48];
                 int seconds = round_times[i];
@@ -1830,7 +1941,7 @@ updateapp(InbeApp *app)
                 locale_format(row, sizeof(row), "round_result_label", i + 1, seconds);
                 DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(c_bg, 4));
                 DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(c_bg, 26));
-                DrawText(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, c_text);
+                flint_text_draw(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, c_text);
                 row_y += row_h;
             }
 
@@ -1937,6 +2048,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->angel_image);
     SafeUnloadTexture(app->begin_image);
     SafeUnloadTexture(app->font_shapes_texture);
+    unload_locale_font(app);
 
     /* Cleanup tutorial text layouts */
     if(app->tutorial_layouts_initialized) {

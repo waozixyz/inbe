@@ -112,8 +112,8 @@
 [speed_label]
 速度
 ---
-[progressive_speed_label]
-段階的速度
+
+Start speed
 ---
 [play_in_background_label]
 バックグラウンド再生
@@ -129,6 +129,15 @@
 ---
 [advanced_session_controls_label]
 詳細なセッション設定
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 音量

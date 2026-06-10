@@ -6,6 +6,8 @@
 void android_wakelock_init(void);
 void android_wakelock_acquire(void);
 void android_wakelock_release(void);
+void android_keep_screen_on(void);
+void android_allow_screen_off(void);
 void android_wakelock_set_activity(JNIEnv *env, jobject activity);
 void android_wakelock_set_jvm(JavaVM *vm);
 #else
@@ -13,6 +15,8 @@ void android_wakelock_set_jvm(JavaVM *vm);
 static inline void android_wakelock_init(void) {}
 static inline void android_wakelock_acquire(void) {}
 static inline void android_wakelock_release(void) {}
+static inline void android_keep_screen_on(void) {}
+static inline void android_allow_screen_off(void) {}
 #endif
 
 #endif

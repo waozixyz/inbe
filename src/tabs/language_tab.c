@@ -38,7 +38,7 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
         int font = flint_ui_font();
         DrawRectangle(x, y, w, h, c_button);
         ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
-        DrawText(locale_get("language_label"), x + flint_px(12),
+        flint_text_draw(locale_get("language_label"), x + flint_px(12),
                  flint_ui_text_y(locale_get("language_label"), y, h, font), font, c_text);
         return 0;
     }
@@ -90,9 +90,9 @@ language_tab_draw(InbeApp *app)
     if(language_dropdown_button(app, 200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index))
         selection_changed = 1;
 
-    title_w = MeasureText(locale_get("language_picker_title"), title_font);
-    DrawText(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
-    DrawText(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
+    title_w = flint_text_measure(locale_get("language_picker_title"), title_font);
+    flint_text_draw(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
+    flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
 
     if(ui_draw_text_btn(button_x, button_y, locale_get("next_button"), &next_hover)) {
         if(!app->tutorial_seen)

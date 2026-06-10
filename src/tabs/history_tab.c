@@ -290,7 +290,7 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + flint_px(indent), y + flint_px(6), flint_px(16), c_text);
+    flint_text_draw(text, x + flint_px(indent), y + flint_px(6), flint_px(16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -317,7 +317,7 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + flint_px(46), y + flint_px(6), font, c_text);
+    flint_text_draw(text, x + flint_px(46), y + flint_px(6), font, c_text);
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return 1;
@@ -593,9 +593,9 @@ history_edit_cursor_from_x(const char *text, int font, int text_x, int target_x)
         int right_w;
 
         snprintf(prefix, sizeof(prefix), "%.*s", i, text);
-        left_w = MeasureText(prefix, font);
+        left_w = flint_text_measure(prefix, font);
         snprintf(prefix, sizeof(prefix), "%.*s", i + 1, text);
-        right_w = MeasureText(prefix, font);
+        right_w = flint_text_measure(prefix, font);
 
         if(target_x < text_x + (left_w + right_w) / 2)
             return i;
@@ -711,8 +711,8 @@ history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
 
-    text_w = MeasureText(label, font);
-    DrawText(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+    text_w = flint_text_measure(label, font);
+    flint_text_draw(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
     return pressed;
 }
 
@@ -857,12 +857,12 @@ history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, i
     ui_draw_bevel(x, field_y, w, field_h,
                   valid ? flint_lighten(c_button_hover, 35) : flint_lighten(c_button, 16),
                   valid ? flint_darken(c_button_hover, 30) : flint_darken(c_button, 34));
-    DrawText(app->history_edit_text, text_x, text_y, font, c_text);
+    flint_text_draw(app->history_edit_text, text_x, text_y, font, c_text);
     if((app->inbe.frame / 24) % 2 == 0) {
         char prefix[16];
         snprintf(prefix, sizeof(prefix), "%.*s", app->history_edit_cursor,
                  app->history_edit_text);
-        caret_x = text_x + MeasureText(prefix, font) + flint_px(1);
+        caret_x = text_x + flint_text_measure(prefix, font) + flint_px(1);
         DrawLine(caret_x, text_y, caret_x, text_y + font, c_text);
     }
 }
@@ -1071,7 +1071,7 @@ history_fit_session_label(const HistoryEntry *entry, int available_w, char *out,
     int font = flint_px(16);
 
     history_format_session_label(entry, out, out_size);
-    if(view_width < 420 && MeasureText(out, font) > available_w)
+    if(view_width < 420 && flint_text_measure(out, font) > available_w)
         snprintf(out, out_size, "%02d:%02d  %ds", entry->hour, entry->minute, entry->avg_seconds);
 }
 
@@ -1229,7 +1229,7 @@ history_tab_draw(InbeApp *app)
                 {
                     char label[HISTORY_TEXT_SIZE];
                     locale_format(label, sizeof(label), "history_day_label", app->history_day);
-                    DrawText(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
+                    flint_text_draw(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
                              y + flint_px(6), flint_px(14), c_text);
                 }
                 y += row_h;
@@ -1264,7 +1264,7 @@ history_tab_draw(InbeApp *app)
                             }
                         }
                     } else {
-                        DrawText(time_label, content_x + flint_px(10), y + flint_px(6),
+                        flint_text_draw(time_label, content_x + flint_px(10), y + flint_px(6),
                                  flint_px(14), c_text);
                         if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                       app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
@@ -1301,7 +1301,7 @@ history_tab_draw(InbeApp *app)
                                 }
                             }
                         } else {
-                            DrawText(round_label, content_x + flint_px(22), y + flint_px(6),
+                            flint_text_draw(round_label, content_x + flint_px(22), y + flint_px(6),
                                      flint_px(14), c_text);
                             if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                           app->pencil_icon, UI_ICON_TYPE_PENCIL)) {

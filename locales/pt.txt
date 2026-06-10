@@ -94,8 +94,8 @@ Tema
 [speed_label]
 Velocidade
 ---
-[progressive_speed_label]
-Velocidade progressiva
+
+Start speed
 ---
 [play_in_background_label]
 Executar em segundo plano
@@ -111,6 +111,15 @@ Pausa após rodada
 ---
 [advanced_session_controls_label]
 Controles avançados da sessão
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Volume

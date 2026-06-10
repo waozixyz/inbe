@@ -40,6 +40,33 @@ draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char
 }
 
 static void
+draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
+{
+    int seconds = (app->inbe.frame / 60) % 60;
+    char text[CountSize];
+    int font = flint_px(16);
+    int thickness = flint_px(5);
+
+    count_from_int(text, seconds);
+    if(thickness < 3)
+        thickness = 3;
+
+    if(app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
+        float sweep = 360.0f * (float)((app->inbe.frame % (60 * 60))) / (float)(60 * 60);
+
+        DrawRing((Vector2){center_x, center_y},
+                 (float)(radius + flint_px(8) - thickness / 2),
+                 (float)(radius + flint_px(8) + thickness / 2),
+                 -90.0f, -90.0f + sweep, 96, c_text);
+    } else {
+        DrawCircle(center_x, center_y, radius, c_circle);
+        DrawCircleLines(center_x, center_y, radius, c_text);
+    }
+
+    flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
+}
+
+static void
 init_tutorial_layouts(InbeApp *app, int body_font)
 {
     if(!app->tutorial_layouts_initialized) {
@@ -165,6 +192,8 @@ manual_tab_draw(InbeApp *app)
         flint_text_layout_free(&temp_gear);
     } else if(step == 2) {
         actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[2]) + flint_px(68);
+        if(app->inbe.progressive_speed)
+            actual_content_h += flint_px(66);
     } else if(step == 3) {
         actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[3]) + flint_px(20);
         /* Circle preview height - calculate actual rmax based on content_w */
@@ -178,6 +207,10 @@ manual_tab_draw(InbeApp *app)
         int slider_h = flint_px(40);
         actual_content_h += slider_h + flint_px(8);
     } else if(step == 4) {
+        int hold_preview_radius = flint_px(54);
+        int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
+        actual_content_h += flint_px(26) + flint_px(36) + flint_px(20);
+        actual_content_h += hold_preview_extent * 2 + flint_px(24);
         actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[4]);
     } else {
         actual_content_h += flint_px(200) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[5]);
@@ -253,9 +286,10 @@ manual_tab_draw(InbeApp *app)
             y += flint_px(18);
             {
                 int progressive_speed = app->inbe.progressive_speed;
+                int progressive_start_speed = app->inbe.progressive_start_speed;
                 int toggle_w = flint_px(56);
                 int toggle_h = flint_px(30);
-                DrawText(locale_get("progressive_speed_label"), content_x, y,
+                flint_text_draw(locale_get("progressive_speed_label"), content_x, y,
                          flint_ui_font(), c_text);
                 y += flint_px(26);
                 if(ui_draw_toggle_switch(content_x, y, toggle_w, toggle_h,
@@ -264,6 +298,19 @@ manual_tab_draw(InbeApp *app)
                     app->inbe.progressive_speed = progressive_speed;
                     app->settings_preview.progressive_speed = progressive_speed;
                     app->settings_dirty = 1;
+                }
+                y += toggle_h + flint_px(20);
+                if(app->inbe.progressive_speed) {
+                    int max_speed = app->inbe.speed_level;
+                    progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
+                    if(ui_draw_slider(11, content_x, y, content_w,
+                                      locale_get("progressive_start_speed_label"),
+                                      SETTINGS_SPEED_MIN, max_speed,
+                                      &progressive_start_speed, "")) {
+                        app->inbe.progressive_start_speed = progressive_start_speed;
+                        app->settings_preview.progressive_start_speed = progressive_start_speed;
+                        app->settings_dirty = 1;
+                    }
                 }
             }
         } else if(step == 3) {
@@ -298,6 +345,14 @@ manual_tab_draw(InbeApp *app)
                 app->settings_dirty = 1;
             }
         } else if(step == 4) {
+            int hold_preview_radius = flint_px(54);
+            int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
+            flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), c_text);
+            y += flint_px(26);
+            draw_hold_display_mode_selector(app, content_x, y, content_w);
+            y += flint_px(36) + flint_px(20) + hold_preview_extent;
+            draw_tutorial_hold_preview(app, content_x + content_w / 2, y, hold_preview_radius);
+            y += hold_preview_extent + flint_px(24);
             if(app->tutorial_layouts_initialized && app->tutorial_layouts[4] != NULL) {
                 flint_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
             }
@@ -337,8 +392,8 @@ manual_tab_draw(InbeApp *app)
     int counter_gap = flint_px(6);
 
 
-    DrawText(page_label,
-             view_width / 2 - MeasureText(page_label, page_font) / 2,
+    flint_text_draw(page_label,
+             view_width / 2 - flint_text_measure(page_label, page_font) / 2,
              footer_y - page_font - counter_gap, page_font, c_text);
 
     if(step == 0) {

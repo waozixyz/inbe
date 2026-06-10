@@ -22,12 +22,6 @@ android-copy-assets:
 	cp $(LOCALE_FILES) $(ANDROID_DIR)/app/src/main/assets/locales/
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/themes
 	cp $(THEME_FILES) $(ANDROID_DIR)/app/src/main/assets/themes/
-	mkdir -p $(ANDROID_DIR)/app/src/main/assets/icons
-	@for icon in $(ICON_FILES); do \
-		base=$$(basename "$$icon"); \
-		size=$$(identify -format '%wx%h' "$$icon"); \
-		magick "$$icon" -filter point -resize "$$size!" "$(ANDROID_DIR)/app/src/main/assets/icons/$$base"; \
-	done
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets
 	cp $(IMAGE_FILES) $(ANDROID_DIR)/app/src/main/assets/assets/
 	mkdir -p $(ANDROID_DIR)/app/src/main/assets/assets/fonts

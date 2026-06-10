@@ -94,8 +94,8 @@ Thème
 [speed_label]
 Vitesse
 ---
-[progressive_speed_label]
-Vitesse progressive
+
+Start speed
 ---
 [play_in_background_label]
 Lecture en arrière-plan
@@ -111,6 +111,15 @@ Pause après cycle
 ---
 [advanced_session_controls_label]
 Contrôles avancés de séance
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Volume

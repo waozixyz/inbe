@@ -57,15 +57,14 @@ echo "Copying sounds..."
 mkdir -p "$ASSETS_DIR/assets/sounds"
 cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg "$ASSETS_DIR/assets/sounds/"
 
-# Copy fonts
+# Build and copy fonts
+echo "Building fonts..."
+mkdir -p assets/fonts
+make -C ../otfchop otfchop
+../otfchop/otfchop ../otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+
 echo "Copying fonts..."
 mkdir -p "$ASSETS_DIR/assets/fonts"
-if [ -f "assets/fonts/locales.png" ] && [ -f "assets/fonts/locales.dat" ]; then
-    cp assets/fonts/locales.png assets/fonts/locales.dat "$ASSETS_DIR/assets/fonts/"
-    echo "Font files copied successfully"
-else
-    echo "Warning: Font files not found. Build may be incomplete."
-    echo "Expected files: assets/fonts/locales.png and assets/fonts/locales.dat"
-fi
+cp assets/fonts/locales.png assets/fonts/locales.dat "$ASSETS_DIR/assets/fonts/"
 
 echo "Assets copied successfully!"

@@ -10,7 +10,7 @@ typedef struct FlintTextLayout FlintTextLayout;
 
 enum {
     SETTINGS_SPEED_MIN = 1,
-    SETTINGS_SPEED_MAX = 16,
+    SETTINGS_SPEED_MAX = 12,
     SETTINGS_BREATHS_MIN = 15,
     SETTINGS_BREATHS_MAX = 80,
     SETTINGS_PAUSE_MIN = 0,
@@ -109,6 +109,11 @@ typedef struct LotusAppApi {
 
 typedef struct InbeApp InbeApp;
 
+typedef enum HoldDisplayMode {
+    HOLD_DISPLAY_CIRCLE = 0,
+    HOLD_DISPLAY_STOPWATCH = 1,
+} HoldDisplayMode;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -199,6 +204,7 @@ struct InbeApp {
     int history_delete_round;
     char history_delete_path[FS_PATH_MAX];
     int advanced_session_controls;
+    int hold_display_mode;
     int session_paused;
     int backgrounded;
     int results_saved;
@@ -224,5 +230,6 @@ void refresh_theme_colors(int theme_id, int dark_mode);
 void refresh_locale_dependent_text(InbeApp *app);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
+int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
 
 #endif
