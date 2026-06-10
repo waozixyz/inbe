@@ -290,7 +290,9 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    flint_text_draw(text, x + flint_px(indent), y + flint_px(6), flint_px(16), c_text);
+    flint_text_draw(text, x + flint_px(indent),
+                    flint_ui_text_y(text, y, h, flint_px(16)),
+                    flint_px(16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -317,7 +319,8 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    flint_text_draw(text, x + flint_px(46), y + flint_px(6), font, c_text);
+    flint_text_draw(text, x + flint_px(46),
+                    flint_ui_text_y(text, y, h, font), font, c_text);
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return 1;
@@ -712,7 +715,8 @@ history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label
     }
 
     text_w = flint_text_measure(label, font);
-    flint_text_draw(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+    flint_text_draw(label, x + (w - text_w) / 2,
+                    flint_ui_text_y(label, y, h, font), font, c_text);
     return pressed;
 }
 
@@ -827,14 +831,13 @@ history_update_edit_input(InbeApp *app, const HistoryEntry *entry,
 }
 
 static void
-history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, int w, int h)
+history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, int w, int h, int font)
 {
-    int font = flint_px(16);
     int valid = 0;
     int field_y = y + flint_px(3);
     int field_h = h - flint_px(6);
     int text_x = x + flint_px(8);
-    int text_y = y + flint_px(7);
+    int text_y = flint_ui_text_y(app->history_edit_text, y, h, font);
     int caret_x;
 
     history_update_edit_input(app, entry, x, field_y, w, field_h, text_x, font);
@@ -1075,6 +1078,83 @@ history_fit_session_label(const HistoryEntry *entry, int available_w, char *out,
         snprintf(out, out_size, "%02d:%02d  %ds", entry->hour, entry->minute, entry->avg_seconds);
 }
 
+static int
+history_active_edit_row(const InbeApp *app, const HistoryEntry *entries, int count)
+{
+    int row = 1;
+
+    if(app == NULL || entries == NULL || !app->history_edit_active ||
+       app->history_level != HISTORY_LEVEL_EDIT_DAY)
+        return -1;
+
+    for(int i = 0; i < count; i++) {
+        if(entries[i].year != app->history_year ||
+           entries[i].month != app->history_month ||
+           entries[i].day != app->history_day)
+            continue;
+
+        if(strcmp(app->history_edit_path, entries[i].path) == 0) {
+            if(app->history_edit_kind == HISTORY_EDIT_TIME)
+                return row;
+            if(app->history_edit_kind == HISTORY_EDIT_ROUND &&
+               app->history_edit_round >= 0 &&
+               app->history_edit_round < entries[i].round_count)
+                return row + 1 + app->history_edit_round;
+        }
+
+        row += 1 + entries[i].round_count;
+    }
+
+    return -1;
+}
+
+static void
+history_scroll_edit_into_view(InbeApp *app, const HistoryEntry *entries, int count,
+                              int row_h, int viewport_h, int max_scroll)
+{
+    static char last_path[FS_PATH_MAX] = "";
+    static int last_kind = HISTORY_EDIT_NONE;
+    static int last_round = -1;
+    int row = history_active_edit_row(app, entries, count);
+    int margin = flint_px(10);
+    int row_top;
+    int row_bottom;
+    int changed;
+
+    if(app == NULL || !app->history_edit_active) {
+        last_path[0] = '\0';
+        last_kind = HISTORY_EDIT_NONE;
+        last_round = -1;
+        return;
+    }
+
+    if(row < 0 || max_scroll <= 0 || viewport_h <= 0)
+        return;
+
+    changed = last_kind != app->history_edit_kind ||
+              last_round != app->history_edit_round ||
+              strcmp(last_path, app->history_edit_path) != 0;
+    if(!changed)
+        return;
+
+    snprintf(last_path, sizeof(last_path), "%s", app->history_edit_path);
+    last_kind = app->history_edit_kind;
+    last_round = app->history_edit_round;
+
+    row_top = flint_px(12) + row * row_h;
+    row_bottom = row_top + row_h;
+
+    if(row_top - margin < app->history_scroll)
+        app->history_scroll = row_top - margin;
+    else if(row_bottom + margin > app->history_scroll + viewport_h)
+        app->history_scroll = row_bottom + margin - viewport_h;
+
+    if(app->history_scroll < 0)
+        app->history_scroll = 0;
+    if(app->history_scroll > max_scroll)
+        app->history_scroll = max_scroll;
+}
+
 void
 history_tab_draw(InbeApp *app)
 {
@@ -1097,6 +1177,8 @@ history_tab_draw(InbeApp *app)
     int selected_index = -1;
     int content_x;
     int content_w;
+    int scrollbar_w = flint_px(8);
+    int scrollbar_gap = flint_px(6);
 
     scan_history_tree(entries, &count);
     qsort(entries, (size_t)count, sizeof(entries[0]), compare_history_entries);
@@ -1184,6 +1266,7 @@ history_tab_draw(InbeApp *app)
 
     app->history_scroll -= (int)(GetMouseWheelMove() * 24.0f);
     app->history_scroll = (app->history_scroll < 0) ? 0 : (app->history_scroll > max_scroll ? max_scroll : app->history_scroll);
+    history_scroll_edit_into_view(app, entries, count, row_h, viewport_h, max_scroll);
 
     /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
     int responsive_max_w = (int)(view_width * 0.96f);
@@ -1192,6 +1275,8 @@ history_tab_draw(InbeApp *app)
         responsive_max_w = min_content_w;
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
+    if(max_scroll > 0 && content_w > flint_px(120) + scrollbar_w + scrollbar_gap)
+        content_w -= scrollbar_w + scrollbar_gap;
 
     close_clicked = ui_draw_screen_header(locale_get("history_title"), 1);
     if(close_clicked) {
@@ -1230,7 +1315,8 @@ history_tab_draw(InbeApp *app)
                     char label[HISTORY_TEXT_SIZE];
                     locale_format(label, sizeof(label), "history_day_label", app->history_day);
                     flint_text_draw(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
-                             y + flint_px(6), flint_px(14), c_text);
+                                    flint_ui_text_y(label, y, row_h, flint_px(16)),
+                                    flint_px(16), c_text);
                 }
                 y += row_h;
 
@@ -1248,8 +1334,8 @@ history_tab_draw(InbeApp *app)
                     DrawRectangle(content_x, y, content_w, row_h, flint_darken(c_bg, 6));
                     ui_draw_bevel(content_x, y, content_w, row_h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
                     if(history_edit_matches(app, &entries[i], HISTORY_EDIT_TIME, -1)) {
-                        history_draw_edit_field(app, &entries[i], content_x + flint_px(8), y,
-                                                label_w, row_h);
+                        history_draw_edit_field(app, &entries[i], content_x + flint_px(2), y,
+                                                label_w, row_h, flint_px(16));
                         if(!app->history_edit_active) {
                             app->history_scroll = 0;
                             EndScissorMode();
@@ -1264,8 +1350,9 @@ history_tab_draw(InbeApp *app)
                             }
                         }
                     } else {
-                        flint_text_draw(time_label, content_x + flint_px(10), y + flint_px(6),
-                                 flint_px(14), c_text);
+                        flint_text_draw(time_label, content_x + flint_px(10),
+                                        flint_ui_text_y(time_label, y, row_h, flint_px(16)),
+                                        flint_px(16), c_text);
                         if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                       app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                             history_begin_edit_time(app, &entries[i]);
@@ -1285,8 +1372,8 @@ history_tab_draw(InbeApp *app)
                         DrawRectangle(content_x, y, content_w, row_h, flint_darken(c_bg, 4));
                         ui_draw_bevel(content_x, y, content_w, row_h, flint_lighten(c_button, 24), flint_darken(c_button, 18));
                         if(history_edit_matches(app, &entries[i], HISTORY_EDIT_ROUND, r)) {
-                            history_draw_edit_field(app, &entries[i], content_x + flint_px(20), y,
-                                                    label_w - flint_px(12), row_h);
+                            history_draw_edit_field(app, &entries[i], content_x + flint_px(14), y,
+                                                    label_w - flint_px(12), row_h, flint_px(16));
                             if(!app->history_edit_active) {
                                 app->history_scroll = 0;
                                 EndScissorMode();
@@ -1301,8 +1388,9 @@ history_tab_draw(InbeApp *app)
                                 }
                             }
                         } else {
-                            flint_text_draw(round_label, content_x + flint_px(22), y + flint_px(6),
-                                     flint_px(14), c_text);
+                            flint_text_draw(round_label, content_x + flint_px(22),
+                                            flint_ui_text_y(round_label, y, row_h, flint_px(16)),
+                                            flint_px(16), c_text);
                             if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                           app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                                 history_begin_edit_round(app, &entries[i], r);
@@ -1424,12 +1512,13 @@ history_tab_draw(InbeApp *app)
 
     /* Draw scrollbar if needed */
     if(max_scroll > 0) {
-        int scrollbar_w = flint_px(8);
-        int scrollbar_h = (viewport_h * viewport_h) / (content_h + viewport_h);
-        int scrollbar_x = content_x + content_w + flint_px(10);
-        int scrollbar_y = title_h + (app->history_scroll * (viewport_h - scrollbar_h)) / max_scroll;
+        int scrollbar_x = (int)(app->camera.offset.x + (content_x + content_w + scrollbar_gap) * app->camera.zoom);
+        int scrollbar_y = (int)(app->camera.offset.y + title_h * app->camera.zoom);
+        int scrollbar_viewport_h = (int)(viewport_h * app->camera.zoom);
+        int scrollbar_content_h = (int)(content_h * app->camera.zoom);
 
-        DrawRectangle(scrollbar_x, scrollbar_y, scrollbar_w, scrollbar_h, flint_darken(c_text, 40));
+        ui_draw_scrollbar(scrollbar_x, scrollbar_y, scrollbar_viewport_h,
+                          scrollbar_content_h, &app->history_scroll, max_scroll);
     }
 
     if(history_should_show_keyboard(app) && keyboard_entry != NULL) {
