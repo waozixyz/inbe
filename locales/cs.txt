@@ -131,13 +131,13 @@ Pauza po kole
 Pokročilé ovládání sezení
 ---
 [hold_display_label]
-Hold display
+Zobrazeni zadrze
 ---
 [hold_display_stopwatch]
-Stopwatch
+Stopky
 ---
 [hold_display_circle]
-Circle
+Kruh
 ---
 [volume_label]
 Hlasitost
@@ -187,8 +187,23 @@ Export selhal
 [exported_label]
 Exportováno
 ---
+[import_data_button]
+Importovat data
+---
+[import_data_dialog_title]
+Importovat data
+---
+[import_failed]
+Import selhal
+---
+[imported_sessions]
+Importováno %d sezení
+---
+[import_invalid_file]
+Neplatný exportní soubor
+---
 [import_cancelled]
-Import cancelled
+Import zrušen
 ---
 [export_cancelled]
 Export cancelled

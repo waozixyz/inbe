@@ -919,19 +919,20 @@ settings_tab_draw(InbeApp *app)
                     int icon_padding = flint_px(4);
                     int icon_spacing = flint_px(20);
                     int icon_btn_w = icon_size + icon_padding * 2;
-                    int total_w = icon_btn_w * 2 + icon_spacing * 1;
-                    int columns = total_w <= content_w ? 2 : 2;
+                    int total_w = icon_btn_w * 3 + icon_spacing * 2;
+                    int columns = total_w <= content_w ? 3 : 2;
                     int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
                     int links_start_x = content_x + (content_w - grid_w) / 2;
                     int row_spacing = flint_px(16);
-                    Texture2D icons[2] = {app->telegram_icon, app->monero_icon};
-                    UIIconType icon_types[2] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
-                    const char *urls[2] = {
+                    Texture2D icons[3] = {app->discord_icon, app->telegram_icon, app->monero_icon};
+                    UIIconType icon_types[3] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
+                    const char *urls[3] = {
+                        "https://discord.gg/JbGZ4yENDt",
                         "https://t.me/lotusinbe",
                         "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
                     };
 
-                    for(int i = 0; i < 2; i++) {
+                    for(int i = 0; i < 3; i++) {
                         int col = i % columns;
                         int row = i / columns;
                         int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;

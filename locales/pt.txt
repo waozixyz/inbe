@@ -113,13 +113,13 @@ Pausa após rodada
 Controles avançados da sessão
 ---
 [hold_display_label]
-Hold display
+Exibicao da retencao
 ---
 [hold_display_stopwatch]
-Stopwatch
+Cronometro
 ---
 [hold_display_circle]
-Circle
+Circulo
 ---
 [volume_label]
 Volume
@@ -169,8 +169,23 @@ Falha ao exportar
 [exported_label]
 Exportado
 ---
+[import_data_button]
+Importar dados
+---
+[import_data_dialog_title]
+Importar dados
+---
+[import_failed]
+Falha ao importar
+---
+[imported_sessions]
+%d sessões importadas
+---
+[import_invalid_file]
+Arquivo de exportação inválido
+---
 [import_cancelled]
-Import cancelled
+Importação cancelada
 ---
 [export_cancelled]
 Export cancelled

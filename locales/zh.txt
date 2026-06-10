@@ -131,13 +131,13 @@ Start speed
 高级练习控制
 ---
 [hold_display_label]
-Hold display
+屏息显示
 ---
 [hold_display_stopwatch]
-Stopwatch
+秒表
 ---
 [hold_display_circle]
-Circle
+圆圈
 ---
 [volume_label]
 音量

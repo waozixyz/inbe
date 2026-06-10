@@ -131,13 +131,13 @@ Start speed
 詳細なセッション設定
 ---
 [hold_display_label]
-Hold display
+ホールド表示
 ---
 [hold_display_stopwatch]
-Stopwatch
+ストップウォッチ
 ---
 [hold_display_circle]
-Circle
+円
 ---
 [volume_label]
 音量

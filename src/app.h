@@ -132,6 +132,7 @@ struct InbeApp {
     Texture2D trash_icon;
     Texture2D pencil_icon;
     Texture2D save_icon;
+    Texture2D discord_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D monero_icon;

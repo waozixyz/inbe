@@ -65,6 +65,7 @@ target_include_directories(flint PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
+    "${SRC_DIR}/app_session.c"
     "${SRC_DIR}/locale.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"

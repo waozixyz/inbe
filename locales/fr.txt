@@ -113,13 +113,13 @@ Pause après cycle
 Contrôles avancés de séance
 ---
 [hold_display_label]
-Hold display
+Affichage de la retention
 ---
 [hold_display_stopwatch]
-Stopwatch
+Chronometre
 ---
 [hold_display_circle]
-Circle
+Cercle
 ---
 [volume_label]
 Volume
@@ -169,8 +169,23 @@ Exporter les données
 [exported_label]
 Exporté
 ---
+[import_data_button]
+Importer les données
+---
+[import_data_dialog_title]
+Importer les données
+---
+[import_failed]
+Échec de l'import
+---
+[imported_sessions]
+%d sessions importées
+---
+[import_invalid_file]
+Fichier d'export invalide
+---
 [import_cancelled]
-Import cancelled
+Import annulé
 ---
 [export_cancelled]
 Export cancelled

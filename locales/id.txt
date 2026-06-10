@@ -131,13 +131,13 @@ Jeda setelah ronde
 Kontrol sesi lanjutan
 ---
 [hold_display_label]
-Hold display
+Tampilan tahan napas
 ---
 [hold_display_stopwatch]
 Stopwatch
 ---
 [hold_display_circle]
-Circle
+Lingkaran
 ---
 [volume_label]
 Volume
@@ -187,8 +187,23 @@ Ekspor gagal
 [exported_label]
 Terekspor
 ---
+[import_data_button]
+Impor Data
+---
+[import_data_dialog_title]
+Impor Data
+---
+[import_failed]
+Impor gagal
+---
+[imported_sessions]
+Mengimpor %d sesi
+---
+[import_invalid_file]
+File ekspor tidak valid
+---
 [import_cancelled]
-Import cancelled
+Impor dibatalkan
 ---
 [export_cancelled]
 Export cancelled

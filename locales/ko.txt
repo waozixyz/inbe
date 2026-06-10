@@ -113,13 +113,13 @@ Start speed
 고급 세션 제어
 ---
 [hold_display_label]
-Hold display
+홀드 표시
 ---
 [hold_display_stopwatch]
-Stopwatch
+스톱워치
 ---
 [hold_display_circle]
-Circle
+원
 ---
 [volume_label]
 음량
