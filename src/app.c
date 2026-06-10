@@ -1412,6 +1412,7 @@ handle_back_button(InbeApp *app)
     case InbeScreenSettings:
         if(app->settings_dirty)
             save_settings(app);
+        settings_tab_clear_status();
         /* Hierarchical navigation: back button goes up one level */
         if(app->settings_category != -1) {
             /* In a sub-tab, go back to category selection */

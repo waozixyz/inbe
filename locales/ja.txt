@@ -193,6 +193,30 @@
 [import_invalid_file]
 無効なエクスポートファイル
 ---
+[import_cancelled]
+Import cancelled
+---
+[export_cancelled]
+Export cancelled
+---
+[no_data_to_export]
+No data to export
+---
+[no_data_to_delete]
+No data to delete
+---
+[delete_all_data_title]
+Delete all data?
+---
+[delete_all_data_message]
+This will permanently delete all saved sessions.
+---
+[delete_cancelled]
+Delete cancelled
+---
+[deleted_sessions]
+Deleted %lld sessions
+---
 [version_label]
 バージョン %s
 ---
