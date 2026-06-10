@@ -112,8 +112,8 @@ Tema
 [speed_label]
 Kecepatan
 ---
-[progressive_speed_label]
-Kecepatan progresif
+
+Start speed
 ---
 [play_in_background_label]
 Putar di latar belakang
@@ -129,6 +129,15 @@ Jeda setelah ronde
 ---
 [advanced_session_controls_label]
 Kontrol sesi lanjutan
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Volume

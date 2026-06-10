@@ -1,0 +1,2 @@
+### Added
+- Breath hold display mode setting with circle progress or stopwatch display

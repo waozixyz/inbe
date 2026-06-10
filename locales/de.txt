@@ -94,8 +94,8 @@ Thema
 [speed_label]
 Geschwindigkeit
 ---
-[progressive_speed_label]
-Progressive Geschwindigkeit
+
+Start speed
 ---
 [play_in_background_label]
 Im Hintergrund abspielen
@@ -111,6 +111,15 @@ Pause nach Runde
 ---
 [advanced_session_controls_label]
 Erweiterte Sitzungssteuerung
+---
+[hold_display_label]
+Hold display
+---
+[hold_display_stopwatch]
+Stopwatch
+---
+[hold_display_circle]
+Circle
 ---
 [volume_label]
 Lautstärke

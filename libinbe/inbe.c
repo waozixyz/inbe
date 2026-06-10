@@ -18,12 +18,12 @@ count_value(const char v[CountSize])
 int
 inbe_breath_half_ticks_for_speed(int speed)
 {
-	static const int breath_half_ticks[] = {108, 100, 93, 86, 80, 74, 68, 63, 58, 53, 48, 42, 36, 30, 24, 18};
+	static const int breath_half_ticks[] = {132, 120, 108, 100, 93, 86, 80, 74, 68, 63, 58, 53};
 
 	if(speed < 1)
 		speed = 1;
-	if(speed > 16)
-		speed = 16;
+	if(speed > 12)
+		speed = 12;
 
 	return breath_half_ticks[speed - 1];
 }
@@ -90,6 +90,7 @@ inbeinit(Inbe *l)
     l->max_rounds = DefaultMaxRounds;
     l->pause_seconds = DefaultPauseSeconds;
     l->progressive_speed = 1;
+    l->progressive_start_speed = 3;
 #ifdef __ANDROID__
     l->play_in_background = 1;  // Enabled by default on Android
 #else
@@ -122,20 +123,26 @@ static int
 effective_breath_half_ticks(const Inbe *l)
 {
     int target_ticks = inbe_breath_half_ticks_for_speed(l->speed_level);
+    int start_speed = l->progressive_start_speed;
 
     if(!l->progressive_speed || l->round != 0)
         return target_ticks;
 
+    if(start_speed < 1)
+        start_speed = 1;
+    if(start_speed > l->speed_level)
+        start_speed = l->speed_level;
+
     int completed_breaths = count_value(l->count);
 
     if(completed_breaths < 5)
-        return inbe_breath_half_ticks_for_speed(1);
+        return inbe_breath_half_ticks_for_speed(start_speed);
 
     if(completed_breaths >= 10)
         return target_ticks;
 
     return lerp_int(
-        inbe_breath_half_ticks_for_speed(1),
+        inbe_breath_half_ticks_for_speed(start_speed),
         target_ticks,
         completed_breaths - 4,
         5

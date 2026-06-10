@@ -14,12 +14,11 @@ WEB_SHELL = src/web_shell.html
 WEB_SOUND_FILES = $(wildcard assets/sounds/*)
 WEB_FONT_FILES = $(FONT_FILES)
 WEB_LOCALE_PRELOADS = $(foreach file,$(LOCALE_FILES),--preload-file $(file)@locales/$(notdir $(file)))
-WEB_ICON_PRELOADS = $(foreach file,$(ICON_FILES),--preload-file $(file)@icons/$(notdir $(file)))
 WEB_THEME_PRELOADS = $(foreach file,$(THEME_FILES),--preload-file $(file)@themes/$(notdir $(file)))
 WEB_SOUND_PRELOADS = $(foreach file,$(WEB_SOUND_FILES),--preload-file $(file)@assets/sounds/$(notdir $(file)))
 WEB_FONT_PRELOADS = $(foreach file,$(WEB_FONT_FILES),--preload-file $(file)@assets/fonts/$(notdir $(file)))
-WEB_ASSET_FILES = $(CONFIG_FILES) $(IMAGE_FILES) $(LOCALE_FILES) $(ICON_FILES) $(THEME_FILES) $(WEB_SOUND_FILES) $(WEB_FONT_FILES)
-WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_ICON_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) $(WEB_FONT_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
+WEB_ASSET_FILES = $(CONFIG_FILES) $(IMAGE_FILES) $(LOCALE_FILES) $(THEME_FILES) $(WEB_SOUND_FILES) $(WEB_FONT_FILES)
+WEB_LDFLAGS = -sUSE_GLFW=3 -sALLOW_MEMORY_GROWTH=1 -lidbfs.js --shell-file $(WEB_SHELL) $(WEB_LOCALE_PRELOADS) $(WEB_THEME_PRELOADS) $(WEB_SOUND_PRELOADS) $(WEB_FONT_PRELOADS) --preload-file inbe.ini@inbe.ini --preload-file theme.ini@theme.ini --preload-file assets/angel.jpg@assets/angel.jpg --preload-file assets/begin.jpg@assets/begin.jpg
 
 $(WEB_RAYLIB_BUILD_DIR):
 	mkdir -p $@

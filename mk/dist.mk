@@ -45,8 +45,6 @@ dist-linux: linux
 	@cp $(LOCALE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/locales/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/themes
 	@cp $(THEME_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/themes/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
-	@cp $(ICON_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
 	@cp $(IMAGE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts
@@ -126,8 +124,6 @@ dist-windows:
 	@cp $(LOCALE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/locales/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes
 	@cp $(THEME_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
-	@cp $(WINDOWS_ICON_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
 	@cp $(IMAGE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts
