@@ -15,14 +15,6 @@ fi
 
 echo "Publishing inbe.waozi.xyz..."
 
-# Update metadata before publishing
-if [ -f "./update_metadata.sh" ]; then
-    echo "Running metadata update..."
-    ./update_metadata.sh || echo "Warning: Metadata update failed, continuing anyway"
-else
-    echo "Warning: update_metadata.sh not found, skipping metadata update"
-fi
-
 TMPDIR=$(mktemp -d -p /tmp)
 cleanup() {
     rm -rf "$TMPDIR"
@@ -51,6 +43,7 @@ rsync -av --delete \
     --exclude='.DS_Store' \
     --exclude='Thumbs.db' \
     --exclude='.xdp-*' \
+    --exclude='inbe.tar.gz' \
     --exclude='*.bak' \
     --exclude='*.swp' \
     --exclude='*.lock' \
@@ -136,6 +129,8 @@ mkdir -p "$TMPDIR/droid"
 [ -f "build/android/app-universal-release.apk" ] && cp build/android/app-universal-release.apk "$TMPDIR/droid/app-release.apk"
 
 cp style.css og.png sitemap.xml robots.txt "$TMPDIR/"
+[ -f "manifest.json" ] && cp manifest.json "$TMPDIR/"
+[ -d "web-assets" ] && rsync -a web-assets/ "$TMPDIR/web-assets/"
 
 if [ -f "$TMPDIR/index.html" ]; then
     sed -e 's|/inbe/droid/app/build/outputs/apk/release/app-release.apk|/build/android/app-universal-release.apk|g' \

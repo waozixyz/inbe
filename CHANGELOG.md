@@ -1,4 +1,8 @@
 # Changelog
+## [1.2.3] - 2026-06-10
+### Fixed
+- History editing now scrolls to the active field once and keeps 16px Unifont row text aligned without clipping.
+
 ## [1.2.2] - 2026-06-10
 ### Fixed
 - Android touch targets now align correctly on devices with navigation bar window insets.
