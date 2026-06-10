@@ -2,8 +2,7 @@
 #define SETTINGS_TAB_H
 
 #include "../libinbe/inbe.h"
-
-typedef struct InbeApp InbeApp;
+#include "../app_fwd.h"
 
 /* Draw the settings screen */
 void settings_tab_draw(InbeApp *app);

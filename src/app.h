@@ -3,10 +3,8 @@
 
 #include "raylib.h"
 #include "../libinbe/inbe.h"
-
-typedef struct FlintTextLayout FlintTextLayout;
-
-
+#include "flint_text_layout.h"
+#include "app_fwd.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -106,8 +104,6 @@ typedef struct LotusAppApi {
     void (*update_draw)(void *state, Rectangle viewport);
     void (*destroy)(void *state);
 } LotusAppApi;
-
-typedef struct InbeApp InbeApp;
 
 typedef enum HoldDisplayMode {
     HOLD_DISPLAY_CIRCLE = 0,
