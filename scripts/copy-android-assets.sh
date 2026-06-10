@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copy assets to Android project without requiring nix-shell or Makefile dependencies
 # This script is used by GitHub Actions and F-Droid builds
 # This script works from any directory by detecting the repository root
@@ -38,14 +38,6 @@ cp locales/*.txt "$ASSETS_DIR/locales/"
 echo "Copying themes..."
 mkdir -p "$ASSETS_DIR/themes"
 cp vendor/flint/themes/*.ini "$ASSETS_DIR/themes/" 2>/dev/null || echo "No theme files found in vendor/flint/themes/"
-
-# Copy icons
-echo "Copying icons..."
-mkdir -p "$ASSETS_DIR/icons"
-for icon in icons/*.png; do
-    base=$(basename "$icon")
-    cp "$icon" "$ASSETS_DIR/icons/$base"
-done
 
 # Copy images
 echo "Copying images..."

@@ -113,13 +113,13 @@ Pause nach Runde
 Erweiterte Sitzungssteuerung
 ---
 [hold_display_label]
-Hold display
+Atemhalteanzeige
 ---
 [hold_display_stopwatch]
-Stopwatch
+Stoppuhr
 ---
 [hold_display_circle]
-Circle
+Kreis
 ---
 [volume_label]
 Lautstärke
