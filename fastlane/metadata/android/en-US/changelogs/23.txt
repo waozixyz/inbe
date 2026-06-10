@@ -1,0 +1,2 @@
+### Fixed
+- Android touch targets now align correctly on devices with navigation bar window insets.
