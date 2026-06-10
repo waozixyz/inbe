@@ -3,6 +3,7 @@ WEB_AR ?= emar
 WEB_TARGET = $(WEB_BUILD_DIR)/index.html
 WEB_RAYLIB_BUILD_DIR = $(WEB_BUILD_DIR)/raylib
 WEB_RAYLIB_A = $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
+WEB_FLINT_SRCS = $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 WEB_RAYLIB_OBJS = \
 	$(WEB_RAYLIB_BUILD_DIR)/rcore.o \
 	$(WEB_RAYLIB_BUILD_DIR)/rshapes.o \
@@ -47,7 +48,7 @@ $(WEB_RAYLIB_BUILD_DIR)/%.o: $(RAYLIB_DIR)/%.c | $(WEB_RAYLIB_BUILD_DIR)
 $(WEB_RAYLIB_A): $(RAYLIB_SOURCES) $(WEB_RAYLIB_OBJS)
 	$(WEB_AR) rcs $@ $(WEB_RAYLIB_OBJS)
 
-$(WEB_TARGET): $(BUILD_MAKEFILES) $(SRC) $(FLINT_SRCS) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) $(WEB_ASSET_FILES) | $(WEB_BUILD_DIR)
+$(WEB_TARGET): $(BUILD_MAKEFILES) $(SRC) $(WEB_FLINT_SRCS) $(INBE_DIR)/inbe.c $(WEB_SHELL) $(WEB_RAYLIB_A) $(WEB_ASSET_FILES) | $(WEB_BUILD_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -55,7 +56,7 @@ $(WEB_TARGET): $(BUILD_MAKEFILES) $(SRC) $(FLINT_SRCS) $(INBE_DIR)/inbe.c $(WEB_
 		-Isrc -Isrc/android \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_SRCS) \
+		$(WEB_FLINT_SRCS) \
 		$(INBE_DIR)/inbe.c \
 		$(WEB_RAYLIB_A) \
 		$(WEB_LDFLAGS)

@@ -3,8 +3,7 @@
 
 #include <stddef.h>
 #include "../libinbe/inbe.h"
-
-typedef struct InbeApp InbeApp;
+#include "../app_fwd.h"
 
 /* History constants */
 enum {

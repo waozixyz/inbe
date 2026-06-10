@@ -4,9 +4,11 @@
 #include "locale.h"
 #include "flint_ui.h"
 #include "flint_text_layout.h"
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32)
+#define INBE_HAS_FLINT_FILE_DIALOG 1
 #include "flint_file_dialog.h"
-#else
+#endif
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_import.h"
 #endif
 #include "theme.h"
@@ -340,7 +342,7 @@ settings_tab_draw(InbeApp *app)
     int close_clicked = 0;
     int content_x;
     int content_w;
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
     static FlintFileDialog export_dlg;
     static int export_dlg_initialized = 0;
     static FlintFileDialog import_dlg;
@@ -419,7 +421,7 @@ settings_tab_draw(InbeApp *app)
     }
 
     /* Initialize export dialog on first call */
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
     if(!export_dlg_initialized) {
         flint_file_dialog_init(&export_dlg);
         export_dlg_initialized = 1;
@@ -793,7 +795,7 @@ settings_tab_draw(InbeApp *app)
                         } else {
                             settings_tab_set_status_error(locale_get("import_failed"));
                         }
-#else
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
                         if(flint_file_dialog_load(&import_dlg, locale_get("import_data_dialog_title"))) {
                             const char *path = flint_file_dialog_get_path(&import_dlg);
                             if(path != NULL && path[0] != '\0') {
@@ -813,6 +815,8 @@ settings_tab_draw(InbeApp *app)
                         } else {
                             settings_tab_set_status_error(locale_get("import_cancelled"));
                         }
+#else
+                        settings_tab_set_status_error(locale_get("import_failed"));
 #endif
                     }
 
@@ -830,7 +834,7 @@ settings_tab_draw(InbeApp *app)
                             settings_tab_set_status_error(locale_get("export_failed"));
                             TraceLog(LOG_ERROR, "DATA: Export failed");
                         }
-#else
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
                         else if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
                             const char *path = flint_file_dialog_get_path(&export_dlg);
                             if(path != NULL && data_export(path)) {
@@ -843,6 +847,10 @@ settings_tab_draw(InbeApp *app)
                             }
                         } else {
                             settings_tab_set_status_error(locale_get("export_cancelled"));
+                        }
+#else
+                        else {
+                            settings_tab_set_status_error(locale_get("export_failed"));
                         }
 #endif
                     }
