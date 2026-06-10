@@ -49,11 +49,16 @@ echo "Copying sounds..."
 mkdir -p "$ASSETS_DIR/assets/sounds"
 cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg "$ASSETS_DIR/assets/sounds/"
 
-# Build and copy fonts
-echo "Building fonts..."
-mkdir -p assets/fonts
-make -C vendor/otfchop otfchop
-vendor/otfchop/otfchop vendor/otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+# Build fonts only when explicitly requested. Android/F-Droid builds use the
+# committed glyph atlas so they do not need host build tools beyond Gradle.
+if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
+    echo "Building fonts..."
+    mkdir -p assets/fonts
+    make -C vendor/otfchop otfchop
+    vendor/otfchop/otfchop vendor/otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+else
+    echo "Using versioned fonts..."
+fi
 
 echo "Copying fonts..."
 mkdir -p "$ASSETS_DIR/assets/fonts"
