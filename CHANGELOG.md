@@ -1,4 +1,8 @@
 # Changelog
+## [1.2.2] - 2026-06-10
+### Fixed
+- Android touch targets now align correctly on devices with navigation bar window insets.
+
 ## [1.2.1] - 2026-06-10
 ### Added
 - Breath hold display mode setting with circle progress or stopwatch display
