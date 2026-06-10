@@ -3,14 +3,12 @@
 
 #include "raylib.h"
 #include "../libinbe/inbe.h"
-
-typedef struct FlintTextLayout FlintTextLayout;
-
-
+#include "flint_text_layout.h"
+#include "app_fwd.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
-    SETTINGS_SPEED_MAX = 16,
+    SETTINGS_SPEED_MAX = 12,
     SETTINGS_BREATHS_MIN = 15,
     SETTINGS_BREATHS_MAX = 80,
     SETTINGS_PAUSE_MIN = 0,
@@ -107,7 +105,10 @@ typedef struct LotusAppApi {
     void (*destroy)(void *state);
 } LotusAppApi;
 
-typedef struct InbeApp InbeApp;
+typedef enum HoldDisplayMode {
+    HOLD_DISPLAY_CIRCLE = 0,
+    HOLD_DISPLAY_STOPWATCH = 1,
+} HoldDisplayMode;
 
 struct InbeApp {
     Inbe inbe;
@@ -127,12 +128,19 @@ struct InbeApp {
     Texture2D trash_icon;
     Texture2D pencil_icon;
     Texture2D save_icon;
+    Texture2D discord_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
     Texture2D monero_icon;
+    Texture2D sound0_icon;
+    Texture2D sound1_icon;
+    Texture2D sound2_icon;
+    Texture2D sound3_icon;
 
     Texture2D angel_image;
     Texture2D begin_image;
+    Texture2D font_shapes_texture;
+    Font locale_font;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
@@ -193,10 +201,13 @@ struct InbeApp {
     int history_delete_round;
     char history_delete_path[FS_PATH_MAX];
     int advanced_session_controls;
+    int hold_display_mode;
     int session_paused;
+    int backgrounded;
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
+    int volume_popup_active;
     UIModal modal;
 };
 
@@ -216,5 +227,6 @@ void refresh_theme_colors(int theme_id, int dark_mode);
 void refresh_locale_dependent_text(InbeApp *app);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
+int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
 
 #endif

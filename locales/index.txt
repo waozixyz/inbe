@@ -1,5 +1,10 @@
 en|English
-de|Deutsch
 es|Español
+cs|Čeština
+de|Deutsch
 fr|Français
+id|Bahasa Indonesia
 pt|Português
+ja|日本語
+ko|한국어
+zh|中文

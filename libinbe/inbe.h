@@ -68,6 +68,7 @@ struct Inbe {
     int pause_seconds;
     int play_in_background;
     int progressive_speed;
+    int progressive_start_speed;
 
     char count[CountSize];
     char maxbreaths[CountSize];

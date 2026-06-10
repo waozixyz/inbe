@@ -2,211 +2,208 @@
 Inner Breeze
 ---
 [tab_history]
-History
+Historie
 ---
 [tab_manual]
-Tutorial
+Návod
 ---
 [tab_settings]
-Settings
+Nastavení
 ---
 [play_button]
-PLAY
+SPUSTIT
 ---
 [breath_button]
-BREATH
+DÝCHAT
 ---
 [results_title]
-RESULTS
+VÝSLEDKY
 ---
 [home_button]
-HOME
+DOMŮ
 ---
 [exit_session_title]
-Exit Session?
+Ukončit sezení?
 ---
 [save_completed_rounds_message]
-Save completed rounds before exit?
+Uložit dokončená kola před ukončením?
 ---
 [cancel_button]
-Cancel
+Zrušit
 ---
 [save_button]
-Save
+Uložit
 ---
 [save_results_button]
-Save
+Uložit
 ---
 [discard_button]
-Discard
+Zahodit
 ---
 [all_progress_lost_message]
-All progress will be lost.
+Veškerý postup bude ztracen.
 ---
 [exit_button]
-Exit
+Ukončit
 ---
 [round_times_title]
-Round times
+Časy kol
 ---
 [results_rounds]
-%d rounds
+%d kol
 ---
 [results_best]
-best %ds
+nejlépe %ds
 ---
 [results_avg]
-avg %ds
+průměr %ds
 ---
 [round_result_label]
-Round %d  %ds
+Kolo %d  %ds
 ---
 [starting_in]
-STARTING IN %2d
+ZAČÍNÁ ZA %2d
 ---
 [settings_title]
-Settings
+Nastavení
 ---
 [settings_tab_breathing]
-Breathing
+Dýchání
 ---
 [settings_tab_session]
-Session
+Sezení
 ---
 [settings_tab_sound]
-Sound
+Zvuk
 ---
 [settings_tab_appearance]
-Appearance
+Vzhled
 ---
 [settings_tab_language]
-Language
+Jazyk
 ---
 [settings_tab_data]
 Data
 ---
 [settings_tab_about]
-About
+O aplikaci
 ---
 [settings_category_practice]
-Practice Settings
+Nastavení cvičení
 ---
 [settings_category_practice_desc]
-Configure breathing and sessions
+Nastavte dýchání a sezení
 ---
 [settings_category_app]
-App Preferences
+Předvolby aplikace
 ---
 [settings_category_app_desc]
-Customize appearance and audio
+Přizpůsobte vzhled a zvuk
 ---
 [settings_category_about_data]
-About & Data
+O aplikaci a data
 ---
 [settings_category_about_data_desc]
-View info and manage data
+Zobrazte informace a spravujte data
 ---
 [theme_label]
-Theme
+Motiv
 ---
 [speed_label]
-Speed
+Rychlost
 ---
-[progressive_speed_label]
-Progressive speed
----
-[progressive_start_speed_label]
+
 Start speed
 ---
 [play_in_background_label]
-Play in background
+Přehrávat na pozadí
 ---
 [max_rounds_label]
-Max rounds
+Max. kol
 ---
 [max_breaths_label]
-Max breaths
+Max. nádechů
 ---
 [pause_after_round_label]
-Pause after round
+Pauza po kole
 ---
 [advanced_session_controls_label]
-Advanced session controls
+Pokročilé ovládání sezení
 ---
 [hold_display_label]
-Hold display
+Zobrazeni zadrze
 ---
 [hold_display_stopwatch]
-Stopwatch
+Stopky
 ---
 [hold_display_circle]
-Circle
+Kruh
 ---
 [volume_label]
-Volume
+Hlasitost
 ---
 [reset_to_defaults_label]
-Reset to defaults
+Obnovit výchozí
 ---
 [fullscreen_label]
-Fullscreen
+Celá obrazovka
 ---
 [language_label]
-Language
+Jazyk
 ---
 [language_picker_title]
-Choose Language
+Vyberte jazyk
 ---
 [next_button]
-Next
+Další
 ---
 [coming_soon_label]
-Coming soon...
+Brzy...
 ---
 [data_management_label]
-Data Management
+Správa dat
 ---
 [total_sessions_label]
-Total Sessions: %d
+Celkem sezení: %d
 ---
 [data_size_label]
-Data Size: %s
+Velikost dat: %s
 ---
 [storage_label]
-Storage: %s
+Úložiště: %s
 ---
 [export_data_button]
-Export Data
+Exportovat data
 ---
 [delete_all_data_button]
-Delete All Data
+Smazat všechna data
 ---
 [export_data_dialog_title]
-Export Data
+Exportovat data
 ---
 [export_failed]
-Export failed
+Export selhal
 ---
 [exported_label]
-Exported
+Exportováno
 ---
 [import_data_button]
-Import Data
+Importovat data
 ---
 [import_data_dialog_title]
-Import Data
+Importovat data
 ---
 [import_failed]
-Import failed
+Import selhal
 ---
 [imported_sessions]
-Imported %d sessions
+Importováno %d sezení
 ---
 [import_invalid_file]
-Invalid export file
+Neplatný exportní soubor
 ---
 [import_cancelled]
-Import cancelled
+Import zrušen
 ---
 [export_cancelled]
 Export cancelled
@@ -230,151 +227,151 @@ Delete cancelled
 Deleted %lld sessions
 ---
 [version_label]
-Version %s
+Verze %s
 ---
 [about_description]
-Inner Breeze is a simple breathing
-meditation app to help you relax
-and find your calm.
+Inner Breeze je jednoduchá aplikace
+pro dechovou meditaci, která vám pomůže
+uvolnit se a najít klid.
 ---
 [toggle_off]
-OFF
+VYP
 ---
 [toggle_on]
-ON
+ZAP
 ---
 [theme_light]
-Light
+Světlý
 ---
 [theme_dark]
-Dark
+Tmavý
 ---
 [on_screen_keyboard_label]
-On-screen keyboard
+Klávesnice na obrazovce
 ---
 [history_title]
-History
+Historie
 ---
 [history_empty]
-No saved sessions yet.
-Complete a session to add data.
+Zatím nejsou uložena žádná sezení.
+Dokončete sezení a přidejte data.
 ---
 [history_month_label]
-Month %02d
+Měsíc %02d
 ---
 [history_day_label]
-Day %02d
+Den %02d
 ---
 [history_round_short_label]
-R%d
+K%d
 ---
 [history_round_label]
-R%d  %ds
+K%d  %ds
 ---
 [history_session_label]
-%02d:%02d  avg %ds
+%02d:%02d  průměr %ds
 ---
 [tutorial_title]
-Tutorial
+Návod
 ---
 [tutorial_page_label]
 %d/%d
 ---
 [tutorial_method_title]
-Method
+Metoda
 ---
 [tutorial_step1_title]
-Step 1: In & Out
+Krok 1: Nádech a výdech
 ---
 [tutorial_step2_title]
-Step 2: Exhale & Hold
+Krok 2: Výdech a zádrž
 ---
 [tutorial_step3_title]
-Step 3: Inhale & Hold
+Krok 3: Nádech a zádrž
 ---
 [tutorial_progressive_speed_title]
-Progressive Speed
+Postupná rychlost
 ---
 [tutorial_step_intro]
-This breathing practice is based on the Wim Hof Method.
+Toto dechové cvičení vychází z Wim Hofovy metody.
 
-It can be powerful. Use it with care.
+Může být silné. Používejte ho opatrně.
 
-Practice sitting or lying down.
-Never use it while driving,
-standing, or in water.
+Cvičte vsedě nebo vleže.
+Nikdy ho nepoužívejte při řízení,
+vestoje ani ve vodě.
 ---
 [tutorial_step_method]
-Simply follow 4 steps:
+Stačí postupovat ve 4 krocích:
 
-1. Breathe rhythmically.
-2. Exhale and hold.
-3. Inhale deeply and hold.
-4. Exhale and repeat.
+1. Dýchejte rytmicky.
+2. Vydechněte a zadržte dech.
+3. Zhluboka se nadechněte a zadržte dech.
+4. Vydechněte a opakujte.
 
-Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
+Pomocí ikony ozubeného kola %i upravíte kola, nádechy, rychlost a pauzy.
 ---
 [tutorial_step_breathe]
-Fill your lungs fully, then let the breath flow out.
+Naplňte plíce úplně a potom nechte dech volně odejít.
 
-Use this slider to set the pace of the breathing circle.
+Tímto posuvníkem nastavíte tempo dechového kruhu.
 
-Find a rhythm that feels natural for you.
+Najděte rytmus, který vám připadá přirozený.
 ---
 [tutorial_step_progressive_speed]
-Progressive speed makes the first round easier to enter.
+Postupná rychlost usnadňuje vstup do prvního kola.
 
-When it is on, the first round starts slower, then gradually increases to your selected speed.
+Když je zapnutá, první kolo začne rychlostí 1 pro prvních 5 nádechů a potom se postupně zvýší na vámi vybranou rychlost.
 ---
 [tutorial_step_exhale_hold]
-Exhale normally and hold.
+Po dechovém kole
+normálně vydechněte a zadržte dech.
 
-The center number keeps counting. Circle mode adds layered progress lines.
-
-Release when your body asks for air.
+Uvolněte se, až si tělo řekne
+o vzduch. Nenuťte to.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for about 15 seconds.
+Plně se nadechněte a zadržte dech asi na 15 sekund.
 
-Then exhale and begin the next round.
-Over time, each round may feel deeper.
+Potom vydechněte a začněte další kolo.
+Časem může každé kolo působit hlouběji.
 ---
 [tutorial_skip_button]
-SKIP
+PŘESKOČIT
 ---
 [tutorial_back_button]
-BACK
+ZPĚT
 ---
 [tutorial_next_button]
-NEXT
+DALŠÍ
 ---
 [tutorial_finish_button]
-FINISH
+DOKONČIT
 ---
 [share_sheet_title]
-Export Session Data
+Export dat sezení
 ---
 [export_metadata_header]
-Inner Breeze Data Export
+Export dat Inner Breeze
 ---
 [export_metadata_version]
-Version: %s
+Verze: %s
 ---
 [export_metadata_date]
-Export Date: %s
+Datum exportu: %s
 ---
 [export_metadata_count]
-Session Count: %d
+Počet sezení: %d
 ---
 [delete_history_title]
-Delete?
+Smazat?
 ---
 [delete_session_message]
-Delete this session? This cannot be undone.
+Smazat toto sezení? Tuto akci nelze vrátit.
 ---
 [delete_round_message]
-Delete this round? This cannot be undone.
+Smazat toto kolo? Tuto akci nelze vrátit.
 ---
 [delete_button]
-Delete
+Smazat
 ---

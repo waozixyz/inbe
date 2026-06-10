@@ -762,12 +762,313 @@ data_export(const char *path)
 #endif
 }
 
+static int
+validate_metadata(const char *metadata, int *session_count)
+{
+    char *dup;
+    char *line;
+    int line_count = 0;
+
+    if(metadata == NULL || session_count == NULL)
+        return 0;
+
+    dup = strdup(metadata);
+    if(dup == NULL)
+        return 0;
+
+    line = strtok(dup, "\n");
+    while(line != NULL && line_count < 4) {
+        // Trim whitespace
+        while(*line == ' ' || *line == '\t' || *line == '\r')
+            line++;
+
+        line_count++;
+        if(line_count == 4) {
+            // Fourth line contains the session count, possibly in a localized label.
+            while(*line != '\0' && (*line < '0' || *line > '9'))
+                line++;
+            *session_count = atoi(line);
+            free(dup);
+            return (*session_count >= 0);
+        }
+        line = strtok(NULL, "\n");
+    }
+
+    free(dup);
+    return 0;
+}
+
+static int
+parse_session_path(const char *zip_path, int *year, int *month, int *day, char *filename)
+{
+    int y, m, d;
+    const char *p;
+    const char *prefix = "lotus-data/sessions/";
+    size_t prefix_len = strlen(prefix);
+
+    if(zip_path == NULL || year == NULL || month == NULL || day == NULL || filename == NULL)
+        return 0;
+
+    // Expected format: lotus-data/sessions/YYYY/MM/DD/inbe-HHMMSS
+    if(strncmp(zip_path, prefix, prefix_len) != 0)
+        return 0;
+
+    p = zip_path + prefix_len;
+
+    // Parse year
+    if(sscanf(p, "%04d", &y) != 1 || y < 1970 || y > 2100 || p[4] != '/')
+        return 0;
+    p += 5;
+
+    // Parse month
+    if(sscanf(p, "%02d", &m) != 1 || m < 1 || m > 12 || p[2] != '/')
+        return 0;
+    p += 3;
+
+    // Parse day
+    if(sscanf(p, "%02d", &d) != 1 || d < 1 || d > 31 || p[2] != '/')
+        return 0;
+    p += 3;
+
+    // Expect filename starting with "inbe-"
+    if(strncmp(p, "inbe-", 5) != 0)
+        return 0;
+
+    // Copy filename
+    if(strlen(p) >= FS_PATH_MAX - 1)
+        return 0;
+
+    strcpy(filename, p);
+
+    *year = y;
+    *month = m;
+    *day = d;
+
+    return 1;
+}
+
+static int
+validate_session_content(const char *content, int *round_count)
+{
+    char *dup;
+    char *line;
+    int count = 0;
+    int valid = 1;
+
+    if(content == NULL || round_count == NULL)
+        return 0;
+
+    dup = strdup(content);
+    if(dup == NULL)
+        return 0;
+
+    line = strtok(dup, "\n");
+    while(line != NULL) {
+        // Trim whitespace
+        while(*line == ' ' || *line == '\t' || *line == '\r')
+            line++;
+
+        if(*line != '\0') {
+            int seconds = atoi(line);
+            if(seconds > 0 && seconds <= 999) {
+                count++;
+            } else {
+                valid = 0;
+                break;
+            }
+        }
+
+        line = strtok(NULL, "\n");
+    }
+
+    free(dup);
+
+    if(valid && count > 0) {
+        *round_count = count;
+        return 1;
+    }
+
+    return 0;
+}
+
+static int
+import_session_file(const char *zip_path, const char *local_path, mz_zip_archive *archive)
+{
+    char *content = NULL;
+    size_t size;
+    FILE *fp;
+    int round_count;
+
+    if(zip_path == NULL || local_path == NULL || archive == NULL)
+        return 0;
+
+    // Extract file from ZIP
+    size = 0;
+    content = (char *)mz_zip_reader_extract_file_to_heap(archive, zip_path, &size, 0);
+    if(content == NULL || size == 0) {
+        TraceLog(LOG_WARNING, "DATA: failed to extract file from ZIP: %s", zip_path);
+        return 0;
+    }
+
+    // Validate session content
+    if(!validate_session_content(content, &round_count)) {
+        TraceLog(LOG_WARNING, "DATA: invalid session content: %s", zip_path);
+        free(content);
+        return 0;
+    }
+
+    // Create directory structure if needed
+    char dir_path[FS_PATH_MAX];
+    strncpy(dir_path, local_path, sizeof(dir_path) - 1);
+    dir_path[sizeof(dir_path) - 1] = '\0';
+
+    char *last_slash = strrchr(dir_path, '/');
+    if(last_slash != NULL) {
+        *last_slash = '\0';
+        if(!ensure_dir(dir_path)) {
+            TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", dir_path);
+            free(content);
+            return 0;
+        }
+    }
+
+    // Write session file
+    fp = fopen(local_path, "w");
+    if(fp == NULL) {
+        TraceLog(LOG_ERROR, "DATA: failed to open file for writing: %s", local_path);
+        free(content);
+        return 0;
+    }
+
+    if(fwrite(content, 1, size, fp) != size) {
+        TraceLog(LOG_ERROR, "DATA: failed to write session file: %s", local_path);
+        fclose(fp);
+        free(content);
+        return 0;
+    }
+
+    fclose(fp);
+    free(content);
+
+    TraceLog(LOG_INFO, "DATA: imported session: %s (%d rounds)", local_path, round_count);
+    return 1;
+}
+
+// Validate import file before attempting to read ZIP
+int data_validate_import_file(const char *path) {
+    if(!path || path[0] == '\0')
+        return 0;
+
+    if(!FileExists(path))
+        return 0;
+
+    // Check if file is readable
+    FILE *test = fopen(path, "rb");
+    if(!test)
+        return 0;
+
+    fclose(test);
+    return 1;
+}
+
 int
 data_import(const char *path)
 {
-    TraceLog(LOG_WARNING, "DATA: import not yet implemented");
-    (void)path;
-    return 0;
+    mz_zip_archive archive;
+    char *metadata = NULL;
+    size_t metadata_size;
+    int session_count = 0;
+    int imported_count = 0;
+    int failed_count = 0;
+    int total_files;
+
+    if(path == NULL || path[0] == '\0') {
+        TraceLog(LOG_ERROR, "DATA: import path is empty");
+        return 0;
+    }
+
+    // Validate import file before attempting to read ZIP
+    if(!data_validate_import_file(path)) {
+        TraceLog(LOG_ERROR, "DATA: import file validation failed: %s", path);
+        return 0;
+    }
+
+    // Initialize ZIP reader
+    memset(&archive, 0, sizeof(archive));
+    if(!mz_zip_reader_init_file(&archive, path, 0)) {
+        TraceLog(LOG_ERROR, "DATA: failed to open ZIP file: %s", path);
+        return 0;
+    }
+
+    // Extract and validate metadata
+    metadata_size = 0;
+    metadata = (char *)mz_zip_reader_extract_file_to_heap(&archive, "lotus-data/metadata.txt", &metadata_size, 0);
+    if(metadata == NULL || metadata_size == 0) {
+        TraceLog(LOG_ERROR, "DATA: failed to extract metadata from ZIP");
+        mz_zip_reader_end(&archive);
+        return 0;
+    }
+
+    if(!validate_metadata(metadata, &session_count)) {
+        TraceLog(LOG_ERROR, "DATA: invalid metadata format");
+        free(metadata);
+        mz_zip_reader_end(&archive);
+        return 0;
+    }
+
+    free(metadata);
+    TraceLog(LOG_INFO, "DATA: metadata validated, expecting %d sessions", session_count);
+
+    // Process session files
+    total_files = (int)mz_zip_reader_get_num_files(&archive);
+
+    for(int i = 0; i < total_files; i++) {
+        mz_zip_archive_file_stat file_stat;
+        char zip_path[FS_PATH_MAX];
+        char local_path[FS_PATH_MAX];
+        int year, month, day;
+        char filename[FS_PATH_MAX];
+
+        if(!mz_zip_reader_file_stat(&archive, i, &file_stat))
+            continue;
+
+        if(file_stat.m_is_directory)
+            continue;
+
+        strncpy(zip_path, file_stat.m_filename, sizeof(zip_path) - 1);
+        zip_path[sizeof(zip_path) - 1] = '\0';
+
+        // Check if this is a session file
+        if(strncmp(zip_path, "lotus-data/sessions/", strlen("lotus-data/sessions/")) != 0)
+            continue;
+
+        if(!parse_session_path(zip_path, &year, &month, &day, filename)) {
+            TraceLog(LOG_WARNING, "DATA: invalid session path: %s", zip_path);
+            failed_count++;
+            continue;
+        }
+
+        // Construct local path
+        snprintf(local_path, sizeof(local_path), "%s/%04d/%02d/%02d/%s",
+                 data_root(), year, month, day, filename);
+
+        // Import session file
+        if(import_session_file(zip_path, local_path, &archive)) {
+            imported_count++;
+        } else {
+            failed_count++;
+        }
+    }
+
+    mz_zip_reader_end(&archive);
+
+    if(imported_count > 0) {
+        TraceLog(LOG_INFO, "DATA: import completed: %d imported, %d failed", imported_count, failed_count);
+        return 1;
+    } else {
+        TraceLog(LOG_WARNING, "DATA: no sessions imported");
+        return 0;
+    }
 }
 
 typedef struct {

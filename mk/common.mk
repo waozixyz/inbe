@@ -1,13 +1,14 @@
 CC = gcc
 WINDRES = windres
 
-SRC = src/main.c src/app.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/file_dialog.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
+SRC = src/main.c src/app.c src/app_session.c src/locale.c src/theme_meta.c src/theme.c src/data.c src/miniz.c src/android/android_share.c src/tabs/history_tab.c src/tabs/language_tab.c src/tabs/manual_tab.c src/tabs/settings_tab.c
 INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
 RAYLIB_DIR = vendor/raylib/src
 RAYLIB_BUILD_DIR = vendor/raylib/build/sdl
 RAYLIB_A = $(RAYLIB_BUILD_DIR)/libraylib.a
+RAYLIB_SOURCES = $(wildcard $(RAYLIB_DIR)/*.c) $(wildcard $(RAYLIB_DIR)/*.h)
 
 FLINT_DIR = vendor/flint
 FLINT_SRCS = $(wildcard $(FLINT_DIR)/src/*.c)
@@ -54,11 +55,22 @@ TARBALL = $(LINUX_BUILD_DIR)/inbe-linux.tar.gz
 CONFIG_FILES = inbe.ini theme.ini
 LOCALE_FILES = $(wildcard locales/*.txt)
 THEME_FILES = $(wildcard $(FLINT_DIR)/themes/*.ini)
-ICON_FILES = $(wildcard icons/*.png)
-WINDOWS_ICON_FILES = icons/gear.png icons/x.png icons/manual.png icons/return.png icons/backward.png icons/forward.png icons/play.png icons/pause.png icons/stat.png
 IMAGE_FILES = assets/angel.jpg assets/begin.jpg
 SOUND_FILES = assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg
+FONT_OUTPUTS = assets/fonts/locales.png assets/fonts/locales.dat
+FONT_FILES = $(FONT_OUTPUTS)
+FONT_TOOL = vendor/otfchop/otfchop
+FONT_SOURCE = vendor/otfchop/unifont-17.0.04.otf
 BUILD_MAKEFILES = Makefile mk/common.mk mk/native.mk mk/windows.mk mk/web.mk mk/android.mk mk/dist.mk mk/clean.mk
+
+assets/fonts:
+	mkdir -p $@
+
+$(FONT_OUTPUTS): $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
+	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
+
+$(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
+	$(MAKE) -C vendor/otfchop otfchop
 
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 

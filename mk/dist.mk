@@ -1,11 +1,31 @@
 dist:
-	$(MAKE) linux
-	$(MAKE) windows
-	$(MAKE) web
-	$(MAKE) android-$(ANDROID_DIST)
-	$(MAKE) android-bundle
-	$(MAKE) dist-linux
-	$(MAKE) dist-windows
+	@# Get password once for both Android builds
+	@if [ -n "$(PASSWORD)" ]; then \
+		PASSWORD_VALUE="$(PASSWORD)"; \
+	elif [ -t 0 ]; then \
+		printf "Keystore password: "; \
+		stty -echo; \
+		read PASSWORD_VALUE; \
+		stty echo; \
+		printf "\n"; \
+	else \
+		echo "Keystore password is required. Run from a terminal or use PASSWORD=your-password."; \
+		exit 1; \
+	fi; \
+	if [ -z "$$PASSWORD_VALUE" ]; then \
+		echo "Keystore password is required"; \
+		exit 1; \
+	fi; \
+	echo "Building Android release APK (validating password)..."; \
+	$(MAKE) android-release PASSWORD="$$PASSWORD_VALUE" || exit $$?; \
+	echo "Building Android bundle..."; \
+	$(MAKE) android-bundle PASSWORD="$$PASSWORD_VALUE" || exit $$?; \
+	echo "✓ Android builds complete, proceeding with desktop builds..."; \
+	$(MAKE) linux || exit $$?; \
+	$(MAKE) windows || exit $$?; \
+	$(MAKE) web || exit $$?; \
+	$(MAKE) dist-linux || exit $$?; \
+	$(MAKE) dist-windows || exit $$?
 
 dist-linux: linux
 	@echo "Creating Linux tar.gz package with all Linux arch binaries..."
@@ -25,10 +45,10 @@ dist-linux: linux
 	@cp $(LOCALE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/locales/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/themes
 	@cp $(THEME_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/themes/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/icons
-	@cp $(ICON_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/icons/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
 	@cp $(IMAGE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
+	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts
+	@cp $(FONT_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts/
 	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds
 	@cp $(SOUND_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds/
 	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
@@ -104,10 +124,10 @@ dist-windows:
 	@cp $(LOCALE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/locales/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes
 	@cp $(THEME_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons
-	@cp $(WINDOWS_ICON_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/icons/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
 	@cp $(IMAGE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts
+	@cp $(FONT_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts/
 	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds
 	@cp $(SOUND_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds/
 	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/

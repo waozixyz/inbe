@@ -290,7 +290,7 @@ draw_history_row(InbeApp *app, int x, int y, int w, int h, const char *text, int
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + flint_px(indent), y + flint_px(6), flint_clamp_px(14, 12, 16), c_text);
+    flint_text_draw(text, x + flint_px(indent), y + flint_px(6), flint_px(16), c_text);
     return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -302,7 +302,7 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
     int hover = 0;
-    int font = flint_clamp_px(14, 12, 16);
+    int font = flint_px(16);
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
         DrawRectangle(x, y, w, h, selected ? c_button_hover : flint_darken(c_button_hover, 6));
@@ -317,7 +317,7 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 28), flint_darken(c_button, 20));
     }
 
-    DrawText(text, x + flint_px(46), y + flint_px(6), font, c_text);
+    flint_text_draw(text, x + flint_px(46), y + flint_px(6), font, c_text);
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return 1;
@@ -327,7 +327,7 @@ draw_history_session_row(InbeApp *app, int x, int y, int w, int h, const char *t
 static int
 draw_history_day_row(InbeApp *app, int x, int y, int w, int h, const char *text, int selected)
 {
-    int icon_size = flint_clamp_px(16, 14, 20);
+    int icon_size = flint_px(16);
     int icon_padding = flint_px(4);
     int icon_btn_w = icon_size + icon_padding * 2;
     int edit_x = x + w - icon_btn_w - flint_px(4);
@@ -336,7 +336,7 @@ draw_history_day_row(InbeApp *app, int x, int y, int w, int h, const char *text,
     if(draw_history_row(app, x, y, w - icon_btn_w - flint_px(8), h, text, selected, 34))
         return 1;
 
-    if(ui_draw_icon_btn_padded(app, edit_x, y + (h - icon_btn_w) / 2, icon_size, icon_padding,
+    if(ui_draw_icon_btn_padded(edit_x, y + (h - icon_btn_w) / 2, icon_size, icon_padding,
                                app->pencil_icon, UI_ICON_TYPE_PENCIL, &edit_hover))
         return 2;
 
@@ -347,14 +347,15 @@ static int
 draw_history_action_button(InbeApp *app, int right_x, int y, int row_h, int slot,
                            Texture2D icon, UIIconType icon_type)
 {
-    int icon_size = flint_clamp_px(16, 14, 20);
+    (void)app;
+    int icon_size = flint_px(16);
     int icon_padding = flint_px(4);
     int btn_w = icon_size + icon_padding * 2;
     int gap = flint_px(4);
     int hover = 0;
     int x = right_x - (slot + 1) * btn_w - (slot + 1) * gap;
 
-    return ui_draw_icon_btn_padded(app, x, y + (row_h - btn_w) / 2,
+    return ui_draw_icon_btn_padded(x, y + (row_h - btn_w) / 2,
                                    icon_size, icon_padding, icon, icon_type,
                                    &hover);
 }
@@ -592,9 +593,9 @@ history_edit_cursor_from_x(const char *text, int font, int text_x, int target_x)
         int right_w;
 
         snprintf(prefix, sizeof(prefix), "%.*s", i, text);
-        left_w = MeasureText(prefix, font);
+        left_w = flint_text_measure(prefix, font);
         snprintf(prefix, sizeof(prefix), "%.*s", i + 1, text);
-        right_w = MeasureText(prefix, font);
+        right_w = flint_text_measure(prefix, font);
 
         if(target_x < text_x + (left_w + right_w) / 2)
             return i;
@@ -682,7 +683,7 @@ history_should_show_keyboard(const InbeApp *app)
 static int
 history_keyboard_height(void)
 {
-    int key_h = flint_clamp_px(42, 38, 54);
+    int key_h = flint_px(48);
     int gap = flint_px(6);
     int pad = flint_px(10);
     return pad * 2 + key_h * 4 + gap * 3;
@@ -693,7 +694,7 @@ history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
-    int font = flint_clamp_px(16, 14, 18);
+    int font = flint_px(16);
     int text_w;
     int pressed = 0;
 
@@ -710,8 +711,8 @@ history_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label
         ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
 
-    text_w = MeasureText(label, font);
-    DrawText(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+    text_w = flint_text_measure(label, font);
+    flint_text_draw(label, x + (w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
     return pressed;
 }
 
@@ -727,7 +728,7 @@ history_draw_keyboard(InbeApp *app, const HistoryEntry *entry)
     int keyboard_h = history_keyboard_height();
     int pad = flint_px(10);
     int gap = flint_px(6);
-    int key_h = flint_clamp_px(42, 38, 54);
+    int key_h = flint_px(48);
     int x = flint_page_side_padding();
     int y = view_height - keyboard_h;
     int w = view_width - x * 2;
@@ -828,7 +829,7 @@ history_update_edit_input(InbeApp *app, const HistoryEntry *entry,
 static void
 history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, int w, int h)
 {
-    int font = flint_clamp_px(14, 12, 16);
+    int font = flint_px(16);
     int valid = 0;
     int field_y = y + flint_px(3);
     int field_h = h - flint_px(6);
@@ -856,12 +857,12 @@ history_draw_edit_field(InbeApp *app, const HistoryEntry *entry, int x, int y, i
     ui_draw_bevel(x, field_y, w, field_h,
                   valid ? flint_lighten(c_button_hover, 35) : flint_lighten(c_button, 16),
                   valid ? flint_darken(c_button_hover, 30) : flint_darken(c_button, 34));
-    DrawText(app->history_edit_text, text_x, text_y, font, c_text);
+    flint_text_draw(app->history_edit_text, text_x, text_y, font, c_text);
     if((app->inbe.frame / 24) % 2 == 0) {
         char prefix[16];
         snprintf(prefix, sizeof(prefix), "%.*s", app->history_edit_cursor,
                  app->history_edit_text);
-        caret_x = text_x + MeasureText(prefix, font) + flint_px(1);
+        caret_x = text_x + flint_text_measure(prefix, font) + flint_px(1);
         DrawLine(caret_x, text_y, caret_x, text_y + font, c_text);
     }
 }
@@ -1067,10 +1068,10 @@ history_format_session_label(const HistoryEntry *entry, char *out, size_t out_si
 static void
 history_fit_session_label(const HistoryEntry *entry, int available_w, char *out, size_t out_size)
 {
-    int font = flint_clamp_px(14, 12, 16);
+    int font = flint_px(16);
 
     history_format_session_label(entry, out, out_size);
-    if(view_width < 420 && MeasureText(out, font) > available_w)
+    if(view_width < 420 && flint_text_measure(out, font) > available_w)
         snprintf(out, out_size, "%02d:%02d  %ds", entry->hour, entry->minute, entry->avg_seconds);
 }
 
@@ -1081,10 +1082,10 @@ history_tab_draw(InbeApp *app)
     HistoryEntry *keyboard_entry = NULL;
     int count = 0;
     int title_h = ui_screen_header_height();
-    int tab_h = flint_clamp_px(TAB_BAR_H, 54, 66);
+    int tab_h = flint_px(56);
     int keyboard_h = history_should_show_keyboard(app) ? history_keyboard_height() : 0;
     int viewport_h = view_height - title_h - tab_h - keyboard_h;
-    int row_h = flint_clamp_px(28, 24, 32);
+    int row_h = flint_px(32);
     int content_rows = 0;
     int content_h = 0;
     int max_scroll;
@@ -1192,7 +1193,7 @@ history_tab_draw(InbeApp *app)
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    close_clicked = ui_draw_screen_header(app, locale_get("history_title"), 1);
+    close_clicked = ui_draw_screen_header(locale_get("history_title"), 1);
     if(close_clicked) {
         app->inbe.screen = InbeScreenStart;
         app->history_scroll = 0;
@@ -1205,7 +1206,7 @@ history_tab_draw(InbeApp *app)
                      (int)(viewport_h * app->camera.zoom));
         y = title_h + flint_px(12) - app->history_scroll;
         if(count == 0) {
-            int font = flint_clamp_px(14, 12, 16);
+            int font = flint_px(16);
             const char *empty_text = locale_get("history_empty");
             FlintTextLayout empty_layout = flint_text_layout_parse(empty_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
             flint_text_layout_reflow(&empty_layout, content_w, font, flint_px(22));
@@ -1214,9 +1215,9 @@ history_tab_draw(InbeApp *app)
         } else {
             if(app->history_level == HISTORY_LEVEL_EDIT_DAY && has_day) {
                 int return_hover = 0;
-                int icon_size = flint_clamp_px(16, 14, 20);
+                int icon_size = flint_px(16);
                 int icon_padding = flint_px(4);
-                if(ui_draw_icon_btn_padded(app, content_x, y + (row_h - icon_size - icon_padding * 2) / 2,
+                if(ui_draw_icon_btn_padded(content_x, y + (row_h - icon_size - icon_padding * 2) / 2,
                                            icon_size, icon_padding, app->return_icon,
                                            UI_ICON_TYPE_RETURN, &return_hover)) {
                     app->history_level = HISTORY_LEVEL_SESSIONS;
@@ -1228,8 +1229,8 @@ history_tab_draw(InbeApp *app)
                 {
                     char label[HISTORY_TEXT_SIZE];
                     locale_format(label, sizeof(label), "history_day_label", app->history_day);
-                    DrawText(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
-                             y + flint_px(6), flint_clamp_px(14, 12, 16), c_text);
+                    flint_text_draw(label, content_x + icon_size + icon_padding * 2 + flint_px(10),
+                             y + flint_px(6), flint_px(14), c_text);
                 }
                 y += row_h;
 
@@ -1263,8 +1264,8 @@ history_tab_draw(InbeApp *app)
                             }
                         }
                     } else {
-                        DrawText(time_label, content_x + flint_px(10), y + flint_px(6),
-                                 flint_clamp_px(14, 12, 16), c_text);
+                        flint_text_draw(time_label, content_x + flint_px(10), y + flint_px(6),
+                                 flint_px(14), c_text);
                         if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                       app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                             history_begin_edit_time(app, &entries[i]);
@@ -1300,8 +1301,8 @@ history_tab_draw(InbeApp *app)
                                 }
                             }
                         } else {
-                            DrawText(round_label, content_x + flint_px(22), y + flint_px(6),
-                                     flint_clamp_px(14, 12, 16), c_text);
+                            flint_text_draw(round_label, content_x + flint_px(22), y + flint_px(6),
+                                     flint_px(14), c_text);
                             if(draw_history_action_button(app, right_edge, y, row_h, 1,
                                                           app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
                                 history_begin_edit_round(app, &entries[i], r);
@@ -1423,7 +1424,7 @@ history_tab_draw(InbeApp *app)
 
     /* Draw scrollbar if needed */
     if(max_scroll > 0) {
-        int scrollbar_w = flint_clamp_px(6, 4, 8);
+        int scrollbar_w = flint_px(8);
         int scrollbar_h = (viewport_h * viewport_h) / (content_h + viewport_h);
         int scrollbar_x = content_x + content_w + flint_px(10);
         int scrollbar_y = title_h + (app->history_scroll * (viewport_h - scrollbar_h)) / max_scroll;
@@ -1437,8 +1438,7 @@ history_tab_draw(InbeApp *app)
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteHistory) {
-        int modal_result = ui_draw_modal(app,
-                                         locale_get("delete_history_title"),
+        int modal_result = ui_draw_modal(locale_get("delete_history_title"),
                                          app->history_delete_kind == HISTORY_DELETE_ROUND
                                              ? locale_get("delete_round_message")
                                              : locale_get("delete_session_message"),

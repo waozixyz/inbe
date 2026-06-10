@@ -7,6 +7,8 @@ set(LIBINBE_DIR "${REPO_ROOT}/libinbe")
 set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")
 set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
+file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
+list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 
 add_library(raylib STATIC
     "${RAYLIB_DIR}/rcore.c"
@@ -53,14 +55,7 @@ target_include_directories(inbe PUBLIC
     "${LIBINBE_DIR}"
 )
 
-add_library(flint STATIC
-    "${FLINT_DIR}/src/flint_color.c"
-    "${FLINT_DIR}/src/flint_icons.c"
-    "${FLINT_DIR}/src/flint_layout.c"
-    "${FLINT_DIR}/src/flint_scaling.c"
-    "${FLINT_DIR}/src/flint_theme.c"
-    "${FLINT_DIR}/src/flint_theme_meta.c"
-)
+add_library(flint STATIC ${FLINT_SOURCES})
 
 target_include_directories(flint PUBLIC
     "${FLINT_DIR}/include"
@@ -70,12 +65,13 @@ target_include_directories(flint PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app.c"
+    "${SRC_DIR}/app_session.c"
     "${SRC_DIR}/locale.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/miniz.c"
-    "${SRC_DIR}/file_dialog.c"
+    "${SRC_DIR}/android/android_import.c"
     "${SRC_DIR}/android/android_share.c"
     "${SRC_DIR}/tabs/history_tab.c"
     "${SRC_DIR}/tabs/language_tab.c"

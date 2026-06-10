@@ -18,6 +18,7 @@ int data_get_session_count(void);
 long long data_delete_all(void);
 int data_export(const char *path);
 int data_import(const char *path);
+int data_validate_import_file(const char *path);
 typedef void (*data_session_callback)(const char *date, const char *time,
                                        int rounds, int best, void *user);
 

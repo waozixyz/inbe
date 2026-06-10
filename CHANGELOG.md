@@ -1,4 +1,17 @@
 # Changelog
+## [1.2.1] - 2026-06-10
+### Added
+- Breath hold display mode setting with circle progress or stopwatch display
+- Slower speed scale and progressive start speed control
+
+## [1.2.0] - 2026-06-08
+### Added
+- Flint-based UI and theme system
+- Session volume slider with immediate persistence
+- Additional language support: Czech (Čeština), Indonesian (Bahasa Indonesia), Japanese (日本語), Korean (한국어), and Chinese (中文)
+- Proper font glyphs
+- File picker for import
+
 ## [1.1.9] - 2026-06-04
 ### Added
 - Hierarchical settings organization with 3 main categories

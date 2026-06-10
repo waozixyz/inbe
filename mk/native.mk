@@ -6,7 +6,7 @@ all: native
 
 native: $(TARGET)
 
-$(RAYLIB_A): | $(RAYLIB_BUILD_DIR)
+$(RAYLIB_A): $(RAYLIB_SOURCES) | $(RAYLIB_BUILD_DIR)
 	$(MAKE) -j1 -C $(RAYLIB_DIR) \
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
@@ -23,7 +23,7 @@ $(LINUX_INBE_A): FORCE | $(LINUX_BUILD_DIR)
 	$(MAKE) -C $(INBE_DIR) CC=$(CC) AR=ar
 	cp $(INBE_A) $@
 
-$(TARGET): $(SRC) $(FLINT_SRCS) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
+$(TARGET): $(SRC) $(FLINT_SRCS) $(FONT_FILES) theme.ini inbe.ini $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -72,6 +72,7 @@ linux-aarch64: | $(LINUX_BUILD_DIR)
 
 build-linux-arch:
 	@mkdir -p $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME) vendor/raylib/build/sdl-$(ARCH_NAME)
+	$(MAKE) $(FONT_FILES)
 	$(MAKE) -C $(RAYLIB_DIR) clean
 	$(MAKE) -j1 -C $(RAYLIB_DIR) \
 		CC="$(LINUX_CC)" \

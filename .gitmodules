@@ -7,3 +7,6 @@
 [submodule "vendor/flint"]
 	path = vendor/flint
 	url = https://github.com/waozixyz/flint
+[submodule "vendor/otfchop"]
+	path = vendor/otfchop
+	url = https://github.com/waozixyz/otfchop

@@ -35,30 +35,32 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
 
     build_language_options(g_language_options, 64, &g_language_option_count);
     if(g_language_option_count <= 0) {
+        int font = flint_ui_font();
         DrawRectangle(x, y, w, h, c_button);
         ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
-        DrawText(locale_get("language_label"), x + flint_px(12), y + h / 2 - flint_clamp_px(14, 12, 16) / 2 - 1,
-                 flint_clamp_px(14, 12, 16), c_text);
+        flint_text_draw(locale_get("language_label"), x + flint_px(12),
+                 flint_ui_text_y(locale_get("language_label"), y, h, font), font, c_text);
         return 0;
     }
 
     if(*selected_index < 0 || *selected_index >= g_language_option_count)
         *selected_index = 0;
 
-    return ui_draw_dropdown_button(app, id, x, y, w, h, g_language_options, g_language_option_count, selected_index);
+    return ui_draw_dropdown_button(id, x, y, w, h, g_language_options, g_language_option_count, selected_index);
 }
 
 int
 language_dropdown_menu(InbeApp *app, int id)
 {
-    return ui_draw_dropdown_menu(app, id);
+    (void)app;
+    return ui_draw_dropdown_menu(id);
 }
 
 void
 language_tab_draw(InbeApp *app)
 {
-    int title_font = flint_clamp_px(22, 18, 26);
-    int label_font = flint_clamp_px(14, 12, 16);
+    int title_font = flint_px(24);
+    int label_font = flint_ui_font();
     int title_w;
     int content_x;
     int content_w;
@@ -88,11 +90,11 @@ language_tab_draw(InbeApp *app)
     if(language_dropdown_button(app, 200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index))
         selection_changed = 1;
 
-    title_w = MeasureText(locale_get("language_picker_title"), title_font);
-    DrawText(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
-    DrawText(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
+    title_w = flint_text_measure(locale_get("language_picker_title"), title_font);
+    flint_text_draw(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
+    flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
 
-    if(ui_draw_text_btn(app, button_x, button_y, locale_get("next_button"), &next_hover)) {
+    if(ui_draw_text_btn(button_x, button_y, locale_get("next_button"), &next_hover)) {
         if(!app->tutorial_seen)
             app->inbe.screen = InbeScreenManual;
         else

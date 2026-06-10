@@ -1,0 +1,608 @@
+[app_title]
+인 브 브즈
+---
+[tab_history]
+기록
+---
+[tab_manual]
+튜토리얼
+---
+[tab_settings]
+설정
+---
+[play_button]
+시작
+---
+[breath_button]
+숨쉼
+---
+[results_title]
+결과
+---
+[home_button]
+홈
+---
+[exit_session_title]
+세션을 종료하시겠습니까?
+---
+[save_completed_rounds_message]
+완료된 라운드를 저장한 후 종료하시겠습니까?
+---
+[cancel_button]
+취소
+---
+[save_button]
+저장
+---
+[save_results_button]
+저장
+---
+[discard_button]
+버리기
+---
+[all_progress_lost_message]
+모든 진행 상황이 손실됩니다.
+---
+[exit_button]
+종료
+---
+[round_times_title]
+라운드 시간
+---
+[results_rounds]
+%d 라운드
+---
+[results_best]
+최고 %ds
+---
+[results_avg]
+평균 %ds
+---
+[round_result_label]
+%d 라운드  %ds
+---
+[starting_in]
+%d초 후 시작
+---
+[settings_title]
+설정
+---
+[settings_tab_breathing]
+호흡
+---
+[settings_tab_session]
+세션
+---
+[settings_tab_sound]
+사운드
+---
+[settings_tab_appearance]
+외관
+---
+[settings_tab_language]
+언어
+---
+[settings_tab_data]
+데이터
+---
+[settings_tab_about]
+정보
+---
+[theme_label]
+테마
+---
+[speed_label]
+속도
+---
+
+Start speed
+---
+[play_in_background_label]
+백그라운드 재생
+---
+[max_rounds_label]
+최대 라운드
+---
+[max_breaths_label]
+최대 호흡
+---
+[pause_after_round_label]
+라운드 후 일시정지
+---
+[advanced_session_controls_label]
+고급 세션 제어
+---
+[hold_display_label]
+홀드 표시
+---
+[hold_display_stopwatch]
+스톱워치
+---
+[hold_display_circle]
+원
+---
+[volume_label]
+음량
+---
+[reset_to_defaults_label]
+기본값으로 재설정
+---
+[fullscreen_label]
+전체화면
+---
+[language_label]
+언어
+---
+[language_picker_title]
+언어 선택
+---
+[next_button]
+다음
+---
+[coming_soon_label]
+출시 예정
+---
+[data_management_label]
+데이터 관리
+---
+[total_sessions_label]
+총 세션 수: %d
+---
+[data_size_label]
+데이터 크기: %s
+---
+[storage_label]
+저장소: %s
+---
+[export_data_button]
+데이터 내보내기
+---
+[delete_all_data_button]
+모든 데이터 삭제
+---
+[export_data_dialog_title]
+데이터 내보내기
+---
+[export_failed]
+내보내기 실패
+---
+[exported_label]
+내보내기 완료
+---
+[import_data_button]
+데이터 가져오기
+---
+[import_data_dialog_title]
+데이터 가져오기
+---
+[import_failed]
+가져오기 실패
+---
+[imported_sessions]
+%d개 세션을 가져왔습니다
+---
+[import_invalid_file]
+잘못된 내보내기 파일
+---
+[import_cancelled]
+Import cancelled
+---
+[export_cancelled]
+Export cancelled
+---
+[no_data_to_export]
+No data to export
+---
+[no_data_to_delete]
+No data to delete
+---
+[delete_all_data_title]
+Delete all data?
+---
+[delete_all_data_message]
+This will permanently delete all saved sessions.
+---
+[delete_cancelled]
+Delete cancelled
+---
+[deleted_sessions]
+Deleted %lld sessions
+---
+[version_label]
+버전 %s
+---
+[about_description]
+인 브 브즈는 마음을 진정시키고
+편안해질 수 있도록 돕돕이 호흡 명상 앱입니다.
+
+사용에 주의하세요.
+---
+[toggle_off]
+꺼짐
+---
+[toggle_on]
+켜짐
+---
+[theme_light]
+라이트
+---
+[theme_dark]
+다크
+---
+[on_screen_keyboard_label]
+온스크린 키보드
+---
+[history_title]
+기록
+---
+[history_empty]
+아직 저장된 세션이 없습니다.
+세션을 완료하면 여기에 표시됩니다.
+---
+[history_month_label]
+%02d월
+---
+[history_day_label]
+%02d일
+---
+[history_round_short_label]
+R%d
+---
+[history_round_label]
+R%d  %ds
+---
+[history_session_label]
+%02d:%02d  평균 %ds
+---
+---
+[tutorial_title]
+튜토리얼
+---
+[tutorial_page_label]
+%d/%d
+---
+[tutorial_method_title]
+방법
+---
+[tutorial_step1_title]
+1단계: 들이마시 내뱨기
+---
+[tutorial_step2_title]
+2단계: 내뱨시 참기
+---
+[tutorial_step3_title]
+3단계: 들이마시 참기
+---
+[tutorial_progressive_speed_title]
+점진적 속도
+---
+[tutorial_step_intro]
+이 호흡 방법은 윔 호프 메서드를 기반으로 합니다.
+
+강력하게 느낄 수 있습니다.
+주의해서 사용하세요.
+
+앉거나 누워서 사용하세요.
+운전 중이나 서 있는 곳에서는 사용하지 마세요.
+---
+[tutorial_step_method]
+4단계를 따르세요:
+
+1. 리듬하게 호흡합니다.
+2. 내뱨시고 참습니다.
+3. 깊게 들이마시고 참습니다.
+4. 내뱨시고 반복합니다.
+
+톱니바 아이콘 %i를 사용하여 라운드, 호흡, 속도 및 일시정지를 조정할 수 있습니다.
+---
+[tutorial_step_breathe]
+폐를 완전히 채우고 자연스럽게 내뱨습니다.
+
+이 컨트롤로 호흡 리듬의 템포를 설정합니다.
+
+자연스러운 리듬을 찾으세요.
+---
+[tutorial_step_progressive_speed]
+점진적 속도는 첫 라운드를 쉽게 시작할 수 있게 합니다.
+
+활성화되면 첫 라운드는 속도 1에서 처음 5번 호흡을 하고 점차 선택한 속도까지 증가합니다.
+---
+[tutorial_step_exhale]
+호흡 라운드 후,
+자연스럽게 내뱨고 참습니다.
+
+몸이 요청할 때까지 참으세요.
+억지로 하지 마세요.
+---
+[tutorial_step_inhale_hold]
+완전히 들이마시고 약 15초 동안 참습니다.
+
+그런 다음 내뱨시고 다음 라운드를 시작합니다.
+시간이 지남에 따라 각 라운드가 더 깊어질 수 있습니다.
+---
+[tutorial_skip_button]
+건너뛰
+---
+[tutorial_back_button]
+뒤로
+---
+[tutorial_next_button]
+다음
+---
+[tutorial_finish_button]
+완료
+---
+[share_sheet_title]
+세션 데이터 내보내기
+---
+[export_metadata_header]
+인 브 브즈 데이터 내보내기
+---
+[export_metadata_version]
+버전: %s
+---
+[export_metadata_date]
+내보내기 날짜: %s
+---
+[export_metadata_count]
+세션 수: %d
+---
+[delete_history_title]
+삭제하시겠습니까?
+---
+[delete_session_message]
+이 세션을 삭제하시겠습니까? 되돌릴 수 없습니다.
+---
+[delete_round_message]
+이 라운드를 삭제하시겠습니까? 되돌릴 수 없습니다.
+---
+[delete_button]
+삭제
+---
+[settings_category_practice]
+호흡 설정
+---
+[settings_category_practice_desc]
+호흡과 세션 조정
+---
+[settings_category_app]
+앱프 설정
+---
+[settings_category_app_desc]
+외관과 사운드 커스터마이징
+---
+[settings_category_about_data]
+정보 및 데이터
+---
+[settings_category_about_data_desc]
+정보 표시 및 데이터 관리
+---
+[progressive_speed_label]
+점진적 속도
+---
+[toggle_off]
+꺼짐
+---
+[toggle_on]
+켜짐
+---
+[round_times_title]
+라운드 시간
+---
+[R%d]
+%d 라운드
+---
+[C%d]
+%d초
+---
+[round_result_label]
+%d 라운드  %ds
+---
+[R%d  %ds]
+---
+[session_rounds_label]
+%d/%d
+---
+[play_in_background_label]
+백그라운드 재생
+---
+[rounds_label]
+라운드
+---
+[breaths_label]
+호흡
+---
+[R%d  %ds]
+---
+[R%d  %ds]
+---
+[C%d  %ds]
+---
+[C%d  %ds]
+---
+[exit_session_title_title]
+세션을 종료하시겠습니까?
+---
+[exit_session_title_message]
+진행 중인 세션입니다.
+진행 상태를 잃게 저장하고 종료하시겠습니까?
+---
+[exit_session_subtitle]
+진행 상태
+---
+[continue_button]
+계속
+---
+[confirm_button]
+확인
+---
+[round_times_title]
+라운드 시간
+---
+[R%d]
+%d 라운드
+---
+[C%d]
+%d초
+---
+[round_result_label]
+%d 라운드  %ds
+---
+[R%d  %ds]
+---
+[session_rounds_label]
+%d/%d
+---
+[play_in_background_label]
+백그라운드 재생
+---
+[rounds_label]
+라운드
+---
+[breaths_label]
+호흡
+---
+[round_button_label]
+%d 라운드
+---
+[round_button_short_label]
+R%d
+---
+[round_settings_label]
+%d/%d
+---
+[round_short_label]
+%d/%d
+---
+[breaths_button_label]
+%d/%d
+---
+[breaths_short_label]
+%d/%d
+---
+[C%d]
+%d초
+---
+[C%d]
+%d초
+---
+[C%d]
+%d초
+---
+[history_edit_title]
+편집
+---
+[history_edit_done]
+완료
+---
+[history_edit_cancel]
+취소
+---
+[history_delete_title]
+기록 삭제
+---
+[history_delete_message]
+이 기록을 삭제하시겠습니까?
+---
+[pause_button_label]
+일시정지
+---
+[resume_button_label]
+재개
+---
+[tutorial_step_breathe]
+폐를 완전히 채우고 자연스럽게 내뱨세요.
+
+이 컨트롤로 호흡 리듬의 템포를 설정합니다.
+
+자연스러운 리듬을 찾으세요.
+---
+[tutorial_step_exhale]
+호흡 라운드 후,
+자연스럽게 내뱨시고 참습니다.
+
+시체가 공기가 필요할 때까지 참으세요.
+강제로 하지 마세요.
+---
+[tutorial_step_inhale_hold]
+완전히 들이마시고 약 15초 동안 참습니다.
+
+그 다음 내뱨시고 다음 라운드를 시작합니다.
+시간이 지남에 따라 각 라운드가 더 깊어질 수 있습니다.
+---
+[tutorial_skip_button]
+건너뛰
+---
+[tutorial_back_button]
+뒤로
+---
+[tutorial_next_button]
+다음
+---
+[tutorial_finish_button]
+완료
+---
+[share_sheet_title]
+세션 데이터 내보내기
+---
+[export_metadata_header]
+인 브 브즈 데이터 내보내기
+---
+[export_metadata_version]
+버전: %s
+---
+[export_metadata_date]
+내보내기 날짜: %s
+---
+[export_metadata_count]
+세션 수: %d
+---
+[delete_history_title]
+기록 삭제
+---
+[delete_session_message]
+이 기록을 삭제하시겠습니까? 되돌릴 수 없습니다.
+---
+[delete_round_message]
+이 라운드를 삭제하시겠습니까? 되돌릴 수 없습니다.
+---
+[delete_button]
+삭제
+---
+[settings_category_practice]
+호흡 설정
+---
+[settings_category_practice_desc]
+호흡과 세션 조정
+---
+[settings_category_app]
+앱프 설정
+---
+[settings_category_app_desc]
+외관과 사운드 커스터마이징
+---
+[settings_category_about_data]
+정보 및 데이터
+---
+[settings_category_about_data_desc]
+정보 표시 및 데이터 관리
+---
+[R%d  %ds]
+---
+[R%d  %ds]
+---
+[round_result_label]
+%d 라운드  %ds
+---
+[R%d  %ds]
+---
+---
+[history_round_short_label]
+R%d
+---
+[history_round_label]
+R%d  %ds
+---
+[history_session_label]
+%02d:%02d  평균 %ds
+---

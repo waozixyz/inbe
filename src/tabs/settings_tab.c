@@ -4,11 +4,17 @@
 #include "locale.h"
 #include "flint_ui.h"
 #include "flint_text_layout.h"
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32)
+#define INBE_HAS_FLINT_FILE_DIALOG 1
+#include "flint_file_dialog.h"
+#endif
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#include "android_import.h"
+#endif
 #include "theme.h"
 #include "theme_meta.h"
 #include "version.h"
 #include "data.h"
-#include "file_dialog.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <string.h>
@@ -19,13 +25,39 @@ extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 extern int view_width;
 extern int view_height;
 
+static const char *
+settings_current_title(InbeApp *app)
+{
+    if(app == NULL || app->settings_category == -1)
+        return locale_get("settings_title");
+
+    switch(app->settings_category) {
+    case SETTINGS_CATEGORY_PRACTICE:
+        return app->settings_sub_tab == PRACTICE_SUBTAB_SESSION
+                   ? locale_get("settings_tab_session")
+                   : locale_get("settings_tab_breathing");
+    case SETTINGS_CATEGORY_APP:
+        if(app->settings_sub_tab == APP_SUBTAB_VISUAL)
+            return locale_get("settings_tab_appearance");
+        if(app->settings_sub_tab == APP_SUBTAB_LANGUAGE)
+            return locale_get("settings_tab_language");
+        return locale_get("settings_tab_sound");
+    case SETTINGS_CATEGORY_ABOUT_DATA:
+        return app->settings_sub_tab == ABOUT_DATA_SUBTAB_ABOUT
+                   ? locale_get("settings_tab_about")
+                   : locale_get("settings_tab_data");
+    default:
+        return locale_get("settings_title");
+    }
+}
+
 static void
 draw_category_card(InbeApp *app, const char *title, const char *description,
                    Rectangle rect, int *hover)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int title_font = flint_clamp_px(18, 16, 20);
-    int desc_font = flint_clamp_px(14, 12, 16);
+    int title_font = flint_ui_font();
+    int desc_font = flint_ui_font();
     int padding_x = flint_px(16);
     int padding_y = flint_px(10);
     int text_w = (int)rect.width - padding_x * 2;
@@ -46,15 +78,15 @@ draw_category_card(InbeApp *app, const char *title, const char *description,
                       flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
 
-    while(title_font > flint_px(12) && MeasureText(title, title_font) > text_w) {
+    while(title_font > flint_px(12) && flint_text_measure(title, title_font) > text_w) {
         title_font--;
     }
-    int title_y = (int)rect.y + padding_y;
-    DrawText(title, (int)rect.x + padding_x, title_y, title_font, c_text);
+    int title_y = flint_ui_text_y(title, (int)rect.y + padding_y, title_font, title_font);
+    flint_text_draw(title, (int)rect.x + padding_x, title_y, title_font, c_text);
 
     FlintTextLayout desc_layout = flint_text_layout_parse(description, (Texture2D){0}, FLINT_ICON_TYPE_NONE, desc_font);
-    flint_text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(18));
-    int desc_y = title_y + title_font + flint_px(6);
+    flint_text_layout_reflow(&desc_layout, text_w, desc_font, flint_px(8));
+    int desc_y = title_y + title_font + flint_px(8);
     flint_text_layout_draw(&desc_layout, (int)rect.x + padding_x, &desc_y, desc_font, flint_darken(c_text, 30));
     flint_text_layout_free(&desc_layout);
 }
@@ -129,14 +161,16 @@ settings_draw_subtab_bar(InbeApp *app, int x, int y, int w, int h,
                           flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
             app->cursor_clickable = 1;
         } else {
-            DrawRectangle((int)tab_x, y, (int)tab_w, h, c_bg);
+            Color inactive_bg = flint_darken(c_bg, 10);
+            DrawRectangle((int)tab_x, y, (int)tab_w, h, inactive_bg);
             ui_draw_bevel((int)tab_x, y, (int)tab_w, h,
-                          flint_lighten(c_bg, 35), flint_darken(c_bg, 45));
+                          flint_lighten(inactive_bg, 35), flint_darken(inactive_bg, 45));
         }
 
-        int font = flint_clamp_px(14, 12, 16);
-        int text_w = MeasureText(tab_names[i], font);
-        DrawText(tab_names[i], tab_x + (tab_w - text_w) / 2, y + (h - font) / 2 - 1, font, c_text);
+        int font = flint_ui_font();
+        int text_w = flint_text_measure(tab_names[i], font);
+        flint_text_draw(tab_names[i], tab_x + (tab_w - text_w) / 2,
+                 flint_ui_text_y(tab_names[i], y, h, font), font, c_text);
 
         if(is_hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
             clicked_tab = i;
@@ -150,27 +184,37 @@ settings_draw_subtab_bar(InbeApp *app, int x, int y, int w, int h,
 static void
 draw_theme_selector(InbeApp *app, int x, int y, int w)
 {
-    int font = flint_clamp_px(14, 12, 16);
-    int small_font = flint_clamp_px(12, 10, 14);
+    int font = flint_ui_font();
+    int small_font = flint_ui_font_small();
     const char *label = locale_get("theme_label");
 
-    DrawText(label, x, y, font, c_text);
+    flint_text_draw(label, x, y, font, c_text);
 
     /* Light/Dark toggle */
-    int toggle_w = flint_px(100);
+    const char *theme_light_label = locale_get("theme_light");
+    const char *theme_dark_label = locale_get("theme_dark");
+    int theme_light_w = flint_text_measure(theme_light_label, font);
+    int theme_dark_w = flint_text_measure(theme_dark_label, font);
+    int max_label_w = (theme_light_w > theme_dark_w ? theme_light_w : theme_dark_w);
+
+    /* Calculate toggle width based on text measurements with padding */
+    int toggle_w = max_label_w * 2 + flint_px(32);  /* Space for both labels + padding */
+    int min_toggle_w = flint_px(100);  /* Minimum width */
+    if(toggle_w < min_toggle_w) toggle_w = min_toggle_w;
+
     int toggle_h = flint_px(28);
-    int toggle_x = x + w - toggle_w;
+    int toggle_x = x + w - toggle_w - flint_px(8);  /* Right-aligned with reduced margin */
     int toggle_y = y - 2;
 
-    if(ui_draw_toggle_switch(app, toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+    if(ui_draw_toggle_switch(toggle_x, toggle_y, toggle_w, toggle_h, &app->dark_mode,
+                             theme_light_label, theme_dark_label)) {
         refresh_theme_colors(app->theme_id, app->dark_mode);
         app->settings_dirty = 1;
     }
 
     int circle_size = flint_px(36);
-    int circle_spacing = flint_px(24);
-    int row_spacing = flint_px(36);
+    int circle_spacing = flint_px(32);
+    int row_spacing = flint_px(48);
     int per_row = 3;
     int row_width = per_row * circle_size + (per_row - 1) * circle_spacing;
     int start_x = x + (w - row_width) / 2;
@@ -211,8 +255,81 @@ draw_theme_selector(InbeApp *app, int x, int y, int w)
 
         /* Draw theme name below */
         const char *name = g_themes[i].name;
-        int name_w = MeasureText(name, small_font);
-        DrawText(name, cx - name_w / 2, cy + circle_size / 2 + flint_px(6), small_font, c_text);
+        int name_w = flint_text_measure(name, small_font);
+        flint_text_draw(name, cx - name_w / 2, cy + circle_size / 2 + flint_px(6), small_font, c_text);
+    }
+}
+#endif
+
+/* Unified status system variables */
+static char unified_status[256] = "";
+static char unified_detail[256] = "";
+static int unified_status_type = 0;
+
+/* Helper functions for unified status system */
+void settings_tab_set_status_success(const char *message, const char *detail) {
+    if(message) {
+        strncpy(unified_status, message, sizeof(unified_status) - 1);
+        unified_status[sizeof(unified_status) - 1] = '\0';
+    } else {
+        unified_status[0] = '\0';
+    }
+    if(detail) {
+        strncpy(unified_detail, detail, sizeof(unified_detail) - 1);
+        unified_detail[sizeof(unified_detail) - 1] = '\0';
+    } else {
+        unified_detail[0] = '\0';
+    }
+    unified_status_type = 1;
+}
+
+void settings_tab_set_status_error(const char *message) {
+    if(message) {
+        strncpy(unified_status, message, sizeof(unified_status) - 1);
+        unified_status[sizeof(unified_status) - 1] = '\0';
+    } else {
+        unified_status[0] = '\0';
+    }
+    unified_detail[0] = '\0';
+    unified_status_type = 2;
+}
+
+void
+settings_tab_clear_status(void)
+{
+    unified_status[0] = '\0';
+    unified_detail[0] = '\0';
+    unified_status_type = 0;
+}
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+static void
+settings_tab_handle_android_import(void)
+{
+    char import_path[FS_PATH_MAX];
+    int import_result = android_import_poll_result(import_path, sizeof(import_path));
+
+    if(import_result == ANDROID_IMPORT_RESULT_NONE)
+        return;
+
+    if(import_result == ANDROID_IMPORT_RESULT_CANCELLED) {
+        settings_tab_set_status_error(locale_get("import_cancelled"));
+        return;
+    }
+
+    if(import_path[0] == '\0') {
+        settings_tab_set_status_error(locale_get("import_invalid_file"));
+        return;
+    }
+
+    if(data_import(import_path)) {
+        char import_message[128];
+        locale_format(import_message, sizeof(import_message), "imported_sessions", data_get_session_count());
+        settings_tab_set_status_success(import_message, NULL);
+        TraceLog(LOG_INFO, "DATA: Android import successful");
+    } else {
+        settings_tab_set_status_error(locale_get("import_failed"));
+        TraceLog(LOG_ERROR, "DATA: Android import failed");
     }
 }
 #endif
@@ -225,13 +342,19 @@ settings_tab_draw(InbeApp *app)
     int close_clicked = 0;
     int content_x;
     int content_w;
-    static FileDialog export_dlg;
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
+    static FlintFileDialog export_dlg;
     static int export_dlg_initialized = 0;
-    static char export_result[128] = "";  /* Store export result message */
+    static FlintFileDialog import_dlg;
+    static int import_dlg_initialized = 0;
+#endif
 
-    /* Use percentage of screen width like tutorial, not DPI-scaled CONTENT_MAX_W */
+    /* Use percentage of screen width, then cap it to the shared DPI-aware max. */
     int responsive_max_w = (int)(view_width * 0.96f);
+    int max_content_w = flint_px(CONTENT_MAX_W);
     int min_content_w = flint_px(320);
+    if(responsive_max_w > max_content_w)
+        responsive_max_w = max_content_w;
     if(responsive_max_w < min_content_w)
         responsive_max_w = min_content_w;
     int side_padding = flint_page_side_padding();
@@ -245,7 +368,7 @@ settings_tab_draw(InbeApp *app)
     /* Draw custom header with back button when in a category */
     if(app->settings_category != -1) {
         int title_h = ui_screen_header_height();
-        int title_font = flint_clamp_px(16, 14, 18);
+        int title_font = flint_ui_font();
         int close_hover = 0;
         int back_hover = 0;
 
@@ -255,21 +378,22 @@ settings_tab_draw(InbeApp *app)
 
         /* Draw back button */
         int back_btn_x = ui_icon_btn_padding(UI_ICON_SIZE_TINY);
-        int back_clicked = ui_draw_icon_btn(app, back_btn_x, flint_px(8),
+        int back_clicked = ui_draw_icon_btn(back_btn_x, flint_px(8),
                                               UI_ICON_SIZE_TINY, app->return_icon, UI_ICON_TYPE_RETURN, &back_hover);
 
         /* Draw centered title (offset to account for back button) */
-        const char *title = locale_get("settings_title");
-        int title_w = MeasureText(title, title_font);
-        int title_y = (title_h - title_font) / 2;
-        DrawText(title, (view_width - title_w) / 2, title_y, title_font, c_text);
+        const char *title = settings_current_title(app);
+        int title_w = flint_text_measure(title, title_font);
+        int title_y = flint_ui_text_y(title, 0, title_h, title_font);
+        flint_text_draw(title, (view_width - title_w) / 2, title_y, title_font, c_text);
 
         /* Draw close button */
-        close_clicked = ui_draw_icon_btn(app, view_width - flint_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), flint_px(8),
+        close_clicked = ui_draw_icon_btn(view_width - flint_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), flint_px(8),
                                          UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
 
         /* Handle back button click */
         if(back_clicked) {
+            settings_tab_clear_status();
             app->settings_category = -1;  /* Return to category selection */
             app->settings_sub_tab = 0;
         }
@@ -277,6 +401,7 @@ settings_tab_draw(InbeApp *app)
         if(close_clicked) {
             if(app->settings_dirty)
                 save_settings(app);
+            settings_tab_clear_status();
             app->settings_category = -1;
             app->settings_sub_tab = 0;
             app->settings_scroll = 0;
@@ -284,10 +409,11 @@ settings_tab_draw(InbeApp *app)
         }
     } else {
         /* Use standard header for category selection */
-        close_clicked = ui_draw_screen_header(app, locale_get("settings_title"), 1);
+        close_clicked = ui_draw_screen_header(locale_get("settings_title"), 1);
         if(close_clicked) {
             if(app->settings_dirty)
                 save_settings(app);
+            settings_tab_clear_status();
             app->settings_category = -1;  /* Reset navigation */
             app->settings_sub_tab = 0;
             app->inbe.screen = InbeScreenStart;
@@ -295,16 +421,32 @@ settings_tab_draw(InbeApp *app)
     }
 
     /* Initialize export dialog on first call */
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
     if(!export_dlg_initialized) {
-        file_dialog_init(&export_dlg);
+        flint_file_dialog_init(&export_dlg);
         export_dlg_initialized = 1;
         app->settings_category = -1;  /* Initialize to category selection */
         app->settings_sub_tab = 0;
     }
 
+    /* Initialize import dialog on first call */
+    if(!import_dlg_initialized) {
+        flint_file_dialog_init(&import_dlg);
+        import_dlg_initialized = 1;
+    }
+#else
+    if(app->settings_category == -1) {
+        app->settings_sub_tab = 0;
+    }
+#endif
+
     int content_start_y = title_h + flint_px(8);
     int language_menu_changed = 0;
     int draw_language_menu = 0;
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    settings_tab_handle_android_import();
+#endif
 
     BeginScissorMode((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
@@ -356,9 +498,11 @@ settings_tab_draw(InbeApp *app)
 
                 int tab_content_y = subtab_y + subtab_h + yoff;
                 if(app->settings_sub_tab == PRACTICE_SUBTAB_BREATHING) {
+                    int progressive_start_speed = app->inbe.progressive_start_speed;
+
                     draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, tab_content_y + flint_px(100));
 
-                    if(ui_draw_slider(app, 1, content_x, tab_content_y + flint_px(200), content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
+                    if(ui_draw_slider(1, content_x, tab_content_y + flint_px(200), content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
                         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
                         app->settings_preview.progressive_speed = 0;
@@ -372,31 +516,29 @@ settings_tab_draw(InbeApp *app)
                     int toggle_x = content_x;
                     int progressive_label_y = tab_content_y + flint_px(275);
                     int progressive_toggle_y = progressive_label_y + flint_px(26);
-                    DrawText(locale_get("progressive_speed_label"), content_x, progressive_label_y, flint_clamp_px(14, 12, 16), c_text);
-                    if(ui_draw_toggle_switch(app, toggle_x, progressive_toggle_y, toggle_w, toggle_h, &progressive_speed, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                    flint_text_draw(locale_get("progressive_speed_label"), content_x, progressive_label_y, flint_ui_font(), c_text);
+                    if(ui_draw_toggle_switch(toggle_x, progressive_toggle_y, toggle_w, toggle_h, &progressive_speed, locale_get("toggle_off"), locale_get("toggle_on"))) {
                         app->inbe.progressive_speed = progressive_speed;
                         app->settings_preview.progressive_speed = 0;
                         app->settings_dirty = 1;
                         TraceLog(LOG_INFO, "INBE: Settings toggled progressive_speed to %d", progressive_speed);
                     }
-
-#ifdef __ANDROID__
-                    /* Play in background (Android only) */
-                    int play_in_background = app->inbe.play_in_background;
-                    int play_bg_label_y = progressive_toggle_y + toggle_h + flint_px(18);
-                    int play_bg_toggle_y = play_bg_label_y + flint_px(26);
-                    DrawText(locale_get("play_in_background_label"), content_x, play_bg_label_y, flint_clamp_px(14, 12, 16), c_text);
-                    if(ui_draw_toggle_switch(app, toggle_x, play_bg_toggle_y, toggle_w, toggle_h, &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
-                        app->inbe.play_in_background = play_in_background;
-                        app->settings_dirty = 1;
-                        TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
+                    if(app->inbe.progressive_speed) {
+                        progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, speed);
+                        if(ui_draw_slider(5, content_x, progressive_toggle_y + toggle_h + flint_px(20),
+                                          content_w, locale_get("progressive_start_speed_label"),
+                                          SETTINGS_SPEED_MIN, speed, &progressive_start_speed, "")) {
+                            app->inbe.progressive_start_speed = progressive_start_speed;
+                            app->settings_preview.progressive_start_speed = progressive_start_speed;
+                            app->settings_dirty = 1;
+                        }
                     }
-#endif
+
                 } else if(app->settings_sub_tab == PRACTICE_SUBTAB_SESSION) {
                     int slider_y = tab_content_y + flint_px(20);
 
                     /* Max rounds */
-                    if(ui_draw_slider(app, 2, content_x, slider_y, content_w, locale_get("max_rounds_label"), 1,
+                    if(ui_draw_slider(2, content_x, slider_y, content_w, locale_get("max_rounds_label"), 1,
                                    MaxRounds, &max_rounds, "")) {
                         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -404,7 +546,7 @@ settings_tab_draw(InbeApp *app)
                     }
 
                     /* Max breaths */
-                    if(ui_draw_slider(app, 3, content_x, slider_y + flint_px(66), content_w, locale_get("max_breaths_label"), SETTINGS_BREATHS_MIN,
+                    if(ui_draw_slider(3, content_x, slider_y + flint_px(66), content_w, locale_get("max_breaths_label"), SETTINGS_BREATHS_MIN,
                                    SETTINGS_BREATHS_MAX, &max_breaths, "")) {
                         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -412,7 +554,7 @@ settings_tab_draw(InbeApp *app)
                     }
 
                     /* Pause */
-                    if(ui_draw_slider(app, 4, content_x, slider_y + flint_px(132), content_w, locale_get("pause_after_round_label"), SETTINGS_PAUSE_MIN,
+                    if(ui_draw_slider(4, content_x, slider_y + flint_px(132), content_w, locale_get("pause_after_round_label"), SETTINGS_PAUSE_MIN,
                                    SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
                         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -423,44 +565,38 @@ settings_tab_draw(InbeApp *app)
                     int advanced_session_controls = app->advanced_session_controls;
                     int toggle_w = flint_px(56);
                     int toggle_h = flint_px(30);
-                    int advanced_label_y = slider_y + flint_px(198);
+                    int hold_display_label_y = slider_y + flint_px(198);
+                    int hold_display_y = hold_display_label_y + flint_px(26);
+                    int advanced_label_y = hold_display_y + flint_px(52);
                     int advanced_toggle_y = advanced_label_y + flint_px(26);
-                    DrawText(locale_get("advanced_session_controls_label"), content_x, advanced_label_y, flint_clamp_px(14, 12, 16), c_text);
-                    if(ui_draw_toggle_switch(app, content_x, advanced_toggle_y, toggle_w, toggle_h, &advanced_session_controls, locale_get("toggle_off"), locale_get("toggle_on"))) {
+
+                    flint_text_draw(locale_get("hold_display_label"), content_x, hold_display_label_y, flint_ui_font(), c_text);
+                    draw_hold_display_mode_selector(app, content_x, hold_display_y, content_w);
+
+                    flint_text_draw(locale_get("advanced_session_controls_label"), content_x, advanced_label_y, flint_ui_font(), c_text);
+                    if(ui_draw_toggle_switch(content_x, advanced_toggle_y, toggle_w, toggle_h, &advanced_session_controls, locale_get("toggle_off"), locale_get("toggle_on"))) {
                         app->advanced_session_controls = advanced_session_controls;
                         app->settings_dirty = 1;
                     }
 
-                    /* Reset to defaults button */
+                    /* Reset to defaults button using Flint utility */
                     int reset_y = advanced_toggle_y + toggle_h + flint_px(20);
-                    int reset_w = MeasureText(locale_get("reset_to_defaults_label"), flint_clamp_px(14, 12, 16)) + flint_px(24);
+                    int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
                     int reset_h = flint_px(36);
                     int reset_x = content_x + content_w - reset_w;
                     int reset_hover = 0;
-                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
 
-                    Rectangle reset_bounds = {reset_x, reset_y, reset_w, reset_h};
-                    if(CheckCollisionPointRec(mouse_world, reset_bounds)) {
-                        DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button_hover);
-                        ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-                        reset_hover = 1;
-                        app->cursor_clickable = 1;
-                    } else {
-                        DrawRectangle(reset_x, reset_y, reset_w, reset_h, c_button);
-                        ui_draw_bevel(reset_x, reset_y, reset_w, reset_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-                    }
-
-                    int reset_font = flint_clamp_px(14, 12, 16);
-                    DrawText(locale_get("reset_to_defaults_label"), reset_x + flint_px(12), reset_y + reset_h / 2 - reset_font / 2 - 1, reset_font, c_text);
-
-                    if(reset_hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                       !ui_dropdown_captures_click(mouse_world)) {
+                    if(ui_draw_generic_button(reset_x, reset_y, reset_w, reset_h,
+                                           locale_get("reset_to_defaults_label"), UI_BUTTON_STYLE_SECONDARY, &reset_hover)) {
                         /* Reset to default values */
-                        speed = 6;
+                        speed = 8;
                         max_rounds = DefaultMaxRounds;
                         max_breaths = DefaultMaxBreaths;
                         pause_seconds = DefaultPauseSeconds;
+                        app->inbe.progressive_start_speed = 3;
+                        app->settings_preview.progressive_start_speed = 3;
                         app->advanced_session_controls = 0;
+                        app->hold_display_mode = HOLD_DISPLAY_CIRCLE;
                         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
                         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
                         app->settings_dirty = 1;
@@ -485,11 +621,30 @@ settings_tab_draw(InbeApp *app)
                 if(app->settings_sub_tab == APP_SUBTAB_SOUND) {
                     int slider_y = tab_content_y + flint_px(20);
                     int sound_volume = app->sound_volume;
-                    if(ui_draw_slider(app, 6, content_x, slider_y, content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
+                    if(ui_draw_slider(6, content_x, slider_y, content_w, locale_get("volume_label"), SETTINGS_VOLUME_MIN,
                                    SETTINGS_VOLUME_MAX, &sound_volume, "")) {
                         app->sound_volume = sound_volume;
                         app->settings_dirty = 1;
+                        /* IMMEDIATE SAVE: Persist volume change right away */
+                        save_settings(app);
                     }
+
+#ifdef __ANDROID__
+                    int play_in_background = app->inbe.play_in_background;
+                    int toggle_w = flint_px(56);
+                    int toggle_h = flint_px(30);
+                    int play_bg_label_y = slider_y + flint_px(66);
+                    int play_bg_toggle_y = play_bg_label_y + flint_px(26);
+                    flint_text_draw(locale_get("play_in_background_label"), content_x, play_bg_label_y,
+                             flint_ui_font(), c_text);
+                    if(ui_draw_toggle_switch(content_x, play_bg_toggle_y, toggle_w, toggle_h,
+                                             &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
+                        app->inbe.play_in_background = play_in_background;
+                        app->settings_dirty = 1;
+                        TraceLog(LOG_INFO, "INBE: Settings toggled play_in_background to %d", play_in_background);
+                    }
+#endif
+
                 } else if(app->settings_sub_tab == APP_SUBTAB_VISUAL) {
                     int keyboard_toggle = app->on_screen_keyboard_enabled;
                     int toggle_w = flint_px(56);
@@ -499,7 +654,7 @@ settings_tab_draw(InbeApp *app)
                     int theme_y;
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
                     int checkbox_y = tab_content_y;
-                    if(ui_draw_checkbox_toggle(app, content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
+                    if(ui_draw_checkbox_toggle(content_x, checkbox_y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
                         if(app->fullscreen_enabled && !IsWindowFullscreen())
                             ToggleFullscreen();
                         else if(!app->fullscreen_enabled && IsWindowFullscreen())
@@ -512,8 +667,8 @@ settings_tab_draw(InbeApp *app)
                     keyboard_label_y = tab_content_y;
 #endif
                     keyboard_toggle_y = keyboard_label_y + flint_px(26);
-                    DrawText(locale_get("on_screen_keyboard_label"), content_x, keyboard_label_y, flint_clamp_px(14, 12, 16), c_text);
-                    if(ui_draw_toggle_switch(app, content_x, keyboard_toggle_y, toggle_w, toggle_h,
+                    flint_text_draw(locale_get("on_screen_keyboard_label"), content_x, keyboard_label_y, flint_ui_font(), c_text);
+                    if(ui_draw_toggle_switch(content_x, keyboard_toggle_y, toggle_w, toggle_h,
                                              &keyboard_toggle, locale_get("toggle_off"), locale_get("toggle_on"))) {
                         app->on_screen_keyboard_enabled = keyboard_toggle;
                         app->settings_dirty = 1;
@@ -526,14 +681,14 @@ settings_tab_draw(InbeApp *app)
                     (void)theme_y;
 #endif
                 } else if(app->settings_sub_tab == APP_SUBTAB_LANGUAGE) {
-                    int font = flint_clamp_px(14, 12, 16);
+                    int font = flint_ui_font();
                     int label_y = tab_content_y;
 #if defined(LOTUS_BUILD)
-                    DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
-                    DrawText(locale_current_code(), content_x, label_y + flint_px(28), font, c_text);
+                    flint_text_draw(locale_get("language_label"), content_x, label_y, font, c_text);
+                    flint_text_draw(locale_current_code(), content_x, label_y + flint_px(28), font, c_text);
 #else
                     int dropdown_y = label_y + flint_px(28);
-                    DrawText(locale_get("language_label"), content_x, label_y, font, c_text);
+                    flint_text_draw(locale_get("language_label"), content_x, label_y, font, c_text);
                     if(language_dropdown_button(app, 101, content_x, dropdown_y, content_w, flint_px(36), &app->language_index))
                         language_menu_changed = 1;
                     draw_language_menu = 1;
@@ -555,12 +710,11 @@ settings_tab_draw(InbeApp *app)
 
                 int tab_content_y = subtab_y + subtab_h + yoff;
                 if(app->settings_sub_tab == ABOUT_DATA_SUBTAB_DATA) {
-                    int font = flint_clamp_px(14, 12, 16);
+                    int font = flint_ui_font();
                     int text_y = tab_content_y;
                     int session_count = data_get_session_count();
                     long long data_size = data_get_total_size();
                     char size_str[32];
-                    int hover_export = 0;
                     int hover_delete = 0;
 
                     /* Format data size */
@@ -572,7 +726,7 @@ settings_tab_draw(InbeApp *app)
                         snprintf(size_str, sizeof(size_str), "%.1f MB", (float)data_size / (1024 * 1024));
 
                     /* Title */
-                    DrawText(locale_get("data_management_label"), content_x, text_y, font, c_text);
+                    flint_text_draw(locale_get("data_management_label"), content_x, text_y, font, c_text);
                     text_y += flint_px(30);
 
                     /* Statistics box */
@@ -589,11 +743,11 @@ settings_tab_draw(InbeApp *app)
                     char stat_text[64];
 
                     locale_format(stat_text, sizeof(stat_text), "total_sessions_label", session_count);
-                    DrawText(stat_text, stat_x, stat_y, font, c_text);
+                    flint_text_draw(stat_text, stat_x, stat_y, font, c_text);
                     stat_y += flint_px(22);
 
                     locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
-                    DrawText(stat_text, stat_x, stat_y, font, c_text);
+                    flint_text_draw(stat_text, stat_x, stat_y, font, c_text);
                     stat_y += flint_px(22);
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
@@ -611,33 +765,98 @@ settings_tab_draw(InbeApp *app)
                     {
                         char storage_text[FS_PATH_MAX + 32];
                         locale_format(storage_text, sizeof(storage_text), "storage_label", display_path);
-                        DrawText(storage_text, stat_x, stat_y, flint_clamp_px(12, 10, 14), flint_darken(c_text, 40));
+                        flint_text_draw(storage_text, stat_x, stat_y, flint_ui_font_small(), flint_darken(c_text, 40));
                     }
 #endif
 
                     text_y += stats_box_h + flint_px(24);
 
+                    /* Import button */
+                    int import_h = flint_px(36);
+                    int import_w = flint_text_measure(locale_get("import_data_button"), font) + flint_px(24);
+                    int import_x = content_x;
+                    int import_y = text_y;
+                    int hover_import = 0;
+                    int hover_export = 0;
+                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+
                     /* Export button */
                     int export_h = flint_px(36);
-                    int export_w = MeasureText(locale_get("export_data_button"), font) + flint_px(24);
+                    int export_w = flint_text_measure(locale_get("export_data_button"), font) + flint_px(24);
                     int export_x = content_x;
-                    int export_y = text_y;
-                    Rectangle export_rect = {export_x, export_y, export_w, export_h};
+                    int export_y = import_y + import_h + flint_px(12);
 
-                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-                    if(CheckCollisionPointRec(mouse_world, export_rect)) {
-                        DrawRectangle(export_x, export_y, export_w, export_h, c_button_hover);
-                        ui_draw_bevel(export_x, export_y, export_w, export_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-                        hover_export = 1;
-                        app->cursor_clickable = 1;
-                    } else {
-                        DrawRectangle(export_x, export_y, export_w, export_h, c_button);
-                        ui_draw_bevel(export_x, export_y, export_w, export_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                    /* Import button using Flint utility */
+                    if(ui_draw_generic_button(import_x, import_y, import_w, import_h,
+                                           locale_get("import_data_button"), UI_BUTTON_STYLE_PRIMARY, &hover_import)) {
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+                        if(android_import_open_picker()) {
+                            settings_tab_set_status_success(locale_get("import_data_dialog_title"), NULL);
+                        } else {
+                            settings_tab_set_status_error(locale_get("import_failed"));
+                        }
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
+                        if(flint_file_dialog_load(&import_dlg, locale_get("import_data_dialog_title"))) {
+                            const char *path = flint_file_dialog_get_path(&import_dlg);
+                            if(path != NULL && path[0] != '\0') {
+                                if(data_import(path)) {
+                                    char import_message[128];
+                                    locale_format(import_message, sizeof(import_message), "imported_sessions", data_get_session_count());
+                                    settings_tab_set_status_success(import_message, NULL);
+                                    TraceLog(LOG_INFO, "DATA: Import successful");
+                                } else {
+                                    settings_tab_set_status_error(locale_get("import_failed"));
+                                    TraceLog(LOG_ERROR, "DATA: Import failed");
+                                }
+                            } else {
+                                settings_tab_set_status_error(locale_get("import_invalid_file"));
+                                TraceLog(LOG_WARNING, "DATA: No file selected for import");
+                            }
+                        } else {
+                            settings_tab_set_status_error(locale_get("import_cancelled"));
+                        }
+#else
+                        settings_tab_set_status_error(locale_get("import_failed"));
+#endif
                     }
-                    DrawText(locale_get("export_data_button"), export_x + flint_px(12), export_y + export_h / 2 - font / 2 - 1, font, c_text);
+
+                    /* Export button using Flint utility */
+                    if(ui_draw_generic_button(export_x, export_y, export_w, export_h,
+                                           locale_get("export_data_button"), UI_BUTTON_STYLE_PRIMARY, &hover_export)) {
+                        if(!data_has_any()) {
+                            settings_tab_set_status_error(locale_get("no_data_to_export"));
+                        }
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+                        else if(data_export("inbe-export.zip")) {
+                            settings_tab_set_status_success(locale_get("exported_label"), NULL);
+                            TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
+                        } else {
+                            settings_tab_set_status_error(locale_get("export_failed"));
+                            TraceLog(LOG_ERROR, "DATA: Export failed");
+                        }
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
+                        else if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
+                            const char *path = flint_file_dialog_get_path(&export_dlg);
+                            if(path != NULL && data_export(path)) {
+                                const char *filename = GetFileName(path);
+                                settings_tab_set_status_success(locale_get("exported_label"), filename);
+                                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+                            } else {
+                                settings_tab_set_status_error(locale_get("export_failed"));
+                                TraceLog(LOG_ERROR, "DATA: Export failed");
+                            }
+                        } else {
+                            settings_tab_set_status_error(locale_get("export_cancelled"));
+                        }
+#else
+                        else {
+                            settings_tab_set_status_error(locale_get("export_failed"));
+                        }
+#endif
+                    }
 
                     /* Delete All button */
-                    int delete_w = MeasureText(locale_get("delete_all_data_button"), font) + flint_px(24);
+                    int delete_w = flint_text_measure(locale_get("delete_all_data_button"), font) + flint_px(24);
                     int delete_x = content_x;
                     int delete_y = export_y + export_h + flint_px(12);
                     Rectangle delete_rect = {delete_x, delete_y, delete_w, export_h};
@@ -651,59 +870,48 @@ settings_tab_draw(InbeApp *app)
                         DrawRectangle(delete_x, delete_y, delete_w, export_h, c_button);
                         ui_draw_bevel(delete_x, delete_y, delete_w, export_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
                     }
-                    DrawText(locale_get("delete_all_data_button"), delete_x + flint_px(12), delete_y + export_h / 2 - font / 2 - 1, font, c_text);
+                    flint_text_draw(locale_get("delete_all_data_button"), delete_x + flint_px(12),
+                             flint_ui_text_y(locale_get("delete_all_data_button"), delete_y, export_h, font),
+                             font, c_text);
 
                     /* Handle button clicks */
-                    if(hover_export && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-                       !ui_dropdown_captures_click(mouse_world)) {
-                        if(file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
-                            const char *path = file_dialog_get_path(&export_dlg);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-                            /* On Android: don't show success message (share sheet is the feedback) */
-                            if(path != NULL && data_export(path)) {
-                                TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
-                            } else {
-                                locale_format(export_result, sizeof(export_result), "export_failed");
-                                TraceLog(LOG_ERROR, "DATA: Export failed");
-                            }
-#else
-                            /* Other platforms: show success message */
-                            if(path != NULL && data_export(path)) {
-                                const char *filename = GetFileName(path);
-                                locale_format(export_result, sizeof(export_result), "exported_label", filename);
-                                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
-                            } else {
-                                locale_format(export_result, sizeof(export_result), "export_failed");
-                                TraceLog(LOG_ERROR, "DATA: Export failed");
-                            }
-#endif
-                        }
-                    }
                     if(hover_delete && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
                        !ui_dropdown_captures_click(mouse_world)) {
                         if(data_has_any()) {
                             app->modal.active = 1;
                             app->modal.type = UIModalConfirmDeleteData;
                             app->modal.selected_button = 0;
+                        } else {
+                            settings_tab_set_status_error(locale_get("no_data_to_delete"));
                         }
                     }
 
-                    /* Draw export result message under Export button */
-                    if(export_result[0] != '\0') {
-                        int result_font = flint_clamp_px(12, 10, 14);
-                        int result_x = export_x;
-                        int result_y = export_y + export_h + flint_px(8);
-                        DrawText(export_result, result_x, result_y, result_font, c_text);
+                    /* Draw unified status area at bottom */
+                    if(unified_status[0] != '\0') {
+                        int status_font = flint_ui_font_small();
+                        int status_x = content_x;
+                        int status_y = delete_y + export_h + flint_px(16);
+
+                        /* Main status message with color coding */
+                        Color status_color = (unified_status_type == 2) ? RED : c_text;
+                        flint_text_draw(unified_status, status_x, status_y, status_font, status_color);
+
+                        /* Detail line (filename, count, etc.) */
+                        if(unified_detail[0] != '\0') {
+                            int detail_y = status_y + flint_px(16);
+                            flint_text_draw(unified_detail, status_x, detail_y, status_font,
+                                    flint_darken(c_text, 40));
+                        }
                     }
                 } else if(app->settings_sub_tab == ABOUT_DATA_SUBTAB_ABOUT) {
-                    int font = flint_clamp_px(14, 12, 16);
-                    int small_font = flint_clamp_px(12, 10, 14);
+                    int font = flint_ui_font();
+                    int small_font = flint_ui_font_small();
                     int text_y = tab_content_y;
 
                     /* App description */
                     const char *desc_text = locale_get("about_description");
                     FlintTextLayout desc_layout = flint_text_layout_parse(desc_text, (Texture2D){0}, FLINT_ICON_TYPE_NONE, font);
-                    flint_text_layout_reflow(&desc_layout, content_w, font, flint_px(22));
+                    flint_text_layout_reflow(&desc_layout, content_w, font, flint_px(10));
                     flint_text_layout_draw(&desc_layout, content_x, &text_y, font, c_text);
                     flint_text_layout_free(&desc_layout);
 
@@ -711,32 +919,33 @@ settings_tab_draw(InbeApp *app)
                     text_y += flint_px(20);
                     char version_text[32];
                     locale_format(version_text, sizeof(version_text), "version_label", INBE_VERSION_STRING);
-                    DrawText(version_text, content_x, text_y, small_font, flint_darken(c_text, 40));
+                    flint_text_draw(version_text, content_x, text_y, small_font, flint_darken(c_text, 40));
 
                     /* Icon links */
                     int links_y = text_y + flint_px(40);
-                    int icon_size = flint_clamp_px(ICON_SIZE_LARGE, ICON_SIZE_LARGE_MIN, ICON_SIZE_LARGE_MAX);
+                    int icon_size = flint_px(32);
                     int icon_padding = flint_px(4);
                     int icon_spacing = flint_px(20);
                     int icon_btn_w = icon_size + icon_padding * 2;
-                    int total_w = icon_btn_w * 2 + icon_spacing * 1;
-                    int columns = total_w <= content_w ? 2 : 2;
+                    int total_w = icon_btn_w * 3 + icon_spacing * 2;
+                    int columns = total_w <= content_w ? 3 : 2;
                     int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
                     int links_start_x = content_x + (content_w - grid_w) / 2;
                     int row_spacing = flint_px(16);
-                    Texture2D icons[2] = {app->telegram_icon, app->monero_icon};
-                    UIIconType icon_types[2] = {UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
-                    const char *urls[2] = {
+                    Texture2D icons[3] = {app->discord_icon, app->telegram_icon, app->monero_icon};
+                    UIIconType icon_types[3] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
+                    const char *urls[3] = {
+                        "https://discord.gg/JbGZ4yENDt",
                         "https://t.me/lotusinbe",
                         "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
                     };
 
-                    for(int i = 0; i < 2; i++) {
+                    for(int i = 0; i < 3; i++) {
                         int col = i % columns;
                         int row = i / columns;
                         int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
                         int icon_y = links_y + row * (icon_btn_w + row_spacing);
-                        ui_draw_icon_link(app, icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+                        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
                     }
                 }
                 break;
@@ -748,9 +957,31 @@ settings_tab_draw(InbeApp *app)
     /* Draw dropdown menu (floats above content) */
     if(draw_language_menu && language_dropdown_menu(app, 101))
         language_menu_changed = 1;
-
     if(language_menu_changed)
         apply_language_selection(app, app->language_index, 1);
+
+    if(app->modal.active && app->modal.type == UIModalConfirmDeleteData) {
+        int modal_result = ui_draw_modal(locale_get("delete_all_data_title"),
+                                         locale_get("delete_all_data_message"),
+                                         locale_get("cancel_button"),
+                                         locale_get("delete_button"));
+        if(modal_result == 1) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_tab_set_status_error(locale_get("delete_cancelled"));
+        } else if(modal_result == 2) {
+            long long deleted = data_delete_all();
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            if(deleted > 0) {
+                char deleted_message[128];
+                locale_format(deleted_message, sizeof(deleted_message), "deleted_sessions", deleted);
+                settings_tab_set_status_success(deleted_message, NULL);
+            } else {
+                settings_tab_set_status_error(locale_get("no_data_to_delete"));
+            }
+        }
+    }
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         if(app->settings_dirty)

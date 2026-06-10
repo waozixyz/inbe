@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Copy assets to Android project without requiring nix-shell or Makefile dependencies
 # This script is used by GitHub Actions and F-Droid builds
 # This script works from any directory by detecting the repository root
@@ -37,15 +37,7 @@ cp locales/*.txt "$ASSETS_DIR/locales/"
 # Copy themes
 echo "Copying themes..."
 mkdir -p "$ASSETS_DIR/themes"
-cp themes/*.ini "$ASSETS_DIR/themes/"
-
-# Copy icons
-echo "Copying icons..."
-mkdir -p "$ASSETS_DIR/icons"
-for icon in icons/*.png; do
-    base=$(basename "$icon")
-    cp "$icon" "$ASSETS_DIR/icons/$base"
-done
+cp vendor/flint/themes/*.ini "$ASSETS_DIR/themes/" 2>/dev/null || echo "No theme files found in vendor/flint/themes/"
 
 # Copy images
 echo "Copying images..."
@@ -56,5 +48,15 @@ cp assets/angel.jpg assets/begin.jpg "$ASSETS_DIR/assets/"
 echo "Copying sounds..."
 mkdir -p "$ASSETS_DIR/assets/sounds"
 cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg "$ASSETS_DIR/assets/sounds/"
+
+# Build and copy fonts
+echo "Building fonts..."
+mkdir -p assets/fonts
+make -C vendor/otfchop otfchop
+vendor/otfchop/otfchop vendor/otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+
+echo "Copying fonts..."
+mkdir -p "$ASSETS_DIR/assets/fonts"
+cp assets/fonts/locales.png assets/fonts/locales.dat "$ASSETS_DIR/assets/fonts/"
 
 echo "Assets copied successfully!"

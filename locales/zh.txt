@@ -1,209 +1,206 @@
 [app_title]
-Inner Breeze
+内息清风
 ---
 [tab_history]
-History
+历史
 ---
 [tab_manual]
-Tutorial
+教程
 ---
 [tab_settings]
-Settings
+设置
 ---
 [play_button]
-PLAY
+开始
 ---
 [breath_button]
-BREATH
+呼吸
 ---
 [results_title]
-RESULTS
+结果
 ---
 [home_button]
-HOME
+主页
 ---
 [exit_session_title]
-Exit Session?
+退出本次练习？
 ---
 [save_completed_rounds_message]
-Save completed rounds before exit?
+退出前保存已完成的轮次？
 ---
 [cancel_button]
-Cancel
+取消
 ---
 [save_button]
-Save
+保存
 ---
 [save_results_button]
-Save
+保存
 ---
 [discard_button]
-Discard
+丢弃
 ---
 [all_progress_lost_message]
-All progress will be lost.
+所有进度都会丢失。
 ---
 [exit_button]
-Exit
+退出
 ---
 [round_times_title]
-Round times
+轮次时间
 ---
 [results_rounds]
-%d rounds
+%d 轮
 ---
 [results_best]
-best %ds
+最佳 %ds
 ---
 [results_avg]
-avg %ds
+平均 %ds
 ---
 [round_result_label]
-Round %d  %ds
+第%d轮  %ds
 ---
 [starting_in]
-STARTING IN %2d
+即将开始 %2d
 ---
 [settings_title]
-Settings
+设置
 ---
 [settings_tab_breathing]
-Breathing
+呼吸
 ---
 [settings_tab_session]
-Session
+练习
 ---
 [settings_tab_sound]
-Sound
+音效
 ---
 [settings_tab_appearance]
-Appearance
+外观
 ---
 [settings_tab_language]
-Language
+语言
 ---
 [settings_tab_data]
-Data
+数据
 ---
 [settings_tab_about]
-About
+关于
 ---
 [settings_category_practice]
-Practice Settings
+练习设置
 ---
 [settings_category_practice_desc]
-Configure breathing and sessions
+配置呼吸和练习
 ---
 [settings_category_app]
-App Preferences
+应用偏好
 ---
 [settings_category_app_desc]
-Customize appearance and audio
+自定义外观和音频
 ---
 [settings_category_about_data]
-About & Data
+关于与数据
 ---
 [settings_category_about_data_desc]
-View info and manage data
+查看信息并管理数据
 ---
 [theme_label]
-Theme
+主题
 ---
 [speed_label]
-Speed
+速度
 ---
-[progressive_speed_label]
-Progressive speed
----
-[progressive_start_speed_label]
+
 Start speed
 ---
 [play_in_background_label]
-Play in background
+后台播放
 ---
 [max_rounds_label]
-Max rounds
+最大轮次
 ---
 [max_breaths_label]
-Max breaths
+最大呼吸次数
 ---
 [pause_after_round_label]
-Pause after round
+每轮后暂停
 ---
 [advanced_session_controls_label]
-Advanced session controls
+高级练习控制
 ---
 [hold_display_label]
-Hold display
+屏息显示
 ---
 [hold_display_stopwatch]
-Stopwatch
+秒表
 ---
 [hold_display_circle]
-Circle
+圆圈
 ---
 [volume_label]
-Volume
+音量
 ---
 [reset_to_defaults_label]
-Reset to defaults
+恢复默认
 ---
 [fullscreen_label]
-Fullscreen
+全屏
 ---
 [language_label]
-Language
+语言
 ---
 [language_picker_title]
-Choose Language
+选择语言
 ---
 [next_button]
-Next
+下一步
 ---
 [coming_soon_label]
-Coming soon...
+即将推出...
 ---
 [data_management_label]
-Data Management
+数据管理
 ---
 [total_sessions_label]
-Total Sessions: %d
+总练习次数：%d
 ---
 [data_size_label]
-Data Size: %s
+数据大小：%s
 ---
 [storage_label]
-Storage: %s
+存储：%s
 ---
 [export_data_button]
-Export Data
+导出数据
 ---
 [delete_all_data_button]
-Delete All Data
+删除全部数据
 ---
 [export_data_dialog_title]
-Export Data
+导出数据
 ---
 [export_failed]
-Export failed
+导出失败
 ---
 [exported_label]
-Exported
+已导出
 ---
 [import_data_button]
-Import Data
+导入数据
 ---
 [import_data_dialog_title]
-Import Data
+导入数据
 ---
 [import_failed]
-Import failed
+导入失败
 ---
 [imported_sessions]
-Imported %d sessions
+已导入 %d 个会话
 ---
 [import_invalid_file]
-Invalid export file
+无效的导出文件
 ---
 [import_cancelled]
 Import cancelled
@@ -230,151 +227,140 @@ Delete cancelled
 Deleted %lld sessions
 ---
 [version_label]
-Version %s
+版本 %s
 ---
 [about_description]
-Inner Breeze is a simple breathing
-meditation app to help you relax
-and find your calm.
+Inner Breeze 是一款简单的呼吸冥想应用，帮助你放松并平静下来。
 ---
 [toggle_off]
-OFF
+关
 ---
 [toggle_on]
-ON
+开
 ---
 [theme_light]
-Light
+浅色
 ---
 [theme_dark]
-Dark
+深色
 ---
 [on_screen_keyboard_label]
-On-screen keyboard
+屏幕键盘
 ---
 [history_title]
-History
+历史
 ---
 [history_empty]
-No saved sessions yet.
-Complete a session to add data.
+还没有保存的练习。
+完成一次练习后会添加到这里。
 ---
 [history_month_label]
-Month %02d
+%02d 月
 ---
 [history_day_label]
-Day %02d
+第 %02d 天
 ---
 [history_round_short_label]
-R%d
+第%d轮
 ---
 [history_round_label]
-R%d  %ds
+第%d轮  %ds
 ---
 [history_session_label]
-%02d:%02d  avg %ds
+%02d:%02d  平均 %ds
 ---
 [tutorial_title]
-Tutorial
+教程
 ---
 [tutorial_page_label]
 %d/%d
 ---
 [tutorial_method_title]
-Method
+方法
 ---
 [tutorial_step1_title]
-Step 1: In & Out
+第 1 步：吸气与呼气
 ---
 [tutorial_step2_title]
-Step 2: Exhale & Hold
+第 2 步：呼气与屏息
 ---
 [tutorial_step3_title]
-Step 3: Inhale & Hold
+第 3 步：吸气与屏息
 ---
 [tutorial_progressive_speed_title]
-Progressive Speed
+递进速度
 ---
 [tutorial_step_intro]
-This breathing practice is based on the Wim Hof Method.
+这项呼吸练习基于 Wim Hof Method。
 
-It can be powerful. Use it with care.
+它可能很强烈，请谨慎使用。
 
-Practice sitting or lying down.
-Never use it while driving,
-standing, or in water.
+请坐着或躺下练习。
+切勿在驾驶、
+站立或水中时进行。
 ---
 [tutorial_step_method]
-Simply follow 4 steps:
+按照 4 个步骤进行：
 
-1. Breathe rhythmically.
-2. Exhale and hold.
-3. Inhale deeply and hold.
-4. Exhale and repeat.
+1. 有节奏地呼吸。
+2. 呼气并屏息。
+3. 深吸气并屏息。
+4. 呼气并重复。
 
-Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
+使用齿轮图标 %i 调整轮次、呼吸次数、速度和暂停时间。
 ---
 [tutorial_step_breathe]
-Fill your lungs fully, then let the breath flow out.
+充分充满肺部，然后让呼吸自然流出。
 
-Use this slider to set the pace of the breathing circle.
-
-Find a rhythm that feels natural for you.
+使用这个滑块设置呼吸圆的节奏。
 ---
 [tutorial_step_progressive_speed]
-Progressive speed makes the first round easier to enter.
-
-When it is on, the first round starts slower, then gradually increases to your selected speed.
+递进速度会让第一轮更容易进入。
 ---
 [tutorial_step_exhale_hold]
-Exhale normally and hold.
+完成一轮呼吸后，
+呼气并屏住。
 
-The center number keeps counting. Circle mode adds layered progress lines.
-
-Release when your body asks for air.
+屏息到需要吸气为止。
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for about 15 seconds.
-
-Then exhale and begin the next round.
-Over time, each round may feel deeper.
+充分吸气并屏住约 15 秒。
 ---
 [tutorial_skip_button]
-SKIP
+跳过
 ---
 [tutorial_back_button]
-BACK
+返回
 ---
 [tutorial_next_button]
-NEXT
+下一步
 ---
 [tutorial_finish_button]
-FINISH
+完成
 ---
 [share_sheet_title]
-Export Session Data
+导出练习数据
 ---
 [export_metadata_header]
-Inner Breeze Data Export
+Inner Breeze 数据导出
 ---
 [export_metadata_version]
-Version: %s
+版本：%s
 ---
 [export_metadata_date]
-Export Date: %s
+导出日期：%s
 ---
 [export_metadata_count]
-Session Count: %d
+练习次数：%d
 ---
 [delete_history_title]
-Delete?
+删除？
 ---
 [delete_session_message]
-Delete this session? This cannot be undone.
+删除这次练习？此操作无法撤销。
 ---
 [delete_round_message]
-Delete this round? This cannot be undone.
+删除这一轮？此操作无法撤销。
 ---
 [delete_button]
-Delete
----
+删除

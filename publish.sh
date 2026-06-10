@@ -54,6 +54,9 @@ rsync -av --delete \
     --exclude='*.bak' \
     --exclude='*.swp' \
     --exclude='*.lock' \
+    --exclude='assets' \
+    --exclude='icons' \
+    --exclude='site-icons' \
     --exclude='gradlew' \
     --exclude='gradlew.bat' \
     --exclude='shell.nix' \
@@ -132,13 +135,7 @@ mkdir -p "$TMPDIR/tcl"
 mkdir -p "$TMPDIR/droid"
 [ -f "build/android/app-universal-release.apk" ] && cp build/android/app-universal-release.apk "$TMPDIR/droid/app-release.apk"
 
-# Icons (cursors not used - deleted)
-rsync -av --exclude='.*' --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='Makefile' --exclude='.npm' --exclude='.local' --exclude='.codex' icons/ "$TMPDIR/icons/"
-
-rsync -av --exclude='*.sym' --exclude='*.o' --exclude='*.a' --exclude='build' --exclude='.gradle' --exclude='.npm' --exclude='.local' --exclude='.codex' cursors/ "$TMPDIR/cursors/"  
-
-cp style.css assets/DepartureMono-Regular.otf og.png sitemap.xml robots.txt "$TMPDIR/"
-cp -R assets "$TMPDIR/"
+cp style.css og.png sitemap.xml robots.txt "$TMPDIR/"
 
 if [ -f "$TMPDIR/index.html" ]; then
     sed -e 's|/inbe/droid/app/build/outputs/apk/release/app-release.apk|/build/android/app-universal-release.apk|g' \

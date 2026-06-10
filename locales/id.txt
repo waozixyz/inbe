@@ -2,211 +2,208 @@
 Inner Breeze
 ---
 [tab_history]
-History
+Riwayat
 ---
 [tab_manual]
 Tutorial
 ---
 [tab_settings]
-Settings
+Pengaturan
 ---
 [play_button]
-PLAY
+MULAI
 ---
 [breath_button]
-BREATH
+NAFAS
 ---
 [results_title]
-RESULTS
+HASIL
 ---
 [home_button]
-HOME
+BERANDA
 ---
 [exit_session_title]
-Exit Session?
+Keluar Sesi?
 ---
 [save_completed_rounds_message]
-Save completed rounds before exit?
+Simpan ronde yang selesai sebelum keluar?
 ---
 [cancel_button]
-Cancel
+Batal
 ---
 [save_button]
-Save
+Simpan
 ---
 [save_results_button]
-Save
+Simpan
 ---
 [discard_button]
-Discard
+Buang
 ---
 [all_progress_lost_message]
-All progress will be lost.
+Semua kemajuan akan hilang.
 ---
 [exit_button]
-Exit
+Keluar
 ---
 [round_times_title]
-Round times
+Waktu ronde
 ---
 [results_rounds]
-%d rounds
+%d ronde
 ---
 [results_best]
-best %ds
+terbaik %ds
 ---
 [results_avg]
-avg %ds
+rata %ds
 ---
 [round_result_label]
-Round %d  %ds
+Ronde %d  %ds
 ---
 [starting_in]
-STARTING IN %2d
+MULAI DALAM %2d
 ---
 [settings_title]
-Settings
+Pengaturan
 ---
 [settings_tab_breathing]
-Breathing
+Pernapasan
 ---
 [settings_tab_session]
-Session
+Sesi
 ---
 [settings_tab_sound]
-Sound
+Suara
 ---
 [settings_tab_appearance]
-Appearance
+Tampilan
 ---
 [settings_tab_language]
-Language
+Bahasa
 ---
 [settings_tab_data]
 Data
 ---
 [settings_tab_about]
-About
+Tentang
 ---
 [settings_category_practice]
-Practice Settings
+Pengaturan Latihan
 ---
 [settings_category_practice_desc]
-Configure breathing and sessions
+Konfigurasi pernapasan dan sesi
 ---
 [settings_category_app]
-App Preferences
+Preferensi Aplikasi
 ---
 [settings_category_app_desc]
-Customize appearance and audio
+Kustomisasi tampilan dan audio
 ---
 [settings_category_about_data]
-About & Data
+Tentang & Data
 ---
 [settings_category_about_data_desc]
-View info and manage data
+Lihat info dan kelola data
 ---
 [theme_label]
-Theme
+Tema
 ---
 [speed_label]
-Speed
+Kecepatan
 ---
-[progressive_speed_label]
-Progressive speed
----
-[progressive_start_speed_label]
+
 Start speed
 ---
 [play_in_background_label]
-Play in background
+Putar di latar belakang
 ---
 [max_rounds_label]
-Max rounds
+Ronde maksimum
 ---
 [max_breaths_label]
-Max breaths
+Nafas maksimum
 ---
 [pause_after_round_label]
-Pause after round
+Jeda setelah ronde
 ---
 [advanced_session_controls_label]
-Advanced session controls
+Kontrol sesi lanjutan
 ---
 [hold_display_label]
-Hold display
+Tampilan tahan napas
 ---
 [hold_display_stopwatch]
 Stopwatch
 ---
 [hold_display_circle]
-Circle
+Lingkaran
 ---
 [volume_label]
 Volume
 ---
 [reset_to_defaults_label]
-Reset to defaults
+Reset ke default
 ---
 [fullscreen_label]
-Fullscreen
+Layar penuh
 ---
 [language_label]
-Language
+Bahasa
 ---
 [language_picker_title]
-Choose Language
+Pilih Bahasa
 ---
 [next_button]
-Next
+Lanjut
 ---
 [coming_soon_label]
-Coming soon...
+Segera hadir...
 ---
 [data_management_label]
-Data Management
+Manajemen Data
 ---
 [total_sessions_label]
-Total Sessions: %d
+Total Sesi: %d
 ---
 [data_size_label]
-Data Size: %s
+Ukuran Data: %s
 ---
 [storage_label]
-Storage: %s
+Penyimpanan: %s
 ---
 [export_data_button]
-Export Data
+Ekspor Data
 ---
 [delete_all_data_button]
-Delete All Data
+Hapus Semua Data
 ---
 [export_data_dialog_title]
-Export Data
+Ekspor Data
 ---
 [export_failed]
-Export failed
+Ekspor gagal
 ---
 [exported_label]
-Exported
+Terekspor
 ---
 [import_data_button]
-Import Data
+Impor Data
 ---
 [import_data_dialog_title]
-Import Data
+Impor Data
 ---
 [import_failed]
-Import failed
+Impor gagal
 ---
 [imported_sessions]
-Imported %d sessions
+Mengimpor %d sesi
 ---
 [import_invalid_file]
-Invalid export file
+File ekspor tidak valid
 ---
 [import_cancelled]
-Import cancelled
+Impor dibatalkan
 ---
 [export_cancelled]
 Export cancelled
@@ -230,40 +227,38 @@ Delete cancelled
 Deleted %lld sessions
 ---
 [version_label]
-Version %s
+Versi %s
 ---
 [about_description]
-Inner Breeze is a simple breathing
-meditation app to help you relax
-and find your calm.
+Inner Breeze adalah aplikasi meditasi pernapasan sederhana untuk membantu Anda rileks dan menemukan ketenangan.
 ---
 [toggle_off]
-OFF
+MATI
 ---
 [toggle_on]
-ON
+NYALA
 ---
 [theme_light]
-Light
+Terang
 ---
 [theme_dark]
-Dark
+Gelap
 ---
 [on_screen_keyboard_label]
-On-screen keyboard
+Keyboard di layar
 ---
 [history_title]
-History
+Riwayat
 ---
 [history_empty]
-No saved sessions yet.
-Complete a session to add data.
+Belum ada sesi yang disimpan.
+Selesaikan sesi untuk menambah data.
 ---
 [history_month_label]
-Month %02d
+Bulan %02d
 ---
 [history_day_label]
-Day %02d
+Hari %02d
 ---
 [history_round_short_label]
 R%d
@@ -272,7 +267,7 @@ R%d
 R%d  %ds
 ---
 [history_session_label]
-%02d:%02d  avg %ds
+%02d:%02d  rata %ds
 ---
 [tutorial_title]
 Tutorial
@@ -281,100 +276,100 @@ Tutorial
 %d/%d
 ---
 [tutorial_method_title]
-Method
+Metode
 ---
 [tutorial_step1_title]
-Step 1: In & Out
+Langkah 1: Masuk & Keluar
 ---
 [tutorial_step2_title]
-Step 2: Exhale & Hold
+Langkah 2: Buang & Tahan
 ---
 [tutorial_step3_title]
-Step 3: Inhale & Hold
+Langkah 3: Tarik & Tahan
 ---
 [tutorial_progressive_speed_title]
-Progressive Speed
+Kecepatan Progresif
 ---
 [tutorial_step_intro]
-This breathing practice is based on the Wim Hof Method.
+Latihan pernapasan ini didasarkan pada Metode Wim Hof.
 
-It can be powerful. Use it with care.
+Dapat sangat kuat. Gunakan dengan hati-hati.
 
-Practice sitting or lying down.
-Never use it while driving,
-standing, or in water.
+Latih sambil duduk atau berbaring.
+Jangan gunakan saat mengemudi,
+berdiri, atau di dalam air.
 ---
 [tutorial_step_method]
-Simply follow 4 steps:
+Ikuti 4 langkah sederhana:
 
-1. Breathe rhythmically.
-2. Exhale and hold.
-3. Inhale deeply and hold.
-4. Exhale and repeat.
+1. Bernapas secara ritmis.
+2. Buang napas dan tahan.
+3. Tarik napas dalam dan tahan.
+4. Buang napas dan ulangi.
 
-Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
+Gunakan ikon roda gigi %i untuk menyesuaikan ronde, nafas, kecepatan, dan jeda.
 ---
 [tutorial_step_breathe]
-Fill your lungs fully, then let the breath flow out.
+Isi paru-paru Anda sepenuhnya, lalu biarkan napas keluar.
 
-Use this slider to set the pace of the breathing circle.
+Gunakan slider ini untuk mengatur kecepatan lingkaran pernapasan.
 
-Find a rhythm that feels natural for you.
+Temukan ritme yang terasa alami bagi Anda.
 ---
 [tutorial_step_progressive_speed]
-Progressive speed makes the first round easier to enter.
+Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
 
-When it is on, the first round starts slower, then gradually increases to your selected speed.
+Saat aktif, ronde pertama dimulai pada kecepatan 1 untuk 5 nafas pertama, lalu bertambah hingga kecepatan yang dipilih.
 ---
 [tutorial_step_exhale_hold]
-Exhale normally and hold.
+Setelah ronde pernapasan,
+buang napas secara normal dan tahan.
 
-The center number keeps counting. Circle mode adds layered progress lines.
-
-Release when your body asks for air.
+Lepaskan saat tubuh Anda
+meminta udara. Jangan dipaksa.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for about 15 seconds.
+Tarik napas sepenuhnya dan tahan sekitar 15 detik.
 
-Then exhale and begin the next round.
-Over time, each round may feel deeper.
+Lalu buang napas dan mulai ronde berikutnya.
+Seiring waktu, setiap ronde mungkin terasa lebih dalam.
 ---
 [tutorial_skip_button]
-SKIP
+LEWATI
 ---
 [tutorial_back_button]
-BACK
+KEMBALI
 ---
 [tutorial_next_button]
-NEXT
+LANJUT
 ---
 [tutorial_finish_button]
-FINISH
+SELESAI
 ---
 [share_sheet_title]
-Export Session Data
+Ekspor Data Sesi
 ---
 [export_metadata_header]
-Inner Breeze Data Export
+Ekspor Data Inner Breeze
 ---
 [export_metadata_version]
-Version: %s
+Versi: %s
 ---
 [export_metadata_date]
-Export Date: %s
+Tanggal Ekspor: %s
 ---
 [export_metadata_count]
-Session Count: %d
+Jumlah Sesi: %d
 ---
 [delete_history_title]
-Delete?
+Hapus?
 ---
 [delete_session_message]
-Delete this session? This cannot be undone.
+Hapus sesi ini? Tidak dapat dibatalkan.
 ---
 [delete_round_message]
-Delete this round? This cannot be undone.
+Hapus ronde ini? Tidak dapat dibatalkan.
 ---
 [delete_button]
-Delete
+Hapus
 ---

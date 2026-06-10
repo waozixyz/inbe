@@ -94,8 +94,8 @@ Tema
 [speed_label]
 Velocidad
 ---
-[progressive_speed_label]
-Velocidad progresiva
+
+Start speed
 ---
 [play_in_background_label]
 Reproducir en segundo plano
@@ -111,6 +111,15 @@ Pausa después de ronda
 ---
 [advanced_session_controls_label]
 Controles avanzados de sesión
+---
+[hold_display_label]
+Visualizacion de retencion
+---
+[hold_display_stopwatch]
+Cronometro
+---
+[hold_display_circle]
+Circulo
 ---
 [volume_label]
 Volumen
@@ -158,7 +167,46 @@ Exportar datos
 Error al exportar
 ---
 [exported_label]
-Exportado: %s
+Exportado
+---
+[import_data_button]
+Importar datos
+---
+[import_data_dialog_title]
+Importar datos
+---
+[import_failed]
+Error al importar
+---
+[imported_sessions]
+%d sesiones importadas
+---
+[import_invalid_file]
+Archivo de exportación no válido
+---
+[import_cancelled]
+Import cancelled
+---
+[export_cancelled]
+Export cancelled
+---
+[no_data_to_export]
+No data to export
+---
+[no_data_to_delete]
+No data to delete
+---
+[delete_all_data_title]
+Delete all data?
+---
+[delete_all_data_message]
+This will permanently delete all saved sessions.
+---
+[delete_cancelled]
+Delete cancelled
+---
+[deleted_sessions]
+Deleted %lld sessions
 ---
 [version_label]
 Versión %s
@@ -173,6 +221,12 @@ APAGADO
 ---
 [toggle_on]
 ENCENDIDO
+---
+[theme_light]
+Claro
+---
+[theme_dark]
+Oscuro
 ---
 [on_screen_keyboard_label]
 Teclado en pantalla
@@ -201,6 +255,9 @@ R%d  %ds
 ---
 [tutorial_title]
 Tutorial
+---
+[tutorial_page_label]
+%d/%d
 ---
 [tutorial_method_title]
 Método

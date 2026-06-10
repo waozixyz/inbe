@@ -2,7 +2,9 @@ package xyz.waozi.inbe;
 
 import android.app.NativeActivity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Insets;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PowerManager;
@@ -11,9 +13,14 @@ import android.view.DisplayCutout;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
+import android.view.WindowManager;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
+    private static final int REQUEST_IMPORT_ZIP = 1001;
 
     static {
         System.loadLibrary("main");
@@ -32,6 +39,72 @@ public class MainActivity extends NativeActivity {
     private native int nativeGetPlayInBackground();
     private native void nativePauseSession();
     private native void nativeResumeSession();
+    private native void nativeImportSelectedFile(String path);
+    private native void nativeImportCancelled();
+
+    public void openImportPicker() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+                    intent.addCategory(Intent.CATEGORY_OPENABLE);
+                    intent.setType("*/*");
+                    intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
+                        "application/zip",
+                        "application/octet-stream",
+                        "application/x-zip-compressed"
+                    });
+                    startActivityForResult(intent, REQUEST_IMPORT_ZIP);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to open import picker", e);
+                    nativeImportCancelled();
+                }
+            }
+        });
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode != REQUEST_IMPORT_ZIP) return;
+
+        if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            nativeImportCancelled();
+            return;
+        }
+
+        Uri uri = data.getData();
+        File importDir = new File(getCacheDir(), "imports");
+        File importFile = new File(importDir, "inbe-import.zip");
+
+        try {
+            if (!importDir.exists() && !importDir.mkdirs()) {
+                nativeImportSelectedFile("");
+                return;
+            }
+
+            try (InputStream input = getContentResolver().openInputStream(uri);
+                 FileOutputStream output = new FileOutputStream(importFile)) {
+                if (input == null) {
+                    nativeImportSelectedFile("");
+                    return;
+                }
+
+                byte[] buffer = new byte[8192];
+                int read;
+                while ((read = input.read(buffer)) != -1) {
+                    output.write(buffer, 0, read);
+                }
+            }
+
+            nativeImportSelectedFile(importFile.getAbsolutePath());
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to import selected file", e);
+            nativeImportSelectedFile("");
+        }
+    }
 
     public void acquireWakeLock() {
         Log.d(TAG, "acquireWakeLock called - wakeLock=" + wakeLock);
@@ -59,6 +132,26 @@ public class MainActivity extends NativeActivity {
         } else {
             Log.d(TAG, "Wake lock not held - wakeLock=" + wakeLock + " isHeld=" + (wakeLock != null ? wakeLock.isHeld() : "null"));
         }
+    }
+
+    public void keepScreenOn() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.d(TAG, "Screen lock timeout disabled for active session");
+            }
+        });
+    }
+
+    public void allowScreenOff() {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+                Log.d(TAG, "Screen lock timeout restored");
+            }
+        });
     }
 
     @Override
@@ -239,6 +332,7 @@ public class MainActivity extends NativeActivity {
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy called - releasing wake lock");
+        allowScreenOff();
         releaseWakeLock();
     }
 }
