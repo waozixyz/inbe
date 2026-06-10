@@ -37,6 +37,17 @@ void set_global_inbe_app(InbeApp *app);
 
 #if INBE_ANDROID_BUILD
 static AndroidInsets insets;
+
+static int
+android_clamp_content_size(int size, int leading_inset, int trailing_inset)
+{
+    int content_size = size - leading_inset - trailing_inset;
+
+    if(content_size <= 0)
+        return size;
+
+    return content_size;
+}
 #endif
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
@@ -80,10 +91,10 @@ frame(void)
     int safe_left = insets.cutout_left;
     int safe_right = insets.cutout_right;
 
-    int content_x = safe_left;
-    int content_y = safe_top;
-    int content_width = width - safe_left - safe_right;
-    int content_height = height - safe_top - safe_bottom;
+    int content_x = 0;
+    int content_y = 0;
+    int content_width = android_clamp_content_size(width, safe_left, safe_right);
+    int content_height = android_clamp_content_size(height, safe_top, safe_bottom);
 
     BeginDrawing();
     ClearBackground(BLACK);
