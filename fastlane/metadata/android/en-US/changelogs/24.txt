@@ -1,0 +1,2 @@
+### Fixed
+- History editing now scrolls to the active field once and keeps 16px Unifont row text aligned without clipping.
