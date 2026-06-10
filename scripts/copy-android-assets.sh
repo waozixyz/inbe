@@ -52,8 +52,8 @@ cp assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.o
 # Build and copy fonts
 echo "Building fonts..."
 mkdir -p assets/fonts
-make -C ../otfchop otfchop
-../otfchop/otfchop ../otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+make -C vendor/otfchop otfchop
+vendor/otfchop/otfchop vendor/otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
 
 echo "Copying fonts..."
 mkdir -p "$ASSETS_DIR/assets/fonts"
