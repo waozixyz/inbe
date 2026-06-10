@@ -4,7 +4,7 @@
 #include "locale.h"
 #include "flint_ui.h"
 #include "flint_text_layout.h"
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32)
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
 #include "flint_file_dialog.h"
 #endif
