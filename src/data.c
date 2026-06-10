@@ -784,7 +784,9 @@ validate_metadata(const char *metadata, int *session_count)
 
         line_count++;
         if(line_count == 4) {
-            // Fourth line should contain session count
+            // Fourth line contains the session count, possibly in a localized label.
+            while(*line != '\0' && (*line < '0' || *line > '9'))
+                line++;
             *session_count = atoi(line);
             free(dup);
             return (*session_count >= 0);
@@ -801,42 +803,42 @@ parse_session_path(const char *zip_path, int *year, int *month, int *day, char *
 {
     int y, m, d;
     const char *p;
+    const char *prefix = "lotus-data/sessions/";
+    size_t prefix_len = strlen(prefix);
 
     if(zip_path == NULL || year == NULL || month == NULL || day == NULL || filename == NULL)
         return 0;
 
-    // Expected format: lotus-data/sessions/YYYY/MM/DD/inbe-HHMMSS.txt
-    if(strncmp(zip_path, "lotus-data/sessions/", 19) != 0)
+    // Expected format: lotus-data/sessions/YYYY/MM/DD/inbe-HHMMSS
+    if(strncmp(zip_path, prefix, prefix_len) != 0)
         return 0;
 
-    p = zip_path + 19;
+    p = zip_path + prefix_len;
 
     // Parse year
-    if(sscanf(p, "%04d", &y) != 1 || y < 1970 || y > 2100)
+    if(sscanf(p, "%04d", &y) != 1 || y < 1970 || y > 2100 || p[4] != '/')
         return 0;
     p += 5;
 
     // Parse month
-    if(sscanf(p, "%02d", &m) != 1 || m < 1 || m > 12)
+    if(sscanf(p, "%02d", &m) != 1 || m < 1 || m > 12 || p[2] != '/')
         return 0;
     p += 3;
 
     // Parse day
-    if(sscanf(p, "%02d", &d) != 1 || d < 1 || d > 31)
+    if(sscanf(p, "%02d", &d) != 1 || d < 1 || d > 31 || p[2] != '/')
         return 0;
     p += 3;
 
     // Expect filename starting with "inbe-"
-    if(strncmp(p, "/inbe-", 6) != 0)
+    if(strncmp(p, "inbe-", 5) != 0)
         return 0;
-    p += 6;
 
     // Copy filename
-    const char *filename_start = p;
-    if(strlen(filename_start) >= FS_PATH_MAX - 1)
+    if(strlen(p) >= FS_PATH_MAX - 1)
         return 0;
 
-    strcpy(filename, filename_start);
+    strcpy(filename, p);
 
     *year = y;
     *month = m;
@@ -1037,7 +1039,7 @@ data_import(const char *path)
         zip_path[sizeof(zip_path) - 1] = '\0';
 
         // Check if this is a session file
-        if(strncmp(zip_path, "lotus-data/sessions/", 19) != 0)
+        if(strncmp(zip_path, "lotus-data/sessions/", strlen("lotus-data/sessions/")) != 0)
             continue;
 
         if(!parse_session_path(zip_path, &year, &month, &day, filename)) {

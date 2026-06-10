@@ -288,6 +288,14 @@ static void set_status_error(const char *message) {
 }
 
 void
+settings_tab_clear_status(void)
+{
+    unified_status[0] = '\0';
+    unified_detail[0] = '\0';
+    unified_status_type = 0;
+}
+
+void
 settings_tab_draw(InbeApp *app)
 {
     int title_h = ui_screen_header_height();
@@ -344,6 +352,7 @@ settings_tab_draw(InbeApp *app)
 
         /* Handle back button click */
         if(back_clicked) {
+            settings_tab_clear_status();
             app->settings_category = -1;  /* Return to category selection */
             app->settings_sub_tab = 0;
         }
@@ -351,6 +360,7 @@ settings_tab_draw(InbeApp *app)
         if(close_clicked) {
             if(app->settings_dirty)
                 save_settings(app);
+            settings_tab_clear_status();
             app->settings_category = -1;
             app->settings_sub_tab = 0;
             app->settings_scroll = 0;
@@ -362,6 +372,7 @@ settings_tab_draw(InbeApp *app)
         if(close_clicked) {
             if(app->settings_dirty)
                 save_settings(app);
+            settings_tab_clear_status();
             app->settings_category = -1;  /* Reset navigation */
             app->settings_sub_tab = 0;
             app->inbe.screen = InbeScreenStart;
