@@ -80,7 +80,7 @@ inbeinit(Inbe *l)
 	l->rmin = 25;
 	l->rmax = 50;
 	l->dir = 0;
-    l->speed_level = 3;
+    l->speed_level = DefaultSpeedLevel;
     l->breath_frame = 0;
     l->breath_half_ticks = 120;
 	l->frame = 0;
@@ -90,7 +90,7 @@ inbeinit(Inbe *l)
     l->max_rounds = DefaultMaxRounds;
     l->pause_seconds = DefaultPauseSeconds;
     l->progressive_speed = 1;
-    l->progressive_start_speed = 3;
+    l->progressive_start_speed = DefaultProgressiveStartSpeed;
 #ifdef __ANDROID__
     l->play_in_background = 1;  // Enabled by default on Android
 #else

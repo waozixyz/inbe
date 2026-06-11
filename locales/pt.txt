@@ -94,8 +94,17 @@ Tema
 [speed_label]
 Velocidade
 ---
-
-Start speed
+[progressive_speed_label]
+Velocidade progressiva
+---
+[progressive_start_speed_label]
+Velocidade inicial
+---
+[modify_start_speed_button]
+Modificar velocidade inicial
+---
+[progressive_start_speed_editor_title]
+Velocidade inicial
 ---
 [play_in_background_label]
 Executar em segundo plano

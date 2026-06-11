@@ -112,8 +112,17 @@ Tema
 [speed_label]
 Kecepatan
 ---
-
-Start speed
+[progressive_speed_label]
+Kecepatan progresif
+---
+[progressive_start_speed_label]
+Kecepatan awal
+---
+[modify_start_speed_button]
+Ubah kecepatan awal
+---
+[progressive_start_speed_editor_title]
+Kecepatan awal
 ---
 [play_in_background_label]
 Putar di latar belakang

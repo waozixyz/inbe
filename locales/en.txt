@@ -118,6 +118,12 @@ Progressive speed
 [progressive_start_speed_label]
 Start speed
 ---
+[modify_start_speed_button]
+Modify start speed
+---
+[progressive_start_speed_editor_title]
+Start speed
+---
 [play_in_background_label]
 Play in background
 ---

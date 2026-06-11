@@ -13,7 +13,6 @@
 #endif
 #include "version.h"
 #include "flint_ui.h"
-#include "flint_text_layout.h"
 #include "flint_dpi.h"
 
 #if !defined(LOTUS_BUILD)
@@ -120,96 +119,6 @@ static UITab g_tabs[] = {
 
 static UITabBar g_tab_bar = {g_tabs, 3};
 
-typedef struct ChoppedGlyph {
-    int32_t value;
-    int32_t x;
-    int32_t y;
-    int32_t w;
-    int32_t h;
-    int32_t offsetX;
-    int32_t offsetY;
-    int32_t advanceX;
-} ChoppedGlyph;
-
-static Font
-load_chopped_font(const char *png_path, const char *dat_path)
-{
-    Font font = {0};
-    FILE *file = NULL;
-    ChoppedGlyph *glyphs = NULL;
-    GlyphInfo *glyph_infos = NULL;
-    Rectangle *recs = NULL;
-    int32_t glyph_count = 0;
-    Image image = {0};
-    Texture2D texture = {0};
-
-    file = fopen(dat_path, "rb");
-    if(file == NULL)
-        return font;
-
-    if(fread(&glyph_count, sizeof(glyph_count), 1, file) != 1 || glyph_count <= 0) {
-        fclose(file);
-        return font;
-    }
-
-    glyphs = calloc((size_t)glyph_count, sizeof(*glyphs));
-    glyph_infos = calloc((size_t)glyph_count, sizeof(*glyph_infos));
-    recs = calloc((size_t)glyph_count, sizeof(*recs));
-    if(glyphs == NULL || glyph_infos == NULL || recs == NULL)
-        goto cleanup;
-
-    if(fread(glyphs, sizeof(*glyphs), (size_t)glyph_count, file) != (size_t)glyph_count)
-        goto cleanup;
-    fclose(file);
-    file = NULL;
-
-    image = LoadImage(png_path);
-    if(image.data == NULL)
-        goto cleanup;
-
-    texture = LoadTextureFromImage(image);
-    UnloadImage(image);
-    image = (Image){0};
-    if(texture.id == 0)
-        goto cleanup;
-    SetTextureFilter(texture, TEXTURE_FILTER_POINT);
-
-    for(int i = 0; i < glyph_count; i++) {
-        glyph_infos[i].value = glyphs[i].value;
-        glyph_infos[i].offsetX = glyphs[i].offsetX;
-        glyph_infos[i].offsetY = glyphs[i].offsetY;
-        glyph_infos[i].advanceX = glyphs[i].advanceX;
-        glyph_infos[i].image = (Image){0};
-
-        recs[i].x = (float)glyphs[i].x;
-        recs[i].y = (float)glyphs[i].y;
-        recs[i].width = (float)glyphs[i].w;
-        recs[i].height = (float)glyphs[i].h;
-    }
-
-    font.texture = texture;
-    font.glyphs = glyph_infos;
-    font.recs = recs;
-    font.glyphCount = glyph_count;
-    font.baseSize = LOCALE_FONT_BASE_SIZE;
-    font.glyphPadding = 0;
-
-    free(glyphs);
-    return font;
-
-cleanup:
-    if(file != NULL)
-        fclose(file);
-    if(image.data != NULL)
-        UnloadImage(image);
-    if(texture.id != 0)
-        UnloadTexture(texture);
-    free(glyphs);
-    free(glyph_infos);
-    free(recs);
-    return (Font){0};
-}
-
 static int
 load_locale_font(InbeApp *app)
 {
@@ -219,7 +128,7 @@ load_locale_font(InbeApp *app)
     if(app == NULL)
         return 0;
 
-    font = load_chopped_font(LOCALE_FONT_PNG, LOCALE_FONT_DAT);
+    font = flint_text_load_chopped_font(LOCALE_FONT_PNG, LOCALE_FONT_DAT, LOCALE_FONT_BASE_SIZE);
     if(font.texture.id == 0)
         return 0;
 
@@ -227,9 +136,7 @@ load_locale_font(InbeApp *app)
     app->font_shapes_texture = LoadTextureFromImage(white);
     UnloadImage(white);
     if(app->font_shapes_texture.id == 0) {
-        UnloadTexture(font.texture);
-        free(font.glyphs);
-        free(font.recs);
+        flint_text_unload_font(&font);
         return 0;
     }
     SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
@@ -248,11 +155,7 @@ unload_locale_font(InbeApp *app)
         return;
 
     flint_text_set_font((Font){0});
-    if(app->locale_font.texture.id != 0)
-        UnloadTexture(app->locale_font.texture);
-    free(app->locale_font.glyphs);
-    free(app->locale_font.recs);
-    app->locale_font = (Font){0};
+    flint_text_unload_font(&app->locale_font);
 }
 
 static void
@@ -589,7 +492,7 @@ load_settings(InbeApp *app)
     inbe_settings_path(settings_path, sizeof(settings_path));
     rini_data settings = rini_load(settings_path);
 
-    int speed = rini_get_value_fallback(settings, "speed", 8);
+    int speed = rini_get_value_fallback(settings, "speed", DefaultSpeedLevel);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
@@ -606,7 +509,7 @@ load_settings(InbeApp *app)
 #endif
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
     app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
-    app->inbe.progressive_start_speed = clampi(rini_get_value_fallback(settings, "progressive_start_speed", 3),
+    app->inbe.progressive_start_speed = clampi(rini_get_value_fallback(settings, "progressive_start_speed", DefaultProgressiveStartSpeed),
                                                SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
     app->hold_display_mode = clampi(rini_get_value_fallback(settings, "hold_display_mode", HOLD_DISPLAY_CIRCLE),
@@ -794,7 +697,6 @@ inbe_app_init(void *vapp) {
     app->manual_drag_content = 0;
     app->manual_drag_content_y = 0;
     app->tutorial_step = 0;
-    app->tutorial_layouts_initialized = 0;
     history_tab_reset(app);
     app->session_paused = 0;
     app->backgrounded = 0;
@@ -802,6 +704,8 @@ inbe_app_init(void *vapp) {
     app->results_path[0] = '\0';
     update_session_sounds(app);
     reset_settings_preview(app);
+    inbeinit(&app->start_speed_preview);
+    app->start_speed_preview_speed = 0;
 
     if(app->gear_icon.id == 0) {
         app->gear_icon = load_icon_texture("gear.png");
@@ -1145,14 +1049,6 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->begin_image);
     SafeUnloadTexture(app->font_shapes_texture);
     unload_locale_font(app);
-
-    /* Cleanup tutorial text layouts */
-    if(app->tutorial_layouts_initialized) {
-        for(int i = 0; i < 5; i++) {
-            flint_text_layout_free(app->tutorial_layouts[i]);
-            free(app->tutorial_layouts[i]);
-        }
-    }
 
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);

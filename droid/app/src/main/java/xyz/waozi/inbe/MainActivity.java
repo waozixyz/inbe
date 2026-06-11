@@ -30,14 +30,17 @@ public class MainActivity extends NativeActivity {
     private final int[] cachedInsets = new int[6];
     private boolean insetsInitialized = false;
     private PowerManager.WakeLock wakeLock = null;
+    private boolean activityPaused = false;
+    private boolean windowFocused = true;
+    private boolean backgroundExecutionActive = false;
+    private boolean autoPausedForLifecycle = false;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
     private native void nativeWakeLockReady();
-    private native void nativeTimerActivate();
-    private native void nativeTimerDeactivate();
+    private native void nativeSetBackgroundActive(boolean active);
     private native int nativeGetPlayInBackground();
-    private native void nativePauseSession();
+    private native int nativePauseSession();
     private native void nativeResumeSession();
     private native void nativeImportSelectedFile(String path);
     private native void nativeImportCancelled();
@@ -296,36 +299,52 @@ public class MainActivity extends NativeActivity {
         return result;
     }
 
+    private void syncLifecycleState(String reason) {
+        int playInBackground = nativeGetPlayInBackground();
+        boolean shouldRunInBackground = playInBackground != 0 && (activityPaused || !windowFocused);
+
+        Log.d(TAG, reason + ": play_in_background=" + playInBackground
+            + " activityPaused=" + activityPaused
+            + " windowFocused=" + windowFocused
+            + " backgroundActive=" + backgroundExecutionActive);
+
+        if (backgroundExecutionActive != shouldRunInBackground) {
+            nativeSetBackgroundActive(shouldRunInBackground);
+            backgroundExecutionActive = shouldRunInBackground;
+        }
+
+        if (playInBackground == 0) {
+            if (activityPaused && !autoPausedForLifecycle) {
+                autoPausedForLifecycle = nativePauseSession() != 0;
+            } else if (!activityPaused && autoPausedForLifecycle) {
+                nativeResumeSession();
+                autoPausedForLifecycle = false;
+            }
+        } else if (autoPausedForLifecycle) {
+            nativeResumeSession();
+            autoPausedForLifecycle = false;
+        }
+    }
+
     @Override
     protected void onPause() {
         super.onPause();
-        int playInBackground = nativeGetPlayInBackground();
-        Log.d(TAG, "onPause: play_in_background = " + playInBackground);
-        if (playInBackground == 0) {
-            // Auto-pause if play in background is disabled
-            Log.d(TAG, "onPause: Auto-pausing session (play in background disabled)");
-            nativePauseSession();
-        } else {
-            // Continue in background
-            Log.d(TAG, "onPause: Continuing in background (play in background enabled)");
-            nativeTimerActivate();
-        }
+        activityPaused = true;
+        syncLifecycleState("onPause");
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        int playInBackground = nativeGetPlayInBackground();
-        Log.d(TAG, "onResume: play_in_background = " + playInBackground);
-        if (playInBackground == 0) {
-            // Auto-resume if play in background is disabled
-            Log.d(TAG, "onResume: Auto-resuming session (play in background disabled)");
-            nativeResumeSession();
-        } else {
-            // Just deactivate timer (session continued in background)
-            Log.d(TAG, "onResume: Deactivating background timer");
-            nativeTimerDeactivate();
-        }
+        activityPaused = false;
+        syncLifecycleState("onResume");
+    }
+
+    @Override
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        windowFocused = hasFocus;
+        syncLifecycleState("onWindowFocusChanged");
     }
 
     @Override

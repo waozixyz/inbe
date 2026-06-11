@@ -2,11 +2,9 @@
 #include "app.h"
 #include "locale.h"
 #include "flint_ui.h"
-#include "flint_text_layout.h"
 #include "theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
-#include <stdlib.h>
 
 #define CONTENT_MAX_W 800  /* Responsive width for tutorial text reflow */
 
@@ -27,17 +25,6 @@ static const char *const TUTORIAL_KEYS[] = {
 
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
 #define TUTORIAL_LINE_SPACING flint_px(8)  /* Normal readable line spacing */
-
-/*
- * Wrapper for compatibility - using Flint's unified button utility
- * This function is deprecated - use ui_draw_generic_button() directly
- */
-static int
-draw_tutorial_footer_button(InbeApp *app, int x, int y, int w, int h, const char *label, int *hover)
-{
-    (void)app;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, hover);
-}
 
 static void
 draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
@@ -66,16 +53,32 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
     flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
 }
 
-static void
-init_tutorial_layouts(InbeApp *app, int body_font)
+static FlintUIParagraph
+tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
 {
-    if(!app->tutorial_layouts_initialized) {
-        for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-            app->tutorial_layouts[i] = calloc(1, sizeof(FlintTextLayout));
-            *app->tutorial_layouts[i] = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[i]), (Texture2D){0}, FLINT_ICON_TYPE_NONE, body_font);
-        }
-        app->tutorial_layouts_initialized = 1;
-    }
+    int has_icon = step == 1;
+    return (FlintUIParagraph){
+        .text = locale_get(TUTORIAL_KEYS[step]),
+        .icon = has_icon ? app->gear_icon : (Texture2D){0},
+        .icon_type = has_icon ? FLINT_ICON_TYPE_GEAR : FLINT_ICON_TYPE_NONE,
+        .icon_size = has_icon ? flint_px(14) : 0,
+        .width = content_w,
+        .font = body_font,
+        .line_gap = TUTORIAL_LINE_SPACING,
+        .color = c_text,
+    };
+}
+
+static int
+tutorial_paragraph_height(InbeApp *app, int step, int content_w, int body_font)
+{
+    return flint_ui_paragraph_height(tutorial_paragraph(app, step, content_w, body_font));
+}
+
+static void
+draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int content_w, int body_font)
+{
+    flint_ui_paragraph_draw(tutorial_paragraph(app, step, content_w, body_font), content_x, y);
 }
 
 void
@@ -84,14 +87,7 @@ manual_tab_reset_layouts(InbeApp *app)
     if(app == NULL)
         return;
 
-    for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-        if(app->tutorial_layouts[i] != NULL) {
-            flint_text_layout_free(app->tutorial_layouts[i]);
-            free(app->tutorial_layouts[i]);
-            app->tutorial_layouts[i] = NULL;
-        }
-    }
-    app->tutorial_layouts_initialized = 0;
+    app->manual_scroll = 0;
 }
 
 void
@@ -165,16 +161,6 @@ manual_tab_draw(InbeApp *app)
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    /* Auto-reflow every frame */
-    if(!app->tutorial_layouts_initialized) {
-        init_tutorial_layouts(app, body_font);
-    }
-
-    /* Reflow all layouts for current container width */
-    for(int i = 0; i < (int)TUTORIAL_STEPS_COUNT; i++) {
-        flint_text_layout_reflow(app->tutorial_layouts[i], content_w, body_font, TUTORIAL_LINE_SPACING);
-    }
-
     close_clicked = ui_draw_screen_header(title, 1);
     if(close_clicked)
         manual_tab_close_tutorial(app, 1);
@@ -183,19 +169,16 @@ manual_tab_draw(InbeApp *app)
     /* Don't include padding in this calculation - it's handled separately */
     int actual_content_h = 0;  /* Content only, no padding */
     if(step == 0) {
-        actual_content_h += flint_px(170) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[0]);
+        actual_content_h += flint_px(170) + flint_px(22) +
+                            tutorial_paragraph_height(app, 0, content_w, body_font);
     } else if(step == 1) {
-        /* Step 1 uses a fresh gear_layout for drawing - calculate height from it */
-        FlintTextLayout temp_gear = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, flint_px(14));
-        flint_text_layout_reflow(&temp_gear, content_w, body_font, TUTORIAL_LINE_SPACING);
-        actual_content_h += flint_text_layout_get_height(&temp_gear);
-        flint_text_layout_free(&temp_gear);
+        actual_content_h += tutorial_paragraph_height(app, 1, content_w, body_font);
     } else if(step == 2) {
-        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[2]) + flint_px(68);
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + flint_px(68);
         if(app->inbe.progressive_speed)
             actual_content_h += flint_px(66);
     } else if(step == 3) {
-        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[3]) + flint_px(20);
+        actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font) + flint_px(20);
         /* Circle preview height - calculate actual rmax based on content_w */
         /* update_preview_bounds uses min(content_w, 132)/2 clamped to 60-120 for rmax */
         int preview_span = (content_w < flint_px(132)) ? content_w : flint_px(132);
@@ -211,9 +194,10 @@ manual_tab_draw(InbeApp *app)
         int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
         actual_content_h += flint_px(26) + flint_px(36) + flint_px(20);
         actual_content_h += hold_preview_extent * 2 + flint_px(24);
-        actual_content_h += flint_text_layout_get_height(app->tutorial_layouts[4]);
+        actual_content_h += tutorial_paragraph_height(app, 4, content_w, body_font);
     } else {
-        actual_content_h += flint_px(200) + flint_px(22) + flint_text_layout_get_height(app->tutorial_layouts[5]);
+        actual_content_h += flint_px(200) + flint_px(22) +
+                            tutorial_paragraph_height(app, 5, content_w, body_font);
     }
     /* Calculate scroll range for virtual content space */
     int top_padding = flint_px(16);
@@ -269,20 +253,11 @@ manual_tab_draw(InbeApp *app)
             ui_draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
 
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[0] != NULL) {
-                flint_text_layout_draw(app->tutorial_layouts[0], content_x, &y, body_font, c_text);
-            }
+            draw_tutorial_paragraph(app, 0, content_x, &y, content_w, body_font);
         } else if(step == 1) {
-            /* Step 1 text with gear icon - parse fresh each frame for proper icon binding */
-            int icon_size = flint_px(14);
-            FlintTextLayout gear_layout = flint_text_layout_parse(locale_get(TUTORIAL_KEYS[1]), app->gear_icon, FLINT_ICON_TYPE_GEAR, icon_size);
-            flint_text_layout_reflow(&gear_layout, content_w, body_font, TUTORIAL_LINE_SPACING);
-            flint_text_layout_draw(&gear_layout, content_x, &y, body_font, c_text);
-            flint_text_layout_free(&gear_layout);
+            draw_tutorial_paragraph(app, 1, content_x, &y, content_w, body_font);
         } else if(step == 2) {
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[2] != NULL) {
-                flint_text_layout_draw(app->tutorial_layouts[2], content_x, &y, body_font, c_text);
-            }
+            draw_tutorial_paragraph(app, 2, content_x, &y, content_w, body_font);
             y += flint_px(18);
             {
                 int progressive_speed = app->inbe.progressive_speed;
@@ -302,22 +277,30 @@ manual_tab_draw(InbeApp *app)
                 y += toggle_h + flint_px(20);
                 if(app->inbe.progressive_speed) {
                     int max_speed = app->inbe.speed_level;
-                    progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
-                    if(ui_draw_slider(11, content_x, y, content_w,
-                                      locale_get("progressive_start_speed_label"),
-                                      SETTINGS_SPEED_MIN, max_speed,
-                                      &progressive_start_speed, "")) {
-                        app->inbe.progressive_start_speed = progressive_start_speed;
-                        app->settings_preview.progressive_start_speed = progressive_start_speed;
+                    int modify_w = flint_text_measure(locale_get("modify_start_speed_button"), flint_ui_font()) + flint_px(24);
+                    int modify_h = flint_px(36);
+                    int modify_hover = 0;
+                    if(modify_w > content_w)
+                        modify_w = content_w;
+
+                    if(progressive_start_speed != clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed)) {
+                        app->inbe.progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
+                        app->settings_preview.progressive_start_speed = app->inbe.progressive_start_speed;
                         app->settings_dirty = 1;
+                    }
+
+                    if(ui_draw_generic_button(content_x, y, modify_w, modify_h,
+                                              locale_get("modify_start_speed_button"),
+                                              UI_BUTTON_STYLE_SECONDARY, &modify_hover)) {
+                        app->modal.active = 1;
+                        app->modal.type = UIModalEditProgressiveStartSpeed;
+                        app->modal.selected_button = 0;
                     }
                 }
             }
         } else if(step == 3) {
             int speed = app->inbe.speed_level;
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[3] != NULL) {
-                flint_text_layout_draw(app->tutorial_layouts[3], content_x, &y, body_font, c_text);
-            }
+            draw_tutorial_paragraph(app, 3, content_x, &y, content_w, body_font);
             y += flint_px(20);  /* Increased spacing between text and circle */
 
             update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
@@ -353,16 +336,12 @@ manual_tab_draw(InbeApp *app)
             y += flint_px(36) + flint_px(20) + hold_preview_extent;
             draw_tutorial_hold_preview(app, content_x + content_w / 2, y, hold_preview_radius);
             y += hold_preview_extent + flint_px(24);
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[4] != NULL) {
-                flint_text_layout_draw(app->tutorial_layouts[4], content_x, &y, body_font, c_text);
-            }
+            draw_tutorial_paragraph(app, 4, content_x, &y, content_w, body_font);
         } else {
             int img_h = flint_px(200);
             ui_draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
-            if(app->tutorial_layouts_initialized && app->tutorial_layouts[5] != NULL) {
-                flint_text_layout_draw(app->tutorial_layouts[5], content_x, &y, body_font, c_text);
-            }
+            draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
     EndScissorMode();
 
@@ -397,22 +376,29 @@ manual_tab_draw(InbeApp *app)
              footer_y - page_font - counter_gap, page_font, c_text);
 
     if(step == 0) {
-        if(draw_tutorial_footer_button(app, content_x, footer_y, button_w, button_h, left_label, &left_hover))
+        if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover))
             manual_tab_close_tutorial(app, 1);
     } else {
-        if(draw_tutorial_footer_button(app, content_x, footer_y, button_w, button_h, left_label, &left_hover)) {
+        if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
-    if(draw_tutorial_footer_button(app, content_x + button_w + footer_gap, footer_y, button_w, button_h, right_label, &right_hover)) {
+    if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
+                              right_label, UI_BUTTON_STYLE_PRIMARY, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_tab_close_tutorial(app, 1);
         else {
             app->tutorial_step++;
             app->manual_scroll = 0;
         }
+    }
+
+    if(app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed) {
+        settings_draw_progressive_start_speed_editor(app);
     }
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
