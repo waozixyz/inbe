@@ -112,8 +112,17 @@
 [speed_label]
 速度
 ---
-
-Start speed
+[progressive_speed_label]
+渐进速度
+---
+[progressive_start_speed_label]
+起始速度
+---
+[modify_start_speed_button]
+修改起始速度
+---
+[progressive_start_speed_editor_title]
+起始速度
 ---
 [play_in_background_label]
 后台播放

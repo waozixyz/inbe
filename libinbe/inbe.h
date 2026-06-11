@@ -22,9 +22,11 @@ enum {
 enum {
     CountSize = 4,
     MaxRounds = 12,
+    DefaultSpeedLevel = 6,
     DefaultMaxRounds = 4,
     DefaultMaxBreaths = 30,
-    DefaultPauseSeconds = 2
+    DefaultPauseSeconds = 2,
+    DefaultProgressiveStartSpeed = 3
 };
 
 enum {

@@ -94,8 +94,17 @@ Thema
 [speed_label]
 Geschwindigkeit
 ---
-
-Start speed
+[progressive_speed_label]
+Progressive Geschwindigkeit
+---
+[progressive_start_speed_label]
+Startgeschwindigkeit
+---
+[modify_start_speed_button]
+Startgeschwindigkeit andern
+---
+[progressive_start_speed_editor_title]
+Startgeschwindigkeit
 ---
 [play_in_background_label]
 Im Hintergrund abspielen

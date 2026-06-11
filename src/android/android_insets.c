@@ -35,22 +35,6 @@ static void android_wakelock_set_activity_impl(JNIEnv *env, jobject thiz) {
     android_wakelock_set_activity(env, thiz);
 }
 
-// Called from Java when activity is paused
-static void android_timer_activate_impl(JNIEnv *env, jobject thiz) {
-    (void)env;
-    (void)thiz;
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "JNI: Timer ACTIVATE callback");
-    android_timer_activate();
-}
-
-// Called from Java when activity is resumed
-static void android_timer_deactivate_impl(JNIEnv *env, jobject thiz) {
-    (void)env;
-    (void)thiz;
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "JNI: Timer DEACTIVATE callback");
-    android_timer_deactivate();
-}
-
 static JavaVM *g_jvm = NULL;
 static jobject g_activity = NULL;
 
@@ -105,9 +89,32 @@ static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
 	return 0; // Default to disabled
 }
 
-// JNI function - Auto-pause session when app goes to background
-static void nativePauseSession(JNIEnv *env, jobject thiz)
+static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active)
 {
+	(void)env;
+	(void)thiz;
+
+	void *app = get_global_inbe_app();
+	InbeApp *inbe_app = (InbeApp*)app;
+	if (inbe_app != NULL) {
+		inbe_app->backgrounded = active ? 1 : 0;
+	}
+
+	if (active) {
+		__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeSetBackgroundActive: activating background timer");
+		android_timer_activate();
+	} else {
+		__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeSetBackgroundActive: deactivating background timer");
+		android_timer_deactivate();
+	}
+}
+
+// JNI function - Auto-pause session when app goes to background
+static jint nativePauseSession(JNIEnv *env, jobject thiz)
+{
+	(void)env;
+	(void)thiz;
+
 	__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativePauseSession: called");
 	void *app = get_global_inbe_app();
 	char msg[128];
@@ -120,27 +127,25 @@ static void nativePauseSession(JNIEnv *env, jobject thiz)
 		__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", msg);
 		if (!inbe_app->session_paused) {
 			inbe_app->session_paused = 1;
+			inbe_app->backgrounded = 1;
 			__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativePauseSession: set session_paused = 1");
-#ifdef __ANDROID__
-			if (inbe_app->inbe.play_in_background) {
-				__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativePauseSession: Releasing wake lock and stopping timer");
-				android_wakelock_release();
-				android_timer_stop();
-			} else {
-				__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativePauseSession: SKIPPING wake lock/timer (play_in_background disabled)");
-			}
-#endif
+			return 1;
 		} else {
 			__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativePauseSession: Session already paused, skipping");
 		}
 	} else {
 		__android_log_write(ANDROID_LOG_ERROR, "INBE_JNI", "nativePauseSession: app is NULL!");
 	}
+
+	return 0;
 }
 
 // JNI function - Auto-resume session when app returns to foreground
 static void nativeResumeSession(JNIEnv *env, jobject thiz)
 {
+	(void)env;
+	(void)thiz;
+
 	__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeResumeSession: called");
 	void *app = get_global_inbe_app();
 	char msg[128];
@@ -153,16 +158,8 @@ static void nativeResumeSession(JNIEnv *env, jobject thiz)
 		__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", msg);
 		if (inbe_app->session_paused) {
 			inbe_app->session_paused = 0;
+			inbe_app->backgrounded = 0;
 			__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeResumeSession: set session_paused = 0");
-#ifdef __ANDROID__
-			if (inbe_app->inbe.play_in_background) {
-				__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeResumeSession: Acquiring wake lock and starting timer");
-				android_wakelock_acquire();
-				android_timer_start();
-			} else {
-				__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeResumeSession: SKIPPING wake lock/timer (play_in_background disabled)");
-			}
-#endif
 		} else {
 			__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", "nativeResumeSession: Session not paused, skipping");
 		}
@@ -175,10 +172,9 @@ static void nativeResumeSession(JNIEnv *env, jobject thiz)
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
     {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
-    {"nativeTimerActivate", "()V", (void*)android_timer_activate_impl},
-    {"nativeTimerDeactivate", "()V", (void*)android_timer_deactivate_impl},
+    {"nativeSetBackgroundActive", "(Z)V", (void*)nativeSetBackgroundActive},
     {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
-    {"nativePauseSession", "()V", (void*)nativePauseSession},
+    {"nativePauseSession", "()I", (void*)nativePauseSession},
     {"nativeResumeSession", "()V", (void*)nativeResumeSession},
     {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
     {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},

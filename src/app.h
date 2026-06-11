@@ -3,7 +3,6 @@
 
 #include "raylib.h"
 #include "../libinbe/inbe.h"
-#include "flint_text_layout.h"
 #include "app_fwd.h"
 
 enum {
@@ -78,6 +77,7 @@ typedef enum {
     UIModalConfirmExitSession,
     UIModalConfirmDeleteData,
     UIModalConfirmDeleteHistory,
+    UIModalEditProgressiveStartSpeed,
 } UIModalType;
 
 typedef struct {
@@ -113,6 +113,8 @@ typedef enum HoldDisplayMode {
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
+    Inbe start_speed_preview;
+    int start_speed_preview_speed;
     Camera2D camera;
     int cursor_clickable;
     Texture2D gear_icon;
@@ -174,9 +176,6 @@ struct InbeApp {
     int tutorial_step;
     int tutorial_seen;
 
-    FlintTextLayout *tutorial_layouts[6];
-    int tutorial_layouts_initialized;
-
     int theme_id;
     int dark_mode;
 #if defined(LOTUS_BUILD)
@@ -228,5 +227,6 @@ void refresh_locale_dependent_text(InbeApp *app);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
+void settings_draw_progressive_start_speed_editor(InbeApp *app);
 
 #endif

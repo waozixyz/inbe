@@ -112,8 +112,17 @@ Motiv
 [speed_label]
 Rychlost
 ---
-
-Start speed
+[progressive_speed_label]
+Progresivni rychlost
+---
+[progressive_start_speed_label]
+Pocatecni rychlost
+---
+[modify_start_speed_button]
+Upravit pocatecni rychlost
+---
+[progressive_start_speed_editor_title]
+Pocatecni rychlost
 ---
 [play_in_background_label]
 Přehrávat na pozadí
