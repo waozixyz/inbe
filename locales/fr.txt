@@ -94,8 +94,17 @@ Thème
 [speed_label]
 Vitesse
 ---
-
-Start speed
+[progressive_speed_label]
+Vitesse progressive
+---
+[progressive_start_speed_label]
+Vitesse de depart
+---
+[modify_start_speed_button]
+Modifier la vitesse de depart
+---
+[progressive_start_speed_editor_title]
+Vitesse de depart
 ---
 [play_in_background_label]
 Lecture en arrière-plan

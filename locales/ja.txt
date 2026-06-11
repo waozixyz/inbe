@@ -112,8 +112,17 @@
 [speed_label]
 速度
 ---
-
-Start speed
+[progressive_speed_label]
+プログレッシブ速度
+---
+[progressive_start_speed_label]
+開始速度
+---
+[modify_start_speed_button]
+開始速度を変更
+---
+[progressive_start_speed_editor_title]
+開始速度
 ---
 [play_in_background_label]
 バックグラウンド再生

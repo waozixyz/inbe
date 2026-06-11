@@ -1,4 +1,11 @@
 # Changelog
+## [1.2.4] - 2026-06-11
+### Fixed
+- Android sessions continue correctly when the notification shade causes focus loss with background playback enabled.
+- Android safe-area insets now offset the viewport at the top instead of creating bottom-only padding.
+- Progressive start speed defaults to 3, normal speed defaults to 6, and the start speed editor preview animates at the exact selected speed.
+- Dropdown menu text is clipped cleanly while scrolling.
+
 ## [1.2.3] - 2026-06-10
 ### Fixed
 - History editing now scrolls to the active field once and keeps 16px Unifont row text aligned without clipping.

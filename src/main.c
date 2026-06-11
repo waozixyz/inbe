@@ -91,8 +91,8 @@ frame(void)
     int safe_left = insets.cutout_left;
     int safe_right = insets.cutout_right;
 
-    int content_x = 0;
-    int content_y = 0;
+    int content_x = safe_left;
+    int content_y = safe_top;
     int content_width = android_clamp_content_size(width, safe_left, safe_right);
     int content_height = android_clamp_content_size(height, safe_top, safe_bottom);
 

@@ -94,8 +94,14 @@
 [speed_label]
 속도
 ---
-
-Start speed
+[progressive_start_speed_label]
+시작 속도
+---
+[modify_start_speed_button]
+시작 속도 수정
+---
+[progressive_start_speed_editor_title]
+시작 속도
 ---
 [play_in_background_label]
 백그라운드 재생
