@@ -751,6 +751,9 @@ inbe_app_init(void *vapp) {
     if(app->globe_icon.id == 0) {
         app->globe_icon = load_icon_texture("globe.png");
     }
+    if(app->btc_icon.id == 0) {
+        app->btc_icon = load_icon_texture("btc.png");
+    }
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
     }
@@ -1028,6 +1031,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->save_icon);
     SafeUnloadTexture(app->discord_icon);
     SafeUnloadTexture(app->telegram_icon);
+    SafeUnloadTexture(app->btc_icon);
     SafeUnloadTexture(app->monero_icon);
     SafeUnloadTexture(app->sound0_icon);
     SafeUnloadTexture(app->sound1_icon);
