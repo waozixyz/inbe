@@ -52,13 +52,15 @@ INSTALL_DIR = $(HOME)/.local/share/inbe
 BIN_DIR = $(HOME)/bin
 TARBALL = $(LINUX_BUILD_DIR)/inbe-linux.tar.gz
 
-CONFIG_FILES = inbe.ini theme.ini
 LOCALE_FILES = $(wildcard locales/*.txt)
 THEME_FILES = $(wildcard $(FLINT_DIR)/themes/*.ini)
 IMAGE_FILES = assets/angel.jpg assets/begin.jpg
 SOUND_FILES = assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/sounds/bell.ogg
 FONT_OUTPUTS = assets/fonts/locales.png assets/fonts/locales.dat
 FONT_FILES = $(FONT_OUTPUTS)
+EMBEDDED_ASSET_FILES = $(LOCALE_FILES) $(THEME_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
+EMBEDDED_ASSETS_C = $(BUILD_DIR)/inbe_embedded_assets.c
+SRC += $(EMBEDDED_ASSETS_C)
 FONT_TOOL = vendor/otfchop/otfchop
 FONT_SOURCE = vendor/otfchop/unifont-17.0.04.otf
 BUILD_MAKEFILES = Makefile mk/common.mk mk/native.mk mk/windows.mk mk/web.mk mk/android.mk mk/dist.mk mk/clean.mk
@@ -72,9 +74,12 @@ $(FONT_OUTPUTS): $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
 $(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
 	$(MAKE) -C vendor/otfchop otfchop
 
+$(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | build
+	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
+
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
 
-CFLAGS = -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES
+CFLAGS = -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 LDFLAGS = -Wl,--gc-sections -s
 
 .NOTPARALLEL:

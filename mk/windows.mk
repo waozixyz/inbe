@@ -4,6 +4,9 @@ WIN_WINDRES = x86_64-w64-mingw32-windres
 WIN_TARGET = $(WINDOWS_BUILD_DIR)/inbe-windows-x86_64.exe
 WIN_RAYLIB_BUILD_DIR = $(WINDOWS_BUILD_DIR)/raylib
 WIN_RAYLIB_A = $(WIN_RAYLIB_BUILD_DIR)/libraylib.a
+WIN_RESOURCE = windows/inbe.rc
+WIN_ICON = windows/inbe.ico
+WIN_RESOURCE_OBJ = $(WINDOWS_BUILD_DIR)/inbe.res
 WIN_FLINT_SRCS = $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 WIN_RAYLIB_OBJS = \
 	$(WIN_RAYLIB_BUILD_DIR)/rcore.o \
@@ -47,7 +50,10 @@ $(WIN_INBE_A): FORCE | $(WINDOWS_BUILD_DIR)
 	$(MAKE) -C $(INBE_DIR) CC=$(WIN_CC) AR=$(WIN_AR)
 	cp $(INBE_A) $@
 
-$(WIN_TARGET): $(SRC) $(WIN_FLINT_SRCS) $(FONT_FILES) $(WIN_RAYLIB_A) $(WIN_INBE_A) | $(WINDOWS_BUILD_DIR)
+$(WIN_RESOURCE_OBJ): $(WIN_RESOURCE) $(WIN_ICON) | $(WINDOWS_BUILD_DIR)
+	$(WIN_WINDRES) -Iwindows -O coff $< $@
+
+$(WIN_TARGET): $(SRC) $(WIN_FLINT_SRCS) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN_RAYLIB_A) $(WIN_INBE_A) $(WIN_RESOURCE_OBJ) | $(WINDOWS_BUILD_DIR)
 	$(WIN_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -58,6 +64,7 @@ $(WIN_TARGET): $(SRC) $(WIN_FLINT_SRCS) $(FONT_FILES) $(WIN_RAYLIB_A) $(WIN_INBE
 		$(WIN_FLINT_SRCS) \
 		$(WIN_INBE_A) \
 		$(WIN_RAYLIB_A) \
+		$(WIN_RESOURCE_OBJ) \
 		-L$(MCFGTHREADS)/lib \
 		-lopengl32 -lgdi32 -lwinmm -lws2_32 \
 		-mwindows \

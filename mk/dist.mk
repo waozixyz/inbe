@@ -29,29 +29,18 @@ dist:
 
 dist-linux: linux
 	@echo "Creating Linux tar.gz package with all Linux arch binaries..."
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux
+	@mkdir -p $(LINUX_BUILD_DIR)/dist
 	@for bin in $(LINUX_BUILD_DIR)/inbe-linux-*; do \
 		if [ -f "$$bin" ] && [ -x "$$bin" ]; then \
 			echo "Adding $$bin"; \
-			cp "$$bin" "$(LINUX_BUILD_DIR)/dist/inbe-linux/$$(basename "$$bin")"; \
+			cp "$$bin" "$(LINUX_BUILD_DIR)/dist/$$(basename "$$bin")"; \
 		fi; \
 	done
-	@if [ -z "$$(find $(LINUX_BUILD_DIR)/dist/inbe-linux -type f 2>/dev/null)" ]; then \
+	@if [ -z "$$(find $(LINUX_BUILD_DIR)/dist -type f 2>/dev/null)" ]; then \
 		echo "No Linux binaries found in $(LINUX_BUILD_DIR)"; \
 		exit 1; \
 	fi
-	@cp $(CONFIG_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/locales
-	@cp $(LOCALE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/locales/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/themes
-	@cp $(THEME_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/themes/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets
-	@cp $(IMAGE_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts
-	@cp $(FONT_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/fonts/
-	@mkdir -p $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds
-	@cp $(SOUND_FILES) $(LINUX_BUILD_DIR)/dist/inbe-linux/assets/sounds/
-	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux/
+	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux-*
 	@rm -rf $(LINUX_BUILD_DIR)/dist
 	@echo "Created $(LINUX_BUILD_DIR)/inbe-linux.tar.gz"
 
@@ -65,11 +54,11 @@ install: dist-linux
 		echo "Warning: Unsupported architecture $$ARCH, defaulting to x86_64"; \
 		ARCH="x86_64"; \
 	fi; \
-	BINARY_PATH="$(INSTALL_DIR)/inbe-linux/inbe-linux-$$ARCH"; \
+	BINARY_PATH="$(INSTALL_DIR)/inbe-linux-$$ARCH"; \
 	if [ ! -f "$$BINARY_PATH" ]; then \
 		echo "Error: Binary not found: $$BINARY_PATH"; \
 		echo "Available binaries:"; \
-		ls $(INSTALL_DIR)/inbe-linux/inbe-linux-* 2>/dev/null || echo "  None"; \
+		ls $(INSTALL_DIR)/inbe-linux-* 2>/dev/null || echo "  None"; \
 		exit 1; \
 	fi; \
 	if [ -L $(BIN_DIR)/inbe ]; then \
@@ -85,7 +74,7 @@ install: dist-linux
 	echo "" && \
 	echo "Installation complete!" && \
 	echo "  Binary: $(BIN_DIR)/inbe" && \
-	echo "  Data: $(INSTALL_DIR)/inbe-linux/" && \
+	echo "  Data: $(INSTALL_DIR)" && \
 	echo "" && \
 	echo "Run 'inbe' to start the application"
 
@@ -108,28 +97,18 @@ uninstall:
 
 dist-windows:
 	@echo "Creating Windows zip package with all Windows arch binaries..."
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows
+	@mkdir -p $(WINDOWS_BUILD_DIR)/dist
 	@for bin in $(WINDOWS_BUILD_DIR)/inbe-windows-*.exe; do \
 		if [ -f "$$bin" ]; then \
 			echo "Adding $$bin"; \
-			cp "$$bin" "$(WINDOWS_BUILD_DIR)/dist/inbe-windows/$$(basename "$$bin")"; \
+			cp "$$bin" "$(WINDOWS_BUILD_DIR)/dist/$$(basename "$$bin")"; \
 		fi; \
 	done
-	@if [ -z "$$(find $(WINDOWS_BUILD_DIR)/dist/inbe-windows -type f 2>/dev/null)" ]; then \
+	@if [ -z "$$(find $(WINDOWS_BUILD_DIR)/dist -type f 2>/dev/null)" ]; then \
 		echo "No Windows binaries found in $(WINDOWS_BUILD_DIR)"; \
 		exit 1; \
 	fi
-	@cp $(CONFIG_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/locales
-	@cp $(LOCALE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/locales/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes
-	@cp $(THEME_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/themes/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets
-	@cp $(IMAGE_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts
-	@cp $(FONT_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/fonts/
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds
-	@cp $(SOUND_FILES) $(WINDOWS_BUILD_DIR)/dist/inbe-windows/assets/sounds/
-	@cd $(WINDOWS_BUILD_DIR)/dist && zip -r ../inbe-windows.zip inbe-windows/
+	@rm -f $(WINDOWS_BUILD_DIR)/inbe-windows.zip
+	@cd $(WINDOWS_BUILD_DIR)/dist && zip -j ../inbe-windows.zip inbe-windows-*.exe
 	@rm -rf $(WINDOWS_BUILD_DIR)/dist
 	@echo "Created $(WINDOWS_BUILD_DIR)/inbe-windows.zip"

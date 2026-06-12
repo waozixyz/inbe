@@ -9,6 +9,31 @@ set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
+file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
+file(GLOB INBE_THEME_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${FLINT_DIR}/themes/*.ini")
+file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
+set(INBE_EMBEDDED_INPUTS
+    ${INBE_LOCALE_ASSETS}
+    ${INBE_THEME_ASSETS}
+    assets/angel.jpg
+    assets/begin.jpg
+    assets/fonts/locales.png
+    assets/fonts/locales.dat
+    ${INBE_SOUND_ASSETS}
+)
+set(INBE_EMBEDDED_DEPS)
+foreach(asset ${INBE_EMBEDDED_INPUTS})
+    list(APPEND INBE_EMBEDDED_DEPS "${REPO_ROOT}/${asset}")
+endforeach()
+set(INBE_EMBEDDED_ASSETS_C "${CMAKE_BINARY_DIR}/inbe_embedded_assets.c")
+
+add_custom_command(
+    OUTPUT "${INBE_EMBEDDED_ASSETS_C}"
+    COMMAND sh "${FLINT_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
+    DEPENDS "${FLINT_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
+    WORKING_DIRECTORY "${REPO_ROOT}"
+    VERBATIM
+)
 
 add_library(raylib STATIC
     "${RAYLIB_DIR}/rcore.c"
@@ -77,6 +102,7 @@ add_library(main SHARED
     "${SRC_DIR}/tabs/language_tab.c"
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
+    "${INBE_EMBEDDED_ASSETS_C}"
     "${SRC_DIR}/android/android_insets.c"
     "${SRC_DIR}/android/android_wakelock.c"
     "${SRC_DIR}/android/android_timer.c"
@@ -102,6 +128,7 @@ target_compile_definitions(main PRIVATE
     MG_ENABLE_POSIX_FS=0
     SUPPORT_MODULE_RAUDIO=1
     SUPPORT_FILEFORMAT_OGG=1
+    FLINT_EMBEDDED_ONLY=1
 )
 
 target_compile_options(main PRIVATE
