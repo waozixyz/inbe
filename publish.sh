@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Publish inbe site to inbe.waozi.xyz
 
 set -e
@@ -18,59 +18,33 @@ echo "Publishing inbe.waozi.xyz..."
 TMPDIR=$(mktemp -d -p /tmp)
 cleanup() {
     rm -rf "$TMPDIR"
-    rm -f "$SITE_DIR/inbe.tar.gz"
+    if [ "${PACKAGE_ONLY:-0}" != "1" ]; then
+        rm -f "$SITE_DIR/inbe.tar.gz"
+    fi
 }
 trap cleanup EXIT
 
-# Base site files
-rsync -av --delete \
-    --exclude='local.properties' \
-    --exclude='.git' \
-    --exclude='*.sym' \
-    --exclude='*.o' \
-    --exclude='*.a' \
-    --exclude='*.d' \
-    --exclude='*.9' \
-    --exclude='*.8' \
-    --exclude='build' \
-    --exclude='.gradle' \
-    --exclude='.idea' \
-    --exclude='node_modules' \
-    --exclude='*.iml' \
-    --exclude='.cxx' \
-    --exclude='.externalNativeBuild' \
-    --exclude='Captures' \
-    --exclude='.DS_Store' \
-    --exclude='Thumbs.db' \
-    --exclude='.xdp-*' \
-    --exclude='inbe.tar.gz' \
-    --exclude='*.bak' \
-    --exclude='*.swp' \
-    --exclude='*.lock' \
-    --exclude='assets' \
-    --exclude='icons' \
-    --exclude='site-icons' \
-    --exclude='gradlew' \
-    --exclude='gradlew.bat' \
-    --exclude='shell.nix' \
-    --exclude='flake.nix' \
-    --exclude='flake.lock' \
-    --exclude='Makefile' \
-    --exclude='gradle' \
-    --exclude='codex' \
-    --exclude='.codex' \
-    --exclude='.npm' \
-    --exclude='.local' \
-    --exclude='droid' \
-    --exclude='vendor' \
-    . "$TMPDIR/"
+# Base site files. Keep this as an allowlist so source/build inputs never leak
+# into the published archive.
+for site_file in \
+    index.html \
+    builds.html \
+    privacy.html \
+    legacy-converter.html \
+    style.css \
+    og.png \
+    og.jpg \
+    sitemap.xml \
+    robots.txt \
+    manifest.json; do
+    [ -f "$site_file" ] && cp "$site_file" "$TMPDIR/"
+done
 
-mkdir -p "$TMPDIR/rc"
-[ -f "rc/inbe.rc" ] && cp rc/inbe.rc "$TMPDIR/rc/"
+[ -d "web-assets" ] && rsync -a web-assets/ "$TMPDIR/web-assets/"
 
 mkdir -p "$TMPDIR/uxn/devices"
 [ -f "uxn/index.html" ] && cp uxn/index.html "$TMPDIR/uxn/"
-[ -f "uxn/inbe.rom" ] && cp uxn/inbe.* "$TMPDIR/uxn/"
+[ -f "uxn/inbe.rom" ] && cp uxn/inbe.rom "$TMPDIR/uxn/"
 if [ -d "uxn/devices" ]; then
     rsync -av --exclude='*.sym' uxn/devices/*.js "$TMPDIR/uxn/devices/" 2>/dev/null || true
 fi
@@ -94,7 +68,7 @@ if [ -d "build/bin/windows" ] || [ -d "build/dist/windows" ]; then
     done
 fi
 if [ -d "build/android" ]; then
-    for raylib_android_artifact in build/android/*.apk; do
+    for raylib_android_artifact in build/android/inbe-*.apk build/android/inbe-latest.apk build/android/app-universal-release.apk; do
         [ -f "$raylib_android_artifact" ] && cp "$raylib_android_artifact" "$TMPDIR/build/android/"
     done
 fi
@@ -105,9 +79,6 @@ mkdir -p "$TMPDIR/wasm4/build"
 for wasm4_artifact in wasm4/build/inbe-x86_64 wasm4/build/inbe-x86_64.exe wasm4/build/inbe-windows.zip wasm4/build/inbe-linux.tar.gz; do
     [ -f "$wasm4_artifact" ] && cp "$wasm4_artifact" "$TMPDIR/wasm4/build/"
 done
-[ -d "wasm4/src" ] && rsync -av --exclude='*.o' --exclude='*.d' --exclude='.npm' --exclude='.local' --exclude='.codex' wasm4/src/ "$TMPDIR/wasm4/src/"
-[ -f "wasm4/Makefile" ] && cp wasm4/Makefile "$TMPDIR/wasm4/"
-[ -f "wasm4/shell.nix" ] && cp wasm4/shell.nix "$TMPDIR/wasm4/"
 [ -f "wasm4/README.md" ] && cp wasm4/README.md "$TMPDIR/wasm4/"
 
 mkdir -p "$TMPDIR/linux/build"
@@ -127,10 +98,7 @@ mkdir -p "$TMPDIR/tcl"
 # Compatibility copy for older Android links.
 mkdir -p "$TMPDIR/droid"
 [ -f "build/android/app-universal-release.apk" ] && cp build/android/app-universal-release.apk "$TMPDIR/droid/app-release.apk"
-
-cp style.css og.png sitemap.xml robots.txt "$TMPDIR/"
-[ -f "manifest.json" ] && cp manifest.json "$TMPDIR/"
-[ -d "web-assets" ] && rsync -a web-assets/ "$TMPDIR/web-assets/"
+[ -f "build/android/inbe-latest.apk" ] && cp build/android/inbe-latest.apk "$TMPDIR/droid/app-release.apk"
 
 if [ -f "$TMPDIR/index.html" ]; then
     sed -e 's|/inbe/droid/app/build/outputs/apk/release/app-release.apk|/build/android/app-universal-release.apk|g' \
@@ -146,6 +114,11 @@ if [ ! -f "$SITE_DIR/inbe.tar.gz" ]; then
     echo "Error: inbe.tar.gz was not created!"
     rm -rf "$TMPDIR"
     exit 1
+fi
+
+if [ "${PACKAGE_ONLY:-0}" = "1" ]; then
+    echo "✓ Package created at $SITE_DIR/inbe.tar.gz"
+    exit 0
 fi
 
 hut pages publish -d inbe.waozi.xyz "$SITE_DIR/inbe.tar.gz"
