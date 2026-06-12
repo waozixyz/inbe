@@ -309,25 +309,35 @@ data_root(void)
         return g_data_root;
 
 #if defined(PLATFORM_WEB)
-    snprintf(g_data_root, sizeof(g_data_root), "/home/lotus");
+    snprintf(g_data_root, sizeof(g_data_root), "/home/inbe");
     EM_ASM({
         try {
             FS.mkdir('/home');
-            FS.mkdir('/home/lotus');
+            FS.mkdir('/home/inbe');
         } catch(e) {}
     });
 #elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    snprintf(g_data_root, sizeof(g_data_root), "/data/data/xyz.waozi.inbe/files/lotus");
+    snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory());
+#elif defined(_WIN32)
+    const char *local = getenv("LOCALAPPDATA");
+    const char *roaming = getenv("APPDATA");
+
+    if(local != NULL && local[0] != '\0')
+        snprintf(g_data_root, sizeof(g_data_root), "%s/Inbe", local);
+    else if(roaming != NULL && roaming[0] != '\0')
+        snprintf(g_data_root, sizeof(g_data_root), "%s/Inbe", roaming);
+    else
+        snprintf(g_data_root, sizeof(g_data_root), "Inbe");
 #else
     const char *xdg = getenv("XDG_DATA_HOME");
     const char *home = getenv("HOME");
 
     if(xdg != NULL && xdg[0] != '\0')
-        snprintf(g_data_root, sizeof(g_data_root), "%s/lotus", xdg);
+        snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", xdg);
     else if(home != NULL && home[0] != '\0')
-        snprintf(g_data_root, sizeof(g_data_root), "%s/.local/share/lotus", home);
+        snprintf(g_data_root, sizeof(g_data_root), "%s/.local/share/inbe", home);
     else
-        snprintf(g_data_root, sizeof(g_data_root), ".local/lotus");
+        snprintf(g_data_root, sizeof(g_data_root), ".local/inbe");
 #endif
 
     ensure_dir(g_data_root);

@@ -50,22 +50,6 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 }
 #endif
 
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-static void
-use_packaged_app_directory(void)
-{
-    char probe_path[512];
-    const char *app_dir = GetApplicationDirectory();
-
-    if(app_dir == NULL || app_dir[0] == '\0')
-        return;
-
-    snprintf(probe_path, sizeof(probe_path), "%sassets/sounds/bell.ogg", app_dir);
-    if(FileExists(probe_path))
-        ChangeDirectory(app_dir);
-}
-#endif
-
 static void
 frame(void)
 {
@@ -131,10 +115,6 @@ int main(int argc, char **argv) {
 
 #if INBE_ANDROID_BUILD
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
-#endif
-
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-    use_packaged_app_directory();
 #endif
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
