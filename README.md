@@ -28,26 +28,33 @@ inbe uses [raylib](https://github.com/raysan5/raylib) and requires a Nix develop
 nix develop
 
 # Build for your current platform (Linux x86_64/aarch64)
-make
+flint build native
 
 # Run
-./build/bin/linux/inbe-linux-$(uname -m)
+flint run native
 ```
 
 ### Cross-Platform Builds
 
 ```bash
 # Linux (both architectures)
-make linux
+flint build linux
 
 # Windows (x86_64/i686, OpenGL and software renderer variants, from Linux)
-make windows
+flint build windows
 
-# Android APK
-make android
+# Android debug APK
+flint build android
 
 # WebAssembly
-make web
+flint build web
+
+# Release/package artifacts
+flint dist linux      # Linux tar.gz with all Linux arch binaries
+flint dist windows    # Windows zip with all Windows arch/renderer binaries
+flint dist android    # Signed release APK
+flint dist itch       # Build release artifacts and publish to itch.io
+flint dist            # Full release flow
 ```
 
 ### Android Emulator Testing
@@ -57,7 +64,8 @@ For automated testing with camera notch (cutout) support:
 ```bash
 # Enter the development shell and run everything automatically
 nix develop
-./scripts/emulator.sh    # Creates AVD, launches emulator, builds & runs app
+./scripts/emulator.sh    # Creates and launches the test AVD
+flint run android        # Builds, installs, and launches the app
 ```
 
 This single script handles:
