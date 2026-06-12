@@ -66,27 +66,6 @@ else
     echo "Warning: $WINDOWS_RC_FILE not found"
 fi
 
-update_website_version_in_file() {
-    local file="$1"
-
-    sed -i "s|VERSION_PLACEHOLDER|$LATEST_VERSION|g" "$file"
-    sed -i -E "s|(<p[[:space:]]+class=\"version\">)[^<]*(</p>)|\\1$LATEST_VERSION\\2|g" "$file"
-}
-
-if [ -f "index.html" ]; then
-    update_website_version_in_file index.html
-    echo "✓ Updated index.html"
-else
-    echo "Warning: index.html not found"
-fi
-
-if [ -f "builds.html" ]; then
-    update_website_version_in_file builds.html
-    echo "✓ Updated builds.html"
-else
-    echo "builds.html not found, skipping"
-fi
-
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
 

@@ -1,4 +1,9 @@
 # Changelog
+## [1.2.6] - 2026-06-12
+### Fixed
+- Import now replaces only matching session files from the ZIP and never removes local sessions missing from the import.
+- Fixed web scaling behavior.
+
 ## [1.2.5] - 2026-06-12
 ### Added
 - BTC address for donations
