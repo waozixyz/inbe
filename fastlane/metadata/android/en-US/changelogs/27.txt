@@ -1,0 +1,3 @@
+### Fixed
+- Import now replaces only matching session files from the ZIP and never removes local sessions missing from the import.
+- Fixed web scaling behavior.
