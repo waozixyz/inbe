@@ -18,7 +18,8 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
 
-    def getKeystorePath = { -> keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/inbe-release.keystore" }
+    def getKeystorePath = { -> keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/flint-release.keystore" }
+    def getKeystoreAlias = { -> keystoreProps['keystore.alias'] ?: "inbe-key" }
 
     def releasePassword = project.findProperty('keystore.password') ?: ""
 
@@ -26,7 +27,7 @@ android {
         release {
             storeFile getKeystorePath() ? file(getKeystorePath()) : null
             storePassword releasePassword
-            keyAlias "inbe-key"
+            keyAlias getKeystoreAlias()
             keyPassword releasePassword
         }
     }
