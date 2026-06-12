@@ -542,6 +542,19 @@ load_pixel_texture_from_asset(const char *path)
     if(image.data == NULL)
         return texture;
 
+#if defined(_WIN32)
+    {
+        int pot_w = 1;
+        int pot_h = 1;
+        while(pot_w < image.width)
+            pot_w <<= 1;
+        while(pot_h < image.height)
+            pot_h <<= 1;
+        if(pot_w != image.width || pot_h != image.height)
+            ImageResizeCanvas(&image, pot_w, pot_h, 0, 0, BLANK);
+    }
+#endif
+
     texture = LoadTextureFromImage(image);
     UnloadImage(image);
     if(texture.id != 0)

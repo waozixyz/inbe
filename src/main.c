@@ -1,8 +1,17 @@
 #include "raylib.h"
 #include "app.h"
 #include "flint_dpi.h"
+#include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+
+#if defined(_WIN32) && !defined(__ANDROID__)
+__declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
+                                                const char *caption, unsigned int type);
+#define MB_OK 0x00000000u
+#define MB_ICONERROR 0x00000010u
+#define WIN_ERROR_LOG_CAP 2048
+#endif
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_insets.h"
@@ -19,6 +28,127 @@ extern struct android_app *GetAndroidApp(void);
 
 static InbeApp inbe_app;
 static InbeApp *g_inbe_app_ptr = NULL;  // Global pointer for JNI access
+
+#if defined(_WIN32) && !defined(__ANDROID__)
+static FILE *win_log_file;
+static char win_recent_errors[WIN_ERROR_LOG_CAP];
+static int win_recent_errors_len;
+
+static int
+windows_text_contains(const char *text, const char *needle)
+{
+    if(text == NULL || needle == NULL || needle[0] == '\0')
+        return 0;
+
+    for(const char *p = text; *p != '\0'; p++) {
+        const char *a = p;
+        const char *b = needle;
+        while(*a != '\0' && *b != '\0' && *a == *b) {
+            a++;
+            b++;
+        }
+        if(*b == '\0')
+            return 1;
+    }
+
+    return 0;
+}
+
+static void
+windows_remember_error(const char *level, const char *message)
+{
+    if(message == NULL || message[0] == '\0')
+        return;
+
+    int written = snprintf(win_recent_errors + win_recent_errors_len,
+                           sizeof(win_recent_errors) - (size_t)win_recent_errors_len,
+                           "[%s] %s\n",
+                           level,
+                           message);
+
+    if(written <= 0)
+        return;
+
+    if((size_t)written >= sizeof(win_recent_errors) - (size_t)win_recent_errors_len) {
+        win_recent_errors_len = (int)sizeof(win_recent_errors) - 1;
+        return;
+    }
+
+    win_recent_errors_len += written;
+}
+
+static void
+windows_trace_log(int log_level, const char *text, va_list args)
+{
+    const char *level = "INFO";
+    char message[1024];
+    va_list message_args;
+
+    va_copy(message_args, args);
+    vsnprintf(message, sizeof(message), text, message_args);
+    va_end(message_args);
+
+    switch(log_level) {
+    case LOG_TRACE: level = "TRACE"; break;
+    case LOG_DEBUG: level = "DEBUG"; break;
+    case LOG_INFO: level = "INFO"; break;
+    case LOG_WARNING: level = "WARNING"; break;
+    case LOG_ERROR: level = "ERROR"; break;
+    case LOG_FATAL: level = "FATAL"; break;
+    default: break;
+    }
+
+    if(log_level >= LOG_WARNING)
+        windows_remember_error(level, message);
+
+    if(win_log_file != NULL) {
+        fprintf(win_log_file, "[%s] %s\n", level, message);
+        fflush(win_log_file);
+    }
+}
+
+static void
+windows_show_startup_error(void)
+{
+    char dialog[3072];
+    const char *detail = win_recent_errors[0] != '\0' ?
+                         win_recent_errors :
+                         "No detailed startup error was reported.";
+    const char *hint = "";
+
+    if(windows_text_contains(detail, "OpenGL") ||
+       windows_text_contains(detail, "WGL") ||
+       windows_text_contains(detail, "GLFW")) {
+        hint = "\nThis is usually a graphics driver or virtual GPU problem. "
+               "Update the GPU driver, enable VM 3D acceleration, or install the VM guest graphics driver.\n";
+    }
+
+    snprintf(dialog,
+             sizeof(dialog),
+             "Inner Breeze could not create a window.\n\n%s%s\nA full log was written to inbe.log next to the executable.",
+             detail,
+             hint);
+
+    MessageBoxA(NULL, dialog, "Inner Breeze", MB_OK | MB_ICONERROR);
+}
+
+static void
+windows_install_logger(void)
+{
+    win_log_file = fopen("inbe.log", "ab");
+    if(win_log_file != NULL)
+        SetTraceLogCallback(windows_trace_log);
+}
+
+static void
+windows_close_logger(void)
+{
+    if(win_log_file != NULL) {
+        fclose(win_log_file);
+        win_log_file = NULL;
+    }
+}
+#endif
 
 InbeApp* get_global_inbe_app(void) {
     if (g_inbe_app_ptr == NULL) {
@@ -121,6 +251,11 @@ int main(int argc, char **argv) {
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
+#if defined(_WIN32) && !defined(__ANDROID__)
+    windows_install_logger();
+    TraceLog(LOG_INFO, "INBE: Windows startup");
+#endif
+
 #if INBE_ANDROID_BUILD
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_insets_init");
     android_insets_init();
@@ -135,6 +270,14 @@ int main(int argc, char **argv) {
 
 
     InitWindow(window_w, window_h, config.title);
+    if(!IsWindowReady()) {
+        TraceLog(LOG_ERROR, "INBE: InitWindow failed");
+#if defined(_WIN32) && !defined(__ANDROID__)
+        windows_show_startup_error();
+        windows_close_logger();
+#endif
+        return 1;
+    }
 
     flint_dpi_init();
     inbe_app_init(&inbe_app);
@@ -157,6 +300,9 @@ int main(int argc, char **argv) {
     }
 
     CloseWindow();
+#if defined(_WIN32) && !defined(__ANDROID__)
+    windows_close_logger();
+#endif
 #endif
     return 0;
 }

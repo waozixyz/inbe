@@ -39,7 +39,17 @@
             };
           };
 
+          mingw32Pkgs = import nixpkgs {
+            inherit system;
+            crossSystem = { config = "i686-w64-mingw32"; };
+            config = {
+              allowUnfree = true;
+              allowUnsupportedSystem = true;
+            };
+          };
+
           mcfgthreads = pkgs.pkgsCross.mingwW64.windows.mcfgthreads;
+          mcfgthreads32 = pkgs.pkgsCross.mingw32.windows.mcfgthreads;
 
           androidComposition = pkgs.androidenv.composeAndroidPackages {
             cmdLineToolsVersion = "11.0";
@@ -75,6 +85,9 @@
             mingwPkgs.buildPackages.gcc
             mingwPkgs.windows.mingw_w64
             mcfgthreads
+            mingw32Pkgs.buildPackages.gcc
+            mingw32Pkgs.windows.mingw_w64
+            mcfgthreads32
           ];
 
           windowsProfile = pkgs.lib.optionalString windowsCrossEnabled ''
@@ -85,7 +98,15 @@
             export WIN_WINDRES="x86_64-w64-mingw32-windres"
             export WIN_STRIP="x86_64-w64-mingw32-strip"
 
+            export WIN32_CC="i686-w64-mingw32-gcc"
+            export WIN32_CXX="i686-w64-mingw32-g++"
+            export WIN32_AR="i686-w64-mingw32-ar"
+            export WIN32_RANLIB="i686-w64-mingw32-ranlib"
+            export WIN32_WINDRES="i686-w64-mingw32-windres"
+            export WIN32_STRIP="i686-w64-mingw32-strip"
+
             export MCFGTHREADS="${mcfgthreads}"
+            export WIN32_MCFGTHREADS="${mcfgthreads32}"
             export CPATH="$MCFGTHREADS/include:$CPATH"
             export LIBRARY_PATH="$MCFGTHREADS/lib:$LIBRARY_PATH"
             export LDFLAGS="-L$MCFGTHREADS/lib $LDFLAGS"

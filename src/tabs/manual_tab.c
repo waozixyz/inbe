@@ -261,7 +261,6 @@ manual_tab_draw(InbeApp *app)
             y += flint_px(18);
             {
                 int progressive_speed = app->inbe.progressive_speed;
-                int progressive_start_speed = app->inbe.progressive_start_speed;
                 int toggle_w = flint_px(56);
                 int toggle_h = flint_px(30);
                 flint_text_draw(locale_get("progressive_speed_label"), content_x, y,
@@ -275,28 +274,6 @@ manual_tab_draw(InbeApp *app)
                     app->settings_dirty = 1;
                 }
                 y += toggle_h + flint_px(20);
-                if(app->inbe.progressive_speed) {
-                    int max_speed = app->inbe.speed_level;
-                    int modify_w = flint_text_measure(locale_get("modify_start_speed_button"), flint_ui_font()) + flint_px(24);
-                    int modify_h = flint_px(36);
-                    int modify_hover = 0;
-                    if(modify_w > content_w)
-                        modify_w = content_w;
-
-                    if(progressive_start_speed != clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed)) {
-                        app->inbe.progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
-                        app->settings_preview.progressive_start_speed = app->inbe.progressive_start_speed;
-                        app->settings_dirty = 1;
-                    }
-
-                    if(ui_draw_generic_button(content_x, y, modify_w, modify_h,
-                                              locale_get("modify_start_speed_button"),
-                                              UI_BUTTON_STYLE_SECONDARY, &modify_hover)) {
-                        app->modal.active = 1;
-                        app->modal.type = UIModalEditProgressiveStartSpeed;
-                        app->modal.selected_button = 0;
-                    }
-                }
             }
         } else if(step == 3) {
             int speed = app->inbe.speed_level;
@@ -395,10 +372,6 @@ manual_tab_draw(InbeApp *app)
             app->tutorial_step++;
             app->manual_scroll = 0;
         }
-    }
-
-    if(app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed) {
-        settings_draw_progressive_start_speed_editor(app);
     }
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {

@@ -3,11 +3,11 @@ clean:
 	$(MAKE) -C $(INBE_DIR) clean
 
 clean-linux:
-	rm -rf $(LINUX_BUILD_DIR)
+	rm -rf $(LINUX_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR)
 	$(MAKE) -C $(INBE_DIR) clean
 
 clean-windows:
-	rm -rf $(WINDOWS_BUILD_DIR)
+	rm -rf $(WINDOWS_OBJ_DIR) $(WINDOWS_BIN_DIR) $(WINDOWS_DIST_DIR)
 	$(MAKE) -C $(INBE_DIR) clean
 
 clean-web:

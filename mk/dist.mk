@@ -27,22 +27,22 @@ dist:
 	$(MAKE) dist-linux || exit $$?; \
 	$(MAKE) dist-windows || exit $$?
 
-dist-linux: linux
+dist-linux: linux | $(LINUX_DIST_DIR)
 	@echo "Creating Linux tar.gz package with all Linux arch binaries..."
-	@mkdir -p $(LINUX_BUILD_DIR)/dist
-	@for bin in $(LINUX_BUILD_DIR)/inbe-linux-*; do \
+	@for bin in $(LINUX_BIN_DIR)/inbe-linux-*; do \
 		if [ -f "$$bin" ] && [ -x "$$bin" ]; then \
 			echo "Adding $$bin"; \
-			cp "$$bin" "$(LINUX_BUILD_DIR)/dist/$$(basename "$$bin")"; \
 		fi; \
 	done
-	@if [ -z "$$(find $(LINUX_BUILD_DIR)/dist -type f 2>/dev/null)" ]; then \
-		echo "No Linux binaries found in $(LINUX_BUILD_DIR)"; \
+	@if [ -z "$$(find $(LINUX_BIN_DIR) -maxdepth 1 -type f -name 'inbe-linux-*' -executable 2>/dev/null)" ]; then \
+		echo "No Linux binaries found in $(LINUX_BIN_DIR)"; \
 		exit 1; \
 	fi
-	@cd $(LINUX_BUILD_DIR)/dist && tar -czf ../inbe-linux.tar.gz inbe-linux-*
-	@rm -rf $(LINUX_BUILD_DIR)/dist
-	@echo "Created $(LINUX_BUILD_DIR)/inbe-linux.tar.gz"
+	@rm -f $(TARBALL)
+	@find $(LINUX_BIN_DIR) -maxdepth 1 -type f -name 'inbe-linux-*' -executable -printf '%f\n' | sort > $(LINUX_DIST_DIR)/inbe-linux.files
+	@tar -czf $(abspath $(TARBALL)) -C $(LINUX_BIN_DIR) -T $(abspath $(LINUX_DIST_DIR)/inbe-linux.files)
+	@rm -f $(LINUX_DIST_DIR)/inbe-linux.files
+	@echo "Created $(TARBALL)"
 
 install: dist-linux
 	@echo "Installing inbe to $(INSTALL_DIR)..."
@@ -95,20 +95,17 @@ uninstall:
 	fi
 	@echo "Uninstall complete"
 
-dist-windows:
+dist-windows: windows | $(WINDOWS_DIST_DIR)
 	@echo "Creating Windows zip package with all Windows arch binaries..."
-	@mkdir -p $(WINDOWS_BUILD_DIR)/dist
-	@for bin in $(WINDOWS_BUILD_DIR)/inbe-windows-*.exe; do \
+	@for bin in $(WINDOWS_BIN_DIR)/inbe-windows-*.exe; do \
 		if [ -f "$$bin" ]; then \
 			echo "Adding $$bin"; \
-			cp "$$bin" "$(WINDOWS_BUILD_DIR)/dist/$$(basename "$$bin")"; \
 		fi; \
 	done
-	@if [ -z "$$(find $(WINDOWS_BUILD_DIR)/dist -type f 2>/dev/null)" ]; then \
-		echo "No Windows binaries found in $(WINDOWS_BUILD_DIR)"; \
+	@if [ -z "$$(find $(WINDOWS_BIN_DIR) -maxdepth 1 -type f -name 'inbe-windows-*.exe' 2>/dev/null)" ]; then \
+		echo "No Windows binaries found in $(WINDOWS_BIN_DIR)"; \
 		exit 1; \
 	fi
-	@rm -f $(WINDOWS_BUILD_DIR)/inbe-windows.zip
-	@cd $(WINDOWS_BUILD_DIR)/dist && zip -j ../inbe-windows.zip inbe-windows-*.exe
-	@rm -rf $(WINDOWS_BUILD_DIR)/dist
-	@echo "Created $(WINDOWS_BUILD_DIR)/inbe-windows.zip"
+	@rm -f $(WINDOWS_DIST_DIR)/inbe-windows.zip
+	@cd $(WINDOWS_BIN_DIR) && zip -j $(abspath $(WINDOWS_DIST_DIR)/inbe-windows.zip) inbe-windows-*.exe
+	@echo "Created $(WINDOWS_DIST_DIR)/inbe-windows.zip"

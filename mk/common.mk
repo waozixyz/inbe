@@ -6,7 +6,7 @@ INBE_DIR = libinbe
 INBE_A = $(INBE_DIR)/libinbe.a
 
 RAYLIB_DIR = vendor/raylib/src
-RAYLIB_BUILD_DIR = vendor/raylib/build/sdl
+RAYLIB_BUILD_DIR = $(LINUX_OBJ_DIR)/native/raylib
 RAYLIB_A = $(RAYLIB_BUILD_DIR)/libraylib.a
 RAYLIB_SOURCES = $(wildcard $(RAYLIB_DIR)/*.c) $(wildcard $(RAYLIB_DIR)/*.h)
 
@@ -41,16 +41,24 @@ else
 endif
 
 BUILD_DIR = build
-LINUX_BUILD_DIR = $(BUILD_DIR)/linux
-WINDOWS_BUILD_DIR = $(BUILD_DIR)/windows
+BUILD_OBJ_DIR = $(BUILD_DIR)/obj
+BUILD_BIN_DIR = $(BUILD_DIR)/bin
+BUILD_DIST_DIR = $(BUILD_DIR)/dist
+LINUX_OBJ_DIR = $(BUILD_OBJ_DIR)/linux
+LINUX_BIN_DIR = $(BUILD_BIN_DIR)/linux
+LINUX_DIST_DIR = $(BUILD_DIST_DIR)/linux
+WINDOWS_OBJ_DIR = $(BUILD_OBJ_DIR)/windows
+WINDOWS_BIN_DIR = $(BUILD_BIN_DIR)/windows
+WINDOWS_DIST_DIR = $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR = $(BUILD_DIR)/android
+ANDROID_DIST_DIR = $(BUILD_DIST_DIR)/android
 WEB_BUILD_DIR = $(BUILD_DIR)/web
 LINUX_ARCHES = x86_64 aarch64
 ANDROID_DIST ?= release
 
 INSTALL_DIR = $(HOME)/.local/share/inbe
 BIN_DIR = $(HOME)/bin
-TARBALL = $(LINUX_BUILD_DIR)/inbe-linux.tar.gz
+TARBALL = $(LINUX_DIST_DIR)/inbe-linux.tar.gz
 
 LOCALE_FILES = $(wildcard locales/*.txt)
 THEME_FILES = $(wildcard $(FLINT_DIR)/themes/*.ini)
@@ -59,7 +67,7 @@ SOUND_FILES = assets/sounds/breath-in.ogg assets/sounds/breath-out.ogg assets/so
 FONT_OUTPUTS = assets/fonts/locales.png assets/fonts/locales.dat
 FONT_FILES = $(FONT_OUTPUTS)
 EMBEDDED_ASSET_FILES = $(LOCALE_FILES) $(THEME_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
-EMBEDDED_ASSETS_C = $(BUILD_DIR)/inbe_embedded_assets.c
+EMBEDDED_ASSETS_C = $(BUILD_OBJ_DIR)/inbe_embedded_assets.c
 SRC += $(EMBEDDED_ASSETS_C)
 FONT_TOOL = vendor/otfchop/otfchop
 FONT_SOURCE = vendor/otfchop/unifont-17.0.04.otf
@@ -74,7 +82,7 @@ $(FONT_OUTPUTS): $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
 $(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
 	$(MAKE) -C vendor/otfchop otfchop
 
-$(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | build
+$(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
 INBE_RAYLIB_CONFIG = $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1
@@ -103,17 +111,41 @@ endif
 build:
 	mkdir -p $(BUILD_DIR)
 
-$(LINUX_BUILD_DIR):
+$(BUILD_OBJ_DIR):
 	mkdir -p $@
 
-$(WINDOWS_BUILD_DIR):
+$(BUILD_BIN_DIR):
 	mkdir -p $@
 
-$(ANDROID_BUILD_DIR):
+$(BUILD_DIST_DIR):
 	mkdir -p $@
 
-$(WEB_BUILD_DIR):
+$(LINUX_OBJ_DIR): | $(BUILD_OBJ_DIR)
 	mkdir -p $@
 
-$(RAYLIB_BUILD_DIR): build
+$(LINUX_BIN_DIR): | $(BUILD_BIN_DIR)
+	mkdir -p $@
+
+$(LINUX_DIST_DIR): | $(BUILD_DIST_DIR)
+	mkdir -p $@
+
+$(WINDOWS_OBJ_DIR): | $(BUILD_OBJ_DIR)
+	mkdir -p $@
+
+$(WINDOWS_BIN_DIR): | $(BUILD_BIN_DIR)
+	mkdir -p $@
+
+$(WINDOWS_DIST_DIR): | $(BUILD_DIST_DIR)
+	mkdir -p $@
+
+$(ANDROID_DIST_DIR): | $(BUILD_DIST_DIR)
+	mkdir -p $@
+
+$(ANDROID_BUILD_DIR): | build
+	mkdir -p $@
+
+$(WEB_BUILD_DIR): | build
+	mkdir -p $@
+
+$(RAYLIB_BUILD_DIR): | build
 	mkdir -p $@
