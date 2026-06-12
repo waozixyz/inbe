@@ -14,6 +14,8 @@
 #include "version.h"
 #include "flint_ui.h"
 #include "flint_dpi.h"
+#include "flint_text.h"
+#include "flint_embedded_assets.h"
 
 #if !defined(LOTUS_BUILD)
 #define RINI_IMPLEMENTATION
@@ -43,11 +45,11 @@ void set_global_inbe_app(InbeApp *app);
 #define INBE_DEFAULT_HEIGHT 560
 
 InbeConfig config = {
-    .title = "",
+    .title = "Inner Breeze",
     .width = INBE_DEFAULT_WIDTH,
     .height = INBE_DEFAULT_HEIGHT,
     .loaded = 0,
-    .title_custom = 0
+    .title_custom = 1
 };
 
 int view_width = INBE_DEFAULT_WIDTH;
@@ -124,11 +126,19 @@ load_locale_font(InbeApp *app)
 {
     Font font;
     Image white;
+    const FlintEmbeddedAsset *png;
+    const FlintEmbeddedAsset *dat;
 
     if(app == NULL)
         return 0;
 
-    font = flint_text_load_chopped_font(LOCALE_FONT_PNG, LOCALE_FONT_DAT, LOCALE_FONT_BASE_SIZE);
+    png = flint_embedded_asset(LOCALE_FONT_PNG);
+    dat = flint_embedded_asset(LOCALE_FONT_DAT);
+    if(png == NULL || dat == NULL)
+        return 0;
+
+    font = flint_text_load_chopped_font_from_memory(png->data, png->size, dat->data, dat->size,
+                                                    LOCALE_FONT_BASE_SIZE);
     if(font.texture.id == 0)
         return 0;
 
@@ -305,24 +315,13 @@ refresh_theme_colors(int theme_id, int dark_mode)
 static void
 inbe_settings_path(char *out, size_t out_size)
 {
-    char apps_path[FS_PATH_MAX];
-    char inbe_path[FS_PATH_MAX];
-    snprintf(apps_path, sizeof(apps_path), "%s/apps", data_root());
-    if(!DirectoryExists(apps_path))
-        MakeDirectory(apps_path);
-    snprintf(inbe_path, sizeof(inbe_path), "%s/apps/inbe", data_root());
-    if(!DirectoryExists(inbe_path))
-        MakeDirectory(inbe_path);
-    snprintf(out, out_size, "%s/apps/inbe/settings.ini", data_root());
+    snprintf(out, out_size, "%s/settings.ini", data_root());
 }
 
 static void
 register_all_themes(void)
 {
-    if(DirectoryExists("vendor/flint/themes"))
-        flint_theme_register_defaults("vendor/flint/themes");
-    else
-        flint_theme_register_defaults("themes");
+    flint_theme_register_defaults("vendor/flint/themes");
 }
 
 static void
@@ -330,34 +329,6 @@ load_config(void)
 {
     if(config.loaded)
         return;
-
-    const char *paths[] = {
-        "inbe.ini",
-        "apps/inbe/inbe.ini",
-        "../inbe/inbe.ini",
-        0
-    };
-
-    for(int i = 0; paths[i] != 0; i++) {
-        rini_data ini = rini_load(paths[i]);
-        if(ini.count == 0) {
-            rini_unload(&ini);
-            continue;
-        }
-
-        const char *title = rini_get_value_text(ini, "title");
-        if(title != NULL && title[0] != '\0') {
-            snprintf(config.title, sizeof(config.title), "%s", title);
-            config.title_custom = 1;
-        } else {
-            snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
-            config.title_custom = 0;
-        }
-        config.width = rini_get_value_fallback(ini, "width", INBE_DEFAULT_WIDTH);
-        config.height = rini_get_value_fallback(ini, "height", INBE_DEFAULT_HEIGHT);
-        rini_unload(&ini);
-        break;
-    }
 
     if(config.title[0] == '\0') {
         snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
@@ -491,6 +462,7 @@ load_settings(InbeApp *app)
     char settings_path[FS_PATH_MAX];
     inbe_settings_path(settings_path, sizeof(settings_path));
     rini_data settings = rini_load(settings_path);
+    int settings_missing = settings.count == 0;
 
     int speed = rini_get_value_fallback(settings, "speed", DefaultSpeedLevel);
     int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
@@ -552,12 +524,39 @@ load_settings(InbeApp *app)
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     refresh_locale_dependent_text(app);
     rini_unload(&settings);
+    if(settings_missing)
+        save_settings(app);
 }
 
 static Texture2D
-load_pixel_texture(const char *path)
+load_pixel_texture_from_asset(const char *path)
 {
-    Texture2D texture = LoadTexture(path);
+    const FlintEmbeddedAsset *asset = flint_embedded_asset(path);
+    Image image;
+    Texture2D texture = {0};
+
+    if(asset == NULL || asset->data == NULL || asset->size == 0)
+        return texture;
+
+    image = LoadImageFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
+    if(image.data == NULL)
+        return texture;
+
+#if defined(_WIN32)
+    {
+        int pot_w = 1;
+        int pot_h = 1;
+        while(pot_w < image.width)
+            pot_w <<= 1;
+        while(pot_h < image.height)
+            pot_h <<= 1;
+        if(pot_w != image.width || pot_h != image.height)
+            ImageResizeCanvas(&image, pot_w, pot_h, 0, 0, BLANK);
+    }
+#endif
+
+    texture = LoadTextureFromImage(image);
+    UnloadImage(image);
     if(texture.id != 0)
         SetTextureFilter(texture, TEXTURE_FILTER_POINT);
     return texture;
@@ -583,40 +582,29 @@ load_asset_texture(const char *name)
     char path[64];
 
     snprintf(path, sizeof(path), "assets/%s", name);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
-    return load_pixel_texture(path);
-#else
-    if(FileExists(path))
-        return load_pixel_texture(path);
-
-    snprintf(path, sizeof(path), "../inbe/assets/%s", name);
-    if(FileExists(path))
-        return load_pixel_texture(path);
-
-    snprintf(path, sizeof(path), "../assets/%s", name);
-    return load_pixel_texture(path);
-#endif
+    return load_pixel_texture_from_asset(path);
 }
 
 static Sound
 load_sound_asset(const char *name)
 {
     char path[96];
+    const FlintEmbeddedAsset *asset;
+    Wave wave;
+    Sound sound = {0};
 
     snprintf(path, sizeof(path), "assets/sounds/%s", name);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
-    return LoadSound(path);
-#else
-    if(FileExists(path))
-        return LoadSound(path);
+    asset = flint_embedded_asset(path);
+    if(asset == NULL || asset->data == NULL || asset->size == 0)
+        return sound;
 
-    snprintf(path, sizeof(path), "../inbe/assets/sounds/%s", name);
-    if(FileExists(path))
-        return LoadSound(path);
+    wave = LoadWaveFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
+    if(wave.data == NULL)
+        return sound;
 
-    snprintf(path, sizeof(path), "../assets/sounds/%s", name);
-    return LoadSound(path);
-#endif
+    sound = LoadSoundFromWave(wave);
+    UnloadWave(wave);
+    return sound;
 }
 
 static void
@@ -762,6 +750,9 @@ inbe_app_init(void *vapp) {
     }
     if(app->globe_icon.id == 0) {
         app->globe_icon = load_icon_texture("globe.png");
+    }
+    if(app->btc_icon.id == 0) {
+        app->btc_icon = load_icon_texture("btc.png");
     }
     if(app->monero_icon.id == 0) {
         app->monero_icon = load_icon_texture("monero.png");
@@ -1040,6 +1031,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->save_icon);
     SafeUnloadTexture(app->discord_icon);
     SafeUnloadTexture(app->telegram_icon);
+    SafeUnloadTexture(app->btc_icon);
     SafeUnloadTexture(app->monero_icon);
     SafeUnloadTexture(app->sound0_icon);
     SafeUnloadTexture(app->sound1_icon);

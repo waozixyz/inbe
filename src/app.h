@@ -133,6 +133,7 @@ struct InbeApp {
     Texture2D discord_icon;
     Texture2D telegram_icon;
     Texture2D globe_icon;
+    Texture2D btc_icon;
     Texture2D monero_icon;
     Texture2D sound0_icon;
     Texture2D sound1_icon;

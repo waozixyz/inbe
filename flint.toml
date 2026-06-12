@@ -1,0 +1,84 @@
+[app]
+name = "inbe"
+title = "Inner Breeze"
+id = "xyz.waozi.inbe"
+version_header = "src/version.h"
+
+[paths]
+raylib = "vendor/raylib/src"
+flint = "vendor/flint"
+core_library = "libinbe"
+android_project = "droid"
+
+[sources]
+app = [
+  "src/main.c",
+  "src/app.c",
+  "src/app_session.c",
+  "src/locale.c",
+  "src/theme_meta.c",
+  "src/theme.c",
+  "src/data.c",
+  "src/miniz.c",
+  "src/android/android_share.c",
+  "src/tabs/history_tab.c",
+  "src/tabs/language_tab.c",
+  "src/tabs/manual_tab.c",
+  "src/tabs/settings_tab.c"
+]
+core = ["libinbe/inbe.c"]
+include_dirs = ["src", "src/android", "libinbe"]
+
+[assets]
+locales = "locales/*.txt"
+themes = "vendor/flint/themes/*.ini"
+images = ["assets/angel.jpg", "assets/begin.jpg"]
+sounds = [
+  "assets/sounds/breath-in.ogg",
+  "assets/sounds/breath-out.ogg",
+  "assets/sounds/bell.ogg"
+]
+generated_fonts = ["assets/fonts/locales.png", "assets/fonts/locales.dat"]
+font_tool = "vendor/otfchop/otfchop"
+font_source = "vendor/otfchop/unifont-17.0.04.otf"
+
+[raylib]
+modules = ["core", "shapes", "textures", "text", "audio"]
+audio = true
+models = false
+graphics = "gles2"
+formats = ["jpg", "png", "ogg"]
+
+[platform.linux]
+arches = ["x86_64", "aarch64"]
+backend = "sdl"
+
+[platform.windows]
+arches = ["x86_64", "i686"]
+renderers = ["opengl", "rlsw"]
+
+[platform.web]
+shell = "src/web_shell.html"
+public = ["manifest.json", "web-assets"]
+
+[platform.android]
+min_sdk = 19
+target_sdk = 35
+compile_sdk = 35
+abis = ["arm64-v8a", "armeabi-v7a", "x86", "x86_64"]
+activity = "xyz.waozi.inbe.MainActivity"
+sources = [
+  "src/android/android_import.c",
+  "src/android/android_share.c",
+  "src/android/android_insets.c",
+  "src/android/android_wakelock.c",
+  "src/android/android_timer.c"
+]
+
+[dist.itch]
+user = "waozi"
+game = "inbe"
+web_channel = "html5"
+windows_channel = "windows"
+linux_channel = "linux"
+android_channel = "android"

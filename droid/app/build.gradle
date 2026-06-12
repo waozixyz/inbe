@@ -34,8 +34,8 @@ android {
     defaultConfig {
         minSdk 19
         targetSdk 35
-        versionCode 25
-        versionName "1.2.4"
+        versionCode 26
+        versionName "1.2.5"
     }
     
 
@@ -74,7 +74,7 @@ gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.hasTask(":app:assembleRelease")
         && !project.findProperty('keystore.password')
         && !project.hasProperty('fDroidBuild')) {
-        throw new GradleException("Use: make android-release PASSWORD=your-password")
+        throw new GradleException("Use: flint dist android PASSWORD=your-password")
     }
 }
 

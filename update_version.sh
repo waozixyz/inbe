@@ -6,6 +6,7 @@ set -e
 
 CHANGELOG_FILE="CHANGELOG.md"
 GRADLE_FILE="droid/app/build.gradle"
+WINDOWS_RC_FILE="windows/inbe.rc"
 CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
 
 # Extract all versions from CHANGELOG
@@ -53,6 +54,17 @@ sed -i "s/^#define INBE_VERSION_PATCH .*/#define INBE_VERSION_PATCH $PATCH/" "$V
 sed -i "s/^#define INBE_VERSION_STRING .*/#define INBE_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
 
 echo "✓ Updated $VERSION_H_FILE"
+
+if [ -f "$WINDOWS_RC_FILE" ]; then
+    WINDOWS_VERSION="$MAJOR,$MINOR,$PATCH,0"
+    sed -i "s/^ FILEVERSION .*/ FILEVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
+    sed -i "s/^ PRODUCTVERSION .*/ PRODUCTVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
+    sed -i "s/^\([[:space:]]*VALUE \"FileVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
+    sed -i "s/^\([[:space:]]*VALUE \"ProductVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
+    echo "✓ Updated $WINDOWS_RC_FILE"
+else
+    echo "Warning: $WINDOWS_RC_FILE not found"
+fi
 
 update_website_version_in_file() {
     local file="$1"

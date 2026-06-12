@@ -1,4 +1,8 @@
 # Changelog
+## [1.2.5] - 2026-06-12
+### Added
+- BTC address for donations
+
 ## [1.2.4] - 2026-06-11
 ### Fixed
 - Android sessions continue correctly when the notification shade causes focus loss with background playback enabled.

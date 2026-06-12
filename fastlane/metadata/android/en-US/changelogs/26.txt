@@ -1,0 +1,2 @@
+### Added
+- BTC address for donations

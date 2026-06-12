@@ -192,11 +192,17 @@ settings_draw_exact_speed_preview(Inbe *preview, int *preview_speed,
     if(preview == NULL || preview_speed == NULL)
         return;
 
-    if(*preview_speed != speed || preview->phase != InbePhaseBreathe) {
+    if(preview->phase != InbePhaseBreathe) {
         inbeinit(preview);
         apply_settings(preview, speed, max_rounds, max_breaths, pause_seconds);
         preview->progressive_speed = 0;
         session_reset_round_breathe(preview);
+    } else if(*preview_speed != speed) {
+        apply_settings(preview, speed, max_rounds, max_breaths, pause_seconds);
+        preview->progressive_speed = 0;
+    }
+
+    if(*preview_speed != speed) {
         *preview_speed = speed;
     }
 
@@ -261,7 +267,6 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
                       modal_w - flint_px(48), locale_get("progressive_start_speed_label"),
                       SETTINGS_SPEED_MIN, max_speed, &start_speed, "")) {
         app->inbe.progressive_start_speed = start_speed;
-        app->start_speed_preview_speed = 0;
         app->settings_dirty = 1;
     }
 }
@@ -945,20 +950,23 @@ settings_tab_draw(InbeApp *app)
                     int icon_padding = flint_px(4);
                     int icon_spacing = flint_px(20);
                     int icon_btn_w = icon_size + icon_padding * 2;
-                    int total_w = icon_btn_w * 3 + icon_spacing * 2;
-                    int columns = total_w <= content_w ? 3 : 2;
+                    int link_count = 4;
+                    int max_columns = 4;
+                    int total_w = icon_btn_w * max_columns + icon_spacing * (max_columns - 1);
+                    int columns = total_w <= content_w ? max_columns : 2;
                     int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
                     int links_start_x = content_x + (content_w - grid_w) / 2;
                     int row_spacing = flint_px(16);
-                    Texture2D icons[3] = {app->discord_icon, app->telegram_icon, app->monero_icon};
-                    UIIconType icon_types[3] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_MONERO};
-                    const char *urls[3] = {
+                    Texture2D icons[4] = {app->discord_icon, app->telegram_icon, app->btc_icon, app->monero_icon};
+                    UIIconType icon_types[4] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_BTC, UI_ICON_TYPE_MONERO};
+                    const char *urls[4] = {
                         "https://discord.gg/JbGZ4yENDt",
                         "https://t.me/lotusinbe",
+                        "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
                         "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
                     };
 
-                    for(int i = 0; i < 3; i++) {
+                    for(int i = 0; i < link_count; i++) {
                         int col = i % columns;
                         int row = i / columns;
                         int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
