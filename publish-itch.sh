@@ -27,8 +27,8 @@ LINUX_CHANNEL="linux"
 ANDROID_CHANNEL="android"
 
 WEB_BUILD_DIR="build/web"
-WINDOWS_ARTIFACT="build/windows/inbe-windows.zip"
-LINUX_ARTIFACT="build/linux/inbe-linux.tar.gz"
+WINDOWS_ARTIFACT="build/dist/windows/inbe-windows.zip"
+LINUX_ARTIFACT="build/dist/linux/inbe-linux.tar.gz"
 
 find_android_artifact() {
     if [ -f "build/android/inbe-$VERSION.apk" ]; then

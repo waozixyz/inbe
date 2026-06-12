@@ -83,13 +83,13 @@ if [ -d "build/web" ]; then
         [ -f "$raylib_web_artifact" ] && cp "$raylib_web_artifact" "$TMPDIR/build/web/"
     done
 fi
-if [ -d "build/linux" ]; then
-    for raylib_linux_artifact in build/linux/inbe-linux-* build/linux/inbe-linux.tar.gz; do
+if [ -d "build/bin/linux" ] || [ -d "build/dist/linux" ]; then
+    for raylib_linux_artifact in build/bin/linux/inbe-linux-* build/dist/linux/inbe-linux.tar.gz; do
         [ -f "$raylib_linux_artifact" ] && cp "$raylib_linux_artifact" "$TMPDIR/build/linux/"
     done
 fi
-if [ -d "build/windows" ]; then
-    for raylib_windows_artifact in build/windows/inbe-windows-* build/windows/inbe-windows.zip; do
+if [ -d "build/bin/windows" ] || [ -d "build/dist/windows" ]; then
+    for raylib_windows_artifact in build/bin/windows/inbe-windows-*.exe build/dist/windows/inbe-windows.zip; do
         [ -f "$raylib_windows_artifact" ] && cp "$raylib_windows_artifact" "$TMPDIR/build/windows/"
     done
 fi

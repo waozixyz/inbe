@@ -31,7 +31,7 @@ nix develop
 make
 
 # Run
-./build/linux/inbe-linux-$(uname -m)
+./build/bin/linux/inbe-linux-$(uname -m)
 ```
 
 ### Cross-Platform Builds
@@ -40,7 +40,7 @@ make
 # Linux (both architectures)
 make linux
 
-# Windows (from Linux)
+# Windows (x86_64/i686, OpenGL and software renderer variants, from Linux)
 make windows
 
 # Android APK

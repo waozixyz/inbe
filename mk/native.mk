@@ -1,6 +1,6 @@
 BINARY_NAME = inbe-$(PLATFORM)-$(ARCH)
-TARGET = $(LINUX_BUILD_DIR)/$(BINARY_NAME)
-LINUX_INBE_A = $(LINUX_BUILD_DIR)/libinbe.a
+TARGET = $(LINUX_BIN_DIR)/$(BINARY_NAME)
+LINUX_INBE_A = $(LINUX_OBJ_DIR)/libinbe.a
 
 all: native
 
@@ -11,19 +11,19 @@ $(RAYLIB_A): $(RAYLIB_SOURCES) | $(RAYLIB_BUILD_DIR)
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../build/sdl \
+		RAYLIB_RELEASE_PATH=../../../$(RAYLIB_BUILD_DIR) \
 		RAYLIB_MODULE_AUDIO=TRUE \
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(INBE_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
-$(LINUX_INBE_A): FORCE | $(LINUX_BUILD_DIR)
+$(LINUX_INBE_A): $(INBE_DIR)/inbe.c $(INBE_DIR)/inbe.h | $(LINUX_OBJ_DIR)
 	$(MAKE) -C $(INBE_DIR) clean
 	$(MAKE) -C $(INBE_DIR) CC=$(CC) AR=ar
 	cp $(INBE_A) $@
 
-$(TARGET): $(SRC) $(FLINT_SRCS) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BUILD_DIR)
+$(TARGET): $(SRC) $(FLINT_SRCS) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LINUX_INBE_A) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -46,7 +46,7 @@ run: $(TARGET)
 
 linux: $(LINUX_ARCHES:%=linux-%)
 
-linux-x86_64: | $(LINUX_BUILD_DIR)
+linux-x86_64: | $(LINUX_BIN_DIR) $(LINUX_OBJ_DIR)
 	$(MAKE) build-linux-arch \
 		ARCH_NAME=x86_64 \
 		LINUX_CC="$(CC)" \
@@ -56,7 +56,7 @@ linux-x86_64: | $(LINUX_BUILD_DIR)
 		LINUX_RAY_SDL_LDLIBS="$(RAY_SDL_LDLIBS)" \
 		LINUX_RAY_SDL_INCLUDE_DIR="$(RAY_SDL_INCLUDE_DIR)"
 
-linux-aarch64: | $(LINUX_BUILD_DIR)
+linux-aarch64: | $(LINUX_BIN_DIR) $(LINUX_OBJ_DIR)
 	@if [ -z "$(AARCH64_CC)" ] || [ -z "$(AARCH64_AR)" ] || [ -z "$(AARCH64_RAY_CFLAGS)" ] || [ -z "$(AARCH64_RAY_LDLIBS)" ] || [ -z "$(AARCH64_RAY_SDL_LDLIBS)" ] || [ -z "$(AARCH64_RAY_SDL_INCLUDE_DIR)" ]; then \
 		echo "AARCH64 cross-build variables are missing. Enter the flake shell with 'nix develop'."; \
 		exit 1; \
@@ -71,7 +71,7 @@ linux-aarch64: | $(LINUX_BUILD_DIR)
 		LINUX_RAY_SDL_INCLUDE_DIR="$(AARCH64_RAY_SDL_INCLUDE_DIR)"
 
 build-linux-arch:
-	@mkdir -p $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME) vendor/raylib/build/sdl-$(ARCH_NAME)
+	@mkdir -p $(LINUX_OBJ_DIR)/$(ARCH_NAME) $(LINUX_OBJ_DIR)/$(ARCH_NAME)/raylib $(LINUX_BIN_DIR)
 	$(MAKE) $(FONT_FILES)
 	$(MAKE) $(EMBEDDED_ASSETS_C)
 	$(MAKE) -C $(RAYLIB_DIR) clean
@@ -81,15 +81,15 @@ build-linux-arch:
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../build/sdl-$(ARCH_NAME) \
+		RAYLIB_RELEASE_PATH=../../../$(LINUX_OBJ_DIR)/$(ARCH_NAME)/raylib \
 		RAYLIB_MODULE_AUDIO=TRUE \
 		RAYLIB_MODULE_MODELS=FALSE \
 		SDL_INCLUDE_PATH="$(LINUX_RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(LINUX_RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(LINUX_RAY_CFLAGS) $(INBE_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 	$(MAKE) -C $(RAYLIB_DIR) clean
-	$(LINUX_CC) $(CFLAGS) -I$(INBE_DIR) -c $(INBE_DIR)/inbe.c -o $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
-	$(LINUX_AR) rcs $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a $(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/inbe.o
+	$(LINUX_CC) $(CFLAGS) -I$(INBE_DIR) -c $(INBE_DIR)/inbe.c -o $(LINUX_OBJ_DIR)/$(ARCH_NAME)/inbe.o
+	$(LINUX_AR) rcs $(LINUX_OBJ_DIR)/$(ARCH_NAME)/libinbe.a $(LINUX_OBJ_DIR)/$(ARCH_NAME)/inbe.o
 	$(LINUX_CC) $(CFLAGS) \
 		-I$(RAYLIB_DIR) \
 		-I$(INBE_DIR) \
@@ -98,11 +98,11 @@ build-linux-arch:
 		$(LINUX_RAY_CFLAGS) \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-o $(LINUX_BUILD_DIR)/inbe-linux-$(ARCH_NAME) \
+		-o $(LINUX_BIN_DIR)/inbe-linux-$(ARCH_NAME) \
 		$(SRC) \
 		$(FLINT_SRCS) \
-		$(LINUX_BUILD_DIR)/obj-$(ARCH_NAME)/libinbe.a \
-		vendor/raylib/build/sdl-$(ARCH_NAME)/libraylib.a \
+		$(LINUX_OBJ_DIR)/$(ARCH_NAME)/libinbe.a \
+		$(LINUX_OBJ_DIR)/$(ARCH_NAME)/raylib/libraylib.a \
 		$(LINUX_RAY_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
