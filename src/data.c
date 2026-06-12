@@ -844,6 +844,9 @@ parse_session_path(const char *zip_path, int *year, int *month, int *day, char *
     if(strncmp(p, "inbe-", 5) != 0)
         return 0;
 
+    if(strchr(p, '/') != NULL || strchr(p, '\\') != NULL)
+        return 0;
+
     // Copy filename
     if(strlen(p) >= FS_PATH_MAX - 1)
         return 0;
@@ -858,14 +861,14 @@ parse_session_path(const char *zip_path, int *year, int *month, int *day, char *
 }
 
 static int
-validate_session_content(const char *content, int *round_count)
+parse_session_content(const char *content, int *round_times, int max_rounds, int *round_count)
 {
     char *dup;
     char *line;
     int count = 0;
     int valid = 1;
 
-    if(content == NULL || round_count == NULL)
+    if(content == NULL || round_times == NULL || round_count == NULL || max_rounds <= 0)
         return 0;
 
     dup = strdup(content);
@@ -880,8 +883,8 @@ validate_session_content(const char *content, int *round_count)
 
         if(*line != '\0') {
             int seconds = atoi(line);
-            if(seconds > 0 && seconds <= 999) {
-                count++;
+            if(seconds > 0 && seconds <= 999 && count < max_rounds) {
+                round_times[count++] = seconds;
             } else {
                 valid = 0;
                 break;
@@ -902,33 +905,66 @@ validate_session_content(const char *content, int *round_count)
 }
 
 static int
-import_session_file(const char *zip_path, const char *local_path, mz_zip_archive *archive)
+write_session_content_atomic(const char *path, const int *round_times, int round_count)
 {
-    char *content = NULL;
-    size_t size;
+    char temp_path[FS_PATH_MAX];
+    char text[MaxRounds * 8];
+    int offset = 0;
     FILE *fp;
-    int round_count;
 
-    if(zip_path == NULL || local_path == NULL || archive == NULL)
+    if(path == NULL || path[0] == '\0' || round_times == NULL || round_count <= 0 || round_count > MaxRounds)
         return 0;
 
-    // Extract file from ZIP
-    size = 0;
-    content = (char *)mz_zip_reader_extract_file_to_heap(archive, zip_path, &size, 0);
-    if(content == NULL || size == 0) {
-        TraceLog(LOG_WARNING, "DATA: failed to extract file from ZIP: %s", zip_path);
+    snprintf(temp_path, sizeof(temp_path), "%s.importing", path);
+
+    for(int i = 0; i < round_count; i++) {
+        if(round_times[i] <= 0)
+            continue;
+        if(offset >= (int)sizeof(text) - 8)
+            break;
+        offset += snprintf(text + offset, sizeof(text) - (size_t)offset,
+                           "%d\n", round_times[i]);
+    }
+
+    if(offset <= 0)
+        return 0;
+
+    fp = fopen(temp_path, "w");
+    if(fp == NULL) {
+        TraceLog(LOG_ERROR, "DATA: failed to open temp import file: %s", temp_path);
         return 0;
     }
 
-    // Validate session content
-    if(!validate_session_content(content, &round_count)) {
-        TraceLog(LOG_WARNING, "DATA: invalid session content: %s", zip_path);
-        free(content);
+    if(fwrite(text, 1, (size_t)offset, fp) != (size_t)offset) {
+        TraceLog(LOG_ERROR, "DATA: failed to write temp import file: %s", temp_path);
+        fclose(fp);
+        remove(temp_path);
         return 0;
     }
 
-    // Create directory structure if needed
+    if(fclose(fp) != 0) {
+        TraceLog(LOG_ERROR, "DATA: failed to close temp import file: %s", temp_path);
+        remove(temp_path);
+        return 0;
+    }
+
+    if(rename(temp_path, path) != 0) {
+        TraceLog(LOG_ERROR, "DATA: failed to move temp import file to %s", path);
+        remove(temp_path);
+        return 0;
+    }
+
+    return 1;
+}
+
+static int
+ensure_session_parent_dir(const char *local_path)
+{
     char dir_path[FS_PATH_MAX];
+
+    if(local_path == NULL || local_path[0] == '\0')
+        return 0;
+
     strncpy(dir_path, local_path, sizeof(dir_path) - 1);
     dir_path[sizeof(dir_path) - 1] = '\0';
 
@@ -937,30 +973,63 @@ import_session_file(const char *zip_path, const char *local_path, mz_zip_archive
         *last_slash = '\0';
         if(!ensure_dir(dir_path)) {
             TraceLog(LOG_ERROR, "DATA: failed to create directory: %s", dir_path);
-            free(content);
             return 0;
         }
     }
 
-    // Write session file
-    fp = fopen(local_path, "w");
-    if(fp == NULL) {
-        TraceLog(LOG_ERROR, "DATA: failed to open file for writing: %s", local_path);
-        free(content);
+    return 1;
+}
+
+static int
+import_session_file(const char *zip_path, const char *local_path, mz_zip_archive *archive)
+{
+    char *content = NULL;
+    char *import_text = NULL;
+    size_t size;
+    int imported_rounds[MaxRounds];
+    int imported_count = 0;
+
+    if(zip_path == NULL || local_path == NULL || archive == NULL)
+        return 0;
+
+    size = 0;
+    content = (char *)mz_zip_reader_extract_file_to_heap(archive, zip_path, &size, 0);
+    if(content == NULL || size == 0) {
+        TraceLog(LOG_WARNING, "DATA: failed to extract file from ZIP: %s", zip_path);
         return 0;
     }
 
-    if(fwrite(content, 1, size, fp) != size) {
-        TraceLog(LOG_ERROR, "DATA: failed to write session file: %s", local_path);
-        fclose(fp);
+    import_text = malloc(size + 1);
+    if(import_text == NULL) {
         free(content);
         return 0;
     }
-
-    fclose(fp);
+    memcpy(import_text, content, size);
+    import_text[size] = '\0';
     free(content);
 
-    TraceLog(LOG_INFO, "DATA: imported session: %s (%d rounds)", local_path, round_count);
+    if(!parse_session_content(import_text, imported_rounds, MaxRounds, &imported_count)) {
+        TraceLog(LOG_WARNING, "DATA: invalid session content: %s", zip_path);
+        free(import_text);
+        return 0;
+    }
+
+    if(!ensure_session_parent_dir(local_path)) {
+        free(import_text);
+        return 0;
+    }
+
+    if(FileExists(local_path))
+        TraceLog(LOG_INFO, "DATA: replacing existing imported session: %s", local_path);
+
+    if(!write_session_content_atomic(local_path, imported_rounds, imported_count)) {
+        free(import_text);
+        return 0;
+    }
+
+    free(import_text);
+
+    TraceLog(LOG_INFO, "DATA: imported session: %s (%d rounds)", local_path, imported_count);
     return 1;
 }
 

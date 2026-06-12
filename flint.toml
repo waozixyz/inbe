@@ -20,7 +20,6 @@ app = [
   "src/theme.c",
   "src/data.c",
   "src/miniz.c",
-  "src/android/android_share.c",
   "src/tabs/history_tab.c",
   "src/tabs/language_tab.c",
   "src/tabs/manual_tab.c",
@@ -74,11 +73,5 @@ sources = [
   "src/android/android_wakelock.c",
   "src/android/android_timer.c"
 ]
-
-[dist.itch]
-user = "waozi"
-game = "inbe"
-web_channel = "html5"
-windows_channel = "windows"
-linux_channel = "linux"
-android_channel = "android"
+keystore = "flint-release.keystore"
+key_alias = "inbe-key"
