@@ -1,6 +1,7 @@
 #include "raylib.h"
 #include "app.h"
 #include "flint_dpi.h"
+#include "flint_web.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -183,6 +184,10 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 static void
 frame(void)
 {
+#if defined(PLATFORM_WEB)
+    flint_web_sync_window_size();
+#endif
+
     int width = GetScreenWidth();
     int height = GetScreenHeight();
 #if !defined(PLATFORM_WEB)
@@ -243,11 +248,19 @@ int main(int argc, char **argv) {
     int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
     int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
 
+#if defined(PLATFORM_WEB)
+    flint_web_viewport_size(config.width, config.height, &window_w, &window_h);
+    config.width = window_w;
+    config.height = window_h;
+#endif
+
 #if INBE_ANDROID_BUILD
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
 #endif
 
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+#if defined(PLATFORM_WEB)
+    SetConfigFlags(flint_web_window_flags());
+#elif !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 

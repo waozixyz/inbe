@@ -960,7 +960,7 @@ settings_tab_draw(InbeApp *app)
                     Texture2D icons[4] = {app->discord_icon, app->telegram_icon, app->btc_icon, app->monero_icon};
                     UIIconType icon_types[4] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_BTC, UI_ICON_TYPE_MONERO};
                     const char *urls[4] = {
-                        "https://discord.gg/JbGZ4yENDt",
+                        "https://discord.com/invite/JbGZ4yENDt",
                         "https://t.me/lotusinbe",
                         "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
                         "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"

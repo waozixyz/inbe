@@ -25,6 +25,7 @@
       html, body {
         height: 100%;
         margin: 0;
+        overflow: hidden;
       }
 
       #status,
@@ -34,7 +35,8 @@
 
       .canvas-stage {
         width: 100%;
-        height: 100%;
+        height: 100vh;
+        height: 100dvh;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -45,8 +47,9 @@
       }
 
       .canvas-frame {
-        width: min(100vw, calc(100vh * 4 / 7));
-        aspect-ratio: 4 / 7;
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
         position: relative;
       }
 
@@ -63,9 +66,8 @@
 
       .canvas-frame:fullscreen,
       .canvas-frame:-webkit-full-screen {
-        width: min(100vw, calc(100vh * 4 / 7));
-        height: min(100vh, calc(100vw * 7 / 4));
-        margin: auto;
+        width: 100vw;
+        height: 100vh;
       }
     </style>
   </head>

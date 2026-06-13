@@ -562,6 +562,33 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     flint_text_draw(text, center_x - max_text_w / 2, text_y, font, c_text);
 }
 
+static void
+draw_session_round_label(InbeApp *app)
+{
+    char text[32];
+    char max_text[32];
+    int max_text_w;
+    int top_bar_left;
+    int top_bar_right;
+    int text_x;
+    int text_y;
+    int font = flint_px(16);
+
+    if(app->inbe.phase != InbePhaseBreathe)
+        return;
+
+    locale_format(max_text, sizeof(max_text), "session_round_label", MaxRounds);
+    max_text_w = flint_text_measure(max_text, font);
+    locale_format(text, sizeof(text), "session_round_label", app->inbe.round + 1);
+
+    top_bar_left = flint_px(12) + flint_px(24) + flint_px(10) * 2;
+    top_bar_right = view_width - flint_px(56);
+    text_x = top_bar_left + (top_bar_right - top_bar_left - max_text_w) / 2;
+    text_y = flint_ui_text_y(text, flint_px(12), flint_px(24) + flint_px(10) * 2, font);
+
+    flint_text_draw(text, text_x, text_y, font, c_text);
+}
+
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
@@ -748,6 +775,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     draw_session_status(app, center_x, center_y);
+    draw_session_round_label(app);
 
     if(!app->session_paused) {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
