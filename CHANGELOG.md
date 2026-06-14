@@ -1,4 +1,12 @@
 # Changelog
+## [1.3.0] - 2026-06-14
+### Added
+- Habit tracking with default Mind, Yoga, and Fitness habits.
+- Habit editing, custom colors, sync options, and deletion.
+- Practice tabs with configurable themes.
+### Changed
+- App theme now follows the active practice theme globally.
+
 ## [1.2.6] - 2026-06-12
 ### Fixed
 - Import now replaces only matching session files from the ZIP and never removes local sessions missing from the import.
