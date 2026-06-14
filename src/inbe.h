@@ -37,7 +37,6 @@ enum {
     InbeScreenSettings,
     InbeScreenLanguage,
     InbeScreenManual,
-    InbeScreenHistory,
     InbeScreenHabits,
     InbeScreenHabitManager,
     InbeScreenHabitEdit,

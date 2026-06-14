@@ -67,7 +67,6 @@ typedef enum {
     UIModalMeditationSetup,
     UIModalDataManagement,
     UIModalConfirmDeleteData,
-    UIModalConfirmDeleteHistory,
     UIModalEditProgressiveStartSpeed,
     UIModalHabitLinkedDetails,
 } UIModalType;
@@ -110,6 +109,35 @@ typedef enum ExerciseType {
     EXERCISE_COUNT
 } ExerciseType;
 
+typedef enum AppThemeMode {
+    APP_THEME_SYSTEM = 0,
+    APP_THEME_LIGHT = 1,
+    APP_THEME_DARK = 2,
+} AppThemeMode;
+
+typedef enum AppOrientationMode {
+    APP_ORIENTATION_SYSTEM = 0,
+    APP_ORIENTATION_PORTRAIT = 1,
+    APP_ORIENTATION_LANDSCAPE = 2,
+    APP_ORIENTATION_SENSOR = 3,
+} AppOrientationMode;
+
+typedef enum AppDeviceOrientation {
+    APP_DEVICE_ORIENTATION_UNKNOWN = 0,
+    APP_DEVICE_ORIENTATION_PORTRAIT = 1,
+    APP_DEVICE_ORIENTATION_LANDSCAPE = 2,
+} AppDeviceOrientation;
+
+typedef enum AppMainTab {
+    APP_MAIN_TAB_HABITS = 0,
+    APP_MAIN_TAB_PRACTICE = 1,
+} AppMainTab;
+
+typedef enum HabitsViewMode {
+    HABITS_VIEW_CALENDAR = 0,
+    HABITS_VIEW_LINKED = 1,
+} HabitsViewMode;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -137,6 +165,7 @@ struct InbeApp {
     Texture2D save_icon;
     Texture2D discord_icon;
     Texture2D telegram_icon;
+    Texture2D github_icon;
     Texture2D globe_icon;
     Texture2D btc_icon;
     Texture2D monero_icon;
@@ -164,6 +193,7 @@ struct InbeApp {
     int settings_drag_content;
     int settings_drag_content_y;
     int settings_dirty;
+    int settings_save_delay_ticks;
     int settings_category;
     int settings_sub_tab;
     int app_settings_tab;
@@ -186,27 +216,14 @@ struct InbeApp {
 
     int theme_id;
     int dark_mode;
+    int theme_mode;
+    int orientation_mode;
+    int android_orientation;
+    int main_tab;
+    int pending_bottom_tab;
 #if defined(LOTUS_BUILD)
     unsigned int lotus_settings_version;
 #endif
-    int history_scroll;
-    int history_drag_scrollbar;
-    int history_drag_content;
-    int history_drag_content_y;
-    int history_level;
-    int history_year;
-    int history_month;
-    int history_day;
-    char history_record[16];
-    int history_edit_active;
-    int history_edit_kind;
-    int history_edit_round;
-    int history_edit_cursor;
-    char history_edit_path[FS_PATH_MAX];
-    char history_edit_text[16];
-    int history_delete_kind;
-    int history_delete_round;
-    char history_delete_path[FS_PATH_MAX];
     InbeHabits habits;
     int habits_view_mode;
     int habits_list_scroll;
@@ -217,6 +234,7 @@ struct InbeApp {
     int habit_detail_index;
     int habit_detail_day;
     int habit_detail_session_index;
+    char habit_detail_session_path[FS_PATH_MAX];
     int habit_session_edit_scroll;
     int habit_session_edit_active;
     int habit_session_edit_kind;

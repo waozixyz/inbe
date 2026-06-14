@@ -53,7 +53,7 @@ Hudba na pozadí
 Přehrávat hudbu na pozadí
 ---
 [meditation_music_shuffle_label]
-Zamíchat skladby
+Náhodná stopa
 ---
 [meditation_music_track_label]
 Skladba
@@ -325,28 +325,6 @@ Tmavý
 ---
 [on_screen_keyboard_label]
 Klávesnice na obrazovce
----
-[history_title]
-Historie
----
-[history_empty]
-Zatím nejsou uložena žádná sezení.
-Dokončete sezení a přidejte data.
----
-[history_month_label]
-Měsíc %02d
----
-[history_day_label]
-Den %02d
----
-[history_round_short_label]
-K%d
----
-[history_round_label]
-K%d  %ds
----
-[history_session_label]
-%02d:%02d  průměr %ds
 ---
 [tutorial_title]
 Návod

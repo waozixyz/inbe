@@ -9,6 +9,7 @@ int flint_web_viewport_width(int fallback_width);
 int flint_web_viewport_height(int fallback_height);
 void flint_web_viewport_size(int fallback_width, int fallback_height,
                              int *width, int *height);
+void flint_web_set_orientation_mode(int mode);
 
 /*
  * Web builds should create a resizable raylib window in CSS-pixel units and

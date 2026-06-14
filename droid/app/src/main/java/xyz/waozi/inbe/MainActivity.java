@@ -1,8 +1,10 @@
 package xyz.waozi.inbe;
 
 import android.app.NativeActivity;
+import android.content.pm.ActivityInfo;
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.Configuration;
 import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
@@ -39,6 +41,8 @@ public class MainActivity extends NativeActivity {
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
+    private native void nativeSetSystemDark(int dark);
+    private native void nativeSetOrientation(int orientation);
     private native void nativeWakeLockReady();
     private native void nativeSetBackgroundActive(boolean active);
     private native int nativeGetPlayInBackground();
@@ -48,6 +52,32 @@ public class MainActivity extends NativeActivity {
     private native void nativeImportCancelled();
     private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
     private native void nativeRuntimeAssetDownloadFailed(long handle, int httpStatus, String error);
+
+    public void applyOrientationMode(final int mode) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                int requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+                switch (mode) {
+                    case 1:
+                        requested = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                        break;
+                    case 2:
+                        requested = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                        break;
+                    case 3:
+                        requested = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
+                        break;
+                    default:
+                        requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
+                        break;
+                }
+                setRequestedOrientation(requested);
+                pushDeviceConfiguration();
+                requestInsetRefresh();
+            }
+        });
+    }
 
     public void startRuntimeAssetDownload(final String url, final String path, final long handle) {
         new Thread(new Runnable() {
@@ -226,9 +256,47 @@ public class MainActivity extends NativeActivity {
         }
 
         setupInsetsListener();
+        pushDeviceConfiguration();
 
         // Notify native code that activity is ready for wake lock
         nativeWakeLockReady();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+        pushDeviceConfiguration();
+        requestInsetRefresh();
+    }
+
+    private void pushDeviceConfiguration() {
+        Configuration config = getResources().getConfiguration();
+        int nightMask = config.uiMode & Configuration.UI_MODE_NIGHT_MASK;
+        int dark = nightMask == Configuration.UI_MODE_NIGHT_YES ? 1 : 0;
+        int orientation = 0;
+
+        if (config.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            orientation = 1;
+        } else if (config.orientation == Configuration.ORIENTATION_LANDSCAPE) {
+            orientation = 2;
+        }
+
+        nativeSetSystemDark(dark);
+        nativeSetOrientation(orientation);
+    }
+
+    private void requestInsetRefresh() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            final View decorView = getWindow().getDecorView();
+            decorView.post(new Runnable() {
+                @Override
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                        decorView.requestApplyInsets();
+                    }
+                }
+            });
+        }
     }
 
     private void setupInsetsListener() {

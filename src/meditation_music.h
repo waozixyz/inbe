@@ -13,6 +13,7 @@ void meditation_music_unload(InbeApp *app);
 void meditation_music_start_session(InbeApp *app);
 void meditation_music_stop(InbeApp *app);
 void meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y);
+void meditation_music_draw_guide_settings(InbeApp *app, int content_x, int content_w, int *y);
 int meditation_music_draw_dropdown_menu(InbeApp *app);
 int meditation_music_available(InbeApp *app);
 const char *meditation_music_selected_label(InbeApp *app);

@@ -2,6 +2,7 @@
 #include "app.h"
 #include "app_session.h"
 #include "locale.h"
+#include "meditation_music.h"
 #include "flint_ui.h"
 #include "theme_meta.h"
 #include "raylib.h"
@@ -129,6 +130,14 @@ meditation_manual_draw(InbeApp *app)
     int responsive_max_w = (int)(view_width * 0.90f);
     int max_content_w = flint_px(520);
     int y;
+    int button_w;
+    int button_h = flint_px(36);
+    int button_y = view_height - flint_px(52);
+    int content_y = title_h + flint_px(20);
+    int content_h = button_y - content_y - flint_px(16);
+    int content_total_h = flint_px(410);
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
     FlintUIParagraph paragraph;
 
     if(responsive_max_w > max_content_w)
@@ -141,6 +150,9 @@ meditation_manual_draw(InbeApp *app)
     if(ui_draw_screen_header(locale_get("meditation_manual_title"), 1))
         manual_tab_close_tutorial(app, 0);
 
+    if(content_h < flint_px(120))
+        content_h = flint_px(120);
+
     paragraph = (FlintUIParagraph){
         .text = locale_get("meditation_manual_text"),
         .icon = (Texture2D){0},
@@ -152,15 +164,29 @@ meditation_manual_draw(InbeApp *app)
         .color = c_text,
     };
 
-    y = title_h + flint_px(32);
+    scroll_area = (FlintUIScrollArea){
+        .bounds = {(float)content_x, (float)content_y,
+                   (float)content_w, (float)content_h},
+        .content_height = content_total_h,
+        .scroll_offset = &app->manual_scroll,
+        .wheel_step = flint_px(42)
+    };
+    scroll_view = ui_scroll_container_begin(scroll_area);
+    y = scroll_view.content_y;
     flint_ui_paragraph_draw(paragraph, content_x, &y);
+    y += flint_px(24);
+
+    flint_text_draw(locale_get("meditation_music_section_title"),
+                    content_x, y, flint_ui_font(), c_text);
+    y += flint_px(30);
+    meditation_music_draw_guide_settings(app, content_x, content_w, &y);
+    ui_scroll_container_end(scroll_area, scroll_view);
+    meditation_music_draw_dropdown_menu(app);
 
     {
         int hover = 0;
-        int button_w = content_w;
-        int button_h = flint_px(36);
-        int button_y = view_height - flint_px(52);
 
+        button_w = content_w;
         if(button_w > flint_px(260))
             button_w = flint_px(260);
 
@@ -317,7 +343,7 @@ manual_tab_draw(InbeApp *app)
         content_drag_active = 0;
     }
 
-    BeginScissorMode((int)app->camera.offset.x,
+    ui_begin_scissor((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(content_area_h * app->camera.zoom));
@@ -394,7 +420,7 @@ manual_tab_draw(InbeApp *app)
             y += img_h + flint_px(22);
             draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
-    EndScissorMode();
+    ui_end_scissor();
 
     /* Draw scrollbar if content overflows */
     if(max_scroll > 0) {

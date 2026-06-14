@@ -1,5 +1,6 @@
 #include "android_insets.h"
 #include "android_import.h"
+#include "android_device.h"
 #include "android_runtime_assets.h"
 #include "android_timer.h"
 #include "android_wakelock.h"
@@ -177,6 +178,8 @@ static const JNINativeMethod g_methods[] = {
     {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
     {"nativePauseSession", "()I", (void*)nativePauseSession},
     {"nativeResumeSession", "()V", (void*)nativeResumeSession},
+    {"nativeSetSystemDark", "(I)V", (void*)android_device_native_set_system_dark},
+    {"nativeSetOrientation", "(I)V", (void*)android_device_native_set_orientation},
     {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
     {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},
     {"nativeRuntimeAssetDownloadSucceeded", "(JJI)V", (void*)android_runtime_asset_native_succeeded},

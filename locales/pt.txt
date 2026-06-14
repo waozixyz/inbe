@@ -53,7 +53,7 @@ Música de fundo
 Tocar música de fundo
 ---
 [meditation_music_shuffle_label]
-Embaralhar faixas
+Faixa aleatória
 ---
 [meditation_music_track_label]
 Faixa
@@ -325,28 +325,6 @@ Escuro
 ---
 [on_screen_keyboard_label]
 Teclado na tela
----
-[history_title]
-Histórico
----
-[history_empty]
-Ainda não há sessões salvas.
-Conclua uma sessão para adicionar dados.
----
-[history_month_label]
-Mês %02d
----
-[history_day_label]
-Dia %02d
----
-[history_round_short_label]
-R%d
----
-[history_round_label]
-R%d  %ds
----
-[history_session_label]
-%02d:%02d  média %ds
 ---
 [tutorial_title]
 Tutorial

@@ -547,6 +547,34 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
 }
 
 static void
+draw_meditation_start_preview(InbeApp *app, int center_x, int center_y)
+{
+    char text[16];
+    int seconds = 0;
+    int font = flint_px(44);
+    int text_w;
+
+    if(app != NULL && app->meditation_duration_seconds > 0)
+        seconds = app->meditation_duration_seconds;
+
+    snprintf(text, sizeof(text), "%02d:%02d", seconds / 60, seconds % 60);
+    text_w = flint_text_measure(text, font);
+    flint_text_draw(text, center_x - text_w / 2, center_y - font / 2,
+                    font, c_text);
+}
+
+void
+session_draw_start_preview(InbeApp *app, int center_x, int center_y)
+{
+    if(app != NULL && app->exercise_type == EXERCISE_MEDITATION) {
+        draw_meditation_start_preview(app, center_x, center_y);
+        return;
+    }
+
+    session_draw_inbe(app, center_x, center_y);
+}
+
+static void
 draw_session_status(InbeApp *app, int center_x, int center_y)
 {
     char text[32];

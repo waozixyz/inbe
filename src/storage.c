@@ -343,6 +343,22 @@ inbe_storage_set_setting_text(const char *key, const char *value)
 }
 
 void
+inbe_storage_settings_begin_write(void)
+{
+    if(g_storage.db == NULL)
+        return;
+    exec_sql("BEGIN IMMEDIATE");
+}
+
+void
+inbe_storage_settings_end_write(void)
+{
+    if(g_storage.db == NULL)
+        return;
+    exec_sql("COMMIT");
+}
+
+void
 inbe_storage_set_setting_int(const char *key, int value)
 {
     char text[32];
@@ -593,7 +609,7 @@ inbe_storage_delete_session(const char *path_or_id)
 }
 
 void
-inbe_storage_list_history(InbeStorageHistoryCallback callback, void *user)
+inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user)
 {
     sqlite3_stmt *stmt = NULL;
     if(callback == NULL || g_storage.db == NULL)
@@ -765,6 +781,8 @@ migrate_settings_file(const char *path, int overwrite)
     static const char *keys[] = {
         "speed", "max_rounds", "max_breaths", "pause_seconds", "sound_volume",
         "tutorial_seen", "exercise_manual_seen_mask", "theme", "dark_mode",
+        "theme_mode", "orientation_mode",
+        "main_tab", "habits_view_mode",
         "fullscreen", "on_screen_keyboard", "progressive_speed", "progressive_start_speed",
         "advanced_session_controls", "hold_display_mode", "exercise_type",
         "meditation_music_enabled", "meditation_music_shuffle", "meditation_music_track",
