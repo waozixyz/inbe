@@ -4,6 +4,21 @@
 [tab_history]
 기록
 ---
+[tab_habits]
+습관
+---
+[tab_practice]
+연습
+---
+[habit_add_button]
+습관 추가
+---
+[habit_done_button]
+완료
+---
+[habit_not_done_button]
+표시
+---
 [tab_manual]
 튜토리얼
 ---
@@ -12,6 +27,60 @@
 ---
 [play_button]
 시작
+---
+[exercise_wim_hof]
+윔 호프 호흡
+---
+[exercise_meditation]
+명상
+---
+[meditation_title]
+명상
+---
+[meditation_manual_title]
+명상
+---
+[meditation_manual_text]
+시간을 선택하고 시작을 누른 뒤 편안하게 앉으세요. 주의를 호흡에 둡니다. 마음이 흩어지면 부드럽게 호흡으로 돌아옵니다. 공 소리가 세션의 시작과 끝을 알립니다.
+---
+[meditation_music_settings_title]
+명상 음악
+---
+[meditation_music_section_title]
+배경 음악
+---
+[meditation_music_enabled_label]
+배경 음악 재생
+---
+[meditation_music_shuffle_label]
+트랙 셔플
+---
+[meditation_music_track_label]
+트랙
+---
+[meditation_music_download_button]
+오디오 다운로드
+---
+[meditation_music_redownload_button]
+오디오 다시 다운로드
+---
+[meditation_music_test_button]
+테스트 재생
+---
+[duration_5m]
+5분
+---
+[duration_15m]
+15분
+---
+[duration_30m]
+30분
+---
+[duration_1h]
+1시간
+---
+[duration_2h]
+2시간
 ---
 [breath_button]
 숨쉼
@@ -64,6 +133,9 @@
 [starting_in]
 %d초 후 시작
 ---
+[session_round_label]
+%d 라운드
+---
 [settings_title]
 설정
 ---
@@ -72,6 +144,12 @@
 ---
 [settings_tab_session]
 세션
+---
+[settings_tab_app]
+앱
+---
+[settings_tab_data_about]
+데이터 및 정보
 ---
 [settings_tab_sound]
 사운드
@@ -88,8 +166,12 @@
 [settings_tab_about]
 정보
 ---
+
 [theme_label]
 테마
+---
+[theme_mode_label]
+테마 모드
 ---
 [speed_label]
 속도
@@ -148,7 +230,11 @@
 [coming_soon_label]
 출시 예정
 ---
+
 [data_management_label]
+데이터 관리
+---
+[data_management_button]
 데이터 관리
 ---
 [total_sessions_label]
@@ -338,6 +424,9 @@ R%d  %ds
 [tutorial_finish_button]
 완료
 ---
+[tutorial_start_button]
+지금 시작
+---
 [share_sheet_title]
 세션 데이터 내보내기
 ---
@@ -364,24 +453,6 @@ R%d  %ds
 ---
 [delete_button]
 삭제
----
-[settings_category_practice]
-호흡 설정
----
-[settings_category_practice_desc]
-호흡과 세션 조정
----
-[settings_category_app]
-앱프 설정
----
-[settings_category_app_desc]
-외관과 사운드 커스터마이징
----
-[settings_category_about_data]
-정보 및 데이터
----
-[settings_category_about_data_desc]
-정보 표시 및 데이터 관리
 ---
 [progressive_speed_label]
 점진적 속도
@@ -548,6 +619,9 @@ R%d
 [tutorial_finish_button]
 완료
 ---
+[tutorial_start_button]
+지금 시작
+---
 [share_sheet_title]
 세션 데이터 내보내기
 ---
@@ -574,24 +648,6 @@ R%d
 ---
 [delete_button]
 삭제
----
-[settings_category_practice]
-호흡 설정
----
-[settings_category_practice_desc]
-호흡과 세션 조정
----
-[settings_category_app]
-앱프 설정
----
-[settings_category_app_desc]
-외관과 사운드 커스터마이징
----
-[settings_category_about_data]
-정보 및 데이터
----
-[settings_category_about_data_desc]
-정보 표시 및 데이터 관리
 ---
 [R%d  %ds]
 ---

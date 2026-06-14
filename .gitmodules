@@ -4,9 +4,9 @@
 [submodule "vendor/rini"]
 	path = vendor/rini
 	url = https://github.com/raysan5/rini.git
-[submodule "vendor/flint"]
-	path = vendor/flint
-	url = https://github.com/waozixyz/flint
 [submodule "vendor/otfchop"]
 	path = vendor/otfchop
 	url = https://github.com/waozixyz/otfchop
+[submodule "vendor/sqlite"]
+	path = vendor/sqlite
+	url = https://github.com/sqlite/sqlite

@@ -3,9 +3,12 @@ project(Inbe C)
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
-set(LIBINBE_DIR "${REPO_ROOT}/libinbe")
 set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")
-set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
+set(FLINT_DIR "${REPO_ROOT}/flint")
+set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
+set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
+set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
+set(SQLITE_AMALGAMATION_H "${SQLITE_BUILD_DIR}/sqlite3.h")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
@@ -15,8 +18,8 @@ file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_RO
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
     ${INBE_THEME_ASSETS}
-    assets/angel.jpg
-    assets/begin.jpg
+    assets/whm/1.jpg
+    assets/whm/2.jpg
     assets/fonts/locales.png
     assets/fonts/locales.dat
     ${INBE_SOUND_ASSETS}
@@ -32,6 +35,15 @@ add_custom_command(
     COMMAND sh "${FLINT_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
     DEPENDS "${FLINT_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
     WORKING_DIRECTORY "${REPO_ROOT}"
+    VERBATIM
+)
+
+add_custom_command(
+    OUTPUT "${SQLITE_AMALGAMATION_C}" "${SQLITE_AMALGAMATION_H}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SQLITE_BUILD_DIR}"
+    COMMAND sh -c "cd '${SQLITE_BUILD_DIR}' && '${SQLITE_DIR}/configure'"
+    COMMAND make -C "${SQLITE_BUILD_DIR}" sqlite3.c sqlite3.h
+    DEPENDS "${SQLITE_DIR}/configure" "${SQLITE_DIR}/manifest"
     VERBATIM
 )
 
@@ -72,37 +84,29 @@ target_include_directories(raylib PUBLIC
     "${NATIVE_APP_GLUE_DIR}"
 )
 
-add_library(inbe STATIC
-    "${LIBINBE_DIR}/inbe.c"
-)
-
-target_include_directories(inbe PUBLIC
-    "${LIBINBE_DIR}"
-)
-
-add_library(flint STATIC ${FLINT_SOURCES})
-
-target_include_directories(flint PUBLIC
-    "${FLINT_DIR}/include"
-    "${RAYLIB_DIR}"
-)
-
 add_library(main SHARED
     "${SRC_DIR}/main.c"
+    "${SRC_DIR}/inbe.c"
     "${SRC_DIR}/app.c"
     "${SRC_DIR}/app_session.c"
+    "${SRC_DIR}/habits/habits.c"
+    "${SRC_DIR}/meditation_music.c"
     "${SRC_DIR}/locale.c"
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
+    "${SRC_DIR}/storage.c"
     "${SRC_DIR}/miniz.c"
+    "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/android/android_import.c"
+    "${SRC_DIR}/android/android_runtime_assets.c"
     "${SRC_DIR}/android/android_share.c"
     "${SRC_DIR}/tabs/history_tab.c"
     "${SRC_DIR}/tabs/language_tab.c"
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"
     "${INBE_EMBEDDED_ASSETS_C}"
+    ${FLINT_SOURCES}
     "${SRC_DIR}/android/android_insets.c"
     "${SRC_DIR}/android/android_wakelock.c"
     "${SRC_DIR}/android/android_timer.c"
@@ -113,8 +117,8 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}"
     "${SRC_DIR}/android"
     "${NATIVE_APP_GLUE_DIR}"
-    "${LIBINBE_DIR}"
     "${FLINT_DIR}/include"
+    "${SQLITE_BUILD_DIR}"
 )
 
 target_compile_definitions(main PRIVATE
@@ -146,8 +150,6 @@ target_link_options(main PRIVATE
 
 target_link_libraries(main
     raylib
-    inbe
-    flint
     android
     log
     OpenSLES

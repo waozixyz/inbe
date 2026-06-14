@@ -2,8 +2,10 @@
 #define INBE_APP_H
 
 #include "raylib.h"
-#include "../libinbe/inbe.h"
+#include "inbe.h"
 #include "app_fwd.h"
+#include "flint_runtime_assets.h"
+#include "habits/habits.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -37,9 +39,7 @@ enum {
 
 enum {
     SETTINGS_CATEGORY_PRACTICE = 0,
-    SETTINGS_CATEGORY_APP,
-    SETTINGS_CATEGORY_ABOUT_DATA,
-    SETTINGS_CATEGORY_COUNT
+    SETTINGS_CATEGORY_MEDITATION = 1
 };
 
 enum {
@@ -49,35 +49,28 @@ enum {
 };
 
 enum {
-    APP_SUBTAB_SOUND = 0,
-    APP_SUBTAB_VISUAL,
-    APP_SUBTAB_LANGUAGE,
-    APP_SUBTAB_COUNT
+    APP_SETTINGS_TAB_APP = 0,
+    APP_SETTINGS_TAB_DATA_ABOUT,
+    APP_SETTINGS_TAB_COUNT
 };
 
 enum {
-    ABOUT_DATA_SUBTAB_DATA = 0,
-    ABOUT_DATA_SUBTAB_ABOUT,
-    ABOUT_DATA_SUBTAB_COUNT
-};
-
-enum {
-    SETTINGS_TAB_BREATHING = 0,
-    SETTINGS_TAB_SESSION,
-    SETTINGS_TAB_SOUND,
-    SETTINGS_TAB_APPEARANCE,
-    SETTINGS_TAB_LANGUAGE,
-    SETTINGS_TAB_DATA,
-    SETTINGS_TAB_ABOUT,
-    SETTINGS_TAB_COUNT
+    PRACTICE_CATEGORY_MIND = 0,
+    PRACTICE_CATEGORY_YOGA,
+    PRACTICE_CATEGORY_FITNESS,
+    PRACTICE_CATEGORY_COUNT
 };
 
 typedef enum {
     UIModalNone,
     UIModalConfirmExitSession,
+    UIModalMeditationSetup,
+    UIModalDataManagement,
     UIModalConfirmDeleteData,
     UIModalConfirmDeleteHistory,
     UIModalEditProgressiveStartSpeed,
+    UIModalPracticeTabs,
+    UIModalPracticeTheme,
 } UIModalType;
 
 typedef struct {
@@ -110,6 +103,14 @@ typedef enum HoldDisplayMode {
     HOLD_DISPLAY_STOPWATCH = 1,
 } HoldDisplayMode;
 
+typedef enum ExerciseType {
+    EXERCISE_WIM_HOF = 0,
+    EXERCISE_MEDITATION = 1,
+    EXERCISE_SUN_SALUTATION = 2,
+    EXERCISE_7_MINUTE_WORKOUT = 3,
+    EXERCISE_COUNT
+} ExerciseType;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -117,6 +118,7 @@ struct InbeApp {
     int start_speed_preview_speed;
     Camera2D camera;
     int cursor_clickable;
+    int cursor_disabled;
     Texture2D gear_icon;
     Texture2D x_icon;
     Texture2D manual_icon;
@@ -126,6 +128,10 @@ struct InbeApp {
     Texture2D play_icon;
     Texture2D pause_icon;
     Texture2D stat_icon;
+    Texture2D habit_icon;
+    Texture2D practice_icon;
+    Texture2D plus_icon;
+    Texture2D stack_icon;
     Texture2D home_icon;
     Texture2D trash_icon;
     Texture2D pencil_icon;
@@ -140,8 +146,8 @@ struct InbeApp {
     Texture2D sound2_icon;
     Texture2D sound3_icon;
 
-    Texture2D angel_image;
-    Texture2D begin_image;
+    Texture2D whm_1_image;
+    Texture2D whm_2_image;
     Texture2D font_shapes_texture;
     Font locale_font;
     Sound breath_in_sound;
@@ -159,9 +165,10 @@ struct InbeApp {
     int settings_drag_content;
     int settings_drag_content_y;
     int settings_dirty;
-    int settings_tab;
     int settings_category;
     int settings_sub_tab;
+    int app_settings_tab;
+    int settings_from_exercise_selector;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
@@ -176,6 +183,7 @@ struct InbeApp {
     int manual_drag_content_y;
     int tutorial_step;
     int tutorial_seen;
+    int exercise_manual_seen_mask;
 
     int theme_id;
     int dark_mode;
@@ -200,20 +208,50 @@ struct InbeApp {
     int history_delete_kind;
     int history_delete_round;
     char history_delete_path[FS_PATH_MAX];
+    InbeHabits habits;
+    int habit_edit_active;
+    int habit_edit_is_new;
+    int habit_edit_index;
+    int habit_edit_cursor;
+    char habit_edit_text[INBE_HABIT_NAME_SIZE];
+    Color habit_edit_color;
+    int habit_edit_sync_mode;
+    int habit_edit_sync_topic;
+    int habit_edit_sync_activity;
     int advanced_session_controls;
     int hold_display_mode;
+    int exercise_type;
+    int practice_category_tab;
+    int practice_coming_soon_ticks;
+    int practice_tab_enabled[PRACTICE_CATEGORY_COUNT];
+    int practice_tab_theme[PRACTICE_CATEGORY_COUNT];
+    int practice_config_theme_tab;
     int session_paused;
     int backgrounded;
     int results_saved;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;
+    int meditation_duration_seconds;
+    int meditation_remaining_seconds;
+    int meditation_frame_ticks;
+    int meditation_music_enabled;
+    int meditation_music_shuffle;
+    int meditation_music_track;
+    int meditation_music_loaded;
+    int meditation_music_playing;
+    int meditation_music_archive_extracted;
+    Music meditation_music;
+    FlintRuntimeAssetDownload meditation_music_download;
+    char meditation_music_cache_dir[FS_PATH_MAX];
+    char meditation_music_status[128];
     UIModal modal;
 };
 
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
 void update_session_sounds(InbeApp *app);
+void app_play_sound(InbeApp *app, Sound sound, float scale);
 const LotusAppApi *inbe_app_api(void);
 
 int clampi(int x, int min, int max);
@@ -226,6 +264,9 @@ void apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int 
 void refresh_theme_colors(int theme_id, int dark_mode);
 void refresh_locale_dependent_text(InbeApp *app);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
+int exercise_manual_seen(InbeApp *app, int exercise_type);
+void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
+void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
 void settings_draw_progressive_start_speed_editor(InbeApp *app);

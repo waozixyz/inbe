@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Historie
 ---
+[tab_habits]
+Návyky
+---
+[tab_practice]
+Cvičení
+---
+[habit_add_button]
+Přidat návyk
+---
+[habit_done_button]
+Hotovo
+---
+[habit_not_done_button]
+Označit
+---
 [tab_manual]
 Návod
 ---
@@ -12,6 +27,60 @@ Nastavení
 ---
 [play_button]
 SPUSTIT
+---
+[exercise_wim_hof]
+Wim Hofovo dýchání
+---
+[exercise_meditation]
+Meditace
+---
+[meditation_title]
+Meditace
+---
+[meditation_manual_title]
+Meditace
+---
+[meditation_manual_text]
+Vyberte délku, stiskněte spustit a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když se mysl zatoulá, jemně se vraťte k dýchání. Zvuk gongu označí začátek a konec sezení.
+---
+[meditation_music_settings_title]
+Meditační hudba
+---
+[meditation_music_section_title]
+Hudba na pozadí
+---
+[meditation_music_enabled_label]
+Přehrávat hudbu na pozadí
+---
+[meditation_music_shuffle_label]
+Zamíchat skladby
+---
+[meditation_music_track_label]
+Skladba
+---
+[meditation_music_download_button]
+Stáhnout audio
+---
+[meditation_music_redownload_button]
+Stáhnout audio znovu
+---
+[meditation_music_test_button]
+Vyzkoušet přehrání
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 DÝCHAT
@@ -64,6 +133,9 @@ Kolo %d  %ds
 [starting_in]
 ZAČÍNÁ ZA %2d
 ---
+[session_round_label]
+KOLO %d
+---
 [settings_title]
 Nastavení
 ---
@@ -72,6 +144,12 @@ Dýchání
 ---
 [settings_tab_session]
 Sezení
+---
+[settings_tab_app]
+Aplikace
+---
+[settings_tab_data_about]
+Data a informace
 ---
 [settings_tab_sound]
 Zvuk
@@ -88,26 +166,12 @@ Data
 [settings_tab_about]
 O aplikaci
 ---
-[settings_category_practice]
-Nastavení cvičení
----
-[settings_category_practice_desc]
-Nastavte dýchání a sezení
----
-[settings_category_app]
-Předvolby aplikace
----
-[settings_category_app_desc]
-Přizpůsobte vzhled a zvuk
----
-[settings_category_about_data]
-O aplikaci a data
----
-[settings_category_about_data_desc]
-Zobrazte informace a spravujte data
----
+
 [theme_label]
 Motiv
+---
+[theme_mode_label]
+Režim motivu
 ---
 [speed_label]
 Rychlost
@@ -169,8 +233,12 @@ Další
 [coming_soon_label]
 Brzy...
 ---
+
 [data_management_label]
 Správa dat
+---
+[data_management_button]
+Spravovat data
 ---
 [total_sessions_label]
 Celkem sezení: %d
@@ -356,6 +424,9 @@ DALŠÍ
 ---
 [tutorial_finish_button]
 DOKONČIT
+---
+[tutorial_start_button]
+ZAČÍT TEĎ
 ---
 [share_sheet_title]
 Export dat sezení

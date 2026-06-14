@@ -43,11 +43,14 @@ jobs:
       env:
         KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
       run: |
-        echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/flint-release.keystore
+        echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
         echo "Keystore decoded successfully"
 
     - name: Copy Assets to Android Project
       run: ./scripts/copy-android-assets.sh
+
+    - name: Run Tests
+      run: make test
 
     - name: Build Release APK
       working-directory: ./droid
@@ -58,7 +61,7 @@ jobs:
       run: |
         ./gradlew assembleRelease \
           -Pkeystore.password="$KEYSTORE_PASSWORD" \
-          -Pkeystore.path="/home/runner/.android/flint-release.keystore" \
+          -Pkeystore.path="/home/runner/.android/inbe-release.keystore" \
           --stacktrace
 
     - name: Rename APK

@@ -1,5 +1,5 @@
 #include "wasm4.h"
-#include "../../libinbe/inbe.h"
+#include "inbe.h"
 
 void*
 memset(void *dest, int byte, unsigned long n)

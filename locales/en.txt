@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 History
 ---
+[tab_habits]
+Habits
+---
+[tab_practice]
+Practice
+---
+[habit_add_button]
+Add Habit
+---
+[habit_done_button]
+Done
+---
+[habit_not_done_button]
+Mark Done
+---
 [tab_manual]
 Tutorial
 ---
@@ -12,6 +27,60 @@ Settings
 ---
 [play_button]
 PLAY
+---
+[exercise_wim_hof]
+Wim Hof Breathing
+---
+[exercise_meditation]
+Meditation
+---
+[meditation_title]
+Meditation
+---
+[meditation_manual_title]
+Meditation
+---
+[meditation_manual_text]
+Choose a duration, press play, and sit comfortably. Let your attention rest on the breath. When your mind wanders, return gently to breathing. A gong marks the beginning and end of the session.
+---
+[meditation_music_settings_title]
+Meditation Music
+---
+[meditation_music_section_title]
+Background Music
+---
+[meditation_music_enabled_label]
+Play background music
+---
+[meditation_music_shuffle_label]
+Shuffle tracks
+---
+[meditation_music_track_label]
+Track
+---
+[meditation_music_download_button]
+Download audio
+---
+[meditation_music_redownload_button]
+Redownload audio
+---
+[meditation_music_test_button]
+Test play
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 BREATH
@@ -76,6 +145,12 @@ Breathing
 [settings_tab_session]
 Session
 ---
+[settings_tab_app]
+App
+---
+[settings_tab_data_about]
+Data & About
+---
 [settings_tab_sound]
 Sound
 ---
@@ -91,26 +166,12 @@ Data
 [settings_tab_about]
 About
 ---
-[settings_category_practice]
-Practice Settings
----
-[settings_category_practice_desc]
-Configure breathing and sessions
----
-[settings_category_app]
-App Preferences
----
-[settings_category_app_desc]
-Customize appearance and audio
----
-[settings_category_about_data]
-About & Data
----
-[settings_category_about_data_desc]
-View info and manage data
----
+
 [theme_label]
 Theme
+---
+[theme_mode_label]
+Theme mode
 ---
 [speed_label]
 Speed
@@ -172,8 +233,12 @@ Next
 [coming_soon_label]
 Coming soon...
 ---
+
 [data_management_label]
 Data Management
+---
+[data_management_button]
+Manage data
 ---
 [total_sessions_label]
 Total Sessions: %d
@@ -359,6 +424,9 @@ NEXT
 ---
 [tutorial_finish_button]
 FINISH
+---
+[tutorial_start_button]
+START NOW
 ---
 [share_sheet_title]
 Export Session Data

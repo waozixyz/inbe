@@ -34,11 +34,11 @@ else
 fi
 
 mkdir -p build
-sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
+sh flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
-    vendor/flint/themes/*.ini \
-    assets/angel.jpg \
-    assets/begin.jpg \
+    flint/themes/*.ini \
+    assets/whm/1.jpg \
+    assets/whm/2.jpg \
     assets/fonts/locales.png \
     assets/fonts/locales.dat \
     assets/sounds/*.ogg

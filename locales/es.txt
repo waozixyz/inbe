@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Historial
 ---
+[tab_habits]
+Hábitos
+---
+[tab_practice]
+Práctica
+---
+[habit_add_button]
+Añadir hábito
+---
+[habit_done_button]
+Hecho
+---
+[habit_not_done_button]
+Marcar
+---
 [tab_manual]
 Tutorial
 ---
@@ -12,6 +27,60 @@ Configuración
 ---
 [play_button]
 REPRODUCIR
+---
+[exercise_wim_hof]
+Respiración Wim Hof
+---
+[exercise_meditation]
+Meditación
+---
+[meditation_title]
+Meditación
+---
+[meditation_manual_title]
+Meditación
+---
+[meditation_manual_text]
+Elige una duración, pulsa reproducir y siéntate cómodamente. Deja que tu atención descanse en la respiración. Cuando la mente se distraiga, vuelve suavemente a respirar. Un gong marca el comienzo y el final de la sesión.
+---
+[meditation_music_settings_title]
+Música de meditación
+---
+[meditation_music_section_title]
+Música de fondo
+---
+[meditation_music_enabled_label]
+Reproducir música de fondo
+---
+[meditation_music_shuffle_label]
+Mezclar pistas
+---
+[meditation_music_track_label]
+Pista
+---
+[meditation_music_download_button]
+Descargar audio
+---
+[meditation_music_redownload_button]
+Descargar audio de nuevo
+---
+[meditation_music_test_button]
+Probar reproducción
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 RESPIRACIÓN
@@ -64,6 +133,9 @@ Ronda %d  %ds
 [starting_in]
 COMENZANDO EN %2d
 ---
+[session_round_label]
+RONDA %d
+---
 [settings_title]
 Configuración
 ---
@@ -72,6 +144,12 @@ Respiración
 ---
 [settings_tab_session]
 Sesión
+---
+[settings_tab_app]
+App
+---
+[settings_tab_data_about]
+Datos y Acerca de
 ---
 [settings_tab_sound]
 Sonido
@@ -88,8 +166,12 @@ Datos
 [settings_tab_about]
 Acerca de
 ---
+
 [theme_label]
 Tema
+---
+[theme_mode_label]
+Modo del tema
 ---
 [speed_label]
 Velocidad
@@ -151,8 +233,12 @@ Más
 [coming_soon_label]
 Próximamente...
 ---
+
 [data_management_label]
 Gestión de datos
+---
+[data_management_button]
+Gestionar datos
 ---
 [total_sessions_label]
 Sesiones totales: %d
@@ -339,6 +425,9 @@ MÁS
 [tutorial_finish_button]
 FINALIZAR
 ---
+[tutorial_start_button]
+EMPEZAR AHORA
+---
 [share_sheet_title]
 Exportar datos de sesión
 ---
@@ -365,22 +454,4 @@ Recuento de sesiones: %d
 ---
 [delete_button]
 Eliminar
----
-[settings_category_practice]
-Configuración de Práctica
----
-[settings_category_practice_desc]
-Configurar respiración y sesiones
----
-[settings_category_app]
-Preferencias de Aplicación
----
-[settings_category_app_desc]
-Personalizar apariencia y audio
----
-[settings_category_about_data]
-Acerca de y Datos
----
-[settings_category_about_data_desc]
-Ver información y administrar datos
 ---

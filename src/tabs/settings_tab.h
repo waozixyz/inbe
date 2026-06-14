@@ -1,7 +1,7 @@
 #ifndef SETTINGS_TAB_H
 #define SETTINGS_TAB_H
 
-#include "../libinbe/inbe.h"
+#include "../inbe.h"
 #include "../app_fwd.h"
 
 /* Draw the settings screen */

@@ -27,34 +27,21 @@ inbe uses [raylib](https://github.com/raysan5/raylib) and requires a Nix develop
 # Enter the development shell
 nix develop
 
-# Build for your current platform (Linux x86_64/aarch64)
-flint build native
+# Build for your current platform
+make native
 
 # Run
-flint run native
+make run
 ```
 
 ### Cross-Platform Builds
 
 ```bash
-# Linux (both architectures)
-flint build linux
-
-# Windows (x86_64/i686, OpenGL and software renderer variants, from Linux)
-flint build windows
-
 # Android debug APK
-flint build android
+make android-debug
 
-# WebAssembly
-flint build web
-
-# Release/package artifacts
-flint dist linux      # Linux tar.gz with all Linux arch binaries
-flint dist windows    # Windows zip with all Windows arch/renderer binaries
-flint dist android    # Signed release APK
-flint dist itch       # Build release artifacts and publish to itch.io
-flint dist            # Full release flow
+# Android release APK
+make android-release PASSWORD=your-keystore-password
 ```
 
 ### Android Emulator Testing
@@ -65,7 +52,7 @@ For automated testing with camera notch (cutout) support:
 # Enter the development shell and run everything automatically
 nix develop
 ./scripts/emulator.sh    # Creates and launches the test AVD
-flint run android        # Builds, installs, and launches the app
+make android-install     # Builds, installs, and launches the app
 ```
 
 This single script handles:
@@ -89,8 +76,12 @@ The AVD is configured with:
 
 ## Project Structure
 
-- `src/` - Main application code (raylib frontend)
-- `libinbe/` - Core meditation logic (platform-agnostic)
+- `src/` - Inbe application code
+- `flint/` - first-party UI/runtime support code used directly by Inbe
+- `vendor/raylib`, `vendor/rini`, `vendor/otfchop` - external third-party dependencies
+
+- `src/` - Main application code and raylib breathing engine
+- `wasm4/` - Standalone WASM-4 version
 - `assets/` - Images and sounds
 - `themes/` - Color theme definitions
 - `droid/` - Android build configuration

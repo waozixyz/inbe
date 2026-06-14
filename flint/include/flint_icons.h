@@ -1,0 +1,101 @@
+#ifndef FLINT_ICONS_H
+#define FLINT_ICONS_H
+
+#include "raylib.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+typedef enum {
+    FLINT_ICON_TYPE_NONE,
+    FLINT_ICON_TYPE_AMEN,
+    FLINT_ICON_TYPE_BACKWARD,
+    FLINT_ICON_TYPE_BTC,
+    FLINT_ICON_TYPE_CHECK,
+    FLINT_ICON_TYPE_DISCORD,
+    FLINT_ICON_TYPE_DROID,
+    FLINT_ICON_TYPE_EDIT,
+    FLINT_ICON_TYPE_EYE_CLOSED,
+    FLINT_ICON_TYPE_FDROID,
+    FLINT_ICON_TYPE_FORWARD,
+    FLINT_ICON_TYPE_GEAR,
+    FLINT_ICON_TYPE_GITHUB,
+    FLINT_ICON_TYPE_GLOBE,
+    FLINT_ICON_TYPE_HABITMARKER,
+    FLINT_ICON_TYPE_HABITS,
+    FLINT_ICON_TYPE_HOME,
+    FLINT_ICON_TYPE_INBE,
+    FLINT_ICON_TYPE_ITCH,
+    FLINT_ICON_TYPE_JUPITER,
+    FLINT_ICON_TYPE_LIGHTOFF,
+    FLINT_ICON_TYPE_LIGHTON,
+    FLINT_ICON_TYPE_LINK,
+    FLINT_ICON_TYPE_MANUAL,
+    FLINT_ICON_TYPE_MARS,
+    FLINT_ICON_TYPE_MERCURY,
+    FLINT_ICON_TYPE_MONERO,
+    FLINT_ICON_TYPE_MOON,
+    FLINT_ICON_TYPE_MUTE,
+    FLINT_ICON_TYPE_PAUSE,
+    FLINT_ICON_TYPE_PENCIL,
+    FLINT_ICON_TYPE_PLAY,
+    FLINT_ICON_TYPE_PLAYSTORE,
+    FLINT_ICON_TYPE_PLUS,
+    FLINT_ICON_TYPE_PRACTICE,
+    FLINT_ICON_TYPE_QUEST,
+    FLINT_ICON_TYPE_RAY,
+    FLINT_ICON_TYPE_RETURN,
+    FLINT_ICON_TYPE_ROCKET,
+    FLINT_ICON_TYPE_ROUTINE,
+    FLINT_ICON_TYPE_SATURN,
+    FLINT_ICON_TYPE_SAVE,
+    FLINT_ICON_TYPE_SOUND,
+    FLINT_ICON_TYPE_SOUND0,
+    FLINT_ICON_TYPE_SOUND1,
+    FLINT_ICON_TYPE_SOUND2,
+    FLINT_ICON_TYPE_SOUND3,
+    FLINT_ICON_TYPE_SRHT,
+    FLINT_ICON_TYPE_STACK,
+    FLINT_ICON_TYPE_STAT,
+    FLINT_ICON_TYPE_STRIPE,
+    FLINT_ICON_TYPE_SUN,
+    FLINT_ICON_TYPE_TCL,
+    FLINT_ICON_TYPE_TELEGRAM,
+    FLINT_ICON_TYPE_TEXT,
+    FLINT_ICON_TYPE_TILE,
+    FLINT_ICON_TYPE_TILE2,
+    FLINT_ICON_TYPE_TILE3,
+    FLINT_ICON_TYPE_TILE4,
+    FLINT_ICON_TYPE_TIMELINE,
+    FLINT_ICON_TYPE_TODOS,
+    FLINT_ICON_TYPE_TRASH,
+    FLINT_ICON_TYPE_TUX,
+    FLINT_ICON_TYPE_UXN,
+    FLINT_ICON_TYPE_VENUS,
+    FLINT_ICON_TYPE_WASM,
+    FLINT_ICON_TYPE_WASM4,
+    FLINT_ICON_TYPE_WIN,
+    FLINT_ICON_TYPE_X,
+    FLINT_ICON_TYPE_X_RED
+} FlintIconType;
+
+typedef struct FlintIconAsset {
+    FlintIconType type;
+    const char *name;
+    const unsigned char *data;
+    unsigned int size;
+} FlintIconAsset;
+
+// Draw icon as fallback when no texture is available
+void flint_draw_icon_fallback(FlintIconType type, int x, int y, int size, Color color);
+const FlintIconAsset *flint_icon_asset(FlintIconType type);
+const FlintIconAsset *flint_icon_asset_by_name(const char *name);
+Texture2D flint_load_icon_texture(FlintIconType type);
+Texture2D flint_load_icon_texture_by_name(const char *name);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif // FLINT_ICONS_H

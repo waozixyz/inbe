@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Riwayat
 ---
+[tab_habits]
+Kebiasaan
+---
+[tab_practice]
+Latihan
+---
+[habit_add_button]
+Tambah Kebiasaan
+---
+[habit_done_button]
+Selesai
+---
+[habit_not_done_button]
+Tandai
+---
 [tab_manual]
 Tutorial
 ---
@@ -12,6 +27,60 @@ Pengaturan
 ---
 [play_button]
 MULAI
+---
+[exercise_wim_hof]
+Pernapasan Wim Hof
+---
+[exercise_meditation]
+Meditasi
+---
+[meditation_title]
+Meditasi
+---
+[meditation_manual_title]
+Meditasi
+---
+[meditation_manual_text]
+Pilih durasi, tekan mulai, lalu duduk dengan nyaman. Biarkan perhatian beristirahat pada napas. Saat pikiran mengembara, kembali perlahan ke pernapasan. Gong menandai awal dan akhir sesi.
+---
+[meditation_music_settings_title]
+Musik meditasi
+---
+[meditation_music_section_title]
+Musik latar
+---
+[meditation_music_enabled_label]
+Putar musik latar
+---
+[meditation_music_shuffle_label]
+Acak trek
+---
+[meditation_music_track_label]
+Trek
+---
+[meditation_music_download_button]
+Unduh audio
+---
+[meditation_music_redownload_button]
+Unduh ulang audio
+---
+[meditation_music_test_button]
+Coba putar
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1j
+---
+[duration_2h]
+2j
 ---
 [breath_button]
 NAFAS
@@ -64,6 +133,9 @@ Ronde %d  %ds
 [starting_in]
 MULAI DALAM %2d
 ---
+[session_round_label]
+RONDE %d
+---
 [settings_title]
 Pengaturan
 ---
@@ -72,6 +144,12 @@ Pernapasan
 ---
 [settings_tab_session]
 Sesi
+---
+[settings_tab_app]
+Aplikasi
+---
+[settings_tab_data_about]
+Data & Tentang
 ---
 [settings_tab_sound]
 Suara
@@ -88,26 +166,12 @@ Data
 [settings_tab_about]
 Tentang
 ---
-[settings_category_practice]
-Pengaturan Latihan
----
-[settings_category_practice_desc]
-Konfigurasi pernapasan dan sesi
----
-[settings_category_app]
-Preferensi Aplikasi
----
-[settings_category_app_desc]
-Kustomisasi tampilan dan audio
----
-[settings_category_about_data]
-Tentang & Data
----
-[settings_category_about_data_desc]
-Lihat info dan kelola data
----
+
 [theme_label]
 Tema
+---
+[theme_mode_label]
+Mode tema
 ---
 [speed_label]
 Kecepatan
@@ -169,8 +233,12 @@ Lanjut
 [coming_soon_label]
 Segera hadir...
 ---
+
 [data_management_label]
 Manajemen Data
+---
+[data_management_button]
+Kelola data
 ---
 [total_sessions_label]
 Total Sesi: %d
@@ -354,6 +422,9 @@ LANJUT
 ---
 [tutorial_finish_button]
 SELESAI
+---
+[tutorial_start_button]
+MULAI SEKARANG
 ---
 [share_sheet_title]
 Ekspor Data Sesi
