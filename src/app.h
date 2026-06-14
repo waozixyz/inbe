@@ -279,6 +279,8 @@ struct InbeApp {
     char meditation_music_cache_dir[FS_PATH_MAX];
     char meditation_music_status[128];
     UIModal modal;
+    int play_circle_hover;
+    float play_circle_scale;
 };
 
 void inbe_app_init(void *app);
