@@ -7,6 +7,9 @@
 #include <string.h>
 #include <time.h>
 
+static void inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
+                                 Color color, int sync_topic);
+
 static void
 copy_text(char *dst, size_t dst_size, const char *src)
 {
@@ -73,6 +76,24 @@ inbe_habits_add_default(InbeHabits *habits)
     inbe_habits_add_custom(habits, name, (Color){99, 196, 165, 255},
                            INBE_HABIT_SYNC_NONE,
                            INBE_HABIT_TOPIC_MIND, 0);
+}
+
+void
+inbe_habits_add_default_set(InbeHabits *habits)
+{
+    if(habits == NULL)
+        return;
+
+    memset(habits, 0, sizeof(*habits));
+    inbe_habits_add_seed(habits, "mind", "Mind", (Color){126, 183, 230, 255},
+                         INBE_HABIT_TOPIC_MIND);
+    inbe_habits_add_seed(habits, "yoga", "Yoga", (Color){208, 128, 80, 255},
+                         INBE_HABIT_TOPIC_YOGA);
+    inbe_habits_add_seed(habits, "fitness", "Fitness", (Color){208, 96, 128, 255},
+                         INBE_HABIT_TOPIC_FITNESS);
+    habits->selected = 0;
+    habits->loaded = 1;
+    inbe_habits_save(habits);
 }
 
 void
@@ -154,16 +175,7 @@ inbe_habits_init(InbeHabits *habits)
         habits->loaded = 1;
         return;
     }
-    memset(habits, 0, sizeof(*habits));
-    inbe_habits_add_seed(habits, "mind", "Mind", (Color){126, 183, 230, 255},
-                         INBE_HABIT_TOPIC_MIND);
-    inbe_habits_add_seed(habits, "yoga", "Yoga", (Color){208, 128, 80, 255},
-                         INBE_HABIT_TOPIC_YOGA);
-    inbe_habits_add_seed(habits, "fitness", "Fitness", (Color){208, 96, 128, 255},
-                         INBE_HABIT_TOPIC_FITNESS);
-    habits->selected = 0;
-    habits->loaded = 1;
-    inbe_habits_save(habits);
+    inbe_habits_add_default_set(habits);
 }
 
 void

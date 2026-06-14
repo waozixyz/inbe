@@ -59,6 +59,7 @@ void inbe_habit_set_day(InbeHabits *habits, int index, int day_index, int comple
 void inbe_habit_toggle_day(InbeHabits *habits, int index, int day_index);
 void inbe_habit_toggle_today(InbeHabits *habits, int index);
 void inbe_habits_add_default(InbeHabits *habits);
+void inbe_habits_add_default_set(InbeHabits *habits);
 void inbe_habits_delete(InbeHabits *habits, int index);
 int inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
                            int sync_mode, int sync_topic, int sync_activity);

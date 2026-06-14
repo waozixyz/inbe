@@ -251,6 +251,7 @@ struct InbeApp {
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
 void update_session_sounds(InbeApp *app);
+void app_play_sound(InbeApp *app, Sound sound, float scale);
 const LotusAppApi *inbe_app_api(void);
 
 int clampi(int x, int min, int max);

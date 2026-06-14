@@ -49,6 +49,9 @@ jobs:
     - name: Copy Assets to Android Project
       run: ./scripts/copy-android-assets.sh
 
+    - name: Run Tests
+      run: make test
+
     - name: Build Release APK
       working-directory: ./droid
       env:

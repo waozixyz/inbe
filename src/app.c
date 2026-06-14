@@ -673,8 +673,8 @@ load_sound_asset(const char *name)
     return sound;
 }
 
-static void
-play_app_sound(InbeApp *app, Sound sound, float scale)
+void
+app_play_sound(InbeApp *app, Sound sound, float scale)
 {
     float volume;
 
@@ -826,7 +826,7 @@ inbe_app_init(void *vapp) {
         app->habit_icon = load_icon_texture("habitmarker.png");
     }
     if(app->practice_icon.id == 0) {
-        app->practice_icon = load_icon_texture("practice.png");
+        app->practice_icon = load_icon_texture("amen.png");
     }
     if(app->plus_icon.id == 0) {
         app->plus_icon = load_icon_texture("plus.png");
@@ -936,7 +936,7 @@ meditation_start(InbeApp *app, int seconds)
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->inbe.screen = InbeScreenMeditation;
-    play_app_sound(app, app->bell_sound, 1.0f);
+    app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
 }
 
@@ -992,7 +992,7 @@ meditation_finish(InbeApp *app)
     if(app == NULL)
         return;
 
-    play_app_sound(app, app->bell_sound, 1.0f);
+    app_play_sound(app, app->bell_sound, 1.0f);
     app->meditation_duration_seconds = 0;
     app->meditation_remaining_seconds = 0;
     app->meditation_frame_ticks = 0;
@@ -2313,6 +2313,28 @@ draw_habits_manager_screen(InbeApp *app)
                      (int)(app->camera.offset.y + top_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
+
+    if(app->habits.count <= 0) {
+        const char *empty_text = "No habits created";
+        const char *defaults_text = "Create default habits";
+        int empty_font = flint_px(20);
+        int button_w = content_w < flint_px(260) ? content_w : flint_px(260);
+        int button_h = flint_px(42);
+        int empty_y = top_h + viewport_h / 2 - flint_px(50);
+        int empty_w = flint_text_measure(empty_text, empty_font);
+        int hover_defaults = 0;
+
+        flint_text_draw(empty_text, content_x + (content_w - empty_w) / 2,
+                        empty_y, empty_font, c_text);
+        if(ui_draw_generic_button(content_x + (content_w - button_w) / 2,
+                                  empty_y + flint_px(38), button_w, button_h,
+                                  defaults_text, UI_BUTTON_STYLE_PRIMARY,
+                                  &hover_defaults)) {
+            inbe_habits_add_default_set(&app->habits);
+            EndScissorMode();
+            return;
+        }
+    }
 
     for(int i = 0; i < app->habits.count; i++) {
         InbeHabit *habit = &app->habits.items[i];
