@@ -127,7 +127,7 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
     flint_text_draw(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, c_text);
 
     if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6), modal_y + flint_px(6),
-                               close_size, close_padding, app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+                               close_size, close_padding, app->icons[UI_ICON_TYPE_X], &close_hover)) {
         app->modal.active = 0;
         app->modal.type = UIModalNone;
         return;
@@ -287,8 +287,7 @@ settings_draw_about_block(InbeApp *app, int content_x, int content_w, int *y)
     int grid_w;
     int links_start_x;
     int row_spacing;
-    Texture2D icons[5] = {app->discord_icon, app->telegram_icon, app->github_icon, app->btc_icon, app->monero_icon};
-    UIIconType icon_types[5] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_NONE, UI_ICON_TYPE_BTC, UI_ICON_TYPE_MONERO};
+    Texture2D icons[5] = {app->icons[UI_ICON_TYPE_DISCORD], app->icons[UI_ICON_TYPE_TELEGRAM], app->icons[UI_ICON_TYPE_GITHUB], app->icons[UI_ICON_TYPE_BTC], app->icons[UI_ICON_TYPE_MONERO]};
     const char *urls[5] = {
         "https://discord.com/invite/JbGZ4yENDt",
         "https://t.me/lotusinbe",
@@ -327,7 +326,7 @@ settings_draw_about_block(InbeApp *app, int content_x, int content_w, int *y)
         int row = i / columns;
         int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
         int icon_y = links_y + row * (icon_btn_w + row_spacing);
-        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], urls[i]);
     }
 
     *y = links_y + ((link_count + columns - 1) / columns) * (icon_btn_w + row_spacing);
@@ -411,8 +410,8 @@ settings_tab_draw(InbeApp *app)
         if(!app->settings_from_exercise_selector) {
             int back_btn_x = ui_icon_btn_padding(UI_ICON_SIZE_TINY);
             back_clicked = ui_draw_icon_btn(back_btn_x, flint_px(8),
-                                            UI_ICON_SIZE_TINY, app->return_icon,
-                                            UI_ICON_TYPE_RETURN, &back_hover);
+                                            UI_ICON_SIZE_TINY, app->icons[UI_ICON_TYPE_RETURN],
+                                            &back_hover);
         }
 
         /* Draw centered title (offset to account for back button) */
@@ -423,7 +422,7 @@ settings_tab_draw(InbeApp *app)
 
         /* Draw close button */
         close_clicked = ui_draw_icon_btn(view_width - flint_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), flint_px(8),
-                                         UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
+                                         UI_ICON_SIZE_TINY, app->icons[UI_ICON_TYPE_X], &close_hover);
 
         /* Handle back button click */
         if(back_clicked) {
@@ -456,8 +455,8 @@ settings_tab_draw(InbeApp *app)
         }
     } else {
         FlintUIHeader header = ui_draw_title_header(title_h, locale_get("settings_title"),
-                                                    (Texture2D){0}, UI_ICON_TYPE_NONE,
-                                                    app->x_icon, UI_ICON_TYPE_X);
+                                                    (Texture2D){0},
+                                                    app->icons[UI_ICON_TYPE_X]);
         close_clicked = header.right_clicked;
         if(close_clicked) {
             if(app->settings_dirty)
@@ -934,7 +933,7 @@ settings_tab_draw(InbeApp *app)
 
         if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6),
                                    modal_y + flint_px(6), close_size, close_padding,
-                                   app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+                                   app->icons[UI_ICON_TYPE_X], &close_hover)) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
             return;

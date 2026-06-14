@@ -267,7 +267,7 @@ static void on_settings_tab_click(void *user_data) {
 
 static UITab g_tabs[] = {
     {NULL, {0}, UI_ICON_TYPE_HOME, on_habits_tab_click, NULL},
-    {NULL, {0}, UI_ICON_TYPE_HOME, on_practice_tab_click, NULL},
+    {NULL, {0}, UI_ICON_TYPE_AMEN, on_practice_tab_click, NULL},
     {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
 };
 
@@ -909,98 +909,112 @@ inbe_app_init(void *vapp) {
     inbeinit(&app->start_speed_preview);
     app->start_speed_preview_speed = 0;
 
-    if(app->gear_icon.id == 0) {
-        app->gear_icon = load_icon_texture("gear.png");
+    // Load all icons using a clean array-based approach
+    static const char *icon_names[UI_ICON_TYPE_COUNT] = {
+        NULL,                 // UI_ICON_TYPE_NONE (no icon)
+
+        // Core UI icons
+        "gear.png",            // UI_ICON_TYPE_GEAR
+        "x.png",               // UI_ICON_TYPE_X
+        "x-red.png",           // UI_ICON_TYPE_X_RED
+        "manual.png",          // UI_ICON_TYPE_MANUAL
+        "return.png",          // UI_ICON_TYPE_RETURN
+        "backward.png",        // UI_ICON_TYPE_BACKWARD
+        "forward.png",         // UI_ICON_TYPE_FORWARD
+        "play.png",            // UI_ICON_TYPE_PLAY
+        "pause.png",           // UI_ICON_TYPE_PAUSE
+        "stat.png",            // UI_ICON_TYPE_STAT
+        "home.png",            // UI_ICON_TYPE_HOME
+        "trash.png",           // UI_ICON_TYPE_TRASH
+        "pencil.png",          // UI_ICON_TYPE_PENCIL
+        "save.png",            // UI_ICON_TYPE_SAVE
+        "plus.png",            // UI_ICON_TYPE_PLUS
+        "stack.png",           // UI_ICON_TYPE_STACK
+
+        // Social & payment icons
+        "discord.png",         // UI_ICON_TYPE_DISCORD
+        "telegram.png",        // UI_ICON_TYPE_TELEGRAM
+        "github.png",          // UI_ICON_TYPE_GITHUB
+        "globe.png",           // UI_ICON_TYPE_GLOBE
+        "stripe.png",          // UI_ICON_TYPE_STRIPE
+        "btc.png",             // UI_ICON_TYPE_BTC
+        "monero.png",          // UI_ICON_TYPE_MONERO
+
+        // Sound icons
+        "sound.png",           // UI_ICON_TYPE_SOUND
+        "sound0.png",          // UI_ICON_TYPE_SOUND0
+        "sound1.png",          // UI_ICON_TYPE_SOUND1
+        "sound2.png",          // UI_ICON_TYPE_SOUND2
+        "sound3.png",          // UI_ICON_TYPE_SOUND3
+        "mute.png",            // UI_ICON_TYPE_MUTE
+
+        // Habit & practice icons
+        "habitmarker.png",     // UI_ICON_TYPE_HABIT
+        "amen.png",            // UI_ICON_TYPE_AMEN
+        "inbe.png",            // UI_ICON_TYPE_INBE
+
+        // Meditation & theme icons
+        "droid.png",           // UI_ICON_TYPE_DROID
+        "fdroid.png",          // UI_ICON_TYPE_FDROID
+        "lighton.png",         // UI_ICON_TYPE_LIGHTON
+        "lightoff.png",        // UI_ICON_TYPE_LIGHTOFF
+        "moon.png",            // UI_ICON_TYPE_MOON
+        "sun.png",             // UI_ICON_TYPE_SUN
+        "jupiter.png",         // UI_ICON_TYPE_JUPITER
+        "mars.png",            // UI_ICON_TYPE_MARS
+        "mercury.png",         // UI_ICON_TYPE_MERCURY
+        "venus.png",           // UI_ICON_TYPE_VENUS
+        "saturn.png",          // UI_ICON_TYPE_SATURN
+
+        // Navigation & utility icons
+        "link.png",            // UI_ICON_TYPE_LINK
+        "edit.png",            // UI_ICON_TYPE_EDIT
+        "eye-closed.png",      // UI_ICON_TYPE_EYE_CLOSED
+        "check.png",           // UI_ICON_TYPE_CHECK
+        "quest.png",           // UI_ICON_TYPE_QUEST
+        "routine.png",         // UI_ICON_TYPE_ROUTINE
+        "timeline.png",        // UI_ICON_TYPE_TIMELINE
+        "todos.png",           // UI_ICON_TYPE_TODOS
+        "tile.png",            // UI_ICON_TYPE_TILE
+        "tile2.png",           // UI_ICON_TYPE_TILE2
+        "tile3.png",           // UI_ICON_TYPE_TILE3
+        "tile4.png",           // UI_ICON_TYPE_TILE4
+        "text.png",            // UI_ICON_TYPE_TEXT
+
+        // Platform & store icons
+        "itch.png",            // UI_ICON_TYPE_ITCH
+        "playstore.png",       // UI_ICON_TYPE_PLAYSTORE
+        "tux.png",             // UI_ICON_TYPE_TUX
+        "win.png",             // UI_ICON_TYPE_WIN
+        "uxn.png",             // UI_ICON_TYPE_UXN
+        "wasm.png",            // UI_ICON_TYPE_WASM
+        "wasm4.png",           // UI_ICON_TYPE_WASM4
+        "ray.png",             // UI_ICON_TYPE_RAY
+        "rocket.png",          // UI_ICON_TYPE_ROCKET
+        "srht.png",            // UI_ICON_TYPE_SRHT
+        "tcl.png",             // UI_ICON_TYPE_TCL
+    };
+
+    for(int i = 1; i < UI_ICON_TYPE_COUNT; i++) {  // Skip UI_ICON_TYPE_NONE (index 0)
+        if(icon_names[i] != NULL && app->icons[i].id == 0) {
+            app->icons[i] = load_icon_texture(icon_names[i]);
+        }
     }
-    if(app->x_icon.id == 0) {
-        app->x_icon = load_icon_texture("x.png");
-    }
-    if(app->manual_icon.id == 0) {
-        app->manual_icon = load_icon_texture("manual.png");
-    }
-    if(app->return_icon.id == 0) {
-        app->return_icon = load_icon_texture("return.png");
-    }
-    if(app->backward_icon.id == 0) {
-        app->backward_icon = load_icon_texture("backward.png");
-    }
-    if(app->forward_icon.id == 0) {
-        app->forward_icon = load_icon_texture("forward.png");
-    }
-    if(app->play_icon.id == 0) {
-        app->play_icon = load_icon_texture("play.png");
-    }
-    if(app->pause_icon.id == 0) {
-        app->pause_icon = load_icon_texture("pause.png");
-    }
-    if(app->stat_icon.id == 0) {
-        app->stat_icon = load_icon_texture("stat.png");
-    }
-    if(app->habit_icon.id == 0) {
-        app->habit_icon = load_icon_texture("habitmarker.png");
-    }
-    if(app->practice_icon.id == 0) {
-        app->practice_icon = load_icon_texture("amen.png");
-    }
-    if(app->plus_icon.id == 0) {
-        app->plus_icon = load_icon_texture("plus.png");
-    }
-    if(app->stack_icon.id == 0) {
-        app->stack_icon = load_icon_texture("stack.png");
-    }
-    if(app->trash_icon.id == 0) {
-        app->trash_icon = load_icon_texture("trash.png");
-    }
-    if(app->pencil_icon.id == 0) {
-        app->pencil_icon = load_icon_texture("pencil.png");
-    }
-    if(app->save_icon.id == 0) {
-        app->save_icon = load_icon_texture("save.png");
-    }
-    if(app->discord_icon.id == 0) {
-        app->discord_icon = load_icon_texture("discord.png");
-    }
+
     /* Update tab bar icons */
-    g_tabs[0].icon = app->habit_icon;
+    g_tabs[0].icon = app->icons[UI_ICON_TYPE_HABIT];
     g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
     g_tabs[0].user_data = app;
-    g_tabs[1].icon = app->practice_icon;
-    g_tabs[1].icon_type = UI_ICON_TYPE_NONE;
+    g_tabs[1].icon = app->icons[UI_ICON_TYPE_AMEN];
+    g_tabs[1].icon_type = UI_ICON_TYPE_AMEN;
     g_tabs[1].user_data = app;
-    g_tabs[2].icon = app->gear_icon;
+    g_tabs[2].icon = app->icons[UI_ICON_TYPE_GEAR];
     g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
     g_tabs[2].user_data = app;
 
-    if(app->telegram_icon.id == 0) {
-        app->telegram_icon = load_icon_texture("telegram.png");
-    }
-    if(app->github_icon.id == 0) {
-        app->github_icon = load_icon_texture("github.png");
-    }
-    if(app->globe_icon.id == 0) {
-        app->globe_icon = load_icon_texture("globe.png");
-    }
-    if(app->btc_icon.id == 0) {
-        app->btc_icon = load_icon_texture("btc.png");
-    }
-    if(app->monero_icon.id == 0) {
-        app->monero_icon = load_icon_texture("monero.png");
-    }
-    if(app->sound0_icon.id == 0) {
-        app->sound0_icon = load_icon_texture("sound0.png");
-    }
-    if(app->sound1_icon.id == 0) {
-        app->sound1_icon = load_icon_texture("sound1.png");
-    }
-    if(app->sound2_icon.id == 0) {
-        app->sound2_icon = load_icon_texture("sound2.png");
-    }
-    if(app->sound3_icon.id == 0) {
-        app->sound3_icon = load_icon_texture("sound3.png");
-    }
     app->volume_popup_active = 0;
 
-    ui_set_icons(app->gear_icon, app->x_icon);
+    ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
     if(app->whm_1_image.id == 0) {
         app->whm_1_image = load_asset_texture("whm/1.jpg");
@@ -1031,12 +1045,12 @@ sound_icon_for_volume(InbeApp *app)
 {
     int vol = app->sound_volume;
     if(vol <= 0)
-        return app->sound0_icon;
+        return app->icons[UI_ICON_TYPE_SOUND0];
     if(vol <= 25)
-        return app->sound1_icon;
+        return app->icons[UI_ICON_TYPE_SOUND1];
     if(vol <= 75)
-        return app->sound2_icon;
-    return app->sound3_icon;
+        return app->icons[UI_ICON_TYPE_SOUND2];
+    return app->icons[UI_ICON_TYPE_SOUND3];
 }
 
 static void
@@ -1231,7 +1245,7 @@ draw_meditation_sound_controls(InbeApp *app)
     int sound_hover = 0;
 
     if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), UI_ICON_TYPE_SOUND, &sound_hover)) {
+                               sound_icon_for_volume(app), &sound_hover)) {
         app->volume_popup_active = !app->volume_popup_active;
     }
 
@@ -1271,8 +1285,7 @@ draw_meditation_screen(InbeApp *app, int center_x, int center_y)
     int text_w;
 
     if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN,
-                               &return_hover)) {
+                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
         meditation_music_stop(app);
         app->meditation_duration_seconds = 0;
         app->meditation_remaining_seconds = 0;
@@ -1727,7 +1740,7 @@ draw_practice_config_button(InbeApp *app)
         return;
 
     if(ui_draw_icon_btn_padded(button_x, button_y, icon_size, icon_padding,
-                               app->stack_icon, UI_ICON_TYPE_STACK, &hover)) {
+                               app->icons[UI_ICON_TYPE_STACK], &hover)) {
         app->practice_config_theme_tab = PRACTICE_CONFIG_TAB_LIST;
         app->inbe.screen = InbeScreenPracticeConfig;
     }
@@ -1747,7 +1760,7 @@ draw_habits_manager_button(InbeApp *app)
         return;
 
     if(ui_draw_icon_btn_padded(button_x, button_y, icon_size, icon_padding,
-                               app->stack_icon, UI_ICON_TYPE_STACK, &hover)) {
+                               app->icons[UI_ICON_TYPE_STACK], &hover)) {
         habit_edit_cancel(app);
         app->inbe.screen = InbeScreenHabitManager;
     }
@@ -1776,8 +1789,7 @@ draw_practice_config_page(InbeApp *app)
 
         snprintf(title, sizeof(title), "%s Theme", g_practice_category_labels[tab]);
         header = ui_draw_title_header(top_h, title,
-                                      app->return_icon, UI_ICON_TYPE_RETURN,
-                                      (Texture2D){0}, UI_ICON_TYPE_NONE);
+                                      app->icons[UI_ICON_TYPE_RETURN], (Texture2D){0});
         if(header.left_clicked) {
             app->practice_config_theme_tab = PRACTICE_CONFIG_TAB_LIST;
             save_settings(app);
@@ -1803,8 +1815,7 @@ draw_practice_config_page(InbeApp *app)
     }
 
     header = ui_draw_title_header(top_h, "Practice Tabs",
-                                  app->return_icon, UI_ICON_TYPE_RETURN,
-                                  (Texture2D){0}, UI_ICON_TYPE_NONE);
+                                  app->icons[UI_ICON_TYPE_RETURN], (Texture2D){0});
     if(header.left_clicked) {
         save_settings(app);
         app->inbe.screen = InbeScreenStart;
@@ -2671,7 +2682,7 @@ habit_session_draw_edit_field(InbeApp *app, const HabitLinkedEntry *entry,
 }
 
 static int
-habit_session_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label)
+habit_session_keyboard_key(int x, int y, int w, int h, const char *label)
 {
     int hover = 0;
     return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_SECONDARY, 0, &hover);
@@ -2726,7 +2737,7 @@ habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
         int row = i / 3;
         int key_x = x + col * (key_w + gap);
         int key_y = y + pad + row * (key_h + gap);
-        if(habit_session_keyboard_key(app, key_x, key_y, key_w, key_h, labels[i])) {
+        if(habit_session_keyboard_key(key_x, key_y, key_w, key_h, labels[i])) {
             if(i == 9) {
                 habit_session_delete_before_cursor(app);
             } else if(i == 11) {
@@ -2822,8 +2833,8 @@ draw_habit_cascade_row(InbeApp *app, int x, int y, int w, int h,
 }
 
 static int
-draw_habit_cascade_action(InbeApp *app, int right_x, int y, int row_h,
-                          Texture2D icon, UIIconType icon_type)
+draw_habit_cascade_action(int right_x, int y, int row_h,
+                          Texture2D icon)
 {
     int icon_size = flint_px(16);
     int icon_padding = flint_px(4);
@@ -2832,8 +2843,7 @@ draw_habit_cascade_action(InbeApp *app, int right_x, int y, int row_h,
 
     return ui_draw_icon_btn_padded(right_x - btn_w - flint_px(4),
                                    y + (row_h - btn_w) / 2,
-                                   icon_size, icon_padding, icon,
-                                   icon_type, &hover);
+                                   icon_size, icon_padding, icon, &hover);
 }
 
 static void
@@ -2909,8 +2919,7 @@ draw_habit_linked_details_modal(InbeApp *app)
     habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
 
     frame = ui_draw_modal_frame(modal_w, modal_h, date_text,
-                                (Texture2D){0}, UI_ICON_TYPE_NONE,
-                                app->x_icon, UI_ICON_TYPE_X);
+                                (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
 
     if(frame.right_clicked) {
         app->modal.active = 0;
@@ -2953,7 +2962,7 @@ draw_habit_linked_details_modal(InbeApp *app)
                                        (Rectangle){frame.content_x, y, line_w, row_h},
                                        flint_ui_font_small(), flint_px(10), c_text);
         if(ui_draw_icon_btn_padded(edit_x, y - flint_px(4), icon_size, icon_padding,
-                                   app->pencil_icon, UI_ICON_TYPE_PENCIL, &hover)) {
+                                   app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
             habit_open_session_edit_page_for_session(app, app->habit_detail_index,
                                                      app->habit_detail_day,
                                                      ctx.entries[i].path);
@@ -3019,7 +3028,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx,
                 habit_session_draw_edit_field(app, entry, content_x + flint_px(10), y,
                                               field_w - flint_px(10), row_h, font);
                 if(ui_draw_icon_btn_padded(edit_x, y, icon_size, icon_padding,
-                                           app->save_icon, UI_ICON_TYPE_SAVE, &hover)) {
+                                           app->icons[UI_ICON_TYPE_SAVE], &hover)) {
                     habit_session_commit_edit(app, entry);
                     return y;
                 }
@@ -3028,13 +3037,13 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx,
                                 flint_ui_text_y(line, y, row_h, font),
                                 font, c_text);
                 if(ui_draw_icon_btn_padded(edit_x, y, icon_size, icon_padding,
-                                           app->pencil_icon, UI_ICON_TYPE_PENCIL, &hover)) {
+                                           app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
                     app->habit_detail_session_index = i;
                     habit_session_begin_edit_time(app, entry);
                 }
             }
             if(ui_draw_icon_btn_padded(right_x, y, icon_size, icon_padding,
-                                       app->trash_icon, UI_ICON_TYPE_TRASH, &hover)) {
+                                       app->icons[UI_ICON_TYPE_TRASH], &hover)) {
                 data_delete_session(entry->path);
                 habit_session_cancel_edit(app);
                 app->habit_detail_session_index = -1;
@@ -3058,7 +3067,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx,
                                                   content_x + flint_px(26), y,
                                                   field_w - flint_px(26), row_h, font);
                     if(ui_draw_icon_btn_padded(edit_x, y, icon_size, icon_padding,
-                                               app->save_icon, UI_ICON_TYPE_SAVE, &hover)) {
+                                               app->icons[UI_ICON_TYPE_SAVE], &hover)) {
                         habit_session_commit_edit(app, entry);
                         return y;
                     }
@@ -3067,13 +3076,13 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx,
                                     flint_ui_text_y(round_line, y, row_h, font),
                                     font, c_text);
                     if(ui_draw_icon_btn_padded(edit_x, y, icon_size, icon_padding,
-                                               app->pencil_icon, UI_ICON_TYPE_PENCIL, &hover)) {
+                                               app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
                         app->habit_detail_session_index = i;
                         habit_session_begin_edit_round(app, entry, r);
                     }
                 }
                 if(ui_draw_icon_btn_padded(right_x, y, icon_size, icon_padding,
-                                           app->trash_icon, UI_ICON_TYPE_TRASH, &hover)) {
+                                           app->icons[UI_ICON_TYPE_TRASH], &hover)) {
                     habit_session_delete_round(entry, r);
                     habit_session_cancel_edit(app);
                     return y;
@@ -3124,8 +3133,7 @@ draw_habit_session_edit_screen(InbeApp *app)
         viewport_h = flint_px(80);
 
     header = ui_draw_title_header(top_h, date_text,
-                                  app->return_icon, UI_ICON_TYPE_RETURN,
-                                  (Texture2D){0}, UI_ICON_TYPE_NONE);
+                                  app->icons[UI_ICON_TYPE_RETURN], (Texture2D){0});
     if(header.left_clicked) {
         habit_session_cancel_edit(app);
         app->inbe.screen = InbeScreenHabits;
@@ -3330,8 +3338,8 @@ draw_habits_linked_view(InbeApp *app, InbeHabit *habit, int content_x, int conte
                                       app->habits_list_expanded_session == i, 46)) {
                 app->habits_list_expanded_session = i;
             }
-            if(draw_habit_cascade_action(app, content_x + content_w, y, row_h,
-                                         app->pencil_icon, UI_ICON_TYPE_PENCIL)) {
+            if(draw_habit_cascade_action(content_x + content_w, y, row_h,
+                                         app->icons[UI_ICON_TYPE_PENCIL])) {
                 habit_open_session_edit_page_for_session(app, selected, day_index,
                                                          ctx.entries[i].path);
                 return y + row_h;
@@ -3626,8 +3634,7 @@ draw_habits_manager_screen(InbeApp *app)
     DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(c_button, 18));
 
     if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(8), app->return_icon,
-                               UI_ICON_TYPE_RETURN, &hover)) {
+                               flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
         habit_edit_commit(app);
         app->inbe.screen = InbeScreenHabits;
         return;
@@ -3710,8 +3717,7 @@ draw_habits_manager_screen(InbeApp *app)
                         flint_ui_text_y(habit->name, y, row_h, font),
                         font, c_text);
         if(ui_draw_icon_btn_padded(edit_btn_x, y + (row_h - icon_btn_w) / 2,
-                                   icon_size, icon_padding, app->pencil_icon,
-                                   UI_ICON_TYPE_PENCIL, &hover)) {
+                                   icon_size, icon_padding, app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
             app->habits.selected = i;
             habit_edit_begin(app, i);
         }
@@ -3720,8 +3726,8 @@ draw_habits_manager_screen(InbeApp *app)
             app->cursor_disabled = 1;
         if(flint_ui_icon_button((FlintUIIconButton){
                 .bounds = delete_bounds,
-                .icon = app->trash_icon,
-                .icon_type = FLINT_ICON_TYPE_TRASH,
+                .icon = app->icons[UI_ICON_TYPE_TRASH],
+                .icon_type = UI_ICON_TYPE_TRASH,
                 .icon_size = icon_size,
                 .icon_padding = icon_padding,
                 .disabled = delete_disabled,
@@ -3749,7 +3755,7 @@ draw_habits_manager_screen(InbeApp *app)
     if(plus_y < y + flint_px(8))
         plus_y = y + flint_px(8);
     if(ui_draw_icon_btn_padded(plus_x, plus_y, plus_size, plus_padding,
-                               app->plus_icon, UI_ICON_TYPE_PLUS, &hover)) {
+                               app->icons[UI_ICON_TYPE_PLUS], &hover)) {
         if(app->habits.count < INBE_HABIT_MAX)
             habit_edit_begin_new(app);
     }
@@ -3857,8 +3863,7 @@ draw_habit_edit_screen(InbeApp *app)
     DrawRectangle(0, 0, view_width, top_h, c_bg);
     DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(c_button, 18));
     if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(8), app->return_icon,
-                               UI_ICON_TYPE_RETURN, &hover)) {
+                               flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
         habit_edit_commit(app);
         return;
     }
@@ -3867,8 +3872,7 @@ draw_habit_edit_screen(InbeApp *app)
                     flint_ui_text_y(title, 0, top_h, title_font),
                     title_font, c_text);
     if(ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
-                               flint_px(24), flint_px(8), app->save_icon,
-                               UI_ICON_TYPE_SAVE, &hover)) {
+                               flint_px(24), flint_px(8), app->icons[UI_ICON_TYPE_SAVE], &hover)) {
         habit_edit_commit(app);
         return;
     }
@@ -4100,14 +4104,14 @@ updateapp(InbeApp *app)
             }
             if(!app->modal.active &&
                ui_draw_icon_btn_padded(manual_x, dropdown_y, manual_icon_size, manual_icon_padding,
-                                       app->manual_icon, UI_ICON_TYPE_MANUAL, &hover)) {
+                                       app->icons[UI_ICON_TYPE_MANUAL], &hover)) {
                 app->tutorial_step = 0;
                 app->manual_scroll = 0;
                 app->inbe.screen = InbeScreenManual;
             }
             if(!app->modal.active &&
                ui_draw_icon_btn_padded(settings_x, dropdown_y, settings_icon_size, settings_icon_padding,
-                                       app->gear_icon, UI_ICON_TYPE_GEAR, &hover)) {
+                                       app->icons[UI_ICON_TYPE_GEAR], &hover)) {
                 reset_settings_preview(app);
                 app->settings_category = app->exercise_type == EXERCISE_MEDITATION
                                              ? SETTINGS_CATEGORY_MEDITATION
@@ -4233,32 +4237,32 @@ inbe_app_destroy(void *vapp)
     InbeApp *app = vapp;
     if (app == NULL) return;
 
-    SafeUnloadTexture(app->gear_icon);
-    SafeUnloadTexture(app->x_icon);
-    SafeUnloadTexture(app->manual_icon);
-    SafeUnloadTexture(app->return_icon);
-    SafeUnloadTexture(app->backward_icon);
-    SafeUnloadTexture(app->forward_icon);
-    SafeUnloadTexture(app->play_icon);
-    SafeUnloadTexture(app->pause_icon);
-    SafeUnloadTexture(app->stat_icon);
-    SafeUnloadTexture(app->habit_icon);
-    SafeUnloadTexture(app->practice_icon);
-    SafeUnloadTexture(app->plus_icon);
-    SafeUnloadTexture(app->stack_icon);
-    SafeUnloadTexture(app->home_icon);
-    SafeUnloadTexture(app->trash_icon);
-    SafeUnloadTexture(app->pencil_icon);
-    SafeUnloadTexture(app->save_icon);
-    SafeUnloadTexture(app->discord_icon);
-    SafeUnloadTexture(app->telegram_icon);
-    SafeUnloadTexture(app->github_icon);
-    SafeUnloadTexture(app->btc_icon);
-    SafeUnloadTexture(app->monero_icon);
-    SafeUnloadTexture(app->sound0_icon);
-    SafeUnloadTexture(app->sound1_icon);
-    SafeUnloadTexture(app->sound2_icon);
-    SafeUnloadTexture(app->sound3_icon);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_GEAR]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_X]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_MANUAL]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_RETURN]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_BACKWARD]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_FORWARD]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PLAY]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PAUSE]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_STAT]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_HABIT]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_AMEN]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PLUS]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_STACK]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_HOME]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_TRASH]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PENCIL]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SAVE]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_DISCORD]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_TELEGRAM]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_GITHUB]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_BTC]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_MONERO]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND0]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND1]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND2]);
+    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND3]);
     SafeUnloadTexture(app->whm_1_image);
     SafeUnloadTexture(app->whm_2_image);
     SafeUnloadTexture(app->font_shapes_texture);

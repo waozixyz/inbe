@@ -4,6 +4,7 @@
 #include "raylib.h"
 #include "flint.h"
 #include "flint_text.h"
+#include "ui_icon_types.h"
 
 typedef enum {
     UI_ICON_SIZE_TINY,
@@ -11,32 +12,6 @@ typedef enum {
     UI_ICON_SIZE_MEDIUM,
     UI_ICON_SIZE_LARGE
 } UIIconSize;
-
-typedef enum {
-    UI_ICON_TYPE_NONE,
-    UI_ICON_TYPE_GEAR,
-    UI_ICON_TYPE_X,
-    UI_ICON_TYPE_MANUAL,
-    UI_ICON_TYPE_RETURN,
-    UI_ICON_TYPE_BACKWARD,
-    UI_ICON_TYPE_FORWARD,
-    UI_ICON_TYPE_PLAY,
-    UI_ICON_TYPE_PAUSE,
-    UI_ICON_TYPE_STAT,
-    UI_ICON_TYPE_TELEGRAM,
-    UI_ICON_TYPE_GLOBE,
-    UI_ICON_TYPE_STRIPE,
-    UI_ICON_TYPE_BTC,
-    UI_ICON_TYPE_MONERO,
-    UI_ICON_TYPE_HOME,
-    UI_ICON_TYPE_TRASH,
-    UI_ICON_TYPE_PENCIL,
-    UI_ICON_TYPE_SAVE,
-    UI_ICON_TYPE_PLUS,
-    UI_ICON_TYPE_SOUND,
-    UI_ICON_TYPE_STACK,
-    UI_ICON_TYPE_GITHUB
-} UIIconType;
 
 typedef enum {
     UI_BUTTON_STYLE_PRIMARY,
@@ -72,7 +47,7 @@ typedef struct {
 typedef struct {
     Rectangle bounds;
     Texture2D icon;
-    FlintIconType icon_type;
+    UIIconType icon_type;
     int icon_size;
     int icon_padding;
     int focus_id;
@@ -98,7 +73,7 @@ typedef struct {
 typedef struct {
     const char *text;
     Texture2D icon;
-    FlintIconType icon_type;
+    UIIconType icon_type;
     int icon_size;
     int width;
     int font;
@@ -182,8 +157,8 @@ void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, 
 /* Icon fallback drawing now from Flint: flint_draw_icon_fallback */
 int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
-int ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover);
-int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UIIconType icon_type, int *hover);
+int ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover);
+int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int *hover);
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 
 /* Generic button component with unified styling */
@@ -191,7 +166,7 @@ int ui_draw_generic_button(int x, int y, int w, int h, const char *label,
                            UIButtonStyle style, int disabled, int *hover);
 int ui_draw_subtab_bar(FlintUISubtabBar bar);
 
-void ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url);
+void ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url);
 int ui_draw_slider(int id, int x, int y, int w, const char *label, int min, int max, int *value, const char *suffix);
 int ui_draw_slider_vertical(int id, int x, int y, int h,
                              int min, int max, int *value);
@@ -225,8 +200,8 @@ typedef struct UITabBar {
 } UITabBar;
 
 int ui_nav_button_width(const char *label, int icon_size, int show_label, int font);
-int ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *label, int show_label, int *hover);
-int ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, UIIconType icon_type, const char *label, int show_label, int *hover);
+int ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, const char *label, int show_label, int *hover);
+int ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, const char *label, int show_label, int *hover);
 void ui_draw_tab_bar(UITab *tabs, int count);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
@@ -235,11 +210,11 @@ int ui_draw_modal_3btn(const char *title, const char *message, const char *left_
 int ui_draw_screen_header(const char *title, int show_close);
 int ui_screen_header_height(void);
 FlintUIHeader ui_draw_title_header(int height, const char *title,
-                                   Texture2D left_icon, UIIconType left_type,
-                                   Texture2D right_icon, UIIconType right_type);
+                                   Texture2D left_icon,
+                                   Texture2D right_icon);
 FlintUIPanelFrame ui_draw_modal_frame(int width, int height, const char *title,
-                                      Texture2D left_icon, UIIconType left_type,
-                                      Texture2D right_icon, UIIconType right_type);
+                                      Texture2D left_icon,
+                                      Texture2D right_icon);
 void ui_begin_scissor(int x, int y, int w, int h);
 void ui_end_scissor(void);
 int ui_scrollbar_reserved_width(int max_scroll);

@@ -546,23 +546,6 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
     draw_session_counter(app, center_x, center_y);
 }
 
-static void
-draw_meditation_start_preview(InbeApp *app, int center_x, int center_y)
-{
-    char text[16];
-    int seconds = 0;
-    int font = flint_px(44);
-    int text_w;
-
-    if(app != NULL && app->meditation_duration_seconds > 0)
-        seconds = app->meditation_duration_seconds;
-
-    snprintf(text, sizeof(text), "%02d:%02d", seconds / 60, seconds % 60);
-    text_w = flint_text_measure(text, font);
-    flint_text_draw(text, center_x - text_w / 2, center_y - font / 2,
-                    font, c_text);
-}
-
 int
 session_draw_start_preview(InbeApp *app, int center_x, int center_y)
 {
@@ -574,18 +557,38 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int font = flint_px(16);
     float scale = 1.0f;
 
-    // Check circular hover
-    float dx = mouse_world.x - center_x;
-    float dy = mouse_world.y - center_y;
-    float dist_sq = dx * dx + dy * dy;
-    float radius = app->inbe.rmax;
+    // Check hover
+    float radius = app->inbe.rmax;  // Declare radius outside the if/else blocks
 
-    if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
-        hovered = 1;
-        scale = 1.08f;
-        app->play_circle_hover = 1;
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        // For meditation: text hover detection
+        int text_w = flint_text_measure(play_text, font);
+        int text_h = font;
+        Rectangle text_bounds = {
+            center_x - text_w / 2 - flint_px(10),
+            center_y - text_h / 2 - flint_px(10),
+            text_w + flint_px(20),
+            text_h + flint_px(20)
+        };
+
+        if(CheckCollisionPointRec(mouse_world, text_bounds) && !ui_input_captures_click(mouse_world)) {
+            hovered = 1;
+            app->play_circle_hover = 1;
+        } else {
+            app->play_circle_hover = 0;
+        }
     } else {
-        app->play_circle_hover = 0;
+        // For breathing exercises: circular hover detection
+        float dx = mouse_world.x - center_x;
+        float dy = mouse_world.y - center_y;
+        float dist_sq = dx * dx + dy * dy;
+
+        if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
+            hovered = 1;
+            app->play_circle_hover = 1;
+        } else {
+            app->play_circle_hover = 0;
+        }
     }
 
     // Smooth scale animation
@@ -695,10 +698,10 @@ static Texture2D
 sound_icon_for_volume(InbeApp *app)
 {
     int vol = app->sound_volume;
-    if(vol <= 0) return app->sound0_icon;
-    if(vol <= 25) return app->sound1_icon;
-    if(vol <= 75) return app->sound2_icon;
-    return app->sound3_icon;
+    if(vol <= 0) return app->icons[UI_ICON_TYPE_SOUND0];
+    if(vol <= 25) return app->icons[UI_ICON_TYPE_SOUND1];
+    if(vol <= 75) return app->icons[UI_ICON_TYPE_SOUND2];
+    return app->icons[UI_ICON_TYPE_SOUND3];
 }
 
 static void
@@ -722,7 +725,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     int breath_max_y = view_height - flint_px(44);
 
     if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
+                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             inbe_app_init(app);
@@ -739,7 +742,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     int sound_btn_padding = flint_px(10);
     int sound_hover = 0;
     if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), UI_ICON_TYPE_SOUND, &sound_hover)) {
+                               sound_icon_for_volume(app), &sound_hover)) {
         app->volume_popup_active = !app->volume_popup_active;
     }
 
@@ -856,15 +859,14 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         forward_x = pause_x + control_btn_w + control_gap;
 
         if(ui_draw_icon_btn_padded(back_x, control_y, control_size, control_padding,
-                                   app->backward_icon, UI_ICON_TYPE_BACKWARD, &back_hover))
+                                   app->icons[UI_ICON_TYPE_BACKWARD], &back_hover))
             session_step_back(app);
         if(ui_draw_icon_btn_padded(pause_x, control_y, control_size, control_padding,
-                                   app->session_paused ? app->play_icon : app->pause_icon,
-                                   app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE,
+                                   app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE],
                                    &pause_hover))
             app->session_paused = !app->session_paused;
         if(ui_draw_icon_btn_padded(forward_x, control_y, control_size, control_padding,
-                                   app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover))
+                                   app->icons[UI_ICON_TYPE_FORWARD], &forward_hover))
             session_step_forward(app);
     }
 
