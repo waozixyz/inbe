@@ -6,6 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
 
 /* Global UI state */
 int ui_view_width = 320;
@@ -25,6 +28,58 @@ static int g_ui_focus_ids[UI_FOCUS_MAX_ITEMS];
 static int g_ui_focus_count = 0;
 static int g_ui_focus_tab_dir = 0;
 static int g_ui_focus_text_input_active = 0;
+
+#define UI_SCISSOR_STACK_MAX 16
+static Rectangle g_ui_scissor_stack[UI_SCISSOR_STACK_MAX];
+static int g_ui_scissor_stack_count = 0;
+
+static Rectangle
+ui_scissor_intersection(Rectangle a, Rectangle b)
+{
+    float x1 = a.x > b.x ? a.x : b.x;
+    float y1 = a.y > b.y ? a.y : b.y;
+    float x2 = a.x + a.width < b.x + b.width ? a.x + a.width : b.x + b.width;
+    float y2 = a.y + a.height < b.y + b.height ? a.y + a.height : b.y + b.height;
+
+    if(x2 < x1)
+        x2 = x1;
+    if(y2 < y1)
+        y2 = y1;
+
+    return (Rectangle){x1, y1, x2 - x1, y2 - y1};
+}
+
+void
+ui_begin_scissor(int x, int y, int w, int h)
+{
+    Rectangle bounds = {x, y, w, h};
+
+    if(w < 0)
+        bounds.width = 0;
+    if(h < 0)
+        bounds.height = 0;
+    if(g_ui_scissor_stack_count > 0)
+        bounds = ui_scissor_intersection(g_ui_scissor_stack[g_ui_scissor_stack_count - 1], bounds);
+
+    if(g_ui_scissor_stack_count < UI_SCISSOR_STACK_MAX)
+        g_ui_scissor_stack[g_ui_scissor_stack_count++] = bounds;
+
+    BeginScissorMode((int)bounds.x, (int)bounds.y,
+                     (int)bounds.width, (int)bounds.height);
+}
+
+void
+ui_end_scissor(void)
+{
+    EndScissorMode();
+    if(g_ui_scissor_stack_count > 0)
+        g_ui_scissor_stack_count--;
+    if(g_ui_scissor_stack_count > 0) {
+        Rectangle bounds = g_ui_scissor_stack[g_ui_scissor_stack_count - 1];
+        BeginScissorMode((int)bounds.x, (int)bounds.y,
+                         (int)bounds.width, (int)bounds.height);
+    }
+}
 
 static Vector2
 ui_mouse_world(void)
@@ -190,6 +245,7 @@ ui_icon_to_flint_icon(UIIconType type)
     case UI_ICON_TYPE_PLUS: return FLINT_ICON_TYPE_PLUS;
     case UI_ICON_TYPE_SOUND: return FLINT_ICON_TYPE_SOUND;
     case UI_ICON_TYPE_STACK: return FLINT_ICON_TYPE_STACK;
+    case UI_ICON_TYPE_GITHUB: return FLINT_ICON_TYPE_GITHUB;
     case UI_ICON_TYPE_NONE:
     default: return FLINT_ICON_TYPE_NONE;
     }
@@ -241,7 +297,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
-    BeginScissorMode(x + padding_x, y, w - padding_x * 2, h);
+    ui_begin_scissor(x + padding_x, y, w - padding_x * 2, h);
     flint_text_draw(value, text_x, text_y, font, style.text);
 
     if(focused && cursor_visible) {
@@ -257,7 +313,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         int cursor_x = text_x + flint_text_measure(before_cursor, font);
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
-    EndScissorMode();
+    ui_end_scissor();
 }
 
 int
@@ -858,7 +914,13 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
     }
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+#if defined(PLATFORM_WEB)
+        EM_ASM({
+            window.location.href = UTF8ToString($0);
+        }, url);
+#else
         OpenURL(url);
+#endif
     }
 }
 
@@ -1228,42 +1290,15 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
     *dropdown_h = total_h;
 }
 
-int
-ui_draw_theme_switcher(int x, int y, int w, const char *label,
-                       const char *light_label, const char *dark_label,
-                       int *theme_id, int *dark_mode)
+static int
+ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
 {
     int changed = 0;
-    int font = flint_ui_font();
     int small_font = flint_ui_font_small();
     int selected = theme_id != NULL ? *theme_id : FLINT_THEME_SKY;
-    int dark = dark_mode != NULL ? *dark_mode : 0;
 
     if(selected < 0 || selected >= FLINT_THEME_COUNT)
         selected = FLINT_THEME_SKY;
-
-    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
-
-    int light_w = flint_text_measure(light_label ? light_label : "Light", font);
-    int dark_w = flint_text_measure(dark_label ? dark_label : "Dark", font);
-    int max_label_w = light_w > dark_w ? light_w : dark_w;
-    int toggle_w = max_label_w * 2 + flint_px(32);
-    int min_toggle_w = flint_px(100);
-    if(toggle_w < min_toggle_w)
-        toggle_w = min_toggle_w;
-    if(toggle_w > w)
-        toggle_w = w;
-
-    int toggle_h = flint_px(28);
-    int toggle_x = x + w - toggle_w - flint_px(8);
-    int toggle_y = y - flint_px(2);
-    if(ui_draw_toggle_switch(toggle_x, toggle_y, toggle_w, toggle_h, &dark,
-                             light_label ? light_label : "Light",
-                             dark_label ? dark_label : "Dark")) {
-        if(dark_mode != NULL)
-            *dark_mode = dark;
-        changed = 1;
-    }
 
     int circle_size = flint_px(36);
     int label_gap = flint_px(14);
@@ -1288,7 +1323,6 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
     }
 
     int start_x = x + (w - row_width) / 2;
-    int circle_y = y + flint_px(64);
     int row_step = circle_size + label_gap + small_font + row_gap;
     Vector2 mouse_world = ui_mouse_world();
 
@@ -1329,6 +1363,58 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
         int name_w = flint_text_measure(name, small_font);
         flint_text_draw(name, cx - name_w / 2, cy + circle_size / 2 + label_gap, small_font, c_text);
     }
+
+    return changed;
+}
+
+int
+ui_draw_theme_switcher(int x, int y, int w, const char *label,
+                       const char *light_label, const char *dark_label,
+                       int *theme_id, int *dark_mode)
+{
+    int changed = 0;
+    int font = flint_ui_font();
+    int dark = dark_mode != NULL ? *dark_mode : 0;
+
+    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
+
+    int light_w = flint_text_measure(light_label ? light_label : "Light", font);
+    int dark_w = flint_text_measure(dark_label ? dark_label : "Dark", font);
+    int max_label_w = light_w > dark_w ? light_w : dark_w;
+    int toggle_w = max_label_w * 2 + flint_px(32);
+    int min_toggle_w = flint_px(100);
+    if(toggle_w < min_toggle_w)
+        toggle_w = min_toggle_w;
+    if(toggle_w > w)
+        toggle_w = w;
+
+    int toggle_h = flint_px(28);
+    int toggle_x = x + w - toggle_w - flint_px(8);
+    int toggle_y = y - flint_px(2);
+    if(ui_draw_toggle_switch(toggle_x, toggle_y, toggle_w, toggle_h, &dark,
+                             light_label ? light_label : "Light",
+                             dark_label ? dark_label : "Dark")) {
+        if(dark_mode != NULL)
+            *dark_mode = dark;
+        changed = 1;
+    }
+
+    if(ui_draw_theme_grid(x, y + flint_px(64), w, dark, theme_id))
+        changed = 1;
+
+    return changed;
+}
+
+int
+ui_draw_theme_picker(int x, int y, int w, const char *label, int dark_mode,
+                     int *theme_id)
+{
+    int changed = 0;
+    int font = flint_ui_font();
+
+    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
+    if(ui_draw_theme_grid(x, y + flint_px(54), w, dark_mode != 0, theme_id))
+        changed = 1;
 
     return changed;
 }
@@ -1433,12 +1519,12 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int text_x = x + flint_px(12);
     int text_w = arrow_x - arrow_size - flint_px(8) - text_x;
     if(text_w > 0) {
-        BeginScissorMode((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
+        ui_begin_scissor((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
                          (int)(g_ui_camera.offset.y + (float)y * g_ui_camera.zoom),
                          (int)((float)text_w * g_ui_camera.zoom),
                          (int)((float)h * g_ui_camera.zoom));
         flint_text_draw(current_name, text_x, flint_ui_text_y(current_name, y, h, font), font, c_text);
-        EndScissorMode();
+        ui_end_scissor();
     }
 
     /* Draw dropdown X icon */
@@ -1562,7 +1648,7 @@ ui_draw_dropdown_menu(int id)
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
-    BeginScissorMode((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
+    ui_begin_scissor((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
                      (int)(g_ui_camera.offset.y + (float)dropdown_y * g_ui_camera.zoom),
                      (int)((float)w * g_ui_camera.zoom),
                      (int)((float)dropdown_h * g_ui_camera.zoom));
@@ -1590,7 +1676,7 @@ ui_draw_dropdown_menu(int id)
                 state->touch_pressed = 0;
                 state->scroll_offset = 0;
                 changed = 1;
-                EndScissorMode();
+                ui_end_scissor();
                 goto draw_arrow;
             }
         }
@@ -1598,7 +1684,7 @@ ui_draw_dropdown_menu(int id)
         flint_text_draw(options[i], x + flint_px(12), flint_ui_text_y(options[i], option_y, option_h, font), font, c_text);
     }
 
-    EndScissorMode();
+    ui_end_scissor();
 
     if(max_scroll > 0)
         ui_draw_scrollbar(x + w - scrollbar_w, dropdown_y + flint_px(2),
@@ -2118,7 +2204,8 @@ ui_draw_modal_frame(int width, int height, const char *title,
 int
 ui_scrollbar_reserved_width(int max_scroll)
 {
-    return max_scroll > 0 ? flint_px(18) : 0;
+    (void)max_scroll;
+    return 0;
 }
 
 int
@@ -2176,7 +2263,7 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     }
 
     view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
-    BeginScissorMode((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
+    ui_begin_scissor((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
                      (int)(g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom),
                      (int)(area.bounds.width * g_ui_camera.zoom),
                      (int)(area.bounds.height * g_ui_camera.zoom));
@@ -2186,12 +2273,18 @@ ui_scroll_container_begin(FlintUIScrollArea area)
 void
 ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
 {
-    EndScissorMode();
+    int scrollbar_w = flint_px(8);
+    int scrollbar_x;
+
+    ui_end_scissor();
 
     if(area.scroll_offset == NULL || view.max_scroll <= 0)
         return;
 
-    ui_draw_scrollbar((int)(area.bounds.x + area.bounds.width - flint_px(10)),
+    scrollbar_x = area.scrollbar_x > 0
+                      ? area.scrollbar_x
+                      : ui_view_width - scrollbar_w;
+    ui_draw_scrollbar(scrollbar_x,
                       (int)area.bounds.y,
                       (int)area.bounds.height,
                       view.content_h,

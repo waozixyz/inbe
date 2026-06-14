@@ -2,327 +2,345 @@
 Inner Breeze
 ---
 [tab_history]
-Riwayat
+Cronologia
 ---
 [tab_habits]
-Kebiasaan
+Abitudini
 ---
 [tab_practice]
-Latihan
+Pratica
 ---
 [habit_add_button]
-Tambah Kebiasaan
+Aggiungi Abitudine
 ---
 [habit_done_button]
-Selesai
+Fatto
 ---
 [habit_not_done_button]
-Tandai
+Segna Come Fatto
 ---
 [tab_manual]
 Tutorial
 ---
 [tab_settings]
-Pengaturan
+Impostazioni
 ---
 [play_button]
-MULAI
+AVVIA
 ---
 [exercise_wim_hof]
-Pernapasan Wim Hof
+Respirazione Wim Hof
 ---
 [exercise_meditation]
-Meditasi
+Meditazione
 ---
 [meditation_title]
-Meditasi
+Meditazione
 ---
 [meditation_manual_title]
-Meditasi
+Meditazione
 ---
 [meditation_manual_text]
-Pilih durasi, tekan mulai, lalu duduk dengan nyaman. Biarkan perhatian beristirahat pada napas. Saat pikiran mengembara, kembali perlahan ke pernapasan. Gong menandai awal dan akhir sesi.
+Scegli una durata, premi avvia e siediti comodamente. Lascia che la tua attenzione si riposi sul respiro. Quando la mente vaga, ritorna gentilmente al respiro. Un gong segnala l'inizio e la fine della sessione.
 ---
 [meditation_music_settings_title]
-Musik meditasi
+Musica Meditazione
 ---
 [meditation_music_section_title]
-Musik latar
+Musica di Sfondo
 ---
 [meditation_music_enabled_label]
-Putar musik latar
+Riproduci musica di sfondo
 ---
 [meditation_music_shuffle_label]
-Trek acak
+Traccia casuale
 ---
 [meditation_music_track_label]
-Trek
+Traccia
 ---
 [meditation_music_download_button]
-Unduh audio
+Scarica audio
 ---
 [meditation_music_redownload_button]
-Unduh ulang audio
+Riscarica audio
 ---
 [meditation_music_test_button]
-Coba putar
+Test audio
 ---
 [duration_5m]
-5m
+5 min
 ---
 [duration_15m]
-15m
+15 min
 ---
 [duration_30m]
-30m
+30 min
 ---
 [duration_1h]
-1j
+1 ora
 ---
 [duration_2h]
-2j
+2 ore
 ---
 [breath_button]
-NAFAS
+RESPIRO
 ---
 [results_title]
-HASIL
+RISULTATI
 ---
 [home_button]
-BERANDA
+HOME
 ---
 [exit_session_title]
-Keluar Sesi?
+Esci dalla Sessione?
 ---
 [save_completed_rounds_message]
-Simpan ronde yang selesai sebelum keluar?
+Salvare i round completati prima di uscire?
 ---
 [cancel_button]
-Batal
+Annulla
 ---
 [save_button]
-Simpan
+Salva
 ---
 [save_results_button]
-Simpan
+Salva
 ---
 [discard_button]
-Buang
+Scarta
 ---
 [all_progress_lost_message]
-Semua kemajuan akan hilang.
+Tutti i progressi andranno persi.
 ---
 [exit_button]
-Keluar
+Esci
 ---
 [round_times_title]
-Waktu ronde
+Tempi round
 ---
 [results_rounds]
-%d ronde
+%d round
 ---
 [results_best]
-terbaik %ds
+migliore %ds
 ---
 [results_avg]
-rata %ds
+media %ds
 ---
 [round_result_label]
-Ronde %d  %ds
+Round %d  %ds
 ---
 [starting_in]
-MULAI DALAM %2d
+INIZIA IN %2d
 ---
 [session_round_label]
-RONDE %d
+ROUND %d
 ---
 [settings_title]
-Pengaturan
+Impostazioni
 ---
 [settings_tab_breathing]
-Pernapasan
+Respirazione
 ---
 [settings_tab_session]
-Sesi
+Sessione
 ---
 [settings_tab_app]
-Aplikasi
+App
 ---
 [settings_tab_data_about]
-Data & Tentang
+Dati e Info
 ---
 [settings_tab_sound]
-Suara
+Suono
 ---
 [settings_tab_appearance]
-Tampilan
+Aspetto
 ---
 [settings_tab_language]
-Bahasa
+Lingua
 ---
 [settings_tab_data]
-Data
+Dati
 ---
 [settings_tab_about]
-Tentang
+Info
 ---
-
 [theme_label]
 Tema
 ---
 [theme_mode_label]
-Mode tema
+Modalità tema
+---
+[theme_system]
+Sistema
+---
+[orientation_label]
+Orientamento
+---
+[orientation_system]
+Sistema
+---
+[orientation_portrait]
+Verticale
+---
+[orientation_landscape]
+Orizzontale
+---
+[orientation_sensor]
+Sensore
 ---
 [speed_label]
-Kecepatan
+Velocità
 ---
 [progressive_speed_label]
-Kecepatan progresif
+Velocità progressiva
 ---
 [progressive_start_speed_label]
-Kecepatan awal
+Velocità iniziale
 ---
 [modify_start_speed_button]
-Ubah kecepatan awal
+Modifica velocità iniziale
 ---
 [progressive_start_speed_editor_title]
-Kecepatan awal
+Velocità iniziale
 ---
 [play_in_background_label]
-Putar di latar belakang
+Riproduci in background
 ---
 [max_rounds_label]
-Ronde maksimum
+Max round
 ---
 [max_breaths_label]
-Nafas maksimum
+Max respiri
 ---
 [pause_after_round_label]
-Jeda setelah ronde
+Pausa dopo round
 ---
 [advanced_session_controls_label]
-Kontrol sesi lanjutan
+Controlli avanzati sessione
 ---
 [hold_display_label]
-Tampilan tahan napas
+Visualizzazione trattenuta
 ---
 [hold_display_stopwatch]
-Stopwatch
+Cronometro
 ---
 [hold_display_circle]
-Lingkaran
+Cerchio
 ---
 [volume_label]
 Volume
 ---
 [reset_to_defaults_label]
-Reset ke default
+Ripristina predefiniti
 ---
 [fullscreen_label]
-Layar penuh
+Schermo intero
 ---
 [language_label]
-Bahasa
+Lingua
 ---
 [language_picker_title]
-Pilih Bahasa
+Scegli Lingua
 ---
 [next_button]
-Lanjut
+Avanti
 ---
 [coming_soon_label]
-Segera hadir...
+Prossimamente...
 ---
-
 [data_management_label]
-Manajemen Data
+Gestione Dati
 ---
 [data_management_button]
-Kelola data
+Gestisci dati
 ---
 [total_sessions_label]
-Total Sesi: %d
+Sessioni Totali: %d
 ---
 [data_size_label]
-Ukuran Data: %s
+Dimensione Dati: %s
 ---
 [storage_label]
-Penyimpanan: %s
+Spazio: %s
 ---
 [export_data_button]
-Ekspor Data
+Esporta Dati
 ---
 [delete_all_data_button]
-Hapus Semua Data
+Elimina Tutti i Dati
 ---
 [export_data_dialog_title]
-Ekspor Data
+Esporta Dati
 ---
 [export_failed]
-Ekspor gagal
+Esportazione fallita
 ---
 [exported_label]
-Terekspor
+Esportato
 ---
 [import_data_button]
-Impor Data
+Importa Dati
 ---
 [import_data_dialog_title]
-Impor Data
+Importa Dati
 ---
 [import_failed]
-Impor gagal
+Importazione fallita
 ---
 [imported_sessions]
-Mengimpor %d sesi
+Importate %d sessioni
 ---
 [import_invalid_file]
-File ekspor tidak valid
+File di esportazione non valido
 ---
 [import_cancelled]
-Impor dibatalkan
+Importazione annullata
 ---
 [export_cancelled]
-Export cancelled
+Esportazione annullata
 ---
 [no_data_to_export]
-No data to export
+Nessun dato da esportare
 ---
 [no_data_to_delete]
-No data to delete
+Nessun dato da eliminare
 ---
 [delete_all_data_title]
-Delete all data?
+Eliminare tutti i dati?
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+Ciò eliminerà permanentemente tutte le sessioni salvate.
 ---
 [delete_cancelled]
-Delete cancelled
+Eliminazione annullata
 ---
 [deleted_sessions]
-Deleted %lld sessions
+Eliminate %lld sessioni
 ---
 [version_label]
-Versi %s
+Versione %s
 ---
 [about_description]
-Inner Breeze adalah aplikasi meditasi pernapasan sederhana untuk membantu Anda rileks dan menemukan ketenangan.
+Inner Breeze è una semplice app di meditazione
+respiratoria per aiutarti a rilassarti
+e trovare la tua calma.
 ---
 [toggle_off]
-MATI
+OFF
 ---
 [toggle_on]
-NYALA
+ON
 ---
 [theme_light]
-Terang
+Chiaro
 ---
 [theme_dark]
-Gelap
+Scuro
 ---
 [on_screen_keyboard_label]
-Keyboard di layar
+Tastiera su schermo
 ---
 [tutorial_title]
 Tutorial
@@ -331,103 +349,103 @@ Tutorial
 %d/%d
 ---
 [tutorial_method_title]
-Metode
+Metodo
 ---
 [tutorial_step1_title]
-Langkah 1: Masuk & Keluar
+Passo 1: Inspirazione ed Espirazione
 ---
 [tutorial_step2_title]
-Langkah 2: Buang & Tahan
+Passo 2: Espira e Trattieni
 ---
 [tutorial_step3_title]
-Langkah 3: Tarik & Tahan
+Passo 3: Inspira e Trattieni
 ---
 [tutorial_progressive_speed_title]
-Kecepatan Progresif
+Velocità Progressiva
 ---
 [tutorial_step_intro]
-Latihan pernapasan ini didasarkan pada Metode Wim Hof.
+Questa pratica respiratoria si basa sul Metodo Wim Hof.
 
-Dapat sangat kuat. Gunakan dengan hati-hati.
+Può essere potente. Usala con cautela.
 
-Latih sambil duduk atau berbaring.
-Jangan gunakan saat mengemudi,
-berdiri, atau di dalam air.
+Pratica seduto o sdraiato.
+Non usarla mai mentre guidi,
+in piedi o in acqua.
 ---
 [tutorial_step_method]
-Ikuti 4 langkah sederhana:
+Segui semplicemente 4 passi:
 
-1. Bernapas secara ritmis.
-2. Buang napas dan tahan.
-3. Tarik napas dalam dan tahan.
-4. Buang napas dan ulangi.
+1. Respira ritmicamente.
+2. Espira e trattieni.
+3. Inspira profondamente e trattieni.
+4. Espira e ripeti.
 
-Gunakan ikon roda gigi %i untuk menyesuaikan ronde, nafas, kecepatan, dan jeda.
+Usa l'icona ingranaggio %i per regolare round, respiri, velocità e pause.
 ---
 [tutorial_step_breathe]
-Isi paru-paru Anda sepenuhnya, lalu biarkan napas keluar.
+Riempi completamente i polmoni, poi lascia uscire il respiro.
 
-Gunakan slider ini untuk mengatur kecepatan lingkaran pernapasan.
+Usa questo slider per impostare il ritmo del cerchio respiratorio.
 
-Temukan ritme yang terasa alami bagi Anda.
+Trova un ritmo che ti sembri naturale.
 ---
 [tutorial_step_progressive_speed]
-Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
+La velocità progressiva rende il primo round più facile da affrontare.
 
-Saat aktif, ronde pertama dimulai pada kecepatan 1 untuk 5 nafas pertama, lalu bertambah hingga kecepatan yang dipilih.
+Quando è attiva, il primo round inizia più lentamente, poi aumenta gradualmente fino alla velocità selezionata.
 ---
 [tutorial_step_exhale_hold]
-Setelah ronde pernapasan,
-buang napas secara normal dan tahan.
+Espira normalmente e trattieni.
 
-Lepaskan saat tubuh Anda
-meminta udara. Jangan dipaksa.
+Il numero centrale continua a contare. La modalità cerchio aggiunge linee di progresso sovrapposte.
+
+Rilascia quando il corpo richiede aria.
 ---
 [tutorial_step_inhale_hold]
-Tarik napas sepenuhnya dan tahan sekitar 15 detik.
+Inspira completamente e trattieni per circa 15 secondi.
 
-Lalu buang napas dan mulai ronde berikutnya.
-Seiring waktu, setiap ronde mungkin terasa lebih dalam.
+Poi espira e inizia il prossimo round.
+Col tempo, ogni round potrebbe sembrare più profondo.
 ---
 [tutorial_skip_button]
-LEWATI
+SALTA
 ---
 [tutorial_back_button]
-KEMBALI
+INDIETRO
 ---
 [tutorial_next_button]
-LANJUT
+AVANTI
 ---
 [tutorial_finish_button]
-SELESAI
+FINE
 ---
 [tutorial_start_button]
-MULAI SEKARANG
+INIZIA ORA
 ---
 [share_sheet_title]
-Ekspor Data Sesi
+Esporta Dati Sessione
 ---
 [export_metadata_header]
-Ekspor Data Inner Breeze
+Esportazione Dati Inner Breeze
 ---
 [export_metadata_version]
-Versi: %s
+Versione: %s
 ---
 [export_metadata_date]
-Tanggal Ekspor: %s
+Data Esportazione: %s
 ---
 [export_metadata_count]
-Jumlah Sesi: %d
+Numero Sessioni: %d
 ---
 [delete_history_title]
-Hapus?
+Eliminare?
 ---
 [delete_session_message]
-Hapus sesi ini? Tidak dapat dibatalkan.
+Eliminare questa sessione? Questa azione non può essere annullata.
 ---
 [delete_round_message]
-Hapus ronde ini? Tidak dapat dibatalkan.
+Eliminare questo round? Questa azione non può essere annullata.
 ---
 [delete_button]
-Hapus
+Elimina
 ---

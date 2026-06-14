@@ -9,9 +9,8 @@
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name="xyz.waozi.inbe.MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
             android:exported="true"
-            android:screenOrientation="portrait"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:windowLayoutInDisplayCutoutMode="never">
             <meta-data

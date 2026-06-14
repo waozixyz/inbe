@@ -53,7 +53,7 @@ Música de fondo
 Reproducir música de fondo
 ---
 [meditation_music_shuffle_label]
-Mezclar pistas
+Pista aleatoria
 ---
 [meditation_music_track_label]
 Pista
@@ -325,28 +325,6 @@ Oscuro
 ---
 [on_screen_keyboard_label]
 Teclado en pantalla
----
-[history_title]
-Historial
----
-[history_empty]
-Aún no hay sesiones guardadas.
-Complete una sesión para agregar datos.
----
-[history_month_label]
-Mes %02d
----
-[history_day_label]
-Día %02d
----
-[history_round_short_label]
-R%d
----
-[history_round_label]
-R%d  %ds
----
-[history_session_label]
-%02d:%02d  promedio %ds
 ---
 [tutorial_title]
 Tutorial

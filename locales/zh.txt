@@ -53,7 +53,7 @@ Wim Hof 呼吸
 播放背景音乐
 ---
 [meditation_music_shuffle_label]
-随机播放曲目
+随机曲目
 ---
 [meditation_music_track_label]
 曲目
@@ -323,28 +323,6 @@ Inner Breeze 是一款简单的呼吸冥想应用，帮助你放松并平静下�
 ---
 [on_screen_keyboard_label]
 屏幕键盘
----
-[history_title]
-历史
----
-[history_empty]
-还没有保存的练习。
-完成一次练习后会添加到这里。
----
-[history_month_label]
-%02d 月
----
-[history_day_label]
-第 %02d 天
----
-[history_round_short_label]
-第%d轮
----
-[history_round_label]
-第%d轮  %ds
----
-[history_session_label]
-%02d:%02d  平均 %ds
 ---
 [tutorial_title]
 教程

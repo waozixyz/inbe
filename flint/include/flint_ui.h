@@ -34,7 +34,8 @@ typedef enum {
     UI_ICON_TYPE_SAVE,
     UI_ICON_TYPE_PLUS,
     UI_ICON_TYPE_SOUND,
-    UI_ICON_TYPE_STACK
+    UI_ICON_TYPE_STACK,
+    UI_ICON_TYPE_GITHUB
 } UIIconType;
 
 typedef enum {
@@ -124,6 +125,7 @@ typedef struct {
     int content_height;
     int *scroll_offset;
     int wheel_step;
+    int scrollbar_x;
 } FlintUIScrollArea;
 
 typedef struct {
@@ -207,6 +209,8 @@ void ui_set_dropdown_clip_top(int top);
 int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            const char *light_label, const char *dark_label,
                            int *theme_id, int *dark_mode);
+int ui_draw_theme_picker(int x, int y, int w, const char *label,
+                         int dark_mode, int *theme_id);
 typedef struct UITab {
     const char *label;
     Texture2D icon;
@@ -236,6 +240,8 @@ FlintUIHeader ui_draw_title_header(int height, const char *title,
 FlintUIPanelFrame ui_draw_modal_frame(int width, int height, const char *title,
                                       Texture2D left_icon, UIIconType left_type,
                                       Texture2D right_icon, UIIconType right_type);
+void ui_begin_scissor(int x, int y, int w, int h);
+void ui_end_scissor(void);
 int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);

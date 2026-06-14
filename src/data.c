@@ -190,13 +190,31 @@ data_delete_all(void)
     return inbe_storage_delete_all_sessions();
 }
 
+void
+data_default_export_filename(char *out, size_t out_size)
+{
+    time_t now;
+
+    if(out == NULL || out_size == 0)
+        return;
+
+    now = time(NULL);
+    if(now > 0)
+        snprintf(out, out_size, "inbe-%lld.zip", (long long)now);
+    else
+        snprintf(out, out_size, "inbe.zip");
+}
+
 int
 data_export(const char *path)
 {
     data_init();
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    (void)path;
-    return android_share_export("inbe-export.zip");
+    char filename[64];
+    if(path != NULL && path[0] != '\0')
+        return android_share_export(path);
+    data_default_export_filename(filename, sizeof(filename));
+    return android_share_export(filename);
 #else
     return inbe_storage_export_zip(path);
 #endif
@@ -256,15 +274,15 @@ data_list_sessions(data_session_callback callback, void *user)
     DbListSessionContext ctx = {callback, user};
     if(callback == NULL)
         return;
-    data_list_history(db_list_session_callback, &ctx);
+    data_list_session_records(db_list_session_callback, &ctx);
 }
 
 void
-data_list_history(data_history_callback callback, void *user)
+data_list_session_records(data_session_record_callback callback, void *user)
 {
     data_init();
     if(callback != NULL)
-        inbe_storage_list_history((InbeStorageHistoryCallback)callback, user);
+        inbe_storage_list_session_records((InbeStorageSessionRecordCallback)callback, user);
 }
 
 int

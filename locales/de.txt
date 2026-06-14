@@ -53,7 +53,7 @@ Hintergrundmusik
 Hintergrundmusik abspielen
 ---
 [meditation_music_shuffle_label]
-Titel mischen
+Zufälliger Titel
 ---
 [meditation_music_track_label]
 Titel
@@ -325,28 +325,6 @@ Dunkel
 ---
 [on_screen_keyboard_label]
 Bildschirmtastatur
----
-[history_title]
-Verlauf
----
-[history_empty]
-Noch keine gespeicherten Sitzungen.
-Schließen Sie eine Sitzung ab, um Daten hinzuzufügen.
----
-[history_month_label]
-Monat %02d
----
-[history_day_label]
-Tag %02d
----
-[history_round_short_label]
-R%d
----
-[history_round_label]
-R%d  %ds
----
-[history_session_label]
-%02d:%02d  durchschn. %ds
 ---
 [tutorial_title]
 Anleitung
