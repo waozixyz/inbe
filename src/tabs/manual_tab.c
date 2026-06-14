@@ -4,7 +4,7 @@
 #include "locale.h"
 #include "meditation_music.h"
 #include "flint_ui.h"
-#include "theme_meta.h"
+#include "flint_theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
 

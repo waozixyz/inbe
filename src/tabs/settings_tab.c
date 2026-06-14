@@ -5,7 +5,7 @@
 #include "language_tab.h"
 #include "meditation_music.h"
 #include "locale.h"
-#include "theme_meta.h"
+#include "flint_theme_meta.h"
 #include "flint_ui.h"
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
@@ -259,11 +259,11 @@ settings_draw_data_stats(int x, int y, int w)
 static void
 settings_apply_file_dialog_theme(InbeApp *app)
 {
-    int theme_id = app != NULL ? app->theme_id : ThemeSky;
+    int theme_id = app != NULL ? app->theme_id : FLINT_THEME_SKY;
     int dark_mode = app != NULL && app->dark_mode != 0;
 
-    if(theme_id < 0 || theme_id >= THEME_COUNT)
-        theme_id = ThemeSky;
+    if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
+        theme_id = FLINT_THEME_SKY;
     flint_file_dialog_set_theme_scope(flint_theme_scope_for((FlintThemeId)theme_id,
                                                             dark_mode != 0));
 }

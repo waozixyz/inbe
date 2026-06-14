@@ -1,6 +1,5 @@
 #include "app_preferences.h"
 #include "theme.h"
-#include "theme_meta.h"
 #include "flint_ui.h"
 #if defined(LOTUS_BUILD)
 #include "lotus_settings.h"
@@ -42,8 +41,8 @@ refresh_theme_colors(int theme_id, int dark_mode)
     FlintThemeId theme;
     bool dark;
 
-    if(theme_id < 0 || theme_id >= THEME_COUNT)
-        theme_id = ThemeSky;
+    if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
+        theme_id = FLINT_THEME_SKY;
 
     theme = flint_theme_normalize(theme_id);
     dark = dark_mode != 0;
