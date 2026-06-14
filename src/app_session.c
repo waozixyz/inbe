@@ -563,15 +563,66 @@ draw_meditation_start_preview(InbeApp *app, int center_x, int center_y)
                     font, c_text);
 }
 
-void
+int
 session_draw_start_preview(InbeApp *app, int center_x, int center_y)
 {
-    if(app != NULL && app->exercise_type == EXERCISE_MEDITATION) {
-        draw_meditation_start_preview(app, center_x, center_y);
-        return;
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int hovered = 0;
+    int clicked = 0;
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    const char *play_text = locale_get("play_button");
+    int font = flint_px(16);
+    float scale = 1.0f;
+
+    // Check circular hover
+    float dx = mouse_world.x - center_x;
+    float dy = mouse_world.y - center_y;
+    float dist_sq = dx * dx + dy * dy;
+    float radius = app->inbe.rmax;
+
+    if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
+        hovered = 1;
+        scale = 1.08f;
+        app->play_circle_hover = 1;
+    } else {
+        app->play_circle_hover = 0;
     }
 
-    session_draw_inbe(app, center_x, center_y);
+    // Smooth scale animation
+    float target_scale = hovered ? 1.08f : 1.0f;
+    app->play_circle_scale += (target_scale - app->play_circle_scale) * 0.2f;
+    if(app->play_circle_scale < 1.0f) app->play_circle_scale = 1.0f;
+    if(app->play_circle_scale > 1.08f) app->play_circle_scale = 1.08f;
+
+    scale = app->play_circle_scale;
+
+    // Handle click
+    if(hovered && released) {
+        clicked = 1;
+    }
+
+    // Draw circle with hover scale
+    int scaled_radius = (int)(radius * scale);
+
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        // For meditation, just draw the text
+        int text_w = flint_text_measure(play_text, font);
+        flint_text_draw(play_text, center_x - text_w / 2, center_y - font / 2,
+                        font, c_text);
+    } else {
+        // Draw circle
+        DrawCircle(center_x, center_y, scaled_radius, c_circle);
+        DrawCircleLines(center_x, center_y, scaled_radius, c_text);
+
+        // Draw PLAY text in center
+        flint_ui_draw_text_centered(play_text, center_x, center_y, font, c_text);
+    }
+
+    if(hovered) {
+        app->cursor_clickable = 1;
+    }
+
+    return clicked;
 }
 
 static void

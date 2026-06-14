@@ -871,6 +871,8 @@ inbe_app_init(void *vapp) {
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
+    app->play_circle_hover = 0;
+    app->play_circle_scale = 1.0f;
     app->settings_scroll = 0;
     app->settings_drag_slider = 0;
     app->settings_drag_scrollbar = 0;
@@ -4032,8 +4034,9 @@ updateapp(InbeApp *app)
         session_update_circle_bounds_for_view(&app->inbe, 0, 84);
     }
 
+    int play_circle_clicked = 0;
     if(app->inbe.screen == InbeScreenStart)
-        session_draw_start_preview(app, center_x, center_y);
+        play_circle_clicked = session_draw_start_preview(app, center_x, center_y);
     else if(app->inbe.screen == InbeScreenSession)
         session_draw_inbe(app, center_x, center_y);
 
@@ -4063,8 +4066,6 @@ updateapp(InbeApp *app)
             int dropdown_y;
             int manual_x;
             int settings_x;
-            int play_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(20);
-            int play_limit = view_height - flint_px(56) - flint_px(48);
             int exercise_changed = 0;
 
             practice_clamp_activity_to_tab(app);
@@ -4119,9 +4120,7 @@ updateapp(InbeApp *app)
                 app->inbe.screen = InbeScreenSettings;
             }
 
-            if(play_y > play_limit)
-                play_y = play_limit;
-            if(!app->modal.active && ui_draw_text_btn(center_x, play_y, locale_get("play_button"), &hover)) {
+            if(!app->modal.active && play_circle_clicked) {
                 if(!exercise_manual_seen(app, app->exercise_type)) {
                     app->tutorial_step = 0;
                     app->manual_scroll = 0;
