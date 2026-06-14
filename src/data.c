@@ -117,6 +117,16 @@ data_save_session_path(const int *round_times, int round_count, char *out_path, 
 }
 
 int
+data_save_session_path_for_activity(const int *round_times, int round_count,
+                                    int topic, int activity,
+                                    char *out_path, size_t out_path_size)
+{
+    data_init();
+    return inbe_storage_save_session_for_activity(round_times, round_count, topic, activity,
+                                                  out_path, out_path_size);
+}
+
+int
 data_save_session(const int *round_times, int round_count)
 {
     return data_save_session_path(round_times, round_count, NULL, 0);
@@ -180,13 +190,31 @@ data_delete_all(void)
     return inbe_storage_delete_all_sessions();
 }
 
+void
+data_default_export_filename(char *out, size_t out_size)
+{
+    time_t now;
+
+    if(out == NULL || out_size == 0)
+        return;
+
+    now = time(NULL);
+    if(now > 0)
+        snprintf(out, out_size, "inbe-%lld.zip", (long long)now);
+    else
+        snprintf(out, out_size, "inbe.zip");
+}
+
 int
 data_export(const char *path)
 {
     data_init();
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    (void)path;
-    return android_share_export("inbe-export.zip");
+    char filename[64];
+    if(path != NULL && path[0] != '\0')
+        return android_share_export(path);
+    data_default_export_filename(filename, sizeof(filename));
+    return android_share_export(filename);
 #else
     return inbe_storage_export_zip(path);
 #endif
@@ -220,6 +248,7 @@ typedef struct DbListSessionContext {
 static void
 db_list_session_callback(const char *path, int year, int month, int day,
                          int hour, int minute, int second,
+                         int topic, int activity,
                          const int *round_times, int round_count, void *user)
 {
     DbListSessionContext *ctx = user;
@@ -228,6 +257,8 @@ db_list_session_callback(const char *path, int year, int month, int day,
     int best = 0;
 
     (void)path;
+    (void)topic;
+    (void)activity;
     for(int i = 0; i < round_count; i++) {
         if(round_times[i] > best)
             best = round_times[i];
@@ -243,15 +274,15 @@ data_list_sessions(data_session_callback callback, void *user)
     DbListSessionContext ctx = {callback, user};
     if(callback == NULL)
         return;
-    data_list_history(db_list_session_callback, &ctx);
+    data_list_session_records(db_list_session_callback, &ctx);
 }
 
 void
-data_list_history(data_history_callback callback, void *user)
+data_list_session_records(data_session_record_callback callback, void *user)
 {
     data_init();
     if(callback != NULL)
-        inbe_storage_list_history((InbeStorageHistoryCallback)callback, user);
+        inbe_storage_list_session_records((InbeStorageSessionRecordCallback)callback, user);
 }
 
 int

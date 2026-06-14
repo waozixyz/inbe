@@ -10,6 +10,7 @@ int session_ensure_results_saved(InbeApp *app);
 void session_discard_saved_results(InbeApp *app);
 int session_has_completed_rounds(InbeApp *app);
 void session_draw_inbe(InbeApp *app, int center_x, int center_y);
+int session_draw_start_preview(InbeApp *app, int center_x, int center_y);
 void session_update_screen(InbeApp *app, int center_x, int center_y, int *hover);
 void session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover);
 void update_session_sounds(InbeApp *app);

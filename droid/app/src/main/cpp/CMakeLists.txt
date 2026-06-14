@@ -13,11 +13,9 @@ set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
-file(GLOB INBE_THEME_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${FLINT_DIR}/themes/*.ini")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
-    ${INBE_THEME_ASSETS}
     assets/whm/1.jpg
     assets/whm/2.jpg
     assets/fonts/locales.png
@@ -88,20 +86,20 @@ add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/inbe.c"
     "${SRC_DIR}/app.c"
+    "${SRC_DIR}/app_preferences.c"
     "${SRC_DIR}/app_session.c"
     "${SRC_DIR}/habits/habits.c"
     "${SRC_DIR}/meditation_music.c"
     "${SRC_DIR}/locale.c"
-    "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/storage.c"
     "${SRC_DIR}/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
+    "${SRC_DIR}/android/android_device.c"
     "${SRC_DIR}/android/android_import.c"
     "${SRC_DIR}/android/android_runtime_assets.c"
     "${SRC_DIR}/android/android_share.c"
-    "${SRC_DIR}/tabs/history_tab.c"
     "${SRC_DIR}/tabs/language_tab.c"
     "${SRC_DIR}/tabs/manual_tab.c"
     "${SRC_DIR}/tabs/settings_tab.c"

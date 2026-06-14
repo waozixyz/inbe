@@ -1,12 +1,13 @@
 #include "flint_text_layout.h"
 
 #include "flint_scaling.h"
+#include "flint_ui.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 FlintTextLayout
-flint_text_layout_parse(const char *input, Texture2D icon, FlintIconType icon_type, int icon_size)
+flint_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size)
 {
     FlintTextLayout layout = {0};
 
@@ -185,8 +186,6 @@ flint_text_layout_draw(FlintTextLayout *layout, int x, int *y, int font_size, Co
                 Rectangle src = {0, 0, (float)icon.width, (float)icon.height};
                 Rectangle dst = {(float)current_x, (float)current_y, (float)icon_size, (float)icon_size};
                 DrawTexturePro(icon, src, dst, (Vector2){0}, 0, color);
-            } else {
-                flint_draw_icon_fallback(layout->elements[i].icon_type, current_x, current_y, icon_size, color);
             }
             current_x += icon_size;
         }

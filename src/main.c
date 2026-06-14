@@ -16,6 +16,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_insets.h"
+#include "android_device.h"
 #include "android_runtime_assets.h"
 #include "android_wakelock.h"
 #include "android_timer.h"
@@ -275,6 +276,8 @@ int main(int argc, char **argv) {
 #if INBE_ANDROID_BUILD
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_insets_init");
     android_insets_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_device_init");
+    android_device_init();
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_wakelock_init");
     android_wakelock_init();
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_timer_init");

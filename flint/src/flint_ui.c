@@ -6,17 +6,21 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
 
 /* Global UI state */
 int ui_view_width = 320;
 int ui_view_height = 560;
-static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+static Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 static Camera2D g_ui_camera;
 static int *g_ui_cursor_clickable = NULL;
 static int *g_ui_cursor_disabled = NULL;
 static Texture2D g_ui_gear_icon = {0};
 static Texture2D g_ui_x_icon = {0};
 static int g_ui_slider_active_id = 0;
+static int g_ui_input_blocked = 0;
 
 #define UI_FOCUS_MAX_ITEMS 256
 static int g_ui_focus_active_id = 0;
@@ -24,6 +28,58 @@ static int g_ui_focus_ids[UI_FOCUS_MAX_ITEMS];
 static int g_ui_focus_count = 0;
 static int g_ui_focus_tab_dir = 0;
 static int g_ui_focus_text_input_active = 0;
+
+#define UI_SCISSOR_STACK_MAX 16
+static Rectangle g_ui_scissor_stack[UI_SCISSOR_STACK_MAX];
+static int g_ui_scissor_stack_count = 0;
+
+static Rectangle
+ui_scissor_intersection(Rectangle a, Rectangle b)
+{
+    float x1 = a.x > b.x ? a.x : b.x;
+    float y1 = a.y > b.y ? a.y : b.y;
+    float x2 = a.x + a.width < b.x + b.width ? a.x + a.width : b.x + b.width;
+    float y2 = a.y + a.height < b.y + b.height ? a.y + a.height : b.y + b.height;
+
+    if(x2 < x1)
+        x2 = x1;
+    if(y2 < y1)
+        y2 = y1;
+
+    return (Rectangle){x1, y1, x2 - x1, y2 - y1};
+}
+
+void
+ui_begin_scissor(int x, int y, int w, int h)
+{
+    Rectangle bounds = {x, y, w, h};
+
+    if(w < 0)
+        bounds.width = 0;
+    if(h < 0)
+        bounds.height = 0;
+    if(g_ui_scissor_stack_count > 0)
+        bounds = ui_scissor_intersection(g_ui_scissor_stack[g_ui_scissor_stack_count - 1], bounds);
+
+    if(g_ui_scissor_stack_count < UI_SCISSOR_STACK_MAX)
+        g_ui_scissor_stack[g_ui_scissor_stack_count++] = bounds;
+
+    BeginScissorMode((int)bounds.x, (int)bounds.y,
+                     (int)bounds.width, (int)bounds.height);
+}
+
+void
+ui_end_scissor(void)
+{
+    EndScissorMode();
+    if(g_ui_scissor_stack_count > 0)
+        g_ui_scissor_stack_count--;
+    if(g_ui_scissor_stack_count > 0) {
+        Rectangle bounds = g_ui_scissor_stack[g_ui_scissor_stack_count - 1];
+        BeginScissorMode((int)bounds.x, (int)bounds.y,
+                         (int)bounds.width, (int)bounds.height);
+    }
+}
 
 static Vector2
 ui_mouse_world(void)
@@ -43,6 +99,18 @@ ui_mark_disabled(void)
 {
     if(g_ui_cursor_disabled != NULL)
         *g_ui_cursor_disabled = 1;
+}
+
+void
+ui_set_input_blocked(int blocked)
+{
+    g_ui_input_blocked = blocked != 0;
+}
+
+int
+ui_input_captures_click(Vector2 point)
+{
+    return g_ui_input_blocked || ui_dropdown_captures_click(point);
 }
 
 static int
@@ -107,7 +175,7 @@ ui_focus_register(int id, Rectangle bounds)
     mouse_world = ui_mouse_world();
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
        CheckCollisionPointRec(mouse_world, bounds) &&
-       !ui_dropdown_captures_click(mouse_world))
+       !ui_input_captures_click(mouse_world))
         g_ui_focus_active_id = id;
 
     return g_ui_focus_active_id == id;
@@ -150,36 +218,6 @@ ui_focus_draw(Rectangle bounds)
     DrawRectangleRoundedLinesEx((Rectangle){bounds.x - flint_px(3), bounds.y - flint_px(3),
                                             bounds.width + flint_px(6), bounds.height + flint_px(6)},
                                 0.10f, 10, flint_px(2), c_button_hover);
-}
-
-static FlintIconType
-ui_icon_to_flint_icon(UIIconType type)
-{
-    switch(type) {
-    case UI_ICON_TYPE_GEAR: return FLINT_ICON_TYPE_GEAR;
-    case UI_ICON_TYPE_X: return FLINT_ICON_TYPE_X;
-    case UI_ICON_TYPE_MANUAL: return FLINT_ICON_TYPE_MANUAL;
-    case UI_ICON_TYPE_RETURN: return FLINT_ICON_TYPE_RETURN;
-    case UI_ICON_TYPE_BACKWARD: return FLINT_ICON_TYPE_BACKWARD;
-    case UI_ICON_TYPE_FORWARD: return FLINT_ICON_TYPE_FORWARD;
-    case UI_ICON_TYPE_PLAY: return FLINT_ICON_TYPE_PLAY;
-    case UI_ICON_TYPE_PAUSE: return FLINT_ICON_TYPE_PAUSE;
-    case UI_ICON_TYPE_STAT: return FLINT_ICON_TYPE_STAT;
-    case UI_ICON_TYPE_TELEGRAM: return FLINT_ICON_TYPE_TELEGRAM;
-    case UI_ICON_TYPE_GLOBE: return FLINT_ICON_TYPE_GLOBE;
-    case UI_ICON_TYPE_STRIPE: return FLINT_ICON_TYPE_STRIPE;
-    case UI_ICON_TYPE_BTC: return FLINT_ICON_TYPE_BTC;
-    case UI_ICON_TYPE_MONERO: return FLINT_ICON_TYPE_MONERO;
-    case UI_ICON_TYPE_HOME: return FLINT_ICON_TYPE_HOME;
-    case UI_ICON_TYPE_TRASH: return FLINT_ICON_TYPE_TRASH;
-    case UI_ICON_TYPE_PENCIL: return FLINT_ICON_TYPE_PENCIL;
-    case UI_ICON_TYPE_SAVE: return FLINT_ICON_TYPE_SAVE;
-    case UI_ICON_TYPE_PLUS: return FLINT_ICON_TYPE_PLUS;
-    case UI_ICON_TYPE_SOUND: return FLINT_ICON_TYPE_SOUND;
-    case UI_ICON_TYPE_STACK: return FLINT_ICON_TYPE_STACK;
-    case UI_ICON_TYPE_NONE:
-    default: return FLINT_ICON_TYPE_NONE;
-    }
 }
 
 int
@@ -228,7 +266,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
-    BeginScissorMode(x + padding_x, y, w - padding_x * 2, h);
+    ui_begin_scissor(x + padding_x, y, w - padding_x * 2, h);
     flint_text_draw(value, text_x, text_y, font, style.text);
 
     if(focused && cursor_visible) {
@@ -244,14 +282,16 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         int cursor_x = text_x + flint_text_measure(before_cursor, font);
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
-    EndScissorMode();
+    ui_end_scissor();
 }
 
 int
 flint_ui_button(FlintUIButton button)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hovered = !button.disabled && CheckCollisionPointRec(mouse_world, button.bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = !button.disabled && !captured && mouse_inside;
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int font = button.font > 0 ? button.font : flint_ui_font();
@@ -270,9 +310,12 @@ flint_ui_button(FlintUIButton button)
     DrawRectangleRoundedLines(button.bounds, radius, 8,
                               hovered ? flint_lighten(hover_background, 40) : border);
 
+    if(button.disabled && !captured && mouse_inside)
+        ui_mark_disabled();
+
     if(hovered) {
         ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
     }
 
@@ -290,7 +333,9 @@ int
 flint_ui_icon_button(FlintUIIconButton button)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hovered = !button.disabled && CheckCollisionPointRec(mouse_world, button.bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = !button.disabled && !captured && mouse_inside;
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int icon_padding = button.icon_padding > 0 ? button.icon_padding : flint_px(4);
@@ -318,9 +363,12 @@ flint_ui_icon_button(FlintUIIconButton button)
     DrawRectangleRoundedLines(button.bounds, radius, 8,
                               hovered ? flint_lighten(hover_background, 40) : border);
 
+    if(button.disabled && !captured && mouse_inside)
+        ui_mark_disabled();
+
     if(hovered) {
         ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
     }
 
@@ -335,8 +383,6 @@ flint_ui_icon_button(FlintUIIconButton button)
         Rectangle src = {0, 0, (float)button.icon.width, (float)button.icon.height};
         Rectangle dst = {(float)icon_x, (float)icon_y, (float)draw_size, (float)draw_size};
         DrawTexturePro(button.icon, src, dst, (Vector2){0}, 0, icon_color);
-    } else {
-        flint_draw_icon_fallback(button.icon_type, icon_x, icon_y, draw_size, icon_color);
     }
     return clicked || ui_focus_activate_pressed(button.focus_id);
 }
@@ -446,10 +492,11 @@ ui_init(int width, int height, float dpi)
 }
 
 void
-ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hover, Color icon)
+ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon)
 {
     c_text = text;
     c_bg = bg;
+    c_surface = surface;
     c_circle = circle;
     c_button = button;
     c_button_hover = button_hover;
@@ -482,12 +529,6 @@ ui_set_icons(Texture2D gear_icon, Texture2D x_icon)
 }
 
 void
-ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
-{
-    flint_draw_icon_fallback(ui_icon_to_flint_icon(type), x, y, size, color);
-}
-
-void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
     flint_ui_draw_bevel(x, y, w, h, light, dark);
@@ -516,7 +557,7 @@ ui_icon_btn_padding(UIIconSize size)
 }
 
 int
-ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover)
+ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover)
 {
     int btn_size = ui_icon_btn_size(size);
     int padding = ui_icon_btn_padding(size);
@@ -530,7 +571,7 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -538,7 +579,7 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -551,15 +592,13 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)btn_size, (float)btn_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x + padding, y + padding, btn_size, c_icon);
     }
 
     return pressed;
 }
 
 int
-ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UIIconType icon_type, int *hover)
+ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
@@ -570,7 +609,7 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
     int h = size + padding * 2;
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -578,7 +617,7 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -591,8 +630,6 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x + padding, y + padding, size, c_icon);
     }
 
     return pressed;
@@ -615,7 +652,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
 
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -623,7 +660,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -638,7 +675,8 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
 }
 
 int
-ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonStyle style, int *hover)
+ui_draw_generic_button(int x, int y, int w, int h, const char *label,
+                       UIButtonStyle style, int disabled, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
@@ -685,22 +723,30 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonSt
     }
 
     Rectangle bounds = {x, y, w, h};
-    int hovered = CheckCollisionPointRec(mouse_world, bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = mouse_inside && !disabled && !captured;
 
-    // Store hover state if requested
+    if(disabled) {
+        bg = flint_darken(bg, 22);
+        hover_bg = bg;
+        text_color = flint_darken(text_color, 70);
+        if(!captured && mouse_inside)
+            ui_mark_disabled();
+    }
+
     if(hover != NULL) {
         *hover = hovered;
     }
 
     int clicked = 0;
 
-    // Draw button based on state
     if(hovered) {
         DrawRectangleRec(bounds, hover_bg);
         ui_draw_bevel(x, y, w, h, flint_lighten(hover_bg, 40), flint_darken(hover_bg, 40));
         ui_mark_clickable();
 
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             clicked = 1;
         }
     } else {
@@ -708,7 +754,6 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonSt
         ui_draw_bevel(x, y, w, h, flint_lighten(bg, 40), flint_darken(bg, 40));
     }
 
-    // Draw text (centered)
     int text_w = flint_text_measure(label, font);
     int text_x = x + (w - text_w) / 2;
     int text_y = flint_ui_text_y(label, y, h, font);
@@ -747,7 +792,8 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         int is_last = i == bar.count - 1;
         int draw_w = is_last ? bar_x + bar_w - tab_x : tab_w;
         Rectangle tab_rect = {(float)tab_x, bar.bounds.y, (float)draw_w, bar.bounds.height};
-        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect);
+        int input_captured = ui_input_captures_click(mouse_world);
+        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
         int is_selected = i == bar.selected_index;
         int is_disabled = bar.tabs[i].disabled;
         Color accent = bar.tabs[i].accent.a != 0 ? bar.tabs[i].accent : c_button_hover;
@@ -779,7 +825,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
             else if(!is_selected)
                 ui_mark_clickable();
 
-            if(released && !ui_dropdown_captures_click(mouse_world))
+            if(released)
                 clicked_tab = i;
         }
 
@@ -790,7 +836,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
 }
 
 void
-ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url)
+ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url)
 {
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
@@ -802,7 +848,8 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
     int btn_x = x - padding;
     int btn_y = y - padding;
 
-    if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h) {
+    if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h &&
+       !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
@@ -819,12 +866,16 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x, y, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x, y, icon_size, c_icon);
     }
 
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+#if defined(PLATFORM_WEB)
+        EM_ASM({
+            window.location.href = UTF8ToString($0);
+        }, url);
+#else
         OpenURL(url);
+#endif
     }
 }
 
@@ -874,9 +925,9 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
     DrawRectangle(x, track_y, w, track_h, flint_darken(c_bg, 28));
     ui_draw_bevel(x, track_y, w, track_h, flint_darken(c_bg, 55), flint_lighten(c_bg, 35));
 
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -922,9 +973,9 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     ui_draw_bevel(track_x, y, track_w, h, flint_darken(c_bg, 55), flint_lighten(c_bg, 35));
 
     /* Check for interaction */
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -990,9 +1041,9 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
         callback(callback_user_data, x, y, h, min, max, *value);
 
     /* Check for interaction */
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -1049,12 +1100,12 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
         h = flint_px(34);
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
-    if(CheckCollisionPointRec(mouse_world, bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
     if(pressed)
         *value = !(*value);
@@ -1089,12 +1140,12 @@ ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
     Rectangle bounds = {x, y, box_size, box_size};
     Vector2 mouse_world = ui_mouse_world();
 
-    if(CheckCollisionPointRec(mouse_world, bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
@@ -1194,42 +1245,15 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
     *dropdown_h = total_h;
 }
 
-int
-ui_draw_theme_switcher(int x, int y, int w, const char *label,
-                       const char *light_label, const char *dark_label,
-                       int *theme_id, int *dark_mode)
+static int
+ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
 {
     int changed = 0;
-    int font = flint_ui_font();
     int small_font = flint_ui_font_small();
     int selected = theme_id != NULL ? *theme_id : FLINT_THEME_SKY;
-    int dark = dark_mode != NULL ? *dark_mode : 0;
 
     if(selected < 0 || selected >= FLINT_THEME_COUNT)
         selected = FLINT_THEME_SKY;
-
-    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
-
-    int light_w = flint_text_measure(light_label ? light_label : "Light", font);
-    int dark_w = flint_text_measure(dark_label ? dark_label : "Dark", font);
-    int max_label_w = light_w > dark_w ? light_w : dark_w;
-    int toggle_w = max_label_w * 2 + flint_px(32);
-    int min_toggle_w = flint_px(100);
-    if(toggle_w < min_toggle_w)
-        toggle_w = min_toggle_w;
-    if(toggle_w > w)
-        toggle_w = w;
-
-    int toggle_h = flint_px(28);
-    int toggle_x = x + w - toggle_w - flint_px(8);
-    int toggle_y = y - flint_px(2);
-    if(ui_draw_toggle_switch(toggle_x, toggle_y, toggle_w, toggle_h, &dark,
-                             light_label ? light_label : "Light",
-                             dark_label ? dark_label : "Dark")) {
-        if(dark_mode != NULL)
-            *dark_mode = dark;
-        changed = 1;
-    }
 
     int circle_size = flint_px(36);
     int label_gap = flint_px(14);
@@ -1254,7 +1278,6 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
     }
 
     int start_x = x + (w - row_width) / 2;
-    int circle_y = y + flint_px(64);
     int row_step = circle_size + label_gap + small_font + row_gap;
     Vector2 mouse_world = ui_mouse_world();
 
@@ -1281,9 +1304,9 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
             (float)(circle_size + flint_px(8)),
             (float)(circle_size + flint_px(8))
         };
-        if(CheckCollisionPointRec(mouse_world, bounds)) {
+        if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
             ui_mark_clickable();
-            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 selected = i;
                 if(theme_id != NULL)
                     *theme_id = i;
@@ -1295,6 +1318,58 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
         int name_w = flint_text_measure(name, small_font);
         flint_text_draw(name, cx - name_w / 2, cy + circle_size / 2 + label_gap, small_font, c_text);
     }
+
+    return changed;
+}
+
+int
+ui_draw_theme_switcher(int x, int y, int w, const char *label,
+                       const char *light_label, const char *dark_label,
+                       int *theme_id, int *dark_mode)
+{
+    int changed = 0;
+    int font = flint_ui_font();
+    int dark = dark_mode != NULL ? *dark_mode : 0;
+
+    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
+
+    int light_w = flint_text_measure(light_label ? light_label : "Light", font);
+    int dark_w = flint_text_measure(dark_label ? dark_label : "Dark", font);
+    int max_label_w = light_w > dark_w ? light_w : dark_w;
+    int toggle_w = max_label_w * 2 + flint_px(32);
+    int min_toggle_w = flint_px(100);
+    if(toggle_w < min_toggle_w)
+        toggle_w = min_toggle_w;
+    if(toggle_w > w)
+        toggle_w = w;
+
+    int toggle_h = flint_px(28);
+    int toggle_x = x + w - toggle_w - flint_px(8);
+    int toggle_y = y - flint_px(2);
+    if(ui_draw_toggle_switch(toggle_x, toggle_y, toggle_w, toggle_h, &dark,
+                             light_label ? light_label : "Light",
+                             dark_label ? dark_label : "Dark")) {
+        if(dark_mode != NULL)
+            *dark_mode = dark;
+        changed = 1;
+    }
+
+    if(ui_draw_theme_grid(x, y + flint_px(64), w, dark, theme_id))
+        changed = 1;
+
+    return changed;
+}
+
+int
+ui_draw_theme_picker(int x, int y, int w, const char *label, int dark_mode,
+                     int *theme_id)
+{
+    int changed = 0;
+    int font = flint_ui_font();
+
+    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
+    if(ui_draw_theme_grid(x, y + flint_px(54), w, dark_mode != 0, theme_id))
+        changed = 1;
 
     return changed;
 }
@@ -1399,12 +1474,12 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int text_x = x + flint_px(12);
     int text_w = arrow_x - arrow_size - flint_px(8) - text_x;
     if(text_w > 0) {
-        BeginScissorMode((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
+        ui_begin_scissor((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
                          (int)(g_ui_camera.offset.y + (float)y * g_ui_camera.zoom),
                          (int)((float)text_w * g_ui_camera.zoom),
                          (int)((float)h * g_ui_camera.zoom));
         flint_text_draw(current_name, text_x, flint_ui_text_y(current_name, y, h, font), font, c_text);
-        EndScissorMode();
+        ui_end_scissor();
     }
 
     /* Draw dropdown X icon */
@@ -1528,7 +1603,7 @@ ui_draw_dropdown_menu(int id)
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
-    BeginScissorMode((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
+    ui_begin_scissor((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
                      (int)(g_ui_camera.offset.y + (float)dropdown_y * g_ui_camera.zoom),
                      (int)((float)w * g_ui_camera.zoom),
                      (int)((float)dropdown_h * g_ui_camera.zoom));
@@ -1556,7 +1631,7 @@ ui_draw_dropdown_menu(int id)
                 state->touch_pressed = 0;
                 state->scroll_offset = 0;
                 changed = 1;
-                EndScissorMode();
+                ui_end_scissor();
                 goto draw_arrow;
             }
         }
@@ -1564,7 +1639,7 @@ ui_draw_dropdown_menu(int id)
         flint_text_draw(options[i], x + flint_px(12), flint_ui_text_y(options[i], option_y, option_h, font), font, c_text);
     }
 
-    EndScissorMode();
+    ui_end_scissor();
 
     if(max_scroll > 0)
         ui_draw_scrollbar(x + w - scrollbar_w, dropdown_y + flint_px(2),
@@ -1603,7 +1678,7 @@ ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
 }
 
 int
-ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type,
+ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
                    const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
@@ -1638,9 +1713,6 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -1652,7 +1724,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_
 }
 
 int
-ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, UIIconType icon_type,
+ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
                            const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
@@ -1686,9 +1758,6 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, UI
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -1759,7 +1828,7 @@ ui_draw_tab_bar(UITab *tabs, int count)
         int base_w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
         int w = base_w + extra_per_button;
 
-        if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon, tabs[i].icon_type,
+        if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon,
                                         tabs[i].label, show_labels, &tab_hover)) {
             if(tabs[i].on_click)
                 tabs[i].on_click(tabs[i].user_data);
@@ -1834,8 +1903,8 @@ ui_draw_modal(const char *title, const char *message,
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     /* Title */
     int title_w = flint_text_measure(title, title_font);
@@ -1846,7 +1915,7 @@ ui_draw_modal(const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
     flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
@@ -1915,8 +1984,8 @@ ui_draw_modal_3btn(const char *title, const char *message,
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     /* Title */
     int title_w = flint_text_measure(title, title_font);
@@ -1927,7 +1996,7 @@ ui_draw_modal_3btn(const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
     flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
@@ -1997,10 +2066,95 @@ ui_screen_header_height(void)
     return flint_clamp_px(60, 48, 60);
 }
 
+FlintUIHeader
+ui_draw_title_header(int height, const char *title,
+                     Texture2D left_icon,
+                     Texture2D right_icon)
+{
+    FlintUIHeader header = {height, 0, 0};
+    int icon_size = flint_px(24);
+    int icon_padding = flint_px(8);
+    int icon_w = icon_size + icon_padding * 2;
+    int title_font = flint_px(22);
+    int title_w = flint_text_measure(title, title_font);
+    int hover = 0;
+
+    DrawRectangle(0, 0, ui_view_width, height, c_bg);
+    DrawLine(0, height - 1, ui_view_width, height - 1, flint_darken(c_button, 18));
+
+    if(left_icon.id != 0) {
+        header.left_clicked = ui_draw_icon_btn_padded(flint_px(12), flint_px(12),
+                                                      icon_size, icon_padding,
+                                                      left_icon, &hover);
+    }
+    if(right_icon.id != 0) {
+        header.right_clicked = ui_draw_icon_btn_padded(ui_view_width - icon_w - flint_px(12),
+                                                       flint_px(12), icon_size, icon_padding,
+                                                       right_icon, &hover);
+    }
+
+    flint_text_draw(title, (ui_view_width - title_w) / 2,
+                    flint_ui_text_y(title, 0, height, title_font),
+                    title_font, c_text);
+    return header;
+}
+
+FlintUIPanelFrame
+ui_draw_modal_frame(int width, int height, const char *title,
+                    Texture2D left_icon,
+                    Texture2D right_icon)
+{
+    FlintUIPanelFrame frame = {0};
+    int title_font = flint_px(18);
+    int icon_size = flint_px(22);
+    int icon_padding = flint_px(8);
+    int icon_w = icon_size + icon_padding * 2;
+    int title_w = flint_text_measure(title, title_font);
+    int hover = 0;
+
+    if(width > ui_view_width - flint_px(24))
+        width = ui_view_width - flint_px(24);
+    if(height > ui_view_height - flint_px(24))
+        height = ui_view_height - flint_px(24);
+
+    frame.w = width;
+    frame.h = height;
+    frame.x = (ui_view_width - width) / 2;
+    frame.y = (ui_view_height - height) / 2;
+    frame.content_x = frame.x + flint_px(18);
+    frame.content_y = frame.y + flint_px(58);
+    frame.content_w = frame.w - flint_px(36);
+    frame.content_h = frame.h - flint_px(74);
+
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(frame.x, frame.y, frame.w, frame.h, c_surface);
+    ui_draw_bevel(frame.x, frame.y, frame.w, frame.h,
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
+
+    flint_text_draw(title, frame.x + (frame.w - title_w) / 2,
+                    frame.y + flint_px(14), title_font, c_text);
+
+    if(left_icon.id != 0) {
+        frame.left_clicked = ui_draw_icon_btn_padded(frame.x + flint_px(6),
+                                                     frame.y + flint_px(6),
+                                                     icon_size, icon_padding,
+                                                     left_icon, &hover);
+    }
+    if(right_icon.id != 0) {
+        frame.right_clicked = ui_draw_icon_btn_padded(frame.x + frame.w - icon_w - flint_px(6),
+                                                      frame.y + flint_px(6),
+                                                      icon_size, icon_padding,
+                                                      right_icon, &hover);
+    }
+
+    return frame;
+}
+
 int
 ui_scrollbar_reserved_width(int max_scroll)
 {
-    return max_scroll > 0 ? flint_px(18) : 0;
+    (void)max_scroll;
+    return 0;
 }
 
 int
@@ -2013,6 +2167,78 @@ ui_scrollbar_content_width(int content_width, int max_scroll)
     if(content_width <= reserved)
         return 0;
     return content_width - reserved;
+}
+
+FlintUIScrollView
+ui_scroll_container_begin(FlintUIScrollArea area)
+{
+    FlintUIScrollView view;
+    Vector2 mouse_world = ui_mouse_world();
+    int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
+    int x = (int)area.bounds.x;
+    int y = (int)area.bounds.y;
+    int w = (int)area.bounds.width;
+    int h = (int)area.bounds.height;
+
+    memset(&view, 0, sizeof(view));
+    view.content_x = x;
+    view.viewport_h = h;
+    view.content_h = area.content_height > 0 ? area.content_height : 0;
+    view.max_scroll = view.content_h - h;
+    if(view.max_scroll < 0)
+        view.max_scroll = 0;
+
+    if(area.scroll_offset != NULL) {
+        if(*area.scroll_offset < 0)
+            *area.scroll_offset = 0;
+        if(*area.scroll_offset > view.max_scroll)
+            *area.scroll_offset = view.max_scroll;
+
+        if(view.max_scroll > 0 &&
+           CheckCollisionPointRec(mouse_world, area.bounds) &&
+           !ui_input_captures_click(mouse_world)) {
+            float wheel = GetMouseWheelMove();
+            if(wheel != 0.0f) {
+                *area.scroll_offset -= (int)(wheel * (float)wheel_step);
+                if(*area.scroll_offset < 0)
+                    *area.scroll_offset = 0;
+                if(*area.scroll_offset > view.max_scroll)
+                    *area.scroll_offset = view.max_scroll;
+            }
+        }
+        view.content_y = y - *area.scroll_offset;
+    } else {
+        view.content_y = y;
+    }
+
+    view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
+    ui_begin_scissor((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
+                     (int)(g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom),
+                     (int)(area.bounds.width * g_ui_camera.zoom),
+                     (int)(area.bounds.height * g_ui_camera.zoom));
+    return view;
+}
+
+void
+ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
+{
+    int scrollbar_w = flint_px(8);
+    int scrollbar_x;
+
+    ui_end_scissor();
+
+    if(area.scroll_offset == NULL || view.max_scroll <= 0)
+        return;
+
+    scrollbar_x = area.scrollbar_x > 0
+                      ? area.scrollbar_x
+                      : ui_view_width - scrollbar_w;
+    ui_draw_scrollbar(scrollbar_x,
+                      (int)area.bounds.y,
+                      (int)area.bounds.height,
+                      view.content_h,
+                      area.scroll_offset,
+                      view.max_scroll);
 }
 
 int
@@ -2038,7 +2264,7 @@ ui_draw_screen_header(const char *title, int show_close)
 
     if(show_close) {
         close_clicked = ui_draw_icon_btn(close_x, flint_px(8), UI_ICON_SIZE_TINY,
-                                         g_ui_x_icon, UI_ICON_TYPE_X, &close_hover);
+                                         g_ui_x_icon, &close_hover);
     }
 
     return close_clicked;
@@ -2074,18 +2300,14 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     float scroll_ratio = max_scroll > 0 ? (float)*scroll_offset / (float)max_scroll : 0.0f;
     int thumb_y = y + (int)(scroll_ratio * (viewport_h - thumb_height));
 
-    /* Get mouse position in screen coordinates (not world coordinates) */
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = ui_mouse_world();
     int my = (int)mouse_pos.y;
-
-    /* Thumb bounds in screen coordinates */
     Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
-
-    /* Check for hover */
-    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds);
+    int input_captured = ui_input_captures_click(mouse_pos);
+    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
 
     /* Handle drag state */
-    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !input_captured) {
         if(!scrollbar_drag_active) {
             /* Start drag if clicking on thumb */
             if(thumb_hover) {

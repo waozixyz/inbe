@@ -4,6 +4,7 @@ cs|Čeština
 de|Deutsch
 fr|Français
 id|Bahasa Indonesia
+it|Italiano
 pt|Português
 ja|日本語
 ko|한국어

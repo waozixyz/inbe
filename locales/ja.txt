@@ -53,7 +53,7 @@
 背景音楽を再生
 ---
 [meditation_music_shuffle_label]
-曲をシャッフル
+ランダムな曲
 ---
 [meditation_music_track_label]
 曲
@@ -325,28 +325,6 @@ ON
 ---
 [on_screen_keyboard_label]
 オンスクリーンキーボード
----
-[history_title]
-履歴
----
-[history_empty]
-まだ保存されたセッションはありません。
-セッションを完了するとここに表示されます。
----
-[history_month_label]
-%02d 月
----
-[history_day_label]
-%02d 日
----
-[history_round_short_label]
-R%d
----
-[history_round_label]
-R%d  %ds
----
-[history_session_label]
-%02d:%02d  平均 %ds
 ---
 [tutorial_title]
 チュートリアル

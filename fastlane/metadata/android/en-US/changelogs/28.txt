@@ -1,0 +1,6 @@
+### Added
+- Habit tracking with default Mind, Yoga, and Fitness habits.
+- Habit editing, custom colors, sync options, and deletion.
+- Practice tabs with configurable themes.
+### Changed
+- App theme now follows the active practice theme globally.

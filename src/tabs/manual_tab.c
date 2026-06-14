@@ -2,8 +2,9 @@
 #include "app.h"
 #include "app_session.h"
 #include "locale.h"
+#include "meditation_music.h"
 #include "flint_ui.h"
-#include "theme_meta.h"
+#include "flint_theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
 
@@ -60,8 +61,8 @@ tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
     int has_icon = step == 1;
     return (FlintUIParagraph){
         .text = locale_get(TUTORIAL_KEYS[step]),
-        .icon = has_icon ? app->gear_icon : (Texture2D){0},
-        .icon_type = has_icon ? FLINT_ICON_TYPE_GEAR : FLINT_ICON_TYPE_NONE,
+        .icon = has_icon ? app->icons[UI_ICON_TYPE_GEAR] : (Texture2D){0},
+        .icon_type = has_icon ? UI_ICON_TYPE_GEAR : UI_ICON_TYPE_NONE,
         .icon_size = has_icon ? flint_px(14) : 0,
         .width = content_w,
         .font = body_font,
@@ -129,6 +130,14 @@ meditation_manual_draw(InbeApp *app)
     int responsive_max_w = (int)(view_width * 0.90f);
     int max_content_w = flint_px(520);
     int y;
+    int button_w;
+    int button_h = flint_px(36);
+    int button_y = view_height - flint_px(52);
+    int content_y = title_h + flint_px(20);
+    int content_h = button_y - content_y - flint_px(16);
+    int content_total_h = flint_px(410);
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
     FlintUIParagraph paragraph;
 
     if(responsive_max_w > max_content_w)
@@ -141,10 +150,13 @@ meditation_manual_draw(InbeApp *app)
     if(ui_draw_screen_header(locale_get("meditation_manual_title"), 1))
         manual_tab_close_tutorial(app, 0);
 
+    if(content_h < flint_px(120))
+        content_h = flint_px(120);
+
     paragraph = (FlintUIParagraph){
         .text = locale_get("meditation_manual_text"),
         .icon = (Texture2D){0},
-        .icon_type = FLINT_ICON_TYPE_NONE,
+        .icon_type = UI_ICON_TYPE_NONE,
         .icon_size = 0,
         .width = content_w,
         .font = body_font,
@@ -152,21 +164,35 @@ meditation_manual_draw(InbeApp *app)
         .color = c_text,
     };
 
-    y = title_h + flint_px(32);
+    scroll_area = (FlintUIScrollArea){
+        .bounds = {(float)content_x, (float)content_y,
+                   (float)content_w, (float)content_h},
+        .content_height = content_total_h,
+        .scroll_offset = &app->manual_scroll,
+        .wheel_step = flint_px(42)
+    };
+    scroll_view = ui_scroll_container_begin(scroll_area);
+    y = scroll_view.content_y;
     flint_ui_paragraph_draw(paragraph, content_x, &y);
+    y += flint_px(24);
+
+    flint_text_draw(locale_get("meditation_music_section_title"),
+                    content_x, y, flint_ui_font(), c_text);
+    y += flint_px(30);
+    meditation_music_draw_guide_settings(app, content_x, content_w, &y);
+    ui_scroll_container_end(scroll_area, scroll_view);
+    meditation_music_draw_dropdown_menu(app);
 
     {
         int hover = 0;
-        int button_w = content_w;
-        int button_h = flint_px(36);
-        int button_y = view_height - flint_px(52);
 
+        button_w = content_w;
         if(button_w > flint_px(260))
             button_w = flint_px(260);
 
         if(ui_draw_generic_button(content_x + (content_w - button_w) / 2, button_y,
                                   button_w, button_h, locale_get("tutorial_start_button"),
-                                  UI_BUTTON_STYLE_PRIMARY, &hover))
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover))
             manual_tab_start_exercise(app);
     }
 }
@@ -317,7 +343,7 @@ manual_tab_draw(InbeApp *app)
         content_drag_active = 0;
     }
 
-    BeginScissorMode((int)app->camera.offset.x,
+    ui_begin_scissor((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(content_area_h * app->camera.zoom));
@@ -394,7 +420,7 @@ manual_tab_draw(InbeApp *app)
             y += img_h + flint_px(22);
             draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
-    EndScissorMode();
+    ui_end_scissor();
 
     /* Draw scrollbar if content overflows */
     if(max_scroll > 0) {
@@ -428,18 +454,18 @@ manual_tab_draw(InbeApp *app)
 
     if(step == 0) {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover))
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover))
             manual_tab_start_exercise(app);
     } else {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover)) {
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
     if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
-                              right_label, UI_BUTTON_STYLE_PRIMARY, &right_hover)) {
+                              right_label, UI_BUTTON_STYLE_PRIMARY, 0, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_tab_start_exercise(app);
         else {

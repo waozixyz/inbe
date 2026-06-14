@@ -5,6 +5,7 @@
 #include "inbe.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
+#include "flint/include/ui_icon_types.h"
 #include "habits/habits.h"
 
 enum {
@@ -67,10 +68,8 @@ typedef enum {
     UIModalMeditationSetup,
     UIModalDataManagement,
     UIModalConfirmDeleteData,
-    UIModalConfirmDeleteHistory,
     UIModalEditProgressiveStartSpeed,
-    UIModalPracticeTabs,
-    UIModalPracticeTheme,
+    UIModalHabitLinkedDetails,
 } UIModalType;
 
 typedef struct {
@@ -111,6 +110,35 @@ typedef enum ExerciseType {
     EXERCISE_COUNT
 } ExerciseType;
 
+typedef enum AppThemeMode {
+    APP_THEME_SYSTEM = 0,
+    APP_THEME_LIGHT = 1,
+    APP_THEME_DARK = 2,
+} AppThemeMode;
+
+typedef enum AppOrientationMode {
+    APP_ORIENTATION_SYSTEM = 0,
+    APP_ORIENTATION_PORTRAIT = 1,
+    APP_ORIENTATION_LANDSCAPE = 2,
+    APP_ORIENTATION_SENSOR = 3,
+} AppOrientationMode;
+
+typedef enum AppDeviceOrientation {
+    APP_DEVICE_ORIENTATION_UNKNOWN = 0,
+    APP_DEVICE_ORIENTATION_PORTRAIT = 1,
+    APP_DEVICE_ORIENTATION_LANDSCAPE = 2,
+} AppDeviceOrientation;
+
+typedef enum AppMainTab {
+    APP_MAIN_TAB_HABITS = 0,
+    APP_MAIN_TAB_PRACTICE = 1,
+} AppMainTab;
+
+typedef enum HabitsViewMode {
+    HABITS_VIEW_CALENDAR = 0,
+    HABITS_VIEW_LINKED = 1,
+} HabitsViewMode;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -119,32 +147,7 @@ struct InbeApp {
     Camera2D camera;
     int cursor_clickable;
     int cursor_disabled;
-    Texture2D gear_icon;
-    Texture2D x_icon;
-    Texture2D manual_icon;
-    Texture2D return_icon;
-    Texture2D backward_icon;
-    Texture2D forward_icon;
-    Texture2D play_icon;
-    Texture2D pause_icon;
-    Texture2D stat_icon;
-    Texture2D habit_icon;
-    Texture2D practice_icon;
-    Texture2D plus_icon;
-    Texture2D stack_icon;
-    Texture2D home_icon;
-    Texture2D trash_icon;
-    Texture2D pencil_icon;
-    Texture2D save_icon;
-    Texture2D discord_icon;
-    Texture2D telegram_icon;
-    Texture2D globe_icon;
-    Texture2D btc_icon;
-    Texture2D monero_icon;
-    Texture2D sound0_icon;
-    Texture2D sound1_icon;
-    Texture2D sound2_icon;
-    Texture2D sound3_icon;
+    Texture2D icons[UI_ICON_TYPE_COUNT];
 
     Texture2D whm_1_image;
     Texture2D whm_2_image;
@@ -165,6 +168,7 @@ struct InbeApp {
     int settings_drag_content;
     int settings_drag_content_y;
     int settings_dirty;
+    int settings_save_delay_ticks;
     int settings_category;
     int settings_sub_tab;
     int app_settings_tab;
@@ -187,28 +191,32 @@ struct InbeApp {
 
     int theme_id;
     int dark_mode;
+    int theme_mode;
+    int orientation_mode;
+    int android_orientation;
+    int main_tab;
+    int pending_bottom_tab;
 #if defined(LOTUS_BUILD)
     unsigned int lotus_settings_version;
 #endif
-    int history_scroll;
-    int history_drag_scrollbar;
-    int history_drag_content;
-    int history_drag_content_y;
-    int history_level;
-    int history_year;
-    int history_month;
-    int history_day;
-    char history_record[16];
-    int history_edit_active;
-    int history_edit_kind;
-    int history_edit_round;
-    int history_edit_cursor;
-    char history_edit_path[FS_PATH_MAX];
-    char history_edit_text[16];
-    int history_delete_kind;
-    int history_delete_round;
-    char history_delete_path[FS_PATH_MAX];
     InbeHabits habits;
+    int habits_view_mode;
+    int habits_list_scroll;
+    int habits_list_expanded_year;
+    int habits_list_expanded_month;
+    int habits_list_expanded_day;
+    int habits_list_expanded_session;
+    int habit_detail_index;
+    int habit_detail_day;
+    int habit_detail_session_index;
+    char habit_detail_session_path[FS_PATH_MAX];
+    int habit_session_edit_scroll;
+    int habit_session_edit_active;
+    int habit_session_edit_kind;
+    int habit_session_edit_round;
+    int habit_session_edit_cursor;
+    char habit_session_edit_path[FS_PATH_MAX];
+    char habit_session_edit_text[16];
     int habit_edit_active;
     int habit_edit_is_new;
     int habit_edit_index;
@@ -246,6 +254,8 @@ struct InbeApp {
     char meditation_music_cache_dir[FS_PATH_MAX];
     char meditation_music_status[128];
     UIModal modal;
+    int play_circle_hover;
+    float play_circle_scale;
 };
 
 void inbe_app_init(void *app);

@@ -38,6 +38,8 @@ static const char *g_track_options[MEDITATION_MUSIC_TRACK_COUNT] = {
     "Truth Of Silence"
 };
 
+static int load_track(InbeApp *app, int track);
+
 static int
 file_exists(const char *path)
 {
@@ -295,6 +297,29 @@ meditation_music_stop(InbeApp *app)
     app->meditation_music_playing = 0;
 }
 
+static void
+meditation_music_test_track(InbeApp *app)
+{
+    int track;
+
+    if(app == NULL)
+        return;
+    if(!meditation_music_available(app)) {
+        set_status(app, "Download audio before testing");
+        return;
+    }
+
+    track = app->meditation_music_track;
+    if(track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT)
+        track = 0;
+    if(!load_track(app, track))
+        return;
+
+    PlayMusicStream(app->meditation_music);
+    app->meditation_music_playing = 1;
+    set_status(app, "Playing test audio");
+}
+
 static int
 load_track(InbeApp *app, int track)
 {
@@ -388,8 +413,9 @@ start_download(InbeApp *app)
                                  archive_path);
 }
 
-void
-meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y)
+static void
+draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
+                  int show_installed_download, int show_status)
 {
     int toggle_w = flint_px(56);
     int toggle_h = flint_px(30);
@@ -401,15 +427,14 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
     if(app == NULL || y == NULL)
         return;
 
-    flint_text_draw(locale_get("meditation_music_enabled_label"), content_x, *y, flint_ui_font(), c_text);
-    if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
-                             &app->meditation_music_enabled,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+    if(app->meditation_music_track < 0 ||
+       app->meditation_music_track >= MEDITATION_MUSIC_TRACK_COUNT)
+        app->meditation_music_track = 0;
+
+    if(!app->meditation_music_enabled) {
+        app->meditation_music_enabled = 1;
         app->settings_dirty = 1;
-        if(!app->meditation_music_enabled)
-            meditation_music_stop(app);
     }
-    *y += flint_px(76);
 
     flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), c_text);
     if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
@@ -419,45 +444,63 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
     *y += flint_px(76);
 
     flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), c_text);
-    if(ui_draw_dropdown_button(401, content_x, *y + flint_px(24), content_w, flint_px(36),
-                               g_track_options, MEDITATION_MUSIC_TRACK_COUNT,
-                               &app->meditation_music_track)) {
-        app->settings_dirty = 1;
-        meditation_music_stop(app);
+    if(app->meditation_music_shuffle) {
+        ui_draw_generic_button(content_x, *y + flint_px(24), content_w, flint_px(36),
+                               g_track_options[app->meditation_music_track],
+                               UI_BUTTON_STYLE_SECONDARY, 1, NULL);
+    } else {
+        if(ui_draw_dropdown_button(401, content_x, *y + flint_px(24), content_w, flint_px(36),
+                                   g_track_options, MEDITATION_MUSIC_TRACK_COUNT,
+                                   &app->meditation_music_track)) {
+            app->settings_dirty = 1;
+            meditation_music_stop(app);
+        }
     }
     *y += flint_px(74);
 
     installed = meditation_music_available(app);
-    button_w = flint_text_measure(locale_get(installed ? "meditation_music_redownload_button"
-                                                       : "meditation_music_download_button"),
-                                  flint_ui_font()) + flint_px(24);
-    if(button_w > content_w)
-        button_w = content_w;
-    if(ui_draw_generic_button(content_x, *y, button_w, button_h,
-                              locale_get(installed ? "meditation_music_redownload_button"
-                                                   : "meditation_music_download_button"),
-                              UI_BUTTON_STYLE_PRIMARY, &hover))
-        start_download(app);
-    *y += button_h + flint_px(12);
-
-    button_w = flint_text_measure(locale_get("meditation_music_test_button"),
-                                  flint_ui_font()) + flint_px(24);
-    if(button_w > content_w)
-        button_w = content_w;
-    if(ui_draw_generic_button(content_x, *y, button_w, button_h,
-                              locale_get("meditation_music_test_button"),
-                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
-        if(app->meditation_music_playing)
-            meditation_music_stop(app);
-        else if(load_track(app, app->meditation_music_track)) {
-            PlayMusicStream(app->meditation_music);
-            app->meditation_music_playing = 1;
-        }
+    if(installed) {
+        button_w = flint_text_measure(locale_get("meditation_music_test_button"),
+                                      flint_ui_font()) + flint_px(24);
+        if(button_w > content_w)
+            button_w = content_w;
+        if(ui_draw_generic_button(content_x, *y, button_w, button_h,
+                                  locale_get("meditation_music_test_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+            meditation_music_test_track(app);
+        *y += button_h + flint_px(12);
     }
-    *y += button_h + flint_px(16);
 
-    flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), c_text);
-    *y += flint_px(34);
+    if(!installed || show_installed_download) {
+        button_w = flint_text_measure(locale_get(installed ? "meditation_music_redownload_button"
+                                                           : "meditation_music_download_button"),
+                                      flint_ui_font()) + flint_px(24);
+        if(button_w > content_w)
+            button_w = content_w;
+        if(ui_draw_generic_button(content_x, *y, button_w, button_h,
+                                  locale_get(installed ? "meditation_music_redownload_button"
+                                                       : "meditation_music_download_button"),
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+            start_download(app);
+        *y += button_h + flint_px(12);
+    }
+
+    if(show_status && (!installed || app->meditation_music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
+        flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), c_text);
+        *y += flint_px(34);
+    }
+}
+
+void
+meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y)
+{
+    draw_music_picker(app, content_x, content_w, y, 1, 1);
+}
+
+void
+meditation_music_draw_guide_settings(InbeApp *app, int content_x, int content_w, int *y)
+{
+    draw_music_picker(app, content_x, content_w, y, 0, 1);
 }
 
 int

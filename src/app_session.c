@@ -15,7 +15,17 @@ void set_global_inbe_app(InbeApp *app);
 
 extern int view_width;
 extern int view_height;
-extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
+
+static int
+session_topic_for_activity(int exercise_type)
+{
+    if(exercise_type == EXERCISE_SUN_SALUTATION)
+        return INBE_HABIT_TOPIC_YOGA;
+    if(exercise_type == EXERCISE_7_MINUTE_WORKOUT)
+        return INBE_HABIT_TOPIC_FITNESS;
+    return INBE_HABIT_TOPIC_MIND;
+}
 
 static void
 set_circle_bounds(Inbe *inbe, int rmin, int rmax)
@@ -279,7 +289,10 @@ session_ensure_results_saved(InbeApp *app)
     if(rounds <= 0)
         return 0;
 
-    if(data_save_session_path(round_times, rounds, app->results_path, sizeof(app->results_path))) {
+    if(data_save_session_path_for_activity(round_times, rounds,
+                                           app != NULL ? session_topic_for_activity(app->exercise_type) : 0,
+                                           app != NULL ? app->exercise_type : 0,
+                                           app->results_path, sizeof(app->results_path))) {
         app->results_saved = 1;
         sync_habits_for_activity(app, app->exercise_type);
         TraceLog(LOG_INFO, "INBE: session saved successfully");
@@ -449,7 +462,8 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int segment_x = x + i * segment_w;
         int current_w = i == 1 ? x + w - segment_x : segment_w;
         Rectangle rect = {segment_x, y, current_w, h};
-        int hovered = CheckCollisionPointRec(mouse_world, rect);
+        int hovered = CheckCollisionPointRec(mouse_world, rect) &&
+                      !ui_input_captures_click(mouse_world);
         int active = i == selected;
         Color fill = active ? c_button : flint_darken(c_bg, 10);
         Color top = flint_lighten(fill, 35);
@@ -476,7 +490,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
                         flint_ui_text_y(labels[i], y, h, font), font, c_text);
 
         if(hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !ui_dropdown_captures_click(mouse_world) && selected != i) {
+           !ui_input_captures_click(mouse_world) && selected != i) {
             app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH;
             app->settings_dirty = 1;
             clicked = 1;
@@ -530,6 +544,88 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
         DrawCircleLines(center_x, center_y, app->inbe.r, c_text);
     }
     draw_session_counter(app, center_x, center_y);
+}
+
+int
+session_draw_start_preview(InbeApp *app, int center_x, int center_y)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int hovered = 0;
+    int clicked = 0;
+    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    const char *play_text = locale_get("play_button");
+    int font = flint_px(16);
+    float scale = 1.0f;
+
+    // Check hover
+    float radius = app->inbe.rmax;  // Declare radius outside the if/else blocks
+
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        // For meditation: text hover detection
+        int text_w = flint_text_measure(play_text, font);
+        int text_h = font;
+        Rectangle text_bounds = {
+            center_x - text_w / 2 - flint_px(10),
+            center_y - text_h / 2 - flint_px(10),
+            text_w + flint_px(20),
+            text_h + flint_px(20)
+        };
+
+        if(CheckCollisionPointRec(mouse_world, text_bounds) && !ui_input_captures_click(mouse_world)) {
+            hovered = 1;
+            app->play_circle_hover = 1;
+        } else {
+            app->play_circle_hover = 0;
+        }
+    } else {
+        // For breathing exercises: circular hover detection
+        float dx = mouse_world.x - center_x;
+        float dy = mouse_world.y - center_y;
+        float dist_sq = dx * dx + dy * dy;
+
+        if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
+            hovered = 1;
+            app->play_circle_hover = 1;
+        } else {
+            app->play_circle_hover = 0;
+        }
+    }
+
+    // Smooth scale animation
+    float target_scale = hovered ? 1.08f : 1.0f;
+    app->play_circle_scale += (target_scale - app->play_circle_scale) * 0.2f;
+    if(app->play_circle_scale < 1.0f) app->play_circle_scale = 1.0f;
+    if(app->play_circle_scale > 1.08f) app->play_circle_scale = 1.08f;
+
+    scale = app->play_circle_scale;
+
+    // Handle click
+    if(hovered && released) {
+        clicked = 1;
+    }
+
+    // Draw circle with hover scale
+    int scaled_radius = (int)(radius * scale);
+
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        // For meditation, just draw the text
+        int text_w = flint_text_measure(play_text, font);
+        flint_text_draw(play_text, center_x - text_w / 2, center_y - font / 2,
+                        font, c_text);
+    } else {
+        // Draw circle
+        DrawCircle(center_x, center_y, scaled_radius, c_circle);
+        DrawCircleLines(center_x, center_y, scaled_radius, c_text);
+
+        // Draw PLAY text in center
+        flint_ui_draw_text_centered(play_text, center_x, center_y, font, c_text);
+    }
+
+    if(hovered) {
+        app->cursor_clickable = 1;
+    }
+
+    return clicked;
 }
 
 static void
@@ -602,10 +698,10 @@ static Texture2D
 sound_icon_for_volume(InbeApp *app)
 {
     int vol = app->sound_volume;
-    if(vol <= 0) return app->sound0_icon;
-    if(vol <= 25) return app->sound1_icon;
-    if(vol <= 75) return app->sound2_icon;
-    return app->sound3_icon;
+    if(vol <= 0) return app->icons[UI_ICON_TYPE_SOUND0];
+    if(vol <= 25) return app->icons[UI_ICON_TYPE_SOUND1];
+    if(vol <= 75) return app->icons[UI_ICON_TYPE_SOUND2];
+    return app->icons[UI_ICON_TYPE_SOUND3];
 }
 
 static void
@@ -629,7 +725,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     int breath_max_y = view_height - flint_px(44);
 
     if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN, &return_hover)) {
+                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             inbe_app_init(app);
@@ -646,7 +742,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     int sound_btn_padding = flint_px(10);
     int sound_hover = 0;
     if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), UI_ICON_TYPE_SOUND, &sound_hover)) {
+                               sound_icon_for_volume(app), &sound_hover)) {
         app->volume_popup_active = !app->volume_popup_active;
     }
 
@@ -663,9 +759,9 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             app->volume_popup_active = 0;
         }
 
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_button);
+        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_surface);
         ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
         if(ui_draw_slider_vertical(500, popup_x + popup_w / 2, popup_y + flint_px(10),
                                    popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
@@ -763,15 +859,14 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         forward_x = pause_x + control_btn_w + control_gap;
 
         if(ui_draw_icon_btn_padded(back_x, control_y, control_size, control_padding,
-                                   app->backward_icon, UI_ICON_TYPE_BACKWARD, &back_hover))
+                                   app->icons[UI_ICON_TYPE_BACKWARD], &back_hover))
             session_step_back(app);
         if(ui_draw_icon_btn_padded(pause_x, control_y, control_size, control_padding,
-                                   app->session_paused ? app->play_icon : app->pause_icon,
-                                   app->session_paused ? UI_ICON_TYPE_PLAY : UI_ICON_TYPE_PAUSE,
+                                   app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE],
                                    &pause_hover))
             app->session_paused = !app->session_paused;
         if(ui_draw_icon_btn_padded(forward_x, control_y, control_size, control_padding,
-                                   app->forward_icon, UI_ICON_TYPE_FORWARD, &forward_hover))
+                                   app->icons[UI_ICON_TYPE_FORWARD], &forward_hover))
             session_step_forward(app);
     }
 

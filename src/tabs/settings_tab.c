@@ -1,10 +1,11 @@
 #include "settings_tab.h"
 #include "app.h"
+#include "app_preferences.h"
 #include "app_session.h"
 #include "language_tab.h"
 #include "meditation_music.h"
 #include "locale.h"
-#include "theme_meta.h"
+#include "flint_theme_meta.h"
 #include "flint_ui.h"
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
@@ -20,7 +21,7 @@
 #include <string.h>
 
 /* Theme colors - set by ui_set_colors */
-extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 
 extern int view_width;
 extern int view_height;
@@ -112,9 +113,9 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
     int start_speed = clampi(app->inbe.progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     const char *title = locale_get("progressive_start_speed_editor_title");
     int title_w = flint_text_measure(title, title_font);
@@ -126,7 +127,7 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
     flint_text_draw(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, c_text);
 
     if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6), modal_y + flint_px(6),
-                               close_size, close_padding, app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+                               close_size, close_padding, app->icons[UI_ICON_TYPE_X], &close_hover)) {
         app->modal.active = 0;
         app->modal.type = UIModalNone;
         return;
@@ -258,11 +259,11 @@ settings_draw_data_stats(int x, int y, int w)
 static void
 settings_apply_file_dialog_theme(InbeApp *app)
 {
-    int theme_id = app != NULL ? app->theme_id : ThemeSky;
+    int theme_id = app != NULL ? app->theme_id : FLINT_THEME_SKY;
     int dark_mode = app != NULL && app->dark_mode != 0;
 
-    if(theme_id < 0 || theme_id >= THEME_COUNT)
-        theme_id = ThemeSky;
+    if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
+        theme_id = FLINT_THEME_SKY;
     flint_file_dialog_set_theme_scope(flint_theme_scope_for((FlintThemeId)theme_id,
                                                             dark_mode != 0));
 }
@@ -279,18 +280,18 @@ settings_draw_about_block(InbeApp *app, int content_x, int content_w, int *y)
     int icon_padding;
     int icon_spacing;
     int icon_btn_w;
-    int link_count = 4;
-    int max_columns = 4;
+    int link_count = 5;
+    int max_columns = 5;
     int total_w;
     int columns;
     int grid_w;
     int links_start_x;
     int row_spacing;
-    Texture2D icons[4] = {app->discord_icon, app->telegram_icon, app->btc_icon, app->monero_icon};
-    UIIconType icon_types[4] = {UI_ICON_TYPE_NONE, UI_ICON_TYPE_TELEGRAM, UI_ICON_TYPE_BTC, UI_ICON_TYPE_MONERO};
-    const char *urls[4] = {
+    Texture2D icons[5] = {app->icons[UI_ICON_TYPE_DISCORD], app->icons[UI_ICON_TYPE_TELEGRAM], app->icons[UI_ICON_TYPE_GITHUB], app->icons[UI_ICON_TYPE_BTC], app->icons[UI_ICON_TYPE_MONERO]};
+    const char *urls[5] = {
         "https://discord.com/invite/JbGZ4yENDt",
         "https://t.me/lotusinbe",
+        "https://github.com/waozixyz/inbe",
         "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
         "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
     };
@@ -325,7 +326,7 @@ settings_draw_about_block(InbeApp *app, int content_x, int content_w, int *y)
         int row = i / columns;
         int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
         int icon_y = links_y + row * (icon_btn_w + row_spacing);
-        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], icon_types[i], urls[i]);
+        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], urls[i]);
     }
 
     *y = links_y + ((link_count + columns - 1) / columns) * (icon_btn_w + row_spacing);
@@ -409,8 +410,8 @@ settings_tab_draw(InbeApp *app)
         if(!app->settings_from_exercise_selector) {
             int back_btn_x = ui_icon_btn_padding(UI_ICON_SIZE_TINY);
             back_clicked = ui_draw_icon_btn(back_btn_x, flint_px(8),
-                                            UI_ICON_SIZE_TINY, app->return_icon,
-                                            UI_ICON_TYPE_RETURN, &back_hover);
+                                            UI_ICON_SIZE_TINY, app->icons[UI_ICON_TYPE_RETURN],
+                                            &back_hover);
         }
 
         /* Draw centered title (offset to account for back button) */
@@ -421,7 +422,7 @@ settings_tab_draw(InbeApp *app)
 
         /* Draw close button */
         close_clicked = ui_draw_icon_btn(view_width - flint_px(40) - ui_icon_btn_padding(UI_ICON_SIZE_TINY), flint_px(8),
-                                         UI_ICON_SIZE_TINY, app->x_icon, UI_ICON_TYPE_X, &close_hover);
+                                         UI_ICON_SIZE_TINY, app->icons[UI_ICON_TYPE_X], &close_hover);
 
         /* Handle back button click */
         if(back_clicked) {
@@ -448,10 +449,15 @@ settings_tab_draw(InbeApp *app)
             app->settings_category = -1;
             app->settings_sub_tab = 0;
             app->settings_scroll = 0;
-            app->inbe.screen = InbeScreenStart;  /* Close button always exits to homepage */
+            app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
+                                   ? InbeScreenHabits
+                                   : InbeScreenStart;
         }
     } else {
-        close_clicked = ui_draw_screen_header(locale_get("settings_title"), 1);
+        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("settings_title"),
+                                                    (Texture2D){0},
+                                                    app->icons[UI_ICON_TYPE_X]);
+        close_clicked = header.right_clicked;
         if(close_clicked) {
             if(app->settings_dirty)
                 save_settings(app);
@@ -459,7 +465,9 @@ settings_tab_draw(InbeApp *app)
             app->settings_from_exercise_selector = 0;
             app->settings_category = -1;
             app->settings_sub_tab = 0;
-            app->inbe.screen = InbeScreenStart;
+            app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
+                                   ? InbeScreenHabits
+                                   : InbeScreenStart;
         }
     }
 
@@ -485,12 +493,33 @@ settings_tab_draw(InbeApp *app)
     int language_menu_changed = 0;
     int draw_language_menu = 0;
     int draw_meditation_music_menu = 0;
+    int draw_theme_mode_menu = 0;
+    int draw_orientation_menu = 0;
+    int theme_mode_changed = 0;
+    int orientation_changed = 0;
+    const char *theme_mode_options[] = {
+        locale_get("theme_system"),
+        locale_get("theme_light"),
+        locale_get("theme_dark")
+    };
+    const char *orientation_options[] = {
+        locale_get("orientation_system"),
+        locale_get("orientation_portrait"),
+        locale_get("orientation_landscape"),
+        locale_get("orientation_sensor")
+    };
+    int orientation_option_count =
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+        4;
+#else
+        3;
+#endif
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     settings_tab_handle_android_import();
 #endif
 
-    BeginScissorMode((int)app->camera.offset.x,
+    ui_begin_scissor((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
@@ -525,11 +554,32 @@ settings_tab_draw(InbeApp *app)
                                                   app->settings_sub_tab);
         if(clicked_subtab != -1) {
             app->settings_sub_tab = clicked_subtab;
+            app->settings_scroll = 0;
             reset_settings_preview(app);
         }
 
         {
-            int tab_content_y = subtab_y + subtab_h + yoff;
+            int tab_view_y = subtab_y + subtab_h + yoff;
+            int tab_view_h = view_height - tab_view_y - flint_px(TAB_BAR_H);
+            int tab_content_h = app->settings_sub_tab == PRACTICE_SUBTAB_BREATHING
+                                    ? flint_px(app->inbe.progressive_speed ? 410 : 360)
+                                    : flint_px(365);
+            FlintUIScrollArea scroll_area;
+            FlintUIScrollView scroll_view;
+            int tab_content_y;
+
+            if(tab_view_h < flint_px(80))
+                tab_view_h = flint_px(80);
+            scroll_area = (FlintUIScrollArea){
+                .bounds = {(float)content_x, (float)tab_view_y,
+                           (float)content_w, (float)tab_view_h},
+                .content_height = tab_content_h,
+                .scroll_offset = &app->settings_scroll,
+                .wheel_step = flint_px(42)
+            };
+            scroll_view = ui_scroll_container_begin(scroll_area);
+            tab_content_y = scroll_view.content_y;
+
             if(app->settings_sub_tab == PRACTICE_SUBTAB_BREATHING) {
                 int progressive_start_speed = app->inbe.progressive_start_speed;
                 int progressive_speed = app->inbe.progressive_speed;
@@ -573,7 +623,7 @@ settings_tab_draw(InbeApp *app)
 
                     if(ui_draw_generic_button(content_x, modify_y, modify_w, modify_h,
                                               locale_get("modify_start_speed_button"),
-                                              UI_BUTTON_STYLE_SECONDARY, &modify_hover)) {
+                                              UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
                         app->modal.active = 1;
                         app->modal.type = UIModalEditProgressiveStartSpeed;
                         app->modal.selected_button = 0;
@@ -627,7 +677,7 @@ settings_tab_draw(InbeApp *app)
 
                 if(ui_draw_generic_button(reset_x, reset_y, reset_w, reset_h,
                                           locale_get("reset_to_defaults_label"),
-                                          UI_BUTTON_STYLE_SECONDARY, &reset_hover)) {
+                                          UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover)) {
                     speed = DefaultSpeedLevel;
                     max_rounds = DefaultMaxRounds;
                     max_breaths = DefaultMaxBreaths;
@@ -641,32 +691,32 @@ settings_tab_draw(InbeApp *app)
                     app->settings_dirty = 1;
                 }
             }
+            ui_scroll_container_end(scroll_area, scroll_view);
         }
     } else if(app->settings_category == SETTINGS_CATEGORY_MEDITATION) {
-        int y = content_start_y + flint_px(16) - app->settings_scroll;
-        int content_top = y;
+        int scroll_y = content_start_y + flint_px(16);
+        int scroll_h = view_height - scroll_y - flint_px(TAB_BAR_H);
+        int scroll_content_h = flint_px(300);
+        int y;
+        FlintUIScrollArea scroll_area;
+        FlintUIScrollView scroll_view;
+
+        if(scroll_h < flint_px(80))
+            scroll_h = flint_px(80);
+        scroll_area = (FlintUIScrollArea){
+            .bounds = {(float)content_x, (float)scroll_y,
+                       (float)content_w, (float)scroll_h},
+            .content_height = scroll_content_h,
+            .scroll_offset = &app->settings_scroll,
+            .wheel_step = flint_px(42)
+        };
+        scroll_view = ui_scroll_container_begin(scroll_area);
+        y = scroll_view.content_y;
 
         settings_draw_section_title(locale_get("meditation_music_section_title"), content_x, &y);
         meditation_music_draw_settings(app, content_x, content_w, &y);
         draw_meditation_music_menu = 1;
-        y += flint_px(40);
-
-        {
-            int total_content_h = y - content_top;
-            int max_scroll = total_content_h - viewport_h;
-            if(max_scroll < 0)
-                max_scroll = 0;
-            app->settings_scroll -= (int)(GetMouseWheelMove() * 24.0f);
-            app->settings_scroll = clampi(app->settings_scroll, 0, max_scroll);
-            if(max_scroll > 0) {
-                int scrollbar_x = (int)(app->camera.offset.x + (content_x + content_w + flint_px(4)) * app->camera.zoom);
-                int scrollbar_y = (int)(app->camera.offset.y + title_h * app->camera.zoom);
-                int scrollbar_viewport = (int)(viewport_h * app->camera.zoom);
-                int total_content_screen_h = (int)(total_content_h * app->camera.zoom);
-                ui_draw_scrollbar(scrollbar_x, scrollbar_y, scrollbar_viewport, total_content_screen_h,
-                                  &app->settings_scroll, max_scroll);
-            }
-        }
+        ui_scroll_container_end(scroll_area, scroll_view);
     } else {
         int subtab_h = flint_px(40);
         int subtab_gap = flint_px(16);
@@ -702,8 +752,8 @@ settings_tab_draw(InbeApp *app)
             content_top = y;
         }
 
-        EndScissorMode();
-        BeginScissorMode((int)app->camera.offset.x,
+        ui_end_scissor();
+        ui_begin_scissor((int)app->camera.offset.x,
                          (int)(app->camera.offset.y + tab_content_start_y * app->camera.zoom),
                          (int)(view_width * app->camera.zoom),
                          (int)(content_viewport_h * app->camera.zoom));
@@ -732,6 +782,27 @@ settings_tab_draw(InbeApp *app)
 #endif
 
             settings_draw_section_title(locale_get("settings_tab_appearance"), content_x, &y);
+            {
+                app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+                flint_text_draw(locale_get("theme_mode_label"), content_x, y, flint_ui_font(), c_text);
+                ui_draw_dropdown_button(102, content_x, y + flint_px(26), content_w,
+                                        flint_px(36), theme_mode_options, 3, &app->theme_mode);
+                draw_theme_mode_menu = 1;
+                y += flint_px(76);
+            }
+            {
+                int orientation_max = orientation_option_count - 1;
+                app->orientation_mode = clampi(app->orientation_mode,
+                                               APP_ORIENTATION_SYSTEM,
+                                               orientation_max);
+                flint_text_draw(locale_get("orientation_label"), content_x, y,
+                                flint_ui_font(), c_text);
+                ui_draw_dropdown_button(103, content_x, y + flint_px(26), content_w,
+                                        flint_px(36), orientation_options, orientation_option_count,
+                                        &app->orientation_mode);
+                draw_orientation_menu = 1;
+                y += flint_px(76);
+            }
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
             if(ui_draw_checkbox_toggle(content_x, y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
                 if(app->fullscreen_enabled && !IsWindowFullscreen())
@@ -765,7 +836,7 @@ settings_tab_draw(InbeApp *app)
                 data_button_w = content_w;
             if(ui_draw_generic_button(content_x, y, data_button_w, data_button_h,
                                       locale_get("data_management_button"),
-                                      UI_BUTTON_STYLE_PRIMARY, &data_hover)) {
+                                      UI_BUTTON_STYLE_PRIMARY, 0, &data_hover)) {
                 app->modal.active = 1;
                 app->modal.type = UIModalDataManagement;
                 app->modal.selected_button = 0;
@@ -795,14 +866,32 @@ settings_tab_draw(InbeApp *app)
             }
         }
     }
-    EndScissorMode();
+    ui_end_scissor();
 
     /* Draw dropdown menu (floats above content) */
     ui_set_dropdown_clip_top(title_h);
     if(draw_language_menu && language_dropdown_menu(app, 101))
         language_menu_changed = 1;
+    if(draw_theme_mode_menu && ui_draw_dropdown_menu(102))
+        theme_mode_changed = 1;
+    if(draw_orientation_menu && ui_draw_dropdown_menu(103))
+        orientation_changed = 1;
     if(language_menu_changed)
         apply_language_selection(app, app->language_index, 1);
+    if(theme_mode_changed) {
+        app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+        app_refresh_theme(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+    }
+    if(orientation_changed) {
+        int orientation_max = orientation_option_count - 1;
+        app->orientation_mode = clampi(app->orientation_mode, APP_ORIENTATION_SYSTEM,
+                                       orientation_max);
+        app_apply_orientation_preference(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+    }
     if(draw_meditation_music_menu)
         meditation_music_draw_dropdown_menu(app);
     ui_set_dropdown_clip_top(0);
@@ -833,9 +922,9 @@ settings_tab_draw(InbeApp *app)
         modal_y = (view_height - modal_h) / 2;
 
         DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-        DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+        DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
         ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
         title_w = flint_text_measure(locale_get("data_management_label"), title_font);
         flint_text_draw(locale_get("data_management_label"),
@@ -844,7 +933,7 @@ settings_tab_draw(InbeApp *app)
 
         if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6),
                                    modal_y + flint_px(6), close_size, close_padding,
-                                   app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+                                   app->icons[UI_ICON_TYPE_X], &close_hover)) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
             return;
@@ -857,7 +946,7 @@ settings_tab_draw(InbeApp *app)
         button_w = modal_w - flint_px(36);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("import_data_button"), UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_import)) {
+                                  0, &hover_import)) {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
             if(android_import_open_picker()) {
                 settings_tab_set_status_success(locale_get("import_data_dialog_title"), NULL);
@@ -897,12 +986,15 @@ settings_tab_draw(InbeApp *app)
         y += button_h + flint_px(12);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("export_data_button"), UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_export)) {
+                                  0, &hover_export)) {
+            char export_filename[64];
+            data_default_export_filename(export_filename, sizeof(export_filename));
+
             if(!data_has_any()) {
                 settings_tab_set_status_error(locale_get("no_data_to_export"));
             }
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-            else if(data_export("inbe-export.zip")) {
+            else if(data_export(export_filename)) {
                 settings_tab_set_status_success(locale_get("exported_label"), NULL);
                 app->modal.active = 0;
                 app->modal.type = UIModalNone;
@@ -914,7 +1006,7 @@ settings_tab_draw(InbeApp *app)
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
             else {
                 settings_apply_file_dialog_theme(app);
-                if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
+                if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), export_filename)) {
                     const char *path = flint_file_dialog_get_path(&export_dlg);
                     if(path != NULL && data_export(path)) {
                         const char *filename = GetFileName(path);
@@ -940,7 +1032,7 @@ settings_tab_draw(InbeApp *app)
         y += button_h + flint_px(12);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("delete_all_data_button"),
-                                  UI_BUTTON_STYLE_DANGER, &hover_delete)) {
+                                  UI_BUTTON_STYLE_DANGER, 0, &hover_delete)) {
             if(data_has_any()) {
                 app->modal.type = UIModalConfirmDeleteData;
                 app->modal.selected_button = 0;
