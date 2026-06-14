@@ -82,6 +82,7 @@ add_library(main SHARED
     "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
+    "${SRC_DIR}/storage.c"
     "${SRC_DIR}/miniz.c"
     "${SRC_DIR}/android/android_import.c"
     "${SRC_DIR}/android/android_runtime_assets.c"
@@ -137,6 +138,7 @@ target_link_libraries(main
     android
     log
     OpenSLES
+    sqlite
     EGL
     GLESv2
     m

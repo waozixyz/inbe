@@ -112,7 +112,9 @@ public class MainActivity extends NativeActivity {
                     intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
                         "application/zip",
                         "application/octet-stream",
-                        "application/x-zip-compressed"
+                        "application/x-zip-compressed",
+                        "application/vnd.sqlite3",
+                        "application/x-sqlite3"
                     });
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
@@ -136,7 +138,7 @@ public class MainActivity extends NativeActivity {
 
         Uri uri = data.getData();
         File importDir = new File(getCacheDir(), "imports");
-        File importFile = new File(importDir, "inbe-import.zip");
+        File importFile = new File(importDir, "inbe-import");
 
         try {
             if (!importDir.exists() && !importDir.mkdirs()) {

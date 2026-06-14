@@ -5,11 +5,9 @@
 #include "flint_ui.h"
 #include "raylib.h"
 
-#include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/stat.h>
 #include <time.h>
 
 #define FS_PATH_MAX 512
@@ -51,110 +49,65 @@ extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
  * INTERNAL HELPER FUNCTIONS
  * ================================================================ */
 
-/* Check if a directory name consists only of digits */
-static int
-name_is_digits(const char *name, int len)
-{
-    int i;
-    if(name == NULL)
-        return 0;
-    for(i = 0; i < len; i++) {
-        if(name[i] == '\0' || name[i] < '0' || name[i] > '9')
-            return 0;
-    }
-    return name[len] == '\0';
-}
-
 /* Compare two history entries for sorting (newest first) */
 static int
 compare_history_entries(const void *a, const void *b)
 {
     const HistoryEntry *ea = a;
     const HistoryEntry *eb = b;
-    return strcmp(eb->path, ea->path);
+    if(ea->year != eb->year) return eb->year - ea->year;
+    if(ea->month != eb->month) return eb->month - ea->month;
+    if(ea->day != eb->day) return eb->day - ea->day;
+    if(ea->hour != eb->hour) return eb->hour - ea->hour;
+    if(ea->minute != eb->minute) return eb->minute - ea->minute;
+    return eb->second - ea->second;
 }
 
-/* Scan a day directory for session files */
+typedef struct ScanHistoryContext {
+    HistoryEntry *entries;
+    int *count;
+} ScanHistoryContext;
+
 static void
-scan_history_day(HistoryEntry *entries, int *count, int year, int month, int day, const char *path)
+scan_history_callback(const char *path, int year, int month, int day,
+                      int hour, int minute, int second,
+                      const int *round_times, int round_count, void *user)
 {
-    DIR *dir = opendir(path);
-    struct dirent *ent;
-    char child[FS_PATH_MAX];
+    ScanHistoryContext *ctx = user;
+    HistoryEntry entry;
+    int total = 0;
 
-    if(dir == NULL)
+    if(ctx == NULL || *ctx->count >= HISTORY_MAX_SESSIONS || round_times == NULL || round_count <= 0)
         return;
-
-    while((ent = readdir(dir)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-        if(ent->d_name[0] == '.')
-            continue;
-        snprintf(child, sizeof(child), "%s/%s", path, ent->d_name);
-        if(strncmp(ent->d_name, "inbe-", 5) == 0) {
-            /* Parse filename and add entry */
-            const char *name = ent->d_name;
-            int hh = 0, mm = 0, ss = 0;
-            if(sscanf(name, "inbe-%2d%2d%2d", &hh, &mm, &ss) == 3) {
-                HistoryEntry entry;
-                memset(&entry, 0, sizeof(entry));
-                snprintf(entry.path, sizeof(entry.path), "%s", child);
-                entry.year = year;
-                entry.month = month;
-                entry.day = day;
-                entry.hour = hh;
-                entry.minute = mm;
-                entry.second = ss;
-                history_load_session_file(child, &entry);
-                if(entry.round_count > 0) {
-                    entries[*count] = entry;
-                    (*count)++;
-                }
-            }
-        }
+    memset(&entry, 0, sizeof(entry));
+    snprintf(entry.path, sizeof(entry.path), "%s", path);
+    entry.year = year;
+    entry.month = month;
+    entry.day = day;
+    entry.hour = hour;
+    entry.minute = minute;
+    entry.second = second;
+    entry.round_count = round_count > MaxRounds ? MaxRounds : round_count;
+    for(int i = 0; i < entry.round_count; i++) {
+        entry.rounds[i] = round_times[i];
+        total += round_times[i];
+        if(round_times[i] > entry.best)
+            entry.best = round_times[i];
     }
-    closedir(dir);
+    entry.avg_seconds = entry.round_count > 0 ? total / entry.round_count : 0;
+    ctx->entries[*ctx->count] = entry;
+    (*ctx->count)++;
 }
 
 /* Scan entire history tree and populate entries array */
 static void
 scan_history_tree(HistoryEntry *entries, int *count)
 {
-    DIR *years = opendir(data_root());
-    struct dirent *year;
-    char ypath[FS_PATH_MAX];
-    char mpath[FS_PATH_MAX];
-    char dpath[FS_PATH_MAX];
-
+    ScanHistoryContext ctx;
     *count = 0;
-    if(years == NULL)
-        return;
-
-    while((year = readdir(years)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-        if(!name_is_digits(year->d_name, 4))
-            continue;
-        snprintf(ypath, sizeof(ypath), "%s/%s", data_root(), year->d_name);
-        DIR *months = opendir(ypath);
-        struct dirent *month;
-        if(months == NULL)
-            continue;
-        while((month = readdir(months)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-            if(!name_is_digits(month->d_name, 2))
-                continue;
-            snprintf(mpath, sizeof(mpath), "%s/%s", ypath, month->d_name);
-            DIR *days = opendir(mpath);
-            struct dirent *day;
-            if(days == NULL)
-                continue;
-            while((day = readdir(days)) != NULL && *count < HISTORY_MAX_SESSIONS) {
-                if(!name_is_digits(day->d_name, 2))
-                    continue;
-                snprintf(dpath, sizeof(dpath), "%s/%s", mpath, day->d_name);
-                scan_history_day(entries, count, atoi(year->d_name), atoi(month->d_name), atoi(day->d_name), dpath);
-            }
-            closedir(days);
-        }
-        closedir(months);
-    }
-    closedir(years);
+    ctx.entries = entries;
+    ctx.count = count;
+    data_list_history(scan_history_callback, &ctx);
 }
 
 /* Check if history has entry for specific year */
@@ -533,12 +486,14 @@ history_commit_edit(InbeApp *app, const HistoryEntry *entry)
 
         snprintf(dir, sizeof(dir), "%s", entry->path);
         slash = strrchr(dir, '/');
-        if(slash == NULL)
-            return 0;
-        *slash = '\0';
-
-        snprintf(new_path, sizeof(new_path), "%s/inbe-%02d%02d%02d",
-                 dir, hour, minute, entry->second);
+        if(slash == NULL) {
+            snprintf(new_path, sizeof(new_path), "inbe-%02d%02d%02d",
+                     hour, minute, entry->second);
+        } else {
+            *slash = '\0';
+            snprintf(new_path, sizeof(new_path), "%s/inbe-%02d%02d%02d",
+                     dir, hour, minute, entry->second);
+        }
         if(!data_rename_session(entry->path, new_path))
             return 0;
 
@@ -1022,10 +977,14 @@ history_open_latest(InbeApp *app)
 void
 history_load_session_file(const char *path, HistoryEntry *entry)
 {
-    FILE *file;
-    int value;
     int total = 0;
-    int count = 0;
+    int count;
+    int year = 0;
+    int month = 0;
+    int day = 0;
+    int hour = 0;
+    int minute = 0;
+    int second = 0;
 
     if(entry == NULL)
         return;
@@ -1035,20 +994,24 @@ history_load_session_file(const char *path, HistoryEntry *entry)
     for(int i = 0; i < MaxRounds; i++)
         entry->rounds[i] = 0;
 
-    file = fopen(path, "r");
-    if(file == NULL)
+    count = data_load_session(path, entry->rounds, MaxRounds,
+                              &year, &month, &day, &hour, &minute, &second);
+    if(count <= 0)
         return;
 
-    while(count < MaxRounds && fscanf(file, "%d", &value) == 1) {
-        if(value <= 0)
-            continue;
-        entry->rounds[count] = value;
-        total += value;
-        count++;
-    }
-    fclose(file);
-
+    snprintf(entry->path, sizeof(entry->path), "%s", path);
+    entry->year = year;
+    entry->month = month;
+    entry->day = day;
+    entry->hour = hour;
+    entry->minute = minute;
+    entry->second = second;
     entry->round_count = count;
+    for(int i = 0; i < count; i++) {
+        total += entry->rounds[i];
+        if(entry->rounds[i] > entry->best)
+            entry->best = entry->rounds[i];
+    }
     if(count > 0)
         entry->avg_seconds = total / count;
 }

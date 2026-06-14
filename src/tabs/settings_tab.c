@@ -4,6 +4,7 @@
 #include "language_tab.h"
 #include "meditation_music.h"
 #include "locale.h"
+#include "storage.h"
 #include "flint_ui.h"
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
@@ -259,7 +260,7 @@ settings_draw_data_stats(int x, int y, int w)
 
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
     {
-        const char *storage_path = data_root();
+        const char *storage_path = inbe_storage_db_path();
         const char *display_path = storage_path;
         char home_buf[FS_PATH_MAX];
         char storage_text[FS_PATH_MAX + 32];

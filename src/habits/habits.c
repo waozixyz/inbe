@@ -1,30 +1,11 @@
 #include "habits/habits.h"
 
 #include "data.h"
-#include "flint_runtime_assets.h"
-#include "../../vendor/rini/src/rini.h"
+#include "storage.h"
 
 #include <stdio.h>
 #include <string.h>
 #include <time.h>
-
-enum {
-    HABITS_PATH_SIZE = 512
-};
-
-static void
-habits_path(char *out, size_t out_size)
-{
-    snprintf(out, out_size, "%s/apps/habits/habits.ini", data_root());
-}
-
-static void
-habits_ensure_dir(void)
-{
-    char path[HABITS_PATH_SIZE];
-    snprintf(path, sizeof(path), "%s/apps/habits", data_root());
-    flint_runtime_asset_ensure_dir(path);
-}
 
 static void
 copy_text(char *dst, size_t dst_size, const char *src)
@@ -74,51 +55,8 @@ inbe_habit_completed_today(const InbeHabit *habit)
 void
 inbe_habits_save(const InbeHabits *habits)
 {
-    rini_data data;
-    char path[HABITS_PATH_SIZE];
-
-    if(habits == NULL)
-        return;
-
-    habits_ensure_dir();
-    habits_path(path, sizeof(path));
-    data = rini_load(NULL);
-    rini_set_value(&data, "count", habits->count, NULL);
-    rini_set_value(&data, "selected", habits->selected, NULL);
-
-    for(int i = 0; i < habits->count; i++) {
-        const InbeHabit *habit = &habits->items[i];
-        char key[96];
-
-        snprintf(key, sizeof(key), "habit_%d_id", i);
-        rini_set_value_text(&data, key, habit->id, NULL);
-        snprintf(key, sizeof(key), "habit_%d_name", i);
-        rini_set_value_text(&data, key, habit->name, NULL);
-        snprintf(key, sizeof(key), "habit_%d_color_r", i);
-        rini_set_value(&data, key, habit->color.r, NULL);
-        snprintf(key, sizeof(key), "habit_%d_color_g", i);
-        rini_set_value(&data, key, habit->color.g, NULL);
-        snprintf(key, sizeof(key), "habit_%d_color_b", i);
-        rini_set_value(&data, key, habit->color.b, NULL);
-        snprintf(key, sizeof(key), "habit_%d_sync_mode", i);
-        rini_set_value(&data, key, habit->sync_mode, NULL);
-        snprintf(key, sizeof(key), "habit_%d_sync_topic", i);
-        rini_set_value(&data, key, habit->sync_topic, NULL);
-        snprintf(key, sizeof(key), "habit_%d_sync_activity", i);
-        rini_set_value(&data, key, habit->sync_activity, NULL);
-        snprintf(key, sizeof(key), "habit_%d_day_count", i);
-        rini_set_value(&data, key, habit->day_count, NULL);
-
-        for(int d = 0; d < habit->day_count; d++) {
-            snprintf(key, sizeof(key), "habit_%d_day_%d_index", i, d);
-            rini_set_value(&data, key, habit->days[d].day_index, NULL);
-            snprintf(key, sizeof(key), "habit_%d_day_%d_completed", i, d);
-            rini_set_value(&data, key, habit->days[d].completed, NULL);
-        }
-    }
-
-    rini_save(data, path);
-    rini_unload(&data);
+    inbe_storage_habits_save(habits);
+    return;
 }
 
 void
@@ -209,105 +147,25 @@ inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
 void
 inbe_habits_init(InbeHabits *habits)
 {
-    rini_data data;
-    char path[HABITS_PATH_SIZE];
-    int needs_save = 0;
-
     if(habits == NULL)
         return;
-
+    data_init();
+    if(inbe_storage_habits_load(habits)) {
+        if(habits->selected < 0 || habits->selected >= habits->count)
+            habits->selected = 0;
+        habits->loaded = 1;
+        return;
+    }
     memset(habits, 0, sizeof(*habits));
-    habits_path(path, sizeof(path));
-    data = rini_load(path);
-
-    habits->count = rini_get_value_fallback(data, "count", 0);
-    if(habits->count < 0 || habits->count > INBE_HABIT_MAX)
-        habits->count = 0;
-    habits->selected = rini_get_value_fallback(data, "selected", 0);
-
-    for(int i = 0; i < habits->count; i++) {
-        InbeHabit *habit = &habits->items[i];
-        char key[96];
-        const char *text;
-
-        snprintf(key, sizeof(key), "habit_%d_id", i);
-        text = rini_get_value_text(data, key);
-        copy_text(habit->id, sizeof(habit->id), text != NULL && text[0] != '\0' ? text : "habit");
-
-        snprintf(key, sizeof(key), "habit_%d_name", i);
-        text = rini_get_value_text(data, key);
-        copy_text(habit->name, sizeof(habit->name), text != NULL && text[0] != '\0' ? text : habit->id);
-
-        snprintf(key, sizeof(key), "habit_%d_color_r", i);
-        habit->color.r = (unsigned char)rini_get_value_fallback(data, key, 99);
-        snprintf(key, sizeof(key), "habit_%d_color_g", i);
-        habit->color.g = (unsigned char)rini_get_value_fallback(data, key, 196);
-        snprintf(key, sizeof(key), "habit_%d_color_b", i);
-        habit->color.b = (unsigned char)rini_get_value_fallback(data, key, 165);
-        habit->color.a = 255;
-
-        snprintf(key, sizeof(key), "habit_%d_sync_mode", i);
-        text = rini_get_value_text(data, key);
-        habit->sync_mode = text != NULL
-                               ? rini_get_value_fallback(data, key, INBE_HABIT_SYNC_NONE)
-                               : INBE_HABIT_SYNC_NONE;
-        if(habit->sync_mode < INBE_HABIT_SYNC_NONE || habit->sync_mode > INBE_HABIT_SYNC_ACTIVITY)
-            habit->sync_mode = INBE_HABIT_SYNC_NONE;
-        snprintf(key, sizeof(key), "habit_%d_sync_topic", i);
-        habit->sync_topic = rini_get_value_fallback(data, key, INBE_HABIT_TOPIC_MIND);
-        if(habit->sync_topic < 0 || habit->sync_topic >= INBE_HABIT_TOPIC_COUNT)
-            habit->sync_topic = INBE_HABIT_TOPIC_MIND;
-        snprintf(key, sizeof(key), "habit_%d_sync_activity", i);
-        habit->sync_activity = rini_get_value_fallback(data, key, 0);
-        if(habit->sync_activity < 0)
-            habit->sync_activity = 0;
-        if(text == NULL) {
-            if(strcmp(habit->id, "mind") == 0 || strcmp(habit->name, "Mind") == 0) {
-                habit->sync_mode = INBE_HABIT_SYNC_TOPIC;
-                habit->sync_topic = INBE_HABIT_TOPIC_MIND;
-                needs_save = 1;
-            } else if(strcmp(habit->id, "yoga") == 0 || strcmp(habit->name, "Yoga") == 0) {
-                habit->sync_mode = INBE_HABIT_SYNC_TOPIC;
-                habit->sync_topic = INBE_HABIT_TOPIC_YOGA;
-                needs_save = 1;
-            } else if(strcmp(habit->id, "fitness") == 0 || strcmp(habit->name, "Fitness") == 0) {
-                habit->sync_mode = INBE_HABIT_SYNC_TOPIC;
-                habit->sync_topic = INBE_HABIT_TOPIC_FITNESS;
-                needs_save = 1;
-            }
-        }
-
-        snprintf(key, sizeof(key), "habit_%d_day_count", i);
-        habit->day_count = rini_get_value_fallback(data, key, 0);
-        if(habit->day_count < 0 || habit->day_count > INBE_HABIT_MAX_DAYS)
-            habit->day_count = 0;
-
-        for(int d = 0; d < habit->day_count; d++) {
-            snprintf(key, sizeof(key), "habit_%d_day_%d_index", i, d);
-            habit->days[d].day_index = rini_get_value_fallback(data, key, 0);
-            snprintf(key, sizeof(key), "habit_%d_day_%d_completed", i, d);
-            habit->days[d].completed = rini_get_value_fallback(data, key, 0) != 0;
-        }
-    }
-
-    rini_unload(&data);
-
-    if(habits->count == 0) {
-        inbe_habits_add_seed(habits, "mind", "Mind", (Color){126, 183, 230, 255},
-                             INBE_HABIT_TOPIC_MIND);
-        inbe_habits_add_seed(habits, "yoga", "Yoga", (Color){208, 128, 80, 255},
-                             INBE_HABIT_TOPIC_YOGA);
-        inbe_habits_add_seed(habits, "fitness", "Fitness", (Color){208, 96, 128, 255},
-                             INBE_HABIT_TOPIC_FITNESS);
-        habits->selected = 0;
-        inbe_habits_save(habits);
-    }
-
-    if(habits->selected < 0 || habits->selected >= habits->count)
-        habits->selected = 0;
-    if(needs_save)
-        inbe_habits_save(habits);
+    inbe_habits_add_seed(habits, "mind", "Mind", (Color){126, 183, 230, 255},
+                         INBE_HABIT_TOPIC_MIND);
+    inbe_habits_add_seed(habits, "yoga", "Yoga", (Color){208, 128, 80, 255},
+                         INBE_HABIT_TOPIC_YOGA);
+    inbe_habits_add_seed(habits, "fitness", "Fitness", (Color){208, 96, 128, 255},
+                         INBE_HABIT_TOPIC_FITNESS);
+    habits->selected = 0;
     habits->loaded = 1;
+    inbe_habits_save(habits);
 }
 
 void
