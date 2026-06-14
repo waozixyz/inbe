@@ -36,6 +36,8 @@ SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
 SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
+TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
+STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 ifneq ($(strip $(FLINT_CURL_LDLIBS)),)
 FLINT_RUNTIME_ASSET_CFLAGS := -DFLINT_HAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
@@ -83,7 +85,7 @@ TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
+.PHONY: all native run test clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
 
 all: native
 
@@ -92,7 +94,17 @@ native: $(TARGET)
 run: $(TARGET)
 	./$(TARGET)
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR):
+test: $(STORAGE_IMPORT_TEST)
+	$(STORAGE_IMPORT_TEST)
+
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage.c src/storage.h src/habits/habits.c src/habits/habits.h src/miniz.c src/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DRINI_IMPLEMENTATION -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES \
+		-Isrc -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-o $@ \
+		tests/storage_import_test.c src/storage.c src/habits/habits.c src/miniz.c $(SQLITE_SRC) \
+		-lm -lpthread -ldl
+
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR):
 	mkdir -p $@
 
 assets/fonts:

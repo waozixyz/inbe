@@ -42,6 +42,7 @@ long long inbe_storage_delete_all_sessions(void);
 int inbe_storage_habits_empty(void);
 int inbe_storage_habits_load(void *habits);
 void inbe_storage_habits_save(const void *habits);
+void inbe_storage_mark_habits_initialized(void);
 
 int inbe_storage_export_zip(const char *path);
 int inbe_storage_import_zip(const char *path);

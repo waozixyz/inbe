@@ -1067,7 +1067,14 @@ inbe_storage_habits_load(void *habits_ptr)
         sqlite3_finalize(stmt);
     }
     habits->loaded = 1;
-    return habits->count > 0;
+    return habits->count > 0 || meta_equals("habits_initialized", "true");
+}
+
+void
+inbe_storage_mark_habits_initialized(void)
+{
+    if(g_storage.db != NULL)
+        set_meta("habits_initialized", "true");
 }
 
 void
@@ -1077,6 +1084,7 @@ inbe_storage_habits_save(const void *habits_ptr)
     sqlite3_stmt *stmt = NULL;
     if(habits == NULL || g_storage.db == NULL)
         return;
+    inbe_storage_mark_habits_initialized();
     exec_sql("BEGIN IMMEDIATE");
     exec_sql("DELETE FROM habit_days; DELETE FROM habits;");
     for(int i = 0; i < habits->count; i++) {
@@ -1230,6 +1238,7 @@ import_sqlite_db_file(const char *db_path)
 {
     sqlite3 *src = NULL;
     sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *hstmt = NULL;
     int ok = 0;
 
     if(db_path == NULL || db_path[0] == '\0')
@@ -1262,9 +1271,67 @@ import_sqlite_db_file(const char *db_path)
             ok = 1;
         }
     }
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+
+    if(sqlite3_prepare_v2(src,
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order "
+                          "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        exec_sql("BEGIN IMMEDIATE");
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *habit_id = (const char *)sqlite3_column_text(stmt, 0);
+
+            if(habit_id == NULL || habit_id[0] == '\0')
+                continue;
+            if(sqlite3_prepare_v2(g_storage.db,
+                                  "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order,deleted_at) "
+                                  "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0)",
+                                  -1, &hstmt, NULL) != SQLITE_OK)
+                continue;
+            bind_text(hstmt, 1, habit_id);
+            bind_text(hstmt, 2, g_storage.user_id);
+            bind_text(hstmt, 3, (const char *)sqlite3_column_text(stmt, 1));
+            sqlite3_bind_int(hstmt, 4, sqlite3_column_int(stmt, 2));
+            sqlite3_bind_int(hstmt, 5, sqlite3_column_int(stmt, 3));
+            sqlite3_bind_int(hstmt, 6, sqlite3_column_int(stmt, 4));
+            sqlite3_bind_int(hstmt, 7, sqlite3_column_int(stmt, 5));
+            sqlite3_bind_int(hstmt, 8, sqlite3_column_int(stmt, 6));
+            sqlite3_bind_int(hstmt, 9, sqlite3_column_int(stmt, 7));
+            sqlite3_bind_int(hstmt, 10, sqlite3_column_int(stmt, 8));
+            if(sqlite3_step(hstmt) == SQLITE_DONE)
+                ok = 1;
+            sqlite3_finalize(hstmt);
+            hstmt = NULL;
+
+            if(sqlite3_prepare_v2(src,
+                                  "SELECT local_date,completed FROM habit_days WHERE habit_id=?1",
+                                  -1, &hstmt, NULL) == SQLITE_OK) {
+                sqlite3_bind_text(hstmt, 1, habit_id, -1, SQLITE_TRANSIENT);
+                while(sqlite3_step(hstmt) == SQLITE_ROW) {
+                    sqlite3_stmt *day_stmt = NULL;
+                    if(sqlite3_prepare_v2(g_storage.db,
+                                          "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
+                                          "VALUES(?1,?2,?3,?4)",
+                                          -1, &day_stmt, NULL) != SQLITE_OK)
+                        continue;
+                    bind_text(day_stmt, 1, habit_id);
+                    sqlite3_bind_int(day_stmt, 2, sqlite3_column_int(hstmt, 0));
+                    sqlite3_bind_int(day_stmt, 3, sqlite3_column_int(hstmt, 1) != 0);
+                    sqlite3_bind_int64(day_stmt, 4, now_seconds());
+                    sqlite3_step(day_stmt);
+                    sqlite3_finalize(day_stmt);
+                }
+            }
+            sqlite3_finalize(hstmt);
+            hstmt = NULL;
+        }
+        exec_sql("COMMIT");
+    }
 
 done:
     sqlite3_finalize(stmt);
+    sqlite3_finalize(hstmt);
     if(src != NULL)
         sqlite3_close(src);
     return ok;
