@@ -20,7 +20,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #endif
 
-static char g_dialog_theme_scope[FLINT_THEME_NAME_SIZE] = "sky";
+static char g_dialog_theme_scope[FLINT_THEME_NAME_SIZE] = "sky_light";
 
 static Color dialog_theme_get(const char *key) {
     return flint_theme_get(g_dialog_theme_scope, key);
@@ -28,7 +28,7 @@ static Color dialog_theme_get(const char *key) {
 
 void flint_file_dialog_set_theme_scope(const char *scope) {
     if(scope == NULL || scope[0] == '\0') {
-        snprintf(g_dialog_theme_scope, sizeof(g_dialog_theme_scope), "%s", "sky");
+        snprintf(g_dialog_theme_scope, sizeof(g_dialog_theme_scope), "%s", "sky_light");
         return;
     }
 

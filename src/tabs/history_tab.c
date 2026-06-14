@@ -71,6 +71,7 @@ typedef struct ScanHistoryContext {
 static void
 scan_history_callback(const char *path, int year, int month, int day,
                       int hour, int minute, int second,
+                      int topic, int activity,
                       const int *round_times, int round_count, void *user)
 {
     ScanHistoryContext *ctx = user;
@@ -79,6 +80,8 @@ scan_history_callback(const char *path, int year, int month, int day,
 
     if(ctx == NULL || *ctx->count >= HISTORY_MAX_SESSIONS || round_times == NULL || round_count <= 0)
         return;
+    (void)topic;
+    (void)activity;
     memset(&entry, 0, sizeof(entry));
     snprintf(entry.path, sizeof(entry.path), "%s", path);
     entry.year = year;

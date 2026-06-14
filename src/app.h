@@ -71,6 +71,7 @@ typedef enum {
     UIModalEditProgressiveStartSpeed,
     UIModalPracticeTabs,
     UIModalPracticeTheme,
+    UIModalHabitLinkedDetails,
 } UIModalType;
 
 typedef struct {
@@ -209,6 +210,17 @@ struct InbeApp {
     int history_delete_round;
     char history_delete_path[FS_PATH_MAX];
     InbeHabits habits;
+    int habits_view_mode;
+    int habits_list_scroll;
+    int habit_detail_index;
+    int habit_detail_day;
+    int habit_detail_session_index;
+    int habit_session_edit_active;
+    int habit_session_edit_kind;
+    int habit_session_edit_round;
+    int habit_session_edit_cursor;
+    char habit_session_edit_path[FS_PATH_MAX];
+    char habit_session_edit_text[16];
     int habit_edit_active;
     int habit_edit_is_new;
     int habit_edit_index;

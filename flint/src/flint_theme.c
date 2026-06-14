@@ -1,5 +1,6 @@
 #include "flint_theme.h"
 #include "flint_embedded_assets.h"
+#include "flint_theme_meta.h"
 #include <stdlib.h>
 #include <ctype.h>
 #include <stdio.h>
@@ -272,6 +273,10 @@ FlintThemeScope *flint_theme_register_scope_dark(const char *name, const char *p
 
 Color flint_theme_get(const char *scope_name, const char *key)
 {
+    Color catalog_color;
+    if(flint_theme_catalog_scope_color(scope_name, key, &catalog_color))
+        return catalog_color;
+
     FlintThemeValue *value = scope_value(flint_theme_scope(scope_name), key);
     if(value != NULL)
         return value->value;
@@ -297,6 +302,9 @@ Color flint_theme_get(const char *scope_name, const char *key)
     if(key != NULL) {
         if(strstr(key, "background") != NULL || strstr(key, "paper") != NULL)
             return (Color){0xE2, 0xEE, 0xFC, 0xFF};
+        if(strstr(key, "surface") != NULL || strstr(key, "modal") != NULL ||
+           strstr(key, "panel") != NULL)
+            return (Color){0xD4, 0xE4, 0xF5, 0xFF};
         if(strstr(key, "text") != NULL || strstr(key, "foreground") != NULL ||
            strstr(key, "ink") != NULL)
             return (Color){0x24, 0x48, 0x7C, 0xFF};

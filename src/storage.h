@@ -12,6 +12,7 @@ enum {
 typedef void (*InbeStorageHistoryCallback)(const char *id,
                                            int year, int month, int day,
                                            int hour, int minute, int second,
+                                           int topic, int activity,
                                            const int *rounds, int round_count,
                                            void *user);
 
@@ -27,6 +28,9 @@ int inbe_storage_settings_empty(void);
 
 int inbe_storage_save_session(const int *round_times, int round_count,
                               char *out_id, size_t out_id_size);
+int inbe_storage_save_session_for_activity(const int *round_times, int round_count,
+                                           int topic, int activity,
+                                           char *out_id, size_t out_id_size);
 int inbe_storage_replace_session(const char *id, const int *round_times, int round_count);
 int inbe_storage_rename_session_time(const char *id, int hour, int minute);
 int inbe_storage_delete_session(const char *id);

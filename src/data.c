@@ -117,6 +117,16 @@ data_save_session_path(const int *round_times, int round_count, char *out_path, 
 }
 
 int
+data_save_session_path_for_activity(const int *round_times, int round_count,
+                                    int topic, int activity,
+                                    char *out_path, size_t out_path_size)
+{
+    data_init();
+    return inbe_storage_save_session_for_activity(round_times, round_count, topic, activity,
+                                                  out_path, out_path_size);
+}
+
+int
 data_save_session(const int *round_times, int round_count)
 {
     return data_save_session_path(round_times, round_count, NULL, 0);
@@ -220,6 +230,7 @@ typedef struct DbListSessionContext {
 static void
 db_list_session_callback(const char *path, int year, int month, int day,
                          int hour, int minute, int second,
+                         int topic, int activity,
                          const int *round_times, int round_count, void *user)
 {
     DbListSessionContext *ctx = user;
@@ -228,6 +239,8 @@ db_list_session_callback(const char *path, int year, int month, int day,
     int best = 0;
 
     (void)path;
+    (void)topic;
+    (void)activity;
     for(int i = 0; i < round_count; i++) {
         if(round_times[i] > best)
             best = round_times[i];

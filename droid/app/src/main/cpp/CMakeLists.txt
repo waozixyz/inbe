@@ -13,11 +13,9 @@ set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
-file(GLOB INBE_THEME_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${FLINT_DIR}/themes/*.ini")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
-    ${INBE_THEME_ASSETS}
     assets/whm/1.jpg
     assets/whm/2.jpg
     assets/fonts/locales.png

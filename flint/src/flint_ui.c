@@ -10,13 +10,14 @@
 /* Global UI state */
 int ui_view_width = 320;
 int ui_view_height = 560;
-static Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+static Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 static Camera2D g_ui_camera;
 static int *g_ui_cursor_clickable = NULL;
 static int *g_ui_cursor_disabled = NULL;
 static Texture2D g_ui_gear_icon = {0};
 static Texture2D g_ui_x_icon = {0};
 static int g_ui_slider_active_id = 0;
+static int g_ui_input_blocked = 0;
 
 #define UI_FOCUS_MAX_ITEMS 256
 static int g_ui_focus_active_id = 0;
@@ -43,6 +44,18 @@ ui_mark_disabled(void)
 {
     if(g_ui_cursor_disabled != NULL)
         *g_ui_cursor_disabled = 1;
+}
+
+void
+ui_set_input_blocked(int blocked)
+{
+    g_ui_input_blocked = blocked != 0;
+}
+
+int
+ui_input_captures_click(Vector2 point)
+{
+    return g_ui_input_blocked || ui_dropdown_captures_click(point);
 }
 
 static int
@@ -107,7 +120,7 @@ ui_focus_register(int id, Rectangle bounds)
     mouse_world = ui_mouse_world();
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
        CheckCollisionPointRec(mouse_world, bounds) &&
-       !ui_dropdown_captures_click(mouse_world))
+       !ui_input_captures_click(mouse_world))
         g_ui_focus_active_id = id;
 
     return g_ui_focus_active_id == id;
@@ -251,7 +264,9 @@ int
 flint_ui_button(FlintUIButton button)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hovered = !button.disabled && CheckCollisionPointRec(mouse_world, button.bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = !button.disabled && !captured && mouse_inside;
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int font = button.font > 0 ? button.font : flint_ui_font();
@@ -270,9 +285,12 @@ flint_ui_button(FlintUIButton button)
     DrawRectangleRoundedLines(button.bounds, radius, 8,
                               hovered ? flint_lighten(hover_background, 40) : border);
 
+    if(button.disabled && !captured && mouse_inside)
+        ui_mark_disabled();
+
     if(hovered) {
         ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
     }
 
@@ -290,7 +308,9 @@ int
 flint_ui_icon_button(FlintUIIconButton button)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hovered = !button.disabled && CheckCollisionPointRec(mouse_world, button.bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = !button.disabled && !captured && mouse_inside;
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int icon_padding = button.icon_padding > 0 ? button.icon_padding : flint_px(4);
@@ -318,9 +338,12 @@ flint_ui_icon_button(FlintUIIconButton button)
     DrawRectangleRoundedLines(button.bounds, radius, 8,
                               hovered ? flint_lighten(hover_background, 40) : border);
 
+    if(button.disabled && !captured && mouse_inside)
+        ui_mark_disabled();
+
     if(hovered) {
         ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
     }
 
@@ -446,10 +469,11 @@ ui_init(int width, int height, float dpi)
 }
 
 void
-ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hover, Color icon)
+ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon)
 {
     c_text = text;
     c_bg = bg;
+    c_surface = surface;
     c_circle = circle;
     c_button = button;
     c_button_hover = button_hover;
@@ -530,7 +554,7 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -538,7 +562,7 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -570,7 +594,7 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
     int h = size + padding * 2;
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -578,7 +602,7 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -615,7 +639,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
 
     int pressed = 0;
 
-    if(mx > x && mx < x + w && my > y && my < y + h) {
+    if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
         DrawRectangle(x, y, w, h, c_button_hover);
         ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
         *hover = 1;
@@ -623,7 +647,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
         if(mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             pressed = 1;
         }
     } else {
@@ -638,7 +662,8 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
 }
 
 int
-ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonStyle style, int *hover)
+ui_draw_generic_button(int x, int y, int w, int h, const char *label,
+                       UIButtonStyle style, int disabled, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
@@ -685,22 +710,30 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonSt
     }
 
     Rectangle bounds = {x, y, w, h};
-    int hovered = CheckCollisionPointRec(mouse_world, bounds);
+    int mouse_inside = CheckCollisionPointRec(mouse_world, bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int hovered = mouse_inside && !disabled && !captured;
 
-    // Store hover state if requested
+    if(disabled) {
+        bg = flint_darken(bg, 22);
+        hover_bg = bg;
+        text_color = flint_darken(text_color, 70);
+        if(!captured && mouse_inside)
+            ui_mark_disabled();
+    }
+
     if(hover != NULL) {
         *hover = hovered;
     }
 
     int clicked = 0;
 
-    // Draw button based on state
     if(hovered) {
         DrawRectangleRec(bounds, hover_bg);
         ui_draw_bevel(x, y, w, h, flint_lighten(hover_bg, 40), flint_darken(hover_bg, 40));
         ui_mark_clickable();
 
-        if(released && !ui_dropdown_captures_click(mouse_world)) {
+        if(released) {
             clicked = 1;
         }
     } else {
@@ -708,7 +741,6 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonSt
         ui_draw_bevel(x, y, w, h, flint_lighten(bg, 40), flint_darken(bg, 40));
     }
 
-    // Draw text (centered)
     int text_w = flint_text_measure(label, font);
     int text_x = x + (w - text_w) / 2;
     int text_y = flint_ui_text_y(label, y, h, font);
@@ -747,7 +779,8 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         int is_last = i == bar.count - 1;
         int draw_w = is_last ? bar_x + bar_w - tab_x : tab_w;
         Rectangle tab_rect = {(float)tab_x, bar.bounds.y, (float)draw_w, bar.bounds.height};
-        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect);
+        int input_captured = ui_input_captures_click(mouse_world);
+        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
         int is_selected = i == bar.selected_index;
         int is_disabled = bar.tabs[i].disabled;
         Color accent = bar.tabs[i].accent.a != 0 ? bar.tabs[i].accent : c_button_hover;
@@ -779,7 +812,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
             else if(!is_selected)
                 ui_mark_clickable();
 
-            if(released && !ui_dropdown_captures_click(mouse_world))
+            if(released)
                 clicked_tab = i;
         }
 
@@ -802,7 +835,8 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
     int btn_x = x - padding;
     int btn_y = y - padding;
 
-    if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h) {
+    if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h &&
+       !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
@@ -823,7 +857,7 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
         flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x, y, icon_size, c_icon);
     }
 
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         OpenURL(url);
     }
 }
@@ -874,9 +908,9 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
     DrawRectangle(x, track_y, w, track_h, flint_darken(c_bg, 28));
     ui_draw_bevel(x, track_y, w, track_h, flint_darken(c_bg, 55), flint_lighten(c_bg, 35));
 
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -922,9 +956,9 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     ui_draw_bevel(track_x, y, track_w, h, flint_darken(c_bg, 55), flint_lighten(c_bg, 35));
 
     /* Check for interaction */
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -990,9 +1024,9 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
         callback(callback_user_data, x, y, h, min, max, *value);
 
     /* Check for interaction */
-    if(CheckCollisionPointRec(mouse_world, hit)) {
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
             g_ui_slider_active_id = id;
     }
 
@@ -1049,12 +1083,12 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
         h = flint_px(34);
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
-    if(CheckCollisionPointRec(mouse_world, bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
 
     if(pressed)
         *value = !(*value);
@@ -1089,12 +1123,12 @@ ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
     Rectangle bounds = {x, y, box_size, box_size};
     Vector2 mouse_world = ui_mouse_world();
 
-    if(CheckCollisionPointRec(mouse_world, bounds)) {
+    if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
         hover = 1;
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world);
+    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
@@ -1281,9 +1315,9 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
             (float)(circle_size + flint_px(8)),
             (float)(circle_size + flint_px(8))
         };
-        if(CheckCollisionPointRec(mouse_world, bounds)) {
+        if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
             ui_mark_clickable();
-            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse_world)) {
+            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
                 selected = i;
                 if(theme_id != NULL)
                     *theme_id = i;
@@ -1834,8 +1868,8 @@ ui_draw_modal(const char *title, const char *message,
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     /* Title */
     int title_w = flint_text_measure(title, title_font);
@@ -1915,8 +1949,8 @@ ui_draw_modal_3btn(const char *title, const char *message,
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
 
     /* Modal background */
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h, flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     /* Title */
     int title_w = flint_text_measure(title, title_font);
@@ -2015,6 +2049,72 @@ ui_scrollbar_content_width(int content_width, int max_scroll)
     return content_width - reserved;
 }
 
+FlintUIScrollView
+ui_scroll_container_begin(FlintUIScrollArea area)
+{
+    FlintUIScrollView view;
+    Vector2 mouse_world = ui_mouse_world();
+    int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
+    int x = (int)area.bounds.x;
+    int y = (int)area.bounds.y;
+    int w = (int)area.bounds.width;
+    int h = (int)area.bounds.height;
+
+    memset(&view, 0, sizeof(view));
+    view.content_x = x;
+    view.viewport_h = h;
+    view.content_h = area.content_height > 0 ? area.content_height : 0;
+    view.max_scroll = view.content_h - h;
+    if(view.max_scroll < 0)
+        view.max_scroll = 0;
+
+    if(area.scroll_offset != NULL) {
+        if(*area.scroll_offset < 0)
+            *area.scroll_offset = 0;
+        if(*area.scroll_offset > view.max_scroll)
+            *area.scroll_offset = view.max_scroll;
+
+        if(view.max_scroll > 0 &&
+           CheckCollisionPointRec(mouse_world, area.bounds) &&
+           !ui_input_captures_click(mouse_world)) {
+            float wheel = GetMouseWheelMove();
+            if(wheel != 0.0f) {
+                *area.scroll_offset -= (int)(wheel * (float)wheel_step);
+                if(*area.scroll_offset < 0)
+                    *area.scroll_offset = 0;
+                if(*area.scroll_offset > view.max_scroll)
+                    *area.scroll_offset = view.max_scroll;
+            }
+        }
+        view.content_y = y - *area.scroll_offset;
+    } else {
+        view.content_y = y;
+    }
+
+    view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
+    BeginScissorMode((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
+                     (int)(g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom),
+                     (int)(area.bounds.width * g_ui_camera.zoom),
+                     (int)(area.bounds.height * g_ui_camera.zoom));
+    return view;
+}
+
+void
+ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
+{
+    EndScissorMode();
+
+    if(area.scroll_offset == NULL || view.max_scroll <= 0)
+        return;
+
+    ui_draw_scrollbar((int)(area.bounds.x + area.bounds.width - flint_px(10)),
+                      (int)area.bounds.y,
+                      (int)area.bounds.height,
+                      view.content_h,
+                      area.scroll_offset,
+                      view.max_scroll);
+}
+
 int
 ui_draw_screen_header(const char *title, int show_close)
 {
@@ -2074,18 +2174,14 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     float scroll_ratio = max_scroll > 0 ? (float)*scroll_offset / (float)max_scroll : 0.0f;
     int thumb_y = y + (int)(scroll_ratio * (viewport_h - thumb_height));
 
-    /* Get mouse position in screen coordinates (not world coordinates) */
-    Vector2 mouse_pos = GetMousePosition();
+    Vector2 mouse_pos = ui_mouse_world();
     int my = (int)mouse_pos.y;
-
-    /* Thumb bounds in screen coordinates */
     Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
-
-    /* Check for hover */
-    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds);
+    int input_captured = ui_input_captures_click(mouse_pos);
+    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
 
     /* Handle drag state */
-    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !input_captured) {
         if(!scrollbar_drag_active) {
             /* Start drag if clicking on thumb */
             if(thumb_hover) {

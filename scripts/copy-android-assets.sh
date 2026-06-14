@@ -36,7 +36,6 @@ fi
 mkdir -p build
 sh flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
-    flint/themes/*.ini \
     assets/whm/1.jpg \
     assets/whm/2.jpg \
     assets/fonts/locales.png \
