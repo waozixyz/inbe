@@ -30,6 +30,11 @@ FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
 FLINT_CURL_CFLAGS ?= $(shell pkg-config --cflags libcurl 2>/dev/null)
 FLINT_CURL_LDLIBS ?= $(shell pkg-config --libs libcurl 2>/dev/null)
+SQLITE_CFLAGS ?= $(shell pkg-config --cflags sqlite3 2>/dev/null)
+SQLITE_LDLIBS ?= $(shell pkg-config --libs sqlite3 2>/dev/null)
+ifeq ($(strip $(SQLITE_LDLIBS)),)
+SQLITE_LDLIBS := -lsqlite3
+endif
 ifneq ($(strip $(FLINT_CURL_LDLIBS)),)
 FLINT_RUNTIME_ASSET_CFLAGS := -DFLINT_HAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
@@ -49,6 +54,7 @@ APP_SRCS := \
 	src/theme_meta.c \
 	src/theme.c \
 	src/data.c \
+	src/storage.c \
 	src/miniz.c \
 	src/tabs/history_tab.c \
 	src/tabs/language_tab.c \
@@ -68,7 +74,7 @@ SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/android
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=1
-CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
+CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS) $(SQLITE_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 
 BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
@@ -133,6 +139,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(
 		$(RAYLIB_A) \
 		$(RAY_LDLIBS) \
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
+		$(SQLITE_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 

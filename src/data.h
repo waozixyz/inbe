@@ -21,7 +21,16 @@ int data_import(const char *path);
 int data_validate_import_file(const char *path);
 typedef void (*data_session_callback)(const char *date, const char *time,
                                        int rounds, int best, void *user);
+typedef void (*data_history_callback)(const char *path,
+                                      int year, int month, int day,
+                                      int hour, int minute, int second,
+                                      const int *round_times, int round_count,
+                                      void *user);
 
 void data_list_sessions(data_session_callback callback, void *user);
+void data_list_history(data_history_callback callback, void *user);
+int data_load_session(const char *path, int *round_times, int max_rounds,
+                      int *year, int *month, int *day,
+                      int *hour, int *minute, int *second);
 
 #endif

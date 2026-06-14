@@ -1,6 +1,7 @@
 #include "android_share.h"
 #include "data.h"
 #include "locale.h"
+#include "storage.h"
 #include "version.h"
 #include "raylib.h"
 #include "miniz.h"
@@ -16,34 +17,14 @@
 
 extern struct android_app *GetAndroidApp(void);
 
-static int is_session_file(const char *path)
-{
-    const char *filename;
-
-    if(path == NULL)
-        return 0;
-
-    filename = GetFileName(path);
-    return strncmp(filename, "inbe-", 5) == 0;
-}
-
 int android_share_export(const char *filename)
 {
     struct android_app *app;
-    mz_zip_archive archive;
-    void *zip_data;
+    char export_path[FS_PATH_MAX];
+    FILE *fp;
+    char *zip_data;
     size_t zip_size;
-    int year, month, day;
-    FilePathList files;
-    int session_count = 0;
-    char metadata[512];
-    char metadata_header[128];
-    char metadata_version[128];
-    char metadata_date[128];
-    char metadata_count[128];
-    time_t now;
-    struct tm *tm;
-    char date_str[64];
+    long file_size;
 
     app = GetAndroidApp();
     if(app == NULL || app->activity == NULL) {
@@ -56,99 +37,34 @@ int android_share_export(const char *filename)
         return 0;
     }
 
-    memset(&archive, 0, sizeof(archive));
-    if(!mz_zip_writer_init_heap(&archive, 0, 0)) {
-        TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to initialize ZIP archive");
+    snprintf(export_path, sizeof(export_path), "%s/%s", data_root(), filename);
+    if(!inbe_storage_export_zip(export_path)) {
+        TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to export SQLite ZIP");
         return 0;
     }
 
-    session_count = data_get_session_count();
-
-    now = time(NULL);
-    tm = localtime(&now);
-    if(tm != NULL) {
-        snprintf(date_str, sizeof(date_str), "%04d-%02d-%02d %02d:%02d:%02d",
-                 tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                 tm->tm_hour, tm->tm_min, tm->tm_sec);
-    } else {
-        strcpy(date_str, "Unknown");
-    }
-
-    locale_format(metadata_header, sizeof(metadata_header), "export_metadata_header");
-    locale_format(metadata_version, sizeof(metadata_version), "export_metadata_version", INBE_VERSION_STRING);
-    locale_format(metadata_date, sizeof(metadata_date), "export_metadata_date", date_str);
-    locale_format(metadata_count, sizeof(metadata_count), "export_metadata_count", session_count);
-
-    snprintf(metadata, sizeof(metadata), "%s\n%s\n%s\n%s\n",
-             metadata_header,
-             metadata_version,
-             metadata_date,
-             metadata_count);
-
-    if(!mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt", metadata, strlen(metadata), MZ_NO_COMPRESSION)) {
-        TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to write metadata");
-        mz_zip_writer_end(&archive);
+    fp = fopen(export_path, "rb");
+    if(fp == NULL)
+        return 0;
+    fseek(fp, 0, SEEK_END);
+    file_size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if(file_size <= 0) {
+        fclose(fp);
         return 0;
     }
-
-    for(year = 1970; year <= 2100; year++) {
-        char year_path[FS_PATH_MAX];
-        snprintf(year_path, sizeof(year_path), "%s/%04d", data_root(), year);
-
-        if(!DirectoryExists(year_path))
-            continue;
-
-        for(month = 1; month <= 12; month++) {
-            char month_path[FS_PATH_MAX];
-            snprintf(month_path, sizeof(month_path), "%s/%02d", year_path, month);
-
-            if(!DirectoryExists(month_path))
-                continue;
-
-            for(day = 1; day <= 31; day++) {
-                char day_path[FS_PATH_MAX];
-                snprintf(day_path, sizeof(day_path), "%s/%02d", month_path, day);
-
-                if(!DirectoryExists(day_path))
-                    continue;
-
-                files = LoadDirectoryFiles(day_path);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    if(is_session_file(files.paths[i])) {
-                        char *content;
-                        char zip_path[FS_PATH_MAX];
-                        const char *fname = GetFileName(files.paths[i]);
-
-                        snprintf(zip_path, sizeof(zip_path),
-                                 "lotus-data/sessions/%04d/%02d/%02d/%s",
-                                 year, month, day, fname);
-
-                        content = LoadFileText(files.paths[i]);
-                        if(content != NULL) {
-                            size_t size = strlen(content);
-                            if(!mz_zip_writer_add_mem(&archive, zip_path, content, size, MZ_NO_COMPRESSION)) {
-                                TraceLog(LOG_WARNING, "ANDROID_SHARE: failed to add file: %s", files.paths[i]);
-                            }
-                            UnloadFileText(content);
-                        }
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
-
-    if(!mz_zip_writer_finalize_heap_archive(&archive, &zip_data, &zip_size)) {
-        TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to finalize ZIP archive");
-        mz_zip_writer_end(&archive);
+    zip_size = (size_t)file_size;
+    zip_data = malloc(zip_size);
+    if(zip_data == NULL) {
+        fclose(fp);
         return 0;
     }
-
-    if(zip_data == NULL || zip_size == 0) {
-        TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to get ZIP data");
-        mz_zip_writer_end(&archive);
+    if(fread(zip_data, 1, zip_size, fp) != zip_size) {
+        fclose(fp);
+        free(zip_data);
         return 0;
     }
+    fclose(fp);
 
     TraceLog(LOG_INFO, "ANDROID_SHARE: calling Java to share %zu bytes", zip_size);
 
@@ -158,7 +74,7 @@ int android_share_export(const char *filename)
 
     if((*jvm)->AttachCurrentThread(jvm, &env, NULL) != JNI_OK) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to attach thread");
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -167,7 +83,7 @@ int android_share_export(const char *filename)
     if(!activity_class) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: Activity class not found");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -175,7 +91,7 @@ int android_share_export(const char *filename)
     if(!get_class_loader) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: getClassLoader method not found");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -183,7 +99,7 @@ int android_share_export(const char *filename)
     if(!class_loader) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: getClassLoader returned null");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -191,7 +107,7 @@ int android_share_export(const char *filename)
     if(!class_loader_class) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: ClassLoader class not found");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -199,7 +115,7 @@ int android_share_export(const char *filename)
     if(!load_class) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: loadClass method not found");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -210,7 +126,7 @@ int android_share_export(const char *filename)
     if(!share_helper_class) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: ShareHelper class not found via class loader");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -220,7 +136,7 @@ int android_share_export(const char *filename)
     if(!method) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: shareZipFile method not found");
         (*jvm)->DetachCurrentThread(jvm);
-        mz_zip_writer_end(&archive);
+        free(zip_data);
         return 0;
     }
 
@@ -236,8 +152,7 @@ int android_share_export(const char *filename)
     (*env)->DeleteLocalRef(env, jtitle);
     (*env)->DeleteLocalRef(env, class_loader);
     (*jvm)->DetachCurrentThread(jvm);
-
-    mz_zip_writer_end(&archive);
+    free(zip_data);
 
     TraceLog(LOG_INFO, "ANDROID_SHARE: share sheet triggered");
     return 1;

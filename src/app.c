@@ -7,6 +7,7 @@
 #include "tabs/settings_tab.h"
 #include "app_session.h"
 #include "meditation_music.h"
+#include "storage.h"
 #include "theme.h"
 #include "theme_meta.h"
 #if defined(LOTUS_BUILD)
@@ -23,7 +24,6 @@
 #endif
 #include "../vendor/rini/src/rini.h"
 
-#include <dirent.h>
 #include <limits.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -373,12 +373,6 @@ refresh_theme_colors(int theme_id, int dark_mode)
 }
 
 static void
-inbe_settings_path(char *out, size_t out_size)
-{
-    snprintf(out, out_size, "%s/settings.ini", data_root());
-}
-
-static void
 register_all_themes(void)
 {
     flint_theme_register_defaults("flint/themes");
@@ -464,71 +458,36 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[1900];
-    char settings_path[FS_PATH_MAX];
-    inbe_settings_path(settings_path, sizeof(settings_path));
-#ifdef __ANDROID__
-    snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\nexercise_manual_seen_mask %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nexercise_type %d\nmeditation_music_enabled %d\nmeditation_music_shuffle %d\nmeditation_music_track %d\nplay_in_background %d\nlanguage %s\n",
-             app->inbe.speed_level,
-             app->inbe.max_rounds,
-             int_from_count(app->inbe.maxbreaths),
-             app->inbe.pause_seconds,
-             app->sound_volume,
-             app->tutorial_seen ? 1 : 0,
-             app->exercise_manual_seen_mask,
-             app->theme_id,
-             app->dark_mode,
-             app->fullscreen_enabled ? 1 : 0,
-             app->on_screen_keyboard_enabled ? 1 : 0,
-             app->inbe.progressive_speed,
-             app->inbe.progressive_start_speed,
-             app->advanced_session_controls ? 1 : 0,
-             app->hold_display_mode,
-             app->exercise_type,
-             app->meditation_music_enabled ? 1 : 0,
-             app->meditation_music_shuffle ? 1 : 0,
-             app->meditation_music_track,
-             app->inbe.play_in_background,
-             (app->language_selected && app->language[0] != '\0')
-                 ? app->language
-                 : "");
-#else
-    snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\nexercise_manual_seen_mask %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nexercise_type %d\nmeditation_music_enabled %d\nmeditation_music_shuffle %d\nmeditation_music_track %d\nlanguage %s\n",
-             app->inbe.speed_level,
-             app->inbe.max_rounds,
-             int_from_count(app->inbe.maxbreaths),
-             app->inbe.pause_seconds,
-             app->sound_volume,
-             app->tutorial_seen ? 1 : 0,
-             app->exercise_manual_seen_mask,
-             app->theme_id,
-             app->dark_mode,
-             app->fullscreen_enabled ? 1 : 0,
-             app->on_screen_keyboard_enabled ? 1 : 0,
-             app->inbe.progressive_speed,
-             app->inbe.progressive_start_speed,
-             app->advanced_session_controls ? 1 : 0,
-             app->hold_display_mode,
-             app->exercise_type,
-             app->meditation_music_enabled ? 1 : 0,
-             app->meditation_music_shuffle ? 1 : 0,
-             app->meditation_music_track,
-             (app->language_selected && app->language[0] != '\0')
-                 ? app->language
-                 : "");
-#endif
-    snprintf(text + strlen(text), sizeof(text) - strlen(text),
-             "practice_tab_enabled_mask %d\npractice_tab_mind_theme %d\npractice_tab_yoga_theme %d\npractice_tab_fitness_theme %d\npractice_category_tab %d\n",
-             (app->practice_tab_enabled[PRACTICE_CATEGORY_MIND] ? 1 : 0) |
-                 (app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] ? 2 : 0) |
-                 (app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] ? 4 : 0),
-             app->practice_tab_theme[PRACTICE_CATEGORY_MIND],
-             app->practice_tab_theme[PRACTICE_CATEGORY_YOGA],
-             app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS],
-             app->practice_category_tab);
-    SaveFileText(settings_path, text);
+    inbe_storage_set_setting_int("speed", app->inbe.speed_level);
+    inbe_storage_set_setting_int("max_rounds", app->inbe.max_rounds);
+    inbe_storage_set_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths));
+    inbe_storage_set_setting_int("pause_seconds", app->inbe.pause_seconds);
+    inbe_storage_set_setting_int("sound_volume", app->sound_volume);
+    inbe_storage_set_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0);
+    inbe_storage_set_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask);
+    inbe_storage_set_setting_int("theme", app->theme_id);
+    inbe_storage_set_setting_int("dark_mode", app->dark_mode);
+    inbe_storage_set_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0);
+    inbe_storage_set_setting_int("on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0);
+    inbe_storage_set_setting_int("progressive_speed", app->inbe.progressive_speed);
+    inbe_storage_set_setting_int("progressive_start_speed", app->inbe.progressive_start_speed);
+    inbe_storage_set_setting_int("advanced_session_controls", app->advanced_session_controls ? 1 : 0);
+    inbe_storage_set_setting_int("hold_display_mode", app->hold_display_mode);
+    inbe_storage_set_setting_int("exercise_type", app->exercise_type);
+    inbe_storage_set_setting_int("meditation_music_enabled", app->meditation_music_enabled ? 1 : 0);
+    inbe_storage_set_setting_int("meditation_music_shuffle", app->meditation_music_shuffle ? 1 : 0);
+    inbe_storage_set_setting_int("meditation_music_track", app->meditation_music_track);
+    inbe_storage_set_setting_int("play_in_background", app->inbe.play_in_background);
+    inbe_storage_set_setting_text("language",
+                                  (app->language_selected && app->language[0] != '\0') ? app->language : "");
+    inbe_storage_set_setting_int("practice_tab_enabled_mask",
+                                 (app->practice_tab_enabled[PRACTICE_CATEGORY_MIND] ? 1 : 0) |
+                                     (app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] ? 2 : 0) |
+                                     (app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] ? 4 : 0));
+    inbe_storage_set_setting_int("practice_tab_mind_theme", app->practice_tab_theme[PRACTICE_CATEGORY_MIND]);
+    inbe_storage_set_setting_int("practice_tab_yoga_theme", app->practice_tab_theme[PRACTICE_CATEGORY_YOGA]);
+    inbe_storage_set_setting_int("practice_tab_fitness_theme", app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS]);
+    inbe_storage_set_setting_int("practice_category_tab", app->practice_category_tab);
 #if defined(PLATFORM_WEB)
     sync_web_storage();
 #endif
@@ -538,46 +497,42 @@ save_settings(InbeApp *app)
 static void
 load_settings(InbeApp *app)
 {
-    char settings_path[FS_PATH_MAX];
-    inbe_settings_path(settings_path, sizeof(settings_path));
-    rini_data settings = rini_load(settings_path);
-    int settings_missing = settings.count == 0;
-
-    int speed = rini_get_value_fallback(settings, "speed", DefaultSpeedLevel);
-    int max_rounds = rini_get_value_fallback(settings, "max_rounds", DefaultMaxRounds);
-    int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
-    int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
-    int sound_volume = rini_get_value_fallback(settings, "sound_volume", 100);
+    int settings_missing = inbe_storage_settings_empty();
+    int speed = inbe_storage_get_setting_int("speed", DefaultSpeedLevel);
+    int max_rounds = inbe_storage_get_setting_int("max_rounds", DefaultMaxRounds);
+    int max_breaths = inbe_storage_get_setting_int("max_breaths", DefaultMaxBreaths);
+    int pause_seconds = inbe_storage_get_setting_int("pause_seconds", DefaultPauseSeconds);
+    int sound_volume = inbe_storage_get_setting_int("sound_volume", 100);
     int manual_seen_mask;
     int practice_enabled_mask;
 
-    app->tutorial_seen = rini_get_value_fallback(settings, "tutorial_seen", 0) != 0;
-    manual_seen_mask = rini_get_value_fallback(settings, "exercise_manual_seen_mask", -1);
+    app->tutorial_seen = inbe_storage_get_setting_int("tutorial_seen", 0) != 0;
+    manual_seen_mask = inbe_storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)
         manual_seen_mask = app->tutorial_seen ? exercise_manual_seen_bit(EXERCISE_WIM_HOF) : 0;
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
-    app->theme_id = clampi(rini_get_value_fallback(settings, "theme", 0), 0, THEME_COUNT - 1);
-    app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
-    app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
+    app->theme_id = clampi(inbe_storage_get_setting_int("theme", 0), 0, THEME_COUNT - 1);
+    app->dark_mode = inbe_storage_get_setting_int("dark_mode", 0) != 0;
+    app->fullscreen_enabled = inbe_storage_get_setting_int("fullscreen", 0) != 0;
 #ifdef __ANDROID__
-    app->on_screen_keyboard_enabled = rini_get_value_fallback(settings, "on_screen_keyboard", 1) != 0;
+    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 1) != 0;
 #else
-    app->on_screen_keyboard_enabled = rini_get_value_fallback(settings, "on_screen_keyboard", 0) != 0;
+    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 0) != 0;
 #endif
     app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
-    app->inbe.progressive_speed = rini_get_value_fallback(settings, "progressive_speed", 1) != 0;
-    app->inbe.progressive_start_speed = clampi(rini_get_value_fallback(settings, "progressive_start_speed", DefaultProgressiveStartSpeed),
+    app->inbe.progressive_speed = inbe_storage_get_setting_int("progressive_speed", 1) != 0;
+    app->inbe.progressive_start_speed = clampi(inbe_storage_get_setting_int("progressive_start_speed", DefaultProgressiveStartSpeed),
                                                SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
-    app->hold_display_mode = clampi(rini_get_value_fallback(settings, "hold_display_mode", HOLD_DISPLAY_CIRCLE),
+    app->advanced_session_controls = inbe_storage_get_setting_int("advanced_session_controls", 0) != 0;
+    app->hold_display_mode = clampi(inbe_storage_get_setting_int("hold_display_mode", HOLD_DISPLAY_CIRCLE),
                                     HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
-    app->exercise_type = clampi(rini_get_value_fallback(settings, "exercise_type", EXERCISE_WIM_HOF),
+    app->exercise_type = clampi(inbe_storage_get_setting_int("exercise_type", EXERCISE_WIM_HOF),
                                 EXERCISE_WIM_HOF, EXERCISE_COUNT - 1);
-    app->meditation_music_enabled = rini_get_value_fallback(settings, "meditation_music_enabled", 1) != 0;
-    app->meditation_music_shuffle = rini_get_value_fallback(settings, "meditation_music_shuffle", 1) != 0;
-    app->meditation_music_track = clampi(rini_get_value_fallback(settings, "meditation_music_track", 0),
+    app->meditation_music_enabled = inbe_storage_get_setting_int("meditation_music_enabled", 1) != 0;
+    app->meditation_music_shuffle = inbe_storage_get_setting_int("meditation_music_shuffle", 1) != 0;
+    app->meditation_music_track = clampi(inbe_storage_get_setting_int("meditation_music_track", 0),
                                          0, MEDITATION_MUSIC_TRACK_COUNT - 1);
-    practice_enabled_mask = rini_get_value_fallback(settings, "practice_tab_enabled_mask", 7);
+    practice_enabled_mask = inbe_storage_get_setting_int("practice_tab_enabled_mask", 7);
     if((practice_enabled_mask & 7) == 0)
         practice_enabled_mask = 1;
     for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
@@ -585,22 +540,22 @@ load_settings(InbeApp *app)
         app->practice_tab_theme[i] = g_practice_category_default_themes[i];
     }
     app->practice_tab_theme[PRACTICE_CATEGORY_MIND] =
-        clampi(rini_get_value_fallback(settings, "practice_tab_mind_theme", ThemeSky), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_mind_theme", ThemeSky), 0, THEME_COUNT - 1);
     app->practice_tab_theme[PRACTICE_CATEGORY_YOGA] =
-        clampi(rini_get_value_fallback(settings, "practice_tab_yoga_theme", ThemeSunset), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_yoga_theme", ThemeSunset), 0, THEME_COUNT - 1);
     app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS] =
-        clampi(rini_get_value_fallback(settings, "practice_tab_fitness_theme", ThemeCherry), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_fitness_theme", ThemeCherry), 0, THEME_COUNT - 1);
     app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] = 0;
     app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] = 0;
     app->practice_category_tab =
-        clampi(rini_get_value_fallback(settings, "practice_category_tab", PRACTICE_CATEGORY_MIND),
+        clampi(inbe_storage_get_setting_int("practice_category_tab", PRACTICE_CATEGORY_MIND),
                0, PRACTICE_CATEGORY_COUNT - 1);
     if(!app->practice_tab_enabled[app->practice_category_tab])
         app->practice_category_tab = PRACTICE_CATEGORY_MIND;
     app->theme_id = clampi(app->practice_tab_theme[app->practice_category_tab], 0, THEME_COUNT - 1);
     app->language_needs_save = 0;
     {
-        const char *language = rini_get_value_text(settings, "language");
+        const char *language = inbe_storage_get_setting_text("language");
         if(language != NULL && language[0] != '\0') {
             snprintf(app->language, sizeof(app->language), "%s", language);
             app->language_selected = 1;
@@ -623,7 +578,7 @@ load_settings(InbeApp *app)
 #endif
 
 #ifdef __ANDROID__
-    app->inbe.play_in_background = rini_get_value_fallback(settings, "play_in_background",
+    app->inbe.play_in_background = inbe_storage_get_setting_int("play_in_background",
         1  // Default to enabled on Android
     );
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d", app->inbe.play_in_background);
@@ -635,7 +590,6 @@ load_settings(InbeApp *app)
     refresh_theme_colors(app->theme_id, app->dark_mode);
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     refresh_locale_dependent_text(app);
-    rini_unload(&settings);
     if(settings_missing)
         save_settings(app);
 }
@@ -791,6 +745,7 @@ inbe_app_init(void *vapp) {
     inbeinit(&app->inbe);
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + flint_px(80));
+    data_init();
     load_settings(app);
     if(app->language_needs_save) {
         save_settings(app);
@@ -798,7 +753,6 @@ inbe_app_init(void *vapp) {
     }
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + 80);
-    data_init();
     inbe_habits_init(&app->habits);
     init_audio(app);
     meditation_music_init(app);
