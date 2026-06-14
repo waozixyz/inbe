@@ -220,37 +220,6 @@ ui_focus_draw(Rectangle bounds)
                                 0.10f, 10, flint_px(2), c_button_hover);
 }
 
-static FlintIconType
-ui_icon_to_flint_icon(UIIconType type)
-{
-    switch(type) {
-    case UI_ICON_TYPE_GEAR: return FLINT_ICON_TYPE_GEAR;
-    case UI_ICON_TYPE_X: return FLINT_ICON_TYPE_X;
-    case UI_ICON_TYPE_MANUAL: return FLINT_ICON_TYPE_MANUAL;
-    case UI_ICON_TYPE_RETURN: return FLINT_ICON_TYPE_RETURN;
-    case UI_ICON_TYPE_BACKWARD: return FLINT_ICON_TYPE_BACKWARD;
-    case UI_ICON_TYPE_FORWARD: return FLINT_ICON_TYPE_FORWARD;
-    case UI_ICON_TYPE_PLAY: return FLINT_ICON_TYPE_PLAY;
-    case UI_ICON_TYPE_PAUSE: return FLINT_ICON_TYPE_PAUSE;
-    case UI_ICON_TYPE_STAT: return FLINT_ICON_TYPE_STAT;
-    case UI_ICON_TYPE_TELEGRAM: return FLINT_ICON_TYPE_TELEGRAM;
-    case UI_ICON_TYPE_GLOBE: return FLINT_ICON_TYPE_GLOBE;
-    case UI_ICON_TYPE_STRIPE: return FLINT_ICON_TYPE_STRIPE;
-    case UI_ICON_TYPE_BTC: return FLINT_ICON_TYPE_BTC;
-    case UI_ICON_TYPE_MONERO: return FLINT_ICON_TYPE_MONERO;
-    case UI_ICON_TYPE_HOME: return FLINT_ICON_TYPE_HOME;
-    case UI_ICON_TYPE_TRASH: return FLINT_ICON_TYPE_TRASH;
-    case UI_ICON_TYPE_PENCIL: return FLINT_ICON_TYPE_PENCIL;
-    case UI_ICON_TYPE_SAVE: return FLINT_ICON_TYPE_SAVE;
-    case UI_ICON_TYPE_PLUS: return FLINT_ICON_TYPE_PLUS;
-    case UI_ICON_TYPE_SOUND: return FLINT_ICON_TYPE_SOUND;
-    case UI_ICON_TYPE_STACK: return FLINT_ICON_TYPE_STACK;
-    case UI_ICON_TYPE_GITHUB: return FLINT_ICON_TYPE_GITHUB;
-    case UI_ICON_TYPE_NONE:
-    default: return FLINT_ICON_TYPE_NONE;
-    }
-}
-
 int
 flint_ui_font(void)
 {
@@ -414,8 +383,6 @@ flint_ui_icon_button(FlintUIIconButton button)
         Rectangle src = {0, 0, (float)button.icon.width, (float)button.icon.height};
         Rectangle dst = {(float)icon_x, (float)icon_y, (float)draw_size, (float)draw_size};
         DrawTexturePro(button.icon, src, dst, (Vector2){0}, 0, icon_color);
-    } else {
-        flint_draw_icon_fallback(button.icon_type, icon_x, icon_y, draw_size, icon_color);
     }
     return clicked || ui_focus_activate_pressed(button.focus_id);
 }
@@ -562,12 +529,6 @@ ui_set_icons(Texture2D gear_icon, Texture2D x_icon)
 }
 
 void
-ui_draw_icon_fallback(UIIconType type, int x, int y, int size, Color color)
-{
-    flint_draw_icon_fallback(ui_icon_to_flint_icon(type), x, y, size, color);
-}
-
-void
 ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark)
 {
     flint_ui_draw_bevel(x, y, w, h, light, dark);
@@ -596,7 +557,7 @@ ui_icon_btn_padding(UIIconSize size)
 }
 
 int
-ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_type, int *hover)
+ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover)
 {
     int btn_size = ui_icon_btn_size(size);
     int padding = ui_icon_btn_padding(size);
@@ -631,15 +592,13 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, UIIconType icon_
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)btn_size, (float)btn_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x + padding, y + padding, btn_size, c_icon);
     }
 
     return pressed;
 }
 
 int
-ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UIIconType icon_type, int *hover)
+ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
@@ -671,8 +630,6 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, UII
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x + padding, y + padding, (float)size, (float)size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x + padding, y + padding, size, c_icon);
     }
 
     return pressed;
@@ -879,7 +836,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
 }
 
 void
-ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url)
+ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url)
 {
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
@@ -909,8 +866,6 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_t
         Rectangle src = {0, 0, icon.width, icon.height};
         Rectangle dst = {x, y, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), x, y, icon_size, c_icon);
     }
 
     if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
@@ -1723,7 +1678,7 @@ ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
 }
 
 int
-ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type,
+ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
                    const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
@@ -1758,9 +1713,6 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -1772,7 +1724,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, UIIconType icon_
 }
 
 int
-ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, UIIconType icon_type,
+ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
                            const char *label, int show_label, int *hover)
 {
     Vector2 mouse_world = ui_mouse_world();
@@ -1806,9 +1758,6 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, UI
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
         Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    } else {
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        flint_draw_icon_fallback(ui_icon_to_flint_icon(icon_type), icon_x, y + padding, icon_size, c_icon);
     }
 
     if(show_label && label != NULL && label[0] != '\0') {
@@ -1879,7 +1828,7 @@ ui_draw_tab_bar(UITab *tabs, int count)
         int base_w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
         int w = base_w + extra_per_button;
 
-        if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon, tabs[i].icon_type,
+        if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon,
                                         tabs[i].label, show_labels, &tab_hover)) {
             if(tabs[i].on_click)
                 tabs[i].on_click(tabs[i].user_data);
@@ -1966,7 +1915,7 @@ ui_draw_modal(const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
     flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
@@ -2047,7 +1996,7 @@ ui_draw_modal_3btn(const char *title, const char *message,
     int msg_w = modal_w - flint_px(32);
 
     /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, FLINT_ICON_TYPE_GEAR, msg_font);
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
     flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
 
     /* Draw the layout */
@@ -2119,8 +2068,8 @@ ui_screen_header_height(void)
 
 FlintUIHeader
 ui_draw_title_header(int height, const char *title,
-                     Texture2D left_icon, UIIconType left_type,
-                     Texture2D right_icon, UIIconType right_type)
+                     Texture2D left_icon,
+                     Texture2D right_icon)
 {
     FlintUIHeader header = {height, 0, 0};
     int icon_size = flint_px(24);
@@ -2136,12 +2085,12 @@ ui_draw_title_header(int height, const char *title,
     if(left_icon.id != 0) {
         header.left_clicked = ui_draw_icon_btn_padded(flint_px(12), flint_px(12),
                                                       icon_size, icon_padding,
-                                                      left_icon, left_type, &hover);
+                                                      left_icon, &hover);
     }
     if(right_icon.id != 0) {
         header.right_clicked = ui_draw_icon_btn_padded(ui_view_width - icon_w - flint_px(12),
                                                        flint_px(12), icon_size, icon_padding,
-                                                       right_icon, right_type, &hover);
+                                                       right_icon, &hover);
     }
 
     flint_text_draw(title, (ui_view_width - title_w) / 2,
@@ -2152,8 +2101,8 @@ ui_draw_title_header(int height, const char *title,
 
 FlintUIPanelFrame
 ui_draw_modal_frame(int width, int height, const char *title,
-                    Texture2D left_icon, UIIconType left_type,
-                    Texture2D right_icon, UIIconType right_type)
+                    Texture2D left_icon,
+                    Texture2D right_icon)
 {
     FlintUIPanelFrame frame = {0};
     int title_font = flint_px(18);
@@ -2189,13 +2138,13 @@ ui_draw_modal_frame(int width, int height, const char *title,
         frame.left_clicked = ui_draw_icon_btn_padded(frame.x + flint_px(6),
                                                      frame.y + flint_px(6),
                                                      icon_size, icon_padding,
-                                                     left_icon, left_type, &hover);
+                                                     left_icon, &hover);
     }
     if(right_icon.id != 0) {
         frame.right_clicked = ui_draw_icon_btn_padded(frame.x + frame.w - icon_w - flint_px(6),
                                                       frame.y + flint_px(6),
                                                       icon_size, icon_padding,
-                                                      right_icon, right_type, &hover);
+                                                      right_icon, &hover);
     }
 
     return frame;
@@ -2315,7 +2264,7 @@ ui_draw_screen_header(const char *title, int show_close)
 
     if(show_close) {
         close_clicked = ui_draw_icon_btn(close_x, flint_px(8), UI_ICON_SIZE_TINY,
-                                         g_ui_x_icon, UI_ICON_TYPE_X, &close_hover);
+                                         g_ui_x_icon, &close_hover);
     }
 
     return close_clicked;

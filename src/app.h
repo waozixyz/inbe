@@ -5,6 +5,7 @@
 #include "inbe.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
+#include "flint/include/ui_icon_types.h"
 #include "habits/habits.h"
 
 enum {
@@ -146,33 +147,7 @@ struct InbeApp {
     Camera2D camera;
     int cursor_clickable;
     int cursor_disabled;
-    Texture2D gear_icon;
-    Texture2D x_icon;
-    Texture2D manual_icon;
-    Texture2D return_icon;
-    Texture2D backward_icon;
-    Texture2D forward_icon;
-    Texture2D play_icon;
-    Texture2D pause_icon;
-    Texture2D stat_icon;
-    Texture2D habit_icon;
-    Texture2D practice_icon;
-    Texture2D plus_icon;
-    Texture2D stack_icon;
-    Texture2D home_icon;
-    Texture2D trash_icon;
-    Texture2D pencil_icon;
-    Texture2D save_icon;
-    Texture2D discord_icon;
-    Texture2D telegram_icon;
-    Texture2D github_icon;
-    Texture2D globe_icon;
-    Texture2D btc_icon;
-    Texture2D monero_icon;
-    Texture2D sound0_icon;
-    Texture2D sound1_icon;
-    Texture2D sound2_icon;
-    Texture2D sound3_icon;
+    Texture2D icons[UI_ICON_TYPE_COUNT];
 
     Texture2D whm_1_image;
     Texture2D whm_2_image;

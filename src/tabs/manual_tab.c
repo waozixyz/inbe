@@ -61,8 +61,8 @@ tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
     int has_icon = step == 1;
     return (FlintUIParagraph){
         .text = locale_get(TUTORIAL_KEYS[step]),
-        .icon = has_icon ? app->gear_icon : (Texture2D){0},
-        .icon_type = has_icon ? FLINT_ICON_TYPE_GEAR : FLINT_ICON_TYPE_NONE,
+        .icon = has_icon ? app->icons[UI_ICON_TYPE_GEAR] : (Texture2D){0},
+        .icon_type = has_icon ? UI_ICON_TYPE_GEAR : UI_ICON_TYPE_NONE,
         .icon_size = has_icon ? flint_px(14) : 0,
         .width = content_w,
         .font = body_font,
@@ -156,7 +156,7 @@ meditation_manual_draw(InbeApp *app)
     paragraph = (FlintUIParagraph){
         .text = locale_get("meditation_manual_text"),
         .icon = (Texture2D){0},
-        .icon_type = FLINT_ICON_TYPE_NONE,
+        .icon_type = UI_ICON_TYPE_NONE,
         .icon_size = 0,
         .width = content_w,
         .font = body_font,

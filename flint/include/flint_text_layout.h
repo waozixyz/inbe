@@ -2,7 +2,7 @@
 #define FLINT_TEXT_LAYOUT_H
 
 #include "raylib.h"
-#include "flint_icons.h"
+#include "ui_icon_types.h"
 #include "flint_text.h"
 
 typedef enum {
@@ -15,7 +15,7 @@ typedef struct {
     FlintTextElementType type;
     const char *text;
     Texture2D icon;
-    FlintIconType icon_type;
+    UIIconType icon_type;
     int icon_size;
     int text_width;
 } FlintTextElement;
@@ -31,7 +31,7 @@ typedef struct FlintTextLayout {
     int last_reflow_width;
 } FlintTextLayout;
 
-FlintTextLayout flint_text_layout_parse(const char *input, Texture2D icon, FlintIconType icon_type, int icon_size);
+FlintTextLayout flint_text_layout_parse(const char *input, Texture2D icon, UIIconType icon_type, int icon_size);
 void flint_text_layout_reflow(FlintTextLayout *layout, int max_width, int font_size, int line_height);
 void flint_text_layout_draw(FlintTextLayout *layout, int x, int *y, int font_size, Color color);
 int flint_text_layout_get_height(FlintTextLayout *layout);
