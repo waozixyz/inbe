@@ -60,7 +60,6 @@ APP_SRCS := \
 	src/habits/habits.c \
 	src/meditation_music.c \
 	src/locale.c \
-	src/theme_meta.c \
 	src/theme.c \
 	src/data.c \
 	src/storage.c \

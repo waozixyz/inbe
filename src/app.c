@@ -9,7 +9,6 @@
 #include "meditation_music.h"
 #include "storage.h"
 #include "theme.h"
-#include "theme_meta.h"
 #if defined(LOTUS_BUILD)
 #include "lotus_settings.h"
 #endif
@@ -291,9 +290,9 @@ static const char *g_practice_category_labels[PRACTICE_CATEGORY_COUNT] = {
 };
 
 static const int g_practice_category_default_themes[PRACTICE_CATEGORY_COUNT] = {
-    ThemeSky,
-    ThemeSunset,
-    ThemeCherry
+    FLINT_THEME_SKY,
+    FLINT_THEME_SUNSET,
+    FLINT_THEME_CHERRY
 };
 
 static int
@@ -465,7 +464,7 @@ load_config(void)
         config.title_custom = 0;
     }
 
-    refresh_theme_colors(ThemeSky, 0);  /* Default: Sky light mode */
+    refresh_theme_colors(FLINT_THEME_SKY, 0);  /* Default: Sky light mode */
 
     config.loaded = 1;
 }
@@ -596,7 +595,7 @@ load_settings(InbeApp *app)
     if(manual_seen_mask < 0)
         manual_seen_mask = app->tutorial_seen ? exercise_manual_seen_bit(EXERCISE_WIM_HOF) : 0;
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
-    app->theme_id = clampi(inbe_storage_get_setting_int("theme", 0), 0, THEME_COUNT - 1);
+    app->theme_id = clampi(inbe_storage_get_setting_int("theme", 0), 0, FLINT_THEME_COUNT - 1);
     app->theme_mode = clampi(inbe_storage_get_setting_int("theme_mode", APP_THEME_SYSTEM),
                              APP_THEME_SYSTEM, APP_THEME_DARK);
     app->dark_mode = inbe_storage_get_setting_int("dark_mode", 0) != 0;
@@ -633,11 +632,11 @@ load_settings(InbeApp *app)
         app->practice_tab_theme[i] = g_practice_category_default_themes[i];
     }
     app->practice_tab_theme[PRACTICE_CATEGORY_MIND] =
-        clampi(inbe_storage_get_setting_int("practice_tab_mind_theme", ThemeSky), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_mind_theme", FLINT_THEME_SKY), 0, FLINT_THEME_COUNT - 1);
     app->practice_tab_theme[PRACTICE_CATEGORY_YOGA] =
-        clampi(inbe_storage_get_setting_int("practice_tab_yoga_theme", ThemeSunset), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_yoga_theme", FLINT_THEME_SUNSET), 0, FLINT_THEME_COUNT - 1);
     app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS] =
-        clampi(inbe_storage_get_setting_int("practice_tab_fitness_theme", ThemeCherry), 0, THEME_COUNT - 1);
+        clampi(inbe_storage_get_setting_int("practice_tab_fitness_theme", FLINT_THEME_CHERRY), 0, FLINT_THEME_COUNT - 1);
     app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] = 0;
     app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] = 0;
     app->practice_category_tab =
@@ -645,7 +644,7 @@ load_settings(InbeApp *app)
                0, PRACTICE_CATEGORY_COUNT - 1);
     if(!app->practice_tab_enabled[app->practice_category_tab])
         app->practice_category_tab = PRACTICE_CATEGORY_MIND;
-    app->theme_id = clampi(app->practice_tab_theme[app->practice_category_tab], 0, THEME_COUNT - 1);
+    app->theme_id = clampi(app->practice_tab_theme[app->practice_category_tab], 0, FLINT_THEME_COUNT - 1);
     app->language_needs_save = 0;
     {
         const char *language = inbe_storage_get_setting_text("language");
@@ -1476,10 +1475,10 @@ static int
 practice_active_theme(InbeApp *app)
 {
     if(app == NULL)
-        return ThemeSky;
+        return FLINT_THEME_SKY;
 
     practice_ensure_enabled_selection(app);
-    return clampi(app->practice_tab_theme[app->practice_category_tab], 0, THEME_COUNT - 1);
+    return clampi(app->practice_tab_theme[app->practice_category_tab], 0, FLINT_THEME_COUNT - 1);
 }
 
 static void
@@ -1555,11 +1554,11 @@ practice_clamp_activity_to_tab(InbeApp *app)
 static Color
 practice_theme_color(InbeApp *app, int tab_index)
 {
-    int theme_id = ThemeSky;
+    int theme_id = FLINT_THEME_SKY;
     Color color = c_circle;
 
     if(app != NULL && tab_index >= 0 && tab_index < PRACTICE_CATEGORY_COUNT)
-        theme_id = clampi(app->practice_tab_theme[tab_index], 0, THEME_COUNT - 1);
+        theme_id = clampi(app->practice_tab_theme[tab_index], 0, FLINT_THEME_COUNT - 1);
 
     if(!flint_theme_catalog_color((FlintThemeId)theme_id, app != NULL && app->dark_mode != 0,
                                   "circle", &color)) {
@@ -1803,7 +1802,7 @@ draw_practice_config_page(InbeApp *app)
                          (int)((view_height - top_h - nav_h) * app->camera.zoom));
         if(ui_draw_theme_picker(content_x, y, content_w, "Theme",
                                 app->dark_mode, &app->practice_tab_theme[tab])) {
-            app->practice_tab_theme[tab] = clampi(app->practice_tab_theme[tab], 0, THEME_COUNT - 1);
+            app->practice_tab_theme[tab] = clampi(app->practice_tab_theme[tab], 0, FLINT_THEME_COUNT - 1);
             habits_sync_topic_theme_colors(app, tab, 1);
             if(tab == app->practice_category_tab)
                 practice_sync_global_theme(app);
@@ -1835,7 +1834,7 @@ draw_practice_config_page(InbeApp *app)
         int label_x = content_x + flint_px(8);
         int circle_x = content_x + content_w - flint_px(24);
         int circle_y = y + row_h / 2;
-        int theme_id = clampi(app->practice_tab_theme[i], 0, THEME_COUNT - 1);
+        int theme_id = clampi(app->practice_tab_theme[i], 0, FLINT_THEME_COUNT - 1);
         Rectangle row_bounds = {
             (float)content_x,
             (float)y,

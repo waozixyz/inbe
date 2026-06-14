@@ -91,7 +91,6 @@ add_library(main SHARED
     "${SRC_DIR}/habits/habits.c"
     "${SRC_DIR}/meditation_music.c"
     "${SRC_DIR}/locale.c"
-    "${SRC_DIR}/theme_meta.c"
     "${SRC_DIR}/theme.c"
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/storage.c"
