@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Historique
 ---
+[tab_habits]
+Habitudes
+---
+[tab_practice]
+Pratique
+---
+[habit_add_button]
+Ajouter une habitude
+---
+[habit_done_button]
+Fait
+---
+[habit_not_done_button]
+Marquer
+---
 [tab_manual]
 Tutoriel
 ---
@@ -12,6 +27,60 @@ Réglages
 ---
 [play_button]
 DÉMARRER
+---
+[exercise_wim_hof]
+Respiration Wim Hof
+---
+[exercise_meditation]
+Méditation
+---
+[meditation_title]
+Méditation
+---
+[meditation_manual_title]
+Méditation
+---
+[meditation_manual_text]
+Choisissez une durée, appuyez sur démarrer et asseyez-vous confortablement. Laissez votre attention se poser sur la respiration. Quand l’esprit s’égare, revenez doucement au souffle. Un gong marque le début et la fin de la séance.
+---
+[meditation_music_settings_title]
+Musique de méditation
+---
+[meditation_music_section_title]
+Musique de fond
+---
+[meditation_music_enabled_label]
+Jouer la musique de fond
+---
+[meditation_music_shuffle_label]
+Lecture aléatoire
+---
+[meditation_music_track_label]
+Piste
+---
+[meditation_music_download_button]
+Télécharger l'audio
+---
+[meditation_music_redownload_button]
+Retélécharger l'audio
+---
+[meditation_music_test_button]
+Tester la lecture
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 RESPIRER
@@ -64,6 +133,9 @@ Cycle %d  %ds
 [starting_in]
 DÉBUT DANS %2d
 ---
+[session_round_label]
+CYCLE %d
+---
 [settings_title]
 Réglages
 ---
@@ -72,6 +144,12 @@ Respiration
 ---
 [settings_tab_session]
 Séance
+---
+[settings_tab_app]
+App
+---
+[settings_tab_data_about]
+Données et à propos
 ---
 [settings_tab_sound]
 Son
@@ -88,8 +166,12 @@ Données
 [settings_tab_about]
 À propos
 ---
+
 [theme_label]
 Thème
+---
+[theme_mode_label]
+Mode du thème
 ---
 [speed_label]
 Vitesse
@@ -151,8 +233,12 @@ Suivant
 [coming_soon_label]
 Bientôt...
 ---
+
 [data_management_label]
 Gestion des données
+---
+[data_management_button]
+Gérer les données
 ---
 [total_sessions_label]
 Séances totales : %d
@@ -339,6 +425,9 @@ SUIVANT
 [tutorial_finish_button]
 TERMINER
 ---
+[tutorial_start_button]
+COMMENCER
+---
 [share_sheet_title]
 Exporter les données de séance
 ---
@@ -365,22 +454,4 @@ Supprimer ce cycle ? Cette action est irréversible.
 ---
 [delete_button]
 Supprimer
----
-[settings_category_practice]
-Paramètres de Pratique
----
-[settings_category_practice_desc]
-Configurer la respiration et les séances
----
-[settings_category_app]
-Préférences de l'Application
----
-[settings_category_app_desc]
-Personnaliser l'apparence et l'audio
----
-[settings_category_about_data]
-À Propos et Données
----
-[settings_category_about_data_desc]
-Voir les informations et gérer les données
 ---

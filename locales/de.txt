@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Verlauf
 ---
+[tab_habits]
+Gewohnheiten
+---
+[tab_practice]
+Praxis
+---
+[habit_add_button]
+Gewohnheit hinzufügen
+---
+[habit_done_button]
+Erledigt
+---
+[habit_not_done_button]
+Markieren
+---
 [tab_manual]
 Tutorial
 ---
@@ -12,6 +27,60 @@ Einstellungen
 ---
 [play_button]
 START
+---
+[exercise_wim_hof]
+Wim-Hof-Atmung
+---
+[exercise_meditation]
+Meditation
+---
+[meditation_title]
+Meditation
+---
+[meditation_manual_title]
+Meditation
+---
+[meditation_manual_text]
+Wähle eine Dauer, drücke Start und setze dich bequem hin. Lass deine Aufmerksamkeit auf dem Atem ruhen. Wenn die Gedanken abschweifen, kehre sanft zum Atmen zurück. Ein Gong markiert Anfang und Ende der Sitzung.
+---
+[meditation_music_settings_title]
+Meditationsmusik
+---
+[meditation_music_section_title]
+Hintergrundmusik
+---
+[meditation_music_enabled_label]
+Hintergrundmusik abspielen
+---
+[meditation_music_shuffle_label]
+Titel mischen
+---
+[meditation_music_track_label]
+Titel
+---
+[meditation_music_download_button]
+Audio herunterladen
+---
+[meditation_music_redownload_button]
+Audio erneut herunterladen
+---
+[meditation_music_test_button]
+Testwiedergabe
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 ATEM
@@ -64,6 +133,9 @@ Runde %d  %ds
 [starting_in]
 START IN %2d
 ---
+[session_round_label]
+RUNDE %d
+---
 [settings_title]
 Einstellungen
 ---
@@ -72,6 +144,12 @@ Atmung
 ---
 [settings_tab_session]
 Sitzung
+---
+[settings_tab_app]
+App
+---
+[settings_tab_data_about]
+Daten & Info
 ---
 [settings_tab_sound]
 Ton
@@ -88,8 +166,12 @@ Daten
 [settings_tab_about]
 Über
 ---
+
 [theme_label]
 Thema
+---
+[theme_mode_label]
+Themenmodus
 ---
 [speed_label]
 Geschwindigkeit
@@ -151,8 +233,12 @@ Weiter
 [coming_soon_label]
 Demnächst...
 ---
+
 [data_management_label]
 Datenverwaltung
+---
+[data_management_button]
+Daten verwalten
 ---
 [total_sessions_label]
 Gesamtsitzungen: %d
@@ -339,6 +425,9 @@ WEITER
 [tutorial_finish_button]
 BEENDEN
 ---
+[tutorial_start_button]
+JETZT STARTEN
+---
 [share_sheet_title]
 Sitzungsdaten exportieren
 ---
@@ -365,22 +454,4 @@ Diese Runde löschen? Das kann nicht rückgängig gemacht werden.
 ---
 [delete_button]
 Löschen
----
-[settings_category_practice]
-Praxis-Einstellungen
----
-[settings_category_practice_desc]
-Atmung und Sitzungen konfigurieren
----
-[settings_category_app]
-App-Einstellungen
----
-[settings_category_app_desc]
-Aussehen und Audio anpassen
----
-[settings_category_about_data]
-Info & Daten
----
-[settings_category_about_data_desc]
-Informationen anzeigen und Daten verwalten
 ---

@@ -17,6 +17,8 @@ import android.view.WindowManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.net.URL;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
@@ -44,6 +46,60 @@ public class MainActivity extends NativeActivity {
     private native void nativeResumeSession();
     private native void nativeImportSelectedFile(String path);
     private native void nativeImportCancelled();
+    private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
+    private native void nativeRuntimeAssetDownloadFailed(long handle, int httpStatus, String error);
+
+    public void startRuntimeAssetDownload(final String url, final String path, final long handle) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                HttpURLConnection connection = null;
+                int status = 0;
+                long written = 0;
+                File outputFile = new File(path);
+                File parent = outputFile.getParentFile();
+
+                try {
+                    if (parent != null && !parent.exists() && !parent.mkdirs()) {
+                        nativeRuntimeAssetDownloadFailed(handle, status, "failed to create download directory");
+                        return;
+                    }
+
+                    connection = (HttpURLConnection) new URL(url).openConnection();
+                    connection.setInstanceFollowRedirects(true);
+                    connection.setConnectTimeout(15000);
+                    connection.setReadTimeout(30000);
+                    connection.setRequestProperty("User-Agent", "flint-runtime-assets/1");
+                    status = connection.getResponseCode();
+
+                    if (status < 200 || status >= 300) {
+                        outputFile.delete();
+                        nativeRuntimeAssetDownloadFailed(handle, status, "HTTP " + status);
+                        return;
+                    }
+
+                    try (InputStream input = connection.getInputStream();
+                         FileOutputStream output = new FileOutputStream(outputFile)) {
+                        byte[] buffer = new byte[32768];
+                        int read;
+                        while ((read = input.read(buffer)) != -1) {
+                            output.write(buffer, 0, read);
+                            written += read;
+                        }
+                    }
+
+                    nativeRuntimeAssetDownloadSucceeded(handle, written, status);
+                } catch (Exception e) {
+                    outputFile.delete();
+                    nativeRuntimeAssetDownloadFailed(handle, status, e.getMessage());
+                } finally {
+                    if (connection != null) {
+                        connection.disconnect();
+                    }
+                }
+            }
+        }, "inbe-runtime-asset-download").start();
+    }
 
     public void openImportPicker() {
         runOnUiThread(new Runnable() {

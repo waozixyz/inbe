@@ -31,14 +31,8 @@ else
 	LDFLAGS += -Wl,--strip-all,--gc-sections,--lto-O3
 endif
 
-INBE_DIR = ../libinbe
-INBE_SRC = $(INBE_DIR)/inbe.c
-INBE_OBJ = build/inbe.o
-
-CFLAGS += -I$(INBE_DIR)
-
 SOURCES = $(wildcard src/*.c) $(wildcard src/*.cpp)
-OBJECTS = $(patsubst src/%.c, build/%.o, $(patsubst src/%.cpp, build/%.o, $(SOURCES))) $(INBE_OBJ)
+OBJECTS = $(patsubst src/%.c, build/%.o, $(patsubst src/%.cpp, build/%.o, $(SOURCES)))
 DEPS = $(OBJECTS:.o=.d)
 
 all: build/cart.wasm bundle dist package
@@ -55,10 +49,6 @@ ifneq ($(DEBUG), 1)
 	fi
 endif
 
-$(INBE_OBJ): $(INBE_SRC) $(INBE_DIR)/inbe.h
-	@mkdir -p build
-	$(CC) -c $(INBE_SRC) -o $(INBE_OBJ) $(CFLAGS)
-	
 build/%.o: src/%.c
 	@mkdir -p build
 	$(CC) -c $< -o $@ $(CFLAGS)

@@ -95,10 +95,7 @@ language_tab_draw(InbeApp *app)
     flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
 
     if(ui_draw_text_btn(button_x, button_y, locale_get("next_button"), &next_hover)) {
-        if(!app->tutorial_seen)
-            app->inbe.screen = InbeScreenManual;
-        else
-            app->inbe.screen = InbeScreenStart;
+        app->inbe.screen = InbeScreenStart;
     }
 
     if(language_dropdown_menu(app, 200))

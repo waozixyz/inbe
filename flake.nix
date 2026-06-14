@@ -69,6 +69,7 @@
 
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
             pkgs.SDL2.dev
+            pkgs.curl.dev
             pkgs.libdrm.dev
             pkgs.libgbm
             pkgs.libglvnd.dev
@@ -121,6 +122,7 @@
               SDL2.dev
 	      butler
               cmake
+              curl
               emscripten
               gcc
               gnumake

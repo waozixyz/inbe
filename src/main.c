@@ -16,6 +16,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_insets.h"
+#include "android_runtime_assets.h"
 #include "android_wakelock.h"
 #include "android_timer.h"
 #include <android/log.h>
@@ -234,7 +235,9 @@ frame(void)
         (float)width,
         (float)height
     });
-    if(inbe_app.cursor_clickable)
+    if(inbe_app.cursor_disabled)
+        SetMouseCursor(MOUSE_CURSOR_NOT_ALLOWED);
+    else if(inbe_app.cursor_clickable)
         SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
     else
         SetMouseCursor(MOUSE_CURSOR_DEFAULT);
@@ -276,6 +279,8 @@ int main(int argc, char **argv) {
     android_wakelock_init();
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_timer_init");
     android_timer_init();
+    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_runtime_assets_init");
+    android_runtime_assets_init();
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Init calls done");
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
