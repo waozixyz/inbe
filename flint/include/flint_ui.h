@@ -135,6 +135,25 @@ typedef struct {
     int max_scroll;
 } FlintUIScrollView;
 
+typedef struct {
+    int x;
+    int y;
+    int w;
+    int h;
+    int content_x;
+    int content_y;
+    int content_w;
+    int content_h;
+    int left_clicked;
+    int right_clicked;
+} FlintUIPanelFrame;
+
+typedef struct {
+    int height;
+    int left_clicked;
+    int right_clicked;
+} FlintUIHeader;
+
 void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon);
 void ui_set_frame(Camera2D camera);
@@ -211,6 +230,12 @@ int ui_draw_modal(const char *title, const char *message, const char *cancel_btn
 int ui_draw_modal_3btn(const char *title, const char *message, const char *left_btn, const char *middle_btn, const char *right_btn);
 int ui_draw_screen_header(const char *title, int show_close);
 int ui_screen_header_height(void);
+FlintUIHeader ui_draw_title_header(int height, const char *title,
+                                   Texture2D left_icon, UIIconType left_type,
+                                   Texture2D right_icon, UIIconType right_type);
+FlintUIPanelFrame ui_draw_modal_frame(int width, int height, const char *title,
+                                      Texture2D left_icon, UIIconType left_type,
+                                      Texture2D right_icon, UIIconType right_type);
 int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);

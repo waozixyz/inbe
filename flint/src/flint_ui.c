@@ -2031,6 +2031,90 @@ ui_screen_header_height(void)
     return flint_clamp_px(60, 48, 60);
 }
 
+FlintUIHeader
+ui_draw_title_header(int height, const char *title,
+                     Texture2D left_icon, UIIconType left_type,
+                     Texture2D right_icon, UIIconType right_type)
+{
+    FlintUIHeader header = {height, 0, 0};
+    int icon_size = flint_px(24);
+    int icon_padding = flint_px(8);
+    int icon_w = icon_size + icon_padding * 2;
+    int title_font = flint_px(22);
+    int title_w = flint_text_measure(title, title_font);
+    int hover = 0;
+
+    DrawRectangle(0, 0, ui_view_width, height, c_bg);
+    DrawLine(0, height - 1, ui_view_width, height - 1, flint_darken(c_button, 18));
+
+    if(left_icon.id != 0) {
+        header.left_clicked = ui_draw_icon_btn_padded(flint_px(12), flint_px(12),
+                                                      icon_size, icon_padding,
+                                                      left_icon, left_type, &hover);
+    }
+    if(right_icon.id != 0) {
+        header.right_clicked = ui_draw_icon_btn_padded(ui_view_width - icon_w - flint_px(12),
+                                                       flint_px(12), icon_size, icon_padding,
+                                                       right_icon, right_type, &hover);
+    }
+
+    flint_text_draw(title, (ui_view_width - title_w) / 2,
+                    flint_ui_text_y(title, 0, height, title_font),
+                    title_font, c_text);
+    return header;
+}
+
+FlintUIPanelFrame
+ui_draw_modal_frame(int width, int height, const char *title,
+                    Texture2D left_icon, UIIconType left_type,
+                    Texture2D right_icon, UIIconType right_type)
+{
+    FlintUIPanelFrame frame = {0};
+    int title_font = flint_px(18);
+    int icon_size = flint_px(22);
+    int icon_padding = flint_px(8);
+    int icon_w = icon_size + icon_padding * 2;
+    int title_w = flint_text_measure(title, title_font);
+    int hover = 0;
+
+    if(width > ui_view_width - flint_px(24))
+        width = ui_view_width - flint_px(24);
+    if(height > ui_view_height - flint_px(24))
+        height = ui_view_height - flint_px(24);
+
+    frame.w = width;
+    frame.h = height;
+    frame.x = (ui_view_width - width) / 2;
+    frame.y = (ui_view_height - height) / 2;
+    frame.content_x = frame.x + flint_px(18);
+    frame.content_y = frame.y + flint_px(58);
+    frame.content_w = frame.w - flint_px(36);
+    frame.content_h = frame.h - flint_px(74);
+
+    DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(frame.x, frame.y, frame.w, frame.h, c_surface);
+    ui_draw_bevel(frame.x, frame.y, frame.w, frame.h,
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
+
+    flint_text_draw(title, frame.x + (frame.w - title_w) / 2,
+                    frame.y + flint_px(14), title_font, c_text);
+
+    if(left_icon.id != 0) {
+        frame.left_clicked = ui_draw_icon_btn_padded(frame.x + flint_px(6),
+                                                     frame.y + flint_px(6),
+                                                     icon_size, icon_padding,
+                                                     left_icon, left_type, &hover);
+    }
+    if(right_icon.id != 0) {
+        frame.right_clicked = ui_draw_icon_btn_padded(frame.x + frame.w - icon_w - flint_px(6),
+                                                      frame.y + flint_px(6),
+                                                      icon_size, icon_padding,
+                                                      right_icon, right_type, &hover);
+    }
+
+    return frame;
+}
+
 int
 ui_scrollbar_reserved_width(int max_scroll)
 {

@@ -69,8 +69,6 @@ typedef enum {
     UIModalConfirmDeleteData,
     UIModalConfirmDeleteHistory,
     UIModalEditProgressiveStartSpeed,
-    UIModalPracticeTabs,
-    UIModalPracticeTheme,
     UIModalHabitLinkedDetails,
 } UIModalType;
 
@@ -212,9 +210,14 @@ struct InbeApp {
     InbeHabits habits;
     int habits_view_mode;
     int habits_list_scroll;
+    int habits_list_expanded_year;
+    int habits_list_expanded_month;
+    int habits_list_expanded_day;
+    int habits_list_expanded_session;
     int habit_detail_index;
     int habit_detail_day;
     int habit_detail_session_index;
+    int habit_session_edit_scroll;
     int habit_session_edit_active;
     int habit_session_edit_kind;
     int habit_session_edit_round;
