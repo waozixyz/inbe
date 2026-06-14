@@ -119,12 +119,30 @@ typedef struct {
     int font;
 } FlintUISubtabBar;
 
+typedef struct {
+    Rectangle bounds;
+    int content_height;
+    int *scroll_offset;
+    int wheel_step;
+} FlintUIScrollArea;
+
+typedef struct {
+    int content_x;
+    int content_y;
+    int content_w;
+    int viewport_h;
+    int content_h;
+    int max_scroll;
+} FlintUIScrollView;
+
 void ui_init(int width, int height, float dpi);
-void ui_set_colors(Color text, Color bg, Color circle, Color button, Color button_hover, Color icon);
+void ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon);
 void ui_set_frame(Camera2D camera);
 void ui_set_cursor_clickable(int *cursor_clickable);
 void ui_set_cursor_disabled(int *cursor_disabled);
 void ui_set_icons(Texture2D gear_icon, Texture2D x_icon);
+void ui_set_input_blocked(int blocked);
+int ui_input_captures_click(Vector2 point);
 /* DPI scaling, color, and layout functions now from Flint: flint_px, flint_clamp_px, flint_lighten, flint_darken, flint_centered_column, flint_page_side_padding */
 int flint_ui_font(void);
 int flint_ui_font_small(void);
@@ -148,7 +166,8 @@ int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon,
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 
 /* Generic button component with unified styling */
-int ui_draw_generic_button(int x, int y, int w, int h, const char *label, UIButtonStyle style, int *hover);
+int ui_draw_generic_button(int x, int y, int w, int h, const char *label,
+                           UIButtonStyle style, int disabled, int *hover);
 int ui_draw_subtab_bar(FlintUISubtabBar bar);
 
 void ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, UIIconType icon_type, const char *url);
@@ -194,6 +213,8 @@ int ui_draw_screen_header(const char *title, int show_close);
 int ui_screen_header_height(void);
 int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
+FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);
+void ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view);
 int ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);
 
 void ui_focus_begin(void);

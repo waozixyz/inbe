@@ -1,1 +1,1 @@
-Una app libre y de código abierto de meditación respiratoria guiada basada en el método Wim Hof.
+Una app libre para respiración, meditación y hábitos.

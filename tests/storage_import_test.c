@@ -13,6 +13,8 @@
 #include <unistd.h>
 
 static int g_failures = 0;
+static int g_seen_topic = -1;
+static int g_seen_activity = -1;
 
 void
 data_init(void)
@@ -94,6 +96,45 @@ write_source_database(const char *root)
     inbe_habit_set_day(&habits, 0, 20260613, 1);
     check_int("source sessions", inbe_storage_session_count(), 1);
     inbe_storage_close();
+}
+
+static void
+metadata_history_callback(const char *id, int year, int month, int day,
+                          int hour, int minute, int second,
+                          int topic, int activity,
+                          const int *rounds, int round_count, void *user)
+{
+    (void)id;
+    (void)year;
+    (void)month;
+    (void)day;
+    (void)hour;
+    (void)minute;
+    (void)second;
+    (void)rounds;
+    (void)round_count;
+    (void)user;
+    g_seen_topic = topic;
+    g_seen_activity = activity;
+}
+
+static void
+test_session_metadata(void)
+{
+    char root[512];
+    int rounds[] = {30, 45};
+
+    make_clean_root(root, sizeof(root), "metadata");
+    check_true("init metadata db", inbe_storage_init(root));
+    check_true("save metadata session",
+               inbe_storage_save_session_for_activity(rounds, 2, 2, 3, NULL, 0));
+    g_seen_topic = -1;
+    g_seen_activity = -1;
+    inbe_storage_list_history(metadata_history_callback, NULL);
+    check_int("metadata topic", g_seen_topic, 2);
+    check_int("metadata activity", g_seen_activity, 3);
+    inbe_storage_close();
+    remove_tree(root);
 }
 
 static void
@@ -184,6 +225,7 @@ main(void)
     test_raw_db_import();
     test_zip_db_import();
     test_legacy_zip_import();
+    test_session_metadata();
 
     if(g_failures != 0) {
         fprintf(stderr, "%d storage import test failure(s)\n", g_failures);

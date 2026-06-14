@@ -1,1 +1,1 @@
-A free, open-source guided breathing meditation app based on the Wim Hof method.
+A free, open-source app for breathing, meditation, and habit tracking.

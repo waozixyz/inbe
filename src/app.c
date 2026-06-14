@@ -55,7 +55,7 @@ InbeConfig config = {
 
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
-Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 
 #define LOCALE_FONT_PNG "assets/fonts/locales.png"
 
@@ -342,40 +342,44 @@ refresh_theme_colors(int theme_id, int dark_mode)
     (void)dark_mode;
     c_bg = lotus_alias_color("background");
     c_text = lotus_alias_color("text");
+    c_surface = lotus_alias_color("surface");
     c_circle = lotus_alias_color("circle");
     c_button = lotus_alias_color("button");
     c_button_hover = lotus_alias_color("button_hover");
     c_icon = lotus_alias_color("icon");
-    ui_set_colors(c_text, c_bg, c_circle, c_button, c_button_hover, c_icon);
+    ui_set_colors(c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon);
     return;
 #endif
     if (theme_id < 0 || theme_id >= THEME_COUNT)
         theme_id = ThemeSky;
 
-    const ThemeMeta *theme = &g_themes[theme_id];
-    const char *scope = dark_mode ? theme->dark_scope : theme->light_scope;
+    FlintThemeId theme = flint_theme_normalize(theme_id);
+    bool dark = dark_mode != 0;
+    Color bg;
+    Color surface;
+    Color text;
+    Color circle;
+    Color button;
+    Color button_hover;
+    Color icon;
 
-    Color bg = theme_get(scope, "background");
-    Color text = theme_get(scope, "text");
-    Color circle = theme_get(scope, "circle");
-    Color button = theme_get(scope, "button");
-    Color button_hover = theme_get(scope, "button_hover");
-    Color icon = theme_get(scope, "icon");
+    flint_theme_catalog_color(theme, dark, "background", &bg);
+    flint_theme_catalog_color(theme, dark, "surface", &surface);
+    flint_theme_catalog_color(theme, dark, "text", &text);
+    flint_theme_catalog_color(theme, dark, "circle", &circle);
+    flint_theme_catalog_color(theme, dark, "button", &button);
+    flint_theme_catalog_color(theme, dark, "button_hover", &button_hover);
+    flint_theme_catalog_color(theme, dark, "icon", &icon);
 
     c_bg = bg;
+    c_surface = surface;
     c_text = text;
     c_circle = circle;
     c_button = button;
     c_button_hover = button_hover;
     c_icon = icon;
 
-    ui_set_colors(text, bg, circle, button, button_hover, icon);
-}
-
-static void
-register_all_themes(void)
-{
-    flint_theme_register_defaults("flint/themes");
+    ui_set_colors(text, bg, surface, circle, button, button_hover, icon);
 }
 
 static void
@@ -389,7 +393,6 @@ load_config(void)
         config.title_custom = 0;
     }
 
-    register_all_themes();
     refresh_theme_colors(ThemeSky, 0);  /* Default: Sky light mode */
 
     config.loaded = 1;
@@ -754,6 +757,17 @@ inbe_app_init(void *vapp) {
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + 80);
     inbe_habits_init(&app->habits);
+    app->habits_view_mode = 0;
+    app->habits_list_scroll = 0;
+    app->habit_detail_index = -1;
+    app->habit_detail_day = 0;
+    app->habit_detail_session_index = -1;
+    app->habit_session_edit_active = 0;
+    app->habit_session_edit_kind = 0;
+    app->habit_session_edit_round = -1;
+    app->habit_session_edit_cursor = 0;
+    app->habit_session_edit_path[0] = '\0';
+    app->habit_session_edit_text[0] = '\0';
     init_audio(app);
     meditation_music_init(app);
     app->camera = (Camera2D){0};
@@ -1029,7 +1043,7 @@ static int
 draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
 {
     int hover = 0;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, &hover);
+    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
 }
 
 static void
@@ -1071,9 +1085,9 @@ draw_meditation_setup_modal(InbeApp *app)
         btn_w = flint_px(64);
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     title_w = flint_text_measure(locale_get("meditation_title"), title_font);
     flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
@@ -1098,7 +1112,7 @@ draw_meditation_setup_modal(InbeApp *app)
     cancel_x = modal_x + (modal_w - cancel_w) / 2;
     if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
                               locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
-                              &cancel_hover)) {
+                              0, &cancel_hover)) {
         app->modal.active = 0;
         app->modal.type = UIModalNone;
     }
@@ -1131,9 +1145,9 @@ draw_meditation_sound_controls(InbeApp *app)
             app->volume_popup_active = 0;
         }
 
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_button);
+        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_surface);
         ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
         if(ui_draw_slider_vertical(501, popup_x + popup_w / 2, popup_y + flint_px(10),
                                    popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
@@ -1458,9 +1472,9 @@ draw_practice_coming_soon_popout(InbeApp *app)
     if(popout_x + popout_w > view_width - flint_px(8))
         popout_x = view_width - flint_px(8) - popout_w;
 
-    DrawRectangle(popout_x, popout_y, popout_w, popout_h, c_button);
+    DrawRectangle(popout_x, popout_y, popout_w, popout_h, c_surface);
     ui_draw_bevel(popout_x, popout_y, popout_w, popout_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
     flint_text_draw(message, popout_x + pad_x,
                     flint_ui_text_y(message, popout_y, popout_h, font),
                     font, c_text);
@@ -1539,7 +1553,7 @@ draw_theme_circle_button(InbeApp *app, int x, int y, int radius, int theme_id)
 
     if(hovered) {
         app->cursor_clickable = 1;
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse))
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_input_captures_click(mouse))
             return 1;
     }
 
@@ -1617,9 +1631,9 @@ draw_practice_tabs_modal(InbeApp *app)
     modal_y = (view_height - modal_h) / 2;
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     title_w = flint_text_measure("Practice Tabs", title_font);
     flint_text_draw("Practice Tabs", modal_x + (modal_w - title_w) / 2,
@@ -1658,7 +1672,7 @@ draw_practice_tabs_modal(InbeApp *app)
             row_bg = flint_darken(c_button, 18);
             app->cursor_disabled = 1;
             coming_soon_y = row_y + row_h + flint_px(6);
-            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse))
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_input_captures_click(mouse))
                 app->practice_coming_soon_ticks = PRACTICE_CATEGORY_TOAST_TICKS;
         }
 
@@ -1713,9 +1727,9 @@ draw_practice_tabs_modal(InbeApp *app)
         if(coming_soon_y + popout_h > modal_y + modal_h - flint_px(12))
             coming_soon_y = modal_y + modal_h - popout_h - flint_px(12);
 
-        DrawRectangle(popout_x, coming_soon_y, popout_w, popout_h, c_button);
+        DrawRectangle(popout_x, coming_soon_y, popout_w, popout_h, c_surface);
         ui_draw_bevel(popout_x, coming_soon_y, popout_w, popout_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
         flint_text_draw(message, popout_x + pad_x,
                         flint_ui_text_y(message, coming_soon_y, popout_h, font),
                         font, c_text);
@@ -1758,9 +1772,9 @@ draw_practice_theme_modal(InbeApp *app)
     modal_y = (view_height - modal_h) / 2;
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     snprintf(title, sizeof(title), "%s Theme", g_practice_category_labels[tab]);
     title_w = flint_text_measure(title, title_font);
@@ -2075,6 +2089,907 @@ draw_habit_edit_field(InbeApp *app, int x, int y, int w, int h, int font)
                              font, style);
 }
 
+enum {
+    HABITS_VIEW_CALENDAR = 0,
+    HABITS_VIEW_LINKED = 1,
+    HABIT_SESSION_EDIT_NONE = 0,
+    HABIT_SESSION_EDIT_TIME = 1,
+    HABIT_SESSION_EDIT_ROUND = 2,
+    HABIT_LINKED_ENTRY_MAX = 128
+};
+
+typedef struct HabitLinkedEntry {
+    char path[FS_PATH_MAX];
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+    int rounds[MaxRounds];
+    int round_count;
+    int total_seconds;
+    int best_seconds;
+} HabitLinkedEntry;
+
+typedef struct HabitLinkedContext {
+    HabitLinkedEntry entries[HABIT_LINKED_ENTRY_MAX];
+    int count;
+    int day_filter;
+    int sync_mode;
+    int sync_topic;
+    int sync_activity;
+    int total_seconds;
+    int best_seconds;
+} HabitLinkedContext;
+
+static int
+habit_is_linked(const InbeHabit *habit)
+{
+    return habit != NULL && habit->sync_mode != INBE_HABIT_SYNC_NONE;
+}
+
+static int
+habit_date_index(int year, int month, int day)
+{
+    return year * 10000 + month * 100 + day;
+}
+
+static void
+habit_format_date(int day_index, char *out, size_t out_size)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    snprintf(out, out_size, "%04d-%02d-%02d",
+             day_index / 10000, (day_index / 100) % 100, day_index % 100);
+}
+
+static const char *
+habit_month_label(int month)
+{
+    static const char *months[] = {
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    };
+
+    if(month < 1 || month > 12)
+        return "";
+    return months[month - 1];
+}
+
+static void
+habit_linked_history_callback(const char *path, int year, int month, int day,
+                              int hour, int minute, int second,
+                              int topic, int activity,
+                              const int *round_times, int round_count, void *user)
+{
+    HabitLinkedContext *ctx = user;
+    HabitLinkedEntry *entry;
+    int day_index = habit_date_index(year, month, day);
+
+    (void)path;
+    if(ctx == NULL || round_times == NULL || round_count <= 0)
+        return;
+    if(ctx->day_filter > 0 && ctx->day_filter != day_index)
+        return;
+    if(ctx->sync_mode == INBE_HABIT_SYNC_TOPIC && topic != ctx->sync_topic)
+        return;
+    if(ctx->sync_mode == INBE_HABIT_SYNC_ACTIVITY && activity != ctx->sync_activity)
+        return;
+    if(ctx->count >= HABIT_LINKED_ENTRY_MAX)
+        return;
+
+    entry = &ctx->entries[ctx->count++];
+    memset(entry, 0, sizeof(*entry));
+    snprintf(entry->path, sizeof(entry->path), "%s", path != NULL ? path : "");
+    entry->year = year;
+    entry->month = month;
+    entry->day = day;
+    entry->hour = hour;
+    entry->minute = minute;
+    entry->second = second;
+    entry->round_count = round_count > MaxRounds ? MaxRounds : round_count;
+    for(int i = 0; i < entry->round_count; i++) {
+        entry->rounds[i] = round_times[i];
+        entry->total_seconds += round_times[i];
+        if(round_times[i] > entry->best_seconds)
+            entry->best_seconds = round_times[i];
+    }
+    ctx->total_seconds += entry->total_seconds;
+    if(entry->best_seconds > ctx->best_seconds)
+        ctx->best_seconds = entry->best_seconds;
+}
+
+static void
+habit_collect_linked_entries(const InbeHabit *habit, int day_filter, HabitLinkedContext *ctx)
+{
+    if(ctx == NULL)
+        return;
+    memset(ctx, 0, sizeof(*ctx));
+    ctx->day_filter = day_filter;
+    ctx->sync_mode = habit != NULL ? habit->sync_mode : INBE_HABIT_SYNC_NONE;
+    ctx->sync_topic = habit != NULL ? habit->sync_topic : INBE_HABIT_TOPIC_MIND;
+    ctx->sync_activity = habit != NULL ? habit->sync_activity : EXERCISE_WIM_HOF;
+    data_list_history(habit_linked_history_callback, ctx);
+}
+
+static int
+habit_linked_has_day(const HabitLinkedContext *ctx, int day_index)
+{
+    if(ctx == NULL)
+        return 0;
+    for(int i = 0; i < ctx->count; i++) {
+        if(habit_date_index(ctx->entries[i].year, ctx->entries[i].month, ctx->entries[i].day) == day_index)
+            return 1;
+    }
+    return 0;
+}
+
+static void
+habit_open_linked_details(InbeApp *app, int habit_index, int day_index)
+{
+    if(app == NULL)
+        return;
+    app->habit_detail_index = habit_index;
+    app->habit_detail_day = day_index;
+    app->habit_detail_session_index = -1;
+    app->habit_session_edit_active = 0;
+    app->habit_session_edit_kind = HABIT_SESSION_EDIT_NONE;
+    app->habit_session_edit_round = -1;
+    app->habit_session_edit_path[0] = '\0';
+    app->habit_session_edit_text[0] = '\0';
+    app->modal.active = 1;
+    app->modal.type = UIModalHabitLinkedDetails;
+}
+
+static void
+habit_session_cancel_edit(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->habit_session_edit_active = 0;
+    app->habit_session_edit_kind = HABIT_SESSION_EDIT_NONE;
+    app->habit_session_edit_round = -1;
+    app->habit_session_edit_cursor = 0;
+    app->habit_session_edit_path[0] = '\0';
+    app->habit_session_edit_text[0] = '\0';
+}
+
+static int
+habit_session_edit_matches(InbeApp *app, const HabitLinkedEntry *entry, int kind, int round)
+{
+    return app != NULL && entry != NULL &&
+           app->habit_session_edit_active &&
+           app->habit_session_edit_kind == kind &&
+           app->habit_session_edit_round == round &&
+           strcmp(app->habit_session_edit_path, entry->path) == 0;
+}
+
+static void
+habit_session_begin_edit_time(InbeApp *app, const HabitLinkedEntry *entry)
+{
+    if(app == NULL || entry == NULL)
+        return;
+    app->habit_session_edit_active = 1;
+    app->habit_session_edit_kind = HABIT_SESSION_EDIT_TIME;
+    app->habit_session_edit_round = -1;
+    snprintf(app->habit_session_edit_path, sizeof(app->habit_session_edit_path), "%s", entry->path);
+    snprintf(app->habit_session_edit_text, sizeof(app->habit_session_edit_text), "%02d:%02d",
+             entry->hour, entry->minute);
+    app->habit_session_edit_cursor = (int)strlen(app->habit_session_edit_text);
+}
+
+static void
+habit_session_begin_edit_round(InbeApp *app, const HabitLinkedEntry *entry, int round)
+{
+    if(app == NULL || entry == NULL || round < 0 || round >= entry->round_count)
+        return;
+    app->habit_session_edit_active = 1;
+    app->habit_session_edit_kind = HABIT_SESSION_EDIT_ROUND;
+    app->habit_session_edit_round = round;
+    snprintf(app->habit_session_edit_path, sizeof(app->habit_session_edit_path), "%s", entry->path);
+    snprintf(app->habit_session_edit_text, sizeof(app->habit_session_edit_text), "%d",
+             entry->rounds[round]);
+    app->habit_session_edit_cursor = (int)strlen(app->habit_session_edit_text);
+}
+
+static int
+habit_session_parse_time(const char *text, int *hour, int *minute)
+{
+    int h;
+    int m;
+    char tail;
+
+    if(text == NULL || sscanf(text, "%d:%d%c", &h, &m, &tail) != 2)
+        return 0;
+    if(h < 0 || h > 23 || m < 0 || m > 59)
+        return 0;
+    if(hour != NULL)
+        *hour = h;
+    if(minute != NULL)
+        *minute = m;
+    return 1;
+}
+
+static int
+habit_session_parse_seconds(const char *text, int *seconds)
+{
+    int value;
+    char tail;
+
+    if(text == NULL || sscanf(text, "%d%c", &value, &tail) != 1)
+        return 0;
+    if(value <= 0 || value > 999)
+        return 0;
+    if(seconds != NULL)
+        *seconds = value;
+    return 1;
+}
+
+static int
+habit_session_commit_edit(InbeApp *app, const HabitLinkedEntry *entry)
+{
+    if(app == NULL || entry == NULL || !app->habit_session_edit_active)
+        return 0;
+
+    if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME) {
+        int hour;
+        int minute;
+        char new_path[FS_PATH_MAX];
+        char dir[FS_PATH_MAX];
+        char *slash;
+
+        if(!habit_session_parse_time(app->habit_session_edit_text, &hour, &minute))
+            return 0;
+        snprintf(dir, sizeof(dir), "%s", entry->path);
+        slash = strrchr(dir, '/');
+        if(slash == NULL) {
+            snprintf(new_path, sizeof(new_path), "inbe-%02d%02d%02d",
+                     hour, minute, entry->second);
+        } else {
+            *slash = '\0';
+            snprintf(new_path, sizeof(new_path), "%s/inbe-%02d%02d%02d",
+                     dir, hour, minute, entry->second);
+        }
+        if(!data_rename_session(entry->path, new_path))
+            return 0;
+        habit_session_cancel_edit(app);
+        return 1;
+    }
+
+    if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_ROUND) {
+        int seconds;
+        int rounds[MaxRounds];
+
+        if(app->habit_session_edit_round < 0 ||
+           app->habit_session_edit_round >= entry->round_count)
+            return 0;
+        if(!habit_session_parse_seconds(app->habit_session_edit_text, &seconds))
+            return 0;
+        for(int i = 0; i < entry->round_count; i++)
+            rounds[i] = entry->rounds[i];
+        rounds[app->habit_session_edit_round] = seconds;
+        if(!data_replace_session(entry->path, rounds, entry->round_count))
+            return 0;
+        habit_session_cancel_edit(app);
+        return 1;
+    }
+
+    return 0;
+}
+
+static void
+habit_session_clamp_cursor(InbeApp *app)
+{
+    int len;
+
+    if(app == NULL)
+        return;
+    len = (int)strlen(app->habit_session_edit_text);
+    if(app->habit_session_edit_cursor < 0)
+        app->habit_session_edit_cursor = 0;
+    if(app->habit_session_edit_cursor > len)
+        app->habit_session_edit_cursor = len;
+}
+
+static void
+habit_session_delete_before_cursor(InbeApp *app)
+{
+    size_t len;
+    int cursor;
+
+    if(app == NULL)
+        return;
+    habit_session_clamp_cursor(app);
+    len = strlen(app->habit_session_edit_text);
+    cursor = app->habit_session_edit_cursor;
+    if(cursor <= 0 || len == 0)
+        return;
+    memmove(app->habit_session_edit_text + cursor - 1,
+            app->habit_session_edit_text + cursor,
+            len - (size_t)cursor + 1);
+    app->habit_session_edit_cursor--;
+}
+
+static void
+habit_session_insert_char(InbeApp *app, char c)
+{
+    size_t len;
+    int max_len;
+    int cursor;
+
+    if(app == NULL)
+        return;
+    habit_session_clamp_cursor(app);
+    len = strlen(app->habit_session_edit_text);
+    max_len = app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME ? 5 : 3;
+    cursor = app->habit_session_edit_cursor;
+
+    if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
+       c >= '0' && c <= '9' &&
+       cursor < (int)len &&
+       app->habit_session_edit_text[cursor] == ':') {
+        cursor++;
+        app->habit_session_edit_cursor = cursor;
+    }
+
+    if(len < (size_t)max_len) {
+        memmove(app->habit_session_edit_text + cursor + 1,
+                app->habit_session_edit_text + cursor,
+                len - (size_t)cursor + 1);
+        app->habit_session_edit_text[cursor] = c;
+        app->habit_session_edit_cursor = cursor + 1;
+        return;
+    }
+
+    if(cursor < (int)len) {
+        if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
+           app->habit_session_edit_text[cursor] == ':' &&
+           c != ':')
+            return;
+        app->habit_session_edit_text[cursor] = c;
+        app->habit_session_edit_cursor = cursor + 1;
+    }
+}
+
+static int
+habit_session_edit_cursor_from_x(const char *text, int font, int text_x, int target_x)
+{
+    int len;
+    char prefix[16];
+
+    if(text == NULL || target_x <= text_x)
+        return 0;
+    len = (int)strlen(text);
+    for(int i = 0; i < len; i++) {
+        int left_w;
+        int right_w;
+        snprintf(prefix, sizeof(prefix), "%.*s", i, text);
+        left_w = flint_text_measure(prefix, font);
+        snprintf(prefix, sizeof(prefix), "%.*s", i + 1, text);
+        right_w = flint_text_measure(prefix, font);
+        if(target_x < text_x + (left_w + right_w) / 2)
+            return i;
+    }
+    return len;
+}
+
+static void
+habit_session_update_edit_input(InbeApp *app, const HabitLinkedEntry *entry,
+                                int field_x, int field_y, int field_w, int field_h,
+                                int text_x, int font)
+{
+    int ch;
+
+    if(app == NULL || !app->habit_session_edit_active)
+        return;
+    habit_session_clamp_cursor(app);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+        int mx = (int)mouse_world.x;
+        int my = (int)mouse_world.y;
+        if(mx >= field_x && mx <= field_x + field_w &&
+           my >= field_y && my <= field_y + field_h) {
+            app->habit_session_edit_cursor = habit_session_edit_cursor_from_x(
+                app->habit_session_edit_text, font, text_x, mx);
+        }
+    }
+
+    if(IsKeyPressed(KEY_ESCAPE)) {
+        habit_session_cancel_edit(app);
+        return;
+    }
+    if(IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+        habit_session_commit_edit(app, entry);
+        return;
+    }
+    if(IsKeyPressed(KEY_LEFT))
+        app->habit_session_edit_cursor--;
+    if(IsKeyPressed(KEY_RIGHT))
+        app->habit_session_edit_cursor++;
+    if(IsKeyPressed(KEY_HOME))
+        app->habit_session_edit_cursor = 0;
+    if(IsKeyPressed(KEY_END))
+        app->habit_session_edit_cursor = (int)strlen(app->habit_session_edit_text);
+    habit_session_clamp_cursor(app);
+
+    if(IsKeyPressed(KEY_BACKSPACE))
+        habit_session_delete_before_cursor(app);
+
+    ch = GetCharPressed();
+    while(ch > 0) {
+        int allowed = 0;
+        if(ch >= '0' && ch <= '9')
+            allowed = 1;
+        if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME && ch == ':')
+            allowed = 1;
+        if(allowed)
+            habit_session_insert_char(app, (char)ch);
+        ch = GetCharPressed();
+    }
+}
+
+static void
+habit_session_draw_edit_field(InbeApp *app, const HabitLinkedEntry *entry,
+                              int x, int y, int w, int h, int font)
+{
+    FlintUITextInputStyle style = {
+        .background = flint_darken(c_bg, 10),
+        .border = c_button,
+        .focus_border = c_button_hover,
+        .text = c_text,
+        .cursor = c_text,
+        .radius = 0.08f,
+        .padding_x = flint_px(8)
+    };
+
+    habit_session_update_edit_input(app, entry, x, y + flint_px(3), w, h - flint_px(6),
+                                    x + flint_px(8), font);
+    if(app == NULL || !app->habit_session_edit_active)
+        return;
+    flint_ui_draw_text_input((Rectangle){(float)x, (float)(y + flint_px(3)),
+                                         (float)w, (float)(h - flint_px(6))},
+                             app->habit_session_edit_text,
+                             app->habit_session_edit_cursor,
+                             1, (app->inbe.frame / 24) % 2,
+                             font, style);
+}
+
+static int
+habit_session_keyboard_key(InbeApp *app, int x, int y, int w, int h, const char *label)
+{
+    int hover = 0;
+    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_SECONDARY, 0, &hover);
+}
+
+static int
+habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
+{
+    const char *labels[12] = {
+        "1", "2", "3",
+        "4", "5", "6",
+        "7", "8", "9",
+        "DEL", "0", "OK"
+    };
+    int key_h = flint_px(48);
+    int gap = flint_px(6);
+    int pad = flint_px(10);
+    int keyboard_h = pad * 2 + key_h * 4 + gap * 3;
+    int x = flint_page_side_padding();
+    int y = view_height - keyboard_h;
+    int w = view_width - x * 2;
+    int key_w = (w - gap * 2) / 3;
+
+#if !(defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID))
+    if(app == NULL || !app->on_screen_keyboard_enabled)
+        return 0;
+#endif
+    if(app == NULL || !app->habit_session_edit_active)
+        return 0;
+
+    DrawRectangle(0, y, view_width, keyboard_h, flint_darken(c_bg, 10));
+    DrawLine(0, y, view_width, y, flint_darken(c_bg, 42));
+
+    for(int i = 0; i < 12; i++) {
+        int col = i % 3;
+        int row = i / 3;
+        int key_x = x + col * (key_w + gap);
+        int key_y = y + pad + row * (key_h + gap);
+        if(habit_session_keyboard_key(app, key_x, key_y, key_w, key_h, labels[i])) {
+            if(i == 9) {
+                habit_session_delete_before_cursor(app);
+            } else if(i == 11) {
+                if(habit_session_commit_edit(app, entry))
+                    return 1;
+            } else {
+                habit_session_insert_char(app, labels[i][0]);
+            }
+        }
+    }
+
+    return 0;
+}
+
+static int
+habit_session_delete_round(const HabitLinkedEntry *entry, int round)
+{
+    int rounds[MaxRounds];
+    int count = 0;
+
+    if(entry == NULL || round < 0 || round >= entry->round_count)
+        return 0;
+    if(entry->round_count <= 1)
+        return data_delete_session(entry->path);
+    for(int i = 0; i < entry->round_count; i++) {
+        if(i == round)
+            continue;
+        rounds[count++] = entry->rounds[i];
+    }
+    return data_replace_session(entry->path, rounds, count);
+}
+
+static void
+draw_habit_view_button(InbeApp *app)
+{
+    int stack_icon_size = flint_px(20);
+    int stack_padding = flint_px(8);
+    int stack_w = stack_icon_size + stack_padding * 2;
+    int button_w = flint_px(68);
+    int button_h = flint_px(34);
+    int button_x = view_width - stack_w - flint_px(10) - button_w - flint_px(8);
+    int button_y = (flint_px(58) - button_h) / 2;
+    int hover = 0;
+
+    if(app == NULL || app->modal.active)
+        return;
+    if(button_x < flint_px(92))
+        return;
+
+    if(ui_draw_generic_button(button_x, button_y, button_w, button_h, "View",
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+        app->habits_view_mode = app->habits_view_mode == HABITS_VIEW_CALENDAR
+                                    ? HABITS_VIEW_LINKED
+                                    : HABITS_VIEW_CALENDAR;
+        app->habits_list_scroll = 0;
+    }
+}
+
+static void
+draw_habit_linked_details_modal(InbeApp *app)
+{
+    HabitLinkedContext ctx;
+    InbeHabit *habit;
+    char title[96];
+    char date_text[32];
+    int modal_w = flint_px(350);
+    int modal_h = flint_px(330);
+    int modal_x;
+    int modal_y;
+    int y;
+    int close_size = flint_px(22);
+    int close_padding = flint_px(8);
+    int close_hover = 0;
+    int title_font = flint_px(18);
+    int title_w;
+    int row_h = flint_px(28);
+
+    if(app == NULL || !app->modal.active || app->modal.type != UIModalHabitLinkedDetails)
+        return;
+    if(app->habit_detail_index < 0 || app->habit_detail_index >= app->habits.count) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+        return;
+    }
+
+    habit = &app->habits.items[app->habit_detail_index];
+    habit_collect_linked_entries(habit, app->habit_detail_day, &ctx);
+    habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
+
+    if(modal_w > view_width - flint_px(24))
+        modal_w = view_width - flint_px(24);
+    if(modal_h > view_height - flint_px(24))
+        modal_h = view_height - flint_px(24);
+    modal_x = (view_width - modal_w) / 2;
+    modal_y = (view_height - modal_h) / 2;
+
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
+
+    snprintf(title, sizeof(title), "%s", habit->name);
+    title_w = flint_text_measure(title, title_font);
+    flint_text_draw(title, modal_x + (modal_w - title_w) / 2,
+                    modal_y + flint_px(14), title_font, c_text);
+
+    if(ui_draw_icon_btn_padded(modal_x + modal_w - close_size - close_padding * 2 - flint_px(6),
+                               modal_y + flint_px(6), close_size, close_padding,
+                               app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+        return;
+    }
+
+    y = modal_y + flint_px(54);
+    flint_text_draw(date_text, modal_x + flint_px(18), y,
+                    flint_ui_font_small(), flint_darken(c_text, 36));
+    y += flint_px(26);
+
+    if(ctx.count <= 0) {
+        int button_w = modal_w - flint_px(36);
+        int hover_mark = 0;
+        const char *button_label = inbe_habit_completed_day(habit, app->habit_detail_day)
+                                       ? "Mark incomplete"
+                                       : "Mark completed";
+        flint_text_draw("No sessions", modal_x + flint_px(18), y,
+                        flint_ui_font(), c_text);
+        y += flint_px(34);
+        if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, row_h,
+                                  button_label, UI_BUTTON_STYLE_SECONDARY,
+                                  0, &hover_mark)) {
+            inbe_habit_toggle_day(&app->habits, app->habit_detail_index, app->habit_detail_day);
+        }
+        return;
+    }
+
+    {
+        char summary[128];
+        snprintf(summary, sizeof(summary), "%d session%s  Best %ds  Total %dm",
+                 ctx.count, ctx.count == 1 ? "" : "s", ctx.best_seconds,
+                 ctx.total_seconds / 60);
+        flint_text_draw(summary, modal_x + flint_px(18), y,
+                        flint_ui_font(), c_text);
+        y += flint_px(34);
+    }
+
+    for(int i = 0; i < ctx.count && y + row_h < modal_y + modal_h - flint_px(14); i++) {
+        char line[128];
+        int icon_size = flint_px(18);
+        int icon_padding = flint_px(6);
+        int icon_w = icon_size + icon_padding * 2;
+        int right_x = modal_x + modal_w - flint_px(14) - icon_w;
+        int label_w = modal_w - flint_px(42) - icon_w * 2 - flint_px(6);
+        int edit_time = habit_session_edit_matches(app, &ctx.entries[i],
+                                                   HABIT_SESSION_EDIT_TIME, -1);
+        int hover = 0;
+        if(label_w < flint_px(120))
+            label_w = flint_px(120);
+        snprintf(line, sizeof(line), "%02d:%02d  %d rounds  best %ds",
+                 ctx.entries[i].hour, ctx.entries[i].minute,
+                 ctx.entries[i].round_count, ctx.entries[i].best_seconds);
+
+        if(edit_time) {
+            habit_session_draw_edit_field(app, &ctx.entries[i],
+                                          modal_x + flint_px(14), y,
+                                          label_w, row_h, flint_ui_font_small());
+            if(ui_draw_icon_btn_padded(right_x - icon_w - flint_px(6), y,
+                                       icon_size, icon_padding,
+                                       app->save_icon, UI_ICON_TYPE_SAVE, &hover)) {
+                habit_session_commit_edit(app, &ctx.entries[i]);
+                return;
+            }
+        } else {
+            if(flint_ui_button((FlintUIButton){
+                    .bounds = {(float)(modal_x + flint_px(14)), (float)y,
+                               (float)label_w, (float)row_h},
+                    .label = line,
+                    .font = flint_ui_font_small(),
+                    .background = app->habit_detail_session_index == i
+                                      ? flint_lighten(c_button, 8)
+                                      : flint_darken(c_bg, 5),
+                    .hover_background = c_button,
+                    .text = c_text,
+                    .border = flint_darken(c_button, 24),
+                    .radius = 0.08f
+                })) {
+                app->habit_detail_session_index = app->habit_detail_session_index == i ? -1 : i;
+            }
+            if(ui_draw_icon_btn_padded(right_x - icon_w - flint_px(6), y,
+                                       icon_size, icon_padding,
+                                       app->pencil_icon, UI_ICON_TYPE_PENCIL, &hover)) {
+                habit_session_begin_edit_time(app, &ctx.entries[i]);
+                app->habit_detail_session_index = i;
+            }
+        }
+        if(ui_draw_icon_btn_padded(right_x, y, icon_size, icon_padding,
+                                   app->trash_icon, UI_ICON_TYPE_TRASH, &hover)) {
+            data_delete_session(ctx.entries[i].path);
+            habit_session_cancel_edit(app);
+            app->habit_detail_session_index = -1;
+            return;
+        }
+        y += row_h + flint_px(6);
+
+        if(app->habit_detail_session_index == i) {
+            for(int r = 0; r < ctx.entries[i].round_count &&
+                y + row_h < modal_y + modal_h - flint_px(14); r++) {
+                char round_line[64];
+                int edit_round = habit_session_edit_matches(app, &ctx.entries[i],
+                                                            HABIT_SESSION_EDIT_ROUND, r);
+                snprintf(round_line, sizeof(round_line), "Round %d  %ds",
+                         r + 1, ctx.entries[i].rounds[r]);
+                DrawRectangle(modal_x + flint_px(28), y,
+                              modal_w - flint_px(42), row_h,
+                              flint_darken(c_bg, 2));
+                if(edit_round) {
+                    habit_session_draw_edit_field(app, &ctx.entries[i],
+                                                  modal_x + flint_px(40), y,
+                                                  label_w - flint_px(26), row_h,
+                                                  flint_ui_font_small());
+                    if(ui_draw_icon_btn_padded(right_x - icon_w - flint_px(6), y,
+                                               icon_size, icon_padding,
+                                               app->save_icon, UI_ICON_TYPE_SAVE, &hover)) {
+                        habit_session_commit_edit(app, &ctx.entries[i]);
+                        return;
+                    }
+                } else {
+                    flint_text_draw(round_line, modal_x + flint_px(40),
+                                    flint_ui_text_y(round_line, y, row_h, flint_ui_font_small()),
+                                    flint_ui_font_small(), c_text);
+                    if(ui_draw_icon_btn_padded(right_x - icon_w - flint_px(6), y,
+                                               icon_size, icon_padding,
+                                               app->pencil_icon, UI_ICON_TYPE_PENCIL, &hover)) {
+                        habit_session_begin_edit_round(app, &ctx.entries[i], r);
+                    }
+                }
+                if(ui_draw_icon_btn_padded(right_x, y, icon_size, icon_padding,
+                                           app->trash_icon, UI_ICON_TYPE_TRASH, &hover)) {
+                    habit_session_delete_round(&ctx.entries[i], r);
+                    habit_session_cancel_edit(app);
+                    return;
+                }
+                y += row_h + flint_px(4);
+            }
+        }
+    }
+
+    if(app->habit_session_edit_active && app->habit_detail_session_index >= 0 &&
+       app->habit_detail_session_index < ctx.count)
+        habit_session_draw_keyboard(app, &ctx.entries[app->habit_detail_session_index]);
+}
+
+static int
+draw_habits_linked_view(InbeApp *app, InbeHabit *habit, int content_x, int content_w, int y, int draw)
+{
+    HabitLinkedContext ctx;
+    int row_h = flint_px(34);
+    int current_year = -1;
+    int current_month = -1;
+    int current_day = -1;
+
+    if(app == NULL || habit == NULL)
+        return y;
+
+    if(!habit_is_linked(habit)) {
+        if(habit->day_count <= 0) {
+            if(draw)
+                flint_text_draw("No journal entries yet", content_x, y, flint_ui_font(), c_text);
+            return y + row_h;
+        }
+        for(int i = habit->day_count - 1; i >= 0; i--) {
+            char label[64];
+            int day_index = habit->days[i].day_index;
+            int year = day_index / 10000;
+            int month = (day_index / 100) % 100;
+            int day = day_index % 100;
+            int hover = 0;
+
+            if(!habit->days[i].completed)
+                continue;
+            if(year != current_year) {
+                snprintf(label, sizeof(label), "%04d", year);
+                if(draw)
+                    flint_text_draw(label, content_x, y, flint_ui_font(), c_text);
+                y += row_h;
+                current_year = year;
+                current_month = -1;
+            }
+            if(month != current_month) {
+                snprintf(label, sizeof(label), "%s", habit_month_label(month));
+                if(draw)
+                    flint_text_draw(label, content_x + flint_px(14), y,
+                                    flint_ui_font(), c_text);
+                y += row_h;
+                current_month = month;
+            }
+            snprintf(label, sizeof(label), "%02d", day);
+            if(draw)
+                flint_text_draw(label, content_x + flint_px(28), y,
+                                flint_ui_font(), c_text);
+            y += flint_px(26);
+            if(draw && ui_draw_generic_button(content_x + flint_px(48), y, content_w - flint_px(48),
+                                              row_h, "Mark incomplete", UI_BUTTON_STYLE_SECONDARY,
+                                              0, &hover))
+                inbe_habit_toggle_day(&app->habits, app->habits.selected, day_index);
+            y += row_h + flint_px(4);
+        }
+        return y;
+    }
+
+    habit_collect_linked_entries(habit, 0, &ctx);
+    if(ctx.count <= 0) {
+        int today_index = inbe_habits_today_index();
+        int year = today_index / 10000;
+        int month = (today_index / 100) % 100;
+        int day = today_index % 100;
+        int hover = 0;
+        char label[64];
+        const char *button_label = inbe_habit_completed_day(habit, today_index)
+                                       ? "Mark incomplete"
+                                       : "Mark completed";
+
+        if(draw)
+            flint_text_draw("No sessions yet", content_x, y, flint_ui_font(), c_text);
+        y += row_h;
+        snprintf(label, sizeof(label), "%04d", year);
+        if(draw)
+            flint_text_draw(label, content_x, y, flint_ui_font(), c_text);
+        y += row_h;
+        snprintf(label, sizeof(label), "%s", habit_month_label(month));
+        if(draw)
+            flint_text_draw(label, content_x + flint_px(14), y, flint_ui_font(), c_text);
+        y += row_h;
+        snprintf(label, sizeof(label), "%02d", day);
+        if(draw)
+            flint_text_draw(label, content_x + flint_px(28), y, flint_ui_font(), c_text);
+        y += flint_px(26);
+        if(draw && ui_draw_generic_button(content_x + flint_px(48), y,
+                                          content_w - flint_px(48), row_h,
+                                          button_label, UI_BUTTON_STYLE_SECONDARY,
+                                          0, &hover)) {
+            inbe_habit_toggle_day(&app->habits, app->habits.selected, today_index);
+        }
+        return y + row_h + flint_px(4);
+    }
+
+    for(int i = 0; i < ctx.count; i++) {
+        char label[128];
+        int day_index = habit_date_index(ctx.entries[i].year, ctx.entries[i].month, ctx.entries[i].day);
+        int hover = 0;
+
+        if(ctx.entries[i].year != current_year) {
+            snprintf(label, sizeof(label), "%04d", ctx.entries[i].year);
+            if(draw)
+                flint_text_draw(label, content_x, y, flint_ui_font(), c_text);
+            y += row_h;
+            current_year = ctx.entries[i].year;
+            current_month = -1;
+            current_day = -1;
+        }
+        if(ctx.entries[i].month != current_month) {
+            snprintf(label, sizeof(label), "%s", habit_month_label(ctx.entries[i].month));
+            if(draw)
+                flint_text_draw(label, content_x + flint_px(14), y,
+                                flint_ui_font(), c_text);
+            y += row_h;
+            current_month = ctx.entries[i].month;
+            current_day = -1;
+        }
+        if(ctx.entries[i].day != current_day) {
+            snprintf(label, sizeof(label), "%02d", ctx.entries[i].day);
+            if(draw)
+                flint_text_draw(label, content_x + flint_px(28), y,
+                                flint_ui_font(), c_text);
+            y += flint_px(26);
+            current_day = ctx.entries[i].day;
+        }
+
+        snprintf(label, sizeof(label), "%02d:%02d  %d rounds  best %ds",
+                 ctx.entries[i].hour, ctx.entries[i].minute,
+                 ctx.entries[i].round_count, ctx.entries[i].best_seconds);
+        if(draw && ui_draw_generic_button(content_x + flint_px(48), y,
+                                          content_w - flint_px(48), flint_px(30),
+                                          label, UI_BUTTON_STYLE_SECONDARY,
+                                          0, &hover)) {
+            habit_open_linked_details(app, app->habits.selected, day_index);
+        }
+        y += flint_px(34);
+    }
+
+    return y;
+}
+
 static void
 draw_habits_screen(InbeApp *app)
 {
@@ -2106,8 +3021,12 @@ draw_habits_screen(InbeApp *app)
     int cell_h;
     int grid_x;
     int grid_y;
+    HabitLinkedContext linked_ctx;
+    int active_is_linked;
+    int forward_disabled;
 
     draw_app_title_bar(title);
+    draw_habit_view_button(app);
     draw_habits_manager_button(app);
 
     if(app == NULL)
@@ -2134,7 +3053,7 @@ draw_habits_screen(InbeApp *app)
         if(ui_draw_generic_button(content_x + (content_w - button_w) / 2,
                                   empty_y + flint_px(38), button_w, button_h,
                                   create_text, UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_empty_create)) {
+                                  0, &hover_empty_create)) {
             habit_edit_begin_new(app);
         }
         EndScissorMode();
@@ -2145,6 +3064,12 @@ draw_habits_screen(InbeApp *app)
 
     selected = app->habits.selected;
     active = &app->habits.items[selected];
+    active_is_linked = habit_is_linked(active);
+    if(active_is_linked)
+        habit_collect_linked_entries(active, 0, &linked_ctx);
+
+    if(app->habits.month_offset > 0)
+        app->habits.month_offset = 0;
 
     now = time(NULL);
     {
@@ -2176,25 +3101,59 @@ draw_habits_screen(InbeApp *app)
                      (int)(view_width * app->camera.zoom),
                      (int)(viewport_h * app->camera.zoom));
 
-    DrawRectangle(content_x, y, content_w, selected_h, flint_darken(c_bg, 6));
-    ui_draw_bevel(content_x, y, content_w, selected_h,
-                  flint_lighten(c_button, 24), flint_darken(c_button, 24));
-    DrawRectangle(content_x, y, flint_px(6), selected_h, active->color);
-    flint_text_draw(active->name,
-                    content_x + flint_px(16),
-                    flint_ui_text_y(active->name, y, selected_h, flint_ui_font()),
-                    flint_ui_font(), c_text);
+    if(app->habits.count > 1) {
+        DrawRectangle(content_x, y, content_w, selected_h, flint_darken(c_bg, 6));
+        ui_draw_bevel(content_x, y, content_w, selected_h,
+                      flint_lighten(c_button, 24), flint_darken(c_button, 24));
+        DrawRectangle(content_x, y, flint_px(6), selected_h, active->color);
+        flint_text_draw(active->name,
+                        content_x + flint_px(16),
+                        flint_ui_text_y(active->name, y, selected_h, flint_ui_font()),
+                        flint_ui_font(), c_text);
 
-    y += selected_h + flint_px(8);
+        y += selected_h + flint_px(8);
+    }
+
+    if(app->habits_view_mode == HABITS_VIEW_LINKED) {
+        int list_y = y + flint_px(8);
+        int list_view_h = top_h + viewport_h - list_y - flint_px(8);
+        int list_content_h = draw_habits_linked_view(app, active, content_x, content_w, list_y, 0) - list_y;
+        FlintUIScrollArea scroll_area;
+        FlintUIScrollView scroll_view;
+
+        if(list_view_h < 1)
+            list_view_h = 1;
+        EndScissorMode();
+
+        scroll_area = (FlintUIScrollArea){
+            .bounds = {(float)content_x, (float)list_y, (float)content_w, (float)list_view_h},
+            .content_height = list_content_h,
+            .scroll_offset = &app->habits_list_scroll,
+            .wheel_step = flint_px(42)
+        };
+
+        ui_set_input_blocked(app->modal.active);
+        scroll_view = ui_scroll_container_begin(scroll_area);
+        draw_habits_linked_view(app, active, scroll_view.content_x, scroll_view.content_w,
+                                scroll_view.content_y, 1);
+        ui_scroll_container_end(scroll_area, scroll_view);
+        ui_set_input_blocked(0);
+        draw_habit_linked_details_modal(app);
+        return;
+    }
 
     y += flint_px(10);
 
+    forward_disabled = app->habits.month_offset >= 0;
+    ui_set_input_blocked(app->modal.active);
     if(ui_draw_generic_button(content_x, y, flint_px(44), month_h, "<",
-                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         app->habits.month_offset--;
     }
-    if(ui_draw_generic_button(content_x + content_w - flint_px(44), y, flint_px(44), month_h, ">",
-                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
+    if(ui_draw_generic_button(content_x + content_w - flint_px(44), y,
+                                     flint_px(44), month_h, ">",
+                                     UI_BUTTON_STYLE_SECONDARY,
+                                     forward_disabled, &hover)) {
         app->habits.month_offset++;
     }
     flint_text_draw(month_label,
@@ -2224,6 +3183,7 @@ draw_habits_screen(InbeApp *app)
             char day_label[16];
             int day_index;
             int completed;
+            int future_day;
 
             if(day < 1 || day > days_in_month) {
                 DrawRectangle(cell_x, cell_y, cell_w, cell_h, flint_darken(c_bg, 5));
@@ -2232,16 +3192,25 @@ draw_habits_screen(InbeApp *app)
 
             snprintf(day_label, sizeof(day_label), "%d", day);
             day_index = year * 10000 + mon * 100 + day;
+            future_day = day_index > today_index;
             completed = inbe_habit_completed_day(active, day_index);
             if(ui_draw_generic_button(cell_x, cell_y, cell_w, cell_h, day_label,
-                                      completed ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY,
-                                      &hover)) {
-                inbe_habit_toggle_day(&app->habits, selected, day_index);
-                active = &app->habits.items[selected];
+                                             completed ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY,
+                                             future_day, &hover)) {
+                if(active_is_linked) {
+                    habit_open_linked_details(app, selected, day_index);
+                } else {
+                    inbe_habit_toggle_day(&app->habits, selected, day_index);
+                    active = &app->habits.items[selected];
+                }
             }
-            if(completed) {
+            if(completed && !future_day) {
                 DrawRectangle(cell_x + flint_px(4), cell_y + cell_h - flint_px(6),
                               cell_w - flint_px(8), flint_px(3), active->color);
+            }
+            if(!future_day && active_is_linked && habit_linked_has_day(&linked_ctx, day_index)) {
+                DrawCircle(cell_x + cell_w - flint_px(8), cell_y + flint_px(8),
+                           flint_px(3), active->color);
             }
             if(day_index == today_index) {
                 DrawRectangleLinesEx((Rectangle){(float)cell_x, (float)cell_y,
@@ -2252,6 +3221,8 @@ draw_habits_screen(InbeApp *app)
     }
 
     EndScissorMode();
+    ui_set_input_blocked(0);
+    draw_habit_linked_details_modal(app);
 }
 
 static void
@@ -2329,7 +3300,7 @@ draw_habits_manager_screen(InbeApp *app)
         if(ui_draw_generic_button(content_x + (content_w - button_w) / 2,
                                   empty_y + flint_px(38), button_w, button_h,
                                   defaults_text, UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_defaults)) {
+                                  0, &hover_defaults)) {
             inbe_habits_add_default_set(&app->habits);
             EndScissorMode();
             return;
@@ -2420,16 +3391,6 @@ draw_habits_manager_screen(InbeApp *app)
     EndScissorMode();
 }
 
-static const char *
-habit_topic_label(int topic)
-{
-    if(topic == INBE_HABIT_TOPIC_YOGA)
-        return "Yoga";
-    if(topic == INBE_HABIT_TOPIC_FITNESS)
-        return "Fitness";
-    return "Mind";
-}
-
 static int
 habit_activity_index(int exercise)
 {
@@ -2491,7 +3452,7 @@ static void
 draw_habit_edit_screen(InbeApp *app)
 {
     const char *title;
-    const char *sync_options[] = {"None", "By topic", "By activity"};
+    const char *sync_options[] = {"None", "Topic", "Activity"};
     const char *topic_options[] = {"Mind", "Yoga", "Fitness"};
     const char *activity_options[] = {
         "Wim Hof Breathing",
@@ -2560,7 +3521,7 @@ draw_habit_edit_screen(InbeApp *app)
                             content_x + flint_px(10), font);
     y += field_h + flint_px(24);
 
-    flint_text_draw("Underline color", content_x, y, label_font, flint_darken(c_text, 34));
+    flint_text_draw("Color", content_x, y, label_font, flint_darken(c_text, 34));
     y += flint_px(32);
     color_options[0] = practice_theme_color(app, PRACTICE_CATEGORY_MIND);
     color_options[1] = practice_theme_color(app, PRACTICE_CATEGORY_YOGA);
@@ -2578,7 +3539,7 @@ draw_habit_edit_screen(InbeApp *app)
     }
     y += flint_px(34);
 
-    flint_text_draw("Sync", content_x, y, label_font, flint_darken(c_text, 34));
+    flint_text_draw("Link", content_x, y, label_font, flint_darken(c_text, 34));
     y += flint_px(24);
     sync_mode = clampi(app->habit_edit_sync_mode, INBE_HABIT_SYNC_NONE, INBE_HABIT_SYNC_ACTIVITY);
     {
@@ -2588,7 +3549,7 @@ draw_habit_edit_screen(InbeApp *app)
             if(ui_draw_generic_button(content_x + i * (btn_w + gap), y,
                                       btn_w, flint_px(36), sync_options[i],
                                       sync_mode == i ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY,
-                                      &hover)) {
+                                      0, &hover)) {
                 app->habit_edit_sync_mode = i;
                 sync_mode = i;
             }
@@ -2620,21 +3581,6 @@ draw_habit_edit_screen(InbeApp *app)
         if(dropdown_changed)
             app->habit_edit_sync_activity = habit_activity_from_index(activity_index);
         y += field_h + flint_px(18);
-    }
-
-    {
-        char sync_text[96];
-        if(app->habit_edit_sync_mode == INBE_HABIT_SYNC_TOPIC) {
-            snprintf(sync_text, sizeof(sync_text), "Synced by topic: %s",
-                     habit_topic_label(app->habit_edit_sync_topic));
-        } else if(app->habit_edit_sync_mode == INBE_HABIT_SYNC_ACTIVITY) {
-            snprintf(sync_text, sizeof(sync_text), "Synced by activity: %s",
-                     practice_activity_label(app->habit_edit_sync_activity));
-        } else {
-            snprintf(sync_text, sizeof(sync_text), "%s", "Not synced");
-        }
-        flint_text_draw(sync_text, content_x, y, flint_ui_font_small(),
-                        flint_darken(c_text, 44));
     }
 
     EndScissorMode();

@@ -351,8 +351,9 @@ inbe_storage_set_setting_int(const char *key, int value)
 }
 
 static int
-insert_session_at(long long started_at, int local_date, const int *round_times,
-                  int round_count, const char *source, char *out_id, size_t out_id_size)
+insert_session_at_ex(long long started_at, int local_date, const int *round_times,
+                     int round_count, int topic, int activity, const char *source,
+                     char *out_id, size_t out_id_size)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -366,17 +367,19 @@ insert_session_at(long long started_at, int local_date, const int *round_times,
     make_session_id(started_at, round_times, round_count, id, sizeof(id));
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "INSERT OR IGNORE INTO sessions(id,user_id,started_at,local_date,source,imported_at,rounds_hash) "
-                          "VALUES(?1,?2,?3,?4,?5,?6,?7)",
+                          "INSERT OR IGNORE INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash) "
+                          "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9)",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
     bind_text(stmt, 2, g_storage.user_id);
     sqlite3_bind_int64(stmt, 3, started_at);
     sqlite3_bind_int(stmt, 4, local_date);
-    bind_text(stmt, 5, source != NULL ? source : "app");
-    sqlite3_bind_int64(stmt, 6, now_seconds());
-    sqlite3_bind_int64(stmt, 7, (sqlite3_int64)rhash);
+    sqlite3_bind_int(stmt, 5, topic);
+    sqlite3_bind_int(stmt, 6, activity);
+    bind_text(stmt, 7, source != NULL ? source : "app");
+    sqlite3_bind_int64(stmt, 8, now_seconds());
+    sqlite3_bind_int64(stmt, 9, (sqlite3_int64)rhash);
     rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     if(rc != SQLITE_DONE)
@@ -402,7 +405,9 @@ insert_session_at(long long started_at, int local_date, const int *round_times,
 }
 
 int
-inbe_storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
+inbe_storage_save_session_for_activity(const int *round_times, int round_count,
+                                       int topic, int activity,
+                                       char *out_id, size_t out_id_size)
 {
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
@@ -419,7 +424,15 @@ inbe_storage_save_session(const int *round_times, int round_count, char *out_id,
     if(saved_count <= 0)
         return 0;
     local_date = (tm->tm_year + 1900) * 10000 + (tm->tm_mon + 1) * 100 + tm->tm_mday;
-    return insert_session_at((long long)now, local_date, saved, saved_count, "app", out_id, out_id_size);
+    return insert_session_at_ex((long long)now, local_date, saved, saved_count,
+                                topic, activity, "app", out_id, out_id_size);
+}
+
+int
+inbe_storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
+{
+    return inbe_storage_save_session_for_activity(round_times, round_count, 0, 0,
+                                                  out_id, out_id_size);
 }
 
 int
@@ -586,7 +599,7 @@ inbe_storage_list_history(InbeStorageHistoryCallback callback, void *user)
     if(callback == NULL || g_storage.db == NULL)
         return;
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,started_at,local_date FROM sessions WHERE deleted_at=0 ORDER BY started_at DESC LIMIT 48",
+                          "SELECT id,started_at,local_date,topic,activity FROM sessions WHERE deleted_at=0 ORDER BY started_at DESC LIMIT 48",
                           -1, &stmt, NULL) != SQLITE_OK)
         return;
     while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -596,6 +609,8 @@ inbe_storage_list_history(InbeStorageHistoryCallback callback, void *user)
         const char *id = (const char *)sqlite3_column_text(stmt, 0);
         long long started_at = sqlite3_column_int64(stmt, 1);
         int local_date = sqlite3_column_int(stmt, 2);
+        int topic = sqlite3_column_int(stmt, 3);
+        int activity = sqlite3_column_int(stmt, 4);
         int y = local_date / 10000;
         int m = (local_date / 100) % 100;
         int d = local_date % 100;
@@ -610,7 +625,7 @@ inbe_storage_list_history(InbeStorageHistoryCallback callback, void *user)
         snprintf(dbid, sizeof(dbid), "db:%s", id != NULL ? id : "");
         count = inbe_storage_load_session(dbid, rounds, MaxRounds, NULL, NULL, NULL, NULL, NULL, NULL);
         if(count > 0)
-            callback(dbid, y, m, d, hh, mm, ss, rounds, count, user);
+            callback(dbid, y, m, d, hh, mm, ss, topic, activity, rounds, count, user);
     }
     sqlite3_finalize(stmt);
 }
@@ -900,7 +915,8 @@ scan_legacy_sessions(const char *root, mz_zip_archive *backup, int cleanup)
                     count = read_legacy_session_file(files.paths[i], rounds, MaxRounds);
                     started_at = legacy_started_at(y, m, d, filename);
                     if(count > 0 && started_at > 0) {
-                        insert_session_at(started_at, y * 10000 + m * 100 + d, rounds, count, root, NULL, 0);
+                        insert_session_at_ex(started_at, y * 10000 + m * 100 + d,
+                                             rounds, count, 0, 0, root, NULL, 0);
                         record_migration_source(files.paths[i], "session", "migrated", "");
                         if(backup != NULL)
                             archive_file(backup, root, files.paths[i]);
@@ -1205,7 +1221,8 @@ import_legacy_session_content(const char *zip_path, mz_zip_archive *archive,
     }
     started_at = legacy_started_at(year, month, day, filename);
     if(count > 0 && started_at > 0)
-        insert_session_at(started_at, year * 10000 + month * 100 + day, rounds, count, "legacy-import", NULL, 0);
+        insert_session_at_ex(started_at, year * 10000 + month * 100 + day,
+                             rounds, count, 0, 0, "legacy-import", NULL, 0);
     free(text);
     return count > 0;
 }
@@ -1246,7 +1263,7 @@ import_sqlite_db_file(const char *db_path)
     if(sqlite3_open(db_path, &src) != SQLITE_OK)
         goto done;
     if(sqlite3_prepare_v2(src,
-                          "SELECT id,started_at,local_date,source FROM sessions WHERE deleted_at=0",
+                          "SELECT id,started_at,local_date,topic,activity,source FROM sessions WHERE deleted_at=0",
                           -1, &stmt, NULL) != SQLITE_OK)
         goto done;
 
@@ -1257,6 +1274,8 @@ import_sqlite_db_file(const char *db_path)
         const char *sid = (const char *)sqlite3_column_text(stmt, 0);
         long long started_at = sqlite3_column_int64(stmt, 1);
         int local_date = sqlite3_column_int(stmt, 2);
+        int topic = sqlite3_column_int(stmt, 3);
+        int activity = sqlite3_column_int(stmt, 4);
 
         if(sqlite3_prepare_v2(src,
                               "SELECT seconds FROM session_rounds WHERE session_id=?1 ORDER BY round_index",
@@ -1267,7 +1286,8 @@ import_sqlite_db_file(const char *db_path)
         }
         sqlite3_finalize(rstmt);
         if(count > 0) {
-            insert_session_at(started_at, local_date, rounds, count, "sqlite-import", NULL, 0);
+            insert_session_at_ex(started_at, local_date, rounds, count,
+                                 topic, activity, "sqlite-import", NULL, 0);
             ok = 1;
         }
     }

@@ -1,16 +1,16 @@
 # Inner Breeze
 
-Inner Breeze - A free, open-source guided breathing meditation app based on the Wim Hof method.
+Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
 
 ## Features
 
-- Guided breathing sessions with visual and audio cues
-- Configurable breath counts and hold times
-- Session history with local storage
-- 8 color themes (Forest, Ocean, Sky, Sunset, Lavender - each with light/dark variants)
-- Sound effects (breath in/out, bell)
-- Fullscreen mode with proper DPI scaling
-- Touch-optimized UI for mobile devices
+- Guided practice sessions with visual and audio cues
+- Mind, Yoga, and Fitness organization for habits and practice views
+- Configurable breathing sessions and meditation timers
+- Habit tracking with session history
+- Local SQLite storage with import/export support
+- Theme customization with light and dark variants
+- Touch-optimized UI for desktop and mobile
 
 ## Building
 
@@ -78,14 +78,10 @@ The AVD is configured with:
 
 - `src/` - Inbe application code
 - `flint/` - first-party UI/runtime support code used directly by Inbe
-- `vendor/raylib`, `vendor/rini`, `vendor/otfchop` - external third-party dependencies
-
-- `src/` - Main application code and raylib breathing engine
+- `vendor/` - external third-party dependencies
 - `wasm4/` - Standalone WASM-4 version
 - `assets/` - Images and sounds
-- `themes/` - Color theme definitions
 - `droid/` - Android build configuration
-- `vendor/raylib/` - raylib submodule
 
 ## License
 

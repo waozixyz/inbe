@@ -9,6 +9,9 @@ const char *data_root(void);
 const char *data_today_dir(void);
 int data_save_session(const int *round_times, int round_count);
 int data_save_session_path(const int *round_times, int round_count, char *out_path, size_t out_path_size);
+int data_save_session_path_for_activity(const int *round_times, int round_count,
+                                        int topic, int activity,
+                                        char *out_path, size_t out_path_size);
 int data_replace_session(const char *path, const int *round_times, int round_count);
 int data_rename_session(const char *old_path, const char *new_path);
 int data_delete_session(const char *path);
@@ -24,6 +27,7 @@ typedef void (*data_session_callback)(const char *date, const char *time,
 typedef void (*data_history_callback)(const char *path,
                                       int year, int month, int day,
                                       int hour, int minute, int second,
+                                      int topic, int activity,
                                       const int *round_times, int round_count,
                                       void *user);
 

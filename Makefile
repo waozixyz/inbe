@@ -65,14 +65,13 @@ APP_SRCS := \
 	src/tabs/settings_tab.c
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-THEME_FILES := $(wildcard $(FLINT_DIR)/themes/*.ini)
 IMAGE_FILES := assets/whm/1.jpg assets/whm/2.jpg
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
 FONT_TOOL := vendor/otfchop/otfchop
 FONT_SOURCE := vendor/otfchop/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
-EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(THEME_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
+EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/android

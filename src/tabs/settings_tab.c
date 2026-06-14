@@ -20,7 +20,7 @@
 #include <string.h>
 
 /* Theme colors - set by ui_set_colors */
-extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 
 extern int view_width;
 extern int view_height;
@@ -112,9 +112,9 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
     int start_speed = clampi(app->inbe.progressive_start_speed, SETTINGS_SPEED_MIN, max_speed);
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
     const char *title = locale_get("progressive_start_speed_editor_title");
     int title_w = flint_text_measure(title, title_font);
@@ -573,7 +573,7 @@ settings_tab_draw(InbeApp *app)
 
                     if(ui_draw_generic_button(content_x, modify_y, modify_w, modify_h,
                                               locale_get("modify_start_speed_button"),
-                                              UI_BUTTON_STYLE_SECONDARY, &modify_hover)) {
+                                              UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
                         app->modal.active = 1;
                         app->modal.type = UIModalEditProgressiveStartSpeed;
                         app->modal.selected_button = 0;
@@ -627,7 +627,7 @@ settings_tab_draw(InbeApp *app)
 
                 if(ui_draw_generic_button(reset_x, reset_y, reset_w, reset_h,
                                           locale_get("reset_to_defaults_label"),
-                                          UI_BUTTON_STYLE_SECONDARY, &reset_hover)) {
+                                          UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover)) {
                     speed = DefaultSpeedLevel;
                     max_rounds = DefaultMaxRounds;
                     max_breaths = DefaultMaxBreaths;
@@ -765,7 +765,7 @@ settings_tab_draw(InbeApp *app)
                 data_button_w = content_w;
             if(ui_draw_generic_button(content_x, y, data_button_w, data_button_h,
                                       locale_get("data_management_button"),
-                                      UI_BUTTON_STYLE_PRIMARY, &data_hover)) {
+                                      UI_BUTTON_STYLE_PRIMARY, 0, &data_hover)) {
                 app->modal.active = 1;
                 app->modal.type = UIModalDataManagement;
                 app->modal.selected_button = 0;
@@ -833,9 +833,9 @@ settings_tab_draw(InbeApp *app)
         modal_y = (view_height - modal_h) / 2;
 
         DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-        DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+        DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_surface);
         ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
         title_w = flint_text_measure(locale_get("data_management_label"), title_font);
         flint_text_draw(locale_get("data_management_label"),
@@ -857,7 +857,7 @@ settings_tab_draw(InbeApp *app)
         button_w = modal_w - flint_px(36);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("import_data_button"), UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_import)) {
+                                  0, &hover_import)) {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
             if(android_import_open_picker()) {
                 settings_tab_set_status_success(locale_get("import_data_dialog_title"), NULL);
@@ -897,7 +897,7 @@ settings_tab_draw(InbeApp *app)
         y += button_h + flint_px(12);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("export_data_button"), UI_BUTTON_STYLE_PRIMARY,
-                                  &hover_export)) {
+                                  0, &hover_export)) {
             if(!data_has_any()) {
                 settings_tab_set_status_error(locale_get("no_data_to_export"));
             }
@@ -940,7 +940,7 @@ settings_tab_draw(InbeApp *app)
         y += button_h + flint_px(12);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
                                   locale_get("delete_all_data_button"),
-                                  UI_BUTTON_STYLE_DANGER, &hover_delete)) {
+                                  UI_BUTTON_STYLE_DANGER, 0, &hover_delete)) {
             if(data_has_any()) {
                 app->modal.type = UIModalConfirmDeleteData;
                 app->modal.selected_button = 0;

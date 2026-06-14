@@ -18,9 +18,6 @@ normalize_path(const char *path)
     match = strstr(path, "/locales/");
     if(match != NULL)
         return match + 1;
-    match = strstr(path, "/themes/");
-    if(match != NULL)
-        return match + 1;
     match = strstr(path, "/assets/");
     if(match != NULL)
         return match + 1;

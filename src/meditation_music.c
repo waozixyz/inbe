@@ -436,7 +436,7 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
     if(ui_draw_generic_button(content_x, *y, button_w, button_h,
                               locale_get(installed ? "meditation_music_redownload_button"
                                                    : "meditation_music_download_button"),
-                              UI_BUTTON_STYLE_PRIMARY, &hover))
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         start_download(app);
     *y += button_h + flint_px(12);
 
@@ -446,7 +446,7 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
         button_w = content_w;
     if(ui_draw_generic_button(content_x, *y, button_w, button_h,
                               locale_get("meditation_music_test_button"),
-                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         if(app->meditation_music_playing)
             meditation_music_stop(app);
         else if(load_track(app, app->meditation_music_track)) {

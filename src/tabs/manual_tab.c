@@ -166,7 +166,7 @@ meditation_manual_draw(InbeApp *app)
 
         if(ui_draw_generic_button(content_x + (content_w - button_w) / 2, button_y,
                                   button_w, button_h, locale_get("tutorial_start_button"),
-                                  UI_BUTTON_STYLE_PRIMARY, &hover))
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover))
             manual_tab_start_exercise(app);
     }
 }
@@ -428,18 +428,18 @@ manual_tab_draw(InbeApp *app)
 
     if(step == 0) {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover))
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover))
             manual_tab_start_exercise(app);
     } else {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover)) {
+                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover)) {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
     }
 
     if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
-                              right_label, UI_BUTTON_STYLE_PRIMARY, &right_hover)) {
+                              right_label, UI_BUTTON_STYLE_PRIMARY, 0, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_tab_start_exercise(app);
         else {

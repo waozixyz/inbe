@@ -15,7 +15,17 @@ void set_global_inbe_app(InbeApp *app);
 
 extern int view_width;
 extern int view_height;
-extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
+extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
+
+static int
+session_topic_for_activity(int exercise_type)
+{
+    if(exercise_type == EXERCISE_SUN_SALUTATION)
+        return INBE_HABIT_TOPIC_YOGA;
+    if(exercise_type == EXERCISE_7_MINUTE_WORKOUT)
+        return INBE_HABIT_TOPIC_FITNESS;
+    return INBE_HABIT_TOPIC_MIND;
+}
 
 static void
 set_circle_bounds(Inbe *inbe, int rmin, int rmax)
@@ -279,7 +289,10 @@ session_ensure_results_saved(InbeApp *app)
     if(rounds <= 0)
         return 0;
 
-    if(data_save_session_path(round_times, rounds, app->results_path, sizeof(app->results_path))) {
+    if(data_save_session_path_for_activity(round_times, rounds,
+                                           app != NULL ? session_topic_for_activity(app->exercise_type) : 0,
+                                           app != NULL ? app->exercise_type : 0,
+                                           app->results_path, sizeof(app->results_path))) {
         app->results_saved = 1;
         sync_habits_for_activity(app, app->exercise_type);
         TraceLog(LOG_INFO, "INBE: session saved successfully");
@@ -449,7 +462,8 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int segment_x = x + i * segment_w;
         int current_w = i == 1 ? x + w - segment_x : segment_w;
         Rectangle rect = {segment_x, y, current_w, h};
-        int hovered = CheckCollisionPointRec(mouse_world, rect);
+        int hovered = CheckCollisionPointRec(mouse_world, rect) &&
+                      !ui_input_captures_click(mouse_world);
         int active = i == selected;
         Color fill = active ? c_button : flint_darken(c_bg, 10);
         Color top = flint_lighten(fill, 35);
@@ -476,7 +490,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
                         flint_ui_text_y(labels[i], y, h, font), font, c_text);
 
         if(hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !ui_dropdown_captures_click(mouse_world) && selected != i) {
+           !ui_input_captures_click(mouse_world) && selected != i) {
             app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH;
             app->settings_dirty = 1;
             clicked = 1;
@@ -663,9 +677,9 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             app->volume_popup_active = 0;
         }
 
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_button);
+        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_surface);
         ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
 
         if(ui_draw_slider_vertical(500, popup_x + popup_w / 2, popup_y + flint_px(10),
                                    popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
