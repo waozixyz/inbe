@@ -822,8 +822,8 @@ inbe_app_init(void *vapp) {
     if(app->stat_icon.id == 0) {
         app->stat_icon = load_icon_texture("stat.png");
     }
-    if(app->quest_icon.id == 0) {
-        app->quest_icon = load_icon_texture("quest.png");
+    if(app->habit_icon.id == 0) {
+        app->habit_icon = load_icon_texture("habitmarker.png");
     }
     if(app->practice_icon.id == 0) {
         app->practice_icon = load_icon_texture("practice.png");
@@ -847,7 +847,7 @@ inbe_app_init(void *vapp) {
         app->discord_icon = load_icon_texture("discord.png");
     }
     /* Update tab bar icons */
-    g_tabs[0].icon = app->quest_icon;
+    g_tabs[0].icon = app->habit_icon;
     g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
     g_tabs[0].user_data = app;
     g_tabs[1].icon = app->practice_icon;
@@ -2115,8 +2115,31 @@ draw_habits_screen(InbeApp *app)
 
     flint_centered_column(max_w, side_padding, &content_x, &content_w);
 
-    if(app->habits.count <= 0)
-        inbe_habits_add_default(&app->habits);
+    if(app->habits.count <= 0) {
+        const char *empty_text = "No habits created";
+        const char *create_text = "Create habit";
+        int empty_font = flint_px(20);
+        int button_w = content_w < flint_px(240) ? content_w : flint_px(240);
+        int button_h = flint_px(42);
+        int empty_y = top_h + viewport_h / 2 - flint_px(46);
+        int empty_w = flint_text_measure(empty_text, empty_font);
+        int hover_empty_create = 0;
+
+        BeginScissorMode((int)app->camera.offset.x,
+                         (int)(app->camera.offset.y + top_h * app->camera.zoom),
+                         (int)(view_width * app->camera.zoom),
+                         (int)(viewport_h * app->camera.zoom));
+        flint_text_draw(empty_text, content_x + (content_w - empty_w) / 2,
+                        empty_y, empty_font, c_text);
+        if(ui_draw_generic_button(content_x + (content_w - button_w) / 2,
+                                  empty_y + flint_px(38), button_w, button_h,
+                                  create_text, UI_BUTTON_STYLE_PRIMARY,
+                                  &hover_empty_create)) {
+            habit_edit_begin_new(app);
+        }
+        EndScissorMode();
+        return;
+    }
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
         app->habits.selected = 0;
 
@@ -2281,8 +2304,6 @@ draw_habits_manager_screen(InbeApp *app)
     flint_centered_column(max_w, side_padding, &content_x, &content_w);
     y = top_h + flint_px(16);
 
-    if(app->habits.count <= 0)
-        inbe_habits_add_default(&app->habits);
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
         app->habits.selected = 0;
     if(app->habit_edit_active && app->habit_edit_index >= app->habits.count)
@@ -2298,7 +2319,7 @@ draw_habits_manager_screen(InbeApp *app)
         int row_x = content_x;
         int row_w = content_w;
         int field_x = row_x + flint_px(18);
-        int delete_disabled = app->habits.count <= 1;
+        int delete_disabled = 0;
         int delete_btn_x = row_x + row_w - icon_btn_w;
         int edit_btn_x = delete_btn_x - icon_btn_w - flint_px(6);
         Rectangle row = {(float)row_x, (float)y, (float)row_w, (float)row_h};
@@ -2887,7 +2908,7 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->play_icon);
     SafeUnloadTexture(app->pause_icon);
     SafeUnloadTexture(app->stat_icon);
-    SafeUnloadTexture(app->quest_icon);
+    SafeUnloadTexture(app->habit_icon);
     SafeUnloadTexture(app->practice_icon);
     SafeUnloadTexture(app->plus_icon);
     SafeUnloadTexture(app->stack_icon);

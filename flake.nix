@@ -125,6 +125,7 @@
               curl
               emscripten
               gcc
+              git-lfs
               gnumake
               gradle
               imagemagick
