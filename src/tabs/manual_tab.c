@@ -1,5 +1,6 @@
 #include "manual_tab.h"
 #include "app.h"
+#include "app_session.h"
 #include "locale.h"
 #include "flint_ui.h"
 #include "theme_meta.h"
@@ -93,13 +94,81 @@ manual_tab_reset_layouts(InbeApp *app)
 void
 manual_tab_close_tutorial(InbeApp *app, int mark_seen)
 {
-    if(mark_seen && !app->tutorial_seen) {
-        app->tutorial_seen = 1;
-        save_settings(app);
-    }
+    if(mark_seen)
+        mark_exercise_manual_seen(app, app->exercise_type);
     app->tutorial_step = 0;
     app->manual_scroll = 0;
     app->inbe.screen = InbeScreenStart;
+}
+
+static void
+manual_tab_start_exercise(InbeApp *app)
+{
+    mark_exercise_manual_seen(app, app->exercise_type);
+    app->tutorial_step = 0;
+    app->manual_scroll = 0;
+
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        app->modal.active = 1;
+        app->modal.type = UIModalMeditationSetup;
+        app->modal.selected_button = 0;
+        app->inbe.screen = InbeScreenStart;
+        return;
+    }
+
+    session_start(app);
+}
+
+static void
+meditation_manual_draw(InbeApp *app)
+{
+    int title_h = ui_screen_header_height();
+    int body_font = flint_ui_font();
+    int content_x;
+    int content_w;
+    int responsive_max_w = (int)(view_width * 0.90f);
+    int max_content_w = flint_px(520);
+    int y;
+    FlintUIParagraph paragraph;
+
+    if(responsive_max_w > max_content_w)
+        responsive_max_w = max_content_w;
+    if(responsive_max_w < flint_px(280))
+        responsive_max_w = flint_px(280);
+
+    flint_centered_column(responsive_max_w, flint_page_side_padding(), &content_x, &content_w);
+
+    if(ui_draw_screen_header(locale_get("meditation_manual_title"), 1))
+        manual_tab_close_tutorial(app, 0);
+
+    paragraph = (FlintUIParagraph){
+        .text = locale_get("meditation_manual_text"),
+        .icon = (Texture2D){0},
+        .icon_type = FLINT_ICON_TYPE_NONE,
+        .icon_size = 0,
+        .width = content_w,
+        .font = body_font,
+        .line_gap = TUTORIAL_LINE_SPACING,
+        .color = c_text,
+    };
+
+    y = title_h + flint_px(32);
+    flint_ui_paragraph_draw(paragraph, content_x, &y);
+
+    {
+        int hover = 0;
+        int button_w = content_w;
+        int button_h = flint_px(36);
+        int button_y = view_height - flint_px(52);
+
+        if(button_w > flint_px(260))
+            button_w = flint_px(260);
+
+        if(ui_draw_generic_button(content_x + (content_w - button_w) / 2, button_y,
+                                  button_w, button_h, locale_get("tutorial_start_button"),
+                                  UI_BUTTON_STYLE_PRIMARY, &hover))
+            manual_tab_start_exercise(app);
+    }
 }
 
 void
@@ -119,6 +188,11 @@ manual_tab_draw(InbeApp *app)
     int close_clicked = 0;
     int step = app->tutorial_step;
 
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        meditation_manual_draw(app);
+        return;
+    }
+
     step = clampi(step, 0, (int)TUTORIAL_STEPS_COUNT - 1);
     app->tutorial_step = step;
     previous_step = step;
@@ -127,12 +201,12 @@ manual_tab_draw(InbeApp *app)
         if(step < (int)TUTORIAL_STEPS_COUNT - 1)
             app->tutorial_step++;
         else
-            manual_tab_close_tutorial(app, 1);
+            manual_tab_start_exercise(app);
     }
     if(IsKeyPressed(KEY_LEFT) && step > 0)
         app->tutorial_step--;
     if(IsKeyPressed(KEY_ESCAPE))
-        manual_tab_close_tutorial(app, 1);
+        manual_tab_close_tutorial(app, 0);
 
     step = app->tutorial_step;
     if(previous_step != step) {
@@ -163,7 +237,7 @@ manual_tab_draw(InbeApp *app)
 
     close_clicked = ui_draw_screen_header(title, 1);
     if(close_clicked)
-        manual_tab_close_tutorial(app, 1);
+        manual_tab_close_tutorial(app, 0);
 
     /* Calculate actual content height based on current step and text layouts */
     /* Don't include padding in this calculation - it's handled separately */
@@ -250,7 +324,7 @@ manual_tab_draw(InbeApp *app)
         int y = title_h + flint_px(16) - app->manual_scroll;
         if(step == 0) {
             int img_h = flint_px(170);
-            ui_draw_tutorial_image(app->angel_image, "angel.jpg", content_x, y, content_w, img_h);
+            ui_draw_tutorial_image(app->whm_1_image, "whm/1.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
 
             draw_tutorial_paragraph(app, 0, content_x, &y, content_w, body_font);
@@ -316,7 +390,7 @@ manual_tab_draw(InbeApp *app)
             draw_tutorial_paragraph(app, 4, content_x, &y, content_w, body_font);
         } else {
             int img_h = flint_px(200);
-            ui_draw_tutorial_image(app->begin_image, "begin.jpg", content_x, y, content_w, img_h);
+            ui_draw_tutorial_image(app->whm_2_image, "whm/2.jpg", content_x, y, content_w, img_h);
             y += img_h + flint_px(22);
             draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
@@ -339,7 +413,7 @@ manual_tab_draw(InbeApp *app)
     int left_hover = 0;
     int right_hover = 0;
     const char *left_label = step == 0 ? locale_get("tutorial_skip_button") : locale_get("tutorial_back_button");
-    const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_finish_button") : locale_get("tutorial_next_button");
+    const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_start_button") : locale_get("tutorial_next_button");
     int footer_gap = flint_px(10);
     int page_font = flint_ui_font();
     int button_h = flint_px(34);
@@ -355,7 +429,7 @@ manual_tab_draw(InbeApp *app)
     if(step == 0) {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
                                   left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover))
-            manual_tab_close_tutorial(app, 1);
+            manual_tab_start_exercise(app);
     } else {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
                                   left_label, UI_BUTTON_STYLE_PRIMARY, &left_hover)) {
@@ -367,7 +441,7 @@ manual_tab_draw(InbeApp *app)
     if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
                               right_label, UI_BUTTON_STYLE_PRIMARY, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
-            manual_tab_close_tutorial(app, 1);
+            manual_tab_start_exercise(app);
         else {
             app->tutorial_step++;
             app->manual_scroll = 0;

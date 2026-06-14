@@ -2,7 +2,7 @@
 #define DATA_H
 
 #include <stddef.h>
-#include "../libinbe/inbe.h"
+#include "inbe.h"
 
 void data_init(void);
 const char *data_root(void);

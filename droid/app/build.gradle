@@ -18,7 +18,7 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
 
-    def getKeystorePath = { -> keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/flint-release.keystore" }
+    def getKeystorePath = { -> keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/inbe-release.keystore" }
     def getKeystoreAlias = { -> keystoreProps['keystore.alias'] ?: "inbe-key" }
 
     def releasePassword = project.findProperty('keystore.password') ?: ""
@@ -75,7 +75,7 @@ gradle.taskGraph.whenReady { taskGraph ->
     if (taskGraph.hasTask(":app:assembleRelease")
         && !project.findProperty('keystore.password')
         && !project.hasProperty('fDroidBuild')) {
-        throw new GradleException("Use: flint dist android PASSWORD=your-password")
+        throw new GradleException("Use: make android-release PASSWORD=your-password")
     }
 }
 

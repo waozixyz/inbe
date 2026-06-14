@@ -1,5 +1,6 @@
 #include "android_insets.h"
 #include "android_import.h"
+#include "android_runtime_assets.h"
 #include "android_timer.h"
 #include "android_wakelock.h"
 #include "app.h"
@@ -178,6 +179,8 @@ static const JNINativeMethod g_methods[] = {
     {"nativeResumeSession", "()V", (void*)nativeResumeSession},
     {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
     {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},
+    {"nativeRuntimeAssetDownloadSucceeded", "(JJI)V", (void*)android_runtime_asset_native_succeeded},
+    {"nativeRuntimeAssetDownloadFailed", "(JILjava/lang/String;)V", (void*)android_runtime_asset_native_failed},
 };
 
 // JNI_OnLoad - Register native methods

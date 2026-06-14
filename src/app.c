@@ -6,6 +6,7 @@
 #include "tabs/manual_tab.h"
 #include "tabs/settings_tab.h"
 #include "app_session.h"
+#include "meditation_music.h"
 #include "theme.h"
 #include "theme_meta.h"
 #if defined(LOTUS_BUILD)
@@ -57,11 +58,43 @@ int view_height = INBE_DEFAULT_HEIGHT;
 Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 #define LOCALE_FONT_PNG "assets/fonts/locales.png"
+
+static void habit_edit_commit(InbeApp *app);
+static void habit_edit_cancel(InbeApp *app);
 #define LOCALE_FONT_DAT "assets/fonts/locales.dat"
 #define LOCALE_FONT_BASE_SIZE 16
 
 /* Forward declarations for tab callbacks */
 void reset_settings_preview(InbeApp *app);
+
+static int
+exercise_manual_seen_bit(int exercise_type)
+{
+    if(exercise_type < 0 || exercise_type >= EXERCISE_COUNT)
+        return 0;
+    return 1 << exercise_type;
+}
+
+int
+exercise_manual_seen(InbeApp *app, int exercise_type)
+{
+    int bit = exercise_manual_seen_bit(exercise_type);
+    if(app == NULL || bit == 0)
+        return 1;
+    return (app->exercise_manual_seen_mask & bit) != 0;
+}
+
+void
+mark_exercise_manual_seen(InbeApp *app, int exercise_type)
+{
+    int bit = exercise_manual_seen_bit(exercise_type);
+    if(app == NULL || bit == 0)
+        return;
+    if((app->exercise_manual_seen_mask & bit) == 0) {
+        app->exercise_manual_seen_mask |= bit;
+        save_settings(app);
+    }
+}
 
 #if defined(LOTUS_BUILD)
 static void
@@ -98,28 +131,55 @@ sync_lotus_settings(InbeApp *app)
  * TAB BAR DEFINITIONS
  * ================================================================ */
 
-static void on_manual_tab_click(void *user_data) {
+static void on_habits_tab_click(void *user_data) {
     InbeApp *app = user_data;
-    app->tutorial_step = 0;
-    app->inbe.screen = InbeScreenManual;
+    if(app == NULL)
+        return;
+    app->inbe.screen = InbeScreenHabits;
+}
+
+static void on_practice_tab_click(void *user_data) {
+    InbeApp *app = user_data;
+    if(app == NULL)
+        return;
+    app->inbe.screen = InbeScreenStart;
 }
 
 static void on_settings_tab_click(void *user_data) {
     InbeApp *app = user_data;
+    if(app == NULL)
+        return;
     reset_settings_preview(app);
     app->settings_category = -1;
     app->settings_sub_tab = 0;
+    app->app_settings_tab = APP_SETTINGS_TAB_APP;
+    app->settings_from_exercise_selector = 0;
     app->settings_scroll = 0;
     app->inbe.screen = InbeScreenSettings;
 }
 
 static UITab g_tabs[] = {
-    {NULL, {0}, UI_ICON_TYPE_STAT, history_tab_on_click, NULL},
-    {NULL, {0}, UI_ICON_TYPE_MANUAL, on_manual_tab_click, NULL},
+    {NULL, {0}, UI_ICON_TYPE_HOME, on_habits_tab_click, NULL},
+    {NULL, {0}, UI_ICON_TYPE_HOME, on_practice_tab_click, NULL},
     {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
+
+#define PRACTICE_CATEGORY_TAB_H 40
+#define PRACTICE_CATEGORY_TOAST_TICKS 120
+
+static const char *g_practice_category_labels[PRACTICE_CATEGORY_COUNT] = {
+    "Mind",
+    "Yoga",
+    "Fitness"
+};
+
+static const int g_practice_category_default_themes[PRACTICE_CATEGORY_COUNT] = {
+    ThemeSky,
+    ThemeSunset,
+    ThemeCherry
+};
 
 static int
 load_locale_font(InbeApp *app)
@@ -171,8 +231,8 @@ unload_locale_font(InbeApp *app)
 static void
 refresh_tab_labels(void)
 {
-    g_tabs[0].label = locale_get("tab_history");
-    g_tabs[1].label = locale_get("tab_manual");
+    g_tabs[0].label = locale_get("tab_habits");
+    g_tabs[1].label = locale_get("tab_practice");
     g_tabs[2].label = locale_get("tab_settings");
 }
 
@@ -321,7 +381,7 @@ inbe_settings_path(char *out, size_t out_size)
 static void
 register_all_themes(void)
 {
-    flint_theme_register_defaults("vendor/flint/themes");
+    flint_theme_register_defaults("flint/themes");
 }
 
 static void
@@ -404,18 +464,19 @@ reset_settings_preview(InbeApp *app)
 void
 save_settings(InbeApp *app)
 {
-    char text[1200];
+    char text[1900];
     char settings_path[FS_PATH_MAX];
     inbe_settings_path(settings_path, sizeof(settings_path));
 #ifdef __ANDROID__
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nplay_in_background %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\nexercise_manual_seen_mask %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nexercise_type %d\nmeditation_music_enabled %d\nmeditation_music_shuffle %d\nmeditation_music_track %d\nplay_in_background %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
              app->inbe.pause_seconds,
              app->sound_volume,
              app->tutorial_seen ? 1 : 0,
+             app->exercise_manual_seen_mask,
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
@@ -424,19 +485,24 @@ save_settings(InbeApp *app)
              app->inbe.progressive_start_speed,
              app->advanced_session_controls ? 1 : 0,
              app->hold_display_mode,
+             app->exercise_type,
+             app->meditation_music_enabled ? 1 : 0,
+             app->meditation_music_shuffle ? 1 : 0,
+             app->meditation_music_track,
              app->inbe.play_in_background,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
 #else
     snprintf(text, sizeof(text),
-             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nlanguage %s\n",
+             "speed %d\nmax_rounds %d\nmax_breaths %d\npause_seconds %d\nsound_volume %d\ntutorial_seen %d\nexercise_manual_seen_mask %d\ntheme %d\ndark_mode %d\nfullscreen %d\non_screen_keyboard %d\nprogressive_speed %d\nprogressive_start_speed %d\nadvanced_session_controls %d\nhold_display_mode %d\nexercise_type %d\nmeditation_music_enabled %d\nmeditation_music_shuffle %d\nmeditation_music_track %d\nlanguage %s\n",
              app->inbe.speed_level,
              app->inbe.max_rounds,
              int_from_count(app->inbe.maxbreaths),
              app->inbe.pause_seconds,
              app->sound_volume,
              app->tutorial_seen ? 1 : 0,
+             app->exercise_manual_seen_mask,
              app->theme_id,
              app->dark_mode,
              app->fullscreen_enabled ? 1 : 0,
@@ -445,10 +511,23 @@ save_settings(InbeApp *app)
              app->inbe.progressive_start_speed,
              app->advanced_session_controls ? 1 : 0,
              app->hold_display_mode,
+             app->exercise_type,
+             app->meditation_music_enabled ? 1 : 0,
+             app->meditation_music_shuffle ? 1 : 0,
+             app->meditation_music_track,
              (app->language_selected && app->language[0] != '\0')
                  ? app->language
                  : "");
 #endif
+    snprintf(text + strlen(text), sizeof(text) - strlen(text),
+             "practice_tab_enabled_mask %d\npractice_tab_mind_theme %d\npractice_tab_yoga_theme %d\npractice_tab_fitness_theme %d\npractice_category_tab %d\n",
+             (app->practice_tab_enabled[PRACTICE_CATEGORY_MIND] ? 1 : 0) |
+                 (app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] ? 2 : 0) |
+                 (app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] ? 4 : 0),
+             app->practice_tab_theme[PRACTICE_CATEGORY_MIND],
+             app->practice_tab_theme[PRACTICE_CATEGORY_YOGA],
+             app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS],
+             app->practice_category_tab);
     SaveFileText(settings_path, text);
 #if defined(PLATFORM_WEB)
     sync_web_storage();
@@ -469,8 +548,14 @@ load_settings(InbeApp *app)
     int max_breaths = rini_get_value_fallback(settings, "max_breaths", DefaultMaxBreaths);
     int pause_seconds = rini_get_value_fallback(settings, "pause_seconds", DefaultPauseSeconds);
     int sound_volume = rini_get_value_fallback(settings, "sound_volume", 100);
+    int manual_seen_mask;
+    int practice_enabled_mask;
 
     app->tutorial_seen = rini_get_value_fallback(settings, "tutorial_seen", 0) != 0;
+    manual_seen_mask = rini_get_value_fallback(settings, "exercise_manual_seen_mask", -1);
+    if(manual_seen_mask < 0)
+        manual_seen_mask = app->tutorial_seen ? exercise_manual_seen_bit(EXERCISE_WIM_HOF) : 0;
+    app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
     app->theme_id = clampi(rini_get_value_fallback(settings, "theme", 0), 0, THEME_COUNT - 1);
     app->dark_mode = rini_get_value_fallback(settings, "dark_mode", 0) != 0;
     app->fullscreen_enabled = rini_get_value_fallback(settings, "fullscreen", 0) != 0;
@@ -486,6 +571,33 @@ load_settings(InbeApp *app)
     app->advanced_session_controls = rini_get_value_fallback(settings, "advanced_session_controls", 0) != 0;
     app->hold_display_mode = clampi(rini_get_value_fallback(settings, "hold_display_mode", HOLD_DISPLAY_CIRCLE),
                                     HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
+    app->exercise_type = clampi(rini_get_value_fallback(settings, "exercise_type", EXERCISE_WIM_HOF),
+                                EXERCISE_WIM_HOF, EXERCISE_COUNT - 1);
+    app->meditation_music_enabled = rini_get_value_fallback(settings, "meditation_music_enabled", 1) != 0;
+    app->meditation_music_shuffle = rini_get_value_fallback(settings, "meditation_music_shuffle", 1) != 0;
+    app->meditation_music_track = clampi(rini_get_value_fallback(settings, "meditation_music_track", 0),
+                                         0, MEDITATION_MUSIC_TRACK_COUNT - 1);
+    practice_enabled_mask = rini_get_value_fallback(settings, "practice_tab_enabled_mask", 7);
+    if((practice_enabled_mask & 7) == 0)
+        practice_enabled_mask = 1;
+    for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
+        app->practice_tab_enabled[i] = (practice_enabled_mask & (1 << i)) != 0;
+        app->practice_tab_theme[i] = g_practice_category_default_themes[i];
+    }
+    app->practice_tab_theme[PRACTICE_CATEGORY_MIND] =
+        clampi(rini_get_value_fallback(settings, "practice_tab_mind_theme", ThemeSky), 0, THEME_COUNT - 1);
+    app->practice_tab_theme[PRACTICE_CATEGORY_YOGA] =
+        clampi(rini_get_value_fallback(settings, "practice_tab_yoga_theme", ThemeSunset), 0, THEME_COUNT - 1);
+    app->practice_tab_theme[PRACTICE_CATEGORY_FITNESS] =
+        clampi(rini_get_value_fallback(settings, "practice_tab_fitness_theme", ThemeCherry), 0, THEME_COUNT - 1);
+    app->practice_tab_enabled[PRACTICE_CATEGORY_YOGA] = 0;
+    app->practice_tab_enabled[PRACTICE_CATEGORY_FITNESS] = 0;
+    app->practice_category_tab =
+        clampi(rini_get_value_fallback(settings, "practice_category_tab", PRACTICE_CATEGORY_MIND),
+               0, PRACTICE_CATEGORY_COUNT - 1);
+    if(!app->practice_tab_enabled[app->practice_category_tab])
+        app->practice_category_tab = PRACTICE_CATEGORY_MIND;
+    app->theme_id = clampi(app->practice_tab_theme[app->practice_category_tab], 0, THEME_COUNT - 1);
     app->language_needs_save = 0;
     {
         const char *language = rini_get_value_text(settings, "language");
@@ -498,7 +610,7 @@ load_settings(InbeApp *app)
             }
         } else {
             snprintf(app->language, sizeof(app->language), "%s", "en");
-            app->language_selected = app->tutorial_seen ? 1 : 0;
+            app->language_selected = settings_missing ? 0 : 1;
             app->language_needs_save = app->language_selected;
             locale_set(app->language);
         }
@@ -608,6 +720,25 @@ load_sound_asset(const char *name)
 }
 
 static void
+play_app_sound(InbeApp *app, Sound sound, float scale)
+{
+    float volume;
+
+    if(app == NULL || !app->audio_ready || sound.frameCount == 0 || app->sound_volume <= 0)
+        return;
+
+    volume = ((float)app->sound_volume / 100.0f) * scale;
+    if(volume < 0.0f)
+        volume = 0.0f;
+    if(volume > 1.0f)
+        volume = 1.0f;
+
+    StopSound(sound);
+    SetSoundVolume(sound, volume);
+    PlaySound(sound);
+}
+
+static void
 init_audio(InbeApp *app)
 {
     if(app == NULL || app->audio_ready)
@@ -668,18 +799,33 @@ inbe_app_init(void *vapp) {
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + 80);
     data_init();
+    inbe_habits_init(&app->habits);
     init_audio(app);
+    meditation_music_init(app);
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
+    app->cursor_disabled = 0;
     app->settings_scroll = 0;
     app->settings_drag_slider = 0;
     app->settings_drag_scrollbar = 0;
     app->settings_drag_content = 0;
     app->settings_drag_content_y = 0;
     app->settings_dirty = 0;
-    app->settings_tab = SETTINGS_TAB_BREATHING;
     app->settings_category = -1;
     app->settings_sub_tab = 0;
+    app->app_settings_tab = APP_SETTINGS_TAB_APP;
+    app->settings_from_exercise_selector = 0;
+    app->practice_coming_soon_ticks = 0;
+    app->practice_config_theme_tab = PRACTICE_CATEGORY_MIND;
+    app->habit_edit_active = 0;
+    app->habit_edit_is_new = 0;
+    app->habit_edit_index = -1;
+    app->habit_edit_cursor = 0;
+    app->habit_edit_text[0] = '\0';
+    app->habit_edit_color = (Color){99, 196, 165, 255};
+    app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
+    app->habit_edit_sync_topic = INBE_HABIT_TOPIC_MIND;
+    app->habit_edit_sync_activity = EXERCISE_WIM_HOF;
     app->manual_scroll = 0;
     app->manual_drag_scrollbar = 0;
     app->manual_drag_content = 0;
@@ -722,6 +868,18 @@ inbe_app_init(void *vapp) {
     if(app->stat_icon.id == 0) {
         app->stat_icon = load_icon_texture("stat.png");
     }
+    if(app->quest_icon.id == 0) {
+        app->quest_icon = load_icon_texture("quest.png");
+    }
+    if(app->practice_icon.id == 0) {
+        app->practice_icon = load_icon_texture("practice.png");
+    }
+    if(app->plus_icon.id == 0) {
+        app->plus_icon = load_icon_texture("plus.png");
+    }
+    if(app->stack_icon.id == 0) {
+        app->stack_icon = load_icon_texture("stack.png");
+    }
     if(app->trash_icon.id == 0) {
         app->trash_icon = load_icon_texture("trash.png");
     }
@@ -735,11 +893,11 @@ inbe_app_init(void *vapp) {
         app->discord_icon = load_icon_texture("discord.png");
     }
     /* Update tab bar icons */
-    g_tabs[0].icon = app->stat_icon;
-    g_tabs[0].icon_type = UI_ICON_TYPE_STAT;
+    g_tabs[0].icon = app->quest_icon;
+    g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
     g_tabs[0].user_data = app;
-    g_tabs[1].icon = app->manual_icon;
-    g_tabs[1].icon_type = UI_ICON_TYPE_MANUAL;
+    g_tabs[1].icon = app->practice_icon;
+    g_tabs[1].icon_type = UI_ICON_TYPE_NONE;
     g_tabs[1].user_data = app;
     g_tabs[2].icon = app->gear_icon;
     g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
@@ -773,30 +931,305 @@ inbe_app_init(void *vapp) {
 
     ui_set_icons(app->gear_icon, app->x_icon);
 
-    if(app->angel_image.id == 0) {
-        app->angel_image = load_asset_texture("angel.jpg");
+    if(app->whm_1_image.id == 0) {
+        app->whm_1_image = load_asset_texture("whm/1.jpg");
     }
-    if(app->begin_image.id == 0) {
-        app->begin_image = load_asset_texture("begin.jpg");
+    if(app->whm_2_image.id == 0) {
+        app->whm_2_image = load_asset_texture("whm/2.jpg");
     }
 #if !defined(LOTUS_BUILD)
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
-    else if(!app->tutorial_seen)
-        app->inbe.screen = InbeScreenManual;
     else
         app->inbe.screen = InbeScreenStart;
 #else
-    if(!app->tutorial_seen)
-        app->inbe.screen = InbeScreenManual;
-    else
-        app->inbe.screen = InbeScreenStart;
+    app->inbe.screen = InbeScreenStart;
 #endif
 
     /* Reset modal state */
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal.selected_button = 0;
+    app->meditation_duration_seconds = 0;
+    app->meditation_remaining_seconds = 0;
+    app->meditation_frame_ticks = 0;
+}
+
+static Texture2D
+sound_icon_for_volume(InbeApp *app)
+{
+    int vol = app->sound_volume;
+    if(vol <= 0)
+        return app->sound0_icon;
+    if(vol <= 25)
+        return app->sound1_icon;
+    if(vol <= 75)
+        return app->sound2_icon;
+    return app->sound3_icon;
+}
+
+static void
+meditation_start(InbeApp *app, int seconds)
+{
+    if(app == NULL)
+        return;
+
+    app->meditation_duration_seconds = seconds;
+    app->meditation_remaining_seconds = seconds;
+    app->meditation_frame_ticks = 0;
+    app->session_paused = 0;
+    app->volume_popup_active = 0;
+    app->modal.active = 0;
+    app->modal.type = UIModalNone;
+    app->inbe.screen = InbeScreenMeditation;
+    play_app_sound(app, app->bell_sound, 1.0f);
+    meditation_music_start_session(app);
+}
+
+static int
+habit_topic_for_activity(int exercise_type)
+{
+    if(exercise_type == EXERCISE_SUN_SALUTATION)
+        return INBE_HABIT_TOPIC_YOGA;
+    if(exercise_type == EXERCISE_7_MINUTE_WORKOUT)
+        return INBE_HABIT_TOPIC_FITNESS;
+    return INBE_HABIT_TOPIC_MIND;
+}
+
+void
+sync_habits_for_activity(InbeApp *app, int exercise_type)
+{
+    int topic;
+    int today;
+    int selected;
+    int changed = 0;
+
+    if(app == NULL)
+        return;
+
+    topic = habit_topic_for_activity(exercise_type);
+    today = inbe_habits_today_index();
+    selected = app->habits.selected;
+    for(int i = 0; i < app->habits.count; i++) {
+        InbeHabit *habit = &app->habits.items[i];
+        if(habit->sync_mode == INBE_HABIT_SYNC_TOPIC &&
+           habit->sync_topic == topic) {
+            if(!inbe_habit_completed_day(habit, today)) {
+                inbe_habit_set_day(&app->habits, i, today, 1);
+                changed = 1;
+            }
+        } else if(habit->sync_mode == INBE_HABIT_SYNC_ACTIVITY &&
+                  habit->sync_activity == exercise_type) {
+            if(!inbe_habit_completed_day(habit, today)) {
+                inbe_habit_set_day(&app->habits, i, today, 1);
+                changed = 1;
+            }
+        }
+    }
+    if(changed) {
+        app->habits.selected = selected;
+        inbe_habits_save(&app->habits);
+    }
+}
+
+static void
+meditation_finish(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    play_app_sound(app, app->bell_sound, 1.0f);
+    app->meditation_duration_seconds = 0;
+    app->meditation_remaining_seconds = 0;
+    app->meditation_frame_ticks = 0;
+    app->session_paused = 0;
+    app->volume_popup_active = 0;
+    sync_habits_for_activity(app, EXERCISE_MEDITATION);
+    meditation_music_stop(app);
+    app->inbe.screen = InbeScreenStart;
+}
+
+static void
+format_meditation_time(char *dst, size_t dst_size, int seconds)
+{
+    int hours;
+    int minutes;
+    int secs;
+
+    if(dst == NULL || dst_size == 0)
+        return;
+    if(seconds < 0)
+        seconds = 0;
+
+    hours = seconds / 3600;
+    minutes = (seconds / 60) % 60;
+    secs = seconds % 60;
+
+    if(hours > 0)
+        snprintf(dst, dst_size, "%d:%02d:%02d", hours, minutes, secs);
+    else
+        snprintf(dst, dst_size, "%d:%02d", minutes, secs);
+}
+
+static int
+draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
+{
+    int hover = 0;
+    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, &hover);
+}
+
+static void
+draw_meditation_setup_modal(InbeApp *app)
+{
+    static const int durations[] = {5 * 60, 15 * 60, 30 * 60, 60 * 60, 2 * 60 * 60};
+    const char *labels[] = {
+        locale_get("duration_5m"),
+        locale_get("duration_15m"),
+        locale_get("duration_30m"),
+        locale_get("duration_1h"),
+        locale_get("duration_2h")
+    };
+    int modal_w = flint_px(320);
+    int modal_h = flint_px(236);
+    int modal_x;
+    int modal_y;
+    int title_font = flint_px(18);
+    int title_w;
+    int btn_h = flint_px(38);
+    int gap = flint_px(10);
+    int side = flint_px(18);
+    int row_y;
+    int btn_w;
+    int cancel_w = flint_px(120);
+    int cancel_x;
+    int cancel_y;
+    int cancel_hover = 0;
+
+    if(modal_w > view_width - flint_px(24))
+        modal_w = view_width - flint_px(24);
+    if(modal_h > view_height - flint_px(24))
+        modal_h = view_height - flint_px(24);
+
+    modal_x = (view_width - modal_w) / 2;
+    modal_y = (view_height - modal_h) / 2;
+    btn_w = (modal_w - side * 2 - gap * 2) / 3;
+    if(btn_w < flint_px(64))
+        btn_w = flint_px(64);
+
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
+                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+
+    title_w = flint_text_measure(locale_get("meditation_title"), title_font);
+    flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
+                    modal_y + flint_px(16), title_font, c_text);
+
+    row_y = modal_y + flint_px(62);
+    for(int i = 0; i < 3; i++) {
+        int x = modal_x + side + i * (btn_w + gap);
+        if(draw_meditation_duration_button(x, row_y, btn_w, btn_h, labels[i]))
+            meditation_start(app, durations[i]);
+    }
+
+    row_y += btn_h + gap;
+    for(int i = 3; i < 5; i++) {
+        int two_w = (modal_w - side * 2 - gap) / 2;
+        int x = modal_x + side + (i - 3) * (two_w + gap);
+        if(draw_meditation_duration_button(x, row_y, two_w, btn_h, labels[i]))
+            meditation_start(app, durations[i]);
+    }
+
+    cancel_y = modal_y + modal_h - btn_h - flint_px(16);
+    cancel_x = modal_x + (modal_w - cancel_w) / 2;
+    if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
+                              locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
+                              &cancel_hover)) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+    }
+}
+
+static void
+draw_meditation_sound_controls(InbeApp *app)
+{
+    int sound_btn_x = view_width - flint_px(56);
+    int sound_btn_y = flint_px(12);
+    int sound_btn_size = flint_px(24);
+    int sound_btn_padding = flint_px(10);
+    int sound_hover = 0;
+
+    if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
+                               sound_icon_for_volume(app), UI_ICON_TYPE_SOUND, &sound_hover)) {
+        app->volume_popup_active = !app->volume_popup_active;
+    }
+
+    if(app->volume_popup_active) {
+        int popup_w = flint_px(44);
+        int popup_x = sound_btn_x;
+        int popup_y = sound_btn_y + sound_btn_size + sound_btn_padding * 2;
+        int popup_h = flint_px(200);
+        Vector2 mouse = GetMousePosition();
+
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+           (mouse.x < popup_x || mouse.x > popup_x + popup_w ||
+            mouse.y < popup_y || mouse.y > popup_y + popup_h)) {
+            app->volume_popup_active = 0;
+        }
+
+        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_button);
+        ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
+                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+
+        if(ui_draw_slider_vertical(501, popup_x + popup_w / 2, popup_y + flint_px(10),
+                                   popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
+                                   SETTINGS_VOLUME_MAX, &app->sound_volume)) {
+            app->settings_dirty = 1;
+            save_settings(app);
+        }
+    }
+}
+
+static void
+draw_meditation_screen(InbeApp *app, int center_x, int center_y)
+{
+    char time_text[32];
+    int return_hover = 0;
+    int font = flint_px(48);
+    int max_w;
+    int text_w;
+
+    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
+                               flint_px(10), app->return_icon, UI_ICON_TYPE_RETURN,
+                               &return_hover)) {
+        meditation_music_stop(app);
+        app->meditation_duration_seconds = 0;
+        app->meditation_remaining_seconds = 0;
+        app->meditation_frame_ticks = 0;
+        app->volume_popup_active = 0;
+        app->inbe.screen = InbeScreenStart;
+        return;
+    }
+
+    draw_meditation_sound_controls(app);
+
+    format_meditation_time(time_text, sizeof(time_text), app->meditation_remaining_seconds);
+    max_w = view_width - flint_px(48);
+    while(font > flint_px(28) && flint_text_measure(time_text, font) > max_w)
+        font--;
+    text_w = flint_text_measure(time_text, font);
+    flint_text_draw(time_text, center_x - text_w / 2,
+                    flint_ui_text_y(time_text, center_y - font, font * 2, font),
+                    font, c_text);
+
+    app->meditation_frame_ticks++;
+    if(app->meditation_frame_ticks >= 60) {
+        app->meditation_frame_ticks = 0;
+        if(app->meditation_remaining_seconds > 0)
+            app->meditation_remaining_seconds--;
+        if(app->meditation_remaining_seconds <= 0)
+            meditation_finish(app);
+    }
 }
 
 static void
@@ -812,14 +1245,19 @@ handle_back_button(InbeApp *app)
         if(app->settings_dirty)
             save_settings(app);
         settings_tab_clear_status();
-        /* Hierarchical navigation: back button goes up one level */
+        if(app->settings_from_exercise_selector) {
+            app->settings_from_exercise_selector = 0;
+            app->settings_category = -1;
+            app->settings_sub_tab = 0;
+            app->settings_scroll = 0;
+            app->inbe.screen = InbeScreenStart;
+            break;
+        }
         if(app->settings_category != -1) {
-            /* In a sub-tab, go back to category selection */
             app->settings_category = -1;
             app->settings_sub_tab = 0;
             app->settings_scroll = 0;
         } else {
-            /* At category selection, go to homepage */
             app->inbe.screen = InbeScreenStart;
             app->settings_scroll = 0;
         }
@@ -830,11 +1268,23 @@ handle_back_button(InbeApp *app)
             app->inbe.screen = InbeScreenStart;
         break;
 
+    case InbeScreenHabits:
+        app->inbe.screen = InbeScreenStart;
+        break;
+
+    case InbeScreenHabitManager:
+        app->inbe.screen = InbeScreenHabits;
+        break;
+
+    case InbeScreenHabitEdit:
+        habit_edit_commit(app);
+        break;
+
     case InbeScreenLanguage:
         break;
 
     case InbeScreenManual:
-        manual_tab_close_tutorial(app, 1);
+        manual_tab_close_tutorial(app, 0);
         break;
 
     case InbeScreenResults:
@@ -860,10 +1310,1337 @@ handle_back_button(InbeApp *app)
         }
         break;
 
+    case InbeScreenMeditation:
+        meditation_music_stop(app);
+        app->meditation_duration_seconds = 0;
+        app->meditation_remaining_seconds = 0;
+        app->meditation_frame_ticks = 0;
+        app->volume_popup_active = 0;
+        app->inbe.screen = InbeScreenStart;
+        break;
+
     case InbeScreenStart:
     default:
         break;
     }
+}
+
+static void
+draw_app_title_bar(const char *title)
+{
+    int title_font = flint_px(28);
+    int top_h = flint_px(58);
+
+    DrawRectangle(0, 0, view_width, top_h, flint_darken(c_bg, 14));
+    DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(c_bg, 42));
+    flint_text_draw(title, flint_px(16),
+                    flint_ui_text_y(title, 0, top_h, title_font),
+                    title_font, c_text);
+}
+
+static void
+practice_ensure_enabled_selection(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    if(app->practice_category_tab < 0 || app->practice_category_tab >= PRACTICE_CATEGORY_COUNT)
+        app->practice_category_tab = PRACTICE_CATEGORY_MIND;
+
+    if(app->practice_tab_enabled[app->practice_category_tab])
+        return;
+
+    for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
+        if(app->practice_tab_enabled[i]) {
+            app->practice_category_tab = i;
+            return;
+        }
+    }
+
+    app->practice_tab_enabled[PRACTICE_CATEGORY_MIND] = 1;
+    app->practice_category_tab = PRACTICE_CATEGORY_MIND;
+}
+
+static int
+practice_enabled_count(InbeApp *app)
+{
+    int count = 0;
+
+    if(app == NULL)
+        return 0;
+
+    for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
+        if(app->practice_tab_enabled[i])
+            count++;
+    }
+    return count;
+}
+
+static int
+practice_active_theme(InbeApp *app)
+{
+    if(app == NULL)
+        return ThemeSky;
+
+    practice_ensure_enabled_selection(app);
+    return clampi(app->practice_tab_theme[app->practice_category_tab], 0, THEME_COUNT - 1);
+}
+
+static void
+practice_sync_global_theme(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->theme_id = practice_active_theme(app);
+    refresh_theme_colors(app->theme_id, app->dark_mode);
+}
+
+static int
+practice_activity_count_for_tab(int tab)
+{
+    return tab == PRACTICE_CATEGORY_MIND ? 2 : 1;
+}
+
+static int
+practice_activity_for_tab(int tab, int index)
+{
+    if(tab == PRACTICE_CATEGORY_MIND) {
+        return index == 1 ? EXERCISE_MEDITATION : EXERCISE_WIM_HOF;
+    }
+    if(tab == PRACTICE_CATEGORY_YOGA)
+        return EXERCISE_SUN_SALUTATION;
+    if(tab == PRACTICE_CATEGORY_FITNESS)
+        return EXERCISE_7_MINUTE_WORKOUT;
+    return EXERCISE_WIM_HOF;
+}
+
+static const char *
+practice_activity_label(int exercise)
+{
+    switch(exercise) {
+    case EXERCISE_MEDITATION:
+        return locale_get("exercise_meditation");
+    case EXERCISE_SUN_SALUTATION:
+        return "Sun Salutation";
+    case EXERCISE_7_MINUTE_WORKOUT:
+        return "7-Minute Workout";
+    case EXERCISE_WIM_HOF:
+    default:
+        return locale_get("exercise_wim_hof");
+    }
+}
+
+static int
+practice_activity_index_for_tab(int tab, int exercise)
+{
+    int count = practice_activity_count_for_tab(tab);
+    for(int i = 0; i < count; i++) {
+        if(practice_activity_for_tab(tab, i) == exercise)
+            return i;
+    }
+    return 0;
+}
+
+static void
+practice_clamp_activity_to_tab(InbeApp *app)
+{
+    int tab;
+    int index;
+
+    if(app == NULL)
+        return;
+
+    practice_ensure_enabled_selection(app);
+    tab = app->practice_category_tab;
+    index = practice_activity_index_for_tab(tab, app->exercise_type);
+    app->exercise_type = practice_activity_for_tab(tab, index);
+}
+
+static Color
+practice_theme_color(InbeApp *app, int tab_index)
+{
+    int theme_id = ThemeSky;
+    Color color = c_circle;
+
+    if(app != NULL && tab_index >= 0 && tab_index < PRACTICE_CATEGORY_COUNT)
+        theme_id = clampi(app->practice_tab_theme[tab_index], 0, THEME_COUNT - 1);
+
+    if(!flint_theme_catalog_color((FlintThemeId)theme_id, app != NULL && app->dark_mode != 0,
+                                  "circle", &color)) {
+        const char *scope = flint_theme_scope_for((FlintThemeId)theme_id,
+                                                  app != NULL && app->dark_mode != 0);
+        color = flint_theme_get(scope, "circle");
+    }
+
+    return color;
+}
+
+static int
+practice_category_bottom_y_for_app(InbeApp *app)
+{
+    return flint_px(58) +
+           (practice_enabled_count(app) > 1 ? flint_px(PRACTICE_CATEGORY_TAB_H) : 0);
+}
+
+static void
+draw_practice_coming_soon_popout(InbeApp *app)
+{
+    const char *message = "coming soon...";
+    int font = flint_ui_font();
+    int pad_x = flint_px(14);
+    int pad_y = flint_px(8);
+    int tabs_y = flint_px(58);
+    int tabs_h = flint_px(PRACTICE_CATEGORY_TAB_H);
+    int popout_w = flint_text_measure(message, font) + pad_x * 2;
+    int popout_h = font + pad_y * 2;
+    int popout_x = (view_width - popout_w) / 2;
+    int popout_y = tabs_y + tabs_h + flint_px(8);
+
+    if(app == NULL || app->practice_coming_soon_ticks <= 0)
+        return;
+
+    if(popout_x < flint_px(8))
+        popout_x = flint_px(8);
+    if(popout_x + popout_w > view_width - flint_px(8))
+        popout_x = view_width - flint_px(8) - popout_w;
+
+    DrawRectangle(popout_x, popout_y, popout_w, popout_h, c_button);
+    ui_draw_bevel(popout_x, popout_y, popout_w, popout_h,
+                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+    flint_text_draw(message, popout_x + pad_x,
+                    flint_ui_text_y(message, popout_y, popout_h, font),
+                    font, c_text);
+}
+
+static void
+draw_practice_category_tabs(InbeApp *app)
+{
+    FlintUISubtab tabs[PRACTICE_CATEGORY_COUNT];
+    int tab_indexes[PRACTICE_CATEGORY_COUNT];
+    int tabs_y = flint_px(58);
+    int tabs_h = flint_px(PRACTICE_CATEGORY_TAB_H);
+    int enabled_count = 0;
+    int selected_visible = 0;
+    int clicked;
+
+    if(app == NULL)
+        return;
+
+    practice_ensure_enabled_selection(app);
+    for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
+        if(!app->practice_tab_enabled[i])
+            continue;
+
+        tab_indexes[enabled_count] = i;
+        tabs[enabled_count] = (FlintUISubtab){
+            .label = g_practice_category_labels[i],
+            .disabled = 0,
+            .accent = practice_theme_color(app, i)
+        };
+        if(i == app->practice_category_tab)
+            selected_visible = enabled_count;
+        enabled_count++;
+    }
+
+    if(enabled_count <= 1)
+        return;
+
+    clicked = ui_draw_subtab_bar((FlintUISubtabBar){
+        .bounds = {0, (float)tabs_y, (float)view_width, (float)tabs_h},
+        .tabs = tabs,
+        .count = enabled_count,
+        .selected_index = selected_visible,
+        .font = flint_ui_font()
+    });
+
+    if(clicked >= 0 && clicked < enabled_count) {
+        app->practice_category_tab = tab_indexes[clicked];
+        app->practice_coming_soon_ticks = 0;
+        practice_clamp_activity_to_tab(app);
+        practice_sync_global_theme(app);
+        save_settings(app);
+    }
+}
+
+static int
+draw_theme_circle_button(InbeApp *app, int x, int y, int radius, int theme_id)
+{
+    Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    Rectangle bounds = {
+        (float)(x - radius - flint_px(5)),
+        (float)(y - radius - flint_px(5)),
+        (float)(radius * 2 + flint_px(10)),
+        (float)(radius * 2 + flint_px(10))
+    };
+    int hovered = CheckCollisionPointRec(mouse, bounds);
+    Color color = c_circle;
+
+    if(!flint_theme_catalog_color((FlintThemeId)theme_id, app->dark_mode != 0, "circle", &color)) {
+        const char *scope = flint_theme_scope_for((FlintThemeId)theme_id, app->dark_mode != 0);
+        color = flint_theme_get(scope, "circle");
+    }
+
+    DrawCircle(x, y, radius, color);
+    DrawCircleLines(x, y, radius + flint_px(2), hovered ? c_text : flint_darken(c_bg, 42));
+
+    if(hovered) {
+        app->cursor_clickable = 1;
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse))
+            return 1;
+    }
+
+    return 0;
+}
+
+static void
+draw_practice_config_button(InbeApp *app)
+{
+    int icon_size = flint_px(20);
+    int icon_padding = flint_px(8);
+    int button_w = icon_size + icon_padding * 2;
+    int button_x = view_width - button_w - flint_px(10);
+    int button_y = (flint_px(58) - button_w) / 2;
+    int hover = 0;
+
+    if(app == NULL || app->modal.active)
+        return;
+
+    if(ui_draw_icon_btn_padded(button_x, button_y, icon_size, icon_padding,
+                               app->stack_icon, UI_ICON_TYPE_STACK, &hover)) {
+        app->modal.active = 1;
+        app->modal.type = UIModalPracticeTabs;
+        app->modal.selected_button = 0;
+    }
+}
+
+static void
+draw_habits_manager_button(InbeApp *app)
+{
+    int icon_size = flint_px(20);
+    int icon_padding = flint_px(8);
+    int button_w = icon_size + icon_padding * 2;
+    int button_x = view_width - button_w - flint_px(10);
+    int button_y = (flint_px(58) - button_w) / 2;
+    int hover = 0;
+
+    if(app == NULL || app->modal.active)
+        return;
+
+    if(ui_draw_icon_btn_padded(button_x, button_y, icon_size, icon_padding,
+                               app->stack_icon, UI_ICON_TYPE_STACK, &hover)) {
+        habit_edit_cancel(app);
+        app->inbe.screen = InbeScreenHabitManager;
+    }
+}
+
+static void
+draw_practice_tabs_modal(InbeApp *app)
+{
+    int modal_w = flint_px(340);
+    int modal_h = flint_px(278);
+    int modal_x;
+    int modal_y;
+    int title_font = flint_px(18);
+    int row_h = flint_px(48);
+    int row_y;
+    int close_size = flint_px(22);
+    int close_padding = flint_px(8);
+    int close_w = close_size + close_padding * 2;
+    int close_hover = 0;
+    int title_w;
+    int enabled_count;
+    int coming_soon_y = -1;
+
+    if(app == NULL)
+        return;
+
+    if(modal_w > view_width - flint_px(24))
+        modal_w = view_width - flint_px(24);
+    if(modal_h > view_height - flint_px(24))
+        modal_h = view_height - flint_px(24);
+
+    modal_x = (view_width - modal_w) / 2;
+    modal_y = (view_height - modal_h) / 2;
+
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
+                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+
+    title_w = flint_text_measure("Practice Tabs", title_font);
+    flint_text_draw("Practice Tabs", modal_x + (modal_w - title_w) / 2,
+                    modal_y + flint_px(14), title_font, c_text);
+
+    if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6),
+                               modal_y + flint_px(6), close_size, close_padding,
+                               app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+        save_settings(app);
+        return;
+    }
+
+    row_y = modal_y + flint_px(58);
+    enabled_count = practice_enabled_count(app);
+    for(int i = 0; i < PRACTICE_CATEGORY_COUNT; i++) {
+        int enabled = app->practice_tab_enabled[i];
+        int unavailable = i != PRACTICE_CATEGORY_MIND;
+        int label_x = modal_x + flint_px(18);
+        int circle_x = modal_x + modal_w - flint_px(34);
+        int circle_y = row_y + row_h / 2;
+        int theme_id = clampi(app->practice_tab_theme[i], 0, THEME_COUNT - 1);
+        Rectangle row_bounds = {
+            (float)(modal_x + flint_px(12)),
+            (float)row_y,
+            (float)(modal_w - flint_px(24)),
+            (float)row_h
+        };
+        Vector2 mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
+        int row_hover = CheckCollisionPointRec(mouse, row_bounds);
+        Color row_bg = unavailable ? flint_darken(c_button, 12) : flint_darken(c_button, 6);
+        Color row_text = unavailable ? flint_darken(c_text, 72) : c_text;
+
+        if(unavailable && row_hover) {
+            row_bg = flint_darken(c_button, 18);
+            app->cursor_disabled = 1;
+            coming_soon_y = row_y + row_h + flint_px(6);
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !ui_dropdown_captures_click(mouse))
+                app->practice_coming_soon_ticks = PRACTICE_CATEGORY_TOAST_TICKS;
+        }
+
+        DrawRectangleRec(row_bounds, row_bg);
+        DrawLine(modal_x + flint_px(12), row_y + row_h - 1,
+                 modal_x + modal_w - flint_px(12), row_y + row_h - 1,
+                 flint_darken(c_button, 34));
+
+        if(unavailable) {
+            int box_size = flint_px(22);
+            DrawRectangle(label_x, row_y + flint_px(12), box_size, box_size,
+                          flint_darken(c_button, 24));
+            ui_draw_bevel(label_x, row_y + flint_px(12), box_size, box_size,
+                          flint_darken(c_bg, 34), flint_lighten(c_bg, 8));
+            flint_text_draw(g_practice_category_labels[i],
+                            label_x + box_size + flint_px(10),
+                            flint_ui_text_y(g_practice_category_labels[i],
+                                            row_y + flint_px(12), box_size, flint_ui_font()),
+                            flint_ui_font(), row_text);
+        } else if(ui_draw_checkbox_toggle(label_x, row_y + flint_px(12),
+                                          g_practice_category_labels[i], &enabled)) {
+            if(enabled || enabled_count > 1) {
+                app->practice_tab_enabled[i] = enabled;
+                practice_ensure_enabled_selection(app);
+                app->settings_dirty = 1;
+                enabled_count = practice_enabled_count(app);
+            }
+        }
+
+        if(unavailable) {
+            Color color = practice_theme_color(app, i);
+            color.a = 120;
+            DrawCircle(circle_x, circle_y, flint_px(13), color);
+            DrawCircleLines(circle_x, circle_y, flint_px(15), flint_darken(c_bg, 45));
+        } else if(draw_theme_circle_button(app, circle_x, circle_y, flint_px(13), theme_id)) {
+            app->practice_config_theme_tab = i;
+            app->modal.type = UIModalPracticeTheme;
+        }
+
+        row_y += row_h;
+    }
+
+    if(coming_soon_y >= 0) {
+        const char *message = "coming soon...";
+        int font = flint_ui_font();
+        int pad_x = flint_px(12);
+        int pad_y = flint_px(7);
+        int popout_w = flint_text_measure(message, font) + pad_x * 2;
+        int popout_h = font + pad_y * 2;
+        int popout_x = modal_x + modal_w - popout_w - flint_px(18);
+
+        if(coming_soon_y + popout_h > modal_y + modal_h - flint_px(12))
+            coming_soon_y = modal_y + modal_h - popout_h - flint_px(12);
+
+        DrawRectangle(popout_x, coming_soon_y, popout_w, popout_h, c_button);
+        ui_draw_bevel(popout_x, coming_soon_y, popout_w, popout_h,
+                      flint_lighten(c_button, 40), flint_darken(c_button, 40));
+        flint_text_draw(message, popout_x + pad_x,
+                        flint_ui_text_y(message, coming_soon_y, popout_h, font),
+                        font, c_text);
+    }
+
+    if(app->settings_dirty)
+        save_settings(app);
+}
+
+static void
+draw_practice_theme_modal(InbeApp *app)
+{
+    int modal_w = flint_px(360);
+    int modal_h = flint_px(360);
+    int modal_x;
+    int modal_y;
+    int close_size = flint_px(22);
+    int close_padding = flint_px(8);
+    int close_w = close_size + close_padding * 2;
+    int close_hover = 0;
+    int title_font = flint_px(18);
+    char title[64];
+    int title_w;
+    int tab = app != NULL ? app->practice_config_theme_tab : 0;
+    int dark_mode;
+
+    if(app == NULL)
+        return;
+
+    tab = clampi(tab, 0, PRACTICE_CATEGORY_COUNT - 1);
+    app->practice_config_theme_tab = tab;
+    dark_mode = app->dark_mode;
+
+    if(modal_w > view_width - flint_px(24))
+        modal_w = view_width - flint_px(24);
+    if(modal_h > view_height - flint_px(24))
+        modal_h = view_height - flint_px(24);
+
+    modal_x = (view_width - modal_w) / 2;
+    modal_y = (view_height - modal_h) / 2;
+
+    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, c_button);
+    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
+                  flint_lighten(c_button, 40), flint_darken(c_button, 40));
+
+    snprintf(title, sizeof(title), "%s Theme", g_practice_category_labels[tab]);
+    title_w = flint_text_measure(title, title_font);
+    flint_text_draw(title, modal_x + (modal_w - title_w) / 2,
+                    modal_y + flint_px(14), title_font, c_text);
+
+    if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6),
+                               modal_y + flint_px(6), close_size, close_padding,
+                               app->x_icon, UI_ICON_TYPE_X, &close_hover)) {
+        app->modal.type = UIModalPracticeTabs;
+        save_settings(app);
+        return;
+    }
+
+    if(ui_draw_theme_switcher(modal_x + flint_px(18), modal_y + flint_px(58),
+                              modal_w - flint_px(36), "Theme", "Light", "Dark",
+                              &app->practice_tab_theme[tab], &dark_mode)) {
+        app->dark_mode = dark_mode;
+        app->practice_tab_theme[tab] = clampi(app->practice_tab_theme[tab], 0, THEME_COUNT - 1);
+        if(tab == app->practice_category_tab)
+            practice_sync_global_theme(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+    }
+}
+
+static void
+draw_practice_config_modal(InbeApp *app)
+{
+    if(app == NULL || !app->modal.active)
+        return;
+
+    if(app->modal.type == UIModalPracticeTabs)
+        draw_practice_tabs_modal(app);
+    else if(app->modal.type == UIModalPracticeTheme)
+        draw_practice_theme_modal(app);
+}
+
+static void
+habit_edit_clamp_cursor(InbeApp *app)
+{
+    int len;
+
+    if(app == NULL)
+        return;
+
+    len = (int)strlen(app->habit_edit_text);
+    if(app->habit_edit_cursor < 0)
+        app->habit_edit_cursor = 0;
+    if(app->habit_edit_cursor > len)
+        app->habit_edit_cursor = len;
+}
+
+static void
+habit_edit_begin(InbeApp *app, int index)
+{
+    if(app == NULL || index < 0 || index >= app->habits.count)
+        return;
+
+    snprintf(app->habit_edit_text, sizeof(app->habit_edit_text), "%s",
+             app->habits.items[index].name);
+    app->habit_edit_active = 1;
+    app->habit_edit_is_new = 0;
+    app->habit_edit_index = index;
+    app->habit_edit_cursor = (int)strlen(app->habit_edit_text);
+    app->habit_edit_color = app->habits.items[index].color;
+    app->habit_edit_sync_mode = app->habits.items[index].sync_mode;
+    app->habit_edit_sync_topic = app->habits.items[index].sync_topic;
+    app->habit_edit_sync_activity = app->habits.items[index].sync_activity;
+    app->inbe.screen = InbeScreenHabitEdit;
+}
+
+static void
+habit_edit_begin_new(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    snprintf(app->habit_edit_text, sizeof(app->habit_edit_text), "%s", "New Habit");
+    app->habit_edit_active = 1;
+    app->habit_edit_is_new = 1;
+    app->habit_edit_index = -1;
+    app->habit_edit_cursor = (int)strlen(app->habit_edit_text);
+    app->habit_edit_color = (Color){99, 196, 165, 255};
+    app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
+    app->habit_edit_sync_topic = INBE_HABIT_TOPIC_MIND;
+    app->habit_edit_sync_activity = EXERCISE_WIM_HOF;
+    app->inbe.screen = InbeScreenHabitEdit;
+}
+
+static void
+habit_edit_cancel(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    app->habit_edit_active = 0;
+    app->habit_edit_is_new = 0;
+    app->habit_edit_index = -1;
+    app->habit_edit_cursor = 0;
+    app->habit_edit_text[0] = '\0';
+}
+
+static const char *
+habit_edit_trimmed_text(InbeApp *app)
+{
+    char *start;
+    char *end;
+
+    if(app == NULL)
+        return "";
+
+    start = app->habit_edit_text;
+    while(*start == ' ' || *start == '\t')
+        start++;
+    end = start + strlen(start);
+    while(end > start && (end[-1] == ' ' || end[-1] == '\t'))
+        end--;
+    *end = '\0';
+    return start;
+}
+
+static void
+habit_edit_commit(InbeApp *app)
+{
+    const char *text;
+    int index;
+
+    if(app == NULL || !app->habit_edit_active)
+        return;
+
+    index = app->habit_edit_index;
+    if(!app->habit_edit_is_new && (index < 0 || index >= app->habits.count)) {
+        habit_edit_cancel(app);
+        return;
+    }
+
+    text = habit_edit_trimmed_text(app);
+    if(text[0] != '\0') {
+        if(app->habit_edit_is_new) {
+            inbe_habits_add_custom(&app->habits, text, app->habit_edit_color,
+                                   app->habit_edit_sync_mode,
+                                   app->habit_edit_sync_topic,
+                                   app->habit_edit_sync_activity);
+        } else {
+            snprintf(app->habits.items[index].name,
+                     sizeof(app->habits.items[index].name), "%s", text);
+            app->habits.items[index].color = app->habit_edit_color;
+            app->habits.items[index].color.a = 255;
+            app->habits.items[index].sync_mode = app->habit_edit_sync_mode;
+            app->habits.items[index].sync_topic = app->habit_edit_sync_topic;
+            app->habits.items[index].sync_activity = app->habit_edit_sync_activity;
+            app->habits.selected = index;
+            inbe_habits_save(&app->habits);
+        }
+    }
+    habit_edit_cancel(app);
+    app->inbe.screen = InbeScreenHabitManager;
+}
+
+static void
+habit_edit_delete_before_cursor(InbeApp *app)
+{
+    int len;
+
+    if(app == NULL)
+        return;
+
+    habit_edit_clamp_cursor(app);
+    if(app->habit_edit_cursor <= 0)
+        return;
+
+    len = (int)strlen(app->habit_edit_text);
+    memmove(app->habit_edit_text + app->habit_edit_cursor - 1,
+            app->habit_edit_text + app->habit_edit_cursor,
+            (size_t)(len - app->habit_edit_cursor + 1));
+    app->habit_edit_cursor--;
+}
+
+static void
+habit_edit_delete_at_cursor(InbeApp *app)
+{
+    int len;
+
+    if(app == NULL)
+        return;
+
+    habit_edit_clamp_cursor(app);
+    len = (int)strlen(app->habit_edit_text);
+    if(app->habit_edit_cursor >= len)
+        return;
+
+    memmove(app->habit_edit_text + app->habit_edit_cursor,
+            app->habit_edit_text + app->habit_edit_cursor + 1,
+            (size_t)(len - app->habit_edit_cursor));
+}
+
+static void
+habit_edit_insert_char(InbeApp *app, char ch)
+{
+    int len;
+
+    if(app == NULL)
+        return;
+
+    habit_edit_clamp_cursor(app);
+    len = (int)strlen(app->habit_edit_text);
+    if(len >= (int)sizeof(app->habit_edit_text) - 1)
+        return;
+
+    memmove(app->habit_edit_text + app->habit_edit_cursor + 1,
+            app->habit_edit_text + app->habit_edit_cursor,
+            (size_t)(len - app->habit_edit_cursor + 1));
+    app->habit_edit_text[app->habit_edit_cursor] = ch;
+    app->habit_edit_cursor++;
+}
+
+static int
+habit_edit_cursor_from_x(const char *text, int font, int text_x, int mouse_x)
+{
+    char prefix[INBE_HABIT_NAME_SIZE];
+    int len;
+
+    if(text == NULL)
+        return 0;
+
+    len = (int)strlen(text);
+    if(mouse_x <= text_x)
+        return 0;
+
+    for(int i = 1; i <= len; i++) {
+        snprintf(prefix, sizeof(prefix), "%.*s", i, text);
+        if(text_x + flint_text_measure(prefix, font) >= mouse_x)
+            return i;
+    }
+    return len;
+}
+
+static void
+habit_edit_update_input(InbeApp *app, int field_x, int field_y, int field_w,
+                        int field_h, int text_x, int font)
+{
+    int ch;
+
+    if(app == NULL || !app->habit_edit_active)
+        return;
+
+    habit_edit_clamp_cursor(app);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+        int mx = (int)mouse_world.x;
+        int my = (int)mouse_world.y;
+
+        if(mx >= field_x && mx <= field_x + field_w &&
+           my >= field_y && my <= field_y + field_h) {
+            app->habit_edit_cursor = habit_edit_cursor_from_x(app->habit_edit_text,
+                                                              font, text_x, mx);
+        }
+    }
+
+    if(IsKeyPressed(KEY_ESCAPE)) {
+        habit_edit_cancel(app);
+        return;
+    }
+    if(IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER)) {
+        habit_edit_commit(app);
+        return;
+    }
+    if(IsKeyPressed(KEY_LEFT))
+        app->habit_edit_cursor--;
+    if(IsKeyPressed(KEY_RIGHT))
+        app->habit_edit_cursor++;
+    if(IsKeyPressed(KEY_HOME))
+        app->habit_edit_cursor = 0;
+    if(IsKeyPressed(KEY_END))
+        app->habit_edit_cursor = (int)strlen(app->habit_edit_text);
+    habit_edit_clamp_cursor(app);
+
+    if(IsKeyPressed(KEY_BACKSPACE))
+        habit_edit_delete_before_cursor(app);
+    if(IsKeyPressed(KEY_DELETE))
+        habit_edit_delete_at_cursor(app);
+
+    ch = GetCharPressed();
+    while(ch > 0) {
+        if(ch >= 32 && ch <= 126)
+            habit_edit_insert_char(app, (char)ch);
+        ch = GetCharPressed();
+    }
+
+    habit_edit_clamp_cursor(app);
+}
+
+static void
+draw_habit_edit_field(InbeApp *app, int x, int y, int w, int h, int font)
+{
+    FlintUITextInputStyle style = {
+        .background = flint_darken(c_bg, 4),
+        .border = c_button,
+        .focus_border = c_button_hover,
+        .text = c_text,
+        .cursor = c_text,
+        .radius = 0.08f,
+        .padding_x = flint_px(10)
+    };
+
+    flint_ui_draw_text_input((Rectangle){(float)x, (float)y, (float)w, (float)h},
+                             app != NULL ? app->habit_edit_text : "",
+                             app != NULL ? app->habit_edit_cursor : 0,
+                             1, ((app != NULL ? app->inbe.frame : 0) / 24) % 2,
+                             font, style);
+}
+
+static void
+draw_habits_screen(InbeApp *app)
+{
+    const char *title = locale_get("tab_habits");
+    int top_h = flint_px(58);
+    int nav_h = flint_px(TAB_BAR_H);
+    int content_x;
+    int content_w;
+    int y = top_h + flint_px(16);
+    int viewport_h = view_height - top_h - nav_h;
+    int hover = 0;
+    int side_padding = flint_page_side_padding();
+    int max_w = flint_px(CONTENT_MAX_W);
+    int selected_h = flint_px(44);
+    int month_h = flint_px(42);
+    int grid_gap = flint_px(4);
+    int selected;
+    InbeHabit *active;
+    time_t now;
+    struct tm month;
+    struct tm next_month;
+    char month_label[64];
+    int year;
+    int mon;
+    int first_wday;
+    int days_in_month;
+    int today_index = inbe_habits_today_index();
+    int cell_w;
+    int cell_h;
+    int grid_x;
+    int grid_y;
+
+    draw_app_title_bar(title);
+    draw_habits_manager_button(app);
+
+    if(app == NULL)
+        return;
+
+    flint_centered_column(max_w, side_padding, &content_x, &content_w);
+
+    if(app->habits.count <= 0)
+        inbe_habits_add_default(&app->habits);
+    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
+        app->habits.selected = 0;
+
+    selected = app->habits.selected;
+    active = &app->habits.items[selected];
+
+    now = time(NULL);
+    {
+        struct tm *local = localtime(&now);
+        if(local != NULL)
+            month = *local;
+        else
+            memset(&month, 0, sizeof(month));
+    }
+    month.tm_mday = 1;
+    month.tm_hour = 12;
+    month.tm_min = 0;
+    month.tm_sec = 0;
+    month.tm_mon += app->habits.month_offset;
+    mktime(&month);
+
+    year = month.tm_year + 1900;
+    mon = month.tm_mon + 1;
+    first_wday = month.tm_wday;
+    next_month = month;
+    next_month.tm_mon++;
+    next_month.tm_mday = 0;
+    mktime(&next_month);
+    days_in_month = next_month.tm_mday;
+    strftime(month_label, sizeof(month_label), "%B %Y", &month);
+
+    BeginScissorMode((int)app->camera.offset.x,
+                     (int)(app->camera.offset.y + top_h * app->camera.zoom),
+                     (int)(view_width * app->camera.zoom),
+                     (int)(viewport_h * app->camera.zoom));
+
+    DrawRectangle(content_x, y, content_w, selected_h, flint_darken(c_bg, 6));
+    ui_draw_bevel(content_x, y, content_w, selected_h,
+                  flint_lighten(c_button, 24), flint_darken(c_button, 24));
+    DrawRectangle(content_x, y, flint_px(6), selected_h, active->color);
+    flint_text_draw(active->name,
+                    content_x + flint_px(16),
+                    flint_ui_text_y(active->name, y, selected_h, flint_ui_font()),
+                    flint_ui_font(), c_text);
+
+    y += selected_h + flint_px(8);
+
+    y += flint_px(10);
+
+    if(ui_draw_generic_button(content_x, y, flint_px(44), month_h, "<",
+                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
+        app->habits.month_offset--;
+    }
+    if(ui_draw_generic_button(content_x + content_w - flint_px(44), y, flint_px(44), month_h, ">",
+                              UI_BUTTON_STYLE_SECONDARY, &hover)) {
+        app->habits.month_offset++;
+    }
+    flint_text_draw(month_label,
+                    content_x + (content_w - flint_text_measure(month_label, flint_px(22))) / 2,
+                    flint_ui_text_y(month_label, y, month_h, flint_px(22)),
+                    flint_px(22), c_text);
+
+    grid_x = content_x;
+    grid_y = y + month_h + flint_px(12);
+    cell_w = (content_w - grid_gap * 6) / 7;
+    cell_h = cell_w;
+    {
+        int available_h = top_h + viewport_h - grid_y - flint_px(8);
+        int max_cell_h = (available_h - grid_gap * 5) / 6;
+        if(cell_h > max_cell_h)
+            cell_h = max_cell_h;
+        if(cell_h < flint_px(28))
+            cell_h = flint_px(28);
+    }
+
+    for(int row = 0; row < 6; row++) {
+        for(int col = 0; col < 7; col++) {
+            int slot = row * 7 + col;
+            int day = slot - first_wday + 1;
+            int cell_x = grid_x + col * (cell_w + grid_gap);
+            int cell_y = grid_y + row * (cell_h + grid_gap);
+            char day_label[16];
+            int day_index;
+            int completed;
+
+            if(day < 1 || day > days_in_month) {
+                DrawRectangle(cell_x, cell_y, cell_w, cell_h, flint_darken(c_bg, 5));
+                continue;
+            }
+
+            snprintf(day_label, sizeof(day_label), "%d", day);
+            day_index = year * 10000 + mon * 100 + day;
+            completed = inbe_habit_completed_day(active, day_index);
+            if(ui_draw_generic_button(cell_x, cell_y, cell_w, cell_h, day_label,
+                                      completed ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY,
+                                      &hover)) {
+                inbe_habit_toggle_day(&app->habits, selected, day_index);
+                active = &app->habits.items[selected];
+            }
+            if(completed) {
+                DrawRectangle(cell_x + flint_px(4), cell_y + cell_h - flint_px(6),
+                              cell_w - flint_px(8), flint_px(3), active->color);
+            }
+            if(day_index == today_index) {
+                DrawRectangleLinesEx((Rectangle){(float)cell_x, (float)cell_y,
+                                                 (float)cell_w, (float)cell_h},
+                                     (float)flint_px(2), c_text);
+            }
+        }
+    }
+
+    EndScissorMode();
+}
+
+static void
+draw_habits_manager_screen(InbeApp *app)
+{
+    const char *title = "Habits";
+    int top_h = flint_px(58);
+    int nav_h = flint_px(TAB_BAR_H);
+    int side_padding = flint_page_side_padding();
+    int max_w = flint_px(CONTENT_MAX_W);
+    int content_x;
+    int content_w;
+    int viewport_h = view_height - top_h - nav_h;
+    int y;
+    int hover = 0;
+    int icon_size = flint_px(22);
+    int icon_padding = flint_px(8);
+    int icon_btn_w = icon_size + icon_padding * 2;
+    int row_h = flint_px(46);
+    int row_gap = flint_px(8);
+    int font = flint_ui_font();
+    int plus_size = flint_px(24);
+    int plus_padding = flint_px(12);
+    int plus_btn_w = plus_size + plus_padding * 2;
+    int plus_y;
+    int plus_x;
+    int title_font = flint_px(22);
+    int title_w;
+    int pending_delete = -1;
+
+    if(app == NULL)
+        return;
+
+    DrawRectangle(0, 0, view_width, top_h, c_bg);
+    DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(c_button, 18));
+
+    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
+                               flint_px(8), app->return_icon,
+                               UI_ICON_TYPE_RETURN, &hover)) {
+        habit_edit_commit(app);
+        app->inbe.screen = InbeScreenHabits;
+        return;
+    }
+
+    title_w = flint_text_measure(title, title_font);
+    flint_text_draw(title, (view_width - title_w) / 2,
+                    flint_ui_text_y(title, 0, top_h, title_font),
+                    title_font, c_text);
+
+    flint_centered_column(max_w, side_padding, &content_x, &content_w);
+    y = top_h + flint_px(16);
+
+    if(app->habits.count <= 0)
+        inbe_habits_add_default(&app->habits);
+    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
+        app->habits.selected = 0;
+    if(app->habit_edit_active && app->habit_edit_index >= app->habits.count)
+        habit_edit_cancel(app);
+
+    BeginScissorMode((int)app->camera.offset.x,
+                     (int)(app->camera.offset.y + top_h * app->camera.zoom),
+                     (int)(view_width * app->camera.zoom),
+                     (int)(viewport_h * app->camera.zoom));
+
+    for(int i = 0; i < app->habits.count; i++) {
+        InbeHabit *habit = &app->habits.items[i];
+        int row_x = content_x;
+        int row_w = content_w;
+        int field_x = row_x + flint_px(18);
+        int delete_disabled = app->habits.count <= 1;
+        int delete_btn_x = row_x + row_w - icon_btn_w;
+        int edit_btn_x = delete_btn_x - icon_btn_w - flint_px(6);
+        Rectangle row = {(float)row_x, (float)y, (float)row_w, (float)row_h};
+        Rectangle delete_bounds = {
+            (float)delete_btn_x,
+            (float)(y + (row_h - icon_btn_w) / 2),
+            (float)icon_btn_w,
+            (float)icon_btn_w
+        };
+        Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+        int row_hover = CheckCollisionPointRec(mouse_world, row);
+
+        DrawRectangle(row_x, y, row_w, row_h,
+                      i == app->habits.selected ? flint_lighten(c_button, 8) : flint_darken(c_bg, 5));
+        DrawRectangleLinesEx(row, (float)flint_px(1),
+                             row_hover ? c_button_hover : flint_darken(c_button, 14));
+        DrawRectangle(row_x, y, flint_px(6), row_h, habit->color);
+
+        if(row_hover) {
+            app->cursor_clickable = 1;
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                app->habits.selected = i;
+                inbe_habits_save(&app->habits);
+            }
+        }
+
+        flint_text_draw(habit->name,
+                        field_x,
+                        flint_ui_text_y(habit->name, y, row_h, font),
+                        font, c_text);
+        if(ui_draw_icon_btn_padded(edit_btn_x, y + (row_h - icon_btn_w) / 2,
+                                   icon_size, icon_padding, app->pencil_icon,
+                                   UI_ICON_TYPE_PENCIL, &hover)) {
+            app->habits.selected = i;
+            habit_edit_begin(app, i);
+        }
+
+        if(delete_disabled && CheckCollisionPointRec(mouse_world, delete_bounds))
+            app->cursor_disabled = 1;
+        if(flint_ui_icon_button((FlintUIIconButton){
+                .bounds = delete_bounds,
+                .icon = app->trash_icon,
+                .icon_type = FLINT_ICON_TYPE_TRASH,
+                .icon_size = icon_size,
+                .icon_padding = icon_padding,
+                .disabled = delete_disabled,
+                .background = flint_darken(c_button, delete_disabled ? 16 : 6),
+                .hover_background = flint_darken(c_button_hover, 8),
+                .icon_color = delete_disabled ? flint_darken(c_text, 90) : c_icon,
+                .border = flint_darken(c_button, 24),
+                .radius = 0.12f
+            })) {
+            pending_delete = i;
+        }
+
+        y += row_h + row_gap;
+    }
+
+    if(pending_delete >= 0) {
+        habit_edit_cancel(app);
+        inbe_habits_delete(&app->habits, pending_delete);
+        EndScissorMode();
+        return;
+    }
+
+    plus_x = content_x + content_w - plus_btn_w;
+    plus_y = view_height - nav_h - plus_btn_w - flint_px(16);
+    if(plus_y < y + flint_px(8))
+        plus_y = y + flint_px(8);
+    if(ui_draw_icon_btn_padded(plus_x, plus_y, plus_size, plus_padding,
+                               app->plus_icon, UI_ICON_TYPE_PLUS, &hover)) {
+        if(app->habits.count < INBE_HABIT_MAX)
+            habit_edit_begin_new(app);
+    }
+
+    EndScissorMode();
+}
+
+static const char *
+habit_topic_label(int topic)
+{
+    if(topic == INBE_HABIT_TOPIC_YOGA)
+        return "Yoga";
+    if(topic == INBE_HABIT_TOPIC_FITNESS)
+        return "Fitness";
+    return "Mind";
+}
+
+static int
+habit_activity_index(int exercise)
+{
+    static const int activities[] = {
+        EXERCISE_WIM_HOF,
+        EXERCISE_MEDITATION,
+        EXERCISE_SUN_SALUTATION,
+        EXERCISE_7_MINUTE_WORKOUT
+    };
+
+    for(int i = 0; i < (int)(sizeof(activities) / sizeof(activities[0])); i++) {
+        if(activities[i] == exercise)
+            return i;
+    }
+    return 0;
+}
+
+static int
+habit_activity_from_index(int index)
+{
+    static const int activities[] = {
+        EXERCISE_WIM_HOF,
+        EXERCISE_MEDITATION,
+        EXERCISE_SUN_SALUTATION,
+        EXERCISE_7_MINUTE_WORKOUT
+    };
+    int count = (int)(sizeof(activities) / sizeof(activities[0]));
+
+    index = clampi(index, 0, count - 1);
+    return activities[index];
+}
+
+static int
+habit_color_button(InbeApp *app, int x, int y, Color color, int selected)
+{
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int radius = flint_px(13);
+    Rectangle bounds = {
+        (float)(x - radius - flint_px(6)),
+        (float)(y - radius - flint_px(6)),
+        (float)(radius * 2 + flint_px(12)),
+        (float)(radius * 2 + flint_px(12))
+    };
+    int hovered = CheckCollisionPointRec(mouse_world, bounds);
+
+    DrawCircle(x, y, radius, color);
+    DrawCircleLines(x, y, radius + flint_px(2),
+                    selected ? c_text : flint_darken(c_bg, 42));
+    if(hovered) {
+        app->cursor_clickable = 1;
+        DrawCircleLines(x, y, radius + flint_px(5), c_button_hover);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            return 1;
+    }
+    return 0;
+}
+
+static void
+draw_habit_edit_screen(InbeApp *app)
+{
+    const char *title;
+    const char *sync_options[] = {"None", "By topic", "By activity"};
+    const char *topic_options[] = {"Mind", "Yoga", "Fitness"};
+    const char *activity_options[] = {
+        "Wim Hof Breathing",
+        "Meditation",
+        "Sun Salutation",
+        "7-Minute Workout"
+    };
+    Color color_options[6];
+    int top_h = flint_px(58);
+    int nav_h = flint_px(TAB_BAR_H);
+    int content_x;
+    int content_w;
+    int max_w = flint_px(CONTENT_MAX_W);
+    int y = top_h + flint_px(18);
+    int font = flint_ui_font();
+    int label_font = flint_ui_font_small();
+    int field_h = flint_px(40);
+    int hover = 0;
+    int title_font = flint_px(22);
+    int title_w;
+    int sync_mode;
+    int topic_index;
+    int activity_index;
+    int dropdown_changed = 0;
+
+    if(app == NULL)
+        return;
+
+    if(!app->habit_edit_active) {
+        app->inbe.screen = InbeScreenHabitManager;
+        return;
+    }
+
+    title = app->habit_edit_is_new ? "New Habit" : "Edit Habit";
+
+    DrawRectangle(0, 0, view_width, top_h, c_bg);
+    DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(c_button, 18));
+    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
+                               flint_px(8), app->return_icon,
+                               UI_ICON_TYPE_RETURN, &hover)) {
+        habit_edit_commit(app);
+        return;
+    }
+    title_w = flint_text_measure(title, title_font);
+    flint_text_draw(title, (view_width - title_w) / 2,
+                    flint_ui_text_y(title, 0, top_h, title_font),
+                    title_font, c_text);
+    if(ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
+                               flint_px(24), flint_px(8), app->save_icon,
+                               UI_ICON_TYPE_SAVE, &hover)) {
+        habit_edit_commit(app);
+        return;
+    }
+
+    flint_centered_column(max_w, flint_page_side_padding(), &content_x, &content_w);
+
+    BeginScissorMode((int)app->camera.offset.x,
+                     (int)(app->camera.offset.y + top_h * app->camera.zoom),
+                     (int)(view_width * app->camera.zoom),
+                     (int)((view_height - top_h - nav_h) * app->camera.zoom));
+
+    flint_text_draw("Name", content_x, y, label_font, flint_darken(c_text, 34));
+    y += flint_px(22);
+    draw_habit_edit_field(app, content_x, y, content_w, field_h, font);
+    habit_edit_update_input(app, content_x, y, content_w, field_h,
+                            content_x + flint_px(10), font);
+    y += field_h + flint_px(24);
+
+    flint_text_draw("Underline color", content_x, y, label_font, flint_darken(c_text, 34));
+    y += flint_px(32);
+    color_options[0] = practice_theme_color(app, PRACTICE_CATEGORY_MIND);
+    color_options[1] = practice_theme_color(app, PRACTICE_CATEGORY_YOGA);
+    color_options[2] = practice_theme_color(app, PRACTICE_CATEGORY_FITNESS);
+    color_options[3] = (Color){99, 196, 165, 255};
+    color_options[4] = (Color){210, 180, 72, 255};
+    color_options[5] = (Color){180, 132, 220, 255};
+    for(int i = 0; i < 6; i++) {
+        int cx = content_x + flint_px(18) + i * flint_px(42);
+        int selected = app->habit_edit_color.r == color_options[i].r &&
+                       app->habit_edit_color.g == color_options[i].g &&
+                       app->habit_edit_color.b == color_options[i].b;
+        if(habit_color_button(app, cx, y, color_options[i], selected))
+            app->habit_edit_color = color_options[i];
+    }
+    y += flint_px(34);
+
+    flint_text_draw("Sync", content_x, y, label_font, flint_darken(c_text, 34));
+    y += flint_px(24);
+    sync_mode = clampi(app->habit_edit_sync_mode, INBE_HABIT_SYNC_NONE, INBE_HABIT_SYNC_ACTIVITY);
+    {
+        int gap = flint_px(8);
+        int btn_w = (content_w - gap * 2) / 3;
+        for(int i = 0; i < 3; i++) {
+            if(ui_draw_generic_button(content_x + i * (btn_w + gap), y,
+                                      btn_w, flint_px(36), sync_options[i],
+                                      sync_mode == i ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY,
+                                      &hover)) {
+                app->habit_edit_sync_mode = i;
+                sync_mode = i;
+            }
+        }
+    }
+    y += flint_px(48);
+
+    if(sync_mode == INBE_HABIT_SYNC_TOPIC) {
+        flint_text_draw("Topic", content_x, y, label_font, flint_darken(c_text, 34));
+        y += flint_px(22);
+        topic_index = clampi(app->habit_edit_sync_topic, 0, INBE_HABIT_TOPIC_COUNT - 1);
+        if(ui_draw_dropdown_button(610, content_x, y, content_w, field_h,
+                                   topic_options, 3, &topic_index)) {
+            app->habit_edit_sync_topic = topic_index;
+        }
+        dropdown_changed = ui_draw_dropdown_menu(610);
+        if(dropdown_changed)
+            app->habit_edit_sync_topic = topic_index;
+        y += field_h + flint_px(18);
+    } else if(sync_mode == INBE_HABIT_SYNC_ACTIVITY) {
+        flint_text_draw("Activity", content_x, y, label_font, flint_darken(c_text, 34));
+        y += flint_px(22);
+        activity_index = habit_activity_index(app->habit_edit_sync_activity);
+        if(ui_draw_dropdown_button(611, content_x, y, content_w, field_h,
+                                   activity_options, 4, &activity_index)) {
+            app->habit_edit_sync_activity = habit_activity_from_index(activity_index);
+        }
+        dropdown_changed = ui_draw_dropdown_menu(611);
+        if(dropdown_changed)
+            app->habit_edit_sync_activity = habit_activity_from_index(activity_index);
+        y += field_h + flint_px(18);
+    }
+
+    {
+        char sync_text[96];
+        if(app->habit_edit_sync_mode == INBE_HABIT_SYNC_TOPIC) {
+            snprintf(sync_text, sizeof(sync_text), "Synced by topic: %s",
+                     habit_topic_label(app->habit_edit_sync_topic));
+        } else if(app->habit_edit_sync_mode == INBE_HABIT_SYNC_ACTIVITY) {
+            snprintf(sync_text, sizeof(sync_text), "Synced by activity: %s",
+                     practice_activity_label(app->habit_edit_sync_activity));
+        } else {
+            snprintf(sync_text, sizeof(sync_text), "%s", "Not synced");
+        }
+        flint_text_draw(sync_text, content_x, y, flint_ui_font_small(),
+                        flint_darken(c_text, 44));
+    }
+
+    EndScissorMode();
 }
 
 static void
@@ -873,10 +2650,15 @@ updateapp(InbeApp *app)
     int center_y = view_height / 2;
     int hover = 0;
 
+    meditation_music_update(app);
+    if(app->practice_coming_soon_ticks > 0)
+        app->practice_coming_soon_ticks--;
+
     /* Handle Android back button and desktop backspace */
     if(IsKeyPressed(KEY_BACK) ||
        (IsKeyPressed(KEY_BACKSPACE) &&
-        !(app->inbe.screen == InbeScreenHistory && history_tab_is_editing(app)))) {
+        !(app->inbe.screen == InbeScreenHistory && history_tab_is_editing(app)) &&
+        !(app->inbe.screen == InbeScreenHabitEdit && app->habit_edit_active))) {
         if(app->modal.active) {
             /* Modal active - close it on cancel/confirm */
             app->modal.active = 0;
@@ -888,6 +2670,8 @@ updateapp(InbeApp *app)
 
     if(app->inbe.screen == InbeScreenSettings) {
         settings_tab_draw(app);
+        if(!app->modal.active)
+            ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
         app->inbe.frame++;
         return;
     }
@@ -910,38 +2694,159 @@ updateapp(InbeApp *app)
         return;
     }
 
+    if(app->inbe.screen == InbeScreenHabits) {
+        draw_habits_screen(app);
+        if(!app->modal.active)
+            ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+        app->inbe.frame++;
+        return;
+    }
+
+    if(app->inbe.screen == InbeScreenHabitManager) {
+        draw_habits_manager_screen(app);
+        if(!app->modal.active)
+            ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+        app->inbe.frame++;
+        return;
+    }
+
+    if(app->inbe.screen == InbeScreenHabitEdit) {
+        draw_habit_edit_screen(app);
+        if(!app->modal.active)
+            ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+        app->inbe.frame++;
+        return;
+    }
+
     if(app->inbe.screen == InbeScreenStart) {
         session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                      flint_px(56) + 96);
+                                      practice_category_bottom_y_for_app(app) + flint_px(96));
     } else if(app->inbe.screen == InbeScreenSession) {
         session_update_circle_bounds_for_view(&app->inbe, 0, 84);
     }
 
-    if(app->inbe.screen != InbeScreenResults)
+    if(app->inbe.screen == InbeScreenStart || app->inbe.screen == InbeScreenSession)
         session_draw_inbe(app, center_x, center_y);
-    int title_font = flint_px(32);
-    int title_w = 30;
 
 
     switch (app->inbe.screen) {
     case InbeScreenStart:
-        title_w = flint_text_measure(config.title, title_font);
-        flint_text_draw(config.title, center_x - title_w / 2, flint_px(20), title_font, c_text);
+        draw_app_title_bar(locale_get("tab_practice"));
+        draw_practice_config_button(app);
+        draw_practice_category_tabs(app);
 
         {
+            const char *exercise_options[2];
+            int exercise_values[2];
+            int activity_count;
+            int activity_index;
+            int dropdown_w = flint_px(250);
+            int dropdown_h = flint_px(36);
+            int manual_icon_size = flint_px(20);
+            int manual_icon_padding = flint_px(8);
+            int manual_btn_w = manual_icon_size + manual_icon_padding * 2;
+            int settings_icon_size = flint_px(20);
+            int settings_icon_padding = flint_px(8);
+            int settings_btn_w = settings_icon_size + settings_icon_padding * 2;
+            int selector_gap = flint_px(8);
+            int selector_w;
+            int dropdown_x;
+            int dropdown_y;
+            int manual_x;
+            int settings_x;
             int play_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(20);
             int play_limit = view_height - flint_px(56) - flint_px(48);
+            int exercise_changed = 0;
+
+            practice_clamp_activity_to_tab(app);
+            activity_count = practice_activity_count_for_tab(app->practice_category_tab);
+            for(int i = 0; i < activity_count; i++) {
+                exercise_values[i] = practice_activity_for_tab(app->practice_category_tab, i);
+                exercise_options[i] = practice_activity_label(exercise_values[i]);
+            }
+            activity_index = practice_activity_index_for_tab(app->practice_category_tab, app->exercise_type);
+
+            if(dropdown_w + selector_gap * 2 + manual_btn_w + settings_btn_w > view_width - flint_px(32))
+                dropdown_w = view_width - flint_px(32) - selector_gap * 2 - manual_btn_w - settings_btn_w;
+            if(dropdown_w < flint_px(160))
+                dropdown_w = flint_px(160);
+            selector_w = dropdown_w + selector_gap * 2 + manual_btn_w + settings_btn_w;
+            dropdown_x = center_x - selector_w / 2;
+            manual_x = dropdown_x + dropdown_w + selector_gap;
+            settings_x = manual_x + manual_btn_w + selector_gap;
+            if(practice_enabled_count(app) <= 1) {
+                dropdown_y = practice_category_bottom_y_for_app(app) + flint_px(14);
+            } else {
+                dropdown_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(70);
+                if(dropdown_y < practice_category_bottom_y_for_app(app) + flint_px(14))
+                    dropdown_y = practice_category_bottom_y_for_app(app) + flint_px(14);
+            }
+
+            if(!app->modal.active &&
+               ui_draw_dropdown_button(300, dropdown_x, dropdown_y, dropdown_w, dropdown_h,
+                                       exercise_options, activity_count, &activity_index)) {
+                app->exercise_type = exercise_values[activity_index];
+                exercise_changed = 1;
+            }
+            if(!app->modal.active &&
+               ui_draw_icon_btn_padded(manual_x, dropdown_y, manual_icon_size, manual_icon_padding,
+                                       app->manual_icon, UI_ICON_TYPE_MANUAL, &hover)) {
+                app->tutorial_step = 0;
+                app->manual_scroll = 0;
+                app->inbe.screen = InbeScreenManual;
+            }
+            if(!app->modal.active &&
+               ui_draw_icon_btn_padded(settings_x, dropdown_y, settings_icon_size, settings_icon_padding,
+                                       app->gear_icon, UI_ICON_TYPE_GEAR, &hover)) {
+                reset_settings_preview(app);
+                app->settings_category = app->exercise_type == EXERCISE_MEDITATION
+                                             ? SETTINGS_CATEGORY_MEDITATION
+                                             : SETTINGS_CATEGORY_PRACTICE;
+                app->settings_sub_tab = app->settings_category == SETTINGS_CATEGORY_PRACTICE
+                                            ? PRACTICE_SUBTAB_BREATHING
+                                            : 0;
+                app->settings_from_exercise_selector = 1;
+                app->settings_scroll = 0;
+                app->inbe.screen = InbeScreenSettings;
+            }
+
             if(play_y > play_limit)
                 play_y = play_limit;
-            if (ui_draw_text_btn(center_x, play_y, locale_get("play_button"), &hover)) {
-            session_start(app);
+            if(!app->modal.active && ui_draw_text_btn(center_x, play_y, locale_get("play_button"), &hover)) {
+                if(!exercise_manual_seen(app, app->exercise_type)) {
+                    app->tutorial_step = 0;
+                    app->manual_scroll = 0;
+                    app->inbe.screen = InbeScreenManual;
+                } else if(app->exercise_type == EXERCISE_MEDITATION) {
+                    app->modal.active = 1;
+                    app->modal.type = UIModalMeditationSetup;
+                    app->modal.selected_button = 0;
+                } else {
+                    session_start(app);
+                }
             }
+
+            if(!app->modal.active && ui_draw_dropdown_menu(300)) {
+                app->exercise_type = exercise_values[activity_index];
+                exercise_changed = 1;
+            }
+            if(exercise_changed)
+                save_settings(app);
         }
-        ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+        draw_practice_coming_soon_popout(app);
+        draw_practice_config_modal(app);
+        if(!app->modal.active)
+            ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+        if(app->modal.active && app->modal.type == UIModalMeditationSetup)
+            draw_meditation_setup_modal(app);
         break;
 
     case InbeScreenSession:
         session_update_screen(app, center_x, center_y, &hover);
+        break;
+
+    case InbeScreenMeditation:
+        draw_meditation_screen(app, center_x, center_y);
         break;
 
     case InbeScreenResults:
@@ -974,11 +2879,14 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
                                   flint_px(56) + flint_px(80));
 
     app->cursor_clickable = 0;
+    app->cursor_disabled = 0;
     app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x;
     app->camera.offset.y = viewport.y;
     ui_set_frame(app->camera);
     ui_set_cursor_clickable(&app->cursor_clickable);
+    ui_set_cursor_disabled(&app->cursor_disabled);
+    refresh_theme_colors(app->theme_id, app->dark_mode);
 
     DrawRectangleRec(viewport, c_bg);
     BeginScissorMode((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
@@ -1025,6 +2933,10 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->play_icon);
     SafeUnloadTexture(app->pause_icon);
     SafeUnloadTexture(app->stat_icon);
+    SafeUnloadTexture(app->quest_icon);
+    SafeUnloadTexture(app->practice_icon);
+    SafeUnloadTexture(app->plus_icon);
+    SafeUnloadTexture(app->stack_icon);
     SafeUnloadTexture(app->home_icon);
     SafeUnloadTexture(app->trash_icon);
     SafeUnloadTexture(app->pencil_icon);
@@ -1037,14 +2949,15 @@ inbe_app_destroy(void *vapp)
     SafeUnloadTexture(app->sound1_icon);
     SafeUnloadTexture(app->sound2_icon);
     SafeUnloadTexture(app->sound3_icon);
-    SafeUnloadTexture(app->angel_image);
-    SafeUnloadTexture(app->begin_image);
+    SafeUnloadTexture(app->whm_1_image);
+    SafeUnloadTexture(app->whm_2_image);
     SafeUnloadTexture(app->font_shapes_texture);
     unload_locale_font(app);
 
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
+    meditation_music_unload(app);
 
     if (app->audio_ready) {
         CloseAudioDevice();

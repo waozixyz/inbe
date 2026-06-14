@@ -1,0 +1,144 @@
+#include "flint_theme_meta.h"
+#include "flint_theme.h"
+
+#include <stdio.h>
+#include <string.h>
+
+typedef struct {
+    Color background;
+    Color text;
+    Color circle;
+    Color button;
+    Color button_hover;
+    Color icon;
+    Color link;
+} FlintThemeCatalogColors;
+
+const FlintThemeMeta flint_themes[FLINT_THEME_COUNT] = {
+    [FLINT_THEME_SKY] = {"Sky", "sky_light", "sky_dark", "themes/sky.ini", "themes/sky_dark.ini"},
+    [FLINT_THEME_OCEAN] = {"Ocean", "ocean_light", "ocean_dark", "themes/ocean.ini", "themes/ocean_dark.ini"},
+    [FLINT_THEME_FOREST] = {"Forest", "forest_light", "forest_dark", "themes/forest.ini", "themes/forest_dark.ini"},
+    [FLINT_THEME_SUNSET] = {"Sunset", "sunset_light", "sunset_dark", "themes/sunset.ini", "themes/sunset_dark.ini"},
+    [FLINT_THEME_LAVENDER] = {"Lavender", "lavender_light", "lavender_dark", "themes/lavender.ini", "themes/lavender_dark.ini"},
+    [FLINT_THEME_CHERRY] = {"Cherry", "cherry_light", "cherry_dark", "themes/cherry.ini", "themes/cherry_dark.ini"}
+};
+
+static const FlintThemeCatalogColors catalog_light[FLINT_THEME_COUNT] = {
+    [FLINT_THEME_SKY] = {{0xE2,0xEE,0xFC,0xFF}, {0x24,0x48,0x7C,0xFF}, {0x7E,0xB7,0xE6,0xFF}, {0xA6,0xCF,0xF2,0xFF}, {0x68,0x9E,0xD7,0xFF}, {0xE2,0xEE,0xFC,0xFF}, {0x4A,0x90,0xE2,0xFF}},
+    [FLINT_THEME_OCEAN] = {{0xD0,0xE8,0xF8,0xFF}, {0x1A,0x40,0x70,0xFF}, {0x5A,0xA0,0xD0,0xFF}, {0x80,0xC0,0xE0,0xFF}, {0x40,0x90,0xD0,0xFF}, {0xD0,0xE8,0xF8,0xFF}, {0x20,0x80,0xC0,0xFF}},
+    [FLINT_THEME_FOREST] = {{0xE0,0xF0,0xE0,0xFF}, {0x2A,0x50,0x30,0xFF}, {0x60,0xB0,0x70,0xFF}, {0xA0,0xD0,0xB0,0xFF}, {0x70,0xC0,0x90,0xFF}, {0xE0,0xF0,0xE0,0xFF}, {0x40,0x90,0x50,0xFF}},
+    [FLINT_THEME_SUNSET] = {{0xF8,0xE8,0xD8,0xFF}, {0x50,0x28,0x14,0xFF}, {0xD0,0x80,0x50,0xFF}, {0xF0,0xC0,0xA0,0xFF}, {0xE0,0x90,0x60,0xFF}, {0xF8,0xE8,0xD8,0xFF}, {0xC0,0x60,0x30,0xFF}},
+    [FLINT_THEME_LAVENDER] = {{0xF0,0xE8,0xF8,0xFF}, {0x40,0x28,0x60,0xFF}, {0x90,0x70,0xB0,0xFF}, {0xC0,0xA0,0xD0,0xFF}, {0xA0,0x80,0xC0,0xFF}, {0xF0,0xE8,0xF8,0xFF}, {0x70,0x50,0x90,0xFF}},
+    [FLINT_THEME_CHERRY] = {{0xF8,0xD8,0xE0,0xFF}, {0x60,0x20,0x30,0xFF}, {0xD0,0x60,0x80,0xFF}, {0xF0,0xA0,0xB0,0xFF}, {0xE0,0x70,0x90,0xFF}, {0xF8,0xD8,0xE0,0xFF}, {0xC0,0x40,0x60,0xFF}}
+};
+
+static const FlintThemeCatalogColors catalog_dark[FLINT_THEME_COUNT] = {
+    [FLINT_THEME_SKY] = {{0x18,0x28,0x38,0xFF}, {0xB0,0xD0,0xEA,0xFF}, {0x50,0x80,0xB0,0xFF}, {0x30,0x50,0x70,0xFF}, {0x40,0x70,0x90,0xFF}, {0x18,0x28,0x38,0xFF}, {0x60,0xA0,0xD0,0xFF}},
+    [FLINT_THEME_OCEAN] = {{0x10,0x25,0x40,0xFF}, {0x98,0xC0,0xDE,0xFF}, {0x30,0x60,0x90,0xFF}, {0x20,0x40,0x60,0xFF}, {0x30,0x55,0x75,0xFF}, {0x10,0x25,0x40,0xFF}, {0x50,0x90,0xC0,0xFF}},
+    [FLINT_THEME_FOREST] = {{0x15,0x30,0x20,0xFF}, {0xB4,0xD0,0xB4,0xFF}, {0x35,0x65,0x45,0xFF}, {0x25,0x45,0x30,0xFF}, {0x30,0x55,0x40,0xFF}, {0x15,0x30,0x20,0xFF}, {0x50,0x80,0x60,0xFF}},
+    [FLINT_THEME_SUNSET] = {{0x30,0x18,0x10,0xFF}, {0xE0,0xB0,0x90,0xFF}, {0x80,0x40,0x28,0xFF}, {0x50,0x28,0x18,0xFF}, {0x60,0x35,0x25,0xFF}, {0x30,0x18,0x10,0xFF}, {0xC0,0x50,0x30,0xFF}},
+    [FLINT_THEME_LAVENDER] = {{0x20,0x15,0x30,0xFF}, {0xC4,0xA8,0xD0,0xFF}, {0x50,0x35,0x70,0xFF}, {0x35,0x20,0x50,0xFF}, {0x45,0x30,0x65,0xFF}, {0x20,0x15,0x30,0xFF}, {0x90,0x60,0xB0,0xFF}},
+    [FLINT_THEME_CHERRY] = {{0x30,0x15,0x20,0xFF}, {0xD2,0x98,0xA8,0xFF}, {0x70,0x30,0x45,0xFF}, {0x45,0x20,0x28,0xFF}, {0x55,0x30,0x38,0xFF}, {0x30,0x15,0x20,0xFF}, {0xB0,0x40,0x60,0xFF}}
+};
+
+FlintThemeId
+flint_theme_normalize(int theme)
+{
+    if(theme < 0 || theme >= FLINT_THEME_COUNT)
+        return FLINT_THEME_SKY;
+    return (FlintThemeId)theme;
+}
+
+const FlintThemeMeta *
+flint_theme_meta(FlintThemeId theme)
+{
+    return &flint_themes[flint_theme_normalize(theme)];
+}
+
+const char *
+flint_theme_label(FlintThemeId theme)
+{
+    return flint_theme_meta(theme)->name;
+}
+
+const char *
+flint_theme_scope_for(FlintThemeId theme, bool dark_mode)
+{
+    const FlintThemeMeta *meta = flint_theme_meta(theme);
+    return dark_mode ? meta->dark_scope : meta->light_scope;
+}
+
+static bool
+catalog_value(const FlintThemeCatalogColors *colors, const char *key, Color *color)
+{
+    if(key == NULL || color == NULL)
+        return false;
+
+    if(strcmp(key, "background") == 0)
+        *color = colors->background;
+    else if(strcmp(key, "text") == 0)
+        *color = colors->text;
+    else if(strcmp(key, "circle") == 0)
+        *color = colors->circle;
+    else if(strcmp(key, "button") == 0)
+        *color = colors->button;
+    else if(strcmp(key, "button_hover") == 0)
+        *color = colors->button_hover;
+    else if(strcmp(key, "icon") == 0)
+        *color = colors->icon;
+    else if(strcmp(key, "link") == 0)
+        *color = colors->link;
+    else
+        return false;
+
+    return true;
+}
+
+bool
+flint_theme_catalog_color(FlintThemeId theme, bool dark_mode, const char *key, Color *color)
+{
+    FlintThemeId id = flint_theme_normalize(theme);
+    return catalog_value(dark_mode ? &catalog_dark[id] : &catalog_light[id], key, color);
+}
+
+bool
+flint_theme_catalog_scope_color(const char *scope, const char *key, Color *color)
+{
+    if(scope == NULL)
+        return false;
+
+    for(int i = 0; i < FLINT_THEME_COUNT; i++) {
+        if(strcmp(scope, flint_themes[i].light_scope) == 0)
+            return flint_theme_catalog_color((FlintThemeId)i, false, key, color);
+        if(strcmp(scope, flint_themes[i].dark_scope) == 0)
+            return flint_theme_catalog_color((FlintThemeId)i, true, key, color);
+    }
+
+    return false;
+}
+
+void
+flint_theme_register_defaults(const char *theme_dir)
+{
+    char light_path[FLINT_THEME_PATH_SIZE];
+    char dark_path[FLINT_THEME_PATH_SIZE];
+
+    for(int i = 0; i < FLINT_THEME_COUNT; i++) {
+        const FlintThemeMeta *meta = &flint_themes[i];
+
+        if(theme_dir != NULL && theme_dir[0] != '\0') {
+            const char *light_name = strrchr(meta->light_path, '/');
+            const char *dark_name = strrchr(meta->dark_path, '/');
+            light_name = light_name != NULL ? light_name + 1 : meta->light_path;
+            dark_name = dark_name != NULL ? dark_name + 1 : meta->dark_path;
+            snprintf(light_path, sizeof(light_path), "%s/%s", theme_dir, light_name);
+            snprintf(dark_path, sizeof(dark_path), "%s/%s", theme_dir, dark_name);
+        } else {
+            snprintf(light_path, sizeof(light_path), "%s", meta->light_path);
+            snprintf(dark_path, sizeof(dark_path), "%s", meta->dark_path);
+        }
+
+        flint_theme_register_scope_dark(meta->light_scope, light_path, dark_path);
+        flint_theme_register_scope_dark(meta->dark_scope, dark_path, dark_path);
+    }
+}

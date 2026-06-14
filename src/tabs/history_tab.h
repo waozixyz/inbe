@@ -2,7 +2,7 @@
 #define HISTORY_TAB_H
 
 #include <stddef.h>
-#include "../libinbe/inbe.h"
+#include "../inbe.h"
 #include "../app_fwd.h"
 
 /* History constants */

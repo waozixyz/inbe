@@ -4,6 +4,21 @@ Inner Breeze
 [tab_history]
 Histórico
 ---
+[tab_habits]
+Hábitos
+---
+[tab_practice]
+Prática
+---
+[habit_add_button]
+Adicionar hábito
+---
+[habit_done_button]
+Feito
+---
+[habit_not_done_button]
+Marcar
+---
 [tab_manual]
 Tutorial
 ---
@@ -12,6 +27,60 @@ Configurações
 ---
 [play_button]
 INICIAR
+---
+[exercise_wim_hof]
+Respiração Wim Hof
+---
+[exercise_meditation]
+Meditação
+---
+[meditation_title]
+Meditação
+---
+[meditation_manual_title]
+Meditação
+---
+[meditation_manual_text]
+Escolha uma duração, pressione iniciar e sente-se confortavelmente. Deixe a atenção repousar na respiração. Quando a mente se distrair, volte suavemente à respiração. Um gongo marca o começo e o fim da sessão.
+---
+[meditation_music_settings_title]
+Música de meditação
+---
+[meditation_music_section_title]
+Música de fundo
+---
+[meditation_music_enabled_label]
+Tocar música de fundo
+---
+[meditation_music_shuffle_label]
+Embaralhar faixas
+---
+[meditation_music_track_label]
+Faixa
+---
+[meditation_music_download_button]
+Baixar áudio
+---
+[meditation_music_redownload_button]
+Baixar áudio novamente
+---
+[meditation_music_test_button]
+Testar reprodução
+---
+[duration_5m]
+5m
+---
+[duration_15m]
+15m
+---
+[duration_30m]
+30m
+---
+[duration_1h]
+1h
+---
+[duration_2h]
+2h
 ---
 [breath_button]
 RESPIRAR
@@ -64,6 +133,9 @@ Rodada %d  %ds
 [starting_in]
 COMEÇA EM %2d
 ---
+[session_round_label]
+RODADA %d
+---
 [settings_title]
 Configurações
 ---
@@ -72,6 +144,12 @@ Respiração
 ---
 [settings_tab_session]
 Sessão
+---
+[settings_tab_app]
+App
+---
+[settings_tab_data_about]
+Dados e sobre
 ---
 [settings_tab_sound]
 Som
@@ -88,8 +166,12 @@ Dados
 [settings_tab_about]
 Sobre
 ---
+
 [theme_label]
 Tema
+---
+[theme_mode_label]
+Modo do tema
 ---
 [speed_label]
 Velocidade
@@ -151,8 +233,12 @@ Mais
 [coming_soon_label]
 Em breve...
 ---
+
 [data_management_label]
 Gerenciamento de dados
+---
+[data_management_button]
+Gerenciar dados
 ---
 [total_sessions_label]
 Sessões totais: %d
@@ -339,6 +425,9 @@ MAIS
 [tutorial_finish_button]
 CONCLUIR
 ---
+[tutorial_start_button]
+COMEÇAR AGORA
+---
 [share_sheet_title]
 Exportar dados da sessão
 ---
@@ -365,22 +454,4 @@ Excluir esta rodada? Isso não pode ser desfeito.
 ---
 [delete_button]
 Excluir
----
-[settings_category_practice]
-Configurações de Prática
----
-[settings_category_practice_desc]
-Configurar respiração e sessões
----
-[settings_category_app]
-Preferências do Aplicativo
----
-[settings_category_app_desc]
-Personalizar aparência e áudio
----
-[settings_category_about_data]
-Sobre e Dados
----
-[settings_category_about_data_desc]
-Ver informações e gerenciar dados
 ---
