@@ -128,7 +128,7 @@ struct InbeApp {
     Texture2D play_icon;
     Texture2D pause_icon;
     Texture2D stat_icon;
-    Texture2D quest_icon;
+    Texture2D habit_icon;
     Texture2D practice_icon;
     Texture2D plus_icon;
     Texture2D stack_icon;

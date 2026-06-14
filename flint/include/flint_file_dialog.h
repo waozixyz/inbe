@@ -29,6 +29,9 @@ typedef struct {
 /* Initialize file dialog */
 void flint_file_dialog_init(FlintFileDialog *dlg);
 
+/* Set the theme scope used by the blocking desktop dialog. */
+void flint_file_dialog_set_theme_scope(const char *scope);
+
 /* Save file dialog - returns 1 if file selected, 0 if cancelled */
 int flint_file_dialog_save(FlintFileDialog *dlg, const char *title, const char *default_filename);
 

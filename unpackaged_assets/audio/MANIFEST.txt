@@ -1,0 +1,9 @@
+id=inbe-meditation-audio
+version=1
+archive=inbe-meditation-audio-v1.zip
+license=CC BY 4.0
+creator=Elijah_K
+source=https://freemusicarchive.org/
+track=Elijah_K/deep-meditation.ogg|Deep Meditation
+track=Elijah_K/path-of-meditation.ogg|Path Of Meditation
+track=Elijah_K/truth-of-silence.ogg|Truth Of Silence

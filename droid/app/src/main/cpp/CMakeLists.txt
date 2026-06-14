@@ -5,6 +5,10 @@ set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
 set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")
 set(FLINT_DIR "${REPO_ROOT}/flint")
+set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
+set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
+set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
+set(SQLITE_AMALGAMATION_H "${SQLITE_BUILD_DIR}/sqlite3.h")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
@@ -31,6 +35,15 @@ add_custom_command(
     COMMAND sh "${FLINT_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
     DEPENDS "${FLINT_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
     WORKING_DIRECTORY "${REPO_ROOT}"
+    VERBATIM
+)
+
+add_custom_command(
+    OUTPUT "${SQLITE_AMALGAMATION_C}" "${SQLITE_AMALGAMATION_H}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${SQLITE_BUILD_DIR}"
+    COMMAND sh -c "cd '${SQLITE_BUILD_DIR}' && '${SQLITE_DIR}/configure'"
+    COMMAND make -C "${SQLITE_BUILD_DIR}" sqlite3.c sqlite3.h
+    DEPENDS "${SQLITE_DIR}/configure" "${SQLITE_DIR}/manifest"
     VERBATIM
 )
 
@@ -84,6 +97,7 @@ add_library(main SHARED
     "${SRC_DIR}/data.c"
     "${SRC_DIR}/storage.c"
     "${SRC_DIR}/miniz.c"
+    "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/android/android_import.c"
     "${SRC_DIR}/android/android_runtime_assets.c"
     "${SRC_DIR}/android/android_share.c"
@@ -104,6 +118,7 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/android"
     "${NATIVE_APP_GLUE_DIR}"
     "${FLINT_DIR}/include"
+    "${SQLITE_BUILD_DIR}"
 )
 
 target_compile_definitions(main PRIVATE
@@ -138,7 +153,6 @@ target_link_libraries(main
     android
     log
     OpenSLES
-    sqlite
     EGL
     GLESv2
     m

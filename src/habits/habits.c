@@ -80,8 +80,6 @@ inbe_habits_delete(InbeHabits *habits, int index)
 {
     if(habits == NULL || index < 0 || index >= habits->count)
         return;
-    if(habits->count <= 1)
-        return;
 
     for(int i = index; i < habits->count - 1; i++)
         habits->items[i] = habits->items[i + 1];
@@ -92,7 +90,7 @@ inbe_habits_delete(InbeHabits *habits, int index)
         habits->selected--;
     else if(habits->selected >= habits->count)
         habits->selected = habits->count - 1;
-    if(habits->selected < 0)
+    if(habits->selected < 0 && habits->count > 0)
         habits->selected = 0;
 
     inbe_habits_save(habits);

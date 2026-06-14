@@ -4,7 +4,7 @@
 #include "language_tab.h"
 #include "meditation_music.h"
 #include "locale.h"
-#include "storage.h"
+#include "theme_meta.h"
 #include "flint_ui.h"
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
@@ -237,11 +237,7 @@ settings_draw_data_stats(int x, int y, int w)
     long long data_size = data_get_total_size();
     char size_str[32];
     char stat_text[64];
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
-    int stats_box_h = flint_px(90);
-#else
     int stats_box_h = flint_px(66);
-#endif
     int stat_x = x + flint_px(16);
     int stat_y = y + flint_px(16);
 
@@ -256,28 +252,21 @@ settings_draw_data_stats(int x, int y, int w)
 
     locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
     flint_text_draw(stat_text, stat_x, stat_y, font, c_text);
-    stat_y += flint_px(22);
-
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
-    {
-        const char *storage_path = inbe_storage_db_path();
-        const char *display_path = storage_path;
-        char home_buf[FS_PATH_MAX];
-        char storage_text[FS_PATH_MAX + 32];
-
-        if(strncmp(storage_path, "/home/", 6) == 0) {
-            const char *slash_after_user = strchr(storage_path + 6, '/');
-            if(slash_after_user != NULL) {
-                snprintf(home_buf, sizeof(home_buf), "~%s", slash_after_user);
-                display_path = home_buf;
-            }
-        }
-
-        locale_format(storage_text, sizeof(storage_text), "storage_label", display_path);
-        flint_text_draw(storage_text, stat_x, stat_y, flint_ui_font_small(), flint_darken(c_text, 40));
-    }
-#endif
 }
+
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
+static void
+settings_apply_file_dialog_theme(InbeApp *app)
+{
+    int theme_id = app != NULL ? app->theme_id : ThemeSky;
+    int dark_mode = app != NULL && app->dark_mode != 0;
+
+    if(theme_id < 0 || theme_id >= THEME_COUNT)
+        theme_id = ThemeSky;
+    flint_file_dialog_set_theme_scope(flint_theme_scope_for((FlintThemeId)theme_id,
+                                                            dark_mode != 0));
+}
+#endif
 
 static void
 settings_draw_about_block(InbeApp *app, int content_x, int content_w, int *y)
@@ -863,11 +852,7 @@ settings_tab_draw(InbeApp *app)
 
         y = modal_y + flint_px(54);
         settings_draw_data_stats(modal_x + flint_px(18), y, modal_w - flint_px(36));
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
-        y += flint_px(108);
-#else
         y += flint_px(84);
-#endif
 
         button_w = modal_w - flint_px(36);
         if(ui_draw_generic_button(modal_x + flint_px(18), y, button_w, button_h,
@@ -882,6 +867,7 @@ settings_tab_draw(InbeApp *app)
                 settings_tab_set_status_error(locale_get("import_failed"));
             }
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
+            settings_apply_file_dialog_theme(app);
             if(flint_file_dialog_load(&import_dlg, locale_get("import_data_dialog_title"))) {
                 const char *path = flint_file_dialog_get_path(&import_dlg);
                 if(path != NULL && path[0] != '\0') {
@@ -926,20 +912,23 @@ settings_tab_draw(InbeApp *app)
                 TraceLog(LOG_ERROR, "DATA: Export failed");
             }
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-            else if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
-                const char *path = flint_file_dialog_get_path(&export_dlg);
-                if(path != NULL && data_export(path)) {
-                    const char *filename = GetFileName(path);
-                    settings_tab_set_status_success(locale_get("exported_label"), filename);
-                    app->modal.active = 0;
-                    app->modal.type = UIModalNone;
-                    TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+            else {
+                settings_apply_file_dialog_theme(app);
+                if(flint_file_dialog_save(&export_dlg, locale_get("export_data_dialog_title"), "inbe-export.zip")) {
+                    const char *path = flint_file_dialog_get_path(&export_dlg);
+                    if(path != NULL && data_export(path)) {
+                        const char *filename = GetFileName(path);
+                        settings_tab_set_status_success(locale_get("exported_label"), filename);
+                        app->modal.active = 0;
+                        app->modal.type = UIModalNone;
+                        TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+                    } else {
+                        settings_tab_set_status_error(locale_get("export_failed"));
+                        TraceLog(LOG_ERROR, "DATA: Export failed");
+                    }
                 } else {
-                    settings_tab_set_status_error(locale_get("export_failed"));
-                    TraceLog(LOG_ERROR, "DATA: Export failed");
+                    settings_tab_set_status_error(locale_get("export_cancelled"));
                 }
-            } else {
-                settings_tab_set_status_error(locale_get("export_cancelled"));
             }
 #else
             else {
