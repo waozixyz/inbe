@@ -57,7 +57,7 @@ APP_SRCS := \
 	src/app.c \
 	src/app_preferences.c \
 	src/app_session.c \
-	src/habits/habits.c \
+	src/screens/habits_screen.c \
 	src/meditation_music.c \
 	src/locale.c \
 	src/theme.c \
@@ -108,11 +108,11 @@ run: $(TARGET)
 test: $(STORAGE_IMPORT_TEST)
 	$(STORAGE_IMPORT_TEST)
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage.c src/storage.h src/habits/habits.c src/habits/habits.h src/miniz.c src/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage.c src/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/miniz.c src/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DRINI_IMPLEMENTATION -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES \
 		-Isrc -Ivendor/raylib/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c src/storage.c src/habits/habits.c src/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c src/storage.c src/screens/habits_screen.c src/miniz.c $(SQLITE_SRC) \
 		-lm -lpthread -ldl
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):

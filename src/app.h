@@ -6,7 +6,7 @@
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
 #include "flint/include/ui_icon_types.h"
-#include "habits/habits.h"
+#include "screens/habits_screen.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -133,11 +133,6 @@ typedef enum AppMainTab {
     APP_MAIN_TAB_HABITS = 0,
     APP_MAIN_TAB_PRACTICE = 1,
 } AppMainTab;
-
-typedef enum HabitsViewMode {
-    HABITS_VIEW_CALENDAR = 0,
-    HABITS_VIEW_LINKED = 1,
-} HabitsViewMode;
 
 struct InbeApp {
     Inbe inbe;
