@@ -1,6 +1,6 @@
 #include "storage.h"
 
-#include "habits/habits.h"
+#include "screens/habits_screen.h"
 #include "breath_engine.h"
 #include "miniz.h"
 #include "version.h"

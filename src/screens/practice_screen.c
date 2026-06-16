@@ -8,7 +8,7 @@
 #include "../theme.h"
 #include "../storage.h"
 #include "../data.h"
-#include "../habits/habits.h"
+#include "habits_screen.h"
 #include <stdio.h>
 #include <string.h>
 
