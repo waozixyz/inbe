@@ -343,7 +343,7 @@ load_file_text_from_paths(const char *relative_path, char **out_text)
 
 #if defined(FLINT_EMBEDDED_ONLY)
     return 0;
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#elif INBE_ANDROID_BUILD
     text = LoadFileText(relative_path);
     if(text != NULL) {
         *out_text = text;
@@ -403,7 +403,7 @@ load_locale_file_for_code(const char *code, char **out_text)
 
 #if defined(FLINT_EMBEDDED_ONLY)
     return 0;
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#elif INBE_ANDROID_BUILD
     text = LoadFileText(path);
     if(text != NULL) {
         *out_text = text;

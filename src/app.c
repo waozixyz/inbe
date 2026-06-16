@@ -721,20 +721,6 @@ load_pixel_texture_from_asset(const char *path)
 }
 
 static Texture2D
-load_icon_texture(const char *name)
-{
-    char icon_name[64];
-    char *ext;
-
-    snprintf(icon_name, sizeof(icon_name), "%s", name);
-    ext = strrchr(icon_name, '.');
-    if(ext != NULL && strcmp(ext, ".png") == 0)
-        *ext = '\0';
-
-    return flint_load_icon_texture_by_name(icon_name);
-}
-
-static Texture2D
 load_asset_texture(const char *name)
 {
     char path[64];
@@ -908,97 +894,8 @@ inbe_app_init(void *vapp) {
     inbeinit(&app->start_speed_preview);
     app->start_speed_preview_speed = 0;
 
-    // Load all icons using a clean array-based approach
-    static const char *icon_names[UI_ICON_TYPE_COUNT] = {
-        NULL,                 // UI_ICON_TYPE_NONE (no icon)
-
-        // Core UI icons
-        "gear.png",            // UI_ICON_TYPE_GEAR
-        "x.png",               // UI_ICON_TYPE_X
-        "x-red.png",           // UI_ICON_TYPE_X_RED
-        "manual.png",          // UI_ICON_TYPE_MANUAL
-        "return.png",          // UI_ICON_TYPE_RETURN
-        "backward.png",        // UI_ICON_TYPE_BACKWARD
-        "forward.png",         // UI_ICON_TYPE_FORWARD
-        "play.png",            // UI_ICON_TYPE_PLAY
-        "pause.png",           // UI_ICON_TYPE_PAUSE
-        "stat.png",            // UI_ICON_TYPE_STAT
-        "home.png",            // UI_ICON_TYPE_HOME
-        "trash.png",           // UI_ICON_TYPE_TRASH
-        "pencil.png",          // UI_ICON_TYPE_PENCIL
-        "save.png",            // UI_ICON_TYPE_SAVE
-        "plus.png",            // UI_ICON_TYPE_PLUS
-        "stack.png",           // UI_ICON_TYPE_STACK
-
-        // Social & payment icons
-        "discord.png",         // UI_ICON_TYPE_DISCORD
-        "telegram.png",        // UI_ICON_TYPE_TELEGRAM
-        "github.png",          // UI_ICON_TYPE_GITHUB
-        "globe.png",           // UI_ICON_TYPE_GLOBE
-        "stripe.png",          // UI_ICON_TYPE_STRIPE
-        "btc.png",             // UI_ICON_TYPE_BTC
-        "monero.png",          // UI_ICON_TYPE_MONERO
-
-        // Sound icons
-        "sound.png",           // UI_ICON_TYPE_SOUND
-        "sound0.png",          // UI_ICON_TYPE_SOUND0
-        "sound1.png",          // UI_ICON_TYPE_SOUND1
-        "sound2.png",          // UI_ICON_TYPE_SOUND2
-        "sound3.png",          // UI_ICON_TYPE_SOUND3
-        "mute.png",            // UI_ICON_TYPE_MUTE
-
-        // Habit & practice icons
-        "habitmarker.png",     // UI_ICON_TYPE_HABIT
-        "amen.png",            // UI_ICON_TYPE_AMEN
-        "inbe.png",            // UI_ICON_TYPE_INBE
-
-        // Meditation & theme icons
-        "droid.png",           // UI_ICON_TYPE_DROID
-        "fdroid.png",          // UI_ICON_TYPE_FDROID
-        "lighton.png",         // UI_ICON_TYPE_LIGHTON
-        "lightoff.png",        // UI_ICON_TYPE_LIGHTOFF
-        "moon.png",            // UI_ICON_TYPE_MOON
-        "sun.png",             // UI_ICON_TYPE_SUN
-        "jupiter.png",         // UI_ICON_TYPE_JUPITER
-        "mars.png",            // UI_ICON_TYPE_MARS
-        "mercury.png",         // UI_ICON_TYPE_MERCURY
-        "venus.png",           // UI_ICON_TYPE_VENUS
-        "saturn.png",          // UI_ICON_TYPE_SATURN
-
-        // Navigation & utility icons
-        "link.png",            // UI_ICON_TYPE_LINK
-        "edit.png",            // UI_ICON_TYPE_EDIT
-        "eye-closed.png",      // UI_ICON_TYPE_EYE_CLOSED
-        "check.png",           // UI_ICON_TYPE_CHECK
-        "quest.png",           // UI_ICON_TYPE_QUEST
-        "routine.png",         // UI_ICON_TYPE_ROUTINE
-        "timeline.png",        // UI_ICON_TYPE_TIMELINE
-        "todos.png",           // UI_ICON_TYPE_TODOS
-        "tile.png",            // UI_ICON_TYPE_TILE
-        "tile2.png",           // UI_ICON_TYPE_TILE2
-        "tile3.png",           // UI_ICON_TYPE_TILE3
-        "tile4.png",           // UI_ICON_TYPE_TILE4
-        "text.png",            // UI_ICON_TYPE_TEXT
-
-        // Platform & store icons
-        "itch.png",            // UI_ICON_TYPE_ITCH
-        "playstore.png",       // UI_ICON_TYPE_PLAYSTORE
-        "tux.png",             // UI_ICON_TYPE_TUX
-        "win.png",             // UI_ICON_TYPE_WIN
-        "uxn.png",             // UI_ICON_TYPE_UXN
-        "wasm.png",            // UI_ICON_TYPE_WASM
-        "wasm4.png",           // UI_ICON_TYPE_WASM4
-        "ray.png",             // UI_ICON_TYPE_RAY
-        "rocket.png",          // UI_ICON_TYPE_ROCKET
-        "srht.png",            // UI_ICON_TYPE_SRHT
-        "tcl.png",             // UI_ICON_TYPE_TCL
-    };
-
-    for(int i = 1; i < UI_ICON_TYPE_COUNT; i++) {  // Skip UI_ICON_TYPE_NONE (index 0)
-        if(icon_names[i] != NULL && app->icons[i].id == 0) {
-            app->icons[i] = load_icon_texture(icon_names[i]);
-        }
-    }
+    // Load all icons
+    flint_load_all_icons(app->icons);
 
     /* Update tab bar icons */
     g_tabs[0].icon = app->icons[UI_ICON_TYPE_HABIT];
@@ -4209,15 +4106,6 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     ui_end_scissor();
 }
 
-static void *
-inbe_app_create(void)
-{
-    flint_dpi_init();
-    InbeApp *app = calloc(1, sizeof(InbeApp));
-    inbe_app_init(app);
-    return app;
-}
-
 static void SafeUnloadTexture(Texture2D texture) {
     if (texture.id != 0) {
         UnloadTexture(texture);
@@ -4236,32 +4124,8 @@ inbe_app_destroy(void *vapp)
     InbeApp *app = vapp;
     if (app == NULL) return;
 
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_GEAR]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_X]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_MANUAL]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_RETURN]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_BACKWARD]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_FORWARD]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PLAY]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PAUSE]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_STAT]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_HABIT]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_AMEN]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PLUS]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_STACK]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_HOME]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_TRASH]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_PENCIL]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SAVE]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_DISCORD]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_TELEGRAM]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_GITHUB]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_BTC]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_MONERO]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND0]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND1]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND2]);
-    SafeUnloadTexture(app->icons[UI_ICON_TYPE_SOUND3]);
+    // Unload all icons
+    flint_unload_all_icons(app->icons);
     SafeUnloadTexture(app->whm_1_image);
     SafeUnloadTexture(app->whm_2_image);
     SafeUnloadTexture(app->font_shapes_texture);
@@ -4278,18 +4142,4 @@ inbe_app_destroy(void *vapp)
     }
 
     free(app);
-}
-
-const LotusAppApi *
-inbe_app_api(void)
-{
-    static const LotusAppApi api = {
-        .id = "inbe",
-        .create = inbe_app_create,
-        .init = inbe_app_init,
-        .update_draw = inbe_app_update_draw,
-        .destroy = inbe_app_destroy
-    };
-
-    return &api;
 }
