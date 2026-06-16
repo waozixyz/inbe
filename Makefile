@@ -53,7 +53,7 @@ endif
 
 APP_SRCS := \
 	src/main.c \
-	src/inbe.c \
+	src/breath_engine.c \
 	src/app.c \
 	src/app_preferences.c \
 	src/app_session.c \
@@ -65,6 +65,7 @@ APP_SRCS := \
 	src/storage.c \
 	src/miniz.c \
 	src/android/android_device.c \
+	src/screens/practice_screen.c \
 	src/tabs/language_tab.c \
 	src/tabs/manual_tab.c \
 	src/tabs/settings_tab.c

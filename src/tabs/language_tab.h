@@ -1,7 +1,7 @@
 #ifndef LANGUAGE_TAB_H
 #define LANGUAGE_TAB_H
 
-#include "../inbe.h"
+#include "../breath_engine.h"
 #include "../app_fwd.h"
 
 void language_tab_draw(InbeApp *app);

@@ -2,7 +2,7 @@
 #define INBE_APP_H
 
 #include "raylib.h"
-#include "inbe.h"
+#include "breath_engine.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
 #include "flint/include/ui_icon_types.h"

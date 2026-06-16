@@ -557,38 +557,19 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int font = flint_px(16);
     float scale = 1.0f;
 
-    // Check hover
-    float radius = app->inbe.rmax;  // Declare radius outside the if/else blocks
+    // Use smaller, consistent circle for all practice types
+    int radius = flint_px(32);
 
-    if(app->exercise_type == EXERCISE_MEDITATION) {
-        // For meditation: text hover detection
-        int text_w = flint_text_measure(play_text, font);
-        int text_h = font;
-        Rectangle text_bounds = {
-            center_x - text_w / 2 - flint_px(10),
-            center_y - text_h / 2 - flint_px(10),
-            text_w + flint_px(20),
-            text_h + flint_px(20)
-        };
+    // Circular hover detection for all exercises
+    float dx = mouse_world.x - center_x;
+    float dy = mouse_world.y - center_y;
+    float dist_sq = dx * dx + dy * dy;
 
-        if(CheckCollisionPointRec(mouse_world, text_bounds) && !ui_input_captures_click(mouse_world)) {
-            hovered = 1;
-            app->play_circle_hover = 1;
-        } else {
-            app->play_circle_hover = 0;
-        }
+    if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
+        hovered = 1;
+        app->play_circle_hover = 1;
     } else {
-        // For breathing exercises: circular hover detection
-        float dx = mouse_world.x - center_x;
-        float dy = mouse_world.y - center_y;
-        float dist_sq = dx * dx + dy * dy;
-
-        if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
-            hovered = 1;
-            app->play_circle_hover = 1;
-        } else {
-            app->play_circle_hover = 0;
-        }
+        app->play_circle_hover = 0;
     }
 
     // Smooth scale animation
@@ -604,22 +585,13 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
         clicked = 1;
     }
 
-    // Draw circle with hover scale
+    // Draw circle with hover scale for all exercises
     int scaled_radius = (int)(radius * scale);
+    DrawCircle(center_x, center_y, scaled_radius, c_circle);
+    DrawCircleLines(center_x, center_y, scaled_radius, c_text);
 
-    if(app->exercise_type == EXERCISE_MEDITATION) {
-        // For meditation, just draw the text
-        int text_w = flint_text_measure(play_text, font);
-        flint_text_draw(play_text, center_x - text_w / 2, center_y - font / 2,
-                        font, c_text);
-    } else {
-        // Draw circle
-        DrawCircle(center_x, center_y, scaled_radius, c_circle);
-        DrawCircleLines(center_x, center_y, scaled_radius, c_text);
-
-        // Draw PLAY text in center
-        flint_ui_draw_text_centered(play_text, center_x, center_y, font, c_text);
-    }
+    // Draw PLAY text in center
+    flint_ui_draw_text_centered(play_text, center_x, center_y, font, c_text);
 
     if(hovered) {
         app->cursor_clickable = 1;

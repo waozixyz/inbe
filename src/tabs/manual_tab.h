@@ -1,7 +1,7 @@
 #ifndef MANUAL_TAB_H
 #define MANUAL_TAB_H
 
-#include "../inbe.h"
+#include "../breath_engine.h"
 #include "../app_fwd.h"
 
 void manual_tab_draw(InbeApp *app);

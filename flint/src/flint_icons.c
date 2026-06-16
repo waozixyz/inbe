@@ -87,6 +87,7 @@ flint_load_all_icons(Texture2D *icons)
         "trash.png",           // UI_ICON_TYPE_TRASH
         "pencil.png",          // UI_ICON_TYPE_PENCIL
         "save.png",            // UI_ICON_TYPE_SAVE
+        "wrench.png",          // UI_ICON_TYPE_WRENCH
         "plus.png",            // UI_ICON_TYPE_PLUS
         "stack.png",           // UI_ICON_TYPE_STACK
 
@@ -108,7 +109,7 @@ flint_load_all_icons(Texture2D *icons)
         "mute.png",            // UI_ICON_TYPE_MUTE
 
         // Habit & practice icons
-        "habitmarker.png",     // UI_ICON_TYPE_HABIT
+        "habit.png",            // UI_ICON_TYPE_HABIT
         "amen.png",            // UI_ICON_TYPE_AMEN
         "inbe.png",            // UI_ICON_TYPE_INBE
 
