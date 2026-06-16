@@ -1,7 +1,7 @@
 #ifndef SETTINGS_TAB_H
 #define SETTINGS_TAB_H
 
-#include "../inbe.h"
+#include "../breath_engine.h"
 #include "../app_fwd.h"
 
 /* Draw the settings screen */

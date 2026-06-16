@@ -5,7 +5,7 @@
 #include "android_timer.h"
 #include "android_wakelock.h"
 #include "app.h"
-#include "inbe.h"
+#include "breath_engine.h"
 #include <string.h>
 #include <stdio.h>
 

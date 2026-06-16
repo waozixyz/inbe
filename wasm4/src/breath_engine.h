@@ -1,5 +1,5 @@
-#ifndef INBE_H
-#define INBE_H
+#ifndef BREATH_ENGINE_H
+#define BREATH_ENGINE_H
 
 #if defined(__PLAN9__) || (!defined(__STDC__) && (defined(__i386__) || defined(__amd64__) || defined(__arm__)))
     typedef unsigned char      uint8_t;
@@ -34,10 +34,10 @@ enum {
 	InbeScreenSession,
     InbeScreenMeditation,
 	InbeScreenResults,
-    InbeScreenSettings,
-    InbeScreenLanguage,
-    InbeScreenManual,
-    InbeScreenHistory,
+	InbeScreenSettings,
+	InbeScreenLanguage,
+	InbeScreenManual,
+	InbeScreenHistory,
 };
 
 enum {
@@ -58,23 +58,23 @@ struct Inbe {
     int r;
     int rmin;
 	int rmax;
-    int dir;
-    int speed_level;
-    int breath_frame;
-    int breath_half_ticks;
+	int dir;
+	int speed_level;
+	int breath_frame;
+	int breath_half_ticks;
 	int frame;
 
     int breathtick;
-    int sectick;
-    int halftick;
-    int max_rounds;
-    int pause_seconds;
-    int play_in_background;
-    int progressive_speed;
-    int progressive_start_speed;
+	int sectick;
+	int halftick;
+	int max_rounds;
+	int pause_seconds;
+	int play_in_background;
+	int progressive_speed;
+	int progressive_start_speed;
 
     char count[CountSize];
-    char maxbreaths[CountSize];
+	char maxbreaths[CountSize];
 
 	char results[MaxRounds][CountSize];
 };
