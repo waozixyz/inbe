@@ -2,6 +2,7 @@
 
 #include "data.h"
 #include "locale.h"
+#include "theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
 
@@ -15,7 +16,6 @@ void set_global_inbe_app(InbeApp *app);
 
 extern int view_width;
 extern int view_height;
-extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
 
 static int
 session_topic_for_activity(int exercise_type)
@@ -426,26 +426,26 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+            flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
+            flint_ui_draw_text_centered(text, center_x, center_y, font, theme_get_text());
             return;
         }
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        flint_ui_draw_text_centered("000", center_x, center_y, font, c_text);
+        flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
         return;
     }
 
-    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, c_text);
+    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, theme_get_text());
 }
 
 int
@@ -465,7 +465,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int hovered = CheckCollisionPointRec(mouse_world, rect) &&
                       !ui_input_captures_click(mouse_world);
         int active = i == selected;
-        Color fill = active ? c_button : flint_darken(c_bg, 10);
+        Color fill = active ? theme_get_button() : flint_darken(theme_get_bg(), 10);
         Color top = flint_lighten(fill, 35);
         Color bottom = flint_darken(fill, 45);
         int font = flint_ui_font();
@@ -474,9 +474,9 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         if(hovered) {
             app->cursor_clickable = 1;
             if(!active) {
-                fill = c_button_hover;
-                top = flint_darken(c_button_hover, 40);
-                bottom = flint_lighten(c_button_hover, 40);
+                fill = theme_get_button_hover();
+                top = flint_darken(theme_get_button_hover(), 40);
+                bottom = flint_lighten(theme_get_button_hover(), 40);
             }
         }
 
@@ -487,7 +487,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
             font--;
         text_w = flint_text_measure(labels[i], font);
         flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
-                        flint_ui_text_y(labels[i], y, h, font), font, c_text);
+                        flint_ui_text_y(labels[i], y, h, font), font, theme_get_text());
 
         if(hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
            !ui_input_captures_click(mouse_world) && selected != i) {
@@ -526,10 +526,10 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
 
         if(i < completed_minutes) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, c_text);
+                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, theme_get_text());
         } else if(sweep > 0.0f) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, c_text);
+                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, theme_get_text());
         }
     }
 }
@@ -540,8 +540,8 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
     if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
         draw_hold_progress_outline(app, center_x, center_y);
     } else {
-        DrawCircle(center_x, center_y, app->inbe.r, c_circle);
-        DrawCircleLines(center_x, center_y, app->inbe.r, c_text);
+        DrawCircle(center_x, center_y, app->inbe.r, theme_get_circle());
+        DrawCircleLines(center_x, center_y, app->inbe.r, theme_get_text());
     }
     draw_session_counter(app, center_x, center_y);
 }
@@ -587,11 +587,11 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
 
     // Draw circle with hover scale for all exercises
     int scaled_radius = (int)(radius * scale);
-    DrawCircle(center_x, center_y, scaled_radius, c_circle);
-    DrawCircleLines(center_x, center_y, scaled_radius, c_text);
+    DrawCircle(center_x, center_y, scaled_radius, theme_get_circle());
+    DrawCircleLines(center_x, center_y, scaled_radius, theme_get_text());
 
     // Draw PLAY text in center
-    flint_ui_draw_text_centered(play_text, center_x, center_y, font, c_text);
+    flint_ui_draw_text_centered(play_text, center_x, center_y, font, theme_get_text());
 
     if(hovered) {
         app->cursor_clickable = 1;
@@ -628,7 +628,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     text_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(40);
     if(text_y < flint_px(20))
         text_y = flint_px(20);
-    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, c_text);
+    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, theme_get_text());
 }
 
 static void
@@ -655,15 +655,15 @@ draw_session_round_label(InbeApp *app)
     text_x = top_bar_left + (top_bar_right - top_bar_left - max_text_w) / 2;
     text_y = flint_ui_text_y(text, flint_px(12), flint_px(24) + flint_px(10) * 2, font);
 
-    flint_text_draw(text, text_x, text_y, font, c_text);
+    flint_text_draw(text, text_x, text_y, font, theme_get_text());
 }
 
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
     int r = (int)((float)inbe->r * 0.72f);
-    DrawCircle(center_x, center_y, r, c_circle);
-    DrawCircleLines(center_x, center_y, r, c_text);
+    DrawCircle(center_x, center_y, r, theme_get_circle());
+    DrawCircleLines(center_x, center_y, r, theme_get_text());
 }
 
 static Texture2D
@@ -731,9 +731,9 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             app->volume_popup_active = 0;
         }
 
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_surface);
+        DrawRectangle(popup_x, popup_y, popup_w, popup_h, theme_get_surface());
         ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
+                      flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
 
         if(ui_draw_slider_vertical(500, popup_x + popup_w / 2, popup_y + flint_px(10),
                                    popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
@@ -902,7 +902,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     flint_centered_column(responsive_max_w, flint_page_side_padding(), &box_x, &box_w);
 
     title_w = flint_text_measure(locale_get("results_title"), title_font);
-    flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, c_text);
+    flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, theme_get_text());
 
     for(int i = 0; i < rounds; i++) {
         int seconds = round_times[i];
@@ -913,30 +913,30 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     if(best < 0)
         best = 0;
 
-    DrawRectangle(box_x, box_y, box_w, flint_px(88), flint_darken(c_bg, 6));
-    DrawLine(box_x, box_y + flint_px(29), box_x + box_w, box_y + flint_px(29), flint_darken(c_bg, 30));
-    DrawLine(box_x, box_y + flint_px(58), box_x + box_w, box_y + flint_px(58), flint_darken(c_bg, 30));
+    DrawRectangle(box_x, box_y, box_w, flint_px(88), flint_darken(theme_get_bg(), 6));
+    DrawLine(box_x, box_y + flint_px(29), box_x + box_w, box_y + flint_px(29), flint_darken(theme_get_bg(), 30));
+    DrawLine(box_x, box_y + flint_px(58), box_x + box_w, box_y + flint_px(58), flint_darken(theme_get_bg(), 30));
     {
         char line[64];
         locale_format(line, sizeof(line), "results_rounds", rounds);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), c_text);
+        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), theme_get_text());
         locale_format(line, sizeof(line), "results_best", best);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), c_text);
+        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), theme_get_text());
         locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
         if(view_width < 420 && flint_text_measure(line, flint_px(16)) > box_w - flint_px(20))
             snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), c_text);
+        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), theme_get_text());
     }
 
     flint_text_draw(locale_get("round_times_title"), box_x, flint_px(188),
-                    flint_ui_font(), flint_darken(c_text, 20));
+                    flint_ui_font(), flint_darken(theme_get_text(), 20));
     for(int i = 0; i < rounds; i++) {
         char row[48];
         int row_font = flint_ui_font();
         locale_format(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
-        DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(c_bg, 4));
-        DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(c_bg, 26));
-        flint_text_draw(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, c_text);
+        DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(theme_get_bg(), 4));
+        DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(theme_get_bg(), 26));
+        flint_text_draw(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, theme_get_text());
         row_y += row_h;
     }
 

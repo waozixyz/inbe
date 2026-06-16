@@ -13,57 +13,21 @@
 
 #include <stdbool.h>
 
-extern Color c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon;
-
 void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
+    theme_set_current(theme_id, dark_mode);
 #if defined(LOTUS_BUILD)
     (void)theme_id;
     (void)dark_mode;
-    c_bg = lotus_alias_color("background");
-    c_text = lotus_alias_color("text");
-    c_surface = lotus_alias_color("surface");
-    c_circle = lotus_alias_color("circle");
-    c_button = lotus_alias_color("button");
-    c_button_hover = lotus_alias_color("button_hover");
-    c_icon = lotus_alias_color("icon");
-    ui_set_colors(c_text, c_bg, c_surface, c_circle, c_button, c_button_hover, c_icon);
+    ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
+                  theme_get_circle(), theme_get_button(), theme_get_button_hover(),
+                  theme_get_icon());
     return;
 #else
-    Color bg;
-    Color surface;
-    Color text;
-    Color circle;
-    Color button;
-    Color button_hover;
-    Color icon;
-    FlintThemeId theme;
-    bool dark;
-
-    if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
-        theme_id = FLINT_THEME_SKY;
-
-    theme = flint_theme_normalize(theme_id);
-    dark = dark_mode != 0;
-
-    flint_theme_catalog_color(theme, dark, "background", &bg);
-    flint_theme_catalog_color(theme, dark, "surface", &surface);
-    flint_theme_catalog_color(theme, dark, "text", &text);
-    flint_theme_catalog_color(theme, dark, "circle", &circle);
-    flint_theme_catalog_color(theme, dark, "button", &button);
-    flint_theme_catalog_color(theme, dark, "button_hover", &button_hover);
-    flint_theme_catalog_color(theme, dark, "icon", &icon);
-
-    c_bg = bg;
-    c_surface = surface;
-    c_text = text;
-    c_circle = circle;
-    c_button = button;
-    c_button_hover = button_hover;
-    c_icon = icon;
-
-    ui_set_colors(text, bg, surface, circle, button, button_hover, icon);
+    ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
+                  theme_get_circle(), theme_get_button(), theme_get_button_hover(),
+                  theme_get_icon());
 #endif
 }
 

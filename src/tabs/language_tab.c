@@ -2,12 +2,12 @@
 
 #include "app.h"
 #include "locale.h"
+#include "theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 
 extern int view_width;
 extern int view_height;
-extern Color c_text, c_bg, c_button;
 static const char *g_language_options[64];
 static int g_language_option_count = 0;
 
@@ -36,10 +36,10 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
     build_language_options(g_language_options, 64, &g_language_option_count);
     if(g_language_option_count <= 0) {
         int font = flint_ui_font();
-        DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
+        DrawRectangle(x, y, w, h, theme_get_button());
+        ui_draw_bevel(x, y, w, h, flint_darken(theme_get_bg(), 30), flint_lighten(theme_get_bg(), 20));
         flint_text_draw(locale_get("language_label"), x + flint_px(12),
-                 flint_ui_text_y(locale_get("language_label"), y, h, font), font, c_text);
+                 flint_ui_text_y(locale_get("language_label"), y, h, font), font, theme_get_text());
         return 0;
     }
 
@@ -91,8 +91,8 @@ language_tab_draw(InbeApp *app)
         selection_changed = 1;
 
     title_w = flint_text_measure(locale_get("language_picker_title"), title_font);
-    flint_text_draw(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, c_text);
-    flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, c_text);
+    flint_text_draw(locale_get("language_picker_title"), view_width / 2 - title_w / 2, flint_px(28), title_font, theme_get_text());
+    flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, theme_get_text());
 
     if(ui_draw_text_btn(button_x, button_y, locale_get("next_button"), &next_hover)) {
         app->inbe.screen = InbeScreenStart;

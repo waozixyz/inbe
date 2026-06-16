@@ -38,10 +38,10 @@ enum {
 	InbeScreenLanguage,
 	InbeScreenManual,
 	InbeScreenHabits,
-	InbeScreenHabitManager,
 	InbeScreenHabitEdit,
 	InbeScreenHabitSessionEdit,
 	InbeScreenPracticeConfig,
+	InbeScreenTrackerConfig,
 };
 
 enum {
