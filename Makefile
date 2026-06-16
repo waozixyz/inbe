@@ -66,6 +66,7 @@ APP_SRCS := \
 	src/miniz.c \
 	src/android/android_device.c \
 	src/screens/practice_screen.c \
+	src/screens/trackers_screen.c \
 	src/tabs/language_tab.c \
 	src/tabs/manual_tab.c \
 	src/tabs/settings_tab.c

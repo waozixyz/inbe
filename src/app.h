@@ -229,6 +229,7 @@ struct InbeApp {
     int practice_tab_enabled[PRACTICE_CATEGORY_COUNT];
     int practice_tab_theme[PRACTICE_CATEGORY_COUNT];
     int practice_config_theme_tab;
+    int previous_screen;
     int session_paused;
     int backgrounded;
     int results_saved;

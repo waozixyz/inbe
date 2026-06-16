@@ -28,9 +28,9 @@ int practice_category_bottom_y_for_app(InbeApp *app);
 
 void draw_practice_coming_soon_popout(InbeApp *app);
 void draw_practice_category_tabs(InbeApp *app);
-int draw_theme_circle_button(InbeApp *app, int x, int y, int radius, int theme_id);
-void draw_practice_config_button(InbeApp *app);
 void draw_practice_config_page(InbeApp *app);
+void draw_practice_config_button(InbeApp *app);
+void draw_tracker_config_button(InbeApp *app);
 
 void on_practice_tab_click(void *user_data);
 void habits_sync_topic_theme_colors(InbeApp *app, int sync_topic, int save_now);

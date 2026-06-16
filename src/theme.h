@@ -25,4 +25,14 @@ const char *theme_color_text(Color color, char *buffer, int size);
 bool theme_parse_color(const char *text, Color *color);
 void theme_draw_tk_border(Rectangle rec, int borderWidth, bool raised);
 
+/* Centralized theme color accessors */
+void theme_set_current(int theme_id, int dark_mode);
+Color theme_get_text(void);
+Color theme_get_bg(void);
+Color theme_get_surface(void);
+Color theme_get_circle(void);
+Color theme_get_button(void);
+Color theme_get_button_hover(void);
+Color theme_get_icon(void);
+
 #endif

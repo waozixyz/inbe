@@ -2,6 +2,7 @@
 
 #include "app.h"
 #include "locale.h"
+#include "theme.h"
 #include "miniz.h"
 #include "flint_runtime_assets.h"
 #include "flint_text.h"
@@ -18,8 +19,6 @@
 #define INBE_MEDITATION_AUDIO_URL "https://inbe.waozi.xyz/web-assets/dl/inbe-meditation-audio-v1.zip"
 #endif
 #endif
-
-extern Color c_text, c_bg, c_button, c_button_hover;
 
 typedef struct MeditationTrack {
     const char *title;
@@ -436,14 +435,14 @@ draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
         app->settings_dirty = 1;
     }
 
-    flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), c_text);
+    flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), theme_get_text());
     if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
                              &app->meditation_music_shuffle,
                              locale_get("toggle_off"), locale_get("toggle_on")))
         app->settings_dirty = 1;
     *y += flint_px(76);
 
-    flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), c_text);
+    flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), theme_get_text());
     if(app->meditation_music_shuffle) {
         ui_draw_generic_button(content_x, *y + flint_px(24), content_w, flint_px(36),
                                g_track_options[app->meditation_music_track],
@@ -486,7 +485,7 @@ draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
     }
 
     if(show_status && (!installed || app->meditation_music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
-        flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), c_text);
+        flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), theme_get_text());
         *y += flint_px(34);
     }
 }

@@ -3,6 +3,7 @@
 #include "app_session.h"
 #include "locale.h"
 #include "meditation_music.h"
+#include "theme.h"
 #include "flint_ui.h"
 #include "flint_theme_meta.h"
 #include "raylib.h"
@@ -12,8 +13,6 @@
 
 extern int view_width;
 extern int view_height;
-
-extern Color c_text, c_bg, c_circle, c_button, c_button_hover, c_icon;
 
 /* Tutorial text content ordered by step */
 static const char *const TUTORIAL_KEYS[] = {
@@ -46,13 +45,13 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
         DrawRing((Vector2){center_x, center_y},
                  (float)(radius + flint_px(8) - thickness / 2),
                  (float)(radius + flint_px(8) + thickness / 2),
-                 -90.0f, -90.0f + sweep, 96, c_text);
+                 -90.0f, -90.0f + sweep, 96, theme_get_text());
     } else {
-        DrawCircle(center_x, center_y, radius, c_circle);
-        DrawCircleLines(center_x, center_y, radius, c_text);
+        DrawCircle(center_x, center_y, radius, theme_get_circle());
+        DrawCircleLines(center_x, center_y, radius, theme_get_text());
     }
 
-    flint_ui_draw_text_centered(text, center_x, center_y, font, c_text);
+    flint_ui_draw_text_centered(text, center_x, center_y, font, theme_get_text());
 }
 
 static FlintUIParagraph
@@ -67,7 +66,7 @@ tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
         .width = content_w,
         .font = body_font,
         .line_gap = TUTORIAL_LINE_SPACING,
-        .color = c_text,
+        .color = theme_get_text(),
     };
 }
 
@@ -161,7 +160,7 @@ meditation_manual_draw(InbeApp *app)
         .width = content_w,
         .font = body_font,
         .line_gap = TUTORIAL_LINE_SPACING,
-        .color = c_text,
+        .color = theme_get_text(),
     };
 
     scroll_area = (FlintUIScrollArea){
@@ -177,7 +176,7 @@ meditation_manual_draw(InbeApp *app)
     y += flint_px(24);
 
     flint_text_draw(locale_get("meditation_music_section_title"),
-                    content_x, y, flint_ui_font(), c_text);
+                    content_x, y, flint_ui_font(), theme_get_text());
     y += flint_px(30);
     meditation_music_draw_guide_settings(app, content_x, content_w, &y);
     ui_scroll_container_end(scroll_area, scroll_view);
@@ -364,7 +363,7 @@ manual_tab_draw(InbeApp *app)
                 int toggle_w = flint_px(56);
                 int toggle_h = flint_px(30);
                 flint_text_draw(locale_get("progressive_speed_label"), content_x, y,
-                         flint_ui_font(), c_text);
+                         flint_ui_font(), theme_get_text());
                 y += flint_px(26);
                 if(ui_draw_toggle_switch(content_x, y, toggle_w, toggle_h,
                                          &progressive_speed, locale_get("toggle_off"),
@@ -407,7 +406,7 @@ manual_tab_draw(InbeApp *app)
         } else if(step == 4) {
             int hold_preview_radius = flint_px(54);
             int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
-            flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), c_text);
+            flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), theme_get_text());
             y += flint_px(26);
             draw_hold_display_mode_selector(app, content_x, y, content_w);
             y += flint_px(36) + flint_px(20) + hold_preview_extent;
@@ -450,7 +449,7 @@ manual_tab_draw(InbeApp *app)
 
     flint_text_draw(page_label,
              view_width / 2 - flint_text_measure(page_label, page_font) / 2,
-             footer_y - page_font - counter_gap, page_font, c_text);
+             footer_y - page_font - counter_gap, page_font, theme_get_text());
 
     if(step == 0) {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
