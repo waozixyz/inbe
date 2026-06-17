@@ -17,16 +17,6 @@ void set_global_inbe_app(InbeApp *app);
 extern int view_width;
 extern int view_height;
 
-static int
-session_topic_for_activity(int exercise_type)
-{
-    if(exercise_type == EXERCISE_SUN_SALUTATION)
-        return INBE_HABIT_TOPIC_YOGA;
-    if(exercise_type == EXERCISE_7_MINUTE_WORKOUT)
-        return INBE_HABIT_TOPIC_FITNESS;
-    return INBE_HABIT_TOPIC_MIND;
-}
-
 static void
 set_circle_bounds(Inbe *inbe, int rmin, int rmax)
 {
@@ -290,7 +280,7 @@ session_ensure_results_saved(InbeApp *app)
         return 0;
 
     if(data_save_session_path_for_activity(round_times, rounds,
-                                           app != NULL ? session_topic_for_activity(app->exercise_type) : 0,
+                                           0,
                                            app != NULL ? app->exercise_type : 0,
                                            app->results_path, sizeof(app->results_path))) {
         app->results_saved = 1;

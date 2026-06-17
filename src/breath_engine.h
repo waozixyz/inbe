@@ -40,8 +40,6 @@ enum {
 	InbeScreenHabits,
 	InbeScreenHabitEdit,
 	InbeScreenHabitSessionEdit,
-	InbeScreenPracticeConfig,
-	InbeScreenTrackerConfig,
 };
 
 enum {

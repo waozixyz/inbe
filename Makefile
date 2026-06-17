@@ -66,7 +66,6 @@ APP_SRCS := \
 	src/miniz.c \
 	src/android/android_device.c \
 	src/screens/practice_screen.c \
-	src/screens/trackers_screen.c \
 	src/tabs/language_tab.c \
 	src/tabs/manual_tab.c \
 	src/tabs/settings_tab.c
@@ -110,11 +109,11 @@ test: $(STORAGE_IMPORT_TEST)
 	$(STORAGE_IMPORT_TEST)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage.c src/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/miniz.c src/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DRINI_IMPLEMENTATION -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES \
-		-Isrc -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
+		-Isrc -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c src/storage.c src/screens/habits_screen.c src/miniz.c $(SQLITE_SRC) \
-		-lm -lpthread -ldl
+		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
 	mkdir -p $@

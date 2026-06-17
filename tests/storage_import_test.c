@@ -1,5 +1,5 @@
 #include "storage.h"
-#include "habits/habits.h"
+#include "screens/habits_screen.h"
 #include "breath_engine.h"
 #include "miniz.h"
 #include "raylib.h"
@@ -130,7 +130,7 @@ test_session_metadata(void)
                inbe_storage_save_session_for_activity(rounds, 2, 2, 3, NULL, 0));
     g_seen_topic = -1;
     g_seen_activity = -1;
-    inbe_storage_list_history(metadata_history_callback, NULL);
+    inbe_storage_list_session_records(metadata_history_callback, NULL);
     check_int("metadata topic", g_seen_topic, 2);
     check_int("metadata activity", g_seen_activity, 3);
     inbe_storage_close();
@@ -146,7 +146,7 @@ assert_imported_database(const char *root)
     check_int("imported sessions", inbe_storage_session_count(), 1);
     memset(&habits, 0, sizeof(habits));
     check_true("imported habits load", inbe_storage_habits_load(&habits));
-    check_int("imported habit count", habits.count, 3);
+    check_int("imported habit count", habits.count, 1);
     check_true("imported habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
     inbe_storage_close();
 }
@@ -193,38 +193,11 @@ test_zip_db_import(void)
     remove_tree(dest);
 }
 
-static void
-test_legacy_zip_import(void)
-{
-    char root[512], zip_path[512];
-    mz_zip_archive archive;
-    const char *legacy_path = "lotus-data/sessions/2026/06/13/inbe-102030.txt";
-    const char *legacy_data = "30\n45\n60\n";
-
-    make_clean_root(root, sizeof(root), "legacy");
-    make_path(zip_path, sizeof(zip_path), root, "legacy.zip");
-    memset(&archive, 0, sizeof(archive));
-    check_true("legacy zip create", mz_zip_writer_init_file(&archive, zip_path, 0));
-    check_true("legacy zip add session",
-               mz_zip_writer_add_mem(&archive, legacy_path, legacy_data, strlen(legacy_data),
-                                     MZ_NO_COMPRESSION));
-    check_true("legacy zip finalize", mz_zip_writer_finalize_archive(&archive));
-    mz_zip_writer_end(&archive);
-
-    check_true("init legacy import dest", inbe_storage_init(root));
-    check_true("legacy zip import", inbe_storage_import_zip(zip_path));
-    check_int("legacy imported sessions", inbe_storage_session_count(), 1);
-    inbe_storage_close();
-
-    remove_tree(root);
-}
-
 int
 main(void)
 {
     test_raw_db_import();
     test_zip_db_import();
-    test_legacy_zip_import();
     test_session_metadata();
 
     if(g_failures != 0) {

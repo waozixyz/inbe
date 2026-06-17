@@ -25,21 +25,8 @@ enum {
 /* Habits-specific enums */
 typedef enum InbeHabitSyncMode {
     INBE_HABIT_SYNC_NONE = 0,
-    INBE_HABIT_SYNC_TOPIC = 1,
-    INBE_HABIT_SYNC_ACTIVITY = 2
+    INBE_HABIT_SYNC_ACTIVITIES = 1
 } InbeHabitSyncMode;
-
-typedef enum InbeHabitTopic {
-    INBE_HABIT_TOPIC_MIND = 0,
-    INBE_HABIT_TOPIC_YOGA = 1,
-    INBE_HABIT_TOPIC_FITNESS = 2,
-    INBE_HABIT_TOPIC_COUNT = 3
-} InbeHabitTopic;
-
-typedef enum HabitsViewMode {
-    HABITS_VIEW_CALENDAR = 0,
-    HABITS_VIEW_LINKED = 1,
-} HabitsViewMode;
 
 /* Data structures */
 typedef struct InbeHabitDay {
@@ -52,7 +39,6 @@ typedef struct InbeHabit {
     char name[INBE_HABIT_NAME_SIZE];
     Color color;
     int sync_mode;
-    int sync_topic;
     int sync_activity;
     InbeHabitDay days[INBE_HABIT_MAX_DAYS];
     int day_count;
@@ -88,7 +74,6 @@ typedef struct HabitLinkedContext {
     int count;
     int day_filter;
     int sync_mode;
-    int sync_topic;
     int sync_activity;
     int total_seconds;
     int best_seconds;
@@ -97,7 +82,6 @@ typedef struct HabitLinkedContext {
 /* Forward declarations and external functions */
 typedef struct InbeApp InbeApp;
 
-Color practice_theme_color(InbeApp *app, int category_index);
 void save_settings(InbeApp *app);
 
 /* Core habits functions */
@@ -113,12 +97,11 @@ void inbe_habits_add_default(InbeHabits *habits);
 void inbe_habits_add_default_set(InbeHabits *habits);
 void inbe_habits_delete(InbeHabits *habits, int index);
 int inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
-                           int sync_mode, int sync_topic, int sync_activity);
+                           int sync_mode, int sync_activity);
+int habit_activity_mask_for(int exercise);
+int habit_matches_activity(const InbeHabit *habit, int exercise_type);
 
-/* Functions that have been fully moved to habits_screen.c */
 void sync_habits_for_activity(InbeApp *app, int exercise_type);
-int habit_topic_for_activity(int exercise_type);
-void habits_sync_topic_theme_colors(InbeApp *app, int sync_topic, int save_now);
 
 /* Habit edit functions (moved to habits_screen.c) */
 void habit_edit_begin(InbeApp *app, int index);
@@ -127,9 +110,6 @@ void habit_edit_commit(InbeApp *app);
 void habit_edit_cancel(InbeApp *app);
 
 /* UI functions (moved to habits_screen.c) */
-void draw_habits_manager_button(InbeApp *app);
-void draw_habit_view_button(InbeApp *app);
-void draw_habit_linked_details_modal(InbeApp *app);
 void draw_habit_session_edit_screen(InbeApp *app);
 int draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
 int habit_is_linked(const InbeHabit *habit);

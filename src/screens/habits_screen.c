@@ -21,7 +21,7 @@ extern int view_height;
 
 /* Helper functions */
 static void inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
-                                 Color color, int sync_topic);
+                                 Color color, int activity_mask);
 
 static void
 copy_text(char *dst, size_t dst_size, const char *src)
@@ -88,8 +88,7 @@ inbe_habits_add_default(InbeHabits *habits)
     number = habits->count + 1;
     snprintf(name, sizeof(name), "Habit %d", number);
     inbe_habits_add_custom(habits, name, (Color){99, 196, 165, 255},
-                           INBE_HABIT_SYNC_NONE,
-                           INBE_HABIT_TOPIC_MIND, 0);
+                           INBE_HABIT_SYNC_NONE, 0);
 }
 
 void
@@ -99,12 +98,9 @@ inbe_habits_add_default_set(InbeHabits *habits)
         return;
 
     memset(habits, 0, sizeof(*habits));
-    inbe_habits_add_seed(habits, "mind", "Mind", (Color){126, 183, 230, 255},
-                         INBE_HABIT_TOPIC_MIND);
-    inbe_habits_add_seed(habits, "yoga", "Yoga", (Color){208, 128, 80, 255},
-                         INBE_HABIT_TOPIC_YOGA);
-    inbe_habits_add_seed(habits, "fitness", "Fitness", (Color){208, 96, 128, 255},
-                         INBE_HABIT_TOPIC_FITNESS);
+    inbe_habits_add_seed(habits, "meditation", "Meditation", (Color){126, 183, 230, 255},
+                         habit_activity_mask_for(EXERCISE_WIM_HOF) |
+                         habit_activity_mask_for(EXERCISE_MEDITATION));
     habits->selected = 0;
     habits->loaded = 1;
     inbe_habits_save(habits);
@@ -133,7 +129,7 @@ inbe_habits_delete(InbeHabits *habits, int index)
 
 int
 inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
-                       int sync_mode, int sync_topic, int sync_activity)
+                       int sync_mode, int sync_activity)
 {
     InbeHabit *habit;
     int number;
@@ -150,7 +146,6 @@ inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
     habit->color = color;
     habit->color.a = 255;
     habit->sync_mode = sync_mode;
-    habit->sync_topic = sync_topic;
     habit->sync_activity = sync_activity;
     habits->selected = habits->count;
     habits->count++;
@@ -160,7 +155,7 @@ inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
 
 static void
 inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
-                     Color color, int sync_topic)
+                     Color color, int activity_mask)
 {
     InbeHabit *habit;
 
@@ -172,9 +167,8 @@ inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
     copy_text(habit->id, sizeof(habit->id), id);
     copy_text(habit->name, sizeof(habit->name), name);
     habit->color = color;
-    habit->sync_mode = INBE_HABIT_SYNC_TOPIC;
-    habit->sync_topic = sync_topic;
-    habit->sync_activity = 0;
+    habit->sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
+    habit->sync_activity = activity_mask;
 }
 
 void
@@ -184,6 +178,13 @@ inbe_habits_init(InbeHabits *habits)
         return;
     data_init();
     if(inbe_storage_habits_load(habits)) {
+        if(habits->count == 3 &&
+           strcmp(habits->items[0].id, "mind") == 0 &&
+           strcmp(habits->items[1].id, "yoga") == 0 &&
+           strcmp(habits->items[2].id, "fitness") == 0) {
+            inbe_habits_add_default_set(habits);
+            return;
+        }
         if(habits->selected < 0 || habits->selected >= habits->count)
             habits->selected = 0;
         habits->loaded = 1;
@@ -242,21 +243,27 @@ inbe_habit_toggle_today(InbeHabits *habits, int index)
     inbe_habit_toggle_day(habits, index, inbe_habits_today_index());
 }
 
-/* Integration functions */
 int
-habit_topic_for_activity(int exercise_type)
+habit_activity_mask_for(int exercise)
 {
-    if(exercise_type == EXERCISE_SUN_SALUTATION)
-        return INBE_HABIT_TOPIC_YOGA;
-    if(exercise_type == EXERCISE_7_MINUTE_WORKOUT)
-        return INBE_HABIT_TOPIC_FITNESS;
-    return INBE_HABIT_TOPIC_MIND;
+    if(exercise < 0 || exercise >= EXERCISE_COUNT)
+        return 0;
+    return 1 << exercise;
+}
+
+int
+habit_matches_activity(const InbeHabit *habit, int exercise_type)
+{
+    if(habit == NULL)
+        return 0;
+    if(habit->sync_mode == INBE_HABIT_SYNC_ACTIVITIES)
+        return (habit->sync_activity & habit_activity_mask_for(exercise_type)) != 0;
+    return 0;
 }
 
 void
 sync_habits_for_activity(InbeApp *app, int exercise_type)
 {
-    int topic;
     int today;
     int selected;
     int changed = 0;
@@ -264,19 +271,11 @@ sync_habits_for_activity(InbeApp *app, int exercise_type)
     if(app == NULL)
         return;
 
-    topic = habit_topic_for_activity(exercise_type);
     today = inbe_habits_today_index();
     selected = app->habits.selected;
     for(int i = 0; i < app->habits.count; i++) {
         InbeHabit *habit = &app->habits.items[i];
-        if(habit->sync_mode == INBE_HABIT_SYNC_TOPIC &&
-           habit->sync_topic == topic) {
-            if(!inbe_habit_completed_day(habit, today)) {
-                inbe_habit_set_day(&app->habits, i, today, 1);
-                changed = 1;
-            }
-        } else if(habit->sync_mode == INBE_HABIT_SYNC_ACTIVITY &&
-                  habit->sync_activity == exercise_type) {
+        if(habit_matches_activity(habit, exercise_type)) {
             if(!inbe_habit_completed_day(habit, today)) {
                 inbe_habit_set_day(&app->habits, i, today, 1);
                 changed = 1;
@@ -289,43 +288,11 @@ sync_habits_for_activity(InbeApp *app, int exercise_type)
     }
 }
 
-void
-habits_sync_topic_theme_colors(InbeApp *app, int sync_topic, int save_now)
-{
-    Color color;
-    int changed = 0;
-
-    if(app == NULL || sync_topic < 0 || sync_topic >= 3)
-        return;
-
-    color = practice_theme_color(app, sync_topic);
-    for(int i = 0; i < app->habits.count; i++) {
-        InbeHabit *habit = &app->habits.items[i];
-        if(habit->sync_mode != INBE_HABIT_SYNC_TOPIC ||
-           habit->sync_topic != sync_topic)
-            continue;
-        if(habit->color.r != color.r || habit->color.g != color.g ||
-           habit->color.b != color.b || habit->color.a != 255) {
-            habit->color = color;
-            habit->color.a = 255;
-            changed = 1;
-        }
-    }
-
-    if(changed && save_now)
-        inbe_habits_save(&app->habits);
-}
 /* Habit utility helpers */
 int
 habit_is_linked(const InbeHabit *habit)
 {
     return habit != NULL && habit->sync_mode != INBE_HABIT_SYNC_NONE;
-}
-
-static int
-habit_date_index(int year, int month, int day)
-{
-    return year * 10000 + month * 100 + day;
 }
 
 static void
@@ -335,19 +302,6 @@ habit_format_date(int day_index, char *out, size_t out_size)
         return;
     snprintf(out, out_size, "%04d-%02d-%02d",
              day_index / 10000, (day_index / 100) % 100, day_index % 100);
-}
-
-static const char *
-habit_month_label(int month)
-{
-    static const char *months[] = {
-        "January", "February", "March", "April", "May", "June",
-        "July", "August", "September", "October", "November", "December"
-    };
-
-    if(month < 1 || month > 12)
-        return "";
-    return months[month - 1];
 }
 
 /* Habit edit functions */
@@ -364,8 +318,7 @@ habit_edit_begin_new(InbeApp *app)
     app->habit_edit_cursor = (int)strlen(app->habit_edit_text);
     app->habit_edit_color = (Color){99, 196, 165, 255};
     app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
-    app->habit_edit_sync_topic = INBE_HABIT_TOPIC_MIND;
-    app->habit_edit_sync_activity = EXERCISE_WIM_HOF;
+    app->habit_edit_sync_activity = 0;
     app->inbe.screen = InbeScreenHabitEdit;
 }
 
@@ -383,7 +336,6 @@ habit_edit_begin(InbeApp *app, int index)
     app->habit_edit_cursor = (int)strlen(app->habit_edit_text);
     app->habit_edit_color = app->habits.items[index].color;
     app->habit_edit_sync_mode = app->habits.items[index].sync_mode;
-    app->habit_edit_sync_topic = app->habits.items[index].sync_topic;
     app->habit_edit_sync_activity = app->habits.items[index].sync_activity;
     app->inbe.screen = InbeScreenHabitEdit;
 }
@@ -437,15 +389,13 @@ habit_edit_commit(InbeApp *app)
 
     text = habit_edit_trimmed_text(app);
     if(text[0] != '\0') {
-        if(app->habit_edit_sync_mode == INBE_HABIT_SYNC_TOPIC) {
-            app->habit_edit_sync_topic = clampi(app->habit_edit_sync_topic,
-                                                0, INBE_HABIT_TOPIC_COUNT - 1);
-            app->habit_edit_color = practice_theme_color(app, app->habit_edit_sync_topic);
-        }
+        if(app->habit_edit_sync_activity != 0)
+            app->habit_edit_sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
+        else
+            app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
         if(app->habit_edit_is_new) {
             inbe_habits_add_custom(&app->habits, text, app->habit_edit_color,
                                    app->habit_edit_sync_mode,
-                                   app->habit_edit_sync_topic,
                                    app->habit_edit_sync_activity);
         } else {
             snprintf(app->habits.items[index].name,
@@ -453,7 +403,6 @@ habit_edit_commit(InbeApp *app)
             app->habits.items[index].color = app->habit_edit_color;
             app->habits.items[index].color.a = 255;
             app->habits.items[index].sync_mode = app->habit_edit_sync_mode;
-            app->habits.items[index].sync_topic = app->habit_edit_sync_topic;
             app->habits.items[index].sync_activity = app->habit_edit_sync_activity;
             app->habits.selected = index;
             inbe_habits_save(&app->habits);
@@ -479,10 +428,10 @@ habit_linked_session_callback(const char *path, int year, int month, int day,
         return;
     if(ctx->day_filter > 0 && ctx->day_filter != day_index)
         return;
-    if(ctx->sync_mode == INBE_HABIT_SYNC_TOPIC && topic != ctx->sync_topic)
+    if(ctx->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
+       (ctx->sync_activity & habit_activity_mask_for(activity)) == 0)
         return;
-    if(ctx->sync_mode == INBE_HABIT_SYNC_ACTIVITY && activity != ctx->sync_activity)
-        return;
+    (void)topic;
     if(ctx->count >= HABIT_LINKED_ENTRY_MAX)
         return;
 
@@ -515,40 +464,8 @@ habit_collect_linked_entries(const InbeHabit *habit, int day_filter, HabitLinked
     memset(ctx, 0, sizeof(*ctx));
     ctx->day_filter = day_filter;
     ctx->sync_mode = habit != NULL ? habit->sync_mode : INBE_HABIT_SYNC_NONE;
-    ctx->sync_topic = habit != NULL ? habit->sync_topic : INBE_HABIT_TOPIC_MIND;
     ctx->sync_activity = habit != NULL ? habit->sync_activity : EXERCISE_WIM_HOF;
     data_list_session_records(habit_linked_session_callback, ctx);
-}
-
-static int
-habit_linked_has_day(const HabitLinkedContext *ctx, int day_index)
-{
-    if(ctx == NULL)
-        return 0;
-    for(int i = 0; i < ctx->count; i++) {
-        int entry_day = ctx->entries[i].year * 10000 + ctx->entries[i].month * 100 + ctx->entries[i].day;
-        if(entry_day == day_index)
-            return 1;
-    }
-    return 0;
-}
-
-static void
-habit_open_linked_details(InbeApp *app, int habit_index, int day_index)
-{
-    if(app == NULL)
-        return;
-    app->habit_detail_index = habit_index;
-    app->habit_detail_day = day_index;
-    app->habit_detail_session_index = -1;
-    app->habit_detail_session_path[0] = '\0';
-    app->habit_session_edit_active = 0;
-    app->habit_session_edit_kind = 0;
-    app->habit_session_edit_round = -1;
-    app->habit_session_edit_path[0] = '\0';
-    app->habit_session_edit_text[0] = '\0';
-    app->modal.active = 1;
-    app->modal.type = UIModalHabitLinkedDetails;
 }
 
 void
@@ -584,239 +501,14 @@ habit_open_session_edit_page(InbeApp *app)
     app->inbe.screen = InbeScreenHabitSessionEdit;
 }
 
-/* UI button functions */
-void
-draw_habits_manager_button(InbeApp *app)
-{
-    int icon_size = flint_px(20);
-    int icon_padding = flint_px(8);
-    int button_w = icon_size + icon_padding * 2;
-    int button_x = view_width - button_w - flint_px(10);
-    int button_y = (flint_px(58) - button_w) / 2;
-    int hover = 0;
-
-    if(app == NULL || app->modal.active)
-        return;
-
-    if(ui_draw_icon_btn_padded(button_x, button_y, icon_size, icon_padding,
-                               app->icons[UI_ICON_TYPE_STACK], &hover)) {
-        app->practice_config_theme_tab = PRACTICE_CONFIG_TAB_LIST;
-        app->previous_screen = InbeScreenHabits;
-        app->inbe.screen = InbeScreenTrackerConfig;
-    }
-}
-
-void
-draw_habit_view_button(InbeApp *app)
-{
-    int stack_icon_size = flint_px(20);
-    int stack_padding = flint_px(8);
-    int stack_w = stack_icon_size + stack_padding * 2;
-    int button_w = flint_px(68);
-    int button_h = flint_px(34);
-    int button_x = view_width - stack_w - flint_px(10) - button_w - flint_px(8);
-    int button_y = (flint_px(58) - button_h) / 2;
-    int hover = 0;
-
-    if(app == NULL || app->modal.active)
-        return;
-    if(button_x < flint_px(92))
-        return;
-
-    if(ui_draw_generic_button(button_x, button_y, button_w, button_h, "View",
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        app->habits_view_mode = app->habits_view_mode == 0 ? 1 : 0;
-        app->habits_list_scroll = 0;
-        app->habits_list_expanded_year = 0;
-        app->habits_list_expanded_month = 0;
-        app->habits_list_expanded_day = 0;
-        app->habits_list_expanded_session = -1;
-    }
-}
-
-/* Cascade drawing functions */
-static int
-draw_habit_cascade_row(InbeApp *app, int x, int y, int w, int h,
-                       const char *text, int selected, int indent)
-{
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int hover = CheckCollisionPointRec(mouse_world, (Rectangle){(float)x, (float)y, (float)w, (float)h});
-
-    if(hover) {
-        DrawRectangle(x, y, w, h, selected ? theme_get_button_hover() : flint_darken(theme_get_button_hover(), 6));
-        ui_draw_bevel(x, y, w, h, flint_darken(theme_get_button_hover(), 40), flint_lighten(theme_get_button_hover(), 40));
-        app->cursor_clickable = 1;
-        if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-            ui_draw_bevel(x, y, w, h, flint_lighten(theme_get_button_hover(), 40), flint_darken(theme_get_button_hover(), 40));
-    } else {
-        DrawRectangle(x, y, w, h, selected ? theme_get_button() : flint_darken(theme_get_bg(), 6));
-        ui_draw_bevel(x, y, w, h, flint_lighten(theme_get_button(), 28), flint_darken(theme_get_button(), 20));
-    }
-
-    flint_text_draw(text, x + flint_px(indent),
-                    flint_ui_text_y(text, y, h, flint_px(16)),
-                    flint_px(16), theme_get_text());
-    return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-}
-
-static int
-draw_habit_cascade_action(int right_x, int y, int row_h, Texture2D icon)
-{
-    int icon_size = flint_px(16);
-    int icon_padding = flint_px(4);
-    int btn_w = icon_size + icon_padding * 2;
-    int hover = 0;
-
-    return ui_draw_icon_btn_padded(right_x - btn_w - flint_px(4),
-                                   y + (row_h - btn_w) / 2,
-                                   icon_size, icon_padding, icon, &hover);
-}
-
 static void
-habit_open_session_edit_page_for_session(InbeApp *app, int habit_index,
-                                         int day_index, const char *path)
+habit_open_session_edit_page_for_session(InbeApp *app, const char *path)
 {
     if(app == NULL || path == NULL || path[0] == '\0')
         return;
-    app->habit_detail_index = habit_index;
-    app->habit_detail_day = day_index;
-    app->habit_detail_session_index = 0;
     snprintf(app->habit_detail_session_path,
              sizeof(app->habit_detail_session_path), "%s", path);
     habit_open_session_edit_page(app);
-}
-
-/* Comparison function for sorting linked entries */
-static int
-compare_habit_linked_entries(const void *a, const void *b)
-{
-    const HabitLinkedEntry *ea = a;
-    const HabitLinkedEntry *eb = b;
-
-    if(ea->year != eb->year)
-        return eb->year - ea->year;
-    if(ea->month != eb->month)
-        return eb->month - ea->month;
-    if(ea->day != eb->day)
-        return eb->day - ea->day;
-    if(ea->hour != eb->hour)
-        return eb->hour - ea->hour;
-    if(ea->minute != eb->minute)
-        return eb->minute - ea->minute;
-    return eb->second - ea->second;
-}
-
-static void
-habit_filter_ctx_to_session(HabitLinkedContext *ctx, const char *path)
-{
-    if(ctx == NULL || path == NULL || path[0] == '\0')
-        return;
-    
-    ctx->count = 0;
-    ctx->total_seconds = 0;
-    ctx->best_seconds = 0;
-    
-    for(int i = 0; i < HABIT_LINKED_ENTRY_MAX; i++) {
-        if(strcmp(ctx->entries[i].path, path) == 0) {
-            if(ctx->count < i) {
-                ctx->entries[ctx->count] = ctx->entries[i];
-            }
-            ctx->count++;
-        }
-    }
-}
-
-/* Modal drawing function */
-void
-draw_habit_linked_details_modal(InbeApp *app)
-{
-    HabitLinkedContext ctx;
-    InbeHabit *habit;
-    char date_text[32];
-    int modal_w = flint_px(350);
-    int modal_h = flint_px(330);
-    int y;
-    int row_h = flint_px(28);
-    FlintUIPanelFrame frame;
-
-    if(app == NULL || !app->modal.active || app->modal.type != UIModalHabitLinkedDetails)
-        return;
-    if(app->habit_detail_index < 0 || app->habit_detail_index >= app->habits.count) {
-        app->modal.active = 0;
-        app->modal.type = 0;
-        return;
-    }
-
-    habit = &app->habits.items[app->habit_detail_index];
-    habit_collect_linked_entries(habit, app->habit_detail_day, &ctx);
-    if(ctx.count > 1)
-        qsort(ctx.entries, (size_t)ctx.count, sizeof(ctx.entries[0]), compare_habit_linked_entries);
-    habit_filter_ctx_to_session(&ctx, app->habit_detail_session_path);
-    habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
-
-    frame = ui_draw_modal_frame(modal_w, modal_h, date_text,
-                                (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
-
-    if(frame.right_clicked) {
-        app->modal.active = 0;
-        app->modal.type = 0;
-        return;
-    }
-
-    y = frame.content_y;
-
-    if(ctx.count <= 0) {
-        flint_text_draw("No sessions", frame.content_x, y,
-                        flint_ui_font(), theme_get_text());
-        return;
-    }
-
-    {
-        char summary[128];
-        snprintf(summary, sizeof(summary), "%d session%s",
-                 ctx.count, ctx.count == 1 ? "" : "s");
-        flint_text_draw(summary, frame.content_x, y,
-                        flint_ui_font(), theme_get_text());
-        y += flint_px(34);
-    }
-
-    for(int i = 0; i < ctx.count && y + row_h < frame.y + frame.h - flint_px(14); i++) {
-        char line[128];
-        int icon_size = flint_px(18);
-        int icon_padding = flint_px(6);
-        int icon_w = icon_size + icon_padding * 2;
-        int edit_x = frame.content_x + frame.content_w - icon_w;
-        int line_w = edit_x - frame.content_x - flint_px(8);
-        int hover = 0;
-
-        if(line_w < flint_px(80))
-            line_w = flint_px(80);
-        snprintf(line, sizeof(line), "%02d:%02d  %d rounds",
-                 ctx.entries[i].hour, ctx.entries[i].minute,
-                 ctx.entries[i].round_count);
-        flint_text_draw_fitted_in_rect(line,
-                                       (Rectangle){frame.content_x, y, line_w, row_h},
-                                       flint_ui_font_small(), flint_px(10), theme_get_text());
-        if(ui_draw_icon_btn_padded(edit_x, y - flint_px(4), icon_size, icon_padding,
-                                   app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
-            habit_open_session_edit_page_for_session(app, app->habit_detail_index,
-                                                     app->habit_detail_day,
-                                                     ctx.entries[i].path);
-            return;
-        }
-        y += row_h;
-
-        for(int r = 0; r < ctx.entries[i].round_count &&
-            y + row_h < frame.y + frame.h - flint_px(14); r++) {
-            char round_line[64];
-            snprintf(round_line, sizeof(round_line), "Round %d  %ds",
-                     r + 1, ctx.entries[i].rounds[r]);
-            flint_text_draw(round_line, frame.content_x + flint_px(16), y,
-                            flint_ui_font_small(), flint_darken(theme_get_text(), 24));
-            y += flint_px(24);
-        }
-        y += flint_px(4);
-    }
 }
 
 /* Habit session edit screen */
@@ -925,9 +617,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                                            flint_ui_font_small(), flint_px(10), theme_get_text());
             if(ui_draw_icon_btn_padded(edit_x, y - flint_px(4), icon_size, icon_padding,
                                        app->icons[UI_ICON_TYPE_PENCIL], &hover)) {
-                habit_open_session_edit_page_for_session(app, app->habit_detail_index,
-                                                         app->habit_detail_day,
-                                                         ctx->entries[i].path);
+                habit_open_session_edit_page_for_session(app, ctx->entries[i].path);
                 return y;
             }
         }
