@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=Inner Breeze
+Exec=inbe
+Icon=inbe
+Categories=Utility;
+Terminal=false

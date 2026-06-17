@@ -184,9 +184,6 @@ Wim Hof 呼吸
 [settings_tab_about]
 关于
 ---
-[settings_section_about]
-关于
----
 
 [theme_label]
 主题
@@ -205,6 +202,15 @@ Wim Hof 呼吸
 ---
 [modify_start_speed_button]
 修改起始速度
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 起始速度
@@ -255,12 +261,6 @@ Wim Hof 呼吸
 即将推出...
 ---
 
-[data_management_label]
-数据管理
----
-[data_management_button]
-管理数据
----
 [total_sessions_label]
 总练习次数：%d
 ---
@@ -323,12 +323,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-版本 %s
----
-[about_description]
-Inner Breeze 是一款简单的呼吸冥想应用，帮助你放松并平静下来。
 ---
 [toggle_off]
 关

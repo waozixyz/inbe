@@ -184,9 +184,6 @@ Data
 [settings_tab_about]
 About
 ---
-[settings_section_about]
-About
----
 
 [theme_label]
 Theme
@@ -223,6 +220,15 @@ Start speed
 ---
 [modify_start_speed_button]
 Modify start speed
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Start speed
@@ -273,12 +279,6 @@ Next
 Coming soon...
 ---
 
-[data_management_label]
-Data Management
----
-[data_management_button]
-Manage data
----
 [total_sessions_label]
 Total Sessions: %d
 ---
@@ -341,14 +341,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-Version %s
----
-[about_description]
-Inner Breeze is a simple breathing
-meditation app to help you relax
-and find your calm.
 ---
 [toggle_off]
 OFF

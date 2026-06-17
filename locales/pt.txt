@@ -184,9 +184,6 @@ Dados
 [settings_tab_about]
 Sobre
 ---
-[settings_section_about]
-Sobre
----
 
 [theme_label]
 Tema
@@ -205,6 +202,15 @@ Velocidade inicial
 ---
 [modify_start_speed_button]
 Modificar velocidade inicial
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Velocidade inicial
@@ -255,12 +261,6 @@ Mais
 Em breve...
 ---
 
-[data_management_label]
-Gerenciamento de dados
----
-[data_management_button]
-Gerenciar dados
----
 [total_sessions_label]
 Sessões totais: %d
 ---
@@ -323,14 +323,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-Versão %s
----
-[about_description]
-Inner Breeze é um app simples de
-meditação respiratória para ajudar você a
-relaxar e encontrar calma.
 ---
 [toggle_off]
 OFF

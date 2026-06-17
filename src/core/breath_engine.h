@@ -51,6 +51,12 @@ enum {
 	InbePhaseNext
 };
 
+typedef enum {
+    InbeBreathAnimationLinear = 0,
+    InbeBreathAnimationInOut = 1,
+    InbeBreathAnimationCount
+} InbeBreathAnimation;
+
 typedef struct Inbe Inbe;
 
 struct Inbe {
@@ -75,6 +81,7 @@ struct Inbe {
 	int play_in_background;
 	int progressive_speed;
 	int progressive_start_speed;
+	int breath_animation;
 
     char count[CountSize];
 	char maxbreaths[CountSize];
