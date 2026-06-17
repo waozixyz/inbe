@@ -151,6 +151,15 @@ Sesi
 [settings_tab_app]
 Aplikasi
 ---
+[settings_tab_language]
+Bahasa
+---
+[settings_tab_theme]
+Tema
+---
+[settings_tab_device]
+Perangkat
+---
 [settings_section_sound]
 Suara
 ---

@@ -151,6 +151,15 @@ Séance
 [settings_tab_app]
 App
 ---
+[settings_tab_language]
+Langue
+---
+[settings_tab_theme]
+Thème
+---
+[settings_tab_device]
+Appareil
+---
 [settings_section_sound]
 Son
 ---
