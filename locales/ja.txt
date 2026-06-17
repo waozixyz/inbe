@@ -303,6 +303,9 @@ In / Out
 [import_failed]
 インポートに失敗しました
 ---
+[imported_data]
+データをインポートしました
+---
 [imported_sessions]
 %dセッションをインポートしました
 ---
@@ -311,6 +314,18 @@ In / Out
 ---
 [import_cancelled]
 Import cancelled
+---
+[import_choice_title]
+設定もインポートしますか？
+---
+[import_choice_message]
+データと設定があります。
+---
+[import_data_only_button]
+データ
+---
+[import_data_settings_button]
+データ+設定
 ---
 [export_cancelled]
 Export cancelled
@@ -448,3 +463,25 @@ Inner Breeze データ書き出し
 ---
 [delete_button]
 削除
+---
+[meditation_music_attribution]
+音楽: Elijah_K.
+---
+[theme_system]
+システム
+---
+[orientation_label]
+向き
+---
+[orientation_system]
+システム
+---
+[orientation_portrait]
+縦向き
+---
+[orientation_landscape]
+横向き
+---
+[orientation_sensor]
+センサー
+---

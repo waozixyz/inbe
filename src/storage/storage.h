@@ -16,6 +16,21 @@ typedef void (*InbeStorageSessionRecordCallback)(const char *id,
                                                  const int *rounds, int round_count,
                                                  void *user);
 
+typedef enum InbeStorageImportMode {
+    INBE_STORAGE_IMPORT_DATA_ONLY = 0,
+    INBE_STORAGE_IMPORT_DATA_AND_SETTINGS = 1
+} InbeStorageImportMode;
+
+typedef struct InbeStorageImportInfo {
+    int valid;
+    int has_sessions;
+    int has_habits;
+    int has_settings;
+    int session_count;
+    int habit_count;
+    int setting_count;
+} InbeStorageImportInfo;
+
 int inbe_storage_init(const char *root);
 void inbe_storage_close(void);
 const char *inbe_storage_db_path(void);
@@ -53,5 +68,7 @@ void inbe_storage_mark_habits_initialized(void);
 
 int inbe_storage_export_zip(const char *path);
 int inbe_storage_import_zip(const char *path);
+int inbe_storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
+int inbe_storage_inspect_import(const char *path, InbeStorageImportInfo *info);
 
 #endif

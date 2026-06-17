@@ -319,6 +319,9 @@ Importa Dati
 [import_failed]
 Importazione fallita
 ---
+[imported_data]
+Dati importati
+---
 [imported_sessions]
 Importate %d sessioni
 ---
@@ -327,6 +330,18 @@ File di esportazione non valido
 ---
 [import_cancelled]
 Importazione annullata
+---
+[import_choice_title]
+Importare impostazioni?
+---
+[import_choice_message]
+Dati e impostazioni trovati.
+---
+[import_data_only_button]
+Dati
+---
+[import_data_settings_button]
+Dati+Impostazioni
 ---
 [export_cancelled]
 Esportazione annullata
@@ -470,4 +485,7 @@ Eliminare questo round? Questa azione non può essere annullata.
 ---
 [delete_button]
 Elimina
+---
+[meditation_music_attribution]
+Musica di Elijah_K.
 ---

@@ -198,6 +198,100 @@ source_table_has_column(sqlite3 *db, const char *table, const char *column)
     return found;
 }
 
+static int
+source_table_exists(sqlite3 *db, const char *table)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(db == NULL || table == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(db,
+                          "SELECT 1 FROM sqlite_master WHERE type='table' AND name=?1 LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    sqlite3_bind_text(stmt, 1, table, -1, SQLITE_TRANSIENT);
+    found = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+source_count_rows(sqlite3 *db, const char *sql)
+{
+    sqlite3_stmt *stmt = NULL;
+    int count = 0;
+
+    if(db == NULL || sql == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        count = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return count;
+}
+
+static const char *const importable_setting_keys[] = {
+    "speed",
+    "max_rounds",
+    "max_breaths",
+    "pause_seconds",
+    "sound_volume",
+    "tutorial_seen",
+    "exercise_manual_seen_mask",
+    "theme",
+    "dark_mode",
+    "theme_mode",
+    "orientation_mode",
+    "main_tab",
+    "fullscreen",
+    "on_screen_keyboard",
+    "progressive_speed",
+    "progressive_start_speed",
+    "breath_animation",
+    "advanced_session_controls",
+    "hold_display_mode",
+    "exercise_type",
+    "meditation_music_enabled",
+    "meditation_music_shuffle",
+    "meditation_music_track",
+    "play_in_background",
+    "language",
+    "practice_category_tab"
+};
+
+static int
+setting_key_importable(const char *key)
+{
+    if(key == NULL || key[0] == '\0')
+        return 0;
+    for(size_t i = 0; i < sizeof(importable_setting_keys) / sizeof(importable_setting_keys[0]); i++) {
+        if(strcmp(key, importable_setting_keys[i]) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+source_count_importable_settings(sqlite3 *db)
+{
+    sqlite3_stmt *stmt = NULL;
+    int count = 0;
+
+    if(db == NULL || !source_table_exists(db, "settings"))
+        return 0;
+    if(sqlite3_prepare_v2(db, "SELECT DISTINCT key FROM settings", -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *key = (const char *)sqlite3_column_text(stmt, 0);
+        if(setting_key_importable(key))
+            count++;
+    }
+    sqlite3_finalize(stmt);
+    return count;
+}
+
 static long long
 now_seconds(void)
 {
@@ -1448,12 +1542,94 @@ import_tickmate_db(sqlite3 *src)
 }
 
 static int
-import_sqlite_db_file(const char *db_path)
+import_settings_from_source(sqlite3 *src)
+{
+    sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *write_stmt = NULL;
+    int imported = 0;
+    long long imported_at = now_seconds();
+
+    if(src == NULL || g_storage.db == NULL || !source_table_exists(src, "settings"))
+        return 0;
+    if(sqlite3_prepare_v2(src, "SELECT key,value FROM settings", -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+
+    exec_sql("BEGIN IMMEDIATE");
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *key = (const char *)sqlite3_column_text(stmt, 0);
+        const char *value = (const char *)sqlite3_column_text(stmt, 1);
+
+        if(!setting_key_importable(key))
+            continue;
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "INSERT INTO settings(user_id,key,value,updated_at) VALUES(?1,?2,?3,?4) "
+                              "ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
+                              -1, &write_stmt, NULL) != SQLITE_OK)
+            continue;
+        bind_text(write_stmt, 1, g_storage.user_id);
+        bind_text(write_stmt, 2, key);
+        bind_text(write_stmt, 3, value != NULL ? value : "");
+        sqlite3_bind_int64(write_stmt, 4, imported_at);
+        if(sqlite3_step(write_stmt) == SQLITE_DONE)
+            imported++;
+        sqlite3_finalize(write_stmt);
+        write_stmt = NULL;
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_finalize(write_stmt);
+    exec_sql("COMMIT");
+    return imported;
+}
+
+static int
+inspect_sqlite_db_file(const char *db_path, InbeStorageImportInfo *info)
+{
+    sqlite3 *src = NULL;
+    int ok = 0;
+
+    if(info != NULL)
+        memset(info, 0, sizeof(*info));
+    if(db_path == NULL || db_path[0] == '\0' || info == NULL)
+        return 0;
+    if(sqlite3_open(db_path, &src) != SQLITE_OK)
+        goto done;
+
+    if(source_table_exists(src, "sessions") && source_table_exists(src, "session_rounds")) {
+        info->session_count = source_count_rows(src, "SELECT COUNT(*) FROM sessions WHERE deleted_at=0");
+        info->habit_count = source_table_exists(src, "habits")
+                                ? source_count_rows(src, "SELECT COUNT(*) FROM habits WHERE deleted_at=0")
+                                : 0;
+        info->setting_count = source_count_importable_settings(src);
+        info->has_sessions = info->session_count > 0;
+        info->has_habits = info->habit_count > 0;
+        info->has_settings = info->setting_count > 0;
+        info->valid = info->has_sessions || info->has_habits || info->has_settings;
+        ok = info->valid;
+        goto done;
+    }
+
+    if(source_table_has_column(src, "tracks", "name") &&
+       source_table_has_column(src, "ticks", "_track_id")) {
+        info->habit_count = source_count_rows(src, "SELECT COUNT(*) FROM tracks WHERE enabled!=0");
+        info->has_habits = info->habit_count > 0;
+        info->valid = info->has_habits;
+        ok = info->valid;
+    }
+
+done:
+    if(src != NULL)
+        sqlite3_close(src);
+    return ok;
+}
+
+static int
+import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
 {
     sqlite3 *src = NULL;
     sqlite3_stmt *stmt = NULL;
     sqlite3_stmt *hstmt = NULL;
     int ok = 0;
+    int imported_settings = 0;
 
     if(db_path == NULL || db_path[0] == '\0')
         return 0;
@@ -1494,15 +1670,21 @@ import_sqlite_db_file(const char *db_path)
     sqlite3_finalize(stmt);
     stmt = NULL;
 
-    if(sqlite3_prepare_v2(src,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order "
-                          "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id",
-                          -1, &stmt, NULL) == SQLITE_OK) {
+    if(source_table_exists(src, "habits")) {
+        int has_sync_activity = source_table_has_column(src, "habits", "sync_activity");
+        const char *habit_sql =
+            has_sync_activity
+                ? "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id"
+                : "SELECT id,name,color_r,color_g,color_b,sync_mode,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id";
+        if(sqlite3_prepare_v2(src, habit_sql, -1, &stmt, NULL) != SQLITE_OK)
+            goto after_habits;
         exec_sql("BEGIN IMMEDIATE");
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             const char *import_habit_id = (const char *)sqlite3_column_text(stmt, 0);
             const char *name = (const char *)sqlite3_column_text(stmt, 1);
             char local_habit_id[INBE_STORAGE_ID_SIZE];
+            int sync_activity = has_sync_activity ? sqlite3_column_int(stmt, 6) : 0;
+            int sort_order = has_sync_activity ? sqlite3_column_int(stmt, 7) : sqlite3_column_int(stmt, 6);
 
             if(import_habit_id == NULL || import_habit_id[0] == '\0' ||
                name == NULL || name[0] == '\0')
@@ -1522,8 +1704,8 @@ import_sqlite_db_file(const char *db_path)
             sqlite3_bind_int(hstmt, 5, sqlite3_column_int(stmt, 3));
             sqlite3_bind_int(hstmt, 6, sqlite3_column_int(stmt, 4));
             sqlite3_bind_int(hstmt, 7, sqlite3_column_int(stmt, 5));
-            sqlite3_bind_int(hstmt, 8, sqlite3_column_int(stmt, 6));
-            sqlite3_bind_int(hstmt, 9, sqlite3_column_int(stmt, 7));
+            sqlite3_bind_int(hstmt, 8, sync_activity);
+            sqlite3_bind_int(hstmt, 9, sort_order);
             if(sqlite3_step(hstmt) == SQLITE_DONE)
                 ok = 1;
             sqlite3_finalize(hstmt);
@@ -1553,6 +1735,12 @@ import_sqlite_db_file(const char *db_path)
         }
         exec_sql("COMMIT");
     }
+after_habits:
+
+    if(mode == INBE_STORAGE_IMPORT_DATA_AND_SETTINGS)
+        imported_settings = import_settings_from_source(src);
+    if(imported_settings > 0)
+        ok = 1;
 
     goto done;
 
@@ -1576,6 +1764,12 @@ done:
 int
 inbe_storage_import_zip(const char *path)
 {
+    return inbe_storage_import_zip_ex(path, INBE_STORAGE_IMPORT_DATA_ONLY);
+}
+
+int
+inbe_storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
+{
     mz_zip_archive archive;
     int ok = 0;
 
@@ -1589,7 +1783,7 @@ inbe_storage_import_zip(const char *path)
     }
     memset(&archive, 0, sizeof(archive));
     if(!mz_zip_reader_init_file(&archive, path, 0)) {
-        return import_sqlite_db_file(path);
+        return import_sqlite_db_file(path, mode);
     }
     if(mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", NULL, 0) >= 0) {
         char *db_bytes;
@@ -1602,7 +1796,7 @@ inbe_storage_import_zip(const char *path)
         if(db_bytes != NULL && fp != NULL && fwrite(db_bytes, 1, db_size, fp) == db_size) {
             fclose(fp);
             fp = NULL;
-            ok = import_sqlite_db_file(temp_path);
+            ok = import_sqlite_db_file(temp_path, mode);
             remove(temp_path);
             if(!ok)
                 TraceLog(LOG_ERROR, "DATA: archive contained inbe-data/inbe.db but sqlite import failed");
@@ -1618,6 +1812,63 @@ inbe_storage_import_zip(const char *path)
     mz_zip_reader_end(&archive);
     if(!ok)
         TraceLog(LOG_ERROR, "DATA: import failed for %s", path);
+    return ok;
+}
+
+int
+inbe_storage_inspect_import(const char *path, InbeStorageImportInfo *info)
+{
+    mz_zip_archive archive;
+    int ok = 0;
+
+    if(info != NULL)
+        memset(info, 0, sizeof(*info));
+    if(path == NULL || path[0] == '\0' || info == NULL || !path_exists(path))
+        return 0;
+
+    memset(&archive, 0, sizeof(archive));
+    if(!mz_zip_reader_init_file(&archive, path, 0))
+        return inspect_sqlite_db_file(path, info);
+
+    if(mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", NULL, 0) >= 0) {
+        char *db_bytes;
+        size_t db_size = 0;
+        char temp_path[INBE_STORAGE_PATH_SIZE];
+        FILE *fp;
+        db_bytes = mz_zip_reader_extract_file_to_heap(&archive, "inbe-data/inbe.db", &db_size, 0);
+        snprintf(temp_path, sizeof(temp_path), "%s/import-inspect-inbe.db", g_storage.root);
+        fp = fopen(temp_path, "wb");
+        if(db_bytes != NULL && fp != NULL && fwrite(db_bytes, 1, db_size, fp) == db_size) {
+            fclose(fp);
+            fp = NULL;
+            ok = inspect_sqlite_db_file(temp_path, info);
+            remove(temp_path);
+        }
+        if(fp != NULL)
+            fclose(fp);
+        free(db_bytes);
+    } else {
+        mz_uint file_count = mz_zip_reader_get_num_files(&archive);
+        for(mz_uint i = 0; i < file_count; i++) {
+            mz_zip_archive_file_stat stat;
+            int year;
+            int month;
+            int day;
+            int hour;
+            int minute;
+            int second;
+
+            if(!mz_zip_reader_file_stat(&archive, i, &stat) || stat.m_is_directory)
+                continue;
+            if(parse_legacy_session_filename(stat.m_filename, &year, &month, &day,
+                                             &hour, &minute, &second))
+                info->session_count++;
+        }
+        info->has_sessions = info->session_count > 0;
+        info->valid = info->has_sessions;
+        ok = info->valid;
+    }
+    mz_zip_reader_end(&archive);
     return ok;
 }
 

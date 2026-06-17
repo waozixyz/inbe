@@ -42,6 +42,18 @@ check_true(const char *label, int ok)
     g_failures++;
 }
 
+static void
+check_str(const char *label, const char *got, const char *want)
+{
+    if(got == NULL && want == NULL)
+        return;
+    if(got != NULL && want != NULL && strcmp(got, want) == 0)
+        return;
+    fprintf(stderr, "FAIL %s: got %s, want %s\n",
+            label, got != NULL ? got : "(null)", want != NULL ? want : "(null)");
+    g_failures++;
+}
+
 static int
 ascii_equal_ci(const char *a, const char *b)
 {
@@ -327,6 +339,114 @@ test_habit_name_merge_import(void)
 }
 
 static void
+write_multi_habit_source_database(const char *root, const char *zip_path)
+{
+    int rounds[] = {77};
+    InbeHabits habits;
+
+    check_true("init multi habit source", inbe_storage_init(root));
+    check_true("save multi habit source session",
+               inbe_storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add meditation habit",
+              inbe_habits_add_custom(&habits, "Meditation",
+                                      (Color){224, 124, 104, 255},
+                                      INBE_HABIT_SYNC_ACTIVITIES,
+                                      (1 << 0) | (1 << 1)),
+              0);
+    check_int("add push ups habit",
+              inbe_habits_add_custom(&habits, "Push ups",
+                                      (Color){180, 132, 220, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              1);
+    check_int("add cold shower habit",
+              inbe_habits_add_custom(&habits, "Cold Shower",
+                                      (Color){99, 196, 165, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              2);
+    inbe_habit_set_day(&habits, 0, 20260617, 1);
+    inbe_habit_set_day(&habits, 1, 20260617, 1);
+    inbe_habit_set_day(&habits, 2, 20260617, 1);
+    inbe_storage_set_setting_int("speed", 7);
+    inbe_storage_set_setting_text("language", "en");
+    inbe_storage_set_setting_text("future_unknown_key", "ignore-me");
+    check_true("export multi habit source", inbe_storage_export_zip(zip_path));
+    inbe_storage_close();
+}
+
+static void
+assert_multi_habits_imported(const char *root, int want_speed)
+{
+    InbeHabits habits;
+    InbeHabit *habit;
+
+    check_true("init multi habit import db", inbe_storage_init(root));
+    check_int("multi habit imported sessions", inbe_storage_session_count(), 1);
+    memset(&habits, 0, sizeof(habits));
+    check_true("multi habit load", inbe_storage_habits_load(&habits));
+    check_int("multi habit count", habits.count, 3);
+    habit = find_habit_ci(&habits, "Meditation");
+    check_true("multi meditation exists", habit != NULL);
+    check_int("multi meditation sync mode",
+              habit != NULL ? habit->sync_mode : -1,
+              INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("multi meditation sync activity",
+              habit != NULL ? habit->sync_activity : -1,
+              (1 << 0) | (1 << 1));
+    check_true("multi meditation day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+    habit = find_habit_ci(&habits, "Push ups");
+    check_true("multi push ups day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+    habit = find_habit_ci(&habits, "Cold Shower");
+    check_true("multi cold shower day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+    check_int("multi import speed setting",
+              inbe_storage_get_setting_int("speed", -1), want_speed);
+    check_str("multi import unknown setting",
+              inbe_storage_get_setting_text("future_unknown_key"), NULL);
+    inbe_storage_close();
+}
+
+static void
+test_import_modes_preserve_habits_and_settings_choice(void)
+{
+    char source[512], dest_data[512], dest_settings[512], zip_path[512];
+    InbeStorageImportInfo info;
+
+    make_clean_root(source, sizeof(source), "multi-source");
+    make_clean_root(dest_data, sizeof(dest_data), "multi-dest-data");
+    make_clean_root(dest_settings, sizeof(dest_settings), "multi-dest-settings");
+    make_path(zip_path, sizeof(zip_path), source, "multi-export.zip");
+    write_multi_habit_source_database(source, zip_path);
+
+    check_true("init inspect dest", inbe_storage_init(dest_data));
+    memset(&info, 0, sizeof(info));
+    check_true("inspect multi export", inbe_storage_inspect_import(zip_path, &info));
+    check_true("inspect valid", info.valid);
+    check_true("inspect sessions", info.has_sessions);
+    check_true("inspect habits", info.has_habits);
+    check_true("inspect settings", info.has_settings);
+    check_int("inspect habit count", info.habit_count, 3);
+    inbe_storage_set_setting_int("speed", 1);
+    check_true("multi data only import",
+               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_ONLY));
+    inbe_storage_close();
+    assert_multi_habits_imported(dest_data, 1);
+
+    check_true("init settings import dest", inbe_storage_init(dest_settings));
+    inbe_storage_set_setting_int("speed", 1);
+    check_true("multi data settings import",
+               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
+    inbe_storage_close();
+    assert_multi_habits_imported(dest_settings, 7);
+
+    remove_tree(source);
+    remove_tree(dest_data);
+    remove_tree(dest_settings);
+}
+
+static void
 write_legacy_zip(const char *path, const char *prefix)
 {
     mz_zip_archive archive;
@@ -469,6 +589,7 @@ main(void)
     test_raw_db_import();
     test_zip_db_import();
     test_habit_name_merge_import();
+    test_import_modes_preserve_habits_and_settings_choice();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();
     test_tickmate_db_import();

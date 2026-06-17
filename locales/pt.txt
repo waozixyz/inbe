@@ -303,6 +303,9 @@ Importar dados
 [import_failed]
 Falha ao importar
 ---
+[imported_data]
+Dados importados
+---
 [imported_sessions]
 %d sessões importadas
 ---
@@ -311,6 +314,18 @@ Arquivo de exportação inválido
 ---
 [import_cancelled]
 Importação cancelada
+---
+[import_choice_title]
+Importar configurações?
+---
+[import_choice_message]
+Dados e configurações encontrados.
+---
+[import_data_only_button]
+Dados
+---
+[import_data_settings_button]
+Dados+Config.
 ---
 [export_cancelled]
 Export cancelled
@@ -454,4 +469,25 @@ Excluir esta rodada? Isso não pode ser desfeito.
 ---
 [delete_button]
 Excluir
+---
+[meditation_music_attribution]
+Música por Elijah_K.
+---
+[theme_system]
+Sistema
+---
+[orientation_label]
+Orientação
+---
+[orientation_system]
+Sistema
+---
+[orientation_portrait]
+Retrato
+---
+[orientation_landscape]
+Paisagem
+---
+[orientation_sensor]
+Sensor
 ---

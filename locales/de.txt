@@ -303,6 +303,9 @@ Daten importieren
 [import_failed]
 Import fehlgeschlagen
 ---
+[imported_data]
+Daten importiert
+---
 [imported_sessions]
 %d Sitzungen importiert
 ---
@@ -311,6 +314,18 @@ Ungültige Exportdatei
 ---
 [import_cancelled]
 Import cancelled
+---
+[import_choice_title]
+Einstellungen importieren?
+---
+[import_choice_message]
+Daten und Einstellungen gefunden.
+---
+[import_data_only_button]
+Daten
+---
+[import_data_settings_button]
+Daten+Einstellungen
 ---
 [export_cancelled]
 Export cancelled
@@ -454,4 +469,25 @@ Diese Runde löschen? Das kann nicht rückgängig gemacht werden.
 ---
 [delete_button]
 Löschen
+---
+[meditation_music_attribution]
+Musik von Elijah_K.
+---
+[theme_system]
+System
+---
+[orientation_label]
+Ausrichtung
+---
+[orientation_system]
+System
+---
+[orientation_portrait]
+Hochformat
+---
+[orientation_landscape]
+Querformat
+---
+[orientation_sensor]
+Sensor
 ---

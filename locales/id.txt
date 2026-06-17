@@ -303,6 +303,9 @@ Impor Data
 [import_failed]
 Impor gagal
 ---
+[imported_data]
+Data diimpor
+---
 [imported_sessions]
 Mengimpor %d sesi
 ---
@@ -311,6 +314,18 @@ File ekspor tidak valid
 ---
 [import_cancelled]
 Impor dibatalkan
+---
+[import_choice_title]
+Impor pengaturan?
+---
+[import_choice_message]
+Data dan pengaturan ditemukan.
+---
+[import_data_only_button]
+Data
+---
+[import_data_settings_button]
+Data+Pengaturan
 ---
 [export_cancelled]
 Export cancelled
@@ -454,4 +469,25 @@ Hapus ronde ini? Tidak dapat dibatalkan.
 ---
 [delete_button]
 Hapus
+---
+[meditation_music_attribution]
+Musik oleh Elijah_K.
+---
+[theme_system]
+Sistem
+---
+[orientation_label]
+Orientasi
+---
+[orientation_system]
+Sistem
+---
+[orientation_portrait]
+Potret
+---
+[orientation_landscape]
+Lanskap
+---
+[orientation_sensor]
+Sensor
 ---

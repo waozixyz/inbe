@@ -236,8 +236,40 @@ data_validate_import_file(const char *path)
 int
 data_import(const char *path)
 {
+    return data_import_with_mode(path, DATA_IMPORT_DATA_ONLY);
+}
+
+int
+data_import_with_mode(const char *path, DataImportMode mode)
+{
     data_init();
-    return inbe_storage_import_zip(path);
+    return inbe_storage_import_zip_ex(
+        path,
+        mode == DATA_IMPORT_DATA_AND_SETTINGS
+            ? INBE_STORAGE_IMPORT_DATA_AND_SETTINGS
+            : INBE_STORAGE_IMPORT_DATA_ONLY);
+}
+
+int
+data_inspect_import(const char *path, DataImportInfo *info)
+{
+    InbeStorageImportInfo storage_info;
+
+    data_init();
+    if(info != NULL)
+        memset(info, 0, sizeof(*info));
+    if(!inbe_storage_inspect_import(path, &storage_info))
+        return 0;
+    if(info != NULL) {
+        info->valid = storage_info.valid;
+        info->has_sessions = storage_info.has_sessions;
+        info->has_habits = storage_info.has_habits;
+        info->has_settings = storage_info.has_settings;
+        info->session_count = storage_info.session_count;
+        info->habit_count = storage_info.habit_count;
+        info->setting_count = storage_info.setting_count;
+    }
+    return 1;
 }
 
 typedef struct DbListSessionContext {
