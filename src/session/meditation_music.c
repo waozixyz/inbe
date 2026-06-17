@@ -64,6 +64,20 @@ safe_archive_member(const char *path)
 }
 
 static int
+known_track_archive_member(const char *path)
+{
+    if(path == NULL)
+        return 0;
+
+    for(int i = 0; i < MEDITATION_MUSIC_TRACK_COUNT; i++) {
+        if(strcmp(path, g_tracks[i].file) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+static int
 copy_text_checked(char *out, size_t out_size, const char *text)
 {
     size_t len;
@@ -307,6 +321,8 @@ extract_audio_archive(InbeApp *app, const char *archive_path)
         if(mz_zip_reader_is_file_a_directory(&archive, i))
             continue;
         if(!safe_archive_member(stat.m_filename))
+            continue;
+        if(!known_track_archive_member(stat.m_filename))
             continue;
 
         if(!join_path2(out_path, sizeof(out_path), app->meditation_music_cache_dir, "/audio/") ||
