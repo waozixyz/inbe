@@ -139,7 +139,7 @@
 [settings_title]
 設定
 ---
-[settings_tab_practice]
+[practice_config_title]
 練習
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@
 ---
 [settings_section_data]
 データ
+---
+[settings_tab_about]
+情報
 ---
 [settings_section_about]
 情報

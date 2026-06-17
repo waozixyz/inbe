@@ -139,7 +139,7 @@ ROUND %d
 [settings_title]
 Settings
 ---
-[settings_tab_practice]
+[practice_config_title]
 Practice
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Data
 ---
 [settings_section_data]
 Data
+---
+[settings_tab_about]
+About
 ---
 [settings_section_about]
 About
@@ -385,7 +388,7 @@ Simply follow 4 steps:
 3. Inhale deeply and hold.
 4. Exhale and repeat.
 
-Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
 Fill your lungs fully, then let the breath flow out.

@@ -139,7 +139,7 @@ Wim Hof 呼吸
 [settings_title]
 设置
 ---
-[settings_tab_practice]
+[practice_config_title]
 练习
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Wim Hof 呼吸
 ---
 [settings_section_data]
 数据
+---
+[settings_tab_about]
+关于
 ---
 [settings_section_about]
 关于

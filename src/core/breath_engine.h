@@ -35,6 +35,7 @@ enum {
     InbeScreenMeditation,
 	InbeScreenResults,
 	InbeScreenSettings,
+    InbeScreenPracticeConfig,
 	InbeScreenLanguage,
 	InbeScreenManual,
 	InbeScreenHabits,

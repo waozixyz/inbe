@@ -139,7 +139,7 @@ ROUND %d
 [settings_title]
 Impostazioni
 ---
-[settings_tab_practice]
+[practice_config_title]
 Pratica
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Dati
 ---
 [settings_section_data]
 Dati
+---
+[settings_tab_about]
+Info
 ---
 [settings_section_about]
 Info

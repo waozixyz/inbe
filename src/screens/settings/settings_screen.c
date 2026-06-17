@@ -348,11 +348,207 @@ settings_screen_handle_android_import(void)
 }
 #endif
 
+static int
+practice_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
+                             int *draw_meditation_music_menu)
+{
+    int speed = app->inbe.speed_level;
+    int max_rounds = app->inbe.max_rounds;
+    int max_breaths = int_from_count(app->inbe.maxbreaths);
+    int pause_seconds = app->inbe.pause_seconds;
+    int progressive_start_speed = app->inbe.progressive_start_speed;
+    int progressive_speed = app->inbe.progressive_speed;
+    int advanced_session_controls = app->advanced_session_controls;
+    int toggle_w = flint_px(56);
+    int toggle_h = flint_px(30);
+    int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
+    int reset_h = flint_px(36);
+    int reset_hover = 0;
+
+    update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
+    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+    app->settings_preview.progressive_speed = 0;
+    inbestep(&app->settings_preview);
+    if(app->settings_preview.phase != InbePhaseBreathe) {
+        reset_settings_preview(app);
+        update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_preview.progressive_speed = 0;
+    }
+
+    settings_draw_section_title(locale_get("settings_section_breathing"), content_x, &y);
+    draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + flint_px(82));
+    if(ui_draw_slider(1, content_x, y + flint_px(174), content_w, locale_get("speed_label"),
+                      SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
+        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_preview.progressive_speed = 0;
+        app->settings_dirty = 1;
+    }
+    y += flint_px(248);
+
+    flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), theme_get_text());
+    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &progressive_speed,
+                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+        app->inbe.progressive_speed = progressive_speed;
+        app->settings_preview.progressive_speed = 0;
+        app->settings_dirty = 1;
+    }
+    y += flint_px(66);
+
+    if(app->inbe.progressive_speed) {
+        int modify_w = flint_text_measure(locale_get("modify_start_speed_button"), flint_ui_font()) + flint_px(24);
+        int modify_hover = 0;
+        if(modify_w > content_w)
+            modify_w = content_w;
+        if(progressive_start_speed != clampi(progressive_start_speed, SETTINGS_SPEED_MIN, speed)) {
+            app->inbe.progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, speed);
+            app->settings_preview.progressive_start_speed = app->inbe.progressive_start_speed;
+            app->settings_dirty = 1;
+        }
+        if(ui_draw_generic_button(content_x, y, modify_w, flint_px(36),
+                                  locale_get("modify_start_speed_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
+            app->modal.active = 1;
+            app->modal.type = UIModalEditProgressiveStartSpeed;
+            app->modal.selected_button = 0;
+        }
+        y += flint_px(58);
+    }
+
+    y += flint_px(10);
+    settings_draw_section_title(locale_get("settings_section_session"), content_x, &y);
+    if(ui_draw_slider(2, content_x, y, content_w, locale_get("max_rounds_label"),
+                      1, MaxRounds, &max_rounds, "")) {
+        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_dirty = 1;
+    }
+    y += flint_px(66);
+    if(ui_draw_slider(3, content_x, y, content_w, locale_get("max_breaths_label"),
+                      SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX, &max_breaths, "")) {
+        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_dirty = 1;
+    }
+    y += flint_px(66);
+    if(ui_draw_slider(4, content_x, y, content_w, locale_get("pause_after_round_label"),
+                      SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
+        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_dirty = 1;
+    }
+    y += flint_px(66);
+    flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), theme_get_text());
+    y += flint_px(26);
+    draw_hold_display_mode_selector(app, content_x, y, content_w);
+    y += flint_px(52);
+    flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), theme_get_text());
+    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &advanced_session_controls,
+                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+        app->advanced_session_controls = advanced_session_controls;
+        app->settings_dirty = 1;
+    }
+    y += flint_px(76);
+    if(reset_w > content_w)
+        reset_w = content_w;
+    if(ui_draw_generic_button(content_x + content_w - reset_w, y, reset_w, reset_h,
+                              locale_get("reset_to_defaults_label"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover)) {
+        speed = DefaultSpeedLevel;
+        max_rounds = DefaultMaxRounds;
+        max_breaths = DefaultMaxBreaths;
+        pause_seconds = DefaultPauseSeconds;
+        app->inbe.progressive_start_speed = DefaultProgressiveStartSpeed;
+        app->settings_preview.progressive_start_speed = DefaultProgressiveStartSpeed;
+        app->advanced_session_controls = 0;
+        app->hold_display_mode = HOLD_DISPLAY_CIRCLE;
+        apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
+        apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+        app->settings_dirty = 1;
+    }
+    y += reset_h + flint_px(28);
+
+    if(app->exercise_type == EXERCISE_MEDITATION) {
+        settings_draw_section_title(locale_get("meditation_music_section_title"), content_x, &y);
+        meditation_music_draw_settings(app, content_x, content_w, &y);
+        if(draw_meditation_music_menu != NULL)
+            *draw_meditation_music_menu = 1;
+    }
+
+    return y;
+}
+
+void
+practice_config_screen_draw(InbeApp *app)
+{
+    int title_h = ui_screen_header_height();
+    int content_x;
+    int content_w;
+    int responsive_max_w = (int)(view_width * 0.96f);
+    int max_content_w = flint_px(CONTENT_MAX_W);
+    int min_content_w = flint_px(320);
+    int scroll_y;
+    int scroll_h;
+    int content_h;
+    int y;
+    int draw_meditation_music_menu = 0;
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
+    FlintUIHeader header;
+
+    if(responsive_max_w > max_content_w)
+        responsive_max_w = max_content_w;
+    if(responsive_max_w < min_content_w)
+        responsive_max_w = min_content_w;
+    flint_centered_column(responsive_max_w, flint_page_side_padding(), &content_x, &content_w);
+
+    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+        app->settings_drag_slider = 0;
+
+    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
+                                  (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
+    if(header.right_clicked) {
+        if(app->settings_dirty)
+            save_settings(app);
+        app->settings_scroll = 0;
+        app->inbe.screen = InbeScreenStart;
+    }
+
+    scroll_y = title_h + flint_px(16);
+    scroll_h = view_height - scroll_y - flint_px(TAB_BAR_H);
+    if(scroll_h < 0)
+        scroll_h = 0;
+    content_h = flint_px(app->exercise_type == EXERCISE_MEDITATION ? 1030 : 780);
+    scroll_area = (FlintUIScrollArea){
+        .bounds = {(float)content_x, (float)scroll_y, (float)content_w, (float)scroll_h},
+        .content_height = content_h,
+        .scroll_offset = &app->settings_scroll,
+        .wheel_step = flint_px(42)
+    };
+
+    ui_begin_scissor((int)app->camera.offset.x,
+                     (int)(app->camera.offset.y + scroll_y * app->camera.zoom),
+                     (int)(view_width * app->camera.zoom),
+                     (int)(scroll_h * app->camera.zoom));
+    scroll_view = ui_scroll_container_begin(scroll_area);
+    y = practice_config_draw_content(app, content_x, content_w, scroll_view.content_y,
+                                     &draw_meditation_music_menu);
+    (void)y;
+    ui_scroll_container_end(scroll_area, scroll_view);
+    ui_end_scissor();
+
+    if(draw_meditation_music_menu)
+        meditation_music_draw_dropdown_menu(app);
+
+    if(app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed)
+        settings_draw_progressive_start_speed_editor(app);
+}
+
 void
 settings_screen_draw(InbeApp *app)
 {
-    int title_h = ui_screen_header_height();
-    int close_clicked = 0;
+    int top_margin = flint_px(8);
     int content_x;
     int content_w;
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
@@ -362,7 +558,6 @@ settings_screen_draw(InbeApp *app)
     static int import_dlg_initialized = 0;
 #endif
 
-    /* Use percentage of screen width, then cap it to the shared DPI-aware max. */
     int responsive_max_w = (int)(view_width * 0.96f);
     int max_content_w = flint_px(CONTENT_MAX_W);
     int min_content_w = flint_px(320);
@@ -373,39 +568,20 @@ settings_screen_draw(InbeApp *app)
     int side_padding = flint_page_side_padding();
     flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
-    /* Reset slider drag state when mouse is released */
-    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
-    }
 
-    if(app->settings_tab < SETTINGS_TAB_PRACTICE || app->settings_tab >= SETTINGS_TAB_COUNT)
-        app->settings_tab = SETTINGS_TAB_PRACTICE;
+    if(app->settings_tab < SETTINGS_TAB_APP || app->settings_tab >= SETTINGS_TAB_COUNT)
+        app->settings_tab = SETTINGS_TAB_APP;
+    if(app->settings_app_tab < SETTINGS_APP_TAB_LANGUAGE ||
+       app->settings_app_tab >= SETTINGS_APP_TAB_COUNT)
+        app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
 
-    {
-        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("settings_title"),
-                                                    (Texture2D){0},
-                                                    app->icons[UI_ICON_TYPE_X]);
-        close_clicked = header.right_clicked;
-        if(close_clicked) {
-            if(app->settings_dirty)
-                save_settings(app);
-            settings_screen_clear_status();
-            app->settings_return_to_practice = 0;
-            app->settings_scroll = 0;
-            app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                                   ? InbeScreenHabits
-                                   : InbeScreenStart;
-        }
-    }
-
-    /* Initialize export dialog on first call */
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
     if(!export_dlg_initialized) {
         flint_file_dialog_init(&export_dlg);
         export_dlg_initialized = 1;
     }
-
-    /* Initialize import dialog on first call */
     if(!import_dlg_initialized) {
         flint_file_dialog_init(&import_dlg);
         import_dlg_initialized = 1;
@@ -413,19 +589,26 @@ settings_screen_draw(InbeApp *app)
 #endif
 
     int top_tab_h = flint_px(40);
-    int top_tab_y = title_h;
-    int tab_gap = flint_px(16);
-    int tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
+    int top_tab_y = top_margin;
+    int app_tab_y = top_tab_y + top_tab_h;
+    int tab_gap = flint_px(14);
+    int tab_content_start_y = app->settings_tab == SETTINGS_TAB_APP
+                                  ? app_tab_y + top_tab_h + tab_gap
+                                  : top_tab_y + top_tab_h + tab_gap;
     int content_viewport_h = view_height - tab_content_start_y - flint_px(TAB_BAR_H);
     int clicked_top_tab = -1;
     const char *settings_tabs[] = {
-        locale_get("settings_tab_practice"),
-        locale_get("settings_tab_app"),
-        locale_get("settings_tab_data")
+        locale_get("settings_tab_preferences"),
+        locale_get("settings_tab_data"),
+        locale_get("settings_tab_about")
+    };
+    const char *app_tabs[] = {
+        locale_get("settings_app_tab_language"),
+        locale_get("settings_app_tab_theme"),
+        locale_get("settings_app_tab_device")
     };
     int language_menu_changed = 0;
     int draw_language_menu = 0;
-    int draw_meditation_music_menu = 0;
     int draw_theme_mode_menu = 0;
     int draw_orientation_menu = 0;
     int theme_mode_changed = 0;
@@ -461,8 +644,15 @@ settings_screen_draw(InbeApp *app)
         app->settings_tab = clicked_top_tab;
         app->settings_scroll = 0;
         settings_screen_clear_status();
-        if(app->settings_tab == SETTINGS_TAB_PRACTICE)
-            reset_settings_preview(app);
+    }
+    if(app->settings_tab == SETTINGS_TAB_APP) {
+        int clicked_app_tab = settings_draw_subtab_bar(app_tab_y, top_tab_h, app_tabs,
+                                                       SETTINGS_APP_TAB_COUNT,
+                                                       app->settings_app_tab);
+        if(clicked_app_tab != -1) {
+            app->settings_app_tab = clicked_app_tab;
+            app->settings_scroll = 0;
+        }
     }
 
     ui_begin_scissor((int)app->camera.offset.x,
@@ -471,152 +661,58 @@ settings_screen_draw(InbeApp *app)
                      (int)(content_viewport_h * app->camera.zoom));
 
     {
-        int content_h = flint_px(360);
+        int app_content_h = flint_px(130);
+        if(app->settings_app_tab == SETTINGS_APP_TAB_THEME)
+            app_content_h = flint_px(120) + ui_theme_picker_height(content_w);
+        else if(app->settings_app_tab == SETTINGS_APP_TAB_DEVICE)
+            app_content_h = flint_px(340);
+        int content_h = app->settings_tab == SETTINGS_TAB_APP ? app_content_h :
+                        app->settings_tab == SETTINGS_TAB_DATA ? flint_px(240) : flint_px(190);
         int y;
-        FlintUIScrollArea scroll_area;
-        FlintUIScrollView scroll_view;
-
-        if(app->settings_tab == SETTINGS_TAB_PRACTICE)
-            content_h = flint_px(app->exercise_type == EXERCISE_MEDITATION ? 1030 : 780);
-        else if(app->settings_tab == SETTINGS_TAB_APP)
-            content_h = flint_px(650);
-        else
-            content_h = flint_px(380);
-
-        scroll_area = (FlintUIScrollArea){
+        FlintUIScrollArea scroll_area = {
             .bounds = {(float)content_x, (float)tab_content_start_y,
                        (float)content_w, (float)content_viewport_h},
             .content_height = content_h,
             .scroll_offset = &app->settings_scroll,
             .wheel_step = flint_px(42)
         };
-        scroll_view = ui_scroll_container_begin(scroll_area);
+        FlintUIScrollView scroll_view = ui_scroll_container_begin(scroll_area);
         y = scroll_view.content_y;
 
-        if(app->settings_tab == SETTINGS_TAB_PRACTICE) {
-            int speed = app->inbe.speed_level;
-            int max_rounds = app->inbe.max_rounds;
-            int max_breaths = int_from_count(app->inbe.maxbreaths);
-            int pause_seconds = app->inbe.pause_seconds;
-            int progressive_start_speed = app->inbe.progressive_start_speed;
-            int progressive_speed = app->inbe.progressive_speed;
-            int advanced_session_controls = app->advanced_session_controls;
-            int toggle_w = flint_px(56);
-            int toggle_h = flint_px(30);
-            int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
-            int reset_h = flint_px(36);
-            int reset_hover = 0;
+        if(app->settings_tab == SETTINGS_TAB_APP &&
+           app->settings_app_tab == SETTINGS_APP_TAB_LANGUAGE) {
 
-            update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
-            apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-            app->settings_preview.progressive_speed = 0;
-            inbestep(&app->settings_preview);
-            if(app->settings_preview.phase != InbePhaseBreathe) {
-                reset_settings_preview(app);
-                update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                app->settings_preview.progressive_speed = 0;
-            }
+            settings_draw_section_title(locale_get("settings_section_language"), content_x, &y);
+#if defined(LOTUS_BUILD)
+            flint_text_draw(locale_current_code(), content_x, y, flint_ui_font(), theme_get_text());
+#else
+            if(language_dropdown_button(app, 101, content_x, y, content_w, flint_px(36), &app->language_index))
+                language_menu_changed = 1;
+            draw_language_menu = 1;
+#endif
+            y += flint_px(62);
 
-            settings_draw_section_title(locale_get("settings_section_breathing"), content_x, &y);
-            draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + flint_px(82));
-            if(ui_draw_slider(1, content_x, y + flint_px(174), content_w, locale_get("speed_label"),
-                              SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
-                apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                app->settings_preview.progressive_speed = 0;
-                app->settings_dirty = 1;
-            }
-            y += flint_px(248);
+        } else if(app->settings_tab == SETTINGS_TAB_APP &&
+                  app->settings_app_tab == SETTINGS_APP_TAB_THEME) {
 
-            flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), theme_get_text());
-            if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &progressive_speed,
-                                     locale_get("toggle_off"), locale_get("toggle_on"))) {
-                app->inbe.progressive_speed = progressive_speed;
-                app->settings_preview.progressive_speed = 0;
-                app->settings_dirty = 1;
-            }
-            y += flint_px(66);
-
-            if(app->inbe.progressive_speed) {
-                int modify_w = flint_text_measure(locale_get("modify_start_speed_button"), flint_ui_font()) + flint_px(24);
-                int modify_hover = 0;
-                if(modify_w > content_w)
-                    modify_w = content_w;
-                if(progressive_start_speed != clampi(progressive_start_speed, SETTINGS_SPEED_MIN, speed)) {
-                    app->inbe.progressive_start_speed = clampi(progressive_start_speed, SETTINGS_SPEED_MIN, speed);
-                    app->settings_preview.progressive_start_speed = app->inbe.progressive_start_speed;
-                    app->settings_dirty = 1;
-                }
-                if(ui_draw_generic_button(content_x, y, modify_w, flint_px(36),
-                                          locale_get("modify_start_speed_button"),
-                                          UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
-                    app->modal.active = 1;
-                    app->modal.type = UIModalEditProgressiveStartSpeed;
-                    app->modal.selected_button = 0;
-                }
-                y += flint_px(58);
-            }
-
-            y += flint_px(10);
-            settings_draw_section_title(locale_get("settings_section_session"), content_x, &y);
-            if(ui_draw_slider(2, content_x, y, content_w, locale_get("max_rounds_label"),
-                              1, MaxRounds, &max_rounds, "")) {
-                apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                app->settings_dirty = 1;
-            }
-            y += flint_px(66);
-            if(ui_draw_slider(3, content_x, y, content_w, locale_get("max_breaths_label"),
-                              SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX, &max_breaths, "")) {
-                apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                app->settings_dirty = 1;
-            }
-            y += flint_px(66);
-            if(ui_draw_slider(4, content_x, y, content_w, locale_get("pause_after_round_label"),
-                              SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
-                apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-                app->settings_dirty = 1;
-            }
-            y += flint_px(66);
-            flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), theme_get_text());
-            y += flint_px(26);
-            draw_hold_display_mode_selector(app, content_x, y, content_w);
-            y += flint_px(52);
-            flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), theme_get_text());
-            if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &advanced_session_controls,
-                                     locale_get("toggle_off"), locale_get("toggle_on"))) {
-                app->advanced_session_controls = advanced_session_controls;
-                app->settings_dirty = 1;
-            }
+            settings_draw_section_title(locale_get("settings_section_appearance"), content_x, &y);
+            app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+            flint_text_draw(locale_get("theme_mode_label"), content_x, y, flint_ui_font(), theme_get_text());
+            ui_draw_dropdown_button(102, content_x, y + flint_px(26), content_w,
+                                    flint_px(36), theme_mode_options, 3, &app->theme_mode);
+            draw_theme_mode_menu = 1;
             y += flint_px(76);
-            if(reset_w > content_w)
-                reset_w = content_w;
-            if(ui_draw_generic_button(content_x + content_w - reset_w, y, reset_w, reset_h,
-                                      locale_get("reset_to_defaults_label"),
-                                      UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover)) {
-                speed = DefaultSpeedLevel;
-                max_rounds = DefaultMaxRounds;
-                max_breaths = DefaultMaxBreaths;
-                pause_seconds = DefaultPauseSeconds;
-                app->inbe.progressive_start_speed = DefaultProgressiveStartSpeed;
-                app->settings_preview.progressive_start_speed = DefaultProgressiveStartSpeed;
-                app->advanced_session_controls = 0;
-                app->hold_display_mode = HOLD_DISPLAY_CIRCLE;
-                apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-                apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
+            if(ui_draw_theme_picker(content_x, y, content_w, locale_get("theme_label"),
+                                    app->dark_mode, &app->theme_id)) {
+                app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+                app_refresh_theme(app);
                 app->settings_dirty = 1;
+                save_settings(app);
             }
-            y += reset_h + flint_px(28);
+            y += ui_theme_picker_height(content_w) + flint_px(20);
 
-            if(app->exercise_type == EXERCISE_MEDITATION) {
-                settings_draw_section_title(locale_get("meditation_music_section_title"), content_x, &y);
-                meditation_music_draw_settings(app, content_x, content_w, &y);
-                draw_meditation_music_menu = 1;
-            }
         } else if(app->settings_tab == SETTINGS_TAB_APP) {
+
             int sound_volume = app->sound_volume;
             int keyboard_toggle = app->on_screen_keyboard_enabled;
             int toggle_w = flint_px(56);
@@ -642,21 +738,7 @@ settings_screen_draw(InbeApp *app)
                 y += flint_px(76);
             }
 #endif
-            settings_draw_section_title(locale_get("settings_section_appearance"), content_x, &y);
-            app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-            flint_text_draw(locale_get("theme_mode_label"), content_x, y, flint_ui_font(), theme_get_text());
-            ui_draw_dropdown_button(102, content_x, y + flint_px(26), content_w,
-                                    flint_px(36), theme_mode_options, 3, &app->theme_mode);
-            draw_theme_mode_menu = 1;
-            y += flint_px(76);
-            if(ui_draw_theme_picker(content_x, y, content_w, locale_get("theme_label"),
-                                    app->dark_mode, &app->theme_id)) {
-                app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
-                app_refresh_theme(app);
-                app->settings_dirty = 1;
-                save_settings(app);
-            }
-            y += flint_px(96);
+            settings_draw_section_title(locale_get("settings_app_tab_device"), content_x, &y);
             {
                 int orientation_max = orientation_option_count - 1;
                 app->orientation_mode = clampi(app->orientation_mode,
@@ -687,16 +769,9 @@ settings_screen_draw(InbeApp *app)
                 app->settings_dirty = 1;
             }
             y += flint_px(76);
-            settings_draw_section_title(locale_get("settings_section_language"), content_x, &y);
-#if defined(LOTUS_BUILD)
-            flint_text_draw(locale_current_code(), content_x, y, flint_ui_font(), theme_get_text());
-#else
-            if(language_dropdown_button(app, 101, content_x, y, content_w, flint_px(36), &app->language_index))
-                language_menu_changed = 1;
-            draw_language_menu = 1;
-#endif
-            y += flint_px(62);
-        } else {
+        
+        } else if(app->settings_tab == SETTINGS_TAB_DATA) {
+
             int data_button_w;
             int data_button_h = flint_px(36);
             int data_hover = 0;
@@ -717,15 +792,18 @@ settings_screen_draw(InbeApp *app)
             y += data_button_h + flint_px(16);
             settings_draw_status(content_x, &y);
             y += flint_px(26);
+            y += flint_px(20);
+
+        } else {
             settings_draw_about_block(app, content_x, content_w, &y);
+
         }
         y += flint_px(40);
         ui_scroll_container_end(scroll_area, scroll_view);
     }
     ui_end_scissor();
 
-    /* Draw dropdown menu (floats above content) */
-    ui_set_dropdown_clip_top(title_h);
+    ui_set_dropdown_clip_top(tab_content_start_y);
     if(draw_language_menu && language_dropdown_menu(app, 101))
         language_menu_changed = 1;
     if(draw_theme_mode_menu && ui_draw_dropdown_menu(102))
@@ -748,8 +826,6 @@ settings_screen_draw(InbeApp *app)
         app->settings_dirty = 1;
         save_settings(app);
     }
-    if(draw_meditation_music_menu)
-        meditation_music_draw_dropdown_menu(app);
     ui_set_dropdown_clip_top(0);
 
     if(app->modal.active && app->modal.type == UIModalDataManagement) {

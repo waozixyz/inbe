@@ -139,7 +139,7 @@ RUNDE %d
 [settings_title]
 Einstellungen
 ---
-[settings_tab_practice]
+[practice_config_title]
 Praxis
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Daten
 ---
 [settings_section_data]
 Daten
+---
+[settings_tab_about]
+Über
 ---
 [settings_section_about]
 Über
@@ -367,7 +370,7 @@ Folgen Sie einfach 4 Schritten:
 3. Atmen Sie tief ein und halten Sie.
 4. Atmen Sie aus und wiederholen Sie.
 
-Nutzen Sie das Zahnrad-Symbol %i, um Runden, Atemzüge, Geschwindigkeit und Pausen anzupassen.
+Nutzen Sie das Schraubenschlüssel-Symbol %i, um Runden, Atemzüge, Geschwindigkeit und Pausen anzupassen.
 ---
 [tutorial_step_breathe]
 Füllen Sie Ihre Lungen vollständig, dann lassen Sie den Atem herausfließen.
