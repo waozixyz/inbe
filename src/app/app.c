@@ -14,6 +14,7 @@
 #include "lotus_settings.h"
 #endif
 #include "version.h"
+#include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_dpi.h"
 #include "flint_text.h"
@@ -60,9 +61,6 @@ static void habit_session_cancel_edit(InbeApp *app);
 #define LOCALE_FONT_8_DAT "assets/fonts/locales-8.dat"
 #define LOCALE_FONT_BASE_SIZE 16
 #define LOCALE_FONT_8_BASE_SIZE 8
-static void habit_edit_delete_before_cursor(InbeApp *app);
-static void habit_edit_delete_at_cursor(InbeApp *app);
-static void habit_edit_insert_char(InbeApp *app, char ch);
 
 
 /* Forward declarations for tab callbacks */
@@ -129,12 +127,10 @@ app_apply_bottom_tab(InbeApp *app, int bottom_tab)
 
     switch(bottom_tab) {
     case APP_BOTTOM_TAB_HABITS:
-        app_open_main_tab(app, APP_MAIN_TAB_HABITS, 0);
-        app_schedule_settings_save(app);
+        app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
         break;
     case APP_BOTTOM_TAB_PRACTICE:
-        app_open_main_tab(app, APP_MAIN_TAB_PRACTICE, 0);
-        app_schedule_settings_save(app);
+        app_open_main_tab(app, APP_MAIN_TAB_PRACTICE, 1);
         break;
     case APP_BOTTOM_TAB_SETTINGS:
         if(app->inbe.screen == InbeScreenPracticeConfig)
@@ -186,8 +182,9 @@ app_should_draw_bottom_nav(const InbeApp *app)
     case InbeScreenPracticeConfig:
     case InbeScreenHabits:
     case InbeScreenHabitEdit:
-    case InbeScreenHabitSessionEdit:
         return !app->habit_session_edit_active;
+    case InbeScreenHabitSessionEdit:
+        return 0;
     default:
         return 0;
     }
@@ -1269,7 +1266,8 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenHabitEdit:
-        habit_edit_commit(app);
+        habit_edit_cancel(app);
+        app->inbe.screen = InbeScreenHabits;
         break;
 
     case InbeScreenHabitSessionEdit:
@@ -1392,43 +1390,6 @@ habit_edit_update_input(InbeApp *app, int field_x, int field_y, int field_w,
     habit_edit_clamp_cursor(app);
 }
 
-
-static void
-habit_edit_delete_before_cursor(InbeApp *app)
-{
-    int len;
-
-    if(app == NULL)
-        return;
-
-    habit_edit_clamp_cursor(app);
-    if(app->habit_edit_cursor <= 0)
-        return;
-
-    len = (int)strlen(app->habit_edit_text);
-    memmove(app->habit_edit_text + app->habit_edit_cursor - 1,
-            app->habit_edit_text + app->habit_edit_cursor,
-            (size_t)(len - app->habit_edit_cursor + 1));
-    app->habit_edit_cursor--;
-}
-
-static void
-habit_edit_delete_at_cursor(InbeApp *app)
-{
-    int len;
-
-    if(app == NULL)
-        return;
-
-    habit_edit_clamp_cursor(app);
-    len = (int)strlen(app->habit_edit_text);
-    if(app->habit_edit_cursor >= len)
-        return;
-
-    memmove(app->habit_edit_text + app->habit_edit_cursor,
-            app->habit_edit_text + app->habit_edit_cursor + 1,
-            (size_t)(len - app->habit_edit_cursor));
-}
 
 static void
 draw_habit_edit_field(InbeApp *app, int x, int y, int w, int h, int font)
@@ -1574,27 +1535,6 @@ habit_session_cancel_edit(InbeApp *app)
 }
 
 static void
-habit_edit_insert_char(InbeApp *app, char ch)
-{
-    int len;
-    int cursor;
-
-    if(app == NULL)
-        return;
-    habit_edit_clamp_cursor(app);
-    len = (int)strlen(app->habit_edit_text);
-    cursor = app->habit_edit_cursor;
-
-    if(len < INBE_HABIT_NAME_SIZE - 1) {
-        memmove(app->habit_edit_text + cursor + 1,
-                app->habit_edit_text + cursor,
-                (size_t)(len - cursor) + 1);
-        app->habit_edit_text[cursor] = ch;
-        app->habit_edit_cursor = cursor + 1;
-    }
-}
-
-static void
 draw_habits_top_bar(InbeApp *app, int draw_menu)
 {
     static const char *options[INBE_HABIT_MAX + 1];
@@ -1653,8 +1593,8 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
 
         if(!app->modal.active && app->habits.count > 0) {
             Texture2D toggle_icon = app->habits.view_mode == HABIT_VIEW_WEEKLY
-                                      ? app->icons[UI_ICON_TYPE_CALENDAR]
-                                      : app->icons[UI_ICON_TYPE_WEEKLY];
+                                      ? app->icons[UI_ICON_TYPE_WEEKLY]
+                                      : app->icons[UI_ICON_TYPE_CALENDAR];
             if(ui_draw_icon_btn_padded(view_toggle_x, icon_y, icon_size, icon_padding,
                                        toggle_icon, &hover)) {
                 app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
@@ -1746,7 +1686,7 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     int hovered;
     Color fill = completed ? theme_get_button() : flint_darken(theme_get_bg(), 10);
     Color text = disabled ? flint_darken(theme_get_text(), 35) : theme_get_text();
-    int font = flint_px(14);
+    int font = flint_ui_font();
     int small_font = flint_px(FLINT_TEXT_8);
     const char *line1 = primary != NULL ? primary : "";
     const char *line2 = secondary != NULL ? secondary : "";
@@ -1784,7 +1724,7 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
             flint_text_draw_fitted_in_rect(line1,
                                            (Rectangle){x + flint_px(8), y,
                                                        w - flint_px(16), h},
-                                           font, FLINT_TEXT_12, text);
+                                           font, FLINT_TEXT_16, text);
         }
     }
 
@@ -1796,7 +1736,7 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
 static void
 draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
                         HabitLinkedContext *linked_ctx,
-                        int content_x, int content_w, int y, int viewport_bottom)
+                        int content_x, int content_w, int y)
 {
     time_t now = time(NULL);
     struct tm day_tm;
@@ -1829,7 +1769,7 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
         button_x = content_x;
     }
 
-    for(int i = 0; i < 7 && y < viewport_bottom; i++) {
+    for(int i = 0; i < 7; i++) {
         struct tm row_tm = day_tm;
         char day_label[16];
         char date_label[32];
@@ -1923,12 +1863,13 @@ draw_habits_screen(InbeApp *app)
     HabitLinkedContext *linked_ctx = NULL;
     int active_is_linked;
     int forward_disabled;
+    int scroll_content_h;
+    int scroll_y;
+    int scroll_h;
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
 
     if(app == NULL)
-        return;
-
-    draw_habits_top_bar(app, 0);
-    if(app->inbe.screen != InbeScreenHabits)
         return;
 
     flint_centered_column(max_w, side_padding, &content_x, &content_w);
@@ -1943,7 +1884,7 @@ draw_habits_screen(InbeApp *app)
         int empty_w = flint_text_measure(empty_text, empty_font);
         int hover_empty_create = 0;
 
-        ui_begin_scissor((int)app->camera.offset.x,
+        flint_clip_begin((int)app->camera.offset.x,
                          (int)(app->camera.offset.y + top_h * app->camera.zoom),
                          (int)(view_width * app->camera.zoom),
                          (int)(viewport_h * app->camera.zoom));
@@ -1955,8 +1896,10 @@ draw_habits_screen(InbeApp *app)
                                   0, &hover_empty_create)) {
             habit_edit_begin_new(app);
         }
-        ui_end_scissor();
-        draw_habits_top_bar(app, 1);
+        flint_clip_end();
+        draw_habits_top_bar(app, 0);
+        if(app->inbe.screen == InbeScreenHabits)
+            draw_habits_top_bar(app, 1);
         return;
     }
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
@@ -1996,26 +1939,47 @@ draw_habits_screen(InbeApp *app)
     days_in_month = next_month.tm_mday;
     strftime(month_label, sizeof(month_label), "%B %Y", &month);
 
-    ui_begin_scissor((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + top_h * app->camera.zoom),
-                     (int)(view_width * app->camera.zoom),
-                     (int)(viewport_h * app->camera.zoom));
-
     if(active_is_linked) {
         linked_ctx = calloc(1, sizeof(*linked_ctx));
         if(linked_ctx != NULL)
             habit_collect_linked_entries(active, 0, linked_ctx);
     }
 
-    y += flint_px(10);
+    if(app->habits.view_mode == HABIT_VIEW_WEEKLY) {
+        scroll_content_h = flint_px(26) + flint_px(40) * 7 + flint_px(6) * 6 + flint_px(16);
+    } else {
+        int planned_cell_w = (content_w - grid_gap * 6) / 7;
+        if(planned_cell_w < flint_px(28))
+            planned_cell_w = flint_px(28);
+        scroll_content_h = flint_px(26) + month_h + flint_px(12) +
+                           planned_cell_w * 6 + grid_gap * 5 + flint_px(16);
+    }
+
+    scroll_y = top_h + flint_px(8);
+    scroll_h = viewport_h - flint_px(8);
+    if(scroll_h < 0)
+        scroll_h = 0;
+
+    scroll_area = (FlintUIScrollArea){
+        .bounds = {(float)content_x, (float)scroll_y, (float)content_w, (float)scroll_h},
+        .content_height = scroll_content_h,
+        .scroll_offset = &app->habits.scroll,
+        .wheel_step = flint_px(42)
+    };
+    scroll_view = ui_scroll_container_begin(scroll_area);
+    content_x = scroll_view.content_x;
+    content_w = scroll_view.content_w;
+    y = scroll_view.content_y + flint_px(26);
+
     if(app->habits.view_mode == HABIT_VIEW_WEEKLY) {
         ui_set_input_blocked(app->modal.active);
-        draw_habits_weekly_view(app, active, selected, linked_ctx, content_x, content_w,
-                                y, top_h + viewport_h - flint_px(8));
-        ui_end_scissor();
+        draw_habits_weekly_view(app, active, selected, linked_ctx, content_x, content_w, y);
+        ui_scroll_container_end(scroll_area, scroll_view);
         free(linked_ctx);
         ui_set_input_blocked(0);
-        draw_habits_top_bar(app, 1);
+        draw_habits_top_bar(app, 0);
+        if(app->inbe.screen == InbeScreenHabits)
+            draw_habits_top_bar(app, 1);
         return;
     }
 
@@ -2040,14 +2004,8 @@ draw_habits_screen(InbeApp *app)
     grid_y = y + month_h + flint_px(12);
     cell_w = (content_w - grid_gap * 6) / 7;
     cell_h = cell_w;
-    {
-        int available_h = top_h + viewport_h - grid_y - flint_px(8);
-        int max_cell_h = (available_h - grid_gap * 5) / 6;
-        if(cell_h > max_cell_h)
-            cell_h = max_cell_h;
-        if(cell_h < flint_px(28))
-            cell_h = flint_px(28);
-    }
+    if(cell_h < flint_px(28))
+        cell_h = flint_px(28);
 
     for(int row = 0; row < 6; row++) {
         for(int col = 0; col < 7; col++) {
@@ -2097,10 +2055,12 @@ draw_habits_screen(InbeApp *app)
         }
     }
 
-    ui_end_scissor();
+    ui_scroll_container_end(scroll_area, scroll_view);
     free(linked_ctx);
     ui_set_input_blocked(0);
-    draw_habits_top_bar(app, 1);
+    draw_habits_top_bar(app, 0);
+    if(app->inbe.screen == InbeScreenHabits)
+        draw_habits_top_bar(app, 1);
 }
 
 static int
@@ -2164,24 +2124,47 @@ draw_habit_edit_screen(InbeApp *app)
 
     DrawRectangle(0, 0, view_width, top_h, theme_get_bg());
     DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(theme_get_button(), 18));
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
+    if(!app->modal.active &&
+       ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
                                flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
-        habit_edit_commit(app);
+        habit_edit_cancel(app);
+        app->inbe.screen = InbeScreenHabits;
         return;
     }
     title_w = flint_text_measure(title, title_font);
     flint_text_draw(title, (view_width - title_w) / 2,
                     flint_ui_text_y(title, 0, top_h, title_font),
                     title_font, theme_get_text());
-    if(ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
-                               flint_px(24), flint_px(8), app->icons[UI_ICON_TYPE_SAVE], &hover)) {
+    if(!app->modal.active &&
+       ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
+                               flint_px(24), flint_px(8), app->icons[UI_ICON_TYPE_CHECK], &hover)) {
         habit_edit_commit(app);
         return;
     }
 
     flint_centered_column(max_w, flint_page_side_padding(), &content_x, &content_w);
 
-    ui_begin_scissor((int)app->camera.offset.x,
+    if(app->modal.active && app->modal.type == UIModalConfirmDeleteHabit) {
+        int modal_result = ui_draw_modal("Delete habit?",
+                                         "Delete this habit? This cannot be undone.",
+                                         locale_get("cancel_button"),
+                                         locale_get("delete_button"));
+        if(modal_result == 1) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        } else if(modal_result == 2) {
+            int index = app->habit_edit_index;
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            habit_edit_cancel(app);
+            if(index >= 0 && index < app->habits.count)
+                inbe_habits_delete(&app->habits, index);
+            app->inbe.screen = InbeScreenHabits;
+        }
+        return;
+    }
+
+    flint_clip_begin((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + top_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)((view_height - top_h - nav_h) * app->camera.zoom));
@@ -2227,7 +2210,21 @@ draw_habit_edit_screen(InbeApp *app)
         y += flint_px(42);
     }
 
-    ui_end_scissor();
+    if(!app->habit_edit_is_new) {
+        int delete_w = flint_px(160);
+        int delete_h = flint_px(38);
+        int hover_delete = 0;
+        y += flint_px(10);
+        if(ui_draw_generic_button(content_x, y, delete_w, delete_h,
+                                  "Delete Habit", UI_BUTTON_STYLE_DANGER,
+                                  0, &hover_delete)) {
+            app->modal.active = 1;
+            app->modal.type = UIModalConfirmDeleteHabit;
+            app->modal.selected_button = 0;
+        }
+    }
+
+    flint_clip_end();
 }
 
 static void
@@ -2242,13 +2239,11 @@ updateapp(InbeApp *app)
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
 
-    /* Handle Android back button and desktop backspace */
     if(IsKeyPressed(KEY_BACK) ||
        (IsKeyPressed(KEY_BACKSPACE) &&
         !(app->inbe.screen == InbeScreenHabitEdit && app->habit_edit_active) &&
         !(app->inbe.screen == InbeScreenHabitSessionEdit && app->habit_session_edit_active))) {
         if(app->modal.active) {
-            /* Modal active - close it on cancel/confirm */
             app->modal.active = 0;
             app->modal.type = UIModalNone;
         } else {
@@ -2451,12 +2446,12 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     app_refresh_theme(app);
 
     DrawRectangleRec(viewport, theme_get_bg());
-    ui_begin_scissor((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
+    flint_clip_begin((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
             updateapp(app);
         EndMode2D();
-    ui_end_scissor();
+    flint_clip_end();
 }
 
 static void SafeUnloadTexture(Texture2D texture) {
@@ -2476,6 +2471,9 @@ inbe_app_destroy(void *vapp)
 {
     InbeApp *app = vapp;
     if (app == NULL) return;
+
+    if(app->settings_dirty || app->settings_save_delay_ticks > 0)
+        save_settings(app);
 
     // Unload all icons
     flint_unload_all_icons(app->icons);

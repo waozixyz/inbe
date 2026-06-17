@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-#define FLINT_THEME_COUNT 9
+#define FLINT_THEME_COUNT 10
 
 typedef enum {
     FLINT_THEME_SKY = 0,
@@ -16,7 +16,8 @@ typedef enum {
     FLINT_THEME_CHERRY = 5,
     FLINT_THEME_DAWN = 6,
     FLINT_THEME_SAGE = 7,
-    FLINT_THEME_INK = 8
+    FLINT_THEME_INK = 8,
+    FLINT_THEME_MONO = 9
 } FlintThemeId;
 
 typedef struct {

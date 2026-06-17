@@ -7,6 +7,7 @@
 #include "locale.h"
 #include "theme.h"
 #include "flint_theme_meta.h"
+#include "flint_clip.h"
 #include "flint_ui.h"
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
@@ -687,22 +688,30 @@ settings_screen_draw(InbeApp *app)
         settings_screen_clear_status();
     }
 
-    ui_begin_scissor((int)app->camera.offset.x,
+    flint_clip_begin((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + tab_content_start_y * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(content_viewport_h * app->camera.zoom));
 
     {
-        int app_content_h = flint_px(530);
         int planned_content_w = content_w - flint_px(16);
+        int app_content_h;
         if(planned_content_w < flint_px(160))
             planned_content_w = content_w;
-        if(app->settings_tab == SETTINGS_TAB_THEME)
-            app_content_h = flint_px(120) + ui_theme_picker_height(planned_content_w);
-        else if(app->settings_tab == SETTINGS_TAB_DEVICE)
-            app_content_h = flint_px(570);
-        else if(app->settings_tab == SETTINGS_TAB_DATA)
+        if(app->settings_tab == SETTINGS_TAB_THEME) {
+            app_content_h = flint_px(76) + ui_theme_picker_height(planned_content_w) + flint_px(60);
+        } else if(app->settings_tab == SETTINGS_TAB_DEVICE) {
+            app_content_h = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+            app_content_h += flint_px(76);
+#endif
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+            app_content_h += flint_px(50);
+#endif
+            app_content_h += flint_px(72);
+        } else {
             app_content_h = flint_px(430);
+        }
         int content_h = app_content_h;
         int y;
         FlintUIScrollArea scroll_area = {
@@ -827,7 +836,7 @@ settings_screen_draw(InbeApp *app)
         y += flint_px(40);
         ui_scroll_container_end(scroll_area, scroll_view);
     }
-    ui_end_scissor();
+    flint_clip_end();
 
     ui_set_dropdown_clip_top(tab_content_start_y);
     if(draw_language_menu && language_dropdown_menu(app, 101))

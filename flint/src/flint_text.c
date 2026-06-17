@@ -1,4 +1,5 @@
 #include "flint_text.h"
+#include "flint_clip.h"
 #include "flint_scaling.h"
 
 #include <stdint.h>
@@ -239,13 +240,20 @@ flint_text_size(int preferred_size)
         FLINT_TEXT_24,
         FLINT_TEXT_32
     };
-    int best = sizes[0];
-    int best_delta = abs(preferred_size - best);
+    int dpi_sizes[sizeof(sizes) / sizeof(sizes[0])];
+    int best;
+    int best_delta;
+
+    for(size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
+        dpi_sizes[i] = flint_px(sizes[i]);
+
+    best = dpi_sizes[0];
+    best_delta = abs(preferred_size - best);
 
     for(size_t i = 1; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
-        int delta = abs(preferred_size - sizes[i]);
+        int delta = abs(preferred_size - dpi_sizes[i]);
         if(delta < best_delta) {
-            best = sizes[i];
+            best = dpi_sizes[i];
             best_delta = delta;
         }
     }
@@ -363,9 +371,9 @@ flint_text_draw_in_rect(const char *text, Rectangle rect, int font_size, Color c
     int x = (int)(rect.x + (rect.width - (float)text_w) * 0.5f);
     int y = flint_text_y(value, (int)rect.y, (int)rect.height, font_size);
 
-    BeginScissorMode((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+    flint_clip_begin((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
     flint_text_draw(value, x, y, font_size, color);
-    EndScissorMode();
+    flint_clip_end();
 }
 
 void
@@ -402,7 +410,7 @@ flint_text_y_scaled(const char *text, int box_y, int box_h, int scale)
 int
 flint_text_y(const char *text, int box_y, int box_h, int font_size)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
     float scale;
     float min_top = 0.0f;
     float max_bottom = 0.0f;

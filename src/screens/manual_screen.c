@@ -4,6 +4,7 @@
 #include "locale.h"
 #include "meditation_music.h"
 #include "theme.h"
+#include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_theme_meta.h"
 #include "raylib.h"
@@ -338,7 +339,7 @@ manual_screen_draw(InbeApp *app)
         content_drag_active = 0;
     }
 
-    ui_begin_scissor((int)app->camera.offset.x,
+    flint_clip_begin((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + title_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
                      (int)(content_area_h * app->camera.zoom));
@@ -415,7 +416,7 @@ manual_screen_draw(InbeApp *app)
             y += img_h + flint_px(22);
             draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
-    ui_end_scissor();
+    flint_clip_end();
 
     /* Draw scrollbar if content overflows */
     if(max_scroll > 0) {

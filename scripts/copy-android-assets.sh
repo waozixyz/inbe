@@ -27,7 +27,7 @@ mkdir -p "$ASSETS_DIR"
 if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
     echo "Building fonts..."
     mkdir -p assets/fonts
-    OTFCHOP_DIR="${OTFCHOP_DIR:-/home/wao/src/otfchop}"
+    OTFCHOP_DIR="${OTFCHOP_DIR:-vendor/otfchop}"
     if [ ! -x "$OTFCHOP_DIR/otfchop" ]; then
         OTFCHOP_DIR="vendor/otfchop"
         make -C "$OTFCHOP_DIR" otfchop

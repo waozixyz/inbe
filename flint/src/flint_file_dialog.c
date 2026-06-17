@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include "flint_scaling.h"
+#include "flint_clip.h"
 #include "flint_color.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
@@ -320,7 +321,7 @@ static void render_file_list(FlintFileDialog *dlg, Rectangle dialog_rect) {
     Color border = flint_darken(dialog_theme_get("background"), 30);
     DrawRectangleLinesEx(internal->file_list_rect, 1, border);
 
-    BeginScissorMode(list_x, list_y, list_width, list_height);
+    flint_clip_begin(list_x, list_y, list_width, list_height);
 
     int font = flint_ui_font_small();
     Color text = dialog_theme_get("text");
@@ -358,7 +359,7 @@ static void render_file_list(FlintFileDialog *dlg, Rectangle dialog_rect) {
         flint_text_draw(display_name, list_x + flint_px(8), item_y + flint_px(4), font, text);
     }
 
-    EndScissorMode();
+    flint_clip_end();
 }
 
 static void render_scrollbar(FlintFileDialog *dlg, Rectangle dialog_rect) {

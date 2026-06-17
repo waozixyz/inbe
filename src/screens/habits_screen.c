@@ -8,6 +8,7 @@
 #include "flint_runtime_assets.h"
 #include "locale.h"
 #include "breath_engine.h"
+#include "flint_clip.h"
 #include "flint_ui.h"
 
 #include <stdio.h>
@@ -323,6 +324,27 @@ habit_format_date(int day_index, char *out, size_t out_size)
              day_index / 10000, (day_index / 100) % 100, day_index % 100);
 }
 
+static void
+habit_format_duration(int seconds, char *out, size_t out_size)
+{
+    int hours;
+    int minutes;
+
+    if(out == NULL || out_size == 0)
+        return;
+    if(seconds < 0)
+        seconds = 0;
+
+    hours = seconds / 3600;
+    minutes = (seconds % 3600) / 60;
+    seconds %= 60;
+
+    if(hours > 0)
+        snprintf(out, out_size, "%dh %02dm", hours, minutes);
+    else
+        snprintf(out, out_size, "%dm %02ds", minutes, seconds);
+}
+
 /* Habit edit functions */
 void
 habit_edit_begin_new(InbeApp *app)
@@ -491,6 +513,33 @@ habit_collect_linked_entries(const InbeHabit *habit, int day_filter, HabitLinked
     data_list_session_records(habit_linked_session_callback, ctx);
 }
 
+static void
+habit_refresh_detail_day_completion(InbeApp *app)
+{
+    HabitLinkedContext ctx;
+    InbeHabit *habit;
+    int index;
+    int day;
+    int selected;
+
+    if(app == NULL)
+        return;
+    index = app->habit_detail_index;
+    day = app->habit_detail_day;
+    if(index < 0 || index >= app->habits.count || day <= 0)
+        return;
+
+    habit = &app->habits.items[index];
+    habit_collect_linked_entries(habit, day, &ctx);
+    if(ctx.count > 0 || !inbe_habit_completed_day(habit, day))
+        return;
+
+    selected = app->habits.selected;
+    inbe_habit_set_day(&app->habits, index, day, 0);
+    app->habits.selected = selected;
+    inbe_habits_save(&app->habits);
+}
+
 void
 habit_session_cancel_edit(InbeApp *app)
 {
@@ -503,21 +552,6 @@ habit_session_cancel_edit(InbeApp *app)
     app->habit_session_edit_path[0] = '\0';
     app->habit_session_edit_text[0] = '\0';
     ui_focus_set_text_input_active(0);
-}
-
-static void
-habit_session_begin_time_edit(InbeApp *app, const HabitLinkedEntry *entry)
-{
-    if(app == NULL || entry == NULL)
-        return;
-    app->habit_session_edit_active = 1;
-    app->habit_session_edit_kind = HABIT_SESSION_EDIT_TIME;
-    app->habit_session_edit_round = -1;
-    snprintf(app->habit_session_edit_path, sizeof(app->habit_session_edit_path),
-             "%s", entry->path);
-    snprintf(app->habit_session_edit_text, sizeof(app->habit_session_edit_text),
-             "%02d:%02d", entry->hour, entry->minute);
-    app->habit_session_edit_cursor = (int)strlen(app->habit_session_edit_text);
 }
 
 static void
@@ -542,9 +576,8 @@ habit_session_text_filter(int codepoint, void *user_data)
 
     if(codepoint >= '0' && codepoint <= '9')
         return 1;
-    return app != NULL &&
-           app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
-           codepoint == ':';
+    (void)app;
+    return 0;
 }
 
 static int
@@ -582,7 +615,7 @@ habit_session_handle_physical_keyboard(InbeApp *app, const HabitLinkedEntry *ent
         .text = app->habit_session_edit_text,
         .text_size = sizeof(app->habit_session_edit_text),
         .cursor_position = &app->habit_session_edit_cursor,
-        .max_codepoints = app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME ? 5 : 3,
+        .max_codepoints = 3,
         .filter = habit_session_text_filter,
         .filter_user_data = app,
         .commit_pressed = &commit_pressed
@@ -668,7 +701,8 @@ draw_habit_session_edit_screen(InbeApp *app)
         if(active_entry != NULL) {
             if(habit_session_handle_physical_keyboard(app, active_entry))
                 return;
-            habit_session_draw_keyboard(app, active_entry);
+            if(habit_session_draw_keyboard(app, active_entry))
+                return;
         }
     }
 }
@@ -709,54 +743,51 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
         for(int i = 0; i < ctx->count; i++) {
             char time_text[16];
-            char rounds_text[32];
+            char summary_text[32];
             int icon_size = flint_px(18);
             int icon_padding = flint_px(6);
             int icon_w = icon_size + icon_padding * 2;
             int trash_x = content_x + content_w - icon_w;
-            int edit_x = trash_x - icon_w - flint_px(4);
             int row_font = flint_ui_font_small();
-            int rounds_x;
-            int hover_edit = 0;
+            int summary_x;
             int hover_trash = 0;
-            int editing_time;
 
             if(ctx->entries[i].activity != activity)
                 continue;
 
             snprintf(time_text, sizeof(time_text), "%02d:%02d",
                      ctx->entries[i].hour, ctx->entries[i].minute);
-            locale_format(rounds_text, sizeof(rounds_text), "results_rounds",
-                          ctx->entries[i].round_count);
-            rounds_x = content_x + flint_px(76);
-            if(rounds_x + flint_text_measure(rounds_text, row_font) > edit_x - flint_px(8))
-                rounds_x = content_x + flint_px(62);
-            editing_time = app->habit_session_edit_active &&
-                           app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
-                           strcmp(app->habit_session_edit_path, ctx->entries[i].path) == 0;
+            if(activity == EXERCISE_MEDITATION)
+                habit_format_duration(ctx->entries[i].total_seconds,
+                                      summary_text, sizeof(summary_text));
+            else
+                locale_format(summary_text, sizeof(summary_text), "results_rounds",
+                              ctx->entries[i].round_count);
+            summary_x = content_x + flint_px(76);
+            if(summary_x + flint_text_measure(summary_text, row_font) > trash_x - flint_px(8))
+                summary_x = content_x + flint_px(62);
 
             if(draw) {
-                const char *visible_time = editing_time ? app->habit_session_edit_text : time_text;
-                Color time_color = editing_time ? theme_get_button_hover() : theme_get_text();
-                flint_text_draw(visible_time, content_x,
-                                flint_ui_text_y(visible_time, y, row_h, row_font),
-                                row_font, time_color);
-                flint_text_draw(rounds_text, rounds_x,
-                                flint_ui_text_y(rounds_text, y, row_h, row_font),
+                flint_text_draw(time_text, content_x,
+                                flint_ui_text_y(time_text, y, row_h, row_font),
                                 row_font, theme_get_text());
-                if(ui_draw_icon_btn_padded(edit_x, y - flint_px(4), icon_size, icon_padding,
-                                           app->icons[UI_ICON_TYPE_PENCIL], &hover_edit)) {
-                    habit_session_begin_time_edit(app, &ctx->entries[i]);
-                    return y;
-                }
+                flint_text_draw(summary_text, summary_x,
+                                flint_ui_text_y(summary_text, y, row_h, row_font),
+                                row_font, flint_darken(theme_get_text(), 12));
                 if(ui_draw_icon_btn_padded(trash_x, y - flint_px(4), icon_size, icon_padding,
                                            app->icons[UI_ICON_TYPE_TRASH], &hover_trash)) {
-                    data_delete_session(ctx->entries[i].path);
+                    if(data_delete_session(ctx->entries[i].path))
+                        habit_refresh_detail_day_completion(app);
                     habit_session_cancel_edit(app);
                     return y;
                 }
             }
             y += row_h;
+
+            if(activity == EXERCISE_MEDITATION) {
+                y += flint_px(4);
+                continue;
+            }
 
             for(int r = 0; r < ctx->entries[i].round_count; r++) {
                 char round_line[64];
@@ -778,13 +809,13 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                                       r + 1, atoi(app->habit_session_edit_text));
                     if(round_text_w < flint_px(80))
                         round_text_w = flint_px(80);
-                    ui_begin_scissor(round_text_x, y, round_text_w, flint_px(24));
+                    flint_clip_begin(round_text_x, y, round_text_w, flint_px(24));
                     flint_text_draw(round_line, round_text_x,
                                     flint_ui_text_y(round_line, y, flint_px(24), row_font),
                                     row_font,
                                     editing_round ? theme_get_button_hover()
                                                   : theme_get_text());
-                    ui_end_scissor();
+                    flint_clip_end();
                     if(ui_draw_icon_btn_padded(round_edit_x, y - flint_px(6),
                                                icon_size, icon_padding,
                                                app->icons[UI_ICON_TYPE_PENCIL], &hover_round_edit)) {
@@ -794,7 +825,8 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     if(ui_draw_icon_btn_padded(round_trash_x, y - flint_px(6),
                                                icon_size, icon_padding,
                                                app->icons[UI_ICON_TYPE_TRASH], &hover_round_trash)) {
-                        habit_session_delete_round(&ctx->entries[i], r);
+                        if(habit_session_delete_round(&ctx->entries[i], r))
+                            habit_refresh_detail_day_completion(app);
                         habit_session_cancel_edit(app);
                         return y;
                     }
@@ -919,25 +951,15 @@ void
 habit_session_insert_char(InbeApp *app, char c)
 {
     size_t len;
-    int max_len;
     int cursor;
 
     if(app == NULL)
         return;
     habit_session_clamp_cursor(app);
     len = strlen(app->habit_session_edit_text);
-    max_len = app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME ? 5 : 3;
     cursor = app->habit_session_edit_cursor;
 
-    if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
-       c >= '0' && c <= '9' &&
-       cursor < (int)len &&
-       app->habit_session_edit_text[cursor] == ':') {
-        cursor++;
-        app->habit_session_edit_cursor = cursor;
-    }
-
-    if(len < (size_t)max_len) {
+    if(len < 3) {
         memmove(app->habit_session_edit_text + cursor + 1,
                 app->habit_session_edit_text + cursor,
                 len - (size_t)cursor + 1);
@@ -947,31 +969,9 @@ habit_session_insert_char(InbeApp *app, char c)
     }
 
     if(cursor < (int)len) {
-        if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME &&
-           app->habit_session_edit_text[cursor] == ':' &&
-           c != ':')
-            return;
         app->habit_session_edit_text[cursor] = c;
         app->habit_session_edit_cursor = cursor + 1;
     }
-}
-
-int
-habit_session_parse_time(const char *text, int *hour, int *minute)
-{
-    int h;
-    int m;
-    char tail;
-
-    if(text == NULL || sscanf(text, "%d:%d%c", &h, &m, &tail) != 2)
-        return 0;
-    if(h < 0 || h > 23 || m < 0 || m > 59)
-        return 0;
-    if(hour != NULL)
-        *hour = h;
-    if(minute != NULL)
-        *minute = m;
-    return 1;
 }
 
 int
@@ -994,31 +994,6 @@ habit_session_commit_edit(InbeApp *app, const HabitLinkedEntry *entry)
 {
     if(app == NULL || entry == NULL || !app->habit_session_edit_active)
         return 0;
-
-    if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_TIME) {
-        int hour;
-        int minute;
-        char new_path[FS_PATH_MAX];
-        char dir[FS_PATH_MAX];
-        char *slash;
-
-        if(!habit_session_parse_time(app->habit_session_edit_text, &hour, &minute))
-            return 0;
-        snprintf(dir, sizeof(dir), "%s", entry->path);
-        slash = strrchr(dir, '/');
-        if(slash == NULL) {
-            snprintf(new_path, sizeof(new_path), "inbe-%02d%02d%02d",
-                     hour, minute, entry->second);
-        } else {
-            *slash = '\0';
-            snprintf(new_path, sizeof(new_path), "%s/inbe-%02d%02d%02d",
-                     dir, hour, minute, entry->second);
-        }
-        if(!data_rename_session(entry->path, new_path))
-            return 0;
-        habit_session_cancel_edit(app);
-        return 1;
-    }
 
     if(app->habit_session_edit_kind == HABIT_SESSION_EDIT_ROUND) {
         int seconds;

@@ -8,8 +8,7 @@
 /* Forward declaration for enums defined elsewhere */
 enum {
     HABIT_SESSION_EDIT_NONE = 0,
-    HABIT_SESSION_EDIT_TIME = 1,
-    HABIT_SESSION_EDIT_ROUND = 2
+    HABIT_SESSION_EDIT_ROUND = 1
 };
 
 /* Habits-specific constants */
@@ -125,7 +124,6 @@ void habit_session_delete_before_cursor(InbeApp *app);
 void habit_session_insert_char(InbeApp *app, char c);
 int habit_session_commit_edit(InbeApp *app, const HabitLinkedEntry *entry);
 void habit_session_clamp_cursor(InbeApp *app);
-int habit_session_parse_time(const char *text, int *hour, int *minute);
 int habit_session_parse_seconds(const char *text, int *seconds);
 
 #endif

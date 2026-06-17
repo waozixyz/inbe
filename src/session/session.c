@@ -17,6 +17,15 @@ void set_global_inbe_app(InbeApp *app);
 extern int view_width;
 extern int view_height;
 
+static Color
+text_color_on_circle(void)
+{
+    Color circle = theme_get_circle();
+    int luma = circle.r * 299 + circle.g * 587 + circle.b * 114;
+
+    return luma >= 128000 ? BLACK : WHITE;
+}
+
 static void
 set_circle_bounds(Inbe *inbe, int rmin, int rmax)
 {
@@ -413,29 +422,30 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     char text[CountSize];
     int count;
     int font = flint_px(16);
+    Color text_color = text_color_on_circle();
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
+            flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            flint_ui_draw_text_centered(text, center_x, center_y, font, theme_get_text());
+            flint_ui_draw_text_centered(text, center_x, center_y, font, text_color);
             return;
         }
-        flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
+        flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        flint_ui_draw_text_centered("000", center_x, center_y, font, theme_get_text());
+        flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
         return;
     }
 
-    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, theme_get_text());
+    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, text_color);
 }
 
 int
@@ -583,7 +593,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     DrawCircleLines(center_x, center_y, scaled_radius, theme_get_text());
 
     // Draw PLAY text in center
-    flint_ui_draw_text_centered(play_text, center_x, center_y, font, theme_get_text());
+    flint_ui_draw_text_centered(play_text, center_x, center_y, font, text_color_on_circle());
 
     if(hovered) {
         app->cursor_clickable = 1;
