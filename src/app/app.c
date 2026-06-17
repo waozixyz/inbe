@@ -673,6 +673,27 @@ load_settings(InbeApp *app)
         save_settings(app);
 }
 
+void
+app_reload_after_import(InbeApp *app, int reload_settings)
+{
+    if(app == NULL)
+        return;
+
+    if(reload_settings) {
+        load_settings(app);
+        reset_settings_preview(app);
+        update_session_sounds(app);
+    }
+
+    inbe_habits_init(&app->habits);
+    if(app->habit_detail_index >= app->habits.count)
+        app->habit_detail_index = -1;
+    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
+        app->habits.selected = app->habits.count > 0 ? 0 : -1;
+    app->habit_session_edit_active = 0;
+    app->habit_edit_active = 0;
+}
+
 static Texture2D
 load_pixel_texture_from_asset(const char *path)
 {

@@ -1,4 +1,8 @@
 # Changelog
+## [1.3.3] - 2026-06-17
+### Fixed
+- Import now restores habits, habit sync settings, and optionally app settings from Inbe SQLite exports.
+
 ## [1.3.2] - 2026-06-17
 ### Fixed
 - Unified scroll containers so content stays out of scrollbar tracks and scroll positions clamp cleanly at the bottom.

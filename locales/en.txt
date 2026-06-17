@@ -324,6 +324,9 @@ Import Data
 [import_failed]
 Import failed
 ---
+[imported_data]
+Imported data
+---
 [imported_sessions]
 Imported %d sessions
 ---
@@ -332,6 +335,18 @@ Invalid export file
 ---
 [import_cancelled]
 Import cancelled
+---
+[import_choice_title]
+Import settings?
+---
+[import_choice_message]
+Data and settings found.
+---
+[import_data_only_button]
+Data
+---
+[import_data_settings_button]
+Data+Settings
 ---
 [export_cancelled]
 Export cancelled

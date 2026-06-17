@@ -319,6 +319,9 @@ In / Out
 [import_failed]
 가져오기 실패
 ---
+[imported_data]
+데이터를 가져왔습니다
+---
 [imported_sessions]
 %d개 세션을 가져왔습니다
 ---
@@ -327,6 +330,18 @@ In / Out
 ---
 [import_cancelled]
 가져오기 취소됨
+---
+[import_choice_title]
+설정을 가져올까요?
+---
+[import_choice_message]
+데이터와 설정을 찾았습니다.
+---
+[import_data_only_button]
+데이터
+---
+[import_data_settings_button]
+데이터+설정
 ---
 [export_cancelled]
 내보내기 취소됨
@@ -469,4 +484,7 @@ Inner Breeze 데이터 내보내기
 ---
 [delete_button]
 삭제
+---
+[meditation_music_attribution]
+음악: Elijah_K.
 ---
