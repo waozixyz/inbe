@@ -178,7 +178,6 @@ app_should_draw_bottom_nav(const InbeApp *app)
     switch(app->inbe.screen) {
     case InbeScreenStart:
     case InbeScreenSettings:
-    case InbeScreenPracticeConfig:
     case InbeScreenHabits:
     case InbeScreenHabitEdit:
         return !app->habit_session_edit_active;
@@ -619,7 +618,7 @@ load_settings(InbeApp *app)
     app->inbe.progressive_speed = inbe_storage_get_setting_int("progressive_speed", 1) != 0;
     app->inbe.progressive_start_speed = clampi(inbe_storage_get_setting_int("progressive_start_speed", DefaultProgressiveStartSpeed),
                                                SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    app->inbe.breath_animation = clampi(inbe_storage_get_setting_int("breath_animation", InbeBreathAnimationInOut),
+    app->inbe.breath_animation = clampi(inbe_storage_get_setting_int("breath_animation", InbeBreathAnimationLinear),
                                         InbeBreathAnimationLinear, InbeBreathAnimationCount - 1);
     app->advanced_session_controls = inbe_storage_get_setting_int("advanced_session_controls", 0) != 0;
     app->hold_display_mode = clampi(inbe_storage_get_setting_int("hold_display_mode", HOLD_DISPLAY_CIRCLE),
@@ -1356,7 +1355,6 @@ updateapp(InbeApp *app)
 
     if(app->inbe.screen == InbeScreenPracticeConfig) {
         practice_config_screen_draw(app);
-        app_draw_bottom_nav(app);
         goto finish_frame;
     }
 

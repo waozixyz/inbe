@@ -573,6 +573,34 @@ draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
     }
 }
 
+int
+meditation_music_measure_settings(InbeApp *app, int show_installed_download, int show_status)
+{
+    int installed;
+    int h = flint_px(76);
+
+    if(app == NULL)
+        return 0;
+
+    if(!app->meditation_music_shuffle)
+        h += flint_px(74);
+
+    installed = meditation_music_available(app);
+    if(installed)
+        h += flint_px(48);
+    if(!installed || show_installed_download)
+        h += flint_px(48);
+
+    if(show_status && (!installed || app->meditation_music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
+        if(app->meditation_music_download.status == FLINT_RUNTIME_ASSET_DOWNLOADING)
+            h += flint_px(50);
+        else
+            h += flint_px(34);
+    }
+
+    return h;
+}
+
 void
 meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y)
 {

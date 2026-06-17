@@ -92,7 +92,7 @@ inbeinit(Inbe *l)
     l->pause_seconds = DefaultPauseSeconds;
     l->progressive_speed = 1;
     l->progressive_start_speed = DefaultProgressiveStartSpeed;
-    l->breath_animation = InbeBreathAnimationInOut;
+    l->breath_animation = InbeBreathAnimationLinear;
 #ifdef __ANDROID__
     l->play_in_background = 1;  // Enabled by default on Android
 #else

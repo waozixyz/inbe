@@ -22,6 +22,19 @@ static Texture2D g_ui_gear_icon = {0};
 static Texture2D g_ui_x_icon = {0};
 static int g_ui_slider_active_id = 0;
 static int g_ui_input_blocked = 0;
+static int g_ui_pointer_down = 0;
+static int g_ui_pointer_dragging = 0;
+static int g_ui_pointer_dragged_this_click = 0;
+static int g_ui_pointer_start_x = 0;
+static int g_ui_pointer_start_y = 0;
+
+enum {
+    UI_POINTER_OWNER_NONE = 0,
+    UI_POINTER_OWNER_SCROLL,
+    UI_POINTER_OWNER_HORIZONTAL_SLIDER,
+    UI_POINTER_OWNER_VERTICAL_SLIDER
+};
+static int g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
 
 #define UI_FOCUS_MAX_ITEMS 256
 static int g_ui_focus_active_id = 0;
@@ -62,19 +75,97 @@ ui_mark_disabled(void)
         *g_ui_cursor_disabled = 1;
 }
 
+static int
+ui_iabs(int value)
+{
+    return value < 0 ? -value : value;
+}
+
+static int
+ui_pointer_dx(void)
+{
+    Vector2 mouse = GetMousePosition();
+    return (int)mouse.x - g_ui_pointer_start_x;
+}
+
+static int
+ui_pointer_dy(void)
+{
+    Vector2 mouse = GetMousePosition();
+    return (int)mouse.y - g_ui_pointer_start_y;
+}
+
+static int
+ui_pointer_drag_is_horizontal(void)
+{
+    return ui_iabs(ui_pointer_dx()) >= ui_iabs(ui_pointer_dy());
+}
+
+static void
+ui_update_pointer_gesture(void)
+{
+    Vector2 mouse = GetMousePosition();
+    int mx = (int)mouse.x;
+    int my = (int)mouse.y;
+    int drag_threshold = flint_px(5);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 1;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_dragged_this_click = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+        g_ui_pointer_start_x = mx;
+        g_ui_pointer_start_y = my;
+    } else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && g_ui_pointer_down) {
+        int dx = ui_pointer_dx();
+        int dy = ui_pointer_dy();
+        if(dx > drag_threshold || dx < -drag_threshold ||
+           dy > drag_threshold || dy < -drag_threshold) {
+            g_ui_pointer_dragging = 1;
+            g_ui_pointer_dragged_this_click = 1;
+        }
+    } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 0;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+    } else if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 0;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_dragged_this_click = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+    }
+}
+
 void
 ui_set_input_blocked(int blocked)
 {
     g_ui_input_blocked = blocked != 0;
 }
 
-int
-ui_input_captures_click(Vector2 point)
+static int
+ui_base_input_captures_click(Vector2 point, int include_pointer_drag)
 {
     if(g_ui_input_clip_stack_count > 0 &&
        !CheckCollisionPointRec(point, g_ui_input_clip_stack[g_ui_input_clip_stack_count - 1]))
         return 1;
-    return g_ui_input_blocked || ui_dropdown_captures_click(point);
+    return g_ui_input_blocked ||
+           (include_pointer_drag && g_ui_pointer_dragging) ||
+           (include_pointer_drag &&
+            IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+            g_ui_pointer_dragged_this_click);
+}
+
+static int
+ui_input_captures_click_internal(Vector2 point, int include_pointer_drag)
+{
+    return ui_base_input_captures_click(point, include_pointer_drag) ||
+           ui_dropdown_captures_click(point);
+}
+
+int
+ui_input_captures_click(Vector2 point)
+{
+    return ui_input_captures_click_internal(point, 1);
 }
 
 static void
@@ -897,6 +988,7 @@ void
 ui_set_frame(Camera2D camera)
 {
     g_ui_camera = camera;
+    ui_update_pointer_gesture();
     g_ui_input_blocked = 0;
     g_ui_input_clip_stack_count = 0;
     flint_clip_reset();
@@ -1319,7 +1411,9 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
     char value_text[32];
     Rectangle hit = ui_centered_min_hit_rect(x, knob_y, w, knob_h, w, min_touch_h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     snprintf(value_text, sizeof(value_text), "%d%s", *value, suffix != NULL ? suffix : "");
@@ -1335,7 +1429,19 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
             g_ui_slider_active_id = id;
     }
 
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id && g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+       g_ui_pointer_dragging) {
+        if(ui_pointer_drag_is_horizontal())
+            g_ui_pointer_owner = UI_POINTER_OWNER_HORIZONTAL_SLIDER;
+        else
+            g_ui_slider_active_id = 0;
+    }
+
+    if(g_ui_slider_active_id == id &&
+       ((IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+         g_ui_pointer_owner == UI_POINTER_OWNER_HORIZONTAL_SLIDER) ||
+        IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         float t = (float)(mx - x) / (float)w;
         if(t < 0.0f)
@@ -1345,6 +1451,10 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -1369,7 +1479,9 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     int changed = 0;
     Rectangle hit = ui_centered_min_hit_rect(x - track_w / 2, y, track_w, h, min_touch_w, h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     /* Draw track */
@@ -1379,12 +1491,16 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     /* Check for interaction */
     if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             g_ui_slider_active_id = id;
+            g_ui_pointer_owner = UI_POINTER_OWNER_VERTICAL_SLIDER;
+        }
     }
 
     /* Handle drag */
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id &&
+       (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         /* Invert Y so 0% is at bottom, 100% at top */
         float t = 1.0f - (float)(my - y) / (float)h;
@@ -1395,6 +1511,10 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -1433,7 +1553,9 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
     int changed = 0;
     Rectangle hit = ui_centered_min_hit_rect(x - track_w / 2, y, track_w, h, min_touch_w, h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     /* Draw track */
@@ -1447,12 +1569,16 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
     /* Check for interaction */
     if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             g_ui_slider_active_id = id;
+            g_ui_pointer_owner = UI_POINTER_OWNER_VERTICAL_SLIDER;
+        }
     }
 
     /* Handle drag */
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id &&
+       (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         /* Invert Y so 0% is at bottom, 100% at top */
         float t = 1.0f - (float)(my - y) / (float)h;
@@ -1463,6 +1589,10 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -1509,7 +1639,7 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
     if(pressed)
         *value = !(*value);
@@ -1549,7 +1679,7 @@ ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
@@ -1732,7 +1862,7 @@ ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
         };
         if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
             ui_mark_clickable();
-            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                 selected = i;
                 if(theme_id != NULL)
                     *theme_id = i;
@@ -1872,7 +2002,8 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int changed = 0;
     Rectangle btn_bounds = {x, y, w, h};
     Vector2 mouse = ui_mouse_world();
-    int hover = CheckCollisionPointRec(mouse, btn_bounds);
+    int hover = CheckCollisionPointRec(mouse, btn_bounds) &&
+                !ui_input_captures_click(mouse);
 
     /* Calculate arrow position */
     int arrow_x = x + w - arrow_pad;
@@ -1891,7 +2022,7 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
         ui_mark_clickable();
 
     /* Handle click on button */
-    if(hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         state->open = !state->open;
         if(state->open) {
             state->just_opened = 1;
@@ -2626,6 +2757,24 @@ ui_scrollbar_content_width(int content_width, int max_scroll)
     return content_width - reserved;
 }
 
+int
+ui_scrollbar_safe_content_width(int content_x, int content_width,
+                                int scrollbar_x, int max_scroll)
+{
+    int gap = flint_px(20);
+    int safe_width = content_width;
+
+    if(max_scroll <= 0 || scrollbar_x <= 0)
+        return content_width;
+
+    safe_width = scrollbar_x - content_x - gap;
+    if(safe_width > content_width)
+        return content_width;
+    if(safe_width < 0)
+        return 0;
+    return safe_width;
+}
+
 FlintUIScrollView
 ui_scroll_container_begin(FlintUIScrollArea area)
 {
@@ -2669,15 +2818,32 @@ ui_scroll_container_begin(FlintUIScrollArea area)
             }
         }
 
-        if(view.max_scroll > 0 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured) {
+        if(g_ui_slider_active_id != 0 &&
+           g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+           g_ui_pointer_dragging &&
+           ui_pointer_drag_is_horizontal())
+            g_ui_pointer_owner = UI_POINTER_OWNER_HORIZONTAL_SLIDER;
+
+        if(g_ui_pointer_owner == UI_POINTER_OWNER_HORIZONTAL_SLIDER ||
+           g_ui_pointer_owner == UI_POINTER_OWNER_VERTICAL_SLIDER) {
+            content_drag_active = 0;
+            content_dragging = 0;
+        }
+
+        if(view.max_scroll > 0 &&
+           g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+           IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured) {
             content_drag_active = 1;
             content_dragging = 0;
             content_drag_start_y = (int)mouse_world.y;
             content_drag_start_scroll = *area.scroll_offset;
         }
-        if(content_drag_active && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        if(content_drag_active && IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+           g_ui_pointer_owner != UI_POINTER_OWNER_HORIZONTAL_SLIDER &&
+           g_ui_pointer_owner != UI_POINTER_OWNER_VERTICAL_SLIDER) {
             int dy = (int)mouse_world.y - content_drag_start_y;
             if(content_dragging || dy > drag_threshold || dy < -drag_threshold) {
+                g_ui_pointer_owner = UI_POINTER_OWNER_SCROLL;
                 content_dragging = 1;
                 *area.scroll_offset = content_drag_start_scroll - dy;
                 if(*area.scroll_offset < 0)
@@ -2805,7 +2971,7 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     Vector2 mouse_pos = ui_mouse_world();
     int my = (int)mouse_pos.y;
     Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
-    int input_captured = ui_input_captures_click(mouse_pos);
+    int input_captured = ui_input_captures_click_internal(mouse_pos, 0);
     int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
 
     /* Handle drag state */
