@@ -27,8 +27,13 @@ mkdir -p "$ASSETS_DIR"
 if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
     echo "Building fonts..."
     mkdir -p assets/fonts
-    make -C vendor/otfchop otfchop
-    vendor/otfchop/otfchop vendor/otfchop/unifont-17.0.04.otf locales/*.txt assets/fonts/locales
+    OTFCHOP_DIR="${OTFCHOP_DIR:-/home/wao/src/otfchop}"
+    if [ ! -x "$OTFCHOP_DIR/otfchop" ]; then
+        OTFCHOP_DIR="vendor/otfchop"
+        make -C "$OTFCHOP_DIR" otfchop
+    fi
+    "$OTFCHOP_DIR/otfchop" --size 16 "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales
+    "$OTFCHOP_DIR/otfchop" --size 8 "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales-8
 else
     echo "Using versioned fonts..."
 fi
@@ -40,6 +45,8 @@ sh flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/whm/2.jpg \
     assets/fonts/locales.png \
     assets/fonts/locales.dat \
+    assets/fonts/locales-8.png \
+    assets/fonts/locales-8.dat \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"

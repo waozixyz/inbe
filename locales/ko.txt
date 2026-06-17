@@ -41,7 +41,7 @@ Inner Breeze
 명상
 ---
 [meditation_manual_text]
-시간을 선택하고 시작 버튼을 누른 후 편안하게 앉으세요. 호흡에 집중하세요. 마음이 흩어지면 부드럽게 호흡으로 돌아옵니다. 공 소리가 세션의 시작과 끝을 알립니다.
+음악이 세션을 안정되게 해 준다면 선택한 뒤 편안하게 앉으세요. 주의를 호흡에 둡니다. 생각에 끌려가면 분명히 알아차리고 힘주지 말고 돌아오세요. 공 소리가 시작과 끝을 알립니다.
 ---
 [meditation_music_settings_title]
 명상 음악
@@ -66,6 +66,9 @@ Inner Breeze
 ---
 [meditation_music_test_button]
 오디오 테스트
+---
+[meditation_music_stop_test_button]
+테스트 중지
 ---
 [duration_5m]
 5분
@@ -112,6 +115,12 @@ Inner Breeze
 [all_progress_lost_message]
 모든 진행 상황이 손실됩니다.
 ---
+[meditation_under_minute_exit_message]
+저장되지 않습니다.
+---
+[meditation_save_elapsed_message]
+나가기 전에 이 명상을 저장할까요?
+---
 [exit_button]
 종료
 ---
@@ -150,9 +159,6 @@ Inner Breeze
 ---
 [settings_tab_app]
 앱
----
-[settings_tab_language]
-언어
 ---
 [settings_tab_theme]
 테마

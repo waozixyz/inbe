@@ -16,6 +16,8 @@ BUILD_DIST_DIR := $(BUILD_DIR)/dist
 LINUX_OBJ_DIR := $(BUILD_OBJ_DIR)/linux
 LINUX_BIN_DIR := $(BUILD_BIN_DIR)/linux
 LINUX_DIST_DIR := $(BUILD_DIST_DIR)/linux
+LINUX_STATIC_OBJ_DIR := $(BUILD_OBJ_DIR)/linux-static
+LINUX_STATIC_BIN_DIR := $(BUILD_BIN_DIR)/linux-static
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
@@ -23,6 +25,13 @@ WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 RAYLIB_DIR := vendor/raylib/src
 RAYLIB_BUILD_DIR := $(LINUX_OBJ_DIR)/$(ARCH)/native/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
+STATIC_ARCH ?= x86_64
+STATIC_TRIPLE ?= x86_64-unknown-linux-musl
+STATIC_CC ?= $(STATIC_TRIPLE)-gcc
+STATIC_AR ?= $(STATIC_TRIPLE)-ar
+STATIC_RANLIB ?= $(STATIC_TRIPLE)-ranlib
+STATIC_RAYLIB_BUILD_DIR := $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib
+STATIC_RAYLIB_A := $(STATIC_RAYLIB_BUILD_DIR)/libraylib.a
 WEB_RAYLIB_BUILD_DIR := $(WEB_OBJ_DIR)/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(wildcard $(RAYLIB_DIR)/*.c) $(wildcard $(RAYLIB_DIR)/*.h)
@@ -73,9 +82,10 @@ APP_SRCS := \
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/whm/1.jpg assets/whm/2.jpg
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
-FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
-FONT_TOOL := vendor/otfchop/otfchop
-FONT_SOURCE := vendor/otfchop/unifont-17.0.04.otf
+FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat assets/fonts/locales-8.png assets/fonts/locales-8.dat
+OTFCHOP_DIR ?= $(if $(wildcard /home/wao/src/otfchop/otfchop),/home/wao/src/otfchop,vendor/otfchop)
+FONT_TOOL := $(OTFCHOP_DIR)/otfchop
+FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
@@ -85,9 +95,15 @@ APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 LDFLAGS := -Wl,--gc-sections -s
+STATIC_CFLAGS ?= -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
+STATIC_LDFLAGS ?= -static -Wl,--gc-sections -s
+STATIC_RAY_CFLAGS ?=
+STATIC_RAY_LDLIBS ?= -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm
 
 BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
 TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
+STATIC_BINARY_NAME := $(APP_NAME)-linux-static-$(STATIC_ARCH)
+STATIC_TARGET := $(LINUX_STATIC_BIN_DIR)/$(STATIC_BINARY_NAME)
 WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell git rev-parse --short HEAD 2>/dev/null || date +%s)
@@ -96,11 +112,17 @@ WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
+.PHONY: all native run test linux-static linux-static-check clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
 
 all: native
 
 native: $(TARGET)
+
+linux-static: $(STATIC_TARGET)
+
+linux-static-check: $(STATIC_TARGET)
+	file $(STATIC_TARGET)
+	ldd $(STATIC_TARGET) || true
 
 run: $(TARGET)
 	./$(TARGET)
@@ -115,7 +137,7 @@ $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/st
 		tests/storage_import_test.c src/storage/storage.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_STATIC_BIN_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
 	mkdir -p $@
 
 assets/fonts:
@@ -124,8 +146,11 @@ assets/fonts:
 $(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
 	$(MAKE) -C vendor/otfchop otfchop
 
-$(FONT_OUTPUTS): $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
-	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
+assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
+	$(FONT_TOOL) --size 16 $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
+
+assets/fonts/locales-8.png assets/fonts/locales-8.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
+	$(FONT_TOOL) --size 8 $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales-8
 
 $(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
@@ -147,6 +172,24 @@ $(RAYLIB_A): $(RAYLIB_SOURCES)
 		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+
+$(STATIC_RAYLIB_A): $(RAYLIB_SOURCES)
+	rm -rf $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src
+	mkdir -p $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src $(STATIC_RAYLIB_BUILD_DIR)
+	cp -R $(RAYLIB_DIR)/. $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src/
+	$(MAKE) -j1 -C $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src \
+		PLATFORM=PLATFORM_DESKTOP_RGFW \
+		GRAPHICS=GRAPHICS_API_OPENGL_SOFTWARE \
+		RAYLIB_LIBTYPE=STATIC \
+		RAYLIB_RELEASE_PATH=../raylib \
+		RAYLIB_MODULE_AUDIO=TRUE \
+		RAYLIB_MODULE_MODELS=FALSE \
+		RGFW_LINUX_ENABLE_X11=TRUE \
+		RGFW_LINUX_ENABLE_WAYLAND=FALSE \
+		CC="$(STATIC_CC)" \
+		AR="$(STATIC_AR)" \
+		RANLIB="$(STATIC_RANLIB)" \
+		CUSTOM_CFLAGS="$(STATIC_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
 	rm -rf $(WEB_OBJ_DIR)/raylib-src
@@ -186,6 +229,25 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
+
+$(STATIC_TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(STATIC_RAYLIB_A) | $(LINUX_STATIC_BIN_DIR)
+	$(STATIC_CC) $(STATIC_CFLAGS) \
+		$(APP_INCLUDE) \
+		$(FLINT_INCLUDE) \
+		$(SQLITE_INCLUDE) \
+		-I$(RAYLIB_DIR) \
+		$(STATIC_RAY_CFLAGS) \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
+		-DSUPPORT_FILEFORMAT_MP3=1 \
+		-o $@ \
+		$(SRC) \
+		$(FLINT_SRCS) \
+		$(SQLITE_SRC) \
+		$(STATIC_RAYLIB_A) \
+		$(STATIC_RAY_LDLIBS) \
+		-lm -lpthread -ldl -lrt \
+		$(STATIC_LDFLAGS)
 
 $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) | $(WEB_DIST_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \

@@ -41,7 +41,7 @@ Méditation
 Méditation
 ---
 [meditation_manual_text]
-Choisissez une durée, appuyez sur démarrer et asseyez-vous confortablement. Laissez votre attention se poser sur la respiration. Quand l’esprit s’égare, revenez doucement au souffle. Un gong marque le début et la fin de la séance.
+Choisissez une musique si elle aide la séance à rester stable, puis asseyez-vous confortablement. Laissez l’attention se poser sur le souffle. Quand les pensées vous emportent, voyez-le clairement et revenez sans forcer. Un gong marque le début et la fin.
 ---
 [meditation_music_settings_title]
 Musique de méditation
@@ -66,6 +66,9 @@ Retélécharger l'audio
 ---
 [meditation_music_test_button]
 Tester la lecture
+---
+[meditation_music_stop_test_button]
+Arrêter le test
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Ignorer
 [all_progress_lost_message]
 Toute la progression sera perdue.
 ---
+[meditation_under_minute_exit_message]
+Ce ne sera pas enregistré.
+---
+[meditation_save_elapsed_message]
+Enregistrer cette méditation avant de quitter ?
+---
 [exit_button]
 Quitter
 ---
@@ -150,9 +159,6 @@ Séance
 ---
 [settings_tab_app]
 App
----
-[settings_tab_language]
-Langue
 ---
 [settings_tab_theme]
 Thème

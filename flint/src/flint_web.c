@@ -102,17 +102,58 @@ int
 flint_web_sync_window_size(void)
 {
 #if defined(PLATFORM_WEB)
+    static int pending_width = 0;
+    static int pending_height = 0;
+    static int stable_frames = 0;
     int width;
     int height;
+    int current_width;
+    int current_height;
+    int delta_w;
+    int delta_h;
+    int storage_syncing;
+
+    storage_syncing = EM_ASM_INT({
+        return Module.__inbeStorageSyncing || Module.__inbeStorageSyncPending ? 1 : 0;
+    });
+    if(storage_syncing)
+        return 0;
 
     flint_web_viewport_size(GetScreenWidth(), GetScreenHeight(), &width, &height);
-    if(width == GetScreenWidth() && height == GetScreenHeight())
+    current_width = GetScreenWidth();
+    current_height = GetScreenHeight();
+    delta_w = width - current_width;
+    delta_h = height - current_height;
+    if(delta_w < 0)
+        delta_w = -delta_w;
+    if(delta_h < 0)
+        delta_h = -delta_h;
+
+    if(width == current_width && height == current_height) {
+        pending_width = 0;
+        pending_height = 0;
+        stable_frames = 0;
+        return 0;
+    }
+
+    if(delta_w <= 1 && delta_h <= 1)
+        return 0;
+
+    if(width != pending_width || height != pending_height) {
+        pending_width = width;
+        pending_height = height;
+        stable_frames = 1;
+        return 0;
+    }
+
+    stable_frames++;
+    if(stable_frames < 2 || IsMouseButtonDown(MOUSE_BUTTON_LEFT))
         return 0;
 
 #if defined(PLATFORM_WEB)
     EM_ASM({
         const frame = document.getElementById("canvas-frame");
-        if(frame) {
+        if(frame && (frame.style.width !== ($0 + "px") || frame.style.height !== ($1 + "px"))) {
             frame.style.width = $0 + "px";
             frame.style.height = $1 + "px";
         }
@@ -121,6 +162,9 @@ flint_web_sync_window_size(void)
     SetWindowSize(width, height);
     flint_set_view_size(width, height);
     flint_dpi_update(width, height);
+    pending_width = 0;
+    pending_height = 0;
+    stable_frames = 0;
     return 1;
 #else
     return 0;

@@ -27,6 +27,7 @@
         let
           pkgs = mkPkgs system;
           aarch64Pkgs = pkgs.pkgsCross.aarch64-multiplatform;
+          staticPkgs = pkgs.pkgsStatic;
 
           windowsCrossEnabled = system == "x86_64-linux";
 
@@ -142,6 +143,18 @@
               rsync
               zlib
               zip
+              staticPkgs.stdenv.cc
+              staticPkgs.xorg.libX11
+              staticPkgs.xorg.libXrandr
+              staticPkgs.xorg.libXinerama
+              staticPkgs.xorg.libXi
+              staticPkgs.xorg.libXcursor
+              staticPkgs.xorg.libXext
+              staticPkgs.xorg.libXfixes
+              staticPkgs.xorg.libXrender
+              staticPkgs.xorg.libXau
+              staticPkgs.xorg.libXdmcp
+              staticPkgs.xorg.libxcb
               aarch64Pkgs.stdenv.cc
               aarch64Pkgs.SDL2
               aarch64Pkgs.SDL2.dev
@@ -178,6 +191,12 @@
               export WEB_CC="emcc"
               export WEB_AR="emar"
               export WEB_RANLIB="emranlib"
+
+              export STATIC_CC="${staticPkgs.stdenv.cc}/bin/${staticPkgs.stdenv.cc.targetPrefix}cc"
+              export STATIC_AR="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ar"
+              export STATIC_RANLIB="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ranlib"
+              export STATIC_RAY_CFLAGS="-I${staticPkgs.xorg.libX11.dev}/include -I${staticPkgs.xorg.libXrandr.dev}/include -I${staticPkgs.xorg.libXinerama.dev}/include -I${staticPkgs.xorg.libXi.dev}/include -I${staticPkgs.xorg.libXcursor.dev}/include -I${staticPkgs.xorg.libXext.dev}/include -I${staticPkgs.xorg.libXfixes.dev}/include -I${staticPkgs.xorg.libXrender.dev}/include -I${staticPkgs.xorg.libXau.dev}/include -I${staticPkgs.xorg.libXdmcp.dev}/include -I${staticPkgs.xorg.libxcb.dev}/include -I${staticPkgs.xorg.xorgproto}/include"
+              export STATIC_RAY_LDLIBS="-L${staticPkgs.xorg.libX11}/lib -L${staticPkgs.xorg.libXrandr}/lib -L${staticPkgs.xorg.libXinerama}/lib -L${staticPkgs.xorg.libXi}/lib -L${staticPkgs.xorg.libXcursor}/lib -L${staticPkgs.xorg.libXext}/lib -L${staticPkgs.xorg.libXfixes}/lib -L${staticPkgs.xorg.libXrender}/lib -L${staticPkgs.xorg.libXau}/lib -L${staticPkgs.xorg.libXdmcp}/lib -L${staticPkgs.xorg.libxcb}/lib -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm"
 
               export AARCH64_CC="${aarch64Pkgs.stdenv.cc}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}cc"
               export AARCH64_AR="${aarch64Pkgs.stdenv.cc.bintools.bintools}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}ar"

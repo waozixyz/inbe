@@ -41,7 +41,7 @@ Meditace
 Meditace
 ---
 [meditation_manual_text]
-Vyberte délku, stiskněte spustit a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když se mysl zatoulá, jemně se vraťte k dýchání. Zvuk gongu označí začátek a konec sezení.
+Vyberte hudbu, pokud pomáhá sezení zklidnit, a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když vás myšlenky odvedou, jasně si toho všimněte a vraťte se bez úsilí. Gong označí začátek i konec.
 ---
 [meditation_music_settings_title]
 Meditační hudba
@@ -66,6 +66,9 @@ Stáhnout audio znovu
 ---
 [meditation_music_test_button]
 Vyzkoušet přehrání
+---
+[meditation_music_stop_test_button]
+Zastavit test
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Zahodit
 [all_progress_lost_message]
 Veškerý postup bude ztracen.
 ---
+[meditation_under_minute_exit_message]
+Toto se neuloží.
+---
+[meditation_save_elapsed_message]
+Uložit tuto meditaci před ukončením?
+---
 [exit_button]
 Ukončit
 ---
@@ -150,9 +159,6 @@ Sezení
 ---
 [settings_tab_app]
 Aplikace
----
-[settings_tab_language]
-Jazyk
 ---
 [settings_tab_theme]
 Motiv

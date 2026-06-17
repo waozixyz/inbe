@@ -5,12 +5,12 @@
 #include "breath_engine.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
-#include "flint/include/ui_icon_types.h"
+#include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
-    SETTINGS_SPEED_MAX = 12,
+    SETTINGS_SPEED_MAX = 8,
     SETTINGS_BREATHS_MIN = 15,
     SETTINGS_BREATHS_MAX = 80,
     SETTINGS_PAUSE_MIN = 0,
@@ -94,8 +94,6 @@ typedef enum HoldDisplayMode {
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
-    EXERCISE_SUN_SALUTATION = 2,
-    EXERCISE_7_MINUTE_WORKOUT = 3,
     EXERCISE_COUNT
 } ExerciseType;
 
@@ -137,6 +135,7 @@ struct InbeApp {
     Texture2D whm_2_image;
     Texture2D font_shapes_texture;
     Font locale_font;
+    Font locale_font_8;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
@@ -202,6 +201,7 @@ struct InbeApp {
     int advanced_session_controls;
     int hold_display_mode;
     int exercise_type;
+    int practice_config_tab;
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;

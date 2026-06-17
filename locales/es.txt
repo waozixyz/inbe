@@ -41,7 +41,7 @@ Meditación
 Meditación
 ---
 [meditation_manual_text]
-Elige una duración, pulsa reproducir y siéntate cómodamente. Deja que tu atención descanse en la respiración. Cuando la mente se distraiga, vuelve suavemente a respirar. Un gong marca el comienzo y el final de la sesión.
+Elige música si ayuda a que la sesión se sienta estable y siéntate cómodamente. Deja que la atención descanse en la respiración. Cuando los pensamientos te arrastren, obsérvalo con claridad y vuelve sin forzar. Un gong marca el inicio y el final.
 ---
 [meditation_music_settings_title]
 Música de meditación
@@ -66,6 +66,9 @@ Descargar audio de nuevo
 ---
 [meditation_music_test_button]
 Probar reproducción
+---
+[meditation_music_stop_test_button]
+Detener prueba
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Descartar
 [all_progress_lost_message]
 Se perderá todo el progreso.
 ---
+[meditation_under_minute_exit_message]
+Esto no se guardará.
+---
+[meditation_save_elapsed_message]
+¿Guardar esta meditación antes de salir?
+---
 [exit_button]
 Salir
 ---
@@ -150,9 +159,6 @@ Sesión
 ---
 [settings_tab_app]
 App
----
-[settings_tab_language]
-Idioma
 ---
 [settings_tab_theme]
 Tema

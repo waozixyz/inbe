@@ -28,6 +28,14 @@ static int g_ui_focus_ids[UI_FOCUS_MAX_ITEMS];
 static int g_ui_focus_count = 0;
 static int g_ui_focus_tab_dir = 0;
 static int g_ui_focus_text_input_active = 0;
+static int g_ui_platform_text_input_active = 0;
+static FlintUITextInputPlatformCallback g_ui_text_input_platform_callback = NULL;
+
+#define UI_TEXT_INPUT_QUEUE_MAX 64
+static int g_ui_text_input_codepoints[UI_TEXT_INPUT_QUEUE_MAX];
+static int g_ui_text_input_codepoint_count = 0;
+static int g_ui_text_input_backspace_count = 0;
+static int g_ui_text_input_enter_count = 0;
 
 #define UI_SCISSOR_STACK_MAX 16
 static Rectangle g_ui_scissor_stack[UI_SCISSOR_STACK_MAX];
@@ -123,6 +131,166 @@ ui_clampi(int value, int min_value, int max_value)
     return value;
 }
 
+static int
+ui_utf8_next_offset(const char *text, int offset)
+{
+    int codepoint_size = 0;
+    int len;
+
+    if(text == NULL)
+        return 0;
+    len = (int)strlen(text);
+    if(offset < 0)
+        offset = 0;
+    if(offset >= len)
+        return len;
+
+    GetCodepointNext(text + offset, &codepoint_size);
+    if(codepoint_size <= 0)
+        codepoint_size = 1;
+    if(offset + codepoint_size > len)
+        return len;
+    return offset + codepoint_size;
+}
+
+static int
+ui_utf8_prev_offset(const char *text, int offset)
+{
+    int len;
+
+    if(text == NULL)
+        return 0;
+    len = (int)strlen(text);
+    if(offset > len)
+        offset = len;
+    if(offset <= 0)
+        return 0;
+
+    offset--;
+    while(offset > 0 && (((unsigned char)text[offset] & 0xC0) == 0x80))
+        offset--;
+    return offset;
+}
+
+static int
+ui_utf8_codepoint_count(const char *text)
+{
+    int count = 0;
+
+    if(text == NULL)
+        return 0;
+    for(int i = 0; text[i] != '\0';) {
+        int next = ui_utf8_next_offset(text, i);
+        if(next <= i)
+            break;
+        count++;
+        i = next;
+    }
+    return count;
+}
+
+static int
+ui_utf8_encode(int codepoint, char out[5])
+{
+    if(out == NULL)
+        return 0;
+    if(codepoint < 0x80) {
+        out[0] = (char)codepoint;
+        out[1] = '\0';
+        return 1;
+    }
+    if(codepoint < 0x800) {
+        out[0] = (char)(0xC0 | (codepoint >> 6));
+        out[1] = (char)(0x80 | (codepoint & 0x3F));
+        out[2] = '\0';
+        return 2;
+    }
+    if(codepoint < 0x10000) {
+        out[0] = (char)(0xE0 | (codepoint >> 12));
+        out[1] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (codepoint & 0x3F));
+        out[3] = '\0';
+        return 3;
+    }
+    if(codepoint <= 0x10FFFF) {
+        out[0] = (char)(0xF0 | (codepoint >> 18));
+        out[1] = (char)(0x80 | ((codepoint >> 12) & 0x3F));
+        out[2] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        out[3] = (char)(0x80 | (codepoint & 0x3F));
+        out[4] = '\0';
+        return 4;
+    }
+    return 0;
+}
+
+static int
+ui_text_delete_range(char *text, size_t text_size, int *cursor, int start, int end)
+{
+    int len;
+
+    if(text == NULL || text_size == 0 || cursor == NULL)
+        return 0;
+    len = (int)strlen(text);
+    start = ui_clampi(start, 0, len);
+    end = ui_clampi(end, 0, len);
+    if(end <= start)
+        return 0;
+    memmove(text + start, text + end, (size_t)(len - end + 1));
+    *cursor = start;
+    return 1;
+}
+
+static int
+ui_text_insert_codepoint(char *text, size_t text_size, int *cursor, int codepoint,
+                         int max_codepoints)
+{
+    char encoded[5];
+    int encoded_len;
+    int len;
+
+    if(text == NULL || text_size == 0 || cursor == NULL || codepoint < 32)
+        return 0;
+    if(max_codepoints > 0 && ui_utf8_codepoint_count(text) >= max_codepoints)
+        return 0;
+
+    encoded_len = ui_utf8_encode(codepoint, encoded);
+    if(encoded_len <= 0)
+        return 0;
+    len = (int)strlen(text);
+    *cursor = ui_clampi(*cursor, 0, len);
+    if((size_t)(len + encoded_len + 1) > text_size)
+        return 0;
+
+    memmove(text + *cursor + encoded_len, text + *cursor, (size_t)(len - *cursor + 1));
+    memcpy(text + *cursor, encoded, (size_t)encoded_len);
+    *cursor += encoded_len;
+    return 1;
+}
+
+void
+flint_ui_text_input_queue_codepoint(int codepoint)
+{
+    if(codepoint <= 0)
+        return;
+    if(g_ui_text_input_codepoint_count >= UI_TEXT_INPUT_QUEUE_MAX)
+        return;
+    g_ui_text_input_codepoints[g_ui_text_input_codepoint_count++] = codepoint;
+}
+
+void
+flint_ui_text_input_queue_backspace(void)
+{
+    if(g_ui_text_input_backspace_count < UI_TEXT_INPUT_QUEUE_MAX)
+        g_ui_text_input_backspace_count++;
+}
+
+void
+flint_ui_text_input_queue_enter(void)
+{
+    if(g_ui_text_input_enter_count < UI_TEXT_INPUT_QUEUE_MAX)
+        g_ui_text_input_enter_count++;
+}
+
 void
 ui_focus_begin(void)
 {
@@ -209,7 +377,13 @@ ui_focus_clear(void)
 void
 ui_focus_set_text_input_active(int active)
 {
+    active = active != 0;
     g_ui_focus_text_input_active = active;
+    if(g_ui_platform_text_input_active != active) {
+        g_ui_platform_text_input_active = active;
+        if(g_ui_text_input_platform_callback != NULL)
+            g_ui_text_input_platform_callback(active);
+    }
 }
 
 void
@@ -263,6 +437,9 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     Color border = focused ? style.focus_border : style.border;
     float radius = style.radius > 0.0f ? style.radius : 0.12f;
 
+    if(focused)
+        ui_focus_set_text_input_active(1);
+
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
@@ -283,6 +460,86 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
     ui_end_scissor();
+}
+
+int
+flint_ui_text_edit(FlintUITextEdit edit)
+{
+    int changed = 0;
+    int len;
+    int codepoint;
+
+    if(edit.commit_pressed != NULL)
+        *edit.commit_pressed = 0;
+    if(edit.text == NULL || edit.text_size == 0 || edit.cursor_position == NULL)
+        return 0;
+
+    len = (int)strlen(edit.text);
+    *edit.cursor_position = ui_clampi(*edit.cursor_position, 0, len);
+
+    if(IsKeyPressed(KEY_LEFT)) {
+        *edit.cursor_position = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_RIGHT)) {
+        *edit.cursor_position = ui_utf8_next_offset(edit.text, *edit.cursor_position);
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_HOME)) {
+        *edit.cursor_position = 0;
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_END)) {
+        *edit.cursor_position = (int)strlen(edit.text);
+        changed = 1;
+    }
+
+    if(IsKeyPressed(KEY_BACKSPACE) || g_ui_text_input_backspace_count > 0) {
+        int repeat = g_ui_text_input_backspace_count > 0 ? g_ui_text_input_backspace_count : 1;
+        for(int i = 0; i < repeat; i++) {
+            int start = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
+            changed |= ui_text_delete_range(edit.text, edit.text_size,
+                                            edit.cursor_position, start,
+                                            *edit.cursor_position);
+        }
+        g_ui_text_input_backspace_count = 0;
+    }
+
+    if(IsKeyPressed(KEY_DELETE)) {
+        int end = ui_utf8_next_offset(edit.text, *edit.cursor_position);
+        changed |= ui_text_delete_range(edit.text, edit.text_size,
+                                        edit.cursor_position,
+                                        *edit.cursor_position, end);
+    }
+
+    if(IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) ||
+       g_ui_text_input_enter_count > 0) {
+        if(edit.commit_pressed != NULL)
+            *edit.commit_pressed = 1;
+        g_ui_text_input_enter_count = 0;
+    }
+
+    codepoint = GetCharPressed();
+    while(codepoint > 0) {
+        if((edit.filter == NULL || edit.filter(codepoint, edit.filter_user_data)) &&
+           ui_text_insert_codepoint(edit.text, edit.text_size, edit.cursor_position,
+                                    codepoint, edit.max_codepoints))
+            changed = 1;
+        codepoint = GetCharPressed();
+    }
+
+    for(int i = 0; i < g_ui_text_input_codepoint_count; i++) {
+        codepoint = g_ui_text_input_codepoints[i];
+        if((edit.filter == NULL || edit.filter(codepoint, edit.filter_user_data)) &&
+           ui_text_insert_codepoint(edit.text, edit.text_size, edit.cursor_position,
+                                    codepoint, edit.max_codepoints))
+            changed = 1;
+    }
+    g_ui_text_input_codepoint_count = 0;
+
+    len = (int)strlen(edit.text);
+    *edit.cursor_position = ui_clampi(*edit.cursor_position, 0, len);
+    return changed;
 }
 
 int
@@ -507,6 +764,13 @@ void
 ui_set_frame(Camera2D camera)
 {
     g_ui_camera = camera;
+    g_ui_input_blocked = 0;
+}
+
+void
+flint_ui_set_text_input_platform_callback(FlintUITextInputPlatformCallback callback)
+{
+    g_ui_text_input_platform_callback = callback;
 }
 
 void
@@ -791,7 +1055,10 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         int tab_h = bar_h;
         int is_last = i == bar.count - 1;
         int draw_w = is_last ? bar_x + bar_w - tab_x : tab_w;
+        int label_pad = flint_px(4);
         Rectangle tab_rect = {(float)tab_x, bar.bounds.y, (float)draw_w, bar.bounds.height};
+        Rectangle label_rect = {(float)(tab_x + label_pad), bar.bounds.y,
+                                (float)(draw_w - label_pad * 2), bar.bounds.height};
         int input_captured = ui_input_captures_click(mouse_world);
         int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
         int is_selected = i == bar.selected_index;
@@ -829,7 +1096,9 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
                 clicked_tab = i;
         }
 
-        flint_text_draw_fitted_in_rect(label, tab_rect, font, FLINT_TEXT_16, text_color);
+        if(label_rect.width < 1)
+            label_rect.width = 1;
+        flint_text_draw_fitted_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
     }
 
     return clicked_tab;
@@ -1261,29 +1530,25 @@ static UIThemeGridLayout
 ui_theme_grid_layout(int w)
 {
     UIThemeGridLayout layout = {0};
-    int small_font = flint_ui_font_small();
+    int small_font = flint_px(FLINT_TEXT_8);
 
-    int row_gap = flint_px(16);
-    layout.circle_size = flint_px(36);
-    layout.label_gap = flint_px(14);
-    layout.col_gap = flint_px(20);
+    int row_gap = flint_px(8);
+    layout.circle_size = flint_px(24);
+    layout.label_gap = flint_px(6);
+    layout.col_gap = flint_px(10);
     layout.cell_w = layout.circle_size;
     for(int i = 0; i < FLINT_THEME_COUNT; i++) {
-        int name_w = flint_text_measure(flint_theme_label((FlintThemeId)i), small_font) + flint_px(12);
+        int name_w = flint_text_measure(flint_theme_label((FlintThemeId)i), small_font) + flint_px(8);
         if(name_w > layout.cell_w)
             layout.cell_w = name_w;
     }
 
-    layout.per_row = 3;
-    layout.row_width = layout.per_row * layout.cell_w + (layout.per_row - 1) * layout.col_gap;
-    if(layout.row_width > w) {
-        layout.per_row = 2;
-        layout.row_width = layout.per_row * layout.cell_w + (layout.per_row - 1) * layout.col_gap;
-    }
-    if(layout.row_width > w) {
+    layout.per_row = (w + layout.col_gap) / (layout.cell_w + layout.col_gap);
+    if(layout.per_row < 1)
         layout.per_row = 1;
-        layout.row_width = layout.cell_w;
-    }
+    if(layout.per_row > FLINT_THEME_COUNT)
+        layout.per_row = FLINT_THEME_COUNT;
+    layout.row_width = layout.per_row * layout.cell_w + (layout.per_row - 1) * layout.col_gap;
 
     layout.row_step = layout.circle_size + layout.label_gap + small_font + row_gap;
     layout.row_count = (FLINT_THEME_COUNT + layout.per_row - 1) / layout.per_row;
@@ -1298,7 +1563,7 @@ static int
 ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
 {
     int changed = 0;
-    int small_font = flint_ui_font_small();
+    int small_font = flint_px(FLINT_TEXT_8);
     int selected = theme_id != NULL ? *theme_id : FLINT_THEME_SKY;
     UIThemeGridLayout layout = ui_theme_grid_layout(w);
     int start_x = x + (w - layout.row_width) / 2;
@@ -1950,7 +2215,7 @@ ui_draw_modal(const char *title, const char *message,
 
     /* Parse message with icon support - use GEAR icon for warnings */
     FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -2031,7 +2296,7 @@ ui_draw_modal_3btn(const char *title, const char *message,
 
     /* Parse message with icon support - use GEAR icon for warnings */
     FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -2106,7 +2371,7 @@ ui_draw_title_header(int height, const char *title,
                      Texture2D right_icon)
 {
     FlintUIHeader header = {height, 0, 0};
-    int icon_size = flint_px(24);
+    int icon_size = flint_px(20);
     int icon_padding = flint_px(8);
     int icon_w = icon_size + icon_padding * 2;
     int title_font = flint_px(22);
@@ -2140,7 +2405,7 @@ ui_draw_modal_frame(int width, int height, const char *title,
 {
     FlintUIPanelFrame frame = {0};
     int title_font = flint_px(18);
-    int icon_size = flint_px(22);
+    int icon_size = flint_px(20);
     int icon_padding = flint_px(8);
     int icon_w = icon_size + icon_padding * 2;
     int title_w = flint_text_measure(title, title_font);
@@ -2187,8 +2452,7 @@ ui_draw_modal_frame(int width, int height, const char *title,
 int
 ui_scrollbar_reserved_width(int max_scroll)
 {
-    (void)max_scroll;
-    return 0;
+    return max_scroll > 0 ? flint_px(16) : 0;
 }
 
 int
@@ -2206,6 +2470,10 @@ ui_scrollbar_content_width(int content_width, int max_scroll)
 FlintUIScrollView
 ui_scroll_container_begin(FlintUIScrollArea area)
 {
+    static int content_drag_active = 0;
+    static int content_dragging = 0;
+    static int content_drag_start_y = 0;
+    static int content_drag_start_scroll = 0;
     FlintUIScrollView view;
     Vector2 mouse_world = ui_mouse_world();
     int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
@@ -2213,6 +2481,9 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     int y = (int)area.bounds.y;
     int w = (int)area.bounds.width;
     int h = (int)area.bounds.height;
+    int inside = CheckCollisionPointRec(mouse_world, area.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int drag_threshold = flint_px(5);
 
     memset(&view, 0, sizeof(view));
     view.content_x = x;
@@ -2228,9 +2499,7 @@ ui_scroll_container_begin(FlintUIScrollArea area)
         if(*area.scroll_offset > view.max_scroll)
             *area.scroll_offset = view.max_scroll;
 
-        if(view.max_scroll > 0 &&
-           CheckCollisionPointRec(mouse_world, area.bounds) &&
-           !ui_input_captures_click(mouse_world)) {
+        if(view.max_scroll > 0 && inside && !captured) {
             float wheel = GetMouseWheelMove();
             if(wheel != 0.0f) {
                 *area.scroll_offset -= (int)(wheel * (float)wheel_step);
@@ -2239,6 +2508,30 @@ ui_scroll_container_begin(FlintUIScrollArea area)
                 if(*area.scroll_offset > view.max_scroll)
                     *area.scroll_offset = view.max_scroll;
             }
+        }
+
+        if(view.max_scroll > 0 && IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured) {
+            content_drag_active = 1;
+            content_dragging = 0;
+            content_drag_start_y = (int)mouse_world.y;
+            content_drag_start_scroll = *area.scroll_offset;
+        }
+        if(content_drag_active && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+            int dy = (int)mouse_world.y - content_drag_start_y;
+            if(content_dragging || dy > drag_threshold || dy < -drag_threshold) {
+                content_dragging = 1;
+                *area.scroll_offset = content_drag_start_scroll - dy;
+                if(*area.scroll_offset < 0)
+                    *area.scroll_offset = 0;
+                if(*area.scroll_offset > view.max_scroll)
+                    *area.scroll_offset = view.max_scroll;
+                ui_set_input_blocked(1);
+            }
+        } else if(content_drag_active) {
+            if(content_dragging)
+                ui_set_input_blocked(1);
+            content_drag_active = 0;
+            content_dragging = 0;
         }
         view.content_y = y - *area.scroll_offset;
     } else {
@@ -2266,7 +2559,7 @@ ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
 
     scrollbar_x = area.scrollbar_x > 0
                       ? area.scrollbar_x
-                      : ui_view_width - scrollbar_w;
+                      : (int)(area.bounds.x + area.bounds.width) - scrollbar_w;
     ui_draw_scrollbar(scrollbar_x,
                       (int)area.bounds.y,
                       (int)area.bounds.height,
@@ -2321,7 +2614,7 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
 
     int scrollbar_width = flint_px(8);
     int scrollbar_min_thumb = flint_px(24);
-    int track_padding = flint_px(2);
+    int track_padding = 0;
 
     /* Calculate thumb size and position */
     float content_ratio = (float)viewport_h / (float)content_h;
@@ -2362,17 +2655,10 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
         scrollbar_drag_active = 0;
     }
 
-    /* Draw track */
     DrawRectangle(x, y, scrollbar_width, viewport_h, flint_darken(c_bg, 20));
 
-    /* Draw thumb */
-    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : flint_lighten(c_button, 20);
+    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : c_button;
     DrawRectangleRec(thumb_bounds, thumb_color);
-
-    /* Draw bevel on thumb */
-    ui_draw_bevel((int)thumb_bounds.x, (int)thumb_bounds.y,
-                  (int)thumb_bounds.width, (int)thumb_bounds.height,
-                  flint_darken(thumb_color, 40), flint_lighten(thumb_color, 40));
 
     return 1;
 }

@@ -121,8 +121,26 @@ android_runtime_asset_native_succeeded(JNIEnv *env, jobject thiz,
 
     download->http_status = (long)http_status;
     download->bytes = bytes > 0 ? (size_t)bytes : 0;
+    if(download->total_bytes == 0)
+        download->total_bytes = download->bytes;
     download->error[0] = '\0';
     download->status = FLINT_RUNTIME_ASSET_READY;
+}
+
+void
+android_runtime_asset_native_progress(JNIEnv *env, jobject thiz,
+                                      jlong handle, jlong bytes,
+                                      jlong total_bytes)
+{
+    FlintRuntimeAssetDownload *download = (FlintRuntimeAssetDownload *)(intptr_t)handle;
+    (void)env;
+    (void)thiz;
+
+    if(download == NULL)
+        return;
+
+    download->bytes = bytes > 0 ? (size_t)bytes : 0;
+    download->total_bytes = total_bytes > 0 ? (size_t)total_bytes : 0;
 }
 
 void

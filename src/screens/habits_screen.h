@@ -51,6 +51,7 @@ typedef struct InbeHabits {
     int scroll;
     int month_offset;
     int selector_open;
+    int view_mode;
     int loaded;
 } InbeHabits;
 
@@ -63,6 +64,7 @@ typedef struct HabitLinkedEntry {
     int hour;
     int minute;
     int second;
+    int activity;
     int rounds[MaxRounds];
     int round_count;
     int total_seconds;
@@ -87,6 +89,7 @@ void save_settings(InbeApp *app);
 /* Core habits functions */
 void inbe_habits_init(InbeHabits *habits);
 void inbe_habits_save(const InbeHabits *habits);
+int inbe_habits_clear_days(InbeHabits *habits);
 int inbe_habits_today_index(void);
 int inbe_habit_completed_day(const InbeHabit *habit, int day_index);
 int inbe_habit_completed_today(const InbeHabit *habit);

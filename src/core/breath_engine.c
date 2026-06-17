@@ -18,12 +18,12 @@ count_value(const char v[CountSize])
 int
 inbe_breath_half_ticks_for_speed(int speed)
 {
-	static const int breath_half_ticks[] = {132, 120, 108, 100, 93, 86, 80, 74, 68, 63, 58, 53};
+	static const int breath_half_ticks[] = {180, 160, 144, 132, 120, 108, 93, 74};
 
 	if(speed < 1)
 		speed = 1;
-	if(speed > 12)
-		speed = 12;
+	if(speed > 8)
+		speed = 8;
 
 	return breath_half_ticks[speed - 1];
 }
@@ -149,6 +149,36 @@ effective_breath_half_ticks(const Inbe *l)
     );
 }
 
+static float
+smoothstepf(float t)
+{
+    if(t < 0.0f)
+        t = 0.0f;
+    if(t > 1.0f)
+        t = 1.0f;
+    return t * t * (3.0f - 2.0f * t);
+}
+
+static int
+eased_span(int span, int frame, int half_ticks)
+{
+    float t;
+
+    if(span <= 0 || half_ticks <= 0)
+        return 0;
+
+    t = (float)frame / (float)half_ticks;
+    return (int)((float)span * smoothstepf(t) + 0.5f);
+}
+
+float
+inbe_draw_radius(const Inbe *l)
+{
+    if(l == 0)
+        return 0.0f;
+    return (float)l->r;
+}
+
 
 static void
 starting(Inbe *l)
@@ -183,7 +213,7 @@ breathe(Inbe *l)
     if(l->breath_frame > half_ticks)
         l->breath_frame = half_ticks;
 
-    eased = (l->breath_frame * span) / half_ticks;
+    eased = eased_span(span, l->breath_frame, half_ticks);
     if(l->dir == 0)
         l->r = l->rmin + eased;
     else
@@ -220,7 +250,7 @@ next(Inbe *l)
     if(l->breath_frame > l->breath_half_ticks)
         l->breath_frame = l->breath_half_ticks;
 
-    eased = (l->breath_frame * span) / l->breath_half_ticks;
+    eased = eased_span(span, l->breath_frame, l->breath_half_ticks);
     l->r = l->rmax - eased;
 
     if(l->breath_frame >= l->breath_half_ticks) {
@@ -250,7 +280,7 @@ recover(Inbe *l)
         if(l->breath_frame > l->breath_half_ticks)
             l->breath_frame = l->breath_half_ticks;
 
-        eased = (l->breath_frame * span) / l->breath_half_ticks;
+        eased = eased_span(span, l->breath_frame, l->breath_half_ticks);
         l->r = l->rmin + eased;
 
         if(l->breath_frame >= l->breath_half_ticks) {

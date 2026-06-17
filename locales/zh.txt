@@ -41,7 +41,7 @@ Wim Hof 呼吸
 冥想
 ---
 [meditation_manual_text]
-选择时长，点击开始，然后舒适地坐下。把注意力放在呼吸上。当思绪游走时，轻轻回到呼吸。钟声会提示练习的开始和结束。
+如果音乐能让练习更安稳，就先选择音乐，然后舒适地坐下。把注意力放在呼吸上。被念头带走时，清楚地觉察，再不费力地回来。钟声会提示开始和结束。
 ---
 [meditation_music_settings_title]
 冥想音乐
@@ -66,6 +66,9 @@ Wim Hof 呼吸
 ---
 [meditation_music_test_button]
 测试播放
+---
+[meditation_music_stop_test_button]
+停止测试
 ---
 [duration_5m]
 5分钟
@@ -112,6 +115,12 @@ Wim Hof 呼吸
 [all_progress_lost_message]
 所有进度都会丢失。
 ---
+[meditation_under_minute_exit_message]
+这不会保存。
+---
+[meditation_save_elapsed_message]
+退出前保存这次冥想吗？
+---
 [exit_button]
 退出
 ---
@@ -150,9 +159,6 @@ Wim Hof 呼吸
 ---
 [settings_tab_app]
 应用
----
-[settings_tab_language]
-语言
 ---
 [settings_tab_theme]
 主题

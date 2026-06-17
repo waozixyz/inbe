@@ -183,7 +183,11 @@ static const JNINativeMethod g_methods[] = {
     {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
     {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},
     {"nativeRuntimeAssetDownloadSucceeded", "(JJI)V", (void*)android_runtime_asset_native_succeeded},
+    {"nativeRuntimeAssetDownloadProgress", "(JJJ)V", (void*)android_runtime_asset_native_progress},
     {"nativeRuntimeAssetDownloadFailed", "(JILjava/lang/String;)V", (void*)android_runtime_asset_native_failed},
+    {"nativeTextInputCommit", "(I)V", (void*)android_device_native_text_input_commit},
+    {"nativeTextInputBackspace", "()V", (void*)android_device_native_text_input_backspace},
+    {"nativeTextInputEnter", "()V", (void*)android_device_native_text_input_enter},
 };
 
 // JNI_OnLoad - Register native methods
