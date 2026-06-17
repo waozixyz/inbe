@@ -186,6 +186,7 @@ int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            int *theme_id, int *dark_mode);
 int ui_draw_theme_picker(int x, int y, int w, const char *label,
                          int dark_mode, int *theme_id);
+int ui_theme_picker_height(int w);
 typedef struct UITab {
     const char *label;
     Texture2D icon;

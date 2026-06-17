@@ -139,7 +139,7 @@ CYCLE %d
 [settings_title]
 Réglages
 ---
-[settings_tab_practice]
+[practice_config_title]
 Pratique
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Données
 ---
 [settings_section_data]
 Données
+---
+[settings_tab_about]
+À propos
 ---
 [settings_section_about]
 À propos
@@ -367,7 +370,7 @@ Suivez simplement 4 étapes :
 3. Inspirez profondément et retenez.
 4. Expirez et répétez.
 
-Utilisez l'icône d'engrenage %i pour régler les cycles, respirations, vitesse et pauses.
+Utilisez l'icône de clé %i pour régler les cycles, respirations, vitesse et pauses.
 ---
 [tutorial_step_breathe]
 Remplissez complètement vos poumons, puis laissez le souffle sortir.

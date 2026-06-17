@@ -139,7 +139,7 @@ KOLO %d
 [settings_title]
 Nastavení
 ---
-[settings_tab_practice]
+[practice_config_title]
 Cvičení
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Data
 ---
 [settings_section_data]
 Data
+---
+[settings_tab_about]
+O aplikaci
 ---
 [settings_section_about]
 O aplikaci

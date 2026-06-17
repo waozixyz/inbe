@@ -120,8 +120,8 @@ app_apply_bottom_tab(InbeApp *app, int bottom_tab)
         break;
     case APP_BOTTOM_TAB_SETTINGS:
         reset_settings_preview(app);
-        app->settings_tab = SETTINGS_TAB_PRACTICE;
-        app->settings_return_to_practice = 0;
+        app->settings_tab = SETTINGS_TAB_APP;
+        app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
         app->settings_scroll = 0;
         app->inbe.screen = InbeScreenSettings;
         app_schedule_settings_save(app);
@@ -164,6 +164,7 @@ app_should_draw_bottom_nav(const InbeApp *app)
     switch(app->inbe.screen) {
     case InbeScreenStart:
     case InbeScreenSettings:
+    case InbeScreenPracticeConfig:
     case InbeScreenHabits:
     case InbeScreenHabitEdit:
     case InbeScreenHabitSessionEdit:
@@ -799,8 +800,8 @@ inbe_app_init(void *vapp) {
     app->settings_drag_content_y = 0;
     app->settings_dirty = 0;
     app->settings_save_delay_ticks = 0;
-    app->settings_tab = SETTINGS_TAB_PRACTICE;
-    app->settings_return_to_practice = 0;
+    app->settings_tab = SETTINGS_TAB_APP;
+    app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
     app->practice_coming_soon_ticks = 0;
     app->habit_edit_active = 0;
     app->habit_edit_is_new = 0;
@@ -1110,10 +1111,16 @@ handle_back_button(InbeApp *app)
         if(app->settings_dirty)
             save_settings(app);
         settings_screen_clear_status();
-        app->settings_return_to_practice = 0;
         app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
                                ? InbeScreenHabits
                                : InbeScreenStart;
+        app->settings_scroll = 0;
+        break;
+
+    case InbeScreenPracticeConfig:
+        if(app->settings_dirty)
+            save_settings(app);
+        app->inbe.screen = InbeScreenStart;
         app->settings_scroll = 0;
         break;
 
@@ -1886,6 +1893,12 @@ updateapp(InbeApp *app)
         goto finish_frame;
     }
 
+    if(app->inbe.screen == InbeScreenPracticeConfig) {
+        practice_config_screen_draw(app);
+        app_draw_bottom_nav(app);
+        goto finish_frame;
+    }
+
     if(app->inbe.screen == InbeScreenLanguage) {
         language_screen_draw(app);
         goto finish_frame;
@@ -1987,10 +2000,8 @@ updateapp(InbeApp *app)
                ui_draw_icon_btn_padded(settings_x, dropdown_y, settings_icon_size, settings_icon_padding,
                                        app->icons[UI_ICON_TYPE_WRENCH], &hover)) {
                 reset_settings_preview(app);
-                app->settings_tab = SETTINGS_TAB_PRACTICE;
-                app->settings_return_to_practice = 1;
                 app->settings_scroll = 0;
-                app->inbe.screen = InbeScreenSettings;
+                app->inbe.screen = InbeScreenPracticeConfig;
             }
 
             if(!app->modal.active && play_circle_clicked) {

@@ -139,7 +139,7 @@ RONDE %d
 [settings_title]
 Pengaturan
 ---
-[settings_tab_practice]
+[practice_config_title]
 Latihan
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Data
 ---
 [settings_section_data]
 Data
+---
+[settings_tab_about]
+Tentang
 ---
 [settings_section_about]
 Tentang
@@ -365,7 +368,7 @@ Ikuti 4 langkah sederhana:
 3. Tarik napas dalam dan tahan.
 4. Buang napas dan ulangi.
 
-Gunakan ikon roda gigi %i untuk menyesuaikan ronde, nafas, kecepatan, dan jeda.
+Gunakan ikon kunci pas %i untuk menyesuaikan ronde, nafas, kecepatan, dan jeda.
 ---
 [tutorial_step_breathe]
 Isi paru-paru Anda sepenuhnya, lalu biarkan napas keluar.

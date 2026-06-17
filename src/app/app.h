@@ -39,10 +39,17 @@ enum {
 };
 
 enum {
-    SETTINGS_TAB_PRACTICE = 0,
-    SETTINGS_TAB_APP,
+    SETTINGS_TAB_APP = 0,
     SETTINGS_TAB_DATA,
+    SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
+};
+
+enum {
+    SETTINGS_APP_TAB_LANGUAGE = 0,
+    SETTINGS_APP_TAB_THEME,
+    SETTINGS_APP_TAB_DEVICE,
+    SETTINGS_APP_TAB_COUNT
 };
 
 enum {
@@ -154,7 +161,7 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
-    int settings_return_to_practice;
+    int settings_app_tab;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;

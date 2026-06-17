@@ -139,7 +139,7 @@ RODADA %d
 [settings_title]
 Configurações
 ---
-[settings_tab_practice]
+[practice_config_title]
 Prática
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Dados
 ---
 [settings_section_data]
 Dados
+---
+[settings_tab_about]
+Sobre
 ---
 [settings_section_about]
 Sobre
@@ -367,7 +370,7 @@ Basta seguir 4 passos:
 3. Inspire profundamente e segure.
 4. Expire e repita.
 
-Use o ícone de engrenagem %i para ajustar rodadas, respirações, velocidade e pausas.
+Use o ícone de chave inglesa %i para ajustar rodadas, respirações, velocidade e pausas.
 ---
 [tutorial_step_breathe]
 Encha totalmente os pulmões e deixe o ar sair.

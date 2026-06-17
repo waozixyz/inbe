@@ -139,7 +139,7 @@ RONDA %d
 [settings_title]
 Configuración
 ---
-[settings_tab_practice]
+[practice_config_title]
 Práctica
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Datos
 ---
 [settings_section_data]
 Datos
+---
+[settings_tab_about]
+Acerca de
 ---
 [settings_section_about]
 Acerca de
@@ -367,7 +370,7 @@ Simplemente siga 4 pasos:
 3. Inhale profundamente y retenga.
 4. Exhale y repita.
 
-Use el icono de engranaje %i para ajustar rondas, respiraciones, velocidad y pausas.
+Use el icono de llave %i para ajustar rondas, respiraciones, velocidad y pausas.
 ---
 [tutorial_step_breathe]
 Llene sus pulmones completamente, luego deje que el respiración fluya hacia afuera.

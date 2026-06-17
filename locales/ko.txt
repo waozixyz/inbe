@@ -139,7 +139,7 @@ Inner Breeze
 [settings_title]
 설정
 ---
-[settings_tab_practice]
+[practice_config_title]
 연습
 ---
 [settings_section_breathing]
@@ -165,6 +165,9 @@ Inner Breeze
 ---
 [settings_section_data]
 데이터
+---
+[settings_tab_about]
+정보
 ---
 [settings_section_about]
 정보
