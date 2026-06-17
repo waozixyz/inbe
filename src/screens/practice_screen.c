@@ -1,6 +1,6 @@
 #include "practice_screen.h"
-#include "../app.h"
-#include "../locale.h"
+#include "app.h"
+#include "locale.h"
 
 void
 on_practice_tab_click(void *user_data)

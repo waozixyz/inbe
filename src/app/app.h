@@ -39,20 +39,10 @@ enum {
 };
 
 enum {
-    SETTINGS_CATEGORY_PRACTICE = 0,
-    SETTINGS_CATEGORY_MEDITATION = 1
-};
-
-enum {
-    PRACTICE_SUBTAB_BREATHING = 0,
-    PRACTICE_SUBTAB_SESSION,
-    PRACTICE_SUBTAB_COUNT
-};
-
-enum {
-    APP_SETTINGS_TAB_APP = 0,
-    APP_SETTINGS_TAB_DATA_ABOUT,
-    APP_SETTINGS_TAB_COUNT
+    SETTINGS_TAB_PRACTICE = 0,
+    SETTINGS_TAB_APP,
+    SETTINGS_TAB_DATA,
+    SETTINGS_TAB_COUNT
 };
 
 enum {
@@ -163,10 +153,8 @@ struct InbeApp {
     int settings_drag_content_y;
     int settings_dirty;
     int settings_save_delay_ticks;
-    int settings_category;
-    int settings_sub_tab;
-    int app_settings_tab;
-    int settings_from_exercise_selector;
+    int settings_tab;
+    int settings_return_to_practice;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;

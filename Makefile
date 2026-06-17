@@ -53,22 +53,22 @@ endif
 
 APP_SRCS := \
 	src/main.c \
-	src/breath_engine.c \
-	src/app.c \
-	src/app_preferences.c \
-	src/app_session.c \
+	src/core/breath_engine.c \
+	src/app/app.c \
+	src/app/device_preferences.c \
+	src/session/session.c \
 	src/screens/habits_screen.c \
-	src/meditation_music.c \
-	src/locale.c \
-	src/theme.c \
-	src/data.c \
-	src/storage.c \
-	src/miniz.c \
-	src/android/android_device.c \
+	src/session/meditation_music.c \
+	src/core/locale.c \
+	src/core/theme.c \
+	src/storage/data.c \
+	src/storage/storage.c \
+	src/third_party/miniz.c \
+	src/platform/android/android_device.c \
 	src/screens/practice_screen.c \
-	src/tabs/language_tab.c \
-	src/tabs/manual_tab.c \
-	src/tabs/settings_tab.c
+	src/screens/language_screen.c \
+	src/screens/manual_screen.c \
+	src/screens/settings/settings_screen.c
 
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/whm/1.jpg assets/whm/2.jpg
@@ -80,7 +80,7 @@ EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
-APP_INCLUDE := -Isrc -Isrc/android
+APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/session -Isrc/storage -Isrc/platform/android -Isrc/third_party
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=1
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
@@ -108,11 +108,11 @@ run: $(TARGET)
 test: $(STORAGE_IMPORT_TEST)
 	$(STORAGE_IMPORT_TEST)
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage.c src/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/miniz.c src/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/session -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c src/storage.c src/screens/habits_screen.c src/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c src/storage/storage.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):

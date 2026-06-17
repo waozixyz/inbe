@@ -1,4 +1,4 @@
-#include "language_tab.h"
+#include "language_screen.h"
 
 #include "app.h"
 #include "locale.h"
@@ -57,7 +57,7 @@ language_dropdown_menu(InbeApp *app, int id)
 }
 
 void
-language_tab_draw(InbeApp *app)
+language_screen_draw(InbeApp *app)
 {
     int title_font = flint_px(24);
     int label_font = flint_ui_font();

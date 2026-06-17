@@ -1,12 +1,12 @@
 #include "app.h"
 #include "data.h"
 #include "locale.h"
-#include "tabs/language_tab.h"
-#include "tabs/manual_tab.h"
-#include "tabs/settings_tab.h"
+#include "screens/language_screen.h"
+#include "screens/manual_screen.h"
+#include "screens/settings/settings_screen.h"
 #include "screens/practice_screen.h"
-#include "app_session.h"
-#include "app_preferences.h"
+#include "session.h"
+#include "device_preferences.h"
 #include "meditation_music.h"
 #include "storage.h"
 #include "theme.h"
@@ -120,10 +120,8 @@ app_apply_bottom_tab(InbeApp *app, int bottom_tab)
         break;
     case APP_BOTTOM_TAB_SETTINGS:
         reset_settings_preview(app);
-        app->settings_category = -1;
-        app->settings_sub_tab = 0;
-        app->app_settings_tab = APP_SETTINGS_TAB_APP;
-        app->settings_from_exercise_selector = 0;
+        app->settings_tab = SETTINGS_TAB_PRACTICE;
+        app->settings_return_to_practice = 0;
         app->settings_scroll = 0;
         app->inbe.screen = InbeScreenSettings;
         app_schedule_settings_save(app);
@@ -247,7 +245,7 @@ static void on_habits_tab_click(void *user_data) {
     app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
 }
 
-static void on_settings_tab_click(void *user_data) {
+static void on_settings_screen_click(void *user_data) {
     InbeApp *app = user_data;
     app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
 }
@@ -255,7 +253,7 @@ static void on_settings_tab_click(void *user_data) {
 static UITab g_tabs[] = {
     {NULL, {0}, UI_ICON_TYPE_HOME, on_habits_tab_click, NULL},
     {NULL, {0}, UI_ICON_TYPE_AMEN, NULL, NULL},
-    {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_tab_click, NULL}
+    {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_screen_click, NULL}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
@@ -332,7 +330,7 @@ refresh_locale_dependent_text(InbeApp *app)
     if(!config.title_custom) {
         snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
     }
-    manual_tab_reset_layouts(app);
+    manual_screen_reset_layouts(app);
     app->language_index = locale_current_index();
     if(app->language_index < 0)
         app->language_index = 0;
@@ -801,10 +799,8 @@ inbe_app_init(void *vapp) {
     app->settings_drag_content_y = 0;
     app->settings_dirty = 0;
     app->settings_save_delay_ticks = 0;
-    app->settings_category = -1;
-    app->settings_sub_tab = 0;
-    app->app_settings_tab = APP_SETTINGS_TAB_APP;
-    app->settings_from_exercise_selector = 0;
+    app->settings_tab = SETTINGS_TAB_PRACTICE;
+    app->settings_return_to_practice = 0;
     app->practice_coming_soon_ticks = 0;
     app->habit_edit_active = 0;
     app->habit_edit_is_new = 0;
@@ -1113,25 +1109,12 @@ handle_back_button(InbeApp *app)
     case InbeScreenSettings:
         if(app->settings_dirty)
             save_settings(app);
-        settings_tab_clear_status();
-        if(app->settings_from_exercise_selector) {
-            app->settings_from_exercise_selector = 0;
-            app->settings_category = -1;
-            app->settings_sub_tab = 0;
-            app->settings_scroll = 0;
-            app->inbe.screen = InbeScreenStart;
-            break;
-        }
-        if(app->settings_category != -1) {
-            app->settings_category = -1;
-            app->settings_sub_tab = 0;
-            app->settings_scroll = 0;
-        } else {
-            app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                                   ? InbeScreenHabits
-                                   : InbeScreenStart;
-            app->settings_scroll = 0;
-        }
+        settings_screen_clear_status();
+        app->settings_return_to_practice = 0;
+        app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
+                               ? InbeScreenHabits
+                               : InbeScreenStart;
+        app->settings_scroll = 0;
         break;
 
     case InbeScreenHabits:
@@ -1151,7 +1134,7 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenManual:
-        manual_tab_close_tutorial(app, 0);
+        manual_screen_close_tutorial(app, 0);
         break;
 
     case InbeScreenResults:
@@ -1898,18 +1881,18 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenSettings) {
-        settings_tab_draw(app);
+        settings_screen_draw(app);
         app_draw_bottom_nav(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenLanguage) {
-        language_tab_draw(app);
+        language_screen_draw(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenManual) {
-        manual_tab_draw(app);
+        manual_screen_draw(app);
         goto finish_frame;
     }
 
@@ -2004,13 +1987,8 @@ updateapp(InbeApp *app)
                ui_draw_icon_btn_padded(settings_x, dropdown_y, settings_icon_size, settings_icon_padding,
                                        app->icons[UI_ICON_TYPE_WRENCH], &hover)) {
                 reset_settings_preview(app);
-                app->settings_category = app->exercise_type == EXERCISE_MEDITATION
-                                             ? SETTINGS_CATEGORY_MEDITATION
-                                             : SETTINGS_CATEGORY_PRACTICE;
-                app->settings_sub_tab = app->settings_category == SETTINGS_CATEGORY_PRACTICE
-                                            ? PRACTICE_SUBTAB_BREATHING
-                                            : 0;
-                app->settings_from_exercise_selector = 1;
+                app->settings_tab = SETTINGS_TAB_PRACTICE;
+                app->settings_return_to_practice = 1;
                 app->settings_scroll = 0;
                 app->inbe.screen = InbeScreenSettings;
             }
