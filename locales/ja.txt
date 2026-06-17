@@ -41,7 +41,7 @@
 瞑想
 ---
 [meditation_manual_text]
-時間を選び、開始を押して、楽な姿勢で座ります。注意を呼吸に置きます。心がそれたら、やさしく呼吸へ戻ります。ゴングがセッションの始まりと終わりを知らせます。
+音楽が集中を支えてくれるなら選び、楽な姿勢で座ります。注意を呼吸に置きます。思考に引かれたら、はっきり気づき、力まず戻ります。ゴングが始まりと終わりを知らせます。
 ---
 [meditation_music_settings_title]
 瞑想音楽
@@ -66,6 +66,9 @@
 ---
 [meditation_music_test_button]
 試聴
+---
+[meditation_music_stop_test_button]
+テスト停止
 ---
 [duration_5m]
 5分
@@ -112,6 +115,12 @@
 [all_progress_lost_message]
 すべての進捗が失われます。
 ---
+[meditation_under_minute_exit_message]
+これは保存されません。
+---
+[meditation_save_elapsed_message]
+終了する前にこの瞑想を保存しますか？
+---
 [exit_button]
 終了
 ---
@@ -150,9 +159,6 @@
 ---
 [settings_tab_app]
 アプリ
----
-[settings_tab_language]
-言語
 ---
 [settings_tab_theme]
 テーマ

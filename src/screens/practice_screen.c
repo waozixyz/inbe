@@ -35,10 +35,6 @@ practice_activity_label(int exercise)
     switch(exercise) {
     case EXERCISE_MEDITATION:
         return locale_get("exercise_meditation");
-    case EXERCISE_SUN_SALUTATION:
-        return "Sun Salutation";
-    case EXERCISE_7_MINUTE_WORKOUT:
-        return "7-Minute Workout";
     case EXERCISE_WIM_HOF:
     default:
         return locale_get("exercise_wim_hof");

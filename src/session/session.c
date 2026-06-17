@@ -527,11 +527,14 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
 void
 session_draw_inbe(InbeApp *app, int center_x, int center_y)
 {
+    float radius = inbe_draw_radius(&app->inbe);
+
     if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
         draw_hold_progress_outline(app, center_x, center_y);
     } else {
-        DrawCircle(center_x, center_y, app->inbe.r, theme_get_circle());
-        DrawCircleLines(center_x, center_y, app->inbe.r, theme_get_text());
+        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, theme_get_circle());
+        DrawRing((Vector2){(float)center_x, (float)center_y}, radius - 0.75f,
+                 radius + 0.75f, 0.0f, 360.0f, 96, theme_get_text());
     }
     draw_session_counter(app, center_x, center_y);
 }
@@ -547,8 +550,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int font = flint_px(16);
     float scale = 1.0f;
 
-    // Use smaller, consistent circle for all practice types
-    int radius = flint_px(32);
+    int radius = flint_px(44);
 
     // Circular hover detection for all exercises
     float dx = mouse_world.x - center_x;
@@ -651,9 +653,10 @@ draw_session_round_label(InbeApp *app)
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
-    int r = (int)((float)inbe->r * 0.72f);
-    DrawCircle(center_x, center_y, r, theme_get_circle());
-    DrawCircleLines(center_x, center_y, r, theme_get_text());
+    float r = inbe_draw_radius(inbe) * 0.72f;
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, theme_get_circle());
+    DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
+             0.0f, 360.0f, 96, theme_get_text());
 }
 
 static Texture2D

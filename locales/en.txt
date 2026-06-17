@@ -41,7 +41,7 @@ Meditation
 Meditation
 ---
 [meditation_manual_text]
-Choose a duration, press play, and sit comfortably. Let your attention rest on the breath. When your mind wanders, return gently to breathing. A gong marks the beginning and end of the session.
+Choose music if it helps the session feel steady, then sit comfortably. Let attention rest on the breath. When thoughts pull you away, notice that clearly and return without force. A gong marks the beginning and end.
 ---
 [meditation_music_settings_title]
 Meditation Music
@@ -66,6 +66,9 @@ Redownload audio
 ---
 [meditation_music_test_button]
 Test audio
+---
+[meditation_music_stop_test_button]
+Stop test
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Discard
 [all_progress_lost_message]
 All progress will be lost.
 ---
+[meditation_under_minute_exit_message]
+This will not be saved.
+---
+[meditation_save_elapsed_message]
+Save this meditation before exit?
+---
 [exit_button]
 Exit
 ---
@@ -150,9 +159,6 @@ Session
 ---
 [settings_tab_app]
 App
----
-[settings_tab_language]
-Language
 ---
 [settings_tab_theme]
 Theme

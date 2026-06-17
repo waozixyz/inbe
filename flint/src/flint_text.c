@@ -8,6 +8,7 @@
 #include <stddef.h>
 
 static Font g_flint_text_font = {0};
+static Font g_flint_text_small_font = {0};
 
 typedef struct FlintChoppedGlyph {
     int32_t value;
@@ -31,6 +32,20 @@ active_font(void)
     return GetFontDefault();
 }
 
+static Font
+active_font_for_size(int font_size)
+{
+    if(font_size <= flint_px(FLINT_TEXT_8) &&
+       g_flint_text_small_font.texture.id != 0 &&
+       g_flint_text_small_font.glyphs != NULL &&
+       g_flint_text_small_font.recs != NULL &&
+       g_flint_text_small_font.glyphCount > 0 &&
+       g_flint_text_small_font.baseSize > 0)
+        return g_flint_text_small_font;
+
+    return active_font();
+}
+
 static float
 font_spacing(Font font, int font_size)
 {
@@ -45,6 +60,12 @@ void
 flint_text_set_font(Font font)
 {
     g_flint_text_font = font;
+}
+
+void
+flint_text_set_small_font(Font font)
+{
+    g_flint_text_small_font = font;
 }
 
 Font
@@ -209,6 +230,7 @@ int
 flint_text_size(int preferred_size)
 {
     static const int sizes[] = {
+        FLINT_TEXT_8,
         FLINT_TEXT_12,
         FLINT_TEXT_14,
         FLINT_TEXT_16,
@@ -240,7 +262,7 @@ flint_text_dpi_size(int base_size)
 int
 flint_text_measure(const char *text, int font_size)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
     Vector2 size;
 
     if(text == NULL || font.texture.id == 0)
@@ -279,7 +301,7 @@ flint_text_measure_scaled(const char *text, int scale)
 void
 flint_text_draw(const char *text, int x, int y, int font_size, Color color)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
 
     if(text == NULL || font.texture.id == 0)
         return;

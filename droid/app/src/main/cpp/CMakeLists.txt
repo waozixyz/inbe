@@ -20,6 +20,8 @@ set(INBE_EMBEDDED_INPUTS
     assets/whm/2.jpg
     assets/fonts/locales.png
     assets/fonts/locales.dat
+    assets/fonts/locales-8.png
+    assets/fonts/locales-8.dat
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)
@@ -84,36 +86,44 @@ target_include_directories(raylib PUBLIC
 
 add_library(main SHARED
     "${SRC_DIR}/main.c"
-    "${SRC_DIR}/inbe.c"
-    "${SRC_DIR}/app.c"
-    "${SRC_DIR}/app_preferences.c"
-    "${SRC_DIR}/app_session.c"
-    "${SRC_DIR}/habits/habits.c"
-    "${SRC_DIR}/meditation_music.c"
-    "${SRC_DIR}/locale.c"
-    "${SRC_DIR}/theme.c"
-    "${SRC_DIR}/data.c"
-    "${SRC_DIR}/storage.c"
-    "${SRC_DIR}/miniz.c"
+    "${SRC_DIR}/core/breath_engine.c"
+    "${SRC_DIR}/app/app.c"
+    "${SRC_DIR}/app/device_preferences.c"
+    "${SRC_DIR}/session/session.c"
+    "${SRC_DIR}/screens/habits_screen.c"
+    "${SRC_DIR}/session/meditation_music.c"
+    "${SRC_DIR}/core/locale.c"
+    "${SRC_DIR}/core/theme.c"
+    "${SRC_DIR}/storage/data.c"
+    "${SRC_DIR}/storage/storage.c"
+    "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
-    "${SRC_DIR}/android/android_device.c"
-    "${SRC_DIR}/android/android_import.c"
-    "${SRC_DIR}/android/android_runtime_assets.c"
-    "${SRC_DIR}/android/android_share.c"
-    "${SRC_DIR}/tabs/language_tab.c"
-    "${SRC_DIR}/tabs/manual_tab.c"
-    "${SRC_DIR}/tabs/settings_tab.c"
+    "${SRC_DIR}/platform/android/android_device.c"
+    "${SRC_DIR}/platform/android/android_import.c"
+    "${SRC_DIR}/platform/android/android_runtime_assets.c"
+    "${SRC_DIR}/platform/android/android_share.c"
+    "${SRC_DIR}/screens/practice_screen.c"
+    "${SRC_DIR}/screens/language_screen.c"
+    "${SRC_DIR}/screens/manual_screen.c"
+    "${SRC_DIR}/screens/settings/settings_screen.c"
     "${INBE_EMBEDDED_ASSETS_C}"
     ${FLINT_SOURCES}
-    "${SRC_DIR}/android/android_insets.c"
-    "${SRC_DIR}/android/android_wakelock.c"
-    "${SRC_DIR}/android/android_timer.c"
+    "${SRC_DIR}/platform/android/android_insets.c"
+    "${SRC_DIR}/platform/android/android_wakelock.c"
+    "${SRC_DIR}/platform/android/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 
 target_include_directories(main PRIVATE
     "${SRC_DIR}"
-    "${SRC_DIR}/android"
+    "${SRC_DIR}/app"
+    "${SRC_DIR}/core"
+    "${SRC_DIR}/screens"
+    "${SRC_DIR}/screens/settings"
+    "${SRC_DIR}/session"
+    "${SRC_DIR}/storage"
+    "${SRC_DIR}/platform/android"
+    "${SRC_DIR}/third_party"
     "${NATIVE_APP_GLUE_DIR}"
     "${FLINT_DIR}/include"
     "${SQLITE_BUILD_DIR}"

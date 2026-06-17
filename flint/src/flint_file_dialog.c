@@ -50,13 +50,90 @@ static int compare_entries(const void *a, const void *b) {
     return strcmp(ea->name, eb->name);
 }
 
+static void join_path(char *dst, size_t dst_size, const char *dir, const char *name);
+
 static void copy_text(char *dst, size_t dst_size, const char *src) {
     if(dst_size == 0) return;
+    if(src == NULL) src = "";
     size_t len = strlen(src);
     if(len >= dst_size)
         len = dst_size - 1;
     memcpy(dst, src, len);
     dst[len] = '\0';
+}
+
+static int ascii_tolower(int c) {
+    if(c >= 'A' && c <= 'Z')
+        return c + ('a' - 'A');
+    return c;
+}
+
+static int extension_equal(const char *a, const char *b, size_t n) {
+    for(size_t i = 0; i < n; i++) {
+        if(ascii_tolower((unsigned char)a[i]) != ascii_tolower((unsigned char)b[i]))
+            return 0;
+    }
+    return 1;
+}
+
+static int file_matches_filter(const char *name, const char *filter) {
+    const char *p;
+    size_t name_len;
+
+    if(filter == NULL || filter[0] == '\0')
+        return 1;
+    if(name == NULL)
+        return 0;
+
+    name_len = strlen(name);
+    p = filter;
+    while(*p != '\0') {
+        char ext[32];
+        size_t ext_len = 0;
+
+        while(*p == ' ' || *p == ',')
+            p++;
+        while(*p != '\0' && *p != ',' && ext_len + 1 < sizeof(ext))
+            ext[ext_len++] = *p++;
+        ext[ext_len] = '\0';
+        while(*p != '\0' && *p != ',')
+            p++;
+
+        if(ext_len > 0 && name_len >= ext_len &&
+           extension_equal(name + name_len - ext_len, ext, ext_len))
+            return 1;
+    }
+
+    return 0;
+}
+
+static int should_show_entry(FlintFileDialogInternal *internal, const char *name, int *is_dir, long *size) {
+    char full_path[PATH_MAX];
+    struct stat st;
+    int entry_is_dir = 0;
+    long entry_size = 0;
+
+    if(internal == NULL || name == NULL)
+        return 0;
+    if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+        return 0;
+    if(!internal->show_hidden_files && name[0] == '.')
+        return 0;
+
+    join_path(full_path, sizeof(full_path), internal->current_dir, name);
+    if(stat(full_path, &st) == 0) {
+        entry_is_dir = S_ISDIR(st.st_mode);
+        entry_size = st.st_size;
+    }
+
+    if(!entry_is_dir && !file_matches_filter(name, internal->extension_filter))
+        return 0;
+
+    if(is_dir != NULL)
+        *is_dir = entry_is_dir;
+    if(size != NULL)
+        *size = entry_size;
+    return 1;
 }
 
 static void join_path(char *dst, size_t dst_size, const char *dir, const char *name) {
@@ -97,9 +174,7 @@ static int scan_directory(FlintFileDialogInternal *internal) {
     int count = 0;
 
     while((entry = readdir(dir))) {
-        if(strcmp(entry->d_name, ".") == 0) continue;
-        if(strcmp(entry->d_name, "..") == 0) continue;
-        if(!internal->show_hidden_files && entry->d_name[0] == '.') continue;
+        if(!should_show_entry(internal, entry->d_name, NULL, NULL)) continue;
         count++;
     }
 
@@ -119,31 +194,16 @@ static int scan_directory(FlintFileDialogInternal *internal) {
     internal->file_count = 0;
 
     while((entry = readdir(dir))) {
-        if(strcmp(entry->d_name, ".") == 0) continue;
-        if(strcmp(entry->d_name, "..") == 0) continue;
-        if(!internal->show_hidden_files && entry->d_name[0] == '.') continue;
+        int is_dir = 0;
+        long size = 0;
+        if(!should_show_entry(internal, entry->d_name, &is_dir, &size)) continue;
 
         copy_text(internal->entries[internal->file_count].name,
                   sizeof(internal->entries[internal->file_count].name),
                   entry->d_name);
 
-        char full_path[PATH_MAX];
-        join_path(full_path, sizeof(full_path), internal->current_dir, entry->d_name);
-        if(strlen(full_path) == sizeof(full_path) - 1) {
-            internal->entries[internal->file_count].is_dir = 0;
-            internal->entries[internal->file_count].size = 0;
-            internal->file_count++;
-            continue;
-        }
-
-        struct stat st;
-        if(stat(full_path, &st) == 0) {
-            internal->entries[internal->file_count].is_dir = S_ISDIR(st.st_mode);
-            internal->entries[internal->file_count].size = st.st_size;
-        } else {
-            internal->entries[internal->file_count].is_dir = 0;
-            internal->entries[internal->file_count].size = 0;
-        }
+        internal->entries[internal->file_count].is_dir = is_dir;
+        internal->entries[internal->file_count].size = size;
 
         internal->file_count++;
     }
@@ -705,11 +765,13 @@ int flint_file_dialog_load(FlintFileDialog *dlg, const char *title) {
     flint_file_dialog_init(dlg);
     dlg->mode = FLINT_FILE_DIALOG_LOAD;
     copy_text(dlg->title, sizeof(dlg->title), title);
-    copy_text(dlg->filter, sizeof(dlg->filter), "*.zip");
+    copy_text(dlg->filter, sizeof(dlg->filter), ".db,.zip");
     dlg->active = 1;
     dlg->confirmed = 0;
 
     FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
+    copy_text(internal->extension_filter, sizeof(internal->extension_filter), dlg->filter);
+    scan_directory(internal);
     internal->filename_input[0] = '\0';
     internal->selected_file[0] = '\0';
     internal->hover_index = 0;

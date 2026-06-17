@@ -41,7 +41,7 @@ Meditasi
 Meditasi
 ---
 [meditation_manual_text]
-Pilih durasi, tekan mulai, lalu duduk dengan nyaman. Biarkan perhatian beristirahat pada napas. Saat pikiran mengembara, kembali perlahan ke pernapasan. Gong menandai awal dan akhir sesi.
+Pilih musik jika membantu sesi terasa stabil, lalu duduk dengan nyaman. Biarkan perhatian beristirahat pada napas. Saat pikiran menarikmu pergi, sadari dengan jelas dan kembali tanpa memaksa. Gong menandai awal dan akhir.
 ---
 [meditation_music_settings_title]
 Musik meditasi
@@ -66,6 +66,9 @@ Unduh ulang audio
 ---
 [meditation_music_test_button]
 Coba putar
+---
+[meditation_music_stop_test_button]
+Hentikan tes
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Buang
 [all_progress_lost_message]
 Semua kemajuan akan hilang.
 ---
+[meditation_under_minute_exit_message]
+Ini tidak akan disimpan.
+---
+[meditation_save_elapsed_message]
+Simpan meditasi ini sebelum keluar?
+---
 [exit_button]
 Keluar
 ---
@@ -150,9 +159,6 @@ Sesi
 ---
 [settings_tab_app]
 Aplikasi
----
-[settings_tab_language]
-Bahasa
 ---
 [settings_tab_theme]
 Tema

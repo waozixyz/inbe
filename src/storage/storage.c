@@ -14,6 +14,10 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
+#if defined(__EMSCRIPTEN__)
+#include <emscripten.h>
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
@@ -28,6 +32,36 @@ typedef struct StorageState {
 } StorageState;
 
 static StorageState g_storage;
+
+static void
+storage_schedule_persist(void)
+{
+#if defined(__EMSCRIPTEN__)
+    EM_ASM({
+        if(typeof FS === 'undefined' || typeof FS.syncfs !== 'function')
+            return;
+        Module.__inbeStorageSyncPending = true;
+        if(Module.__inbeStorageSyncTimer)
+            clearTimeout(Module.__inbeStorageSyncTimer);
+        Module.__inbeStorageSyncTimer = setTimeout(function() {
+            Module.__inbeStorageSyncTimer = 0;
+            Module.__inbeStorageSyncing = true;
+            try {
+                FS.syncfs(false, function(err) {
+                    Module.__inbeStorageSyncing = false;
+                    Module.__inbeStorageSyncPending = false;
+                    if(err)
+                        console.error("IDBFS save failed:", err);
+                });
+            } catch(e) {
+                Module.__inbeStorageSyncing = false;
+                Module.__inbeStorageSyncPending = false;
+                console.error("IDBFS sync error:", e);
+            }
+        }, 120);
+    });
+#endif
+}
 
 static int
 path_exists(const char *path)
@@ -382,6 +416,7 @@ inbe_storage_set_setting_text(const char *key, const char *value)
     sqlite3_bind_int64(stmt, 4, now_seconds());
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+    storage_schedule_persist();
 }
 
 void
@@ -398,6 +433,7 @@ inbe_storage_settings_end_write(void)
     if(g_storage.db == NULL)
         return;
     exec_sql("COMMIT");
+    storage_schedule_persist();
 }
 
 void
@@ -459,6 +495,7 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
 
     if(out_id != NULL && out_id_size > 0)
         snprintf(out_id, out_id_size, "db:%s", id);
+    storage_schedule_persist();
     return 1;
 }
 
@@ -588,6 +625,7 @@ inbe_storage_replace_session(const char *path_or_id, const int *round_times, int
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     exec_sql("COMMIT");
+    storage_schedule_persist();
     return 1;
 
 fail:
@@ -631,6 +669,7 @@ inbe_storage_rename_session_time(const char *path_or_id, int hour, int minute)
     sqlite3_bind_int64(stmt, 2, (sqlite3_int64)t);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+    storage_schedule_persist();
     return 1;
 }
 
@@ -647,6 +686,7 @@ inbe_storage_delete_session(const char *path_or_id)
     sqlite3_bind_int64(stmt, 2, now_seconds());
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
+    storage_schedule_persist();
     return 1;
 }
 
@@ -691,7 +731,19 @@ inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, voi
 int
 inbe_storage_has_any(void)
 {
-    return inbe_storage_session_count() > 0;
+    sqlite3_stmt *stmt = NULL;
+    int count = inbe_storage_session_count();
+
+    if(count > 0)
+        return 1;
+    if(g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habit_days", -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        count = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return count > 0;
 }
 
 int
@@ -713,6 +765,8 @@ long long
 inbe_storage_total_size(void)
 {
     struct stat st;
+    if(!inbe_storage_has_any())
+        return 0;
     if(g_storage.db_path[0] != '\0' && stat(g_storage.db_path, &st) == 0)
         return (long long)st.st_size;
     return 0;
@@ -721,9 +775,42 @@ inbe_storage_total_size(void)
 long long
 inbe_storage_delete_all_sessions(void)
 {
+    sqlite3_stmt *stmt = NULL;
     int count = inbe_storage_session_count();
-    exec_sql("UPDATE sessions SET deleted_at=strftime('%s','now') WHERE deleted_at=0");
-    return count;
+    int habit_day_count = 0;
+
+    if(g_storage.db == NULL)
+        return 0;
+
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habit_days", -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            habit_day_count = sqlite3_column_int(stmt, 0);
+        sqlite3_finalize(stmt);
+    }
+    if(count <= 0 && habit_day_count <= 0)
+        return 0;
+
+    if(!exec_sql("BEGIN IMMEDIATE"))
+        return 0;
+    if(!exec_sql("DELETE FROM session_rounds")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
+    if(!exec_sql("DELETE FROM sessions")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
+    if(!exec_sql("DELETE FROM habit_days")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
+    if(!exec_sql("COMMIT")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
+    exec_sql("VACUUM");
+    storage_schedule_persist();
+    return count + habit_day_count;
 }
 
 int
@@ -836,6 +923,7 @@ inbe_storage_habits_save(const void *habits_ptr)
         }
     }
     exec_sql("COMMIT");
+    storage_schedule_persist();
 }
 
 int
@@ -990,6 +1078,8 @@ done:
     sqlite3_finalize(hstmt);
     if(src != NULL)
         sqlite3_close(src);
+    if(ok)
+        storage_schedule_persist();
     return ok;
 }
 

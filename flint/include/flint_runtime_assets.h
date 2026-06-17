@@ -17,7 +17,8 @@ typedef struct FlintRuntimeAssetDownload {
     char path[512];
     char error[256];
     long http_status;
-    size_t bytes;
+    volatile size_t bytes;
+    volatile size_t total_bytes;
     void *platform;
 } FlintRuntimeAssetDownload;
 

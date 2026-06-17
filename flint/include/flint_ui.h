@@ -5,6 +5,7 @@
 #include "flint.h"
 #include "flint_text.h"
 #include "ui_icon_types.h"
+#include <stddef.h>
 
 typedef enum {
     UI_ICON_SIZE_TINY,
@@ -70,6 +71,18 @@ typedef struct {
     FlintUITextInputStyle style;
 } FlintUITextInput;
 
+typedef int (*FlintUITextInputFilter)(int codepoint, void *user_data);
+
+typedef struct {
+    char *text;
+    size_t text_size;
+    int *cursor_position;
+    int max_codepoints;
+    FlintUITextInputFilter filter;
+    void *filter_user_data;
+    int *commit_pressed;
+} FlintUITextEdit;
+
 typedef struct {
     const char *text;
     Texture2D icon;
@@ -131,9 +144,12 @@ typedef struct {
     int right_clicked;
 } FlintUIHeader;
 
+typedef void (*FlintUITextInputPlatformCallback)(int active);
+
 void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon);
 void ui_set_frame(Camera2D camera);
+void flint_ui_set_text_input_platform_callback(FlintUITextInputPlatformCallback callback);
 void ui_set_cursor_clickable(int *cursor_clickable);
 void ui_set_cursor_disabled(int *cursor_disabled);
 void ui_set_icons(Texture2D gear_icon, Texture2D x_icon);
@@ -147,6 +163,10 @@ void flint_ui_draw_text_centered(const char *text, int center_x, int center_y, i
 void flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position,
                               int focused, int cursor_visible, int font,
                               FlintUITextInputStyle style);
+int flint_ui_text_edit(FlintUITextEdit edit);
+void flint_ui_text_input_queue_codepoint(int codepoint);
+void flint_ui_text_input_queue_backspace(void);
+void flint_ui_text_input_queue_enter(void);
 int flint_ui_button(FlintUIButton button);
 int flint_ui_icon_button(FlintUIIconButton button);
 int flint_ui_text_input(FlintUITextInput input);

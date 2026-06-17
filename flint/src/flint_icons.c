@@ -90,6 +90,7 @@ flint_load_all_icons(Texture2D *icons)
         "wrench.png",          // UI_ICON_TYPE_WRENCH
         "plus.png",            // UI_ICON_TYPE_PLUS
         "stack.png",           // UI_ICON_TYPE_STACK
+        "calendar.png",        // UI_ICON_TYPE_CALENDAR
 
         // Social & payment icons
         "discord.png",         // UI_ICON_TYPE_DISCORD
@@ -107,10 +108,12 @@ flint_load_all_icons(Texture2D *icons)
         "sound2.png",          // UI_ICON_TYPE_SOUND2
         "sound3.png",          // UI_ICON_TYPE_SOUND3
         "mute.png",            // UI_ICON_TYPE_MUTE
+        "music.png",           // UI_ICON_TYPE_MUSIC
 
         // Habit & practice icons
         "habit.png",            // UI_ICON_TYPE_HABIT
         "amen.png",            // UI_ICON_TYPE_AMEN
+        "weekly.png",          // UI_ICON_TYPE_WEEKLY
         "inbe.png",            // UI_ICON_TYPE_INBE
 
         // Meditation & theme icons
@@ -181,4 +184,3 @@ flint_unload_all_icons(Texture2D *icons)
         }
     }
 }
-

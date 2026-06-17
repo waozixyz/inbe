@@ -17,6 +17,7 @@ typedef struct {
     char current_dir[PATH_MAX];
     char selected_file[256];
     char filename_input[256];
+    char extension_filter[64];
     int file_count;
     DirEntry *entries;
     int scroll_offset;

@@ -349,43 +349,43 @@ settings_screen_handle_android_import(void)
 #endif
 
 static int
-practice_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
-                             int *draw_meditation_music_menu)
+wim_hof_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y)
 {
+    int preview_h = flint_px(240);
+    int preview_radius;
+    int preview_padding = flint_px(12);
     int speed = app->inbe.speed_level;
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
     int progressive_start_speed = app->inbe.progressive_start_speed;
     int progressive_speed = app->inbe.progressive_speed;
-    int advanced_session_controls = app->advanced_session_controls;
     int toggle_w = flint_px(56);
     int toggle_h = flint_px(30);
-    int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
-    int reset_h = flint_px(36);
-    int reset_hover = 0;
 
-    update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
+    update_preview_bounds(&app->settings_preview, content_w, preview_h);
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
     app->settings_preview.progressive_speed = 0;
     inbestep(&app->settings_preview);
     if(app->settings_preview.phase != InbePhaseBreathe) {
         reset_settings_preview(app);
-        update_preview_bounds(&app->settings_preview, content_w, flint_px(240));
+        update_preview_bounds(&app->settings_preview, content_w, preview_h);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_preview.progressive_speed = 0;
     }
 
-    settings_draw_section_title(locale_get("settings_section_breathing"), content_x, &y);
-    draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + flint_px(82));
-    if(ui_draw_slider(1, content_x, y + flint_px(174), content_w, locale_get("speed_label"),
+    preview_radius = (int)((float)app->settings_preview.rmax * 0.72f + 1.0f);
+    draw_preview_inbe(&app->settings_preview, content_x + content_w / 2,
+                      y + preview_padding + preview_radius);
+    if(ui_draw_slider(1, content_x, y + preview_padding + preview_radius * 2 + flint_px(28),
+                      content_w, locale_get("speed_label"),
                       SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_preview.progressive_speed = 0;
         app->settings_dirty = 1;
     }
-    y += flint_px(248);
+    y += preview_padding + preview_radius * 2 + flint_px(102);
 
     flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), theme_get_text());
     if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &progressive_speed,
@@ -416,8 +416,23 @@ practice_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
         y += flint_px(58);
     }
 
-    y += flint_px(10);
-    settings_draw_section_title(locale_get("settings_section_session"), content_x, &y);
+    return y;
+}
+
+static int
+wim_hof_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
+{
+    int speed = app->inbe.speed_level;
+    int max_rounds = app->inbe.max_rounds;
+    int max_breaths = int_from_count(app->inbe.maxbreaths);
+    int pause_seconds = app->inbe.pause_seconds;
+    int advanced_session_controls = app->advanced_session_controls;
+    int toggle_w = flint_px(56);
+    int toggle_h = flint_px(30);
+    int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
+    int reset_h = flint_px(36);
+    int reset_hover = 0;
+
     if(ui_draw_slider(2, content_x, y, content_w, locale_get("max_rounds_label"),
                       1, MaxRounds, &max_rounds, "")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
@@ -469,12 +484,24 @@ practice_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
     }
     y += reset_h + flint_px(28);
 
-    if(app->exercise_type == EXERCISE_MEDITATION) {
-        settings_draw_section_title(locale_get("meditation_music_section_title"), content_x, &y);
-        meditation_music_draw_settings(app, content_x, content_w, &y);
-        if(draw_meditation_music_menu != NULL)
-            *draw_meditation_music_menu = 1;
-    }
+    return y;
+}
+
+static int
+wim_hof_config_draw_content(InbeApp *app, int content_x, int content_w, int y)
+{
+    if(app->practice_config_tab == 0)
+        return wim_hof_config_draw_breathing_tab(app, content_x, content_w, y);
+    return wim_hof_config_draw_session_tab(app, content_x, content_w, y);
+}
+
+static int
+meditation_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
+                               int *draw_meditation_music_menu)
+{
+    meditation_music_draw_settings(app, content_x, content_w, &y);
+    if(draw_meditation_music_menu != NULL)
+        *draw_meditation_music_menu = 1;
 
     return y;
 }
@@ -483,6 +510,8 @@ void
 practice_config_screen_draw(InbeApp *app)
 {
     int title_h = ui_screen_header_height();
+    int config_tab_h = flint_px(40);
+    int config_tab_gap = flint_px(14);
     int content_x;
     int content_w;
     int responsive_max_w = (int)(view_width * 0.96f);
@@ -493,6 +522,12 @@ practice_config_screen_draw(InbeApp *app)
     int content_h;
     int y;
     int draw_meditation_music_menu = 0;
+    int has_config_tabs = app->exercise_type == EXERCISE_WIM_HOF;
+    int clicked_config_tab = -1;
+    const char *config_tabs[] = {
+        locale_get("settings_section_breathing"),
+        locale_get("settings_section_session"),
+    };
     FlintUIScrollArea scroll_area;
     FlintUIScrollView scroll_view;
     FlintUIHeader header;
@@ -506,20 +541,39 @@ practice_config_screen_draw(InbeApp *app)
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
 
-    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
+    if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
+        app->practice_config_tab = 0;
+
+    header = ui_draw_title_header(title_h, locale_get(app->exercise_type == EXERCISE_MEDITATION
+                                                          ? "exercise_meditation"
+                                                          : "exercise_wim_hof"),
                                   (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
     if(header.right_clicked) {
         if(app->settings_dirty)
             save_settings(app);
+        meditation_music_unload(app);
         app->settings_scroll = 0;
         app->inbe.screen = InbeScreenStart;
     }
 
-    scroll_y = title_h + flint_px(16);
+    if(has_config_tabs) {
+        clicked_config_tab = settings_draw_subtab_bar(title_h, config_tab_h, config_tabs, 2,
+                                                      app->practice_config_tab);
+        if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
+            app->practice_config_tab = clicked_config_tab;
+            app->settings_scroll = 0;
+        }
+        scroll_y = title_h + config_tab_h + config_tab_gap;
+    } else {
+        scroll_y = title_h + flint_px(16);
+    }
     scroll_h = view_height - scroll_y - flint_px(TAB_BAR_H);
     if(scroll_h < 0)
         scroll_h = 0;
-    content_h = flint_px(app->exercise_type == EXERCISE_MEDITATION ? 1030 : 780);
+    if(app->exercise_type == EXERCISE_MEDITATION)
+        content_h = flint_px(540);
+    else
+        content_h = flint_px(app->practice_config_tab == 0 ? 470 : 430);
     scroll_area = (FlintUIScrollArea){
         .bounds = {(float)content_x, (float)scroll_y, (float)content_w, (float)scroll_h},
         .content_height = content_h,
@@ -527,16 +581,14 @@ practice_config_screen_draw(InbeApp *app)
         .wheel_step = flint_px(42)
     };
 
-    ui_begin_scissor((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + scroll_y * app->camera.zoom),
-                     (int)(view_width * app->camera.zoom),
-                     (int)(scroll_h * app->camera.zoom));
     scroll_view = ui_scroll_container_begin(scroll_area);
-    y = practice_config_draw_content(app, content_x, content_w, scroll_view.content_y,
-                                     &draw_meditation_music_menu);
+    if(app->exercise_type == EXERCISE_MEDITATION)
+        y = meditation_config_draw_content(app, content_x, content_w, scroll_view.content_y,
+                                           &draw_meditation_music_menu);
+    else
+        y = wim_hof_config_draw_content(app, content_x, content_w, scroll_view.content_y);
     (void)y;
     ui_scroll_container_end(scroll_area, scroll_view);
-    ui_end_scissor();
 
     if(draw_meditation_music_menu)
         meditation_music_draw_dropdown_menu(app);
@@ -642,8 +694,11 @@ settings_screen_draw(InbeApp *app)
 
     {
         int app_content_h = flint_px(530);
+        int planned_content_w = content_w - flint_px(16);
+        if(planned_content_w < flint_px(160))
+            planned_content_w = content_w;
         if(app->settings_tab == SETTINGS_TAB_THEME)
-            app_content_h = flint_px(120) + ui_theme_picker_height(content_w);
+            app_content_h = flint_px(120) + ui_theme_picker_height(planned_content_w);
         else if(app->settings_tab == SETTINGS_TAB_DEVICE)
             app_content_h = flint_px(570);
         else if(app->settings_tab == SETTINGS_TAB_DATA)
@@ -658,25 +713,26 @@ settings_screen_draw(InbeApp *app)
             .wheel_step = flint_px(42)
         };
         FlintUIScrollView scroll_view = ui_scroll_container_begin(scroll_area);
+        int draw_x = scroll_view.content_x;
+        int draw_w = scroll_view.content_w;
         y = scroll_view.content_y;
 
         if(app->settings_tab == SETTINGS_TAB_THEME) {
 
-            settings_draw_section_title(locale_get("settings_section_appearance"), content_x, &y);
             app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-            flint_text_draw(locale_get("theme_mode_label"), content_x, y, flint_ui_font(), theme_get_text());
-            ui_draw_dropdown_button(102, content_x, y + flint_px(26), content_w,
+            flint_text_draw(locale_get("theme_mode_label"), draw_x, y, flint_ui_font(), theme_get_text());
+            ui_draw_dropdown_button(102, draw_x, y + flint_px(26), draw_w,
                                     flint_px(36), theme_mode_options, 3, &app->theme_mode);
             draw_theme_mode_menu = 1;
             y += flint_px(76);
-            if(ui_draw_theme_picker(content_x, y, content_w, locale_get("theme_label"),
+            if(ui_draw_theme_picker(draw_x, y, draw_w, locale_get("theme_label"),
                                     app->dark_mode, &app->theme_id)) {
                 app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
                 app_refresh_theme(app);
                 app->settings_dirty = 1;
                 save_settings(app);
             }
-            y += ui_theme_picker_height(content_w) + flint_px(20);
+            y += ui_theme_picker_height(draw_w) + flint_px(20);
 
         } else if(app->settings_tab == SETTINGS_TAB_DEVICE) {
 
@@ -685,18 +741,16 @@ settings_screen_draw(InbeApp *app)
             int toggle_w = flint_px(56);
             int toggle_h = flint_px(30);
 
-            settings_draw_section_title(locale_get("settings_section_language"), content_x, &y);
 #if defined(LOTUS_BUILD)
-            flint_text_draw(locale_current_code(), content_x, y, flint_ui_font(), theme_get_text());
+            flint_text_draw(locale_current_code(), draw_x, y, flint_ui_font(), theme_get_text());
 #else
-            if(language_dropdown_button(app, 101, content_x, y, content_w, flint_px(36), &app->language_index))
+            if(language_dropdown_button(app, 101, draw_x, y, draw_w, flint_px(36), &app->language_index))
                 language_menu_changed = 1;
             draw_language_menu = 1;
 #endif
             y += flint_px(74);
 
-            settings_draw_section_title(locale_get("settings_section_sound"), content_x, &y);
-            if(ui_draw_slider(6, content_x, y, content_w, locale_get("volume_label"),
+            if(ui_draw_slider(6, draw_x, y, draw_w, locale_get("volume_label"),
                               SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &sound_volume, "")) {
                 app->sound_volume = sound_volume;
                 app->settings_dirty = 1;
@@ -706,8 +760,8 @@ settings_screen_draw(InbeApp *app)
 #ifdef __ANDROID__
             {
                 int play_in_background = app->inbe.play_in_background;
-                flint_text_draw(locale_get("play_in_background_label"), content_x, y, flint_ui_font(), theme_get_text());
-                if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h,
+                flint_text_draw(locale_get("play_in_background_label"), draw_x, y, flint_ui_font(), theme_get_text());
+                if(ui_draw_toggle_switch(draw_x, y + flint_px(26), toggle_w, toggle_h,
                                          &play_in_background, locale_get("toggle_off"), locale_get("toggle_on"))) {
                     app->inbe.play_in_background = play_in_background;
                     app->settings_dirty = 1;
@@ -715,22 +769,21 @@ settings_screen_draw(InbeApp *app)
                 y += flint_px(76);
             }
 #endif
-            settings_draw_section_title(locale_get("settings_tab_device"), content_x, &y);
             {
                 int orientation_max = orientation_option_count - 1;
                 app->orientation_mode = clampi(app->orientation_mode,
                                                APP_ORIENTATION_SYSTEM,
                                                orientation_max);
-                flint_text_draw(locale_get("orientation_label"), content_x, y,
+                flint_text_draw(locale_get("orientation_label"), draw_x, y,
                                 flint_ui_font(), theme_get_text());
-                ui_draw_dropdown_button(103, content_x, y + flint_px(26), content_w,
+                ui_draw_dropdown_button(103, draw_x, y + flint_px(26), draw_w,
                                         flint_px(36), orientation_options, orientation_option_count,
                                         &app->orientation_mode);
                 draw_orientation_menu = 1;
                 y += flint_px(76);
             }
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-            if(ui_draw_checkbox_toggle(content_x, y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
+            if(ui_draw_checkbox_toggle(draw_x, y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
                 if(app->fullscreen_enabled && !IsWindowFullscreen())
                     ToggleFullscreen();
                 else if(!app->fullscreen_enabled && IsWindowFullscreen())
@@ -739,8 +792,8 @@ settings_screen_draw(InbeApp *app)
             }
             y += flint_px(50);
 #endif
-            flint_text_draw(locale_get("on_screen_keyboard_label"), content_x, y, flint_ui_font(), theme_get_text());
-            if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h,
+            flint_text_draw(locale_get("on_screen_keyboard_label"), draw_x, y, flint_ui_font(), theme_get_text());
+            if(ui_draw_toggle_switch(draw_x, y + flint_px(26), toggle_w, toggle_h,
                                      &keyboard_toggle, locale_get("toggle_off"), locale_get("toggle_on"))) {
                 app->on_screen_keyboard_enabled = keyboard_toggle;
                 app->settings_dirty = 1;
@@ -753,13 +806,12 @@ settings_screen_draw(InbeApp *app)
             int data_button_h = flint_px(36);
             int data_hover = 0;
 
-            settings_draw_section_title(locale_get("settings_section_data"), content_x, &y);
-            settings_draw_data_stats(content_x, y, content_w);
+            settings_draw_data_stats(draw_x, y, draw_w);
             y += flint_px(98);
             data_button_w = flint_text_measure(locale_get("data_management_button"), flint_ui_font()) + flint_px(24);
-            if(data_button_w > content_w)
-                data_button_w = content_w;
-            if(ui_draw_generic_button(content_x, y, data_button_w, data_button_h,
+            if(data_button_w > draw_w)
+                data_button_w = draw_w;
+            if(ui_draw_generic_button(draw_x, y, data_button_w, data_button_h,
                                       locale_get("data_management_button"),
                                       UI_BUTTON_STYLE_PRIMARY, 0, &data_hover)) {
                 app->modal.active = 1;
@@ -767,10 +819,10 @@ settings_screen_draw(InbeApp *app)
                 app->modal.selected_button = 0;
             }
             y += data_button_h + flint_px(16);
-            settings_draw_status(content_x, &y);
+            settings_draw_status(draw_x, &y);
             y += flint_px(26);
             y += flint_px(20);
-            settings_draw_about_block(app, content_x, content_w, &y);
+            settings_draw_about_block(app, draw_x, draw_w, &y);
         }
         y += flint_px(40);
         ui_scroll_container_end(scroll_area, scroll_view);
@@ -966,10 +1018,20 @@ settings_screen_draw(InbeApp *app)
             app->modal.type = UIModalNone;
             if(deleted > 0) {
                 char deleted_message[128];
+                inbe_habits_clear_days(&app->habits);
+                inbe_habits_save(&app->habits);
                 locale_format(deleted_message, sizeof(deleted_message), "deleted_sessions", deleted);
                 settings_screen_set_status_success(deleted_message, NULL);
             } else {
-                settings_screen_set_status_error(locale_get("no_data_to_delete"));
+                int cleared = inbe_habits_clear_days(&app->habits);
+                if(cleared > 0) {
+                    char deleted_message[128];
+                    inbe_habits_save(&app->habits);
+                    locale_format(deleted_message, sizeof(deleted_message), "deleted_sessions", cleared);
+                    settings_screen_set_status_success(deleted_message, NULL);
+                } else {
+                    settings_screen_set_status_error(locale_get("no_data_to_delete"));
+                }
             }
         }
     }

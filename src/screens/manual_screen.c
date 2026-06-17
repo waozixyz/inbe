@@ -134,7 +134,7 @@ meditation_manual_draw(InbeApp *app)
     int button_y = view_height - flint_px(52);
     int content_y = title_h + flint_px(20);
     int content_h = button_y - content_y - flint_px(16);
-    int content_total_h = flint_px(410);
+    int content_total_h = flint_px(520);
     FlintUIScrollArea scroll_area;
     FlintUIScrollView scroll_view;
     FlintUIParagraph paragraph;
@@ -172,13 +172,9 @@ meditation_manual_draw(InbeApp *app)
     };
     scroll_view = ui_scroll_container_begin(scroll_area);
     y = scroll_view.content_y;
-    flint_ui_paragraph_draw(paragraph, content_x, &y);
-    y += flint_px(24);
-
-    flint_text_draw(locale_get("meditation_music_section_title"),
-                    content_x, y, flint_ui_font(), theme_get_text());
-    y += flint_px(30);
     meditation_music_draw_guide_settings(app, content_x, content_w, &y);
+    y += flint_px(34);
+    flint_ui_paragraph_draw(paragraph, content_x, &y);
     ui_scroll_container_end(scroll_area, scroll_view);
     meditation_music_draw_dropdown_menu(app);
 
