@@ -4,7 +4,6 @@
 #include "breath_engine.h"
 #include "miniz.h"
 #include "version.h"
-#include "../vendor/rini/src/rini.h"
 
 #include "raylib.h"
 #include <sqlite3.h>
@@ -82,6 +81,57 @@ exec_sql(const char *sql)
         return 0;
     }
     return 1;
+}
+
+static int
+table_has_column(const char *table, const char *column)
+{
+    sqlite3_stmt *stmt = NULL;
+    char sql[128];
+    int found = 0;
+
+    if(table == NULL || column == NULL || g_storage.db == NULL)
+        return 0;
+    snprintf(sql, sizeof(sql), "PRAGMA table_info(%s)", table);
+    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *name = (const char *)sqlite3_column_text(stmt, 1);
+        if(name != NULL && strcmp(name, column) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+migrate_schema(void)
+{
+    if(!table_has_column("habits", "sync_topic"))
+        return 1;
+
+    return exec_sql(
+        "BEGIN IMMEDIATE;"
+        "ALTER TABLE habits RENAME TO habits_with_sync_topic;"
+        "CREATE TABLE habits("
+        " id TEXT PRIMARY KEY,"
+        " user_id TEXT NOT NULL,"
+        " name TEXT NOT NULL,"
+        " color_r INTEGER NOT NULL,"
+        " color_g INTEGER NOT NULL,"
+        " color_b INTEGER NOT NULL,"
+        " sync_mode INTEGER NOT NULL,"
+        " sync_activity INTEGER NOT NULL,"
+        " sort_order INTEGER NOT NULL,"
+        " deleted_at INTEGER NOT NULL DEFAULT 0"
+        ");"
+        "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at)"
+        " SELECT id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at"
+        " FROM habits_with_sync_topic;"
+        "DROP TABLE habits_with_sync_topic;"
+        "COMMIT;");
 }
 
 static long long
@@ -185,7 +235,6 @@ schema_create(void)
         " color_g INTEGER NOT NULL,"
         " color_b INTEGER NOT NULL,"
         " sync_mode INTEGER NOT NULL,"
-        " sync_topic INTEGER NOT NULL,"
         " sync_activity INTEGER NOT NULL,"
         " sort_order INTEGER NOT NULL,"
         " deleted_at INTEGER NOT NULL DEFAULT 0"
@@ -196,13 +245,6 @@ schema_create(void)
         " completed INTEGER NOT NULL,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(habit_id,local_date)"
-        ");"
-        "CREATE TABLE IF NOT EXISTS migration_sources("
-        " path TEXT PRIMARY KEY,"
-        " source_kind TEXT NOT NULL,"
-        " migrated_at INTEGER NOT NULL,"
-        " status TEXT NOT NULL,"
-        " detail TEXT NOT NULL"
         ");"
         "CREATE TABLE IF NOT EXISTS imports("
         " id TEXT PRIMARY KEY,"
@@ -684,366 +726,6 @@ inbe_storage_delete_all_sessions(void)
     return count;
 }
 
-static int
-read_legacy_session_file(const char *path, int *rounds, int max_rounds)
-{
-    FILE *fp = fopen(path, "r");
-    int value;
-    int count = 0;
-    if(fp == NULL)
-        return 0;
-    while(count < max_rounds && fscanf(fp, "%d", &value) == 1) {
-        if(value > 0 && value <= 999)
-            rounds[count++] = value;
-    }
-    fclose(fp);
-    return count;
-}
-
-static long long
-legacy_started_at(int year, int month, int day, const char *filename)
-{
-    struct tm tmv;
-    int hh = 0, mm = 0, ss = 0;
-    memset(&tmv, 0, sizeof(tmv));
-    if(filename == NULL || sscanf(filename, "inbe-%2d%2d%2d", &hh, &mm, &ss) != 3)
-        return 0;
-    tmv.tm_year = year - 1900;
-    tmv.tm_mon = month - 1;
-    tmv.tm_mday = day;
-    tmv.tm_hour = hh;
-    tmv.tm_min = mm;
-    tmv.tm_sec = ss;
-    tmv.tm_isdst = -1;
-    return (long long)mktime(&tmv);
-}
-
-static int
-archive_file(mz_zip_archive *archive, const char *root, const char *path)
-{
-    FILE *fp;
-    char *buf;
-    long size;
-    const char *rel = path;
-    if(strncmp(path, root, strlen(root)) == 0) {
-        rel = path + strlen(root);
-        if(*rel == '/')
-            rel++;
-    }
-    fp = fopen(path, "rb");
-    if(fp == NULL)
-        return 0;
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    if(size < 0) {
-        fclose(fp);
-        return 0;
-    }
-    buf = malloc((size_t)size + 1);
-    if(buf == NULL) {
-        fclose(fp);
-        return 0;
-    }
-    if(fread(buf, 1, (size_t)size, fp) != (size_t)size) {
-        free(buf);
-        fclose(fp);
-        return 0;
-    }
-    fclose(fp);
-    mz_zip_writer_add_mem(archive, rel, buf, (size_t)size, MZ_NO_COMPRESSION);
-    free(buf);
-    return 1;
-}
-
-static void
-record_migration_source(const char *path, const char *kind, const char *status, const char *detail)
-{
-    sqlite3_stmt *stmt = NULL;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "INSERT OR REPLACE INTO migration_sources(path,source_kind,migrated_at,status,detail) "
-                          "VALUES(?1,?2,?3,?4,?5)",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return;
-    bind_text(stmt, 1, path);
-    bind_text(stmt, 2, kind);
-    sqlite3_bind_int64(stmt, 3, now_seconds());
-    bind_text(stmt, 4, status);
-    bind_text(stmt, 5, detail);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-}
-
-static void
-migrate_settings_file(const char *path, int overwrite)
-{
-    rini_data data;
-    static const char *keys[] = {
-        "speed", "max_rounds", "max_breaths", "pause_seconds", "sound_volume",
-        "tutorial_seen", "exercise_manual_seen_mask", "theme", "dark_mode",
-        "theme_mode", "orientation_mode",
-        "main_tab", "habits_view_mode",
-        "fullscreen", "on_screen_keyboard", "progressive_speed", "progressive_start_speed",
-        "advanced_session_controls", "hold_display_mode", "exercise_type",
-        "meditation_music_enabled", "meditation_music_shuffle", "meditation_music_track",
-        "play_in_background", "language", "practice_tab_enabled_mask",
-        "practice_tab_mind_theme", "practice_tab_yoga_theme", "practice_tab_fitness_theme",
-        "practice_category_tab"
-    };
-
-    if(!path_exists(path))
-        return;
-    data = rini_load(path);
-    for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++) {
-        const char *value = rini_get_value_text(data, keys[i]);
-        if(value == NULL)
-            continue;
-        if(!overwrite && inbe_storage_get_setting_text(keys[i]) != NULL)
-            continue;
-        inbe_storage_set_setting_text(keys[i], value);
-    }
-    rini_unload(&data);
-    record_migration_source(path, "settings", "migrated", "");
-}
-
-static void
-migrate_habits_file(const char *path, int overwrite)
-{
-    rini_data data;
-    int count;
-    sqlite3_stmt *stmt = NULL;
-
-    if(!path_exists(path))
-        return;
-    if(!overwrite && !inbe_storage_habits_empty())
-        return;
-
-    data = rini_load(path);
-    count = rini_get_value_fallback(data, "count", 0);
-    if(count < 0)
-        count = 0;
-    if(count > INBE_HABIT_MAX)
-        count = INBE_HABIT_MAX;
-    exec_sql("DELETE FROM habit_days; DELETE FROM habits;");
-    for(int i = 0; i < count; i++) {
-        char key[96];
-        const char *id;
-        const char *name;
-        int r, g, b, sync_mode, sync_topic, sync_activity, day_count;
-
-        snprintf(key, sizeof(key), "habit_%d_id", i);
-        id = rini_get_value_text(data, key);
-        snprintf(key, sizeof(key), "habit_%d_name", i);
-        name = rini_get_value_text(data, key);
-        snprintf(key, sizeof(key), "habit_%d_color_r", i);
-        r = rini_get_value_fallback(data, key, 99);
-        snprintf(key, sizeof(key), "habit_%d_color_g", i);
-        g = rini_get_value_fallback(data, key, 196);
-        snprintf(key, sizeof(key), "habit_%d_color_b", i);
-        b = rini_get_value_fallback(data, key, 165);
-        snprintf(key, sizeof(key), "habit_%d_sync_mode", i);
-        sync_mode = rini_get_value_fallback(data, key, INBE_HABIT_SYNC_NONE);
-        snprintf(key, sizeof(key), "habit_%d_sync_topic", i);
-        sync_topic = rini_get_value_fallback(data, key, INBE_HABIT_TOPIC_MIND);
-        snprintf(key, sizeof(key), "habit_%d_sync_activity", i);
-        sync_activity = rini_get_value_fallback(data, key, 0);
-
-        if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order,deleted_at) "
-                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0)",
-                              -1, &stmt, NULL) != SQLITE_OK)
-            continue;
-        bind_text(stmt, 1, id != NULL && id[0] != '\0' ? id : "habit");
-        bind_text(stmt, 2, g_storage.user_id);
-        bind_text(stmt, 3, name != NULL && name[0] != '\0' ? name : "Habit");
-        sqlite3_bind_int(stmt, 4, r);
-        sqlite3_bind_int(stmt, 5, g);
-        sqlite3_bind_int(stmt, 6, b);
-        sqlite3_bind_int(stmt, 7, sync_mode);
-        sqlite3_bind_int(stmt, 8, sync_topic);
-        sqlite3_bind_int(stmt, 9, sync_activity);
-        sqlite3_bind_int(stmt, 10, i);
-        sqlite3_step(stmt);
-        sqlite3_finalize(stmt);
-        stmt = NULL;
-
-        snprintf(key, sizeof(key), "habit_%d_day_count", i);
-        day_count = rini_get_value_fallback(data, key, 0);
-        if(day_count < 0)
-            day_count = 0;
-        if(day_count > INBE_HABIT_MAX_DAYS)
-            day_count = INBE_HABIT_MAX_DAYS;
-        for(int d = 0; d < day_count; d++) {
-            int day_index;
-            int completed;
-            snprintf(key, sizeof(key), "habit_%d_day_%d_index", i, d);
-            day_index = rini_get_value_fallback(data, key, 0);
-            snprintf(key, sizeof(key), "habit_%d_day_%d_completed", i, d);
-            completed = rini_get_value_fallback(data, key, 0);
-            if(day_index <= 0)
-                continue;
-            if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) VALUES(?1,?2,?3,?4)",
-                                  -1, &stmt, NULL) != SQLITE_OK)
-                continue;
-            bind_text(stmt, 1, id != NULL && id[0] != '\0' ? id : "habit");
-            sqlite3_bind_int(stmt, 2, day_index);
-            sqlite3_bind_int(stmt, 3, completed ? 1 : 0);
-            sqlite3_bind_int64(stmt, 4, now_seconds());
-            sqlite3_step(stmt);
-            sqlite3_finalize(stmt);
-            stmt = NULL;
-        }
-    }
-    rini_unload(&data);
-    record_migration_source(path, "habits", "migrated", "");
-}
-
-static void
-scan_legacy_sessions(const char *root, mz_zip_archive *backup, int cleanup)
-{
-    char path[INBE_STORAGE_PATH_SIZE];
-
-    if(root == NULL || !dir_exists_local(root))
-        return;
-    for(int y = 1970; y <= 2100; y++) {
-        char ypath[INBE_STORAGE_PATH_SIZE];
-        snprintf(ypath, sizeof(ypath), "%s/%04d", root, y);
-        if(!dir_exists_local(ypath))
-            continue;
-        for(int m = 1; m <= 12; m++) {
-            char mpath[INBE_STORAGE_PATH_SIZE];
-            snprintf(mpath, sizeof(mpath), "%s/%02d", ypath, m);
-            if(!dir_exists_local(mpath))
-                continue;
-            for(int d = 1; d <= 31; d++) {
-                FilePathList files;
-                char dpath[INBE_STORAGE_PATH_SIZE];
-                snprintf(dpath, sizeof(dpath), "%s/%02d", mpath, d);
-                if(!dir_exists_local(dpath))
-                    continue;
-                files = LoadDirectoryFiles(dpath);
-                for(unsigned int i = 0; i < files.count; i++) {
-                    const char *filename = GetFileName(files.paths[i]);
-                    int rounds[MaxRounds];
-                    int count;
-                    long long started_at;
-                    if(strncmp(filename, "inbe-", 5) != 0)
-                        continue;
-                    count = read_legacy_session_file(files.paths[i], rounds, MaxRounds);
-                    started_at = legacy_started_at(y, m, d, filename);
-                    if(count > 0 && started_at > 0) {
-                        insert_session_at_ex(started_at, y * 10000 + m * 100 + d,
-                                             rounds, count, 0, 0, root, NULL, 0);
-                        record_migration_source(files.paths[i], "session", "migrated", "");
-                        if(backup != NULL)
-                            archive_file(backup, root, files.paths[i]);
-                        if(cleanup)
-                            remove(files.paths[i]);
-                    }
-                }
-                UnloadDirectoryFiles(files);
-            }
-        }
-    }
-    snprintf(path, sizeof(path), "%s/settings.ini", root);
-    if(backup != NULL && path_exists(path))
-        archive_file(backup, root, path);
-    snprintf(path, sizeof(path), "%s/apps/habits/habits.ini", root);
-    if(backup != NULL && path_exists(path))
-        archive_file(backup, root, path);
-}
-
-static void
-legacy_root(char *out, size_t out_size, const char *name)
-{
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    if(strcmp(name, "lotus") == 0)
-        snprintf(out, out_size, "/data/data/xyz.waozi.inbe/files/lotus");
-    else
-        snprintf(out, out_size, "%s/%s", GetWorkingDirectory(), name);
-#else
-    const char *xdg = getenv("XDG_DATA_HOME");
-    const char *home = getenv("HOME");
-    if(xdg != NULL && xdg[0] != '\0')
-        snprintf(out, out_size, "%s/%s", xdg, name);
-    else if(home != NULL && home[0] != '\0')
-        snprintf(out, out_size, "%s/.local/share/%s", home, name);
-    else
-        snprintf(out, out_size, ".local/%s", name);
-#endif
-}
-
-static void
-cleanup_known_legacy_files(const char *root)
-{
-    char path[INBE_STORAGE_PATH_SIZE];
-    if(root == NULL || !dir_exists_local(root))
-        return;
-    snprintf(path, sizeof(path), "%s/settings.ini", root);
-    remove(path);
-    snprintf(path, sizeof(path), "%s/apps/habits/habits.ini", root);
-    remove(path);
-}
-
-static void
-migrate_legacy_files(void)
-{
-    char lotus[INBE_STORAGE_PATH_SIZE];
-    char inbe[INBE_STORAGE_PATH_SIZE];
-    char backup_dir[INBE_STORAGE_PATH_SIZE];
-    char backup_path[INBE_STORAGE_PATH_SIZE];
-    mz_zip_archive backup;
-    int have_backup = 0;
-    time_t now;
-    struct tm *tm;
-
-    if(meta_equals("legacy_file_migration_complete", "true"))
-        return;
-
-    legacy_root(lotus, sizeof(lotus), "lotus");
-    snprintf(inbe, sizeof(inbe), "%s", g_storage.root);
-    snprintf(backup_dir, sizeof(backup_dir), "%s/migration-backups", g_storage.root);
-    ensure_dir_local(backup_dir);
-    now = time(NULL);
-    tm = localtime(&now);
-    if(tm != NULL) {
-        snprintf(backup_path, sizeof(backup_path), "%s/legacy-files-%04d%02d%02d-%02d%02d%02d.zip",
-                 backup_dir, tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
-                 tm->tm_hour, tm->tm_min, tm->tm_sec);
-    } else {
-        snprintf(backup_path, sizeof(backup_path), "%s/legacy-files.zip", backup_dir);
-    }
-
-    memset(&backup, 0, sizeof(backup));
-    have_backup = mz_zip_writer_init_file(&backup, backup_path, 0);
-
-    exec_sql("BEGIN IMMEDIATE");
-    {
-        char path[INBE_STORAGE_PATH_SIZE];
-        snprintf(path, sizeof(path), "%s/settings.ini", lotus);
-        migrate_settings_file(path, 0);
-        snprintf(path, sizeof(path), "%s/settings.ini", inbe);
-        migrate_settings_file(path, 1);
-        snprintf(path, sizeof(path), "%s/apps/habits/habits.ini", lotus);
-        migrate_habits_file(path, 0);
-        snprintf(path, sizeof(path), "%s/apps/habits/habits.ini", inbe);
-        migrate_habits_file(path, 1);
-    }
-    scan_legacy_sessions(lotus, have_backup ? &backup : NULL, 1);
-    scan_legacy_sessions(inbe, have_backup ? &backup : NULL, 1);
-    exec_sql("COMMIT");
-
-    if(have_backup)
-        mz_zip_writer_finalize_archive(&backup);
-    if(have_backup)
-        mz_zip_writer_end(&backup);
-
-    cleanup_known_legacy_files(lotus);
-    cleanup_known_legacy_files(inbe);
-    set_meta("legacy_file_migration_complete", "true");
-}
-
 int
 inbe_storage_habits_empty(void)
 {
@@ -1068,7 +750,7 @@ inbe_storage_habits_load(void *habits_ptr)
         return 0;
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity "
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 10",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
@@ -1080,8 +762,7 @@ inbe_storage_habits_load(void *habits_ptr)
                                (unsigned char)sqlite3_column_int(stmt, 3),
                                (unsigned char)sqlite3_column_int(stmt, 4), 255};
         habit->sync_mode = sqlite3_column_int(stmt, 5);
-        habit->sync_topic = sqlite3_column_int(stmt, 6);
-        habit->sync_activity = sqlite3_column_int(stmt, 7);
+        habit->sync_activity = sqlite3_column_int(stmt, 6);
         index++;
     }
     sqlite3_finalize(stmt);
@@ -1124,8 +805,8 @@ inbe_storage_habits_save(const void *habits_ptr)
     for(int i = 0; i < habits->count; i++) {
         const InbeHabit *habit = &habits->items[i];
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order,deleted_at) "
-                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0)",
+                              "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
+                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habit->id);
@@ -1135,9 +816,8 @@ inbe_storage_habits_save(const void *habits_ptr)
         sqlite3_bind_int(stmt, 5, habit->color.g);
         sqlite3_bind_int(stmt, 6, habit->color.b);
         sqlite3_bind_int(stmt, 7, habit->sync_mode);
-        sqlite3_bind_int(stmt, 8, habit->sync_topic);
-        sqlite3_bind_int(stmt, 9, habit->sync_activity);
-        sqlite3_bind_int(stmt, 10, i);
+        sqlite3_bind_int(stmt, 8, habit->sync_activity);
+        sqlite3_bind_int(stmt, 9, i);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
         stmt = NULL;
@@ -1208,67 +888,6 @@ inbe_storage_export_zip(const char *path)
 }
 
 static int
-import_legacy_session_content(const char *zip_path, mz_zip_archive *archive,
-                              int year, int month, int day, const char *filename)
-{
-    char *content;
-    size_t size = 0;
-    char *text;
-    int rounds[MaxRounds];
-    int count = 0;
-    char *line;
-    long long started_at;
-
-    content = mz_zip_reader_extract_file_to_heap(archive, zip_path, &size, 0);
-    if(content == NULL || size == 0)
-        return 0;
-    text = malloc(size + 1);
-    if(text == NULL) {
-        free(content);
-        return 0;
-    }
-    memcpy(text, content, size);
-    text[size] = '\0';
-    free(content);
-    line = strtok(text, "\n");
-    while(line != NULL && count < MaxRounds) {
-        int seconds = atoi(line);
-        if(seconds > 0 && seconds <= 999)
-            rounds[count++] = seconds;
-        line = strtok(NULL, "\n");
-    }
-    started_at = legacy_started_at(year, month, day, filename);
-    if(count > 0 && started_at > 0)
-        insert_session_at_ex(started_at, year * 10000 + month * 100 + day,
-                             rounds, count, 0, 0, "legacy-import", NULL, 0);
-    free(text);
-    return count > 0;
-}
-
-static int
-import_legacy_zip(mz_zip_archive *archive)
-{
-    int imported = 0;
-    int total = (int)mz_zip_reader_get_num_files(archive);
-    for(int i = 0; i < total; i++) {
-        mz_zip_archive_file_stat st;
-        int y, m, d;
-        char filename[INBE_STORAGE_PATH_SIZE];
-        const char *p;
-        if(!mz_zip_reader_file_stat(archive, i, &st) || st.m_is_directory)
-            continue;
-        if(strncmp(st.m_filename, "lotus-data/sessions/", 20) != 0)
-            continue;
-        p = st.m_filename + 20;
-        if(sscanf(p, "%4d/%2d/%2d/%511s", &y, &m, &d, filename) != 4)
-            continue;
-        if(import_legacy_session_content(st.m_filename, archive, y, m, d, filename))
-            imported++;
-    }
-    return imported > 0;
-}
-
-static int
 import_sqlite_db_file(const char *db_path)
 {
     sqlite3 *src = NULL;
@@ -1313,7 +932,7 @@ import_sqlite_db_file(const char *db_path)
     stmt = NULL;
 
     if(sqlite3_prepare_v2(src,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order "
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         exec_sql("BEGIN IMMEDIATE");
@@ -1323,8 +942,8 @@ import_sqlite_db_file(const char *db_path)
             if(habit_id == NULL || habit_id[0] == '\0')
                 continue;
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_topic,sync_activity,sort_order,deleted_at) "
-                                  "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0)",
+                                  "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
+                                  "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
                                   -1, &hstmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(hstmt, 1, habit_id);
@@ -1336,7 +955,6 @@ import_sqlite_db_file(const char *db_path)
             sqlite3_bind_int(hstmt, 7, sqlite3_column_int(stmt, 5));
             sqlite3_bind_int(hstmt, 8, sqlite3_column_int(stmt, 6));
             sqlite3_bind_int(hstmt, 9, sqlite3_column_int(stmt, 7));
-            sqlite3_bind_int(hstmt, 10, sqlite3_column_int(stmt, 8));
             if(sqlite3_step(hstmt) == SQLITE_DONE)
                 ok = 1;
             sqlite3_finalize(hstmt);
@@ -1403,8 +1021,6 @@ inbe_storage_import_zip(const char *path)
         if(fp != NULL)
             fclose(fp);
         free(db_bytes);
-    } else {
-        ok = import_legacy_zip(&archive);
     }
     mz_zip_reader_end(&archive);
     return ok;
@@ -1422,9 +1038,8 @@ inbe_storage_init(const char *root)
         TraceLog(LOG_ERROR, "STORAGE: failed to open %s", g_storage.db_path);
         return 0;
     }
-    if(!schema_create() || !load_or_create_user())
+    if(!schema_create() || !migrate_schema() || !load_or_create_user())
         return 0;
-    migrate_legacy_files();
     return 1;
 }
 

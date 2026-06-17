@@ -788,6 +788,14 @@ settings_tab_draw(InbeApp *app)
                 draw_theme_mode_menu = 1;
                 y += flint_px(76);
             }
+            if(ui_draw_theme_picker(content_x, y, content_w, locale_get("theme_label"),
+                                    app->dark_mode, &app->theme_id)) {
+                app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+                app_refresh_theme(app);
+                app->settings_dirty = 1;
+                save_settings(app);
+            }
+            y += flint_px(96);
             {
                 int orientation_max = orientation_option_count - 1;
                 app->orientation_mode = clampi(app->orientation_mode,

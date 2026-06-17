@@ -10,30 +10,13 @@
 /* Forward declarations */
 typedef struct InbeApp InbeApp;
 
-/* Global arrays */
-extern const char *g_practice_category_labels[3];
-extern const int g_practice_category_default_themes[3];
-
-void practice_ensure_enabled_selection(InbeApp *app);
-int practice_enabled_count(InbeApp *app);
-int practice_active_theme(InbeApp *app);
-void practice_sync_global_theme(InbeApp *app);
 int practice_activity_count_for_tab(int tab);
 int practice_activity_for_tab(int tab, int index);
 const char *practice_activity_label(int exercise);
 int practice_activity_index_for_tab(int tab, int exercise);
 void practice_clamp_activity_to_tab(InbeApp *app);
-Color practice_theme_color(InbeApp *app, int tab_index);
-int practice_category_bottom_y_for_app(InbeApp *app);
-
-void draw_practice_coming_soon_popout(InbeApp *app);
-void draw_practice_category_tabs(InbeApp *app);
-void draw_practice_config_page(InbeApp *app);
-void draw_practice_config_button(InbeApp *app);
-void draw_tracker_config_button(InbeApp *app);
 
 void on_practice_tab_click(void *user_data);
-void habits_sync_topic_theme_colors(InbeApp *app, int sync_topic, int save_now);
 void app_request_bottom_tab(InbeApp *app, int bottom_tab);
 
 #endif

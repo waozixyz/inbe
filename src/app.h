@@ -69,7 +69,6 @@ typedef enum {
     UIModalDataManagement,
     UIModalConfirmDeleteData,
     UIModalEditProgressiveStartSpeed,
-    UIModalHabitLinkedDetails,
 } UIModalType;
 
 typedef struct {
@@ -195,15 +194,8 @@ struct InbeApp {
     unsigned int lotus_settings_version;
 #endif
     InbeHabits habits;
-    int habits_view_mode;
-    int habits_list_scroll;
-    int habits_list_expanded_year;
-    int habits_list_expanded_month;
-    int habits_list_expanded_day;
-    int habits_list_expanded_session;
     int habit_detail_index;
     int habit_detail_day;
-    int habit_detail_session_index;
     char habit_detail_session_path[FS_PATH_MAX];
     int habit_session_edit_scroll;
     int habit_session_edit_active;
@@ -219,16 +211,12 @@ struct InbeApp {
     char habit_edit_text[INBE_HABIT_NAME_SIZE];
     Color habit_edit_color;
     int habit_edit_sync_mode;
-    int habit_edit_sync_topic;
     int habit_edit_sync_activity;
     int advanced_session_controls;
     int hold_display_mode;
     int exercise_type;
     int practice_category_tab;
     int practice_coming_soon_ticks;
-    int practice_tab_enabled[PRACTICE_CATEGORY_COUNT];
-    int practice_tab_theme[PRACTICE_CATEGORY_COUNT];
-    int practice_config_theme_tab;
     int previous_screen;
     int session_paused;
     int backgrounded;
