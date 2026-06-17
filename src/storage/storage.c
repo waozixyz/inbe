@@ -168,6 +168,29 @@ migrate_schema(void)
         "COMMIT;");
 }
 
+static int
+source_table_has_column(sqlite3 *db, const char *table, const char *column)
+{
+    sqlite3_stmt *stmt = NULL;
+    char sql[128];
+    int found = 0;
+
+    if(db == NULL || table == NULL || column == NULL)
+        return 0;
+    snprintf(sql, sizeof(sql), "PRAGMA table_info(%s)", table);
+    if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *name = (const char *)sqlite3_column_text(stmt, 1);
+        if(name != NULL && strcmp(name, column) == 0) {
+            found = 1;
+            break;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
 static long long
 now_seconds(void)
 {
@@ -816,14 +839,22 @@ inbe_storage_delete_all_sessions(void)
 int
 inbe_storage_habits_empty(void)
 {
+    return inbe_storage_habit_count() == 0;
+}
+
+int
+inbe_storage_habit_count(void)
+{
     sqlite3_stmt *stmt = NULL;
     int count = 0;
+    if(g_storage.db == NULL)
+        return 0;
     if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habits WHERE deleted_at=0", -1, &stmt, NULL) != SQLITE_OK)
-        return 1;
+        return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
-    return count == 0;
+    return count;
 }
 
 int
@@ -966,13 +997,124 @@ inbe_storage_export_zip(const char *path)
     }
     snprintf(metadata, sizeof(metadata),
              "{\n\"format\":\"inbe-data-sqlite\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
-             INBE_VERSION_STRING, g_storage.user_id, inbe_storage_session_count(), inbe_storage_habits_empty() ? 0 : 1);
+             INBE_VERSION_STRING, g_storage.user_id, inbe_storage_session_count(), inbe_storage_habit_count());
     mz_zip_writer_add_mem(&archive, "inbe-data/metadata.json", metadata, strlen(metadata), MZ_NO_COMPRESSION);
     mz_zip_writer_add_mem(&archive, "inbe-data/inbe.db", buf, (size_t)size, MZ_BEST_COMPRESSION);
     free(buf);
     mz_zip_writer_finalize_archive(&archive);
     mz_zip_writer_end(&archive);
     return 1;
+}
+
+static Color
+tickmate_color_from_int(int value, int index)
+{
+    static const Color fallback[] = {
+        {99, 196, 165, 255},
+        {94, 166, 232, 255},
+        {210, 180, 72, 255},
+        {224, 124, 104, 255},
+        {180, 132, 220, 255},
+        {216, 116, 164, 255}
+    };
+    Color color = fallback[index % (int)(sizeof(fallback) / sizeof(fallback[0]))];
+
+    if(value != 0) {
+        color.r = (unsigned char)((value >> 16) & 0xff);
+        color.g = (unsigned char)((value >> 8) & 0xff);
+        color.b = (unsigned char)(value & 0xff);
+        color.a = 255;
+        if(color.r == 0 && color.g == 0 && color.b == 0)
+            color = fallback[index % (int)(sizeof(fallback) / sizeof(fallback[0]))];
+    }
+    return color;
+}
+
+static int
+import_tickmate_db(sqlite3 *src)
+{
+    sqlite3_stmt *stmt = NULL;
+    sqlite3_stmt *write_stmt = NULL;
+    int ok = 0;
+    long long imported_at = now_seconds();
+
+    if(src == NULL || g_storage.db == NULL)
+        return 0;
+    if(!source_table_has_column(src, "tracks", "name") ||
+       !source_table_has_column(src, "ticks", "_track_id"))
+        return 0;
+
+    if(sqlite3_prepare_v2(src,
+                          "SELECT _id,name,color,\"order\" FROM tracks WHERE enabled!=0 ORDER BY \"order\",_id",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+
+    exec_sql("BEGIN IMMEDIATE");
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        char habit_id[64];
+        const char *name = (const char *)sqlite3_column_text(stmt, 1);
+        int track_id = sqlite3_column_int(stmt, 0);
+        int sort_order = sqlite3_column_int(stmt, 3);
+        Color color = tickmate_color_from_int(sqlite3_column_int(stmt, 2), track_id);
+
+        if(name == NULL || name[0] == '\0')
+            continue;
+        snprintf(habit_id, sizeof(habit_id), "tickmate-%d", track_id);
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
+                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
+                              -1, &write_stmt, NULL) != SQLITE_OK)
+            continue;
+        bind_text(write_stmt, 1, habit_id);
+        bind_text(write_stmt, 2, g_storage.user_id);
+        bind_text(write_stmt, 3, name);
+        sqlite3_bind_int(write_stmt, 4, color.r);
+        sqlite3_bind_int(write_stmt, 5, color.g);
+        sqlite3_bind_int(write_stmt, 6, color.b);
+        sqlite3_bind_int(write_stmt, 7, INBE_HABIT_SYNC_NONE);
+        sqlite3_bind_int(write_stmt, 8, 0);
+        sqlite3_bind_int(write_stmt, 9, sort_order);
+        if(sqlite3_step(write_stmt) == SQLITE_DONE)
+            ok = 1;
+        sqlite3_finalize(write_stmt);
+        write_stmt = NULL;
+    }
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+
+    if(sqlite3_prepare_v2(src,
+                          "SELECT _track_id,year,month,day FROM ticks",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            char habit_id[64];
+            int track_id = sqlite3_column_int(stmt, 0);
+            int year = sqlite3_column_int(stmt, 1);
+            int month = sqlite3_column_int(stmt, 2);
+            int day = sqlite3_column_int(stmt, 3);
+            int local_date;
+
+            if(year <= 0 || month <= 0 || month > 12 || day <= 0 || day > 31)
+                continue;
+            local_date = year * 10000 + month * 100 + day;
+            snprintf(habit_id, sizeof(habit_id), "tickmate-%d", track_id);
+            if(sqlite3_prepare_v2(g_storage.db,
+                                  "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
+                                  "VALUES(?1,?2,1,?3)",
+                                  -1, &write_stmt, NULL) != SQLITE_OK)
+                continue;
+            bind_text(write_stmt, 1, habit_id);
+            sqlite3_bind_int(write_stmt, 2, local_date);
+            sqlite3_bind_int64(write_stmt, 3, imported_at);
+            if(sqlite3_step(write_stmt) == SQLITE_DONE)
+                ok = 1;
+            sqlite3_finalize(write_stmt);
+            write_stmt = NULL;
+        }
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_finalize(write_stmt);
+    exec_sql("COMMIT");
+    return ok;
 }
 
 static int
@@ -990,7 +1132,7 @@ import_sqlite_db_file(const char *db_path)
     if(sqlite3_prepare_v2(src,
                           "SELECT id,started_at,local_date,topic,activity,source FROM sessions WHERE deleted_at=0",
                           -1, &stmt, NULL) != SQLITE_OK)
-        goto done;
+        goto try_tickmate;
 
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         sqlite3_stmt *rstmt = NULL;
@@ -1072,6 +1214,13 @@ import_sqlite_db_file(const char *db_path)
         }
         exec_sql("COMMIT");
     }
+
+    goto done;
+
+try_tickmate:
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+    ok = import_tickmate_db(src);
 
 done:
     sqlite3_finalize(stmt);

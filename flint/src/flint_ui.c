@@ -42,18 +42,6 @@ static int g_ui_text_input_enter_count = 0;
 static Rectangle g_ui_input_clip_stack[UI_INPUT_CLIP_STACK_MAX];
 static int g_ui_input_clip_stack_count = 0;
 
-void
-ui_begin_scissor(int x, int y, int w, int h)
-{
-    flint_clip_begin(x, y, w, h);
-}
-
-void
-ui_end_scissor(void)
-{
-    flint_clip_end();
-}
-
 static Vector2
 ui_mouse_world(void)
 {
@@ -223,6 +211,70 @@ ui_text_delete_range(char *text, size_t text_size, int *cursor, int start, int e
     memmove(text + start, text + end, (size_t)(len - end + 1));
     *cursor = start;
     return 1;
+}
+
+static Rectangle
+ui_world_rect_to_screen(Rectangle rect)
+{
+    return (Rectangle){
+        g_ui_camera.offset.x + rect.x * g_ui_camera.zoom,
+        g_ui_camera.offset.y + rect.y * g_ui_camera.zoom,
+        rect.width * g_ui_camera.zoom,
+        rect.height * g_ui_camera.zoom
+    };
+}
+
+static void
+ui_begin_world_clip(Rectangle rect)
+{
+    Rectangle screen = ui_world_rect_to_screen(rect);
+    flint_clip_begin((int)screen.x, (int)screen.y,
+                     (int)screen.width, (int)screen.height);
+}
+
+static void
+ui_draw_text_centered_in_rect(const char *text, Rectangle rect, int font_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int text_w = flint_text_measure(value, font_size);
+    int x = (int)(rect.x + (rect.width - (float)text_w) * 0.5f);
+    int y = flint_ui_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int guard = 1;
+
+    ui_begin_world_clip((Rectangle){rect.x, rect.y - guard,
+                                    rect.width, rect.height + guard * 2});
+    flint_text_draw(value, x, y, font_size, color);
+    flint_clip_end();
+}
+
+void
+flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int y = flint_ui_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int guard = 1;
+
+    ui_begin_world_clip((Rectangle){rect.x, rect.y - guard,
+                                    rect.width, rect.height + guard * 2});
+    flint_text_draw(value, (int)rect.x, y, font_size, color);
+    flint_clip_end();
+}
+
+static void
+ui_draw_fitted_text_in_rect(const char *text, Rectangle rect,
+                            int preferred_size, int min_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int font_size = flint_text_size(preferred_size);
+    int min_allowed = flint_text_size(min_size);
+
+    if(min_allowed < min_size)
+        min_allowed = flint_text_size(min_size + 1);
+    if(font_size < min_allowed)
+        font_size = min_allowed;
+    while(font_size > min_allowed && flint_text_measure(value, font_size) > (int)rect.width)
+        font_size = flint_text_size(font_size - 1);
+    ui_draw_text_centered_in_rect(value, rect, font_size, color);
 }
 
 static int
@@ -417,6 +469,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     int w = (int)bounds.width;
     int h = (int)bounds.height;
     int padding_x = style.padding_x > 0 ? style.padding_x : flint_px(10);
+    int clip_guard = 1;
     int text_x = x + padding_x;
     int text_y = flint_ui_text_y(value, y, h, font);
     Color border = focused ? style.focus_border : style.border;
@@ -428,7 +481,9 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
-    flint_clip_begin(x + padding_x, y, w - padding_x * 2, h);
+    ui_begin_world_clip((Rectangle){(float)(x + padding_x), (float)(y - clip_guard),
+                                    (float)(w - padding_x * 2),
+                                    (float)(h + clip_guard * 2)});
     flint_text_draw(value, text_x, text_y, font, style.text);
 
     if(focused && cursor_visible) {
@@ -445,6 +500,31 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
     flint_clip_end();
+}
+
+static int
+ui_text_cursor_from_x(const char *text, int font, int text_x, int mouse_x)
+{
+    char prefix[1024];
+    int len;
+
+    if(text == NULL)
+        return 0;
+
+    len = (int)strlen(text);
+    if(mouse_x <= text_x)
+        return 0;
+
+    for(int i = 1; i <= len; i++) {
+        int copy_len = i;
+        if(copy_len >= (int)sizeof(prefix))
+            copy_len = (int)sizeof(prefix) - 1;
+        memcpy(prefix, text, (size_t)copy_len);
+        prefix[copy_len] = '\0';
+        if(text_x + flint_text_measure(prefix, font) >= mouse_x)
+            return i;
+    }
+    return len;
 }
 
 int
@@ -566,8 +646,8 @@ flint_ui_button(FlintUIButton button)
         ui_focus_draw(button.bounds);
     }
 
-    flint_text_draw_fitted_in_rect(button.label ? button.label : "", button.bounds,
-                                   font, FLINT_TEXT_16, text);
+    ui_draw_fitted_text_in_rect(button.label ? button.label : "", button.bounds,
+                                font, FLINT_TEXT_16, text);
     return clicked || ui_focus_activate_pressed(button.focus_id);
 }
 
@@ -645,6 +725,74 @@ flint_ui_text_input(FlintUITextInput input)
                              input.font > 0 ? input.font : flint_ui_font(),
                              input.style);
     return focused;
+}
+
+int
+flint_ui_text_field(FlintUITextField field)
+{
+    int changed = 0;
+    int focused;
+    int font;
+    int padding_x;
+    int commit_pressed = 0;
+    Vector2 mouse_world;
+    int mouse_inside;
+    int captured;
+
+    if(field.commit_pressed != NULL)
+        *field.commit_pressed = 0;
+    if(field.text == NULL || field.text_size == 0 ||
+       field.cursor_position == NULL || field.focused == NULL)
+        return 0;
+
+    font = field.font > 0 ? field.font : flint_ui_font();
+    padding_x = field.style.padding_x > 0 ? field.style.padding_x : flint_px(10);
+    focused = *field.focused != 0;
+
+    if(field.focus_id > 0 && ui_focus_register(field.focus_id, field.bounds)) {
+        focused = 1;
+        ui_focus_draw(field.bounds);
+    }
+
+    mouse_world = ui_mouse_world();
+    mouse_inside = CheckCollisionPointRec(mouse_world, field.bounds);
+    captured = ui_input_captures_click(mouse_world);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(mouse_inside && !captured) {
+            focused = 1;
+            *field.cursor_position = ui_text_cursor_from_x(
+                field.text, font, (int)field.bounds.x + padding_x,
+                (int)mouse_world.x);
+        } else if(focused) {
+            focused = 0;
+        }
+    }
+
+    *field.focused = focused;
+    ui_focus_set_text_input_active(focused);
+
+    if(focused) {
+        changed = flint_ui_text_edit((FlintUITextEdit){
+            .text = field.text,
+            .text_size = field.text_size,
+            .cursor_position = field.cursor_position,
+            .max_codepoints = field.max_codepoints,
+            .filter = field.filter,
+            .filter_user_data = field.filter_user_data,
+            .commit_pressed = field.commit_pressed != NULL
+                                  ? field.commit_pressed
+                                  : &commit_pressed
+        });
+    } else {
+        int len = (int)strlen(field.text);
+        *field.cursor_position = ui_clampi(*field.cursor_position, 0, len);
+    }
+
+    flint_ui_draw_text_input(field.bounds, field.text, *field.cursor_position,
+                             focused, focused && (((int)(GetTime() * 2.0)) % 2 == 0),
+                             font, field.style);
+    return changed;
 }
 
 static FlintTextLayout
@@ -1085,7 +1233,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
 
         if(label_rect.width < 1)
             label_rect.width = 1;
-        flint_text_draw_fitted_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
+        ui_draw_fitted_text_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
     }
 
     return clicked_tab;
@@ -1963,6 +2111,20 @@ ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
     return width;
 }
 
+static int
+ui_nav_button_height(const char *label, int icon_size, int show_label, int font)
+{
+    int padding = flint_px(6);
+    int content_h = icon_size;
+
+    if(show_label && label != NULL && label[0] != '\0') {
+        int text_h = flint_text_height(label, font);
+        if(text_h > content_h)
+            content_h = text_h;
+    }
+    return content_h + padding * 2;
+}
+
 int
 ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
                    const char *label, int show_label, int *hover)
@@ -1975,7 +2137,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
     int font = flint_ui_font();
     int padding = flint_px(6);
     int w = ui_nav_button_width(label, icon_size, show_label, font);
-    int h = icon_size + padding * 2;
+    int h = ui_nav_button_height(label, icon_size, show_label, font);
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
@@ -1997,7 +2159,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
         Rectangle src = {0, 0, icon.width, icon.height};
         /* Center icon horizontally when no label, otherwise align left */
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
+        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
@@ -2020,7 +2182,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     int font = flint_ui_font();
     int padding = flint_px(6);
-    int h = icon_size + padding * 2;
+    int h = ui_nav_button_height(label, icon_size, show_label, font);
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
@@ -2042,7 +2204,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
         Rectangle src = {0, 0, icon.width, icon.height};
         /* Center icon horizontally when no label, otherwise align left */
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
+        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
@@ -2064,8 +2226,8 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int bar_h = flint_clamp_px(58, 54, 66);
     int bar_y = ui_view_height - bar_h;
     int button_size = flint_clamp_px(30, 28, 44);
-    int button_h = button_size + flint_px(12);
     int font = flint_ui_font();
+    int button_h = ui_nav_button_height("", button_size, 0, font);
     int side_margin = flint_px(16);
     int group_gap = flint_px(10);
     int available_w = ui_view_width - side_margin * 2;
@@ -2075,6 +2237,11 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int group_w_label = 0;
     for(int i = 0; i < count; i++) {
         group_w_label += ui_nav_button_width(tabs[i].label, button_size, 1, font);
+        {
+            int tab_h = ui_nav_button_height(tabs[i].label, button_size, 1, font);
+            if(tab_h > button_h)
+                button_h = tab_h;
+        }
         if(i < count - 1)
             group_w_label += group_gap;
     }
@@ -2090,6 +2257,11 @@ ui_draw_tab_bar(UITab *tabs, int count)
     /* Only show labels if all buttons fit with breathing room for longer locales. */
     int show_labels = group_w_label + label_safety_w <= available_w;
     int base_group_w = show_labels ? group_w_label : group_w_no_label;
+    if(!show_labels)
+        button_h = ui_nav_button_height("", button_size, 0, font);
+    if(button_h + flint_px(8) > bar_h)
+        bar_h = button_h + flint_px(8);
+    bar_y = ui_view_height - bar_h;
 
     /* Calculate extra space and distribute evenly among buttons */
     int extra_w = available_w - base_group_w;
@@ -2235,8 +2407,8 @@ ui_draw_modal(const char *title, const char *message,
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
-        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
+        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int confirm_text_w = flint_text_measure(confirm_btn, btn_font);
     flint_text_draw(confirm_btn, confirm_x + (btn_w - confirm_text_w) / 2, flint_ui_text_y(confirm_btn, btn_y, btn_h, btn_font), btn_font, c_text);
@@ -2319,8 +2491,8 @@ ui_draw_modal_3btn(const char *title, const char *message,
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
-        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
+        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int middle_text_w = flint_text_measure(middle_btn, btn_font);
     flint_text_draw(middle_btn, middle_x + (btn_w - middle_text_w) / 2, flint_ui_text_y(middle_btn, btn_y, btn_h, btn_font), btn_font, c_text);

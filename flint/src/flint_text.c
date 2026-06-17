@@ -281,6 +281,51 @@ flint_text_measure(const char *text, int font_size)
 }
 
 int
+flint_text_height(const char *text, int font_size)
+{
+    Font font = active_font_for_size(font_size);
+    float scale;
+    float min_top = 0.0f;
+    float max_bottom = 0.0f;
+    int seen_glyph = 0;
+
+    if(text == NULL || text[0] == '\0' || font.texture.id == 0 || font.baseSize <= 0)
+        return font_size;
+
+    scale = (float)font_size / (float)font.baseSize;
+    for(int i = 0; text[i] != '\0';) {
+        int codepoint_byte_count = 0;
+        int codepoint = GetCodepointNext(&text[i], &codepoint_byte_count);
+
+        if(codepoint == '\n')
+            break;
+        if(codepoint != ' ' && codepoint != '\t') {
+            int index = GetGlyphIndex(font, codepoint);
+            GlyphInfo glyph = font.glyphs[index];
+            Rectangle rec = font.recs[index];
+            float glyph_top = (float)glyph.offsetY * scale - (float)font.glyphPadding * scale;
+            float glyph_bottom = glyph_top + ((float)rec.height + 2.0f * (float)font.glyphPadding) * scale;
+
+            if(!seen_glyph) {
+                min_top = glyph_top;
+                max_bottom = glyph_bottom;
+                seen_glyph = 1;
+            } else {
+                if(glyph_top < min_top)
+                    min_top = glyph_top;
+                if(glyph_bottom > max_bottom)
+                    max_bottom = glyph_bottom;
+            }
+        }
+        i += codepoint_byte_count;
+    }
+
+    if(!seen_glyph)
+        return font_size;
+    return (int)(max_bottom - min_top + 0.5f);
+}
+
+int
 flint_text_measure_scaled(const char *text, int scale)
 {
     Font font = active_font();
@@ -370,8 +415,10 @@ flint_text_draw_in_rect(const char *text, Rectangle rect, int font_size, Color c
     int text_w = flint_text_measure(value, font_size);
     int x = (int)(rect.x + (rect.width - (float)text_w) * 0.5f);
     int y = flint_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int clip_guard = 1;
 
-    flint_clip_begin((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+    flint_clip_begin((int)rect.x, (int)rect.y - clip_guard,
+                     (int)rect.width, (int)rect.height + clip_guard * 2);
     flint_text_draw(value, x, y, font_size, color);
     flint_clip_end();
 }

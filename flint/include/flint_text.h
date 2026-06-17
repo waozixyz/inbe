@@ -22,6 +22,7 @@ void flint_text_unload_font(Font *font);
 int flint_text_size(int preferred_size);
 int flint_text_dpi_size(int base_size);
 int flint_text_measure(const char *text, int font_size);
+int flint_text_height(const char *text, int font_size);
 int flint_text_measure_scaled(const char *text, int scale);
 void flint_text_draw(const char *text, int x, int y, int font_size, Color color);
 void flint_text_draw_scaled(const char *text, int x, int y, int scale, Color color);
