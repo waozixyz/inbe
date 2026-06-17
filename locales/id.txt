@@ -70,6 +70,12 @@ Coba putar
 [meditation_music_stop_test_button]
 Hentikan tes
 ---
+[meditation_music_network_error_title]
+Jaringan tidak tersedia
+---
+[meditation_music_network_error_message]
+Tidak dapat menjangkau server audio meditasi. Periksa izin jaringan Android dan koneksi internetmu, lalu coba lagi.
+---
 [duration_5m]
 5m
 ---
@@ -102,6 +108,9 @@ Simpan ronde yang selesai sebelum keluar?
 ---
 [cancel_button]
 Batal
+---
+[ok_button]
+OK
 ---
 [save_button]
 Simpan

@@ -70,6 +70,12 @@ Tester la lecture
 [meditation_music_stop_test_button]
 Arrêter le test
 ---
+[meditation_music_network_error_title]
+Réseau indisponible
+---
+[meditation_music_network_error_message]
+Impossible de joindre le serveur audio de méditation. Vérifiez les autorisations réseau d'Android et votre connexion internet, puis réessayez.
+---
 [duration_5m]
 5m
 ---
@@ -102,6 +108,9 @@ Enregistrer les cycles terminés avant de quitter ?
 ---
 [cancel_button]
 Annuler
+---
+[ok_button]
+OK
 ---
 [save_button]
 Enregistrer

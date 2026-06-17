@@ -134,6 +134,30 @@ set_status(InbeApp *app, const char *message)
                       message);
 }
 
+static int
+is_network_download_error(const FlintRuntimeAssetDownload *download)
+{
+    const char *error;
+
+    if(download == NULL)
+        return 0;
+    error = download->error;
+    if(error == NULL || error[0] == '\0')
+        return 0;
+
+    if(strcmp(error, "NETWORK_UNAVAILABLE") == 0)
+        return 1;
+    if(strstr(error, "Unable to resolve host") != NULL ||
+       strstr(error, "No address associated with hostname") != NULL ||
+       strstr(error, "Could not resolve host") != NULL ||
+       strstr(error, "Couldn't resolve host") != NULL ||
+       strstr(error, "Name or service not known") != NULL ||
+       strstr(error, "Temporary failure in name resolution") != NULL)
+        return 1;
+
+    return 0;
+}
+
 static void
 format_download_status(char *out, size_t out_size,
                        const FlintRuntimeAssetDownload *download)
@@ -492,8 +516,17 @@ meditation_music_update(InbeApp *app)
         extract_audio_archive(app, archive_path);
     } else if(app->meditation_music_download.status == FLINT_RUNTIME_ASSET_ERROR ||
               app->meditation_music_download.status == FLINT_RUNTIME_ASSET_UNSUPPORTED) {
-        if(app->meditation_music_download.error[0] != '\0')
+        if(is_network_download_error(&app->meditation_music_download)) {
+            set_status(app, locale_get("meditation_music_network_error_title"));
+            if(!app->meditation_music_network_error_notified && !app->modal.active) {
+                app->modal.active = 1;
+                app->modal.type = UIModalMeditationNetworkError;
+                app->modal.selected_button = 0;
+                app->meditation_music_network_error_notified = 1;
+            }
+        } else if(app->meditation_music_download.error[0] != '\0') {
             set_status(app, app->meditation_music_download.error);
+        }
     }
 
     if(app->meditation_music_loaded) {
@@ -512,6 +545,7 @@ start_download(InbeApp *app)
 
     music_archive_path(app, archive_path, sizeof(archive_path));
     app->meditation_music_archive_extracted = 0;
+    app->meditation_music_network_error_notified = 0;
     set_status(app, "Downloading audio...");
     flint_runtime_asset_download(&app->meditation_music_download,
                                  INBE_MEDITATION_AUDIO_URL,

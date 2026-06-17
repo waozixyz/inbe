@@ -70,6 +70,12 @@ Vyzkoušet přehrání
 [meditation_music_stop_test_button]
 Zastavit test
 ---
+[meditation_music_network_error_title]
+Síť není dostupná
+---
+[meditation_music_network_error_message]
+Nelze se připojit k serveru s meditačním audiem. Zkontrolujte síťová oprávnění Androidu a připojení k internetu a zkuste to znovu.
+---
 [duration_5m]
 5m
 ---
@@ -102,6 +108,9 @@ Uložit dokončená kola před ukončením?
 ---
 [cancel_button]
 Zrušit
+---
+[ok_button]
+OK
 ---
 [save_button]
 Uložit

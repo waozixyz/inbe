@@ -70,6 +70,12 @@ Test audio
 [meditation_music_stop_test_button]
 Stop test
 ---
+[meditation_music_network_error_title]
+Network unavailable
+---
+[meditation_music_network_error_message]
+Could not reach the meditation audio server. Check Android network permissions and your internet connection, then try again.
+---
 [meditation_music_attribution]
 Music by Elijah_K.
 ---
@@ -105,6 +111,9 @@ Save completed rounds before exit?
 ---
 [cancel_button]
 Cancel
+---
+[ok_button]
+OK
 ---
 [save_button]
 Save

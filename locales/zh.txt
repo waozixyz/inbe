@@ -70,6 +70,12 @@ Wim Hof 呼吸
 [meditation_music_stop_test_button]
 停止测试
 ---
+[meditation_music_network_error_title]
+网络不可用
+---
+[meditation_music_network_error_message]
+无法连接到冥想音频服务器。请检查 Android 网络权限和互联网连接，然后重试。
+---
 [duration_5m]
 5分钟
 ---
@@ -102,6 +108,9 @@ Wim Hof 呼吸
 ---
 [cancel_button]
 取消
+---
+[ok_button]
+确定
 ---
 [save_button]
 保存

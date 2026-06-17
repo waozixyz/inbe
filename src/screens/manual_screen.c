@@ -94,6 +94,47 @@ draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int conte
     flint_ui_paragraph_draw(tutorial_paragraph(app, step, content_w, body_font), content_x, y);
 }
 
+static int
+manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_font)
+{
+    int actual_content_h = 0;
+
+    if(step == 0) {
+        actual_content_h += flint_px(170) + flint_px(22) +
+                            tutorial_paragraph_height(app, 0, content_w, body_font);
+    } else if(step == 1) {
+        actual_content_h += tutorial_paragraph_height(app, 1, content_w, body_font);
+    } else if(step == 2) {
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + flint_px(68);
+        if(app->inbe.progressive_speed)
+            actual_content_h += flint_px(66);
+    } else if(step == 3) {
+        int preview_span;
+        int preview_rmax;
+        int slider_h = flint_px(40);
+
+        actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font) + flint_px(20);
+        preview_span = (content_w < flint_px(132)) ? content_w : flint_px(132);
+        preview_rmax = preview_span / 2;
+        if(preview_rmax < flint_px(60)) preview_rmax = flint_px(60);
+        if(preview_rmax > flint_px(120)) preview_rmax = flint_px(120);
+        actual_content_h += flint_px(40) + (int)((float)preview_rmax * 0.72f) + flint_px(14);
+        actual_content_h += slider_h + flint_px(8);
+    } else if(step == 4) {
+        int hold_preview_radius = flint_px(54);
+        int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
+
+        actual_content_h += flint_px(26) + flint_px(36) + flint_px(20);
+        actual_content_h += hold_preview_extent * 2 + flint_px(24);
+        actual_content_h += tutorial_paragraph_height(app, 4, content_w, body_font);
+    } else {
+        actual_content_h += flint_px(200) + flint_px(22) +
+                            tutorial_paragraph_height(app, 5, content_w, body_font);
+    }
+
+    return actual_content_h;
+}
+
 void
 manual_screen_reset_layouts(InbeApp *app)
 {
@@ -146,7 +187,7 @@ meditation_manual_draw(InbeApp *app)
     int button_y = view_height - flint_px(52);
     int content_y = title_h + flint_px(20);
     int content_h = button_y - content_y - flint_px(16);
-    int content_total_h = flint_px(520);
+    int content_total_h;
     FlintUIScrollArea scroll_area;
     FlintUIScrollView scroll_view;
     FlintUIParagraph paragraph;
@@ -174,19 +215,50 @@ meditation_manual_draw(InbeApp *app)
         .line_gap = TUTORIAL_LINE_SPACING,
         .color = theme_get_text(),
     };
+    for(int pass = 0; pass < 3; pass++) {
+        FlintUIScrollView measured;
 
+        paragraph.width = content_w;
+        content_total_h = meditation_music_measure_settings(app, content_w, 0, 1) +
+                          flint_px(34) +
+                          flint_ui_paragraph_height(paragraph) +
+                          flint_px(20);
+        scroll_area = (FlintUIScrollArea){
+            .bounds = {0.0f, (float)content_y,
+                       (float)view_width, (float)content_h},
+            .content_height = content_total_h,
+            .content_x = content_x,
+            .content_width = content_w,
+            .scroll_offset = &app->manual_scroll,
+            .wheel_step = flint_px(42),
+            .scrollbar_x = view_width - flint_px(8)
+        };
+        measured = ui_scroll_container_measure(scroll_area);
+        if(measured.content_w == content_w)
+            break;
+        content_w = measured.content_w;
+    }
+    paragraph.width = content_w;
+    content_total_h = meditation_music_measure_settings(app, content_w, 0, 1) +
+                      flint_px(34) +
+                      flint_ui_paragraph_height(paragraph) +
+                      flint_px(20);
     scroll_area = (FlintUIScrollArea){
-        .bounds = {(float)content_x, (float)content_y,
-                   (float)content_w, (float)content_h},
+        .bounds = {0.0f, (float)content_y,
+                   (float)view_width, (float)content_h},
         .content_height = content_total_h,
+        .content_x = content_x,
+        .content_width = content_w,
         .scroll_offset = &app->manual_scroll,
-        .wheel_step = flint_px(42)
+        .wheel_step = flint_px(42),
+        .scrollbar_x = view_width - flint_px(8)
     };
     scroll_view = ui_scroll_container_begin(scroll_area);
     y = scroll_view.content_y;
-    meditation_music_draw_guide_settings(app, content_x, content_w, &y);
+    meditation_music_draw_guide_settings(app, scroll_view.content_x, scroll_view.content_w, &y);
     y += flint_px(34);
-    flint_ui_paragraph_draw(paragraph, content_x, &y);
+    paragraph.width = scroll_view.content_w;
+    flint_ui_paragraph_draw(paragraph, scroll_view.content_x, &y);
     ui_scroll_container_end(scroll_area, scroll_view);
     meditation_music_draw_dropdown_menu(app);
 
@@ -220,6 +292,8 @@ manual_screen_draw(InbeApp *app)
     char page_label[32];
     int close_clicked = 0;
     int step = app->tutorial_step;
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
 
     if(app->exercise_type == EXERCISE_MEDITATION) {
         meditation_manual_draw(app);
@@ -272,89 +346,46 @@ manual_screen_draw(InbeApp *app)
     if(close_clicked)
         manual_screen_close_tutorial(app, 0);
 
-    /* Calculate actual content height based on current step and text layouts */
-    /* Don't include padding in this calculation - it's handled separately */
-    int actual_content_h = 0;  /* Content only, no padding */
-    if(step == 0) {
-        actual_content_h += flint_px(170) + flint_px(22) +
-                            tutorial_paragraph_height(app, 0, content_w, body_font);
-    } else if(step == 1) {
-        actual_content_h += tutorial_paragraph_height(app, 1, content_w, body_font);
-    } else if(step == 2) {
-        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + flint_px(68);
-        if(app->inbe.progressive_speed)
-            actual_content_h += flint_px(66);
-    } else if(step == 3) {
-        actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font) + flint_px(20);
-        /* Circle preview height - calculate actual rmax based on content_w */
-        /* update_preview_bounds uses min(content_w, 132)/2 clamped to 60-120 for rmax */
-        int preview_span = (content_w < flint_px(132)) ? content_w : flint_px(132);
-        int preview_rmax = preview_span / 2;
-        if(preview_rmax < flint_px(60)) preview_rmax = flint_px(60);
-        if(preview_rmax > flint_px(120)) preview_rmax = flint_px(120);
-        /* Circle is drawn at y+flint_px(40) with radius 0.72*preview_rmax */
-        actual_content_h += flint_px(40) + (int)((float)preview_rmax * 0.72f) + flint_px(14);
-        int slider_h = flint_px(40);
-        actual_content_h += slider_h + flint_px(8);
-    } else if(step == 4) {
-        int hold_preview_radius = flint_px(54);
-        int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
-        actual_content_h += flint_px(26) + flint_px(36) + flint_px(20);
-        actual_content_h += hold_preview_extent * 2 + flint_px(24);
-        actual_content_h += tutorial_paragraph_height(app, 4, content_w, body_font);
-    } else {
-        actual_content_h += flint_px(200) + flint_px(22) +
-                            tutorial_paragraph_height(app, 5, content_w, body_font);
-    }
-    /* Calculate scroll range for virtual content space */
-    int top_padding = flint_px(16);
-    int total_content_h = actual_content_h + top_padding;
-    int viewport_content_h = content_area_h;
-    int max_scroll = total_content_h - viewport_content_h;
-    if(max_scroll < 0)
-        max_scroll = 0;
+    {
+        int top_padding = flint_px(16);
+        int total_content_h;
 
-    /* Reset scroll position if content now fits in viewport */
-    if(max_scroll == 0) {
-        app->manual_scroll = 0;
-    }
-    /* Clamp scroll position to new max */
-    app->manual_scroll = clampi(app->manual_scroll, 0, max_scroll);
-    app->manual_scroll -= (int)(GetMouseWheelMove() * 24.0f);
-    app->manual_scroll = clampi(app->manual_scroll, 0, max_scroll);
+        for(int pass = 0; pass < 3; pass++) {
+            FlintUIScrollView measured;
 
-    /* Handle content area drag scrolling */
-    static int content_drag_active = 0;
-    static int content_drag_start_y = 0;
-    static int content_drag_start_scroll = 0;
-
-    Vector2 mouse_pos = GetMousePosition();
-    int content_area_y = title_h;
-    Rectangle content_bounds = {content_x, content_area_y, content_w, content_area_h};
-
-    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
-        if(!content_drag_active) {
-            /* Start drag if clicking in content area */
-            if(CheckCollisionPointRec(mouse_pos, content_bounds)) {
-                content_drag_active = 1;
-                content_drag_start_y = (int)mouse_pos.y;
-                content_drag_start_scroll = app->manual_scroll;
-            }
-        } else {
-            /* Continue drag */
-            int dy = (int)mouse_pos.y - content_drag_start_y;
-            app->manual_scroll = content_drag_start_scroll - dy;
-            app->manual_scroll = clampi(app->manual_scroll, 0, max_scroll);
+            total_content_h = manual_tutorial_content_height(app, step, content_w, body_font) +
+                              top_padding;
+            scroll_area = (FlintUIScrollArea){
+                .bounds = {0.0f, (float)title_h, (float)view_width, (float)content_area_h},
+                .content_height = total_content_h,
+                .content_x = content_x,
+                .content_width = content_w,
+                .scroll_offset = &app->manual_scroll,
+                .wheel_step = flint_px(42),
+                .scrollbar_x = view_width - flint_px(8)
+            };
+            measured = ui_scroll_container_measure(scroll_area);
+            if(measured.content_w == content_w)
+                break;
+            content_w = measured.content_w;
         }
-    } else {
-        content_drag_active = 0;
+        scroll_area = (FlintUIScrollArea){
+            .bounds = {0.0f, (float)title_h, (float)view_width, (float)content_area_h},
+            .content_height = manual_tutorial_content_height(app, step, content_w, body_font) +
+                              top_padding,
+            .content_x = content_x,
+            .content_width = content_w,
+            .scroll_offset = &app->manual_scroll,
+            .wheel_step = flint_px(42),
+            .scrollbar_x = view_width - flint_px(8)
+        };
     }
 
-    flint_clip_begin((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + title_h * app->camera.zoom),
-                     (int)(view_width * app->camera.zoom),
-                     (int)(content_area_h * app->camera.zoom));
-        int y = title_h + flint_px(16) - app->manual_scroll;
+    scroll_view = ui_scroll_container_begin(scroll_area);
+    content_x = scroll_view.content_x;
+    content_w = scroll_view.content_w;
+    {
+        int y = scroll_view.content_y + flint_px(16);
         if(step == 0) {
             int img_h = flint_px(170);
             ui_draw_tutorial_image(app->whm_1_image, "whm/1.jpg", content_x, y, content_w, img_h);
@@ -427,18 +458,8 @@ manual_screen_draw(InbeApp *app)
             y += img_h + flint_px(22);
             draw_tutorial_paragraph(app, 5, content_x, &y, content_w, body_font);
         }
-    flint_clip_end();
-
-    /* Draw scrollbar if content overflows */
-    if(max_scroll > 0) {
-        /* Transform world coordinates to screen coordinates for scrollbar function */
-        int scrollbar_x = (int)(app->camera.offset.x + (content_x + content_w + flint_px(4)) * app->camera.zoom);
-        int scrollbar_y = (int)(app->camera.offset.y + title_h * app->camera.zoom);
-        int scrollbar_viewport = (int)(content_area_h * app->camera.zoom);  /* Scaled by camera zoom */
-        int total_content_screen_h = (int)(total_content_h * app->camera.zoom);  /* Also scaled for ratio calculations */
-        ui_draw_scrollbar(scrollbar_x, scrollbar_y, scrollbar_viewport, total_content_screen_h,
-                          &app->manual_scroll, max_scroll);
     }
+    ui_scroll_container_end(scroll_area, scroll_view);
 
     locale_format(page_label, sizeof(page_label), "tutorial_page_label",
                   step + 1, (int)TUTORIAL_STEPS_COUNT);

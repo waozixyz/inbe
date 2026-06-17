@@ -1323,6 +1323,26 @@ handle_back_button(InbeApp *app)
 }
 
 static void
+draw_global_modal(InbeApp *app)
+{
+    int modal_result;
+
+    if(app == NULL || !app->modal.active)
+        return;
+
+    if(app->modal.type == UIModalMeditationNetworkError) {
+        modal_result = ui_draw_modal(locale_get("meditation_music_network_error_title"),
+                                     locale_get("meditation_music_network_error_message"),
+                                     locale_get("ok_button"),
+                                     locale_get("ok_button"));
+        if(modal_result != 0) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        }
+    }
+}
+
+static void
 updateapp(InbeApp *app)
 {
     int center_x = view_width / 2;
@@ -1505,6 +1525,7 @@ updateapp(InbeApp *app)
     }
 
 finish_frame:
+    draw_global_modal(app);
     app_flush_deferred_settings(app);
     app->inbe.frame++;
 }

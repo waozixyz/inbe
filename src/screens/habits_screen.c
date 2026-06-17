@@ -1216,10 +1216,13 @@ draw_habits_screen(InbeApp *app)
         scroll_h = 0;
 
     scroll_area = (FlintUIScrollArea){
-        .bounds = {(float)content_x, (float)scroll_y, (float)content_w, (float)scroll_h},
+        .bounds = {0.0f, (float)scroll_y, (float)view_width, (float)scroll_h},
         .content_height = scroll_content_h,
+        .content_x = content_x,
+        .content_width = content_w,
         .scroll_offset = &app->habits.scroll,
-        .wheel_step = flint_px(42)
+        .wheel_step = flint_px(42),
+        .scrollbar_x = view_width - flint_px(8)
     };
     scroll_view = ui_scroll_container_begin(scroll_area);
     content_x = scroll_view.content_x;
@@ -1540,10 +1543,13 @@ draw_habit_session_edit_screen(InbeApp *app)
     flint_centered_column(max_w, side_padding, &content_x, &content_w);
     content_h = draw_habit_session_edit_content(app, &ctx, content_x, content_w, y, 0) - y;
     scroll_area = (FlintUIScrollArea){
-        .bounds = {(float)content_x, (float)y, (float)content_w, (float)viewport_h},
+        .bounds = {0.0f, (float)y, (float)view_width, (float)viewport_h},
         .content_height = content_h,
+        .content_x = content_x,
+        .content_width = content_w,
         .scroll_offset = &app->habit_session_edit_scroll,
-        .wheel_step = flint_px(42)
+        .wheel_step = flint_px(42),
+        .scrollbar_x = view_width - flint_px(8)
     };
     scroll_view = ui_scroll_container_begin(scroll_area);
     draw_habit_session_edit_content(app, &ctx, scroll_view.content_x, scroll_view.content_w,
