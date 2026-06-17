@@ -42,6 +42,7 @@ int inbe_storage_load_session(const char *id, int *round_times, int max_rounds,
 void inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
 int inbe_storage_has_any(void);
 int inbe_storage_session_count(void);
+int inbe_storage_habit_count(void);
 long long inbe_storage_total_size(void);
 long long inbe_storage_delete_all_sessions(void);
 

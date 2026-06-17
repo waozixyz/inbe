@@ -18,12 +18,17 @@ extern int view_width;
 extern int view_height;
 
 static Color
-text_color_on_circle(void)
+text_color_for_background(Color background)
 {
-    Color circle = theme_get_circle();
-    int luma = circle.r * 299 + circle.g * 587 + circle.b * 114;
+    int luma = background.r * 299 + background.g * 587 + background.b * 114;
 
     return luma >= 128000 ? BLACK : WHITE;
+}
+
+static Color
+text_color_on_circle(void)
+{
+    return text_color_for_background(theme_get_circle());
 }
 
 static void
@@ -422,7 +427,10 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     char text[CountSize];
     int count;
     int font = flint_px(16);
-    Color text_color = text_color_on_circle();
+    Color text_color = app->inbe.phase == InbePhaseHold &&
+                       app->hold_display_mode == HOLD_DISPLAY_CIRCLE
+                           ? text_color_for_background(theme_get_bg())
+                           : text_color_on_circle();
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -921,25 +929,46 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     DrawLine(box_x, box_y + flint_px(58), box_x + box_w, box_y + flint_px(58), flint_darken(theme_get_bg(), 30));
     {
         char line[64];
+        int text_x = box_x + flint_px(10);
+        int text_w = box_w - flint_px(20);
+        int summary_font = flint_px(16);
         locale_format(line, sizeof(line), "results_rounds", rounds);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(10), flint_px(16), theme_get_text());
+        flint_ui_draw_text_left_in_rect(line,
+                                        (Rectangle){(float)text_x, (float)box_y,
+                                                    (float)text_w, (float)flint_px(29)},
+                                        summary_font, theme_get_text());
         locale_format(line, sizeof(line), "results_best", best);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(39), flint_px(16), theme_get_text());
+        flint_ui_draw_text_left_in_rect(line,
+                                        (Rectangle){(float)text_x,
+                                                    (float)(box_y + flint_px(29)),
+                                                    (float)text_w, (float)flint_px(29)},
+                                        summary_font, theme_get_text());
         locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
-        if(view_width < 420 && flint_text_measure(line, flint_px(16)) > box_w - flint_px(20))
+        if(view_width < 420 && flint_text_measure(line, summary_font) > text_w)
             snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-        flint_text_draw(line, box_x + flint_px(10), box_y + flint_px(68), flint_px(16), theme_get_text());
+        flint_ui_draw_text_left_in_rect(line,
+                                        (Rectangle){(float)text_x,
+                                                    (float)(box_y + flint_px(58)),
+                                                    (float)text_w, (float)flint_px(29)},
+                                        summary_font, theme_get_text());
     }
 
-    flint_text_draw(locale_get("round_times_title"), box_x, flint_px(188),
-                    flint_ui_font(), flint_darken(theme_get_text(), 20));
+    flint_ui_draw_text_left_in_rect(locale_get("round_times_title"),
+                                    (Rectangle){(float)box_x, (float)flint_px(181),
+                                                (float)box_w, (float)flint_px(28)},
+                                    flint_ui_font(), flint_darken(theme_get_text(), 20));
     for(int i = 0; i < rounds; i++) {
         char row[48];
         int row_font = flint_ui_font();
         locale_format(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
         DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(theme_get_bg(), 4));
         DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(theme_get_bg(), 26));
-        flint_text_draw(row, box_x + flint_px(10), flint_ui_text_y(row, row_y, row_h, row_font), row_font, theme_get_text());
+        flint_ui_draw_text_left_in_rect(row,
+                                        (Rectangle){(float)(box_x + flint_px(10)),
+                                                    (float)row_y,
+                                                    (float)(box_w - flint_px(20)),
+                                                    (float)row_h},
+                                        row_font, theme_get_text());
         row_y += row_h;
     }
 

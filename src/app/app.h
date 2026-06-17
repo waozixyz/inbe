@@ -195,6 +195,7 @@ struct InbeApp {
     int habit_edit_is_new;
     int habit_edit_index;
     int habit_edit_cursor;
+    int habit_edit_focused;
     char habit_edit_text[INBE_HABIT_NAME_SIZE];
     Color habit_edit_color;
     int habit_edit_sync_mode;
@@ -220,6 +221,7 @@ struct InbeApp {
     int meditation_music_track;
     int meditation_music_loaded;
     int meditation_music_playing;
+    int meditation_music_test_playing;
     int meditation_music_archive_extracted;
     Music meditation_music;
     FlintRuntimeAssetDownload meditation_music_download;
@@ -232,6 +234,7 @@ struct InbeApp {
 
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
+void inbe_app_destroy(void *app);
 void update_session_sounds(InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 

@@ -341,6 +341,7 @@ meditation_music_unload(InbeApp *app)
         app->meditation_music_loaded = 0;
     }
     app->meditation_music_playing = 0;
+    app->meditation_music_test_playing = 0;
 }
 
 void
@@ -351,6 +352,7 @@ meditation_music_stop(InbeApp *app)
     if(app->meditation_music_loaded)
         StopMusicStream(app->meditation_music);
     app->meditation_music_playing = 0;
+    app->meditation_music_test_playing = 0;
 }
 
 static void
@@ -378,6 +380,7 @@ meditation_music_test_track(InbeApp *app)
 
     PlayMusicStream(app->meditation_music);
     app->meditation_music_playing = 1;
+    app->meditation_music_test_playing = 1;
     set_status(app, "Playing test audio");
 }
 
@@ -431,6 +434,7 @@ meditation_music_start_session(InbeApp *app)
         return;
     PlayMusicStream(app->meditation_music);
     app->meditation_music_playing = 1;
+    app->meditation_music_test_playing = 0;
 }
 
 void
@@ -440,6 +444,12 @@ meditation_music_update(InbeApp *app)
 
     if(app == NULL)
         return;
+    if(app->meditation_music_test_playing &&
+       (app->inbe.screen != InbeScreenPracticeConfig ||
+        app->exercise_type != EXERCISE_MEDITATION)) {
+        meditation_music_stop(app);
+        return;
+    }
 
     if(app->meditation_music_download.status == FLINT_RUNTIME_ASSET_READY &&
        !app->meditation_music_archive_extracted) {

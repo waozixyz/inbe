@@ -84,6 +84,21 @@ typedef struct {
 } FlintUITextEdit;
 
 typedef struct {
+    Rectangle bounds;
+    char *text;
+    size_t text_size;
+    int *cursor_position;
+    int *focused;
+    int max_codepoints;
+    int font;
+    int focus_id;
+    FlintUITextInputStyle style;
+    FlintUITextInputFilter filter;
+    void *filter_user_data;
+    int *commit_pressed;
+} FlintUITextField;
+
+typedef struct {
     const char *text;
     Texture2D icon;
     UIIconType icon_type;
@@ -160,6 +175,7 @@ int flint_ui_font(void);
 int flint_ui_font_small(void);
 int flint_ui_text_y(const char *text, int box_y, int box_h, int font);
 void flint_ui_draw_text_centered(const char *text, int center_x, int center_y, int font, Color color);
+void flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color);
 void flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position,
                               int focused, int cursor_visible, int font,
                               FlintUITextInputStyle style);
@@ -170,6 +186,7 @@ void flint_ui_text_input_queue_enter(void);
 int flint_ui_button(FlintUIButton button);
 int flint_ui_icon_button(FlintUIIconButton button);
 int flint_ui_text_input(FlintUITextInput input);
+int flint_ui_text_field(FlintUITextField field);
 int flint_ui_paragraph_height(FlintUIParagraph paragraph);
 void flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y);
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
@@ -236,8 +253,6 @@ FlintUIHeader ui_draw_title_header(int height, const char *title,
 FlintUIPanelFrame ui_draw_modal_frame(int width, int height, const char *title,
                                       Texture2D left_icon,
                                       Texture2D right_icon);
-void ui_begin_scissor(int x, int y, int w, int h);
-void ui_end_scissor(void);
 int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);

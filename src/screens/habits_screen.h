@@ -21,6 +21,11 @@ enum {
     HABIT_LINKED_PATH_SIZE = 80
 };
 
+enum {
+    HABIT_VIEW_CALENDAR = 0,
+    HABIT_VIEW_WEEKLY = 1
+};
+
 /* Habits-specific enums */
 typedef enum InbeHabitSyncMode {
     INBE_HABIT_SYNC_NONE = 0,
@@ -112,9 +117,12 @@ void habit_edit_commit(InbeApp *app);
 void habit_edit_cancel(InbeApp *app);
 
 /* UI functions (moved to habits_screen.c) */
+void draw_habits_screen(InbeApp *app);
+void draw_habit_edit_screen(InbeApp *app);
 void draw_habit_session_edit_screen(InbeApp *app);
 int draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
 int habit_is_linked(const InbeHabit *habit);
+void habit_session_cancel_edit(InbeApp *app);
 
 /* Habit session keyboard functions */
 int habit_session_keyboard_height(InbeApp *app);

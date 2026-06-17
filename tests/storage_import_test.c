@@ -3,6 +3,7 @@
 #include "breath_engine.h"
 #include "miniz.h"
 #include "raylib.h"
+#include <sqlite3.h>
 
 #include <dirent.h>
 #include <stdarg.h>
@@ -193,11 +194,66 @@ test_zip_db_import(void)
     remove_tree(dest);
 }
 
+static void
+write_tickmate_database(const char *path)
+{
+    sqlite3 *db = NULL;
+    char *error = NULL;
+
+    check_true("open tickmate db", sqlite3_open(path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return;
+    check_true("create tickmate db",
+               sqlite3_exec(db,
+                            "CREATE TABLE tracks(_id integer primary key autoincrement,"
+                            "name text not null,description text not null,icon text not null,"
+                            "enabled integer not null,multiple_entries_per_day integer DEFAULT 0,"
+                            "color integer DEFAULT 0,\"order\" integer DEFAULT -1);"
+                            "CREATE TABLE ticks(_id integer primary key autoincrement,"
+                            "_track_id integer,year integer,month integer,day integer,"
+                            "hour integer,minute integer,second integer,has_time_info integer DEFAULT 0);"
+                            "INSERT INTO tracks(_id,name,description,icon,enabled,color,\"order\") "
+                            "VALUES(1,'Meditation','Silenced my mind','',1,8925,0);"
+                            "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
+                            "VALUES(1,2026,6,13,0,0,0,0);",
+                            NULL, NULL, &error) == SQLITE_OK);
+    if(error != NULL) {
+        fprintf(stderr, "tickmate setup SQL error: %s\n", error);
+        sqlite3_free(error);
+    }
+    sqlite3_close(db);
+}
+
+static void
+test_tickmate_db_import(void)
+{
+    char source[512], dest[512], db_path[512];
+    InbeHabits habits;
+
+    make_clean_root(source, sizeof(source), "tickmate-source");
+    make_clean_root(dest, sizeof(dest), "tickmate-dest");
+    make_path(db_path, sizeof(db_path), source, "tickmate.db");
+    write_tickmate_database(db_path);
+
+    check_true("init tickmate import dest", inbe_storage_init(dest));
+    check_true("tickmate db import", inbe_storage_import_zip(db_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("tickmate habits load", inbe_storage_habits_load(&habits));
+    check_int("tickmate habit count", habits.count, 1);
+    check_true("tickmate habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
+    check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
 int
 main(void)
 {
     test_raw_db_import();
     test_zip_db_import();
+    test_tickmate_db_import();
     test_session_metadata();
 
     if(g_failures != 0) {
