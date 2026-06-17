@@ -1339,13 +1339,11 @@ migrate_legacy_file_sessions_in_dir(const char *dir_path)
 static void
 migrate_legacy_file_sessions_once(void)
 {
-    int imported;
-
     if(g_storage.db == NULL || g_storage.root[0] == '\0')
         return;
     if(meta_equals("legacy_file_sessions_migrated", "1"))
         return;
-    imported = migrate_legacy_file_sessions_in_dir(g_storage.root);
+    migrate_legacy_file_sessions_in_dir(g_storage.root);
     set_meta("legacy_file_sessions_migrated", "1");
     storage_schedule_persist();
 }
