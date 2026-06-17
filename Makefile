@@ -18,6 +18,7 @@ LINUX_BIN_DIR := $(BUILD_BIN_DIR)/linux
 LINUX_DIST_DIR := $(BUILD_DIST_DIR)/linux
 LINUX_STATIC_OBJ_DIR := $(BUILD_OBJ_DIR)/linux-static
 LINUX_STATIC_BIN_DIR := $(BUILD_BIN_DIR)/linux-static
+LINUX_APPDIR := $(LINUX_DIST_DIR)/$(APP_NAME).AppDir
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
@@ -52,6 +53,7 @@ SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
 SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
+FLINT_TEXT_SCALING_TEST := $(TEST_BIN_DIR)/flint_text_scaling_test
 ifneq ($(strip $(FLINT_CURL_LDLIBS)),)
 FLINT_RUNTIME_ASSET_CFLAGS := -DFLINT_HAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
@@ -83,7 +85,7 @@ LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/whm/1.jpg assets/whm/2.jpg
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat assets/fonts/locales-8.png assets/fonts/locales-8.dat
-OTFCHOP_DIR ?= $(if $(wildcard /home/wao/src/otfchop/otfchop),/home/wao/src/otfchop,vendor/otfchop)
+OTFCHOP_DIR ?= vendor/otfchop
 FONT_TOOL := $(OTFCHOP_DIR)/otfchop
 FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
@@ -104,6 +106,9 @@ BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
 TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
 STATIC_BINARY_NAME := $(APP_NAME)-linux-static-$(STATIC_ARCH)
 STATIC_TARGET := $(LINUX_STATIC_BIN_DIR)/$(STATIC_BINARY_NAME)
+APPIMAGE_NAME := $(APP_NAME)-linux-$(STATIC_ARCH).AppImage
+APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
+LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell git rev-parse --short HEAD 2>/dev/null || date +%s)
@@ -112,7 +117,7 @@ WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test linux-static linux-static-check clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
+.PHONY: all native run test dist appimage linux-static linux-static-check clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
 
 all: native
 
@@ -124,11 +129,16 @@ linux-static-check: $(STATIC_TARGET)
 	file $(STATIC_TARGET)
 	ldd $(STATIC_TARGET) || true
 
+dist: appimage
+
+appimage: $(APPIMAGE_TARGET)
+
 run: $(TARGET)
 	./$(TARGET)
 
-test: $(STORAGE_IMPORT_TEST)
+test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST)
 	$(STORAGE_IMPORT_TEST)
+	$(FLINT_TEXT_SCALING_TEST)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
@@ -136,6 +146,13 @@ $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/st
 		-o $@ \
 		tests/storage_import_test.c src/storage/storage.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
+
+$(FLINT_TEXT_SCALING_TEST): tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c flint/include/flint_text.h flint/include/flint_clip.h flint/include/flint_scaling.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -ffunction-sections -fdata-sections \
+		-Iflint/include -Ivendor/raylib/src \
+		-o $@ \
+		tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c \
+		-Wl,--gc-sections -lm
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_STATIC_BIN_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
 	mkdir -p $@
@@ -248,6 +265,20 @@ $(STATIC_TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMAT
 		$(STATIC_RAY_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(STATIC_LDFLAGS)
+
+$(APPIMAGE_TARGET): $(STATIC_TARGET) web-assets/icons/icon-512x512.png | $(LINUX_DIST_DIR)
+	rm -rf $(LINUX_APPDIR)
+	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps
+	cp $(STATIC_TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
+	cp web-assets/icons/icon-512x512.png $(LINUX_APPDIR)/$(APP_NAME).png
+	cp web-assets/icons/icon-512x512.png $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	printf '%s\n' '#!/bin/sh' 'exec "$$APPDIR/usr/bin/$(APP_NAME)" "$$@"' > $(LINUX_APPDIR)/AppRun
+	chmod +x $(LINUX_APPDIR)/AppRun
+	printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=$(APP_TITLE)' 'Exec=$(APP_NAME)' 'Icon=$(APP_NAME)' 'Categories=Utility;' 'Terminal=false' > $(LINUX_APPDIR)/$(APP_NAME).desktop
+	cd $(LINUX_DIST_DIR) && ARCH=$(STATIC_ARCH) OUTPUT=appimage $(LINUXDEPLOY) --appdir $(APP_NAME).AppDir --output appimage
+	@found=$$(find $(LINUX_DIST_DIR) -maxdepth 1 -name '*.AppImage' ! -name '$(APPIMAGE_NAME)' | head -n 1); \
+	if [ -n "$$found" ]; then mv "$$found" $@; fi; \
+	test -f $@
 
 $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) | $(WEB_DIST_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \

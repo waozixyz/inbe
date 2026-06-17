@@ -1,5 +1,6 @@
 #include "raylib.h"
 #include "app.h"
+#include "flint_clip.h"
 #include "flint_dpi.h"
 #include "flint_web.h"
 #include <stdarg.h>
@@ -221,14 +222,14 @@ frame(void)
 
     BeginDrawing();
     ClearBackground(BLACK);
-    BeginScissorMode(content_x, content_y, content_width, content_height);
+    flint_clip_begin(content_x, content_y, content_width, content_height);
     inbe_app_update_draw(&inbe_app, (Rectangle){
         (float)content_x,
         (float)content_y,
         (float)content_width,
         (float)content_height
     });
-    EndScissorMode();
+    flint_clip_end();
 #else
     BeginDrawing();
     ClearBackground(BLACK);

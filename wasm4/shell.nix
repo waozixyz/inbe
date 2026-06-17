@@ -20,12 +20,12 @@ pkgs.mkShell {
 
     # Native display dependencies for w4 run-native
     export LD_LIBRARY_PATH="${pkgs.lib.makeLibraryPath (with pkgs; [
-      xorg.libX11
-      xorg.libXrandr
-      xorg.libXinerama
-      xorg.libXcursor
-      xorg.libXi
-      xorg.libXext
+      libx11
+      libxrandr
+      libxinerama
+      libxcursor
+      libxi
+      libxext
       libGL
       alsa-lib
       wayland

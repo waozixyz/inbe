@@ -136,6 +136,7 @@
               libgbm
               libglvnd
               libglvnd.dev
+              linuxdeploy
               mesa
               ncurses
               ninja
@@ -144,17 +145,17 @@
               zlib
               zip
               staticPkgs.stdenv.cc
-              staticPkgs.xorg.libX11
-              staticPkgs.xorg.libXrandr
-              staticPkgs.xorg.libXinerama
-              staticPkgs.xorg.libXi
-              staticPkgs.xorg.libXcursor
-              staticPkgs.xorg.libXext
-              staticPkgs.xorg.libXfixes
-              staticPkgs.xorg.libXrender
-              staticPkgs.xorg.libXau
-              staticPkgs.xorg.libXdmcp
-              staticPkgs.xorg.libxcb
+              staticPkgs.libx11
+              staticPkgs.libxrandr
+              staticPkgs.libxinerama
+              staticPkgs.libxi
+              staticPkgs.libxcursor
+              staticPkgs.libxext
+              staticPkgs.libxfixes
+              staticPkgs.libxrender
+              staticPkgs.libxau
+              staticPkgs.libxdmcp
+              staticPkgs.libxcb
               aarch64Pkgs.stdenv.cc
               aarch64Pkgs.SDL2
               aarch64Pkgs.SDL2.dev
@@ -195,8 +196,9 @@
               export STATIC_CC="${staticPkgs.stdenv.cc}/bin/${staticPkgs.stdenv.cc.targetPrefix}cc"
               export STATIC_AR="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ar"
               export STATIC_RANLIB="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ranlib"
-              export STATIC_RAY_CFLAGS="-I${staticPkgs.xorg.libX11.dev}/include -I${staticPkgs.xorg.libXrandr.dev}/include -I${staticPkgs.xorg.libXinerama.dev}/include -I${staticPkgs.xorg.libXi.dev}/include -I${staticPkgs.xorg.libXcursor.dev}/include -I${staticPkgs.xorg.libXext.dev}/include -I${staticPkgs.xorg.libXfixes.dev}/include -I${staticPkgs.xorg.libXrender.dev}/include -I${staticPkgs.xorg.libXau.dev}/include -I${staticPkgs.xorg.libXdmcp.dev}/include -I${staticPkgs.xorg.libxcb.dev}/include -I${staticPkgs.xorg.xorgproto}/include"
-              export STATIC_RAY_LDLIBS="-L${staticPkgs.xorg.libX11}/lib -L${staticPkgs.xorg.libXrandr}/lib -L${staticPkgs.xorg.libXinerama}/lib -L${staticPkgs.xorg.libXi}/lib -L${staticPkgs.xorg.libXcursor}/lib -L${staticPkgs.xorg.libXext}/lib -L${staticPkgs.xorg.libXfixes}/lib -L${staticPkgs.xorg.libXrender}/lib -L${staticPkgs.xorg.libXau}/lib -L${staticPkgs.xorg.libXdmcp}/lib -L${staticPkgs.xorg.libxcb}/lib -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm"
+              export STATIC_RAY_CFLAGS="-I${staticPkgs.libx11.dev}/include -I${staticPkgs.libxrandr.dev}/include -I${staticPkgs.libxinerama.dev}/include -I${staticPkgs.libxi.dev}/include -I${staticPkgs.libxcursor.dev}/include -I${staticPkgs.libxext.dev}/include -I${staticPkgs.libxfixes.dev}/include -I${staticPkgs.libxrender.dev}/include -I${staticPkgs.libxau.dev}/include -I${staticPkgs.libxdmcp.dev}/include -I${staticPkgs.libxcb.dev}/include -I${staticPkgs.xorgproto}/include"
+              export STATIC_RAY_LDLIBS="-L${staticPkgs.libx11}/lib -L${staticPkgs.libxrandr}/lib -L${staticPkgs.libxinerama}/lib -L${staticPkgs.libxi}/lib -L${staticPkgs.libxcursor}/lib -L${staticPkgs.libxext}/lib -L${staticPkgs.libxfixes}/lib -L${staticPkgs.libxrender}/lib -L${staticPkgs.libxau}/lib -L${staticPkgs.libxdmcp}/lib -L${staticPkgs.libxcb}/lib -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm"
+              export LINUXDEPLOY="linuxdeploy"
 
               export AARCH64_CC="${aarch64Pkgs.stdenv.cc}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}cc"
               export AARCH64_AR="${aarch64Pkgs.stdenv.cc.bintools.bintools}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}ar"

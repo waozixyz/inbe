@@ -1,4 +1,5 @@
 #include "flint_ui.h"
+#include "flint_clip.h"
 #include "flint_dpi.h"
 #include "flint.h"
 #include "flint_text_layout.h"
@@ -37,56 +38,20 @@ static int g_ui_text_input_codepoint_count = 0;
 static int g_ui_text_input_backspace_count = 0;
 static int g_ui_text_input_enter_count = 0;
 
-#define UI_SCISSOR_STACK_MAX 16
-static Rectangle g_ui_scissor_stack[UI_SCISSOR_STACK_MAX];
-static int g_ui_scissor_stack_count = 0;
-
-static Rectangle
-ui_scissor_intersection(Rectangle a, Rectangle b)
-{
-    float x1 = a.x > b.x ? a.x : b.x;
-    float y1 = a.y > b.y ? a.y : b.y;
-    float x2 = a.x + a.width < b.x + b.width ? a.x + a.width : b.x + b.width;
-    float y2 = a.y + a.height < b.y + b.height ? a.y + a.height : b.y + b.height;
-
-    if(x2 < x1)
-        x2 = x1;
-    if(y2 < y1)
-        y2 = y1;
-
-    return (Rectangle){x1, y1, x2 - x1, y2 - y1};
-}
+#define UI_INPUT_CLIP_STACK_MAX 16
+static Rectangle g_ui_input_clip_stack[UI_INPUT_CLIP_STACK_MAX];
+static int g_ui_input_clip_stack_count = 0;
 
 void
 ui_begin_scissor(int x, int y, int w, int h)
 {
-    Rectangle bounds = {x, y, w, h};
-
-    if(w < 0)
-        bounds.width = 0;
-    if(h < 0)
-        bounds.height = 0;
-    if(g_ui_scissor_stack_count > 0)
-        bounds = ui_scissor_intersection(g_ui_scissor_stack[g_ui_scissor_stack_count - 1], bounds);
-
-    if(g_ui_scissor_stack_count < UI_SCISSOR_STACK_MAX)
-        g_ui_scissor_stack[g_ui_scissor_stack_count++] = bounds;
-
-    BeginScissorMode((int)bounds.x, (int)bounds.y,
-                     (int)bounds.width, (int)bounds.height);
+    flint_clip_begin(x, y, w, h);
 }
 
 void
 ui_end_scissor(void)
 {
-    EndScissorMode();
-    if(g_ui_scissor_stack_count > 0)
-        g_ui_scissor_stack_count--;
-    if(g_ui_scissor_stack_count > 0) {
-        Rectangle bounds = g_ui_scissor_stack[g_ui_scissor_stack_count - 1];
-        BeginScissorMode((int)bounds.x, (int)bounds.y,
-                         (int)bounds.width, (int)bounds.height);
-    }
+    flint_clip_end();
 }
 
 static Vector2
@@ -118,7 +83,27 @@ ui_set_input_blocked(int blocked)
 int
 ui_input_captures_click(Vector2 point)
 {
+    if(g_ui_input_clip_stack_count > 0 &&
+       !CheckCollisionPointRec(point, g_ui_input_clip_stack[g_ui_input_clip_stack_count - 1]))
+        return 1;
     return g_ui_input_blocked || ui_dropdown_captures_click(point);
+}
+
+static void
+ui_push_input_clip(Rectangle bounds)
+{
+    if(g_ui_input_clip_stack_count > 0)
+        bounds = flint_clip_intersection(g_ui_input_clip_stack[g_ui_input_clip_stack_count - 1],
+                                         bounds);
+    if(g_ui_input_clip_stack_count < UI_INPUT_CLIP_STACK_MAX)
+        g_ui_input_clip_stack[g_ui_input_clip_stack_count++] = bounds;
+}
+
+static void
+ui_pop_input_clip(void)
+{
+    if(g_ui_input_clip_stack_count > 0)
+        g_ui_input_clip_stack_count--;
 }
 
 static int
@@ -443,7 +428,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
-    ui_begin_scissor(x + padding_x, y, w - padding_x * 2, h);
+    flint_clip_begin(x + padding_x, y, w - padding_x * 2, h);
     flint_text_draw(value, text_x, text_y, font, style.text);
 
     if(focused && cursor_visible) {
@@ -459,7 +444,7 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         int cursor_x = text_x + flint_text_measure(before_cursor, font);
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
-    ui_end_scissor();
+    flint_clip_end();
 }
 
 int
@@ -765,6 +750,8 @@ ui_set_frame(Camera2D camera)
 {
     g_ui_camera = camera;
     g_ui_input_blocked = 0;
+    g_ui_input_clip_stack_count = 0;
+    flint_clip_reset();
 }
 
 void
@@ -1773,12 +1760,12 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int text_x = x + flint_px(12);
     int text_w = arrow_x - arrow_size - flint_px(8) - text_x;
     if(text_w > 0) {
-        ui_begin_scissor((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
+        flint_clip_begin((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
                          (int)(g_ui_camera.offset.y + (float)y * g_ui_camera.zoom),
                          (int)((float)text_w * g_ui_camera.zoom),
                          (int)((float)h * g_ui_camera.zoom));
         flint_text_draw(current_name, text_x, flint_ui_text_y(current_name, y, h, font), font, c_text);
-        ui_end_scissor();
+        flint_clip_end();
     }
 
     /* Draw dropdown X icon */
@@ -1902,7 +1889,7 @@ ui_draw_dropdown_menu(int id)
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
-    ui_begin_scissor((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
+    flint_clip_begin((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
                      (int)(g_ui_camera.offset.y + (float)dropdown_y * g_ui_camera.zoom),
                      (int)((float)w * g_ui_camera.zoom),
                      (int)((float)dropdown_h * g_ui_camera.zoom));
@@ -1930,7 +1917,7 @@ ui_draw_dropdown_menu(int id)
                 state->touch_pressed = 0;
                 state->scroll_offset = 0;
                 changed = 1;
-                ui_end_scissor();
+                flint_clip_end();
                 goto draw_arrow;
             }
         }
@@ -1938,7 +1925,7 @@ ui_draw_dropdown_menu(int id)
         flint_text_draw(options[i], x + flint_px(12), flint_ui_text_y(options[i], option_y, option_h, font), font, c_text);
     }
 
-    ui_end_scissor();
+    flint_clip_end();
 
     if(max_scroll > 0)
         ui_draw_scrollbar(x + w - scrollbar_w, dropdown_y + flint_px(2),
@@ -2539,10 +2526,25 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     }
 
     view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
-    ui_begin_scissor((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
-                     (int)(g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom),
-                     (int)(area.bounds.width * g_ui_camera.zoom),
-                     (int)(area.bounds.height * g_ui_camera.zoom));
+    {
+        Rectangle screen_bounds = {
+            g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom,
+            g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom,
+            area.bounds.width * g_ui_camera.zoom,
+            area.bounds.height * g_ui_camera.zoom
+        };
+        Rectangle clipped_screen_bounds = flint_clip_effective(screen_bounds);
+        Rectangle clipped_world_bounds = {
+            (clipped_screen_bounds.x - g_ui_camera.offset.x) / g_ui_camera.zoom,
+            (clipped_screen_bounds.y - g_ui_camera.offset.y) / g_ui_camera.zoom,
+            clipped_screen_bounds.width / g_ui_camera.zoom,
+            clipped_screen_bounds.height / g_ui_camera.zoom
+        };
+
+        ui_push_input_clip(clipped_world_bounds);
+        flint_clip_begin((int)screen_bounds.x, (int)screen_bounds.y,
+                         (int)screen_bounds.width, (int)screen_bounds.height);
+    }
     return view;
 }
 
@@ -2552,7 +2554,8 @@ ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
     int scrollbar_w = flint_px(8);
     int scrollbar_x;
 
-    ui_end_scissor();
+    flint_clip_end();
+    ui_pop_input_clip();
 
     if(area.scroll_offset == NULL || view.max_scroll <= 0)
         return;

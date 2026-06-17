@@ -58,6 +58,7 @@ typedef enum {
     UIModalMeditationSetup,
     UIModalDataManagement,
     UIModalConfirmDeleteData,
+    UIModalConfirmDeleteHabit,
     UIModalEditProgressiveStartSpeed,
 } UIModalType;
 
