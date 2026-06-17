@@ -16,6 +16,9 @@
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_import.h"
 #endif
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
 #include "version.h"
 #include "data.h"
 #include "raylib.h"
@@ -489,6 +492,73 @@ settings_screen_handle_android_import(InbeApp *app)
 }
 #endif
 
+#if defined(PLATFORM_WEB)
+#define SETTINGS_WEB_IMPORT_PATH "/tmp/inbe-web-import.zip"
+
+static void
+settings_web_import_open_picker(void)
+{
+    EM_ASM({
+        const importPath = UTF8ToString($0);
+        Module.__inbeImportResult = 0;
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".zip,.db,application/zip,application/x-sqlite3,application/octet-stream";
+        input.style.display = "none";
+
+        input.onchange = async function() {
+            try {
+                if(!input.files || input.files.length === 0) {
+                    Module.__inbeImportResult = 2;
+                    return;
+                }
+
+                const file = input.files[0];
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                try {
+                    FS.mkdir("/tmp");
+                } catch(e) {}
+                FS.writeFile(importPath, bytes);
+                Module.__inbeImportResult = 1;
+            } catch(e) {
+                console.error("Inbe web import failed:", e);
+                Module.__inbeImportResult = 3;
+            } finally {
+                input.remove();
+            }
+        };
+
+        document.body.appendChild(input);
+        input.click();
+    }, SETTINGS_WEB_IMPORT_PATH);
+}
+
+static void
+settings_screen_handle_web_import(InbeApp *app)
+{
+    int import_result = EM_ASM_INT({
+        const result = Module.__inbeImportResult || 0;
+        if(result !== 0)
+            Module.__inbeImportResult = 0;
+        return result;
+    });
+
+    if(import_result == 0)
+        return;
+    if(import_result == 2) {
+        settings_screen_set_status_error(locale_get("import_cancelled"));
+        return;
+    }
+    if(import_result != 1) {
+        settings_screen_set_status_error(locale_get("import_failed"));
+        return;
+    }
+
+    settings_begin_import_for_path(app, SETTINGS_WEB_IMPORT_PATH);
+}
+#endif
+
 static void
 settings_import_data(InbeApp *app)
 {
@@ -497,6 +567,10 @@ settings_import_data(InbeApp *app)
         settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
     else
         settings_screen_set_status_error(locale_get("import_failed"));
+#elif defined(PLATFORM_WEB)
+    (void)app;
+    settings_web_import_open_picker();
+    settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     settings_apply_file_dialog_theme(app);
     flint_file_dialog_begin_load(&import_dlg, locale_get("import_data_dialog_title"));
@@ -1013,6 +1087,8 @@ settings_screen_draw(InbeApp *app)
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     settings_screen_handle_android_import(app);
+#elif defined(PLATFORM_WEB)
+    settings_screen_handle_web_import(app);
 #endif
 
     if(content_viewport_h < 0)
