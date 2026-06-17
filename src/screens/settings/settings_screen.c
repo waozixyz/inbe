@@ -532,6 +532,15 @@ wim_hof_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, in
     app->inbe.breath_animation = clampi(app->inbe.breath_animation,
                                         InbeBreathAnimationLinear,
                                         InbeBreathAnimationCount - 1);
+
+    flint_text_draw(locale_get("breath_animation_label"), content_x, y, flint_ui_font(), theme_get_text());
+    ui_draw_dropdown_button(104, content_x, y + flint_px(26), content_w, flint_px(36),
+                            animation_options, InbeBreathAnimationCount,
+                            &app->inbe.breath_animation);
+    if(draw_breath_animation_menu != NULL)
+        *draw_breath_animation_menu = 1;
+    y += flint_px(76);
+
     update_preview_bounds(&app->settings_preview, content_w, preview_h);
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
     app->settings_preview.progressive_speed = 0;
@@ -584,14 +593,6 @@ wim_hof_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, in
         }
         y += flint_px(58);
     }
-
-    flint_text_draw(locale_get("breath_animation_label"), content_x, y, flint_ui_font(), theme_get_text());
-    ui_draw_dropdown_button(104, content_x, y + flint_px(26), content_w, flint_px(36),
-                            animation_options, InbeBreathAnimationCount,
-                            &app->inbe.breath_animation);
-    if(draw_breath_animation_menu != NULL)
-        *draw_breath_animation_menu = 1;
-    y += flint_px(76);
 
     return y;
 }
@@ -653,8 +654,8 @@ wim_hof_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int 
         pause_seconds = DefaultPauseSeconds;
         app->inbe.progressive_start_speed = DefaultProgressiveStartSpeed;
         app->settings_preview.progressive_start_speed = DefaultProgressiveStartSpeed;
-        app->inbe.breath_animation = InbeBreathAnimationInOut;
-        app->settings_preview.breath_animation = InbeBreathAnimationInOut;
+        app->inbe.breath_animation = InbeBreathAnimationLinear;
+        app->settings_preview.breath_animation = InbeBreathAnimationLinear;
         app->advanced_session_controls = 0;
         app->hold_display_mode = HOLD_DISPLAY_CIRCLE;
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
@@ -677,6 +678,43 @@ wim_hof_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
 }
 
 static int
+wim_hof_preview_radius(int content_w, int preview_h)
+{
+    int span = content_w;
+    int rmax;
+
+    if(preview_h > 0 && preview_h < span)
+        span = preview_h;
+    rmax = span / 2;
+    if(rmax < flint_px(60))
+        rmax = flint_px(60);
+    if(rmax > flint_px(120))
+        rmax = flint_px(120);
+    return (int)((float)rmax * 0.72f + 1.0f);
+}
+
+static int
+wim_hof_config_content_height(InbeApp *app, int content_w)
+{
+    if(app == NULL)
+        return 0;
+    if(app->practice_config_tab == 0) {
+        int preview_radius = wim_hof_preview_radius(content_w, flint_px(240));
+        int h = flint_px(12) + preview_radius * 2 + flint_px(102);
+        h += flint_px(66);
+        if(app->inbe.progressive_speed)
+            h += flint_px(58);
+        h += flint_px(76);
+        return h;
+    }
+
+    return flint_px(66) * 3 +
+           flint_px(26) + flint_px(52) +
+           flint_px(76) +
+           flint_px(36) + flint_px(28);
+}
+
+static int
 meditation_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
                                int *draw_meditation_music_menu)
 {
@@ -685,6 +723,16 @@ meditation_config_draw_content(InbeApp *app, int content_x, int content_w, int y
         *draw_meditation_music_menu = 1;
 
     return y;
+}
+
+static int
+practice_config_content_height(InbeApp *app, int content_w)
+{
+    if(app == NULL)
+        return 0;
+    if(app->exercise_type == EXERCISE_MEDITATION)
+        return meditation_music_measure_settings(app, 1, 1);
+    return wim_hof_config_content_height(app, content_w);
 }
 
 void
@@ -701,8 +749,10 @@ practice_config_screen_draw(InbeApp *app)
     int scroll_y;
     int scroll_h;
     int content_h;
+    int max_scroll;
     int scroll_bounds_w;
     int scrollbar_x;
+    int controls_w;
     int y;
     int draw_meditation_music_menu = 0;
     int draw_breath_animation_menu = 0;
@@ -751,17 +801,27 @@ practice_config_screen_draw(InbeApp *app)
     } else {
         scroll_y = title_h + flint_px(16);
     }
-    scroll_h = view_height - scroll_y - flint_px(TAB_BAR_H);
+    scroll_h = view_height - scroll_y;
     if(scroll_h < 0)
         scroll_h = 0;
-    if(app->exercise_type == EXERCISE_MEDITATION)
-        content_h = flint_px(540);
-    else
-        content_h = flint_px(app->practice_config_tab == 0 ? 560 : 480);
     scroll_bounds_w = view_width - content_x;
     if(scroll_bounds_w < content_w)
         scroll_bounds_w = content_w;
     scrollbar_x = view_width - flint_px(12);
+    controls_w = content_w;
+    for(int i = 0; i < 3; i++) {
+        int next_controls_w;
+
+        content_h = practice_config_content_height(app, controls_w);
+        max_scroll = content_h - scroll_h;
+        if(max_scroll < 0)
+            max_scroll = 0;
+        next_controls_w = ui_scrollbar_safe_content_width(content_x, content_w,
+                                                          scrollbar_x, max_scroll);
+        if(next_controls_w == controls_w)
+            break;
+        controls_w = next_controls_w;
+    }
     scroll_area = (FlintUIScrollArea){
         .bounds = {(float)content_x, (float)scroll_y, (float)scroll_bounds_w, (float)scroll_h},
         .content_height = content_h,
@@ -772,10 +832,10 @@ practice_config_screen_draw(InbeApp *app)
 
     scroll_view = ui_scroll_container_begin(scroll_area);
     if(app->exercise_type == EXERCISE_MEDITATION)
-        y = meditation_config_draw_content(app, content_x, content_w, scroll_view.content_y,
+        y = meditation_config_draw_content(app, content_x, controls_w, scroll_view.content_y,
                                            &draw_meditation_music_menu);
     else
-        y = wim_hof_config_draw_content(app, content_x, content_w, scroll_view.content_y,
+        y = wim_hof_config_draw_content(app, content_x, controls_w, scroll_view.content_y,
                                         &draw_breath_animation_menu);
     (void)y;
     ui_scroll_container_end(scroll_area, scroll_view);

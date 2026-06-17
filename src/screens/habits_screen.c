@@ -20,6 +20,12 @@
 extern int view_width;
 extern int view_height;
 
+enum {
+    HABIT_WEEKLY_INITIAL_DAYS = 7,
+    HABIT_WEEKLY_LOAD_DAYS = 7,
+    HABIT_WEEKLY_MAX_DAYS = INBE_HABIT_MAX_DAYS
+};
+
 /* Helper functions */
 static void inbe_habits_add_seed(InbeHabits *habits, const char *id, const char *name,
                                  Color color, int activity_mask);
@@ -705,7 +711,11 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
                 habit_edit_begin_new(app);
                 return;
             }
-            app->habits.selected = dropdown_selected;
+            if(app->habits.selected != dropdown_selected) {
+                app->habits.selected = dropdown_selected;
+                app->habits.scroll = 0;
+                app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+            }
             inbe_habits_save(&app->habits);
         }
 
@@ -715,9 +725,12 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
                                       : app->icons[UI_ICON_TYPE_CALENDAR];
             if(ui_draw_icon_btn_padded(view_toggle_x, icon_y, icon_size, icon_padding,
                                        toggle_icon, &hover)) {
-                app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
+            app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
                                           ? HABIT_VIEW_CALENDAR
                                           : HABIT_VIEW_WEEKLY;
+                app->habits.scroll = 0;
+                if(app->habits.view_mode == HABIT_VIEW_WEEKLY)
+                    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
                 return;
             }
             if(ui_draw_icon_btn_padded(edit_x, icon_y, icon_size, icon_padding,
@@ -735,7 +748,11 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             habit_edit_begin_new(app);
             return;
         }
-        app->habits.selected = dropdown_selected;
+        if(app->habits.selected != dropdown_selected) {
+            app->habits.selected = dropdown_selected;
+            app->habits.scroll = 0;
+            app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+        }
         inbe_habits_save(&app->habits);
     }
 }
@@ -851,10 +868,38 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     return 0;
 }
 
+static int
+habit_weekly_visible_days(InbeHabits *habits)
+{
+    if(habits == NULL)
+        return HABIT_WEEKLY_INITIAL_DAYS;
+    if(habits->weekly_days < HABIT_WEEKLY_INITIAL_DAYS)
+        habits->weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+    if(habits->weekly_days > HABIT_WEEKLY_MAX_DAYS)
+        habits->weekly_days = HABIT_WEEKLY_MAX_DAYS;
+    return habits->weekly_days;
+}
+
+static int
+habit_weekly_content_height(int visible_days)
+{
+    int row_h = flint_px(40);
+    int row_gap = flint_px(6);
+    int load_h = flint_px(38);
+
+    if(visible_days < HABIT_WEEKLY_INITIAL_DAYS)
+        visible_days = HABIT_WEEKLY_INITIAL_DAYS;
+    return flint_px(26) +
+           row_h * visible_days +
+           row_gap * (visible_days - 1) +
+           flint_px(14) + load_h +
+           flint_px(16);
+}
+
 static void
 draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
                         HabitLinkedContext *linked_ctx,
-                        int content_x, int content_w, int y)
+                        int content_x, int content_w, int y, int visible_days)
 {
     time_t now = time(NULL);
     struct tm day_tm;
@@ -867,6 +912,8 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
     int row_gap = flint_px(6);
     int day_font = flint_px(16);
     int date_font = flint_px(FLINT_TEXT_8);
+    int load_h = flint_px(38);
+    int load_hover = 0;
 
     if(localtime(&now) != NULL)
         day_tm = *localtime(&now);
@@ -887,7 +934,12 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
         button_x = content_x;
     }
 
-    for(int i = 0; i < 7; i++) {
+    if(visible_days < HABIT_WEEKLY_INITIAL_DAYS)
+        visible_days = HABIT_WEEKLY_INITIAL_DAYS;
+    if(visible_days > HABIT_WEEKLY_MAX_DAYS)
+        visible_days = HABIT_WEEKLY_MAX_DAYS;
+
+    for(int i = 0; i < visible_days; i++) {
         struct tm row_tm = day_tm;
         char day_label[16];
         char date_label[32];
@@ -946,6 +998,16 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
             draw_habit_link_dot(button_x, y, button_w, active->color);
 
         y += row_h + row_gap;
+    }
+
+    y += flint_px(8);
+    if(ui_draw_generic_button(content_x, y, content_w, load_h, "Load more",
+                              UI_BUTTON_STYLE_SECONDARY,
+                              app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS,
+                              &load_hover)) {
+        app->habits.weekly_days += HABIT_WEEKLY_LOAD_DAYS;
+        if(app->habits.weekly_days > HABIT_WEEKLY_MAX_DAYS)
+            app->habits.weekly_days = HABIT_WEEKLY_MAX_DAYS;
     }
 }
 
@@ -1057,6 +1119,7 @@ draw_habits_screen(InbeApp *app)
     int scroll_content_h;
     int scroll_y;
     int scroll_h;
+    int weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
     FlintUIScrollArea scroll_area;
     FlintUIScrollView scroll_view;
 
@@ -1101,6 +1164,7 @@ draw_habits_screen(InbeApp *app)
     active_is_linked = habit_is_linked(active);
     if(app->habits.view_mode != HABIT_VIEW_WEEKLY)
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
+    weekly_days = habit_weekly_visible_days(&app->habits);
 
     if(app->habits.month_offset > 0)
         app->habits.month_offset = 0;
@@ -1137,7 +1201,7 @@ draw_habits_screen(InbeApp *app)
     }
 
     if(app->habits.view_mode == HABIT_VIEW_WEEKLY) {
-        scroll_content_h = flint_px(26) + flint_px(40) * 7 + flint_px(6) * 6 + flint_px(16);
+        scroll_content_h = habit_weekly_content_height(weekly_days);
     } else {
         int planned_cell_w = (content_w - grid_gap * 6) / 7;
         if(planned_cell_w < flint_px(28))
@@ -1164,7 +1228,8 @@ draw_habits_screen(InbeApp *app)
 
     if(app->habits.view_mode == HABIT_VIEW_WEEKLY) {
         ui_set_input_blocked(app->modal.active);
-        draw_habits_weekly_view(app, active, selected, linked_ctx, content_x, content_w, y);
+        draw_habits_weekly_view(app, active, selected, linked_ctx,
+                                content_x, content_w, y, weekly_days);
         ui_scroll_container_end(scroll_area, scroll_view);
         free(linked_ctx);
         ui_set_input_blocked(0);

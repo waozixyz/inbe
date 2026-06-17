@@ -56,6 +56,7 @@ typedef struct InbeHabits {
     int month_offset;
     int selector_open;
     int view_mode;
+    int weekly_days;
     int loaded;
 } InbeHabits;
 
