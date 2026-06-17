@@ -2002,8 +2002,11 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int changed = 0;
     Rectangle btn_bounds = {x, y, w, h};
     Vector2 mouse = ui_mouse_world();
-    int hover = CheckCollisionPointRec(mouse, btn_bounds) &&
-                !ui_input_captures_click(mouse);
+    int button_inside = CheckCollisionPointRec(mouse, btn_bounds);
+    int hover = button_inside &&
+                (state->open
+                     ? !ui_base_input_captures_click(mouse, 1)
+                     : !ui_input_captures_click(mouse));
 
     /* Calculate arrow position */
     int arrow_x = x + w - arrow_pad;

@@ -4,6 +4,7 @@
 #include "locale.h"
 #include "theme.h"
 #include "miniz.h"
+#include "flint_color.h"
 #include "flint_runtime_assets.h"
 #include "flint_text.h"
 #include "flint_ui.h"
@@ -188,6 +189,38 @@ draw_download_progress(InbeApp *app, int x, int y, int w)
         DrawRectangle(x + flint_px(2), y + flint_px(2), inner_w,
                       bar_h - flint_px(4), button);
     }
+}
+
+static FlintUIParagraph
+music_attribution_paragraph(int content_w)
+{
+    return (FlintUIParagraph){
+        .text = locale_get("meditation_music_attribution"),
+        .icon = (Texture2D){0},
+        .icon_type = UI_ICON_TYPE_NONE,
+        .icon_size = 0,
+        .width = content_w,
+        .font = flint_px(FLINT_TEXT_8),
+        .line_gap = flint_px(4),
+        .color = flint_darken(theme_get_text(), 34),
+    };
+}
+
+static int
+music_attribution_height(int content_w)
+{
+    if(content_w <= 0)
+        return 0;
+    return flint_ui_paragraph_height(music_attribution_paragraph(content_w));
+}
+
+static void
+draw_music_attribution(int content_x, int content_w, int *y)
+{
+    if(y == NULL || content_w <= 0)
+        return;
+
+    flint_ui_paragraph_draw(music_attribution_paragraph(content_w), content_x, y);
 }
 
 static void
@@ -445,8 +478,9 @@ meditation_music_update(InbeApp *app)
     if(app == NULL)
         return;
     if(app->meditation_music_test_playing &&
-       (app->inbe.screen != InbeScreenPracticeConfig ||
-        app->exercise_type != EXERCISE_MEDITATION)) {
+       (app->exercise_type != EXERCISE_MEDITATION ||
+        (app->inbe.screen != InbeScreenPracticeConfig &&
+         app->inbe.screen != InbeScreenManual))) {
         meditation_music_stop(app);
         return;
     }
@@ -566,15 +600,19 @@ draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
             *y += flint_px(28);
             draw_download_progress(app, content_x, *y, content_w);
             *y += flint_px(22);
-            return;
+        } else {
+            flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), theme_get_text());
+            *y += flint_px(34);
         }
-        flint_text_draw(app->meditation_music_status, content_x, *y, flint_ui_font(), theme_get_text());
-        *y += flint_px(34);
     }
+
+    draw_music_attribution(content_x, content_w, y);
+    *y += flint_px(10);
 }
 
 int
-meditation_music_measure_settings(InbeApp *app, int show_installed_download, int show_status)
+meditation_music_measure_settings(InbeApp *app, int content_w,
+                                  int show_installed_download, int show_status)
 {
     int installed;
     int h = flint_px(76);
@@ -597,6 +635,8 @@ meditation_music_measure_settings(InbeApp *app, int show_installed_download, int
         else
             h += flint_px(34);
     }
+
+    h += music_attribution_height(content_w) + flint_px(10);
 
     return h;
 }

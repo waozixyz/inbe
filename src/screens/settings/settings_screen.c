@@ -731,7 +731,7 @@ practice_config_content_height(InbeApp *app, int content_w)
     if(app == NULL)
         return 0;
     if(app->exercise_type == EXERCISE_MEDITATION)
-        return meditation_music_measure_settings(app, 1, 1);
+        return meditation_music_measure_settings(app, content_w, 1, 1);
     return wim_hof_config_content_height(app, content_w);
 }
 

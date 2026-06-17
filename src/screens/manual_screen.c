@@ -28,6 +28,14 @@ static const char *const TUTORIAL_KEYS[] = {
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
 #define TUTORIAL_LINE_SPACING flint_px(8)  /* Normal readable line spacing */
 
+static Color
+manual_text_color_for_background(Color background)
+{
+    int luma = background.r * 299 + background.g * 587 + background.b * 114;
+
+    return luma >= 128000 ? BLACK : WHITE;
+}
+
 static void
 draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
 {
@@ -35,6 +43,7 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
     char text[CountSize];
     int font = flint_px(16);
     int thickness = flint_px(5);
+    Color text_color = theme_get_text();
 
     count_from_int(text, seconds);
     if(thickness < 3)
@@ -47,12 +56,14 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
                  (float)(radius + flint_px(8) - thickness / 2),
                  (float)(radius + flint_px(8) + thickness / 2),
                  -90.0f, -90.0f + sweep, 96, theme_get_text());
+        text_color = manual_text_color_for_background(theme_get_bg());
     } else {
         DrawCircle(center_x, center_y, radius, theme_get_circle());
         DrawCircleLines(center_x, center_y, radius, theme_get_text());
+        text_color = manual_text_color_for_background(theme_get_circle());
     }
 
-    flint_ui_draw_text_centered(text, center_x, center_y, font, theme_get_text());
+    flint_ui_draw_text_centered(text, center_x, center_y, font, text_color);
 }
 
 static FlintUIParagraph

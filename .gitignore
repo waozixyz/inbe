@@ -26,6 +26,8 @@ node_modules
 /main
 !droid/app/src/main
 droid/app/src/main/assets
+droid/*.apk
+droid/*.aab
 
 .direnv/
 .node-repl-history

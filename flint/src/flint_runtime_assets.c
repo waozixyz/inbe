@@ -112,7 +112,7 @@ flint_runtime_assets_init(const char *app_id)
     EM_ASM({
         var root = UTF8ToString($0);
         var parts = root.split('/').filter(Boolean);
-        var path = '';
+        var path = "";
         try {
             for(var i = 0; i < parts.length; i++) {
                 path += '/' + parts[i];

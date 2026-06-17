@@ -3,6 +3,7 @@
 
 #include "raylib.h"
 #include "breath_engine.h"
+#include "app_fwd.h"
 #include <stddef.h>
 
 /* Forward declaration for enums defined elsewhere */
@@ -86,9 +87,7 @@ typedef struct HabitLinkedContext {
     int best_seconds;
 } HabitLinkedContext;
 
-/* Forward declarations and external functions */
-typedef struct InbeApp InbeApp;
-
+/* External functions */
 void save_settings(InbeApp *app);
 
 /* Core habits functions */

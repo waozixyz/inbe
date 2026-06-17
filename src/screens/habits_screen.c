@@ -725,7 +725,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
                                       : app->icons[UI_ICON_TYPE_CALENDAR];
             if(ui_draw_icon_btn_padded(view_toggle_x, icon_y, icon_size, icon_padding,
                                        toggle_icon, &hover)) {
-            app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
+                app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
                                           ? HABIT_VIEW_CALENDAR
                                           : HABIT_VIEW_WEEKLY;
                 app->habits.scroll = 0;

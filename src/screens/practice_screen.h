@@ -2,13 +2,11 @@
 #define PRACTICE_SCREEN_H
 
 #include "raylib.h"
+#include "app_fwd.h"
 
 #define PRACTICE_CATEGORY_TAB_H 40
 #define PRACTICE_CATEGORY_TOAST_TICKS 120
 #define PRACTICE_CONFIG_TAB_LIST (-1)
-
-/* Forward declarations */
-typedef struct InbeApp InbeApp;
 
 int practice_activity_count_for_tab(int tab);
 int practice_activity_for_tab(int tab, int index);
