@@ -60,6 +60,7 @@ typedef enum {
     UIModalConfirmDeleteHabit,
     UIModalEditProgressiveStartSpeed,
     UIModalMeditationNetworkError,
+    UIModalConfirmImportDataSettings,
 } UIModalType;
 
 typedef struct {
@@ -243,6 +244,7 @@ int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);
 void count_from_int(char dst[4], int value);
 void save_settings(InbeApp *app);
+void app_reload_after_import(InbeApp *app, int reload_settings);
 void reset_settings_preview(InbeApp *app);
 void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
 void apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds);

@@ -303,6 +303,9 @@ Importovat data
 [import_failed]
 Import selhal
 ---
+[imported_data]
+Data importována
+---
 [imported_sessions]
 Importováno %d sezení
 ---
@@ -311,6 +314,18 @@ Neplatný exportní soubor
 ---
 [import_cancelled]
 Import zrušen
+---
+[import_choice_title]
+Importovat nastavení?
+---
+[import_choice_message]
+Nalezeny data a nastavení.
+---
+[import_data_only_button]
+Data
+---
+[import_data_settings_button]
+Data+Nastavení
 ---
 [export_cancelled]
 Export cancelled
@@ -454,4 +469,25 @@ Smazat toto kolo? Tuto akci nelze vrátit.
 ---
 [delete_button]
 Smazat
+---
+[meditation_music_attribution]
+Hudba od Elijah_K.
+---
+[theme_system]
+Systém
+---
+[orientation_label]
+Orientace
+---
+[orientation_system]
+Systém
+---
+[orientation_portrait]
+Na výšku
+---
+[orientation_landscape]
+Na šířku
+---
+[orientation_sensor]
+Senzor
 ---

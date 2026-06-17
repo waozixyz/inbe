@@ -303,6 +303,9 @@ In / Out
 [import_failed]
 导入失败
 ---
+[imported_data]
+数据已导入
+---
 [imported_sessions]
 已导入 %d 个会话
 ---
@@ -311,6 +314,18 @@ In / Out
 ---
 [import_cancelled]
 Import cancelled
+---
+[import_choice_title]
+导入设置？
+---
+[import_choice_message]
+找到数据和设置。
+---
+[import_data_only_button]
+数据
+---
+[import_data_settings_button]
+数据+设置
 ---
 [export_cancelled]
 Export cancelled
@@ -446,3 +461,25 @@ Inner Breeze 数据导出
 ---
 [delete_button]
 删除
+---
+[meditation_music_attribution]
+音乐来自 Elijah_K。
+---
+[theme_system]
+系统
+---
+[orientation_label]
+方向
+---
+[orientation_system]
+系统
+---
+[orientation_portrait]
+竖屏
+---
+[orientation_landscape]
+横屏
+---
+[orientation_sensor]
+传感器
+---

@@ -303,6 +303,9 @@ Importar datos
 [import_failed]
 Error al importar
 ---
+[imported_data]
+Datos importados
+---
 [imported_sessions]
 %d sesiones importadas
 ---
@@ -311,6 +314,18 @@ Archivo de exportación no válido
 ---
 [import_cancelled]
 Import cancelled
+---
+[import_choice_title]
+¿Importar ajustes?
+---
+[import_choice_message]
+Datos y ajustes encontrados.
+---
+[import_data_only_button]
+Datos
+---
+[import_data_settings_button]
+Datos+Ajustes
 ---
 [export_cancelled]
 Export cancelled
@@ -454,4 +469,25 @@ Recuento de sesiones: %d
 ---
 [delete_button]
 Eliminar
+---
+[meditation_music_attribution]
+Música de Elijah_K.
+---
+[theme_system]
+Sistema
+---
+[orientation_label]
+Orientación
+---
+[orientation_system]
+Sistema
+---
+[orientation_portrait]
+Vertical
+---
+[orientation_landscape]
+Horizontal
+---
+[orientation_sensor]
+Sensor
 ---

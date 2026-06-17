@@ -153,6 +153,8 @@ settings_draw_progressive_start_speed_editor(InbeApp *app)
 static char unified_status[256] = "";
 static char unified_detail[256] = "";
 static int unified_status_type = 0;
+static char pending_import_path[FS_PATH_MAX] = "";
+static DataImportInfo pending_import_info;
 
 /* Helper functions for unified status system */
 void settings_screen_set_status_success(const char *message, const char *detail) {
@@ -188,6 +190,109 @@ settings_screen_clear_status(void)
     unified_status[0] = '\0';
     unified_detail[0] = '\0';
     unified_status_type = 0;
+}
+
+static void
+settings_clear_pending_import(void)
+{
+    pending_import_path[0] = '\0';
+    memset(&pending_import_info, 0, sizeof(pending_import_info));
+}
+
+static void
+settings_import_success(InbeApp *app, int imported_settings)
+{
+    app_reload_after_import(app, imported_settings);
+    settings_screen_set_status_success(locale_get("imported_data"), NULL);
+    TraceLog(LOG_INFO, "DATA: Import successful");
+}
+
+static int
+settings_perform_import(InbeApp *app, const char *path, DataImportMode mode)
+{
+    if(app == NULL || path == NULL || path[0] == '\0') {
+        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        return 0;
+    }
+
+    if(data_import_with_mode(path, mode)) {
+        settings_import_success(app, mode == DATA_IMPORT_DATA_AND_SETTINGS);
+        return 1;
+    }
+
+    settings_screen_set_status_error(locale_get("import_failed"));
+    TraceLog(LOG_ERROR, "DATA: Import failed");
+    return 0;
+}
+
+static void
+settings_begin_import_for_path(InbeApp *app, const char *path)
+{
+    DataImportInfo info;
+
+    if(app == NULL || path == NULL || path[0] == '\0') {
+        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        return;
+    }
+
+    memset(&info, 0, sizeof(info));
+    if(!data_inspect_import(path, &info) || !info.valid) {
+        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        TraceLog(LOG_WARNING, "DATA: Invalid import file selected");
+        return;
+    }
+
+    if((info.has_sessions || info.has_habits) && info.has_settings) {
+        snprintf(pending_import_path, sizeof(pending_import_path), "%s", path);
+        pending_import_info = info;
+        app->modal.active = 1;
+        app->modal.type = UIModalConfirmImportDataSettings;
+        app->modal.selected_button = 0;
+        settings_screen_clear_status();
+        return;
+    }
+
+    settings_perform_import(app, path, DATA_IMPORT_DATA_ONLY);
+}
+
+static int
+settings_draw_import_choice_modal(InbeApp *app)
+{
+    FlintUIPanelFrame frame;
+    int font = flint_ui_font();
+    int msg_y;
+    int msg_x;
+    const char *message = locale_get("import_choice_message");
+    int row_gap = flint_px(10);
+    int btn_h = flint_px(36);
+    int btn_y;
+    int btn_w;
+    int hover = 0;
+
+    (void)app;
+    frame = ui_draw_modal_frame(flint_px(320), flint_px(232),
+                                locale_get("import_choice_title"),
+                                (Texture2D){0}, (Texture2D){0});
+    msg_x = frame.content_x;
+    msg_y = frame.content_y;
+    flint_text_draw(message, msg_x, msg_y, font, theme_get_text());
+
+    btn_y = frame.y + frame.h - flint_px(24) - btn_h * 2 - row_gap;
+    btn_w = (frame.content_w - row_gap) / 2;
+    if(ui_draw_generic_button(frame.content_x, btn_y, btn_w, btn_h,
+                              locale_get("cancel_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+        return 1;
+    if(ui_draw_generic_button(frame.content_x + btn_w + row_gap, btn_y, btn_w, btn_h,
+                              locale_get("import_data_only_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+        return 2;
+    if(ui_draw_generic_button(frame.content_x, btn_y + btn_h + row_gap,
+                              frame.content_w, btn_h,
+                              locale_get("import_data_settings_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+        return 3;
+    return 0;
 }
 
 static void
@@ -362,7 +467,7 @@ settings_apply_file_dialog_theme(InbeApp *app)
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 static void
-settings_screen_handle_android_import(void)
+settings_screen_handle_android_import(InbeApp *app)
 {
     char import_path[FS_PATH_MAX];
     int import_result = android_import_poll_result(import_path, sizeof(import_path));
@@ -380,15 +485,7 @@ settings_screen_handle_android_import(void)
         return;
     }
 
-    if(data_import(import_path)) {
-        char import_message[128];
-        locale_format(import_message, sizeof(import_message), "imported_sessions", data_get_session_count());
-        settings_screen_set_status_success(import_message, NULL);
-        TraceLog(LOG_INFO, "DATA: Android import successful");
-    } else {
-        settings_screen_set_status_error(locale_get("import_failed"));
-        TraceLog(LOG_ERROR, "DATA: Android import failed");
-    }
+    settings_begin_import_for_path(app, import_path);
 }
 #endif
 
@@ -472,16 +569,7 @@ settings_draw_pending_file_dialog(InbeApp *app)
         if(result == 1) {
             const char *path = flint_file_dialog_get_path(&import_dlg);
             if(path != NULL && path[0] != '\0') {
-                if(data_import(path)) {
-                    char import_message[128];
-                    locale_format(import_message, sizeof(import_message),
-                                  "imported_sessions", data_get_session_count());
-                    settings_screen_set_status_success(import_message, NULL);
-                    TraceLog(LOG_INFO, "DATA: Import successful");
-                } else {
-                    settings_screen_set_status_error(locale_get("import_failed"));
-                    TraceLog(LOG_ERROR, "DATA: Import failed");
-                }
+                settings_begin_import_for_path(app, path);
             } else {
                 settings_screen_set_status_error(locale_get("import_invalid_file"));
                 TraceLog(LOG_WARNING, "DATA: No file selected for import");
@@ -924,7 +1012,7 @@ settings_screen_draw(InbeApp *app)
 #endif
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    settings_screen_handle_android_import();
+    settings_screen_handle_android_import(app);
 #endif
 
     if(content_viewport_h < 0)
@@ -1127,6 +1215,26 @@ settings_screen_draw(InbeApp *app)
         save_settings(app);
     }
     ui_set_dropdown_clip_top(0);
+
+    if(app->modal.active && app->modal.type == UIModalConfirmImportDataSettings) {
+        int modal_result = settings_draw_import_choice_modal(app);
+        if(modal_result == 1) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_clear_pending_import();
+            settings_screen_set_status_error(locale_get("import_cancelled"));
+        } else if(modal_result == 2 || modal_result == 3) {
+            char import_path[FS_PATH_MAX];
+            DataImportMode mode = modal_result == 3
+                                      ? DATA_IMPORT_DATA_AND_SETTINGS
+                                      : DATA_IMPORT_DATA_ONLY;
+            snprintf(import_path, sizeof(import_path), "%s", pending_import_path);
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_clear_pending_import();
+            settings_perform_import(app, import_path, mode);
+        }
+    }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteData) {
         int modal_result = ui_draw_modal(locale_get("delete_all_data_title"),

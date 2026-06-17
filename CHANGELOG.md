@@ -1,8 +1,13 @@
 # Changelog
+## [1.3.3] - 2026-06-17
+### Fixed
+- Import now restores habits, habit sync settings, and optionally app settings from Inbe SQLite exports.
+
 ## [1.3.2] - 2026-06-17
 ### Fixed
 - Unified scroll containers so content stays out of scrollbar tracks and scroll positions clamp cleanly at the bottom.
 - Android meditation audio downloads now show a localized network-permission/connectivity modal when the host cannot be resolved.
+- Windows builds now support runtime meditation audio downloads.
 
 ## [1.3.1] - 2026-06-17
 ### Fixed
