@@ -120,8 +120,7 @@ app_apply_bottom_tab(InbeApp *app, int bottom_tab)
         break;
     case APP_BOTTOM_TAB_SETTINGS:
         reset_settings_preview(app);
-        app->settings_tab = SETTINGS_TAB_APP;
-        app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
+        app->settings_tab = SETTINGS_TAB_DEVICE;
         app->settings_scroll = 0;
         app->inbe.screen = InbeScreenSettings;
         app_schedule_settings_save(app);
@@ -800,8 +799,7 @@ inbe_app_init(void *vapp) {
     app->settings_drag_content_y = 0;
     app->settings_dirty = 0;
     app->settings_save_delay_ticks = 0;
-    app->settings_tab = SETTINGS_TAB_APP;
-    app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
+    app->settings_tab = SETTINGS_TAB_DEVICE;
     app->practice_coming_soon_ticks = 0;
     app->habit_edit_active = 0;
     app->habit_edit_is_new = 0;

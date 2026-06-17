@@ -151,6 +151,15 @@ Session
 [settings_tab_app]
 App
 ---
+[settings_tab_language]
+Language
+---
+[settings_tab_theme]
+Theme
+---
+[settings_tab_device]
+Device
+---
 [settings_section_sound]
 Sound
 ---

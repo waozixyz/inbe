@@ -548,7 +548,7 @@ practice_config_screen_draw(InbeApp *app)
 void
 settings_screen_draw(InbeApp *app)
 {
-    int top_margin = flint_px(8);
+    int top_margin = 0;
     int content_x;
     int content_w;
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
@@ -571,11 +571,8 @@ settings_screen_draw(InbeApp *app)
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
 
-    if(app->settings_tab < SETTINGS_TAB_APP || app->settings_tab >= SETTINGS_TAB_COUNT)
-        app->settings_tab = SETTINGS_TAB_APP;
-    if(app->settings_app_tab < SETTINGS_APP_TAB_LANGUAGE ||
-       app->settings_app_tab >= SETTINGS_APP_TAB_COUNT)
-        app->settings_app_tab = SETTINGS_APP_TAB_LANGUAGE;
+    if(app->settings_tab < SETTINGS_TAB_DEVICE || app->settings_tab >= SETTINGS_TAB_COUNT)
+        app->settings_tab = SETTINGS_TAB_DEVICE;
 
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
     if(!export_dlg_initialized) {
@@ -590,22 +587,14 @@ settings_screen_draw(InbeApp *app)
 
     int top_tab_h = flint_px(40);
     int top_tab_y = top_margin;
-    int app_tab_y = top_tab_y + top_tab_h;
     int tab_gap = flint_px(14);
-    int tab_content_start_y = app->settings_tab == SETTINGS_TAB_APP
-                                  ? app_tab_y + top_tab_h + tab_gap
-                                  : top_tab_y + top_tab_h + tab_gap;
+    int tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
     int content_viewport_h = view_height - tab_content_start_y - flint_px(TAB_BAR_H);
     int clicked_top_tab = -1;
     const char *settings_tabs[] = {
-        locale_get("settings_tab_preferences"),
+        locale_get("settings_tab_device"),
+        locale_get("settings_tab_theme"),
         locale_get("settings_tab_data"),
-        locale_get("settings_tab_about")
-    };
-    const char *app_tabs[] = {
-        locale_get("settings_app_tab_language"),
-        locale_get("settings_app_tab_theme"),
-        locale_get("settings_app_tab_device")
     };
     int language_menu_changed = 0;
     int draw_language_menu = 0;
@@ -645,15 +634,6 @@ settings_screen_draw(InbeApp *app)
         app->settings_scroll = 0;
         settings_screen_clear_status();
     }
-    if(app->settings_tab == SETTINGS_TAB_APP) {
-        int clicked_app_tab = settings_draw_subtab_bar(app_tab_y, top_tab_h, app_tabs,
-                                                       SETTINGS_APP_TAB_COUNT,
-                                                       app->settings_app_tab);
-        if(clicked_app_tab != -1) {
-            app->settings_app_tab = clicked_app_tab;
-            app->settings_scroll = 0;
-        }
-    }
 
     ui_begin_scissor((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + tab_content_start_y * app->camera.zoom),
@@ -661,13 +641,14 @@ settings_screen_draw(InbeApp *app)
                      (int)(content_viewport_h * app->camera.zoom));
 
     {
-        int app_content_h = flint_px(130);
-        if(app->settings_app_tab == SETTINGS_APP_TAB_THEME)
+        int app_content_h = flint_px(530);
+        if(app->settings_tab == SETTINGS_TAB_THEME)
             app_content_h = flint_px(120) + ui_theme_picker_height(content_w);
-        else if(app->settings_app_tab == SETTINGS_APP_TAB_DEVICE)
-            app_content_h = flint_px(340);
-        int content_h = app->settings_tab == SETTINGS_TAB_APP ? app_content_h :
-                        app->settings_tab == SETTINGS_TAB_DATA ? flint_px(240) : flint_px(190);
+        else if(app->settings_tab == SETTINGS_TAB_DEVICE)
+            app_content_h = flint_px(570);
+        else if(app->settings_tab == SETTINGS_TAB_DATA)
+            app_content_h = flint_px(430);
+        int content_h = app_content_h;
         int y;
         FlintUIScrollArea scroll_area = {
             .bounds = {(float)content_x, (float)tab_content_start_y,
@@ -679,21 +660,7 @@ settings_screen_draw(InbeApp *app)
         FlintUIScrollView scroll_view = ui_scroll_container_begin(scroll_area);
         y = scroll_view.content_y;
 
-        if(app->settings_tab == SETTINGS_TAB_APP &&
-           app->settings_app_tab == SETTINGS_APP_TAB_LANGUAGE) {
-
-            settings_draw_section_title(locale_get("settings_section_language"), content_x, &y);
-#if defined(LOTUS_BUILD)
-            flint_text_draw(locale_current_code(), content_x, y, flint_ui_font(), theme_get_text());
-#else
-            if(language_dropdown_button(app, 101, content_x, y, content_w, flint_px(36), &app->language_index))
-                language_menu_changed = 1;
-            draw_language_menu = 1;
-#endif
-            y += flint_px(62);
-
-        } else if(app->settings_tab == SETTINGS_TAB_APP &&
-                  app->settings_app_tab == SETTINGS_APP_TAB_THEME) {
+        if(app->settings_tab == SETTINGS_TAB_THEME) {
 
             settings_draw_section_title(locale_get("settings_section_appearance"), content_x, &y);
             app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
@@ -711,12 +678,22 @@ settings_screen_draw(InbeApp *app)
             }
             y += ui_theme_picker_height(content_w) + flint_px(20);
 
-        } else if(app->settings_tab == SETTINGS_TAB_APP) {
+        } else if(app->settings_tab == SETTINGS_TAB_DEVICE) {
 
             int sound_volume = app->sound_volume;
             int keyboard_toggle = app->on_screen_keyboard_enabled;
             int toggle_w = flint_px(56);
             int toggle_h = flint_px(30);
+
+            settings_draw_section_title(locale_get("settings_section_language"), content_x, &y);
+#if defined(LOTUS_BUILD)
+            flint_text_draw(locale_current_code(), content_x, y, flint_ui_font(), theme_get_text());
+#else
+            if(language_dropdown_button(app, 101, content_x, y, content_w, flint_px(36), &app->language_index))
+                language_menu_changed = 1;
+            draw_language_menu = 1;
+#endif
+            y += flint_px(74);
 
             settings_draw_section_title(locale_get("settings_section_sound"), content_x, &y);
             if(ui_draw_slider(6, content_x, y, content_w, locale_get("volume_label"),
@@ -738,7 +715,7 @@ settings_screen_draw(InbeApp *app)
                 y += flint_px(76);
             }
 #endif
-            settings_draw_section_title(locale_get("settings_app_tab_device"), content_x, &y);
+            settings_draw_section_title(locale_get("settings_tab_device"), content_x, &y);
             {
                 int orientation_max = orientation_option_count - 1;
                 app->orientation_mode = clampi(app->orientation_mode,
@@ -770,7 +747,7 @@ settings_screen_draw(InbeApp *app)
             }
             y += flint_px(76);
         
-        } else if(app->settings_tab == SETTINGS_TAB_DATA) {
+        } else {
 
             int data_button_w;
             int data_button_h = flint_px(36);
@@ -793,10 +770,7 @@ settings_screen_draw(InbeApp *app)
             settings_draw_status(content_x, &y);
             y += flint_px(26);
             y += flint_px(20);
-
-        } else {
             settings_draw_about_block(app, content_x, content_w, &y);
-
         }
         y += flint_px(40);
         ui_scroll_container_end(scroll_area, scroll_view);

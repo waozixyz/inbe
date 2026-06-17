@@ -151,6 +151,15 @@
 [settings_tab_app]
 アプリ
 ---
+[settings_tab_language]
+言語
+---
+[settings_tab_theme]
+テーマ
+---
+[settings_tab_device]
+デバイス
+---
 [settings_section_sound]
 サウンド
 ---

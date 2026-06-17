@@ -151,6 +151,15 @@ Sezení
 [settings_tab_app]
 Aplikace
 ---
+[settings_tab_language]
+Jazyk
+---
+[settings_tab_theme]
+Motiv
+---
+[settings_tab_device]
+Zařízení
+---
 [settings_section_sound]
 Zvuk
 ---

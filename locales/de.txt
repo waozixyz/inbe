@@ -151,6 +151,15 @@ Sitzung
 [settings_tab_app]
 App
 ---
+[settings_tab_language]
+Sprache
+---
+[settings_tab_theme]
+Design
+---
+[settings_tab_device]
+Gerät
+---
 [settings_section_sound]
 Ton
 ---

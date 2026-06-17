@@ -151,6 +151,15 @@ Wim Hof 呼吸
 [settings_tab_app]
 应用
 ---
+[settings_tab_language]
+语言
+---
+[settings_tab_theme]
+主题
+---
+[settings_tab_device]
+设备
+---
 [settings_section_sound]
 音效
 ---
