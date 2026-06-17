@@ -70,6 +70,12 @@ Testar reprodução
 [meditation_music_stop_test_button]
 Parar teste
 ---
+[meditation_music_network_error_title]
+Rede indisponível
+---
+[meditation_music_network_error_message]
+Não foi possível acessar o servidor de áudio de meditação. Verifique as permissões de rede do Android e sua conexão com a internet, depois tente novamente.
+---
 [duration_5m]
 5m
 ---
@@ -102,6 +108,9 @@ Salvar rodadas concluídas antes de sair?
 ---
 [cancel_button]
 Cancelar
+---
+[ok_button]
+OK
 ---
 [save_button]
 Salvar

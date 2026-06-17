@@ -70,6 +70,12 @@
 [meditation_music_stop_test_button]
 テスト停止
 ---
+[meditation_music_network_error_title]
+ネットワークを利用できません
+---
+[meditation_music_network_error_message]
+瞑想音声サーバーに接続できませんでした。Android のネットワーク権限とインターネット接続を確認してから、もう一度お試しください。
+---
 [duration_5m]
 5分
 ---
@@ -102,6 +108,9 @@
 ---
 [cancel_button]
 キャンセル
+---
+[ok_button]
+OK
 ---
 [save_button]
 保存

@@ -70,6 +70,12 @@ Test audio
 [meditation_music_stop_test_button]
 Ferma test
 ---
+[meditation_music_network_error_title]
+Rete non disponibile
+---
+[meditation_music_network_error_message]
+Impossibile raggiungere il server audio per la meditazione. Controlla le autorizzazioni di rete di Android e la connessione a internet, poi riprova.
+---
 [duration_5m]
 5 min
 ---
@@ -102,6 +108,9 @@ Salvare i round completati prima di uscire?
 ---
 [cancel_button]
 Annulla
+---
+[ok_button]
+OK
 ---
 [save_button]
 Salva

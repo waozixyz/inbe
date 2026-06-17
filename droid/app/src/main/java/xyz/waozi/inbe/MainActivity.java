@@ -27,6 +27,9 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
 import java.net.URL;
 
 public class MainActivity extends NativeActivity {
@@ -249,6 +252,9 @@ public class MainActivity extends NativeActivity {
                     }
 
                     nativeRuntimeAssetDownloadSucceeded(handle, written, status);
+                } catch (UnknownHostException | SocketException | SocketTimeoutException e) {
+                    outputFile.delete();
+                    nativeRuntimeAssetDownloadFailed(handle, status, "NETWORK_UNAVAILABLE");
                 } catch (Exception e) {
                     outputFile.delete();
                     nativeRuntimeAssetDownloadFailed(handle, status, e.getMessage());
