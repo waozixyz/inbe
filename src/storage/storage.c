@@ -19,6 +19,12 @@
 #include <emscripten.h>
 #endif
 
+#if defined(_WIN32)
+#define INBE_MKDIR(path) mkdir(path)
+#else
+#define INBE_MKDIR(path) mkdir(path, 0700)
+#endif
+
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wformat-truncation"
@@ -95,7 +101,7 @@ ensure_dir_local(const char *path)
         p++;
     while((p = strchr(p, '/')) != NULL) {
         *p = '\0';
-        if(temp[0] != '\0' && !dir_exists_local(temp) && mkdir(temp, 0700) != 0 && !dir_exists_local(temp)) {
+        if(temp[0] != '\0' && !dir_exists_local(temp) && INBE_MKDIR(temp) != 0 && !dir_exists_local(temp)) {
             *p = '/';
             return 0;
         }
@@ -103,7 +109,7 @@ ensure_dir_local(const char *path)
         p++;
     }
 
-    return mkdir(path, 0700) == 0 || dir_exists_local(path);
+    return INBE_MKDIR(path) == 0 || dir_exists_local(path);
 }
 
 static int

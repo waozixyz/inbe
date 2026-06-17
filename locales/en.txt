@@ -70,6 +70,9 @@ Test audio
 [meditation_music_stop_test_button]
 Stop test
 ---
+[meditation_music_attribution]
+Music by Elijah_K.
+---
 [duration_5m]
 5m
 ---

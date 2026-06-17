@@ -3,9 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-sdl2.url = "github:NixOS/nixpkgs/nixos-24.11";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nixpkgs-sdl2 }:
     let
       systems = [
         "x86_64-linux"
@@ -26,6 +27,13 @@
       mkShell = system:
         let
           pkgs = mkPkgs system;
+          sdl2Pkgs = import nixpkgs-sdl2 {
+            inherit system;
+            config = {
+              allowUnfree = true;
+              allowUnsupportedSystem = true;
+            };
+          };
           aarch64Pkgs = pkgs.pkgsCross.aarch64-multiplatform;
 
           windowsCrossEnabled = system == "x86_64-linux";
@@ -68,7 +76,7 @@
           ndkPath = "${sdk}/libexec/android-sdk/ndk-bundle";
 
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
-            pkgs.SDL2.dev
+            sdl2Pkgs.SDL2.dev
             pkgs.curl.dev
             pkgs.libdrm.dev
             pkgs.libgbm
@@ -178,8 +186,8 @@ EOF
             extraOutputsToInstall = [ "dev" ];
 
             targetPkgs = pkgs: with pkgs; [
-              SDL2
-              SDL2.dev
+              sdl2Pkgs.SDL2
+              sdl2Pkgs.SDL2.dev
 	      butler
               cmake
               curl
