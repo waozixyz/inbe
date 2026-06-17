@@ -1,7 +1,7 @@
 # Changelog
 ## [1.3.1] - 2026-06-17
 ### Fixed
-- Fixed Android orientation changes so forced landscape and portrait resize the app viewport correctly.
+- Fixed Android orientation resizing and habit import merging by name.
 
 ## [1.3.0] - 2026-06-14
 ### Added

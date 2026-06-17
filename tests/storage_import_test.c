@@ -43,6 +43,39 @@ check_true(const char *label, int ok)
 }
 
 static int
+ascii_equal_ci(const char *a, const char *b)
+{
+    unsigned char ca;
+    unsigned char cb;
+
+    if(a == NULL || b == NULL)
+        return 0;
+    while(*a != '\0' && *b != '\0') {
+        ca = (unsigned char)*a++;
+        cb = (unsigned char)*b++;
+        if(ca >= 'A' && ca <= 'Z')
+            ca = (unsigned char)(ca - 'A' + 'a');
+        if(cb >= 'A' && cb <= 'Z')
+            cb = (unsigned char)(cb - 'A' + 'a');
+        if(ca != cb)
+            return 0;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static InbeHabit *
+find_habit_ci(InbeHabits *habits, const char *name)
+{
+    if(habits == NULL || name == NULL)
+        return NULL;
+    for(int i = 0; i < habits->count; i++) {
+        if(ascii_equal_ci(habits->items[i].name, name))
+            return &habits->items[i];
+    }
+    return NULL;
+}
+
+static int
 ensure_dir(const char *path)
 {
     struct stat st;
@@ -230,6 +263,70 @@ test_zip_db_import(void)
 }
 
 static void
+test_habit_name_merge_import(void)
+{
+    char source[512], dest[512], zip_path[512];
+    InbeHabits habits;
+    InbeHabit *habit;
+
+    make_clean_root(source, sizeof(source), "habit-name-source");
+    make_clean_root(dest, sizeof(dest), "habit-name-dest");
+    make_path(zip_path, sizeof(zip_path), source, "export.zip");
+
+    check_true("init habit merge source", inbe_storage_init(source));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add imported meditation",
+              inbe_habits_add_custom(&habits, "meditation",
+                                      (Color){224, 124, 104, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_habit_set_day(&habits, 0, 20260613, 1);
+    check_int("add imported push ups",
+              inbe_habits_add_custom(&habits, "Push ups",
+                                      (Color){180, 132, 220, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              1);
+    inbe_habit_set_day(&habits, 1, 20260614, 1);
+    check_int("add imported cold shower",
+              inbe_habits_add_custom(&habits, "Cold Shower",
+                                      (Color){99, 196, 165, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              2);
+    inbe_habit_set_day(&habits, 2, 20260615, 1);
+    check_true("habit merge export", inbe_storage_export_zip(zip_path));
+    inbe_storage_close();
+
+    check_true("init habit merge dest", inbe_storage_init(dest));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    inbe_habit_set_day(&habits, 0, 20260612, 1);
+    check_true("habit merge import", inbe_storage_import_zip(zip_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("habit merge load", inbe_storage_habits_load(&habits));
+    check_int("habit merge count", habits.count, 3);
+    habit = find_habit_ci(&habits, "Meditation");
+    check_true("habit merge meditation exists", habit != NULL);
+    check_true("habit merge preserves local case",
+               habit != NULL && strcmp(habit->name, "Meditation") == 0);
+    check_true("habit merge keeps local day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260612));
+    check_true("habit merge imports day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260613));
+    habit = find_habit_ci(&habits, "Push ups");
+    check_true("habit merge push ups exists", habit != NULL);
+    check_true("habit merge push ups day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260614));
+    habit = find_habit_ci(&habits, "Cold Shower");
+    check_true("habit merge cold shower exists", habit != NULL);
+    check_true("habit merge cold shower day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260615));
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
 write_legacy_zip(const char *path, const char *prefix)
 {
     mz_zip_archive archive;
@@ -371,6 +468,7 @@ main(void)
 {
     test_raw_db_import();
     test_zip_db_import();
+    test_habit_name_merge_import();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();
     test_tickmate_db_import();

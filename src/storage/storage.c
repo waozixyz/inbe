@@ -250,6 +250,84 @@ bind_text(sqlite3_stmt *stmt, int index, const char *text)
     return sqlite3_bind_text(stmt, index, text != NULL ? text : "", -1, SQLITE_TRANSIENT) == SQLITE_OK;
 }
 
+static long long now_seconds(void);
+
+static int
+local_habit_id_by_name(const char *name, char *out, size_t out_size)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(name == NULL || name[0] == '\0' || out == NULL || out_size == 0 ||
+       g_storage.db == NULL)
+        return 0;
+
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id FROM habits WHERE name=?1 COLLATE NOCASE AND deleted_at=0 ORDER BY sort_order,id LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, name);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *id = (const char *)sqlite3_column_text(stmt, 0);
+        if(id != NULL && id[0] != '\0') {
+            snprintf(out, out_size, "%s", id);
+            found = out[0] != '\0';
+        }
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+local_habit_id_exists(const char *id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(id == NULL || id[0] == '\0' || g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT 1 FROM habits WHERE id=?1 LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, id);
+    found = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static void
+make_import_habit_id(char *out, size_t out_size)
+{
+    static unsigned int counter = 0;
+
+    if(out == NULL || out_size == 0)
+        return;
+    do {
+        snprintf(out, out_size, "import-%lld-%u", now_seconds(), counter++);
+    } while(local_habit_id_exists(out));
+}
+
+static int
+resolve_import_habit_id(const char *import_id, const char *name,
+                        char *out, size_t out_size)
+{
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+
+    if(local_habit_id_by_name(name, out, out_size))
+        return 1;
+
+    if(import_id != NULL && import_id[0] != '\0' && !local_habit_id_exists(import_id)) {
+        snprintf(out, out_size, "%s", import_id);
+        return out[0] != '\0';
+    }
+
+    make_import_habit_id(out, out_size);
+    return out[0] != '\0';
+}
+
 static int
 schema_create(void)
 {
@@ -1139,7 +1217,6 @@ import_legacy_session_zip(mz_zip_archive *archive)
     if(archive == NULL)
         return 0;
     file_count = mz_zip_reader_get_num_files(archive);
-    TraceLog(LOG_INFO, "DATA: checking legacy session archive with %u files", file_count);
     for(mz_uint i = 0; i < file_count; i++) {
         mz_zip_archive_file_stat stat;
         int year;
@@ -1169,9 +1246,7 @@ import_legacy_session_zip(mz_zip_archive *archive)
             imported++;
         free(text);
     }
-    if(imported > 0)
-        TraceLog(LOG_INFO, "DATA: imported %d legacy sessions", imported);
-    else
+    if(imported <= 0)
         TraceLog(LOG_WARNING, "DATA: no legacy sessions found in archive");
     return imported > 0;
 }
@@ -1270,12 +1345,7 @@ migrate_legacy_file_sessions_once(void)
         return;
     if(meta_equals("legacy_file_sessions_migrated", "1"))
         return;
-    TraceLog(LOG_INFO, "DATA: checking for legacy session files in %s", g_storage.root);
     imported = migrate_legacy_file_sessions_in_dir(g_storage.root);
-    if(imported > 0)
-        TraceLog(LOG_INFO, "DATA: migrated %d legacy file sessions", imported);
-    else
-        TraceLog(LOG_INFO, "DATA: no legacy file sessions found");
     set_meta("legacy_file_sessions_migrated", "1");
     storage_schedule_persist();
 }
@@ -1301,7 +1371,8 @@ import_tickmate_db(sqlite3 *src)
 
     exec_sql("BEGIN IMMEDIATE");
     while(sqlite3_step(stmt) == SQLITE_ROW) {
-        char habit_id[64];
+        char import_habit_id[64];
+        char local_habit_id[INBE_STORAGE_ID_SIZE];
         const char *name = (const char *)sqlite3_column_text(stmt, 1);
         int track_id = sqlite3_column_int(stmt, 0);
         int sort_order = sqlite3_column_int(stmt, 3);
@@ -1309,13 +1380,16 @@ import_tickmate_db(sqlite3 *src)
 
         if(name == NULL || name[0] == '\0')
             continue;
-        snprintf(habit_id, sizeof(habit_id), "tickmate-%d", track_id);
+        snprintf(import_habit_id, sizeof(import_habit_id), "tickmate-%d", track_id);
+        if(!resolve_import_habit_id(import_habit_id, name, local_habit_id,
+                                    sizeof(local_habit_id)))
+            continue;
         if(sqlite3_prepare_v2(g_storage.db,
                               "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
-                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
+                              "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,?9,0)",
                               -1, &write_stmt, NULL) != SQLITE_OK)
             continue;
-        bind_text(write_stmt, 1, habit_id);
+        bind_text(write_stmt, 1, local_habit_id);
         bind_text(write_stmt, 2, g_storage.user_id);
         bind_text(write_stmt, 3, name);
         sqlite3_bind_int(write_stmt, 4, color.r);
@@ -1333,26 +1407,34 @@ import_tickmate_db(sqlite3 *src)
     stmt = NULL;
 
     if(sqlite3_prepare_v2(src,
-                          "SELECT _track_id,year,month,day FROM ticks",
+                          "SELECT ticks._track_id,tracks.name,ticks.year,ticks.month,ticks.day "
+                          "FROM ticks JOIN tracks ON tracks._id=ticks._track_id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         while(sqlite3_step(stmt) == SQLITE_ROW) {
-            char habit_id[64];
+            char import_habit_id[64];
+            char local_habit_id[INBE_STORAGE_ID_SIZE];
             int track_id = sqlite3_column_int(stmt, 0);
-            int year = sqlite3_column_int(stmt, 1);
-            int month = sqlite3_column_int(stmt, 2);
-            int day = sqlite3_column_int(stmt, 3);
+            const char *name = (const char *)sqlite3_column_text(stmt, 1);
+            int year = sqlite3_column_int(stmt, 2);
+            int month = sqlite3_column_int(stmt, 3);
+            int day = sqlite3_column_int(stmt, 4);
             int local_date;
 
+            if(name == NULL || name[0] == '\0')
+                continue;
             if(year <= 0 || month <= 0 || month > 12 || day <= 0 || day > 31)
                 continue;
             local_date = year * 10000 + month * 100 + day;
-            snprintf(habit_id, sizeof(habit_id), "tickmate-%d", track_id);
+            snprintf(import_habit_id, sizeof(import_habit_id), "tickmate-%d", track_id);
+            if(!resolve_import_habit_id(import_habit_id, name, local_habit_id,
+                                        sizeof(local_habit_id)))
+                continue;
             if(sqlite3_prepare_v2(g_storage.db,
                                   "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
                                   "VALUES(?1,?2,1,?3)",
                                   -1, &write_stmt, NULL) != SQLITE_OK)
                 continue;
-            bind_text(write_stmt, 1, habit_id);
+            bind_text(write_stmt, 1, local_habit_id);
             sqlite3_bind_int(write_stmt, 2, local_date);
             sqlite3_bind_int64(write_stmt, 3, imported_at);
             if(sqlite3_step(write_stmt) == SQLITE_DONE)
@@ -1384,7 +1466,6 @@ import_sqlite_db_file(const char *db_path)
     if(sqlite3_prepare_v2(src,
                           "SELECT id,started_at,local_date,topic,activity,source FROM sessions WHERE deleted_at=0",
                           -1, &stmt, NULL) != SQLITE_OK) {
-        TraceLog(LOG_INFO, "DATA: sqlite import is not new Inbe schema, trying Tickmate");
         goto try_tickmate;
     }
 
@@ -1421,18 +1502,24 @@ import_sqlite_db_file(const char *db_path)
                           -1, &stmt, NULL) == SQLITE_OK) {
         exec_sql("BEGIN IMMEDIATE");
         while(sqlite3_step(stmt) == SQLITE_ROW) {
-            const char *habit_id = (const char *)sqlite3_column_text(stmt, 0);
+            const char *import_habit_id = (const char *)sqlite3_column_text(stmt, 0);
+            const char *name = (const char *)sqlite3_column_text(stmt, 1);
+            char local_habit_id[INBE_STORAGE_ID_SIZE];
 
-            if(habit_id == NULL || habit_id[0] == '\0')
+            if(import_habit_id == NULL || import_habit_id[0] == '\0' ||
+               name == NULL || name[0] == '\0')
+                continue;
+            if(!resolve_import_habit_id(import_habit_id, name, local_habit_id,
+                                        sizeof(local_habit_id)))
                 continue;
             if(sqlite3_prepare_v2(g_storage.db,
                                   "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
-                                  "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
+                                  "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,?9,0)",
                                   -1, &hstmt, NULL) != SQLITE_OK)
                 continue;
-            bind_text(hstmt, 1, habit_id);
+            bind_text(hstmt, 1, local_habit_id);
             bind_text(hstmt, 2, g_storage.user_id);
-            bind_text(hstmt, 3, (const char *)sqlite3_column_text(stmt, 1));
+            bind_text(hstmt, 3, name);
             sqlite3_bind_int(hstmt, 4, sqlite3_column_int(stmt, 2));
             sqlite3_bind_int(hstmt, 5, sqlite3_column_int(stmt, 3));
             sqlite3_bind_int(hstmt, 6, sqlite3_column_int(stmt, 4));
@@ -1447,7 +1534,7 @@ import_sqlite_db_file(const char *db_path)
             if(sqlite3_prepare_v2(src,
                                   "SELECT local_date,completed FROM habit_days WHERE habit_id=?1",
                                   -1, &hstmt, NULL) == SQLITE_OK) {
-                sqlite3_bind_text(hstmt, 1, habit_id, -1, SQLITE_TRANSIENT);
+                sqlite3_bind_text(hstmt, 1, import_habit_id, -1, SQLITE_TRANSIENT);
                 while(sqlite3_step(hstmt) == SQLITE_ROW) {
                     sqlite3_stmt *day_stmt = NULL;
                     if(sqlite3_prepare_v2(g_storage.db,
@@ -1455,7 +1542,7 @@ import_sqlite_db_file(const char *db_path)
                                           "VALUES(?1,?2,?3,?4)",
                                           -1, &day_stmt, NULL) != SQLITE_OK)
                         continue;
-                    bind_text(day_stmt, 1, habit_id);
+                    bind_text(day_stmt, 1, local_habit_id);
                     sqlite3_bind_int(day_stmt, 2, sqlite3_column_int(hstmt, 0));
                     sqlite3_bind_int(day_stmt, 3, sqlite3_column_int(hstmt, 1) != 0);
                     sqlite3_bind_int64(day_stmt, 4, now_seconds());
@@ -1502,10 +1589,8 @@ inbe_storage_import_zip(const char *path)
         TraceLog(LOG_ERROR, "DATA: import path does not exist: %s", path);
         return 0;
     }
-    TraceLog(LOG_INFO, "DATA: importing %s", path);
     memset(&archive, 0, sizeof(archive));
     if(!mz_zip_reader_init_file(&archive, path, 0)) {
-        TraceLog(LOG_INFO, "DATA: import is not a zip archive, trying sqlite db");
         return import_sqlite_db_file(path);
     }
     if(mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", NULL, 0) >= 0) {
@@ -1521,9 +1606,7 @@ inbe_storage_import_zip(const char *path)
             fp = NULL;
             ok = import_sqlite_db_file(temp_path);
             remove(temp_path);
-            if(ok)
-                TraceLog(LOG_INFO, "DATA: imported sqlite archive");
-            else
+            if(!ok)
                 TraceLog(LOG_ERROR, "DATA: archive contained inbe-data/inbe.db but sqlite import failed");
         } else {
             TraceLog(LOG_ERROR, "DATA: failed to extract inbe-data/inbe.db from archive");
@@ -1532,7 +1615,6 @@ inbe_storage_import_zip(const char *path)
             fclose(fp);
         free(db_bytes);
     } else {
-        TraceLog(LOG_INFO, "DATA: archive has no inbe-data/inbe.db, trying legacy sessions");
         ok = import_legacy_session_zip(&archive);
     }
     mz_zip_reader_end(&archive);
