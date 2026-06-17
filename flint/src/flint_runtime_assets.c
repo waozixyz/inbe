@@ -112,7 +112,7 @@ flint_runtime_assets_init(const char *app_id)
     EM_ASM({
         var root = UTF8ToString($0);
         var parts = root.split('/').filter(Boolean);
-        var path = '';
+        var path = "";
         try {
             for(var i = 0; i < parts.length; i++) {
                 path += '/' + parts[i];
@@ -219,6 +219,22 @@ curl_write_file(void *ptr, size_t size, size_t nmemb, void *stream)
     return fwrite(ptr, size, nmemb, (FILE *)stream);
 }
 
+static int
+curl_progress(void *clientp, curl_off_t dltotal, curl_off_t dlnow,
+              curl_off_t ultotal, curl_off_t ulnow)
+{
+    FlintRuntimeAssetDownload *download = (FlintRuntimeAssetDownload *)clientp;
+    (void)ultotal;
+    (void)ulnow;
+
+    if(download == NULL)
+        return 0;
+
+    download->bytes = dlnow > 0 ? (size_t)dlnow : 0;
+    download->total_bytes = dltotal > 0 ? (size_t)dltotal : 0;
+    return 0;
+}
+
 static void *
 curl_thread_main(void *user_data)
 {
@@ -254,12 +270,17 @@ curl_thread_main(void *user_data)
     curl_easy_setopt(curl, CURLOPT_WRITEDATA, file);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, "flint-runtime-assets/1");
     curl_easy_setopt(curl, CURLOPT_FAILONERROR, 1L);
+    curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 0L);
+    curl_easy_setopt(curl, CURLOPT_XFERINFOFUNCTION, curl_progress);
+    curl_easy_setopt(curl, CURLOPT_XFERINFODATA, download);
 
     res = curl_easy_perform(curl);
     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &download->http_status);
     if(curl_easy_getinfo(curl, CURLINFO_SIZE_DOWNLOAD_T, &downloaded) == CURLE_OK &&
        downloaded > 0)
         download->bytes = (size_t)downloaded;
+    if(download->total_bytes == 0 && downloaded > 0)
+        download->total_bytes = (size_t)downloaded;
     curl_easy_cleanup(curl);
     fclose(file);
 

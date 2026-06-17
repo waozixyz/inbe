@@ -41,7 +41,7 @@ Meditación
 Meditación
 ---
 [meditation_manual_text]
-Elige una duración, pulsa reproducir y siéntate cómodamente. Deja que tu atención descanse en la respiración. Cuando la mente se distraiga, vuelve suavemente a respirar. Un gong marca el comienzo y el final de la sesión.
+Elige música si ayuda a que la sesión se sienta estable y siéntate cómodamente. Deja que la atención descanse en la respiración. Cuando los pensamientos te arrastren, obsérvalo con claridad y vuelve sin forzar. Un gong marca el inicio y el final.
 ---
 [meditation_music_settings_title]
 Música de meditación
@@ -66,6 +66,9 @@ Descargar audio de nuevo
 ---
 [meditation_music_test_button]
 Probar reproducción
+---
+[meditation_music_stop_test_button]
+Detener prueba
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Descartar
 [all_progress_lost_message]
 Se perderá todo el progreso.
 ---
+[meditation_under_minute_exit_message]
+Esto no se guardará.
+---
+[meditation_save_elapsed_message]
+¿Guardar esta meditación antes de salir?
+---
 [exit_button]
 Salir
 ---
@@ -139,28 +148,37 @@ RONDA %d
 [settings_title]
 Configuración
 ---
-[settings_tab_breathing]
+[practice_config_title]
+Práctica
+---
+[settings_section_breathing]
 Respiración
 ---
-[settings_tab_session]
+[settings_section_session]
 Sesión
 ---
 [settings_tab_app]
 App
 ---
-[settings_tab_data_about]
-Datos y Acerca de
+[settings_tab_theme]
+Tema
 ---
-[settings_tab_sound]
+[settings_tab_device]
+Dispositivo
+---
+[settings_section_sound]
 Sonido
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Apariencia
 ---
-[settings_tab_language]
+[settings_section_language]
 Idioma
 ---
 [settings_tab_data]
+Datos
+---
+[settings_section_data]
 Datos
 ---
 [settings_tab_about]
@@ -184,6 +202,15 @@ Velocidad inicial
 ---
 [modify_start_speed_button]
 Modificar velocidad inicial
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Velocidad inicial
@@ -234,12 +261,6 @@ Más
 Próximamente...
 ---
 
-[data_management_label]
-Gestión de datos
----
-[data_management_button]
-Gestionar datos
----
 [total_sessions_label]
 Sesiones totales: %d
 ---
@@ -303,14 +324,6 @@ Delete cancelled
 [deleted_sessions]
 Deleted %lld sessions
 ---
-[version_label]
-Versión %s
----
-[about_description]
-Inner Breeze es una aplicación simple de
-meditación de respiración para ayudarle a
-relajarse y encontrar su calma.
----
 [toggle_off]
 APAGADO
 ---
@@ -364,7 +377,7 @@ Simplemente siga 4 pasos:
 3. Inhale profundamente y retenga.
 4. Exhale y repita.
 
-Use el icono de engranaje %i para ajustar rondas, respiraciones, velocidad y pausas.
+Use el icono de llave %i para ajustar rondas, respiraciones, velocidad y pausas.
 ---
 [tutorial_step_breathe]
 Llene sus pulmones completamente, luego deje que el respiración fluya hacia afuera.

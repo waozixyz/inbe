@@ -1,8 +1,9 @@
 #include "storage.h"
-#include "habits/habits.h"
-#include "inbe.h"
+#include "screens/habits_screen.h"
+#include "breath_engine.h"
 #include "miniz.h"
 #include "raylib.h"
+#include <sqlite3.h>
 
 #include <dirent.h>
 #include <stdarg.h>
@@ -15,6 +16,8 @@
 static int g_failures = 0;
 static int g_seen_topic = -1;
 static int g_seen_activity = -1;
+static int g_seen_round_count = -1;
+static int g_seen_first_round = -1;
 
 void
 data_init(void)
@@ -40,6 +43,39 @@ check_true(const char *label, int ok)
 }
 
 static int
+ascii_equal_ci(const char *a, const char *b)
+{
+    unsigned char ca;
+    unsigned char cb;
+
+    if(a == NULL || b == NULL)
+        return 0;
+    while(*a != '\0' && *b != '\0') {
+        ca = (unsigned char)*a++;
+        cb = (unsigned char)*b++;
+        if(ca >= 'A' && ca <= 'Z')
+            ca = (unsigned char)(ca - 'A' + 'a');
+        if(cb >= 'A' && cb <= 'Z')
+            cb = (unsigned char)(cb - 'A' + 'a');
+        if(ca != cb)
+            return 0;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static InbeHabit *
+find_habit_ci(InbeHabits *habits, const char *name)
+{
+    if(habits == NULL || name == NULL)
+        return NULL;
+    for(int i = 0; i < habits->count; i++) {
+        if(ascii_equal_ci(habits->items[i].name, name))
+            return &habits->items[i];
+    }
+    return NULL;
+}
+
+static int
 ensure_dir(const char *path)
 {
     struct stat st;
@@ -52,6 +88,19 @@ static void
 make_path(char *out, size_t out_size, const char *root, const char *leaf)
 {
     snprintf(out, out_size, "%s/%s", root, leaf);
+}
+
+static void
+make_nested_dir(const char *root, const char *a, const char *b, const char *c)
+{
+    char path[512];
+
+    make_path(path, sizeof(path), root, a);
+    check_true("create nested dir a", ensure_dir(path));
+    snprintf(path, sizeof(path), "%s/%s/%s", root, a, b);
+    check_true("create nested dir b", ensure_dir(path));
+    snprintf(path, sizeof(path), "%s/%s/%s/%s", root, a, b, c);
+    check_true("create nested dir c", ensure_dir(path));
 }
 
 static void
@@ -119,6 +168,26 @@ metadata_history_callback(const char *id, int year, int month, int day,
 }
 
 static void
+legacy_history_callback(const char *id, int year, int month, int day,
+                        int hour, int minute, int second,
+                        int topic, int activity,
+                        const int *rounds, int round_count, void *user)
+{
+    (void)id;
+    (void)year;
+    (void)month;
+    (void)day;
+    (void)hour;
+    (void)minute;
+    (void)second;
+    (void)topic;
+    (void)activity;
+    (void)user;
+    g_seen_round_count = round_count;
+    g_seen_first_round = round_count > 0 ? rounds[0] : -1;
+}
+
+static void
 test_session_metadata(void)
 {
     char root[512];
@@ -130,7 +199,7 @@ test_session_metadata(void)
                inbe_storage_save_session_for_activity(rounds, 2, 2, 3, NULL, 0));
     g_seen_topic = -1;
     g_seen_activity = -1;
-    inbe_storage_list_history(metadata_history_callback, NULL);
+    inbe_storage_list_session_records(metadata_history_callback, NULL);
     check_int("metadata topic", g_seen_topic, 2);
     check_int("metadata activity", g_seen_activity, 3);
     inbe_storage_close();
@@ -146,7 +215,7 @@ assert_imported_database(const char *root)
     check_int("imported sessions", inbe_storage_session_count(), 1);
     memset(&habits, 0, sizeof(habits));
     check_true("imported habits load", inbe_storage_habits_load(&habits));
-    check_int("imported habit count", habits.count, 3);
+    check_int("imported habit count", habits.count, 1);
     check_true("imported habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
     inbe_storage_close();
 }
@@ -194,29 +263,204 @@ test_zip_db_import(void)
 }
 
 static void
-test_legacy_zip_import(void)
+test_habit_name_merge_import(void)
 {
-    char root[512], zip_path[512];
-    mz_zip_archive archive;
-    const char *legacy_path = "lotus-data/sessions/2026/06/13/inbe-102030.txt";
-    const char *legacy_data = "30\n45\n60\n";
+    char source[512], dest[512], zip_path[512];
+    InbeHabits habits;
+    InbeHabit *habit;
 
-    make_clean_root(root, sizeof(root), "legacy");
-    make_path(zip_path, sizeof(zip_path), root, "legacy.zip");
-    memset(&archive, 0, sizeof(archive));
-    check_true("legacy zip create", mz_zip_writer_init_file(&archive, zip_path, 0));
-    check_true("legacy zip add session",
-               mz_zip_writer_add_mem(&archive, legacy_path, legacy_data, strlen(legacy_data),
-                                     MZ_NO_COMPRESSION));
-    check_true("legacy zip finalize", mz_zip_writer_finalize_archive(&archive));
-    mz_zip_writer_end(&archive);
+    make_clean_root(source, sizeof(source), "habit-name-source");
+    make_clean_root(dest, sizeof(dest), "habit-name-dest");
+    make_path(zip_path, sizeof(zip_path), source, "export.zip");
 
-    check_true("init legacy import dest", inbe_storage_init(root));
-    check_true("legacy zip import", inbe_storage_import_zip(zip_path));
-    check_int("legacy imported sessions", inbe_storage_session_count(), 1);
+    check_true("init habit merge source", inbe_storage_init(source));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add imported meditation",
+              inbe_habits_add_custom(&habits, "meditation",
+                                      (Color){224, 124, 104, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_habit_set_day(&habits, 0, 20260613, 1);
+    check_int("add imported push ups",
+              inbe_habits_add_custom(&habits, "Push ups",
+                                      (Color){180, 132, 220, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              1);
+    inbe_habit_set_day(&habits, 1, 20260614, 1);
+    check_int("add imported cold shower",
+              inbe_habits_add_custom(&habits, "Cold Shower",
+                                      (Color){99, 196, 165, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              2);
+    inbe_habit_set_day(&habits, 2, 20260615, 1);
+    check_true("habit merge export", inbe_storage_export_zip(zip_path));
     inbe_storage_close();
 
+    check_true("init habit merge dest", inbe_storage_init(dest));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    inbe_habit_set_day(&habits, 0, 20260612, 1);
+    check_true("habit merge import", inbe_storage_import_zip(zip_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("habit merge load", inbe_storage_habits_load(&habits));
+    check_int("habit merge count", habits.count, 3);
+    habit = find_habit_ci(&habits, "Meditation");
+    check_true("habit merge meditation exists", habit != NULL);
+    check_true("habit merge preserves local case",
+               habit != NULL && strcmp(habit->name, "Meditation") == 0);
+    check_true("habit merge keeps local day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260612));
+    check_true("habit merge imports day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260613));
+    habit = find_habit_ci(&habits, "Push ups");
+    check_true("habit merge push ups exists", habit != NULL);
+    check_true("habit merge push ups day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260614));
+    habit = find_habit_ci(&habits, "Cold Shower");
+    check_true("habit merge cold shower exists", habit != NULL);
+    check_true("habit merge cold shower day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260615));
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+write_legacy_zip(const char *path, const char *prefix)
+{
+    mz_zip_archive archive;
+    char archive_name[256];
+    const char rounds[] = "31\n35\n39\n27\n";
+
+    memset(&archive, 0, sizeof(archive));
+    snprintf(archive_name, sizeof(archive_name),
+             "%s/sessions/2026/06/13/inbe-010203", prefix);
+    check_true("create legacy zip", mz_zip_writer_init_file(&archive, path, 0));
+    check_true("add legacy metadata",
+               mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt",
+                                     "Legacy Inbe export\n", 19, MZ_NO_COMPRESSION));
+    check_true("add legacy session",
+               mz_zip_writer_add_mem(&archive, archive_name, rounds,
+                                     sizeof(rounds) - 1, MZ_BEST_COMPRESSION));
+    check_true("finalize legacy zip", mz_zip_writer_finalize_archive(&archive));
+    mz_zip_writer_end(&archive);
+}
+
+static void
+test_legacy_zip_import(void)
+{
+    char source[512], dest[512], zip_path[512];
+
+    make_clean_root(source, sizeof(source), "legacy-source");
+    make_clean_root(dest, sizeof(dest), "legacy-dest");
+    make_path(zip_path, sizeof(zip_path), source, "legacy.zip");
+    write_legacy_zip(zip_path, "custom-root");
+
+    check_true("init legacy import dest", inbe_storage_init(dest));
+    check_true("legacy zip import", inbe_storage_import_zip(zip_path));
+    check_int("legacy imported sessions", inbe_storage_session_count(), 1);
+    g_seen_round_count = -1;
+    g_seen_first_round = -1;
+    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    check_int("legacy round count", g_seen_round_count, 4);
+    check_int("legacy first round", g_seen_first_round, 31);
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+write_text_file(const char *path, const char *text)
+{
+    FILE *fp = fopen(path, "wb");
+
+    check_true("open text file", fp != NULL);
+    if(fp == NULL)
+        return;
+    check_true("write text file", fwrite(text, 1, strlen(text), fp) == strlen(text));
+    fclose(fp);
+}
+
+static void
+test_legacy_file_startup_migration(void)
+{
+    char root[512];
+    char session_path[512];
+
+    make_clean_root(root, sizeof(root), "legacy-files");
+    make_nested_dir(root, "2026", "06", "13");
+    make_path(session_path, sizeof(session_path), root, "2026/06/13/inbe-010203");
+    write_text_file(session_path, "31\n35\n39\n27\n");
+
+    check_true("init legacy file migration db", inbe_storage_init(root));
+    check_int("legacy file migrated sessions", inbe_storage_session_count(), 1);
+    g_seen_round_count = -1;
+    g_seen_first_round = -1;
+    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    check_int("legacy file round count", g_seen_round_count, 4);
+    check_int("legacy file first round", g_seen_first_round, 31);
+    inbe_storage_close();
+
+    check_true("reopen migrated db", inbe_storage_init(root));
+    check_int("legacy file migration one session", inbe_storage_session_count(), 1);
+    inbe_storage_close();
     remove_tree(root);
+}
+
+static void
+write_tickmate_database(const char *path)
+{
+    sqlite3 *db = NULL;
+    char *error = NULL;
+
+    check_true("open tickmate db", sqlite3_open(path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return;
+    check_true("create tickmate db",
+               sqlite3_exec(db,
+                            "CREATE TABLE tracks(_id integer primary key autoincrement,"
+                            "name text not null,description text not null,icon text not null,"
+                            "enabled integer not null,multiple_entries_per_day integer DEFAULT 0,"
+                            "color integer DEFAULT 0,\"order\" integer DEFAULT -1);"
+                            "CREATE TABLE ticks(_id integer primary key autoincrement,"
+                            "_track_id integer,year integer,month integer,day integer,"
+                            "hour integer,minute integer,second integer,has_time_info integer DEFAULT 0);"
+                            "INSERT INTO tracks(_id,name,description,icon,enabled,color,\"order\") "
+                            "VALUES(1,'Meditation','Silenced my mind','',1,8925,0);"
+                            "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
+                            "VALUES(1,2026,6,13,0,0,0,0);",
+                            NULL, NULL, &error) == SQLITE_OK);
+    if(error != NULL) {
+        fprintf(stderr, "tickmate setup SQL error: %s\n", error);
+        sqlite3_free(error);
+    }
+    sqlite3_close(db);
+}
+
+static void
+test_tickmate_db_import(void)
+{
+    char source[512], dest[512], db_path[512];
+    InbeHabits habits;
+
+    make_clean_root(source, sizeof(source), "tickmate-source");
+    make_clean_root(dest, sizeof(dest), "tickmate-dest");
+    make_path(db_path, sizeof(db_path), source, "tickmate.db");
+    write_tickmate_database(db_path);
+
+    check_true("init tickmate import dest", inbe_storage_init(dest));
+    check_true("tickmate db import", inbe_storage_import_zip(db_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("tickmate habits load", inbe_storage_habits_load(&habits));
+    check_int("tickmate habit count", habits.count, 1);
+    check_true("tickmate habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
+    check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
 }
 
 int
@@ -224,7 +468,10 @@ main(void)
 {
     test_raw_db_import();
     test_zip_db_import();
+    test_habit_name_merge_import();
     test_legacy_zip_import();
+    test_legacy_file_startup_migration();
+    test_tickmate_db_import();
     test_session_metadata();
 
     if(g_failures != 0) {

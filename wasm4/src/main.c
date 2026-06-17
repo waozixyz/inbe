@@ -1,5 +1,5 @@
 #include "wasm4.h"
-#include "inbe.h"
+#include "breath_engine.h"
 
 void*
 memset(void *dest, int byte, unsigned long n)

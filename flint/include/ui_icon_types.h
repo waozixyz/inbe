@@ -19,8 +19,10 @@ typedef enum {
     UI_ICON_TYPE_TRASH,
     UI_ICON_TYPE_PENCIL,
     UI_ICON_TYPE_SAVE,
+    UI_ICON_TYPE_WRENCH,
     UI_ICON_TYPE_PLUS,
     UI_ICON_TYPE_STACK,
+    UI_ICON_TYPE_CALENDAR,
 
     // Social & payment icons
     UI_ICON_TYPE_DISCORD,
@@ -38,10 +40,12 @@ typedef enum {
     UI_ICON_TYPE_SOUND2,
     UI_ICON_TYPE_SOUND3,
     UI_ICON_TYPE_MUTE,
+    UI_ICON_TYPE_MUSIC,
 
     // Habit & practice icons
     UI_ICON_TYPE_HABIT,
     UI_ICON_TYPE_AMEN,
+    UI_ICON_TYPE_WEEKLY,
     UI_ICON_TYPE_INBE,
 
     // Meditation & theme icons

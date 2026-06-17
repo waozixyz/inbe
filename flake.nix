@@ -3,9 +3,10 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs-sdl2.url = "github:NixOS/nixpkgs/nixos-24.11";
   };
 
-  outputs = { self, nixpkgs }:
+  outputs = { self, nixpkgs, nixpkgs-sdl2 }:
     let
       systems = [
         "x86_64-linux"
@@ -26,6 +27,13 @@
       mkShell = system:
         let
           pkgs = mkPkgs system;
+          sdl2Pkgs = import nixpkgs-sdl2 {
+            inherit system;
+            config = {
+              allowUnfree = true;
+              allowUnsupportedSystem = true;
+            };
+          };
           aarch64Pkgs = pkgs.pkgsCross.aarch64-multiplatform;
 
           windowsCrossEnabled = system == "x86_64-linux";
@@ -68,7 +76,7 @@
           ndkPath = "${sdk}/libexec/android-sdk/ndk-bundle";
 
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
-            pkgs.SDL2.dev
+            sdl2Pkgs.SDL2.dev
             pkgs.curl.dev
             pkgs.libdrm.dev
             pkgs.libgbm
@@ -90,6 +98,66 @@
             mingw32Pkgs.windows.mingw_w64
             mcfgthreads32
           ];
+
+          linuxdeployPluginAppImage = pkgs.stdenvNoCC.mkDerivation {
+            pname = "linuxdeploy-plugin-appimage";
+            version = "1-alpha-20250213-1";
+
+            src = pkgs.fetchurl {
+              url = "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage";
+              hash = "sha256-mS1QKiSOFKsYVEjd9vbn0lVYy4TUYjw1TDrzUMJfzLM=";
+            };
+
+            dontUnpack = true;
+
+            installPhase = ''
+              runHook preInstall
+
+              cp "$src" linuxdeploy-plugin-appimage.AppImage
+              chmod +x linuxdeploy-plugin-appimage.AppImage
+              ./linuxdeploy-plugin-appimage.AppImage --appimage-extract >/dev/null
+
+              mkdir -p "$out/bin"
+              cp squashfs-root/AppRun "$out/bin/linuxdeploy-plugin-appimage"
+              chmod +x "$out/bin/linuxdeploy-plugin-appimage"
+
+              runHook postInstall
+            '';
+          };
+
+          appimagetool = pkgs.stdenvNoCC.mkDerivation {
+            pname = "appimagetool";
+            version = "continuous";
+
+            src = pkgs.fetchurl {
+              url = "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage";
+              hash = "sha256-uQ9KixiWdUX9p4pEWydoChZC8e+UiM7Si2U5jyvnrdI=";
+            };
+
+            extracted = pkgs.appimageTools.extract {
+              pname = "appimagetool";
+              version = "continuous";
+              src = pkgs.fetchurl {
+                url = "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage";
+                hash = "sha256-uQ9KixiWdUX9p4pEWydoChZC8e+UiM7Si2U5jyvnrdI=";
+              };
+            };
+
+            dontUnpack = true;
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p "$out/bin"
+              cat > "$out/bin/appimagetool" <<EOF
+#!${pkgs.runtimeShell}
+exec "$extracted/AppRun" "\$@"
+EOF
+              chmod +x "$out/bin/appimagetool"
+
+              runHook postInstall
+            '';
+          };
 
           windowsProfile = pkgs.lib.optionalString windowsCrossEnabled ''
             export WIN_CC="x86_64-w64-mingw32-gcc"
@@ -118,8 +186,8 @@
             extraOutputsToInstall = [ "dev" ];
 
             targetPkgs = pkgs: with pkgs; [
-              SDL2
-              SDL2.dev
+              sdl2Pkgs.SDL2
+              sdl2Pkgs.SDL2.dev
 	      butler
               cmake
               curl
@@ -135,6 +203,9 @@
               libgbm
               libglvnd
               libglvnd.dev
+              appimagetool
+              linuxdeploy
+              linuxdeployPluginAppImage
               mesa
               ncurses
               ninja
@@ -178,6 +249,8 @@
               export WEB_CC="emcc"
               export WEB_AR="emar"
               export WEB_RANLIB="emranlib"
+
+              export LINUXDEPLOY="linuxdeploy"
 
               export AARCH64_CC="${aarch64Pkgs.stdenv.cc}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}cc"
               export AARCH64_AR="${aarch64Pkgs.stdenv.cc.bintools.bintools}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}ar"

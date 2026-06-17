@@ -1,10 +1,18 @@
 #include "raylib.h"
 #include "app.h"
+#include "flint_clip.h"
 #include "flint_dpi.h"
 #include "flint_web.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#define INBE_ANDROID_BUILD 1
+#else
+#define INBE_ANDROID_BUILD 0
+#endif
+
 
 #if defined(_WIN32) && !defined(__ANDROID__)
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
@@ -30,7 +38,7 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 static InbeApp inbe_app;
-static InbeApp *g_inbe_app_ptr = NULL;  // Global pointer for JNI access
+static InbeApp *g_inbe_app_ptr = NULL;
 
 #if defined(_WIN32) && !defined(__ANDROID__)
 static FILE *win_log_file;
@@ -162,11 +170,6 @@ InbeApp* get_global_inbe_app(void) {
 
 void set_global_inbe_app(InbeApp *app);
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-#define INBE_ANDROID_BUILD 1
-#else
-#define INBE_ANDROID_BUILD 0
-#endif
 
 #if INBE_ANDROID_BUILD
 static AndroidInsets insets;
@@ -219,14 +222,14 @@ frame(void)
 
     BeginDrawing();
     ClearBackground(BLACK);
-    BeginScissorMode(content_x, content_y, content_width, content_height);
+    flint_clip_begin(content_x, content_y, content_width, content_height);
     inbe_app_update_draw(&inbe_app, (Rectangle){
         (float)content_x,
         (float)content_y,
         (float)content_width,
         (float)content_height
     });
-    EndScissorMode();
+    flint_clip_end();
 #else
     BeginDrawing();
     ClearBackground(BLACK);
@@ -274,21 +277,14 @@ int main(int argc, char **argv) {
 #endif
 
 #if INBE_ANDROID_BUILD
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_insets_init");
     android_insets_init();
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_device_init");
     android_device_init();
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_wakelock_init");
     android_wakelock_init();
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_timer_init");
     android_timer_init();
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Calling android_runtime_assets_init");
     android_runtime_assets_init();
-    __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "Init calls done");
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");
 #endif
-
 
     InitWindow(window_w, window_h, config.title);
     if(!IsWindowReady()) {

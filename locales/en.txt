@@ -41,7 +41,7 @@ Meditation
 Meditation
 ---
 [meditation_manual_text]
-Choose a duration, press play, and sit comfortably. Let your attention rest on the breath. When your mind wanders, return gently to breathing. A gong marks the beginning and end of the session.
+Choose music if it helps the session feel steady, then sit comfortably. Let attention rest on the breath. When thoughts pull you away, notice that clearly and return without force. A gong marks the beginning and end.
 ---
 [meditation_music_settings_title]
 Meditation Music
@@ -66,6 +66,12 @@ Redownload audio
 ---
 [meditation_music_test_button]
 Test audio
+---
+[meditation_music_stop_test_button]
+Stop test
+---
+[meditation_music_attribution]
+Music by Elijah_K.
 ---
 [duration_5m]
 5m
@@ -112,6 +118,12 @@ Discard
 [all_progress_lost_message]
 All progress will be lost.
 ---
+[meditation_under_minute_exit_message]
+This will not be saved.
+---
+[meditation_save_elapsed_message]
+Save this meditation before exit?
+---
 [exit_button]
 Exit
 ---
@@ -139,28 +151,37 @@ ROUND %d
 [settings_title]
 Settings
 ---
-[settings_tab_breathing]
+[practice_config_title]
+Practice
+---
+[settings_section_breathing]
 Breathing
 ---
-[settings_tab_session]
+[settings_section_session]
 Session
 ---
 [settings_tab_app]
 App
 ---
-[settings_tab_data_about]
-Data & About
+[settings_tab_theme]
+Theme
 ---
-[settings_tab_sound]
+[settings_tab_device]
+Device
+---
+[settings_section_sound]
 Sound
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Appearance
 ---
-[settings_tab_language]
+[settings_section_language]
 Language
 ---
 [settings_tab_data]
+Data
+---
+[settings_section_data]
 Data
 ---
 [settings_tab_about]
@@ -202,6 +223,15 @@ Start speed
 ---
 [modify_start_speed_button]
 Modify start speed
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Start speed
@@ -252,12 +282,6 @@ Next
 Coming soon...
 ---
 
-[data_management_label]
-Data Management
----
-[data_management_button]
-Manage data
----
 [total_sessions_label]
 Total Sessions: %d
 ---
@@ -321,14 +345,6 @@ Delete cancelled
 [deleted_sessions]
 Deleted %lld sessions
 ---
-[version_label]
-Version %s
----
-[about_description]
-Inner Breeze is a simple breathing
-meditation app to help you relax
-and find your calm.
----
 [toggle_off]
 OFF
 ---
@@ -382,7 +398,7 @@ Simply follow 4 steps:
 3. Inhale deeply and hold.
 4. Exhale and repeat.
 
-Use the gear icon %i to adjust rounds, breaths, speed, and pauses.
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
 Fill your lungs fully, then let the breath flow out.

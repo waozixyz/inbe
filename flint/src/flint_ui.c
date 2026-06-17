@@ -1,4 +1,5 @@
 #include "flint_ui.h"
+#include "flint_clip.h"
 #include "flint_dpi.h"
 #include "flint.h"
 #include "flint_text_layout.h"
@@ -21,6 +22,19 @@ static Texture2D g_ui_gear_icon = {0};
 static Texture2D g_ui_x_icon = {0};
 static int g_ui_slider_active_id = 0;
 static int g_ui_input_blocked = 0;
+static int g_ui_pointer_down = 0;
+static int g_ui_pointer_dragging = 0;
+static int g_ui_pointer_dragged_this_click = 0;
+static int g_ui_pointer_start_x = 0;
+static int g_ui_pointer_start_y = 0;
+
+enum {
+    UI_POINTER_OWNER_NONE = 0,
+    UI_POINTER_OWNER_SCROLL,
+    UI_POINTER_OWNER_HORIZONTAL_SLIDER,
+    UI_POINTER_OWNER_VERTICAL_SLIDER
+};
+static int g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
 
 #define UI_FOCUS_MAX_ITEMS 256
 static int g_ui_focus_active_id = 0;
@@ -28,58 +42,18 @@ static int g_ui_focus_ids[UI_FOCUS_MAX_ITEMS];
 static int g_ui_focus_count = 0;
 static int g_ui_focus_tab_dir = 0;
 static int g_ui_focus_text_input_active = 0;
+static int g_ui_platform_text_input_active = 0;
+static FlintUITextInputPlatformCallback g_ui_text_input_platform_callback = NULL;
 
-#define UI_SCISSOR_STACK_MAX 16
-static Rectangle g_ui_scissor_stack[UI_SCISSOR_STACK_MAX];
-static int g_ui_scissor_stack_count = 0;
+#define UI_TEXT_INPUT_QUEUE_MAX 64
+static int g_ui_text_input_codepoints[UI_TEXT_INPUT_QUEUE_MAX];
+static int g_ui_text_input_codepoint_count = 0;
+static int g_ui_text_input_backspace_count = 0;
+static int g_ui_text_input_enter_count = 0;
 
-static Rectangle
-ui_scissor_intersection(Rectangle a, Rectangle b)
-{
-    float x1 = a.x > b.x ? a.x : b.x;
-    float y1 = a.y > b.y ? a.y : b.y;
-    float x2 = a.x + a.width < b.x + b.width ? a.x + a.width : b.x + b.width;
-    float y2 = a.y + a.height < b.y + b.height ? a.y + a.height : b.y + b.height;
-
-    if(x2 < x1)
-        x2 = x1;
-    if(y2 < y1)
-        y2 = y1;
-
-    return (Rectangle){x1, y1, x2 - x1, y2 - y1};
-}
-
-void
-ui_begin_scissor(int x, int y, int w, int h)
-{
-    Rectangle bounds = {x, y, w, h};
-
-    if(w < 0)
-        bounds.width = 0;
-    if(h < 0)
-        bounds.height = 0;
-    if(g_ui_scissor_stack_count > 0)
-        bounds = ui_scissor_intersection(g_ui_scissor_stack[g_ui_scissor_stack_count - 1], bounds);
-
-    if(g_ui_scissor_stack_count < UI_SCISSOR_STACK_MAX)
-        g_ui_scissor_stack[g_ui_scissor_stack_count++] = bounds;
-
-    BeginScissorMode((int)bounds.x, (int)bounds.y,
-                     (int)bounds.width, (int)bounds.height);
-}
-
-void
-ui_end_scissor(void)
-{
-    EndScissorMode();
-    if(g_ui_scissor_stack_count > 0)
-        g_ui_scissor_stack_count--;
-    if(g_ui_scissor_stack_count > 0) {
-        Rectangle bounds = g_ui_scissor_stack[g_ui_scissor_stack_count - 1];
-        BeginScissorMode((int)bounds.x, (int)bounds.y,
-                         (int)bounds.width, (int)bounds.height);
-    }
-}
+#define UI_INPUT_CLIP_STACK_MAX 16
+static Rectangle g_ui_input_clip_stack[UI_INPUT_CLIP_STACK_MAX];
+static int g_ui_input_clip_stack_count = 0;
 
 static Vector2
 ui_mouse_world(void)
@@ -101,16 +75,114 @@ ui_mark_disabled(void)
         *g_ui_cursor_disabled = 1;
 }
 
+static int
+ui_iabs(int value)
+{
+    return value < 0 ? -value : value;
+}
+
+static int
+ui_pointer_dx(void)
+{
+    Vector2 mouse = GetMousePosition();
+    return (int)mouse.x - g_ui_pointer_start_x;
+}
+
+static int
+ui_pointer_dy(void)
+{
+    Vector2 mouse = GetMousePosition();
+    return (int)mouse.y - g_ui_pointer_start_y;
+}
+
+static int
+ui_pointer_drag_is_horizontal(void)
+{
+    return ui_iabs(ui_pointer_dx()) >= ui_iabs(ui_pointer_dy());
+}
+
+static void
+ui_update_pointer_gesture(void)
+{
+    Vector2 mouse = GetMousePosition();
+    int mx = (int)mouse.x;
+    int my = (int)mouse.y;
+    int drag_threshold = flint_px(5);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 1;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_dragged_this_click = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+        g_ui_pointer_start_x = mx;
+        g_ui_pointer_start_y = my;
+    } else if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && g_ui_pointer_down) {
+        int dx = ui_pointer_dx();
+        int dy = ui_pointer_dy();
+        if(dx > drag_threshold || dx < -drag_threshold ||
+           dy > drag_threshold || dy < -drag_threshold) {
+            g_ui_pointer_dragging = 1;
+            g_ui_pointer_dragged_this_click = 1;
+        }
+    } else if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 0;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+    } else if(!IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+        g_ui_pointer_down = 0;
+        g_ui_pointer_dragging = 0;
+        g_ui_pointer_dragged_this_click = 0;
+        g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
+    }
+}
+
 void
 ui_set_input_blocked(int blocked)
 {
     g_ui_input_blocked = blocked != 0;
 }
 
+static int
+ui_base_input_captures_click(Vector2 point, int include_pointer_drag)
+{
+    if(g_ui_input_clip_stack_count > 0 &&
+       !CheckCollisionPointRec(point, g_ui_input_clip_stack[g_ui_input_clip_stack_count - 1]))
+        return 1;
+    return g_ui_input_blocked ||
+           (include_pointer_drag && g_ui_pointer_dragging) ||
+           (include_pointer_drag &&
+            IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+            g_ui_pointer_dragged_this_click);
+}
+
+static int
+ui_input_captures_click_internal(Vector2 point, int include_pointer_drag)
+{
+    return ui_base_input_captures_click(point, include_pointer_drag) ||
+           ui_dropdown_captures_click(point);
+}
+
 int
 ui_input_captures_click(Vector2 point)
 {
-    return g_ui_input_blocked || ui_dropdown_captures_click(point);
+    return ui_input_captures_click_internal(point, 1);
+}
+
+static void
+ui_push_input_clip(Rectangle bounds)
+{
+    if(g_ui_input_clip_stack_count > 0)
+        bounds = flint_clip_intersection(g_ui_input_clip_stack[g_ui_input_clip_stack_count - 1],
+                                         bounds);
+    if(g_ui_input_clip_stack_count < UI_INPUT_CLIP_STACK_MAX)
+        g_ui_input_clip_stack[g_ui_input_clip_stack_count++] = bounds;
+}
+
+static void
+ui_pop_input_clip(void)
+{
+    if(g_ui_input_clip_stack_count > 0)
+        g_ui_input_clip_stack_count--;
 }
 
 static int
@@ -121,6 +193,230 @@ ui_clampi(int value, int min_value, int max_value)
     if(value > max_value)
         return max_value;
     return value;
+}
+
+static int
+ui_utf8_next_offset(const char *text, int offset)
+{
+    int codepoint_size = 0;
+    int len;
+
+    if(text == NULL)
+        return 0;
+    len = (int)strlen(text);
+    if(offset < 0)
+        offset = 0;
+    if(offset >= len)
+        return len;
+
+    GetCodepointNext(text + offset, &codepoint_size);
+    if(codepoint_size <= 0)
+        codepoint_size = 1;
+    if(offset + codepoint_size > len)
+        return len;
+    return offset + codepoint_size;
+}
+
+static int
+ui_utf8_prev_offset(const char *text, int offset)
+{
+    int len;
+
+    if(text == NULL)
+        return 0;
+    len = (int)strlen(text);
+    if(offset > len)
+        offset = len;
+    if(offset <= 0)
+        return 0;
+
+    offset--;
+    while(offset > 0 && (((unsigned char)text[offset] & 0xC0) == 0x80))
+        offset--;
+    return offset;
+}
+
+static int
+ui_utf8_codepoint_count(const char *text)
+{
+    int count = 0;
+
+    if(text == NULL)
+        return 0;
+    for(int i = 0; text[i] != '\0';) {
+        int next = ui_utf8_next_offset(text, i);
+        if(next <= i)
+            break;
+        count++;
+        i = next;
+    }
+    return count;
+}
+
+static int
+ui_utf8_encode(int codepoint, char out[5])
+{
+    if(out == NULL)
+        return 0;
+    if(codepoint < 0x80) {
+        out[0] = (char)codepoint;
+        out[1] = '\0';
+        return 1;
+    }
+    if(codepoint < 0x800) {
+        out[0] = (char)(0xC0 | (codepoint >> 6));
+        out[1] = (char)(0x80 | (codepoint & 0x3F));
+        out[2] = '\0';
+        return 2;
+    }
+    if(codepoint < 0x10000) {
+        out[0] = (char)(0xE0 | (codepoint >> 12));
+        out[1] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        out[2] = (char)(0x80 | (codepoint & 0x3F));
+        out[3] = '\0';
+        return 3;
+    }
+    if(codepoint <= 0x10FFFF) {
+        out[0] = (char)(0xF0 | (codepoint >> 18));
+        out[1] = (char)(0x80 | ((codepoint >> 12) & 0x3F));
+        out[2] = (char)(0x80 | ((codepoint >> 6) & 0x3F));
+        out[3] = (char)(0x80 | (codepoint & 0x3F));
+        out[4] = '\0';
+        return 4;
+    }
+    return 0;
+}
+
+static int
+ui_text_delete_range(char *text, size_t text_size, int *cursor, int start, int end)
+{
+    int len;
+
+    if(text == NULL || text_size == 0 || cursor == NULL)
+        return 0;
+    len = (int)strlen(text);
+    start = ui_clampi(start, 0, len);
+    end = ui_clampi(end, 0, len);
+    if(end <= start)
+        return 0;
+    memmove(text + start, text + end, (size_t)(len - end + 1));
+    *cursor = start;
+    return 1;
+}
+
+static Rectangle
+ui_world_rect_to_screen(Rectangle rect)
+{
+    return (Rectangle){
+        g_ui_camera.offset.x + rect.x * g_ui_camera.zoom,
+        g_ui_camera.offset.y + rect.y * g_ui_camera.zoom,
+        rect.width * g_ui_camera.zoom,
+        rect.height * g_ui_camera.zoom
+    };
+}
+
+static void
+ui_begin_world_clip(Rectangle rect)
+{
+    Rectangle screen = ui_world_rect_to_screen(rect);
+    flint_clip_begin((int)screen.x, (int)screen.y,
+                     (int)screen.width, (int)screen.height);
+}
+
+static void
+ui_draw_text_centered_in_rect(const char *text, Rectangle rect, int font_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int text_w = flint_text_measure(value, font_size);
+    int x = (int)(rect.x + (rect.width - (float)text_w) * 0.5f);
+    int y = flint_ui_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int guard = 1;
+
+    ui_begin_world_clip((Rectangle){rect.x, rect.y - guard,
+                                    rect.width, rect.height + guard * 2});
+    flint_text_draw(value, x, y, font_size, color);
+    flint_clip_end();
+}
+
+void
+flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int y = flint_ui_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int guard = 1;
+
+    ui_begin_world_clip((Rectangle){rect.x, rect.y - guard,
+                                    rect.width, rect.height + guard * 2});
+    flint_text_draw(value, (int)rect.x, y, font_size, color);
+    flint_clip_end();
+}
+
+static void
+ui_draw_fitted_text_in_rect(const char *text, Rectangle rect,
+                            int preferred_size, int min_size, Color color)
+{
+    const char *value = text != NULL ? text : "";
+    int font_size = flint_text_size(preferred_size);
+    int min_allowed = flint_text_size(min_size);
+
+    if(min_allowed < min_size)
+        min_allowed = flint_text_size(min_size + 1);
+    if(font_size < min_allowed)
+        font_size = min_allowed;
+    while(font_size > min_allowed && flint_text_measure(value, font_size) > (int)rect.width)
+        font_size = flint_text_size(font_size - 1);
+    ui_draw_text_centered_in_rect(value, rect, font_size, color);
+}
+
+static int
+ui_text_insert_codepoint(char *text, size_t text_size, int *cursor, int codepoint,
+                         int max_codepoints)
+{
+    char encoded[5];
+    int encoded_len;
+    int len;
+
+    if(text == NULL || text_size == 0 || cursor == NULL || codepoint < 32)
+        return 0;
+    if(max_codepoints > 0 && ui_utf8_codepoint_count(text) >= max_codepoints)
+        return 0;
+
+    encoded_len = ui_utf8_encode(codepoint, encoded);
+    if(encoded_len <= 0)
+        return 0;
+    len = (int)strlen(text);
+    *cursor = ui_clampi(*cursor, 0, len);
+    if((size_t)(len + encoded_len + 1) > text_size)
+        return 0;
+
+    memmove(text + *cursor + encoded_len, text + *cursor, (size_t)(len - *cursor + 1));
+    memcpy(text + *cursor, encoded, (size_t)encoded_len);
+    *cursor += encoded_len;
+    return 1;
+}
+
+void
+flint_ui_text_input_queue_codepoint(int codepoint)
+{
+    if(codepoint <= 0)
+        return;
+    if(g_ui_text_input_codepoint_count >= UI_TEXT_INPUT_QUEUE_MAX)
+        return;
+    g_ui_text_input_codepoints[g_ui_text_input_codepoint_count++] = codepoint;
+}
+
+void
+flint_ui_text_input_queue_backspace(void)
+{
+    if(g_ui_text_input_backspace_count < UI_TEXT_INPUT_QUEUE_MAX)
+        g_ui_text_input_backspace_count++;
+}
+
+void
+flint_ui_text_input_queue_enter(void)
+{
+    if(g_ui_text_input_enter_count < UI_TEXT_INPUT_QUEUE_MAX)
+        g_ui_text_input_enter_count++;
 }
 
 void
@@ -209,7 +505,13 @@ ui_focus_clear(void)
 void
 ui_focus_set_text_input_active(int active)
 {
+    active = active != 0;
     g_ui_focus_text_input_active = active;
+    if(g_ui_platform_text_input_active != active) {
+        g_ui_platform_text_input_active = active;
+        if(g_ui_text_input_platform_callback != NULL)
+            g_ui_text_input_platform_callback(active);
+    }
 }
 
 void
@@ -258,15 +560,21 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
     int w = (int)bounds.width;
     int h = (int)bounds.height;
     int padding_x = style.padding_x > 0 ? style.padding_x : flint_px(10);
+    int clip_guard = 1;
     int text_x = x + padding_x;
     int text_y = flint_ui_text_y(value, y, h, font);
     Color border = focused ? style.focus_border : style.border;
     float radius = style.radius > 0.0f ? style.radius : 0.12f;
 
+    if(focused)
+        ui_focus_set_text_input_active(1);
+
     DrawRectangleRounded(bounds, radius, 8, style.background);
     DrawRectangleRoundedLines(bounds, radius, 8, border);
 
-    ui_begin_scissor(x + padding_x, y, w - padding_x * 2, h);
+    ui_begin_world_clip((Rectangle){(float)(x + padding_x), (float)(y - clip_guard),
+                                    (float)(w - padding_x * 2),
+                                    (float)(h + clip_guard * 2)});
     flint_text_draw(value, text_x, text_y, font, style.text);
 
     if(focused && cursor_visible) {
@@ -282,7 +590,112 @@ flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position
         int cursor_x = text_x + flint_text_measure(before_cursor, font);
         DrawRectangle(cursor_x, y + flint_px(6), flint_px(2), h - flint_px(12), style.cursor);
     }
-    ui_end_scissor();
+    flint_clip_end();
+}
+
+static int
+ui_text_cursor_from_x(const char *text, int font, int text_x, int mouse_x)
+{
+    char prefix[1024];
+    int len;
+
+    if(text == NULL)
+        return 0;
+
+    len = (int)strlen(text);
+    if(mouse_x <= text_x)
+        return 0;
+
+    for(int i = 1; i <= len; i++) {
+        int copy_len = i;
+        if(copy_len >= (int)sizeof(prefix))
+            copy_len = (int)sizeof(prefix) - 1;
+        memcpy(prefix, text, (size_t)copy_len);
+        prefix[copy_len] = '\0';
+        if(text_x + flint_text_measure(prefix, font) >= mouse_x)
+            return i;
+    }
+    return len;
+}
+
+int
+flint_ui_text_edit(FlintUITextEdit edit)
+{
+    int changed = 0;
+    int len;
+    int codepoint;
+
+    if(edit.commit_pressed != NULL)
+        *edit.commit_pressed = 0;
+    if(edit.text == NULL || edit.text_size == 0 || edit.cursor_position == NULL)
+        return 0;
+
+    len = (int)strlen(edit.text);
+    *edit.cursor_position = ui_clampi(*edit.cursor_position, 0, len);
+
+    if(IsKeyPressed(KEY_LEFT)) {
+        *edit.cursor_position = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_RIGHT)) {
+        *edit.cursor_position = ui_utf8_next_offset(edit.text, *edit.cursor_position);
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_HOME)) {
+        *edit.cursor_position = 0;
+        changed = 1;
+    }
+    if(IsKeyPressed(KEY_END)) {
+        *edit.cursor_position = (int)strlen(edit.text);
+        changed = 1;
+    }
+
+    if(IsKeyPressed(KEY_BACKSPACE) || g_ui_text_input_backspace_count > 0) {
+        int repeat = g_ui_text_input_backspace_count > 0 ? g_ui_text_input_backspace_count : 1;
+        for(int i = 0; i < repeat; i++) {
+            int start = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
+            changed |= ui_text_delete_range(edit.text, edit.text_size,
+                                            edit.cursor_position, start,
+                                            *edit.cursor_position);
+        }
+        g_ui_text_input_backspace_count = 0;
+    }
+
+    if(IsKeyPressed(KEY_DELETE)) {
+        int end = ui_utf8_next_offset(edit.text, *edit.cursor_position);
+        changed |= ui_text_delete_range(edit.text, edit.text_size,
+                                        edit.cursor_position,
+                                        *edit.cursor_position, end);
+    }
+
+    if(IsKeyPressed(KEY_ENTER) || IsKeyPressed(KEY_KP_ENTER) ||
+       g_ui_text_input_enter_count > 0) {
+        if(edit.commit_pressed != NULL)
+            *edit.commit_pressed = 1;
+        g_ui_text_input_enter_count = 0;
+    }
+
+    codepoint = GetCharPressed();
+    while(codepoint > 0) {
+        if((edit.filter == NULL || edit.filter(codepoint, edit.filter_user_data)) &&
+           ui_text_insert_codepoint(edit.text, edit.text_size, edit.cursor_position,
+                                    codepoint, edit.max_codepoints))
+            changed = 1;
+        codepoint = GetCharPressed();
+    }
+
+    for(int i = 0; i < g_ui_text_input_codepoint_count; i++) {
+        codepoint = g_ui_text_input_codepoints[i];
+        if((edit.filter == NULL || edit.filter(codepoint, edit.filter_user_data)) &&
+           ui_text_insert_codepoint(edit.text, edit.text_size, edit.cursor_position,
+                                    codepoint, edit.max_codepoints))
+            changed = 1;
+    }
+    g_ui_text_input_codepoint_count = 0;
+
+    len = (int)strlen(edit.text);
+    *edit.cursor_position = ui_clampi(*edit.cursor_position, 0, len);
+    return changed;
 }
 
 int
@@ -324,8 +737,8 @@ flint_ui_button(FlintUIButton button)
         ui_focus_draw(button.bounds);
     }
 
-    flint_text_draw_fitted_in_rect(button.label ? button.label : "", button.bounds,
-                                   font, FLINT_TEXT_16, text);
+    ui_draw_fitted_text_in_rect(button.label ? button.label : "", button.bounds,
+                                font, FLINT_TEXT_16, text);
     return clicked || ui_focus_activate_pressed(button.focus_id);
 }
 
@@ -403,6 +816,74 @@ flint_ui_text_input(FlintUITextInput input)
                              input.font > 0 ? input.font : flint_ui_font(),
                              input.style);
     return focused;
+}
+
+int
+flint_ui_text_field(FlintUITextField field)
+{
+    int changed = 0;
+    int focused;
+    int font;
+    int padding_x;
+    int commit_pressed = 0;
+    Vector2 mouse_world;
+    int mouse_inside;
+    int captured;
+
+    if(field.commit_pressed != NULL)
+        *field.commit_pressed = 0;
+    if(field.text == NULL || field.text_size == 0 ||
+       field.cursor_position == NULL || field.focused == NULL)
+        return 0;
+
+    font = field.font > 0 ? field.font : flint_ui_font();
+    padding_x = field.style.padding_x > 0 ? field.style.padding_x : flint_px(10);
+    focused = *field.focused != 0;
+
+    if(field.focus_id > 0 && ui_focus_register(field.focus_id, field.bounds)) {
+        focused = 1;
+        ui_focus_draw(field.bounds);
+    }
+
+    mouse_world = ui_mouse_world();
+    mouse_inside = CheckCollisionPointRec(mouse_world, field.bounds);
+    captured = ui_input_captures_click(mouse_world);
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+        if(mouse_inside && !captured) {
+            focused = 1;
+            *field.cursor_position = ui_text_cursor_from_x(
+                field.text, font, (int)field.bounds.x + padding_x,
+                (int)mouse_world.x);
+        } else if(focused) {
+            focused = 0;
+        }
+    }
+
+    *field.focused = focused;
+    ui_focus_set_text_input_active(focused);
+
+    if(focused) {
+        changed = flint_ui_text_edit((FlintUITextEdit){
+            .text = field.text,
+            .text_size = field.text_size,
+            .cursor_position = field.cursor_position,
+            .max_codepoints = field.max_codepoints,
+            .filter = field.filter,
+            .filter_user_data = field.filter_user_data,
+            .commit_pressed = field.commit_pressed != NULL
+                                  ? field.commit_pressed
+                                  : &commit_pressed
+        });
+    } else {
+        int len = (int)strlen(field.text);
+        *field.cursor_position = ui_clampi(*field.cursor_position, 0, len);
+    }
+
+    flint_ui_draw_text_input(field.bounds, field.text, *field.cursor_position,
+                             focused, focused && (((int)(GetTime() * 2.0)) % 2 == 0),
+                             font, field.style);
+    return changed;
 }
 
 static FlintTextLayout
@@ -507,6 +988,16 @@ void
 ui_set_frame(Camera2D camera)
 {
     g_ui_camera = camera;
+    ui_update_pointer_gesture();
+    g_ui_input_blocked = 0;
+    g_ui_input_clip_stack_count = 0;
+    flint_clip_reset();
+}
+
+void
+flint_ui_set_text_input_platform_callback(FlintUITextInputPlatformCallback callback)
+{
+    g_ui_text_input_platform_callback = callback;
 }
 
 void
@@ -791,7 +1282,10 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         int tab_h = bar_h;
         int is_last = i == bar.count - 1;
         int draw_w = is_last ? bar_x + bar_w - tab_x : tab_w;
+        int label_pad = flint_px(4);
         Rectangle tab_rect = {(float)tab_x, bar.bounds.y, (float)draw_w, bar.bounds.height};
+        Rectangle label_rect = {(float)(tab_x + label_pad), bar.bounds.y,
+                                (float)(draw_w - label_pad * 2), bar.bounds.height};
         int input_captured = ui_input_captures_click(mouse_world);
         int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
         int is_selected = i == bar.selected_index;
@@ -829,7 +1323,9 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
                 clicked_tab = i;
         }
 
-        flint_text_draw_fitted_in_rect(label, tab_rect, font, FLINT_TEXT_16, text_color);
+        if(label_rect.width < 1)
+            label_rect.width = 1;
+        ui_draw_fitted_text_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
     }
 
     return clicked_tab;
@@ -915,7 +1411,9 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
     char value_text[32];
     Rectangle hit = ui_centered_min_hit_rect(x, knob_y, w, knob_h, w, min_touch_h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     snprintf(value_text, sizeof(value_text), "%d%s", *value, suffix != NULL ? suffix : "");
@@ -931,7 +1429,19 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
             g_ui_slider_active_id = id;
     }
 
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id && g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+       g_ui_pointer_dragging) {
+        if(ui_pointer_drag_is_horizontal())
+            g_ui_pointer_owner = UI_POINTER_OWNER_HORIZONTAL_SLIDER;
+        else
+            g_ui_slider_active_id = 0;
+    }
+
+    if(g_ui_slider_active_id == id &&
+       ((IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+         g_ui_pointer_owner == UI_POINTER_OWNER_HORIZONTAL_SLIDER) ||
+        IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         float t = (float)(mx - x) / (float)w;
         if(t < 0.0f)
@@ -941,6 +1451,10 @@ ui_draw_slider(int id, int x, int y, int w, const char *label,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -965,7 +1479,9 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     int changed = 0;
     Rectangle hit = ui_centered_min_hit_rect(x - track_w / 2, y, track_w, h, min_touch_w, h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     /* Draw track */
@@ -975,12 +1491,16 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
     /* Check for interaction */
     if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             g_ui_slider_active_id = id;
+            g_ui_pointer_owner = UI_POINTER_OWNER_VERTICAL_SLIDER;
+        }
     }
 
     /* Handle drag */
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id &&
+       (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         /* Invert Y so 0% is at bottom, 100% at top */
         float t = 1.0f - (float)(my - y) / (float)h;
@@ -991,6 +1511,10 @@ ui_draw_slider_vertical(int id, int x, int y, int h,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -1029,7 +1553,9 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
     int changed = 0;
     Rectangle hit = ui_centered_min_hit_rect(x - track_w / 2, y, track_w, h, min_touch_w, h);
 
-    if(g_ui_slider_active_id == id && !IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+    if(g_ui_slider_active_id == id &&
+       !IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       !IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         g_ui_slider_active_id = 0;
 
     /* Draw track */
@@ -1043,12 +1569,16 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
     /* Check for interaction */
     if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
         ui_mark_clickable();
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT))
+        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
             g_ui_slider_active_id = id;
+            g_ui_pointer_owner = UI_POINTER_OWNER_VERTICAL_SLIDER;
+        }
     }
 
     /* Handle drag */
-    if(g_ui_slider_active_id == id && IsMouseButtonDown(MOUSE_BUTTON_LEFT)) {
+    if(g_ui_slider_active_id == id &&
+       (IsMouseButtonDown(MOUSE_BUTTON_LEFT) || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) &&
+       !ui_input_captures_click_internal(mouse_world, 0)) {
         int old_value = *value;
         /* Invert Y so 0% is at bottom, 100% at top */
         float t = 1.0f - (float)(my - y) / (float)h;
@@ -1059,6 +1589,10 @@ ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
         *value = min + (int)(t * (float)(max - min) + 0.5f);
         *value = ui_clampi(*value, min, max);
         changed = (*value != old_value);
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            g_ui_slider_active_id = 0;
+    } else if(g_ui_slider_active_id == id && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        g_ui_slider_active_id = 0;
     }
 
     float t = (float)(*value - min) / (float)(max - min);
@@ -1105,7 +1639,7 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
     if(pressed)
         *value = !(*value);
@@ -1145,7 +1679,7 @@ ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT);
+    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
@@ -1245,48 +1779,70 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
     *dropdown_h = total_h;
 }
 
+typedef struct {
+    int circle_size;
+    int label_gap;
+    int col_gap;
+    int cell_w;
+    int per_row;
+    int row_width;
+    int row_step;
+    int row_count;
+    int height;
+} UIThemeGridLayout;
+
+static UIThemeGridLayout
+ui_theme_grid_layout(int w)
+{
+    UIThemeGridLayout layout = {0};
+    int small_font = flint_px(FLINT_TEXT_8);
+
+    int row_gap = flint_px(8);
+    layout.circle_size = flint_px(24);
+    layout.label_gap = flint_px(6);
+    layout.col_gap = flint_px(10);
+    layout.cell_w = layout.circle_size;
+    for(int i = 0; i < FLINT_THEME_COUNT; i++) {
+        int name_w = flint_text_measure(flint_theme_label((FlintThemeId)i), small_font) + flint_px(8);
+        if(name_w > layout.cell_w)
+            layout.cell_w = name_w;
+    }
+
+    layout.per_row = (w + layout.col_gap) / (layout.cell_w + layout.col_gap);
+    if(layout.per_row < 1)
+        layout.per_row = 1;
+    if(layout.per_row > FLINT_THEME_COUNT)
+        layout.per_row = FLINT_THEME_COUNT;
+    layout.row_width = layout.per_row * layout.cell_w + (layout.per_row - 1) * layout.col_gap;
+
+    layout.row_step = layout.circle_size + layout.label_gap + small_font + row_gap;
+    layout.row_count = (FLINT_THEME_COUNT + layout.per_row - 1) / layout.per_row;
+    layout.height = layout.circle_size + layout.label_gap + small_font;
+    if(layout.row_count > 1)
+        layout.height += (layout.row_count - 1) * layout.row_step;
+
+    return layout;
+}
+
 static int
 ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
 {
     int changed = 0;
-    int small_font = flint_ui_font_small();
+    int small_font = flint_px(FLINT_TEXT_8);
     int selected = theme_id != NULL ? *theme_id : FLINT_THEME_SKY;
+    UIThemeGridLayout layout = ui_theme_grid_layout(w);
+    int start_x = x + (w - layout.row_width) / 2;
+    Vector2 mouse_world = ui_mouse_world();
 
     if(selected < 0 || selected >= FLINT_THEME_COUNT)
         selected = FLINT_THEME_SKY;
 
-    int circle_size = flint_px(36);
-    int label_gap = flint_px(14);
-    int col_gap = flint_px(20);
-    int row_gap = flint_px(16);
-    int cell_w = circle_size;
     for(int i = 0; i < FLINT_THEME_COUNT; i++) {
-        int name_w = flint_text_measure(flint_theme_label((FlintThemeId)i), small_font) + flint_px(12);
-        if(name_w > cell_w)
-            cell_w = name_w;
-    }
-
-    int per_row = 3;
-    int row_width = per_row * cell_w + (per_row - 1) * col_gap;
-    if(row_width > w) {
-        per_row = 2;
-        row_width = per_row * cell_w + (per_row - 1) * col_gap;
-    }
-    if(row_width > w) {
-        per_row = 1;
-        row_width = cell_w;
-    }
-
-    int start_x = x + (w - row_width) / 2;
-    int row_step = circle_size + label_gap + small_font + row_gap;
-    Vector2 mouse_world = ui_mouse_world();
-
-    for(int i = 0; i < FLINT_THEME_COUNT; i++) {
-        int row = i / per_row;
-        int col = i % per_row;
-        int cell_x = start_x + col * (cell_w + col_gap);
-        int cx = cell_x + cell_w / 2;
-        int cy = circle_y + row * row_step;
+        int row = i / layout.per_row;
+        int col = i % layout.per_row;
+        int cell_x = start_x + col * (layout.cell_w + layout.col_gap);
+        int cx = cell_x + layout.cell_w / 2;
+        int cy = circle_y + row * layout.row_step;
         Color theme_color = c_circle;
 
         if(!flint_theme_catalog_color((FlintThemeId)i, dark != 0, "circle", &theme_color)) {
@@ -1294,19 +1850,19 @@ ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
             theme_color = flint_theme_get(scope, "circle");
         }
 
-        DrawCircle(cx, cy, circle_size / 2, theme_color);
-        DrawCircleLines(cx, cy, circle_size / 2 + (selected == i ? flint_px(2) : flint_px(1)),
+        DrawCircle(cx, cy, layout.circle_size / 2, theme_color);
+        DrawCircleLines(cx, cy, layout.circle_size / 2 + (selected == i ? flint_px(2) : flint_px(1)),
                         selected == i ? c_text : flint_darken(c_bg, 30));
 
         Rectangle bounds = {
-            (float)(cx - circle_size / 2 - flint_px(4)),
-            (float)(cy - circle_size / 2 - flint_px(4)),
-            (float)(circle_size + flint_px(8)),
-            (float)(circle_size + flint_px(8))
+            (float)(cx - layout.circle_size / 2 - flint_px(4)),
+            (float)(cy - layout.circle_size / 2 - flint_px(4)),
+            (float)(layout.circle_size + flint_px(8)),
+            (float)(layout.circle_size + flint_px(8))
         };
         if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
             ui_mark_clickable();
-            if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                 selected = i;
                 if(theme_id != NULL)
                     *theme_id = i;
@@ -1316,7 +1872,9 @@ ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
 
         const char *name = flint_theme_label((FlintThemeId)i);
         int name_w = flint_text_measure(name, small_font);
-        flint_text_draw(name, cx - name_w / 2, cy + circle_size / 2 + label_gap, small_font, c_text);
+        flint_text_draw(name, cx - name_w / 2,
+                        cy + layout.circle_size / 2 + layout.label_gap,
+                        small_font, c_text);
     }
 
     return changed;
@@ -1372,6 +1930,12 @@ ui_draw_theme_picker(int x, int y, int w, const char *label, int dark_mode,
         changed = 1;
 
     return changed;
+}
+
+int
+ui_theme_picker_height(int w)
+{
+    return flint_px(54) + ui_theme_grid_layout(w).height;
 }
 
 /* Check if an open dropdown should own the current click.
@@ -1438,7 +2002,11 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int changed = 0;
     Rectangle btn_bounds = {x, y, w, h};
     Vector2 mouse = ui_mouse_world();
-    int hover = CheckCollisionPointRec(mouse, btn_bounds);
+    int button_inside = CheckCollisionPointRec(mouse, btn_bounds);
+    int hover = button_inside &&
+                (state->open
+                     ? !ui_base_input_captures_click(mouse, 1)
+                     : !ui_input_captures_click(mouse));
 
     /* Calculate arrow position */
     int arrow_x = x + w - arrow_pad;
@@ -1457,7 +2025,7 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
         ui_mark_clickable();
 
     /* Handle click on button */
-    if(hover && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         state->open = !state->open;
         if(state->open) {
             state->just_opened = 1;
@@ -1474,12 +2042,12 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int text_x = x + flint_px(12);
     int text_w = arrow_x - arrow_size - flint_px(8) - text_x;
     if(text_w > 0) {
-        ui_begin_scissor((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
+        flint_clip_begin((int)(g_ui_camera.offset.x + (float)text_x * g_ui_camera.zoom),
                          (int)(g_ui_camera.offset.y + (float)y * g_ui_camera.zoom),
                          (int)((float)text_w * g_ui_camera.zoom),
                          (int)((float)h * g_ui_camera.zoom));
         flint_text_draw(current_name, text_x, flint_ui_text_y(current_name, y, h, font), font, c_text);
-        ui_end_scissor();
+        flint_clip_end();
     }
 
     /* Draw dropdown X icon */
@@ -1603,7 +2171,7 @@ ui_draw_dropdown_menu(int id)
     DrawRectangle(x, dropdown_y, w, dropdown_h, c_button);
     ui_draw_bevel(x, dropdown_y, w, dropdown_h, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
-    ui_begin_scissor((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
+    flint_clip_begin((int)(g_ui_camera.offset.x + (float)x * g_ui_camera.zoom),
                      (int)(g_ui_camera.offset.y + (float)dropdown_y * g_ui_camera.zoom),
                      (int)((float)w * g_ui_camera.zoom),
                      (int)((float)dropdown_h * g_ui_camera.zoom));
@@ -1631,7 +2199,7 @@ ui_draw_dropdown_menu(int id)
                 state->touch_pressed = 0;
                 state->scroll_offset = 0;
                 changed = 1;
-                ui_end_scissor();
+                flint_clip_end();
                 goto draw_arrow;
             }
         }
@@ -1639,7 +2207,7 @@ ui_draw_dropdown_menu(int id)
         flint_text_draw(options[i], x + flint_px(12), flint_ui_text_y(options[i], option_y, option_h, font), font, c_text);
     }
 
-    ui_end_scissor();
+    flint_clip_end();
 
     if(max_scroll > 0)
         ui_draw_scrollbar(x + w - scrollbar_w, dropdown_y + flint_px(2),
@@ -1677,6 +2245,20 @@ ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
     return width;
 }
 
+static int
+ui_nav_button_height(const char *label, int icon_size, int show_label, int font)
+{
+    int padding = flint_px(6);
+    int content_h = icon_size;
+
+    if(show_label && label != NULL && label[0] != '\0') {
+        int text_h = flint_text_height(label, font);
+        if(text_h > content_h)
+            content_h = text_h;
+    }
+    return content_h + padding * 2;
+}
+
 int
 ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
                    const char *label, int show_label, int *hover)
@@ -1689,7 +2271,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
     int font = flint_ui_font();
     int padding = flint_px(6);
     int w = ui_nav_button_width(label, icon_size, show_label, font);
-    int h = icon_size + padding * 2;
+    int h = ui_nav_button_height(label, icon_size, show_label, font);
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
@@ -1711,7 +2293,7 @@ ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
         Rectangle src = {0, 0, icon.width, icon.height};
         /* Center icon horizontally when no label, otherwise align left */
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
+        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
@@ -1734,7 +2316,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     int font = flint_ui_font();
     int padding = flint_px(6);
-    int h = icon_size + padding * 2;
+    int h = ui_nav_button_height(label, icon_size, show_label, font);
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h) {
@@ -1756,7 +2338,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
         Rectangle src = {0, 0, icon.width, icon.height};
         /* Center icon horizontally when no label, otherwise align left */
         int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + padding, (float)icon_size, (float)icon_size};
+        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
@@ -1778,8 +2360,8 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int bar_h = flint_clamp_px(58, 54, 66);
     int bar_y = ui_view_height - bar_h;
     int button_size = flint_clamp_px(30, 28, 44);
-    int button_h = button_size + flint_px(12);
     int font = flint_ui_font();
+    int button_h = ui_nav_button_height("", button_size, 0, font);
     int side_margin = flint_px(16);
     int group_gap = flint_px(10);
     int available_w = ui_view_width - side_margin * 2;
@@ -1789,6 +2371,11 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int group_w_label = 0;
     for(int i = 0; i < count; i++) {
         group_w_label += ui_nav_button_width(tabs[i].label, button_size, 1, font);
+        {
+            int tab_h = ui_nav_button_height(tabs[i].label, button_size, 1, font);
+            if(tab_h > button_h)
+                button_h = tab_h;
+        }
         if(i < count - 1)
             group_w_label += group_gap;
     }
@@ -1804,6 +2391,11 @@ ui_draw_tab_bar(UITab *tabs, int count)
     /* Only show labels if all buttons fit with breathing room for longer locales. */
     int show_labels = group_w_label + label_safety_w <= available_w;
     int base_group_w = show_labels ? group_w_label : group_w_no_label;
+    if(!show_labels)
+        button_h = ui_nav_button_height("", button_size, 0, font);
+    if(button_h + flint_px(8) > bar_h)
+        bar_h = button_h + flint_px(8);
+    bar_y = ui_view_height - bar_h;
 
     /* Calculate extra space and distribute evenly among buttons */
     int extra_w = available_w - base_group_w;
@@ -1916,7 +2508,7 @@ ui_draw_modal(const char *title, const char *message,
 
     /* Parse message with icon support - use GEAR icon for warnings */
     FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -1949,8 +2541,8 @@ ui_draw_modal(const char *title, const char *message,
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
-        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
+        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int confirm_text_w = flint_text_measure(confirm_btn, btn_font);
     flint_text_draw(confirm_btn, confirm_x + (btn_w - confirm_text_w) / 2, flint_ui_text_y(confirm_btn, btn_y, btn_h, btn_font), btn_font, c_text);
@@ -1997,7 +2589,7 @@ ui_draw_modal_3btn(const char *title, const char *message,
 
     /* Parse message with icon support - use GEAR icon for warnings */
     FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, msg_font + flint_px(4));
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -2033,8 +2625,8 @@ ui_draw_modal_3btn(const char *title, const char *message,
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             result = 2;
     } else {
-        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_circle);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_circle, 40), flint_darken(c_circle, 40));
+        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button);
+        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
     }
     int middle_text_w = flint_text_measure(middle_btn, btn_font);
     flint_text_draw(middle_btn, middle_x + (btn_w - middle_text_w) / 2, flint_ui_text_y(middle_btn, btn_y, btn_h, btn_font), btn_font, c_text);
@@ -2072,7 +2664,7 @@ ui_draw_title_header(int height, const char *title,
                      Texture2D right_icon)
 {
     FlintUIHeader header = {height, 0, 0};
-    int icon_size = flint_px(24);
+    int icon_size = flint_px(20);
     int icon_padding = flint_px(8);
     int icon_w = icon_size + icon_padding * 2;
     int title_font = flint_px(22);
@@ -2106,7 +2698,7 @@ ui_draw_modal_frame(int width, int height, const char *title,
 {
     FlintUIPanelFrame frame = {0};
     int title_font = flint_px(18);
-    int icon_size = flint_px(22);
+    int icon_size = flint_px(20);
     int icon_padding = flint_px(8);
     int icon_w = icon_size + icon_padding * 2;
     int title_w = flint_text_measure(title, title_font);
@@ -2153,8 +2745,7 @@ ui_draw_modal_frame(int width, int height, const char *title,
 int
 ui_scrollbar_reserved_width(int max_scroll)
 {
-    (void)max_scroll;
-    return 0;
+    return max_scroll > 0 ? flint_px(16) : 0;
 }
 
 int
@@ -2169,9 +2760,31 @@ ui_scrollbar_content_width(int content_width, int max_scroll)
     return content_width - reserved;
 }
 
+int
+ui_scrollbar_safe_content_width(int content_x, int content_width,
+                                int scrollbar_x, int max_scroll)
+{
+    int gap = flint_px(20);
+    int safe_width = content_width;
+
+    if(max_scroll <= 0 || scrollbar_x <= 0)
+        return content_width;
+
+    safe_width = scrollbar_x - content_x - gap;
+    if(safe_width > content_width)
+        return content_width;
+    if(safe_width < 0)
+        return 0;
+    return safe_width;
+}
+
 FlintUIScrollView
 ui_scroll_container_begin(FlintUIScrollArea area)
 {
+    static int content_drag_active = 0;
+    static int content_dragging = 0;
+    static int content_drag_start_y = 0;
+    static int content_drag_start_scroll = 0;
     FlintUIScrollView view;
     Vector2 mouse_world = ui_mouse_world();
     int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
@@ -2179,6 +2792,9 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     int y = (int)area.bounds.y;
     int w = (int)area.bounds.width;
     int h = (int)area.bounds.height;
+    int inside = CheckCollisionPointRec(mouse_world, area.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int drag_threshold = flint_px(5);
 
     memset(&view, 0, sizeof(view));
     view.content_x = x;
@@ -2194,9 +2810,7 @@ ui_scroll_container_begin(FlintUIScrollArea area)
         if(*area.scroll_offset > view.max_scroll)
             *area.scroll_offset = view.max_scroll;
 
-        if(view.max_scroll > 0 &&
-           CheckCollisionPointRec(mouse_world, area.bounds) &&
-           !ui_input_captures_click(mouse_world)) {
+        if(view.max_scroll > 0 && inside && !captured) {
             float wheel = GetMouseWheelMove();
             if(wheel != 0.0f) {
                 *area.scroll_offset -= (int)(wheel * (float)wheel_step);
@@ -2206,16 +2820,72 @@ ui_scroll_container_begin(FlintUIScrollArea area)
                     *area.scroll_offset = view.max_scroll;
             }
         }
+
+        if(g_ui_slider_active_id != 0 &&
+           g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+           g_ui_pointer_dragging &&
+           ui_pointer_drag_is_horizontal())
+            g_ui_pointer_owner = UI_POINTER_OWNER_HORIZONTAL_SLIDER;
+
+        if(g_ui_pointer_owner == UI_POINTER_OWNER_HORIZONTAL_SLIDER ||
+           g_ui_pointer_owner == UI_POINTER_OWNER_VERTICAL_SLIDER) {
+            content_drag_active = 0;
+            content_dragging = 0;
+        }
+
+        if(view.max_scroll > 0 &&
+           g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
+           IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured) {
+            content_drag_active = 1;
+            content_dragging = 0;
+            content_drag_start_y = (int)mouse_world.y;
+            content_drag_start_scroll = *area.scroll_offset;
+        }
+        if(content_drag_active && IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+           g_ui_pointer_owner != UI_POINTER_OWNER_HORIZONTAL_SLIDER &&
+           g_ui_pointer_owner != UI_POINTER_OWNER_VERTICAL_SLIDER) {
+            int dy = (int)mouse_world.y - content_drag_start_y;
+            if(content_dragging || dy > drag_threshold || dy < -drag_threshold) {
+                g_ui_pointer_owner = UI_POINTER_OWNER_SCROLL;
+                content_dragging = 1;
+                *area.scroll_offset = content_drag_start_scroll - dy;
+                if(*area.scroll_offset < 0)
+                    *area.scroll_offset = 0;
+                if(*area.scroll_offset > view.max_scroll)
+                    *area.scroll_offset = view.max_scroll;
+                ui_set_input_blocked(1);
+            }
+        } else if(content_drag_active) {
+            if(content_dragging)
+                ui_set_input_blocked(1);
+            content_drag_active = 0;
+            content_dragging = 0;
+        }
         view.content_y = y - *area.scroll_offset;
     } else {
         view.content_y = y;
     }
 
     view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
-    ui_begin_scissor((int)(g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom),
-                     (int)(g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom),
-                     (int)(area.bounds.width * g_ui_camera.zoom),
-                     (int)(area.bounds.height * g_ui_camera.zoom));
+    {
+        Rectangle screen_bounds = {
+            g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom,
+            g_ui_camera.offset.y + area.bounds.y * g_ui_camera.zoom,
+            area.bounds.width * g_ui_camera.zoom,
+            area.bounds.height * g_ui_camera.zoom
+        };
+        Rectangle clipped_screen_bounds = flint_clip_effective(screen_bounds);
+        Rectangle clipped_world_bounds = {
+            (clipped_screen_bounds.x - g_ui_camera.offset.x) / g_ui_camera.zoom,
+            (clipped_screen_bounds.y - g_ui_camera.offset.y) / g_ui_camera.zoom,
+            clipped_screen_bounds.width / g_ui_camera.zoom,
+            clipped_screen_bounds.height / g_ui_camera.zoom
+        };
+
+        ui_push_input_clip(clipped_world_bounds);
+        flint_clip_begin((int)screen_bounds.x, (int)screen_bounds.y,
+                         (int)screen_bounds.width, (int)screen_bounds.height);
+    }
     return view;
 }
 
@@ -2225,14 +2895,15 @@ ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view)
     int scrollbar_w = flint_px(8);
     int scrollbar_x;
 
-    ui_end_scissor();
+    flint_clip_end();
+    ui_pop_input_clip();
 
     if(area.scroll_offset == NULL || view.max_scroll <= 0)
         return;
 
     scrollbar_x = area.scrollbar_x > 0
                       ? area.scrollbar_x
-                      : ui_view_width - scrollbar_w;
+                      : (int)(area.bounds.x + area.bounds.width) - scrollbar_w;
     ui_draw_scrollbar(scrollbar_x,
                       (int)area.bounds.y,
                       (int)area.bounds.height,
@@ -2287,7 +2958,7 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
 
     int scrollbar_width = flint_px(8);
     int scrollbar_min_thumb = flint_px(24);
-    int track_padding = flint_px(2);
+    int track_padding = 0;
 
     /* Calculate thumb size and position */
     float content_ratio = (float)viewport_h / (float)content_h;
@@ -2303,7 +2974,7 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     Vector2 mouse_pos = ui_mouse_world();
     int my = (int)mouse_pos.y;
     Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
-    int input_captured = ui_input_captures_click(mouse_pos);
+    int input_captured = ui_input_captures_click_internal(mouse_pos, 0);
     int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
 
     /* Handle drag state */
@@ -2328,17 +2999,10 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
         scrollbar_drag_active = 0;
     }
 
-    /* Draw track */
     DrawRectangle(x, y, scrollbar_width, viewport_h, flint_darken(c_bg, 20));
 
-    /* Draw thumb */
-    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : flint_lighten(c_button, 20);
+    Color thumb_color = thumb_hover || scrollbar_drag_active ? c_button_hover : c_button;
     DrawRectangleRec(thumb_bounds, thumb_color);
-
-    /* Draw bevel on thumb */
-    ui_draw_bevel((int)thumb_bounds.x, (int)thumb_bounds.y,
-                  (int)thumb_bounds.width, (int)thumb_bounds.height,
-                  flint_darken(thumb_color, 40), flint_lighten(thumb_color, 40));
 
     return 1;
 }

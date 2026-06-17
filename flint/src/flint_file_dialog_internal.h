@@ -3,7 +3,12 @@
 
 #include "flint_file_dialog.h"
 #include <dirent.h>
+#include <limits.h>
 #include <sys/stat.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 #define FILE_DIALOG_ITEM_HEIGHT 28
 
@@ -17,6 +22,7 @@ typedef struct {
     char current_dir[PATH_MAX];
     char selected_file[256];
     char filename_input[256];
+    char extension_filter[64];
     int file_count;
     DirEntry *entries;
     int scroll_offset;

@@ -43,10 +43,15 @@ sed -i "s/versionName \"$CURRENT_NAME\"/versionName \"$LATEST_VERSION\"/" "$GRAD
 echo "✓ Updated $GRADLE_FILE"
 
 # Update version.h
-VERSION_H_FILE="src/version.h"
+VERSION_H_FILE="src/core/version.h"
 MAJOR=$(echo "$LATEST_VERSION" | cut -d. -f1)
 MINOR=$(echo "$LATEST_VERSION" | cut -d. -f2)
 PATCH=$(echo "$LATEST_VERSION" | cut -d. -f3)
+
+if [ ! -f "$VERSION_H_FILE" ]; then
+    echo "Error: $VERSION_H_FILE not found"
+    exit 1
+fi
 
 sed -i "s/^#define INBE_VERSION_MAJOR .*/#define INBE_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
 sed -i "s/^#define INBE_VERSION_MINOR .*/#define INBE_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"

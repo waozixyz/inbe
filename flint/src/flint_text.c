@@ -1,4 +1,5 @@
 #include "flint_text.h"
+#include "flint_clip.h"
 #include "flint_scaling.h"
 
 #include <stdint.h>
@@ -8,6 +9,7 @@
 #include <stddef.h>
 
 static Font g_flint_text_font = {0};
+static Font g_flint_text_small_font = {0};
 
 typedef struct FlintChoppedGlyph {
     int32_t value;
@@ -31,6 +33,20 @@ active_font(void)
     return GetFontDefault();
 }
 
+static Font
+active_font_for_size(int font_size)
+{
+    if(font_size <= flint_px(FLINT_TEXT_8) &&
+       g_flint_text_small_font.texture.id != 0 &&
+       g_flint_text_small_font.glyphs != NULL &&
+       g_flint_text_small_font.recs != NULL &&
+       g_flint_text_small_font.glyphCount > 0 &&
+       g_flint_text_small_font.baseSize > 0)
+        return g_flint_text_small_font;
+
+    return active_font();
+}
+
 static float
 font_spacing(Font font, int font_size)
 {
@@ -45,6 +61,12 @@ void
 flint_text_set_font(Font font)
 {
     g_flint_text_font = font;
+}
+
+void
+flint_text_set_small_font(Font font)
+{
+    g_flint_text_small_font = font;
 }
 
 Font
@@ -209,6 +231,7 @@ int
 flint_text_size(int preferred_size)
 {
     static const int sizes[] = {
+        FLINT_TEXT_8,
         FLINT_TEXT_12,
         FLINT_TEXT_14,
         FLINT_TEXT_16,
@@ -217,13 +240,20 @@ flint_text_size(int preferred_size)
         FLINT_TEXT_24,
         FLINT_TEXT_32
     };
-    int best = sizes[0];
-    int best_delta = abs(preferred_size - best);
+    int dpi_sizes[sizeof(sizes) / sizeof(sizes[0])];
+    int best;
+    int best_delta;
+
+    for(size_t i = 0; i < sizeof(sizes) / sizeof(sizes[0]); i++)
+        dpi_sizes[i] = flint_px(sizes[i]);
+
+    best = dpi_sizes[0];
+    best_delta = abs(preferred_size - best);
 
     for(size_t i = 1; i < sizeof(sizes) / sizeof(sizes[0]); i++) {
-        int delta = abs(preferred_size - sizes[i]);
+        int delta = abs(preferred_size - dpi_sizes[i]);
         if(delta < best_delta) {
-            best = sizes[i];
+            best = dpi_sizes[i];
             best_delta = delta;
         }
     }
@@ -240,7 +270,7 @@ flint_text_dpi_size(int base_size)
 int
 flint_text_measure(const char *text, int font_size)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
     Vector2 size;
 
     if(text == NULL || font.texture.id == 0)
@@ -248,6 +278,51 @@ flint_text_measure(const char *text, int font_size)
 
     size = MeasureTextEx(font, text, (float)font_size, font_spacing(font, font_size));
     return (int)size.x;
+}
+
+int
+flint_text_height(const char *text, int font_size)
+{
+    Font font = active_font_for_size(font_size);
+    float scale;
+    float min_top = 0.0f;
+    float max_bottom = 0.0f;
+    int seen_glyph = 0;
+
+    if(text == NULL || text[0] == '\0' || font.texture.id == 0 || font.baseSize <= 0)
+        return font_size;
+
+    scale = (float)font_size / (float)font.baseSize;
+    for(int i = 0; text[i] != '\0';) {
+        int codepoint_byte_count = 0;
+        int codepoint = GetCodepointNext(&text[i], &codepoint_byte_count);
+
+        if(codepoint == '\n')
+            break;
+        if(codepoint != ' ' && codepoint != '\t') {
+            int index = GetGlyphIndex(font, codepoint);
+            GlyphInfo glyph = font.glyphs[index];
+            Rectangle rec = font.recs[index];
+            float glyph_top = (float)glyph.offsetY * scale - (float)font.glyphPadding * scale;
+            float glyph_bottom = glyph_top + ((float)rec.height + 2.0f * (float)font.glyphPadding) * scale;
+
+            if(!seen_glyph) {
+                min_top = glyph_top;
+                max_bottom = glyph_bottom;
+                seen_glyph = 1;
+            } else {
+                if(glyph_top < min_top)
+                    min_top = glyph_top;
+                if(glyph_bottom > max_bottom)
+                    max_bottom = glyph_bottom;
+            }
+        }
+        i += codepoint_byte_count;
+    }
+
+    if(!seen_glyph)
+        return font_size;
+    return (int)(max_bottom - min_top + 0.5f);
 }
 
 int
@@ -279,7 +354,7 @@ flint_text_measure_scaled(const char *text, int scale)
 void
 flint_text_draw(const char *text, int x, int y, int font_size, Color color)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
 
     if(text == NULL || font.texture.id == 0)
         return;
@@ -340,10 +415,12 @@ flint_text_draw_in_rect(const char *text, Rectangle rect, int font_size, Color c
     int text_w = flint_text_measure(value, font_size);
     int x = (int)(rect.x + (rect.width - (float)text_w) * 0.5f);
     int y = flint_text_y(value, (int)rect.y, (int)rect.height, font_size);
+    int clip_guard = 1;
 
-    BeginScissorMode((int)rect.x, (int)rect.y, (int)rect.width, (int)rect.height);
+    flint_clip_begin((int)rect.x, (int)rect.y - clip_guard,
+                     (int)rect.width, (int)rect.height + clip_guard * 2);
     flint_text_draw(value, x, y, font_size, color);
-    EndScissorMode();
+    flint_clip_end();
 }
 
 void
@@ -380,7 +457,7 @@ flint_text_y_scaled(const char *text, int box_y, int box_h, int scale)
 int
 flint_text_y(const char *text, int box_y, int box_h, int font_size)
 {
-    Font font = active_font();
+    Font font = active_font_for_size(font_size);
     float scale;
     float min_top = 0.0f;
     float max_bottom = 0.0f;

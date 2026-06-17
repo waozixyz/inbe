@@ -41,7 +41,7 @@ Meditace
 Meditace
 ---
 [meditation_manual_text]
-Vyberte délku, stiskněte spustit a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když se mysl zatoulá, jemně se vraťte k dýchání. Zvuk gongu označí začátek a konec sezení.
+Vyberte hudbu, pokud pomáhá sezení zklidnit, a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když vás myšlenky odvedou, jasně si toho všimněte a vraťte se bez úsilí. Gong označí začátek i konec.
 ---
 [meditation_music_settings_title]
 Meditační hudba
@@ -66,6 +66,9 @@ Stáhnout audio znovu
 ---
 [meditation_music_test_button]
 Vyzkoušet přehrání
+---
+[meditation_music_stop_test_button]
+Zastavit test
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Zahodit
 [all_progress_lost_message]
 Veškerý postup bude ztracen.
 ---
+[meditation_under_minute_exit_message]
+Toto se neuloží.
+---
+[meditation_save_elapsed_message]
+Uložit tuto meditaci před ukončením?
+---
 [exit_button]
 Ukončit
 ---
@@ -139,28 +148,37 @@ KOLO %d
 [settings_title]
 Nastavení
 ---
-[settings_tab_breathing]
+[practice_config_title]
+Cvičení
+---
+[settings_section_breathing]
 Dýchání
 ---
-[settings_tab_session]
+[settings_section_session]
 Sezení
 ---
 [settings_tab_app]
 Aplikace
 ---
-[settings_tab_data_about]
-Data a informace
+[settings_tab_theme]
+Motiv
 ---
-[settings_tab_sound]
+[settings_tab_device]
+Zařízení
+---
+[settings_section_sound]
 Zvuk
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Vzhled
 ---
-[settings_tab_language]
+[settings_section_language]
 Jazyk
 ---
 [settings_tab_data]
+Data
+---
+[settings_section_data]
 Data
 ---
 [settings_tab_about]
@@ -184,6 +202,15 @@ Pocatecni rychlost
 ---
 [modify_start_speed_button]
 Upravit pocatecni rychlost
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Pocatecni rychlost
@@ -234,12 +261,6 @@ Další
 Brzy...
 ---
 
-[data_management_label]
-Správa dat
----
-[data_management_button]
-Spravovat data
----
 [total_sessions_label]
 Celkem sezení: %d
 ---
@@ -302,14 +323,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-Verze %s
----
-[about_description]
-Inner Breeze je jednoduchá aplikace
-pro dechovou meditaci, která vám pomůže
-uvolnit se a najít klid.
 ---
 [toggle_off]
 VYP

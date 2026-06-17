@@ -1,0 +1,2 @@
+### Fixed
+- Fixed Android orientation changes so forced landscape and portrait resize the app viewport correctly.

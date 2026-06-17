@@ -1,9 +1,0 @@
-#ifndef INBE_VERSION_H
-#define INBE_VERSION_H
-
-#define INBE_VERSION_MAJOR 1
-#define INBE_VERSION_MINOR 3
-#define INBE_VERSION_PATCH 0
-#define INBE_VERSION_STRING "1.3.0"
-
-#endif

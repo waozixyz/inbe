@@ -5,6 +5,7 @@
 #include "flint.h"
 #include "flint_text.h"
 #include "ui_icon_types.h"
+#include <stddef.h>
 
 typedef enum {
     UI_ICON_SIZE_TINY,
@@ -70,6 +71,33 @@ typedef struct {
     FlintUITextInputStyle style;
 } FlintUITextInput;
 
+typedef int (*FlintUITextInputFilter)(int codepoint, void *user_data);
+
+typedef struct {
+    char *text;
+    size_t text_size;
+    int *cursor_position;
+    int max_codepoints;
+    FlintUITextInputFilter filter;
+    void *filter_user_data;
+    int *commit_pressed;
+} FlintUITextEdit;
+
+typedef struct {
+    Rectangle bounds;
+    char *text;
+    size_t text_size;
+    int *cursor_position;
+    int *focused;
+    int max_codepoints;
+    int font;
+    int focus_id;
+    FlintUITextInputStyle style;
+    FlintUITextInputFilter filter;
+    void *filter_user_data;
+    int *commit_pressed;
+} FlintUITextField;
+
 typedef struct {
     const char *text;
     Texture2D icon;
@@ -131,9 +159,12 @@ typedef struct {
     int right_clicked;
 } FlintUIHeader;
 
+typedef void (*FlintUITextInputPlatformCallback)(int active);
+
 void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon);
 void ui_set_frame(Camera2D camera);
+void flint_ui_set_text_input_platform_callback(FlintUITextInputPlatformCallback callback);
 void ui_set_cursor_clickable(int *cursor_clickable);
 void ui_set_cursor_disabled(int *cursor_disabled);
 void ui_set_icons(Texture2D gear_icon, Texture2D x_icon);
@@ -144,12 +175,18 @@ int flint_ui_font(void);
 int flint_ui_font_small(void);
 int flint_ui_text_y(const char *text, int box_y, int box_h, int font);
 void flint_ui_draw_text_centered(const char *text, int center_x, int center_y, int font, Color color);
+void flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color);
 void flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position,
                               int focused, int cursor_visible, int font,
                               FlintUITextInputStyle style);
+int flint_ui_text_edit(FlintUITextEdit edit);
+void flint_ui_text_input_queue_codepoint(int codepoint);
+void flint_ui_text_input_queue_backspace(void);
+void flint_ui_text_input_queue_enter(void);
 int flint_ui_button(FlintUIButton button);
 int flint_ui_icon_button(FlintUIIconButton button);
 int flint_ui_text_input(FlintUITextInput input);
+int flint_ui_text_field(FlintUITextField field);
 int flint_ui_paragraph_height(FlintUIParagraph paragraph);
 void flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y);
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
@@ -186,6 +223,7 @@ int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            int *theme_id, int *dark_mode);
 int ui_draw_theme_picker(int x, int y, int w, const char *label,
                          int dark_mode, int *theme_id);
+int ui_theme_picker_height(int w);
 typedef struct UITab {
     const char *label;
     Texture2D icon;
@@ -215,10 +253,10 @@ FlintUIHeader ui_draw_title_header(int height, const char *title,
 FlintUIPanelFrame ui_draw_modal_frame(int width, int height, const char *title,
                                       Texture2D left_icon,
                                       Texture2D right_icon);
-void ui_begin_scissor(int x, int y, int w, int h);
-void ui_end_scissor(void);
 int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
+int ui_scrollbar_safe_content_width(int content_x, int content_width,
+                                    int scrollbar_x, int max_scroll);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);
 void ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view);
 int ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);

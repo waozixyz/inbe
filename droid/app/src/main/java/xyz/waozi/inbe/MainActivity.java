@@ -1,7 +1,12 @@
 package xyz.waozi.inbe;
 
+import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.app.NativeActivity;
 import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
@@ -12,10 +17,12 @@ import android.os.Bundle;
 import android.os.PowerManager;
 import android.util.Log;
 import android.view.DisplayCutout;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
 import android.view.WindowManager;
+import android.view.inputmethod.InputMethodManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
@@ -25,6 +32,9 @@ import java.net.URL;
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
     private static final int REQUEST_IMPORT_ZIP = 1001;
+    private static final int REQUEST_POST_NOTIFICATIONS = 1002;
+    private static final String DOWNLOAD_CHANNEL_ID = "runtime_downloads";
+    private static final int DOWNLOAD_NOTIFICATION_ID = 2001;
 
     static {
         System.loadLibrary("main");
@@ -51,7 +61,114 @@ public class MainActivity extends NativeActivity {
     private native void nativeImportSelectedFile(String path);
     private native void nativeImportCancelled();
     private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
+    private native void nativeRuntimeAssetDownloadProgress(long handle, long bytes, long totalBytes);
     private native void nativeRuntimeAssetDownloadFailed(long handle, int httpStatus, String error);
+    private native void nativeTextInputCommit(int codepoint);
+    private native void nativeTextInputBackspace();
+    private native void nativeTextInputEnter();
+
+    private void requestDownloadNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS },
+                                           REQUEST_POST_NOTIFICATIONS);
+                    }
+                }
+            });
+        }
+    }
+
+    private NotificationManager getDownloadNotificationManager() {
+        requestDownloadNotificationPermissionIfNeeded();
+        NotificationManager manager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(
+                DOWNLOAD_CHANNEL_ID,
+                "Downloads",
+                NotificationManager.IMPORTANCE_LOW
+            );
+            manager.createNotificationChannel(channel);
+        }
+        return manager;
+    }
+
+    private void showDownloadNotification(NotificationManager manager, long written, long total) {
+        if (manager == null) return;
+
+        Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
+            ? new Notification.Builder(this, DOWNLOAD_CHANNEL_ID)
+            : new Notification.Builder(this);
+        builder.setSmallIcon(android.R.drawable.stat_sys_download)
+            .setContentTitle("Downloading audio")
+            .setOngoing(true)
+            .setOnlyAlertOnce(true);
+        if (total > 0) {
+            int progress = (int)Math.max(0, Math.min(100, (written * 100) / total));
+            builder.setProgress(100, progress, false)
+                .setContentText(progress + "%");
+        } else {
+            builder.setProgress(0, 0, true);
+        }
+        manager.notify(DOWNLOAD_NOTIFICATION_ID, builder.build());
+    }
+
+    private void clearDownloadNotification(NotificationManager manager) {
+        if (manager != null) {
+            manager.cancel(DOWNLOAD_NOTIFICATION_ID);
+        }
+    }
+
+    public void setSoftKeyboardVisible(final boolean visible) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+                View view = getWindow() != null ? getWindow().getDecorView() : null;
+                if (imm == null || view == null) return;
+
+                if (visible) {
+                    view.requestFocus();
+                    imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                } else {
+                    imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+                }
+            }
+        });
+    }
+
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+        if (event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
+            int keyCode = event.getKeyCode();
+            if (keyCode == KeyEvent.KEYCODE_DEL) {
+                nativeTextInputBackspace();
+            } else if (keyCode == KeyEvent.KEYCODE_ENTER ||
+                       keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                nativeTextInputEnter();
+            } else {
+                int unicode = event.getUnicodeChar();
+                if (unicode >= 32) {
+                    nativeTextInputCommit(unicode);
+                }
+            }
+        } else if (event != null && event.getAction() == KeyEvent.ACTION_MULTIPLE &&
+                   event.getCharacters() != null) {
+            String chars = event.getCharacters();
+            for (int i = 0; i < chars.length();) {
+                int codepoint = chars.codePointAt(i);
+                if (codepoint >= 32) {
+                    nativeTextInputCommit(codepoint);
+                }
+                i += Character.charCount(codepoint);
+            }
+        }
+        return super.dispatchKeyEvent(event);
+    }
 
     public void applyOrientationMode(final int mode) {
         runOnUiThread(new Runnable() {
@@ -60,10 +177,10 @@ public class MainActivity extends NativeActivity {
                 int requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
                 switch (mode) {
                     case 1:
-                        requested = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                        requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
                         break;
                     case 2:
-                        requested = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                        requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
                         break;
                     case 3:
                         requested = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;
@@ -86,8 +203,11 @@ public class MainActivity extends NativeActivity {
                 HttpURLConnection connection = null;
                 int status = 0;
                 long written = 0;
+                long total = 0;
+                long lastNotify = 0;
                 File outputFile = new File(path);
                 File parent = outputFile.getParentFile();
+                NotificationManager notificationManager = getDownloadNotificationManager();
 
                 try {
                     if (parent != null && !parent.exists() && !parent.mkdirs()) {
@@ -108,6 +228,10 @@ public class MainActivity extends NativeActivity {
                         return;
                     }
 
+                    total = connection.getContentLengthLong();
+                    nativeRuntimeAssetDownloadProgress(handle, written, total);
+                    showDownloadNotification(notificationManager, written, total);
+
                     try (InputStream input = connection.getInputStream();
                          FileOutputStream output = new FileOutputStream(outputFile)) {
                         byte[] buffer = new byte[32768];
@@ -115,6 +239,12 @@ public class MainActivity extends NativeActivity {
                         while ((read = input.read(buffer)) != -1) {
                             output.write(buffer, 0, read);
                             written += read;
+                            nativeRuntimeAssetDownloadProgress(handle, written, total);
+                            long now = android.os.SystemClock.uptimeMillis();
+                            if (now - lastNotify > 250 || (total > 0 && written >= total)) {
+                                showDownloadNotification(notificationManager, written, total);
+                                lastNotify = now;
+                            }
                         }
                     }
 
@@ -123,6 +253,7 @@ public class MainActivity extends NativeActivity {
                     outputFile.delete();
                     nativeRuntimeAssetDownloadFailed(handle, status, e.getMessage());
                 } finally {
+                    clearDownloadNotification(notificationManager);
                     if (connection != null) {
                         connection.disconnect();
                     }
@@ -141,9 +272,9 @@ public class MainActivity extends NativeActivity {
                     intent.setType("*/*");
                     intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
                         "application/zip",
-                        "application/octet-stream",
                         "application/x-zip-compressed",
                         "application/vnd.sqlite3",
+                        "application/x-sqlite",
                         "application/x-sqlite3"
                     });
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);

@@ -41,7 +41,7 @@ Meditação
 Meditação
 ---
 [meditation_manual_text]
-Escolha uma duração, pressione iniciar e sente-se confortavelmente. Deixe a atenção repousar na respiração. Quando a mente se distrair, volte suavemente à respiração. Um gongo marca o começo e o fim da sessão.
+Escolha uma música se ela ajudar a sessão a ficar estável e sente-se confortavelmente. Deixe a atenção repousar na respiração. Quando os pensamentos puxarem você, perceba com clareza e volte sem forçar. Um gongo marca o começo e o fim.
 ---
 [meditation_music_settings_title]
 Música de meditação
@@ -66,6 +66,9 @@ Baixar áudio novamente
 ---
 [meditation_music_test_button]
 Testar reprodução
+---
+[meditation_music_stop_test_button]
+Parar teste
 ---
 [duration_5m]
 5m
@@ -112,6 +115,12 @@ Descartar
 [all_progress_lost_message]
 Todo o progresso será perdido.
 ---
+[meditation_under_minute_exit_message]
+Isso não será salvo.
+---
+[meditation_save_elapsed_message]
+Salvar esta meditação antes de sair?
+---
 [exit_button]
 Sair
 ---
@@ -139,28 +148,37 @@ RODADA %d
 [settings_title]
 Configurações
 ---
-[settings_tab_breathing]
+[practice_config_title]
+Prática
+---
+[settings_section_breathing]
 Respiração
 ---
-[settings_tab_session]
+[settings_section_session]
 Sessão
 ---
 [settings_tab_app]
 App
 ---
-[settings_tab_data_about]
-Dados e sobre
+[settings_tab_theme]
+Tema
 ---
-[settings_tab_sound]
+[settings_tab_device]
+Dispositivo
+---
+[settings_section_sound]
 Som
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Aparência
 ---
-[settings_tab_language]
+[settings_section_language]
 Idioma
 ---
 [settings_tab_data]
+Dados
+---
+[settings_section_data]
 Dados
 ---
 [settings_tab_about]
@@ -184,6 +202,15 @@ Velocidade inicial
 ---
 [modify_start_speed_button]
 Modificar velocidade inicial
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Velocidade inicial
@@ -234,12 +261,6 @@ Mais
 Em breve...
 ---
 
-[data_management_label]
-Gerenciamento de dados
----
-[data_management_button]
-Gerenciar dados
----
 [total_sessions_label]
 Sessões totais: %d
 ---
@@ -303,14 +324,6 @@ Delete cancelled
 [deleted_sessions]
 Deleted %lld sessions
 ---
-[version_label]
-Versão %s
----
-[about_description]
-Inner Breeze é um app simples de
-meditação respiratória para ajudar você a
-relaxar e encontrar calma.
----
 [toggle_off]
 OFF
 ---
@@ -364,7 +377,7 @@ Basta seguir 4 passos:
 3. Inspire profundamente e segure.
 4. Expire e repita.
 
-Use o ícone de engrenagem %i para ajustar rodadas, respirações, velocidade e pausas.
+Use o ícone de chave inglesa %i para ajustar rodadas, respirações, velocidade e pausas.
 ---
 [tutorial_step_breathe]
 Encha totalmente os pulmões e deixe o ar sair.
