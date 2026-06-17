@@ -7,6 +7,8 @@
 
 #if defined(_WIN32)
 #include <direct.h>
+#include <windows.h>
+#include <wininet.h>
 #define FLINT_MKDIR(path) _mkdir(path)
 #else
 #include <errno.h>
@@ -208,6 +210,128 @@ fetch_failed(emscripten_fetch_t *fetch)
 }
 #endif
 
+#if defined(_WIN32) && !defined(__EMSCRIPTEN__)
+typedef struct WindowsDownloadContext {
+    FlintRuntimeAssetDownload *download;
+} WindowsDownloadContext;
+
+static void
+windows_set_last_error(FlintRuntimeAssetDownload *download, const char *prefix)
+{
+    DWORD err = GetLastError();
+
+    if(download == NULL)
+        return;
+    snprintf(download->error, sizeof(download->error), "%s (%lu)",
+             prefix != NULL ? prefix : "Windows download failed",
+             (unsigned long)err);
+}
+
+static DWORD WINAPI
+windows_download_thread_main(void *user_data)
+{
+    WindowsDownloadContext *ctx = (WindowsDownloadContext *)user_data;
+    FlintRuntimeAssetDownload *download = ctx != NULL ? ctx->download : NULL;
+    HINTERNET internet = NULL;
+    HINTERNET request = NULL;
+    FILE *file = NULL;
+    char status_buf[32];
+    DWORD status_len = sizeof(status_buf);
+    DWORD status_index = 0;
+    char length_buf[64];
+    DWORD length_len = sizeof(length_buf);
+    DWORD length_index = 0;
+    BYTE buffer[32768];
+    DWORD bytes_read = 0;
+    BOOL read_ok;
+
+    free(ctx);
+    if(download == NULL)
+        return 0;
+
+    file = fopen(download->path, "wb");
+    if(file == NULL) {
+        snprintf(download->error, sizeof(download->error), "failed to open %.200s", download->path);
+        download->status = FLINT_RUNTIME_ASSET_ERROR;
+        return 0;
+    }
+
+    internet = InternetOpenA("flint-runtime-assets/1",
+                             INTERNET_OPEN_TYPE_PRECONFIG,
+                             NULL, NULL, 0);
+    if(internet == NULL) {
+        fclose(file);
+        windows_set_last_error(download, "failed to initialize Windows networking");
+        download->status = FLINT_RUNTIME_ASSET_ERROR;
+        return 0;
+    }
+
+    request = InternetOpenUrlA(internet, download->url, NULL, 0,
+                               INTERNET_FLAG_RELOAD |
+                               INTERNET_FLAG_NO_CACHE_WRITE |
+                               INTERNET_FLAG_PRAGMA_NOCACHE,
+                               0);
+    if(request == NULL) {
+        fclose(file);
+        InternetCloseHandle(internet);
+        remove(download->path);
+        windows_set_last_error(download, "Windows download failed");
+        download->status = FLINT_RUNTIME_ASSET_ERROR;
+        return 0;
+    }
+
+    if(HttpQueryInfoA(request, HTTP_QUERY_STATUS_CODE, status_buf, &status_len, &status_index)) {
+        status_buf[sizeof(status_buf) - 1] = '\0';
+        download->http_status = strtol(status_buf, NULL, 10);
+    }
+    if(download->http_status < 200 || download->http_status >= 300) {
+        snprintf(download->error, sizeof(download->error), "HTTP %ld", download->http_status);
+        fclose(file);
+        InternetCloseHandle(request);
+        InternetCloseHandle(internet);
+        remove(download->path);
+        download->status = FLINT_RUNTIME_ASSET_ERROR;
+        return 0;
+    }
+
+    if(HttpQueryInfoA(request, HTTP_QUERY_CONTENT_LENGTH, length_buf, &length_len, &length_index)) {
+        length_buf[sizeof(length_buf) - 1] = '\0';
+        download->total_bytes = (size_t)strtoull(length_buf, NULL, 10);
+    }
+
+    while((read_ok = InternetReadFile(request, buffer, sizeof(buffer), &bytes_read)) && bytes_read > 0) {
+        if(fwrite(buffer, 1, bytes_read, file) != bytes_read) {
+            snprintf(download->error, sizeof(download->error), "failed to write %.200s", download->path);
+            fclose(file);
+            InternetCloseHandle(request);
+            InternetCloseHandle(internet);
+            remove(download->path);
+            download->status = FLINT_RUNTIME_ASSET_ERROR;
+            return 0;
+        }
+        download->bytes += (size_t)bytes_read;
+    }
+
+    if(!read_ok) {
+        fclose(file);
+        InternetCloseHandle(request);
+        InternetCloseHandle(internet);
+        remove(download->path);
+        windows_set_last_error(download, "Windows download failed");
+        download->status = FLINT_RUNTIME_ASSET_ERROR;
+        return 0;
+    }
+
+    fclose(file);
+    InternetCloseHandle(request);
+    InternetCloseHandle(internet);
+    if(download->total_bytes == 0)
+        download->total_bytes = download->bytes;
+    download->status = FLINT_RUNTIME_ASSET_READY;
+    return 0;
+}
+#endif
+
 #if defined(FLINT_HAS_LIBCURL) && !defined(__EMSCRIPTEN__)
 typedef struct NativeDownloadContext {
     FlintRuntimeAssetDownload *download;
@@ -251,7 +375,7 @@ curl_thread_main(void *user_data)
 
     file = fopen(download->path, "wb");
     if(file == NULL) {
-        snprintf(download->error, sizeof(download->error), "failed to open %s", download->path);
+        snprintf(download->error, sizeof(download->error), "failed to open %.200s", download->path);
         download->status = FLINT_RUNTIME_ASSET_ERROR;
         return NULL;
     }
@@ -346,6 +470,26 @@ flint_runtime_asset_download(FlintRuntimeAssetDownload *download,
         attr.onsuccess = fetch_done;
         attr.onerror = fetch_failed;
         emscripten_fetch(&attr, download->url);
+        return 1;
+    }
+#elif defined(_WIN32)
+    {
+        HANDLE thread;
+        WindowsDownloadContext *ctx = (WindowsDownloadContext *)calloc(1, sizeof(*ctx));
+        if(ctx == NULL) {
+            snprintf(download->error, sizeof(download->error), "out of memory");
+            download->status = FLINT_RUNTIME_ASSET_ERROR;
+            return 0;
+        }
+        ctx->download = download;
+        thread = CreateThread(NULL, 0, windows_download_thread_main, ctx, 0, NULL);
+        if(thread == NULL) {
+            free(ctx);
+            windows_set_last_error(download, "failed to create download thread");
+            download->status = FLINT_RUNTIME_ASSET_ERROR;
+            return 0;
+        }
+        CloseHandle(thread);
         return 1;
     }
 #elif defined(FLINT_HAS_LIBCURL)

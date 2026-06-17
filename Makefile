@@ -112,7 +112,7 @@ WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ff
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
-WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lm
+WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lm
 ifneq ($(strip $(MCFGTHREADS)),)
 WIN64_THREAD_LDFLAGS := -L$(MCFGTHREADS)/lib
 else
@@ -526,9 +526,7 @@ package-unpackaged-assets:
 	cd $(UNPACKAGED_AUDIO_DIR) && find . -mindepth 2 -type f -name '*.ogg' -exec zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) {} + && zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) LICENSE.md MANIFEST.txt
 
 windows-runtime-assets-check:
-	@echo "Windows runtime asset downloads are not wired into this build yet"; \
-	echo "Refusing to build Windows binaries that cannot download meditation audio."; \
-	exit 1
+	@:
 
 windows64: windows-runtime-assets-check $(WIN64_TARGET)
 
