@@ -126,6 +126,8 @@ typedef struct {
 typedef struct {
     Rectangle bounds;
     int content_height;
+    int content_x;
+    int content_width;
     int *scroll_offset;
     int wheel_step;
     int scrollbar_x;
@@ -257,6 +259,7 @@ int ui_scrollbar_reserved_width(int max_scroll);
 int ui_scrollbar_content_width(int content_width, int max_scroll);
 int ui_scrollbar_safe_content_width(int content_x, int content_width,
                                     int scrollbar_x, int max_scroll);
+FlintUIScrollView ui_scroll_container_measure(FlintUIScrollArea area);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);
 void ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view);
 int ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);

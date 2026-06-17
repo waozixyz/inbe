@@ -59,6 +59,7 @@ typedef enum {
     UIModalConfirmDeleteData,
     UIModalConfirmDeleteHabit,
     UIModalEditProgressiveStartSpeed,
+    UIModalMeditationNetworkError,
 } UIModalType;
 
 typedef struct {
@@ -222,6 +223,7 @@ struct InbeApp {
     int meditation_music_playing;
     int meditation_music_test_playing;
     int meditation_music_archive_extracted;
+    int meditation_music_network_error_notified;
     Music meditation_music;
     FlintRuntimeAssetDownload meditation_music_download;
     char meditation_music_cache_dir[FS_PATH_MAX];

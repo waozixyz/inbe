@@ -70,6 +70,12 @@ Testwiedergabe
 [meditation_music_stop_test_button]
 Test stoppen
 ---
+[meditation_music_network_error_title]
+Netzwerk nicht verfügbar
+---
+[meditation_music_network_error_message]
+Der Meditations-Audioserver konnte nicht erreicht werden. Prüfe die Android-Netzwerkberechtigungen und deine Internetverbindung und versuche es erneut.
+---
 [duration_5m]
 5m
 ---
@@ -102,6 +108,9 @@ Abgeschlossene Runden vor dem Beenden speichern?
 ---
 [cancel_button]
 Abbrechen
+---
+[ok_button]
+OK
 ---
 [save_button]
 Speichern

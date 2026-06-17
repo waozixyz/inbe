@@ -64,6 +64,20 @@ safe_archive_member(const char *path)
 }
 
 static int
+known_track_archive_member(const char *path)
+{
+    if(path == NULL)
+        return 0;
+
+    for(int i = 0; i < MEDITATION_MUSIC_TRACK_COUNT; i++) {
+        if(strcmp(path, g_tracks[i].file) == 0)
+            return 1;
+    }
+
+    return 0;
+}
+
+static int
 copy_text_checked(char *out, size_t out_size, const char *text)
 {
     size_t len;
@@ -132,6 +146,30 @@ set_status(InbeApp *app, const char *message)
     copy_text_checked(app->meditation_music_status,
                       sizeof(app->meditation_music_status),
                       message);
+}
+
+static int
+is_network_download_error(const FlintRuntimeAssetDownload *download)
+{
+    const char *error;
+
+    if(download == NULL)
+        return 0;
+    error = download->error;
+    if(error == NULL || error[0] == '\0')
+        return 0;
+
+    if(strcmp(error, "NETWORK_UNAVAILABLE") == 0)
+        return 1;
+    if(strstr(error, "Unable to resolve host") != NULL ||
+       strstr(error, "No address associated with hostname") != NULL ||
+       strstr(error, "Could not resolve host") != NULL ||
+       strstr(error, "Couldn't resolve host") != NULL ||
+       strstr(error, "Name or service not known") != NULL ||
+       strstr(error, "Temporary failure in name resolution") != NULL)
+        return 1;
+
+    return 0;
 }
 
 static void
@@ -283,6 +321,8 @@ extract_audio_archive(InbeApp *app, const char *archive_path)
         if(mz_zip_reader_is_file_a_directory(&archive, i))
             continue;
         if(!safe_archive_member(stat.m_filename))
+            continue;
+        if(!known_track_archive_member(stat.m_filename))
             continue;
 
         if(!join_path2(out_path, sizeof(out_path), app->meditation_music_cache_dir, "/audio/") ||
@@ -492,8 +532,17 @@ meditation_music_update(InbeApp *app)
         extract_audio_archive(app, archive_path);
     } else if(app->meditation_music_download.status == FLINT_RUNTIME_ASSET_ERROR ||
               app->meditation_music_download.status == FLINT_RUNTIME_ASSET_UNSUPPORTED) {
-        if(app->meditation_music_download.error[0] != '\0')
+        if(is_network_download_error(&app->meditation_music_download)) {
+            set_status(app, locale_get("meditation_music_network_error_title"));
+            if(!app->meditation_music_network_error_notified && !app->modal.active) {
+                app->modal.active = 1;
+                app->modal.type = UIModalMeditationNetworkError;
+                app->modal.selected_button = 0;
+                app->meditation_music_network_error_notified = 1;
+            }
+        } else if(app->meditation_music_download.error[0] != '\0') {
             set_status(app, app->meditation_music_download.error);
+        }
     }
 
     if(app->meditation_music_loaded) {
@@ -512,6 +561,7 @@ start_download(InbeApp *app)
 
     music_archive_path(app, archive_path, sizeof(archive_path));
     app->meditation_music_archive_extracted = 0;
+    app->meditation_music_network_error_notified = 0;
     set_status(app, "Downloading audio...");
     flint_runtime_asset_download(&app->meditation_music_download,
                                  INBE_MEDITATION_AUDIO_URL,

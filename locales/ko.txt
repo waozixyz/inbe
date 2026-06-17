@@ -70,6 +70,12 @@ Inner Breeze
 [meditation_music_stop_test_button]
 테스트 중지
 ---
+[meditation_music_network_error_title]
+네트워크를 사용할 수 없음
+---
+[meditation_music_network_error_message]
+명상 오디오 서버에 연결할 수 없습니다. Android 네트워크 권한과 인터넷 연결을 확인한 뒤 다시 시도하세요.
+---
 [duration_5m]
 5분
 ---
@@ -102,6 +108,9 @@ Inner Breeze
 ---
 [cancel_button]
 취소
+---
+[ok_button]
+확인
 ---
 [save_button]
 저장

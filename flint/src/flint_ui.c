@@ -2779,25 +2779,22 @@ ui_scrollbar_safe_content_width(int content_x, int content_width,
 }
 
 FlintUIScrollView
-ui_scroll_container_begin(FlintUIScrollArea area)
+ui_scroll_container_measure(FlintUIScrollArea area)
 {
-    static int content_drag_active = 0;
-    static int content_dragging = 0;
-    static int content_drag_start_y = 0;
-    static int content_drag_start_scroll = 0;
     FlintUIScrollView view;
-    Vector2 mouse_world = ui_mouse_world();
-    int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
     int x = (int)area.bounds.x;
     int y = (int)area.bounds.y;
     int w = (int)area.bounds.width;
     int h = (int)area.bounds.height;
-    int inside = CheckCollisionPointRec(mouse_world, area.bounds);
-    int captured = ui_input_captures_click(mouse_world);
-    int drag_threshold = flint_px(5);
+    int scrollbar_w = flint_px(8);
+    int scrollbar_x = area.scrollbar_x > 0
+                          ? area.scrollbar_x
+                          : x + w - scrollbar_w;
+    int content_x = area.content_x > 0 ? area.content_x : x;
+    int content_w = area.content_width > 0 ? area.content_width : w;
 
     memset(&view, 0, sizeof(view));
-    view.content_x = x;
+    view.content_x = content_x;
     view.viewport_h = h;
     view.content_h = area.content_height > 0 ? area.content_height : 0;
     view.max_scroll = view.content_h - h;
@@ -2805,19 +2802,39 @@ ui_scroll_container_begin(FlintUIScrollArea area)
         view.max_scroll = 0;
 
     if(area.scroll_offset != NULL) {
-        if(*area.scroll_offset < 0)
-            *area.scroll_offset = 0;
-        if(*area.scroll_offset > view.max_scroll)
-            *area.scroll_offset = view.max_scroll;
+        int scroll_offset = ui_clampi(*area.scroll_offset, 0, view.max_scroll);
+        view.content_y = y - scroll_offset;
+    } else {
+        view.content_y = y;
+    }
+    view.content_w = ui_scrollbar_safe_content_width(content_x, content_w,
+                                                     scrollbar_x, view.max_scroll);
 
+    return view;
+}
+
+FlintUIScrollView
+ui_scroll_container_begin(FlintUIScrollArea area)
+{
+    static int content_drag_active = 0;
+    static int content_dragging = 0;
+    static int content_drag_start_y = 0;
+    static int content_drag_start_scroll = 0;
+    FlintUIScrollView view = ui_scroll_container_measure(area);
+    Vector2 mouse_world = ui_mouse_world();
+    int y = (int)area.bounds.y;
+    int wheel_step = area.wheel_step > 0 ? area.wheel_step : flint_px(42);
+    int inside = CheckCollisionPointRec(mouse_world, area.bounds);
+    int captured = ui_input_captures_click(mouse_world);
+    int drag_threshold = flint_px(5);
+
+    if(area.scroll_offset != NULL) {
+        *area.scroll_offset = ui_clampi(*area.scroll_offset, 0, view.max_scroll);
         if(view.max_scroll > 0 && inside && !captured) {
             float wheel = GetMouseWheelMove();
             if(wheel != 0.0f) {
                 *area.scroll_offset -= (int)(wheel * (float)wheel_step);
-                if(*area.scroll_offset < 0)
-                    *area.scroll_offset = 0;
-                if(*area.scroll_offset > view.max_scroll)
-                    *area.scroll_offset = view.max_scroll;
+                *area.scroll_offset = ui_clampi(*area.scroll_offset, 0, view.max_scroll);
             }
         }
 
@@ -2849,10 +2866,7 @@ ui_scroll_container_begin(FlintUIScrollArea area)
                 g_ui_pointer_owner = UI_POINTER_OWNER_SCROLL;
                 content_dragging = 1;
                 *area.scroll_offset = content_drag_start_scroll - dy;
-                if(*area.scroll_offset < 0)
-                    *area.scroll_offset = 0;
-                if(*area.scroll_offset > view.max_scroll)
-                    *area.scroll_offset = view.max_scroll;
+                *area.scroll_offset = ui_clampi(*area.scroll_offset, 0, view.max_scroll);
                 ui_set_input_blocked(1);
             }
         } else if(content_drag_active) {
@@ -2865,8 +2879,6 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     } else {
         view.content_y = y;
     }
-
-    view.content_w = ui_scrollbar_content_width(w, view.max_scroll);
     {
         Rectangle screen_bounds = {
             g_ui_camera.offset.x + area.bounds.x * g_ui_camera.zoom,

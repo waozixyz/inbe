@@ -749,8 +749,6 @@ practice_config_screen_draw(InbeApp *app)
     int scroll_y;
     int scroll_h;
     int content_h;
-    int max_scroll;
-    int scroll_bounds_w;
     int scrollbar_x;
     int controls_w;
     int y;
@@ -804,27 +802,32 @@ practice_config_screen_draw(InbeApp *app)
     scroll_h = view_height - scroll_y;
     if(scroll_h < 0)
         scroll_h = 0;
-    scroll_bounds_w = view_width - content_x;
-    if(scroll_bounds_w < content_w)
-        scroll_bounds_w = content_w;
-    scrollbar_x = view_width - flint_px(12);
+    scrollbar_x = view_width - flint_px(8);
     controls_w = content_w;
     for(int i = 0; i < 3; i++) {
-        int next_controls_w;
+        FlintUIScrollView measured;
 
         content_h = practice_config_content_height(app, controls_w);
-        max_scroll = content_h - scroll_h;
-        if(max_scroll < 0)
-            max_scroll = 0;
-        next_controls_w = ui_scrollbar_safe_content_width(content_x, content_w,
-                                                          scrollbar_x, max_scroll);
-        if(next_controls_w == controls_w)
+        scroll_area = (FlintUIScrollArea){
+            .bounds = {0.0f, (float)scroll_y, (float)view_width, (float)scroll_h},
+            .content_height = content_h,
+            .content_x = content_x,
+            .content_width = content_w,
+            .scroll_offset = &app->settings_scroll,
+            .wheel_step = flint_px(42),
+            .scrollbar_x = scrollbar_x
+        };
+        measured = ui_scroll_container_measure(scroll_area);
+        if(measured.content_w == controls_w)
             break;
-        controls_w = next_controls_w;
+        controls_w = measured.content_w;
     }
+    content_h = practice_config_content_height(app, controls_w);
     scroll_area = (FlintUIScrollArea){
-        .bounds = {(float)content_x, (float)scroll_y, (float)scroll_bounds_w, (float)scroll_h},
+        .bounds = {0.0f, (float)scroll_y, (float)view_width, (float)scroll_h},
         .content_height = content_h,
+        .content_x = content_x,
+        .content_width = content_w,
         .scroll_offset = &app->settings_scroll,
         .wheel_step = flint_px(42),
         .scrollbar_x = scrollbar_x
@@ -832,10 +835,12 @@ practice_config_screen_draw(InbeApp *app)
 
     scroll_view = ui_scroll_container_begin(scroll_area);
     if(app->exercise_type == EXERCISE_MEDITATION)
-        y = meditation_config_draw_content(app, content_x, controls_w, scroll_view.content_y,
+        y = meditation_config_draw_content(app, scroll_view.content_x, scroll_view.content_w,
+                                           scroll_view.content_y,
                                            &draw_meditation_music_menu);
     else
-        y = wim_hof_config_draw_content(app, content_x, controls_w, scroll_view.content_y,
+        y = wim_hof_config_draw_content(app, scroll_view.content_x, scroll_view.content_w,
+                                        scroll_view.content_y,
                                         &draw_breath_animation_menu);
     (void)y;
     ui_scroll_container_end(scroll_area, scroll_view);
@@ -933,42 +938,50 @@ settings_screen_draw(InbeApp *app)
         settings_screen_clear_status();
     }
 
-    flint_clip_begin((int)app->camera.offset.x,
-                     (int)(app->camera.offset.y + tab_content_start_y * app->camera.zoom),
-                     (int)(view_width * app->camera.zoom),
-                     (int)(content_viewport_h * app->camera.zoom));
-
     {
-        int planned_content_w = content_w - flint_px(16);
+        int draw_w = content_w;
         int app_content_h;
-        if(planned_content_w < flint_px(160))
-            planned_content_w = content_w;
-        if(app->settings_tab == SETTINGS_TAB_THEME) {
-            app_content_h = flint_px(76) + ui_theme_picker_height(planned_content_w) + flint_px(60);
-        } else if(app->settings_tab == SETTINGS_TAB_DEVICE) {
-            app_content_h = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
+        FlintUIScrollArea scroll_area;
+
+        for(int pass = 0; pass < 3; pass++) {
+            int planned_content_w = draw_w - flint_px(16);
+            FlintUIScrollView measured;
+
+            if(planned_content_w < flint_px(160))
+                planned_content_w = draw_w;
+            if(app->settings_tab == SETTINGS_TAB_THEME) {
+                app_content_h = flint_px(76) + ui_theme_picker_height(planned_content_w) + flint_px(60);
+            } else if(app->settings_tab == SETTINGS_TAB_DEVICE) {
+                app_content_h = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-            app_content_h += flint_px(76);
+                app_content_h += flint_px(76);
 #endif
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
-            app_content_h += flint_px(50);
+                app_content_h += flint_px(50);
 #endif
-            app_content_h += flint_px(72);
-        } else {
-            app_content_h = settings_data_content_height(content_w);
+                app_content_h += flint_px(72);
+            } else {
+                app_content_h = settings_data_content_height(draw_w);
+            }
+            scroll_area = (FlintUIScrollArea){
+                .bounds = {0.0f, (float)tab_content_start_y,
+                           (float)view_width, (float)content_viewport_h},
+                .content_height = app_content_h,
+                .content_x = content_x,
+                .content_width = content_w,
+                .scroll_offset = &app->settings_scroll,
+                .wheel_step = flint_px(42),
+                .scrollbar_x = view_width - flint_px(8)
+            };
+            measured = ui_scroll_container_measure(scroll_area);
+            if(measured.content_w == draw_w)
+                break;
+            draw_w = measured.content_w;
         }
-        int content_h = app_content_h;
         int y;
-        FlintUIScrollArea scroll_area = {
-            .bounds = {(float)content_x, (float)tab_content_start_y,
-                       (float)content_w, (float)content_viewport_h},
-            .content_height = content_h,
-            .scroll_offset = &app->settings_scroll,
-            .wheel_step = flint_px(42)
-        };
         FlintUIScrollView scroll_view = ui_scroll_container_begin(scroll_area);
         int draw_x = scroll_view.content_x;
-        int draw_w = scroll_view.content_w;
+        draw_w = scroll_view.content_w;
         y = scroll_view.content_y;
 
         if(app->settings_tab == SETTINGS_TAB_THEME) {
@@ -1089,7 +1102,6 @@ settings_screen_draw(InbeApp *app)
         y += flint_px(40);
         ui_scroll_container_end(scroll_area, scroll_view);
     }
-    flint_clip_end();
 
     ui_set_dropdown_clip_top(tab_content_start_y);
     if(draw_language_menu && language_dropdown_menu(app, 101))
