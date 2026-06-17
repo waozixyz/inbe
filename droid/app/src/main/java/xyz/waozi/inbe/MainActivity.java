@@ -177,10 +177,10 @@ public class MainActivity extends NativeActivity {
                 int requested = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED;
                 switch (mode) {
                     case 1:
-                        requested = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT;
+                        requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_PORTRAIT;
                         break;
                     case 2:
-                        requested = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE;
+                        requested = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE;
                         break;
                     case 3:
                         requested = ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR;

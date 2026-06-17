@@ -1,4 +1,8 @@
 # Changelog
+## [1.3.1] - 2026-06-17
+### Fixed
+- Fixed Android orientation changes so forced landscape and portrait resize the app viewport correctly.
+
 ## [1.3.0] - 2026-06-14
 ### Added
 - Implemented 1-bit habit tracker synced with practice data
