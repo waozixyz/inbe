@@ -61,8 +61,8 @@ FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.
 FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
-FLINT_CURL_CFLAGS ?= $(shell pkg-config --cflags libcurl 2>/dev/null)
-FLINT_CURL_LDLIBS ?= $(shell pkg-config --libs libcurl 2>/dev/null)
+FLINT_CURL_CFLAGS ?= $(shell pkg-config --cflags libcurl 2>/dev/null || curl-config --cflags 2>/dev/null)
+FLINT_CURL_LDLIBS ?= $(shell pkg-config --libs libcurl 2>/dev/null || curl-config --libs 2>/dev/null)
 SQLITE_DIR := vendor/sqlite
 SQLITE_BUILD_DIR := $(BUILD_OBJ_DIR)/sqlite
 SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
@@ -72,13 +72,8 @@ SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 FLINT_TEXT_SCALING_TEST := $(TEST_BIN_DIR)/flint_text_scaling_test
-ifneq ($(strip $(FLINT_CURL_LDLIBS)),)
 FLINT_RUNTIME_ASSET_CFLAGS := -DFLINT_HAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
-else
-FLINT_RUNTIME_ASSET_CFLAGS :=
-FLINT_RUNTIME_ASSET_LDLIBS :=
-endif
 
 APP_SRCS := \
 	src/main.c \
@@ -147,7 +142,7 @@ WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test dist appimage clean clean-linux clean-raylib android-check-keystore android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows windows64 windows32 web
+.PHONY: all native run test dist appimage clean clean-linux clean-raylib android-check-keystore android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle
 
 all: native
@@ -353,11 +348,16 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		echo "appimagetool is missing. Re-enter the flake shell with: nix develop"; \
 		exit 1; \
 	}
+	@command -v patchelf >/dev/null || { \
+		echo "patchelf is missing. Re-enter the flake shell with: nix develop"; \
+		exit 1; \
+	}
 	rm -rf $(LINUX_APPDIR)
 	rm -rf $(LINUX_DIST_DIR)/*.AppDir
 	rm -f $(LINUX_DIST_DIR)/*.AppImage
 	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps
 	cp $(TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
+	patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	cp $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPDIR)/AppRun
 	chmod +x $(LINUX_APPDIR)/AppRun
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
@@ -525,9 +525,14 @@ package-unpackaged-assets:
 	rm -f $(MEDITATION_AUDIO_ZIP)
 	cd $(UNPACKAGED_AUDIO_DIR) && find . -mindepth 2 -type f -name '*.ogg' -exec zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) {} + && zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) LICENSE.md MANIFEST.txt
 
-windows64: $(WIN64_TARGET)
+windows-runtime-assets-check:
+	@echo "Windows runtime asset downloads are not wired into this build yet"; \
+	echo "Refusing to build Windows binaries that cannot download meditation audio."; \
+	exit 1
 
-windows32: $(WIN32_TARGET)
+windows64: windows-runtime-assets-check $(WIN64_TARGET)
+
+windows32: windows-runtime-assets-check $(WIN32_TARGET)
 
 windows:
 	$(MAKE) windows64
@@ -567,5 +572,8 @@ $(error RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix deve
 endif
 ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
 $(error RAY_RAYLIB_CONFIG is not set. Enter the ray flake shell with 'nix develop')
+endif
+ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
+$(error libcurl pkg-config metadata is missing. Runtime asset downloads are required; enter the flake shell with 'nix develop' or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
 endif
 endif

@@ -191,6 +191,7 @@ EOF
 	      butler
               cmake
               curl
+              curl.dev
               emscripten
               gcc
               git-lfs
