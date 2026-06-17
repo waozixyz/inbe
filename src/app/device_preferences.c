@@ -1,4 +1,4 @@
-#include "app_preferences.h"
+#include "device_preferences.h"
 #include "theme.h"
 #include "flint_ui.h"
 #if defined(LOTUS_BUILD)

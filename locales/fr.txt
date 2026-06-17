@@ -139,31 +139,34 @@ CYCLE %d
 [settings_title]
 Réglages
 ---
-[settings_tab_breathing]
+[settings_tab_practice]
+Pratique
+---
+[settings_section_breathing]
 Respiration
 ---
-[settings_tab_session]
+[settings_section_session]
 Séance
 ---
 [settings_tab_app]
 App
 ---
-[settings_tab_data_about]
-Données et à propos
----
-[settings_tab_sound]
+[settings_section_sound]
 Son
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Apparence
 ---
-[settings_tab_language]
+[settings_section_language]
 Langue
 ---
 [settings_tab_data]
 Données
 ---
-[settings_tab_about]
+[settings_section_data]
+Données
+---
+[settings_section_about]
 À propos
 ---
 

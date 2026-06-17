@@ -2,7 +2,7 @@
 #define HABITS_SCREEN_H
 
 #include "raylib.h"
-#include "../breath_engine.h"
+#include "breath_engine.h"
 #include <stddef.h>
 
 /* Forward declaration for enums defined elsewhere */

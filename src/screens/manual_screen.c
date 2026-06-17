@@ -1,6 +1,6 @@
-#include "manual_tab.h"
+#include "manual_screen.h"
 #include "app.h"
-#include "app_session.h"
+#include "session.h"
 #include "locale.h"
 #include "meditation_music.h"
 #include "theme.h"
@@ -83,7 +83,7 @@ draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int conte
 }
 
 void
-manual_tab_reset_layouts(InbeApp *app)
+manual_screen_reset_layouts(InbeApp *app)
 {
     if(app == NULL)
         return;
@@ -92,7 +92,7 @@ manual_tab_reset_layouts(InbeApp *app)
 }
 
 void
-manual_tab_close_tutorial(InbeApp *app, int mark_seen)
+manual_screen_close_tutorial(InbeApp *app, int mark_seen)
 {
     if(mark_seen)
         mark_exercise_manual_seen(app, app->exercise_type);
@@ -102,7 +102,7 @@ manual_tab_close_tutorial(InbeApp *app, int mark_seen)
 }
 
 static void
-manual_tab_start_exercise(InbeApp *app)
+manual_screen_start_exercise(InbeApp *app)
 {
     mark_exercise_manual_seen(app, app->exercise_type);
     app->tutorial_step = 0;
@@ -147,7 +147,7 @@ meditation_manual_draw(InbeApp *app)
     flint_centered_column(responsive_max_w, flint_page_side_padding(), &content_x, &content_w);
 
     if(ui_draw_screen_header(locale_get("meditation_manual_title"), 1))
-        manual_tab_close_tutorial(app, 0);
+        manual_screen_close_tutorial(app, 0);
 
     if(content_h < flint_px(120))
         content_h = flint_px(120);
@@ -192,12 +192,12 @@ meditation_manual_draw(InbeApp *app)
         if(ui_draw_generic_button(content_x + (content_w - button_w) / 2, button_y,
                                   button_w, button_h, locale_get("tutorial_start_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover))
-            manual_tab_start_exercise(app);
+            manual_screen_start_exercise(app);
     }
 }
 
 void
-manual_tab_draw(InbeApp *app)
+manual_screen_draw(InbeApp *app)
 {
     int title_h = ui_screen_header_height();
     int tab_h = flint_px(56);
@@ -226,12 +226,12 @@ manual_tab_draw(InbeApp *app)
         if(step < (int)TUTORIAL_STEPS_COUNT - 1)
             app->tutorial_step++;
         else
-            manual_tab_start_exercise(app);
+            manual_screen_start_exercise(app);
     }
     if(IsKeyPressed(KEY_LEFT) && step > 0)
         app->tutorial_step--;
     if(IsKeyPressed(KEY_ESCAPE))
-        manual_tab_close_tutorial(app, 0);
+        manual_screen_close_tutorial(app, 0);
 
     step = app->tutorial_step;
     if(previous_step != step) {
@@ -262,7 +262,7 @@ manual_tab_draw(InbeApp *app)
 
     close_clicked = ui_draw_screen_header(title, 1);
     if(close_clicked)
-        manual_tab_close_tutorial(app, 0);
+        manual_screen_close_tutorial(app, 0);
 
     /* Calculate actual content height based on current step and text layouts */
     /* Don't include padding in this calculation - it's handled separately */
@@ -454,7 +454,7 @@ manual_tab_draw(InbeApp *app)
     if(step == 0) {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
                                   left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover))
-            manual_tab_start_exercise(app);
+            manual_screen_start_exercise(app);
     } else {
         if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
                                   left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover)) {
@@ -466,7 +466,7 @@ manual_tab_draw(InbeApp *app)
     if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
                               right_label, UI_BUTTON_STYLE_PRIMARY, 0, &right_hover)) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
-            manual_tab_start_exercise(app);
+            manual_screen_start_exercise(app);
         else {
             app->tutorial_step++;
             app->manual_scroll = 0;

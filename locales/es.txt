@@ -139,31 +139,34 @@ RONDA %d
 [settings_title]
 Configuración
 ---
-[settings_tab_breathing]
+[settings_tab_practice]
+Práctica
+---
+[settings_section_breathing]
 Respiración
 ---
-[settings_tab_session]
+[settings_section_session]
 Sesión
 ---
 [settings_tab_app]
 App
 ---
-[settings_tab_data_about]
-Datos y Acerca de
----
-[settings_tab_sound]
+[settings_section_sound]
 Sonido
 ---
-[settings_tab_appearance]
+[settings_section_appearance]
 Apariencia
 ---
-[settings_tab_language]
+[settings_section_language]
 Idioma
 ---
 [settings_tab_data]
 Datos
 ---
-[settings_tab_about]
+[settings_section_data]
+Datos
+---
+[settings_section_about]
 Acerca de
 ---
 
