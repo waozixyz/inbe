@@ -513,6 +513,9 @@ apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
     inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
+    inbe->breath_animation = clampi(inbe->breath_animation,
+                                    InbeBreathAnimationLinear,
+                                    InbeBreathAnimationCount - 1);
     inbe->progressive_start_speed = clampi(inbe->progressive_start_speed, SETTINGS_SPEED_MIN, speed);
     inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
     inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
@@ -527,11 +530,13 @@ reset_settings_preview(InbeApp *app)
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
     int play_in_background = app->inbe.play_in_background;
+    int breath_animation = app->inbe.breath_animation;
     int content_w;
 
     inbeinit(&app->settings_preview);
     app->settings_preview.progressive_speed = 0;
     app->settings_preview.play_in_background = play_in_background;
+    app->settings_preview.breath_animation = breath_animation;
     flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
     update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -561,6 +566,7 @@ save_settings(InbeApp *app)
     inbe_storage_set_setting_int("on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0);
     inbe_storage_set_setting_int("progressive_speed", app->inbe.progressive_speed);
     inbe_storage_set_setting_int("progressive_start_speed", app->inbe.progressive_start_speed);
+    inbe_storage_set_setting_int("breath_animation", app->inbe.breath_animation);
     inbe_storage_set_setting_int("advanced_session_controls", app->advanced_session_controls ? 1 : 0);
     inbe_storage_set_setting_int("hold_display_mode", app->hold_display_mode);
     inbe_storage_set_setting_int("exercise_type", app->exercise_type);
@@ -613,6 +619,8 @@ load_settings(InbeApp *app)
     app->inbe.progressive_speed = inbe_storage_get_setting_int("progressive_speed", 1) != 0;
     app->inbe.progressive_start_speed = clampi(inbe_storage_get_setting_int("progressive_start_speed", DefaultProgressiveStartSpeed),
                                                SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
+    app->inbe.breath_animation = clampi(inbe_storage_get_setting_int("breath_animation", InbeBreathAnimationInOut),
+                                        InbeBreathAnimationLinear, InbeBreathAnimationCount - 1);
     app->advanced_session_controls = inbe_storage_get_setting_int("advanced_session_controls", 0) != 0;
     app->hold_display_mode = clampi(inbe_storage_get_setting_int("hold_display_mode", HOLD_DISPLAY_CIRCLE),
                                     HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
@@ -1340,7 +1348,8 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenSettings) {
-        settings_screen_draw(app);
+        if(settings_screen_draw(app))
+            goto finish_frame;
         app_draw_bottom_nav(app);
         goto finish_frame;
     }

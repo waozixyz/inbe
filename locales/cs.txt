@@ -184,9 +184,6 @@ Data
 [settings_tab_about]
 O aplikaci
 ---
-[settings_section_about]
-O aplikaci
----
 
 [theme_label]
 Motiv
@@ -205,6 +202,15 @@ Pocatecni rychlost
 ---
 [modify_start_speed_button]
 Upravit pocatecni rychlost
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 Pocatecni rychlost
@@ -255,12 +261,6 @@ Další
 Brzy...
 ---
 
-[data_management_label]
-Správa dat
----
-[data_management_button]
-Spravovat data
----
 [total_sessions_label]
 Celkem sezení: %d
 ---
@@ -323,14 +323,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-Verze %s
----
-[about_description]
-Inner Breeze je jednoduchá aplikace
-pro dechovou meditaci, která vám pomůže
-uvolnit se a najít klid.
 ---
 [toggle_off]
 VYP

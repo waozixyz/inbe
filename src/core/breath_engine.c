@@ -1,4 +1,5 @@
 #include "breath_engine.h"
+#include <stddef.h>
 
 static int
 eqcount(const char a[CountSize], const char b[CountSize])
@@ -91,6 +92,7 @@ inbeinit(Inbe *l)
     l->pause_seconds = DefaultPauseSeconds;
     l->progressive_speed = 1;
     l->progressive_start_speed = DefaultProgressiveStartSpeed;
+    l->breath_animation = InbeBreathAnimationInOut;
 #ifdef __ANDROID__
     l->play_in_background = 1;  // Enabled by default on Android
 #else
@@ -171,6 +173,14 @@ eased_span(int span, int frame, int half_ticks)
     return (int)((float)span * smoothstepf(t) + 0.5f);
 }
 
+static int
+animated_span(const Inbe *l, int span, int frame, int half_ticks)
+{
+    if(l != NULL && l->breath_animation == InbeBreathAnimationLinear)
+        return lerp_int(0, span, frame, half_ticks);
+    return eased_span(span, frame, half_ticks);
+}
+
 float
 inbe_draw_radius(const Inbe *l)
 {
@@ -213,7 +223,7 @@ breathe(Inbe *l)
     if(l->breath_frame > half_ticks)
         l->breath_frame = half_ticks;
 
-    eased = eased_span(span, l->breath_frame, half_ticks);
+    eased = animated_span(l, span, l->breath_frame, half_ticks);
     if(l->dir == 0)
         l->r = l->rmin + eased;
     else
@@ -250,7 +260,7 @@ next(Inbe *l)
     if(l->breath_frame > l->breath_half_ticks)
         l->breath_frame = l->breath_half_ticks;
 
-    eased = eased_span(span, l->breath_frame, l->breath_half_ticks);
+    eased = animated_span(l, span, l->breath_frame, l->breath_half_ticks);
     l->r = l->rmax - eased;
 
     if(l->breath_frame >= l->breath_half_ticks) {
@@ -280,7 +290,7 @@ recover(Inbe *l)
         if(l->breath_frame > l->breath_half_ticks)
             l->breath_frame = l->breath_half_ticks;
 
-        eased = eased_span(span, l->breath_frame, l->breath_half_ticks);
+        eased = animated_span(l, span, l->breath_frame, l->breath_half_ticks);
         l->r = l->rmin + eased;
 
         if(l->breath_frame >= l->breath_half_ticks) {

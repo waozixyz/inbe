@@ -184,9 +184,6 @@ Inner Breeze
 [settings_tab_about]
 정보
 ---
-[settings_section_about]
-정보
----
 [theme_label]
 테마
 ---
@@ -222,6 +219,15 @@ Inner Breeze
 ---
 [modify_start_speed_button]
 시작 속도 수정
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 시작 속도
@@ -270,12 +276,6 @@ Inner Breeze
 ---
 [coming_soon_label]
 출시 예정
----
-[data_management_label]
-데이터 관리
----
-[data_management_button]
-데이터 관리
 ---
 [total_sessions_label]
 총 세션: %d
@@ -339,12 +339,6 @@ Inner Breeze
 ---
 [deleted_sessions]
 %lld개 세션 삭제됨
----
-[version_label]
-버전 %s
----
-[about_description]
-Inner Breeze는 편안함과 평온을 찾을 수 있도록 도와주는 간단한 호흡 명상 앱입니다.
 ---
 [toggle_off]
 꺼짐

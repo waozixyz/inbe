@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
+#include <dirent.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
@@ -1031,6 +1032,249 @@ tickmate_color_from_int(int value, int index)
 }
 
 static int
+parse_legacy_rounds(const char *text, size_t size, int *rounds, int max_rounds)
+{
+    int count = 0;
+    size_t pos = 0;
+
+    if(text == NULL || rounds == NULL || max_rounds <= 0)
+        return 0;
+    while(pos < size && count < max_rounds) {
+        int value = 0;
+        int seen = 0;
+        while(pos < size && (text[pos] == ' ' || text[pos] == '\t' ||
+                             text[pos] == '\r' || text[pos] == '\n'))
+            pos++;
+        while(pos < size && text[pos] >= '0' && text[pos] <= '9') {
+            seen = 1;
+            value = value * 10 + (text[pos] - '0');
+            pos++;
+        }
+        if(seen && value > 0)
+            rounds[count++] = value;
+        while(pos < size && text[pos] != '\n')
+            pos++;
+    }
+    return count;
+}
+
+static long long
+legacy_session_started_at(int year, int month, int day, int hour, int minute, int second)
+{
+    struct tm tm_value;
+
+    memset(&tm_value, 0, sizeof(tm_value));
+    tm_value.tm_year = year - 1900;
+    tm_value.tm_mon = month - 1;
+    tm_value.tm_mday = day;
+    tm_value.tm_hour = hour;
+    tm_value.tm_min = minute;
+    tm_value.tm_sec = second;
+    tm_value.tm_isdst = -1;
+    return (long long)mktime(&tm_value);
+}
+
+static int
+parse_legacy_session_filename(const char *filename, int *year, int *month, int *day,
+                              int *hour, int *minute, int *second)
+{
+    const char *p;
+
+    if(filename == NULL)
+        return 0;
+    for(p = filename; *p != '\0'; p++) {
+        if(sscanf(p, "sessions/%4d/%2d/%2d/inbe-%2d%2d%2d",
+                  year, month, day, hour, minute, second) == 6)
+            return 1;
+        if(sscanf(p, "%4d/%2d/%2d/inbe-%2d%2d%2d",
+                  year, month, day, hour, minute, second) == 6)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+import_legacy_session_bytes(const char *name, const char *bytes, size_t size)
+{
+    int year;
+    int month;
+    int day;
+    int hour;
+    int minute;
+    int second;
+    int rounds[MaxRounds];
+    int round_count;
+    int local_date;
+    long long started_at;
+
+    if(!parse_legacy_session_filename(name, &year, &month, &day, &hour, &minute, &second))
+        return 0;
+    round_count = parse_legacy_rounds(bytes, size, rounds, MaxRounds);
+    if(round_count <= 0) {
+        TraceLog(LOG_WARNING, "DATA: legacy import ignored empty session %s", name);
+        return 0;
+    }
+    local_date = year * 10000 + month * 100 + day;
+    started_at = legacy_session_started_at(year, month, day, hour, minute, second);
+    if(started_at <= 0) {
+        TraceLog(LOG_WARNING, "DATA: legacy import invalid date in %s", name);
+        return 0;
+    }
+    return insert_session_at_ex(started_at, local_date, rounds, round_count,
+                                0, 0, "legacy-file-import", NULL, 0);
+}
+
+static int
+import_legacy_session_zip(mz_zip_archive *archive)
+{
+    mz_uint file_count;
+    int imported = 0;
+
+    if(archive == NULL)
+        return 0;
+    file_count = mz_zip_reader_get_num_files(archive);
+    TraceLog(LOG_INFO, "DATA: checking legacy session archive with %u files", file_count);
+    for(mz_uint i = 0; i < file_count; i++) {
+        mz_zip_archive_file_stat stat;
+        int year;
+        int month;
+        int day;
+        int hour;
+        int minute;
+        int second;
+        size_t text_size = 0;
+        char *text;
+
+        if(!mz_zip_reader_file_stat(archive, i, &stat))
+            continue;
+        if(stat.m_is_directory)
+            continue;
+        if(!parse_legacy_session_filename(stat.m_filename,
+                                          &year, &month, &day,
+                                          &hour, &minute, &second))
+            continue;
+
+        text = mz_zip_reader_extract_to_heap(archive, i, &text_size, 0);
+        if(text == NULL) {
+            TraceLog(LOG_WARNING, "DATA: legacy import failed to extract %s", stat.m_filename);
+            continue;
+        }
+        if(import_legacy_session_bytes(stat.m_filename, text, text_size))
+            imported++;
+        free(text);
+    }
+    if(imported > 0)
+        TraceLog(LOG_INFO, "DATA: imported %d legacy sessions", imported);
+    else
+        TraceLog(LOG_WARNING, "DATA: no legacy sessions found in archive");
+    return imported > 0;
+}
+
+static char *
+read_file_heap(const char *path, size_t *out_size)
+{
+    FILE *fp;
+    long size;
+    char *buf;
+
+    if(out_size != NULL)
+        *out_size = 0;
+    if(path == NULL || path[0] == '\0')
+        return NULL;
+    fp = fopen(path, "rb");
+    if(fp == NULL)
+        return NULL;
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    if(size <= 0) {
+        fclose(fp);
+        return NULL;
+    }
+    buf = malloc((size_t)size);
+    if(buf == NULL) {
+        fclose(fp);
+        return NULL;
+    }
+    if(fread(buf, 1, (size_t)size, fp) != (size_t)size) {
+        free(buf);
+        fclose(fp);
+        return NULL;
+    }
+    fclose(fp);
+    if(out_size != NULL)
+        *out_size = (size_t)size;
+    return buf;
+}
+
+static int
+migrate_legacy_file_sessions_in_dir(const char *dir_path)
+{
+    DIR *dir;
+    struct dirent *entry;
+    int imported = 0;
+
+    if(dir_path == NULL || dir_path[0] == '\0')
+        return 0;
+    dir = opendir(dir_path);
+    if(dir == NULL)
+        return 0;
+    while((entry = readdir(dir)) != NULL) {
+        char child[INBE_STORAGE_PATH_SIZE];
+        struct stat st;
+
+        if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+        snprintf(child, sizeof(child), "%s/%s", dir_path, entry->d_name);
+        if(stat(child, &st) != 0)
+            continue;
+        if(S_ISDIR(st.st_mode)) {
+            imported += migrate_legacy_file_sessions_in_dir(child);
+        } else if(S_ISREG(st.st_mode)) {
+            int year;
+            int month;
+            int day;
+            int hour;
+            int minute;
+            int second;
+            if(parse_legacy_session_filename(child, &year, &month, &day,
+                                             &hour, &minute, &second)) {
+                size_t size = 0;
+                char *bytes = read_file_heap(child, &size);
+                if(bytes != NULL) {
+                    if(import_legacy_session_bytes(child, bytes, size))
+                        imported++;
+                    free(bytes);
+                } else {
+                    TraceLog(LOG_WARNING, "DATA: legacy file migration could not read %s", child);
+                }
+            }
+        }
+    }
+    closedir(dir);
+    return imported;
+}
+
+static void
+migrate_legacy_file_sessions_once(void)
+{
+    int imported;
+
+    if(g_storage.db == NULL || g_storage.root[0] == '\0')
+        return;
+    if(meta_equals("legacy_file_sessions_migrated", "1"))
+        return;
+    TraceLog(LOG_INFO, "DATA: checking for legacy session files in %s", g_storage.root);
+    imported = migrate_legacy_file_sessions_in_dir(g_storage.root);
+    if(imported > 0)
+        TraceLog(LOG_INFO, "DATA: migrated %d legacy file sessions", imported);
+    else
+        TraceLog(LOG_INFO, "DATA: no legacy file sessions found");
+    set_meta("legacy_file_sessions_migrated", "1");
+    storage_schedule_persist();
+}
+
+static int
 import_tickmate_db(sqlite3 *src)
 {
     sqlite3_stmt *stmt = NULL;
@@ -1127,12 +1371,16 @@ import_sqlite_db_file(const char *db_path)
 
     if(db_path == NULL || db_path[0] == '\0')
         return 0;
-    if(sqlite3_open(db_path, &src) != SQLITE_OK)
+    if(sqlite3_open(db_path, &src) != SQLITE_OK) {
+        TraceLog(LOG_WARNING, "DATA: sqlite import could not open %s", db_path);
         goto done;
+    }
     if(sqlite3_prepare_v2(src,
                           "SELECT id,started_at,local_date,topic,activity,source FROM sessions WHERE deleted_at=0",
-                          -1, &stmt, NULL) != SQLITE_OK)
+                          -1, &stmt, NULL) != SQLITE_OK) {
+        TraceLog(LOG_INFO, "DATA: sqlite import is not new Inbe schema, trying Tickmate");
         goto try_tickmate;
+    }
 
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         sqlite3_stmt *rstmt = NULL;
@@ -1221,6 +1469,8 @@ try_tickmate:
     sqlite3_finalize(stmt);
     stmt = NULL;
     ok = import_tickmate_db(src);
+    if(!ok)
+        TraceLog(LOG_WARNING, "DATA: sqlite import was neither Inbe nor supported Tickmate schema");
 
 done:
     sqlite3_finalize(stmt);
@@ -1238,11 +1488,20 @@ inbe_storage_import_zip(const char *path)
     mz_zip_archive archive;
     int ok = 0;
 
-    if(path == NULL || path[0] == '\0' || !path_exists(path))
+    if(path == NULL || path[0] == '\0') {
+        TraceLog(LOG_ERROR, "DATA: import path is empty");
         return 0;
+    }
+    if(!path_exists(path)) {
+        TraceLog(LOG_ERROR, "DATA: import path does not exist: %s", path);
+        return 0;
+    }
+    TraceLog(LOG_INFO, "DATA: importing %s", path);
     memset(&archive, 0, sizeof(archive));
-    if(!mz_zip_reader_init_file(&archive, path, 0))
+    if(!mz_zip_reader_init_file(&archive, path, 0)) {
+        TraceLog(LOG_INFO, "DATA: import is not a zip archive, trying sqlite db");
         return import_sqlite_db_file(path);
+    }
     if(mz_zip_reader_locate_file(&archive, "inbe-data/inbe.db", NULL, 0) >= 0) {
         char *db_bytes;
         size_t db_size = 0;
@@ -1256,12 +1515,23 @@ inbe_storage_import_zip(const char *path)
             fp = NULL;
             ok = import_sqlite_db_file(temp_path);
             remove(temp_path);
+            if(ok)
+                TraceLog(LOG_INFO, "DATA: imported sqlite archive");
+            else
+                TraceLog(LOG_ERROR, "DATA: archive contained inbe-data/inbe.db but sqlite import failed");
+        } else {
+            TraceLog(LOG_ERROR, "DATA: failed to extract inbe-data/inbe.db from archive");
         }
         if(fp != NULL)
             fclose(fp);
         free(db_bytes);
+    } else {
+        TraceLog(LOG_INFO, "DATA: archive has no inbe-data/inbe.db, trying legacy sessions");
+        ok = import_legacy_session_zip(&archive);
     }
     mz_zip_reader_end(&archive);
+    if(!ok)
+        TraceLog(LOG_ERROR, "DATA: import failed for %s", path);
     return ok;
 }
 
@@ -1279,6 +1549,7 @@ inbe_storage_init(const char *root)
     }
     if(!schema_create() || !migrate_schema() || !load_or_create_user())
         return 0;
+    migrate_legacy_file_sessions_once();
     return 1;
 }
 

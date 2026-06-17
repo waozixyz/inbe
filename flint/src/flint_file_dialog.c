@@ -522,6 +522,7 @@ static void render_buttons(FlintFileDialog *dlg, Rectangle dialog_rect) {
 
 static void render_file_dialog(FlintFileDialog *dlg, Vector2 screen_size) {
     FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
+    Color bg_color;
 
     /* Use exact application width and height */
     internal->dialog_width = (int)screen_size.x;
@@ -534,13 +535,9 @@ static void render_file_dialog(FlintFileDialog *dlg, Vector2 screen_size) {
         screen_size.y
     };
 
-    DrawRectangle(0, 0, screen_size.x, screen_size.y, (Color){0, 0, 0, 180});
-
-    Color bg_color = dialog_theme_get("background");
+    bg_color = dialog_theme_get("background");
+    bg_color.a = 255;
     DrawRectangleRec(dialog_rect, bg_color);
-
-    Color border_color = flint_darken(bg_color, 30);
-    DrawRectangleLinesEx(dialog_rect, 2, border_color);
 
     render_header(dlg, dialog_rect);
     render_breadcrumb(dlg, dialog_rect);
@@ -746,23 +743,22 @@ static int
 run_dialog(FlintFileDialog *dlg)
 {
     while(dlg->active && !WindowShouldClose()) {
+        Color bg = dialog_theme_get("background");
+        bg.a = 255;
         BeginDrawing();
-        ClearBackground(RAYWHITE);
-
-        Vector2 screen_size = {(float)GetScreenWidth(), (float)GetScreenHeight()};
-        render_file_dialog(dlg, screen_size);
-
-        handle_mouse_input(dlg);
-        handle_keyboard_input(dlg);
-
+        ClearBackground(bg);
+        flint_file_dialog_update(dlg);
         EndDrawing();
     }
     return dlg->confirmed;
 }
 
-int flint_file_dialog_load(FlintFileDialog *dlg, const char *title) {
-    if(!dlg || !title) return 0;
+void
+flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
+{
+    FlintFileDialogInternal *internal;
 
+    if(!dlg || !title) return;
     flint_file_dialog_init(dlg);
     dlg->mode = FLINT_FILE_DIALOG_LOAD;
     copy_text(dlg->title, sizeof(dlg->title), title);
@@ -770,20 +766,27 @@ int flint_file_dialog_load(FlintFileDialog *dlg, const char *title) {
     dlg->active = 1;
     dlg->confirmed = 0;
 
-    FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
+    internal = (FlintFileDialogInternal *)dlg->_internal;
     copy_text(internal->extension_filter, sizeof(internal->extension_filter), dlg->filter);
     scan_directory(internal);
     internal->filename_input[0] = '\0';
     internal->selected_file[0] = '\0';
     internal->hover_index = 0;
     internal->focus_area = 0;
+}
 
+int flint_file_dialog_load(FlintFileDialog *dlg, const char *title) {
+    if(!dlg || !title) return 0;
+    flint_file_dialog_begin_load(dlg, title);
     return run_dialog(dlg);
 }
 
-int flint_file_dialog_save(FlintFileDialog *dlg, const char *title, const char *default_filename) {
-    if(!dlg || !title || !default_filename) return 0;
+void
+flint_file_dialog_begin_save(FlintFileDialog *dlg, const char *title, const char *default_filename)
+{
+    FlintFileDialogInternal *internal;
 
+    if(!dlg || !title || !default_filename) return;
     flint_file_dialog_init(dlg);
     dlg->mode = FLINT_FILE_DIALOG_SAVE;
     copy_text(dlg->title, sizeof(dlg->title), title);
@@ -792,12 +795,36 @@ int flint_file_dialog_save(FlintFileDialog *dlg, const char *title, const char *
     dlg->active = 1;
     dlg->confirmed = 0;
 
-    FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
+    internal = (FlintFileDialogInternal *)dlg->_internal;
     copy_text(internal->filename_input, sizeof(internal->filename_input), default_filename);
     copy_text(internal->selected_file, sizeof(internal->selected_file), default_filename);
     internal->focus_area = 2;
+}
 
+int flint_file_dialog_save(FlintFileDialog *dlg, const char *title, const char *default_filename) {
+    if(!dlg || !title || !default_filename) return 0;
+    flint_file_dialog_begin_save(dlg, title, default_filename);
     return run_dialog(dlg);
+}
+
+int
+flint_file_dialog_update(FlintFileDialog *dlg)
+{
+    Vector2 screen_size;
+
+    if(dlg == NULL)
+        return 0;
+    if(!dlg->active)
+        return dlg->confirmed ? 1 : 0;
+
+    screen_size = (Vector2){(float)GetScreenWidth(), (float)GetScreenHeight()};
+    render_file_dialog(dlg, screen_size);
+    handle_mouse_input(dlg);
+    handle_keyboard_input(dlg);
+
+    if(dlg->active)
+        return -1;
+    return dlg->confirmed ? 1 : 0;
 }
 
 int flint_file_dialog_select_folder(FlintFileDialog *dlg, const char *title) {

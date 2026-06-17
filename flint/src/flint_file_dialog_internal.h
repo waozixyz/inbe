@@ -3,7 +3,12 @@
 
 #include "flint_file_dialog.h"
 #include <dirent.h>
+#include <limits.h>
 #include <sys/stat.h>
+
+#ifndef PATH_MAX
+#define PATH_MAX 4096
+#endif
 
 #define FILE_DIALOG_ITEM_HEIGHT 28
 

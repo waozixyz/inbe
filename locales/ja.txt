@@ -184,9 +184,6 @@
 [settings_tab_about]
 情報
 ---
-[settings_section_about]
-情報
----
 
 [theme_label]
 テーマ
@@ -205,6 +202,15 @@
 ---
 [modify_start_speed_button]
 開始速度を変更
+---
+[breath_animation_label]
+Breathing animation
+---
+[breath_animation_linear]
+Linear
+---
+[breath_animation_in_out]
+In / Out
 ---
 [progressive_start_speed_editor_title]
 開始速度
@@ -255,12 +261,6 @@
 近日公開...
 ---
 
-[data_management_label]
-データ管理
----
-[data_management_button]
-データ管理
----
 [total_sessions_label]
 総セッション数：%d
 ---
@@ -323,14 +323,6 @@ Delete cancelled
 ---
 [deleted_sessions]
 Deleted %lld sessions
----
-[version_label]
-バージョン %s
----
-[about_description]
-Inner Breeze は、気持ちを落ち着かせて
-リラックスするためのシンプルな
-呼吸瞑想アプリです。
 ---
 [toggle_off]
 OFF

@@ -8,6 +8,7 @@ ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 CC ?= gcc
 GRADLE ?= gradle
 ARCH := $(shell uname -m)
+ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
 
 BUILD_DIR := build
 BUILD_OBJ_DIR := $(BUILD_DIR)/obj
@@ -16,9 +17,11 @@ BUILD_DIST_DIR := $(BUILD_DIR)/dist
 LINUX_OBJ_DIR := $(BUILD_OBJ_DIR)/linux
 LINUX_BIN_DIR := $(BUILD_BIN_DIR)/linux
 LINUX_DIST_DIR := $(BUILD_DIST_DIR)/linux
-LINUX_STATIC_OBJ_DIR := $(BUILD_OBJ_DIR)/linux-static
-LINUX_STATIC_BIN_DIR := $(BUILD_BIN_DIR)/linux-static
 LINUX_APPDIR := $(LINUX_DIST_DIR)/$(APP_NAME).AppDir
+LINUX_APPIMAGE_DIR := packaging/linux/appimage
+LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
+LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
+LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
@@ -26,13 +29,6 @@ WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 RAYLIB_DIR := vendor/raylib/src
 RAYLIB_BUILD_DIR := $(LINUX_OBJ_DIR)/$(ARCH)/native/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
-STATIC_ARCH ?= x86_64
-STATIC_TRIPLE ?= x86_64-unknown-linux-musl
-STATIC_CC ?= $(STATIC_TRIPLE)-gcc
-STATIC_AR ?= $(STATIC_TRIPLE)-ar
-STATIC_RANLIB ?= $(STATIC_TRIPLE)-ranlib
-STATIC_RAYLIB_BUILD_DIR := $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib
-STATIC_RAYLIB_A := $(STATIC_RAYLIB_BUILD_DIR)/libraylib.a
 WEB_RAYLIB_BUILD_DIR := $(WEB_OBJ_DIR)/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(wildcard $(RAYLIB_DIR)/*.c) $(wildcard $(RAYLIB_DIR)/*.h)
@@ -97,16 +93,10 @@ APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 LDFLAGS := -Wl,--gc-sections -s
-STATIC_CFLAGS ?= -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
-STATIC_LDFLAGS ?= -static -Wl,--gc-sections -s
-STATIC_RAY_CFLAGS ?=
-STATIC_RAY_LDLIBS ?= -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm
 
 BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
 TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
-STATIC_BINARY_NAME := $(APP_NAME)-linux-static-$(STATIC_ARCH)
-STATIC_TARGET := $(LINUX_STATIC_BIN_DIR)/$(STATIC_BINARY_NAME)
-APPIMAGE_NAME := $(APP_NAME)-linux-$(STATIC_ARCH).AppImage
+APPIMAGE_NAME := $(APP_NAME)-linux-$(ARCH).AppImage
 APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
 LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
@@ -117,19 +107,30 @@ WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test dist appimage linux-static linux-static-check clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
+.PHONY: all native run test dist appimage clean clean-linux clean-raylib android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows web
 
 all: native
 
 native: $(TARGET)
 
-linux-static: $(STATIC_TARGET)
-
-linux-static-check: $(STATIC_TARGET)
-	file $(STATIC_TARGET)
-	ldd $(STATIC_TARGET) || true
-
-dist: appimage
+dist:
+	@password="$(PASSWORD)"; \
+	if [ -z "$$password" ]; then \
+		printf "Android release keystore password: "; \
+		stty -echo; \
+		read password; \
+		stty echo; \
+		printf "\n"; \
+	fi; \
+	if [ -z "$$password" ]; then \
+		echo "Set PASSWORD=your-keystore-password for release builds"; \
+		exit 1; \
+	fi; \
+	$(MAKE) package-unpackaged-assets && \
+	$(MAKE) web && \
+	$(MAKE) appimage && \
+	$(MAKE) android-release PASSWORD="$$password" && \
+	$(MAKE) android-bundle PASSWORD="$$password"
 
 appimage: $(APPIMAGE_TARGET)
 
@@ -154,7 +155,7 @@ $(FLINT_TEXT_SCALING_TEST): tests/flint_text_scaling_test.c flint/src/flint_text
 		tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c \
 		-Wl,--gc-sections -lm
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_STATIC_BIN_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
 	mkdir -p $@
 
 assets/fonts:
@@ -189,24 +190,6 @@ $(RAYLIB_A): $(RAYLIB_SOURCES)
 		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
 		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
-$(STATIC_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src
-	mkdir -p $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src $(STATIC_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(LINUX_STATIC_OBJ_DIR)/$(STATIC_ARCH)/raylib-src \
-		PLATFORM=PLATFORM_DESKTOP_RGFW \
-		GRAPHICS=GRAPHICS_API_OPENGL_SOFTWARE \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		RGFW_LINUX_ENABLE_X11=TRUE \
-		RGFW_LINUX_ENABLE_WAYLAND=FALSE \
-		CC="$(STATIC_CC)" \
-		AR="$(STATIC_AR)" \
-		RANLIB="$(STATIC_RANLIB)" \
-		CUSTOM_CFLAGS="$(STATIC_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
 	rm -rf $(WEB_OBJ_DIR)/raylib-src
@@ -247,35 +230,31 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 
-$(STATIC_TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(STATIC_RAYLIB_A) | $(LINUX_STATIC_BIN_DIR)
-	$(STATIC_CC) $(STATIC_CFLAGS) \
-		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
-		$(SQLITE_INCLUDE) \
-		-I$(RAYLIB_DIR) \
-		$(STATIC_RAY_CFLAGS) \
-		-DSUPPORT_MODULE_RAUDIO=1 \
-		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-DSUPPORT_FILEFORMAT_MP3=1 \
-		-o $@ \
-		$(SRC) \
-		$(FLINT_SRCS) \
-		$(SQLITE_SRC) \
-		$(STATIC_RAYLIB_A) \
-		$(STATIC_RAY_LDLIBS) \
-		-lm -lpthread -ldl -lrt \
-		$(STATIC_LDFLAGS)
-
-$(APPIMAGE_TARGET): $(STATIC_TARGET) web-assets/icons/icon-512x512.png | $(LINUX_DIST_DIR)
+$(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) | $(LINUX_DIST_DIR)
+	@command -v linuxdeploy-plugin-appimage >/dev/null || { \
+		echo "linuxdeploy-plugin-appimage is missing. Re-enter the flake shell with: nix develop"; \
+		exit 1; \
+	}
+	@command -v appimagetool >/dev/null || { \
+		echo "appimagetool is missing. Re-enter the flake shell with: nix develop"; \
+		exit 1; \
+	}
 	rm -rf $(LINUX_APPDIR)
+	rm -f $(LINUX_DIST_DIR)/*.AppImage
 	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps
-	cp $(STATIC_TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
-	cp web-assets/icons/icon-512x512.png $(LINUX_APPDIR)/$(APP_NAME).png
-	cp web-assets/icons/icon-512x512.png $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
-	printf '%s\n' '#!/bin/sh' 'exec "$$APPDIR/usr/bin/$(APP_NAME)" "$$@"' > $(LINUX_APPDIR)/AppRun
+	cp $(TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
+	cp $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPDIR)/AppRun
 	chmod +x $(LINUX_APPDIR)/AppRun
-	printf '%s\n' '[Desktop Entry]' 'Type=Application' 'Name=$(APP_TITLE)' 'Exec=$(APP_NAME)' 'Icon=$(APP_NAME)' 'Categories=Utility;' 'Terminal=false' > $(LINUX_APPDIR)/$(APP_NAME).desktop
-	cd $(LINUX_DIST_DIR) && ARCH=$(STATIC_ARCH) OUTPUT=appimage $(LINUXDEPLOY) --appdir $(APP_NAME).AppDir --output appimage
+	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
+	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/usr/share/applications/$(APP_NAME).desktop
+	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
+	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	cd $(LINUX_DIST_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(APPIMAGE_NAME) $(LINUXDEPLOY) \
+		--appdir $(APP_NAME).AppDir \
+		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
+		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \
+		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png) \
+		--output appimage
 	@found=$$(find $(LINUX_DIST_DIR) -maxdepth 1 -name '*.AppImage' ! -name '$(APPIMAGE_NAME)' | head -n 1); \
 	if [ -n "$$found" ]; then mv "$$found" $@; fi; \
 	test -f $@
@@ -319,7 +298,7 @@ android-debug: android-copy-assets
 
 android-release: android-copy-assets
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for release builds"; \
 		exit 1; \
@@ -328,7 +307,7 @@ android-release: android-copy-assets
 
 android-bundle: android-copy-assets
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for bundle builds"; \
 		exit 1; \
@@ -336,19 +315,43 @@ android-bundle: android-copy-assets
 	$(MAKE) android-copy-bundle
 
 android-copy-debug-apks: | $(ANDROID_BUILD_DIR)
-	@for apk in droid/app/build/outputs/apk/debug/*.apk; do \
-		if [ -f "$$apk" ]; then cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; fi; \
-	done
+	@found=0; \
+	for apk in droid/app/build/outputs/apk/debug/*.apk; do \
+		if [ -f "$$apk" ]; then \
+			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
+			found=1; \
+		fi; \
+	done; \
+	if [ "$$found" -eq 0 ]; then \
+		echo "No debug APKs were produced"; \
+		exit 1; \
+	fi
 
 android-copy-release-apks: | $(ANDROID_BUILD_DIR)
-	@for apk in droid/app/build/outputs/apk/release/*.apk; do \
-		if [ -f "$$apk" ]; then cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; fi; \
-	done
+	@found=0; \
+	for apk in droid/app/build/outputs/apk/release/*.apk; do \
+		if [ -f "$$apk" ]; then \
+			cp "$$apk" "$(ANDROID_BUILD_DIR)/$$(basename "$$apk")"; \
+			found=1; \
+		fi; \
+	done; \
+	if [ "$$found" -eq 0 ]; then \
+		echo "No release APKs were produced"; \
+		exit 1; \
+	fi
 
 android-copy-bundle: | $(ANDROID_BUILD_DIR)
-	@for bundle in droid/app/build/outputs/bundle/release/*.aab; do \
-		if [ -f "$$bundle" ]; then cp "$$bundle" "$(ANDROID_BUILD_DIR)/$$(basename "$$bundle")"; fi; \
-	done
+	@found=0; \
+	for bundle in droid/app/build/outputs/bundle/release/*.aab; do \
+		if [ -f "$$bundle" ]; then \
+			cp "$$bundle" "$(ANDROID_BUILD_DIR)/$$(basename "$$bundle")"; \
+			found=1; \
+		fi; \
+	done; \
+	if [ "$$found" -eq 0 ]; then \
+		echo "No release AAB was produced"; \
+		exit 1; \
+	fi
 
 android-install: android-debug
 	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
@@ -389,7 +392,7 @@ clean-linux:
 clean-raylib:
 	rm -rf $(RAYLIB_BUILD_DIR) $(LINUX_OBJ_DIR)/*/native/raylib-src vendor/raylib/build
 
-NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run,$(MAKECMDGOALS)),native)
+NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run dist appimage,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop')

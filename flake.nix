@@ -27,7 +27,6 @@
         let
           pkgs = mkPkgs system;
           aarch64Pkgs = pkgs.pkgsCross.aarch64-multiplatform;
-          staticPkgs = pkgs.pkgsStatic;
 
           windowsCrossEnabled = system == "x86_64-linux";
 
@@ -92,6 +91,66 @@
             mcfgthreads32
           ];
 
+          linuxdeployPluginAppImage = pkgs.stdenvNoCC.mkDerivation {
+            pname = "linuxdeploy-plugin-appimage";
+            version = "1-alpha-20250213-1";
+
+            src = pkgs.fetchurl {
+              url = "https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage";
+              hash = "sha256-mS1QKiSOFKsYVEjd9vbn0lVYy4TUYjw1TDrzUMJfzLM=";
+            };
+
+            dontUnpack = true;
+
+            installPhase = ''
+              runHook preInstall
+
+              cp "$src" linuxdeploy-plugin-appimage.AppImage
+              chmod +x linuxdeploy-plugin-appimage.AppImage
+              ./linuxdeploy-plugin-appimage.AppImage --appimage-extract >/dev/null
+
+              mkdir -p "$out/bin"
+              cp squashfs-root/AppRun "$out/bin/linuxdeploy-plugin-appimage"
+              chmod +x "$out/bin/linuxdeploy-plugin-appimage"
+
+              runHook postInstall
+            '';
+          };
+
+          appimagetool = pkgs.stdenvNoCC.mkDerivation {
+            pname = "appimagetool";
+            version = "continuous";
+
+            src = pkgs.fetchurl {
+              url = "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage";
+              hash = "sha256-uQ9KixiWdUX9p4pEWydoChZC8e+UiM7Si2U5jyvnrdI=";
+            };
+
+            extracted = pkgs.appimageTools.extract {
+              pname = "appimagetool";
+              version = "continuous";
+              src = pkgs.fetchurl {
+                url = "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage";
+                hash = "sha256-uQ9KixiWdUX9p4pEWydoChZC8e+UiM7Si2U5jyvnrdI=";
+              };
+            };
+
+            dontUnpack = true;
+
+            installPhase = ''
+              runHook preInstall
+
+              mkdir -p "$out/bin"
+              cat > "$out/bin/appimagetool" <<EOF
+#!${pkgs.runtimeShell}
+exec "$extracted/AppRun" "\$@"
+EOF
+              chmod +x "$out/bin/appimagetool"
+
+              runHook postInstall
+            '';
+          };
+
           windowsProfile = pkgs.lib.optionalString windowsCrossEnabled ''
             export WIN_CC="x86_64-w64-mingw32-gcc"
             export WIN_CXX="x86_64-w64-mingw32-g++"
@@ -136,7 +195,9 @@
               libgbm
               libglvnd
               libglvnd.dev
+              appimagetool
               linuxdeploy
+              linuxdeployPluginAppImage
               mesa
               ncurses
               ninja
@@ -144,18 +205,6 @@
               rsync
               zlib
               zip
-              staticPkgs.stdenv.cc
-              staticPkgs.libx11
-              staticPkgs.libxrandr
-              staticPkgs.libxinerama
-              staticPkgs.libxi
-              staticPkgs.libxcursor
-              staticPkgs.libxext
-              staticPkgs.libxfixes
-              staticPkgs.libxrender
-              staticPkgs.libxau
-              staticPkgs.libxdmcp
-              staticPkgs.libxcb
               aarch64Pkgs.stdenv.cc
               aarch64Pkgs.SDL2
               aarch64Pkgs.SDL2.dev
@@ -193,11 +242,6 @@
               export WEB_AR="emar"
               export WEB_RANLIB="emranlib"
 
-              export STATIC_CC="${staticPkgs.stdenv.cc}/bin/${staticPkgs.stdenv.cc.targetPrefix}cc"
-              export STATIC_AR="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ar"
-              export STATIC_RANLIB="${staticPkgs.stdenv.cc.bintools.bintools}/bin/${staticPkgs.stdenv.cc.targetPrefix}ranlib"
-              export STATIC_RAY_CFLAGS="-I${staticPkgs.libx11.dev}/include -I${staticPkgs.libxrandr.dev}/include -I${staticPkgs.libxinerama.dev}/include -I${staticPkgs.libxi.dev}/include -I${staticPkgs.libxcursor.dev}/include -I${staticPkgs.libxext.dev}/include -I${staticPkgs.libxfixes.dev}/include -I${staticPkgs.libxrender.dev}/include -I${staticPkgs.libxau.dev}/include -I${staticPkgs.libxdmcp.dev}/include -I${staticPkgs.libxcb.dev}/include -I${staticPkgs.xorgproto}/include"
-              export STATIC_RAY_LDLIBS="-L${staticPkgs.libx11}/lib -L${staticPkgs.libxrandr}/lib -L${staticPkgs.libxinerama}/lib -L${staticPkgs.libxi}/lib -L${staticPkgs.libxcursor}/lib -L${staticPkgs.libxext}/lib -L${staticPkgs.libxfixes}/lib -L${staticPkgs.libxrender}/lib -L${staticPkgs.libxau}/lib -L${staticPkgs.libxdmcp}/lib -L${staticPkgs.libxcb}/lib -lXcursor -lXrandr -lXinerama -lXi -lXfixes -lXrender -lXext -lX11 -lxcb -lXau -lXdmcp -lpthread -ldl -lrt -lm"
               export LINUXDEPLOY="linuxdeploy"
 
               export AARCH64_CC="${aarch64Pkgs.stdenv.cc}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}cc"

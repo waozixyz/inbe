@@ -16,6 +16,8 @@
 static int g_failures = 0;
 static int g_seen_topic = -1;
 static int g_seen_activity = -1;
+static int g_seen_round_count = -1;
+static int g_seen_first_round = -1;
 
 void
 data_init(void)
@@ -53,6 +55,19 @@ static void
 make_path(char *out, size_t out_size, const char *root, const char *leaf)
 {
     snprintf(out, out_size, "%s/%s", root, leaf);
+}
+
+static void
+make_nested_dir(const char *root, const char *a, const char *b, const char *c)
+{
+    char path[512];
+
+    make_path(path, sizeof(path), root, a);
+    check_true("create nested dir a", ensure_dir(path));
+    snprintf(path, sizeof(path), "%s/%s/%s", root, a, b);
+    check_true("create nested dir b", ensure_dir(path));
+    snprintf(path, sizeof(path), "%s/%s/%s/%s", root, a, b, c);
+    check_true("create nested dir c", ensure_dir(path));
 }
 
 static void
@@ -117,6 +132,26 @@ metadata_history_callback(const char *id, int year, int month, int day,
     (void)user;
     g_seen_topic = topic;
     g_seen_activity = activity;
+}
+
+static void
+legacy_history_callback(const char *id, int year, int month, int day,
+                        int hour, int minute, int second,
+                        int topic, int activity,
+                        const int *rounds, int round_count, void *user)
+{
+    (void)id;
+    (void)year;
+    (void)month;
+    (void)day;
+    (void)hour;
+    (void)minute;
+    (void)second;
+    (void)topic;
+    (void)activity;
+    (void)user;
+    g_seen_round_count = round_count;
+    g_seen_first_round = round_count > 0 ? rounds[0] : -1;
 }
 
 static void
@@ -195,6 +230,89 @@ test_zip_db_import(void)
 }
 
 static void
+write_legacy_zip(const char *path, const char *prefix)
+{
+    mz_zip_archive archive;
+    char archive_name[256];
+    const char rounds[] = "31\n35\n39\n27\n";
+
+    memset(&archive, 0, sizeof(archive));
+    snprintf(archive_name, sizeof(archive_name),
+             "%s/sessions/2026/06/13/inbe-010203", prefix);
+    check_true("create legacy zip", mz_zip_writer_init_file(&archive, path, 0));
+    check_true("add legacy metadata",
+               mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt",
+                                     "Legacy Inbe export\n", 19, MZ_NO_COMPRESSION));
+    check_true("add legacy session",
+               mz_zip_writer_add_mem(&archive, archive_name, rounds,
+                                     sizeof(rounds) - 1, MZ_BEST_COMPRESSION));
+    check_true("finalize legacy zip", mz_zip_writer_finalize_archive(&archive));
+    mz_zip_writer_end(&archive);
+}
+
+static void
+test_legacy_zip_import(void)
+{
+    char source[512], dest[512], zip_path[512];
+
+    make_clean_root(source, sizeof(source), "legacy-source");
+    make_clean_root(dest, sizeof(dest), "legacy-dest");
+    make_path(zip_path, sizeof(zip_path), source, "legacy.zip");
+    write_legacy_zip(zip_path, "custom-root");
+
+    check_true("init legacy import dest", inbe_storage_init(dest));
+    check_true("legacy zip import", inbe_storage_import_zip(zip_path));
+    check_int("legacy imported sessions", inbe_storage_session_count(), 1);
+    g_seen_round_count = -1;
+    g_seen_first_round = -1;
+    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    check_int("legacy round count", g_seen_round_count, 4);
+    check_int("legacy first round", g_seen_first_round, 31);
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+write_text_file(const char *path, const char *text)
+{
+    FILE *fp = fopen(path, "wb");
+
+    check_true("open text file", fp != NULL);
+    if(fp == NULL)
+        return;
+    check_true("write text file", fwrite(text, 1, strlen(text), fp) == strlen(text));
+    fclose(fp);
+}
+
+static void
+test_legacy_file_startup_migration(void)
+{
+    char root[512];
+    char session_path[512];
+
+    make_clean_root(root, sizeof(root), "legacy-files");
+    make_nested_dir(root, "2026", "06", "13");
+    make_path(session_path, sizeof(session_path), root, "2026/06/13/inbe-010203");
+    write_text_file(session_path, "31\n35\n39\n27\n");
+
+    check_true("init legacy file migration db", inbe_storage_init(root));
+    check_int("legacy file migrated sessions", inbe_storage_session_count(), 1);
+    g_seen_round_count = -1;
+    g_seen_first_round = -1;
+    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    check_int("legacy file round count", g_seen_round_count, 4);
+    check_int("legacy file first round", g_seen_first_round, 31);
+    inbe_storage_close();
+
+    check_true("reopen migrated db", inbe_storage_init(root));
+    check_int("legacy file migration one session", inbe_storage_session_count(), 1);
+    inbe_storage_close();
+    remove_tree(root);
+}
+
+static void
 write_tickmate_database(const char *path)
 {
     sqlite3 *db = NULL;
@@ -253,6 +371,8 @@ main(void)
 {
     test_raw_db_import();
     test_zip_db_import();
+    test_legacy_zip_import();
+    test_legacy_file_startup_migration();
     test_tickmate_db_import();
     test_session_metadata();
 

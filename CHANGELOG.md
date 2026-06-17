@@ -1,11 +1,10 @@
 # Changelog
 ## [1.3.0] - 2026-06-14
 ### Added
-- Habit tracking with default Mind, Yoga, and Fitness habits.
+- Implemented 1-bit habit tracker synced with practice data
 - Habit editing, custom colors, sync options, and deletion.
-- Practice tabs with configurable themes.
-### Changed
-- App theme now follows the active practice theme globally.
+- Add monochrome theme
+- Add simple meditation exercise with background music
 
 ## [1.2.6] - 2026-06-12
 ### Fixed
