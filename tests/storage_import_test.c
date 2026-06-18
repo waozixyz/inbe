@@ -160,6 +160,32 @@ write_source_database(const char *root)
 }
 
 static void
+insert_raw_habit_day(const char *root, const char *habit_id, int local_date, int completed)
+{
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open raw habit day db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return;
+    if(sqlite3_prepare_v2(db,
+                          "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
+                          "VALUES(?1,?2,?3,0)",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, habit_id, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 2, local_date);
+        sqlite3_bind_int(stmt, 3, completed ? 1 : 0);
+        check_true("insert raw habit day", sqlite3_step(stmt) == SQLITE_DONE);
+    } else {
+        check_true("prepare raw habit day", 0);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+}
+
+static void
 metadata_history_callback(const char *id, int year, int month, int day,
                           int hour, int minute, int second,
                           int topic, int activity,
@@ -332,6 +358,55 @@ test_habit_name_merge_import(void)
     check_true("habit merge cold shower exists", habit != NULL);
     check_true("habit merge cold shower day",
                habit != NULL && inbe_habit_completed_day(habit, 20260615));
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+test_import_conflict_prefers_data_over_empty(void)
+{
+    char source[512], dest[512], zip_path[512];
+    InbeHabits habits;
+    InbeHabit *habit;
+
+    make_clean_root(source, sizeof(source), "conflict-source");
+    make_clean_root(dest, sizeof(dest), "conflict-dest");
+    make_path(zip_path, sizeof(zip_path), source, "conflict-export.zip");
+
+    check_true("init conflict source", inbe_storage_init(source));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add conflict source habit",
+              inbe_habits_add_custom(&habits, "Meditation",
+                                      (Color){224, 124, 104, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_storage_set_setting_text("language", "");
+    inbe_storage_close();
+    insert_raw_habit_day(source, "habit-1", 20260618, 0);
+    check_true("reopen conflict source", inbe_storage_init(source));
+    check_true("conflict source export", inbe_storage_export_zip(zip_path));
+    inbe_storage_close();
+
+    check_true("init conflict dest", inbe_storage_init(dest));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add conflict dest habit",
+              inbe_habits_add_custom(&habits, "Meditation",
+                                      (Color){126, 183, 230, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_habit_set_day(&habits, 0, 20260618, 1);
+    inbe_storage_set_setting_text("language", "en");
+    check_true("conflict import",
+               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
+    memset(&habits, 0, sizeof(habits));
+    check_true("conflict habits load", inbe_storage_habits_load(&habits));
+    habit = find_habit_ci(&habits, "Meditation");
+    check_true("conflict keeps completed day",
+               habit != NULL && inbe_habit_completed_day(habit, 20260618));
+    check_str("conflict keeps non-empty setting",
+              inbe_storage_get_setting_text("language"), "en");
     inbe_storage_close();
 
     remove_tree(source);
@@ -615,6 +690,7 @@ main(void)
     test_raw_db_import();
     test_zip_db_import();
     test_habit_name_merge_import();
+    test_import_conflict_prefers_data_over_empty();
     test_import_modes_preserve_habits_and_settings_choice();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();

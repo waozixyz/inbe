@@ -1,4 +1,8 @@
 # Changelog
+## [1.3.5] - 2026-06-18
+### Fixed
+- Improved Android data import for `.db` backups, weekly habit rows, and import conflict handling.
+
 ## [1.3.4] - 2026-06-18
 ### Changed
 - Reorganized WHM and Meditation into practice-owned modules for cleaner code boundaries.
