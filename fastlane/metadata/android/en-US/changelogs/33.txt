@@ -1,0 +1,2 @@
+### Fixed
+- Improved Android data import for `.db` backups, weekly habit rows, and import conflict handling.

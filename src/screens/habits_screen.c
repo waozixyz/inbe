@@ -21,9 +21,10 @@ extern int view_width;
 extern int view_height;
 
 enum {
-    HABIT_WEEKLY_INITIAL_DAYS = 7,
-    HABIT_WEEKLY_LOAD_DAYS = 7,
-    HABIT_WEEKLY_MAX_DAYS = INBE_HABIT_MAX_DAYS
+    HABIT_WEEKLY_MONTH_DAYS = 31,
+    HABIT_WEEKLY_INITIAL_DAYS = HABIT_WEEKLY_MONTH_DAYS,
+    HABIT_WEEKLY_LOAD_DAYS = HABIT_WEEKLY_MONTH_DAYS,
+    HABIT_WEEKLY_MAX_DAYS = 36500
 };
 
 /* Helper functions */
@@ -43,13 +44,50 @@ copy_text(char *dst, size_t dst_size, const char *src)
 static int
 habit_find_day(const InbeHabit *habit, int day_index)
 {
-    if(habit == NULL)
+    if(habit == NULL || habit->days == NULL)
         return -1;
     for(int i = 0; i < habit->day_count; i++) {
         if(habit->days[i].day_index == day_index)
             return i;
     }
     return -1;
+}
+
+int
+inbe_habit_reserve_days(InbeHabit *habit, int capacity)
+{
+    InbeHabitDay *days;
+    int new_capacity;
+
+    if(habit == NULL || capacity <= habit->day_capacity)
+        return habit != NULL;
+    new_capacity = habit->day_capacity > 0 ? habit->day_capacity : 16;
+    while(new_capacity < capacity) {
+        if(new_capacity > 1073741823 / 2)
+            return 0;
+        new_capacity *= 2;
+    }
+    days = realloc(habit->days, (size_t)new_capacity * sizeof(*days));
+    if(days == NULL)
+        return 0;
+    memset(days + habit->day_capacity, 0,
+           (size_t)(new_capacity - habit->day_capacity) * sizeof(*days));
+    habit->days = days;
+    habit->day_capacity = new_capacity;
+    return 1;
+}
+
+void
+inbe_habits_free(InbeHabits *habits)
+{
+    if(habits == NULL)
+        return;
+    for(int i = 0; i < INBE_HABIT_MAX; i++) {
+        free(habits->items[i].days);
+        habits->items[i].days = NULL;
+        habits->items[i].day_count = 0;
+        habits->items[i].day_capacity = 0;
+    }
 }
 
 /* Core habits functions from habits.c */
@@ -96,7 +134,6 @@ inbe_habits_clear_days(InbeHabits *habits)
             if(habit->days[d].day_index > 0 || habit->days[d].completed)
                 cleared++;
         }
-        memset(habit->days, 0, sizeof(habit->days));
         habit->day_count = 0;
     }
     return cleared;
@@ -123,6 +160,7 @@ inbe_habits_add_default_set(InbeHabits *habits)
     if(habits == NULL)
         return;
 
+    inbe_habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     inbe_habits_add_seed(habits, "meditation", "Meditation", (Color){126, 183, 230, 255},
                          habit_activity_mask_for(EXERCISE_WIM_HOF) |
@@ -138,6 +176,7 @@ inbe_habits_delete(InbeHabits *habits, int index)
     if(habits == NULL || index < 0 || index >= habits->count)
         return;
 
+    free(habits->items[index].days);
     for(int i = index; i < habits->count - 1; i++)
         habits->items[i] = habits->items[i + 1];
     habits->count--;
@@ -232,7 +271,7 @@ inbe_habit_set_day(InbeHabits *habits, int index, int day_index, int completed)
     existing_index = habit_find_day(habit, day_index);
     if(existing_index >= 0) {
         habit->days[existing_index].completed = completed != 0;
-    } else if(completed && habit->day_count < INBE_HABIT_MAX_DAYS) {
+    } else if(completed && inbe_habit_reserve_days(habit, habit->day_count + 1)) {
         habit->days[habit->day_count].day_index = day_index;
         habit->days[habit->day_count].completed = 1;
         habit->day_count++;
@@ -254,7 +293,7 @@ inbe_habit_toggle_day(InbeHabits *habits, int index, int day_index)
     existing_index = habit_find_day(habit, day_index);
     if(existing_index >= 0) {
         habit->days[existing_index].completed = !habit->days[existing_index].completed;
-    } else if(habit->day_count < INBE_HABIT_MAX_DAYS) {
+    } else if(inbe_habit_reserve_days(habit, habit->day_count + 1)) {
         habit->days[habit->day_count].day_index = day_index;
         habit->days[habit->day_count].completed = 1;
         habit->day_count++;
@@ -771,6 +810,26 @@ draw_habit_link_dot(int x, int y, int w, Color color)
                flint_px(3), color);
 }
 
+static Color
+habit_text_color_for_background(Color background)
+{
+    int luma = background.r * 299 + background.g * 587 + background.b * 114;
+
+    return luma >= 128000 ? BLACK : WHITE;
+}
+
+static void
+habit_weekly_draw_text_line(const char *text, int x, int y, int w, int h,
+                            int text_size, Color color)
+{
+    int font_size;
+
+    if(text == NULL || text[0] == '\0' || w <= 0 || h <= 0)
+        return;
+    font_size = flint_px(text_size);
+    flint_text_draw(text, x, flint_text_y(text, y, h, font_size), font_size, color);
+}
+
 static int
 habit_weekly_summary(const HabitLinkedContext *ctx, int day_index,
                      char *primary, size_t primary_size,
@@ -821,8 +880,9 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     int hovered;
     Color fill = completed ? theme_get_button() : flint_darken(theme_get_bg(), 10);
     Color text = disabled ? flint_darken(theme_get_text(), 35) : theme_get_text();
-    int font = flint_ui_font();
-    int small_font = flint_px(FLINT_TEXT_8);
+    int pad = flint_px(9);
+    int text_x;
+    int text_w;
     const char *line1 = primary != NULL ? primary : "";
     const char *line2 = secondary != NULL ? secondary : "";
 
@@ -841,25 +901,28 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
 
     if(hovered)
         fill = theme_get_button_hover();
+    if(!disabled && completed)
+        text = habit_text_color_for_background(fill);
     DrawRectangle(x, y, w, h, fill);
     ui_draw_bevel(x, y, w, h, flint_lighten(fill, 36), flint_darken(fill, 42));
 
+    text_x = x + pad;
+    text_w = w - pad * 2;
+
     if(line1[0] != '\0') {
         if(line2[0] != '\0') {
-            flint_text_draw_fitted_in_rect(line1,
-                                           (Rectangle){x + flint_px(8), y + flint_px(5),
-                                                       w - flint_px(16), flint_px(18)},
-                                           font, FLINT_TEXT_12, text);
-            flint_text_draw_fitted_in_rect(line2,
-                                           (Rectangle){x + flint_px(8), y + flint_px(24),
-                                                       w - flint_px(16), flint_px(12)},
-                                           small_font, FLINT_TEXT_8,
-                                           flint_darken(text, 16));
+            int line1_h = flint_px(24);
+            int line2_h = flint_px(16);
+            int block_h = line1_h + line2_h;
+            int block_y = y + (h - block_h) / 2;
+            habit_weekly_draw_text_line(line1, text_x, block_y, text_w, line1_h,
+                                        FLINT_TEXT_16, text);
+            habit_weekly_draw_text_line(line2, text_x, block_y + line1_h, text_w, line2_h,
+                                        FLINT_TEXT_8, flint_darken(text, 16));
         } else {
-            flint_text_draw_fitted_in_rect(line1,
-                                           (Rectangle){x + flint_px(8), y,
-                                                       w - flint_px(16), h},
-                                           font, FLINT_TEXT_16, text);
+            habit_weekly_draw_text_line(line1, text_x, y + flint_px(3),
+                                        text_w, h - flint_px(6),
+                                        FLINT_TEXT_16, text);
         }
     }
 
@@ -883,7 +946,7 @@ habit_weekly_visible_days(InbeHabits *habits)
 static int
 habit_weekly_content_height(int visible_days)
 {
-    int row_h = flint_px(40);
+    int row_h = flint_px(44);
     int row_gap = flint_px(6);
     int load_h = flint_px(38);
 
@@ -908,7 +971,7 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
     int gap = flint_px(8);
     int button_x;
     int button_w;
-    int row_h = flint_px(40);
+    int row_h = flint_px(44);
     int row_gap = flint_px(6);
     int day_font = flint_px(16);
     int date_font = flint_px(FLINT_TEXT_8);

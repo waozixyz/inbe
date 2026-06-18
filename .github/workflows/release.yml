@@ -51,7 +51,15 @@ jobs:
           sudo apt-get install -y build-essential zlib1g-dev zip
 
       - name: Set up Emscripten
-        uses: emscripten-core/emsdk@v2
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install latest
+          "$HOME/emsdk/emsdk" activate latest
+          echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
+          echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
+          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
 
       - name: Build Web ZIP
         run: |
@@ -72,6 +80,8 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
 
     steps:
       - name: Checkout Repository
@@ -80,22 +90,24 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install Linux Dependencies
         run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            ca-certificates \
-            curl \
-            libcurl4-openssl-dev \
-            libdrm-dev \
-            libegl1-mesa-dev \
-            libgbm-dev \
-            libgles2-mesa-dev \
-            libsdl2-dev \
-            patchelf \
-            pkg-config \
-            zip
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
 
       - name: Install AppImage Tools
         run: |
@@ -116,10 +128,11 @@ jobs:
           RAY_RAYLIB_CONFIG: -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
         run: |
           set -euo pipefail
-          export RAY_SDL_INCLUDE_DIR="$(pkg-config --variable=includedir sdl2 | sed 's,/SDL2$,,')"
-          export RAY_CFLAGS="$(pkg-config --cflags sdl2 libdrm gbm egl glesv2)"
-          export RAY_LDLIBS="$(pkg-config --libs sdl2 libdrm gbm egl glesv2)"
-          export RAY_SDL_LDLIBS="$(pkg-config --libs sdl2)"
+          RAY_SDL_INCLUDE_DIR="$(pkg-config --variable=includedir sdl2 | sed 's,/SDL2$,,')"
+          RAY_CFLAGS="$(pkg-config --cflags sdl2 libdrm gbm egl glesv2)"
+          RAY_LDLIBS="$(pkg-config --libs sdl2 libdrm gbm egl glesv2)"
+          RAY_SDL_LDLIBS="$(pkg-config --libs sdl2)"
+          export RAY_SDL_INCLUDE_DIR RAY_CFLAGS RAY_LDLIBS RAY_SDL_LDLIBS
           make appimage
           mkdir -p build/release/linux
           find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
@@ -198,7 +211,10 @@ jobs:
 
       - name: Install Android SDK Components
         run: |
-          sdkmanager "platforms;android-35" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
+          set -euo pipefail
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" "platforms;android-35" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
 
       - name: Prepare Android signing key
         env:
@@ -225,26 +241,16 @@ jobs:
             --stacktrace
           make android-copy-release-apks
 
-      - name: Build Android AAB
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          set -euo pipefail
-          chmod +x droid/gradlew
-          ./droid/gradlew -p droid bundleRelease \
-            -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
-            -Pkeystore.alias="$KEY_ALIAS" \
-            -Pkeystore.password="$KEYSTORE_PASSWORD" \
-            --stacktrace
-          make android-copy-bundle
-
       - name: Collect Android Release Files
         run: |
           set -euo pipefail
           mkdir -p build/release/android
-          find build/android -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/android/ \;
-          test -n "$(find build/release/android -type f -print -quit)"
+          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read INBE_VERSION_STRING"
+            exit 1
+          fi
+          cp "build/android/inbe-$VERSION.apk" build/release/android/
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
