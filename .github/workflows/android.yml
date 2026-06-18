@@ -12,6 +12,10 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   test:
     name: Test
@@ -26,6 +30,9 @@ jobs:
 
       - name: Install Nix
         uses: cachix/install-nix-action@v27
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
 
       - name: Run Tests
         run: nix develop --command make test
@@ -45,6 +52,9 @@ jobs:
 
       - name: Install Nix
         uses: cachix/install-nix-action@v27
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
 
       - name: Set up JDK 21
         uses: actions/setup-java@v4
