@@ -1,10 +1,7 @@
-name: Build
+name: Release
 
 on:
   push:
-    branches:
-      - master
-  pull_request:
     branches:
       - master
   workflow_dispatch:
@@ -37,23 +34,109 @@ jobs:
       - name: Run Tests
         run: nix develop --command make test
 
-  build:
-    name: Build ${{ matrix.name }}
+  build-web:
+    name: Build Web
     runs-on: ubuntu-latest
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
-    strategy:
-      fail-fast: true
-      matrix:
-        include:
-          - platform: web
-            name: Web ZIP
-          - platform: linux
-            name: Linux AppImage
-          - platform: windows
-            name: Windows ZIP
-          - platform: android
-            name: Android APK and AAB
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build Web ZIP
+        run: |
+          set -euo pipefail
+          nix develop --command make package-unpackaged-assets
+          nix develop --command make web
+          mkdir -p build/release/web
+          cp build/dist/inbe-web.zip build/release/web/
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-web
+          path: build/release/web/*
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build Linux AppImage
+        run: |
+          set -euo pipefail
+          nix develop --command make appimage
+          mkdir -p build/release/linux
+          find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -type f -print -quit)"
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+
+      - name: Cache Nix Store
+        uses: DeterminateSystems/magic-nix-cache-action@v8
+
+      - name: Build Windows ZIP
+        run: |
+          set -euo pipefail
+          nix develop --command make windows
+          mkdir -p build/release/windows
+          find build/dist/windows -maxdepth 1 -type f -name '*.zip' -exec cp {} build/release/windows/ \;
+          test -n "$(find build/release/windows -type f -print -quit)"
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: build/release/windows/*
+          if-no-files-found: error
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
 
     steps:
       - name: Checkout Repository
@@ -69,18 +152,15 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v8
 
       - name: Set up JDK 21
-        if: matrix.platform == 'android'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Setup Gradle
-        if: matrix.platform == 'android'
         uses: gradle/actions/setup-gradle@v3
 
       - name: Prepare Android signing key
-        if: matrix.platform == 'android'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -88,39 +168,10 @@ jobs:
           mkdir -p ~/.android
           echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
 
-      - name: Build Web ZIP
-        if: matrix.platform == 'web'
-        run: |
-          set -euo pipefail
-          nix develop --command make package-unpackaged-assets
-          nix develop --command make web
-          mkdir -p build/release/web
-          cp build/dist/inbe-web.zip build/release/web/
-
-      - name: Build Linux AppImage
-        if: matrix.platform == 'linux'
-        run: |
-          set -euo pipefail
-          nix develop --command make appimage
-          mkdir -p build/release/linux
-          find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
-          test -n "$(find build/release/linux -type f -print -quit)"
-
-      - name: Build Windows ZIP
-        if: matrix.platform == 'windows'
-        run: |
-          set -euo pipefail
-          nix develop --command make windows
-          mkdir -p build/release/windows
-          find build/dist/windows -maxdepth 1 -type f -name '*.zip' -exec cp {} build/release/windows/ \;
-          test -n "$(find build/release/windows -type f -print -quit)"
-
       - name: Copy Android Assets
-        if: matrix.platform == 'android'
         run: ./scripts/copy-android-assets.sh
 
       - name: Build Android APK
-        if: matrix.platform == 'android'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -135,7 +186,6 @@ jobs:
           make android-copy-release-apks
 
       - name: Build Android AAB
-        if: matrix.platform == 'android'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -150,25 +200,27 @@ jobs:
           make android-copy-bundle
 
       - name: Collect Android Release Files
-        if: matrix.platform == 'android'
         run: |
           set -euo pipefail
           mkdir -p build/release/android
           find build/android -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/android/ \;
           test -n "$(find build/release/android -type f -print -quit)"
 
-      - name: Upload Release Artifacts
+      - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-${{ matrix.platform }}
-          path: build/release/${{ matrix.platform }}/*
+          name: release-android
+          path: build/release/android/*
           if-no-files-found: error
 
   release:
     name: Release
     runs-on: ubuntu-latest
-    needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs:
+      - build-web
+      - build-linux
+      - build-windows
+      - build-android
 
     steps:
       - name: Checkout Repository
