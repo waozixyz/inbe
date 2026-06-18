@@ -40,8 +40,11 @@ Meditace
 [meditation_manual_title]
 Meditace
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-Vyberte hudbu, pokud pomáhá sezení zklidnit, a pohodlně se posaďte. Nechte pozornost spočinout na dechu. Když vás myšlenky odvedou, jasně si toho všimněte a vraťte se bez úsilí. Gong označí začátek i konec.
+Vyberte hudbu, pokud chcete. Gong oznaci zacatek a konec.
 ---
 [meditation_music_settings_title]
 Meditační hudba

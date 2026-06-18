@@ -1,4 +1,4 @@
-#include "session.h"
+#include "whm_session.h"
 
 #include "data.h"
 #include "locale.h"
@@ -156,25 +156,6 @@ remember_sound_state(InbeApp *app)
     cpcount(app->sound_last_count, app->inbe.count);
 }
 
-static void
-play_app_sound(InbeApp *app, Sound sound, float scale)
-{
-    float volume;
-
-    if(app == NULL || !app->audio_ready || sound.frameCount == 0 || app->sound_volume <= 0)
-        return;
-
-    volume = ((float)app->sound_volume / 100.0f) * scale;
-    if(volume < 0.0f)
-        volume = 0.0f;
-    if(volume > 1.0f)
-        volume = 1.0f;
-
-    StopSound(sound);
-    SetSoundVolume(sound, volume);
-    PlaySound(sound);
-}
-
 void
 update_session_sounds(InbeApp *app)
 {
@@ -197,17 +178,17 @@ update_session_sounds(InbeApp *app)
     if(app->inbe.phase == InbePhaseBreathe) {
         if(screen_changed || phase_changed || dir_changed) {
             Sound breath_snd = app->inbe.dir == 0 ? app->breath_in_sound : app->breath_out_sound;
-            play_app_sound(app, breath_snd, 1.0f);
+            app_play_sound(app, breath_snd, 1.0f);
         }
         if(count_changed) {
             int count_value = int_from_count(app->inbe.count);
             int maxbreaths_value = int_from_count(app->inbe.maxbreaths);
             if(count_value == maxbreaths_value - 1)
-                play_app_sound(app, app->bell_sound, 0.8f);
+                app_play_sound(app, app->bell_sound, 0.8f);
         }
     } else if(phase_changed) {
         if(app->inbe.phase == InbePhaseNext && app->sound_last_phase == InbePhaseRecover)
-            play_app_sound(app, app->breath_out_sound, 1.0f);
+            app_play_sound(app, app->breath_out_sound, 1.0f);
     }
 
     remember_sound_state(app);
@@ -338,7 +319,7 @@ finish_hold(InbeApp *app)
     app->inbe.breath_frame = 0;
     app->inbe.breathtick = 0;
     app->inbe.sectick = 0;
-    play_app_sound(app, app->breath_in_sound, 1.0f);
+    app_play_sound(app, app->breath_in_sound, 1.0f);
 }
 
 static void

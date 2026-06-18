@@ -40,8 +40,11 @@
 [meditation_manual_title]
 瞑想
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-音楽が集中を支えてくれるなら選び、楽な姿勢で座ります。注意を呼吸に置きます。思考に引かれたら、はっきり気づき、力まず戻ります。ゴングが始まりと終わりを知らせます。
+必要なら音楽を選んでください。ゴングが始まりと終わりを知らせます。
 ---
 [meditation_music_settings_title]
 瞑想音楽

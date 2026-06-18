@@ -5,14 +5,10 @@
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/practice_screen.h"
-#include "session.h"
+#include "practices/practice_registry.h"
 #include "device_preferences.h"
-#include "meditation_music.h"
 #include "storage.h"
 #include "theme.h"
-#if defined(LOTUS_BUILD)
-#include "lotus_settings.h"
-#endif
 #include "version.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
@@ -62,9 +58,6 @@ int view_height = INBE_DEFAULT_HEIGHT;
 #define LOCALE_FONT_8_BASE_SIZE 8
 
 
-/* Forward declarations for tab callbacks */
-void reset_settings_preview(InbeApp *app);
-
 static void
 app_leave_practice_config(InbeApp *app)
 {
@@ -72,7 +65,11 @@ app_leave_practice_config(InbeApp *app)
         return;
     if(app->settings_dirty)
         save_settings(app);
-    meditation_music_unload(app);
+    {
+        const PracticeDefinition *practice = practice_get(app->exercise_type);
+        if(practice->leave_config != NULL)
+            practice->leave_config(app);
+    }
     app->settings_scroll = 0;
 }
 
@@ -218,38 +215,6 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
         save_settings(app);
     }
 }
-
-#if defined(LOTUS_BUILD)
-static void
-sync_lotus_settings(InbeApp *app)
-{
-    const LotusSettings *lotus;
-    unsigned int version;
-
-    if(app == NULL)
-        return;
-
-    version = lotus_settings_version();
-    if(app->lotus_settings_version == version)
-        return;
-
-    lotus = lotus_settings_get();
-    app->theme_id = lotus->theme;
-    app->theme_mode = lotus->dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
-    app->dark_mode = app_effective_dark_mode(app);
-    snprintf(app->language, sizeof(app->language), "%.*s",
-             (int)sizeof(app->language) - 1, lotus->language);
-    app->language_selected = 1;
-    if(!locale_set(app->language)) {
-        snprintf(app->language, sizeof(app->language), "%s", "en");
-        locale_set(app->language);
-    }
-
-    app_refresh_theme(app);
-    refresh_locale_dependent_text(app);
-    app->lotus_settings_version = version;
-}
-#endif
 
 /* ================================================================
  * TAB BAR DEFINITIONS
@@ -432,33 +397,6 @@ init_web_storage(void)
     web_storage_ready = ok != 0;
 }
 
-static void
-sync_web_storage(void)
-{
-    EM_ASM({
-        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
-            if(Module.inbeSyncfsTimer)
-                clearTimeout(Module.inbeSyncfsTimer);
-            Module.__inbeStorageSyncPending = true;
-            Module.inbeSyncfsTimer = setTimeout(function() {
-                Module.inbeSyncfsTimer = 0;
-                Module.__inbeStorageSyncing = true;
-                try {
-                    FS.syncfs(false, function(err) {
-                        Module.__inbeStorageSyncing = false;
-                        Module.__inbeStorageSyncPending = false;
-                        if(err) console.error("IDBFS save failed:", err);
-                        else console.log("IDBFS synced");
-                    });
-                } catch(e) {
-                    Module.__inbeStorageSyncing = false;
-                    Module.__inbeStorageSyncPending = false;
-                    console.error("IDBFS sync error:", e);
-                }
-            }, 250);
-        }
-    });
-}
 #endif
 
 static void
@@ -507,182 +445,16 @@ int_from_count(const char src[CountSize])
 }
 
 void
-apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
-{
-    speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    inbe->speed_level = speed;
-    inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
-    inbe->breath_animation = clampi(inbe->breath_animation,
-                                    InbeBreathAnimationLinear,
-                                    InbeBreathAnimationCount - 1);
-    inbe->progressive_start_speed = clampi(inbe->progressive_start_speed, SETTINGS_SPEED_MIN, speed);
-    inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
-    inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
-    count_from_int(inbe->maxbreaths, clampi(max_breaths, SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX));
-}
-
-void
-reset_settings_preview(InbeApp *app)
-{
-    int speed = app->inbe.speed_level;
-    int max_rounds = app->inbe.max_rounds;
-    int max_breaths = int_from_count(app->inbe.maxbreaths);
-    int pause_seconds = app->inbe.pause_seconds;
-    int play_in_background = app->inbe.play_in_background;
-    int breath_animation = app->inbe.breath_animation;
-    int content_w;
-
-    inbeinit(&app->settings_preview);
-    app->settings_preview.progressive_speed = 0;
-    app->settings_preview.play_in_background = play_in_background;
-    app->settings_preview.breath_animation = breath_animation;
-    flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
-    update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
-    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-    session_reset_round_breathe(&app->settings_preview);
-}
-
-void
-save_settings(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-
-    inbe_storage_settings_begin_write();
-    inbe_storage_set_setting_int("speed", app->inbe.speed_level);
-    inbe_storage_set_setting_int("max_rounds", app->inbe.max_rounds);
-    inbe_storage_set_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths));
-    inbe_storage_set_setting_int("pause_seconds", app->inbe.pause_seconds);
-    inbe_storage_set_setting_int("sound_volume", app->sound_volume);
-    inbe_storage_set_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0);
-    inbe_storage_set_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask);
-    inbe_storage_set_setting_int("theme", app->theme_id);
-    inbe_storage_set_setting_int("dark_mode", app->dark_mode);
-    inbe_storage_set_setting_int("theme_mode", app->theme_mode);
-    inbe_storage_set_setting_int("orientation_mode", app->orientation_mode);
-    inbe_storage_set_setting_int("main_tab", app->main_tab);
-    inbe_storage_set_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("progressive_speed", app->inbe.progressive_speed);
-    inbe_storage_set_setting_int("progressive_start_speed", app->inbe.progressive_start_speed);
-    inbe_storage_set_setting_int("breath_animation", app->inbe.breath_animation);
-    inbe_storage_set_setting_int("advanced_session_controls", app->advanced_session_controls ? 1 : 0);
-    inbe_storage_set_setting_int("hold_display_mode", app->hold_display_mode);
-    inbe_storage_set_setting_int("exercise_type", app->exercise_type);
-    inbe_storage_set_setting_int("meditation_music_enabled", app->meditation_music_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("meditation_music_shuffle", app->meditation_music_shuffle ? 1 : 0);
-    inbe_storage_set_setting_int("meditation_music_track", app->meditation_music_track);
-    inbe_storage_set_setting_int("play_in_background", app->inbe.play_in_background);
-    inbe_storage_set_setting_text("language",
-                                  (app->language_selected && app->language[0] != '\0') ? app->language : "");
-    inbe_storage_set_setting_int("practice_category_tab", app->practice_category_tab);
-    inbe_storage_settings_end_write();
-#if defined(PLATFORM_WEB)
-    sync_web_storage();
-#endif
-    app->settings_dirty = 0;
-    app->settings_save_delay_ticks = 0;
-}
-
-static void
-load_settings(InbeApp *app)
-{
-    int settings_missing = inbe_storage_settings_empty();
-    int speed = inbe_storage_get_setting_int("speed", DefaultSpeedLevel);
-    int max_rounds = inbe_storage_get_setting_int("max_rounds", DefaultMaxRounds);
-    int max_breaths = inbe_storage_get_setting_int("max_breaths", DefaultMaxBreaths);
-    int pause_seconds = inbe_storage_get_setting_int("pause_seconds", DefaultPauseSeconds);
-    int sound_volume = inbe_storage_get_setting_int("sound_volume", 100);
-    int manual_seen_mask;
-
-    app->tutorial_seen = inbe_storage_get_setting_int("tutorial_seen", 0) != 0;
-    manual_seen_mask = inbe_storage_get_setting_int("exercise_manual_seen_mask", -1);
-    if(manual_seen_mask < 0)
-        manual_seen_mask = app->tutorial_seen ? exercise_manual_seen_bit(EXERCISE_WIM_HOF) : 0;
-    app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
-    app->theme_id = clampi(inbe_storage_get_setting_int("theme", 0), 0, FLINT_THEME_COUNT - 1);
-    app->theme_mode = clampi(inbe_storage_get_setting_int("theme_mode", APP_THEME_SYSTEM),
-                             APP_THEME_SYSTEM, APP_THEME_DARK);
-    app->dark_mode = inbe_storage_get_setting_int("dark_mode", 0) != 0;
-    app->orientation_mode = clampi(inbe_storage_get_setting_int("orientation_mode", APP_ORIENTATION_SYSTEM),
-                                   APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR);
-    app->main_tab = clampi(inbe_storage_get_setting_int("main_tab", APP_MAIN_TAB_PRACTICE),
-                           APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
-    app->fullscreen_enabled = inbe_storage_get_setting_int("fullscreen", 0) != 0;
-#ifdef __ANDROID__
-    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 1) != 0;
-#else
-    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 0) != 0;
-#endif
-    app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
-    app->inbe.progressive_speed = inbe_storage_get_setting_int("progressive_speed", 1) != 0;
-    app->inbe.progressive_start_speed = clampi(inbe_storage_get_setting_int("progressive_start_speed", DefaultProgressiveStartSpeed),
-                                               SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    app->inbe.breath_animation = clampi(inbe_storage_get_setting_int("breath_animation", InbeBreathAnimationLinear),
-                                        InbeBreathAnimationLinear, InbeBreathAnimationCount - 1);
-    app->advanced_session_controls = inbe_storage_get_setting_int("advanced_session_controls", 0) != 0;
-    app->hold_display_mode = clampi(inbe_storage_get_setting_int("hold_display_mode", HOLD_DISPLAY_CIRCLE),
-                                    HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
-    app->exercise_type = clampi(inbe_storage_get_setting_int("exercise_type", EXERCISE_WIM_HOF),
-                                EXERCISE_WIM_HOF, EXERCISE_COUNT - 1);
-    app->meditation_music_enabled = inbe_storage_get_setting_int("meditation_music_enabled", 1) != 0;
-    app->meditation_music_shuffle = inbe_storage_get_setting_int("meditation_music_shuffle", 0) != 0;
-    app->meditation_music_track = clampi(inbe_storage_get_setting_int("meditation_music_track", 0),
-                                         0, MEDITATION_MUSIC_TRACK_COUNT - 1);
-    app->practice_category_tab =
-        clampi(inbe_storage_get_setting_int("practice_category_tab", PRACTICE_CATEGORY_MIND),
-               0, PRACTICE_CATEGORY_COUNT - 1);
-    app->language_needs_save = 0;
-    {
-        const char *language = inbe_storage_get_setting_text("language");
-        if(language != NULL && language[0] != '\0') {
-            snprintf(app->language, sizeof(app->language), "%s", language);
-            app->language_selected = 1;
-            if(!locale_set(app->language)) {
-                snprintf(app->language, sizeof(app->language), "%s", "en");
-                locale_set(app->language);
-            }
-        } else {
-            snprintf(app->language, sizeof(app->language), "%s", "en");
-            app->language_selected = settings_missing ? 0 : 1;
-            app->language_needs_save = app->language_selected;
-            locale_set(app->language);
-        }
-        app->language_index = locale_current_index();
-        if(app->language_index < 0)
-            app->language_index = 0;
-    }
-#if defined(LOTUS_BUILD)
-    sync_lotus_settings(app);
-#endif
-
-#ifdef __ANDROID__
-    app->inbe.play_in_background = inbe_storage_get_setting_int("play_in_background",
-        1  // Default to enabled on Android
-    );
-    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d", app->inbe.play_in_background);
-#else
-    app->inbe.play_in_background = 0;
-#endif
-    app->backgrounded = 0;
-
-    app_device_preferences_init(app);
-    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-    refresh_locale_dependent_text(app);
-    if(settings_missing)
-        save_settings(app);
-}
-
-void
 app_reload_after_import(InbeApp *app, int reload_settings)
 {
     if(app == NULL)
         return;
 
     if(reload_settings) {
-        load_settings(app);
+        if(app_load_settings(app))
+            save_settings(app);
         reset_settings_preview(app);
-        update_session_sounds(app);
+        practice_update_session_sounds(app);
     }
 
     inbe_habits_init(&app->habits);
@@ -728,8 +500,8 @@ load_pixel_texture_from_asset(const char *path)
     return texture;
 }
 
-static Texture2D
-load_asset_texture(const char *name)
+Texture2D
+app_load_asset_texture(const char *name)
 {
     char path[64];
 
@@ -747,15 +519,23 @@ load_sound_asset(const char *name)
 
     snprintf(path, sizeof(path), "assets/sounds/%s", name);
     asset = flint_embedded_asset(path);
-    if(asset == NULL || asset->data == NULL || asset->size == 0)
+    if(asset == NULL || asset->data == NULL || asset->size == 0) {
+        TraceLog(LOG_ERROR, "AUDIO: Missing embedded sound asset: %s", path);
         return sound;
+    }
 
     wave = LoadWaveFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
-    if(wave.data == NULL)
+    if(wave.data == NULL) {
+        TraceLog(LOG_ERROR, "AUDIO: Failed to decode embedded sound asset: %s", path);
         return sound;
+    }
 
     sound = LoadSoundFromWave(wave);
     UnloadWave(wave);
+    if(sound.frameCount == 0)
+        TraceLog(LOG_ERROR, "AUDIO: Failed to create sound from embedded asset: %s", path);
+    else
+        TraceLog(LOG_INFO, "AUDIO: Loaded sound asset %s (%u frames)", path, sound.frameCount);
     return sound;
 }
 
@@ -764,7 +544,17 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
 {
     float volume;
 
-    if(app == NULL || !app->audio_ready || sound.frameCount == 0 || app->sound_volume <= 0)
+    if(app == NULL)
+        return;
+    if(!app->audio_ready) {
+        TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because audio device is not ready");
+        return;
+    }
+    if(sound.frameCount == 0) {
+        TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because sound is not loaded");
+        return;
+    }
+    if(app->sound_volume <= 0)
         return;
 
     volume = ((float)app->sound_volume / 100.0f) * scale;
@@ -776,6 +566,8 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
     StopSound(sound);
     SetSoundVolume(sound, volume);
     PlaySound(sound);
+    if(!IsSoundPlaying(sound))
+        TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
 }
 
 static void
@@ -786,8 +578,11 @@ init_audio(InbeApp *app)
 
     InitAudioDevice();
     app->audio_ready = IsAudioDeviceReady();
-    if(!app->audio_ready)
+    if(!app->audio_ready) {
+        TraceLog(LOG_ERROR, "AUDIO: Audio device failed to initialize");
         return;
+    }
+    TraceLog(LOG_INFO, "AUDIO: Audio device initialized");
 
     app->breath_in_sound = load_sound_asset("breath-in.ogg");
     app->breath_out_sound = load_sound_asset("breath-out.ogg");
@@ -833,16 +628,15 @@ inbe_app_init(void *vapp) {
 #endif
 
     inbeinit(&app->inbe);
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
     data_init();
-    load_settings(app);
+    if(app_load_settings(app))
+        save_settings(app);
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + 80);
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + 80);
     inbe_habits_init(&app->habits);
     app->habit_detail_index = -1;
     app->habit_detail_day = 0;
@@ -857,7 +651,11 @@ inbe_app_init(void *vapp) {
     app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
     app_open_main_tab(app, app->main_tab, 0);
     init_audio(app);
-    meditation_music_init(app);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->init != NULL)
+            practice->init(app);
+    }
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
@@ -891,7 +689,7 @@ inbe_app_init(void *vapp) {
     app->backgrounded = 0;
     app->results_saved = 0;
     app->results_path[0] = '\0';
-    update_session_sounds(app);
+    practice_update_session_sounds(app);
     reset_settings_preview(app);
     inbeinit(&app->start_speed_preview);
     app->start_speed_preview_speed = 0;
@@ -915,354 +713,18 @@ inbe_app_init(void *vapp) {
 
     ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
-    if(app->whm_1_image.id == 0) {
-        app->whm_1_image = load_asset_texture("whm/1.jpg");
-    }
-    if(app->whm_2_image.id == 0) {
-        app->whm_2_image = load_asset_texture("whm/2.jpg");
-    }
-#if !defined(LOTUS_BUILD)
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-#else
-    app->inbe.screen = InbeScreenStart;
-#endif
 
     /* Reset modal state */
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal.selected_button = 0;
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-}
-
-static Texture2D
-sound_icon_for_volume(InbeApp *app)
-{
-    int vol = app->sound_volume;
-    if(vol <= 0)
-        return app->icons[UI_ICON_TYPE_SOUND0];
-    if(vol <= 25)
-        return app->icons[UI_ICON_TYPE_SOUND1];
-    if(vol <= 75)
-        return app->icons[UI_ICON_TYPE_SOUND2];
-    return app->icons[UI_ICON_TYPE_SOUND3];
-}
-
-static void
-meditation_start(InbeApp *app, int seconds)
-{
-    if(app == NULL)
-        return;
-
-    app->meditation_duration_seconds = seconds;
-    app->meditation_remaining_seconds = seconds;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenMeditation;
-    app_play_sound(app, app->bell_sound, 1.0f);
-    meditation_music_start_session(app);
-}
-
-static void
-meditation_finish(InbeApp *app)
-{
-    int duration;
-
-    if(app == NULL)
-        return;
-
-    duration = app->meditation_duration_seconds;
-    if(duration >= 60) {
-        int session_duration = duration;
-        if(data_save_session_path_for_activity(&session_duration, 1, 0, EXERCISE_MEDITATION,
-                                               NULL, 0)) {
-            sync_habits_for_activity(app, EXERCISE_MEDITATION);
-        }
-    }
-    app_play_sound(app, app->bell_sound, 1.0f);
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    meditation_music_stop(app);
-    app->inbe.screen = InbeScreenStart;
-}
-
-static int
-meditation_elapsed_seconds(InbeApp *app)
-{
-    int elapsed;
-
-    if(app == NULL)
-        return 0;
-    elapsed = app->meditation_duration_seconds - app->meditation_remaining_seconds;
-    if(elapsed < 0)
-        elapsed = 0;
-    if(elapsed > app->meditation_duration_seconds)
-        elapsed = app->meditation_duration_seconds;
-    return elapsed;
-}
-
-static int
-meditation_save_elapsed(InbeApp *app)
-{
-    int elapsed;
-
-    if(app == NULL)
-        return 0;
-    elapsed = meditation_elapsed_seconds(app);
-    if(elapsed < 60)
-        return 0;
-    if(data_save_session_path_for_activity(&elapsed, 1, 0, EXERCISE_MEDITATION, NULL, 0)) {
-        sync_habits_for_activity(app, EXERCISE_MEDITATION);
-        return 1;
-    }
-    return 0;
-}
-
-static void
-meditation_exit_to_start(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-    meditation_music_stop(app);
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenStart;
-}
-
-static void
-meditation_request_exit(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-    app->modal.active = 1;
-    app->modal.type = UIModalConfirmExitSession;
-    app->modal.selected_button = 0;
-}
-
-static void
-format_meditation_time(char *dst, size_t dst_size, int seconds)
-{
-    int hours;
-    int minutes;
-    int secs;
-
-    if(dst == NULL || dst_size == 0)
-        return;
-    if(seconds < 0)
-        seconds = 0;
-
-    hours = seconds / 3600;
-    minutes = (seconds / 60) % 60;
-    secs = seconds % 60;
-
-    if(hours > 0)
-        snprintf(dst, dst_size, "%d:%02d:%02d", hours, minutes, secs);
-    else
-        snprintf(dst, dst_size, "%d:%02d", minutes, secs);
-}
-
-static int
-draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
-{
-    int hover = 0;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
-}
-
-static void
-draw_meditation_setup_modal(InbeApp *app)
-{
-    static const int durations[] = {5 * 60, 15 * 60, 30 * 60, 60 * 60, 2 * 60 * 60};
-    const char *labels[] = {
-        locale_get("duration_5m"),
-        locale_get("duration_15m"),
-        locale_get("duration_30m"),
-        locale_get("duration_1h"),
-        locale_get("duration_2h")
-    };
-    int modal_w = flint_px(320);
-    int modal_h = flint_px(236);
-    int modal_x;
-    int modal_y;
-    int title_font = flint_px(18);
-    int title_w;
-    int btn_h = flint_px(38);
-    int gap = flint_px(10);
-    int side = flint_px(18);
-    int row_y;
-    int btn_w;
-    int cancel_w = flint_px(120);
-    int cancel_x;
-    int cancel_y;
-    int cancel_hover = 0;
-
-    if(modal_w > view_width - flint_px(24))
-        modal_w = view_width - flint_px(24);
-    if(modal_h > view_height - flint_px(24))
-        modal_h = view_height - flint_px(24);
-
-    modal_x = (view_width - modal_w) / 2;
-    modal_y = (view_height - modal_h) / 2;
-    btn_w = (modal_w - side * 2 - gap * 2) / 3;
-    if(btn_w < flint_px(64))
-        btn_w = flint_px(64);
-
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, theme_get_surface());
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
-
-    title_w = flint_text_measure(locale_get("meditation_title"), title_font);
-    flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
-                    modal_y + flint_px(16), title_font, theme_get_text());
-
-    row_y = modal_y + flint_px(62);
-    for(int i = 0; i < 3; i++) {
-        int x = modal_x + side + i * (btn_w + gap);
-        if(draw_meditation_duration_button(x, row_y, btn_w, btn_h, labels[i]))
-            meditation_start(app, durations[i]);
-    }
-
-    row_y += btn_h + gap;
-    for(int i = 3; i < 5; i++) {
-        int two_w = (modal_w - side * 2 - gap) / 2;
-        int x = modal_x + side + (i - 3) * (two_w + gap);
-        if(draw_meditation_duration_button(x, row_y, two_w, btn_h, labels[i]))
-            meditation_start(app, durations[i]);
-    }
-
-    cancel_y = modal_y + modal_h - btn_h - flint_px(16);
-    cancel_x = modal_x + (modal_w - cancel_w) / 2;
-    if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
-                              locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
-                              0, &cancel_hover)) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
-    }
-}
-
-static void
-draw_meditation_sound_controls(InbeApp *app)
-{
-    int sound_btn_x = view_width - flint_px(56);
-    int sound_btn_y = flint_px(12);
-    int sound_btn_size = flint_px(24);
-    int sound_btn_padding = flint_px(10);
-    int sound_hover = 0;
-
-    if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), &sound_hover)) {
-        app->volume_popup_active = !app->volume_popup_active;
-    }
-
-    if(app->volume_popup_active) {
-        int popup_w = flint_px(44);
-        int popup_x = sound_btn_x;
-        int popup_y = sound_btn_y + sound_btn_size + sound_btn_padding * 2;
-        int popup_h = flint_px(200);
-        Vector2 mouse = GetMousePosition();
-
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-           (mouse.x < popup_x || mouse.x > popup_x + popup_w ||
-            mouse.y < popup_y || mouse.y > popup_y + popup_h)) {
-            app->volume_popup_active = 0;
-        }
-
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, theme_get_surface());
-        ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
-
-        if(ui_draw_slider_vertical(501, popup_x + popup_w / 2, popup_y + flint_px(10),
-                                   popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
-                                   SETTINGS_VOLUME_MAX, &app->sound_volume)) {
-            app->settings_dirty = 1;
-            save_settings(app);
-        }
-    }
-}
-
-static void
-draw_meditation_screen(InbeApp *app, int center_x, int center_y)
-{
-    char time_text[32];
-    int return_hover = 0;
-    int font = flint_px(48);
-    int max_w;
-    int text_w;
-
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
-        meditation_request_exit(app);
-        return;
-    }
-
-    draw_meditation_sound_controls(app);
-
-    if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        int elapsed = meditation_elapsed_seconds(app);
-        int modal_result;
-
-        if(elapsed >= 60) {
-            modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
-                                              locale_get("meditation_save_elapsed_message"),
-                                              locale_get("cancel_button"),
-                                              locale_get("save_button"),
-                                              locale_get("discard_button"));
-            if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
-            } else if(modal_result == 2) {
-                meditation_save_elapsed(app);
-                meditation_exit_to_start(app);
-            } else if(modal_result == 3) {
-                meditation_exit_to_start(app);
-            }
-        } else {
-            modal_result = ui_draw_modal(locale_get("exit_session_title"),
-                                         locale_get("meditation_under_minute_exit_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("exit_button"));
-            if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
-            } else if(modal_result == 2) {
-                meditation_exit_to_start(app);
-            }
-        }
-        return;
-    }
-
-    format_meditation_time(time_text, sizeof(time_text), app->meditation_remaining_seconds);
-    max_w = view_width - flint_px(48);
-    while(font > flint_px(28) && flint_text_measure(time_text, font) > max_w)
-        font--;
-    text_w = flint_text_measure(time_text, font);
-    flint_text_draw(time_text, center_x - text_w / 2,
-                    flint_ui_text_y(time_text, center_y - font, font * 2, font),
-                    font, theme_get_text());
-
-    app->meditation_frame_ticks++;
-    if(app->meditation_frame_ticks >= 60) {
-        app->meditation_frame_ticks = 0;
-        if(app->meditation_remaining_seconds > 0)
-            app->meditation_remaining_seconds--;
-        if(app->meditation_remaining_seconds <= 0)
-            meditation_finish(app);
-    }
+    app->meditation.duration_seconds = 0;
+    app->meditation.remaining_seconds = 0;
+    app->meditation.frame_ticks = 0;
 }
 
 static void
@@ -1311,7 +773,7 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenResults:
-        session_ensure_results_saved(app);
+        practice_ensure_results_saved(app);
         inbe_app_init(app);
         break;
 
@@ -1334,7 +796,11 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenMeditation:
-        meditation_request_exit(app);
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->request_exit != NULL)
+                practice->request_exit(app);
+        }
         break;
 
     case InbeScreenStart:
@@ -1371,7 +837,11 @@ updateapp(InbeApp *app)
     int hover = 0;
 
     app_apply_pending_bottom_tab(app);
-    meditation_music_update(app);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->update != NULL)
+            practice->update(app);
+    }
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
 
@@ -1395,7 +865,9 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenPracticeConfig) {
-        practice_config_screen_draw(app);
+        const PracticeDefinition *practice = practice_get(app->exercise_type);
+        if(practice->draw_config != NULL)
+            practice->draw_config(app);
         goto finish_frame;
     }
 
@@ -1428,17 +900,16 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenStart) {
-        session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                      flint_px(58) + flint_px(64));
+        practice_update_circle_bounds(app, flint_px(48), flint_px(58) + flint_px(64));
     } else if(app->inbe.screen == InbeScreenSession) {
-        session_update_circle_bounds_for_view(&app->inbe, 0, 84);
+        practice_update_circle_bounds(app, 0, 84);
     }
 
     int play_circle_clicked = 0;
     if(app->inbe.screen == InbeScreenStart)
-        play_circle_clicked = session_draw_start_preview(app, center_x, center_y);
+        play_circle_clicked = practice_draw_start_preview(app, center_x, center_y);
     else if(app->inbe.screen == InbeScreenSession)
-        session_draw_inbe(app, center_x, center_y);
+        practice_draw_active_breathing(app, center_x, center_y);
 
 
     switch (app->inbe.screen) {
@@ -1510,12 +981,10 @@ updateapp(InbeApp *app)
                     app->tutorial_step = 0;
                     app->manual_scroll = 0;
                     app->inbe.screen = InbeScreenManual;
-                } else if(app->exercise_type == EXERCISE_MEDITATION) {
-                    app->modal.active = 1;
-                    app->modal.type = UIModalMeditationSetup;
-                    app->modal.selected_button = 0;
                 } else {
-                    session_start(app);
+                    const PracticeDefinition *practice = practice_get(app->exercise_type);
+                    if(practice->start != NULL)
+                        practice->start(app);
                 }
             }
 
@@ -1527,20 +996,27 @@ updateapp(InbeApp *app)
                 save_settings(app);
         }
         app_draw_bottom_nav(app);
-        if(app->modal.active && app->modal.type == UIModalMeditationSetup)
-            draw_meditation_setup_modal(app);
+        if(app->modal.active && app->modal.type == UIModalMeditationSetup) {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->draw_setup_modal != NULL)
+                practice->draw_setup_modal(app);
+        }
         break;
 
     case InbeScreenSession:
-        session_update_screen(app, center_x, center_y, &hover);
+        practice_update_active_breathing(app, center_x, center_y, &hover);
         break;
 
     case InbeScreenMeditation:
-        draw_meditation_screen(app, center_x, center_y);
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->draw_active_session != NULL)
+                practice->draw_active_session(app, center_x, center_y);
+        }
         break;
 
     case InbeScreenResults:
-        session_draw_results_screen(app, center_x, center_y, &hover);
+        practice_draw_results(app, center_x, center_y, &hover);
         break;
 
     }
@@ -1565,11 +1041,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     flint_set_view_size(view_width, view_height);
 
     ui_init(view_width, view_height, flint_dpi_scale());
-#if defined(LOTUS_BUILD)
-    sync_lotus_settings(app);
-#endif
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
 
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
@@ -1591,7 +1063,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     flint_clip_end();
 }
 
-static void SafeUnloadTexture(Texture2D texture) {
+void
+app_unload_texture(Texture2D texture) {
     if (texture.id != 0) {
         UnloadTexture(texture);
     }
@@ -1614,15 +1087,17 @@ inbe_app_destroy(void *vapp)
 
     // Unload all icons
     flint_unload_all_icons(app->icons);
-    SafeUnloadTexture(app->whm_1_image);
-    SafeUnloadTexture(app->whm_2_image);
-    SafeUnloadTexture(app->font_shapes_texture);
+    app_unload_texture(app->font_shapes_texture);
     unload_locale_font(app);
 
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
-    meditation_music_unload(app);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->destroy != NULL)
+            practice->destroy(app);
+    }
 
     if (app->audio_ready) {
         CloseAudioDevice();

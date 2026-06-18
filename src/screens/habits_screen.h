@@ -87,9 +87,6 @@ typedef struct HabitLinkedContext {
     int best_seconds;
 } HabitLinkedContext;
 
-/* External functions */
-void save_settings(InbeApp *app);
-
 /* Core habits functions */
 void inbe_habits_init(InbeHabits *habits);
 void inbe_habits_save(const InbeHabits *habits);
