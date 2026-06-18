@@ -1,0 +1,3 @@
+### Changed
+- Reorganized WHM and Meditation into practice-owned modules for cleaner code boundaries.
+- Split the meditation manual into an image intro page and a shorter music/gong setup page.
