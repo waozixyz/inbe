@@ -1,0 +1,314 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Test Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential zlib1g-dev
+
+      - name: Run Tests
+        run: make test
+
+  build-web:
+    name: Build Web
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Web Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential zlib1g-dev zip
+
+      - name: Set up Emscripten
+        uses: emscripten-core/emsdk@v2
+
+      - name: Build Web ZIP
+        run: |
+          set -euo pipefail
+          make package-unpackaged-assets
+          make web
+          mkdir -p build/release/web
+          cp build/dist/inbe-web.zip build/release/web/
+
+      - name: Upload Web Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-web
+          path: build/release/web/*
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Linux Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            ca-certificates \
+            curl \
+            libcurl4-openssl-dev \
+            libdrm-dev \
+            libegl1-mesa-dev \
+            libgbm-dev \
+            libgles2-mesa-dev \
+            libsdl2-dev \
+            patchelf \
+            pkg-config \
+            zip
+
+      - name: Install AppImage Tools
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME/.local/bin"
+          curl -L -o "$HOME/.local/bin/linuxdeploy" \
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+          curl -L -o "$HOME/.local/bin/linuxdeploy-plugin-appimage" \
+            https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage
+          curl -L -o "$HOME/.local/bin/appimagetool" \
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x "$HOME/.local/bin/linuxdeploy" "$HOME/.local/bin/linuxdeploy-plugin-appimage" "$HOME/.local/bin/appimagetool"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Build Linux AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          RAY_RAYLIB_CONFIG: -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
+        run: |
+          set -euo pipefail
+          export RAY_SDL_INCLUDE_DIR="$(pkg-config --variable=includedir sdl2 | sed 's,/SDL2$,,')"
+          export RAY_CFLAGS="$(pkg-config --cflags sdl2 libdrm gbm egl glesv2)"
+          export RAY_LDLIBS="$(pkg-config --libs sdl2 libdrm gbm egl glesv2)"
+          export RAY_SDL_LDLIBS="$(pkg-config --libs sdl2)"
+          make appimage
+          mkdir -p build/release/linux
+          find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -type f -print -quit)"
+
+      - name: Upload Linux Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-windows:
+    name: Build Windows
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Windows Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            build-essential \
+            gcc-mingw-w64-i686-win32 \
+            gcc-mingw-w64-x86-64-win32 \
+            zlib1g-dev \
+            zip
+          if [ -x /usr/bin/x86_64-w64-mingw32-gcc-win32 ]; then
+            sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-win32
+          fi
+          if [ -x /usr/bin/i686-w64-mingw32-gcc-win32 ]; then
+            sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-win32
+          fi
+
+      - name: Build Windows ZIP
+        run: |
+          set -euo pipefail
+          make windows
+          mkdir -p build/release/windows
+          find build/dist/windows -maxdepth 1 -type f -name '*.zip' -exec cp {} build/release/windows/ \;
+          test -n "$(find build/release/windows -type f -print -quit)"
+
+      - name: Upload Windows Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-windows
+          path: build/release/windows/*
+          if-no-files-found: error
+
+  build-android:
+    name: Build Android
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+
+      - name: Install Android SDK Components
+        run: |
+          sdkmanager "platforms;android-35" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
+
+      - name: Prepare Android signing key
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.android
+          echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
+
+      - name: Copy Android Assets
+        run: ./scripts/copy-android-assets.sh
+
+      - name: Build Android APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          chmod +x droid/gradlew
+          ./droid/gradlew -p droid assembleRelease \
+            -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
+            -Pkeystore.alias="$KEY_ALIAS" \
+            -Pkeystore.password="$KEYSTORE_PASSWORD" \
+            --stacktrace
+          make android-copy-release-apks
+
+      - name: Build Android AAB
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+        run: |
+          set -euo pipefail
+          chmod +x droid/gradlew
+          ./droid/gradlew -p droid bundleRelease \
+            -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
+            -Pkeystore.alias="$KEY_ALIAS" \
+            -Pkeystore.password="$KEYSTORE_PASSWORD" \
+            --stacktrace
+          make android-copy-bundle
+
+      - name: Collect Android Release Files
+        run: |
+          set -euo pipefail
+          mkdir -p build/release/android
+          find build/android -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/android/ \;
+          test -n "$(find build/release/android -type f -print -quit)"
+
+      - name: Upload Android Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-android
+          path: build/release/android/*
+          if-no-files-found: error
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-web
+      - build-linux
+      - build-windows
+      - build-android
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: build/release
+          merge-multiple: true
+
+      - name: Verify Release Artifacts
+        run: |
+          set -euo pipefail
+          test -n "$(find build/release -type f -print -quit)"
+
+      - name: Create and Push Tag If Version Is New
+        id: tag_version
+        run: |
+          set -euo pipefail
+          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read INBE_VERSION_STRING"
+            exit 1
+          fi
+          TAG="v$VERSION"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG exists, skipping release"
+            echo "tag_pushed=false" >> "$GITHUB_OUTPUT"
+          else
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git tag -a "$TAG" -m "Release $VERSION"
+            git push origin "$TAG"
+            echo "tag_pushed=true" >> "$GITHUB_OUTPUT"
+            echo "tag_name=$TAG" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Create GitHub Release
+        if: steps.tag_version.outputs.tag_pushed == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.tag_version.outputs.tag_name }}
+          files: build/release/*
+          generate_release_notes: true
+          draft: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
