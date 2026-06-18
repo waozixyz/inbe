@@ -1,9 +1,6 @@
 #include "device_preferences.h"
 #include "theme.h"
 #include "flint_ui.h"
-#if defined(LOTUS_BUILD)
-#include "lotus_settings.h"
-#endif
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_device.h"
 #endif
@@ -17,18 +14,9 @@ void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
     theme_set_current(theme_id, dark_mode);
-#if defined(LOTUS_BUILD)
-    (void)theme_id;
-    (void)dark_mode;
     ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
                   theme_get_circle(), theme_get_button(), theme_get_button_hover(),
                   theme_get_icon());
-    return;
-#else
-    ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
-                  theme_get_circle(), theme_get_button(), theme_get_button_hover(),
-                  theme_get_icon());
-#endif
 }
 
 int

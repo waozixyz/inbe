@@ -80,6 +80,7 @@ APP_SRCS := \
 	src/main.c \
 	src/core/breath_engine.c \
 	src/app/app.c \
+	src/app/app_settings.c \
 	src/app/device_preferences.c \
 	src/session/session.c \
 	src/screens/habits_screen.c \
@@ -141,6 +142,7 @@ WEB_CACHE_BUSTER ?= $(shell git rev-parse --short HEAD 2>/dev/null || date +%s)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
+WEB_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
 .PHONY: all native run test dist appimage clean clean-linux clean-raylib android-check-keystore android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web
@@ -379,7 +381,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(WEB_AUDIO_FILES) | $(WEB_DIST_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -399,6 +401,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-sFORCE_FILESYSTEM=1 \
 		-sFETCH=1 \
 		-sALLOW_MEMORY_GROWTH=1 \
+		--preload-file $(UNPACKAGED_AUDIO_DIR)@$(UNPACKAGED_AUDIO_DIR) \
 		--shell-file src/web_shell.html \
 		-lidbfs.js \
 		-lm

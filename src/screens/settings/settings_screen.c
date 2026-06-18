@@ -880,7 +880,7 @@ static int
 meditation_config_draw_content(InbeApp *app, int content_x, int content_w, int y,
                                int *draw_meditation_music_menu)
 {
-    meditation_music_draw_settings(app, content_x, content_w, &y);
+    meditation_music_draw_settings(app, content_x, content_w, &y, 1, 1);
     if(draw_meditation_music_menu != NULL)
         *draw_meditation_music_menu = 1;
 
@@ -1172,13 +1172,9 @@ settings_screen_draw(InbeApp *app)
             int toggle_w = flint_px(56);
             int toggle_h = flint_px(30);
 
-#if defined(LOTUS_BUILD)
-            flint_text_draw(locale_current_code(), draw_x, y, flint_ui_font(), theme_get_text());
-#else
             if(language_dropdown_button(app, 101, draw_x, y, draw_w, flint_px(36), &app->language_index))
                 language_menu_changed = 1;
             draw_language_menu = 1;
-#endif
             y += flint_px(74);
 
             if(ui_draw_slider(6, draw_x, y, draw_w, locale_get("volume_label"),

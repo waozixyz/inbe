@@ -10,9 +10,6 @@
 #include "meditation_music.h"
 #include "storage.h"
 #include "theme.h"
-#if defined(LOTUS_BUILD)
-#include "lotus_settings.h"
-#endif
 #include "version.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
@@ -61,9 +58,6 @@ int view_height = INBE_DEFAULT_HEIGHT;
 #define LOCALE_FONT_BASE_SIZE 16
 #define LOCALE_FONT_8_BASE_SIZE 8
 
-
-/* Forward declarations for tab callbacks */
-void reset_settings_preview(InbeApp *app);
 
 static void
 app_leave_practice_config(InbeApp *app)
@@ -218,38 +212,6 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
         save_settings(app);
     }
 }
-
-#if defined(LOTUS_BUILD)
-static void
-sync_lotus_settings(InbeApp *app)
-{
-    const LotusSettings *lotus;
-    unsigned int version;
-
-    if(app == NULL)
-        return;
-
-    version = lotus_settings_version();
-    if(app->lotus_settings_version == version)
-        return;
-
-    lotus = lotus_settings_get();
-    app->theme_id = lotus->theme;
-    app->theme_mode = lotus->dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
-    app->dark_mode = app_effective_dark_mode(app);
-    snprintf(app->language, sizeof(app->language), "%.*s",
-             (int)sizeof(app->language) - 1, lotus->language);
-    app->language_selected = 1;
-    if(!locale_set(app->language)) {
-        snprintf(app->language, sizeof(app->language), "%s", "en");
-        locale_set(app->language);
-    }
-
-    app_refresh_theme(app);
-    refresh_locale_dependent_text(app);
-    app->lotus_settings_version = version;
-}
-#endif
 
 /* ================================================================
  * TAB BAR DEFINITIONS
@@ -432,33 +394,6 @@ init_web_storage(void)
     web_storage_ready = ok != 0;
 }
 
-static void
-sync_web_storage(void)
-{
-    EM_ASM({
-        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
-            if(Module.inbeSyncfsTimer)
-                clearTimeout(Module.inbeSyncfsTimer);
-            Module.__inbeStorageSyncPending = true;
-            Module.inbeSyncfsTimer = setTimeout(function() {
-                Module.inbeSyncfsTimer = 0;
-                Module.__inbeStorageSyncing = true;
-                try {
-                    FS.syncfs(false, function(err) {
-                        Module.__inbeStorageSyncing = false;
-                        Module.__inbeStorageSyncPending = false;
-                        if(err) console.error("IDBFS save failed:", err);
-                        else console.log("IDBFS synced");
-                    });
-                } catch(e) {
-                    Module.__inbeStorageSyncing = false;
-                    Module.__inbeStorageSyncPending = false;
-                    console.error("IDBFS sync error:", e);
-                }
-            }, 250);
-        }
-    });
-}
 #endif
 
 static void
@@ -507,180 +442,14 @@ int_from_count(const char src[CountSize])
 }
 
 void
-apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
-{
-    speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    inbe->speed_level = speed;
-    inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
-    inbe->breath_animation = clampi(inbe->breath_animation,
-                                    InbeBreathAnimationLinear,
-                                    InbeBreathAnimationCount - 1);
-    inbe->progressive_start_speed = clampi(inbe->progressive_start_speed, SETTINGS_SPEED_MIN, speed);
-    inbe->max_rounds = clampi(max_rounds, 1, MaxRounds);
-    inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX);
-    count_from_int(inbe->maxbreaths, clampi(max_breaths, SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX));
-}
-
-void
-reset_settings_preview(InbeApp *app)
-{
-    int speed = app->inbe.speed_level;
-    int max_rounds = app->inbe.max_rounds;
-    int max_breaths = int_from_count(app->inbe.maxbreaths);
-    int pause_seconds = app->inbe.pause_seconds;
-    int play_in_background = app->inbe.play_in_background;
-    int breath_animation = app->inbe.breath_animation;
-    int content_w;
-
-    inbeinit(&app->settings_preview);
-    app->settings_preview.progressive_speed = 0;
-    app->settings_preview.play_in_background = play_in_background;
-    app->settings_preview.breath_animation = breath_animation;
-    flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
-    update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
-    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
-    session_reset_round_breathe(&app->settings_preview);
-}
-
-void
-save_settings(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-
-    inbe_storage_settings_begin_write();
-    inbe_storage_set_setting_int("speed", app->inbe.speed_level);
-    inbe_storage_set_setting_int("max_rounds", app->inbe.max_rounds);
-    inbe_storage_set_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths));
-    inbe_storage_set_setting_int("pause_seconds", app->inbe.pause_seconds);
-    inbe_storage_set_setting_int("sound_volume", app->sound_volume);
-    inbe_storage_set_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0);
-    inbe_storage_set_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask);
-    inbe_storage_set_setting_int("theme", app->theme_id);
-    inbe_storage_set_setting_int("dark_mode", app->dark_mode);
-    inbe_storage_set_setting_int("theme_mode", app->theme_mode);
-    inbe_storage_set_setting_int("orientation_mode", app->orientation_mode);
-    inbe_storage_set_setting_int("main_tab", app->main_tab);
-    inbe_storage_set_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("progressive_speed", app->inbe.progressive_speed);
-    inbe_storage_set_setting_int("progressive_start_speed", app->inbe.progressive_start_speed);
-    inbe_storage_set_setting_int("breath_animation", app->inbe.breath_animation);
-    inbe_storage_set_setting_int("advanced_session_controls", app->advanced_session_controls ? 1 : 0);
-    inbe_storage_set_setting_int("hold_display_mode", app->hold_display_mode);
-    inbe_storage_set_setting_int("exercise_type", app->exercise_type);
-    inbe_storage_set_setting_int("meditation_music_enabled", app->meditation_music_enabled ? 1 : 0);
-    inbe_storage_set_setting_int("meditation_music_shuffle", app->meditation_music_shuffle ? 1 : 0);
-    inbe_storage_set_setting_int("meditation_music_track", app->meditation_music_track);
-    inbe_storage_set_setting_int("play_in_background", app->inbe.play_in_background);
-    inbe_storage_set_setting_text("language",
-                                  (app->language_selected && app->language[0] != '\0') ? app->language : "");
-    inbe_storage_set_setting_int("practice_category_tab", app->practice_category_tab);
-    inbe_storage_settings_end_write();
-#if defined(PLATFORM_WEB)
-    sync_web_storage();
-#endif
-    app->settings_dirty = 0;
-    app->settings_save_delay_ticks = 0;
-}
-
-static void
-load_settings(InbeApp *app)
-{
-    int settings_missing = inbe_storage_settings_empty();
-    int speed = inbe_storage_get_setting_int("speed", DefaultSpeedLevel);
-    int max_rounds = inbe_storage_get_setting_int("max_rounds", DefaultMaxRounds);
-    int max_breaths = inbe_storage_get_setting_int("max_breaths", DefaultMaxBreaths);
-    int pause_seconds = inbe_storage_get_setting_int("pause_seconds", DefaultPauseSeconds);
-    int sound_volume = inbe_storage_get_setting_int("sound_volume", 100);
-    int manual_seen_mask;
-
-    app->tutorial_seen = inbe_storage_get_setting_int("tutorial_seen", 0) != 0;
-    manual_seen_mask = inbe_storage_get_setting_int("exercise_manual_seen_mask", -1);
-    if(manual_seen_mask < 0)
-        manual_seen_mask = app->tutorial_seen ? exercise_manual_seen_bit(EXERCISE_WIM_HOF) : 0;
-    app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
-    app->theme_id = clampi(inbe_storage_get_setting_int("theme", 0), 0, FLINT_THEME_COUNT - 1);
-    app->theme_mode = clampi(inbe_storage_get_setting_int("theme_mode", APP_THEME_SYSTEM),
-                             APP_THEME_SYSTEM, APP_THEME_DARK);
-    app->dark_mode = inbe_storage_get_setting_int("dark_mode", 0) != 0;
-    app->orientation_mode = clampi(inbe_storage_get_setting_int("orientation_mode", APP_ORIENTATION_SYSTEM),
-                                   APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR);
-    app->main_tab = clampi(inbe_storage_get_setting_int("main_tab", APP_MAIN_TAB_PRACTICE),
-                           APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
-    app->fullscreen_enabled = inbe_storage_get_setting_int("fullscreen", 0) != 0;
-#ifdef __ANDROID__
-    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 1) != 0;
-#else
-    app->on_screen_keyboard_enabled = inbe_storage_get_setting_int("on_screen_keyboard", 0) != 0;
-#endif
-    app->sound_volume = clampi(sound_volume, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX);
-    app->inbe.progressive_speed = inbe_storage_get_setting_int("progressive_speed", 1) != 0;
-    app->inbe.progressive_start_speed = clampi(inbe_storage_get_setting_int("progressive_start_speed", DefaultProgressiveStartSpeed),
-                                               SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
-    app->inbe.breath_animation = clampi(inbe_storage_get_setting_int("breath_animation", InbeBreathAnimationLinear),
-                                        InbeBreathAnimationLinear, InbeBreathAnimationCount - 1);
-    app->advanced_session_controls = inbe_storage_get_setting_int("advanced_session_controls", 0) != 0;
-    app->hold_display_mode = clampi(inbe_storage_get_setting_int("hold_display_mode", HOLD_DISPLAY_CIRCLE),
-                                    HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
-    app->exercise_type = clampi(inbe_storage_get_setting_int("exercise_type", EXERCISE_WIM_HOF),
-                                EXERCISE_WIM_HOF, EXERCISE_COUNT - 1);
-    app->meditation_music_enabled = inbe_storage_get_setting_int("meditation_music_enabled", 1) != 0;
-    app->meditation_music_shuffle = inbe_storage_get_setting_int("meditation_music_shuffle", 0) != 0;
-    app->meditation_music_track = clampi(inbe_storage_get_setting_int("meditation_music_track", 0),
-                                         0, MEDITATION_MUSIC_TRACK_COUNT - 1);
-    app->practice_category_tab =
-        clampi(inbe_storage_get_setting_int("practice_category_tab", PRACTICE_CATEGORY_MIND),
-               0, PRACTICE_CATEGORY_COUNT - 1);
-    app->language_needs_save = 0;
-    {
-        const char *language = inbe_storage_get_setting_text("language");
-        if(language != NULL && language[0] != '\0') {
-            snprintf(app->language, sizeof(app->language), "%s", language);
-            app->language_selected = 1;
-            if(!locale_set(app->language)) {
-                snprintf(app->language, sizeof(app->language), "%s", "en");
-                locale_set(app->language);
-            }
-        } else {
-            snprintf(app->language, sizeof(app->language), "%s", "en");
-            app->language_selected = settings_missing ? 0 : 1;
-            app->language_needs_save = app->language_selected;
-            locale_set(app->language);
-        }
-        app->language_index = locale_current_index();
-        if(app->language_index < 0)
-            app->language_index = 0;
-    }
-#if defined(LOTUS_BUILD)
-    sync_lotus_settings(app);
-#endif
-
-#ifdef __ANDROID__
-    app->inbe.play_in_background = inbe_storage_get_setting_int("play_in_background",
-        1  // Default to enabled on Android
-    );
-    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d", app->inbe.play_in_background);
-#else
-    app->inbe.play_in_background = 0;
-#endif
-    app->backgrounded = 0;
-
-    app_device_preferences_init(app);
-    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-    refresh_locale_dependent_text(app);
-    if(settings_missing)
-        save_settings(app);
-}
-
-void
 app_reload_after_import(InbeApp *app, int reload_settings)
 {
     if(app == NULL)
         return;
 
     if(reload_settings) {
-        load_settings(app);
+        if(app_load_settings(app))
+            save_settings(app);
         reset_settings_preview(app);
         update_session_sounds(app);
     }
@@ -836,7 +605,8 @@ inbe_app_init(void *vapp) {
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + flint_px(80));
     data_init();
-    load_settings(app);
+    if(app_load_settings(app))
+        save_settings(app);
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;
@@ -921,14 +691,10 @@ inbe_app_init(void *vapp) {
     if(app->whm_2_image.id == 0) {
         app->whm_2_image = load_asset_texture("whm/2.jpg");
     }
-#if !defined(LOTUS_BUILD)
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-#else
-    app->inbe.screen = InbeScreenStart;
-#endif
 
     /* Reset modal state */
     app->modal.active = 0;
@@ -1565,9 +1331,6 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     flint_set_view_size(view_width, view_height);
 
     ui_init(view_width, view_height, flint_dpi_scale());
-#if defined(LOTUS_BUILD)
-    sync_lotus_settings(app);
-#endif
     session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
                                   flint_px(56) + flint_px(80));
 

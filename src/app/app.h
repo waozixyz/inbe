@@ -79,15 +79,6 @@ typedef struct InbeConfig {
 
 extern InbeConfig config;
 
-typedef struct LotusAppApi {
-    const char *id;
-    void *(*create)(void);
-    void (*init)(void *state);
-    void (*init_args)(void *state, int argc, char **argv);
-    void (*update_draw)(void *state, Rectangle viewport);
-    void (*destroy)(void *state);
-} LotusAppApi;
-
 typedef enum HoldDisplayMode {
     HOLD_DISPLAY_CIRCLE = 0,
     HOLD_DISPLAY_STOPWATCH = 1,
@@ -178,9 +169,6 @@ struct InbeApp {
     int android_orientation;
     int main_tab;
     int pending_bottom_tab;
-#if defined(LOTUS_BUILD)
-    unsigned int lotus_settings_version;
-#endif
     InbeHabits habits;
     int habit_detail_index;
     int habit_detail_day;
@@ -243,11 +231,8 @@ void app_play_sound(InbeApp *app, Sound sound, float scale);
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);
 void count_from_int(char dst[4], int value);
-void save_settings(InbeApp *app);
 void app_reload_after_import(InbeApp *app, int reload_settings);
-void reset_settings_preview(InbeApp *app);
 void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
-void apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds);
 void refresh_theme_colors(int theme_id, int dark_mode);
 void refresh_locale_dependent_text(InbeApp *app);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
@@ -257,5 +242,7 @@ void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
 void settings_draw_progressive_start_speed_editor(InbeApp *app);
+
+#include "app_settings.h"
 
 #endif
