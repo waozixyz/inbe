@@ -255,7 +255,7 @@ meditation_manual_draw(InbeApp *app)
     };
     scroll_view = ui_scroll_container_begin(scroll_area);
     y = scroll_view.content_y;
-    meditation_music_draw_guide_settings(app, scroll_view.content_x, scroll_view.content_w, &y);
+    meditation_music_draw_settings(app, scroll_view.content_x, scroll_view.content_w, &y, 0, 1);
     y += flint_px(34);
     paragraph.width = scroll_view.content_w;
     flint_ui_paragraph_draw(paragraph, scroll_view.content_x, &y);

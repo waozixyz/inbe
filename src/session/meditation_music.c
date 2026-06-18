@@ -149,6 +149,26 @@ set_status(InbeApp *app, const char *message)
 }
 
 static int
+download_supported(void)
+{
+#if defined(PLATFORM_WEB)
+    return 0;
+#else
+    return 1;
+#endif
+}
+
+static const char *
+missing_audio_message(void)
+{
+#if defined(PLATFORM_WEB)
+    return "Audio is unavailable";
+#else
+    return "Download audio before playing music";
+#endif
+}
+
+static int
 is_network_download_error(const FlintRuntimeAssetDownload *download)
 {
     const char *error;
@@ -441,7 +461,7 @@ meditation_music_test_track(InbeApp *app)
         return;
     }
     if(!meditation_music_available(app)) {
-        set_status(app, "Download audio before testing");
+        set_status(app, missing_audio_message());
         return;
     }
 
@@ -496,7 +516,7 @@ meditation_music_start_session(InbeApp *app)
     if(app == NULL || !app->meditation_music_enabled)
         return;
     if(!meditation_music_available(app)) {
-        set_status(app, "Download audio before playing music");
+        set_status(app, missing_audio_message());
         return;
     }
 
@@ -568,9 +588,9 @@ start_download(InbeApp *app)
                                  archive_path);
 }
 
-static void
-draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
-                  int show_installed_download, int show_status)
+void
+meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y,
+                               int show_installed_download, int show_status)
 {
     int toggle_w = flint_px(56);
     int toggle_h = flint_px(30);
@@ -628,7 +648,7 @@ draw_music_picker(InbeApp *app, int content_x, int content_w, int *y,
         *y += button_h + flint_px(12);
     }
 
-    if(!installed || show_installed_download) {
+    if(download_supported() && (!installed || show_installed_download)) {
         button_w = flint_text_measure(locale_get(installed ? "meditation_music_redownload_button"
                                                            : "meditation_music_download_button"),
                                       flint_ui_font()) + flint_px(24);
@@ -676,7 +696,7 @@ meditation_music_measure_settings(InbeApp *app, int content_w,
     installed = meditation_music_available(app);
     if(installed)
         h += flint_px(48);
-    if(!installed || show_installed_download)
+    if(download_supported() && (!installed || show_installed_download))
         h += flint_px(48);
 
     if(show_status && (!installed || app->meditation_music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
@@ -689,18 +709,6 @@ meditation_music_measure_settings(InbeApp *app, int content_w,
     h += music_attribution_height(content_w) + flint_px(10);
 
     return h;
-}
-
-void
-meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y)
-{
-    draw_music_picker(app, content_x, content_w, y, 1, 1);
-}
-
-void
-meditation_music_draw_guide_settings(InbeApp *app, int content_x, int content_w, int *y)
-{
-    draw_music_picker(app, content_x, content_w, y, 0, 1);
 }
 
 int
