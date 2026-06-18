@@ -24,7 +24,7 @@ enum {
     HABIT_WEEKLY_MONTH_DAYS = 31,
     HABIT_WEEKLY_INITIAL_DAYS = HABIT_WEEKLY_MONTH_DAYS,
     HABIT_WEEKLY_LOAD_DAYS = HABIT_WEEKLY_MONTH_DAYS,
-    HABIT_WEEKLY_MAX_DAYS = INBE_HABIT_MAX_DAYS
+    HABIT_WEEKLY_MAX_DAYS = 36500
 };
 
 /* Helper functions */
@@ -44,13 +44,50 @@ copy_text(char *dst, size_t dst_size, const char *src)
 static int
 habit_find_day(const InbeHabit *habit, int day_index)
 {
-    if(habit == NULL)
+    if(habit == NULL || habit->days == NULL)
         return -1;
     for(int i = 0; i < habit->day_count; i++) {
         if(habit->days[i].day_index == day_index)
             return i;
     }
     return -1;
+}
+
+int
+inbe_habit_reserve_days(InbeHabit *habit, int capacity)
+{
+    InbeHabitDay *days;
+    int new_capacity;
+
+    if(habit == NULL || capacity <= habit->day_capacity)
+        return habit != NULL;
+    new_capacity = habit->day_capacity > 0 ? habit->day_capacity : 16;
+    while(new_capacity < capacity) {
+        if(new_capacity > 1073741823 / 2)
+            return 0;
+        new_capacity *= 2;
+    }
+    days = realloc(habit->days, (size_t)new_capacity * sizeof(*days));
+    if(days == NULL)
+        return 0;
+    memset(days + habit->day_capacity, 0,
+           (size_t)(new_capacity - habit->day_capacity) * sizeof(*days));
+    habit->days = days;
+    habit->day_capacity = new_capacity;
+    return 1;
+}
+
+void
+inbe_habits_free(InbeHabits *habits)
+{
+    if(habits == NULL)
+        return;
+    for(int i = 0; i < INBE_HABIT_MAX; i++) {
+        free(habits->items[i].days);
+        habits->items[i].days = NULL;
+        habits->items[i].day_count = 0;
+        habits->items[i].day_capacity = 0;
+    }
 }
 
 /* Core habits functions from habits.c */
@@ -97,7 +134,6 @@ inbe_habits_clear_days(InbeHabits *habits)
             if(habit->days[d].day_index > 0 || habit->days[d].completed)
                 cleared++;
         }
-        memset(habit->days, 0, sizeof(habit->days));
         habit->day_count = 0;
     }
     return cleared;
@@ -124,6 +160,7 @@ inbe_habits_add_default_set(InbeHabits *habits)
     if(habits == NULL)
         return;
 
+    inbe_habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     inbe_habits_add_seed(habits, "meditation", "Meditation", (Color){126, 183, 230, 255},
                          habit_activity_mask_for(EXERCISE_WIM_HOF) |
@@ -139,6 +176,7 @@ inbe_habits_delete(InbeHabits *habits, int index)
     if(habits == NULL || index < 0 || index >= habits->count)
         return;
 
+    free(habits->items[index].days);
     for(int i = index; i < habits->count - 1; i++)
         habits->items[i] = habits->items[i + 1];
     habits->count--;
@@ -233,7 +271,7 @@ inbe_habit_set_day(InbeHabits *habits, int index, int day_index, int completed)
     existing_index = habit_find_day(habit, day_index);
     if(existing_index >= 0) {
         habit->days[existing_index].completed = completed != 0;
-    } else if(completed && habit->day_count < INBE_HABIT_MAX_DAYS) {
+    } else if(completed && inbe_habit_reserve_days(habit, habit->day_count + 1)) {
         habit->days[habit->day_count].day_index = day_index;
         habit->days[habit->day_count].completed = 1;
         habit->day_count++;
@@ -255,7 +293,7 @@ inbe_habit_toggle_day(InbeHabits *habits, int index, int day_index)
     existing_index = habit_find_day(habit, day_index);
     if(existing_index >= 0) {
         habit->days[existing_index].completed = !habit->days[existing_index].completed;
-    } else if(habit->day_count < INBE_HABIT_MAX_DAYS) {
+    } else if(inbe_habit_reserve_days(habit, habit->day_count + 1)) {
         habit->days[habit->day_count].day_index = day_index;
         habit->days[habit->day_count].completed = 1;
         habit->day_count++;

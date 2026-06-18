@@ -80,6 +80,8 @@ jobs:
     name: Build Linux
     runs-on: ubuntu-latest
     needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
 
     steps:
       - name: Checkout Repository
@@ -88,22 +90,24 @@ jobs:
           submodules: recursive
           fetch-depth: 0
 
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install Linux Dependencies
         run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
           sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            ca-certificates \
-            curl \
-            libcurl4-openssl-dev \
-            libdrm-dev \
-            libegl1-mesa-dev \
-            libgbm-dev \
-            libgles2-mesa-dev \
-            libsdl2-dev \
-            patchelf \
-            pkg-config \
-            zip
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
 
       - name: Install AppImage Tools
         run: |
