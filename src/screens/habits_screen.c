@@ -21,8 +21,9 @@ extern int view_width;
 extern int view_height;
 
 enum {
-    HABIT_WEEKLY_INITIAL_DAYS = 7,
-    HABIT_WEEKLY_LOAD_DAYS = 7,
+    HABIT_WEEKLY_MONTH_DAYS = 31,
+    HABIT_WEEKLY_INITIAL_DAYS = HABIT_WEEKLY_MONTH_DAYS,
+    HABIT_WEEKLY_LOAD_DAYS = HABIT_WEEKLY_MONTH_DAYS,
     HABIT_WEEKLY_MAX_DAYS = INBE_HABIT_MAX_DAYS
 };
 
@@ -771,6 +772,26 @@ draw_habit_link_dot(int x, int y, int w, Color color)
                flint_px(3), color);
 }
 
+static Color
+habit_text_color_for_background(Color background)
+{
+    int luma = background.r * 299 + background.g * 587 + background.b * 114;
+
+    return luma >= 128000 ? BLACK : WHITE;
+}
+
+static void
+habit_weekly_draw_text_line(const char *text, int x, int y, int w, int h,
+                            int text_size, Color color)
+{
+    int font_size;
+
+    if(text == NULL || text[0] == '\0' || w <= 0 || h <= 0)
+        return;
+    font_size = flint_px(text_size);
+    flint_text_draw(text, x, flint_text_y(text, y, h, font_size), font_size, color);
+}
+
 static int
 habit_weekly_summary(const HabitLinkedContext *ctx, int day_index,
                      char *primary, size_t primary_size,
@@ -821,8 +842,9 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     int hovered;
     Color fill = completed ? theme_get_button() : flint_darken(theme_get_bg(), 10);
     Color text = disabled ? flint_darken(theme_get_text(), 35) : theme_get_text();
-    int font = flint_ui_font();
-    int small_font = flint_px(FLINT_TEXT_8);
+    int pad = flint_px(9);
+    int text_x;
+    int text_w;
     const char *line1 = primary != NULL ? primary : "";
     const char *line2 = secondary != NULL ? secondary : "";
 
@@ -841,25 +863,28 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
 
     if(hovered)
         fill = theme_get_button_hover();
+    if(!disabled && completed)
+        text = habit_text_color_for_background(fill);
     DrawRectangle(x, y, w, h, fill);
     ui_draw_bevel(x, y, w, h, flint_lighten(fill, 36), flint_darken(fill, 42));
 
+    text_x = x + pad;
+    text_w = w - pad * 2;
+
     if(line1[0] != '\0') {
         if(line2[0] != '\0') {
-            flint_text_draw_fitted_in_rect(line1,
-                                           (Rectangle){x + flint_px(8), y + flint_px(5),
-                                                       w - flint_px(16), flint_px(18)},
-                                           font, FLINT_TEXT_12, text);
-            flint_text_draw_fitted_in_rect(line2,
-                                           (Rectangle){x + flint_px(8), y + flint_px(24),
-                                                       w - flint_px(16), flint_px(12)},
-                                           small_font, FLINT_TEXT_8,
-                                           flint_darken(text, 16));
+            int line1_h = flint_px(24);
+            int line2_h = flint_px(16);
+            int block_h = line1_h + line2_h;
+            int block_y = y + (h - block_h) / 2;
+            habit_weekly_draw_text_line(line1, text_x, block_y, text_w, line1_h,
+                                        FLINT_TEXT_16, text);
+            habit_weekly_draw_text_line(line2, text_x, block_y + line1_h, text_w, line2_h,
+                                        FLINT_TEXT_8, flint_darken(text, 16));
         } else {
-            flint_text_draw_fitted_in_rect(line1,
-                                           (Rectangle){x + flint_px(8), y,
-                                                       w - flint_px(16), h},
-                                           font, FLINT_TEXT_16, text);
+            habit_weekly_draw_text_line(line1, text_x, y + flint_px(3),
+                                        text_w, h - flint_px(6),
+                                        FLINT_TEXT_16, text);
         }
     }
 
@@ -883,7 +908,7 @@ habit_weekly_visible_days(InbeHabits *habits)
 static int
 habit_weekly_content_height(int visible_days)
 {
-    int row_h = flint_px(40);
+    int row_h = flint_px(44);
     int row_gap = flint_px(6);
     int load_h = flint_px(38);
 
@@ -908,7 +933,7 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
     int gap = flint_px(8);
     int button_x;
     int button_w;
-    int row_h = flint_px(40);
+    int row_h = flint_px(44);
     int row_gap = flint_px(6);
     int day_font = flint_px(16);
     int date_font = flint_px(FLINT_TEXT_8);

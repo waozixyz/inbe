@@ -1522,8 +1522,11 @@ import_tickmate_db(sqlite3 *src)
                                         sizeof(local_habit_id)))
                 continue;
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
-                                  "VALUES(?1,?2,1,?3)",
+                                  "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
+                                  "VALUES(?1,?2,1,?3) "
+                                  "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
+                                  "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
+                                  "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
                                   -1, &write_stmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(write_stmt, 1, local_habit_id);
@@ -1563,7 +1566,9 @@ import_settings_from_source(sqlite3 *src)
             continue;
         if(sqlite3_prepare_v2(g_storage.db,
                               "INSERT INTO settings(user_id,key,value,updated_at) VALUES(?1,?2,?3,?4) "
-                              "ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
+                              "ON CONFLICT(user_id,key) DO UPDATE SET "
+                              "value=CASE WHEN excluded.value!='' OR settings.value='' THEN excluded.value ELSE settings.value END,"
+                              "updated_at=CASE WHEN excluded.value!='' OR settings.value='' THEN excluded.updated_at ELSE settings.updated_at END",
                               -1, &write_stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(write_stmt, 1, g_storage.user_id);
@@ -1718,8 +1723,11 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
                 while(sqlite3_step(hstmt) == SQLITE_ROW) {
                     sqlite3_stmt *day_stmt = NULL;
                     if(sqlite3_prepare_v2(g_storage.db,
-                                          "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
-                                          "VALUES(?1,?2,?3,?4)",
+                                          "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
+                                          "VALUES(?1,?2,?3,?4) "
+                                          "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
+                                          "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
+                                          "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
                                           -1, &day_stmt, NULL) != SQLITE_OK)
                         continue;
                     bind_text(day_stmt, 1, local_habit_id);
