@@ -1,4 +1,8 @@
 # Changelog
+## [1.3.6] - 2026-06-18
+### Fixed
+- Fixed Tickmate `.db` imports so zero-based months map correctly and long habit histories load without dropping later dates.
+
 ## [1.3.5] - 2026-06-18
 ### Fixed
 - Improved Android data import for `.db` backups, weekly habit rows, and import conflict handling.

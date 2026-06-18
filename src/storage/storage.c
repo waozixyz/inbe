@@ -1045,6 +1045,7 @@ inbe_storage_habits_load(void *habits_ptr)
 
     if(habits == NULL || g_storage.db == NULL)
         return 0;
+    inbe_habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity "
@@ -1067,12 +1068,16 @@ inbe_storage_habits_load(void *habits_ptr)
 
     for(int i = 0; i < habits->count; i++) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "SELECT local_date,completed FROM habit_days WHERE habit_id=?1 ORDER BY local_date LIMIT 366",
+                              "SELECT local_date,completed FROM habit_days WHERE habit_id=?1 ORDER BY local_date",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habits->items[i].id);
-        while(habits->items[i].day_count < INBE_HABIT_MAX_DAYS && sqlite3_step(stmt) == SQLITE_ROW) {
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
             int d = habits->items[i].day_count++;
+            if(!inbe_habit_reserve_days(&habits->items[i], habits->items[i].day_count)) {
+                habits->items[i].day_count--;
+                break;
+            }
             habits->items[i].days[d].day_index = sqlite3_column_int(stmt, 0);
             habits->items[i].days[d].completed = sqlite3_column_int(stmt, 1) != 0;
         }
@@ -1502,6 +1507,17 @@ import_tickmate_db(sqlite3 *src)
                           "SELECT ticks._track_id,tracks.name,ticks.year,ticks.month,ticks.day "
                           "FROM ticks JOIN tracks ON tracks._id=ticks._track_id",
                           -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
+                              "VALUES(?1,?2,1,?3) "
+                              "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
+                              "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
+                              "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
+                              -1, &write_stmt, NULL) != SQLITE_OK) {
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+            goto finish;
+        }
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             char import_habit_id[64];
             char local_habit_id[INBE_STORAGE_ID_SIZE];
@@ -1514,30 +1530,24 @@ import_tickmate_db(sqlite3 *src)
 
             if(name == NULL || name[0] == '\0')
                 continue;
-            if(year <= 0 || month <= 0 || month > 12 || day <= 0 || day > 31)
+            /* Tickmate stores Android Calendar.MONTH values: January is 0. */
+            if(year <= 0 || month < 0 || month > 11 || day <= 0 || day > 31)
                 continue;
-            local_date = year * 10000 + month * 100 + day;
+            local_date = year * 10000 + (month + 1) * 100 + day;
             snprintf(import_habit_id, sizeof(import_habit_id), "tickmate-%d", track_id);
             if(!resolve_import_habit_id(import_habit_id, name, local_habit_id,
                                         sizeof(local_habit_id)))
                 continue;
-            if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
-                                  "VALUES(?1,?2,1,?3) "
-                                  "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
-                                  "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
-                                  "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
-                                  -1, &write_stmt, NULL) != SQLITE_OK)
-                continue;
+            sqlite3_reset(write_stmt);
+            sqlite3_clear_bindings(write_stmt);
             bind_text(write_stmt, 1, local_habit_id);
             sqlite3_bind_int(write_stmt, 2, local_date);
             sqlite3_bind_int64(write_stmt, 3, imported_at);
             if(sqlite3_step(write_stmt) == SQLITE_DONE)
                 ok = 1;
-            sqlite3_finalize(write_stmt);
-            write_stmt = NULL;
         }
     }
+finish:
     sqlite3_finalize(stmt);
     sqlite3_finalize(write_stmt);
     exec_sql("COMMIT");

@@ -17,7 +17,6 @@ enum {
     INBE_HABIT_MAX = 10,
     INBE_HABIT_ID_SIZE = 32,
     INBE_HABIT_NAME_SIZE = 40,
-    INBE_HABIT_MAX_DAYS = 366,
     HABIT_LINKED_ENTRY_MAX = 128,
     HABIT_LINKED_PATH_SIZE = 80
 };
@@ -45,8 +44,9 @@ typedef struct InbeHabit {
     Color color;
     int sync_mode;
     int sync_activity;
-    InbeHabitDay days[INBE_HABIT_MAX_DAYS];
+    InbeHabitDay *days;
     int day_count;
+    int day_capacity;
 } InbeHabit;
 
 typedef struct InbeHabits {
@@ -89,8 +89,10 @@ typedef struct HabitLinkedContext {
 
 /* Core habits functions */
 void inbe_habits_init(InbeHabits *habits);
+void inbe_habits_free(InbeHabits *habits);
 void inbe_habits_save(const InbeHabits *habits);
 int inbe_habits_clear_days(InbeHabits *habits);
+int inbe_habit_reserve_days(InbeHabit *habit, int capacity);
 int inbe_habits_today_index(void);
 int inbe_habit_completed_day(const InbeHabit *habit, int day_index);
 int inbe_habit_completed_today(const InbeHabit *habit);

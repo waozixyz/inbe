@@ -1,0 +1,12 @@
+build-essential
+ca-certificates
+curl
+libcurl4-openssl-dev
+libdrm-dev
+libegl1-mesa-dev
+libgbm-dev
+libgles2-mesa-dev
+libsdl2-dev
+patchelf
+pkg-config
+zip

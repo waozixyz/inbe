@@ -11,6 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 static int g_failures = 0;
@@ -608,6 +609,7 @@ static void
 write_tickmate_database(const char *path)
 {
     sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
     char *error = NULL;
 
     check_true("open tickmate db", sqlite3_open(path, &db) == SQLITE_OK);
@@ -625,11 +627,50 @@ write_tickmate_database(const char *path)
                             "INSERT INTO tracks(_id,name,description,icon,enabled,color,\"order\") "
                             "VALUES(1,'Meditation','Silenced my mind','',1,8925,0);"
                             "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
-                            "VALUES(1,2026,6,13,0,0,0,0);",
+                            "VALUES(1,2026,0,1,0,0,0,0),"
+                            "(1,2026,1,2,0,0,0,0),"
+                            "(1,2026,2,3,0,0,0,0),"
+                            "(1,2026,3,4,0,0,0,0),"
+                            "(1,2026,4,5,0,0,0,0),"
+                            "(1,2026,5,6,0,0,0,0),"
+                            "(1,2026,6,7,0,0,0,0),"
+                            "(1,2026,7,8,0,0,0,0),"
+                            "(1,2026,8,9,0,0,0,0),"
+                            "(1,2026,9,10,0,0,0,0),"
+                            "(1,2026,10,11,0,0,0,0),"
+                            "(1,2026,11,12,0,0,0,0);",
                             NULL, NULL, &error) == SQLITE_OK);
     if(error != NULL) {
         fprintf(stderr, "tickmate setup SQL error: %s\n", error);
         sqlite3_free(error);
+    }
+    check_true("prepare large tickmate insert",
+               sqlite3_prepare_v2(db,
+                                  "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
+                                  "VALUES(1,?1,?2,?3,0,0,0,0)",
+                                  -1, &stmt, NULL) == SQLITE_OK);
+    if(stmt != NULL) {
+        struct tm day;
+
+        check_true("begin large tickmate insert", sqlite3_exec(db, "BEGIN", NULL, NULL, NULL) == SQLITE_OK);
+        memset(&day, 0, sizeof(day));
+        day.tm_year = 2025 - 1900;
+        day.tm_mon = 0;
+        day.tm_mday = 1;
+        day.tm_hour = 12;
+        mktime(&day);
+        for(int i = 0; i < 12000; i++) {
+            sqlite3_reset(stmt);
+            sqlite3_clear_bindings(stmt);
+            sqlite3_bind_int(stmt, 1, day.tm_year + 1900);
+            sqlite3_bind_int(stmt, 2, day.tm_mon);
+            sqlite3_bind_int(stmt, 3, day.tm_mday);
+            check_true("large tickmate insert row", sqlite3_step(stmt) == SQLITE_DONE);
+            day.tm_mday++;
+            mktime(&day);
+        }
+        check_true("commit large tickmate insert", sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_finalize(stmt);
     }
     sqlite3_close(db);
 }
@@ -650,7 +691,20 @@ test_tickmate_db_import(void)
     memset(&habits, 0, sizeof(habits));
     check_true("tickmate habits load", inbe_storage_habits_load(&habits));
     check_int("tickmate habit count", habits.count, 1);
-    check_true("tickmate habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
+    check_true("tickmate january day", inbe_habit_completed_day(&habits.items[0], 20260101));
+    check_true("tickmate february day", inbe_habit_completed_day(&habits.items[0], 20260202));
+    check_true("tickmate march day", inbe_habit_completed_day(&habits.items[0], 20260303));
+    check_true("tickmate april day", inbe_habit_completed_day(&habits.items[0], 20260404));
+    check_true("tickmate may day", inbe_habit_completed_day(&habits.items[0], 20260505));
+    check_true("tickmate june day", inbe_habit_completed_day(&habits.items[0], 20260606));
+    check_true("tickmate july day", inbe_habit_completed_day(&habits.items[0], 20260707));
+    check_true("tickmate august day", inbe_habit_completed_day(&habits.items[0], 20260808));
+    check_true("tickmate september day", inbe_habit_completed_day(&habits.items[0], 20260909));
+    check_true("tickmate october day", inbe_habit_completed_day(&habits.items[0], 20261010));
+    check_true("tickmate november day", inbe_habit_completed_day(&habits.items[0], 20261111));
+    check_true("tickmate december day", inbe_habit_completed_day(&habits.items[0], 20261212));
+    check_true("tickmate loads thousands of days",
+               inbe_habit_completed_day(&habits.items[0], 20571108));
     check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
     inbe_storage_close();
 

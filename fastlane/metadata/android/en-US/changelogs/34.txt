@@ -1,0 +1,2 @@
+### Fixed
+- Fixed Tickmate `.db` imports so zero-based months map correctly and long habit histories load without dropping later dates.
