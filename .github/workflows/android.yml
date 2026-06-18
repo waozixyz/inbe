@@ -38,10 +38,22 @@ jobs:
         run: nix develop --command make test
 
   build:
-    name: Build Release Artifacts
+    name: Build ${{ matrix.name }}
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - platform: web
+            name: Web ZIP
+          - platform: linux
+            name: Linux AppImage
+          - platform: windows
+            name: Windows ZIP
+          - platform: android
+            name: Android APK and AAB
 
     steps:
       - name: Checkout Repository
@@ -57,15 +69,18 @@ jobs:
         uses: DeterminateSystems/magic-nix-cache-action@v8
 
       - name: Set up JDK 21
+        if: matrix.platform == 'android'
         uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '21'
 
       - name: Setup Gradle
+        if: matrix.platform == 'android'
         uses: gradle/actions/setup-gradle@v3
 
       - name: Prepare Android signing key
+        if: matrix.platform == 'android'
         env:
           KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
         run: |
@@ -73,22 +88,39 @@ jobs:
           mkdir -p ~/.android
           echo "$KEYSTORE_BASE64" | base64 -d > ~/.android/inbe-release.keystore
 
-      - name: Build unpackaged audio archive
-        run: nix develop --command make package-unpackaged-assets
-
       - name: Build Web ZIP
-        run: nix develop --command make web
+        if: matrix.platform == 'web'
+        run: |
+          set -euo pipefail
+          nix develop --command make package-unpackaged-assets
+          nix develop --command make web
+          mkdir -p build/release/web
+          cp build/dist/inbe-web.zip build/release/web/
 
       - name: Build Linux AppImage
-        run: nix develop --command make appimage
+        if: matrix.platform == 'linux'
+        run: |
+          set -euo pipefail
+          nix develop --command make appimage
+          mkdir -p build/release/linux
+          find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -type f -print -quit)"
 
       - name: Build Windows ZIP
-        run: nix develop --command make windows
+        if: matrix.platform == 'windows'
+        run: |
+          set -euo pipefail
+          nix develop --command make windows
+          mkdir -p build/release/windows
+          find build/dist/windows -maxdepth 1 -type f -name '*.zip' -exec cp {} build/release/windows/ \;
+          test -n "$(find build/release/windows -type f -print -quit)"
 
       - name: Copy Android Assets
+        if: matrix.platform == 'android'
         run: ./scripts/copy-android-assets.sh
 
       - name: Build Android APK
+        if: matrix.platform == 'android'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -103,6 +135,7 @@ jobs:
           make android-copy-release-apks
 
       - name: Build Android AAB
+        if: matrix.platform == 'android'
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -116,20 +149,44 @@ jobs:
             --stacktrace
           make android-copy-bundle
 
-      - name: Collect Release Files
+      - name: Collect Android Release Files
+        if: matrix.platform == 'android'
         run: |
           set -euo pipefail
-          mkdir -p build/release
-          find build/dist -type f \( -name '*.zip' -o -name '*.AppImage' \) -exec cp {} build/release/ \;
-          find build/android -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/ \;
-          test -n "$(find build/release -type f -print -quit)"
+          mkdir -p build/release/android
+          find build/android -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/android/ \;
+          test -n "$(find build/release/android -type f -print -quit)"
 
       - name: Upload Release Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: release-artifacts
-          path: build/release/*
+          name: release-${{ matrix.platform }}
+          path: build/release/${{ matrix.platform }}/*
           if-no-files-found: error
+
+  release:
+    name: Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download Release Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: build/release
+          merge-multiple: true
+
+      - name: Verify Release Artifacts
+        run: |
+          set -euo pipefail
+          test -n "$(find build/release -type f -print -quit)"
 
       - name: Create and Push Tag If Version Is New
         id: tag_version
