@@ -40,8 +40,11 @@ Wim Hof 呼吸
 [meditation_manual_title]
 冥想
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-如果音乐能让练习更安稳，就先选择音乐，然后舒适地坐下。把注意力放在呼吸上。被念头带走时，清楚地觉察，再不费力地回来。钟声会提示开始和结束。
+如果需要，可以选择音乐。锣声会提示开始和结束。
 ---
 [meditation_music_settings_title]
 冥想音乐

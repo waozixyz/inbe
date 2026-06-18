@@ -1,4 +1,4 @@
-#include "session.h"
+#include "whm_session.h"
 
 #include "data.h"
 #include "locale.h"

@@ -16,8 +16,9 @@ file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_R
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
-    assets/whm/1.jpg
-    assets/whm/2.jpg
+    assets/practices/whm/1.jpg
+    assets/practices/whm/2.jpg
+    assets/practices/meditation/1.jpg
     assets/fonts/locales.png
     assets/fonts/locales.dat
     assets/fonts/locales-8.png
@@ -88,10 +89,19 @@ add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/core/breath_engine.c"
     "${SRC_DIR}/app/app.c"
+    "${SRC_DIR}/app/app_settings.c"
     "${SRC_DIR}/app/device_preferences.c"
-    "${SRC_DIR}/session/session.c"
+    "${SRC_DIR}/practices/practice_registry.c"
+    "${SRC_DIR}/practices/whm/whm_practice.c"
+    "${SRC_DIR}/practices/whm/whm_session.c"
+    "${SRC_DIR}/practices/whm/whm_manual.c"
+    "${SRC_DIR}/practices/whm/whm_config.c"
+    "${SRC_DIR}/practices/meditation/meditation_practice.c"
+    "${SRC_DIR}/practices/meditation/meditation_session.c"
+    "${SRC_DIR}/practices/meditation/meditation_manual.c"
+    "${SRC_DIR}/practices/meditation/meditation_config.c"
     "${SRC_DIR}/screens/habits_screen.c"
-    "${SRC_DIR}/session/meditation_music.c"
+    "${SRC_DIR}/practices/meditation/meditation_music.c"
     "${SRC_DIR}/core/locale.c"
     "${SRC_DIR}/core/theme.c"
     "${SRC_DIR}/storage/data.c"
@@ -120,7 +130,9 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/core"
     "${SRC_DIR}/screens"
     "${SRC_DIR}/screens/settings"
-    "${SRC_DIR}/session"
+    "${SRC_DIR}/practices"
+    "${SRC_DIR}/practices/whm"
+    "${SRC_DIR}/practices/meditation"
     "${SRC_DIR}/storage"
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"

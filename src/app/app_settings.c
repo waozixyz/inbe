@@ -3,8 +3,8 @@
 #include "app.h"
 #include "device_preferences.h"
 #include "locale.h"
-#include "meditation_music.h"
-#include "session.h"
+#include "practices/meditation/meditation_music.h"
+#include "practices/whm/whm_session.h"
 #include "storage.h"
 #include "theme.h"
 #include "flint_dpi.h"
@@ -177,9 +177,9 @@ save_settings(InbeApp *app)
         {"advanced_session_controls", app->advanced_session_controls ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
-        {"meditation_music_enabled", app->meditation_music_enabled ? 1 : 0},
-        {"meditation_music_shuffle", app->meditation_music_shuffle ? 1 : 0},
-        {"meditation_music_track", app->meditation_music_track},
+        {"meditation_music_enabled", app->meditation.music_enabled ? 1 : 0},
+        {"meditation_music_shuffle", app->meditation.music_shuffle ? 1 : 0},
+        {"meditation_music_track", app->meditation.music_track},
         {"play_in_background", app->inbe.play_in_background},
         {"practice_category_tab", app->practice_category_tab},
     };
@@ -259,8 +259,8 @@ app_load_settings(InbeApp *app)
 #endif
             {&app->inbe.progressive_speed, "progressive_speed", 1},
             {&app->advanced_session_controls, "advanced_session_controls", 0},
-            {&app->meditation_music_enabled, "meditation_music_enabled", 1},
-            {&app->meditation_music_shuffle, "meditation_music_shuffle", 0},
+            {&app->meditation.music_enabled, "meditation_music_enabled", 1},
+            {&app->meditation.music_shuffle, "meditation_music_shuffle", 0},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
@@ -284,7 +284,7 @@ app_load_settings(InbeApp *app)
              HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH},
             {&app->exercise_type, "exercise_type", EXERCISE_WIM_HOF,
              EXERCISE_WIM_HOF, EXERCISE_COUNT - 1},
-            {&app->meditation_music_track, "meditation_music_track", 0,
+            {&app->meditation.music_track, "meditation_music_track", 0,
              0, MEDITATION_MUSIC_TRACK_COUNT - 1},
             {&app->practice_category_tab, "practice_category_tab", PRACTICE_CATEGORY_MIND,
              0, PRACTICE_CATEGORY_COUNT - 1},

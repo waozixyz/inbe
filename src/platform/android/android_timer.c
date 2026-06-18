@@ -1,5 +1,6 @@
 #include "android_timer.h"
 #include "app.h"
+#include "practices/practice_registry.h"
 #include <time.h>
 
 #include <raylib.h>
@@ -41,15 +42,15 @@ timer_thread_func(void *arg) {
         if (should_run) {
             // Log every 60 frames (1 second)
             if (frame_count % 60 == 0) {
-                __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer: Running meditation step + sounds");
+                __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer: Running background practice step + sounds");
             }
             frame_count++;
 
-            // Update meditation state and sounds with mutex protection
+            // Update practice state and sounds with mutex protection
             pthread_mutex_lock(&inbe_state_mutex);
             InbeApp *app = (InbeApp*)g_app;
             inbestep(&app->inbe);
-            update_session_sounds(app);
+            practice_update_session_sounds(app);
             pthread_mutex_unlock(&inbe_state_mutex);
 
             // Sleep for exact frame time (60fps = ~16.666ms)

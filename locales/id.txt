@@ -40,8 +40,11 @@ Meditasi
 [meditation_manual_title]
 Meditasi
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-Pilih musik jika membantu sesi terasa stabil, lalu duduk dengan nyaman. Biarkan perhatian beristirahat pada napas. Saat pikiran menarikmu pergi, sadari dengan jelas dan kembali tanpa memaksa. Gong menandai awal dan akhir.
+Pilih musik jika Anda mau. Gong menandai awal dan akhir.
 ---
 [meditation_music_settings_title]
 Musik meditasi

@@ -1,5 +1,5 @@
-#ifndef INBE_APP_SESSION_H
-#define INBE_APP_SESSION_H
+#ifndef INBE_WHM_SESSION_H
+#define INBE_WHM_SESSION_H
 
 #include "app.h"
 
