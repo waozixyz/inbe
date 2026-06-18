@@ -583,6 +583,32 @@ test_tickmate_db_import(void)
     remove_tree(dest);
 }
 
+static void
+test_external_tickmate_db_import(void)
+{
+    const char *db_path = getenv("INBE_TICKMATE_IMPORT_FIXTURE");
+    char dest[512];
+    InbeStorageImportInfo info;
+    InbeHabits habits;
+
+    if(db_path == NULL || db_path[0] == '\0')
+        return;
+
+    make_clean_root(dest, sizeof(dest), "external-tickmate-dest");
+    check_true("init external tickmate import dest", inbe_storage_init(dest));
+    memset(&info, 0, sizeof(info));
+    check_true("inspect external tickmate db", inbe_storage_inspect_import(db_path, &info));
+    check_true("external tickmate db valid", info.valid);
+    check_true("external tickmate db has habits", info.has_habits);
+    check_true("external tickmate db import", inbe_storage_import_zip(db_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("external tickmate habits load", inbe_storage_habits_load(&habits));
+    check_true("external tickmate habit count", habits.count > 0);
+    inbe_storage_close();
+
+    remove_tree(dest);
+}
+
 int
 main(void)
 {
@@ -593,6 +619,7 @@ main(void)
     test_legacy_zip_import();
     test_legacy_file_startup_migration();
     test_tickmate_db_import();
+    test_external_tickmate_db_import();
     test_session_metadata();
 
     if(g_failures != 0) {

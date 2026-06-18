@@ -281,7 +281,8 @@ public class MainActivity extends NativeActivity {
                         "application/x-zip-compressed",
                         "application/vnd.sqlite3",
                         "application/x-sqlite",
-                        "application/x-sqlite3"
+                        "application/x-sqlite3",
+                        "application/octet-stream"
                     });
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
