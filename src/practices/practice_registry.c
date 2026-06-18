@@ -18,9 +18,9 @@ static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
         .draw_config = whm_config_screen_draw,
         .leave_config = whm_practice_leave_config,
         .update = NULL,
-        .draw_setup_modal = meditation_draw_setup_modal,
-        .draw_active_session = meditation_draw_screen,
-        .request_exit = meditation_request_exit,
+        .draw_setup_modal = NULL,
+        .draw_active_session = NULL,
+        .request_exit = NULL,
     },
     {
         .id = PRACTICE_MEDITATION,
@@ -33,9 +33,9 @@ static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
         .draw_config = meditation_config_screen_draw,
         .leave_config = meditation_practice_leave_config,
         .update = meditation_practice_update,
-        .draw_setup_modal = NULL,
-        .draw_active_session = NULL,
-        .request_exit = NULL,
+        .draw_setup_modal = meditation_draw_setup_modal,
+        .draw_active_session = meditation_draw_screen,
+        .request_exit = meditation_request_exit,
     },
 };
 

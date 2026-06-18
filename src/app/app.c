@@ -519,15 +519,23 @@ load_sound_asset(const char *name)
 
     snprintf(path, sizeof(path), "assets/sounds/%s", name);
     asset = flint_embedded_asset(path);
-    if(asset == NULL || asset->data == NULL || asset->size == 0)
+    if(asset == NULL || asset->data == NULL || asset->size == 0) {
+        TraceLog(LOG_ERROR, "AUDIO: Missing embedded sound asset: %s", path);
         return sound;
+    }
 
     wave = LoadWaveFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
-    if(wave.data == NULL)
+    if(wave.data == NULL) {
+        TraceLog(LOG_ERROR, "AUDIO: Failed to decode embedded sound asset: %s", path);
         return sound;
+    }
 
     sound = LoadSoundFromWave(wave);
     UnloadWave(wave);
+    if(sound.frameCount == 0)
+        TraceLog(LOG_ERROR, "AUDIO: Failed to create sound from embedded asset: %s", path);
+    else
+        TraceLog(LOG_INFO, "AUDIO: Loaded sound asset %s (%u frames)", path, sound.frameCount);
     return sound;
 }
 
@@ -536,7 +544,17 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
 {
     float volume;
 
-    if(app == NULL || !app->audio_ready || sound.frameCount == 0 || app->sound_volume <= 0)
+    if(app == NULL)
+        return;
+    if(!app->audio_ready) {
+        TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because audio device is not ready");
+        return;
+    }
+    if(sound.frameCount == 0) {
+        TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because sound is not loaded");
+        return;
+    }
+    if(app->sound_volume <= 0)
         return;
 
     volume = ((float)app->sound_volume / 100.0f) * scale;
@@ -548,6 +566,8 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
     StopSound(sound);
     SetSoundVolume(sound, volume);
     PlaySound(sound);
+    if(!IsSoundPlaying(sound))
+        TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
 }
 
 static void
@@ -558,8 +578,11 @@ init_audio(InbeApp *app)
 
     InitAudioDevice();
     app->audio_ready = IsAudioDeviceReady();
-    if(!app->audio_ready)
+    if(!app->audio_ready) {
+        TraceLog(LOG_ERROR, "AUDIO: Audio device failed to initialize");
         return;
+    }
+    TraceLog(LOG_INFO, "AUDIO: Audio device initialized");
 
     app->breath_in_sound = load_sound_asset("breath-in.ogg");
     app->breath_out_sound = load_sound_asset("breath-out.ogg");
@@ -814,8 +837,8 @@ updateapp(InbeApp *app)
     int hover = 0;
 
     app_apply_pending_bottom_tab(app);
-    {
-        const PracticeDefinition *practice = practice_get(app->exercise_type);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
             practice->update(app);
     }
