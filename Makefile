@@ -148,6 +148,7 @@ WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell git rev-parse --short HEAD 2>/dev/null || date +%s)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
+WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 WEB_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
@@ -562,6 +563,8 @@ windows:
 
 web:
 	$(MAKE) $(WEB_TARGET)
+	rm -f $(WEB_DIST_ZIP)
+	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
 
 clean:
 	rm -rf build

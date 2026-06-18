@@ -1,4 +1,10 @@
 # Changelog
+## [1.3.4] - 2026-06-18
+### Changed
+- Reorganized WHM and Meditation into practice-owned modules for cleaner code boundaries.
+- Split the meditation manual into an image intro page and a shorter music/gong setup page.
+- Expanded release automation to build Web, Linux AppImage, Windows, APK, and AAB artifacts after tests pass.
+
 ## [1.3.3] - 2026-06-17
 ### Fixed
 - Import now restores habits, habit sync settings, and optionally app settings from Inbe SQLite exports.
