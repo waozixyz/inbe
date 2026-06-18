@@ -237,26 +237,16 @@ jobs:
             --stacktrace
           make android-copy-release-apks
 
-      - name: Build Android AAB
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-        run: |
-          set -euo pipefail
-          chmod +x droid/gradlew
-          ./droid/gradlew -p droid bundleRelease \
-            -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
-            -Pkeystore.alias="$KEY_ALIAS" \
-            -Pkeystore.password="$KEYSTORE_PASSWORD" \
-            --stacktrace
-          make android-copy-bundle
-
       - name: Collect Android Release Files
         run: |
           set -euo pipefail
           mkdir -p build/release/android
-          find build/android -maxdepth 1 -type f \( -name '*.apk' -o -name '*.aab' \) -exec cp {} build/release/android/ \;
-          test -n "$(find build/release/android -type f -print -quit)"
+          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read INBE_VERSION_STRING"
+            exit 1
+          fi
+          cp "build/android/inbe-$VERSION.apk" build/release/android/
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
