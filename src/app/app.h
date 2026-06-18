@@ -87,7 +87,7 @@ typedef enum HoldDisplayMode {
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
-    EXERCISE_COUNT
+    EXERCISE_COUNT = 2
 } ExerciseType;
 
 typedef enum AppThemeMode {
@@ -114,6 +114,30 @@ typedef enum AppMainTab {
     APP_MAIN_TAB_PRACTICE = 1,
 } AppMainTab;
 
+typedef struct WhmPracticeState {
+    Texture2D image_1;
+    Texture2D image_2;
+} WhmPracticeState;
+
+typedef struct MeditationPracticeState {
+    Texture2D image_1;
+    int duration_seconds;
+    int remaining_seconds;
+    int frame_ticks;
+    int music_enabled;
+    int music_shuffle;
+    int music_track;
+    int music_loaded;
+    int music_playing;
+    int music_test_playing;
+    int music_archive_extracted;
+    int music_network_error_notified;
+    Music music;
+    FlintRuntimeAssetDownload music_download;
+    char music_cache_dir[FS_PATH_MAX];
+    char music_status[128];
+} MeditationPracticeState;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -124,8 +148,8 @@ struct InbeApp {
     int cursor_disabled;
     Texture2D icons[UI_ICON_TYPE_COUNT];
 
-    Texture2D whm_1_image;
-    Texture2D whm_2_image;
+    WhmPracticeState whm;
+    MeditationPracticeState meditation;
     Texture2D font_shapes_texture;
     Font locale_font;
     Font locale_font_8;
@@ -202,21 +226,6 @@ struct InbeApp {
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;
-    int meditation_duration_seconds;
-    int meditation_remaining_seconds;
-    int meditation_frame_ticks;
-    int meditation_music_enabled;
-    int meditation_music_shuffle;
-    int meditation_music_track;
-    int meditation_music_loaded;
-    int meditation_music_playing;
-    int meditation_music_test_playing;
-    int meditation_music_archive_extracted;
-    int meditation_music_network_error_notified;
-    Music meditation_music;
-    FlintRuntimeAssetDownload meditation_music_download;
-    char meditation_music_cache_dir[FS_PATH_MAX];
-    char meditation_music_status[128];
     UIModal modal;
     int play_circle_hover;
     float play_circle_scale;
@@ -225,8 +234,9 @@ struct InbeApp {
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
 void inbe_app_destroy(void *app);
-void update_session_sounds(InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
+Texture2D app_load_asset_texture(const char *name);
+void app_unload_texture(Texture2D texture);
 
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);
@@ -240,8 +250,6 @@ int exercise_manual_seen(InbeApp *app, int exercise_type);
 void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
 void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
-int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
-void settings_draw_progressive_start_speed_editor(InbeApp *app);
 
 #include "app_settings.h"
 

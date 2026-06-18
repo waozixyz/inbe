@@ -40,8 +40,11 @@ Meditazione
 [meditation_manual_title]
 Meditazione
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-Scegli la musica se aiuta la sessione a sentirsi stabile, poi siediti comodamente. Lascia che l'attenzione riposi sul respiro. Quando i pensieri ti portano via, notalo con chiarezza e torna senza forzare. Un gong segna l'inizio e la fine.
+Scegli la musica se vuoi. Un gong segna l inizio e la fine.
 ---
 [meditation_music_settings_title]
 Musica Meditazione

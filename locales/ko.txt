@@ -40,8 +40,11 @@ Inner Breeze
 [meditation_manual_title]
 명상
 ---
+[meditation_manual_intro_text]
+Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+---
 [meditation_manual_text]
-음악이 세션을 안정되게 해 준다면 선택한 뒤 편안하게 앉으세요. 주의를 호흡에 둡니다. 생각에 끌려가면 분명히 알아차리고 힘주지 말고 돌아오세요. 공 소리가 시작과 끝을 알립니다.
+원하면 음악을 선택하세요. 징 소리가 시작과 끝을 알립니다.
 ---
 [meditation_music_settings_title]
 명상 음악

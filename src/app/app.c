@@ -5,9 +5,8 @@
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/practice_screen.h"
-#include "session.h"
+#include "practices/practice_registry.h"
 #include "device_preferences.h"
-#include "meditation_music.h"
 #include "storage.h"
 #include "theme.h"
 #include "version.h"
@@ -66,7 +65,11 @@ app_leave_practice_config(InbeApp *app)
         return;
     if(app->settings_dirty)
         save_settings(app);
-    meditation_music_unload(app);
+    {
+        const PracticeDefinition *practice = practice_get(app->exercise_type);
+        if(practice->leave_config != NULL)
+            practice->leave_config(app);
+    }
     app->settings_scroll = 0;
 }
 
@@ -451,7 +454,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         if(app_load_settings(app))
             save_settings(app);
         reset_settings_preview(app);
-        update_session_sounds(app);
+        practice_update_session_sounds(app);
     }
 
     inbe_habits_init(&app->habits);
@@ -497,8 +500,8 @@ load_pixel_texture_from_asset(const char *path)
     return texture;
 }
 
-static Texture2D
-load_asset_texture(const char *name)
+Texture2D
+app_load_asset_texture(const char *name)
 {
     char path[64];
 
@@ -602,8 +605,7 @@ inbe_app_init(void *vapp) {
 #endif
 
     inbeinit(&app->inbe);
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -611,8 +613,7 @@ inbe_app_init(void *vapp) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + 80);
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + 80);
     inbe_habits_init(&app->habits);
     app->habit_detail_index = -1;
     app->habit_detail_day = 0;
@@ -627,7 +628,11 @@ inbe_app_init(void *vapp) {
     app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
     app_open_main_tab(app, app->main_tab, 0);
     init_audio(app);
-    meditation_music_init(app);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->init != NULL)
+            practice->init(app);
+    }
     app->camera = (Camera2D){0};
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
@@ -661,7 +666,7 @@ inbe_app_init(void *vapp) {
     app->backgrounded = 0;
     app->results_saved = 0;
     app->results_path[0] = '\0';
-    update_session_sounds(app);
+    practice_update_session_sounds(app);
     reset_settings_preview(app);
     inbeinit(&app->start_speed_preview);
     app->start_speed_preview_speed = 0;
@@ -685,12 +690,6 @@ inbe_app_init(void *vapp) {
 
     ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
-    if(app->whm_1_image.id == 0) {
-        app->whm_1_image = load_asset_texture("whm/1.jpg");
-    }
-    if(app->whm_2_image.id == 0) {
-        app->whm_2_image = load_asset_texture("whm/2.jpg");
-    }
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
     else
@@ -700,335 +699,9 @@ inbe_app_init(void *vapp) {
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal.selected_button = 0;
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-}
-
-static Texture2D
-sound_icon_for_volume(InbeApp *app)
-{
-    int vol = app->sound_volume;
-    if(vol <= 0)
-        return app->icons[UI_ICON_TYPE_SOUND0];
-    if(vol <= 25)
-        return app->icons[UI_ICON_TYPE_SOUND1];
-    if(vol <= 75)
-        return app->icons[UI_ICON_TYPE_SOUND2];
-    return app->icons[UI_ICON_TYPE_SOUND3];
-}
-
-static void
-meditation_start(InbeApp *app, int seconds)
-{
-    if(app == NULL)
-        return;
-
-    app->meditation_duration_seconds = seconds;
-    app->meditation_remaining_seconds = seconds;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenMeditation;
-    app_play_sound(app, app->bell_sound, 1.0f);
-    meditation_music_start_session(app);
-}
-
-static void
-meditation_finish(InbeApp *app)
-{
-    int duration;
-
-    if(app == NULL)
-        return;
-
-    duration = app->meditation_duration_seconds;
-    if(duration >= 60) {
-        int session_duration = duration;
-        if(data_save_session_path_for_activity(&session_duration, 1, 0, EXERCISE_MEDITATION,
-                                               NULL, 0)) {
-            sync_habits_for_activity(app, EXERCISE_MEDITATION);
-        }
-    }
-    app_play_sound(app, app->bell_sound, 1.0f);
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    meditation_music_stop(app);
-    app->inbe.screen = InbeScreenStart;
-}
-
-static int
-meditation_elapsed_seconds(InbeApp *app)
-{
-    int elapsed;
-
-    if(app == NULL)
-        return 0;
-    elapsed = app->meditation_duration_seconds - app->meditation_remaining_seconds;
-    if(elapsed < 0)
-        elapsed = 0;
-    if(elapsed > app->meditation_duration_seconds)
-        elapsed = app->meditation_duration_seconds;
-    return elapsed;
-}
-
-static int
-meditation_save_elapsed(InbeApp *app)
-{
-    int elapsed;
-
-    if(app == NULL)
-        return 0;
-    elapsed = meditation_elapsed_seconds(app);
-    if(elapsed < 60)
-        return 0;
-    if(data_save_session_path_for_activity(&elapsed, 1, 0, EXERCISE_MEDITATION, NULL, 0)) {
-        sync_habits_for_activity(app, EXERCISE_MEDITATION);
-        return 1;
-    }
-    return 0;
-}
-
-static void
-meditation_exit_to_start(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-    meditation_music_stop(app);
-    app->meditation_duration_seconds = 0;
-    app->meditation_remaining_seconds = 0;
-    app->meditation_frame_ticks = 0;
-    app->session_paused = 0;
-    app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenStart;
-}
-
-static void
-meditation_request_exit(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-    app->modal.active = 1;
-    app->modal.type = UIModalConfirmExitSession;
-    app->modal.selected_button = 0;
-}
-
-static void
-format_meditation_time(char *dst, size_t dst_size, int seconds)
-{
-    int hours;
-    int minutes;
-    int secs;
-
-    if(dst == NULL || dst_size == 0)
-        return;
-    if(seconds < 0)
-        seconds = 0;
-
-    hours = seconds / 3600;
-    minutes = (seconds / 60) % 60;
-    secs = seconds % 60;
-
-    if(hours > 0)
-        snprintf(dst, dst_size, "%d:%02d:%02d", hours, minutes, secs);
-    else
-        snprintf(dst, dst_size, "%d:%02d", minutes, secs);
-}
-
-static int
-draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
-{
-    int hover = 0;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
-}
-
-static void
-draw_meditation_setup_modal(InbeApp *app)
-{
-    static const int durations[] = {5 * 60, 15 * 60, 30 * 60, 60 * 60, 2 * 60 * 60};
-    const char *labels[] = {
-        locale_get("duration_5m"),
-        locale_get("duration_15m"),
-        locale_get("duration_30m"),
-        locale_get("duration_1h"),
-        locale_get("duration_2h")
-    };
-    int modal_w = flint_px(320);
-    int modal_h = flint_px(236);
-    int modal_x;
-    int modal_y;
-    int title_font = flint_px(18);
-    int title_w;
-    int btn_h = flint_px(38);
-    int gap = flint_px(10);
-    int side = flint_px(18);
-    int row_y;
-    int btn_w;
-    int cancel_w = flint_px(120);
-    int cancel_x;
-    int cancel_y;
-    int cancel_hover = 0;
-
-    if(modal_w > view_width - flint_px(24))
-        modal_w = view_width - flint_px(24);
-    if(modal_h > view_height - flint_px(24))
-        modal_h = view_height - flint_px(24);
-
-    modal_x = (view_width - modal_w) / 2;
-    modal_y = (view_height - modal_h) / 2;
-    btn_w = (modal_w - side * 2 - gap * 2) / 3;
-    if(btn_w < flint_px(64))
-        btn_w = flint_px(64);
-
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, theme_get_surface());
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
-
-    title_w = flint_text_measure(locale_get("meditation_title"), title_font);
-    flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
-                    modal_y + flint_px(16), title_font, theme_get_text());
-
-    row_y = modal_y + flint_px(62);
-    for(int i = 0; i < 3; i++) {
-        int x = modal_x + side + i * (btn_w + gap);
-        if(draw_meditation_duration_button(x, row_y, btn_w, btn_h, labels[i]))
-            meditation_start(app, durations[i]);
-    }
-
-    row_y += btn_h + gap;
-    for(int i = 3; i < 5; i++) {
-        int two_w = (modal_w - side * 2 - gap) / 2;
-        int x = modal_x + side + (i - 3) * (two_w + gap);
-        if(draw_meditation_duration_button(x, row_y, two_w, btn_h, labels[i]))
-            meditation_start(app, durations[i]);
-    }
-
-    cancel_y = modal_y + modal_h - btn_h - flint_px(16);
-    cancel_x = modal_x + (modal_w - cancel_w) / 2;
-    if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
-                              locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
-                              0, &cancel_hover)) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
-    }
-}
-
-static void
-draw_meditation_sound_controls(InbeApp *app)
-{
-    int sound_btn_x = view_width - flint_px(56);
-    int sound_btn_y = flint_px(12);
-    int sound_btn_size = flint_px(24);
-    int sound_btn_padding = flint_px(10);
-    int sound_hover = 0;
-
-    if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), &sound_hover)) {
-        app->volume_popup_active = !app->volume_popup_active;
-    }
-
-    if(app->volume_popup_active) {
-        int popup_w = flint_px(44);
-        int popup_x = sound_btn_x;
-        int popup_y = sound_btn_y + sound_btn_size + sound_btn_padding * 2;
-        int popup_h = flint_px(200);
-        Vector2 mouse = GetMousePosition();
-
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-           (mouse.x < popup_x || mouse.x > popup_x + popup_w ||
-            mouse.y < popup_y || mouse.y > popup_y + popup_h)) {
-            app->volume_popup_active = 0;
-        }
-
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, theme_get_surface());
-        ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
-
-        if(ui_draw_slider_vertical(501, popup_x + popup_w / 2, popup_y + flint_px(10),
-                                   popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
-                                   SETTINGS_VOLUME_MAX, &app->sound_volume)) {
-            app->settings_dirty = 1;
-            save_settings(app);
-        }
-    }
-}
-
-static void
-draw_meditation_screen(InbeApp *app, int center_x, int center_y)
-{
-    char time_text[32];
-    int return_hover = 0;
-    int font = flint_px(48);
-    int max_w;
-    int text_w;
-
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
-        meditation_request_exit(app);
-        return;
-    }
-
-    draw_meditation_sound_controls(app);
-
-    if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        int elapsed = meditation_elapsed_seconds(app);
-        int modal_result;
-
-        if(elapsed >= 60) {
-            modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
-                                              locale_get("meditation_save_elapsed_message"),
-                                              locale_get("cancel_button"),
-                                              locale_get("save_button"),
-                                              locale_get("discard_button"));
-            if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
-            } else if(modal_result == 2) {
-                meditation_save_elapsed(app);
-                meditation_exit_to_start(app);
-            } else if(modal_result == 3) {
-                meditation_exit_to_start(app);
-            }
-        } else {
-            modal_result = ui_draw_modal(locale_get("exit_session_title"),
-                                         locale_get("meditation_under_minute_exit_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("exit_button"));
-            if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
-            } else if(modal_result == 2) {
-                meditation_exit_to_start(app);
-            }
-        }
-        return;
-    }
-
-    format_meditation_time(time_text, sizeof(time_text), app->meditation_remaining_seconds);
-    max_w = view_width - flint_px(48);
-    while(font > flint_px(28) && flint_text_measure(time_text, font) > max_w)
-        font--;
-    text_w = flint_text_measure(time_text, font);
-    flint_text_draw(time_text, center_x - text_w / 2,
-                    flint_ui_text_y(time_text, center_y - font, font * 2, font),
-                    font, theme_get_text());
-
-    app->meditation_frame_ticks++;
-    if(app->meditation_frame_ticks >= 60) {
-        app->meditation_frame_ticks = 0;
-        if(app->meditation_remaining_seconds > 0)
-            app->meditation_remaining_seconds--;
-        if(app->meditation_remaining_seconds <= 0)
-            meditation_finish(app);
-    }
+    app->meditation.duration_seconds = 0;
+    app->meditation.remaining_seconds = 0;
+    app->meditation.frame_ticks = 0;
 }
 
 static void
@@ -1077,7 +750,7 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenResults:
-        session_ensure_results_saved(app);
+        practice_ensure_results_saved(app);
         inbe_app_init(app);
         break;
 
@@ -1100,7 +773,11 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenMeditation:
-        meditation_request_exit(app);
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->request_exit != NULL)
+                practice->request_exit(app);
+        }
         break;
 
     case InbeScreenStart:
@@ -1137,7 +814,11 @@ updateapp(InbeApp *app)
     int hover = 0;
 
     app_apply_pending_bottom_tab(app);
-    meditation_music_update(app);
+    {
+        const PracticeDefinition *practice = practice_get(app->exercise_type);
+        if(practice->update != NULL)
+            practice->update(app);
+    }
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
 
@@ -1161,7 +842,9 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenPracticeConfig) {
-        practice_config_screen_draw(app);
+        const PracticeDefinition *practice = practice_get(app->exercise_type);
+        if(practice->draw_config != NULL)
+            practice->draw_config(app);
         goto finish_frame;
     }
 
@@ -1194,17 +877,16 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenStart) {
-        session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                      flint_px(58) + flint_px(64));
+        practice_update_circle_bounds(app, flint_px(48), flint_px(58) + flint_px(64));
     } else if(app->inbe.screen == InbeScreenSession) {
-        session_update_circle_bounds_for_view(&app->inbe, 0, 84);
+        practice_update_circle_bounds(app, 0, 84);
     }
 
     int play_circle_clicked = 0;
     if(app->inbe.screen == InbeScreenStart)
-        play_circle_clicked = session_draw_start_preview(app, center_x, center_y);
+        play_circle_clicked = practice_draw_start_preview(app, center_x, center_y);
     else if(app->inbe.screen == InbeScreenSession)
-        session_draw_inbe(app, center_x, center_y);
+        practice_draw_active_breathing(app, center_x, center_y);
 
 
     switch (app->inbe.screen) {
@@ -1276,12 +958,10 @@ updateapp(InbeApp *app)
                     app->tutorial_step = 0;
                     app->manual_scroll = 0;
                     app->inbe.screen = InbeScreenManual;
-                } else if(app->exercise_type == EXERCISE_MEDITATION) {
-                    app->modal.active = 1;
-                    app->modal.type = UIModalMeditationSetup;
-                    app->modal.selected_button = 0;
                 } else {
-                    session_start(app);
+                    const PracticeDefinition *practice = practice_get(app->exercise_type);
+                    if(practice->start != NULL)
+                        practice->start(app);
                 }
             }
 
@@ -1293,20 +973,27 @@ updateapp(InbeApp *app)
                 save_settings(app);
         }
         app_draw_bottom_nav(app);
-        if(app->modal.active && app->modal.type == UIModalMeditationSetup)
-            draw_meditation_setup_modal(app);
+        if(app->modal.active && app->modal.type == UIModalMeditationSetup) {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->draw_setup_modal != NULL)
+                practice->draw_setup_modal(app);
+        }
         break;
 
     case InbeScreenSession:
-        session_update_screen(app, center_x, center_y, &hover);
+        practice_update_active_breathing(app, center_x, center_y, &hover);
         break;
 
     case InbeScreenMeditation:
-        draw_meditation_screen(app, center_x, center_y);
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->draw_active_session != NULL)
+                practice->draw_active_session(app, center_x, center_y);
+        }
         break;
 
     case InbeScreenResults:
-        session_draw_results_screen(app, center_x, center_y, &hover);
+        practice_draw_results(app, center_x, center_y, &hover);
         break;
 
     }
@@ -1331,8 +1018,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     flint_set_view_size(view_width, view_height);
 
     ui_init(view_width, view_height, flint_dpi_scale());
-    session_update_circle_bounds_for_view(&app->inbe, flint_px(48),
-                                  flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
 
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
@@ -1354,7 +1040,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     flint_clip_end();
 }
 
-static void SafeUnloadTexture(Texture2D texture) {
+void
+app_unload_texture(Texture2D texture) {
     if (texture.id != 0) {
         UnloadTexture(texture);
     }
@@ -1377,15 +1064,17 @@ inbe_app_destroy(void *vapp)
 
     // Unload all icons
     flint_unload_all_icons(app->icons);
-    SafeUnloadTexture(app->whm_1_image);
-    SafeUnloadTexture(app->whm_2_image);
-    SafeUnloadTexture(app->font_shapes_texture);
+    app_unload_texture(app->font_shapes_texture);
     unload_locale_font(app);
 
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
-    meditation_music_unload(app);
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->destroy != NULL)
+            practice->destroy(app);
+    }
 
     if (app->audio_ready) {
         CloseAudioDevice();
