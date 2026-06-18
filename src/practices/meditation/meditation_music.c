@@ -472,6 +472,8 @@ meditation_music_test_track(InbeApp *app)
         return;
 
     PlayMusicStream(app->meditation.music);
+    if(!IsMusicStreamPlaying(app->meditation.music))
+        TraceLog(LOG_ERROR, "AUDIO: PlayMusicStream returned but test music is not playing");
     app->meditation.music_playing = 1;
     app->meditation.music_test_playing = 1;
     set_status(app, "Playing test audio");
@@ -482,8 +484,13 @@ load_track(InbeApp *app, int track)
 {
     char path[FS_PATH_MAX];
 
-    if(app == NULL || !app->audio_ready)
+    if(app == NULL)
         return 0;
+    if(!app->audio_ready) {
+        TraceLog(LOG_ERROR, "AUDIO: Cannot load meditation music because audio device is not ready");
+        set_status(app, "Audio device is not ready");
+        return 0;
+    }
 
     if(track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT)
         track = 0;
@@ -497,6 +504,7 @@ load_track(InbeApp *app, int track)
 
     app->meditation.music = LoadMusicStream(path);
     if(app->meditation.music.ctxData == NULL) {
+        TraceLog(LOG_ERROR, "AUDIO: Could not load meditation track: %s", path);
         set_status(app, "Could not load track");
         app->meditation.music_loaded = 0;
         return 0;
@@ -505,6 +513,7 @@ load_track(InbeApp *app, int track)
     app->meditation.music_loaded = 1;
     app->meditation.music_track = track;
     SetMusicVolume(app->meditation.music, (float)app->sound_volume / 100.0f);
+    TraceLog(LOG_INFO, "AUDIO: Loaded meditation track: %s", path);
     return 1;
 }
 
@@ -526,6 +535,8 @@ meditation_music_start_session(InbeApp *app)
     if(!load_track(app, track))
         return;
     PlayMusicStream(app->meditation.music);
+    if(!IsMusicStreamPlaying(app->meditation.music))
+        TraceLog(LOG_ERROR, "AUDIO: PlayMusicStream returned but session music is not playing");
     app->meditation.music_playing = 1;
     app->meditation.music_test_playing = 0;
 }

@@ -204,13 +204,16 @@ EOF
               libgbm
               libglvnd
               libglvnd.dev
+              alsa-lib
               appimagetool
+              libpulseaudio
               linuxdeploy
               linuxdeployPluginAppImage
               mesa
               ncurses
               ninja
               pkg-config
+              pipewire
               rsync
               zlib
               zip
