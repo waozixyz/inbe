@@ -306,6 +306,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
 
     if(!has_account) {
+        *y += flint_px(12);
         if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(inbe_sync_account_create(&account)) {
