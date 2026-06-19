@@ -29,7 +29,8 @@ enum {
     SETTINGS_DATA_ACTION_NONE = 0,
     SETTINGS_DATA_ACTION_IMPORT,
     SETTINGS_DATA_ACTION_EXPORT,
-    SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT
+    SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT,
+    SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT
 };
 
 enum {
@@ -53,6 +54,7 @@ static void settings_import_data(InbeApp *app);
 static void settings_export_data(InbeApp *app);
 static void settings_request_delete_all_data(InbeApp *app);
 static void settings_sync_server_load(InbeApp *app);
+static int settings_import_sync_key_path(InbeApp *app, const char *path);
 
 static void
 settings_clear_pending_import(void)
@@ -268,6 +270,58 @@ settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 #endif
 }
 
+static int
+settings_start_sync_key_import_dialog(InbeApp *app)
+{
+#if defined(PLATFORM_WEB)
+    (void)app;
+    EM_ASM({
+        const importPath = UTF8ToString($0);
+        Module.__inbeSyncKeyImportResult = 0;
+
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = ".key,text/plain,application/octet-stream";
+        input.style.display = "none";
+
+        input.onchange = async function() {
+            try {
+                if(!input.files || input.files.length === 0) {
+                    Module.__inbeSyncKeyImportResult = 2;
+                    return;
+                }
+
+                const file = input.files[0];
+                const bytes = new Uint8Array(await file.arrayBuffer());
+                try {
+                    FS.mkdir("/tmp");
+                } catch(e) {}
+                FS.writeFile("/tmp/inbe-sync-key-import.key", bytes);
+                Module.__inbeSyncKeyImportResult = 1;
+            } catch(e) {
+                console.error("Inbe sync key import failed:", e);
+                Module.__inbeSyncKeyImportResult = 3;
+            } finally {
+                input.remove();
+            }
+        };
+
+        document.body.appendChild(input);
+        input.click();
+    }, "/tmp/inbe-sync-key-import.key");
+    settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
+    return 1;
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
+    settings_apply_file_dialog_theme(app);
+    flint_file_dialog_begin_load(&import_dlg, locale_get("sync_import_key_dialog_title"));
+    data_file_dialog_action = SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT;
+    return 1;
+#else
+    (void)app;
+    return 0;
+#endif
+}
+
 static void
 settings_draw_link_icons(InbeApp *app, int content_x, int content_w, int *y)
 {
@@ -324,35 +378,22 @@ void
 settings_data_draw(InbeApp *app, int x, int w, int *y)
 {
     int data_button_h = flint_px(36);
-    InbeSyncAccount account;
-    int has_account;
     int hover_account = 0;
     int hover_import = 0;
     int hover_export = 0;
     int hover_delete = 0;
 
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
+    settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
     if(app != NULL && app->settings_data_view == SETTINGS_DATA_VIEW_SYNC_ACCOUNT) {
         settings_sync_account_draw_config(app, x, w, y);
         return;
     }
 
-    has_account = inbe_sync_account_load(&account);
     if(ui_draw_generic_button(x, *y, w, data_button_h,
-                              has_account ? locale_get("sync_configure_account_button")
-                                          : locale_get("sync_create_account_button"),
-                              UI_BUTTON_STYLE_PRIMARY, 0, &hover_account)) {
-        if(has_account) {
-            settings_open_sync_account_config(app);
-        } else if(inbe_sync_account_create(&account)) {
-            settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
-            app->modal.active = 1;
-            app->modal.type = UIModalSyncAccountBackup;
-            app->modal.selected_button = 0;
-        } else {
-            settings_screen_set_status_error(locale_get("sync_account_create_failed"));
-        }
-    }
+                              locale_get("sync_configure_account_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover_account))
+        settings_open_sync_account_config(app);
     *y += data_button_h + flint_px(12);
 
     if(ui_draw_generic_button(x, *y, w, data_button_h,
@@ -403,6 +444,7 @@ void settings_data_handle_android_import(InbeApp *app) { (void)app; }
 
 #if defined(PLATFORM_WEB)
 #define SETTINGS_WEB_IMPORT_PATH "/tmp/inbe-web-import.zip"
+#define SETTINGS_WEB_SYNC_KEY_IMPORT_PATH "/tmp/inbe-sync-key-import.key"
 
 static void
 settings_web_import_open_picker(void)
@@ -453,17 +495,32 @@ settings_data_handle_web_import(InbeApp *app)
         return result;
     });
 
+    if(import_result == 2) {
+        settings_screen_set_status_error(locale_get("import_cancelled"));
+    } else if(import_result != 0 && import_result != 1) {
+        settings_screen_set_status_error(locale_get("import_failed"));
+    } else if(import_result == 1) {
+        settings_begin_import_for_path(app, SETTINGS_WEB_IMPORT_PATH);
+    }
+
+    import_result = EM_ASM_INT({
+        const result = Module.__inbeSyncKeyImportResult || 0;
+        if(result !== 0)
+            Module.__inbeSyncKeyImportResult = 0;
+        return result;
+    });
+
     if(import_result == 0)
         return;
     if(import_result == 2) {
-        settings_screen_set_status_error(locale_get("import_cancelled"));
+        settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
         return;
     }
     if(import_result != 1) {
-        settings_screen_set_status_error(locale_get("import_failed"));
+        settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
         return;
     }
-    settings_begin_import_for_path(app, SETTINGS_WEB_IMPORT_PATH);
+    settings_import_sync_key_path(app, SETTINGS_WEB_SYNC_KEY_IMPORT_PATH);
 }
 #else
 void settings_data_handle_web_import(InbeApp *app) { (void)app; }
@@ -489,6 +546,25 @@ settings_import_data(InbeApp *app)
     (void)app;
     settings_screen_set_status_error(locale_get("import_failed"));
 #endif
+}
+
+static int
+settings_import_sync_key_path(InbeApp *app, const char *path)
+{
+    InbeSyncAccount account;
+
+    if(path != NULL && path[0] != '\0' &&
+       inbe_sync_account_import_private_key(&account, path)) {
+        settings_screen_set_status_success(locale_get("sync_private_key_imported"), NULL);
+        TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
+        (void)app;
+        return 1;
+    }
+
+    settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+    TraceLog(LOG_ERROR, "SYNC: Private key import failed");
+    (void)app;
+    return 0;
 }
 
 static void
@@ -591,6 +667,13 @@ settings_data_draw_pending_file_dialog(InbeApp *app)
         } else {
             settings_screen_set_status_error(locale_get("sync_private_key_backup_cancelled"));
         }
+    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT) {
+        if(result == 1) {
+            const char *path = flint_file_dialog_get_path(&import_dlg);
+            settings_import_sync_key_path(app, path);
+        } else {
+            settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
+        }
     }
 
     data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
@@ -658,6 +741,23 @@ settings_data_draw_modals(InbeApp *app)
                     settings_screen_set_status_error(locale_get("no_data_to_delete"));
                 }
             }
+        }
+        return 1;
+    }
+
+    if(app->modal.type == UIModalConfirmDeleteSyncAccount) {
+        int modal_result = ui_draw_modal(locale_get("sync_delete_account_title"),
+                                         locale_get("sync_delete_account_message"),
+                                         locale_get("cancel_button"),
+                                         locale_get("delete_button"));
+        if(modal_result == 1) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_screen_set_status_error(locale_get("sync_account_delete_cancelled"));
+        } else if(modal_result == 2) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_sync_account_delete_confirmed(app);
         }
         return 1;
     }

@@ -73,11 +73,15 @@ LIBOQS_DIR := vendor/liboqs
 LIBOQS_BUILD_DIR := $(BUILD_OBJ_DIR)/liboqs/linux/$(ARCH)
 LIBOQS_A := $(LIBOQS_BUILD_DIR)/lib/liboqs.a
 LIBOQS_INCLUDE := -I$(LIBOQS_BUILD_DIR)/include
+WEB_LIBOQS_BUILD_DIR := $(BUILD_OBJ_DIR)/liboqs/web
+WEB_LIBOQS_A := $(WEB_LIBOQS_BUILD_DIR)/lib/liboqs.a
+WEB_LIBOQS_INCLUDE := -I$(WEB_LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 FLINT_TEXT_SCALING_TEST := $(TEST_BIN_DIR)/flint_text_scaling_test
 LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
+SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
 FLINT_RUNTIME_ASSET_CFLAGS := -DFLINT_HAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
@@ -198,11 +202,12 @@ appimage: $(APPIMAGE_TARGET)
 run: $(TARGET)
 	./$(TARGET)
 
-test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST)
+test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST)
 	$(STORAGE_IMPORT_TEST)
 	$(FLINT_TEXT_SCALING_TEST)
 	$(LOCALE_KEYS_TEST)
 	$(SYNC_URL_TEST)
+	$(SYNC_ACCOUNT_TEST)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
@@ -228,6 +233,13 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		-Isrc/storage -Isrc -Ivendor/raylib/src -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections
+
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/storage.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-o $@ \
+		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/third_party/miniz.c $(SQLITE_SRC) \
+		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
 	mkdir -p $@
@@ -330,6 +342,17 @@ $(LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
 		-DOQS_MINIMAL_BUILD=SIG_ml_dsa_44
 	cmake --build $(LIBOQS_BUILD_DIR) --target oqs
 
+$(WEB_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
+	emcmake cmake -S $(LIBOQS_DIR) -B $(WEB_LIBOQS_BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DOQS_BUILD_ONLY_LIB=ON \
+		-DOQS_USE_OPENSSL=OFF \
+		-DOQS_DIST_BUILD=OFF \
+		-DOQS_OPT_TARGET=generic \
+		-DOQS_MINIMAL_BUILD=SIG_ml_dsa_44
+	cmake --build $(WEB_LIBOQS_BUILD_DIR) --target oqs
+
 $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
@@ -420,12 +443,14 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(WEB_AUDIO_FILES) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(WEB_AUDIO_FILES) | $(WEB_DIST_DIR)
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		$(WEB_LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
+		-DINBE_HAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -435,6 +460,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		$(FLINT_WEB_SRCS) \
 		$(SQLITE_SRC) \
 		$(WEB_RAYLIB_A) \
+		$(WEB_LIBOQS_A) \
 		-sUSE_GLFW=3 \
 		-sASYNCIFY \
 		-sFORCE_FILESYSTEM=1 \

@@ -497,7 +497,7 @@ Back
 Close
 ---
 [sync_account_title]
-Sync Account
+Account
 ---
 [sync_configure_account_button]
 Configure Account
@@ -506,10 +506,25 @@ Configure Account
 Create Account
 ---
 [sync_account_created]
-Sync account created
+Account created
 ---
 [sync_account_create_failed]
-Could not create sync account
+Could not create account
+---
+[sync_import_key_button]
+Import .key File
+---
+[sync_import_key_dialog_title]
+Import Account Key
+---
+[sync_private_key_imported]
+Account key imported
+---
+[sync_private_key_import_failed]
+Could not import account key
+---
+[sync_private_key_import_cancelled]
+Account key import cancelled
 ---
 [sync_liboqs_unavailable]
 liboqs is not built for this target.
@@ -551,29 +566,45 @@ Remote sync failed
 Remote sync is not available on this platform
 ---
 [sync_no_account]
-Create an account before syncing
+Create an account before connecting
 ---
 [sync_auth_failed]
-Remote rejected this sync account
+Remote rejected this account
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this sync account.
+Save this private key somewhere you control. Anyone with it can claim this account.
 ---
 [sync_backup_title]
-Backup Sync Key
+Backup Account Key
 ---
 [sync_save_key_file_button]
 Save .key File
 ---
 [sync_save_key_dialog_title]
-Save Sync Key
+Save Account Key
 ---
 [sync_private_key_backup_saved]
-Private key backup saved
+Account key backup saved
 ---
 [sync_private_key_backup_failed]
-Could not save private key backup
+Could not save account key backup
 ---
 [sync_private_key_backup_cancelled]
-Private key backup cancelled
+Account key backup cancelled
+---
+[sync_delete_account_button]
+Delete Account
+---
+[sync_delete_account_title]
+Delete Account?
+---
+[sync_delete_account_message]
+Delete this account from the remote server and this device? This cannot be undone.
+
+---
+[sync_account_deleted]
+Account deleted
+---
+[sync_account_delete_cancelled]
+Account deletion cancelled
 ---

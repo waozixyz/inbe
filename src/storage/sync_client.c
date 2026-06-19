@@ -13,17 +13,21 @@
 #include <android_native_app_glue.h>
 #include <jni.h>
 extern struct android_app *GetAndroidApp(void);
+#elif defined(__EMSCRIPTEN__)
+#define INBE_SYNC_CLIENT_HAS_WEB 1
+#include <emscripten.h>
 #elif defined(FLINT_HAS_LIBCURL) && !defined(__EMSCRIPTEN__)
 #define INBE_SYNC_CLIENT_HAS_CURL 1
 #include <curl/curl.h>
 #endif
 
-#if defined(INBE_SYNC_CLIENT_HAS_CURL) || defined(INBE_SYNC_CLIENT_HAS_ANDROID)
+#if defined(INBE_SYNC_CLIENT_HAS_CURL) || defined(INBE_SYNC_CLIENT_HAS_ANDROID) || defined(INBE_SYNC_CLIENT_HAS_WEB)
 #define INBE_SYNC_CLIENT_HAS_HTTP 1
 #endif
 
 #define INBE_SYNC_PATH "/api/v1/sync"
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
+#define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
 
 typedef struct SyncBuffer {
     char *data;
@@ -115,6 +119,49 @@ sync_buffer_append(SyncBuffer *buffer, const void *data, size_t bytes)
     buffer->len += bytes;
     buffer->data[buffer->len] = '\0';
     return 1;
+}
+
+static int
+sync_buffer_append_json_string(SyncBuffer *buffer, const char *text)
+{
+    const char *p;
+
+    if(!sync_buffer_append(buffer, "\"", 1))
+        return 0;
+    if(text == NULL)
+        text = "";
+    for(p = text; *p != '\0'; p++) {
+        char escaped[2];
+        switch(*p) {
+            case '\\':
+                if(!sync_buffer_append(buffer, "\\\\", 2))
+                    return 0;
+                break;
+            case '"':
+                if(!sync_buffer_append(buffer, "\\\"", 2))
+                    return 0;
+                break;
+            case '\n':
+                if(!sync_buffer_append(buffer, "\\n", 2))
+                    return 0;
+                break;
+            case '\r':
+                if(!sync_buffer_append(buffer, "\\r", 2))
+                    return 0;
+                break;
+            case '\t':
+                if(!sync_buffer_append(buffer, "\\t", 2))
+                    return 0;
+                break;
+            default:
+                escaped[0] = *p;
+                escaped[1] = '\0';
+                if(!sync_buffer_append(buffer, escaped, 1))
+                    return 0;
+                break;
+        }
+    }
+    return sync_buffer_append(buffer, "\"", 1);
 }
 
 #if defined(INBE_SYNC_CLIENT_TESTS)
@@ -377,6 +424,84 @@ done:
         (*jvm)->DetachCurrentThread(jvm);
     return ok;
 }
+#elif defined(INBE_SYNC_CLIENT_HAS_WEB)
+EM_ASYNC_JS(int, sync_web_http_request,
+            (const char *method_ptr, const char *url_ptr, const char *body_ptr,
+             const char *headers_ptr, char *response_ptr, int response_size,
+             long *status_ptr), {
+    const method = UTF8ToString(method_ptr);
+    const url = UTF8ToString(url_ptr);
+    const body = body_ptr ? UTF8ToString(body_ptr) : "";
+    const headerLines = headers_ptr ? UTF8ToString(headers_ptr) : "";
+    const headers = {};
+
+    for(const line of headerLines.split("\n")) {
+        if(!line) continue;
+        const colon = line.indexOf(":");
+        if(colon <= 0) continue;
+        headers[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+    }
+
+    try {
+        const response = await fetch(url, {
+            method,
+            headers,
+            body: method === "GET" ? undefined : body,
+            credentials: "omit",
+            redirect: "manual"
+        });
+        const text = await response.text();
+        setValue(status_ptr, response.status, "i32");
+        stringToUTF8(text, response_ptr, response_size);
+        return 1;
+    } catch(e) {
+        console.error("Inbe sync HTTP failed:", e);
+        setValue(status_ptr, 0, "i32");
+        stringToUTF8("", response_ptr, response_size);
+        return 0;
+    }
+});
+
+static int
+sync_http_request(const char *method, const char *url, const char *body,
+                  const char *const *headers, int header_count,
+                  SyncBuffer *response, long *status)
+{
+    SyncBuffer header_blob = {0};
+    char *response_text;
+    int ok;
+
+    if(status != NULL)
+        *status = 0;
+    if(response == NULL || method == NULL || url == NULL)
+        return 0;
+    for(int i = 0; i < header_count; i++) {
+        if(headers[i] != NULL &&
+           (!sync_buffer_append(&header_blob, headers[i], strlen(headers[i])) ||
+            !sync_buffer_append(&header_blob, "\n", 1))) {
+            free(header_blob.data);
+            return 0;
+        }
+    }
+
+    response_text = (char *)calloc(1, 65536);
+    if(response_text == NULL) {
+        free(header_blob.data);
+        return 0;
+    }
+    ok = sync_web_http_request(method, url, body != NULL ? body : "",
+                               header_blob.data != NULL ? header_blob.data : "",
+                               response_text, 65536, status);
+    free(header_blob.data);
+    if(!ok) {
+        free(response_text);
+        return 0;
+    }
+    response->data = response_text;
+    response->len = strlen(response_text);
+    response->cap = 65536;
+    return 1;
+}
 #endif
 
 #if defined(INBE_SYNC_CLIENT_HAS_HTTP)
@@ -463,6 +588,55 @@ inbe_sync_client_sync(const char *base_url)
     result = sync_send_signed(base_url, INBE_SYNC_PATH, "POST", account.public_id, payload);
     inbe_storage_free_sync_payload_json(payload);
     return result;
+#else
+    (void)base_url;
+    return INBE_SYNC_CLIENT_UNAVAILABLE;
+#endif
+}
+
+InbeSyncClientResult
+inbe_sync_client_delete_account(const char *base_url)
+{
+#if defined(INBE_SYNC_CLIENT_HAS_HTTP)
+    InbeSyncAccount account;
+    char url[768];
+    char exported_key[8200];
+    SyncBuffer body = {0};
+    SyncBuffer response = {0};
+    const char *headers[1] = {"Content-Type: application/json"};
+    long status = 0;
+    int len;
+    int ok;
+
+    if(!inbe_sync_client_url_valid(base_url))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    if(!inbe_sync_account_load(&account))
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+
+    len = snprintf(exported_key, sizeof(exported_key),
+                   "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\npublic_key=%s\nprivate_key=%s\n",
+                   account.public_id, account.public_key_hex, account.private_key_hex);
+    if(len <= 0 || (size_t)len >= sizeof(exported_key))
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+
+    if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
+       !sync_buffer_append_json_string(&body, account.public_id) ||
+       !sync_buffer_append(&body, ",\"exported_key\":", strlen(",\"exported_key\":")) ||
+       !sync_buffer_append_json_string(&body, exported_key) ||
+       !sync_buffer_append(&body, "}", 1)) {
+        free(body.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+
+    sync_join_url(url, sizeof(url), base_url, INBE_ACCOUNT_DELETE_WITH_KEY_PATH);
+    ok = sync_http_request("POST", url, body.data, headers, 1, &response, &status);
+    free(body.data);
+    free(response.data);
+    if(!ok)
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    if(status == 401 || status == 403)
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    return status >= 200 && status < 300 ? INBE_SYNC_CLIENT_OK : INBE_SYNC_CLIENT_REQUEST_FAILED;
 #else
     (void)base_url;
     return INBE_SYNC_CLIENT_UNAVAILABLE;

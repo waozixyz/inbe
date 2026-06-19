@@ -28,11 +28,6 @@
         overflow: hidden;
       }
 
-      #status,
-      #progress {
-        display: none;
-      }
-
       .canvas-stage {
         width: 100%;
         height: 100vh;
@@ -44,6 +39,8 @@
 
       body {
         background: #1a1a2e;
+        color: #f7fbf9;
+        font-family: ui-monospace, "SFMono-Regular", "Roboto Mono", "Cascadia Mono", "Liberation Mono", monospace;
       }
 
       .canvas-frame {
@@ -69,22 +66,149 @@
         width: 100vw;
         height: 100vh;
       }
+
+      .loading-screen {
+        position: fixed;
+        inset: 0;
+        z-index: 10;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+        box-sizing: border-box;
+        background:
+          radial-gradient(circle at 50% 38%, rgba(132, 184, 172, 0.24), transparent 36%),
+          linear-gradient(180deg, #222640 0%, #17172a 58%, #10131f 100%);
+        opacity: 1;
+        transition: opacity 360ms ease, visibility 360ms ease;
+      }
+
+      .loading-screen.is-hidden {
+        opacity: 0;
+        visibility: hidden;
+        pointer-events: none;
+      }
+
+      .loading-panel {
+        width: min(360px, 100%);
+        display: grid;
+        justify-items: center;
+        gap: 18px;
+        text-align: center;
+      }
+
+      .loading-mark {
+        width: 76px;
+        height: 76px;
+        border-radius: 18px;
+        box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+      }
+
+      .loading-title {
+        margin: 0;
+        font-size: 20px;
+        line-height: 1.25;
+        font-weight: 700;
+      }
+
+      #status {
+        min-height: 1.35em;
+        color: #c9deda;
+        font-size: 13px;
+        line-height: 1.35;
+      }
+
+      #progress {
+        width: min(280px, 100%);
+        height: 8px;
+        overflow: hidden;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      #progress::-webkit-progress-bar {
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.18);
+      }
+
+      #progress::-webkit-progress-value {
+        border-radius: 999px;
+        background: #8fcfc2;
+      }
+
+      #progress::-moz-progress-bar {
+        border-radius: 999px;
+        background: #8fcfc2;
+      }
     </style>
   </head>
   <body>
-    <div id="status">Downloading...</div>
-    <progress value="0" max="100" id="progress" hidden></progress>
+    <div class="loading-screen" id="loading-screen" role="status" aria-live="polite">
+      <div class="loading-panel">
+        <img class="loading-mark" src="/web-assets/icons/icon-192x192.png" alt="" width="76" height="76">
+        <h1 class="loading-title">Inner Breeze</h1>
+        <div id="status">Downloading...</div>
+        <progress value="0" max="100" id="progress" hidden></progress>
+      </div>
+    </div>
     <div class="canvas-stage">
       <div class="canvas-frame" id="canvas-frame">
-        <canvas class="emscripten" id="canvas" width="320" height="560" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+        <canvas class="emscripten" id="canvas" width="320" height="560" tabindex="-1"></canvas>
       </div>
     </div>
 
     <script>
       var statusElement = document.querySelector('#status');
       var progressElement = document.querySelector('#progress');
+      var loadingScreen = document.querySelector('#loading-screen');
+
+      function hideLoadingScreen() {
+        if (!loadingScreen) return;
+        window.requestAnimationFrame(function() {
+          loadingScreen.classList.add('is-hidden');
+        });
+      }
+
+      function scheduleStorageSync(delay, logSuccess) {
+        if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
+        Module.__inbeStorageSyncPending = true;
+        Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
+        if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+
+        Module.__inbeStorageSyncTimer = setTimeout(function runStorageSync() {
+          Module.__inbeStorageSyncTimer = 0;
+          if (Module.__inbeStorageSyncing) return;
+
+          Module.__inbeStorageSyncing = true;
+          Module.__inbeStorageSyncPending = false;
+          var shouldLog = !!Module.__inbeStorageSyncLogSuccess;
+          Module.__inbeStorageSyncLogSuccess = false;
+
+          try {
+            FS.syncfs(false, function(err) {
+              Module.__inbeStorageSyncing = false;
+              if (err) console.error('IDBFS save failed:', err);
+              else if (shouldLog) console.log('IDBFS synced');
+
+              if (Module.__inbeStorageSyncPending) {
+                if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+                Module.__inbeStorageSyncTimer = setTimeout(runStorageSync, delay);
+              }
+            });
+          } catch (e) {
+            Module.__inbeStorageSyncing = false;
+            console.error('IDBFS sync error:', e);
+            if (Module.__inbeStorageSyncPending) {
+              if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+              Module.__inbeStorageSyncTimer = setTimeout(runStorageSync, delay);
+            }
+          }
+        }, delay);
+      }
 
       var Module = {
+        __inbeScheduleStorageSync: scheduleStorageSync,
         preRun: [function() {
           if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
             console.error('IDBFS unavailable');
@@ -111,7 +235,7 @@
             removeRunDependency('inbe-idbfs');
           });
         }],
-        postRun: [],
+        postRun: [hideLoadingScreen],
         locateFile: function(path, prefix) {
           if (path === 'index.wasm' || path === 'index.data') {
             return prefix + path + '?v=WEB_CACHE_BUSTER';
@@ -131,6 +255,18 @@
           canvas.addEventListener('webglcontextlost', function(e) {
             alert('WebGL context lost. Reload the page to continue.');
             e.preventDefault();
+          }, false);
+          canvas.addEventListener('contextmenu', function(e) {
+            var rect = canvas.getBoundingClientRect();
+            var width = canvas.width || rect.width || 1;
+            var height = canvas.height || rect.height || 1;
+
+            e.preventDefault();
+            Module.__inbeContextClick = {
+              x: Math.round((e.clientX - rect.left) * width / Math.max(1, rect.width)),
+              y: Math.round((e.clientY - rect.top) * height / Math.max(1, rect.height)),
+              time: Date.now()
+            };
           }, false);
           return canvas;
         })(),
@@ -153,7 +289,7 @@
           } else {
             statusElement.textContent = text;
             progressElement.hidden = true;
-            if (!text) statusElement.style.display = 'none';
+            if (!text) hideLoadingScreen();
           }
         },
         totalDependencies: 0,
