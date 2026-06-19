@@ -313,8 +313,8 @@ inbe_sync_account_export_private_key(const InbeSyncAccount *account, const char 
         return 0;
 
     len = snprintf(body, sizeof(body),
-                   "inbe-sync-key-v1\nalgorithm=ML-DSA-44\nprivate_key=%s\n",
-                   account->private_key_hex);
+                   "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\nprivate_key=%s\n",
+                   account->public_id, account->private_key_hex);
     if(len <= 0 || (size_t)len >= sizeof(body))
         return 0;
 

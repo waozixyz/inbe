@@ -530,29 +530,14 @@ Remote
 [sync_connect_button]
 Connect
 ---
+[sync_connected_button]
+Connected
+---
 [sync_server_url_invalid]
-Use https://, localhost, or 127.0.0.1
+Use https:// or loopback like localhost:8080
 ---
 [sync_server_saved]
 Sync server saved
----
-[sync_request_remote_delete_button]
-Request Deletion of Remote Data
----
-[sync_request_deletion_button]
-Request deletion
----
-[sync_remote_delete_title]
-Delete remote data?
----
-[sync_remote_delete_message]
-This requests deletion of all cloud data for this sync account. Local data stays on this device.
----
-[sync_remote_delete_cancelled]
-Remote deletion cancelled
----
-[sync_remote_delete_not_connected]
-Remote deletion request is not connected yet
 ---
 [sync_connected]
 Remote sync complete
@@ -568,12 +553,6 @@ Create an account before syncing
 ---
 [sync_auth_failed]
 Remote rejected this sync account
----
-[sync_remote_delete_done]
-Remote data deleted
----
-[sync_remote_delete_failed]
-Remote deletion failed
 ---
 [sync_backup_warning]
 Save this private key somewhere you control. Anyone with it can claim this sync account.

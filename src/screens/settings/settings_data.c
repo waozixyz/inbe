@@ -656,23 +656,6 @@ settings_data_draw_modals(InbeApp *app)
         return 1;
     }
 
-    if(app->modal.type == UIModalConfirmRemoteDataDelete) {
-        int modal_result = ui_draw_modal(locale_get("sync_remote_delete_title"),
-                                         locale_get("sync_remote_delete_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("sync_request_deletion_button"));
-        if(modal_result == 1) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
-            settings_screen_set_status_error(locale_get("sync_remote_delete_cancelled"));
-        } else if(modal_result == 2) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
-            settings_sync_account_delete_remote(app);
-        }
-        return 1;
-    }
-
     if(app->modal.type == UIModalSyncAccountBackup) {
         int modal_result = settings_sync_account_draw_backup_modal(app);
         if(modal_result == 1 || modal_result == 2 || modal_result == 3 || modal_result == 4) {

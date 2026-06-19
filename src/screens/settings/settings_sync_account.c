@@ -15,6 +15,8 @@
 
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
+#define INBE_SYNC_ENABLED_KEY "sync_enabled"
+#define INBE_SYNC_CONNECTED_URL_KEY "sync_connected_url"
 
 static SettingsSyncKeySaveDialog save_dialog_callback = NULL;
 
@@ -76,34 +78,56 @@ settings_sync_url_filter(int codepoint, void *user_data)
 }
 
 static int
-settings_sync_url_valid(const char *url)
+settings_sync_server_normalize(InbeApp *app, char *out, size_t out_size)
 {
-    return url != NULL &&
-           (strncmp(url, "https://", 8) == 0 ||
-            strncmp(url, "http://127.0.0.1", 16) == 0 ||
-            strncmp(url, "http://localhost", 16) == 0 ||
-            strncmp(url, "http://10.0.2.2", 15) == 0);
+    if(app == NULL || out == NULL || out_size == 0)
+        return 0;
+    if(!inbe_sync_client_normalize_url(app->sync_server_url, out, out_size))
+        return 0;
+    snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s", out);
+    app->sync_server_url_cursor = (int)strlen(app->sync_server_url);
+    return 1;
 }
 
 static void
 settings_sync_server_save(InbeApp *app)
 {
+    char url[sizeof(app->sync_server_url)];
+    const char *connected_url;
+
     if(app == NULL)
         return;
-    if(!settings_sync_url_valid(app->sync_server_url)) {
+    if(!settings_sync_server_normalize(app, url, sizeof(url))) {
         settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
         return;
     }
-    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
-    settings_screen_set_status_success(locale_get("sync_server_saved"), app->sync_server_url);
+    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
+    connected_url = inbe_storage_get_setting_text(INBE_SYNC_CONNECTED_URL_KEY);
+    if(connected_url == NULL || strcmp(connected_url, url) != 0)
+        inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 0);
+    settings_screen_set_status_success(locale_get("sync_server_saved"), url);
+}
+
+static int
+settings_sync_server_connected(InbeApp *app)
+{
+    char url[sizeof(app->sync_server_url)];
+    const char *connected_url;
+
+    if(app == NULL || inbe_storage_get_setting_int(INBE_SYNC_ENABLED_KEY, 0) == 0)
+        return 0;
+    if(!inbe_sync_client_normalize_url(app->sync_server_url, url, sizeof(url)))
+        return 0;
+    connected_url = inbe_storage_get_setting_text(INBE_SYNC_CONNECTED_URL_KEY);
+    return connected_url != NULL && strcmp(connected_url, url) == 0;
 }
 
 static const char *
-settings_sync_result_key(InbeSyncClientResult result, int deleting)
+settings_sync_result_key(InbeSyncClientResult result)
 {
     switch(result) {
         case INBE_SYNC_CLIENT_OK:
-            return deleting ? "sync_remote_delete_done" : "sync_connected";
+            return "sync_connected";
         case INBE_SYNC_CLIENT_UNAVAILABLE:
             return "sync_unavailable";
         case INBE_SYNC_CLIENT_INVALID_URL:
@@ -117,7 +141,7 @@ settings_sync_result_key(InbeSyncClientResult result, int deleting)
         case INBE_SYNC_CLIENT_SIGN_FAILED:
         case INBE_SYNC_CLIENT_REQUEST_FAILED:
         default:
-            return deleting ? "sync_remote_delete_failed" : "sync_failed";
+            return "sync_failed";
     }
 }
 
@@ -125,38 +149,23 @@ static void
 settings_sync_run_connect(InbeApp *app)
 {
     InbeSyncClientResult result;
+    char url[sizeof(app->sync_server_url)];
 
     if(app == NULL)
         return;
-    if(!settings_sync_url_valid(app->sync_server_url)) {
+    if(!settings_sync_server_normalize(app, url, sizeof(url))) {
         settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
         return;
     }
-    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
-    result = inbe_sync_client_sync(app->sync_server_url);
-    if(result == INBE_SYNC_CLIENT_OK)
-        settings_screen_set_status_success(locale_get(settings_sync_result_key(result, 0)), NULL);
-    else
-        settings_screen_set_status_error(locale_get(settings_sync_result_key(result, 0)));
-}
-
-void
-settings_sync_account_delete_remote(InbeApp *app)
-{
-    InbeSyncClientResult result;
-
-    if(app == NULL)
-        return;
-    if(!settings_sync_url_valid(app->sync_server_url)) {
-        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
-        return;
+    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
+    result = inbe_sync_client_sync(url);
+    if(result == INBE_SYNC_CLIENT_OK) {
+        inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 1);
+        inbe_storage_set_setting_text(INBE_SYNC_CONNECTED_URL_KEY, url);
+        settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+    } else {
+        settings_screen_set_status_error(locale_get(settings_sync_result_key(result)));
     }
-    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
-    result = inbe_sync_client_delete_remote(app->sync_server_url);
-    if(result == INBE_SYNC_CLIENT_OK)
-        settings_screen_set_status_success(locale_get(settings_sync_result_key(result, 1)), NULL);
-    else
-        settings_screen_set_status_error(locale_get(settings_sync_result_key(result, 1)));
 }
 
 static FlintUITextInputStyle
@@ -294,7 +303,10 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         settings_sync_server_save(app);
     *y += btn_h + flint_px(12);
 
-    if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_connect_button"),
+    if(ui_draw_generic_button(x, *y, w, btn_h,
+                              settings_sync_server_connected(app)
+                                  ? locale_get("sync_connected_button")
+                                  : locale_get("sync_connect_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         settings_sync_run_connect(app);
     *y += btn_h + flint_px(12);
@@ -312,15 +324,6 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         app->modal.selected_button = 0;
     }
     *y += btn_h + flint_px(12);
-
-    if(ui_draw_generic_button(x, *y, w, btn_h,
-                              locale_get("sync_request_remote_delete_button"),
-                              UI_BUTTON_STYLE_DANGER, 0, &hover)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalConfirmRemoteDataDelete;
-        app->modal.selected_button = 0;
-    }
-    *y += btn_h + flint_px(18);
 
     settings_screen_draw_status_reserved(x, y, flint_px(42));
     (void)font;

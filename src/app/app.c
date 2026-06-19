@@ -8,6 +8,7 @@
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
 #include "storage.h"
+#include "sync_client.h"
 #include "theme.h"
 #include "version.h"
 #include "flint_clip.h"
@@ -36,6 +37,8 @@ void set_global_inbe_app(InbeApp *app);
 
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
+#define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
+#define INBE_SYNC_ENABLED_KEY "sync_enabled"
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -44,6 +47,29 @@ InbeConfig config = {
     .loaded = 0,
     .title_custom = 1
 };
+
+int
+inbe_app_auto_sync(InbeApp *app)
+{
+    const char *saved_url;
+    char url[256];
+    InbeSyncClientResult result;
+
+    if(app == NULL)
+        return 0;
+    if(inbe_storage_get_setting_int(INBE_SYNC_ENABLED_KEY, 0) == 0)
+        return 0;
+    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(!inbe_sync_client_normalize_url(saved_url, url, sizeof(url)))
+        return 0;
+    result = inbe_sync_client_sync(url);
+    if(result != INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_WARNING, "INBE: auto sync failed result=%d", result);
+        return 0;
+    }
+    TraceLog(LOG_INFO, "INBE: auto sync complete");
+    return 1;
+}
 
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
@@ -729,6 +755,7 @@ inbe_app_init(void *vapp) {
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
+    inbe_app_auto_sync(app);
 }
 
 static void

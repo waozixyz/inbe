@@ -284,29 +284,37 @@ table_has_column(const char *table, const char *column)
 static int
 migrate_schema(void)
 {
-    if(!table_has_column("habits", "sync_topic"))
-        return 1;
-
-    return exec_sql(
-        "BEGIN IMMEDIATE;"
-        "ALTER TABLE habits RENAME TO habits_with_sync_topic;"
-        "CREATE TABLE habits("
-        " id TEXT PRIMARY KEY,"
-        " user_id TEXT NOT NULL,"
-        " name TEXT NOT NULL,"
-        " color_r INTEGER NOT NULL,"
-        " color_g INTEGER NOT NULL,"
-        " color_b INTEGER NOT NULL,"
-        " sync_mode INTEGER NOT NULL,"
-        " sync_activity INTEGER NOT NULL,"
-        " sort_order INTEGER NOT NULL,"
-        " deleted_at INTEGER NOT NULL DEFAULT 0"
-        ");"
-        "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at)"
-        " SELECT id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at"
-        " FROM habits_with_sync_topic;"
-        "DROP TABLE habits_with_sync_topic;"
-        "COMMIT;");
+    if(table_has_column("habits", "sync_topic")) {
+        if(!exec_sql(
+            "BEGIN IMMEDIATE;"
+            "ALTER TABLE habits RENAME TO habits_with_sync_topic;"
+            "CREATE TABLE habits("
+            " id TEXT PRIMARY KEY,"
+            " user_id TEXT NOT NULL,"
+            " name TEXT NOT NULL,"
+            " color_r INTEGER NOT NULL,"
+            " color_g INTEGER NOT NULL,"
+            " color_b INTEGER NOT NULL,"
+            " sync_mode INTEGER NOT NULL,"
+            " sync_activity INTEGER NOT NULL,"
+            " sort_order INTEGER NOT NULL,"
+            " deleted_at INTEGER NOT NULL DEFAULT 0"
+            ");"
+            "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at)"
+            " SELECT id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at"
+            " FROM habits_with_sync_topic;"
+            "DROP TABLE habits_with_sync_topic;"
+            "COMMIT;"))
+            return 0;
+    }
+    if(!table_has_column("habits", "counter_enabled") &&
+       !exec_sql("ALTER TABLE habits ADD COLUMN counter_enabled INTEGER NOT NULL DEFAULT 0"))
+        return 0;
+    if(!table_has_column("habit_days", "count") &&
+       !exec_sql("ALTER TABLE habit_days ADD COLUMN count INTEGER NOT NULL DEFAULT 0;"
+                 "UPDATE habit_days SET count=CASE WHEN completed!=0 THEN 1 ELSE 0 END WHERE count=0"))
+        return 0;
+    return 1;
 }
 
 static int
@@ -606,6 +614,7 @@ schema_create(void)
         " color_b INTEGER NOT NULL,"
         " sync_mode INTEGER NOT NULL,"
         " sync_activity INTEGER NOT NULL,"
+        " counter_enabled INTEGER NOT NULL DEFAULT 0,"
         " sort_order INTEGER NOT NULL,"
         " deleted_at INTEGER NOT NULL DEFAULT 0"
         ");"
@@ -613,6 +622,7 @@ schema_create(void)
         " habit_id TEXT NOT NULL,"
         " local_date INTEGER NOT NULL,"
         " completed INTEGER NOT NULL,"
+        " count INTEGER NOT NULL DEFAULT 0,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(habit_id,local_date)"
         ");"
@@ -1070,7 +1080,7 @@ storage_append_habits_json(JsonBuilder *json)
     json_append(json, "\"habits\":[");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at "
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at "
                           "FROM habits WHERE user_id=?1 ORDER BY sort_order,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
@@ -1086,11 +1096,13 @@ storage_append_habits_json(JsonBuilder *json)
                          sqlite3_column_int(stmt, 2),
                          sqlite3_column_int(stmt, 3),
                          sqlite3_column_int(stmt, 4));
-            json_appendf(json, ",\"sync_mode\":%d,\"sync_activity\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
+            json_appendf(json, ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
                          sqlite3_column_int(stmt, 5),
                          sqlite3_column_int(stmt, 6),
-                         sqlite3_column_int(stmt, 7),
-                         sqlite3_column_int64(stmt, 8));
+                         (sqlite3_column_int(stmt, 7) != 0 ||
+                          sqlite3_column_int(stmt, 6) != 0) ? 1 : 0,
+                         sqlite3_column_int(stmt, 8),
+                         sqlite3_column_int64(stmt, 9));
             json_append(json, ",\"updated_at\":");
             json_append_epoch(json, exported_at);
             json_append(json, "}");
@@ -1110,7 +1122,7 @@ storage_append_habit_days_json(JsonBuilder *json)
     json_append(json, "\"habit_days\":[");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT hd.habit_id,hd.local_date,hd.completed,hd.updated_at "
+                          "SELECT hd.habit_id,hd.local_date,hd.completed,hd.count,hd.updated_at "
                           "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
                           "WHERE h.user_id=?1 ORDER BY hd.habit_id,hd.local_date",
                           -1, &stmt, NULL) == SQLITE_OK) {
@@ -1121,10 +1133,11 @@ storage_append_habit_days_json(JsonBuilder *json)
             first = 0;
             json_append(json, "{");
             json_append_key_string(json, "habit_id", (const char *)sqlite3_column_text(stmt, 0));
-            json_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"updated_at\":",
+            json_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"count\":%d,\"updated_at\":",
                          sqlite3_column_int(stmt, 1),
-                         sqlite3_column_int(stmt, 2) != 0 ? "true" : "false");
-            json_append_epoch(json, sqlite3_column_int64(stmt, 3));
+                         sqlite3_column_int(stmt, 2) != 0 ? "true" : "false",
+                         sqlite3_column_int(stmt, 3));
+            json_append_epoch(json, sqlite3_column_int64(stmt, 4));
             json_append(json, "}");
         }
     }
@@ -1405,7 +1418,7 @@ inbe_storage_habits_load(void *habits_ptr)
     inbe_habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity "
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 10",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
@@ -1418,6 +1431,9 @@ inbe_storage_habits_load(void *habits_ptr)
                                (unsigned char)sqlite3_column_int(stmt, 4), 255};
         habit->sync_mode = sqlite3_column_int(stmt, 5);
         habit->sync_activity = sqlite3_column_int(stmt, 6);
+        habit->counter_enabled = sqlite3_column_int(stmt, 7) != 0 ||
+                                 (habit->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
+                                  habit->sync_activity != 0);
         index++;
     }
     sqlite3_finalize(stmt);
@@ -1425,7 +1441,7 @@ inbe_storage_habits_load(void *habits_ptr)
 
     for(int i = 0; i < habits->count; i++) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "SELECT local_date,completed FROM habit_days WHERE habit_id=?1 ORDER BY local_date",
+                              "SELECT local_date,completed,count FROM habit_days WHERE habit_id=?1 ORDER BY local_date",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habits->items[i].id);
@@ -1437,6 +1453,10 @@ inbe_storage_habits_load(void *habits_ptr)
             }
             habits->items[i].days[d].day_index = sqlite3_column_int(stmt, 0);
             habits->items[i].days[d].completed = sqlite3_column_int(stmt, 1) != 0;
+            habits->items[i].days[d].count = sqlite3_column_int(stmt, 2);
+            if(habits->items[i].days[d].count <= 0 &&
+               habits->items[i].days[d].completed)
+                habits->items[i].days[d].count = 1;
         }
         sqlite3_finalize(stmt);
     }
@@ -1464,8 +1484,8 @@ inbe_storage_habits_save(const void *habits_ptr)
     for(int i = 0; i < habits->count; i++) {
         const InbeHabit *habit = &habits->items[i];
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
-                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,0)",
+                              "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at) "
+                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0)",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habit->id);
@@ -1476,19 +1496,24 @@ inbe_storage_habits_save(const void *habits_ptr)
         sqlite3_bind_int(stmt, 6, habit->color.b);
         sqlite3_bind_int(stmt, 7, habit->sync_mode);
         sqlite3_bind_int(stmt, 8, habit->sync_activity);
-        sqlite3_bind_int(stmt, 9, i);
+        sqlite3_bind_int(stmt, 9, habit->counter_enabled ? 1 : 0);
+        sqlite3_bind_int(stmt, 10, i);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
         stmt = NULL;
         for(int d = 0; d < habit->day_count; d++) {
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) VALUES(?1,?2,?3,?4)",
+                                  "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) VALUES(?1,?2,?3,?4,?5)",
                                   -1, &stmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(stmt, 1, habit->id);
             sqlite3_bind_int(stmt, 2, habit->days[d].day_index);
-            sqlite3_bind_int(stmt, 3, habit->days[d].completed ? 1 : 0);
-            sqlite3_bind_int64(stmt, 4, now_seconds());
+            sqlite3_bind_int(stmt, 3, habit->days[d].count > 0 ||
+                                      habit->days[d].completed ? 1 : 0);
+            sqlite3_bind_int(stmt, 4, habit->days[d].count > 0
+                                      ? habit->days[d].count
+                                      : (habit->days[d].completed ? 1 : 0));
+            sqlite3_bind_int64(stmt, 5, now_seconds());
             sqlite3_step(stmt);
             sqlite3_finalize(stmt);
             stmt = NULL;
@@ -1810,6 +1835,8 @@ import_tickmate_db(sqlite3 *src)
     sqlite3_stmt *stmt = NULL;
     sqlite3_stmt *write_stmt = NULL;
     int ok = 0;
+    int has_multiple_entries;
+    const char *track_sql;
     long long imported_at = now_seconds();
 
     if(src == NULL || g_storage.db == NULL)
@@ -1818,9 +1845,18 @@ import_tickmate_db(sqlite3 *src)
        !source_table_has_column(src, "ticks", "_track_id"))
         return 0;
 
-    if(sqlite3_prepare_v2(src,
-                          "SELECT _id,name,color,\"order\" FROM tracks WHERE enabled!=0 ORDER BY \"order\",_id",
-                          -1, &stmt, NULL) != SQLITE_OK)
+    has_multiple_entries = source_table_has_column(src, "tracks", "multiple_entries_per_day");
+    track_sql = has_multiple_entries
+                    ? "SELECT _id,name,color,\"order\",multiple_entries_per_day,"
+                      "EXISTS(SELECT 1 FROM ticks WHERE ticks._track_id=tracks._id "
+                      "GROUP BY year,month,day HAVING COUNT(*)>1 LIMIT 1) "
+                      "FROM tracks WHERE enabled!=0 ORDER BY \"order\",_id"
+                    : "SELECT _id,name,color,\"order\",0,"
+                      "EXISTS(SELECT 1 FROM ticks WHERE ticks._track_id=tracks._id "
+                      "GROUP BY year,month,day HAVING COUNT(*)>1 LIMIT 1) "
+                      "FROM tracks WHERE enabled!=0 ORDER BY \"order\",_id";
+
+    if(sqlite3_prepare_v2(src, track_sql, -1, &stmt, NULL) != SQLITE_OK)
         return 0;
 
     exec_sql("BEGIN IMMEDIATE");
@@ -1830,6 +1866,8 @@ import_tickmate_db(sqlite3 *src)
         const char *name = (const char *)sqlite3_column_text(stmt, 1);
         int track_id = sqlite3_column_int(stmt, 0);
         int sort_order = sqlite3_column_int(stmt, 3);
+        int counter_enabled = sqlite3_column_int(stmt, 4) != 0 ||
+                              sqlite3_column_int(stmt, 5) != 0;
         Color color = tickmate_color_from_int(sqlite3_column_int(stmt, 2), track_id);
 
         if(name == NULL || name[0] == '\0')
@@ -1839,8 +1877,9 @@ import_tickmate_db(sqlite3 *src)
                                     sizeof(local_habit_id)))
             continue;
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
-                              "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,?9,0)",
+                              "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at) "
+                              "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,"
+                              "CASE WHEN ?9!=0 THEN 1 ELSE COALESCE((SELECT counter_enabled FROM habits WHERE id=?1),0) END,?10,0)",
                               -1, &write_stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(write_stmt, 1, local_habit_id);
@@ -1851,7 +1890,8 @@ import_tickmate_db(sqlite3 *src)
         sqlite3_bind_int(write_stmt, 6, color.b);
         sqlite3_bind_int(write_stmt, 7, INBE_HABIT_SYNC_NONE);
         sqlite3_bind_int(write_stmt, 8, 0);
-        sqlite3_bind_int(write_stmt, 9, sort_order);
+        sqlite3_bind_int(write_stmt, 9, counter_enabled ? 1 : 0);
+        sqlite3_bind_int(write_stmt, 10, sort_order);
         if(sqlite3_step(write_stmt) == SQLITE_DONE)
             ok = 1;
         sqlite3_finalize(write_stmt);
@@ -1861,15 +1901,18 @@ import_tickmate_db(sqlite3 *src)
     stmt = NULL;
 
     if(sqlite3_prepare_v2(src,
-                          "SELECT ticks._track_id,tracks.name,ticks.year,ticks.month,ticks.day "
-                          "FROM ticks JOIN tracks ON tracks._id=ticks._track_id",
+                          "SELECT ticks._track_id,tracks.name,ticks.year,ticks.month,ticks.day,COUNT(*) "
+                          "FROM ticks JOIN tracks ON tracks._id=ticks._track_id "
+                          "WHERE tracks.enabled!=0 "
+                          "GROUP BY ticks._track_id,ticks.year,ticks.month,ticks.day",
                           -1, &stmt, NULL) == SQLITE_OK) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
-                              "VALUES(?1,?2,1,?3) "
+                              "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                              "VALUES(?1,?2,1,?3,?4) "
                               "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
-                              "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
-                              "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
+                              "count=CASE WHEN habit_days.count>excluded.count THEN habit_days.count ELSE excluded.count END,"
+                              "completed=CASE WHEN habit_days.count>0 OR excluded.count>0 OR habit_days.completed!=0 THEN 1 ELSE 0 END,"
+                              "updated_at=CASE WHEN excluded.count>habit_days.count THEN excluded.updated_at ELSE habit_days.updated_at END",
                               -1, &write_stmt, NULL) != SQLITE_OK) {
             sqlite3_finalize(stmt);
             stmt = NULL;
@@ -1883,6 +1926,7 @@ import_tickmate_db(sqlite3 *src)
             int year = sqlite3_column_int(stmt, 2);
             int month = sqlite3_column_int(stmt, 3);
             int day = sqlite3_column_int(stmt, 4);
+            int count = sqlite3_column_int(stmt, 5);
             int local_date;
 
             if(name == NULL || name[0] == '\0')
@@ -1899,7 +1943,8 @@ import_tickmate_db(sqlite3 *src)
             sqlite3_clear_bindings(write_stmt);
             bind_text(write_stmt, 1, local_habit_id);
             sqlite3_bind_int(write_stmt, 2, local_date);
-            sqlite3_bind_int64(write_stmt, 3, imported_at);
+            sqlite3_bind_int(write_stmt, 3, count > 0 ? count : 1);
+            sqlite3_bind_int64(write_stmt, 4, imported_at);
             if(sqlite3_step(write_stmt) == SQLITE_DONE)
                 ok = 1;
         }
@@ -2044,10 +2089,16 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
 
     if(source_table_exists(src, "habits")) {
         int has_sync_activity = source_table_has_column(src, "habits", "sync_activity");
+        int has_counter_enabled = source_table_has_column(src, "habits", "counter_enabled");
+        int has_day_count = source_table_has_column(src, "habit_days", "count");
         const char *habit_sql =
-            has_sync_activity
-                ? "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id"
-                : "SELECT id,name,color_r,color_g,color_b,sync_mode,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id";
+            has_sync_activity && has_counter_enabled
+                ? "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id"
+                : has_sync_activity
+                    ? "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,0,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id"
+                    : has_counter_enabled
+                        ? "SELECT id,name,color_r,color_g,color_b,sync_mode,0,counter_enabled,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id"
+                        : "SELECT id,name,color_r,color_g,color_b,sync_mode,0,0,sort_order FROM habits WHERE deleted_at=0 ORDER BY sort_order,id";
         if(sqlite3_prepare_v2(src, habit_sql, -1, &stmt, NULL) != SQLITE_OK)
             goto after_habits;
         exec_sql("BEGIN IMMEDIATE");
@@ -2055,8 +2106,11 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
             const char *import_habit_id = (const char *)sqlite3_column_text(stmt, 0);
             const char *name = (const char *)sqlite3_column_text(stmt, 1);
             char local_habit_id[INBE_STORAGE_ID_SIZE];
-            int sync_activity = has_sync_activity ? sqlite3_column_int(stmt, 6) : 0;
-            int sort_order = has_sync_activity ? sqlite3_column_int(stmt, 7) : sqlite3_column_int(stmt, 6);
+            int sync_activity = sqlite3_column_int(stmt, 6);
+            int counter_enabled = sqlite3_column_int(stmt, 7) != 0;
+            int sort_order = sqlite3_column_int(stmt, 8);
+            if(sync_activity != 0)
+                counter_enabled = 1;
 
             if(import_habit_id == NULL || import_habit_id[0] == '\0' ||
                name == NULL || name[0] == '\0')
@@ -2065,8 +2119,9 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
                                         sizeof(local_habit_id)))
                 continue;
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at) "
-                                  "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,?9,0)",
+                                  "INSERT OR REPLACE INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at) "
+                                  "VALUES(?1,?2,COALESCE((SELECT name FROM habits WHERE id=?1),?3),?4,?5,?6,?7,?8,"
+                                  "CASE WHEN ?9!=0 THEN 1 ELSE COALESCE((SELECT counter_enabled FROM habits WHERE id=?1),0) END,?10,0)",
                                   -1, &hstmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(hstmt, 1, local_habit_id);
@@ -2077,30 +2132,35 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
             sqlite3_bind_int(hstmt, 6, sqlite3_column_int(stmt, 4));
             sqlite3_bind_int(hstmt, 7, sqlite3_column_int(stmt, 5));
             sqlite3_bind_int(hstmt, 8, sync_activity);
-            sqlite3_bind_int(hstmt, 9, sort_order);
+            sqlite3_bind_int(hstmt, 9, counter_enabled ? 1 : 0);
+            sqlite3_bind_int(hstmt, 10, sort_order);
             if(sqlite3_step(hstmt) == SQLITE_DONE)
                 ok = 1;
             sqlite3_finalize(hstmt);
             hstmt = NULL;
 
             if(sqlite3_prepare_v2(src,
-                                  "SELECT local_date,completed FROM habit_days WHERE habit_id=?1",
+                                  has_day_count
+                                      ? "SELECT local_date,completed,count FROM habit_days WHERE habit_id=?1"
+                                      : "SELECT local_date,completed,CASE WHEN completed!=0 THEN 1 ELSE 0 END FROM habit_days WHERE habit_id=?1",
                                   -1, &hstmt, NULL) == SQLITE_OK) {
                 sqlite3_bind_text(hstmt, 1, import_habit_id, -1, SQLITE_TRANSIENT);
                 while(sqlite3_step(hstmt) == SQLITE_ROW) {
                     sqlite3_stmt *day_stmt = NULL;
                     if(sqlite3_prepare_v2(g_storage.db,
-                                          "INSERT INTO habit_days(habit_id,local_date,completed,updated_at) "
-                                          "VALUES(?1,?2,?3,?4) "
+                                          "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                                          "VALUES(?1,?2,?3,?4,?5) "
                                           "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
-                                          "completed=CASE WHEN habit_days.completed!=0 THEN habit_days.completed ELSE excluded.completed END,"
-                                          "updated_at=CASE WHEN habit_days.completed!=0 THEN habit_days.updated_at ELSE excluded.updated_at END",
+                                          "count=CASE WHEN habit_days.count>excluded.count THEN habit_days.count ELSE excluded.count END,"
+                                          "completed=CASE WHEN habit_days.count>0 OR excluded.count>0 OR habit_days.completed!=0 OR excluded.completed!=0 THEN 1 ELSE 0 END,"
+                                          "updated_at=CASE WHEN excluded.count>habit_days.count THEN excluded.updated_at ELSE habit_days.updated_at END",
                                           -1, &day_stmt, NULL) != SQLITE_OK)
                         continue;
                     bind_text(day_stmt, 1, local_habit_id);
                     sqlite3_bind_int(day_stmt, 2, sqlite3_column_int(hstmt, 0));
                     sqlite3_bind_int(day_stmt, 3, sqlite3_column_int(hstmt, 1) != 0);
-                    sqlite3_bind_int64(day_stmt, 4, now_seconds());
+                    sqlite3_bind_int(day_stmt, 4, sqlite3_column_int(hstmt, 2));
+                    sqlite3_bind_int64(day_stmt, 5, now_seconds());
                     sqlite3_step(day_stmt);
                     sqlite3_finalize(day_stmt);
                 }
