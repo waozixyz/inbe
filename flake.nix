@@ -64,7 +64,7 @@
             buildToolsVersions = [ "34.0.0" ];
             platformVersions = [ "34" "35" ];
             includeNDK = true;
-            ndkVersions = [ "25.1.8937393" ];
+            ndkVersions = [ "28.2.13676358" ];
             cmakeVersions = [ "3.22.1" ];
             includeEmulator = true;
             includeSystemImages = true;
@@ -273,7 +273,6 @@ EOF
                 if [ -d "$project/droid" ]; then
                   cat > "$project/droid/local.properties" <<EOF
 sdk.dir=$ANDROID_SDK_ROOT
-ndk.dir=$ANDROID_NDK_ROOT
 cmake.dir=$ANDROID_SDK_ROOT/cmake/3.22.1
 EOF
                 fi

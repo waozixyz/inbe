@@ -8,6 +8,7 @@
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
 #include "storage.h"
+#include "sync_account.h"
 #include "sync_client.h"
 #include "theme.h"
 #include "version.h"
@@ -26,6 +27,9 @@
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
+#elif !defined(_WIN32)
+#include <pthread.h>
+#define INBE_NATIVE_SYNC_THREAD 1
 #endif
 
 #ifdef __ANDROID__
@@ -38,7 +42,8 @@ void set_global_inbe_app(InbeApp *app);
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
-#define INBE_SYNC_ENABLED_KEY "sync_enabled"
+#define INBE_SYNC_POLL_SECONDS 2.0
+#define INBE_SYNC_DIRTY_DELAY_SECONDS 0.15
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -48,27 +53,245 @@ InbeConfig config = {
     .title_custom = 1
 };
 
+static double g_next_sync_poll = 0.0;
+static double g_dirty_sync_at = 0.0;
+static int g_sync_running = 0;
+static int g_sync_refresh_pending = 0;
+
+#if defined(INBE_NATIVE_SYNC_THREAD)
+typedef struct InbeSyncWorkerArgs {
+    char url[256];
+} InbeSyncWorkerArgs;
+
+static pthread_mutex_t g_sync_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int g_sync_finished = 0;
+static int g_sync_finished_result = INBE_SYNC_CLIENT_OK;
+static int g_sync_finished_changed = 0;
+
+static void *
+inbe_app_sync_worker(void *userdata)
+{
+    InbeSyncWorkerArgs *args = userdata;
+    InbeSyncClientResult result = INBE_SYNC_CLIENT_INVALID_URL;
+    int changed = 0;
+
+    if(args != NULL) {
+        result = inbe_sync_client_sync(args->url);
+        changed = result == INBE_SYNC_CLIENT_OK && inbe_storage_last_sync_changed();
+        free(args);
+    }
+
+    pthread_mutex_lock(&g_sync_mutex);
+    g_sync_finished_result = result;
+    g_sync_finished_changed = changed;
+    g_sync_finished = 1;
+    g_sync_running = 0;
+    pthread_mutex_unlock(&g_sync_mutex);
+    return NULL;
+}
+
+static void
+inbe_app_collect_finished_sync(void)
+{
+    int finished;
+    int result;
+    int changed;
+
+    pthread_mutex_lock(&g_sync_mutex);
+    finished = g_sync_finished;
+    result = g_sync_finished_result;
+    changed = g_sync_finished_changed;
+    g_sync_finished = 0;
+    pthread_mutex_unlock(&g_sync_mutex);
+
+    if(!finished)
+        return;
+    if(result == INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
+        if(changed)
+            g_sync_refresh_pending = 1;
+    } else {
+        TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
+                 result, inbe_sync_client_result_name(result));
+    }
+}
+#else
+static void
+inbe_app_collect_finished_sync(void)
+{
+}
+#endif
+
+static int
+inbe_app_background_sync_safe(const InbeApp *app)
+{
+    if(app == NULL)
+        return 0;
+    if(app->modal.active || app->habit_edit_active || app->habit_session_edit_active)
+        return 0;
+    if(app->inbe.screen == InbeScreenSession ||
+       app->inbe.screen == InbeScreenMeditation ||
+       app->inbe.screen == InbeScreenHabitEdit ||
+       app->inbe.screen == InbeScreenHabitSessionEdit)
+        return 0;
+    return 1;
+}
+
+static void
+inbe_app_apply_pending_sync_refresh(InbeApp *app)
+{
+    if(!g_sync_refresh_pending || !inbe_app_background_sync_safe(app))
+        return;
+    g_sync_refresh_pending = 0;
+#if defined(PLATFORM_WEB)
+    (void)app;
+    return;
+#else
+    TraceLog(LOG_INFO, "SYNC: applying remote refresh");
+    app_reload_after_import(app, 0);
+#endif
+}
+
+static int
+inbe_app_sync_url(char *url, size_t url_size)
+{
+    const char *saved_url;
+    InbeSyncAccount account;
+
+    if(url == NULL || url_size == 0)
+        return 0;
+    url[0] = '\0';
+    if(!inbe_sync_account_load(&account))
+        return 0;
+    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(!inbe_sync_client_normalize_url(saved_url, url, url_size))
+        return 0;
+    return 1;
+}
+
+static int
+inbe_app_sync_now(InbeApp *app)
+{
+    char url[256];
+
+    if(app == NULL || !inbe_app_sync_url(url, sizeof(url)))
+        return 0;
+#if defined(INBE_NATIVE_SYNC_THREAD)
+    {
+        pthread_t thread;
+        InbeSyncWorkerArgs *args;
+
+        pthread_mutex_lock(&g_sync_mutex);
+        if(g_sync_running) {
+            pthread_mutex_unlock(&g_sync_mutex);
+            return 0;
+        }
+        g_sync_running = 1;
+        pthread_mutex_unlock(&g_sync_mutex);
+
+        args = malloc(sizeof(*args));
+        if(args == NULL) {
+            pthread_mutex_lock(&g_sync_mutex);
+            g_sync_running = 0;
+            pthread_mutex_unlock(&g_sync_mutex);
+            return 0;
+        }
+        snprintf(args->url, sizeof(args->url), "%s", url);
+        TraceLog(LOG_INFO, "SYNC: starting background sync");
+        if(pthread_create(&thread, NULL, inbe_app_sync_worker, args) != 0) {
+            free(args);
+            pthread_mutex_lock(&g_sync_mutex);
+            g_sync_running = 0;
+            pthread_mutex_unlock(&g_sync_mutex);
+            TraceLog(LOG_WARNING, "SYNC: failed to start background sync thread");
+            return 0;
+        }
+        pthread_detach(thread);
+        return 1;
+    }
+#else
+    InbeSyncClientResult result;
+
+    if(g_sync_running)
+        return 0;
+    g_sync_running = 1;
+    TraceLog(LOG_INFO, "SYNC: starting sync");
+    result = inbe_sync_client_sync(url);
+    g_sync_running = 0;
+    if(result != INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_WARNING, "SYNC: sync failed result=%d name=%s",
+                 result, inbe_sync_client_result_name(result));
+        return 0;
+    }
+    TraceLog(LOG_INFO, "SYNC: sync complete changed=%d", inbe_storage_last_sync_changed());
+    if(inbe_storage_last_sync_changed())
+        g_sync_refresh_pending = 1;
+    return 1;
+#endif
+}
+
 int
 inbe_app_auto_sync(InbeApp *app)
 {
-    const char *saved_url;
+    double due;
+    double now;
     char url[256];
-    InbeSyncClientResult result;
+
+    if(app == NULL || !inbe_app_sync_url(url, sizeof(url)))
+        return 0;
+#if defined(PLATFORM_WEB)
+    (void)url;
+    return 0;
+#endif
+    now = GetTime();
+    if(inbe_app_background_sync_safe(app) && inbe_app_sync_now(app)) {
+        g_next_sync_poll = now + INBE_SYNC_POLL_SECONDS;
+        g_dirty_sync_at = 0.0;
+        TraceLog(LOG_INFO, "SYNC: dispatched local changes");
+        return 1;
+    }
+    due = now + INBE_SYNC_DIRTY_DELAY_SECONDS;
+    if(g_dirty_sync_at <= 0.0 || due < g_dirty_sync_at)
+        g_dirty_sync_at = due;
+    TraceLog(LOG_INFO, "SYNC: queued local changes");
+    return 1;
+}
+
+static void
+inbe_app_poll_remote_sync(InbeApp *app)
+{
+    double now;
+    int should_sync = 0;
 
     if(app == NULL)
-        return 0;
-    if(inbe_storage_get_setting_int(INBE_SYNC_ENABLED_KEY, 0) == 0)
-        return 0;
-    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
-    if(!inbe_sync_client_normalize_url(saved_url, url, sizeof(url)))
-        return 0;
-    result = inbe_sync_client_sync(url);
-    if(result != INBE_SYNC_CLIENT_OK) {
-        TraceLog(LOG_WARNING, "INBE: auto sync failed result=%d", result);
-        return 0;
+        return;
+    inbe_app_collect_finished_sync();
+    inbe_app_apply_pending_sync_refresh(app);
+#if defined(PLATFORM_WEB)
+    return;
+#endif
+    now = GetTime();
+    if(g_next_sync_poll <= 0.0)
+        g_next_sync_poll = now + 0.25;
+    if(g_dirty_sync_at > 0.0 && now >= g_dirty_sync_at) {
+        should_sync = 1;
+        g_dirty_sync_at = 0.0;
+    } else if(now >= g_next_sync_poll) {
+        should_sync = 1;
     }
-    TraceLog(LOG_INFO, "INBE: auto sync complete");
-    return 1;
+    if(!should_sync)
+        return;
+    if(!inbe_app_background_sync_safe(app)) {
+        TraceLog(LOG_INFO, "SYNC: delayed; app is active");
+        if(g_dirty_sync_at <= 0.0)
+            g_dirty_sync_at = now + 1.0;
+        g_next_sync_poll = now + 1.0;
+        return;
+    }
+    g_next_sync_poll = now + INBE_SYNC_POLL_SECONDS;
+    if(inbe_app_sync_now(app))
+        TraceLog(LOG_INFO, "SYNC: dispatched");
+    inbe_app_apply_pending_sync_refresh(app);
 }
 
 int view_width = INBE_DEFAULT_WIDTH;
@@ -473,8 +696,31 @@ int_from_count(const char src[CountSize])
 void
 app_reload_after_import(InbeApp *app, int reload_settings)
 {
+    char selected_habit_id[INBE_HABIT_ID_SIZE] = "";
+    char detail_habit_id[INBE_HABIT_ID_SIZE] = "";
+    int selected = -1;
+    int detail_index = -1;
+    int view_mode = HABIT_VIEW_CALENDAR;
+    int month_offset = 0;
+    int scroll = 0;
+    int weekly_days = 0;
     if(app == NULL)
         return;
+
+    if(!reload_settings) {
+        if(app->habits.selected >= 0 && app->habits.selected < app->habits.count)
+            snprintf(selected_habit_id, sizeof(selected_habit_id), "%s",
+                     app->habits.items[app->habits.selected].id);
+        if(app->habit_detail_index >= 0 && app->habit_detail_index < app->habits.count)
+            snprintf(detail_habit_id, sizeof(detail_habit_id), "%s",
+                     app->habits.items[app->habit_detail_index].id);
+        selected = app->habits.selected;
+        detail_index = app->habit_detail_index;
+        view_mode = app->habits.view_mode;
+        month_offset = app->habits.month_offset;
+        scroll = app->habits.scroll;
+        weekly_days = app->habits.weekly_days;
+    }
 
     if(reload_settings) {
         if(app_load_settings(app))
@@ -484,6 +730,32 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     }
 
     inbe_habits_init(&app->habits);
+    if(!reload_settings) {
+        app->habits.selected = -1;
+        for(int i = 0; i < app->habits.count; i++) {
+            if(selected_habit_id[0] != '\0' &&
+               strcmp(app->habits.items[i].id, selected_habit_id) == 0) {
+                app->habits.selected = i;
+                break;
+            }
+        }
+        if(app->habits.selected < 0 && selected >= 0 && selected < app->habits.count)
+            app->habits.selected = selected;
+        app->habit_detail_index = -1;
+        for(int i = 0; i < app->habits.count; i++) {
+            if(detail_habit_id[0] != '\0' &&
+               strcmp(app->habits.items[i].id, detail_habit_id) == 0) {
+                app->habit_detail_index = i;
+                break;
+            }
+        }
+        if(app->habit_detail_index < 0 && detail_index >= 0 && detail_index < app->habits.count)
+            app->habit_detail_index = detail_index;
+        app->habits.view_mode = view_mode;
+        app->habits.month_offset = month_offset;
+        app->habits.scroll = scroll;
+        app->habits.weekly_days = weekly_days;
+    }
     if(app->habit_detail_index >= app->habits.count)
         app->habit_detail_index = -1;
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
@@ -1081,6 +1353,7 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     ui_set_cursor_disabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
+    inbe_app_poll_remote_sync(app);
 
     DrawRectangleRec(viewport, theme_get_bg());
     flint_clip_begin((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);

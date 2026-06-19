@@ -31,7 +31,7 @@ android_import_set_result(int result, const char *path)
 }
 
 int
-android_import_open_picker(void)
+android_import_open_picker(const char *mime_types)
 {
     struct android_app *app = GetAndroidApp();
     if(app == NULL || app->activity == NULL) {
@@ -55,14 +55,23 @@ android_import_open_picker(void)
         return 0;
     }
 
-    jmethodID method = (*env)->GetMethodID(env, activity_class, "openImportPicker", "()V");
+    jmethodID method = (*env)->GetMethodID(env, activity_class, "openImportPicker",
+                                           "(Ljava/lang/String;)V");
     if(method == NULL) {
         TraceLog(LOG_ERROR, "ANDROID_IMPORT: openImportPicker method not found");
         (*jvm)->DetachCurrentThread(jvm);
         return 0;
     }
 
-    (*env)->CallVoidMethod(env, activity->clazz, method);
+    jstring mime_string = (*env)->NewStringUTF(env, mime_types != NULL ? mime_types : "");
+    if(mime_string == NULL) {
+        TraceLog(LOG_ERROR, "ANDROID_IMPORT: failed to allocate MIME string");
+        (*jvm)->DetachCurrentThread(jvm);
+        return 0;
+    }
+
+    (*env)->CallVoidMethod(env, activity->clazz, method, mime_string);
+    (*env)->DeleteLocalRef(env, mime_string);
     if((*env)->ExceptionCheck(env)) {
         (*env)->ExceptionDescribe(env);
         (*env)->ExceptionClear(env);
@@ -124,8 +133,9 @@ android_import_poll_result(char *path, size_t path_size)
 
 #else
 int
-android_import_open_picker(void)
+android_import_open_picker(const char *mime_types)
 {
+    (void)mime_types;
     return 0;
 }
 

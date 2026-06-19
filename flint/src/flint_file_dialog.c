@@ -762,7 +762,7 @@ run_dialog(FlintFileDialog *dlg)
 }
 
 void
-flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
+flint_file_dialog_begin_load_filtered(FlintFileDialog *dlg, const char *title, const char *filter)
 {
     FlintFileDialogInternal *internal;
 
@@ -770,7 +770,7 @@ flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
     flint_file_dialog_init(dlg);
     dlg->mode = FLINT_FILE_DIALOG_LOAD;
     copy_text(dlg->title, sizeof(dlg->title), title);
-    copy_text(dlg->filter, sizeof(dlg->filter), ".db,.zip");
+    copy_text(dlg->filter, sizeof(dlg->filter), filter != NULL ? filter : "");
     dlg->active = 1;
     dlg->confirmed = 0;
 
@@ -782,6 +782,18 @@ flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
     internal->hover_index = -1;
     internal->last_clicked_index = -1;
     internal->focus_area = 0;
+}
+
+void
+flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
+{
+    flint_file_dialog_begin_load_filtered(dlg, title, NULL);
+}
+
+int flint_file_dialog_load_filtered(FlintFileDialog *dlg, const char *title, const char *filter) {
+    if(!dlg || !title) return 0;
+    flint_file_dialog_begin_load_filtered(dlg, title, filter);
+    return run_dialog(dlg);
 }
 
 int flint_file_dialog_load(FlintFileDialog *dlg, const char *title) {

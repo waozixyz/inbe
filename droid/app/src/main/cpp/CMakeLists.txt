@@ -176,6 +176,7 @@ target_compile_options(main PRIVATE
 target_link_options(main PRIVATE
     -Wl,--gc-sections
     -Wl,--strip-all
+    -Wl,-z,max-page-size=16384
     -Wl,--wrap=fopen
 )
 

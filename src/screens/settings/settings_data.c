@@ -40,10 +40,16 @@ enum {
 
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
+#define SETTINGS_DATA_IMPORT_FILTER ".db,.zip"
+#define SETTINGS_SYNC_KEY_IMPORT_FILTER ".key"
+#define SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES "application/zip,application/x-zip-compressed,application/vnd.sqlite3,application/x-sqlite,application/x-sqlite3,application/octet-stream"
+#define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "*/*"
 
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
 static FlintFileDialog export_dlg;
 static FlintFileDialog import_dlg;
+#endif
+#if defined(INBE_HAS_FLINT_FILE_DIALOG) || defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 static int data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
 #endif
 
@@ -277,11 +283,12 @@ settings_start_sync_key_import_dialog(InbeApp *app)
     (void)app;
     EM_ASM({
         const importPath = UTF8ToString($0);
+        const accept = UTF8ToString($1);
         Module.__inbeSyncKeyImportResult = 0;
 
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = ".key,text/plain,application/octet-stream";
+        input.accept = accept;
         input.style.display = "none";
 
         input.onchange = async function() {
@@ -294,9 +301,12 @@ settings_start_sync_key_import_dialog(InbeApp *app)
                 const file = input.files[0];
                 const bytes = new Uint8Array(await file.arrayBuffer());
                 try {
-                    FS.mkdir("/tmp");
+                    FS.mkdirTree("/tmp");
                 } catch(e) {}
-                FS.writeFile("/tmp/inbe-sync-key-import.key", bytes);
+                try {
+                    FS.unlink(importPath);
+                } catch(e) {}
+                FS.writeFile(importPath, bytes);
                 Module.__inbeSyncKeyImportResult = 1;
             } catch(e) {
                 console.error("Inbe sync key import failed:", e);
@@ -308,12 +318,22 @@ settings_start_sync_key_import_dialog(InbeApp *app)
 
         document.body.appendChild(input);
         input.click();
-    }, "/tmp/inbe-sync-key-import.key");
+    }, "/tmp/inbe-sync-key-import.key", SETTINGS_SYNC_KEY_IMPORT_FILTER);
     settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
     return 1;
+#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    (void)app;
+    data_file_dialog_action = SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT;
+    if(android_import_open_picker(SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES)) {
+        settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
+        return 1;
+    }
+    data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
+    return 0;
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_load(&import_dlg, locale_get("sync_import_key_dialog_title"));
+    flint_file_dialog_begin_load_filtered(&import_dlg, locale_get("sync_import_key_dialog_title"),
+                                          SETTINGS_SYNC_KEY_IMPORT_FILTER);
     data_file_dialog_action = SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT;
     return 1;
 #else
@@ -429,14 +449,26 @@ settings_data_handle_android_import(InbeApp *app)
     if(import_result == ANDROID_IMPORT_RESULT_NONE)
         return;
     if(import_result == ANDROID_IMPORT_RESULT_CANCELLED) {
-        settings_screen_set_status_error(locale_get("import_cancelled"));
+        if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+            settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
+        else
+            settings_screen_set_status_error(locale_get("import_cancelled"));
+        data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
         return;
     }
     if(import_path[0] == '\0') {
-        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+            settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+        else
+            settings_screen_set_status_error(locale_get("import_invalid_file"));
+        data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
         return;
     }
-    settings_begin_import_for_path(app, import_path);
+    if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+        settings_import_sync_key_path(app, import_path);
+    else
+        settings_begin_import_for_path(app, import_path);
+    data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
 }
 #else
 void settings_data_handle_android_import(InbeApp *app) { (void)app; }
@@ -468,7 +500,10 @@ settings_web_import_open_picker(void)
                 const file = input.files[0];
                 const bytes = new Uint8Array(await file.arrayBuffer());
                 try {
-                    FS.mkdir("/tmp");
+                    FS.mkdirTree("/tmp");
+                } catch(e) {}
+                try {
+                    FS.unlink(importPath);
                 } catch(e) {}
                 FS.writeFile(importPath, bytes);
                 Module.__inbeImportResult = 1;
@@ -530,17 +565,21 @@ static void
 settings_import_data(InbeApp *app)
 {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-    if(android_import_open_picker())
+    data_file_dialog_action = SETTINGS_DATA_ACTION_IMPORT;
+    if(android_import_open_picker(SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES))
         settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
-    else
+    else {
+        data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
         settings_screen_set_status_error(locale_get("import_failed"));
+    }
 #elif defined(PLATFORM_WEB)
     (void)app;
     settings_web_import_open_picker();
     settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_load(&import_dlg, locale_get("import_data_dialog_title"));
+    flint_file_dialog_begin_load_filtered(&import_dlg, locale_get("import_data_dialog_title"),
+                                          SETTINGS_DATA_IMPORT_FILTER);
     data_file_dialog_action = SETTINGS_DATA_ACTION_IMPORT;
 #else
     (void)app;
@@ -620,7 +659,10 @@ settings_data_draw_pending_file_dialog(InbeApp *app)
         return 0;
 
     settings_apply_file_dialog_theme(app);
-    dlg = data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ? &import_dlg : &export_dlg;
+    dlg = (data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ||
+           data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+              ? &import_dlg
+              : &export_dlg;
     result = flint_file_dialog_update(dlg);
     if(result < 0)
         return 1;

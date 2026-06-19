@@ -31,6 +31,11 @@ TraceLog(int log_level, const char *text, ...)
     (void)text;
 }
 
+void
+inbe_sync_client_clear_auth_token(void)
+{
+}
+
 char *
 LoadFileText(const char *file_name)
 {
@@ -209,6 +214,7 @@ test_import_export_clear(void)
     char private_key[5121];
     InbeSyncAccount account;
     char *exported;
+    FILE *file;
 
     make_clean_root(root, sizeof(root), "roundtrip");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -235,6 +241,28 @@ test_import_export_clear(void)
     check_false("load after clear", inbe_sync_account_load(&account));
     check_true("import exported key", inbe_sync_account_import_private_key(&account, export_path));
     check_str("reimport public id", account.public_id, public_id);
+
+    file = fopen(key_path, "wb");
+    check_true("open secret key alias file", file != NULL);
+    if(file != NULL) {
+        fprintf(file,
+                "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_key=%s\nsecret_key=%s\n",
+                public_key, private_key);
+        fclose(file);
+    }
+    check_true("import secret key alias", inbe_sync_account_import_private_key(&account, key_path));
+    check_str("derive public id", account.public_id, public_id);
+
+    file = fopen(key_path, "wb");
+    check_true("open exported key json file", file != NULL);
+    if(file != NULL) {
+        fprintf(file,
+                "{\"exported_key\":\"inbe-sync-key-v1\\nalgorithm=ML-DSA-44\\npublic_id=%s\\npublic_key=%s\\nprivate_key=%s\\n\"}\n",
+                public_id, public_key, private_key);
+        fclose(file);
+    }
+    check_true("import exported key json", inbe_sync_account_import_private_key(&account, key_path));
+    check_str("json public key", account.public_key_hex, public_key);
 
     inbe_storage_close();
     remove_tree(root);

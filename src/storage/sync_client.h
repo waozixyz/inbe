@@ -19,5 +19,7 @@ int inbe_sync_client_url_valid(const char *url);
 int inbe_sync_client_normalize_url(const char *input, char *out, size_t out_size);
 InbeSyncClientResult inbe_sync_client_sync(const char *base_url);
 InbeSyncClientResult inbe_sync_client_delete_account(const char *base_url);
+const char *inbe_sync_client_result_name(InbeSyncClientResult result);
+void inbe_sync_client_clear_auth_token(void);
 
 #endif

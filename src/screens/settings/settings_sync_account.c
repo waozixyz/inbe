@@ -15,8 +15,6 @@
 
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
-#define INBE_SYNC_ENABLED_KEY "sync_enabled"
-#define INBE_SYNC_CONNECTED_URL_KEY "sync_connected_url"
 
 static SettingsSyncKeySaveDialog save_dialog_callback = NULL;
 static SettingsSyncKeyImportDialog import_dialog_callback = NULL;
@@ -108,7 +106,6 @@ static void
 settings_sync_server_save(InbeApp *app)
 {
     char url[sizeof(app->sync_server_url)];
-    const char *connected_url;
 
     if(app == NULL)
         return;
@@ -117,9 +114,6 @@ settings_sync_server_save(InbeApp *app)
         return;
     }
     inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
-    connected_url = inbe_storage_get_setting_text(INBE_SYNC_CONNECTED_URL_KEY);
-    if(connected_url == NULL || strcmp(connected_url, url) != 0)
-        inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 0);
     settings_screen_set_status_success(locale_get("sync_server_saved"), url);
 }
 
@@ -127,14 +121,18 @@ static int
 settings_sync_server_connected(InbeApp *app)
 {
     char url[sizeof(app->sync_server_url)];
-    const char *connected_url;
+    const char *saved_url;
+    char saved_normalized[sizeof(app->sync_server_url)];
+    InbeSyncAccount account;
 
-    if(app == NULL || inbe_storage_get_setting_int(INBE_SYNC_ENABLED_KEY, 0) == 0)
+    if(app == NULL || !inbe_sync_account_load(&account))
         return 0;
     if(!inbe_sync_client_normalize_url(app->sync_server_url, url, sizeof(url)))
         return 0;
-    connected_url = inbe_storage_get_setting_text(INBE_SYNC_CONNECTED_URL_KEY);
-    return connected_url != NULL && strcmp(connected_url, url) == 0;
+    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(!inbe_sync_client_normalize_url(saved_url, saved_normalized, sizeof(saved_normalized)))
+        return 0;
+    return strcmp(saved_normalized, url) == 0;
 }
 
 static const char *
@@ -175,8 +173,7 @@ settings_sync_run_connect(InbeApp *app)
     inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     result = inbe_sync_client_sync(url);
     if(result == INBE_SYNC_CLIENT_OK) {
-        inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 1);
-        inbe_storage_set_setting_text(INBE_SYNC_CONNECTED_URL_KEY, url);
+        app_reload_after_import(app, 0);
         settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
     } else {
         settings_screen_set_status_error(locale_get(settings_sync_result_key(result)));
@@ -206,8 +203,6 @@ settings_sync_account_delete_confirmed(InbeApp *app)
     }
 
     inbe_sync_account_clear();
-    inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 0);
-    inbe_storage_set_setting_text(INBE_SYNC_CONNECTED_URL_KEY, "");
     settings_screen_set_status_success(locale_get("sync_account_deleted"), NULL);
 }
 
@@ -306,6 +301,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
 
     if(!has_account) {
+        *y += flint_px(12);
         if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(inbe_sync_account_create(&account)) {
