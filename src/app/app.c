@@ -669,6 +669,10 @@ inbe_app_init(void *vapp) {
     app->settings_dirty = 0;
     app->settings_save_delay_ticks = 0;
     app->settings_tab = SETTINGS_TAB_DEVICE;
+    app->settings_data_view = 0;
+    app->sync_server_url_cursor = 0;
+    app->sync_server_url_focused = 0;
+    app->sync_server_url[0] = '\0';
     app->practice_config_tab = 0;
     app->practice_coming_soon_ticks = 0;
     app->habit_edit_active = 0;

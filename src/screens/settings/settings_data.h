@@ -4,6 +4,7 @@
 #include "app_fwd.h"
 
 int settings_data_content_height(int content_w);
+int settings_data_is_configuring(const InbeApp *app);
 void settings_data_draw(InbeApp *app, int x, int w, int *y);
 int settings_data_draw_pending_file_dialog(InbeApp *app);
 int settings_data_draw_modals(InbeApp *app);

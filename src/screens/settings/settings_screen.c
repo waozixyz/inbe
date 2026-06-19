@@ -114,12 +114,14 @@ settings_screen_draw_status_reserved(int x, int *y, int reserved_h)
 }
 
 static int
-settings_tab_content_height(int tab, int content_w)
+settings_tab_content_height(InbeApp *app, int tab, int content_w)
 {
     if(tab == SETTINGS_TAB_THEME)
         return settings_theme_content_height(content_w);
     if(tab == SETTINGS_TAB_DEVICE)
         return settings_device_content_height();
+    if(settings_data_is_configuring(app))
+        return flint_px(430);
     return settings_data_content_height(content_w);
 }
 
@@ -133,6 +135,7 @@ settings_screen_draw(InbeApp *app)
     int max_content_w = flint_px(CONTENT_MAX_W);
     int min_content_w = flint_px(320);
     int side_padding;
+    int detail_header_h;
     int top_tab_h;
     int top_tab_y;
     int tab_gap;
@@ -164,9 +167,23 @@ settings_screen_draw(InbeApp *app)
     if(settings_data_draw_pending_file_dialog(app))
         return 1;
 
-    top_tab_h = flint_px(40);
-    top_tab_y = top_margin;
-    tab_gap = flint_px(14);
+    detail_header_h = settings_data_is_configuring(app) ? flint_px(58) : 0;
+    if(detail_header_h > 0) {
+        FlintUIHeader header = ui_draw_title_header(detail_header_h,
+                                                    locale_get("sync_configure_account_button"),
+                                                    app->icons[UI_ICON_TYPE_RETURN],
+                                                    (Texture2D){0});
+        if(header.left_clicked) {
+            app->settings_data_view = 0;
+            app->settings_scroll = 0;
+            app->sync_server_url_focused = 0;
+            settings_screen_clear_status();
+        }
+    }
+
+    top_tab_h = detail_header_h > 0 ? 0 : flint_px(40);
+    top_tab_y = top_margin + detail_header_h;
+    tab_gap = top_tab_h > 0 ? flint_px(14) : 0;
     tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
     content_viewport_h = view_height - tab_content_start_y - flint_px(TAB_BAR_H);
 
@@ -181,11 +198,13 @@ settings_screen_draw(InbeApp *app)
     if(content_viewport_h < 0)
         content_viewport_h = 0;
 
-    clicked_top_tab = settings_draw_subtab_bar(top_tab_y, top_tab_h, settings_tabs,
-                                               SETTINGS_TAB_COUNT, app->settings_tab);
+    if(top_tab_h > 0)
+        clicked_top_tab = settings_draw_subtab_bar(top_tab_y, top_tab_h, settings_tabs,
+                                                   SETTINGS_TAB_COUNT, app->settings_tab);
     if(clicked_top_tab != -1) {
         app->settings_tab = clicked_top_tab;
         app->settings_scroll = 0;
+        app->settings_data_view = 0;
         settings_screen_clear_status();
     }
 
@@ -200,7 +219,7 @@ settings_screen_draw(InbeApp *app)
 
             if(planned_content_w < flint_px(160))
                 planned_content_w = draw_w;
-            app_content_h = settings_tab_content_height(app->settings_tab, planned_content_w);
+            app_content_h = settings_tab_content_height(app, app->settings_tab, planned_content_w);
             scroll_area = (FlintUIScrollArea){
                 .bounds = {0.0f, (float)tab_content_start_y,
                            (float)view_width, (float)content_viewport_h},

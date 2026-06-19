@@ -1,0 +1,2 @@
+### Added
+- optional sync client, offline account creation

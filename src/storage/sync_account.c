@@ -171,6 +171,42 @@ bytes_to_hex(const uint8_t *bytes, size_t len, char *out, size_t out_size)
 }
 
 static int
+hex_to_bytes(const char *hex, uint8_t *out, size_t out_len)
+{
+    size_t len;
+
+    if(hex == NULL || out == NULL)
+        return 0;
+    len = strlen(hex);
+    if(len != out_len * 2)
+        return 0;
+    for(size_t i = 0; i < out_len; i++) {
+        unsigned int value;
+        if(sscanf(hex + i * 2, "%2x", &value) != 1)
+            return 0;
+        out[i] = (uint8_t)value;
+    }
+    return 1;
+}
+
+void
+inbe_sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
+{
+    uint8_t digest[32];
+    Sha256Ctx sha;
+
+    if(out_hex == NULL)
+        return;
+    out_hex[0] = '\0';
+    if(data == NULL && len > 0)
+        return;
+    sha256_init(&sha);
+    sha256_update(&sha, data, len);
+    sha256_final(&sha, digest);
+    bytes_to_hex(digest, sizeof(digest), out_hex, 65);
+}
+
+static int
 account_has_values(const InbeSyncAccount *account)
 {
     return account != NULL &&
@@ -293,5 +329,53 @@ inbe_sync_account_export_private_key(const InbeSyncAccount *account, const char 
         snprintf(path, sizeof(path), "%s/%s", data_root(), filename);
         return SaveFileData(path, body, len);
     }
+#endif
+}
+
+int
+inbe_sync_account_sign_hex(const uint8_t *message, size_t message_len,
+                           char *out_signature_hex, size_t out_size)
+{
+#if defined(INBE_HAS_LIBOQS)
+    InbeSyncAccount account;
+    OQS_SIG *sig;
+    uint8_t private_key[2560];
+    uint8_t signature[2420];
+    size_t signature_len = 0;
+
+    if(out_signature_hex == NULL || out_size < sizeof(signature) * 2 + 1 ||
+       (message == NULL && message_len > 0))
+        return 0;
+    out_signature_hex[0] = '\0';
+    if(!inbe_sync_account_load(&account))
+        return 0;
+    if(!hex_to_bytes(account.private_key_hex, private_key, sizeof(private_key)))
+        return 0;
+
+    sig = OQS_SIG_new(OQS_SIG_alg_ml_dsa_44);
+    if(sig == NULL ||
+       sig->length_secret_key != sizeof(private_key) ||
+       sig->length_signature != sizeof(signature)) {
+        if(sig != NULL)
+            OQS_SIG_free(sig);
+        return 0;
+    }
+
+    if(OQS_SIG_sign(sig, signature, &signature_len, message, message_len,
+                    private_key) != OQS_SUCCESS ||
+       signature_len != sizeof(signature)) {
+        OQS_SIG_free(sig);
+        return 0;
+    }
+    OQS_SIG_free(sig);
+
+    bytes_to_hex(signature, sizeof(signature), out_signature_hex, out_size);
+    return out_signature_hex[0] != '\0';
+#else
+    (void)message;
+    (void)message_len;
+    (void)out_signature_hex;
+    (void)out_size;
+    return 0;
 #endif
 }
