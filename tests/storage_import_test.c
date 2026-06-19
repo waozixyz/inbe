@@ -415,6 +415,42 @@ test_import_conflict_prefers_data_over_empty(void)
 }
 
 static void
+test_delete_all_resets_habits_to_empty_storage(void)
+{
+    char root[512];
+    InbeHabits habits;
+    long long deleted;
+
+    make_clean_root(root, sizeof(root), "delete-all");
+    check_true("init delete all db", inbe_storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add delete all habit",
+              inbe_habits_add_custom(&habits, "Work out",
+                                      (Color){99, 196, 165, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_habit_set_day(&habits, 0, 20260618, 1);
+    check_int("delete all habit count before", inbe_storage_habit_count(), 1);
+    check_true("delete all sees habit-only data", inbe_storage_has_any());
+
+    deleted = inbe_storage_delete_all_sessions();
+    check_true("delete all removed habit data", deleted >= 2);
+    check_int("delete all habit count after", inbe_storage_habit_count(), 0);
+
+    inbe_habits_add_default_set(&habits);
+    memset(&habits, 0, sizeof(habits));
+    check_true("load default habit after delete all", inbe_storage_habits_load(&habits));
+    check_int("default habit count after delete all", habits.count, 1);
+    check_true("default meditation after delete all",
+               strcmp(habits.items[0].name, "Meditation") == 0);
+    check_true("old workout day removed",
+               !inbe_habit_completed_day(&habits.items[0], 20260618));
+    inbe_storage_close();
+
+    remove_tree(root);
+}
+
+static void
 write_multi_habit_source_database(const char *root, const char *zip_path)
 {
     int rounds[] = {77};
@@ -745,6 +781,7 @@ main(void)
     test_zip_db_import();
     test_habit_name_merge_import();
     test_import_conflict_prefers_data_over_empty();
+    test_delete_all_resets_habits_to_empty_storage();
     test_import_modes_preserve_habits_and_settings_choice();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();

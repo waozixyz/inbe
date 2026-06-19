@@ -940,6 +940,9 @@ inbe_storage_has_any(void)
         return 1;
     if(g_storage.db == NULL)
         return 0;
+    count = inbe_storage_habit_count();
+    if(count > 0)
+        return 1;
     if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habit_days", -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -980,6 +983,7 @@ inbe_storage_delete_all_sessions(void)
     sqlite3_stmt *stmt = NULL;
     int count = inbe_storage_session_count();
     int habit_day_count = 0;
+    int habit_count = inbe_storage_habit_count();
 
     if(g_storage.db == NULL)
         return 0;
@@ -989,7 +993,7 @@ inbe_storage_delete_all_sessions(void)
             habit_day_count = sqlite3_column_int(stmt, 0);
         sqlite3_finalize(stmt);
     }
-    if(count <= 0 && habit_day_count <= 0)
+    if(count <= 0 && habit_day_count <= 0 && habit_count <= 0)
         return 0;
 
     if(!exec_sql("BEGIN IMMEDIATE"))
@@ -1006,13 +1010,17 @@ inbe_storage_delete_all_sessions(void)
         exec_sql("ROLLBACK");
         return 0;
     }
+    if(!exec_sql("DELETE FROM habits")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
     if(!exec_sql("COMMIT")) {
         exec_sql("ROLLBACK");
         return 0;
     }
     exec_sql("VACUUM");
     storage_schedule_persist();
-    return count + habit_day_count;
+    return count + habit_day_count + habit_count;
 }
 
 int
