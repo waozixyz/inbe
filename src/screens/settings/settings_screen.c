@@ -328,42 +328,6 @@ settings_draw_link_icons(InbeApp *app, int content_x, int content_w, int *y)
     *y += settings_link_icons_height(content_w) - flint_px(8);
 }
 
-static void
-settings_format_data_size(char *dst, size_t dst_size, long long data_size)
-{
-    if(data_size < 1024)
-        snprintf(dst, dst_size, "%lld B", data_size);
-    else if(data_size < 1024 * 1024)
-        snprintf(dst, dst_size, "%.1f KB", (float)data_size / 1024);
-    else
-        snprintf(dst, dst_size, "%.1f MB", (float)data_size / (1024 * 1024));
-}
-
-static void
-settings_draw_data_stats(int x, int y, int w)
-{
-    int font = flint_ui_font();
-    int session_count = data_get_session_count();
-    long long data_size = data_get_total_size();
-    char size_str[32];
-    char stat_text[64];
-    int stats_box_h = flint_px(66);
-    int stat_x = x + flint_px(16);
-    int stat_y = y + flint_px(16);
-
-    settings_format_data_size(size_str, sizeof(size_str), data_size);
-
-    DrawRectangle(x, y, w, stats_box_h, flint_darken(theme_get_bg(), 8));
-    ui_draw_bevel(x, y, w, stats_box_h, flint_lighten(theme_get_bg(), 35), flint_darken(theme_get_bg(), 45));
-
-    locale_format(stat_text, sizeof(stat_text), "total_sessions_label", session_count);
-    flint_text_draw(stat_text, stat_x, stat_y, font, theme_get_text());
-    stat_y += flint_px(22);
-
-    locale_format(stat_text, sizeof(stat_text), "data_size_label", size_str);
-    flint_text_draw(stat_text, stat_x, stat_y, font, theme_get_text());
-}
-
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
 static void
 settings_apply_file_dialog_theme(InbeApp *app)
@@ -794,9 +758,6 @@ settings_screen_draw(InbeApp *app)
             int hover_export = 0;
             int hover_delete = 0;
 
-            settings_draw_data_stats(draw_x, y, draw_w);
-            y += flint_px(98);
-
             if(ui_draw_generic_button(draw_x, y, draw_w, data_button_h,
                                       locale_get("import_data_button"),
                                       UI_BUTTON_STYLE_PRIMARY, 0, &hover_import))
@@ -883,8 +844,7 @@ settings_screen_draw(InbeApp *app)
             app->modal.type = UIModalNone;
             if(deleted > 0) {
                 char deleted_message[128];
-                inbe_habits_clear_days(&app->habits);
-                inbe_habits_save(&app->habits);
+                inbe_habits_add_default_set(&app->habits);
                 locale_format(deleted_message, sizeof(deleted_message), "deleted_sessions", deleted);
                 settings_screen_set_status_success(deleted_message, NULL);
             } else {
