@@ -1213,6 +1213,12 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
         completed = inbe_habit_completed_day(active, day_index);
         if(!completed && !future_day && (has_linked_day || count > 0))
             completed = 1;
+        if(counting_enabled && count > 0 && session_count > 0 &&
+           secondary[0] != '\0') {
+            size_t len = strlen(secondary);
+            snprintf(secondary + len, sizeof(secondary) - len,
+                     " / total %d", count);
+        }
         if(session_count <= 0 && completed) {
             snprintf(primary, sizeof(primary), "Completed");
             secondary[0] = '\0';
@@ -1806,9 +1812,14 @@ draw_habit_edit_screen(InbeApp *app)
     y += flint_px(24);
     if(app->habit_edit_sync_activity != 0) {
         int forced_counter = 1;
-        ui_draw_checkbox_toggle(content_x, y, "Counter habit", &forced_counter);
+        ui_draw_checkbox_toggle_disabled(content_x, y, "Allow multiple counts",
+                                         &forced_counter, 1);
         app->habit_edit_counter_enabled = 1;
-    } else if(ui_draw_checkbox_toggle(content_x, y, "Counter habit",
+        y += flint_px(30);
+        flint_text_draw("Required for practice-linked habits", content_x, y,
+                        label_font, flint_darken(theme_get_text(), 42));
+        y += flint_px(12);
+    } else if(ui_draw_checkbox_toggle(content_x, y, "Allow multiple counts",
                                       &app->habit_edit_counter_enabled)) {
         app->habit_edit_counter_enabled = app->habit_edit_counter_enabled != 0;
     }
