@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "data.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "meditation_music.h"
 #include "theme.h"
 #include "flint_ui.h"
@@ -58,7 +58,7 @@ meditation_finish(InbeApp *app)
         if(data_save_session_path_for_activity(&session_duration, 1, 0, EXERCISE_MEDITATION,
                                                NULL, 0)) {
             sync_habits_for_activity(app, EXERCISE_MEDITATION);
-            app_auto_sync(app);
+            inbe_app_auto_sync(app);
         }
     }
     app_play_sound(app, app->bell_sound, 1.0f);
@@ -98,7 +98,7 @@ meditation_save_elapsed(InbeApp *app)
         return 0;
     if(data_save_session_path_for_activity(&elapsed, 1, 0, EXERCISE_MEDITATION, NULL, 0)) {
         sync_habits_for_activity(app, EXERCISE_MEDITATION);
-        app_auto_sync(app);
+        inbe_app_auto_sync(app);
         return 1;
     }
     return 0;

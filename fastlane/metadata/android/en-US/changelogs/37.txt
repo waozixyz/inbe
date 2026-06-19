@@ -1,3 +1,0 @@
-### Fixed
-- Improve sync auth, websocket reconnects, and queued habit/session updates.
-- Reduce SQLite-related UI flicker and speed up bulk import sync queueing.

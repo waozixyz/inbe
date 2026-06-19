@@ -37,14 +37,12 @@ int flint_file_dialog_save(FlintFileDialog *dlg, const char *title, const char *
 
 /* Load file dialog - returns 1 if file selected, 0 if cancelled */
 int flint_file_dialog_load(FlintFileDialog *dlg, const char *title);
-int flint_file_dialog_load_filtered(FlintFileDialog *dlg, const char *title, const char *filter);
 
 /* Select folder dialog - returns 1 if folder selected, 0 if cancelled */
 int flint_file_dialog_select_folder(FlintFileDialog *dlg, const char *title);
 
 /* Begin non-blocking dialogs. Call flint_file_dialog_update() each frame while active. */
 void flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title);
-void flint_file_dialog_begin_load_filtered(FlintFileDialog *dlg, const char *title, const char *filter);
 void flint_file_dialog_begin_save(FlintFileDialog *dlg, const char *title, const char *default_filename);
 
 /* Draw/update active dialog: 1 confirmed, 0 cancelled, -1 still active. */

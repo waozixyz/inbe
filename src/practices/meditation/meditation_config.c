@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "meditation_music.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "theme.h"
 #include "flint_ui.h"
 #include "raylib.h"

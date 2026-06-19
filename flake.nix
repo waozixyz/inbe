@@ -64,7 +64,7 @@
             buildToolsVersions = [ "34.0.0" ];
             platformVersions = [ "34" "35" ];
             includeNDK = true;
-            ndkVersions = [ "28.2.13676358" ];
+            ndkVersions = [ "25.1.8937393" ];
             cmakeVersions = [ "3.22.1" ];
             includeEmulator = true;
             includeSystemImages = true;
@@ -78,7 +78,6 @@
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
             sdl2Pkgs.SDL2.dev
             pkgs.curl.dev
-            pkgs.openssl.dev
             pkgs.libdrm.dev
             pkgs.libgbm
             pkgs.libglvnd.dev
@@ -213,8 +212,6 @@ EOF
               mesa
               ncurses
               ninja
-              openssl
-              openssl.dev
               pkg-config
               pipewire
               rsync
@@ -232,9 +229,6 @@ EOF
 
             profile = ''
               export JAVA_HOME="${pkgs.jdk17.home}"
-              export OPENSSL_INCLUDE_DIR="${pkgs.openssl.dev}/include"
-              export OPENSSL_SSL_LIBRARY="${pkgs.openssl.out}/lib/libssl.so"
-              export OPENSSL_CRYPTO_LIBRARY="${pkgs.openssl.out}/lib/libcrypto.so"
 
               # Android SDK - override any system ANDROID_HOME
               export ANDROID_HOME="${sdk}/libexec/android-sdk"
@@ -277,13 +271,10 @@ EOF
 
               for project in inbe; do
                 if [ -d "$project/droid" ]; then
-                  android_local_sdk="$ANDROID_SDK_ROOT"
-                  if [ -d /mnt/storage/Android/Sdk/ndk/28.2.13676358 ]; then
-                    android_local_sdk="/mnt/storage/Android/Sdk"
-                  fi
                   cat > "$project/droid/local.properties" <<EOF
-sdk.dir=$android_local_sdk
-cmake.dir=$android_local_sdk/cmake/3.22.1
+sdk.dir=$ANDROID_SDK_ROOT
+ndk.dir=$ANDROID_NDK_ROOT
+cmake.dir=$ANDROID_SDK_ROOT/cmake/3.22.1
 EOF
                 fi
               done

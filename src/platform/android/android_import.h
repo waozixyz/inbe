@@ -3,7 +3,7 @@
 
 #include <stddef.h>
 
-int android_import_open_picker(const char *mime_types);
+int android_import_open_picker(void);
 int android_import_poll_result(char *path, size_t path_size);
 
 enum {

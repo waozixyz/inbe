@@ -3,7 +3,6 @@
 #include "flint_clip.h"
 #include "flint_dpi.h"
 #include "flint_web.h"
-#include "theme.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -222,9 +221,9 @@ frame(void)
     int content_height = android_clamp_content_size(height, safe_top, safe_bottom);
 
     BeginDrawing();
-    ClearBackground(theme_get_bg());
+    ClearBackground(BLACK);
     flint_clip_begin(content_x, content_y, content_width, content_height);
-    app_update_draw(&inbe_app, (Rectangle){
+    inbe_app_update_draw(&inbe_app, (Rectangle){
         (float)content_x,
         (float)content_y,
         (float)content_width,
@@ -233,8 +232,8 @@ frame(void)
     flint_clip_end();
 #else
     BeginDrawing();
-    ClearBackground(theme_get_bg());
-    app_update_draw(&inbe_app, (Rectangle){
+    ClearBackground(BLACK);
+    inbe_app_update_draw(&inbe_app, (Rectangle){
         0,
         0,
         (float)width,
@@ -298,7 +297,7 @@ int main(int argc, char **argv) {
     }
 
     flint_dpi_init();
-    app_init(&inbe_app);
+    inbe_app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
 

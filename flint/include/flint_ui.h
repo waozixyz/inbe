@@ -232,6 +232,8 @@ typedef struct UITab {
     const char *label;
     Texture2D icon;
     UIIconType icon_type;
+    void (*on_click)(void *user_data);
+    void *user_data;
 } UITab;
 
 typedef struct UITabBar {
@@ -242,7 +244,7 @@ typedef struct UITabBar {
 int ui_nav_button_width(const char *label, int icon_size, int show_label, int font);
 int ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, const char *label, int show_label, int *hover);
 int ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, const char *label, int show_label, int *hover);
-int ui_draw_tab_bar(UITab *tabs, int count);
+void ui_draw_tab_bar(UITab *tabs, int count);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
 int ui_draw_modal(const char *title, const char *message, const char *cancel_btn, const char *confirm_btn);

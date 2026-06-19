@@ -4,7 +4,7 @@
 #include "app_settings.h"
 #include "device_preferences.h"
 #include "language_screen.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "theme.h"
 #include "flint_ui.h"
 

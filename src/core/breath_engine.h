@@ -32,7 +32,6 @@ enum {
 enum {
 	InbeScreenStart = 0,
 	InbeScreenSession,
-    InbeScreenPracticeSession = InbeScreenSession,
     InbeScreenMeditation,
 	InbeScreenResults,
 	InbeScreenSettings,
@@ -92,10 +91,10 @@ struct Inbe {
 
 void inbeinit(Inbe *l);
 void inbestep(Inbe *l);
-float draw_radius(const Inbe *l);
+float inbe_draw_radius(const Inbe *l);
 void inccount(char v[CountSize]);
 void cpcount(char dst[CountSize], const char src[CountSize]);
-int breath_half_ticks_for_speed(int speed);
-int get_play_in_background(Inbe *inbe);
+int inbe_breath_half_ticks_for_speed(int speed);
+int inbe_get_play_in_background(Inbe *inbe);
 
 #endif

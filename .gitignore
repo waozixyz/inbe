@@ -12,7 +12,6 @@
 .cache/
 *.wasm
 build/
-vendor-builds/
 node_modules
 *.nix-defexpr
 *.npm

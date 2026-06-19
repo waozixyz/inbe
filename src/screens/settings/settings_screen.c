@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "app_settings.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "settings_data.h"
 #include "settings_device.h"
 #include "settings_theme.h"

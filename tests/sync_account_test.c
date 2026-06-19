@@ -31,11 +31,6 @@ TraceLog(int log_level, const char *text, ...)
     (void)text;
 }
 
-void
-sync_client_clear_auth_token(void)
-{
-}
-
 char *
 LoadFileText(const char *file_name)
 {
@@ -198,7 +193,7 @@ make_account_values(char public_id[65], char public_key_hex[2625],
     for(size_t i = 0; i < sizeof(private_key); i++)
         private_key[i] = (unsigned char)(i * 17U + 3U);
 
-    sync_sha256_hex(public_key, sizeof(public_key), public_id);
+    inbe_sync_sha256_hex(public_key, sizeof(public_key), public_id);
     bytes_to_hex_local(public_key, sizeof(public_key), public_key_hex, 2625);
     bytes_to_hex_local(private_key, sizeof(private_key), private_key_hex, 5121);
 }
@@ -214,7 +209,6 @@ test_import_export_clear(void)
     char private_key[5121];
     InbeSyncAccount account;
     char *exported;
-    FILE *file;
 
     make_clean_root(root, sizeof(root), "roundtrip");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -222,14 +216,14 @@ test_import_export_clear(void)
     make_account_values(public_id, public_key, private_key);
     write_key_file(key_path, public_id, public_key, private_key);
 
-    check_true("init storage", storage_init(root));
-    check_true("import key", sync_account_import_private_key(&account, key_path));
+    check_true("init storage", inbe_storage_init(root));
+    check_true("import key", inbe_sync_account_import_private_key(&account, key_path));
     check_str("import public id", account.public_id, public_id);
-    check_true("load imported key", sync_account_load(&account));
+    check_true("load imported key", inbe_sync_account_load(&account));
     check_str("load public key", account.public_key_hex, public_key);
     check_str("load private key", account.private_key_hex, private_key);
 
-    check_true("export key", sync_account_export_private_key(&account, export_path));
+    check_true("export key", inbe_sync_account_export_private_key(&account, export_path));
     exported = LoadFileText(export_path);
     check_true("read exported key", exported != NULL);
     if(exported != NULL) {
@@ -237,34 +231,12 @@ test_import_export_clear(void)
         UnloadFileText(exported);
     }
 
-    check_true("clear key", sync_account_clear());
-    check_false("load after clear", sync_account_load(&account));
-    check_true("import exported key", sync_account_import_private_key(&account, export_path));
+    check_true("clear key", inbe_sync_account_clear());
+    check_false("load after clear", inbe_sync_account_load(&account));
+    check_true("import exported key", inbe_sync_account_import_private_key(&account, export_path));
     check_str("reimport public id", account.public_id, public_id);
 
-    file = fopen(key_path, "wb");
-    check_true("open secret key alias file", file != NULL);
-    if(file != NULL) {
-        fprintf(file,
-                "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_key=%s\nsecret_key=%s\n",
-                public_key, private_key);
-        fclose(file);
-    }
-    check_true("import secret key alias", sync_account_import_private_key(&account, key_path));
-    check_str("derive public id", account.public_id, public_id);
-
-    file = fopen(key_path, "wb");
-    check_true("open exported key json file", file != NULL);
-    if(file != NULL) {
-        fprintf(file,
-                "{\"exported_key\":\"inbe-sync-key-v1\\nalgorithm=ML-DSA-44\\npublic_id=%s\\npublic_key=%s\\nprivate_key=%s\\n\"}\n",
-                public_id, public_key, private_key);
-        fclose(file);
-    }
-    check_true("import exported key json", sync_account_import_private_key(&account, key_path));
-    check_str("json public key", account.public_key_hex, public_key);
-
-    storage_close();
+    inbe_storage_close();
     remove_tree(root);
 }
 
@@ -283,12 +255,12 @@ test_reject_invalid_keys(void)
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
     make_account_values(public_id, public_key, private_key);
 
-    check_true("init invalid storage", storage_init(root));
+    check_true("init invalid storage", inbe_storage_init(root));
 
     public_id[0] = public_id[0] == '0' ? '1' : '0';
     write_key_file(key_path, public_id, public_key, private_key);
     check_false("reject mismatched public id",
-                sync_account_import_private_key(&account, key_path));
+                inbe_sync_account_import_private_key(&account, key_path));
 
     file = fopen(key_path, "wb");
     check_true("open missing public key file", file != NULL);
@@ -299,10 +271,10 @@ test_reject_invalid_keys(void)
         fclose(file);
     }
     check_false("reject missing public key",
-                sync_account_import_private_key(&account, key_path));
-    check_false("no account after rejected imports", sync_account_load(&account));
+                inbe_sync_account_import_private_key(&account, key_path));
+    check_false("no account after rejected imports", inbe_sync_account_load(&account));
 
-    storage_close();
+    inbe_storage_close();
     remove_tree(root);
 }
 

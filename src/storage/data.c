@@ -93,7 +93,7 @@ data_init(void)
 {
     if(g_data_ready)
         return;
-    g_data_ready = storage_init(data_root());
+    g_data_ready = inbe_storage_init(data_root());
 }
 
 const char *
@@ -113,7 +113,7 @@ int
 data_save_session_path(const int *round_times, int round_count, char *out_path, size_t out_path_size)
 {
     data_init();
-    return storage_save_session(round_times, round_count, out_path, out_path_size);
+    return inbe_storage_save_session(round_times, round_count, out_path, out_path_size);
 }
 
 int
@@ -122,7 +122,7 @@ data_save_session_path_for_activity(const int *round_times, int round_count,
                                     char *out_path, size_t out_path_size)
 {
     data_init();
-    return storage_save_session_for_activity(round_times, round_count, topic, activity,
+    return inbe_storage_save_session_for_activity(round_times, round_count, topic, activity,
                                                   out_path, out_path_size);
 }
 
@@ -136,7 +136,7 @@ int
 data_replace_session(const char *path, const int *round_times, int round_count)
 {
     data_init();
-    return storage_replace_session(path, round_times, round_count);
+    return inbe_storage_replace_session(path, round_times, round_count);
 }
 
 int
@@ -152,42 +152,42 @@ data_rename_session(const char *old_path, const char *new_path)
     if(name == NULL || sscanf(name, "inbe-%2d%2d%2d", &hour, &minute, &second) != 3)
         return 0;
     (void)second;
-    return storage_rename_session_time(old_path, hour, minute);
+    return inbe_storage_rename_session_time(old_path, hour, minute);
 }
 
 int
 data_delete_session(const char *path)
 {
     data_init();
-    return storage_delete_session(path);
+    return inbe_storage_delete_session(path);
 }
 
 int
 data_has_any(void)
 {
     data_init();
-    return storage_has_any();
+    return inbe_storage_has_any();
 }
 
 long long
 data_get_total_size(void)
 {
     data_init();
-    return storage_total_size();
+    return inbe_storage_total_size();
 }
 
 int
 data_get_session_count(void)
 {
     data_init();
-    return storage_session_count();
+    return inbe_storage_session_count();
 }
 
 long long
 data_delete_all(void)
 {
     data_init();
-    return storage_delete_all_sessions();
+    return inbe_storage_delete_all_sessions();
 }
 
 void
@@ -216,7 +216,7 @@ data_export(const char *path)
     data_default_export_filename(filename, sizeof(filename));
     return android_share_export(filename);
 #else
-    return storage_export_zip(path);
+    return inbe_storage_export_zip(path);
 #endif
 }
 
@@ -243,7 +243,7 @@ int
 data_import_with_mode(const char *path, DataImportMode mode)
 {
     data_init();
-    return storage_import_zip_ex(
+    return inbe_storage_import_zip_ex(
         path,
         mode == DATA_IMPORT_DATA_AND_SETTINGS
             ? INBE_STORAGE_IMPORT_DATA_AND_SETTINGS
@@ -258,7 +258,7 @@ data_inspect_import(const char *path, DataImportInfo *info)
     data_init();
     if(info != NULL)
         memset(info, 0, sizeof(*info));
-    if(!storage_inspect_import(path, &storage_info))
+    if(!inbe_storage_inspect_import(path, &storage_info))
         return 0;
     if(info != NULL) {
         info->valid = storage_info.valid;
@@ -314,7 +314,7 @@ data_list_session_records(data_session_record_callback callback, void *user)
 {
     data_init();
     if(callback != NULL)
-        storage_list_session_records((InbeStorageSessionRecordCallback)callback, user);
+        inbe_storage_list_session_records((InbeStorageSessionRecordCallback)callback, user);
 }
 
 int
@@ -323,6 +323,6 @@ data_load_session(const char *path, int *round_times, int max_rounds,
                   int *hour, int *minute, int *second)
 {
     data_init();
-    return storage_load_session(path, round_times, max_rounds,
+    return inbe_storage_load_session(path, round_times, max_rounds,
                                      year, month, day, hour, minute, second);
 }
