@@ -216,6 +216,8 @@ int ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
 int ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
                          const char *off_label, const char *on_label);
 int ui_draw_checkbox_toggle(int x, int y, const char *label, int *value);
+int ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
+                                     int *value, int disabled);
 int ui_draw_dropdown_button(int id, int x, int y, int w, int h, const char **options, int option_count, int *selected_index);
 int ui_draw_dropdown_menu(int id);
 int ui_dropdown_captures_click(Vector2 point);

@@ -1696,35 +1696,53 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
 }
 
 int
-ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
+ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
+                                int *value, int disabled)
 {
     int font = flint_ui_font();
     int box_size = flint_px(22);
     int hover = 0;
     Rectangle bounds = {x, y, box_size, box_size};
     Vector2 mouse_world = ui_mouse_world();
+    Color box_color = disabled ? flint_darken(c_button, 18) : c_button;
+    Color mark_color = disabled ? flint_darken(c_text, 35) : c_text;
+    Color label_color = disabled ? flint_darken(c_text, 35) : c_text;
 
     if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
-        hover = 1;
-        ui_mark_clickable();
+        if(disabled)
+            ui_mark_disabled();
+        else {
+            hover = 1;
+            ui_mark_clickable();
+        }
     }
 
     int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
-    DrawRectangle(x, y, box_size, box_size, c_button);
+    DrawRectangle(x, y, box_size, box_size, box_color);
     ui_draw_bevel(x, y, box_size, box_size, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
     if(*value) {
         int padding = flint_px(4);
-        DrawLine(x + padding, y + padding, x + box_size / 2, y + box_size - padding, c_text);
-        DrawLine(x + box_size / 2, y + box_size - padding, x + box_size - padding, y + padding, c_text);
+        DrawLine(x + padding, y + padding, x + box_size / 2,
+                 y + box_size - padding, mark_color);
+        DrawLine(x + box_size / 2, y + box_size - padding,
+                 x + box_size - padding, y + padding, mark_color);
     }
 
-    flint_text_draw(label, x + box_size + flint_px(10), flint_ui_text_y(label, y, box_size, font), font, c_text);
+    flint_text_draw(label, x + box_size + flint_px(10),
+                    flint_ui_text_y(label, y, box_size, font),
+                    font, label_color);
 
     return pressed;
+}
+
+int
+ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
+{
+    return ui_draw_checkbox_toggle_disabled(x, y, label, value, 0);
 }
 
 /* Per-dropdown state to track open/closed and click handling */
