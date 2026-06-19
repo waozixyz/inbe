@@ -61,6 +61,7 @@ typedef enum {
     UIModalEditProgressiveStartSpeed,
     UIModalMeditationNetworkError,
     UIModalConfirmImportDataSettings,
+    UIModalSyncAccountBackup,
 } UIModalType;
 
 typedef struct {

@@ -35,7 +35,7 @@ typedef struct StorageState {
     char root[INBE_STORAGE_PATH_SIZE];
     char db_path[INBE_STORAGE_PATH_SIZE];
     char user_id[INBE_STORAGE_ID_SIZE];
-    char text_value[256];
+    char text_value[8192];
 } StorageState;
 
 static StorageState g_storage;

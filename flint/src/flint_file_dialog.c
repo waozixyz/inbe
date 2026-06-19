@@ -313,7 +313,7 @@ static void render_file_list(FlintFileDialog *dlg, Rectangle dialog_rect) {
     int list_x = dialog_rect.x + flint_px(16);
     int scrollbar_w = flint_px(12);
     int list_width = dialog_rect.width - flint_px(32);
-    int bottom_y = dialog_rect.y + internal->dialog_height - flint_px(72);
+    int bottom_y = dialog_rect.y + internal->dialog_height - flint_px(112);
     int list_height = bottom_y - list_y;
     if(list_height < FILE_DIALOG_ITEM_HEIGHT)
         list_height = FILE_DIALOG_ITEM_HEIGHT;
@@ -408,12 +408,11 @@ static void render_scrollbar(FlintFileDialog *dlg, Rectangle dialog_rect) {
 static void render_filename_input(FlintFileDialog *dlg, Rectangle dialog_rect) {
     FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
 
-    int input_y = dialog_rect.y + internal->dialog_height - flint_px(58);
+    int input_y = dialog_rect.y + internal->dialog_height - flint_px(96);
     int input_x = dialog_rect.x + flint_px(16);
     int font = flint_ui_font_small();
     int label_width = flint_text_measure("Filename:", font) + flint_px(8);
-    int button_area_width = flint_px(176);
-    int input_width = dialog_rect.width - flint_px(32) - label_width - button_area_width;
+    int input_width = dialog_rect.width - flint_px(32) - label_width;
     int input_height = flint_px(24);
     if(input_width < flint_px(24))
         input_width = flint_px(24);

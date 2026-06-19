@@ -17,6 +17,93 @@
 
 extern struct android_app *GetAndroidApp(void);
 
+static jclass
+android_share_helper_class(JNIEnv *env, jobject activity)
+{
+    jclass activity_class;
+    jmethodID get_class_loader;
+    jobject class_loader;
+    jclass class_loader_class;
+    jmethodID load_class;
+    jstring class_name;
+    jclass share_helper_class;
+
+    activity_class = (*env)->FindClass(env, "android/app/Activity");
+    if(!activity_class)
+        return NULL;
+    get_class_loader = (*env)->GetMethodID(env, activity_class, "getClassLoader",
+                                           "()Ljava/lang/ClassLoader;");
+    if(!get_class_loader)
+        return NULL;
+    class_loader = (*env)->CallObjectMethod(env, activity, get_class_loader);
+    if(!class_loader)
+        return NULL;
+    class_loader_class = (*env)->FindClass(env, "java/lang/ClassLoader");
+    if(!class_loader_class)
+        return NULL;
+    load_class = (*env)->GetMethodID(env, class_loader_class, "loadClass",
+                                     "(Ljava/lang/String;)Ljava/lang/Class;");
+    if(!load_class)
+        return NULL;
+    class_name = (*env)->NewStringUTF(env, "xyz.waozi.inbe.ShareHelper");
+    share_helper_class = (jclass)(*env)->CallObjectMethod(env, class_loader, load_class, class_name);
+    (*env)->DeleteLocalRef(env, class_name);
+    (*env)->DeleteLocalRef(env, class_loader);
+    return share_helper_class;
+}
+
+int
+android_share_bytes(const unsigned char *data, size_t data_size, const char *filename,
+                    const char *mime_type)
+{
+    struct android_app *app = GetAndroidApp();
+    ANativeActivity *native_activity;
+    JavaVM *jvm;
+    JNIEnv *env = NULL;
+    jclass share_helper_class;
+    jmethodID method;
+    jbyteArray jarr;
+    jstring jname;
+    jstring jmime;
+    jstring jtitle;
+
+    if(app == NULL || app->activity == NULL || data == NULL || data_size == 0 ||
+       filename == NULL || filename[0] == '\0')
+        return 0;
+
+    native_activity = app->activity;
+    jvm = native_activity->vm;
+    if((*jvm)->AttachCurrentThread(jvm, &env, NULL) != JNI_OK)
+        return 0;
+
+    share_helper_class = android_share_helper_class(env, native_activity->clazz);
+    if(!share_helper_class) {
+        (*jvm)->DetachCurrentThread(jvm);
+        return 0;
+    }
+    method = (*env)->GetStaticMethodID(env, share_helper_class, "shareFile",
+                                       "(Landroid/app/Activity;[BLjava/lang/String;Ljava/lang/String;Ljava/lang/String;)V");
+    if(!method) {
+        (*jvm)->DetachCurrentThread(jvm);
+        return 0;
+    }
+
+    jarr = (*env)->NewByteArray(env, data_size);
+    (*env)->SetByteArrayRegion(env, jarr, 0, data_size, (const jbyte *)data);
+    jname = (*env)->NewStringUTF(env, filename);
+    jmime = (*env)->NewStringUTF(env, mime_type != NULL ? mime_type : "application/octet-stream");
+    jtitle = (*env)->NewStringUTF(env, locale_get("share_sheet_title"));
+    (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz,
+                                 jarr, jname, jmime, jtitle);
+
+    (*env)->DeleteLocalRef(env, jarr);
+    (*env)->DeleteLocalRef(env, jname);
+    (*env)->DeleteLocalRef(env, jmime);
+    (*env)->DeleteLocalRef(env, jtitle);
+    (*jvm)->DetachCurrentThread(jvm);
+    return 1;
+}
+
 int android_share_export(const char *filename)
 {
     struct android_app *app;
@@ -161,6 +248,14 @@ int android_share_export(const char *filename)
 #else
 int android_share_export(const char *filename) {
     (void)filename;
+    return 0;
+}
+int android_share_bytes(const unsigned char *data, size_t data_size, const char *filename,
+                        const char *mime_type) {
+    (void)data;
+    (void)data_size;
+    (void)filename;
+    (void)mime_type;
     return 0;
 }
 #endif
