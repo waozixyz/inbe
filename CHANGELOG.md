@@ -1,4 +1,8 @@
 # Changelog
+## [1.4.1] - 2026-06-19
+### Changed
+- Improve account management
+
 ## [1.4.0] - 2026-06-19
 ### Added
 - optional sync client, offline account creation
