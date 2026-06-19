@@ -55,27 +55,8 @@ static void
 sync_web_storage(void)
 {
     EM_ASM({
-        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
-            if(Module.inbeSyncfsTimer)
-                clearTimeout(Module.inbeSyncfsTimer);
-            Module.__inbeStorageSyncPending = true;
-            Module.inbeSyncfsTimer = setTimeout(function() {
-                Module.inbeSyncfsTimer = 0;
-                Module.__inbeStorageSyncing = true;
-                try {
-                    FS.syncfs(false, function(err) {
-                        Module.__inbeStorageSyncing = false;
-                        Module.__inbeStorageSyncPending = false;
-                        if(err) console.error("IDBFS save failed:", err);
-                        else console.log("IDBFS synced");
-                    });
-                } catch(e) {
-                    Module.__inbeStorageSyncing = false;
-                    Module.__inbeStorageSyncPending = false;
-                    console.error("IDBFS sync error:", e);
-                }
-            }, 250);
-        }
+        if(typeof Module.__inbeScheduleStorageSync === 'function')
+            Module.__inbeScheduleStorageSync(250, true);
     });
 }
 #endif

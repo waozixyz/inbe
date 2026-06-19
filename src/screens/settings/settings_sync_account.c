@@ -19,11 +19,18 @@
 #define INBE_SYNC_CONNECTED_URL_KEY "sync_connected_url"
 
 static SettingsSyncKeySaveDialog save_dialog_callback = NULL;
+static SettingsSyncKeyImportDialog import_dialog_callback = NULL;
 
 void
 settings_sync_account_set_save_dialog(SettingsSyncKeySaveDialog callback)
 {
     save_dialog_callback = callback;
+}
+
+void
+settings_sync_account_set_import_dialog(SettingsSyncKeyImportDialog callback)
+{
+    import_dialog_callback = callback;
 }
 
 static void
@@ -68,6 +75,14 @@ settings_start_sync_key_export(InbeApp *app, const InbeSyncAccount *account)
         return save_dialog_callback(app, filename);
     return inbe_sync_account_export_private_key(account, filename) ? 2 : 3;
 #endif
+}
+
+static int
+settings_start_sync_key_import(InbeApp *app)
+{
+    if(import_dialog_callback != NULL)
+        return import_dialog_callback(app);
+    return 0;
 }
 
 static int
@@ -168,6 +183,34 @@ settings_sync_run_connect(InbeApp *app)
     }
 }
 
+void
+settings_sync_account_delete_confirmed(InbeApp *app)
+{
+    InbeSyncAccount account;
+    InbeSyncClientResult result;
+    char url[sizeof(app->sync_server_url)];
+
+    if(app == NULL)
+        return;
+    if(!inbe_sync_account_load(&account)) {
+        settings_screen_set_status_error(locale_get("sync_no_account"));
+        return;
+    }
+
+    if(settings_sync_server_normalize(app, url, sizeof(url))) {
+        result = inbe_sync_client_delete_account(url);
+        if(result != INBE_SYNC_CLIENT_OK)
+            TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result);
+    } else {
+        TraceLog(LOG_WARNING, "SYNC: remote account delete skipped due to invalid URL");
+    }
+
+    inbe_sync_account_clear();
+    inbe_storage_set_setting_int(INBE_SYNC_ENABLED_KEY, 0);
+    inbe_storage_set_setting_text(INBE_SYNC_CONNECTED_URL_KEY, "");
+    settings_screen_set_status_success(locale_get("sync_account_deleted"), NULL);
+}
+
 static FlintUITextInputStyle
 settings_sync_text_style(void)
 {
@@ -263,9 +306,10 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
 
     if(!has_account) {
-        if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
+        if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(inbe_sync_account_create(&account)) {
+                has_account = 1;
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
                 app->modal.active = 1;
                 app->modal.type = UIModalSyncAccountBackup;
@@ -274,7 +318,18 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
                 settings_screen_set_status_error(locale_get("sync_account_create_failed"));
             }
         }
+        if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
+                                  locale_get("sync_import_key_button"),
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+            if(!settings_start_sync_key_import(app))
+                settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+        }
         *y += btn_h + flint_px(18);
+    }
+
+    if(!has_account) {
+        settings_screen_draw_status_reserved(x, y, flint_px(42));
+        (void)font;
         return;
     }
 
@@ -321,6 +376,14 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
                               UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         app->modal.active = 1;
         app->modal.type = UIModalSyncAccountBackup;
+        app->modal.selected_button = 0;
+    }
+    *y += btn_h + flint_px(12);
+
+    if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_delete_account_button"),
+                              UI_BUTTON_STYLE_DANGER, 0, &hover)) {
+        app->modal.active = 1;
+        app->modal.type = UIModalConfirmDeleteSyncAccount;
         app->modal.selected_button = 0;
     }
     *y += btn_h + flint_px(12);

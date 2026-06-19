@@ -179,27 +179,8 @@ storage_schedule_persist(void)
 {
 #if defined(__EMSCRIPTEN__)
     EM_ASM({
-        if(typeof FS === 'undefined' || typeof FS.syncfs !== 'function')
-            return;
-        Module.__inbeStorageSyncPending = true;
-        if(Module.__inbeStorageSyncTimer)
-            clearTimeout(Module.__inbeStorageSyncTimer);
-        Module.__inbeStorageSyncTimer = setTimeout(function() {
-            Module.__inbeStorageSyncTimer = 0;
-            Module.__inbeStorageSyncing = true;
-            try {
-                FS.syncfs(false, function(err) {
-                    Module.__inbeStorageSyncing = false;
-                    Module.__inbeStorageSyncPending = false;
-                    if(err)
-                        console.error("IDBFS save failed:", err);
-                });
-            } catch(e) {
-                Module.__inbeStorageSyncing = false;
-                Module.__inbeStorageSyncPending = false;
-                console.error("IDBFS sync error:", e);
-            }
-        }, 120);
+        if(typeof Module.__inbeScheduleStorageSync === 'function')
+            Module.__inbeScheduleStorageSync(120, false);
     });
 #endif
 }

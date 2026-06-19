@@ -16,6 +16,10 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
+
 /* External declarations from app.c */
 extern int view_width;
 extern int view_height;
@@ -64,6 +68,39 @@ habit_counting_enabled(const InbeHabit *habit)
 }
 
 static int
+habit_web_context_click_in_bounds(InbeApp *app, Rectangle bounds)
+{
+#if defined(PLATFORM_WEB)
+    Vector2 top_left;
+    Vector2 bottom_right;
+
+    if(app == NULL)
+        return 0;
+    top_left = GetWorldToScreen2D((Vector2){bounds.x, bounds.y}, app->camera);
+    bottom_right = GetWorldToScreen2D((Vector2){bounds.x + bounds.width,
+                                                bounds.y + bounds.height}, app->camera);
+    return EM_ASM_INT({
+        const click = Module.__inbeContextClick;
+        if(!click)
+            return 0;
+        if(Date.now() - click.time > 750) {
+            Module.__inbeContextClick = null;
+            return 0;
+        }
+        if(click.x >= $0 && click.x <= $2 && click.y >= $1 && click.y <= $3) {
+            Module.__inbeContextClick = null;
+            return 1;
+        }
+        return 0;
+    }, (int)top_left.x, (int)top_left.y, (int)bottom_right.x, (int)bottom_right.y);
+#else
+    (void)app;
+    (void)bounds;
+    return 0;
+#endif
+}
+
+static int
 habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
                          int x, int y, int w, int h, int disabled,
                          int allow_left_increment)
@@ -76,7 +113,8 @@ habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
 
     if(disabled)
         return 0;
-    if(inside && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT))
+    if((inside && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) ||
+       habit_web_context_click_in_bounds(app, bounds))
         return -1;
 
     if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside) {
