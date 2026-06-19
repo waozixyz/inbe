@@ -397,21 +397,20 @@ Nunca la use mientras conduce,
 de pie o en el agua.
 ---
 [tutorial_step_method]
-Simplemente siga 4 pasos:
+Simply follow 3 steps:
 
-1. Respire rítmicamente.
-2. Exhale y retenga.
-3. Inhale profundamente y retenga.
-4. Exhale y repita.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-Use el icono de llave %i para ajustar rondas, respiraciones, velocidad y pausas.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-Llene sus pulmones completamente, luego deje que el respiración fluya hacia afuera.
+Breathe in and out 30 times.
 
-Use este control deslizante para establecer el ritmo del círculo de respiración.
-
-Encuentre un ritmo que se sienta natural para usted.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 La velocidad progresiva hace que la primera ronda sea más fácil de empezar.
@@ -419,17 +418,14 @@ La velocidad progresiva hace que la primera ronda sea más fácil de empezar.
 Cuando está activada, la primera ronda comienza en velocidad 1 durante las primeras 5 respiraciones y luego aumenta gradualmente hasta la velocidad elegida.
 ---
 [tutorial_step_exhale_hold]
-Después de la ronda de respiración,
-exhale normalmente y retenga.
+After 30 breaths, exhale and hold as long as you can.
 
-Suelte cuando su cuerpo pida
-aire. No lo fuerce.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
- Inhale completamente y retenga unos 15 segundos.
+Inhale fully and hold for 15 seconds.
 
-Luego exhale y comience la siguiente ronda.
-Con el tiempo, cada ronda puede sentirse más profunda.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 OMITIR

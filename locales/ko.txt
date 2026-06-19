@@ -412,21 +412,20 @@ In / Out
 운전 중, 서 있거나 물속에서는 사용하지 마세요.
 ---
 [tutorial_step_method]
-다음 4단계를 따르세요:
+Simply follow 3 steps:
 
-1. 리듬적으로 호흡합니다.
-2. 내뱉고 참습니다.
-3. 깊게 들이마시고 참습니다.
-4. 내뱉고 반복합니다.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-톱니바퀴 아이콘 %i을 사용하여 라운드, 호흡, 속도 및 일시정지를 조정할 수 있습니다.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-폐를 완전히 채운 후 자연스럽게 내뱉으세요.
+Breathe in and out 30 times.
 
-이 슬라이더로 호흡 원의 속도를 설정합니다.
-
-자연스러운 리듬을 찾아보세요.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 점진적 속도는 첫 라운드를 쉽게 시작할 수 있게 해줍니다.
@@ -434,17 +433,14 @@ In / Out
 켜면 첫 라운드가 느리게 시작된 후 점차 선택한 속도까지 증가합니다.
 ---
 [tutorial_step_exhale_hold]
-자연스럽게 내뱉고 참습니다.
+After 30 breaths, exhale and hold as long as you can.
 
-중앙 숫자가 계속 카운트됩니다. 원형 모드는 여러 진행 막대를 표시합니다.
-
-몸이 공기를 필요로 할 때 놓으세요.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-완전히 들이마시고 약 15초간 참으세요.
+Inhale fully and hold for 15 seconds.
 
-그 후 내뱉고 다음 라운드를 시작하세요.
-시간이 지날수록 각 라운드가 더 깊어질 수 있습니다.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 건너뛰기

@@ -111,6 +111,7 @@ add_library(main SHARED
     "${SRC_DIR}/storage/data.c"
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/sync_account.c"
+    "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"

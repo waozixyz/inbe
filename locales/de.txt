@@ -397,21 +397,20 @@ Benutzen Sie sie niemals beim Fahren,
 Stehen oder im Wasser.
 ---
 [tutorial_step_method]
-Folgen Sie einfach 4 Schritten:
+Simply follow 3 steps:
 
-1. Atmen Sie rhythmisch.
-2. Atmen Sie aus und halten Sie.
-3. Atmen Sie tief ein und halten Sie.
-4. Atmen Sie aus und wiederholen Sie.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-Nutzen Sie das Schraubenschlüssel-Symbol %i, um Runden, Atemzüge, Geschwindigkeit und Pausen anzupassen.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-Füllen Sie Ihre Lungen vollständig, dann lassen Sie den Atem herausfließen.
+Breathe in and out 30 times.
 
-Nutzen Sie diesen Schieberegler, um das Tempo des Atemkreises einzustellen.
-
-Finden Sie einen Rhythmus, der sich natürlich für Sie anfühlt.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 Progressive Geschwindigkeit macht den Einstieg in die erste Runde leichter.
@@ -419,17 +418,14 @@ Progressive Geschwindigkeit macht den Einstieg in die erste Runde leichter.
 Wenn sie aktiviert ist, beginnt die erste Runde bei Geschwindigkeit 1 für die ersten 5 Atemzüge und steigt dann schrittweise auf Ihre gewählte Geschwindigkeit.
 ---
 [tutorial_step_exhale_hold]
-Nach der Atemrunde,
-atmen Sie normal aus und halten Sie.
+After 30 breaths, exhale and hold as long as you can.
 
-Lassen Sie los, wenn Ihr Körper
-nach Luft verlangt. Zwängen Sie es nicht.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-Atmen Sie vollständig ein und halten Sie etwa 15 Sekunden.
+Inhale fully and hold for 15 seconds.
 
-Dann atmen Sie aus und beginnen die nächste Runde.
-Mit der Zeit kann sich jede Runde tiefer anfühlen.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 SKIP

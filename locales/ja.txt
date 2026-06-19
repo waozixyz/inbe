@@ -399,31 +399,33 @@ ON
 立っているとき、水中では行わないでください。
 ---
 [tutorial_step_method]
-次の 4 つの手順に従います。
+Simply follow 3 steps:
 
-1. リズミカルに呼吸します。
-2. 吐いて止めます。
-3. 深く吸って止めます。
-4. 吐いて繰り返します。
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-歯車アイコン %i でラウンド数、呼吸数、速度、一時停止を調整できます。
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-肺をいっぱいに満たしてから、息を自然に吐き出します。
+Breathe in and out 30 times.
 
-このスライダーで呼吸のテンポを設定します。
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 段階的速度は、最初のラウンドに入りやすくします。
 ---
 [tutorial_step_exhale_hold]
-呼吸ラウンドの後、
-息を吐いて止めます。
+After 30 breaths, exhale and hold as long as you can.
 
-吸う必要を感じるまで止めます。
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-深く吸って、約 15 秒止めます。
+Inhale fully and hold for 15 seconds.
+
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 スキップ
