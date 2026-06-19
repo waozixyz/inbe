@@ -10,6 +10,10 @@ set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
 set(SQLITE_AMALGAMATION_H "${SQLITE_BUILD_DIR}/sqlite3.h")
 set(NATIVE_APP_GLUE_DIR "${ANDROID_NDK}/sources/android/native_app_glue")
+set(OQS_BUILD_ONLY_LIB ON CACHE BOOL "" FORCE)
+set(OQS_USE_OPENSSL OFF CACHE BOOL "" FORCE)
+set(OQS_MINIMAL_BUILD "SIG_ml_dsa_44" CACHE STRING "" FORCE)
+add_subdirectory("${REPO_ROOT}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
@@ -106,6 +110,7 @@ add_library(main SHARED
     "${SRC_DIR}/core/theme.c"
     "${SRC_DIR}/storage/data.c"
     "${SRC_DIR}/storage/storage.c"
+    "${SRC_DIR}/storage/sync_account.c"
     "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"
@@ -116,6 +121,10 @@ add_library(main SHARED
     "${SRC_DIR}/screens/language_screen.c"
     "${SRC_DIR}/screens/manual_screen.c"
     "${SRC_DIR}/screens/settings/settings_screen.c"
+    "${SRC_DIR}/screens/settings/settings_device.c"
+    "${SRC_DIR}/screens/settings/settings_theme.c"
+    "${SRC_DIR}/screens/settings/settings_data.c"
+    "${SRC_DIR}/screens/settings/settings_sync_account.c"
     "${INBE_EMBEDDED_ASSETS_C}"
     ${FLINT_SOURCES}
     "${SRC_DIR}/platform/android/android_insets.c"
@@ -153,6 +162,7 @@ target_compile_definitions(main PRIVATE
     SUPPORT_MODULE_RAUDIO=1
     SUPPORT_FILEFORMAT_OGG=1
     FLINT_EMBEDDED_ONLY=1
+    INBE_HAS_LIBOQS=1
 )
 
 target_compile_options(main PRIVATE
@@ -170,6 +180,7 @@ target_link_options(main PRIVATE
 
 target_link_libraries(main
     raylib
+    oqs
     android
     log
     OpenSLES

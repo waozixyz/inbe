@@ -69,6 +69,10 @@ SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
 SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
+LIBOQS_DIR := vendor/liboqs
+LIBOQS_BUILD_DIR := $(BUILD_OBJ_DIR)/liboqs/linux/$(ARCH)
+LIBOQS_A := $(LIBOQS_BUILD_DIR)/lib/liboqs.a
+LIBOQS_INCLUDE := -I$(LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 FLINT_TEXT_SCALING_TEST := $(TEST_BIN_DIR)/flint_text_scaling_test
@@ -97,12 +101,17 @@ APP_SRCS := \
 	src/core/theme.c \
 	src/storage/data.c \
 	src/storage/storage.c \
+	src/storage/sync_account.c \
 	src/third_party/miniz.c \
 	src/platform/android/android_device.c \
 	src/screens/practice_screen.c \
 	src/screens/language_screen.c \
 	src/screens/manual_screen.c \
-	src/screens/settings/settings_screen.c
+	src/screens/settings/settings_screen.c \
+	src/screens/settings/settings_device.c \
+	src/screens/settings/settings_theme.c \
+	src/screens/settings/settings_data.c \
+	src/screens/settings/settings_sync_account.c
 
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg
@@ -303,13 +312,24 @@ $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H): $(SQLITE_DIR)/configure $(SQL
 	cd $(SQLITE_BUILD_DIR) && ../../../$(SQLITE_DIR)/configure
 	$(MAKE) -C $(SQLITE_BUILD_DIR) sqlite3.c sqlite3.h
 
-$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) | $(LINUX_BIN_DIR)
+$(LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
+	cmake -S $(LIBOQS_DIR) -B $(LIBOQS_BUILD_DIR) \
+		-DCMAKE_BUILD_TYPE=MinSizeRel \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DOQS_BUILD_ONLY_LIB=ON \
+		-DOQS_USE_OPENSSL=OFF \
+		-DOQS_MINIMAL_BUILD=SIG_ml_dsa_44
+	cmake --build $(LIBOQS_BUILD_DIR) --target oqs
+
+$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		$(LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
 		$(RAY_CFLAGS) \
+		-DINBE_HAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=1 \
@@ -318,6 +338,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		$(FLINT_SRCS) \
 		$(SQLITE_SRC) \
 		$(RAYLIB_A) \
+		$(LIBOQS_A) \
 		$(RAY_LDLIBS) \
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
 		-lm -lpthread -ldl -lrt \

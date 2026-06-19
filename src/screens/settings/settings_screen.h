@@ -9,5 +9,6 @@ int settings_screen_draw(InbeApp *app);
 void settings_screen_clear_status(void);
 void settings_screen_set_status_success(const char *message, const char *detail);
 void settings_screen_set_status_error(const char *message);
+void settings_screen_draw_status_reserved(int x, int *y, int reserved_h);
 
 #endif
