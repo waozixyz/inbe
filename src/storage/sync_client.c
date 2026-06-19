@@ -23,7 +23,6 @@ extern struct android_app *GetAndroidApp(void);
 #endif
 
 #define INBE_SYNC_PATH "/api/v1/sync"
-#define INBE_DELETE_PATH "/api/v1/account"
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
 
 typedef struct SyncBuffer {
@@ -33,14 +32,110 @@ typedef struct SyncBuffer {
 } SyncBuffer;
 
 static int
-sync_url_valid(const char *url)
+sync_has_prefix(const char *text, const char *prefix)
 {
-    return url != NULL &&
-           (strncmp(url, "https://", 8) == 0 ||
-            strncmp(url, "http://127.0.0.1", 16) == 0 ||
-            strncmp(url, "http://localhost", 16) == 0 ||
-            strncmp(url, "http://10.0.2.2", 15) == 0);
+    return text != NULL && prefix != NULL &&
+           strncmp(text, prefix, strlen(prefix)) == 0;
 }
+
+static int
+sync_url_host_boundary(char ch)
+{
+    return ch == '\0' || ch == ':' || ch == '/' || ch == '?' || ch == '#';
+}
+
+static int
+sync_loopback_authority_valid(const char *authority)
+{
+    static const char *const hosts[] = {
+        "localhost",
+        "127.0.0.1",
+        "10.0.2.2"
+    };
+
+    if(authority == NULL || authority[0] == '\0')
+        return 0;
+    for(size_t i = 0; i < sizeof(hosts) / sizeof(hosts[0]); i++) {
+        size_t len = strlen(hosts[i]);
+        if(strncmp(authority, hosts[i], len) == 0 &&
+           sync_url_host_boundary(authority[len]))
+            return 1;
+    }
+    return 0;
+}
+
+int
+inbe_sync_client_url_valid(const char *url)
+{
+    if(url == NULL || url[0] == '\0')
+        return 0;
+    if(sync_has_prefix(url, "https://"))
+        return url[8] != '\0';
+    if(sync_has_prefix(url, "http://"))
+        return sync_loopback_authority_valid(url + 7);
+    return sync_loopback_authority_valid(url);
+}
+
+int
+inbe_sync_client_normalize_url(const char *input, char *out, size_t out_size)
+{
+    int len;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(!inbe_sync_client_url_valid(input))
+        return 0;
+    if(sync_has_prefix(input, "https://") || sync_has_prefix(input, "http://"))
+        len = snprintf(out, out_size, "%s", input);
+    else
+        len = snprintf(out, out_size, "http://%s", input);
+    return len > 0 && (size_t)len < out_size;
+}
+
+static int
+sync_buffer_append(SyncBuffer *buffer, const void *data, size_t bytes)
+{
+    char *next;
+    size_t next_cap;
+
+    if(buffer == NULL || data == NULL || bytes == 0)
+        return 1;
+    if(buffer->cap == 0 || bytes >= buffer->cap - buffer->len) {
+        next_cap = buffer->cap > 0 ? buffer->cap : 1024;
+        while(bytes >= next_cap - buffer->len)
+            next_cap *= 2;
+        next = (char *)realloc(buffer->data, next_cap);
+        if(next == NULL)
+            return 0;
+        buffer->data = next;
+        buffer->cap = next_cap;
+    }
+    memcpy(buffer->data + buffer->len, data, bytes);
+    buffer->len += bytes;
+    buffer->data[buffer->len] = '\0';
+    return 1;
+}
+
+#if defined(INBE_SYNC_CLIENT_TESTS)
+int
+inbe_sync_client_test_response_buffer(const char *first, const char *second,
+                                      char *out, size_t out_size)
+{
+    SyncBuffer buffer = {0};
+    int ok;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    ok = sync_buffer_append(&buffer, first, first != NULL ? strlen(first) : 0) &&
+         sync_buffer_append(&buffer, second, second != NULL ? strlen(second) : 0);
+    if(ok && buffer.data != NULL)
+        snprintf(out, out_size, "%s", buffer.data);
+    free(buffer.data);
+    return ok;
+}
+#endif
 
 static void
 sync_join_url(char *out, size_t out_size, const char *base_url, const char *path)
@@ -118,25 +213,10 @@ sync_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
     SyncBuffer *buffer = (SyncBuffer *)userdata;
     size_t bytes = size * nmemb;
-    char *next;
-    size_t next_cap;
 
     if(buffer == NULL || bytes == 0)
         return bytes;
-    if(bytes > buffer->cap - buffer->len - 1) {
-        next_cap = buffer->cap > 0 ? buffer->cap : 1024;
-        while(bytes > next_cap - buffer->len - 1)
-            next_cap *= 2;
-        next = (char *)realloc(buffer->data, next_cap);
-        if(next == NULL)
-            return 0;
-        buffer->data = next;
-        buffer->cap = next_cap;
-    }
-    memcpy(buffer->data + buffer->len, ptr, bytes);
-    buffer->len += bytes;
-    buffer->data[buffer->len] = '\0';
-    return bytes;
+    return sync_buffer_append(buffer, ptr, bytes) ? bytes : 0;
 }
 
 static int
@@ -373,7 +453,7 @@ inbe_sync_client_sync(const char *base_url)
     char *payload;
     InbeSyncClientResult result;
 
-    if(!sync_url_valid(base_url))
+    if(!inbe_sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
     if(!inbe_sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
@@ -383,25 +463,6 @@ inbe_sync_client_sync(const char *base_url)
     result = sync_send_signed(base_url, INBE_SYNC_PATH, "POST", account.public_id, payload);
     inbe_storage_free_sync_payload_json(payload);
     return result;
-#else
-    (void)base_url;
-    return INBE_SYNC_CLIENT_UNAVAILABLE;
-#endif
-}
-
-InbeSyncClientResult
-inbe_sync_client_delete_remote(const char *base_url)
-{
-#if defined(INBE_SYNC_CLIENT_HAS_HTTP)
-    InbeSyncAccount account;
-    char body[128];
-
-    if(!sync_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
-    if(!inbe_sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    snprintf(body, sizeof(body), "{\"user_id_hash\":\"%s\"}", account.public_id);
-    return sync_send_signed(base_url, INBE_DELETE_PATH, "DELETE", account.public_id, body);
 #else
     (void)base_url;
     return INBE_SYNC_CLIENT_UNAVAILABLE;

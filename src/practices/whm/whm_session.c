@@ -280,6 +280,7 @@ session_ensure_results_saved(InbeApp *app)
                                            app->results_path, sizeof(app->results_path))) {
         app->results_saved = 1;
         sync_habits_for_activity(app, app->exercise_type);
+        inbe_app_auto_sync(app);
         TraceLog(LOG_INFO, "INBE: session saved successfully");
         return 1;
     }

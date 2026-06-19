@@ -36,6 +36,7 @@ typedef enum InbeHabitSyncMode {
 typedef struct InbeHabitDay {
     int day_index;
     int completed;
+    int count;
 } InbeHabitDay;
 
 typedef struct InbeHabit {
@@ -44,6 +45,7 @@ typedef struct InbeHabit {
     Color color;
     int sync_mode;
     int sync_activity;
+    int counter_enabled;
     InbeHabitDay *days;
     int day_count;
     int day_capacity;
@@ -97,7 +99,10 @@ int inbe_habits_today_index(void);
 int inbe_habit_completed_day(const InbeHabit *habit, int day_index);
 int inbe_habit_completed_today(const InbeHabit *habit);
 void inbe_habit_set_day(InbeHabits *habits, int index, int day_index, int completed);
+void inbe_habit_set_day_count(InbeHabits *habits, int index, int day_index, int count);
+int inbe_habit_day_count(const InbeHabit *habit, int day_index);
 void inbe_habit_toggle_day(InbeHabits *habits, int index, int day_index);
+void inbe_habit_increment_day(InbeHabits *habits, int index, int day_index, int delta);
 void inbe_habit_toggle_today(InbeHabits *habits, int index);
 void inbe_habits_add_default(InbeHabits *habits);
 void inbe_habits_add_default_set(InbeHabits *habits);

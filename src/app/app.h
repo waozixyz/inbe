@@ -62,7 +62,6 @@ typedef enum {
     UIModalMeditationNetworkError,
     UIModalConfirmImportDataSettings,
     UIModalSyncAccountBackup,
-    UIModalConfirmRemoteDataDelete,
 } UIModalType;
 
 typedef struct {
@@ -219,6 +218,13 @@ struct InbeApp {
     Color habit_edit_color;
     int habit_edit_sync_mode;
     int habit_edit_sync_activity;
+    int habit_edit_counter_enabled;
+    int habit_counter_press_day;
+    int habit_counter_press_index;
+    int habit_counter_press_frames;
+    int habit_counter_press_long_done;
+    int habit_counter_press_start_x;
+    int habit_counter_press_start_y;
     int advanced_session_controls;
     int hold_display_mode;
     int exercise_type;
@@ -240,6 +246,7 @@ struct InbeApp {
 void inbe_app_init(void *app);
 void inbe_app_update_draw(void *app, Rectangle viewport);
 void inbe_app_destroy(void *app);
+int inbe_app_auto_sync(InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);

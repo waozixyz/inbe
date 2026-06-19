@@ -660,8 +660,8 @@ write_tickmate_database(const char *path)
                             "CREATE TABLE ticks(_id integer primary key autoincrement,"
                             "_track_id integer,year integer,month integer,day integer,"
                             "hour integer,minute integer,second integer,has_time_info integer DEFAULT 0);"
-                            "INSERT INTO tracks(_id,name,description,icon,enabled,color,\"order\") "
-                            "VALUES(1,'Meditation','Silenced my mind','',1,8925,0);"
+                            "INSERT INTO tracks(_id,name,description,icon,enabled,multiple_entries_per_day,color,\"order\") "
+                            "VALUES(1,'Meditation','Silenced my mind','',1,1,8925,0);"
                             "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
                             "VALUES(1,2026,0,1,0,0,0,0),"
                             "(1,2026,1,2,0,0,0,0),"
@@ -674,7 +674,9 @@ write_tickmate_database(const char *path)
                             "(1,2026,8,9,0,0,0,0),"
                             "(1,2026,9,10,0,0,0,0),"
                             "(1,2026,10,11,0,0,0,0),"
-                            "(1,2026,11,12,0,0,0,0);",
+                            "(1,2026,11,12,0,0,0,0),"
+                            "(1,2025,0,1,0,0,0,0),"
+                            "(1,2025,0,1,0,0,0,0);",
                             NULL, NULL, &error) == SQLITE_OK);
     if(error != NULL) {
         fprintf(stderr, "tickmate setup SQL error: %s\n", error);
@@ -742,6 +744,40 @@ test_tickmate_db_import(void)
     check_true("tickmate loads thousands of days",
                inbe_habit_completed_day(&habits.items[0], 20571108));
     check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
+    check_int("tickmate enables counter habit", habits.items[0].counter_enabled, 1);
+    check_int("tickmate imports count", inbe_habit_day_count(&habits.items[0], 20250101), 3);
+    inbe_storage_close();
+
+    remove_tree(source);
+    remove_tree(dest);
+}
+
+static void
+test_tickmate_reimport_recovers_counter_data(void)
+{
+    char source[512], dest[512], db_path[512];
+    InbeHabits habits;
+
+    make_clean_root(source, sizeof(source), "tickmate-reimport-source");
+    make_clean_root(dest, sizeof(dest), "tickmate-reimport-dest");
+    make_path(db_path, sizeof(db_path), source, "tickmate.db");
+    write_tickmate_database(db_path);
+
+    check_true("init tickmate reimport dest", inbe_storage_init(dest));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add old boolean meditation",
+              inbe_habits_add_custom(&habits, "Meditation",
+                                      (Color){99, 196, 165, 255},
+                                      INBE_HABIT_SYNC_NONE, 0),
+              0);
+    inbe_habit_set_day(&habits, 0, 20250101, 1);
+    check_true("tickmate reimport", inbe_storage_import_zip(db_path));
+    memset(&habits, 0, sizeof(habits));
+    check_true("tickmate reimport load", inbe_storage_habits_load(&habits));
+    check_int("tickmate reimport habit count", habits.count, 1);
+    check_int("tickmate reimport enables counter", habits.items[0].counter_enabled, 1);
+    check_int("tickmate reimport restores count",
+              inbe_habit_day_count(&habits.items[0], 20250101), 3);
     inbe_storage_close();
 
     remove_tree(source);
@@ -786,6 +822,7 @@ main(void)
     test_legacy_zip_import();
     test_legacy_file_startup_migration();
     test_tickmate_db_import();
+    test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_session_metadata();
 
