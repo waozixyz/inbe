@@ -26,11 +26,13 @@ import android.view.inputmethod.InputMethodManager;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
@@ -51,6 +53,7 @@ public class MainActivity extends NativeActivity {
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
     private boolean autoPausedForLifecycle = false;
+    private int lastDeleteRepeatCount = -1;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
@@ -149,18 +152,32 @@ public class MainActivity extends NativeActivity {
         if (event != null && event.getAction() == KeyEvent.ACTION_DOWN) {
             int keyCode = event.getKeyCode();
             if (keyCode == KeyEvent.KEYCODE_DEL) {
-                nativeTextInputBackspace();
+                int repeatCount = event.getRepeatCount();
+                int deleteCount = lastDeleteRepeatCount < 0
+                    ? 1
+                    : Math.max(1, repeatCount - lastDeleteRepeatCount);
+                lastDeleteRepeatCount = repeatCount;
+                for (int i = 0; i < deleteCount; i++) {
+                    nativeTextInputBackspace();
+                }
             } else if (keyCode == KeyEvent.KEYCODE_ENTER ||
                        keyCode == KeyEvent.KEYCODE_NUMPAD_ENTER) {
+                lastDeleteRepeatCount = -1;
                 nativeTextInputEnter();
             } else {
+                lastDeleteRepeatCount = -1;
                 int unicode = event.getUnicodeChar();
                 if (unicode >= 32) {
                     nativeTextInputCommit(unicode);
                 }
             }
+        } else if (event != null && event.getAction() == KeyEvent.ACTION_UP) {
+            if (event.getKeyCode() == KeyEvent.KEYCODE_DEL) {
+                lastDeleteRepeatCount = -1;
+            }
         } else if (event != null && event.getAction() == KeyEvent.ACTION_MULTIPLE &&
                    event.getCharacters() != null) {
+            lastDeleteRepeatCount = -1;
             String chars = event.getCharacters();
             for (int i = 0; i < chars.length();) {
                 int codepoint = chars.codePointAt(i);
@@ -266,6 +283,68 @@ public class MainActivity extends NativeActivity {
                 }
             }
         }, "inbe-runtime-asset-download").start();
+    }
+
+    public String syncHttpRequest(String method, String urlText, String body, String[] headers) {
+        HttpURLConnection connection = null;
+        int status = 0;
+
+        try {
+            byte[] bodyBytes = body != null ? body.getBytes(StandardCharsets.UTF_8) : new byte[0];
+            connection = (HttpURLConnection)new URL(urlText).openConnection();
+            connection.setInstanceFollowRedirects(false);
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(30000);
+            connection.setRequestMethod(method);
+            connection.setRequestProperty("User-Agent", "inbe-sync/1");
+            if (headers != null) {
+                for (String header : headers) {
+                    if (header == null) continue;
+                    int colon = header.indexOf(':');
+                    if (colon <= 0) continue;
+                    String key = header.substring(0, colon).trim();
+                    String value = header.substring(colon + 1).trim();
+                    if (!key.isEmpty()) {
+                        connection.setRequestProperty(key, value);
+                    }
+                }
+            }
+            if ("POST".equals(method) || "DELETE".equals(method)) {
+                connection.setDoOutput(true);
+                connection.setFixedLengthStreamingMode(bodyBytes.length);
+                try (OutputStream output = connection.getOutputStream()) {
+                    output.write(bodyBytes);
+                }
+            }
+
+            status = connection.getResponseCode();
+            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
+            String response = "";
+            if (stream != null) {
+                try (InputStream input = stream) {
+                    byte[] bytes = readAllBytesCompat(input);
+                    response = new String(bytes, StandardCharsets.UTF_8);
+                }
+            }
+            return status + "\n" + response;
+        } catch (Exception e) {
+            Log.e(TAG, "Sync HTTP request failed", e);
+            return status + "\n" + (e.getMessage() != null ? e.getMessage() : "request failed");
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
+        }
+    }
+
+    private static byte[] readAllBytesCompat(InputStream input) throws java.io.IOException {
+        byte[] buffer = new byte[8192];
+        int read;
+        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
+        while ((read = input.read(buffer)) != -1) {
+            output.write(buffer, 0, read);
+        }
+        return output.toByteArray();
     }
 
     public void openImportPicker() {

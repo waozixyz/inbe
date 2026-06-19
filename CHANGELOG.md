@@ -2,6 +2,7 @@
 ## [1.4.0] - 2026-06-19
 ### Added
 - optional sync client, offline account creation
+- simplify tutorial
 
 ## [1.3.6] - 2026-06-18
 ### Fixed

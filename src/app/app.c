@@ -849,10 +849,7 @@ updateapp(InbeApp *app)
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
 
-    if(IsKeyPressed(KEY_BACK) ||
-       (IsKeyPressed(KEY_BACKSPACE) &&
-        !(app->inbe.screen == InbeScreenHabitEdit && app->habit_edit_active) &&
-        !(app->inbe.screen == InbeScreenHabitSessionEdit && app->habit_session_edit_active))) {
+    if(IsKeyPressed(KEY_BACK)) {
         if(app->modal.active) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;

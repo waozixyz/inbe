@@ -413,21 +413,20 @@ Non usarla mai mentre guidi,
 in piedi o in acqua.
 ---
 [tutorial_step_method]
-Segui semplicemente 4 passi:
+Simply follow 3 steps:
 
-1. Respira ritmicamente.
-2. Espira e trattieni.
-3. Inspira profondamente e trattieni.
-4. Espira e ripeti.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-Usa l'icona ingranaggio %i per regolare round, respiri, velocità e pause.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-Riempi completamente i polmoni, poi lascia uscire il respiro.
+Breathe in and out 30 times.
 
-Usa questo slider per impostare il ritmo del cerchio respiratorio.
-
-Trova un ritmo che ti sembri naturale.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 La velocità progressiva rende il primo round più facile da affrontare.
@@ -435,17 +434,14 @@ La velocità progressiva rende il primo round più facile da affrontare.
 Quando è attiva, il primo round inizia più lentamente, poi aumenta gradualmente fino alla velocità selezionata.
 ---
 [tutorial_step_exhale_hold]
-Espira normalmente e trattieni.
+After 30 breaths, exhale and hold as long as you can.
 
-Il numero centrale continua a contare. La modalità cerchio aggiunge linee di progresso sovrapposte.
-
-Rilascia quando il corpo richiede aria.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-Inspira completamente e trattieni per circa 15 secondi.
+Inhale fully and hold for 15 seconds.
 
-Poi espira e inizia il prossimo round.
-Col tempo, ogni round potrebbe sembrare più profondo.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 SALTA

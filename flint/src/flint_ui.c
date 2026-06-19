@@ -50,6 +50,7 @@ static int g_ui_text_input_codepoints[UI_TEXT_INPUT_QUEUE_MAX];
 static int g_ui_text_input_codepoint_count = 0;
 static int g_ui_text_input_backspace_count = 0;
 static int g_ui_text_input_enter_count = 0;
+static double g_ui_backspace_next_repeat_at = 0.0;
 
 #define UI_INPUT_CLIP_STACK_MAX 16
 static Rectangle g_ui_input_clip_stack[UI_INPUT_CLIP_STACK_MAX];
@@ -86,6 +87,32 @@ ui_pointer_dx(void)
 {
     Vector2 mouse = GetMousePosition();
     return (int)mouse.x - g_ui_pointer_start_x;
+}
+
+static int
+ui_backspace_repeat_count(void)
+{
+    double now;
+    int count = 0;
+
+    if(IsKeyPressed(KEY_BACKSPACE)) {
+        g_ui_backspace_next_repeat_at = GetTime() + 0.34;
+        return 1;
+    }
+    if(!IsKeyDown(KEY_BACKSPACE)) {
+        g_ui_backspace_next_repeat_at = 0.0;
+        return 0;
+    }
+    now = GetTime();
+    if(g_ui_backspace_next_repeat_at <= 0.0) {
+        g_ui_backspace_next_repeat_at = now + 0.34;
+        return 0;
+    }
+    while(now >= g_ui_backspace_next_repeat_at && count < 8) {
+        count++;
+        g_ui_backspace_next_repeat_at += 0.045;
+    }
+    return count;
 }
 
 static int
@@ -650,8 +677,8 @@ flint_ui_text_edit(FlintUITextEdit edit)
         changed = 1;
     }
 
-    if(IsKeyPressed(KEY_BACKSPACE) || g_ui_text_input_backspace_count > 0) {
-        int repeat = g_ui_text_input_backspace_count > 0 ? g_ui_text_input_backspace_count : 1;
+    {
+        int repeat = g_ui_text_input_backspace_count + ui_backspace_repeat_count();
         for(int i = 0; i < repeat; i++) {
             int start = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
             changed |= ui_text_delete_range(edit.text, edit.text_size,
@@ -1132,6 +1159,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
+    int local_hover = 0;
 
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
@@ -1140,6 +1168,8 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
     int h = flint_clamp_px(30, 26, 34);
 
     x = x - w / 2;
+    if(!hover)
+        hover = &local_hover;
 
     int pressed = 0;
 
