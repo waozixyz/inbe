@@ -27,6 +27,7 @@ typedef struct {
     DirEntry *entries;
     int scroll_offset;
     int hover_index;
+    int last_clicked_index;
     int focus_area;
     Rectangle breadcrumb_rect;
     Rectangle file_list_rect;

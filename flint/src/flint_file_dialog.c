@@ -38,6 +38,10 @@ void flint_file_dialog_set_theme_scope(const char *scope) {
 
 static FlintFileDialogInternal *create_internal(void) {
     FlintFileDialogInternal *internal = calloc(1, sizeof(FlintFileDialogInternal));
+    if(internal != NULL) {
+        internal->hover_index = -1;
+        internal->last_clicked_index = -1;
+    }
     return internal;
 }
 
@@ -214,6 +218,9 @@ static int scan_directory(FlintFileDialogInternal *internal) {
         qsort(internal->entries, internal->file_count,
               sizeof(DirEntry), compare_entries);
     }
+    internal->hover_index = -1;
+    internal->last_clicked_index = -1;
+    internal->last_click_time = 0.0f;
 
     return 1;
 }
@@ -575,9 +582,10 @@ static int handle_mouse_input(FlintFileDialog *dlg) {
             if(hover_idx >= 0 && hover_idx < internal->file_count) {
                 float current_time = GetTime();
                 if(current_time - internal->last_click_time < 0.5 &&
-                   internal->hover_index == hover_idx) {
+                   internal->last_clicked_index == hover_idx) {
                     if(internal->entries[hover_idx].is_dir) {
                         navigate_into(internal, internal->entries[hover_idx].name);
+                        internal->last_clicked_index = -1;
                     } else {
                         copy_text(internal->selected_file, sizeof(internal->selected_file),
                                   internal->entries[hover_idx].name);
@@ -595,6 +603,7 @@ static int handle_mouse_input(FlintFileDialog *dlg) {
                 }
 
                 internal->last_click_time = current_time;
+                internal->last_clicked_index = hover_idx;
             }
         }
 
@@ -771,7 +780,8 @@ flint_file_dialog_begin_load(FlintFileDialog *dlg, const char *title)
     scan_directory(internal);
     internal->filename_input[0] = '\0';
     internal->selected_file[0] = '\0';
-    internal->hover_index = 0;
+    internal->hover_index = -1;
+    internal->last_clicked_index = -1;
     internal->focus_area = 0;
 }
 
@@ -839,7 +849,8 @@ int flint_file_dialog_select_folder(FlintFileDialog *dlg, const char *title) {
     FlintFileDialogInternal *internal = (FlintFileDialogInternal *)dlg->_internal;
     internal->filename_input[0] = '\0';
     internal->selected_file[0] = '\0';
-    internal->hover_index = 0;
+    internal->hover_index = -1;
+    internal->last_clicked_index = -1;
     internal->focus_area = 0;
 
     if(run_dialog(dlg)) {
