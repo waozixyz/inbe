@@ -102,6 +102,7 @@ APP_SRCS := \
 	src/storage/data.c \
 	src/storage/storage.c \
 	src/storage/sync_account.c \
+	src/storage/sync_client.c \
 	src/third_party/miniz.c \
 	src/platform/android/android_device.c \
 	src/screens/practice_screen.c \

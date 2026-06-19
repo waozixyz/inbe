@@ -7,6 +7,7 @@
 
 #include "raylib.h"
 #include <sqlite3.h>
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -39,6 +40,139 @@ typedef struct StorageState {
 } StorageState;
 
 static StorageState g_storage;
+
+typedef struct JsonBuilder {
+    char *data;
+    size_t len;
+    size_t cap;
+    int ok;
+} JsonBuilder;
+
+static int
+json_reserve(JsonBuilder *json, size_t extra)
+{
+    char *next;
+    size_t next_cap;
+
+    if(json == NULL || !json->ok)
+        return 0;
+    if(extra <= json->cap - json->len)
+        return 1;
+    next_cap = json->cap > 0 ? json->cap : 1024;
+    while(extra > next_cap - json->len)
+        next_cap *= 2;
+    next = (char *)realloc(json->data, next_cap);
+    if(next == NULL) {
+        json->ok = 0;
+        return 0;
+    }
+    json->data = next;
+    json->cap = next_cap;
+    return 1;
+}
+
+static void
+json_append_len(JsonBuilder *json, const char *text, size_t len)
+{
+    if(text == NULL || len == 0)
+        return;
+    if(!json_reserve(json, len + 1))
+        return;
+    memcpy(json->data + json->len, text, len);
+    json->len += len;
+    json->data[json->len] = '\0';
+}
+
+static void
+json_append(JsonBuilder *json, const char *text)
+{
+    if(text != NULL)
+        json_append_len(json, text, strlen(text));
+}
+
+static void
+json_appendf(JsonBuilder *json, const char *fmt, ...)
+{
+    va_list args;
+    va_list copy;
+    int needed;
+
+    if(json == NULL || fmt == NULL || !json->ok)
+        return;
+    va_start(args, fmt);
+    va_copy(copy, args);
+    needed = vsnprintf(NULL, 0, fmt, copy);
+    va_end(copy);
+    if(needed < 0) {
+        json->ok = 0;
+        va_end(args);
+        return;
+    }
+    if(json_reserve(json, (size_t)needed + 1)) {
+        vsnprintf(json->data + json->len, json->cap - json->len, fmt, args);
+        json->len += (size_t)needed;
+    }
+    va_end(args);
+}
+
+static void
+json_append_string(JsonBuilder *json, const char *text)
+{
+    const unsigned char *p = (const unsigned char *)(text != NULL ? text : "");
+
+    json_append(json, "\"");
+    while(*p != '\0') {
+        char escaped[8];
+        if(*p == '"' || *p == '\\') {
+            escaped[0] = '\\';
+            escaped[1] = (char)*p;
+            json_append_len(json, escaped, 2);
+        } else if(*p == '\b') {
+            json_append(json, "\\b");
+        } else if(*p == '\f') {
+            json_append(json, "\\f");
+        } else if(*p == '\n') {
+            json_append(json, "\\n");
+        } else if(*p == '\r') {
+            json_append(json, "\\r");
+        } else if(*p == '\t') {
+            json_append(json, "\\t");
+        } else if(*p < 0x20) {
+            snprintf(escaped, sizeof(escaped), "\\u%04x", *p);
+            json_append(json, escaped);
+        } else {
+            json_append_len(json, (const char *)p, 1);
+        }
+        p++;
+    }
+    json_append(json, "\"");
+}
+
+static void
+json_append_key_string(JsonBuilder *json, const char *key, const char *value)
+{
+    json_append_string(json, key);
+    json_append(json, ":");
+    json_append_string(json, value);
+}
+
+static void
+json_append_epoch(JsonBuilder *json, long long seconds)
+{
+    char formatted[32];
+    struct tm tm_value;
+    time_t value = (time_t)seconds;
+
+    if(seconds <= 0)
+        value = time(NULL);
+#if defined(_WIN32)
+    gmtime_s(&tm_value, &value);
+#else
+    gmtime_r(&value, &tm_value);
+#endif
+    strftime(formatted, sizeof(formatted), "%Y-%m-%dT%H:%M:%SZ", &tm_value);
+    json_append_string(json, formatted);
+}
 
 static void
 storage_schedule_persist(void)
@@ -890,6 +1024,221 @@ inbe_storage_delete_session(const char *path_or_id)
     sqlite3_finalize(stmt);
     storage_schedule_persist();
     return 1;
+}
+
+static void
+storage_append_preferences_json(JsonBuilder *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    int first = 1;
+
+    json_append(json, "\"preferences\":[");
+    if(g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT key,value,updated_at FROM settings "
+                          "WHERE user_id=?1 AND key NOT LIKE 'sync_%' ORDER BY key",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *key = (const char *)sqlite3_column_text(stmt, 0);
+            const char *value = (const char *)sqlite3_column_text(stmt, 1);
+            long long updated_at = sqlite3_column_int64(stmt, 2);
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_append(json, "{");
+            json_append_key_string(json, "key", key);
+            json_append(json, ",");
+            json_append_key_string(json, "value", value);
+            json_append(json, ",\"updated_at\":");
+            json_append_epoch(json, updated_at);
+            json_append(json, "}");
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+static void
+storage_append_habits_json(JsonBuilder *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    int first = 1;
+    long long exported_at = now_seconds();
+
+    json_append(json, "\"habits\":[");
+    if(g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at "
+                          "FROM habits WHERE user_id=?1 ORDER BY sort_order,id",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_append(json, "{");
+            json_append_key_string(json, "id", (const char *)sqlite3_column_text(stmt, 0));
+            json_append(json, ",");
+            json_append_key_string(json, "name", (const char *)sqlite3_column_text(stmt, 1));
+            json_appendf(json, ",\"color_r\":%d,\"color_g\":%d,\"color_b\":%d",
+                         sqlite3_column_int(stmt, 2),
+                         sqlite3_column_int(stmt, 3),
+                         sqlite3_column_int(stmt, 4));
+            json_appendf(json, ",\"sync_mode\":%d,\"sync_activity\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
+                         sqlite3_column_int(stmt, 5),
+                         sqlite3_column_int(stmt, 6),
+                         sqlite3_column_int(stmt, 7),
+                         sqlite3_column_int64(stmt, 8));
+            json_append(json, ",\"updated_at\":");
+            json_append_epoch(json, exported_at);
+            json_append(json, "}");
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+static void
+storage_append_habit_days_json(JsonBuilder *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    int first = 1;
+
+    json_append(json, "\"habit_days\":[");
+    if(g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT hd.habit_id,hd.local_date,hd.completed,hd.updated_at "
+                          "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                          "WHERE h.user_id=?1 ORDER BY hd.habit_id,hd.local_date",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_append(json, "{");
+            json_append_key_string(json, "habit_id", (const char *)sqlite3_column_text(stmt, 0));
+            json_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"updated_at\":",
+                         sqlite3_column_int(stmt, 1),
+                         sqlite3_column_int(stmt, 2) != 0 ? "true" : "false");
+            json_append_epoch(json, sqlite3_column_int64(stmt, 3));
+            json_append(json, "}");
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+static void
+storage_append_session_rounds_json(JsonBuilder *json, const char *session_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int first = 1;
+
+    json_append(json, "\"rounds\":[");
+    if(g_storage.db != NULL && session_id != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT round_index,seconds FROM session_rounds "
+                          "WHERE session_id=?1 ORDER BY round_index",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, session_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            int seconds = sqlite3_column_int(stmt, 1);
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_appendf(json, "{\"round_index\":%d,\"breaths\":0,\"hold_seconds\":%d}",
+                         sqlite3_column_int(stmt, 0), seconds);
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+static void
+storage_append_sessions_json(JsonBuilder *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    int first = 1;
+
+    json_append(json, "\"sessions\":[");
+    if(g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id,started_at,local_date,topic,activity,source,rounds_hash,deleted_at,imported_at "
+                          "FROM sessions WHERE user_id=?1 ORDER BY started_at,id",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            const char *id = (const char *)sqlite3_column_text(stmt, 0);
+            long long started_at = sqlite3_column_int64(stmt, 1);
+            long long imported_at = sqlite3_column_int64(stmt, 8);
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_append(json, "{");
+            json_append_key_string(json, "id", id);
+            json_append(json, ",\"started_at\":");
+            json_append_epoch(json, started_at);
+            json_appendf(json, ",\"local_date\":%d,\"topic\":\"%d\",\"activity\":%d,",
+                         sqlite3_column_int(stmt, 2),
+                         sqlite3_column_int(stmt, 3),
+                         sqlite3_column_int(stmt, 4));
+            json_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
+            json_append(json, ",");
+            json_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
+            json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":",
+                         sqlite3_column_int64(stmt, 7));
+            json_append_epoch(json, imported_at > started_at ? imported_at : started_at);
+            json_append(json, ",");
+            storage_append_session_rounds_json(json, id);
+            json_append(json, "}");
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+char *
+inbe_storage_build_sync_payload_json(const char *user_id_hash, const char *public_key_hex)
+{
+    JsonBuilder json = {0};
+
+    if(g_storage.db == NULL || user_id_hash == NULL || user_id_hash[0] == '\0')
+        return NULL;
+    json.ok = 1;
+    json_append(&json, "{");
+    json_append_key_string(&json, "user_id_hash", user_id_hash);
+    if(public_key_hex != NULL && public_key_hex[0] != '\0') {
+        json_append(&json, ",");
+        json_append_key_string(&json, "public_key", public_key_hex);
+    }
+    json_append(&json, ",");
+    storage_append_preferences_json(&json);
+    json_append(&json, ",");
+    storage_append_habits_json(&json);
+    json_append(&json, ",");
+    storage_append_habit_days_json(&json);
+    json_append(&json, ",");
+    storage_append_sessions_json(&json);
+    json_append(&json, "}");
+
+    if(!json.ok || json.data == NULL) {
+        free(json.data);
+        return NULL;
+    }
+    return json.data;
+}
+
+void
+inbe_storage_free_sync_payload_json(char *payload)
+{
+    free(payload);
 }
 
 void

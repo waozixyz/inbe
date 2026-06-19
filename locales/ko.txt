@@ -491,3 +491,111 @@ Inner Breeze 데이터 내보내기
 [meditation_music_attribution]
 음악: Elijah_K.
 ---
+[back_button]
+Back
+---
+[close_button]
+Close
+---
+[sync_account_title]
+Sync Account
+---
+[sync_configure_account_button]
+Configure Account
+---
+[sync_create_account_button]
+Create Account
+---
+[sync_account_created]
+Sync account created
+---
+[sync_account_create_failed]
+Could not create sync account
+---
+[sync_liboqs_unavailable]
+liboqs is not built for this target.
+---
+[sync_public_id_label]
+Public ID
+---
+[sync_copy_id_button]
+Copy ID
+---
+[sync_public_id_copied]
+Public ID copied
+---
+[sync_backup_key_button]
+Backup Key
+---
+[sync_remote_label]
+Remote
+---
+[sync_connect_button]
+Connect
+---
+[sync_server_url_invalid]
+Use https://, localhost, or 127.0.0.1
+---
+[sync_server_saved]
+Sync server saved
+---
+[sync_request_remote_delete_button]
+Request Deletion of Remote Data
+---
+[sync_request_deletion_button]
+Request deletion
+---
+[sync_remote_delete_title]
+Delete remote data?
+---
+[sync_remote_delete_message]
+This requests deletion of all cloud data for this sync account. Local data stays on this device.
+---
+[sync_remote_delete_cancelled]
+Remote deletion cancelled
+---
+[sync_remote_delete_not_connected]
+Remote deletion request is not connected yet
+---
+[sync_connected]
+Remote sync complete
+---
+[sync_failed]
+Remote sync failed
+---
+[sync_unavailable]
+Remote sync is not available on this platform
+---
+[sync_no_account]
+Create an account before syncing
+---
+[sync_auth_failed]
+Remote rejected this sync account
+---
+[sync_remote_delete_done]
+Remote data deleted
+---
+[sync_remote_delete_failed]
+Remote deletion failed
+---
+[sync_backup_warning]
+Save this private key somewhere you control. Anyone with it can claim this sync account.
+---
+[sync_backup_title]
+Backup Sync Key
+---
+[sync_save_key_file_button]
+Save .key File
+---
+[sync_save_key_dialog_title]
+Save Sync Key
+---
+[sync_private_key_backup_saved]
+Private key backup saved
+---
+[sync_private_key_backup_failed]
+Could not save private key backup
+---
+[sync_private_key_backup_cancelled]
+Private key backup cancelled
+---

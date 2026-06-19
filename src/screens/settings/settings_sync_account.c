@@ -3,12 +3,18 @@
 #include "settings_screen.h"
 #include "app.h"
 #include "locale.h"
+#include "storage.h"
 #include "sync_account.h"
+#include "sync_client.h"
 #include "theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
+#include <ctype.h>
 #include <stdio.h>
 #include <string.h>
+
+#define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
+#define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
 
 static SettingsSyncKeySaveDialog save_dialog_callback = NULL;
 
@@ -62,6 +68,111 @@ settings_start_sync_key_export(InbeApp *app, const InbeSyncAccount *account)
 #endif
 }
 
+static int
+settings_sync_url_filter(int codepoint, void *user_data)
+{
+    (void)user_data;
+    return codepoint >= 33 && codepoint <= 126 && !isspace(codepoint);
+}
+
+static int
+settings_sync_url_valid(const char *url)
+{
+    return url != NULL &&
+           (strncmp(url, "https://", 8) == 0 ||
+            strncmp(url, "http://127.0.0.1", 16) == 0 ||
+            strncmp(url, "http://localhost", 16) == 0 ||
+            strncmp(url, "http://10.0.2.2", 15) == 0);
+}
+
+static void
+settings_sync_server_save(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    if(!settings_sync_url_valid(app->sync_server_url)) {
+        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        return;
+    }
+    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
+    settings_screen_set_status_success(locale_get("sync_server_saved"), app->sync_server_url);
+}
+
+static const char *
+settings_sync_result_key(InbeSyncClientResult result, int deleting)
+{
+    switch(result) {
+        case INBE_SYNC_CLIENT_OK:
+            return deleting ? "sync_remote_delete_done" : "sync_connected";
+        case INBE_SYNC_CLIENT_UNAVAILABLE:
+            return "sync_unavailable";
+        case INBE_SYNC_CLIENT_INVALID_URL:
+            return "sync_server_url_invalid";
+        case INBE_SYNC_CLIENT_NO_ACCOUNT:
+            return "sync_no_account";
+        case INBE_SYNC_CLIENT_AUTH_FAILED:
+            return "sync_auth_failed";
+        case INBE_SYNC_CLIENT_PAYLOAD_FAILED:
+        case INBE_SYNC_CLIENT_CHALLENGE_FAILED:
+        case INBE_SYNC_CLIENT_SIGN_FAILED:
+        case INBE_SYNC_CLIENT_REQUEST_FAILED:
+        default:
+            return deleting ? "sync_remote_delete_failed" : "sync_failed";
+    }
+}
+
+static void
+settings_sync_run_connect(InbeApp *app)
+{
+    InbeSyncClientResult result;
+
+    if(app == NULL)
+        return;
+    if(!settings_sync_url_valid(app->sync_server_url)) {
+        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        return;
+    }
+    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
+    result = inbe_sync_client_sync(app->sync_server_url);
+    if(result == INBE_SYNC_CLIENT_OK)
+        settings_screen_set_status_success(locale_get(settings_sync_result_key(result, 0)), NULL);
+    else
+        settings_screen_set_status_error(locale_get(settings_sync_result_key(result, 0)));
+}
+
+void
+settings_sync_account_delete_remote(InbeApp *app)
+{
+    InbeSyncClientResult result;
+
+    if(app == NULL)
+        return;
+    if(!settings_sync_url_valid(app->sync_server_url)) {
+        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        return;
+    }
+    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, app->sync_server_url);
+    result = inbe_sync_client_delete_remote(app->sync_server_url);
+    if(result == INBE_SYNC_CLIENT_OK)
+        settings_screen_set_status_success(locale_get(settings_sync_result_key(result, 1)), NULL);
+    else
+        settings_screen_set_status_error(locale_get(settings_sync_result_key(result, 1)));
+}
+
+static FlintUITextInputStyle
+settings_sync_text_style(void)
+{
+    return (FlintUITextInputStyle){
+        .background = flint_darken(theme_get_bg(), 4),
+        .border = theme_get_button(),
+        .focus_border = theme_get_button_hover(),
+        .text = theme_get_text(),
+        .cursor = theme_get_text(),
+        .radius = 0.08f,
+        .padding_x = flint_px(10)
+    };
+}
+
 void
 settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
 {
@@ -74,49 +185,145 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     int half_w = (w - gap) / 2;
     int hover = 0;
 
-    flint_text_draw("Sync Account", x, *y, font, theme_get_text());
+    flint_text_draw(locale_get("sync_account_title"), x, *y, font, theme_get_text());
     *y += flint_px(26);
 
     if(!inbe_sync_account_available()) {
-        flint_text_draw("liboqs is not built for this target.", x, *y, small_font,
+        flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
                         flint_darken(theme_get_text(), 35));
         *y += flint_px(32);
         return;
     }
 
     if(!has_account) {
-        if(ui_draw_generic_button(x, *y, w, btn_h, "Create Account",
+        if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(inbe_sync_account_create(&account)) {
-                settings_screen_set_status_success("Sync account created", NULL);
+                settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
                 app->modal.active = 1;
                 app->modal.type = UIModalSyncAccountBackup;
                 app->modal.selected_button = 0;
             } else {
-                settings_screen_set_status_error("Could not create sync account");
+                settings_screen_set_status_error(locale_get("sync_account_create_failed"));
             }
         }
         *y += btn_h + flint_px(18);
         return;
     }
 
-    flint_text_draw("Public ID", x, *y, small_font, flint_darken(theme_get_text(), 30));
+    flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
+                    flint_darken(theme_get_text(), 30));
     *y += flint_px(18);
     settings_draw_hex_groups(account.public_id, x, y, small_font, theme_get_text(), 2, 32);
     *y += flint_px(4);
 
-    if(ui_draw_generic_button(x, *y, half_w, btn_h, "Copy ID",
+    if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_copy_id_button"),
                               UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         SetClipboardText(account.public_id);
-        settings_screen_set_status_success("Public ID copied", NULL);
+        settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
     }
-    if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h, "Backup Key",
+    if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
+                              locale_get("sync_backup_key_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
         app->modal.active = 1;
         app->modal.type = UIModalSyncAccountBackup;
         app->modal.selected_button = 0;
     }
     *y += btn_h + flint_px(16);
+}
+
+void
+settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
+{
+    InbeSyncAccount account;
+    int has_account = inbe_sync_account_load(&account);
+    int font = flint_ui_font();
+    int small_font = flint_ui_font_small();
+    int btn_h = flint_px(36);
+    int gap = flint_px(10);
+    int half_w = (w - gap) / 2;
+    int hover = 0;
+    int commit = 0;
+    FlintUITextInputStyle input_style = settings_sync_text_style();
+
+    if(!inbe_sync_account_available()) {
+        flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
+                        flint_darken(theme_get_text(), 35));
+        *y += flint_px(32);
+        return;
+    }
+
+    if(!has_account) {
+        if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+            if(inbe_sync_account_create(&account)) {
+                settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
+                app->modal.active = 1;
+                app->modal.type = UIModalSyncAccountBackup;
+                app->modal.selected_button = 0;
+            } else {
+                settings_screen_set_status_error(locale_get("sync_account_create_failed"));
+            }
+        }
+        *y += btn_h + flint_px(18);
+        return;
+    }
+
+    flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
+                    flint_darken(theme_get_text(), 30));
+    *y += flint_px(18);
+    settings_draw_hex_groups(account.public_id, x, y, small_font, theme_get_text(), 2, 32);
+    *y += flint_px(8);
+
+    flint_text_draw(locale_get("sync_remote_label"), x, *y, small_font,
+                    flint_darken(theme_get_text(), 30));
+    *y += flint_px(18);
+    flint_ui_text_field((FlintUITextField){
+        .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
+        .text = app->sync_server_url,
+        .text_size = sizeof(app->sync_server_url),
+        .cursor_position = &app->sync_server_url_cursor,
+        .focused = &app->sync_server_url_focused,
+        .max_codepoints = 255,
+        .font = small_font,
+        .style = input_style,
+        .filter = settings_sync_url_filter,
+        .commit_pressed = &commit
+    });
+    if(commit)
+        settings_sync_server_save(app);
+    *y += btn_h + flint_px(12);
+
+    if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_connect_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+        settings_sync_run_connect(app);
+    *y += btn_h + flint_px(12);
+
+    if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_copy_id_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+        SetClipboardText(account.public_id);
+        settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+    }
+    if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
+                              locale_get("sync_backup_key_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+        app->modal.active = 1;
+        app->modal.type = UIModalSyncAccountBackup;
+        app->modal.selected_button = 0;
+    }
+    *y += btn_h + flint_px(12);
+
+    if(ui_draw_generic_button(x, *y, w, btn_h,
+                              locale_get("sync_request_remote_delete_button"),
+                              UI_BUTTON_STYLE_DANGER, 0, &hover)) {
+        app->modal.active = 1;
+        app->modal.type = UIModalConfirmRemoteDataDelete;
+        app->modal.selected_button = 0;
+    }
+    *y += btn_h + flint_px(18);
+
+    settings_screen_draw_status_reserved(x, y, flint_px(42));
+    (void)font;
 }
 
 int
@@ -139,7 +346,7 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
     inbe_sync_account_load(&account);
 
     warning = (FlintUIParagraph){
-        .text = "Save this private key somewhere you control. Anyone with it can claim this sync account.",
+        .text = locale_get("sync_backup_warning"),
         .width = flint_px(336) - flint_px(36),
         .font = font,
         .line_gap = flint_px(4),
@@ -153,7 +360,7 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
     if(modal_h < flint_px(224))
         modal_h = flint_px(224);
 
-    frame = ui_draw_modal_frame(flint_px(336), modal_h, "Backup Sync Key",
+    frame = ui_draw_modal_frame(flint_px(336), modal_h, locale_get("sync_backup_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
     warning.width = frame.content_w;
@@ -163,10 +370,10 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
     if(button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h)
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap;
     if(ui_draw_generic_button(frame.content_x, button_y, frame.content_w, btn_h,
-                              "Save .key File", UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+                              locale_get("sync_save_key_file_button"), UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         return settings_start_sync_key_export(app, &account);
     if(ui_draw_generic_button(frame.content_x, button_y + btn_h + gap, frame.content_w,
-                              btn_h, "Close", UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+                              btn_h, locale_get("close_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover))
         return 1;
     return 0;
 }

@@ -5,6 +5,7 @@
 #include "app.h"
 #include "data.h"
 #include "locale.h"
+#include "storage.h"
 #include "sync_account.h"
 #include "theme.h"
 #include "version.h"
@@ -31,6 +32,14 @@ enum {
     SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT
 };
 
+enum {
+    SETTINGS_DATA_VIEW_MAIN = 0,
+    SETTINGS_DATA_VIEW_SYNC_ACCOUNT = 1
+};
+
+#define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
+#define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
+
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
 static FlintFileDialog export_dlg;
 static FlintFileDialog import_dlg;
@@ -43,6 +52,7 @@ static DataImportInfo pending_import_info;
 static void settings_import_data(InbeApp *app);
 static void settings_export_data(InbeApp *app);
 static void settings_request_delete_all_data(InbeApp *app);
+static void settings_sync_server_load(InbeApp *app);
 
 static void
 settings_clear_pending_import(void)
@@ -178,10 +188,8 @@ int
 settings_data_content_height(int content_w)
 {
     int data_button_h = flint_px(36);
-    int account_h = flint_px(SETTINGS_SYNC_ACCOUNT_HEIGHT);
 
-    return account_h +
-           flint_px(16) +
+    return data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
@@ -189,6 +197,40 @@ settings_data_content_height(int content_w)
            settings_link_icons_height(content_w) +
            flint_px(8) + flint_px(22) +
            flint_px(40);
+}
+
+int
+settings_data_is_configuring(const InbeApp *app)
+{
+    return app != NULL && app->settings_tab == SETTINGS_TAB_DATA &&
+           app->settings_data_view == SETTINGS_DATA_VIEW_SYNC_ACCOUNT;
+}
+
+static void
+settings_sync_server_load(InbeApp *app)
+{
+    const char *saved;
+
+    if(app == NULL)
+        return;
+    saved = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
+             saved != NULL && saved[0] != '\0'
+                 ? saved
+                 : INBE_SYNC_SERVER_URL_DEFAULT);
+    app->sync_server_url_cursor = (int)strlen(app->sync_server_url);
+}
+
+static void
+settings_open_sync_account_config(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    settings_sync_server_load(app);
+    app->settings_data_view = SETTINGS_DATA_VIEW_SYNC_ACCOUNT;
+    app->settings_scroll = 0;
+    app->sync_server_url_focused = 0;
+    settings_screen_clear_status();
 }
 
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
@@ -210,7 +252,7 @@ settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 {
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
     settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_save(&export_dlg, "Save Sync Key", filename);
+    flint_file_dialog_begin_save(&export_dlg, locale_get("sync_save_key_dialog_title"), filename);
     data_file_dialog_action = SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT;
     return 4;
 #else
@@ -276,13 +318,36 @@ void
 settings_data_draw(InbeApp *app, int x, int w, int *y)
 {
     int data_button_h = flint_px(36);
+    InbeSyncAccount account;
+    int has_account;
+    int hover_account = 0;
     int hover_import = 0;
     int hover_export = 0;
     int hover_delete = 0;
 
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
-    settings_sync_account_draw(app, x, w, y);
-    *y += flint_px(16);
+    if(app != NULL && app->settings_data_view == SETTINGS_DATA_VIEW_SYNC_ACCOUNT) {
+        settings_sync_account_draw_config(app, x, w, y);
+        return;
+    }
+
+    has_account = inbe_sync_account_load(&account);
+    if(ui_draw_generic_button(x, *y, w, data_button_h,
+                              has_account ? locale_get("sync_configure_account_button")
+                                          : locale_get("sync_create_account_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover_account)) {
+        if(has_account) {
+            settings_open_sync_account_config(app);
+        } else if(inbe_sync_account_create(&account)) {
+            settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
+            app->modal.active = 1;
+            app->modal.type = UIModalSyncAccountBackup;
+            app->modal.selected_button = 0;
+        } else {
+            settings_screen_set_status_error(locale_get("sync_account_create_failed"));
+        }
+    }
+    *y += data_button_h + flint_px(12);
 
     if(ui_draw_generic_button(x, *y, w, data_button_h,
                               locale_get("import_data_button"),
@@ -511,14 +576,14 @@ settings_data_draw_pending_file_dialog(InbeApp *app)
             if(path != NULL && path[0] != '\0' &&
                inbe_sync_account_load(&account) &&
                inbe_sync_account_export_private_key(&account, path)) {
-                settings_screen_set_status_success("Private key backup saved", GetFileName(path));
+                settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), GetFileName(path));
                 TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
             } else {
-                settings_screen_set_status_error("Could not save private key backup");
+                settings_screen_set_status_error(locale_get("sync_private_key_backup_failed"));
                 TraceLog(LOG_ERROR, "SYNC: Private key backup failed");
             }
         } else {
-            settings_screen_set_status_error("Private key backup cancelled");
+            settings_screen_set_status_error(locale_get("sync_private_key_backup_cancelled"));
         }
     }
 
@@ -591,15 +656,32 @@ settings_data_draw_modals(InbeApp *app)
         return 1;
     }
 
+    if(app->modal.type == UIModalConfirmRemoteDataDelete) {
+        int modal_result = ui_draw_modal(locale_get("sync_remote_delete_title"),
+                                         locale_get("sync_remote_delete_message"),
+                                         locale_get("cancel_button"),
+                                         locale_get("sync_request_deletion_button"));
+        if(modal_result == 1) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_screen_set_status_error(locale_get("sync_remote_delete_cancelled"));
+        } else if(modal_result == 2) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+            settings_sync_account_delete_remote(app);
+        }
+        return 1;
+    }
+
     if(app->modal.type == UIModalSyncAccountBackup) {
         int modal_result = settings_sync_account_draw_backup_modal(app);
         if(modal_result == 1 || modal_result == 2 || modal_result == 3 || modal_result == 4) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
             if(modal_result == 2)
-                settings_screen_set_status_success("Private key backup saved", NULL);
+                settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), NULL);
             else if(modal_result == 3)
-                settings_screen_set_status_error("Could not save private key backup");
+                settings_screen_set_status_error(locale_get("sync_private_key_backup_failed"));
         }
         return 1;
     }

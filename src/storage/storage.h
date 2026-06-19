@@ -60,6 +60,9 @@ int inbe_storage_session_count(void);
 int inbe_storage_habit_count(void);
 long long inbe_storage_total_size(void);
 long long inbe_storage_delete_all_sessions(void);
+char *inbe_storage_build_sync_payload_json(const char *user_id_hash,
+                                           const char *public_key_hex);
+void inbe_storage_free_sync_payload_json(char *payload);
 
 int inbe_storage_habits_empty(void);
 int inbe_storage_habits_load(void *habits);

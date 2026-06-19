@@ -1,4 +1,8 @@
 # Changelog
+## [1.4.0] - 2026-06-19
+### Added
+- optional sync client, offline account creation
+
 ## [1.3.6] - 2026-06-18
 ### Fixed
 - Fixed Tickmate `.db` imports so zero-based months map correctly and long habit histories load without dropping later dates.

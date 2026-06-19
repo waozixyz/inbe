@@ -62,6 +62,7 @@ typedef enum {
     UIModalMeditationNetworkError,
     UIModalConfirmImportDataSettings,
     UIModalSyncAccountBackup,
+    UIModalConfirmRemoteDataDelete,
 } UIModalType;
 
 typedef struct {
@@ -171,6 +172,10 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
+    int settings_data_view;
+    int sync_server_url_cursor;
+    int sync_server_url_focused;
+    char sync_server_url[256];
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
