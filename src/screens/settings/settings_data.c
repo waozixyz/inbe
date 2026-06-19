@@ -161,13 +161,19 @@ static int
 settings_link_icon_columns(int content_w)
 {
     int max_columns = 5;
+    int min_columns = 2;
     int icon_size = flint_px(32);
     int icon_padding = flint_px(4);
     int icon_spacing = flint_px(20);
     int icon_btn_w = icon_size + icon_padding * 2;
-    int total_w = icon_btn_w * max_columns + icon_spacing * (max_columns - 1);
 
-    return total_w <= content_w ? max_columns : 2;
+    for(int columns = max_columns; columns > min_columns; columns--) {
+        int total_w = icon_btn_w * columns + icon_spacing * (columns - 1);
+        if(total_w <= content_w)
+            return columns;
+    }
+
+    return min_columns;
 }
 
 static int
