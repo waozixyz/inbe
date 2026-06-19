@@ -63,6 +63,10 @@ long long inbe_storage_delete_all_sessions(void);
 char *inbe_storage_build_sync_payload_json(const char *user_id_hash,
                                            const char *public_key_hex);
 void inbe_storage_free_sync_payload_json(char *payload);
+int inbe_storage_apply_sync_response_json(const char *response_json);
+int inbe_storage_last_sync_changed(void);
+const char *inbe_storage_sync_client_id(void);
+void inbe_storage_reset_sync_state(void);
 
 int inbe_storage_habits_empty(void);
 int inbe_storage_habits_load(void *habits);

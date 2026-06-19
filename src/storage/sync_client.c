@@ -7,6 +7,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #define INBE_SYNC_CLIENT_HAS_ANDROID 1
@@ -27,13 +28,64 @@ extern struct android_app *GetAndroidApp(void);
 
 #define INBE_SYNC_PATH "/api/v1/sync"
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
+#define INBE_LOGIN_PATH "/api/v1/sync/login"
 #define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
+#define INBE_SYNC_WEB_RESPONSE_MAX (4 * 1024 * 1024)
+#define INBE_SYNC_AUTH_TOKEN_KEY "sync_auth_token"
+#define INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY "sync_auth_token_expires_at"
 
 typedef struct SyncBuffer {
     char *data;
     size_t len;
     size_t cap;
 } SyncBuffer;
+
+const char *
+inbe_sync_client_result_name(InbeSyncClientResult result)
+{
+    switch(result) {
+        case INBE_SYNC_CLIENT_OK:
+            return "ok";
+        case INBE_SYNC_CLIENT_UNAVAILABLE:
+            return "unavailable";
+        case INBE_SYNC_CLIENT_INVALID_URL:
+            return "invalid_url";
+        case INBE_SYNC_CLIENT_NO_ACCOUNT:
+            return "no_account";
+        case INBE_SYNC_CLIENT_PAYLOAD_FAILED:
+            return "payload_failed";
+        case INBE_SYNC_CLIENT_CHALLENGE_FAILED:
+            return "challenge_failed";
+        case INBE_SYNC_CLIENT_SIGN_FAILED:
+            return "sign_failed";
+        case INBE_SYNC_CLIENT_REQUEST_FAILED:
+            return "request_failed";
+        case INBE_SYNC_CLIENT_AUTH_FAILED:
+            return "auth_failed";
+        default:
+            return "unknown";
+    }
+}
+
+static void
+sync_log_http_failure(const char *step, long status, const char *response)
+{
+    char snippet[161];
+    size_t len;
+
+    if(response == NULL)
+        response = "";
+    len = strlen(response);
+    if(len >= sizeof(snippet))
+        len = sizeof(snippet) - 1;
+    memcpy(snippet, response, len);
+    snippet[len] = '\0';
+    for(size_t i = 0; i < len; i++) {
+        if(snippet[i] == '\n' || snippet[i] == '\r' || snippet[i] == '\t')
+            snippet[i] = ' ';
+    }
+    TraceLog(LOG_WARNING, "SYNC: %s failed status=%ld response=%s", step, status, snippet);
+}
 
 static int
 sync_has_prefix(const char *text, const char *prefix)
@@ -252,6 +304,27 @@ sync_find_json_string(const char *json, const char *key, char *out, size_t out_s
     }
     *w = '\0';
     return *p == '"' && out[0] != '\0';
+}
+
+static long long
+sync_find_json_int64(const char *json, const char *key, long long fallback)
+{
+    const char *p;
+    char pattern[64];
+
+    if(json == NULL || key == NULL)
+        return fallback;
+    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
+    p = strstr(json, pattern);
+    if(p == NULL)
+        return fallback;
+    p = strchr(p + strlen(pattern), ':');
+    if(p == NULL)
+        return fallback;
+    p++;
+    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
+        p++;
+    return strtoll(p, NULL, 10);
 }
 
 #if defined(INBE_SYNC_CLIENT_HAS_CURL)
@@ -484,14 +557,14 @@ sync_http_request(const char *method, const char *url, const char *body,
         }
     }
 
-    response_text = (char *)calloc(1, 65536);
+    response_text = (char *)calloc(1, INBE_SYNC_WEB_RESPONSE_MAX);
     if(response_text == NULL) {
         free(header_blob.data);
         return 0;
     }
     ok = sync_web_http_request(method, url, body != NULL ? body : "",
                                header_blob.data != NULL ? header_blob.data : "",
-                               response_text, 65536, status);
+                               response_text, INBE_SYNC_WEB_RESPONSE_MAX, status);
     free(header_blob.data);
     if(!ok) {
         free(response_text);
@@ -499,7 +572,7 @@ sync_http_request(const char *method, const char *url, const char *body,
     }
     response->data = response_text;
     response->len = strlen(response_text);
-    response->cap = 65536;
+    response->cap = INBE_SYNC_WEB_RESPONSE_MAX;
     return 1;
 }
 #endif
@@ -523,6 +596,7 @@ sync_fetch_challenge(const char *base_url, const char *user_id, char nonce_hex[6
     if(!ok || status != 200 ||
        !sync_find_json_string(response.data, "nonce", nonce_hex, 65) ||
        strlen(nonce_hex) != 64) {
+        sync_log_http_failure("challenge", status, response.data);
         free(response.data);
         return status == 401 ? INBE_SYNC_CLIENT_AUTH_FAILED : INBE_SYNC_CLIENT_CHALLENGE_FAILED;
     }
@@ -531,8 +605,7 @@ sync_fetch_challenge(const char *base_url, const char *user_id, char nonce_hex[6
 }
 
 static InbeSyncClientResult
-sync_send_signed(const char *base_url, const char *path, const char *method,
-                 const char *user_id, const char *body)
+sync_login(const char *base_url, const InbeSyncAccount *account)
 {
     char nonce_hex[65];
     char message[256];
@@ -541,32 +614,160 @@ sync_send_signed(const char *base_url, const char *path, const char *method,
     char user_header[96];
     char signature_header[5050];
     const char *headers[3];
+    SyncBuffer body = {0};
     SyncBuffer response = {0};
     long status = 0;
     InbeSyncClientResult challenge_result;
     int ok;
+    char token[4096];
+    long long expires_in;
+    long long expires_at;
 
-    challenge_result = sync_fetch_challenge(base_url, user_id, nonce_hex);
+    if(account == NULL)
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+    if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
+       !sync_buffer_append_json_string(&body, account->public_id) ||
+       !sync_buffer_append(&body, ",\"client_id\":", strlen(",\"client_id\":")) ||
+       !sync_buffer_append_json_string(&body, inbe_storage_sync_client_id()) ||
+       !sync_buffer_append(&body, ",\"public_key\":", strlen(",\"public_key\":")) ||
+       !sync_buffer_append_json_string(&body, account->public_key_hex) ||
+       !sync_buffer_append(&body, "}", 1)) {
+        free(body.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+
+    challenge_result = sync_fetch_challenge(base_url, account->public_id, nonce_hex);
     if(challenge_result != INBE_SYNC_CLIENT_OK)
+    {
+        free(body.data);
         return challenge_result;
-    if(!sync_build_message(method, path, nonce_hex, body, message, sizeof(message)))
+    }
+    if(!sync_build_message("POST", INBE_LOGIN_PATH, nonce_hex, body.data, message, sizeof(message))) {
+        free(body.data);
         return INBE_SYNC_CLIENT_SIGN_FAILED;
+    }
     if(!inbe_sync_account_sign_hex((const uint8_t *)message, strlen(message),
-                                   signature_hex, sizeof(signature_hex)))
+                                   signature_hex, sizeof(signature_hex))) {
+        free(body.data);
         return INBE_SYNC_CLIENT_SIGN_FAILED;
-    sync_join_url(url, sizeof(url), base_url, path);
-    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", user_id);
+    }
+    sync_join_url(url, sizeof(url), base_url, INBE_LOGIN_PATH);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account->public_id);
     snprintf(signature_header, sizeof(signature_header), "X-Inbe-Signature: %s", signature_hex);
     headers[0] = "Content-Type: application/json";
     headers[1] = user_header;
     headers[2] = signature_header;
-    ok = sync_http_request(method, url, body, headers, 3, &response, &status);
-    free(response.data);
-    if(!ok)
+    ok = sync_http_request("POST", url, body.data, headers, 3, &response, &status);
+    free(body.data);
+    if(!ok) {
+        sync_log_http_failure("login request", status, response.data);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    if(status == 401)
+    }
+    if(status == 401) {
+        sync_log_http_failure("login auth", status, response.data);
+        free(response.data);
         return INBE_SYNC_CLIENT_AUTH_FAILED;
-    return status >= 200 && status < 300 ? INBE_SYNC_CLIENT_OK : INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(status < 200 || status >= 300) {
+        sync_log_http_failure("login", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    expires_in = sync_find_json_int64(response.data, "expires_in_seconds", 3600);
+    if(!sync_find_json_string(response.data, "auth_token", token, sizeof(token))) {
+        sync_log_http_failure("login payload", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+    expires_at = (long long)time(NULL) + expires_in - 30;
+    if(expires_at < (long long)time(NULL))
+        expires_at = (long long)time(NULL);
+    {
+        char text[32];
+        snprintf(text, sizeof(text), "%lld", expires_at);
+        inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, token);
+        inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, text);
+    }
+    free(response.data);
+    return INBE_SYNC_CLIENT_OK;
+}
+
+static int
+sync_load_valid_auth_token(char *out, size_t out_size)
+{
+    const char *token;
+    const char *expires_text;
+    char token_copy[4096];
+    long long expires_at;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    token = inbe_storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_KEY);
+    snprintf(token_copy, sizeof(token_copy), "%s", token != NULL ? token : "");
+    expires_text = inbe_storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY);
+    expires_at = expires_text != NULL ? atoll(expires_text) : 0;
+    if(token_copy[0] == '\0' || expires_at <= (long long)time(NULL))
+        return 0;
+    snprintf(out, out_size, "%s", token_copy);
+    return out[0] != '\0';
+}
+
+void
+inbe_sync_client_clear_auth_token(void)
+{
+    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, "");
+    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
+}
+
+static InbeSyncClientResult
+sync_send_bearer(const char *base_url, const char *user_id, const char *body, const char *token)
+{
+    char url[768];
+    char user_header[96];
+    char auth_header[4200];
+    const char *headers[3];
+    SyncBuffer response = {0};
+    long status = 0;
+    int ok;
+
+    sync_join_url(url, sizeof(url), base_url, INBE_SYNC_PATH);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", user_id);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token != NULL ? token : "");
+    headers[0] = "Content-Type: application/json";
+    headers[1] = user_header;
+    headers[2] = auth_header;
+    ok = sync_http_request("POST", url, body, headers, 3, &response, &status);
+    if(!ok) {
+        sync_log_http_failure("sync request", status, response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(status == 401) {
+        sync_log_http_failure("sync auth", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    if(status < 200 || status >= 300) {
+        sync_log_http_failure("sync", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(!inbe_storage_apply_sync_response_json(response.data)) {
+        sync_log_http_failure("sync payload", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+    free(response.data);
+    return INBE_SYNC_CLIENT_OK;
+}
+#endif
+
+#if !defined(INBE_SYNC_CLIENT_HAS_HTTP)
+void
+inbe_sync_client_clear_auth_token(void)
+{
+    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, "");
+    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
 }
 #endif
 
@@ -577,15 +778,31 @@ inbe_sync_client_sync(const char *base_url)
     InbeSyncAccount account;
     char *payload;
     InbeSyncClientResult result;
+    char token[4096];
 
     if(!inbe_sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
     if(!inbe_sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    payload = inbe_storage_build_sync_payload_json(account.public_id, account.public_key_hex);
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    payload = inbe_storage_build_sync_payload_json(account.public_id, NULL);
     if(payload == NULL)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    result = sync_send_signed(base_url, INBE_SYNC_PATH, "POST", account.public_id, payload);
+    result = sync_send_bearer(base_url, account.public_id, payload, token);
+    if(result == INBE_SYNC_CLIENT_AUTH_FAILED) {
+        inbe_sync_client_clear_auth_token();
+        result = sync_login(base_url, &account);
+        if(result == INBE_SYNC_CLIENT_OK && sync_load_valid_auth_token(token, sizeof(token)))
+            result = sync_send_bearer(base_url, account.public_id, payload, token);
+        else if(result == INBE_SYNC_CLIENT_OK)
+            result = INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
     inbe_storage_free_sync_payload_json(payload);
     return result;
 #else

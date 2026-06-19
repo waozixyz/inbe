@@ -186,6 +186,167 @@ insert_raw_habit_day(const char *root, const char *habit_id, int local_date, int
     sqlite3_close(db);
 }
 
+static int
+read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
+{
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int count = -1;
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open raw count db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return count;
+    if(sqlite3_prepare_v2(db,
+                          "SELECT count FROM habit_days WHERE habit_id=?1 AND local_date=?2",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, habit_id, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 2, local_date);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            count = sqlite3_column_int(stmt, 0);
+    } else {
+        check_true("prepare raw count", 0);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return count;
+}
+
+static void
+test_sync_apply_preserves_counter_counts(void)
+{
+    char root[512];
+    const char *habit_id = "counter-habit";
+    const char *lower_count_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":["
+        "{\"habit_id\":\"counter-habit\",\"local_date\":20260619,"
+        "\"completed\":true,\"count\":1,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
+        "],\"sessions\":[]}}";
+    const char *higher_count_response =
+        "{\"server_version\":2,\"changes\":{\"habits\":[],\"habit_days\":["
+        "{\"habit_id\":\"counter-habit\",\"local_date\":20260619,"
+        "\"completed\":true,\"count\":5,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
+        "],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-counter");
+    check_true("init sync counter db", inbe_storage_init(root));
+    inbe_storage_close();
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open sync counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            check_true("insert sync counter habit",
+                       sqlite3_exec(db,
+                                    "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                                    "VALUES('counter-habit','default','Counter',255,255,255,0,0,1,0,0,1781902800);"
+                                    "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                                    "VALUES('counter-habit',20260619,1,4,1781902800);",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen sync counter db", inbe_storage_init(root));
+    check_true("apply lower equal counter", inbe_storage_apply_sync_response_json(lower_count_response));
+    inbe_storage_close();
+    check_int("lower equal sync does not reset counter",
+              read_raw_habit_day_count(root, habit_id, 20260619), 4);
+
+    check_true("reopen sync counter db for repair", inbe_storage_init(root));
+    check_true("apply higher equal counter", inbe_storage_apply_sync_response_json(higher_count_response));
+    inbe_storage_close();
+    check_int("higher equal sync repairs counter",
+              read_raw_habit_day_count(root, habit_id, 20260619), 5);
+
+    remove_tree(root);
+}
+
+static void
+test_session_linked_counts_materialize_for_sync(void)
+{
+    char root[512];
+    char first_id[INBE_STORAGE_ID_SIZE + 4];
+    char second_id[INBE_STORAGE_ID_SIZE + 4];
+    int first_rounds[] = {30};
+    int second_rounds[] = {45};
+    int today = inbe_habits_today_index();
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "session-linked-count");
+    check_true("init linked counter db", inbe_storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+
+    check_true("save linked session one",
+               inbe_storage_save_session_for_activity(first_rounds, 1, 0, 1,
+                                                      first_id, sizeof(first_id)));
+    check_true("save linked session two",
+               inbe_storage_save_session_for_activity(second_rounds, 1, 0, 1,
+                                                      second_id, sizeof(second_id)));
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("load linked counter habits", inbe_storage_habits_load(&habits));
+    check_int("linked sessions materialize count",
+              inbe_habit_day_count(&habits.items[0], today), 2);
+
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("linked session count is in sync payload",
+               payload != NULL && strstr(payload, "\"count\":2") != NULL);
+    inbe_storage_free_sync_payload_json(payload);
+
+    check_true("delete linked session one", inbe_storage_delete_session(first_id));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload linked counter after delete", inbe_storage_habits_load(&habits));
+    check_int("linked session delete lowers derived count",
+              inbe_habit_day_count(&habits.items[0], today), 1);
+
+    inbe_habit_set_day_count(&habits, 0, today, 4);
+    inbe_habits_save(&habits);
+    check_true("delete linked session two", inbe_storage_delete_session(second_id));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload linked counter after manual override", inbe_storage_habits_load(&habits));
+    check_int("linked session delete preserves manual count",
+              inbe_habit_day_count(&habits.items[0], today), 4);
+
+    inbe_storage_close();
+    remove_tree(root);
+}
+
+static void
+test_existing_sessions_materialize_after_habit_save(void)
+{
+    char root[512];
+    int rounds[] = {30};
+    int today = inbe_habits_today_index();
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "existing-session-linked-count");
+    check_true("init existing linked counter db", inbe_storage_init(root));
+    check_true("save existing linked session",
+               inbe_storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
+
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    memset(&habits, 0, sizeof(habits));
+    check_true("load existing linked counter habits", inbe_storage_habits_load(&habits));
+    check_int("existing linked session materializes after habit save",
+              inbe_habit_day_count(&habits.items[0], today), 1);
+
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("existing linked session count is in sync payload",
+               payload != NULL && strstr(payload, "\"count\":1") != NULL);
+    inbe_storage_free_sync_payload_json(payload);
+
+    inbe_storage_close();
+    remove_tree(root);
+}
+
 static void
 metadata_history_callback(const char *id, int year, int month, int day,
                           int hour, int minute, int second,
@@ -824,6 +985,9 @@ main(void)
     test_tickmate_db_import();
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
+    test_sync_apply_preserves_counter_counts();
+    test_session_linked_counts_materialize_for_sync();
+    test_existing_sessions_materialize_after_habit_save();
     test_session_metadata();
 
     if(g_failures != 0) {

@@ -43,7 +43,7 @@ enum {
 #define SETTINGS_DATA_IMPORT_FILTER ".db,.zip"
 #define SETTINGS_SYNC_KEY_IMPORT_FILTER ".key"
 #define SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES "application/zip,application/x-zip-compressed,application/vnd.sqlite3,application/x-sqlite,application/x-sqlite3,application/octet-stream"
-#define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "text/plain,application/octet-stream"
+#define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "*/*"
 
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
 static FlintFileDialog export_dlg;
@@ -283,11 +283,12 @@ settings_start_sync_key_import_dialog(InbeApp *app)
     (void)app;
     EM_ASM({
         const importPath = UTF8ToString($0);
+        const accept = UTF8ToString($1);
         Module.__inbeSyncKeyImportResult = 0;
 
         const input = document.createElement("input");
         input.type = "file";
-        input.accept = SETTINGS_SYNC_KEY_IMPORT_FILTER;
+        input.accept = accept;
         input.style.display = "none";
 
         input.onchange = async function() {
@@ -317,7 +318,7 @@ settings_start_sync_key_import_dialog(InbeApp *app)
 
         document.body.appendChild(input);
         input.click();
-    }, "/tmp/inbe-sync-key-import.key");
+    }, "/tmp/inbe-sync-key-import.key", SETTINGS_SYNC_KEY_IMPORT_FILTER);
     settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
     return 1;
 #elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
@@ -658,7 +659,10 @@ settings_data_draw_pending_file_dialog(InbeApp *app)
         return 0;
 
     settings_apply_file_dialog_theme(app);
-    dlg = data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ? &import_dlg : &export_dlg;
+    dlg = (data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ||
+           data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+              ? &import_dlg
+              : &export_dlg;
     result = flint_file_dialog_update(dlg);
     if(result < 0)
         return 1;

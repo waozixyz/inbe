@@ -973,7 +973,6 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
                 app->habits.scroll = 0;
                 app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
             }
-            inbe_habits_save(&app->habits);
         }
 
         if(!app->modal.active && app->habits.count > 0) {
@@ -1010,7 +1009,6 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             app->habits.scroll = 0;
             app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
         }
-        inbe_habits_save(&app->habits);
     }
 }
 

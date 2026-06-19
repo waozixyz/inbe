@@ -162,12 +162,12 @@ APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
 LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
-WEB_CACHE_BUSTER ?= $(shell git rev-parse --short HEAD 2>/dev/null || date +%s)
+WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
-WEB_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
+UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
 .PHONY: all native run test dist appimage clean clean-linux clean-raylib android-check-keystore android-copy-assets android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web
@@ -444,7 +444,8 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(WEB_AUDIO_FILES) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -467,7 +468,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-sFORCE_FILESYSTEM=1 \
 		-sFETCH=1 \
 		-sALLOW_MEMORY_GROWTH=1 \
-		--preload-file $(UNPACKAGED_AUDIO_DIR)@$(UNPACKAGED_AUDIO_DIR) \
+		-sSTACK_SIZE=8388608 \
 		--shell-file src/web_shell.html \
 		-lidbfs.js \
 		-lm
@@ -596,10 +597,12 @@ android-clean:
 	$(GRADLE) -p droid clean
 	rm -rf $(ANDROID_BUILD_DIR)
 
-package-unpackaged-assets:
+$(MEDITATION_AUDIO_ZIP): $(UNPACKAGED_AUDIO_FILES)
 	mkdir -p $(dir $(MEDITATION_AUDIO_ZIP))
 	rm -f $(MEDITATION_AUDIO_ZIP)
 	cd $(UNPACKAGED_AUDIO_DIR) && find . -mindepth 2 -type f -name '*.ogg' -exec zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) {} + && zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) LICENSE.md MANIFEST.txt
+
+package-unpackaged-assets: $(MEDITATION_AUDIO_ZIP)
 
 windows-runtime-assets-check:
 	@:
