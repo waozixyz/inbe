@@ -347,7 +347,7 @@ public class MainActivity extends NativeActivity {
         return output.toByteArray();
     }
 
-    public void openImportPicker() {
+    public void openImportPicker(final String mimeTypesCsv) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -355,14 +355,10 @@ public class MainActivity extends NativeActivity {
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
                     intent.setType("*/*");
-                    intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[] {
-                        "application/zip",
-                        "application/x-zip-compressed",
-                        "application/vnd.sqlite3",
-                        "application/x-sqlite",
-                        "application/x-sqlite3",
-                        "application/octet-stream"
-                    });
+                    String[] mimeTypes = parseMimeTypes(mimeTypesCsv);
+                    if (mimeTypes.length > 0) {
+                        intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
+                    }
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to open import picker", e);
@@ -370,6 +366,22 @@ public class MainActivity extends NativeActivity {
                 }
             }
         });
+    }
+
+    private static String[] parseMimeTypes(String mimeTypesCsv) {
+        if (mimeTypesCsv == null || mimeTypesCsv.trim().isEmpty()) {
+            return new String[0];
+        }
+
+        String[] raw = mimeTypesCsv.split(",");
+        java.util.ArrayList<String> result = new java.util.ArrayList<>();
+        for (String mimeType : raw) {
+            String trimmed = mimeType.trim();
+            if (!trimmed.isEmpty()) {
+                result.add(trimmed);
+            }
+        }
+        return result.toArray(new String[0]);
     }
 
     @Override

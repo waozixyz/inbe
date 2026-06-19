@@ -6,6 +6,7 @@ ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
 CC ?= gcc
+CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
 GRADLE ?= gradle
 ARCH := $(shell uname -m)
 ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
@@ -334,16 +335,16 @@ $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H): $(SQLITE_DIR)/configure $(SQL
 	$(MAKE) -C $(SQLITE_BUILD_DIR) sqlite3.c sqlite3.h
 
 $(LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
-	cmake -S $(LIBOQS_DIR) -B $(LIBOQS_BUILD_DIR) \
+	$(CMAKE) -S $(LIBOQS_DIR) -B $(LIBOQS_BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_MINIMAL_BUILD=SIG_ml_dsa_44
-	cmake --build $(LIBOQS_BUILD_DIR) --target oqs
+	$(CMAKE) --build $(LIBOQS_BUILD_DIR) --target oqs
 
 $(WEB_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
-	emcmake cmake -S $(LIBOQS_DIR) -B $(WEB_LIBOQS_BUILD_DIR) \
+	emcmake $(CMAKE) -S $(LIBOQS_DIR) -B $(WEB_LIBOQS_BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
@@ -351,7 +352,7 @@ $(WEB_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt | $(BUILD_OBJ_DIR)
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
 		-DOQS_MINIMAL_BUILD=SIG_ml_dsa_44
-	cmake --build $(WEB_LIBOQS_BUILD_DIR) --target oqs
+	$(CMAKE) --build $(WEB_LIBOQS_BUILD_DIR) --target oqs
 
 $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
