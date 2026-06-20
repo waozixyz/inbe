@@ -72,9 +72,12 @@ data_root(void)
     }
 #else
     {
+        const char *override_root = getenv("INBE_DATA_ROOT");
         const char *xdg = getenv("XDG_DATA_HOME");
         const char *home = getenv("HOME");
-        if(xdg != NULL && xdg[0] != '\0')
+        if(override_root != NULL && override_root[0] != '\0')
+            snprintf(g_data_root, sizeof(g_data_root), "%s", override_root);
+        else if(xdg != NULL && xdg[0] != '\0')
             snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", xdg);
         else if(home != NULL && home[0] != '\0')
             snprintf(g_data_root, sizeof(g_data_root), "%s/.local/share/inbe", home);

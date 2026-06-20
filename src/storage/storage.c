@@ -789,6 +789,42 @@ storage_save_session_for_activity(const int *round_times, int round_count,
 }
 
 int
+storage_save_session_at_for_activity(int local_date, int hour, int minute, int second,
+                                     const int *round_times, int round_count,
+                                     int topic, int activity,
+                                     char *out_id, size_t out_id_size)
+{
+    struct tm tm;
+    time_t started_at;
+    int saved[MaxRounds];
+    int saved_count = 0;
+
+    if(local_date <= 0)
+        return 0;
+    for(int i = 0; i < round_count && i < MaxRounds; i++) {
+        if(round_times[i] > 0)
+            saved[saved_count++] = round_times[i];
+    }
+    if(saved_count <= 0)
+        return 0;
+
+    memset(&tm, 0, sizeof(tm));
+    tm.tm_year = local_date / 10000 - 1900;
+    tm.tm_mon = (local_date / 100) % 100 - 1;
+    tm.tm_mday = local_date % 100;
+    tm.tm_hour = hour;
+    tm.tm_min = minute;
+    tm.tm_sec = second;
+    tm.tm_isdst = -1;
+    started_at = mktime(&tm);
+    if(started_at == (time_t)-1)
+        return 0;
+
+    return insert_session_at_ex((long long)started_at, local_date, saved, saved_count,
+                                topic, activity, "app", out_id, out_id_size);
+}
+
+int
 storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
 {
     return storage_save_session_for_activity(round_times, round_count, 0, 0,

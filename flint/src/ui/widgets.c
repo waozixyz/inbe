@@ -805,8 +805,6 @@ ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, in
     Rectangle src = {0, 0, (float)texture.width, (float)texture.height};
     Rectangle dst = {x + ((float)w - dst_w) * 0.5f, y + ((float)h - dst_h) * 0.5f, dst_w, dst_h};
 
-    DrawRectangle(x, y, w, h, flint_darken(c_bg, 12));
-    ui_draw_bevel(x, y, w, h, flint_darken(c_bg, 45), flint_lighten(c_bg, 35));
     DrawTexturePro(texture, src, dst, (Vector2){0}, 0, WHITE);
 }
 

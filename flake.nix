@@ -225,6 +225,7 @@ EOF
               pkg-config
               pipewire
               rsync
+              xvfb-run
               zlib
               zip
               aarch64Pkgs.stdenv.cc

@@ -235,7 +235,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -286,6 +286,9 @@ vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(
 
 run: $(TARGET)
 	./$(TARGET)
+
+screenshot: $(TARGET)
+	./scripts/generate-screenshots.sh "$(TARGET)"
 
 test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST)
 	$(STORAGE_IMPORT_TEST)
@@ -956,13 +959,13 @@ web:
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 
-$(CHROME_WEB_STORE_ZIP): $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICON) | $(CHROME_WEB_STORE_DIR)
+$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICON) | $(CHROME_WEB_STORE_DIR)
 	rm -rf $(CHROME_WEB_STORE_DIR)
 	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
+	cp -R $(WEB_DIST_DIR)/. $(CHROME_WEB_STORE_DIR)/
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(CHROME_WEB_STORE_MANIFEST) > $(CHROME_WEB_STORE_DIR)/manifest.json
-	sed -e 's#__WEB_APP_URL__#$(WEB_APP_URL)#g' \
-		$(CHROME_WEB_STORE_WORKER) > $(CHROME_WEB_STORE_DIR)/service_worker.js
+	cp $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_DIR)/service_worker.js
 	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 16x16 $(CHROME_WEB_STORE_DIR)/icons/icon-16.png
 	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 32x32 $(CHROME_WEB_STORE_DIR)/icons/icon-32.png
 	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 48x48 $(CHROME_WEB_STORE_DIR)/icons/icon-48.png

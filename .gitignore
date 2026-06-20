@@ -12,6 +12,7 @@
 .cache/
 *.wasm
 build/
+tmp/
 vendor-builds/
 node_modules
 *.nix-defexpr
