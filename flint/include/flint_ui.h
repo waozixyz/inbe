@@ -104,6 +104,61 @@ typedef struct {
 } FlintUIIconRowResult;
 
 typedef struct {
+    int route;
+    const char *label;
+    Texture2D icon;
+    int active;
+    int disabled;
+} FlintUIBottomNavItem;
+
+typedef struct {
+    int view_width;
+    int view_height;
+    int count;
+    const FlintUIBottomNavItem *items;
+    int height;
+    int icon_size;
+    int icon_padding;
+    int side_margin;
+    int bottom_margin;
+    int max_button_width;
+} FlintUIBottomNav;
+
+typedef struct {
+    int clicked_index;
+    int clicked_route;
+    int y;
+    int height;
+} FlintUIBottomNavResult;
+
+typedef struct {
+    int route;
+    const char *label;
+    Texture2D icon;
+} FlintUIBottomNavOption;
+
+typedef struct {
+    int id;
+    const char *title;
+    int *routes;
+    int *route_count;
+    int max_route_count;
+    const char **slot_labels;
+    const FlintUIBottomNavOption *options;
+    int option_count;
+    const char *add_label;
+    const char *cancel_label;
+    const char *save_label;
+    const char *reset_label;
+    Texture2D close_icon;
+} FlintUIBottomNavConfigModal;
+
+typedef struct {
+    int action;
+    int changed;
+} FlintUIBottomNavConfigResult;
+
+typedef struct {
     Texture2D icon;
     int disabled;
 } FlintUIToolbarAction;
@@ -133,6 +188,19 @@ typedef struct {
     int selected_menu_item;
     int clicked_action;
 } FlintUIToolbarResult;
+
+typedef struct {
+    FlintUIToolbar toolbar;
+    Texture2D leading_icon;
+    int leading_width;
+    int leading_icon_size;
+    int leading_icon_padding;
+} FlintUIToolbarHeader;
+
+typedef struct {
+    FlintUIToolbarResult toolbar;
+    int leading_clicked;
+} FlintUIToolbarHeaderResult;
 
 typedef struct {
     const char *text;
@@ -336,7 +404,11 @@ int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon,
 int ui_draw_info_button(int center_x, int center_y, int diameter);
 int ui_draw_icon_slider_popup(FlintUIIconSliderPopup popup);
 FlintUIIconRowResult ui_draw_bottom_icon_row(FlintUIBottomIconRow row);
+int ui_bottom_nav_height(void);
+FlintUIBottomNavResult ui_draw_bottom_nav(FlintUIBottomNav nav);
+FlintUIBottomNavConfigResult ui_draw_bottom_nav_config_modal(FlintUIBottomNavConfigModal modal);
 FlintUIToolbarResult ui_draw_toolbar(FlintUIToolbar toolbar);
+FlintUIToolbarHeaderResult ui_draw_toolbar_header(FlintUIToolbarHeader header);
 void ui_draw_info_rows(FlintUIInfoRows rows);
 int ui_draw_button_row(FlintUIButtonRow row);
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
@@ -363,27 +435,13 @@ int ui_draw_dropdown_button(int id, int x, int y, int w, int h, const char **opt
 int ui_draw_dropdown_menu(int id);
 int ui_dropdown_captures_click(Vector2 point);
 void ui_set_dropdown_clip_top(int top);
+void ui_set_dropdown_clip_bottom(int bottom);
 int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            const char *light_label, const char *dark_label,
                            int *theme_id, int *dark_mode);
 int ui_draw_theme_picker(int x, int y, int w, const char *label,
                          int dark_mode, int *theme_id);
 int ui_theme_picker_height(int w);
-typedef struct UITab {
-    const char *label;
-    Texture2D icon;
-    UIIconType icon_type;
-} UITab;
-
-typedef struct UITabBar {
-    UITab *tabs;
-    int count;
-} UITabBar;
-
-int ui_nav_button_width(const char *label, int icon_size, int show_label, int font);
-int ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, const char *label, int show_label, int *hover);
-int ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, const char *label, int show_label, int *hover);
-int ui_draw_tab_bar(UITab *tabs, int count);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
 int ui_draw_modal(const char *title, const char *message, const char *cancel_btn, const char *confirm_btn);

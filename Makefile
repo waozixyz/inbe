@@ -157,6 +157,7 @@ APP_SRCS := \
 	src/practices/meditation/meditation_manual.c \
 	src/practices/meditation/meditation_config.c \
 	src/screens/habits_screen.c \
+	src/screens/statistics_screen.c \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/practices/meditation/meditation_music.c \

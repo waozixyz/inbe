@@ -254,7 +254,7 @@ draw_habit_edit_screen(InbeApp *app)
     };
     Color color_options[6];
     int top_h = flint_px(58);
-    int nav_h = flint_px(TAB_BAR_H);
+    int bottom_reserved;
     int content_x;
     int content_w;
     int max_w = flint_px(CONTENT_MAX_W);
@@ -268,6 +268,7 @@ draw_habit_edit_screen(InbeApp *app)
 
     if(app == NULL)
         return;
+    bottom_reserved = app_content_bottom_reserved(app);
 
     if(!app->habit_edit.active) {
         app->inbe.screen = InbeScreenHabits;
@@ -342,7 +343,7 @@ draw_habit_edit_screen(InbeApp *app)
     flint_clip_begin((int)app->camera.offset.x,
                      (int)(app->camera.offset.y + top_h * app->camera.zoom),
                      (int)(view_width * app->camera.zoom),
-                     (int)((view_height - top_h - nav_h) * app->camera.zoom));
+                     (int)((view_height - top_h - bottom_reserved) * app->camera.zoom));
 
     flint_text_draw(locale_get("habit_name_label"), content_x, y, label_font, flint_darken(theme_get_text(), 34));
     y += flint_px(22);

@@ -25,6 +25,9 @@ Tutorial
 [tab_settings]
 Settings
 ---
+[tab_statistics]
+Statistics
+---
 [play_button]
 PLAY
 ---
@@ -208,6 +211,42 @@ Theme mode
 ---
 [theme_system]
 System
+---
+[theme_sky]
+Sky
+---
+[theme_ocean]
+Ocean
+---
+[theme_forest]
+Forest
+---
+[theme_sunset]
+Sunset
+---
+[theme_lavender]
+Lavender
+---
+[theme_cherry]
+Cherry
+---
+[theme_dawn]
+Dawn
+---
+[theme_sage]
+Sage
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Mint
+---
+[theme_cobalt]
+Cobalt
 ---
 [orientation_label]
 Orientation
@@ -688,4 +727,40 @@ Total hold
 ---
 [habit_stats_best_streak]
 Best streak
+---
+[bottom_nav_customize_button]
+Customize bottom navigation
+---
+[bottom_nav_customize_title]
+Bottom Navigation
+---
+[bottom_nav_add_button]
+Add item
+---
+[bottom_nav_slot_1]
+Item 1
+---
+[bottom_nav_slot_2]
+Item 2
+---
+[bottom_nav_slot_3]
+Item 3
+---
+[bottom_nav_slot_4]
+Item 4
+---
+[bottom_nav_slot_5]
+Item 5
+---
+[bottom_nav_slot_6]
+Item 6
+---
+[bottom_nav_slot_7]
+Item 7
+---
+[bottom_nav_slot_8]
+Item 8
+---
+[reset_button]
+Reset
 ---

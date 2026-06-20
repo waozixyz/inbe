@@ -1,5 +1,6 @@
 #include "ui.h"
 #include "flint_layout.h"
+#include "flint_locale.h"
 
 /* Per-dropdown state to track open/closed and click handling */
 #define MAX_DROPDOWN_OPTIONS 128
@@ -20,10 +21,11 @@ typedef struct UIDropdownState {
     int touch_drag_active;
 } UIDropdownState;
 
-#define MAX_DROPDOWNS 8
+#define MAX_DROPDOWNS 24
 static UIDropdownState dropdown_states[MAX_DROPDOWNS];
 static int dropdown_state_count = 0;
 static int dropdown_clip_top = 0;
+static int dropdown_clip_bottom = 0;
 
 static Color
 ui_dropdown_panel_color(int amount)
@@ -38,6 +40,12 @@ ui_set_dropdown_clip_top(int top)
     dropdown_clip_top = top > 0 ? top : 0;
 }
 
+void
+ui_set_dropdown_clip_bottom(int bottom)
+{
+    dropdown_clip_bottom = bottom > 0 ? bottom : 0;
+}
+
 static void
 dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdown_h,
                      int *visible_options, int *open_up)
@@ -49,6 +57,7 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
     int below_y;
     int below_space;
     int above_space;
+    int bottom_limit;
     int max_visible_h;
     int total_h;
 
@@ -63,7 +72,8 @@ dropdown_menu_layout(const UIDropdownState *state, int *dropdown_y, int *dropdow
     below_y = state->y + state->h + menu_gap;
     if(below_y < dropdown_clip_top)
         below_y = dropdown_clip_top;
-    below_space = ui_view_height - below_y - flint_px(16);
+    bottom_limit = dropdown_clip_bottom > 0 ? dropdown_clip_bottom : ui_view_height;
+    below_space = bottom_limit - below_y - flint_px(16);
     above_space = state->y - dropdown_clip_top - flint_px(16);
 
     if(below_space < 0)
@@ -121,6 +131,36 @@ static const FlintThemeId theme_picker_order[FLINT_THEME_COUNT] = {
     FLINT_THEME_MONO
 };
 
+static const char *
+ui_theme_label(FlintThemeId theme)
+{
+    const char *key = NULL;
+    const char *label;
+
+    switch(flint_theme_normalize(theme)) {
+    case FLINT_THEME_SKY: key = "theme_sky"; break;
+    case FLINT_THEME_OCEAN: key = "theme_ocean"; break;
+    case FLINT_THEME_FOREST: key = "theme_forest"; break;
+    case FLINT_THEME_SUNSET: key = "theme_sunset"; break;
+    case FLINT_THEME_LAVENDER: key = "theme_lavender"; break;
+    case FLINT_THEME_CHERRY: key = "theme_cherry"; break;
+    case FLINT_THEME_DAWN: key = "theme_dawn"; break;
+    case FLINT_THEME_SAGE: key = "theme_sage"; break;
+    case FLINT_THEME_INK: key = "theme_sepia"; break;
+    case FLINT_THEME_MONO: key = "theme_mono"; break;
+    case FLINT_THEME_MINT: key = "theme_mint"; break;
+    case FLINT_THEME_COBALT: key = "theme_cobalt"; break;
+    default: break;
+    }
+
+    if(key == NULL)
+        return flint_theme_label(theme);
+    label = locale_get(key);
+    if(label == NULL || label[0] == '\0' || strcmp(label, key) == 0)
+        return flint_theme_label(theme);
+    return label;
+}
+
 static UIThemeGridLayout
 ui_theme_grid_layout(int w)
 {
@@ -133,7 +173,7 @@ ui_theme_grid_layout(int w)
     layout.col_gap = flint_px(10);
     layout.cell_w = layout.circle_size;
     for(int i = 0; i < FLINT_THEME_COUNT; i++) {
-        int name_w = flint_text_measure(flint_theme_label((FlintThemeId)i), small_font) + flint_px(8);
+        int name_w = flint_text_measure(ui_theme_label((FlintThemeId)i), small_font) + flint_px(8);
         if(name_w > layout.cell_w)
             layout.cell_w = name_w;
     }
@@ -203,7 +243,7 @@ ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
             }
         }
 
-        const char *name = flint_theme_label(theme);
+        const char *name = ui_theme_label(theme);
         int name_w = flint_text_measure(name, small_font);
         flint_text_draw(name, cx - name_w / 2,
                         cy + layout.circle_size / 2 + layout.label_gap,
@@ -334,6 +374,7 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     int changed = 0;
     Rectangle btn_bounds = {x, y, w, h};
     Vector2 mouse = ui_mouse_world();
+    Color button_bg;
     int button_inside = CheckCollisionPointRec(mouse, btn_bounds);
     int hover = button_inside &&
                 (state->open
@@ -375,7 +416,12 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     }
 
     /* Draw button background */
-    DrawRectangleRounded(btn_bounds, 0.3f, 8, ui_dropdown_panel_color(16));
+    button_bg = state->open ? ui_dropdown_panel_color(28)
+                            : (hover ? c_button_hover : ui_dropdown_panel_color(16));
+    DrawRectangleRounded(btn_bounds, 0.3f, 8, button_bg);
+    ui_draw_bevel(x, y, w, h,
+                  state->open ? flint_lighten(button_bg, 34) : flint_lighten(button_bg, 24),
+                  state->open ? flint_darken(button_bg, 38) : flint_darken(button_bg, 30));
 
     /* Draw current selection text, clipped before the X icon. */
     int current_index = selected_index != NULL ? *selected_index : 0;
@@ -576,203 +622,6 @@ draw_arrow:
     DrawLine(x1, y1, x2, y2, c_text);
     DrawLine(x1, y2, x2, y1, c_text);
     return changed;
-}
-
-int
-ui_nav_button_width(const char *label, int icon_size, int show_label, int font)
-{
-    int padding = flint_px(6);
-    int width = icon_size + padding * 2;
-
-    if(show_label && label != NULL && label[0] != '\0')
-        width += flint_px(10) + flint_text_measure(label, font);
-    return width;
-}
-
-static int
-ui_nav_button_height(const char *label, int icon_size, int show_label, int font)
-{
-    int padding = flint_px(6);
-    int content_h = icon_size;
-
-    if(show_label && label != NULL && label[0] != '\0') {
-        int text_h = flint_text_height(label, font);
-        if(text_h > content_h)
-            content_h = text_h;
-    }
-    return content_h + padding * 2;
-}
-
-int
-ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon,
-                   const char *label, int show_label, int *hover)
-{
-    Vector2 mouse_world = ui_mouse_world();
-    int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
-    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = flint_ui_font();
-    int padding = flint_px(6);
-    int w = ui_nav_button_width(label, icon_size, show_label, font);
-    int h = ui_nav_button_height(label, icon_size, show_label, font);
-    int pressed = 0;
-
-    if(mx > x && mx < x + w && my > y && my < y + h) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
-        ui_mark_clickable();
-        if(mb)
-            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
-        if(released)
-            pressed = 1;
-    } else {
-        DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-        *hover = 0;
-    }
-
-    if(icon.id != 0) {
-        Rectangle src = {0, 0, icon.width, icon.height};
-        /* Center icon horizontally when no label, otherwise align left */
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
-        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    }
-
-    if(show_label && label != NULL && label[0] != '\0') {
-        int text_x = x + icon_size + padding * 2 + flint_px(10);
-        flint_text_draw(label, text_x, flint_ui_text_y(label, y, h, font), font, c_text);
-    }
-
-    return pressed;
-}
-
-int
-ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
-                           const char *label, int show_label, int *hover)
-{
-    Vector2 mouse_world = ui_mouse_world();
-    int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
-    int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
-    int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = flint_ui_font();
-    int padding = flint_px(6);
-    int h = ui_nav_button_height(label, icon_size, show_label, font);
-    int pressed = 0;
-
-    if(mx > x && mx < x + w && my > y && my < y + h) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
-        ui_mark_clickable();
-        if(mb)
-            ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
-        if(released)
-            pressed = 1;
-    } else {
-        DrawRectangle(x, y, w, h, c_button);
-        ui_draw_bevel(x, y, w, h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-        *hover = 0;
-    }
-
-    if(icon.id != 0) {
-        Rectangle src = {0, 0, icon.width, icon.height};
-        /* Center icon horizontally when no label, otherwise align left */
-        int icon_x = show_label && label && label[0] ? x + padding : x + (w - icon_size) / 2;
-        Rectangle dst = {icon_x, y + (h - icon_size) / 2, (float)icon_size, (float)icon_size};
-        DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
-    }
-
-    if(show_label && label != NULL && label[0] != '\0') {
-        int text_x = x + icon_size + padding * 2 + flint_px(10);
-        flint_text_draw(label, text_x, flint_ui_text_y(label, y, h, font), font, c_text);
-    }
-
-    return pressed;
-}
-
-/* ================================================================
- * TAB BAR
- * ================================================================ */
-
-int
-ui_draw_tab_bar(UITab *tabs, int count)
-{
-    int bar_h = flint_clamp_px(58, 54, 66);
-    int bar_y = ui_view_height - bar_h;
-    int button_size = flint_clamp_px(30, 28, 44);
-    int font = flint_ui_font();
-    int button_h = ui_nav_button_height("", button_size, 0, font);
-    int side_margin = flint_px(16);
-    int group_gap = flint_px(10);
-    int available_w = ui_view_width - side_margin * 2;
-    int label_safety_w = group_gap * (count + 1);
-
-    /* Calculate widths with labels */
-    int group_w_label = 0;
-    for(int i = 0; i < count; i++) {
-        group_w_label += ui_nav_button_width(tabs[i].label, button_size, 1, font);
-        {
-            int tab_h = ui_nav_button_height(tabs[i].label, button_size, 1, font);
-            if(tab_h > button_h)
-                button_h = tab_h;
-        }
-        if(i < count - 1)
-            group_w_label += group_gap;
-    }
-
-    /* Calculate widths without labels */
-    int group_w_no_label = 0;
-    for(int i = 0; i < count; i++) {
-        group_w_no_label += ui_nav_button_width(tabs[i].label, button_size, 0, font);
-        if(i < count - 1)
-            group_w_no_label += group_gap;
-    }
-
-    /* Only show labels if all buttons fit with breathing room for longer locales. */
-    int show_labels = group_w_label + label_safety_w <= available_w;
-    int base_group_w = show_labels ? group_w_label : group_w_no_label;
-    if(!show_labels)
-        button_h = ui_nav_button_height("", button_size, 0, font);
-    if(button_h + flint_px(8) > bar_h)
-        bar_h = button_h + flint_px(8);
-    bar_y = ui_view_height - bar_h;
-
-    /* Calculate extra space and distribute evenly among buttons */
-    int extra_w = available_w - base_group_w;
-    if(extra_w < 0)
-        extra_w = 0;
-    int extra_per_button = count > 0 ? extra_w / count : 0;
-    int remainder = count > 0 ? extra_w % count : 0;
-
-    /* Calculate total width with extra space included */
-    int total_w = base_group_w + extra_per_button * count;
-
-    /* Center the tab group - remainder adds extra left margin for true centering */
-    int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;
-    int button_y = bar_y + (bar_h - button_h) / 2;
-    int tab_hover = 0;
-    int clicked = -1;
-
-    DrawRectangle(0, bar_y, ui_view_width, bar_h, flint_darken(c_bg, 10));
-    DrawLine(0, bar_y, ui_view_width, bar_y, flint_darken(c_bg, 42));
-
-    int x = group_x;
-    for(int i = 0; i < count; i++) {
-        int base_w = ui_nav_button_width(tabs[i].label, button_size, show_labels, font);
-        int w = base_w + extra_per_button;
-
-        if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon,
-                                        tabs[i].label, show_labels, &tab_hover)) {
-            clicked = i;
-        }
-
-        x += w + group_gap;
-    }
-    return clicked;
 }
 
 /* ================================================================
@@ -1337,6 +1186,254 @@ ui_draw_bottom_icon_row(FlintUIBottomIconRow row)
     return result;
 }
 
+int
+ui_bottom_nav_height(void)
+{
+    return flint_px(46);
+}
+
+FlintUIBottomNavResult
+ui_draw_bottom_nav(FlintUIBottomNav nav)
+{
+    FlintUIBottomNavResult result = {-1, -1, 0, 0};
+    int count = nav.count;
+    int height = nav.height > 0 ? nav.height : ui_bottom_nav_height();
+    int bottom_margin = nav.bottom_margin > 0 ? nav.bottom_margin : 0;
+    int side_margin = nav.side_margin > 0 ? nav.side_margin : 0;
+    int icon_size = nav.icon_size > 0 ? nav.icon_size : flint_px(24);
+    int y = nav.view_height - bottom_margin - height;
+    int available_w = nav.view_width - side_margin * 2;
+    int tab_w;
+    int group_w;
+    int start_x;
+
+    result.y = y;
+    result.height = height;
+    if(nav.items == NULL || count <= 0 || nav.view_width <= 0 || nav.view_height <= 0)
+        return result;
+    if(count > 8)
+        count = 8;
+    if(available_w < flint_px(96))
+        available_w = flint_px(96);
+
+    tab_w = available_w / count;
+    if(tab_w < flint_px(56))
+        tab_w = flint_px(56);
+    group_w = tab_w * count;
+    if(group_w > available_w)
+        group_w = available_w;
+    tab_w = group_w / count;
+    start_x = side_margin + (available_w - group_w) / 2;
+
+    DrawRectangle(0, y, nav.view_width, height, flint_darken(c_bg, 10));
+    DrawLine(0, y, nav.view_width, y, flint_darken(c_bg, 42));
+
+    for(int i = 0; i < count; i++) {
+        const FlintUIBottomNavItem *item = &nav.items[i];
+        int x = start_x + i * tab_w;
+        int w = i == count - 1 ? start_x + group_w - x : tab_w;
+        int icon_x = x + (w - icon_size) / 2;
+        int icon_y = y + (height - icon_size) / 2;
+        int hover = 0;
+        UIButtonStyle style = item->active
+                                  ? UI_BUTTON_STYLE_TAB_SELECTED
+                                  : UI_BUTTON_STYLE_TAB;
+        Color icon_color = item->disabled ? flint_darken(c_icon, 40) : c_icon;
+
+        if(ui_draw_generic_button(x, y, w, height, "", style,
+                                  item->disabled, &hover)) {
+            result.clicked_index = i;
+            result.clicked_route = item->route;
+        }
+
+        if(item->icon.id != 0) {
+            DrawTexturePro(item->icon,
+                           (Rectangle){0, 0, item->icon.width, item->icon.height},
+                           (Rectangle){icon_x, icon_y, icon_size, icon_size},
+                           (Vector2){0}, 0, icon_color);
+        }
+    }
+
+    return result;
+}
+
+static int
+bottom_nav_option_index(const FlintUIBottomNavOption *options, int option_count,
+                        int route)
+{
+    if(options == NULL || option_count <= 0)
+        return 0;
+    for(int i = 0; i < option_count; i++) {
+        if(options[i].route == route)
+            return i;
+    }
+    return 0;
+}
+
+FlintUIBottomNavConfigResult
+ui_draw_bottom_nav_config_modal(FlintUIBottomNavConfigModal modal)
+{
+    static int route_scroll_offset = 0;
+    FlintUIBottomNavConfigResult result = {0, 0};
+    FlintUIPanelFrame frame;
+    FlintUIScrollArea route_area;
+    FlintUIScrollView route_view;
+    const char *option_labels[16];
+    int option_count = modal.option_count;
+    int route_count = modal.route_count != NULL ? *modal.route_count : 0;
+    int max_route_count = modal.max_route_count > 0 ? modal.max_route_count : route_count;
+    int selected[16] = {0};
+    int row_h = flint_px(58);
+    int dropdown_h = flint_px(36);
+    int remove_w = flint_px(36);
+    int add_h = flint_px(34);
+    int button_h = flint_px(36);
+    int button_gap = flint_px(8);
+    int y;
+    int button_w;
+    int total_button_w;
+    int button_y;
+    int add_y;
+    int add_w;
+    int route_view_h;
+    int route_content_h;
+    int reset_hover = 0;
+    int cancel_hover = 0;
+    int save_hover = 0;
+    int dropdown_blocks_buttons;
+
+    if(max_route_count > 16)
+        max_route_count = 16;
+    if(route_count < 0)
+        route_count = 0;
+    if(route_count > max_route_count)
+        route_count = max_route_count;
+    if(option_count > 16)
+        option_count = 16;
+    for(int i = 0; i < option_count; i++)
+        option_labels[i] = modal.options[i].label;
+    for(int i = 0; i < route_count; i++)
+        selected[i] = bottom_nav_option_index(modal.options, option_count,
+                                              modal.routes != NULL ? modal.routes[i] : 0);
+
+    frame = ui_draw_modal_frame(flint_px(340),
+                                flint_px(128) + row_h * route_count + add_h + flint_px(58),
+                                modal.title,
+                                (Texture2D){0},
+                                modal.close_icon);
+    if(frame.right_clicked) {
+        result.action = 1;
+        return result;
+    }
+
+    button_w = (frame.content_w - button_gap * 2) / 3;
+    if(button_w > flint_px(92))
+        button_w = flint_px(92);
+    total_button_w = button_w * 3 + button_gap * 2;
+    button_y = frame.y + frame.h - button_h - flint_px(16);
+    add_y = button_y - button_gap - add_h;
+    route_view_h = add_y - frame.content_y - flint_px(12);
+    if(route_view_h < row_h)
+        route_view_h = row_h;
+    if(frame.content_y + route_view_h > add_y - flint_px(8))
+        route_view_h = add_y - frame.content_y - flint_px(8);
+    if(route_view_h < flint_px(48))
+        route_view_h = flint_px(48);
+    route_content_h = row_h * route_count;
+    route_area = (FlintUIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)route_view_h
+        },
+        .content_height = route_content_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &route_scroll_offset,
+        .wheel_step = row_h,
+        .scrollbar_x = frame.content_x + frame.content_w - flint_px(8)
+    };
+
+    route_view = ui_scroll_container_begin(route_area);
+    y = route_view.content_y;
+    for(int i = 0; i < route_count; i++) {
+        const char *slot_label = modal.slot_labels != NULL && modal.slot_labels[i] != NULL
+                                     ? modal.slot_labels[i]
+                                     : "";
+        int remove_hover = 0;
+        flint_text_draw(slot_label, frame.content_x, y, flint_ui_font(), c_text);
+        ui_draw_dropdown_button(modal.id + i, frame.content_x,
+                                y + flint_px(22), frame.content_w - remove_w - flint_px(8),
+                                dropdown_h, option_labels, option_count,
+                                &selected[i]);
+        if(ui_draw_icon_btn_padded(frame.content_x + frame.content_w - remove_w,
+                                  y + flint_px(22), flint_px(20),
+                                  flint_px(8), modal.close_icon,
+                                  &remove_hover)) {
+            for(int j = i; j < route_count - 1; j++)
+                modal.routes[j] = modal.routes[j + 1];
+            route_count--;
+            if(modal.route_count != NULL)
+                *modal.route_count = route_count;
+            result.changed = 1;
+            break;
+        }
+        y += row_h;
+    }
+    ui_scroll_container_end(route_area, route_view);
+
+    ui_set_dropdown_clip_top(frame.content_y);
+    ui_set_dropdown_clip_bottom(add_y - flint_px(8));
+
+    y = add_y;
+    dropdown_blocks_buttons = ui_dropdown_captures_click(ui_mouse_world());
+    if(route_count < max_route_count && modal.routes != NULL) {
+        int add_hover = 0;
+        add_w = frame.content_w < flint_px(180) ? frame.content_w : flint_px(180);
+        if(ui_draw_generic_button(frame.content_x + (frame.content_w - add_w) / 2,
+                                  y, add_w, add_h, modal.add_label,
+                                  UI_BUTTON_STYLE_SECONDARY,
+                                  dropdown_blocks_buttons, &add_hover)) {
+            modal.routes[route_count] = option_count > 0 ? modal.options[0].route : 0;
+            route_count++;
+            if(modal.route_count != NULL)
+                *modal.route_count = route_count;
+            result.changed = 1;
+        }
+    }
+
+    {
+        int x = frame.x + (frame.w - total_button_w) / 2;
+        if(ui_draw_generic_button(x, button_y, button_w, button_h,
+                                  modal.reset_label, UI_BUTTON_STYLE_SECONDARY,
+                                  dropdown_blocks_buttons, &reset_hover))
+            result.action = 3;
+        x += button_w + button_gap;
+        if(ui_draw_generic_button(x, button_y, button_w, button_h,
+                                  modal.cancel_label, UI_BUTTON_STYLE_SECONDARY,
+                                  dropdown_blocks_buttons, &cancel_hover))
+            result.action = 1;
+        x += button_w + button_gap;
+        if(ui_draw_generic_button(x, button_y, button_w, button_h,
+                                  modal.save_label, UI_BUTTON_STYLE_PRIMARY,
+                                  dropdown_blocks_buttons, &save_hover))
+            result.action = 2;
+    }
+
+    for(int i = 0; i < route_count; i++) {
+        if(ui_draw_dropdown_menu(modal.id + i) &&
+           modal.routes != NULL && selected[i] >= 0 && selected[i] < option_count) {
+            modal.routes[i] = modal.options[selected[i]].route;
+            result.changed = 1;
+        }
+    }
+    ui_set_dropdown_clip_top(0);
+    ui_set_dropdown_clip_bottom(0);
+
+    return result;
+}
+
 FlintUIToolbarResult
 ui_draw_toolbar(FlintUIToolbar toolbar)
 {
@@ -1411,6 +1508,43 @@ ui_draw_toolbar(FlintUIToolbar toolbar)
                                 toolbar.selected_index);
     }
 
+    return result;
+}
+
+FlintUIToolbarHeaderResult
+ui_draw_toolbar_header(FlintUIToolbarHeader header)
+{
+    FlintUIToolbarHeaderResult result;
+    FlintUIToolbar toolbar = header.toolbar;
+    int height = toolbar.height > 0 ? toolbar.height : flint_px(58);
+    int icon_size = header.leading_icon_size > 0 ? header.leading_icon_size : flint_px(20);
+    int icon_padding = header.leading_icon_padding > 0 ? header.leading_icon_padding : flint_px(8);
+    int leading_w = header.leading_width;
+    int hover = 0;
+
+    memset(&result, 0, sizeof(result));
+    if(leading_w <= 0 && header.leading_icon.id != 0)
+        leading_w = icon_size + icon_padding * 2 + flint_px(24);
+
+    if(!toolbar.draw_menu) {
+        DrawRectangle(0, 0, ui_view_width, height, flint_darken(c_bg, 14));
+        DrawLine(0, height - 1, ui_view_width, height - 1,
+                 flint_darken(c_bg, 42));
+        if(header.leading_icon.id != 0) {
+            result.leading_clicked = ui_draw_icon_btn_padded(flint_px(12), flint_px(12),
+                                                             icon_size, icon_padding,
+                                                             header.leading_icon,
+                                                             &hover);
+        }
+        toolbar.x = leading_w;
+        toolbar.y = 0;
+        toolbar.width = ui_view_width - leading_w;
+        toolbar.height = height;
+        if(toolbar.width < 0)
+            toolbar.width = 0;
+    }
+
+    result.toolbar = ui_draw_toolbar(toolbar);
     return result;
 }
 

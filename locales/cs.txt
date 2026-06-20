@@ -25,6 +25,9 @@ Návod
 [tab_settings]
 Nastavení
 ---
+[tab_statistics]
+Statistiky
+---
 [play_button]
 SPUSTIT
 ---
@@ -478,6 +481,42 @@ Hudba od Elijah_K.
 [theme_system]
 Systém
 ---
+[theme_sky]
+Obloha
+---
+[theme_ocean]
+Oceán
+---
+[theme_forest]
+Les
+---
+[theme_sunset]
+Západ slunce
+---
+[theme_lavender]
+Levandule
+---
+[theme_cherry]
+Třešeň
+---
+[theme_dawn]
+Úsvit
+---
+[theme_sage]
+Šalvěj
+---
+[theme_sepia]
+Sépie
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Máta
+---
+[theme_cobalt]
+Kobalt
+---
 [orientation_label]
 Orientace
 ---
@@ -687,4 +726,40 @@ Celková zádrž
 ---
 [habit_stats_best_streak]
 Nejlepší série
+---
+[bottom_nav_customize_button]
+Upravit spodní navigaci
+---
+[bottom_nav_customize_title]
+Spodní navigace
+---
+[bottom_nav_add_button]
+Přidat položku
+---
+[bottom_nav_slot_1]
+Položka 1
+---
+[bottom_nav_slot_2]
+Položka 2
+---
+[bottom_nav_slot_3]
+Položka 3
+---
+[bottom_nav_slot_4]
+Položka 4
+---
+[bottom_nav_slot_5]
+Položka 5
+---
+[bottom_nav_slot_6]
+Položka 6
+---
+[bottom_nav_slot_7]
+Položka 7
+---
+[bottom_nav_slot_8]
+Položka 8
+---
+[reset_button]
+Obnovit
 ---

@@ -1,4 +1,11 @@
 # Changelog
+## [1.4.6] - 2026-06-20
+### Changed
+- Add a responsive Flint sidebar, configurable bottom navigation, and independent Statistics screen.
+
+### Fixed
+- Preserve queued local habit counter settings when applying sync responses.
+
 ## [1.4.5] - 2026-06-20
 ### Changed
 - Fix spacing issues and translations

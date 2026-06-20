@@ -1435,6 +1435,7 @@ storage_apply_sync_response_json(const char *response_json)
     if(server_version > 0)
         set_meta_int64("sync_last_server_version", server_version);
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
+    g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();

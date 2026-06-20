@@ -342,7 +342,7 @@ whm_config_screen_draw(InbeApp *app)
     if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
         app->practice_config_tab = 0;
 
-    header = ui_draw_title_header(title_h, locale_get("exercise_wim_hof"),
+    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
                                   (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
     if(header.right_clicked) {
         if(app->settings_dirty)

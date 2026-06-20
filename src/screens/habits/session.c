@@ -98,7 +98,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     InbeHabit *habit;
     char date_text[32];
     int top_h = flint_px(58);
-    int nav_h = flint_px(TAB_BAR_H);
+    int bottom_reserved;
     int keyboard_h;
     int viewport_h;
     int max_w = flint_px(400);
@@ -107,6 +107,7 @@ draw_habit_session_edit_screen(InbeApp *app)
 
     if(app == NULL)
         return;
+    bottom_reserved = app_content_bottom_reserved(app);
     if(app->habit_detail_index < 0 || app->habit_detail_index >= app->habits.count) {
         app->inbe.screen = InbeScreenHabits;
         return;
@@ -122,7 +123,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
 
     keyboard_h = habit_session_keyboard_height(app);
-    viewport_h = view_height - top_h - nav_h - keyboard_h;
+    viewport_h = view_height - top_h - bottom_reserved - keyboard_h;
     if(viewport_h < flint_px(80))
         viewport_h = flint_px(80);
 

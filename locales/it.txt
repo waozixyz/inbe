@@ -25,6 +25,9 @@ Manuale
 [tab_settings]
 Impostazioni
 ---
+[tab_statistics]
+Statistiche
+---
 [play_button]
 AVVIA
 ---
@@ -204,6 +207,42 @@ Modalità tema
 ---
 [theme_system]
 Sistema
+---
+[theme_sky]
+Cielo
+---
+[theme_ocean]
+Oceano
+---
+[theme_forest]
+Foresta
+---
+[theme_sunset]
+Tramonto
+---
+[theme_lavender]
+Lavanda
+---
+[theme_cherry]
+Ciliegia
+---
+[theme_dawn]
+Alba
+---
+[theme_sage]
+Salvia
+---
+[theme_sepia]
+Seppia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menta
+---
+[theme_cobalt]
+Cobalto
 ---
 [orientation_label]
 Orientamento
@@ -685,4 +724,40 @@ Apnea totale
 ---
 [habit_stats_best_streak]
 Migliore serie
+---
+[bottom_nav_customize_button]
+Personalizza navigazione inferiore
+---
+[bottom_nav_customize_title]
+Navigazione inferiore
+---
+[bottom_nav_add_button]
+Aggiungi elemento
+---
+[bottom_nav_slot_1]
+Elemento 1
+---
+[bottom_nav_slot_2]
+Elemento 2
+---
+[bottom_nav_slot_3]
+Elemento 3
+---
+[bottom_nav_slot_4]
+Elemento 4
+---
+[bottom_nav_slot_5]
+Elemento 5
+---
+[bottom_nav_slot_6]
+Elemento 6
+---
+[bottom_nav_slot_7]
+Elemento 7
+---
+[bottom_nav_slot_8]
+Elemento 8
+---
+[reset_button]
+Ripristina
 ---

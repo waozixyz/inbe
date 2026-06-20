@@ -418,6 +418,8 @@ storage_init(const char *root)
 {
     if(root == NULL || root[0] == '\0')
         return 0;
+    g_storage.pending_sync_outbox_seq = 0;
+    g_storage.last_sync_changed = 0;
     snprintf(g_storage.root, sizeof(g_storage.root), "%s", root);
     ensure_dir_local(g_storage.root);
     if(!storage_join_path(g_storage.db_path, sizeof(g_storage.db_path),
@@ -444,6 +446,8 @@ storage_close(void)
         sqlite3_close(g_storage.db);
         g_storage.db = NULL;
     }
+    g_storage.pending_sync_outbox_seq = 0;
+    g_storage.last_sync_changed = 0;
 }
 
 const char *

@@ -25,6 +25,9 @@ Inner Breeze
 [tab_settings]
 Настройки
 ---
+[tab_statistics]
+Статистика
+---
 [play_button]
 СТАРТ
 ---
@@ -208,6 +211,42 @@ OK
 ---
 [theme_system]
 Системная
+---
+[theme_sky]
+Небо
+---
+[theme_ocean]
+Океан
+---
+[theme_forest]
+Лес
+---
+[theme_sunset]
+Закат
+---
+[theme_lavender]
+Лаванда
+---
+[theme_cherry]
+Вишня
+---
+[theme_dawn]
+Рассвет
+---
+[theme_sage]
+Шалфей
+---
+[theme_sepia]
+Сепия
+---
+[theme_mono]
+Моно
+---
+[theme_mint]
+Мята
+---
+[theme_cobalt]
+Кобальт
 ---
 [orientation_label]
 Ориентация
@@ -688,4 +727,40 @@ liboqs не собран для этой платформы.
 ---
 [habit_stats_best_streak]
 Лучшая серия
+---
+[bottom_nav_customize_button]
+Настроить нижнюю навигацию
+---
+[bottom_nav_customize_title]
+Нижняя навигация
+---
+[bottom_nav_add_button]
+Добавить пункт
+---
+[bottom_nav_slot_1]
+Пункт 1
+---
+[bottom_nav_slot_2]
+Пункт 2
+---
+[bottom_nav_slot_3]
+Пункт 3
+---
+[bottom_nav_slot_4]
+Пункт 4
+---
+[bottom_nav_slot_5]
+Пункт 5
+---
+[bottom_nav_slot_6]
+Пункт 6
+---
+[bottom_nav_slot_7]
+Пункт 7
+---
+[bottom_nav_slot_8]
+Пункт 8
+---
+[reset_button]
+Сбросить
 ---

@@ -13,13 +13,13 @@
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/practice_screen.h"
+#include "screens/statistics_screen.h"
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
 #include "theme.h"
-#include "version.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_dpi.h"
@@ -54,8 +54,13 @@ void set_global_inbe_app(InbeApp *app);
 InbeApp *get_global_inbe_app(void);
 #endif
 
+#if defined(PLATFORM_WEB) || defined(__ANDROID__)
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
+#else
+#define INBE_DEFAULT_WIDTH 900
+#define INBE_DEFAULT_HEIGHT 720
+#endif
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_INPUT_QUIET_SECONDS 0.45
 
@@ -481,6 +486,7 @@ app_pump_sync(InbeApp *app)
 
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
+static int app_full_view_width = INBE_DEFAULT_WIDTH;
 /* Theme colors are now accessed via theme accessor functions */
 
 static void
@@ -516,10 +522,6 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
 }
 
 enum {
-    APP_BOTTOM_TAB_NONE = -1,
-    APP_BOTTOM_TAB_HABITS = 0,
-    APP_BOTTOM_TAB_PRACTICE = 1,
-    APP_BOTTOM_TAB_SETTINGS = 2,
     APP_SETTINGS_SAVE_DELAY_TICKS = 30
 };
 
@@ -532,28 +534,53 @@ app_schedule_settings_save(InbeApp *app)
     app->settings_save_delay_ticks = APP_SETTINGS_SAVE_DELAY_TICKS;
 }
 
-void
-app_request_bottom_tab(InbeApp *app, int bottom_tab)
+static int
+app_sidebar_is_wide_layout(void)
 {
-    if(app == NULL)
-        return;
-    app->pending_bottom_tab = bottom_tab;
+    return app_full_view_width >= flint_px(600);
+}
+
+static int
+app_sidebar_width(void)
+{
+    int width = flint_px(220);
+    int max_width = app_full_view_width / 3;
+
+    if(width > max_width)
+        width = max_width;
+    if(width < flint_px(180))
+        width = flint_px(180);
+    return width;
 }
 
 static void
-app_apply_bottom_tab(InbeApp *app, int bottom_tab)
+app_request_sidebar_route(InbeApp *app, int route)
+{
+    if(app == NULL)
+        return;
+    app->pending_sidebar_route = route;
+}
+
+static void
+app_apply_sidebar_route(InbeApp *app, int route)
 {
     if(app == NULL)
         return;
 
-    switch(bottom_tab) {
-    case APP_BOTTOM_TAB_HABITS:
-        app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
-        break;
-    case APP_BOTTOM_TAB_PRACTICE:
+    switch(route) {
+    case APP_NAV_ROUTE_PRACTICE:
         app_open_main_tab(app, APP_MAIN_TAB_PRACTICE, 1);
         break;
-    case APP_BOTTOM_TAB_SETTINGS:
+    case APP_NAV_ROUTE_HABITS:
+        app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
+        break;
+    case APP_NAV_ROUTE_STATISTICS:
+        if(app->inbe.screen == InbeScreenPracticeConfig)
+            app_leave_practice_config(app);
+        app->habits.scroll = 0;
+        app->inbe.screen = InbeScreenStatistics;
+        break;
+    case APP_NAV_ROUTE_SETTINGS:
         if(app->inbe.screen == InbeScreenPracticeConfig)
             app_leave_practice_config(app);
         reset_settings_preview(app);
@@ -565,19 +592,21 @@ app_apply_bottom_tab(InbeApp *app, int bottom_tab)
     default:
         break;
     }
+    if(!app_sidebar_is_wide_layout())
+        app->sidebar_open = 0;
 }
 
 static void
-app_apply_pending_bottom_tab(InbeApp *app)
+app_apply_pending_sidebar_route(InbeApp *app)
 {
     int pending;
 
-    if(app == NULL || app->pending_bottom_tab == APP_BOTTOM_TAB_NONE)
+    if(app == NULL || app->pending_sidebar_route == APP_NAV_ROUTE_NONE)
         return;
 
-    pending = app->pending_bottom_tab;
-    app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
-    app_apply_bottom_tab(app, pending);
+    pending = app->pending_sidebar_route;
+    app->pending_sidebar_route = APP_NAV_ROUTE_NONE;
+    app_apply_sidebar_route(app, pending);
 }
 
 static void
@@ -591,23 +620,216 @@ app_flush_deferred_settings(InbeApp *app)
         save_settings(app);
 }
 
-static int
-app_should_draw_bottom_nav(const InbeApp *app)
+static int app_current_nav_route(const InbeApp *app);
+static int app_bottom_nav_contains_route(const InbeApp *app, int route);
+
+int
+app_toolbar_height(void)
 {
-    if(app == NULL || app->modal.active || app->habit_session_edit.active)
+    return flint_px(58);
+}
+
+int
+app_content_top_reserved(const InbeApp *app)
+{
+    (void)app;
+    return app_toolbar_height();
+}
+
+int
+app_content_bottom_reserved(const InbeApp *app)
+{
+    if(app == NULL || app->bottom_nav_count <= 0)
         return 0;
-    switch(app->inbe.screen) {
-    case InbeScreenStart:
-    case InbeScreenSettings:
-    case InbeScreenHabits:
-    case InbeScreenHabitEdit:
+    if(app_bottom_nav_contains_route(app, app_current_nav_route(app)))
+        return ui_bottom_nav_height();
+    return 0;
+}
+
+int
+app_draw_sidebar_toggle(InbeApp *app, int x, int y)
+{
+    int hover = 0;
+    Texture2D icon;
+
+    if(app == NULL || app->modal.active)
+        return 0;
+    if(app->sidebar_open && app_sidebar_is_wide_layout())
+        return 0;
+    icon = app->sidebar_open
+               ? app->icons[UI_ICON_TYPE_X]
+               : app->icons[UI_ICON_TYPE_STACK];
+    if(ui_draw_icon_btn_padded(x, y, flint_px(20), flint_px(8),
+                              icon, &hover)) {
+        app->sidebar_open = !app->sidebar_open;
         return 1;
-    default:
-        return 0;
+    }
+    return 0;
+}
+
+static void
+app_bottom_nav_default_routes(int *routes, int *count)
+{
+    if(routes == NULL)
+        return;
+    routes[0] = APP_NAV_ROUTE_HABITS;
+    routes[1] = APP_NAV_ROUTE_PRACTICE;
+    routes[2] = APP_NAV_ROUTE_STATISTICS;
+    if(count != NULL)
+        *count = 3;
+}
+
+static void
+app_bottom_nav_set_defaults(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app_bottom_nav_default_routes(app->bottom_nav_routes, &app->bottom_nav_count);
+}
+
+static int
+app_nav_route_valid(int route)
+{
+    return route == APP_NAV_ROUTE_HABITS ||
+           route == APP_NAV_ROUTE_PRACTICE ||
+           route == APP_NAV_ROUTE_STATISTICS ||
+           route == APP_NAV_ROUTE_SETTINGS;
+}
+
+static void
+app_bottom_nav_normalize(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    if(app->bottom_nav_count < 0 || app->bottom_nav_count > APP_BOTTOM_NAV_MAX_ITEMS) {
+        app_bottom_nav_set_defaults(app);
+        return;
+    }
+    for(int i = 0; i < app->bottom_nav_count; i++) {
+        if(!app_nav_route_valid(app->bottom_nav_routes[i]))
+            app_bottom_nav_set_defaults(app);
     }
 }
 
-static void app_draw_bottom_nav(InbeApp *app);
+static const char *
+app_nav_route_label(int route)
+{
+    switch(route) {
+    case APP_NAV_ROUTE_HABITS: return locale_get("tab_habits");
+    case APP_NAV_ROUTE_PRACTICE: return locale_get("tab_practice");
+    case APP_NAV_ROUTE_STATISTICS: return locale_get("tab_statistics");
+    case APP_NAV_ROUTE_SETTINGS: return locale_get("tab_settings");
+    default: break;
+    }
+    return "";
+}
+
+static Texture2D
+app_nav_route_icon(InbeApp *app, int route)
+{
+    if(app == NULL)
+        return (Texture2D){0};
+    switch(route) {
+    case APP_NAV_ROUTE_HABITS: return app->icons[UI_ICON_TYPE_HABIT];
+    case APP_NAV_ROUTE_PRACTICE: return app->icons[UI_ICON_TYPE_AMEN];
+    case APP_NAV_ROUTE_STATISTICS: return app->icons[UI_ICON_TYPE_STAT];
+    case APP_NAV_ROUTE_SETTINGS: return app->icons[UI_ICON_TYPE_GEAR];
+    default: break;
+    }
+    return (Texture2D){0};
+}
+
+static int
+app_current_nav_route(const InbeApp *app)
+{
+    if(app == NULL)
+        return APP_NAV_ROUTE_NONE;
+    switch(app->inbe.screen) {
+    case InbeScreenStart:
+        return APP_NAV_ROUTE_PRACTICE;
+    case InbeScreenHabits:
+        return APP_NAV_ROUTE_HABITS;
+    case InbeScreenStatistics:
+        return APP_NAV_ROUTE_STATISTICS;
+    case InbeScreenSettings:
+        return APP_NAV_ROUTE_SETTINGS;
+    default:
+        break;
+    }
+    return APP_NAV_ROUTE_NONE;
+}
+
+static int
+app_bottom_nav_contains_route(const InbeApp *app, int route)
+{
+    if(app == NULL || route == APP_NAV_ROUTE_NONE)
+        return 0;
+    for(int i = 0; i < app->bottom_nav_count && i < APP_BOTTOM_NAV_MAX_ITEMS; i++) {
+        if(app->bottom_nav_routes[i] == route)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+app_nav_route_active(const InbeApp *app, int route)
+{
+    if(app == NULL)
+        return 0;
+    if(route == APP_NAV_ROUTE_PRACTICE)
+        return app->inbe.screen == InbeScreenStart ||
+               app->inbe.screen == InbeScreenPracticeConfig;
+    if(route == APP_NAV_ROUTE_HABITS)
+        return app->inbe.screen == InbeScreenHabits ||
+               app->inbe.screen == InbeScreenHabitEdit ||
+               app->inbe.screen == InbeScreenHabitSessionEdit;
+    if(route == APP_NAV_ROUTE_STATISTICS)
+        return app->inbe.screen == InbeScreenStatistics;
+    if(route == APP_NAV_ROUTE_SETTINGS)
+        return app->inbe.screen == InbeScreenSettings;
+    return 0;
+}
+
+static int
+app_should_draw_bottom_nav(const InbeApp *app)
+{
+    if(app == NULL || app->bottom_nav_count <= 0)
+        return 0;
+    return app_bottom_nav_contains_route(app, app_current_nav_route(app));
+}
+
+static void
+app_draw_bottom_nav(InbeApp *app)
+{
+    FlintUIBottomNavItem items[APP_BOTTOM_NAV_MAX_ITEMS];
+    FlintUIBottomNavResult result;
+    int count;
+
+    if(!app_should_draw_bottom_nav(app))
+        return;
+    app_bottom_nav_normalize(app);
+    count = app->bottom_nav_count;
+    if(count > APP_BOTTOM_NAV_MAX_ITEMS)
+        count = APP_BOTTOM_NAV_MAX_ITEMS;
+    for(int i = 0; i < count; i++) {
+        int route = app->bottom_nav_routes[i];
+        items[i] = (FlintUIBottomNavItem){
+            route,
+            app_nav_route_label(route),
+            app_nav_route_icon(app, route),
+            app_nav_route_active(app, route),
+            app->modal.active
+        };
+    }
+    result = ui_draw_bottom_nav((FlintUIBottomNav){
+        .view_width = view_width,
+        .view_height = view_height,
+        .count = count,
+        .items = items
+    });
+    if(result.clicked_route != APP_NAV_ROUTE_NONE)
+        app_request_sidebar_route(app, result.clicked_route);
+}
 
 static int
 exercise_manual_seen_bit(int exercise_type)
@@ -638,28 +860,87 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
     }
 }
 
-static UITab g_tabs[] = {
-    {NULL, {0}, UI_ICON_TYPE_HOME},
-    {NULL, {0}, UI_ICON_TYPE_AMEN},
-    {NULL, {0}, UI_ICON_TYPE_GEAR}
-};
+static void
+app_draw_sidebar_button(InbeApp *app, int route, int x, int y, int w,
+                        Texture2D icon, const char *label)
+{
+    int hover = 0;
+    int selected = 0;
+    int wide = app_sidebar_is_wide_layout();
+    int button_h = wide ? flint_px(50) : flint_px(42);
+    int icon_size = wide ? flint_px(24) : flint_px(20);
+    int icon_y = y + (button_h - icon_size) / 2;
+    UIButtonStyle style = UI_BUTTON_STYLE_SECONDARY;
 
-static UITabBar g_tab_bar = {g_tabs, 3};
+    if(app == NULL)
+        return;
+    selected = app_nav_route_active(app, route);
+    if(selected)
+        style = UI_BUTTON_STYLE_TAB_SELECTED;
+
+    if(ui_draw_generic_button(x, y, w, button_h, label, style, 0, &hover))
+        app_request_sidebar_route(app, route);
+    if(icon.id != 0) {
+        DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height},
+                       (Rectangle){x + flint_px(12), icon_y,
+                                   icon_size, icon_size},
+                       (Vector2){0}, 0, theme_get_icon());
+    }
+}
 
 static void
-app_draw_bottom_nav(InbeApp *app)
+app_draw_sidebar(InbeApp *app, int width, int height)
 {
-    int tab;
+    int pad = flint_px(16);
+    int title_h = flint_px(58);
+    int icon_w = flint_px(20) + flint_px(8) * 2;
+    int title_max_w = width - (flint_px(12) + icon_w) * 2;
+    int button_w = width - pad * 2;
+    int button_gap = app_sidebar_is_wide_layout() ? flint_px(10) : flint_px(8);
+    int button_h = app_sidebar_is_wide_layout() ? flint_px(50) : flint_px(42);
+    int y = title_h + flint_px(16);
+    int title_font;
+    int title_w;
+    int title_x;
 
-    if(!app_should_draw_bottom_nav(app))
+    if(app == NULL)
         return;
-    tab = ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
-    if(tab == 0)
-        app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
-    else if(tab == 1)
-        app_request_bottom_tab(app, APP_BOTTOM_TAB_PRACTICE);
-    else if(tab == 2)
-        app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
+    DrawRectangle(0, 0, width, height, flint_darken(theme_get_bg(), 8));
+    DrawLine(width - 1, 0, width - 1, height, flint_darken(theme_get_bg(), 42));
+
+    if(app->sidebar_open) {
+        int hover = 0;
+        if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(20),
+                                  flint_px(8), app->icons[UI_ICON_TYPE_X],
+                                  &hover))
+            app->sidebar_open = 0;
+    } else {
+        app_draw_sidebar_toggle(app, flint_px(12), flint_px(12));
+    }
+    if(title_max_w < flint_px(80))
+        title_max_w = width - pad * 2;
+    title_font = flint_ui_title_font(locale_get("app_title"), title_max_w);
+    title_w = flint_text_measure(locale_get("app_title"), title_font);
+    title_x = (width - title_w) / 2;
+    if(title_x < pad + icon_w)
+        title_x = pad + icon_w;
+    if(title_x + title_w > width - pad)
+        title_x = width - pad - title_w;
+    flint_text_draw(locale_get("app_title"), title_x,
+                    flint_ui_text_y(locale_get("app_title"), 0, title_h, title_font),
+                    title_font, theme_get_text());
+
+    app_draw_sidebar_button(app, APP_NAV_ROUTE_PRACTICE, pad, y, button_w,
+                            app->icons[UI_ICON_TYPE_AMEN], locale_get("tab_practice"));
+    y += button_h + button_gap;
+    app_draw_sidebar_button(app, APP_NAV_ROUTE_HABITS, pad, y, button_w,
+                            app->icons[UI_ICON_TYPE_HABIT], locale_get("tab_habits"));
+    y += button_h + button_gap;
+    app_draw_sidebar_button(app, APP_NAV_ROUTE_STATISTICS, pad, y, button_w,
+                            app->icons[UI_ICON_TYPE_STAT], locale_get("tab_statistics"));
+
+    app_draw_sidebar_button(app, APP_NAV_ROUTE_SETTINGS, pad, height - pad - button_h, button_w,
+                            app->icons[UI_ICON_TYPE_GEAR], locale_get("tab_settings"));
 }
 
 static int
@@ -719,21 +1000,12 @@ unload_locale_font(InbeApp *app)
     app->locale_font_8 = (Font){0};
 }
 
-static void
-refresh_tab_labels(void)
-{
-    g_tabs[0].label = locale_get("tab_habits");
-    g_tabs[1].label = locale_get("tab_practice");
-    g_tabs[2].label = locale_get("tab_settings");
-}
-
 void
 refresh_locale_dependent_text(InbeApp *app)
 {
     if(app == NULL)
         return;
 
-    refresh_tab_labels();
     if(!config.title_custom) {
         snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
     }
@@ -1075,7 +1347,6 @@ app_init(void *vapp) {
     if(!load_locale_font(app)) {
         TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
     }
-    refresh_tab_labels();
     load_config();
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
@@ -1094,11 +1365,14 @@ app_init(void *vapp) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, app_content_top_reserved(app),
+                                  app_content_bottom_reserved(app));
     habits_init(&app->habits);
     app->habit_detail_index = -1;
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
-    app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
+    app->sidebar_open = 0;
+    app->pending_sidebar_route = APP_NAV_ROUTE_NONE;
+    app_bottom_nav_normalize(app);
     app_open_main_tab(app, app->main_tab, 0);
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1123,14 +1397,6 @@ app_init(void *vapp) {
 
     // Load all icons
     flint_load_all_icons(app->icons);
-
-    /* Update tab bar icons */
-    g_tabs[0].icon = app->icons[UI_ICON_TYPE_HABIT];
-    g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
-    g_tabs[1].icon = app->icons[UI_ICON_TYPE_AMEN];
-    g_tabs[1].icon_type = UI_ICON_TYPE_AMEN;
-    g_tabs[2].icon = app->icons[UI_ICON_TYPE_GEAR];
-    g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
 
     ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
@@ -1217,6 +1483,11 @@ app_web_background_tick(int elapsed_ms)
 static void
 handle_back_button(InbeApp *app)
 {
+    if(app->sidebar_open) {
+        app->sidebar_open = 0;
+        return;
+    }
+
     /* If modal is active, let modal drawing handle it */
     if(app->modal.active) {
         return;
@@ -1240,6 +1511,12 @@ handle_back_button(InbeApp *app)
 
     case InbeScreenHabits:
         app->inbe.screen = InbeScreenStart;
+        break;
+
+    case InbeScreenStatistics:
+        app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
+                               ? InbeScreenHabits
+                               : InbeScreenStart;
         break;
 
     case InbeScreenHabitEdit:
@@ -1297,11 +1574,84 @@ handle_back_button(InbeApp *app)
 }
 
 static void
+app_draw_bottom_nav_config_modal(InbeApp *app)
+{
+    const char *slot_labels[APP_BOTTOM_NAV_MAX_ITEMS];
+    FlintUIBottomNavOption options[4];
+    FlintUIBottomNavConfigResult result;
+
+    if(app == NULL)
+        return;
+    slot_labels[0] = locale_get("bottom_nav_slot_1");
+    slot_labels[1] = locale_get("bottom_nav_slot_2");
+    slot_labels[2] = locale_get("bottom_nav_slot_3");
+    slot_labels[3] = locale_get("bottom_nav_slot_4");
+    slot_labels[4] = locale_get("bottom_nav_slot_5");
+    slot_labels[5] = locale_get("bottom_nav_slot_6");
+    slot_labels[6] = locale_get("bottom_nav_slot_7");
+    slot_labels[7] = locale_get("bottom_nav_slot_8");
+    options[0] = (FlintUIBottomNavOption){
+        APP_NAV_ROUTE_HABITS,
+        app_nav_route_label(APP_NAV_ROUTE_HABITS),
+        app_nav_route_icon(app, APP_NAV_ROUTE_HABITS)
+    };
+    options[1] = (FlintUIBottomNavOption){
+        APP_NAV_ROUTE_PRACTICE,
+        app_nav_route_label(APP_NAV_ROUTE_PRACTICE),
+        app_nav_route_icon(app, APP_NAV_ROUTE_PRACTICE)
+    };
+    options[2] = (FlintUIBottomNavOption){
+        APP_NAV_ROUTE_STATISTICS,
+        app_nav_route_label(APP_NAV_ROUTE_STATISTICS),
+        app_nav_route_icon(app, APP_NAV_ROUTE_STATISTICS)
+    };
+    options[3] = (FlintUIBottomNavOption){
+        APP_NAV_ROUTE_SETTINGS,
+        app_nav_route_label(APP_NAV_ROUTE_SETTINGS),
+        app_nav_route_icon(app, APP_NAV_ROUTE_SETTINGS)
+    };
+
+    result = ui_draw_bottom_nav_config_modal((FlintUIBottomNavConfigModal){
+        .id = 700,
+        .title = locale_get("bottom_nav_customize_title"),
+        .routes = app->bottom_nav_draft_routes,
+        .route_count = &app->bottom_nav_draft_count,
+        .max_route_count = APP_BOTTOM_NAV_MAX_ITEMS,
+        .slot_labels = slot_labels,
+        .options = options,
+        .option_count = 4,
+        .add_label = locale_get("bottom_nav_add_button"),
+        .cancel_label = locale_get("cancel_button"),
+        .save_label = locale_get("save_button"),
+        .reset_label = locale_get("reset_button"),
+        .close_icon = app->icons[UI_ICON_TYPE_X]
+    });
+    if(result.action == 1) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+    } else if(result.action == 2) {
+        app->bottom_nav_count = app->bottom_nav_draft_count;
+        for(int i = 0; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
+            app->bottom_nav_routes[i] = app->bottom_nav_draft_routes[i];
+        app_bottom_nav_normalize(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+    } else if(result.action == 3) {
+        app_bottom_nav_default_routes(app->bottom_nav_draft_routes,
+                                      &app->bottom_nav_draft_count);
+    }
+}
+
+static void
 draw_global_modal(InbeApp *app)
 {
     int modal_result;
 
     if(app == NULL || !app->modal.active)
+        return;
+    if(app->modal_open_frame == app->inbe.frame)
         return;
 
     if(app->modal.type == UIModalMeditationNetworkError) {
@@ -1314,6 +1664,8 @@ draw_global_modal(InbeApp *app)
             app->modal.type = UIModalNone;
         }
     }
+    if(app->modal.type == UIModalBottomNavConfig)
+        app_draw_bottom_nav_config_modal(app);
 }
 
 static void
@@ -1323,7 +1675,7 @@ updateapp(InbeApp *app)
     int center_y = view_height / 2;
     int hover = 0;
 
-    app_apply_pending_bottom_tab(app);
+    app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
@@ -1344,7 +1696,6 @@ updateapp(InbeApp *app)
     if(app->inbe.screen == InbeScreenSettings) {
         if(settings_screen_draw(app))
             goto finish_frame;
-        app_draw_bottom_nav(app);
         goto finish_frame;
     }
 
@@ -1367,24 +1718,27 @@ updateapp(InbeApp *app)
 
     if(app->inbe.screen == InbeScreenHabits) {
         draw_habits_screen(app);
-        app_draw_bottom_nav(app);
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenStatistics) {
+        draw_statistics_screen(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenHabitEdit) {
         draw_habit_edit_screen(app);
-        app_draw_bottom_nav(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenHabitSessionEdit) {
         draw_habit_session_edit_screen(app);
-        app_draw_bottom_nav(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenStart) {
-        practice_update_circle_bounds(app, flint_px(48), flint_px(58) + flint_px(64));
+        practice_update_circle_bounds(app, app_content_top_reserved(app),
+                                      app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
         practice_update_circle_bounds(app, 0, 84);
     }
@@ -1398,28 +1752,14 @@ updateapp(InbeApp *app)
 
     switch (app->inbe.screen) {
     case InbeScreenStart:
-        DrawRectangle(0, 0, view_width, flint_px(58), flint_darken(theme_get_bg(), 14));
-        DrawLine(0, flint_px(58) - 1, view_width, flint_px(58) - 1,
-                 flint_darken(theme_get_bg(), 42));
-
         {
             const char *exercise_options[EXERCISE_COUNT];
             int exercise_values[EXERCISE_COUNT];
+            FlintUIToolbarAction toolbar_actions[2];
+            FlintUIToolbarHeaderResult header_result;
+            FlintUIToolbarResult menu_result;
             int activity_count;
             int activity_index;
-            int dropdown_w = flint_px(230);
-            int dropdown_h = flint_px(36);
-            int manual_icon_size = flint_px(20);
-            int manual_icon_padding = flint_px(8);
-            int manual_btn_w = manual_icon_size + manual_icon_padding * 2;
-            int settings_icon_size = flint_px(20);
-            int settings_icon_padding = flint_px(8);
-            int settings_btn_w = settings_icon_size + settings_icon_padding * 2;
-            int selector_gap = flint_px(8);
-            int dropdown_x;
-            int dropdown_y;
-            int manual_x;
-            int settings_x;
             int exercise_changed = 0;
 
             activity_count = EXERCISE_COUNT;
@@ -1429,31 +1769,41 @@ updateapp(InbeApp *app)
             }
             activity_index = clampi(app->exercise_type, 0, EXERCISE_COUNT - 1);
 
-            settings_x = view_width - settings_btn_w - flint_px(10);
-            manual_x = settings_x - selector_gap - manual_btn_w;
-            dropdown_x = flint_px(12);
-            dropdown_y = (flint_px(58) - dropdown_h) / 2;
-            if(dropdown_x + dropdown_w > manual_x - selector_gap)
-                dropdown_w = manual_x - selector_gap - dropdown_x;
-            if(dropdown_w < flint_px(160))
-                dropdown_w = flint_px(160);
-
-            if(!app->modal.active &&
-               ui_draw_dropdown_button(300, dropdown_x, dropdown_y, dropdown_w, dropdown_h,
-                                       exercise_options, activity_count, &activity_index)) {
-                app->exercise_type = exercise_values[activity_index];
-                exercise_changed = 1;
-            }
-            if(!app->modal.active &&
-               ui_draw_icon_btn_padded(manual_x, dropdown_y, manual_icon_size, manual_icon_padding,
-                                       app->icons[UI_ICON_TYPE_MANUAL], &hover)) {
+            toolbar_actions[0] = (FlintUIToolbarAction){
+                app->icons[UI_ICON_TYPE_MANUAL],
+                app->modal.active
+            };
+            toolbar_actions[1] = (FlintUIToolbarAction){
+                app->icons[UI_ICON_TYPE_WRENCH],
+                app->modal.active
+            };
+            header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
+                .leading_icon = app->sidebar_open ? (Texture2D){0} : app->icons[UI_ICON_TYPE_STACK],
+                .toolbar = (FlintUIToolbar){
+                    .id = 300,
+                    .height = flint_px(58),
+                    .options = app->modal.active ? NULL : exercise_options,
+                    .option_count = app->modal.active ? 0 : activity_count,
+                    .selected_index = &activity_index,
+                    .dropdown_min_width = flint_px(160),
+                    .dropdown_max_width = flint_px(230),
+                    .dropdown_height = flint_px(36),
+                    .actions = toolbar_actions,
+                    .action_count = 2,
+                    .action_icon_size = flint_px(20),
+                    .action_icon_padding = flint_px(8),
+                    .action_gap = flint_px(8),
+                    .side_padding = flint_px(12)
+                }
+            });
+            if(header_result.leading_clicked)
+                app->sidebar_open = 1;
+            if(header_result.toolbar.clicked_action == 0) {
                 app->tutorial_step = 0;
                 app->manual_scroll = 0;
                 app->inbe.screen = InbeScreenManual;
             }
-            if(!app->modal.active &&
-               ui_draw_icon_btn_padded(settings_x, dropdown_y, settings_icon_size, settings_icon_padding,
-                                       app->icons[UI_ICON_TYPE_WRENCH], &hover)) {
+            if(header_result.toolbar.clicked_action == 1) {
                 reset_settings_preview(app);
                 app->settings_scroll = 0;
                 app->practice_config_tab = 0;
@@ -1472,14 +1822,22 @@ updateapp(InbeApp *app)
                 }
             }
 
-            if(!app->modal.active && ui_draw_dropdown_menu(300)) {
+            menu_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
+                .toolbar = (FlintUIToolbar){
+                    .id = 300,
+                    .draw_menu = 1,
+                    .options = exercise_options,
+                    .option_count = activity_count,
+                    .selected_index = &activity_index
+                }
+            }).toolbar;
+            if(!app->modal.active && menu_result.selected_menu_item >= 0) {
                 app->exercise_type = exercise_values[activity_index];
                 exercise_changed = 1;
             }
             if(exercise_changed)
                 save_settings(app);
         }
-        app_draw_bottom_nav(app);
         if(app->modal.active && app->modal.type == UIModalMeditationSetup) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_setup_modal != NULL)
@@ -1506,6 +1864,7 @@ updateapp(InbeApp *app)
     }
 
 finish_frame:
+    app_draw_bottom_nav(app);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app->inbe.frame++;
@@ -1514,32 +1873,89 @@ finish_frame:
 void
 app_update_draw(void *vapp, Rectangle viewport) {
     InbeApp *app = vapp;
+    int full_width;
+    int full_height;
+    int content_x = 0;
+    int content_w;
+    int sidebar_w = 0;
+    Camera2D frame_camera;
+
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
 
-    view_width = (int)viewport.width;
-    view_height = (int)viewport.height;
+    full_width = (int)viewport.width;
+    full_height = (int)viewport.height;
+    app_full_view_width = full_width;
+    view_width = full_width;
+    view_height = full_height;
 
     /* Update DPI cache */
     flint_dpi_update(view_width, view_height);
     flint_set_view_size(view_width, view_height);
 
     ui_init(view_width, view_height, flint_dpi_scale());
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
+    practice_update_circle_bounds(app, app_content_top_reserved(app),
+                                  app_content_bottom_reserved(app));
 
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
-    app->camera.zoom = 1.0f;
-    app->camera.offset.x = viewport.x;
-    app->camera.offset.y = viewport.y;
-    ui_set_frame(app->camera);
     ui_set_cursor_clickable(&app->cursor_clickable);
     ui_set_cursor_disabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
 
     DrawRectangleRec(viewport, theme_get_bg());
-    flint_clip_begin((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
+
+    if(app->sidebar_open && !app_sidebar_is_wide_layout()) {
+        app->camera = (Camera2D){0};
+        app->camera.zoom = 1.0f;
+        app->camera.offset.x = viewport.x;
+        app->camera.offset.y = viewport.y;
+        ui_set_frame(app->camera);
+        flint_clip_begin((int)viewport.x, (int)viewport.y, full_width, full_height);
+        BeginMode2D(app->camera);
+            DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
+            app_draw_sidebar(app, view_width, view_height);
+        EndMode2D();
+        flint_clip_end();
+        app_apply_pending_sidebar_route(app);
+        app_flush_deferred_settings(app);
+        habits_flush_save(app);
+        app_pump_sync(app);
+        return;
+    }
+
+    if(app->sidebar_open && app_sidebar_is_wide_layout()) {
+        sidebar_w = app_sidebar_width();
+        frame_camera = (Camera2D){0};
+        frame_camera.zoom = 1.0f;
+        frame_camera.offset.x = viewport.x;
+        frame_camera.offset.y = viewport.y;
+        flint_set_view_size(sidebar_w, full_height);
+        ui_init(sidebar_w, full_height, flint_dpi_scale());
+        ui_set_frame(frame_camera);
+        flint_clip_begin((int)viewport.x, (int)viewport.y, sidebar_w, full_height);
+        BeginMode2D(frame_camera);
+            app_draw_sidebar(app, sidebar_w, full_height);
+        EndMode2D();
+        flint_clip_end();
+        content_x = sidebar_w;
+    }
+
+    content_w = full_width - content_x;
+    if(content_w < 1)
+        content_w = 1;
+    view_width = content_w;
+    view_height = full_height;
+    flint_set_view_size(view_width, view_height);
+    ui_init(view_width, view_height, flint_dpi_scale());
+    app->camera = (Camera2D){0};
+    app->camera.zoom = 1.0f;
+    app->camera.offset.x = viewport.x + content_x;
+    app->camera.offset.y = viewport.y;
+    ui_set_frame(app->camera);
+
+    flint_clip_begin((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
             updateapp(app);

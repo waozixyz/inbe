@@ -25,6 +25,9 @@
 [tab_settings]
 设置
 ---
+[tab_statistics]
+统计
+---
 [play_button]
 开始
 ---
@@ -476,6 +479,42 @@ Inner Breeze 数据导出
 [theme_system]
 系统
 ---
+[theme_sky]
+天空
+---
+[theme_ocean]
+海洋
+---
+[theme_forest]
+森林
+---
+[theme_sunset]
+日落
+---
+[theme_lavender]
+薰衣草
+---
+[theme_cherry]
+樱桃
+---
+[theme_dawn]
+黎明
+---
+[theme_sage]
+鼠尾草
+---
+[theme_sepia]
+棕褐
+---
+[theme_mono]
+单色
+---
+[theme_mint]
+薄荷
+---
+[theme_cobalt]
+钴蓝
+---
 [orientation_label]
 方向
 ---
@@ -685,4 +724,40 @@ Wim Hof 屏息轮次
 ---
 [habit_stats_best_streak]
 最佳连续记录
+---
+[bottom_nav_customize_button]
+自定义底部导航
+---
+[bottom_nav_customize_title]
+底部导航
+---
+[bottom_nav_add_button]
+添加项目
+---
+[bottom_nav_slot_1]
+项目 1
+---
+[bottom_nav_slot_2]
+项目 2
+---
+[bottom_nav_slot_3]
+项目 3
+---
+[bottom_nav_slot_4]
+项目 4
+---
+[bottom_nav_slot_5]
+项目 5
+---
+[bottom_nav_slot_6]
+项目 6
+---
+[bottom_nav_slot_7]
+项目 7
+---
+[bottom_nav_slot_8]
+项目 8
+---
+[reset_button]
+重置
 ---

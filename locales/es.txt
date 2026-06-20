@@ -25,6 +25,9 @@ Manual
 [tab_settings]
 Configuración
 ---
+[tab_statistics]
+Estadísticas
+---
 [play_button]
 REPRODUCIR
 ---
@@ -478,6 +481,42 @@ Música de Elijah_K.
 [theme_system]
 Sistema
 ---
+[theme_sky]
+Cielo
+---
+[theme_ocean]
+Océano
+---
+[theme_forest]
+Bosque
+---
+[theme_sunset]
+Atardecer
+---
+[theme_lavender]
+Lavanda
+---
+[theme_cherry]
+Cereza
+---
+[theme_dawn]
+Amanecer
+---
+[theme_sage]
+Salvia
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menta
+---
+[theme_cobalt]
+Cobalto
+---
 [orientation_label]
 Orientación
 ---
@@ -687,4 +726,40 @@ Retención total
 ---
 [habit_stats_best_streak]
 Mejor racha
+---
+[bottom_nav_customize_button]
+Personalizar navegación inferior
+---
+[bottom_nav_customize_title]
+Navegación inferior
+---
+[bottom_nav_add_button]
+Añadir elemento
+---
+[bottom_nav_slot_1]
+Elemento 1
+---
+[bottom_nav_slot_2]
+Elemento 2
+---
+[bottom_nav_slot_3]
+Elemento 3
+---
+[bottom_nav_slot_4]
+Elemento 4
+---
+[bottom_nav_slot_5]
+Elemento 5
+---
+[bottom_nav_slot_6]
+Elemento 6
+---
+[bottom_nav_slot_7]
+Elemento 7
+---
+[bottom_nav_slot_8]
+Elemento 8
+---
+[reset_button]
+Restablecer
 ---
