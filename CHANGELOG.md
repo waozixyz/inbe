@@ -3,6 +3,8 @@
 ### Fixed
 - Improve sync auth, websocket reconnects, and queued habit/session updates.
 - Reduce SQLite-related UI flicker and speed up bulk import sync queueing.
+- Fixed dropdown menus so temporary option lists cannot crash theme/device selection.
+- Fixed Linux test and release builds to link against the vendored curl library path.
 
 ## [1.4.1] - 2026-06-19
 ### Changed
