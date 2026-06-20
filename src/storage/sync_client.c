@@ -1,3 +1,12 @@
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
+#define MMNOSOUND
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 #include "sync_client.h"
 
 #include "storage.h"
@@ -1485,10 +1494,14 @@ sync_client_wait_for_remote_event(const char *base_url)
 
         code = curl_ws_recv(curl, buffer, sizeof(buffer) - 1, &got, &meta);
         if(code == CURLE_AGAIN) {
+#if defined(_WIN32)
+            Sleep(100);
+#else
             struct timespec delay;
             delay.tv_sec = 0;
             delay.tv_nsec = 100000000L;
             nanosleep(&delay, NULL);
+#endif
             continue;
         }
         if(code == CURLE_GOT_NOTHING) {

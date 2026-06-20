@@ -1,3 +1,11 @@
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
+#define MMNOSOUND
+#define NOMINMAX
+#endif
+
 #include "app.h"
 #include "data.h"
 #include "flint_locale.h"
@@ -27,6 +35,8 @@
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
+#elif defined(_WIN32)
+#include <windows.h>
 #else
 #include <pthread.h>
 #include <unistd.h>
@@ -63,14 +73,52 @@ typedef struct InbeSyncWorkerArgs {
     char url[256];
 } InbeSyncWorkerArgs;
 
+#if defined(_WIN32)
+#define sync_thread_return DWORD WINAPI
+#define sync_thread_done 0
+#define sync_sleep(seconds) Sleep((DWORD)((seconds) * 1000))
+#define sync_lock() AcquireSRWLockExclusive(&g_sync_mutex)
+#define sync_unlock() ReleaseSRWLockExclusive(&g_sync_mutex)
+typedef HANDLE SyncThread;
+static SRWLOCK g_sync_mutex = SRWLOCK_INIT;
+static int
+sync_thread_start(SyncThread *thread, LPTHREAD_START_ROUTINE func, void *arg)
+{
+    *thread = CreateThread(NULL, 0, func, arg, 0, NULL);
+    return *thread != NULL;
+}
+static void
+sync_thread_detach(SyncThread thread)
+{
+    CloseHandle(thread);
+}
+#else
+#define sync_thread_return void *
+#define sync_thread_done NULL
+#define sync_sleep(seconds) sleep(seconds)
+#define sync_lock() pthread_mutex_lock(&g_sync_mutex)
+#define sync_unlock() pthread_mutex_unlock(&g_sync_mutex)
+typedef pthread_t SyncThread;
 static pthread_mutex_t g_sync_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int
+sync_thread_start(SyncThread *thread, void *(*func)(void *), void *arg)
+{
+    return pthread_create(thread, NULL, func, arg) == 0;
+}
+static void
+sync_thread_detach(SyncThread thread)
+{
+    pthread_detach(thread);
+}
+#endif
+
 static int g_sync_finished = 0;
 static int g_sync_finished_result = INBE_SYNC_CLIENT_OK;
 static int g_sync_finished_changed = 0;
 static int g_sync_events_running = 0;
 static char g_sync_events_url[256];
 
-static void *
+static sync_thread_return
 app_sync_worker(void *userdata)
 {
     InbeSyncWorkerArgs *args = userdata;
@@ -83,13 +131,13 @@ app_sync_worker(void *userdata)
         free(args);
     }
 
-    pthread_mutex_lock(&g_sync_mutex);
+    sync_lock();
     g_sync_finished_result = result;
     g_sync_finished_changed = changed;
     g_sync_finished = 1;
     g_sync_running = 0;
-    pthread_mutex_unlock(&g_sync_mutex);
-    return NULL;
+    sync_unlock();
+    return sync_thread_done;
 }
 
 static void
@@ -99,12 +147,12 @@ app_collect_finished_sync(void)
     int result;
     int changed;
 
-    pthread_mutex_lock(&g_sync_mutex);
+    sync_lock();
     finished = g_sync_finished;
     result = g_sync_finished_result;
     changed = g_sync_finished_changed;
     g_sync_finished = 0;
-    pthread_mutex_unlock(&g_sync_mutex);
+    sync_unlock();
 
     if(!finished)
         return;
@@ -118,75 +166,75 @@ app_collect_finished_sync(void)
     }
 }
 
-static void *
+static sync_thread_return
 app_sync_events_worker(void *userdata)
 {
     InbeSyncWorkerArgs *args = userdata;
 
     if(args == NULL)
-        return NULL;
+        return sync_thread_done;
     for(;;) {
         InbeSyncClientResult result;
-        pthread_mutex_lock(&g_sync_mutex);
+        sync_lock();
         if(g_sync_running) {
-            pthread_mutex_unlock(&g_sync_mutex);
-            sleep(1);
+            sync_unlock();
+            sync_sleep(1);
             continue;
         }
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
 
         result = sync_client_wait_for_remote_event(args->url);
-        pthread_mutex_lock(&g_sync_mutex);
+        sync_lock();
         if(result == INBE_SYNC_CLIENT_OK)
             g_remote_sync_due = 1;
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
         if(result != INBE_SYNC_CLIENT_OK)
-            sleep(2);
+            sync_sleep(2);
     }
-    return NULL;
+    return sync_thread_done;
 }
 
 static void
 app_ensure_sync_events(const char *url)
 {
-    pthread_t thread;
+    SyncThread thread;
     InbeSyncWorkerArgs *args;
 
     if(url == NULL || url[0] == '\0')
         return;
-    pthread_mutex_lock(&g_sync_mutex);
+    sync_lock();
     if(g_sync_events_running && strcmp(g_sync_events_url, url) == 0) {
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
         return;
     }
     if(g_sync_events_running) {
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
         return;
     }
     g_sync_events_running = 1;
     g_remote_sync_due = 1;
     snprintf(g_sync_events_url, sizeof(g_sync_events_url), "%s", url);
-    pthread_mutex_unlock(&g_sync_mutex);
+    sync_unlock();
 
     args = malloc(sizeof(*args));
     if(args == NULL) {
-        pthread_mutex_lock(&g_sync_mutex);
+        sync_lock();
         g_sync_events_running = 0;
         g_sync_events_url[0] = '\0';
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
         return;
     }
     snprintf(args->url, sizeof(args->url), "%s", url);
-    if(pthread_create(&thread, NULL, app_sync_events_worker, args) != 0) {
+    if(!sync_thread_start(&thread, app_sync_events_worker, args)) {
         free(args);
-        pthread_mutex_lock(&g_sync_mutex);
+        sync_lock();
         g_sync_events_running = 0;
         g_sync_events_url[0] = '\0';
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
         TraceLog(LOG_WARNING, "SYNC: failed to start websocket event thread");
         return;
     }
-    pthread_detach(thread);
+    sync_thread_detach(thread);
     TraceLog(LOG_INFO, "SYNC: websocket event listener started");
 }
 #else
@@ -303,35 +351,35 @@ app_sync_now(InbeApp *app)
         return 0;
 #if !defined(PLATFORM_WEB)
     {
-        pthread_t thread;
+        SyncThread thread;
         InbeSyncWorkerArgs *args;
 
-        pthread_mutex_lock(&g_sync_mutex);
+        sync_lock();
         if(g_sync_running) {
-            pthread_mutex_unlock(&g_sync_mutex);
+            sync_unlock();
             return 0;
         }
         g_sync_running = 1;
-        pthread_mutex_unlock(&g_sync_mutex);
+        sync_unlock();
 
         args = malloc(sizeof(*args));
         if(args == NULL) {
-            pthread_mutex_lock(&g_sync_mutex);
+            sync_lock();
             g_sync_running = 0;
-            pthread_mutex_unlock(&g_sync_mutex);
+            sync_unlock();
             return 0;
         }
         snprintf(args->url, sizeof(args->url), "%s", url);
         TraceLog(LOG_INFO, "SYNC: starting background sync");
-        if(pthread_create(&thread, NULL, app_sync_worker, args) != 0) {
+        if(!sync_thread_start(&thread, app_sync_worker, args)) {
             free(args);
-            pthread_mutex_lock(&g_sync_mutex);
+            sync_lock();
             g_sync_running = 0;
-            pthread_mutex_unlock(&g_sync_mutex);
+            sync_unlock();
             TraceLog(LOG_WARNING, "SYNC: failed to start background sync thread");
             return 0;
         }
-        pthread_detach(thread);
+        sync_thread_detach(thread);
         return 1;
     }
 #else
@@ -389,14 +437,14 @@ app_pump_sync(InbeApp *app)
         dirty_due = 1;
     }
 #if !defined(PLATFORM_WEB)
-    pthread_mutex_lock(&g_sync_mutex);
+    sync_lock();
 #endif
     if(g_remote_sync_due) {
         should_sync = 1;
         g_remote_sync_due = 0;
     }
 #if !defined(PLATFORM_WEB)
-    pthread_mutex_unlock(&g_sync_mutex);
+    sync_unlock();
 #endif
     if(!should_sync)
         return;
