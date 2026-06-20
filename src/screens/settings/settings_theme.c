@@ -17,15 +17,14 @@ settings_theme_content_height(int content_w)
 void
 settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *state)
 {
-    const char *theme_mode_options[] = {
-        locale_get("theme_system"),
-        locale_get("theme_light"),
-        locale_get("theme_dark")
-    };
+    const char *theme_mode_options[3];
 
     if(app == NULL || y == NULL || state == NULL)
         return;
 
+    theme_mode_options[0] = locale_get("theme_system");
+    theme_mode_options[1] = locale_get("theme_light");
+    theme_mode_options[2] = locale_get("theme_dark");
     app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
     flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), theme_get_text());
     ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),

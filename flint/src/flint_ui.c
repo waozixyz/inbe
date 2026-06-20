@@ -1746,13 +1746,17 @@ ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
 }
 
 /* Per-dropdown state to track open/closed and click handling */
+#define MAX_DROPDOWN_OPTIONS 128
+#define DROPDOWN_OPTION_TEXT_SIZE 256
+
 typedef struct UIDropdownState {
     int id;
     int open;
     int just_opened;
     int scroll_offset;
     int x, y, w, h;
-    const char **options;
+    const char *options[MAX_DROPDOWN_OPTIONS];
+    char option_text[MAX_DROPDOWN_OPTIONS][DROPDOWN_OPTION_TEXT_SIZE];
     int option_count;
     int *selected_index;
     int touch_pressed;
@@ -2025,7 +2029,6 @@ get_or_create_dropdown_state(int id)
         dropdown_states[dropdown_state_count].open = 0;
         dropdown_states[dropdown_state_count].just_opened = 0;
         dropdown_states[dropdown_state_count].scroll_offset = 0;
-        dropdown_states[dropdown_state_count].options = NULL;
         dropdown_states[dropdown_state_count].option_count = 0;
         dropdown_states[dropdown_state_count].selected_index = NULL;
         dropdown_states[dropdown_state_count].touch_pressed = 0;
@@ -2065,9 +2068,17 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     state->y = y;
     state->w = w;
     state->h = h;
-    state->options = options;
-    state->option_count = option_count;
     state->selected_index = selected_index;
+    if(option_count < 0)
+        option_count = 0;
+    if(option_count > MAX_DROPDOWN_OPTIONS)
+        option_count = MAX_DROPDOWN_OPTIONS;
+    state->option_count = option_count;
+    for(int i = 0; i < option_count; i++) {
+        snprintf(state->option_text[i], sizeof(state->option_text[i]), "%s",
+                 options != NULL && options[i] != NULL ? options[i] : "");
+        state->options[i] = state->option_text[i];
+    }
 
     if(hover)
         ui_mark_clickable();
@@ -2086,7 +2097,10 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     DrawRectangleRounded(btn_bounds, 0.3f, 8, flint_darken(c_bg, 8));
 
     /* Draw current selection text, clipped before the X icon. */
-    const char *current_name = options[*selected_index];
+    int current_index = selected_index != NULL ? *selected_index : 0;
+    if(current_index < 0 || current_index >= option_count)
+        current_index = 0;
+    const char *current_name = option_count > 0 ? state->options[current_index] : "";
     int text_x = x + flint_px(12);
     int text_w = arrow_x - arrow_size - flint_px(8) - text_x;
     if(text_w > 0) {
@@ -2117,7 +2131,7 @@ ui_draw_dropdown_menu(int id)
     UIDropdownState *state = get_or_create_dropdown_state(id);
     int changed = 0;
 
-    if(!state->open || state->options == NULL || state->selected_index == NULL)
+    if(!state->open || state->option_count <= 0 || state->selected_index == NULL)
         return 0;
 
     int font = flint_ui_font();

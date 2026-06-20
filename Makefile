@@ -32,6 +32,7 @@ WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
+CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
 VERSION_FILE := src/core/version.h
 APP_VERSION := $(shell sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' $(VERSION_FILE) 2>/dev/null)
 
@@ -43,15 +44,27 @@ WIN64_CC ?= $(or $(WIN_CC),x86_64-w64-mingw32-gcc)
 WIN64_AR ?= $(or $(WIN_AR),x86_64-w64-mingw32-ar)
 WIN64_RANLIB ?= $(or $(WIN_RANLIB),x86_64-w64-mingw32-ranlib)
 WIN64_STRIP ?= $(or $(WIN_STRIP),x86_64-w64-mingw32-strip)
+WIN64_CC_PATH := $(shell command -v $(WIN64_CC) 2>/dev/null || printf '%s' $(WIN64_CC))
+WIN64_AR_PATH := $(shell command -v $(WIN64_AR) 2>/dev/null || printf '%s' $(WIN64_AR))
+WIN64_RANLIB_PATH := $(shell command -v $(WIN64_RANLIB) 2>/dev/null || printf '%s' $(WIN64_RANLIB))
 WIN32_ARCH := i686
 WIN32_CC ?= i686-w64-mingw32-gcc
 WIN32_AR ?= i686-w64-mingw32-ar
 WIN32_RANLIB ?= i686-w64-mingw32-ranlib
 WIN32_STRIP ?= i686-w64-mingw32-strip
+WIN32_CC_PATH := $(shell command -v $(WIN32_CC) 2>/dev/null || printf '%s' $(WIN32_CC))
+WIN32_AR_PATH := $(shell command -v $(WIN32_AR) 2>/dev/null || printf '%s' $(WIN32_AR))
+WIN32_RANLIB_PATH := $(shell command -v $(WIN32_RANLIB) 2>/dev/null || printf '%s' $(WIN32_RANLIB))
 WIN64_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib
 WIN64_RAYLIB_A := $(WIN64_RAYLIB_BUILD_DIR)/libraylib.a
 WIN32_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib
 WIN32_RAYLIB_A := $(WIN32_RAYLIB_BUILD_DIR)/libraylib.a
+WIN64_CURL_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/curl
+WIN64_CURL_INCLUDE_DIR := $(WIN64_CURL_BUILD_DIR)/include
+WIN64_CURL_A := $(WIN64_CURL_BUILD_DIR)/lib/libcurl.a
+WIN32_CURL_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/curl
+WIN32_CURL_INCLUDE_DIR := $(WIN32_CURL_BUILD_DIR)/include
+WIN32_CURL_A := $(WIN32_CURL_BUILD_DIR)/lib/libcurl.a
 WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
@@ -75,7 +88,7 @@ OPENSSL_INCLUDE_CMAKE_OPT := $(if $(strip $(OPENSSL_INCLUDE_DIR)),-DOPENSSL_INCL
 OPENSSL_SSL_CMAKE_OPT := $(if $(strip $(OPENSSL_SSL_LIBRARY)),-DOPENSSL_SSL_LIBRARY=$(OPENSSL_SSL_LIBRARY),)
 OPENSSL_CRYPTO_CMAKE_OPT := $(if $(strip $(OPENSSL_CRYPTO_LIBRARY)),-DOPENSSL_CRYPTO_LIBRARY=$(OPENSSL_CRYPTO_LIBRARY),)
 OPENSSL_LIB_DIR := $(patsubst %/,%,$(dir $(OPENSSL_SSL_LIBRARY)))
-OPENSSL_LDLIBS := $(if $(strip $(OPENSSL_SSL_LIBRARY) $(OPENSSL_CRYPTO_LIBRARY)),-Xlinker -rpath -Xlinker $(OPENSSL_LIB_DIR) $(OPENSSL_SSL_LIBRARY) $(OPENSSL_CRYPTO_LIBRARY),$(shell pkg-config --libs openssl 2>/dev/null))
+OPENSSL_LDLIBS := $(if $(strip $(OPENSSL_SSL_LIBRARY) $(OPENSSL_CRYPTO_LIBRARY)),-Xlinker -rpath -Xlinker $(OPENSSL_LIB_DIR) $(OPENSSL_SSL_LIBRARY) $(OPENSSL_CRYPTO_LIBRARY),$(or $(shell pkg-config --libs openssl 2>/dev/null),-lssl -lcrypto))
 FLINT_CURL_CFLAGS := -I$(CURL_INCLUDE_DIR)
 FLINT_CURL_LDLIBS := -L$(CURL_LIB_DIR) -Wl,-rpath,$(abspath $(CURL_LIB_DIR)) -lcurl $(OPENSSL_LDLIBS)
 FLINT_CURL_VERSION_NUM ?= $(shell printf '%s\n' '#include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
@@ -153,7 +166,7 @@ WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ff
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
-WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lm
+WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lws2_32 -liphlpapi -lcrypt32 -lsecur32 -lbcrypt -ladvapi32 -lm
 ifneq ($(strip $(MCFGTHREADS)),)
 WIN64_THREAD_LDFLAGS := -L$(MCFGTHREADS)/lib
 else
@@ -180,12 +193,18 @@ WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
+WEB_APP_URL ?= https://inbe.waozi.xyz/
+CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
+CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
+CHROME_WEB_STORE_WORKER := packaging/chrome-web-store/service_worker.js
+CHROME_WEB_STORE_ICON := web-assets/icons/icon-512x512.png
+MAGICK ?= magick
 WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test dist appimage vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web
+.PHONY: all native run test dist appimage vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle
 
 all: native
@@ -208,6 +227,7 @@ dist:
 	$(MAKE) android-check-keystore PASSWORD="$$password" && \
 	$(MAKE) package-unpackaged-assets && \
 	$(MAKE) web && \
+	$(MAKE) chrome-web-store && \
 	$(MAKE) appimage && \
 	$(MAKE) windows && \
 	$(MAKE) android-release PASSWORD="$$password" && \
@@ -221,7 +241,7 @@ vendor-prebuilds-native: $(RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMAT
 
 vendor-prebuilds-web: $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
 
-vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
+vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -265,7 +285,7 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/s
 		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR):
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
@@ -381,6 +401,7 @@ $(CURL_SO): $(CURL_DIR)/CMakeLists.txt
 	$(CMAKE) -S $(CURL_DIR) -B $(CURL_BUILD_DIR) \
 		-DCMAKE_BUILD_TYPE=MinSizeRel \
 		-DCMAKE_INSTALL_PREFIX=$(abspath $(CURL_BUILD_DIR)) \
+		-DCMAKE_INSTALL_LIBDIR=lib64 \
 		-DBUILD_CURL_EXE=OFF \
 		-DBUILD_SHARED_LIBS=ON \
 		-DBUILD_STATIC_LIBS=OFF \
@@ -426,6 +447,68 @@ $(CURL_PROTOCOL_CHECK): $(CURL_SO)
 	@$(CURL_BUILD_DIR)/bin/curl-config --protocols | grep -Eq '(^|[[:space:]])WSS([[:space:]]|$$)' || { echo "vendored libcurl was built without WSS protocol support"; exit 1; }
 	@touch $@
 
+$(WIN64_CURL_A): $(CURL_DIR)/CMakeLists.txt
+	rm -rf $(WIN64_CURL_BUILD_DIR)
+	$(CMAKE) -S $(CURL_DIR) -B $(WIN64_CURL_BUILD_DIR) \
+		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_C_COMPILER=$(WIN64_CC_PATH) \
+		-DCMAKE_AR=$(WIN64_AR_PATH) \
+		-DCMAKE_RANLIB=$(WIN64_RANLIB_PATH) \
+		-DCMAKE_EXE_LINKER_FLAGS="$(WIN64_THREAD_LDFLAGS)" \
+		-DCMAKE_INSTALL_PREFIX=$(abspath $(WIN64_CURL_BUILD_DIR)) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DBUILD_STATIC_LIBS=ON \
+		-DBUILD_CURL_EXE=OFF \
+		-DCURL_STATICLIB=ON \
+		-DCURL_USE_SCHANNEL=ON \
+		-DCURL_USE_OPENSSL=OFF \
+		-DCURL_USE_LIBPSL=OFF \
+		-DCURL_USE_LIBSSH2=OFF \
+		-DCURL_USE_GSSAPI=OFF \
+		-DUSE_NGHTTP2=OFF \
+		-DUSE_LIBIDN2=OFF \
+		-DCURL_DISABLE_LDAP=ON \
+		-DCURL_DISABLE_LDAPS=ON \
+		-DCURL_DISABLE_SMB=ON \
+		-DENABLE_CURL_MANUAL=OFF \
+		-DBUILD_EXAMPLES=OFF \
+		-DBUILD_LIBCURL_DOCS=OFF \
+		-DBUILD_MISC_DOCS=OFF \
+		-DBUILD_TESTING=OFF
+	$(CMAKE) --build $(WIN64_CURL_BUILD_DIR) --target install
+
+$(WIN32_CURL_A): $(CURL_DIR)/CMakeLists.txt
+	rm -rf $(WIN32_CURL_BUILD_DIR)
+	$(CMAKE) -S $(CURL_DIR) -B $(WIN32_CURL_BUILD_DIR) \
+		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_C_COMPILER=$(WIN32_CC_PATH) \
+		-DCMAKE_AR=$(WIN32_AR_PATH) \
+		-DCMAKE_RANLIB=$(WIN32_RANLIB_PATH) \
+		-DCMAKE_EXE_LINKER_FLAGS="$(WIN32_THREAD_LDFLAGS)" \
+		-DCMAKE_INSTALL_PREFIX=$(abspath $(WIN32_CURL_BUILD_DIR)) \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DBUILD_STATIC_LIBS=ON \
+		-DBUILD_CURL_EXE=OFF \
+		-DCURL_STATICLIB=ON \
+		-DCURL_USE_SCHANNEL=ON \
+		-DCURL_USE_OPENSSL=OFF \
+		-DCURL_USE_LIBPSL=OFF \
+		-DCURL_USE_LIBSSH2=OFF \
+		-DCURL_USE_GSSAPI=OFF \
+		-DUSE_NGHTTP2=OFF \
+		-DUSE_LIBIDN2=OFF \
+		-DCURL_DISABLE_LDAP=ON \
+		-DCURL_DISABLE_LDAPS=ON \
+		-DCURL_DISABLE_SMB=ON \
+		-DENABLE_CURL_MANUAL=OFF \
+		-DBUILD_EXAMPLES=OFF \
+		-DBUILD_LIBCURL_DOCS=OFF \
+		-DBUILD_MISC_DOCS=OFF \
+		-DBUILD_TESTING=OFF
+	$(CMAKE) --build $(WIN32_CURL_BUILD_DIR) --target install
+
 $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
@@ -449,35 +532,41 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 
-$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		-I$(WIN64_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
 		-DPLATFORM_DESKTOP \
+		-DCURL_STATICLIB \
 		-o $@ \
 		$(SRC) \
 		$(FLINT_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN64_RAYLIB_A) \
+		$(WIN64_CURL_A) \
 		$(WINDOWS_LDLIBS) \
 		$(WIN64_THREAD_LDFLAGS) \
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		-I$(WIN32_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
 		-DPLATFORM_DESKTOP \
+		-DCURL_STATICLIB \
 		-o $@ \
 		$(SRC) \
 		$(FLINT_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN32_RAYLIB_A) \
+		$(WIN32_CURL_A) \
 		$(WINDOWS_LDLIBS) \
 		$(WIN32_THREAD_LDFLAGS) \
 		$(WINDOWS_LDFLAGS)
@@ -711,6 +800,22 @@ web:
 	rm -f $(WEB_DIST_ZIP)
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
 
+chrome-web-store: $(CHROME_WEB_STORE_ZIP)
+
+$(CHROME_WEB_STORE_ZIP): $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICON) | $(CHROME_WEB_STORE_DIR)
+	rm -rf $(CHROME_WEB_STORE_DIR)
+	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
+	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
+		$(CHROME_WEB_STORE_MANIFEST) > $(CHROME_WEB_STORE_DIR)/manifest.json
+	sed -e 's#__WEB_APP_URL__#$(WEB_APP_URL)#g' \
+		$(CHROME_WEB_STORE_WORKER) > $(CHROME_WEB_STORE_DIR)/service_worker.js
+	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 16x16 $(CHROME_WEB_STORE_DIR)/icons/icon-16.png
+	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 32x32 $(CHROME_WEB_STORE_DIR)/icons/icon-32.png
+	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 48x48 $(CHROME_WEB_STORE_DIR)/icons/icon-48.png
+	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 128x128 $(CHROME_WEB_STORE_DIR)/icons/icon-128.png
+	rm -f $(CHROME_WEB_STORE_ZIP)
+	cd $(CHROME_WEB_STORE_DIR) && zip -9 -r $(abspath $(CHROME_WEB_STORE_ZIP)) .
+
 clean:
 	rm -rf build
 
@@ -740,7 +845,7 @@ endif
 ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
 $(error libcurl metadata is missing. Sync is required; enter the flake shell with 'nix develop' or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
 endif
-ifneq ($(shell test $$((16#$(FLINT_CURL_VERSION_HEX))) -ge $$((16#075600)) 2>/dev/null && echo yes),yes)
+ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
 $(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
 endif
 endif

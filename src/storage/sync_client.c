@@ -1,3 +1,12 @@
+#if defined(_WIN32)
+#define WIN32_LEAN_AND_MEAN
+#define NOGDI
+#define NOUSER
+#define MMNOSOUND
+#define NOMINMAX
+#include <windows.h>
+#endif
+
 #include "sync_client.h"
 
 #include "storage.h"
@@ -1367,8 +1376,13 @@ sync_client_sync(const char *base_url)
         return INBE_SYNC_CLIENT_INVALID_URL;
     if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token)))
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
     payload = storage_build_sync_payload_json(account.public_id, NULL);
     if(payload == NULL)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
@@ -1485,10 +1499,14 @@ sync_client_wait_for_remote_event(const char *base_url)
 
         code = curl_ws_recv(curl, buffer, sizeof(buffer) - 1, &got, &meta);
         if(code == CURLE_AGAIN) {
+#if defined(_WIN32)
+            Sleep(100);
+#else
             struct timespec delay;
             delay.tv_sec = 0;
             delay.tv_nsec = 100000000L;
             nanosleep(&delay, NULL);
+#endif
             continue;
         }
         if(code == CURLE_GOT_NOTHING) {

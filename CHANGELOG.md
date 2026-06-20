@@ -1,8 +1,15 @@
 # Changelog
+## [1.4.3] - 2026-06-20
+### Fixed
+- Refresh expired native sync auth tokens before sending queued changes.
+- Require first-time meditation users to continue through the tutorial before starting.
+
 ## [1.4.2] - 2026-06-20
 ### Fixed
 - Improve sync auth, websocket reconnects, and queued habit/session updates.
 - Reduce SQLite-related UI flicker and speed up bulk import sync queueing.
+- Fixed dropdown menus so temporary option lists cannot crash theme/device selection.
+- Fixed Linux test and release builds to link against the vendored curl library path.
 
 ## [1.4.1] - 2026-06-19
 ### Changed
