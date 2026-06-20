@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "device_preferences.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "practices/meditation/meditation_music.h"
 #include "practices/whm/whm_session.h"
 #include "storage.h"

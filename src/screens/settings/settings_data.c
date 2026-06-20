@@ -4,7 +4,7 @@
 #include "settings_sync_account.h"
 #include "app.h"
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "storage.h"
 #include "sync_account.h"
 #include "theme.h"

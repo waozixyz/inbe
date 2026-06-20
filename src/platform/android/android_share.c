@@ -1,6 +1,6 @@
 #include "android_share.h"
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "storage.h"
 #include "version.h"
 #include "raylib.h"

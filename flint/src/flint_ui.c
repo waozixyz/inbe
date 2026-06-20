@@ -2402,7 +2402,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
  * TAB BAR
  * ================================================================ */
 
-void
+int
 ui_draw_tab_bar(UITab *tabs, int count)
 {
     int bar_h = flint_clamp_px(58, 54, 66);
@@ -2459,6 +2459,7 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
+    int clicked = -1;
 
     DrawRectangle(0, bar_y, ui_view_width, bar_h, flint_darken(c_bg, 10));
     DrawLine(0, bar_y, ui_view_width, bar_y, flint_darken(c_bg, 42));
@@ -2470,12 +2471,12 @@ ui_draw_tab_bar(UITab *tabs, int count)
 
         if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon,
                                         tabs[i].label, show_labels, &tab_hover)) {
-            if(tabs[i].on_click)
-                tabs[i].on_click(tabs[i].user_data);
+            clicked = i;
         }
 
         x += w + group_gap;
     }
+    return clicked;
 }
 
 /* ================================================================

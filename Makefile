@@ -119,7 +119,6 @@ APP_SRCS := \
 	src/practices/meditation/meditation_config.c \
 	src/screens/habits_screen.c \
 	src/practices/meditation/meditation_music.c \
-	src/core/locale.c \
 	src/core/theme.c \
 	src/storage/data.c \
 	src/storage/storage.c \

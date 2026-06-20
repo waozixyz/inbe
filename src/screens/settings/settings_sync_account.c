@@ -2,7 +2,7 @@
 
 #include "settings_screen.h"
 #include "app.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"

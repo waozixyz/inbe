@@ -1,7 +1,7 @@
 #include "meditation_music.h"
 
 #include "app.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "miniz.h"
 #include "flint_color.h"

@@ -32,6 +32,7 @@ enum {
 enum {
 	InbeScreenStart = 0,
 	InbeScreenSession,
+    InbeScreenPracticeSession = InbeScreenSession,
     InbeScreenMeditation,
 	InbeScreenResults,
 	InbeScreenSettings,

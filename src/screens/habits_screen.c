@@ -6,7 +6,7 @@
 #include "app.h"
 #include "theme.h"
 #include "flint_runtime_assets.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "breath_engine.h"
 #include "flint_clip.h"
 #include "flint_ui.h"

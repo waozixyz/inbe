@@ -1,7 +1,7 @@
 #include "whm_session.h"
 
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"

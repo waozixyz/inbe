@@ -1,6 +1,6 @@
 #include "app.h"
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
@@ -209,7 +209,7 @@ inbe_app_background_sync_safe(const InbeApp *app)
         return 0;
     if(app->modal.active)
         return 0;
-    if(app->inbe.screen == InbeScreenSession ||
+    if(app->inbe.screen == InbeScreenPracticeSession ||
        app->inbe.screen == InbeScreenMeditation)
         return 0;
     return 1;
@@ -518,17 +518,14 @@ app_flush_deferred_settings(InbeApp *app)
 static int
 app_should_draw_bottom_nav(const InbeApp *app)
 {
-    if(app == NULL || app->modal.active)
+    if(app == NULL || app->modal.active || app->habit_session_edit_active)
         return 0;
-
     switch(app->inbe.screen) {
     case InbeScreenStart:
     case InbeScreenSettings:
     case InbeScreenHabits:
     case InbeScreenHabitEdit:
-        return !app->habit_session_edit_active;
-    case InbeScreenHabitSessionEdit:
-        return 0;
+        return 1;
     default:
         return 0;
     }
@@ -565,24 +562,10 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
     }
 }
 
-/* ================================================================
- * TAB BAR DEFINITIONS
- * ================================================================ */
-
-static void on_habits_tab_click(void *user_data) {
-    InbeApp *app = user_data;
-    app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
-}
-
-static void on_settings_screen_click(void *user_data) {
-    InbeApp *app = user_data;
-    app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
-}
-
 static UITab g_tabs[] = {
-    {NULL, {0}, UI_ICON_TYPE_HOME, on_habits_tab_click, NULL},
-    {NULL, {0}, UI_ICON_TYPE_AMEN, NULL, NULL},
-    {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_screen_click, NULL}
+    {NULL, {0}, UI_ICON_TYPE_HOME},
+    {NULL, {0}, UI_ICON_TYPE_AMEN},
+    {NULL, {0}, UI_ICON_TYPE_GEAR}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
@@ -590,8 +573,17 @@ static UITabBar g_tab_bar = {g_tabs, 3};
 static void
 app_draw_bottom_nav(InbeApp *app)
 {
-    if(app_should_draw_bottom_nav(app))
-        ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+    int tab;
+
+    if(!app_should_draw_bottom_nav(app))
+        return;
+    tab = ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+    if(tab == 0)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
+    else if(tab == 1)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_PRACTICE);
+    else if(tab == 2)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
 }
 
 static int
@@ -1026,7 +1018,6 @@ inbe_app_init(void *vapp) {
 #endif
 
     inbeinit(&app->inbe);
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -1034,18 +1025,10 @@ inbe_app_init(void *vapp) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + 80);
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
     inbe_habits_init(&app->habits);
     app->habit_detail_index = -1;
-    app->habit_detail_day = 0;
-    app->habit_detail_session_path[0] = '\0';
-    app->habit_session_edit_scroll = 0;
-    app->habit_session_edit_active = 0;
-    app->habit_session_edit_kind = 0;
     app->habit_session_edit_round = -1;
-    app->habit_session_edit_cursor = 0;
-    app->habit_session_edit_path[0] = '\0';
-    app->habit_session_edit_text[0] = '\0';
     app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
     app_open_main_tab(app, app->main_tab, 0);
     init_audio(app);
@@ -1059,42 +1042,13 @@ inbe_app_init(void *vapp) {
     app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_scroll = 0;
-    app->settings_drag_slider = 0;
-    app->settings_drag_scrollbar = 0;
-    app->settings_drag_content = 0;
-    app->settings_drag_content_y = 0;
-    app->settings_dirty = 0;
-    app->settings_save_delay_ticks = 0;
     app->settings_tab = SETTINGS_TAB_DEVICE;
-    app->settings_data_view = 0;
-    app->sync_server_url_cursor = 0;
-    app->sync_server_url_focused = 0;
-    app->sync_server_url[0] = '\0';
-    app->practice_config_tab = 0;
-    app->practice_coming_soon_ticks = 0;
-    app->habit_edit_active = 0;
-    app->habit_edit_is_new = 0;
     app->habit_edit_index = -1;
-    app->habit_edit_cursor = 0;
-    app->habit_edit_focused = 0;
-    app->habit_edit_text[0] = '\0';
     app->habit_edit_color = (Color){99, 196, 165, 255};
     app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
-    app->habit_edit_sync_activity = 0;
-    app->manual_scroll = 0;
-    app->manual_drag_scrollbar = 0;
-    app->manual_drag_content = 0;
-    app->manual_drag_content_y = 0;
-    app->tutorial_step = 0;
-    app->session_paused = 0;
-    app->backgrounded = 0;
-    app->results_saved = 0;
-    app->results_path[0] = '\0';
     practice_update_session_sounds(app);
     reset_settings_preview(app);
     inbeinit(&app->start_speed_preview);
-    app->start_speed_preview_speed = 0;
 
     // Load all icons
     flint_load_all_icons(app->icons);
@@ -1102,16 +1056,10 @@ inbe_app_init(void *vapp) {
     /* Update tab bar icons */
     g_tabs[0].icon = app->icons[UI_ICON_TYPE_HABIT];
     g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
-    g_tabs[0].user_data = app;
     g_tabs[1].icon = app->icons[UI_ICON_TYPE_AMEN];
     g_tabs[1].icon_type = UI_ICON_TYPE_AMEN;
-    g_tabs[1].user_data = app;
-    g_tabs[1].on_click = on_practice_tab_click;
     g_tabs[2].icon = app->icons[UI_ICON_TYPE_GEAR];
     g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
-    g_tabs[2].user_data = app;
-
-    app->volume_popup_active = 0;
 
     ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
@@ -1120,13 +1068,8 @@ inbe_app_init(void *vapp) {
     else
         app->inbe.screen = InbeScreenStart;
 
-    /* Reset modal state */
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->modal.selected_button = 0;
-    app->meditation.duration_seconds = 0;
-    app->meditation.remaining_seconds = 0;
-    app->meditation.frame_ticks = 0;
+    app->modal = (UIModal){0};
+    app->meditation = (MeditationState){0};
     inbe_app_auto_sync(app);
 }
 
