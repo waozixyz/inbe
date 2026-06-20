@@ -309,36 +309,33 @@ whm_config_content_height(InbeApp *app, int content_w)
            flint_px(36) + flint_px(28);
 }
 
+typedef struct WhmConfigScrollPageContext {
+    InbeApp *app;
+} WhmConfigScrollPageContext;
+
+static int
+whm_config_scroll_page_content_height(int content_w, void *user_data)
+{
+    WhmConfigScrollPageContext *ctx = user_data;
+
+    return whm_config_content_height(ctx->app, content_w);
+}
+
 void
 whm_config_screen_draw(InbeApp *app)
 {
     int title_h = ui_screen_header_height();
     int config_tab_h = flint_px(40);
     int config_tab_gap = flint_px(14);
-    int content_x;
-    int content_w;
-    int responsive_max_w = (int)(view_width * 0.96f);
-    int max_content_w = flint_px(CONTENT_MAX_W);
-    int min_content_w = flint_px(320);
     int scroll_y;
     int scroll_h;
-    int content_h;
-    int controls_w;
     int draw_breath_animation_menu = 0;
     int clicked_config_tab = -1;
     const char *config_tabs[] = {
         locale_get("settings_section_breathing"),
         locale_get("settings_section_session"),
     };
-    FlintUIScrollArea scroll_area;
-    FlintUIScrollView scroll_view;
     FlintUIHeader header;
-
-    if(responsive_max_w > max_content_w)
-        responsive_max_w = max_content_w;
-    if(responsive_max_w < min_content_w)
-        responsive_max_w = min_content_w;
-    flint_centered_column(responsive_max_w, flint_page_side_padding(), &content_x, &content_w);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
@@ -365,44 +362,27 @@ whm_config_screen_draw(InbeApp *app)
     if(scroll_h < 0)
         scroll_h = 0;
 
-    controls_w = content_w;
-    for(int i = 0; i < 3; i++) {
-        FlintUIScrollView measured;
-        content_h = whm_config_content_height(app, controls_w);
-        scroll_area = (FlintUIScrollArea){
-            .bounds = {0.0f, (float)scroll_y, (float)view_width, (float)scroll_h},
-            .content_height = content_h,
-            .content_x = content_x,
-            .content_width = content_w,
+    {
+        WhmConfigScrollPageContext page_ctx = {app};
+        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = scroll_y,
+            .height = scroll_h,
+            .max_content_width = flint_px(CONTENT_MAX_W),
+            .min_content_width = flint_px(320),
             .scroll_offset = &app->settings_scroll,
-            .wheel_step = flint_px(42),
-            .scrollbar_x = view_width - flint_px(8)
-        };
-        measured = ui_scroll_container_measure(scroll_area);
-        if(measured.content_w == controls_w)
-            break;
-        controls_w = measured.content_w;
-    }
+            .content_height = whm_config_scroll_page_content_height,
+            .user_data = &page_ctx
+        });
 
-    content_h = whm_config_content_height(app, controls_w);
-    scroll_area = (FlintUIScrollArea){
-        .bounds = {0.0f, (float)scroll_y, (float)view_width, (float)scroll_h},
-        .content_height = content_h,
-        .content_x = content_x,
-        .content_width = content_w,
-        .scroll_offset = &app->settings_scroll,
-        .wheel_step = flint_px(42),
-        .scrollbar_x = view_width - flint_px(8)
-    };
-    scroll_view = ui_scroll_container_begin(scroll_area);
-    if(app->practice_config_tab == 0) {
-        whm_config_draw_breathing_tab(app, scroll_view.content_x, scroll_view.content_w,
-                                      scroll_view.content_y, &draw_breath_animation_menu);
-    } else {
-        whm_config_draw_session_tab(app, scroll_view.content_x, scroll_view.content_w,
-                                    scroll_view.content_y);
+        if(app->practice_config_tab == 0) {
+            whm_config_draw_breathing_tab(app, page.content_x, page.content_w,
+                                          page.content_y, &draw_breath_animation_menu);
+        } else {
+            whm_config_draw_session_tab(app, page.content_x, page.content_w,
+                                        page.content_y);
+        }
+        ui_scroll_page_end(page);
     }
-    ui_scroll_container_end(scroll_area, scroll_view);
 
     if(draw_breath_animation_menu && ui_draw_dropdown_menu(104)) {
         app->inbe.breath_animation = clampi(app->inbe.breath_animation,

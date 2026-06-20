@@ -1,4 +1,5 @@
 #include "ui.h"
+#include "flint_layout.h"
 
 /* Per-dropdown state to track open/closed and click handling */
 #define MAX_DROPDOWN_OPTIONS 128
@@ -1129,6 +1130,116 @@ ui_scroll_container_measure(FlintUIScrollArea area)
                                                      scrollbar_x, view.max_scroll);
 
     return view;
+}
+
+FlintUIScrollPage
+ui_scroll_page_begin(FlintUIScrollPageSpec spec)
+{
+    FlintUIScrollPage page;
+    FlintUIScrollArea area;
+    FlintUIScrollView measured;
+    int max_content_w = spec.max_content_width;
+    int min_content_w = spec.min_content_width;
+    int side_padding = spec.side_padding > 0 ? spec.side_padding : flint_page_side_padding();
+    int content_x = 0;
+    int content_w = 0;
+    int draw_w;
+    int passes = spec.measure_passes > 0 ? spec.measure_passes : 3;
+
+    memset(&page, 0, sizeof(page));
+
+    if(max_content_w <= 0)
+        max_content_w = ui_view_width;
+    if(max_content_w > ui_view_width - side_padding * 2)
+        max_content_w = ui_view_width - side_padding * 2;
+    if(min_content_w > 0 && max_content_w < min_content_w)
+        max_content_w = min_content_w;
+    if(max_content_w < 0)
+        max_content_w = 0;
+
+    flint_centered_column(max_content_w, side_padding, &content_x, &content_w);
+    draw_w = content_w;
+
+    for(int i = 0; i < passes; i++) {
+        int content_h;
+
+        if(spec.content_height != NULL)
+            content_h = spec.content_height(draw_w, spec.user_data);
+        else
+            content_h = 0;
+        area = (FlintUIScrollArea){
+            .bounds = {0.0f, (float)spec.y, (float)ui_view_width, (float)spec.height},
+            .content_height = content_h,
+            .content_x = content_x,
+            .content_width = content_w,
+            .scroll_offset = spec.scroll_offset,
+            .wheel_step = spec.wheel_step > 0 ? spec.wheel_step : flint_px(42),
+            .scrollbar_x = spec.scrollbar_x > 0 ? spec.scrollbar_x : ui_view_width - flint_px(8)
+        };
+        measured = ui_scroll_container_measure(area);
+        if(measured.content_w == draw_w)
+            break;
+        draw_w = measured.content_w;
+    }
+
+    if(spec.content_height != NULL)
+        area.content_height = spec.content_height(draw_w, spec.user_data);
+    page.area = area;
+    page.view = ui_scroll_container_begin(area);
+    page.content_x = page.view.content_x;
+    page.content_y = page.view.content_y;
+    page.content_w = page.view.content_w;
+    page.content_h = area.content_height;
+    return page;
+}
+
+void
+ui_scroll_page_end(FlintUIScrollPage page)
+{
+    ui_scroll_container_end(page.area, page.view);
+}
+
+int
+ui_draw_icon_slider_popup(FlintUIIconSliderPopup popup)
+{
+    int hover = 0;
+    int popup_w;
+    int popup_h;
+    int popup_x;
+    int popup_y;
+    Vector2 mouse;
+
+    if(popup.open == NULL || popup.value == NULL)
+        return 0;
+
+    if(ui_draw_icon_btn_padded(popup.x, popup.y, popup.icon_size,
+                               popup.icon_padding, popup.icon, &hover))
+        *popup.open = !*popup.open;
+
+    if(!*popup.open)
+        return 0;
+
+    popup_w = popup.popup_width > 0 ? popup.popup_width : flint_px(44);
+    popup_h = popup.popup_height > 0 ? popup.popup_height : flint_px(200);
+    popup_x = popup.x;
+    popup_y = popup.y + popup.icon_size + popup.icon_padding * 2;
+    mouse = ui_mouse_world();
+
+    if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
+       (mouse.x < popup_x || mouse.x > popup_x + popup_w ||
+        mouse.y < popup_y || mouse.y > popup_y + popup_h)) {
+        *popup.open = 0;
+        return 0;
+    }
+
+    DrawRectangle(popup_x, popup_y, popup_w, popup_h, c_surface);
+    ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
+                  flint_lighten(c_surface, 40), flint_darken(c_surface, 40));
+
+    return ui_draw_slider_vertical(popup.id, popup_x + popup_w / 2,
+                                   popup_y + flint_px(10),
+                                   popup_h - flint_px(20),
+                                   popup.min, popup.max, popup.value);
 }
 
 FlintUIScrollView

@@ -61,6 +61,21 @@ typedef struct {
 } FlintUIIconButton;
 
 typedef struct {
+    int id;
+    int x;
+    int y;
+    int icon_size;
+    int icon_padding;
+    Texture2D icon;
+    int *open;
+    int *value;
+    int min;
+    int max;
+    int popup_width;
+    int popup_height;
+} FlintUIIconSliderPopup;
+
+typedef struct {
     Rectangle bounds;
     const char *text;
     int cursor_position;
@@ -161,6 +176,31 @@ typedef struct {
     int right_clicked;
 } FlintUIHeader;
 
+typedef int (*FlintUIScrollPageHeightFn)(int content_width, void *user_data);
+
+typedef struct {
+    int y;
+    int height;
+    int max_content_width;
+    int min_content_width;
+    int side_padding;
+    int *scroll_offset;
+    int wheel_step;
+    int scrollbar_x;
+    int measure_passes;
+    FlintUIScrollPageHeightFn content_height;
+    void *user_data;
+} FlintUIScrollPageSpec;
+
+typedef struct {
+    FlintUIScrollArea area;
+    FlintUIScrollView view;
+    int content_x;
+    int content_y;
+    int content_w;
+    int content_h;
+} FlintUIScrollPage;
+
 typedef void (*FlintUITextInputPlatformCallback)(int active);
 
 void ui_init(int width, int height, float dpi);
@@ -198,6 +238,7 @@ int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
 int ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover);
 int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int *hover);
+int ui_draw_icon_slider_popup(FlintUIIconSliderPopup popup);
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 
 /* Generic button component with unified styling */
@@ -262,6 +303,8 @@ int ui_scrollbar_safe_content_width(int content_x, int content_width,
 FlintUIScrollView ui_scroll_container_measure(FlintUIScrollArea area);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);
 void ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view);
+FlintUIScrollPage ui_scroll_page_begin(FlintUIScrollPageSpec spec);
+void ui_scroll_page_end(FlintUIScrollPage page);
 int ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);
 
 void ui_focus_begin(void);

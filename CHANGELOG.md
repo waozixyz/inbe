@@ -1,8 +1,8 @@
 # Changelog
 ## [1.4.4] - 2026-06-20
 ### Fixed
-- Build the Ubuntu Touch Click package with the OpenStore package id and review-compatible control metadata.
-- Omit Click AppStream metadata by default to avoid OpenStore revision import failures.
+- Build the Ubuntu Touch Click package with the OpenStore package id
+- Refactor code base
 
 ## [1.4.3] - 2026-06-20
 ### Fixed

@@ -694,40 +694,23 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         }
     }
 
-    int sound_btn_x = view_width - flint_px(56);
-    int sound_btn_y = flint_px(12);
-    int sound_btn_size = flint_px(24);
-    int sound_btn_padding = flint_px(10);
-    int sound_hover = 0;
-    if(ui_draw_icon_btn_padded(sound_btn_x, sound_btn_y, sound_btn_size, sound_btn_padding,
-                               sound_icon_for_volume(app), &sound_hover)) {
-        app->volume_popup_active = !app->volume_popup_active;
-    }
-
-    if(app->volume_popup_active) {
-        int popup_w = flint_px(44);
-        int popup_x = sound_btn_x;
-        int popup_y = sound_btn_y + sound_btn_size + sound_btn_padding * 2;
-        int popup_h = flint_px(200);
-        Vector2 mouse = GetMousePosition();
-
-        if(IsMouseButtonPressed(MOUSE_BUTTON_LEFT) &&
-           (mouse.x < popup_x || mouse.x > popup_x + popup_w ||
-            mouse.y < popup_y || mouse.y > popup_y + popup_h)) {
-            app->volume_popup_active = 0;
-        }
-
-        DrawRectangle(popup_x, popup_y, popup_w, popup_h, theme_get_surface());
-        ui_draw_bevel(popup_x, popup_y, popup_w, popup_h,
-                      flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
-
-        if(ui_draw_slider_vertical(500, popup_x + popup_w / 2, popup_y + flint_px(10),
-                                   popup_h - flint_px(20), SETTINGS_VOLUME_MIN,
-                                   SETTINGS_VOLUME_MAX, &app->sound_volume)) {
-            app->settings_dirty = 1;
-            update_session_sounds(app);
-            save_settings(app);
-        }
+    if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
+           .id = 500,
+           .x = view_width - flint_px(56),
+           .y = flint_px(12),
+           .icon_size = flint_px(24),
+           .icon_padding = flint_px(10),
+           .icon = sound_icon_for_volume(app),
+           .open = &app->volume_popup_active,
+           .value = &app->sound_volume,
+           .min = SETTINGS_VOLUME_MIN,
+           .max = SETTINGS_VOLUME_MAX,
+           .popup_width = flint_px(44),
+           .popup_height = flint_px(200)
+       })) {
+        app->settings_dirty = 1;
+        update_session_sounds(app);
+        save_settings(app);
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
