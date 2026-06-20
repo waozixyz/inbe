@@ -161,6 +161,8 @@ APP_SRCS := \
 	src/practices/meditation/meditation_music.c \
 	src/core/theme.c \
 	src/storage/data.c \
+	src/storage/db.c \
+	src/storage/import.c \
 	src/storage/storage.c \
 	src/storage/sync_account.c \
 	src/storage/sync_client.c \
@@ -291,11 +293,11 @@ test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST) $(LOCALE_KEYS_TEST) $(SY
 	$(SYNC_URL_TEST)
 	$(SYNC_ACCOUNT_TEST)
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c src/storage/storage.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(FLINT_TEXT_SCALING_TEST): tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c flint/include/flint_text.h flint/include/flint_clip.h flint/include/flint_scaling.h | $(TEST_BIN_DIR)
@@ -316,11 +318,11 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/storage.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
