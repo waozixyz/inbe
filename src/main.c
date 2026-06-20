@@ -1,12 +1,19 @@
 #include "raylib.h"
 #include "app.h"
+#include "storage.h"
+#include "practices/practice_registry.h"
 #include "flint_clip.h"
 #include "flint_dpi.h"
+#include "flint_theme_meta.h"
 #include "flint_web.h"
 #include "theme.h"
+#include "device_preferences.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #define INBE_ANDROID_BUILD 1
@@ -40,6 +47,16 @@ extern struct android_app *GetAndroidApp(void);
 
 static InbeApp inbe_app;
 static InbeApp *g_inbe_app_ptr = NULL;
+
+typedef struct ScreenshotRequest {
+    int active;
+    int width;
+    int height;
+    int theme_id;
+    int dark_mode;
+    char scene[64];
+    char output[512];
+} ScreenshotRequest;
 
 #if defined(_WIN32) && !defined(__ANDROID__)
 static FILE *win_log_file;
@@ -258,9 +275,223 @@ frame(void)
     EndDrawing();
 }
 
+static int
+parse_int_arg(const char *text, int fallback)
+{
+    char *end = NULL;
+    long value;
+
+    if(text == NULL || text[0] == '\0')
+        return fallback;
+    value = strtol(text, &end, 10);
+    if(end == text)
+        return fallback;
+    return (int)value;
+}
+
+static void
+parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
+{
+    if(request == NULL)
+        return;
+    *request = (ScreenshotRequest){
+        .width = config.width,
+        .height = config.height,
+        .theme_id = FLINT_THEME_SKY,
+        .dark_mode = 0
+    };
+
+    for(int i = 1; i < argc; i++) {
+        const char *arg = argv[i];
+        const char *value = i + 1 < argc ? argv[i + 1] : NULL;
+        if(strcmp(arg, "--screenshot") == 0 && value != NULL) {
+            request->active = 1;
+            snprintf(request->output, sizeof(request->output), "%s", value);
+            i++;
+        } else if(strcmp(arg, "--screenshot-scene") == 0 && value != NULL) {
+            snprintf(request->scene, sizeof(request->scene), "%s", value);
+            i++;
+        } else if(strcmp(arg, "--screenshot-width") == 0 && value != NULL) {
+            request->width = parse_int_arg(value, request->width);
+            i++;
+        } else if(strcmp(arg, "--screenshot-height") == 0 && value != NULL) {
+            request->height = parse_int_arg(value, request->height);
+            i++;
+        } else if(strcmp(arg, "--screenshot-theme") == 0 && value != NULL) {
+            request->theme_id = parse_int_arg(value, request->theme_id);
+            i++;
+        } else if(strcmp(arg, "--screenshot-dark") == 0 && value != NULL) {
+            request->dark_mode = parse_int_arg(value, request->dark_mode) != 0;
+            i++;
+        }
+    }
+
+    if(request->scene[0] == '\0')
+        snprintf(request->scene, sizeof(request->scene), "home");
+    if(request->width < 320)
+        request->width = 320;
+    if(request->height < 320)
+        request->height = 320;
+    if(request->theme_id < 0 || request->theme_id >= FLINT_THEME_COUNT)
+        request->theme_id = FLINT_THEME_SKY;
+}
+
+static int
+screenshot_day_index_offset(int offset_days)
+{
+    time_t now = time(NULL);
+    struct tm day;
+
+    day = *localtime(&now);
+    day.tm_hour = 12;
+    day.tm_min = 0;
+    day.tm_sec = 0;
+    day.tm_mday -= offset_days;
+    mktime(&day);
+    return (day.tm_year + 1900) * 10000 + (day.tm_mon + 1) * 100 + day.tm_mday;
+}
+
+static void
+screenshot_seed_habits(InbeApp *app)
+{
+    static const int offsets[] = {0, 1, 2, 4, 5, 7, 8, 10, 12, 13,
+                                  15, 17, 18, 20, 21, 24, 25, 27};
+    static const int counts[] = {2, 1, 1, 3, 1, 1, 2, 1, 1, 2,
+                                 1, 1, 2, 1, 3, 1, 1, 2};
+
+    if(app == NULL)
+        return;
+    if(app->habits.count <= 0)
+        habits_add_default_set(&app->habits);
+    if(app->habits.count <= 0)
+        return;
+
+    app->habits.selected = 0;
+    app->habits.items[0].sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
+    app->habits.items[0].sync_activity = habit_activity_mask_for(EXERCISE_WIM_HOF) |
+                                         habit_activity_mask_for(EXERCISE_MEDITATION);
+    app->habits.items[0].counter_enabled = 0;
+    habits_clear_days(&app->habits);
+    for(size_t i = 0; i < sizeof(offsets) / sizeof(offsets[0]); i++)
+        habit_set_day_count(&app->habits, 0, screenshot_day_index_offset(offsets[i]), counts[i]);
+
+    for(int day = 6; day >= 0; day--) {
+        int progress = 6 - day;
+        int local_date = screenshot_day_index_offset(day);
+        int rounds[] = {
+            32 + progress * 4,
+            37 + progress * 4,
+            41 + progress * 5
+        };
+        storage_save_session_at_for_activity(local_date, 7, 15 + progress, 0,
+                                             rounds, 3, 0, EXERCISE_WIM_HOF,
+                                             NULL, 0);
+    }
+}
+
+static void
+screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
+{
+    if(app == NULL)
+        return;
+    app->theme_id = theme_id;
+    app->theme_mode = dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
+    app->dark_mode = dark_mode != 0;
+    refresh_theme_colors(app->theme_id, app->dark_mode);
+}
+
+static void
+setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
+{
+    if(app == NULL || request == NULL)
+        return;
+
+    app->language_selected = 1;
+    app->modal.active = 0;
+    app->settings_scroll = 0;
+    app->manual_scroll = 0;
+    app->tutorial_step = 0;
+    screenshot_seed_habits(app);
+    screenshot_apply_theme(app, request->theme_id, request->dark_mode);
+
+    if(strcmp(request->scene, "calendar_meditation") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->inbe.screen = InbeScreenHabits;
+        app->habits.view_mode = HABIT_VIEW_CALENDAR;
+    } else if(strcmp(request->scene, "habits_stats") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->inbe.screen = InbeScreenHabits;
+        app->habits.view_mode = HABIT_VIEW_STATS;
+    } else if(strcmp(request->scene, "theme_selection") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->settings_tab = SETTINGS_TAB_THEME;
+        app->inbe.screen = InbeScreenSettings;
+    } else if(strcmp(request->scene, "cobalt_dark") == 0) {
+        screenshot_apply_theme(app, FLINT_THEME_COBALT, 1);
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "manual_whm") == 0) {
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenManual;
+    } else if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_step = 2;
+        app->inbe.screen = InbeScreenManual;
+    } else if(strcmp(request->scene, "meditation_tutorial") == 0) {
+        app->exercise_type = EXERCISE_MEDITATION;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenManual;
+    } else {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->inbe.screen = InbeScreenStart;
+    }
+}
+
+static int
+run_screenshot_mode(const ScreenshotRequest *request)
+{
+    Image capture;
+    char output[512];
+    char cwd[512];
+    char *slash;
+    int warmup_frames = 4;
+
+    if(request == NULL || !request->active)
+        return 0;
+
+    setup_screenshot_scene(&inbe_app, request);
+    if(strcmp(request->scene, "tutorial_whm_step2") == 0)
+        warmup_frames = 150;
+    for(int i = 0; i < warmup_frames; i++)
+        frame();
+    capture = LoadImageFromScreen();
+    if(capture.data == NULL)
+        return 1;
+
+    snprintf(output, sizeof(output), "%s", request->output);
+    snprintf(cwd, sizeof(cwd), "%s", GetWorkingDirectory());
+    slash = strrchr(output, '/');
+    if(slash != NULL) {
+        *slash = '\0';
+        if(ChangeDirectory(output))
+            ExportImage(capture, slash + 1);
+        ChangeDirectory(cwd);
+    } else {
+        ExportImage(capture, output);
+    }
+    UnloadImage(capture);
+    return 1;
+}
+
 int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+    ScreenshotRequest screenshot;
+    parse_screenshot_args(argc, argv, &screenshot);
+    if(screenshot.active) {
+        SetTraceLogLevel(LOG_WARNING);
+        config.width = screenshot.width;
+        config.height = screenshot.height;
+    }
     int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
     int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
 
@@ -321,6 +552,14 @@ int main(int argc, char **argv) {
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(frame, 0, 1);
 #else
+    if(run_screenshot_mode(&screenshot)) {
+        CloseWindow();
+#if defined(_WIN32) && !defined(__ANDROID__)
+        windows_close_logger();
+#endif
+        return 0;
+    }
+
     while(!WindowShouldClose()) {
         frame();
     }

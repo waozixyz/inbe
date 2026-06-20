@@ -10,7 +10,7 @@ typedef struct SettingsDeviceState {
     int orientation_changed;
 } SettingsDeviceState;
 
-int settings_device_content_height(void);
+int settings_device_content_height(int content_w);
 void settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *state);
 void settings_device_handle_overlays(InbeApp *app, SettingsDeviceState *state);
 

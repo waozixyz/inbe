@@ -276,7 +276,7 @@ OK
 Громкость
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+Показывать регулятор громкости в сеансах
 ---
 [reset_to_defaults_label]
 Сбросить настройки
@@ -610,4 +610,82 @@ liboqs не собран для этой платформы.
 ---
 [sync_account_delete_cancelled]
 Удаление аккаунта отменено
+---
+[habit_new_default_name]
+Новая привычка
+---
+[habit_new_title]
+Новая привычка
+---
+[habit_edit_title]
+Изменить привычку
+---
+[habit_name_label]
+Название
+---
+[habit_underline_label]
+Подчеркивание
+---
+[habit_practice_list_title]
+Список практик
+---
+[habit_practice_list_info]
+Свяжите эту привычку с сеансами практики. Дни с подходящими сеансами будут отмечены как выполненные и смогут открыть редактор сеанса.
+---
+[habit_counting_title]
+Подсчет
+---
+[habit_counting_info]
+Несколько счетчиков позволяют сохранить больше одного значения за день. Оставьте выключенным для простого отслеживания выполнено или не выполнено.
+---
+[habit_multiple_counts_label]
+Несколько счетчиков
+---
+[habit_delete_title]
+Удалить привычку?
+---
+[habit_delete_message]
+Удалить эту привычку? Это действие нельзя отменить.
+---
+[habit_delete_button]
+Удалить привычку
+---
+[habit_add_new_option]
+Добавить новую привычку
+---
+[habit_load_more_button]
+Загрузить еще
+---
+[habit_empty_title]
+Привычки не созданы
+---
+[habit_create_button]
+Создать привычку
+---
+[habit_stats_no_rounds_week]
+За последнюю неделю раундов нет
+---
+[habit_stats_current_streak]
+Текущая серия
+---
+[habit_stats_last_30_days]
+Последние 30 дней
+---
+[habit_stats_wim_hof_hold_rounds]
+Раунды задержки дыхания Вима Хофа
+---
+[habit_stats_weekday_pattern]
+Шаблон по дням недели
+---
+[habit_stats_practice_time]
+Время практики
+---
+[habit_stats_best_hold]
+Лучшая задержка
+---
+[habit_stats_total_hold]
+Общая задержка
+---
+[habit_stats_best_streak]
+Лучшая серия
 ---

@@ -20,7 +20,7 @@ Selesai
 Tandai
 ---
 [tab_manual]
-Tutorial
+Manual
 ---
 [tab_settings]
 Pengaturan
@@ -41,7 +41,7 @@ Meditasi
 Meditasi
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+Latihan meditasi sederhana untuk napas, tenang, dan sadar.
 ---
 [meditation_manual_text]
 Pilih musik jika Anda mau. Gong menandai awal dan akhir.
@@ -80,13 +80,13 @@ Jaringan tidak tersedia
 Tidak dapat menjangkau server audio meditasi. Periksa izin jaringan Android dan koneksi internetmu, lalu coba lagi.
 ---
 [duration_5m]
-5m
+5 mnt
 ---
 [duration_15m]
-15m
+15 mnt
 ---
 [duration_30m]
-30m
+30 mnt
 ---
 [duration_1h]
 1j
@@ -216,13 +216,13 @@ Kecepatan awal
 Ubah kecepatan awal
 ---
 [breath_animation_label]
-Breathing animation
+Animasi napas
 ---
 [breath_animation_linear]
-Linear
+Lurus
 ---
 [breath_animation_in_out]
-In / Out
+Masuk / keluar
 ---
 [progressive_start_speed_editor_title]
 Kecepatan awal
@@ -255,7 +255,7 @@ Lingkaran
 Volume
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+Tampilkan kontrol volume di sesi
 ---
 [reset_to_defaults_label]
 Reset ke default
@@ -334,25 +334,25 @@ Data
 Data+Pengaturan
 ---
 [export_cancelled]
-Export cancelled
+Ekspor dibatalkan
 ---
 [no_data_to_export]
-No data to export
+Tidak ada data untuk diekspor
 ---
 [no_data_to_delete]
-No data to delete
+Tidak ada data untuk dihapus
 ---
 [delete_all_data_title]
-Delete all data?
+Hapus semua data?
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+Ini akan menghapus semua sesi tersimpan secara permanen.
 ---
 [delete_cancelled]
-Delete cancelled
+Penghapusan dibatalkan
 ---
 [deleted_sessions]
-Deleted %lld sessions
+%lld sesi dihapus
 ---
 [toggle_off]
 MATI
@@ -400,20 +400,20 @@ Jangan gunakan saat mengemudi,
 berdiri, atau di dalam air.
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+Ikuti 3 langkah:
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. Tarik dan hembuskan napas 30 kali.
+2. Hembuskan dan tahan.
+3. Saat ingin bernapas, tarik napas dan tahan selama 15 detik.
 
-Exhale, then repeat the process.
+Hembuskan, lalu ulangi prosesnya.
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+Gunakan ikon kunci pas %i untuk mengatur ronde, napas, kecepatan, dan jeda.
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+Tarik dan hembuskan napas 30 kali.
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+Temukan ritme yang terasa alami: stabil dan cepat, tetapi tetap bernapas penuh.
 ---
 [tutorial_step_progressive_speed]
 Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
@@ -421,14 +421,14 @@ Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
 Saat aktif, ronde pertama dimulai pada kecepatan 1 untuk 5 nafas pertama, lalu bertambah hingga kecepatan yang dipilih.
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+Setelah 30 napas, hembuskan dan tahan selama mungkin.
 
-When you feel the urge to breathe, press the BREATH button.
+Saat ingin bernapas, tekan tombol NAPAS.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+Tarik napas penuh dan tahan selama 15 detik.
 
-Exhale, and the next round will begin.
+Hembuskan, lalu ronde berikutnya akan mulai.
 ---
 [tutorial_skip_button]
 LEWATI
@@ -494,120 +494,197 @@ Lanskap
 Sensor
 ---
 [back_button]
-Back
+Kembali
 ---
 [close_button]
-Close
+Tutup
 ---
 [sync_account_title]
-Account
+Akun
 ---
 [sync_configure_account_button]
-Configure Account
+Konfigurasi akun
 ---
 [sync_create_account_button]
-Create Account
+Buat akun
 ---
 [sync_account_created]
-Account created
+Akun dibuat
 ---
 [sync_account_create_failed]
-Could not create account
+Tidak dapat membuat akun
 ---
 [sync_import_key_button]
-Import .key File
+Impor file .key
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+Impor kunci akun
 ---
 [sync_private_key_imported]
-Account key imported
+Kunci akun diimpor
 ---
 [sync_private_key_import_failed]
-Could not import account key
+Tidak dapat mengimpor kunci akun
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+Impor kunci akun dibatalkan
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs tidak dibangun untuk target ini.
 ---
 [sync_public_id_label]
-Public ID
+ID publik
 ---
 [sync_copy_id_button]
-Copy ID
+Salin ID
 ---
 [sync_public_id_copied]
-Public ID copied
+ID publik disalin
 ---
 [sync_backup_key_button]
-Backup Key
+Cadangkan kunci
 ---
 [sync_remote_label]
-Remote
+Jarak jauh
 ---
 [sync_connect_button]
-Connect
+Hubungkan
 ---
 [sync_connected_button]
-Connected
+Terhubung
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+Gunakan https:// atau loopback seperti localhost:8080
 ---
 [sync_server_saved]
-Sync server saved
+Server sinkronisasi disimpan
 ---
 [sync_connected]
-Remote sync complete
+Sinkronisasi remote selesai
 ---
 [sync_failed]
-Remote sync failed
+Sinkronisasi remote gagal
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+Sinkronisasi remote tidak tersedia di platform ini
 ---
 [sync_no_account]
-Create an account before connecting
+Buat akun sebelum menghubungkan
 ---
 [sync_auth_failed]
-Remote rejected this account
+Remote menolak akun ini
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+Simpan kunci pribadi ini di tempat yang Anda kendalikan. Siapa pun yang memilikinya dapat mengambil akun ini.
 ---
 [sync_backup_title]
-Backup Account Key
+Cadangkan kunci akun
 ---
 [sync_save_key_file_button]
-Save .key File
+Simpan file .key
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+Simpan kunci akun
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+Cadangan kunci akun disimpan
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+Tidak dapat menyimpan cadangan kunci akun
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+Cadangan kunci akun dibatalkan
 ---
 [sync_delete_account_button]
-Delete Account
+Hapus akun
 ---
 [sync_delete_account_title]
-Delete Account?
+Hapus akun?
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+Hapus akun ini dari server remote dan perangkat ini? Tindakan ini tidak dapat dibatalkan.
 ---
 [sync_account_deleted]
-Account deleted
+Akun dihapus
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+Penghapusan akun dibatalkan
+---
+[habit_new_default_name]
+Kebiasaan baru
+---
+[habit_new_title]
+Kebiasaan baru
+---
+[habit_edit_title]
+Edit kebiasaan
+---
+[habit_name_label]
+Nama
+---
+[habit_underline_label]
+Garis bawah
+---
+[habit_practice_list_title]
+Daftar latihan
+---
+[habit_practice_list_info]
+Hubungkan kebiasaan ini ke sesi latihan. Hari dengan sesi yang cocok akan tampil selesai dan dapat membuka editor sesi.
+---
+[habit_counting_title]
+Penghitungan
+---
+[habit_counting_info]
+Beberapa hitungan memungkinkan satu hari menyimpan lebih dari satu hitungan. Matikan untuk pelacakan sederhana selesai atau belum.
+---
+[habit_multiple_counts_label]
+Beberapa hitungan
+---
+[habit_delete_title]
+Hapus kebiasaan?
+---
+[habit_delete_message]
+Hapus kebiasaan ini? Tindakan ini tidak dapat dibatalkan.
+---
+[habit_delete_button]
+Hapus kebiasaan
+---
+[habit_add_new_option]
+Tambah kebiasaan baru
+---
+[habit_load_more_button]
+Muat lagi
+---
+[habit_empty_title]
+Belum ada kebiasaan
+---
+[habit_create_button]
+Buat kebiasaan
+---
+[habit_stats_no_rounds_week]
+Tidak ada ronde minggu lalu
+---
+[habit_stats_current_streak]
+Rangkaian saat ini
+---
+[habit_stats_last_30_days]
+30 hari terakhir
+---
+[habit_stats_wim_hof_hold_rounds]
+Ronde tahan napas Wim Hof
+---
+[habit_stats_weekday_pattern]
+Pola hari
+---
+[habit_stats_practice_time]
+Waktu latihan
+---
+[habit_stats_best_hold]
+Tahan terbaik
+---
+[habit_stats_total_hold]
+Total tahan
+---
+[habit_stats_best_streak]
+Rangkaian terbaik
 ---

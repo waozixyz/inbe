@@ -1,4 +1,4 @@
-const appUrl = "__WEB_APP_URL__";
+const appUrl = chrome.runtime.getURL("index.html");
 
 chrome.action.onClicked.addListener(() => {
   chrome.tabs.create({ url: appUrl });

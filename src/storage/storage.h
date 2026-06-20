@@ -48,6 +48,10 @@ int storage_save_session(const int *round_times, int round_count,
 int storage_save_session_for_activity(const int *round_times, int round_count,
                                            int topic, int activity,
                                            char *out_id, size_t out_id_size);
+int storage_save_session_at_for_activity(int local_date, int hour, int minute, int second,
+                                         const int *round_times, int round_count,
+                                         int topic, int activity,
+                                         char *out_id, size_t out_id_size);
 int storage_replace_session(const char *id, const int *round_times, int round_count);
 int storage_rename_session_time(const char *id, int hour, int minute);
 int storage_delete_session(const char *id);

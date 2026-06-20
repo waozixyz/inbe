@@ -1,4 +1,8 @@
 # Changelog
+## [1.4.5] - 2026-06-20
+### Changed
+- Fix spacing issues and translations
+
 ## [1.4.4] - 2026-06-20
 ### Added
 - Add Russian localization.

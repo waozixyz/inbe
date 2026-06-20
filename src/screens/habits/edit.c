@@ -14,7 +14,7 @@ habit_edit_begin_new(InbeApp *app)
         .color = {99, 196, 165, 255},
         .sync_mode = INBE_HABIT_SYNC_NONE
     };
-    snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s", "New Habit");
+    snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s", locale_get("habit_new_default_name"));
     app->habit_edit.cursor = (int)strlen(app->habit_edit.text);
     app->inbe.screen = InbeScreenHabitEdit;
 }
@@ -274,7 +274,7 @@ draw_habit_edit_screen(InbeApp *app)
         return;
     }
 
-    title = app->habit_edit.is_new ? "New Habit" : "Edit Habit";
+    title = app->habit_edit.is_new ? locale_get("habit_new_title") : locale_get("habit_edit_title");
 
     DrawRectangle(0, 0, view_width, top_h, theme_get_bg());
     DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(theme_get_button(), 18));
@@ -300,8 +300,8 @@ draw_habit_edit_screen(InbeApp *app)
     flint_centered_column(max_w, flint_page_side_padding(), &content_x, &content_w);
 
     if(app->modal.active && app->modal.type == UIModalHabitPracticeListInfo) {
-        if(habit_edit_info_modal("Practice list",
-                                 "Link this habit to practice sessions. Days with matching sessions will show as completed and can open the session editor.")) {
+        if(habit_edit_info_modal(locale_get("habit_practice_list_title"),
+                                 locale_get("habit_practice_list_info"))) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
         }
@@ -309,8 +309,8 @@ draw_habit_edit_screen(InbeApp *app)
     }
 
     if(app->modal.active && app->modal.type == UIModalHabitCountingInfo) {
-        if(habit_edit_info_modal("Counting",
-                                 "Multiple counts lets one day store more than one count. Leave it off for simple done or not done habit tracking.")) {
+        if(habit_edit_info_modal(locale_get("habit_counting_title"),
+                                 locale_get("habit_counting_info"))) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
         }
@@ -318,8 +318,8 @@ draw_habit_edit_screen(InbeApp *app)
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteHabit) {
-        int modal_result = ui_draw_modal("Delete habit?",
-                                         "Delete this habit? This cannot be undone.",
+        int modal_result = ui_draw_modal(locale_get("habit_delete_title"),
+                                         locale_get("habit_delete_message"),
                                          locale_get("cancel_button"),
                                          locale_get("delete_button"));
         if(modal_result == 1) {
@@ -344,7 +344,7 @@ draw_habit_edit_screen(InbeApp *app)
                      (int)(view_width * app->camera.zoom),
                      (int)((view_height - top_h - nav_h) * app->camera.zoom));
 
-    flint_text_draw("Name", content_x, y, label_font, flint_darken(theme_get_text(), 34));
+    flint_text_draw(locale_get("habit_name_label"), content_x, y, label_font, flint_darken(theme_get_text(), 34));
     y += flint_px(22);
     habit_edit_handle_keyboard(app);
     if(!app->habit_edit.active) {
@@ -354,7 +354,7 @@ draw_habit_edit_screen(InbeApp *app)
     draw_habit_edit_field(app, content_x, y, content_w, field_h, font);
     y += field_h + flint_px(24);
 
-    flint_text_draw("Underline", content_x, y, label_font, flint_darken(theme_get_text(), 34));
+    flint_text_draw(locale_get("habit_underline_label"), content_x, y, label_font, flint_darken(theme_get_text(), 34));
     y += flint_px(32);
     color_options[0] = (Color){94, 166, 232, 255};
     color_options[1] = (Color){99, 196, 165, 255};
@@ -372,7 +372,7 @@ draw_habit_edit_screen(InbeApp *app)
     }
     y += flint_px(34);
 
-    if(habit_edit_section_label(content_x, y, "Practice list")) {
+    if(habit_edit_section_label(content_x, y, locale_get("habit_practice_list_title"))) {
         app->modal.active = 1;
         app->modal.type = UIModalHabitPracticeListInfo;
         app->modal.selected_button = 0;
@@ -393,13 +393,13 @@ draw_habit_edit_screen(InbeApp *app)
     }
 
     y += flint_px(4);
-    if(habit_edit_section_label(content_x, y, "Counting")) {
+    if(habit_edit_section_label(content_x, y, locale_get("habit_counting_title"))) {
         app->modal.active = 1;
         app->modal.type = UIModalHabitCountingInfo;
         app->modal.selected_button = 0;
     }
     y += flint_px(24);
-    if(ui_draw_checkbox_toggle(content_x, y, "Multiple counts",
+    if(ui_draw_checkbox_toggle(content_x, y, locale_get("habit_multiple_counts_label"),
                                &app->habit_edit.counter_enabled)) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0;
     }
@@ -411,7 +411,7 @@ draw_habit_edit_screen(InbeApp *app)
         int hover_delete = 0;
         y += flint_px(10);
         if(ui_draw_generic_button(content_x, y, delete_w, delete_h,
-                                  "Delete Habit", UI_BUTTON_STYLE_DANGER,
+                                  locale_get("habit_delete_button"), UI_BUTTON_STYLE_DANGER,
                                   0, &hover_delete)) {
             app->modal.active = 1;
             app->modal.type = UIModalConfirmDeleteHabit;

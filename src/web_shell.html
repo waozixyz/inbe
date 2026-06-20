@@ -252,7 +252,17 @@
           console.error(text);
         },
         canvas: (function() {
-          var canvas = document.querySelector('#canvas');
+          var canvas = document.getElementById('canvas') || document.querySelector('canvas.emscripten');
+          if (!canvas) {
+            canvas = document.createElement('canvas');
+            canvas.className = 'emscripten';
+            canvas.id = 'canvas';
+            canvas.width = 320;
+            canvas.height = 560;
+            canvas.tabIndex = -1;
+            var frame = document.getElementById('canvas-frame') || document.body;
+            frame.appendChild(canvas);
+          }
           canvas.addEventListener('webglcontextlost', function(e) {
             alert('WebGL context lost. Reload the page to continue.');
             e.preventDefault();
@@ -299,6 +309,7 @@
           Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
         }
       };
+      globalThis.Module = Module;
 
       Module.setStatus('Downloading...');
       window.onerror = function() {
