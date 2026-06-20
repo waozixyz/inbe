@@ -282,13 +282,14 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     int my = (int)mouse_pos.y;
     Rectangle thumb_bounds = {x + track_padding, thumb_y, scrollbar_width - track_padding * 2, thumb_height};
     int input_captured = ui_input_captures_click_internal(mouse_pos, 0);
-    int thumb_hover = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
+    int thumb_active = CheckCollisionPointRec(mouse_pos, thumb_bounds) && !input_captured;
+    int thumb_hover = thumb_active && ui_hover_effects_enabled();
 
     /* Handle drag state */
     if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !input_captured) {
         if(!scrollbar_drag_active) {
             /* Start drag if clicking on thumb */
-            if(thumb_hover) {
+            if(thumb_active) {
                 scrollbar_drag_active = 1;
                 scrollbar_drag_start_y = my;
                 scrollbar_drag_start_scroll = *scroll_offset;

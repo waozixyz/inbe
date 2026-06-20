@@ -1,13 +1,34 @@
 #include "ui.h"
 
+static int
+ui_modal_button(int x, int y, int w, int h, const char *label, int font,
+                Vector2 mouse_world)
+{
+    Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
+    int active = CheckCollisionPointRec(mouse_world, bounds);
+    int hovered = active && ui_hover_effects_enabled();
+    Color fill = hovered ? c_button_hover : c_button;
+    int text_w;
+
+    DrawRectangle(x, y, w, h, fill);
+    ui_draw_bevel(x, y, w, h, flint_lighten(fill, 40), flint_darken(fill, 40));
+    if(active)
+        ui_mark_clickable();
+
+    text_w = flint_text_measure(label, font);
+    flint_text_draw(label, x + (w - text_w) / 2, flint_ui_text_y(label, y, h, font),
+                    font, c_text);
+
+    return active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+}
+
 int
 ui_draw_modal(const char *title, const char *message,
                const char *cancel_btn, const char *confirm_btn)
 {
     int modal_w = flint_px(280);
-    int modal_h = flint_px(160);
-    int modal_x = (ui_view_width - modal_w) / 2;
-    int modal_y = (ui_view_height - modal_h) / 2;
+    int modal_x;
+    int modal_y;
     int title_font = flint_ui_font();
     int msg_font = flint_ui_font();
     int btn_font = flint_ui_font();
@@ -15,12 +36,27 @@ ui_draw_modal(const char *title, const char *message,
     int btn_w = flint_px(100);
     int btn_gap = flint_px(12);
     int title_h = flint_px(32);
-    int msg_y = modal_y + title_h;
-    int btn_y = modal_y + modal_h - btn_h - flint_px(16);
-
+    int msg_x;
+    int msg_y;
+    int msg_w = modal_w - flint_px(32);
+    int msg_gap = flint_px(18);
+    int modal_h;
+    int btn_y;
     Vector2 mouse_world = ui_mouse_world();
-    int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon,
+                                                          UI_ICON_TYPE_GEAR, msg_font);
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
+
+    modal_h = title_h + flint_text_layout_get_height(&msg_layout) + msg_gap + btn_h + flint_px(20);
+    if(modal_h < flint_px(160))
+        modal_h = flint_px(160);
+    if(modal_h > ui_view_height - flint_px(24))
+        modal_h = ui_view_height - flint_px(24);
+    modal_x = (ui_view_width - modal_w) / 2;
+    modal_y = (ui_view_height - modal_h) / 2;
+    msg_x = modal_x + flint_px(16);
+    msg_y = modal_y + title_h;
+    btn_y = modal_y + modal_h - btn_h - flint_px(16);
 
     /* Dim background */
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
@@ -32,14 +68,6 @@ ui_draw_modal(const char *title, const char *message,
     /* Title */
     int title_w = flint_text_measure(title, title_font);
     flint_text_draw(title, modal_x + (modal_w - title_w) / 2, modal_y + flint_px(12), title_font, c_text);
-
-    /* Message (text layout with icon support) */
-    int msg_x = modal_x + flint_px(16);
-    int msg_w = modal_w - flint_px(32);
-
-    /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -50,33 +78,10 @@ ui_draw_modal(const char *title, const char *message,
     int confirm_x = cancel_x + btn_w + btn_gap;
     int result = 0;
 
-    /* Cancel button */
-    if(mx >= cancel_x && mx < cancel_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
-        DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            result = 1;
-    } else {
-        DrawRectangle(cancel_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(cancel_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-    }
-    int cancel_text_w = flint_text_measure(cancel_btn, btn_font);
-    flint_text_draw(cancel_btn, cancel_x + (btn_w - cancel_text_w) / 2, flint_ui_text_y(cancel_btn, btn_y, btn_h, btn_font), btn_font, c_text);
-
-    /* Confirm button */
-    if(mx >= confirm_x && mx < confirm_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
-        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            result = 2;
-    } else {
-        DrawRectangle(confirm_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(confirm_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-    }
-    int confirm_text_w = flint_text_measure(confirm_btn, btn_font);
-    flint_text_draw(confirm_btn, confirm_x + (btn_w - confirm_text_w) / 2, flint_ui_text_y(confirm_btn, btn_y, btn_h, btn_font), btn_font, c_text);
+    if(ui_modal_button(cancel_x, btn_y, btn_w, btn_h, cancel_btn, btn_font, mouse_world))
+        result = 1;
+    if(ui_modal_button(confirm_x, btn_y, btn_w, btn_h, confirm_btn, btn_font, mouse_world))
+        result = 2;
 
     return result;
 }
@@ -86,9 +91,8 @@ ui_draw_modal_3btn(const char *title, const char *message,
                     const char *left_btn, const char *middle_btn, const char *right_btn)
 {
     int modal_w = flint_px(300);
-    int modal_h = flint_px(160);
-    int modal_x = (ui_view_width - modal_w) / 2;
-    int modal_y = (ui_view_height - modal_h) / 2;
+    int modal_x;
+    int modal_y;
     int title_font = flint_ui_font();
     int msg_font = flint_ui_font();
     int btn_font = flint_ui_font();
@@ -96,12 +100,27 @@ ui_draw_modal_3btn(const char *title, const char *message,
     int btn_w = flint_px(90);
     int btn_gap = flint_px(8);
     int title_h = flint_px(32);
-    int msg_y = modal_y + title_h;
-    int btn_y = modal_y + modal_h - btn_h - flint_px(16);
-
+    int msg_x;
+    int msg_y;
+    int msg_w = modal_w - flint_px(32);
+    int msg_gap = flint_px(18);
+    int modal_h;
+    int btn_y;
     Vector2 mouse_world = ui_mouse_world();
-    int mx = (int)mouse_world.x;
-    int my = (int)mouse_world.y;
+    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon,
+                                                          UI_ICON_TYPE_GEAR, msg_font);
+    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
+
+    modal_h = title_h + flint_text_layout_get_height(&msg_layout) + msg_gap + btn_h + flint_px(20);
+    if(modal_h < flint_px(160))
+        modal_h = flint_px(160);
+    if(modal_h > ui_view_height - flint_px(24))
+        modal_h = ui_view_height - flint_px(24);
+    modal_x = (ui_view_width - modal_w) / 2;
+    modal_y = (ui_view_height - modal_h) / 2;
+    msg_x = modal_x + flint_px(16);
+    msg_y = modal_y + title_h;
+    btn_y = modal_y + modal_h - btn_h - flint_px(16);
 
     /* Dim background */
     DrawRectangle(0, 0, ui_view_width, ui_view_height, (Color){0, 0, 0, 180});
@@ -113,14 +132,6 @@ ui_draw_modal_3btn(const char *title, const char *message,
     /* Title */
     int title_w = flint_text_measure(title, title_font);
     flint_text_draw(title, modal_x + (modal_w - title_w) / 2, modal_y + flint_px(12), title_font, c_text);
-
-    /* Message (text layout with icon support) */
-    int msg_x = modal_x + flint_px(16);
-    int msg_w = modal_w - flint_px(32);
-
-    /* Parse message with icon support - use GEAR icon for warnings */
-    FlintTextLayout msg_layout = flint_text_layout_parse(message, g_ui_gear_icon, UI_ICON_TYPE_GEAR, msg_font);
-    flint_text_layout_reflow(&msg_layout, msg_w, msg_font, flint_px(4));
 
     /* Draw the layout */
     flint_text_layout_draw(&msg_layout, msg_x, &msg_y, msg_font, c_text);
@@ -134,47 +145,12 @@ ui_draw_modal_3btn(const char *title, const char *message,
 
     int result = 0;
 
-    /* Left button (Cancel) */
-    if(mx >= left_x && mx < left_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
-        DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            result = 1;
-    } else {
-        DrawRectangle(left_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(left_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-    }
-    int left_text_w = flint_text_measure(left_btn, btn_font);
-    flint_text_draw(left_btn, left_x + (btn_w - left_text_w) / 2, flint_ui_text_y(left_btn, btn_y, btn_h, btn_font), btn_font, c_text);
-
-    /* Middle button (Save) - primary action */
-    if(mx >= middle_x && mx < middle_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
-        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            result = 2;
-    } else {
-        DrawRectangle(middle_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(middle_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-    }
-    int middle_text_w = flint_text_measure(middle_btn, btn_font);
-    flint_text_draw(middle_btn, middle_x + (btn_w - middle_text_w) / 2, flint_ui_text_y(middle_btn, btn_y, btn_h, btn_font), btn_font, c_text);
-
-    /* Right button (Discard) */
-    if(mx >= right_x && mx < right_x + btn_w && my >= btn_y && my < btn_y + btn_h) {
-        DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button_hover);
-        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            result = 3;
-    } else {
-        DrawRectangle(right_x, btn_y, btn_w, btn_h, c_button);
-        ui_draw_bevel(right_x, btn_y, btn_w, btn_h, flint_lighten(c_button, 40), flint_darken(c_button, 40));
-    }
-    int right_text_w = flint_text_measure(right_btn, btn_font);
-    flint_text_draw(right_btn, right_x + (btn_w - right_text_w) / 2, flint_ui_text_y(right_btn, btn_y, btn_h, btn_font), btn_font, c_text);
+    if(ui_modal_button(left_x, btn_y, btn_w, btn_h, left_btn, btn_font, mouse_world))
+        result = 1;
+    if(ui_modal_button(middle_x, btn_y, btn_w, btn_h, middle_btn, btn_font, mouse_world))
+        result = 2;
+    if(ui_modal_button(right_x, btn_y, btn_w, btn_h, right_btn, btn_font, mouse_world))
+        result = 3;
 
     return result;
 }

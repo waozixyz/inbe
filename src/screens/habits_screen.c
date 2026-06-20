@@ -947,6 +947,7 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
 {
     Vector2 mouse_world;
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
+    int active;
     int hovered;
     Color fill = completed ? theme_get_button() : flint_darken(theme_get_bg(), 10);
     Color text = disabled ? flint_darken(theme_get_text(), 35) : theme_get_text();
@@ -959,14 +960,16 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     if(app == NULL)
         return 0;
     mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    hovered = CheckCollisionPointRec(mouse_world, bounds) &&
-              !ui_input_captures_click(mouse_world);
-    if(hovered) {
+    active = CheckCollisionPointRec(mouse_world, bounds) &&
+             !ui_input_captures_click(mouse_world);
+    hovered = active && ui_hover_effects_enabled();
+    if(active) {
         if(disabled)
             app->cursor_disabled = 1;
         else
             app->cursor_clickable = 1;
     }
+    active = active && !disabled;
     hovered = hovered && !disabled;
 
     if(hovered)
@@ -997,7 +1000,7 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
         }
     }
 
-    if(hovered)
+    if(active)
         return IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     return 0;
 }

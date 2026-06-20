@@ -156,10 +156,11 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     Vector2 mouse = ui_mouse_world();
     Color button_bg;
     int button_inside = CheckCollisionPointRec(mouse, btn_bounds);
-    int hover = button_inside &&
-                (state->open
-                     ? !ui_base_input_captures_click(mouse, 1)
-                     : !ui_input_captures_click(mouse));
+    int active = button_inside &&
+                 (state->open
+                      ? !ui_base_input_captures_click(mouse, 1)
+                      : !ui_input_captures_click(mouse));
+    int hover = active && ui_hover_effects_enabled();
 
     /* Calculate arrow position */
     int arrow_x = x + w - arrow_pad;
@@ -182,11 +183,11 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
         state->options[i] = state->option_text[i];
     }
 
-    if(hover)
+    if(active)
         ui_mark_clickable();
 
     /* Handle click on button */
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    if(active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         state->open = !state->open;
         if(state->open) {
             state->just_opened = 1;
@@ -198,7 +199,7 @@ ui_draw_dropdown_button(int id, int x, int y, int w, int h,
     /* Draw button background */
     button_bg = state->open ? ui_dropdown_panel_color(28)
                             : (hover ? c_button_hover : ui_dropdown_panel_color(16));
-    DrawRectangleRounded(btn_bounds, 0.3f, 8, button_bg);
+    DrawRectangleRec(btn_bounds, button_bg);
     ui_draw_bevel(x, y, w, h,
                   state->open ? flint_lighten(button_bg, 34) : flint_lighten(button_bg, 24),
                   state->open ? flint_darken(button_bg, 38) : flint_darken(button_bg, 30));
@@ -355,10 +356,12 @@ ui_draw_dropdown_menu(int id)
         if(option_y + option_h < dropdown_y || option_y >= dropdown_y + dropdown_h)
             continue;
 
-        int option_hover = CheckCollisionPointRec(mouse, option_bounds);
+        int option_active = CheckCollisionPointRec(mouse, option_bounds);
+        int option_hover = option_active && ui_hover_effects_enabled();
 
-        if(option_hover) {
-            DrawRectangle(x, option_y, w, option_h, c_button_hover);
+        if(option_active) {
+            if(option_hover)
+                DrawRectangle(x, option_y, w, option_h, c_button_hover);
             ui_mark_clickable();
 
             if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !state->just_opened && !state->touch_drag_active) {

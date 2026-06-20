@@ -228,14 +228,16 @@ habit_color_button(InbeApp *app, int x, int y, Color color, int selected)
         (float)(radius * 2 + flint_px(12)),
         (float)(radius * 2 + flint_px(12))
     };
-    int hovered = CheckCollisionPointRec(mouse_world, bounds);
+    int active = CheckCollisionPointRec(mouse_world, bounds);
+    int hovered = active && ui_hover_effects_enabled();
 
     DrawCircle(x, y, radius, color);
     DrawCircleLines(x, y, radius + flint_px(2),
                     selected ? theme_get_text() : flint_darken(theme_get_bg(), 42));
-    if(hovered) {
+    if(active) {
         app->cursor_clickable = 1;
-        DrawCircleLines(x, y, radius + flint_px(5), theme_get_button_hover());
+        if(hovered)
+            DrawCircleLines(x, y, radius + flint_px(5), theme_get_button_hover());
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             return 1;
     }

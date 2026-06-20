@@ -374,6 +374,7 @@ void ui_set_cursor_disabled(int *cursor_disabled);
 void ui_set_icons(Texture2D gear_icon, Texture2D x_icon);
 void ui_set_input_blocked(int blocked);
 int ui_input_captures_click(Vector2 point);
+int ui_hover_effects_enabled(void);
 /* DPI scaling, color, and layout functions now from Flint: flint_px, flint_clamp_px, flint_lighten, flint_darken, flint_centered_column, flint_page_side_padding */
 int flint_ui_font(void);
 int flint_ui_font_small(void);

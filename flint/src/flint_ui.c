@@ -190,6 +190,16 @@ ui_input_captures_click(Vector2 point)
     return ui_input_captures_click_internal(point, 1);
 }
 
+int
+ui_hover_effects_enabled(void)
+{
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    return 0;
+#else
+    return 1;
+#endif
+}
+
 void
 ui_push_input_clip(Rectangle bounds)
 {
@@ -758,7 +768,8 @@ flint_ui_button(FlintUIButton button)
     Vector2 mouse_world = ui_mouse_world();
     int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
     int captured = ui_input_captures_click(mouse_world);
-    int hovered = !button.disabled && !captured && mouse_inside;
+    int active = !button.disabled && !captured && mouse_inside;
+    int hovered = active && ui_hover_effects_enabled();
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int font = button.font > 0 ? button.font : flint_ui_font();
@@ -780,7 +791,7 @@ flint_ui_button(FlintUIButton button)
     if(button.disabled && !captured && mouse_inside)
         ui_mark_disabled();
 
-    if(hovered) {
+    if(active) {
         ui_mark_clickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
@@ -802,7 +813,8 @@ flint_ui_icon_button(FlintUIIconButton button)
     Vector2 mouse_world = ui_mouse_world();
     int mouse_inside = CheckCollisionPointRec(mouse_world, button.bounds);
     int captured = ui_input_captures_click(mouse_world);
-    int hovered = !button.disabled && !captured && mouse_inside;
+    int active = !button.disabled && !captured && mouse_inside;
+    int hovered = active && ui_hover_effects_enabled();
     int focused = !button.disabled && button.focus_id > 0 && ui_focus_register(button.focus_id, button.bounds);
     int clicked = 0;
     int icon_padding = button.icon_padding > 0 ? button.icon_padding : flint_px(4);
@@ -833,7 +845,7 @@ flint_ui_icon_button(FlintUIIconButton button)
     if(button.disabled && !captured && mouse_inside)
         ui_mark_disabled();
 
-    if(hovered) {
+    if(active) {
         ui_mark_clickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             clicked = 1;
@@ -1117,11 +1129,13 @@ ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover)
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
+        int show_hover = ui_hover_effects_enabled();
+        Color fill = show_hover ? c_button_hover : c_button;
+        DrawRectangle(x, y, w, h, fill);
+        ui_draw_bevel(x, y, w, h, flint_lighten(fill, 40), flint_darken(fill, 40));
+        *hover = show_hover;
         ui_mark_clickable();
-        if(mb) {
+        if(show_hover && mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released) {
@@ -1155,11 +1169,13 @@ ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
+        int show_hover = ui_hover_effects_enabled();
+        Color fill = show_hover ? c_button_hover : c_button;
+        DrawRectangle(x, y, w, h, fill);
+        ui_draw_bevel(x, y, w, h, flint_lighten(fill, 40), flint_darken(fill, 20));
+        *hover = show_hover;
         ui_mark_clickable();
-        if(mb) {
+        if(show_hover && mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released) {
@@ -1201,11 +1217,13 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
     int pressed = 0;
 
     if(mx > x && mx < x + w && my > y && my < y + h && !ui_input_captures_click(mouse_world)) {
-        DrawRectangle(x, y, w, h, c_button_hover);
-        ui_draw_bevel(x, y, w, h, flint_darken(c_button_hover, 40), flint_lighten(c_button_hover, 40));
-        *hover = 1;
+        int show_hover = ui_hover_effects_enabled();
+        Color fill = show_hover ? c_button_hover : c_button;
+        DrawRectangle(x, y, w, h, fill);
+        ui_draw_bevel(x, y, w, h, flint_lighten(fill, 40), flint_darken(fill, 40));
+        *hover = show_hover;
         ui_mark_clickable();
-        if(mb) {
+        if(show_hover && mb) {
             ui_draw_bevel(x, y, w, h, flint_lighten(c_button_hover, 40), flint_darken(c_button_hover, 40));
         }
         if(released) {
@@ -1274,7 +1292,8 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label,
     Rectangle bounds = {x, y, w, h};
     int mouse_inside = CheckCollisionPointRec(mouse_world, bounds);
     int captured = ui_input_captures_click(mouse_world);
-    int hovered = mouse_inside && !disabled && !captured;
+    int active = mouse_inside && !disabled && !captured;
+    int hovered = active && ui_hover_effects_enabled();
 
     if(disabled) {
         bg = flint_darken(bg, 22);
@@ -1290,9 +1309,10 @@ ui_draw_generic_button(int x, int y, int w, int h, const char *label,
 
     int clicked = 0;
 
-    if(hovered) {
-        DrawRectangleRec(bounds, hover_bg);
-        ui_draw_bevel(x, y, w, h, flint_lighten(hover_bg, 40), flint_darken(hover_bg, 40));
+    if(active) {
+        Color draw_bg = hovered ? hover_bg : bg;
+        DrawRectangleRec(bounds, draw_bg);
+        ui_draw_bevel(x, y, w, h, flint_lighten(draw_bg, 40), flint_darken(draw_bg, 40));
         ui_mark_clickable();
 
         if(released) {
@@ -1345,7 +1365,8 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         Rectangle label_rect = {(float)(tab_x + label_pad), bar.bounds.y,
                                 (float)(draw_w - label_pad * 2), bar.bounds.height};
         int input_captured = ui_input_captures_click(mouse_world);
-        int is_hovered = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
+        int is_active = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
+        int is_hovered = is_active && ui_hover_effects_enabled();
         int is_selected = i == bar.selected_index;
         int is_disabled = bar.tabs[i].disabled;
         Color accent = bar.tabs[i].accent.a != 0 ? bar.tabs[i].accent : c_button_hover;
@@ -1371,7 +1392,7 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
             DrawLine(tab_x, bar_y + flint_px(8), tab_x, bar_y + tab_h - flint_px(8),
                      flint_darken(c_bg, 24));
 
-        if(is_hovered) {
+        if(is_active) {
             if(is_disabled)
                 ui_mark_disabled();
             else if(!is_selected)
@@ -1404,7 +1425,7 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url)
 
     if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h &&
        !ui_input_captures_click(mouse_world)) {
-        hover = 1;
+        hover = ui_hover_effects_enabled();
         ui_mark_clickable();
     }
 
@@ -1422,7 +1443,8 @@ ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url)
         DrawTexturePro(icon, src, dst, (Vector2){0}, 0, c_icon);
     }
 
-    if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+    if(mx > btn_x && mx < btn_x + btn_w && my > btn_y && my < btn_y + btn_h &&
+       !ui_input_captures_click(mouse_world) && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
 #if defined(PLATFORM_WEB)
         EM_ASM({
             window.location.href = UTF8ToString($0);
@@ -1693,11 +1715,13 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
     if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
-        hover = 1;
+        hover = ui_hover_effects_enabled();
         ui_mark_clickable();
     }
 
-    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int pressed = CheckCollisionPointRec(mouse_world, bounds) &&
+                  !ui_input_captures_click(mouse_world) &&
+                  IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 
     if(pressed)
         *value = !(*value);
@@ -1744,12 +1768,14 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
         if(disabled)
             ui_mark_disabled();
         else {
-            hover = 1;
+            hover = ui_hover_effects_enabled();
             ui_mark_clickable();
         }
     }
 
-    int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    int pressed = CheckCollisionPointRec(mouse_world, bounds) && !disabled &&
+                  !ui_input_captures_click(mouse_world) &&
+                  IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
@@ -1785,6 +1811,7 @@ ui_draw_info_button(int center_x, int center_y, int diameter)
     Vector2 mouse_world = ui_mouse_world();
     int min_touch = flint_px(32);
     int radius;
+    int active = 0;
     int hover = 0;
     Rectangle hit;
     Color fill;
@@ -1798,8 +1825,9 @@ ui_draw_info_button(int center_x, int center_y, int diameter)
     hit = ui_centered_min_hit_rect(center_x - radius, center_y - radius,
                                   diameter, diameter, min_touch, min_touch);
 
-    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
-        hover = 1;
+    active = CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world);
+    if(active) {
+        hover = ui_hover_effects_enabled();
         ui_mark_clickable();
     }
 
@@ -1811,7 +1839,5 @@ ui_draw_info_button(int center_x, int center_y, int diameter)
     font = flint_ui_font_small();
     flint_ui_draw_text_centered("i", center_x, center_y, font, text);
 
-    return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
+    return active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
-
-/* Higher-level widgets live in flint/src/ui/widgets.c. */

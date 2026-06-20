@@ -446,8 +446,9 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int segment_x = x + i * segment_w;
         int current_w = i == 1 ? x + w - segment_x : segment_w;
         Rectangle rect = {segment_x, y, current_w, h};
-        int hovered = CheckCollisionPointRec(mouse_world, rect) &&
-                      !ui_input_captures_click(mouse_world);
+        int active_hit = CheckCollisionPointRec(mouse_world, rect) &&
+                         !ui_input_captures_click(mouse_world);
+        int hovered = active_hit && ui_hover_effects_enabled();
         int active = i == selected;
         Color fill = active ? theme_get_button() : flint_darken(theme_get_bg(), 10);
         Color top = flint_lighten(fill, 35);
@@ -455,9 +456,9 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int font = flint_ui_font();
         int text_w;
 
-        if(hovered) {
+        if(active_hit) {
             app->cursor_clickable = 1;
-            if(!active) {
+            if(hovered && !active) {
                 fill = theme_get_button_hover();
                 top = flint_darken(theme_get_button_hover(), 40);
                 bottom = flint_lighten(theme_get_button_hover(), 40);
@@ -473,7 +474,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
                         flint_ui_text_y(labels[i], y, h, font), font, theme_get_text());
 
-        if(hovered && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+        if(active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
            !ui_input_captures_click(mouse_world) && selected != i) {
             app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH;
             app->settings_dirty = 1;
@@ -537,6 +538,7 @@ int
 session_draw_start_preview(InbeApp *app, int center_x, int center_y)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int active = 0;
     int hovered = 0;
     int clicked = 0;
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
@@ -552,8 +554,9 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     float dist_sq = dx * dx + dy * dy;
 
     if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
-        hovered = 1;
-        app->play_circle_hover = 1;
+        active = 1;
+        hovered = ui_hover_effects_enabled();
+        app->play_circle_hover = hovered;
     } else {
         app->play_circle_hover = 0;
     }
@@ -567,7 +570,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     scale = app->play_circle_scale;
 
     // Handle click
-    if(hovered && released) {
+    if(active && released) {
         clicked = 1;
     }
 
@@ -578,7 +581,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     // Draw PLAY text in center
     flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(theme_get_circle()));
 
-    if(hovered) {
+    if(active) {
         app->cursor_clickable = 1;
     }
 
