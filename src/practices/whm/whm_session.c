@@ -25,12 +25,6 @@ text_color_for_background(Color background)
     return luma >= 128000 ? BLACK : WHITE;
 }
 
-static Color
-text_color_on_circle(void)
-{
-    return text_color_for_background(theme_get_circle());
-}
-
 static void
 set_circle_bounds(Inbe *inbe, int rmin, int rmax)
 {
@@ -412,7 +406,7 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     Color text_color = app->inbe.phase == InbePhaseHold &&
                        app->hold_display_mode == HOLD_DISPLAY_CIRCLE
                            ? text_color_for_background(theme_get_bg())
-                           : text_color_on_circle();
+                           :  text_color_for_background(theme_get_circle());
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -577,13 +571,12 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
         clicked = 1;
     }
 
-    // Draw circle with hover scale for all exercises
     int scaled_radius = (int)(radius * scale);
     DrawCircle(center_x, center_y, scaled_radius, theme_get_circle());
     DrawCircleLines(center_x, center_y, scaled_radius, theme_get_text());
 
     // Draw PLAY text in center
-    flint_ui_draw_text_centered(play_text, center_x, center_y, font, text_color_on_circle());
+    flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(theme_get_circle()));
 
     if(hovered) {
         app->cursor_clickable = 1;

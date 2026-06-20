@@ -14,7 +14,7 @@ set(OQS_BUILD_ONLY_LIB ON CACHE BOOL "" FORCE)
 set(OQS_USE_OPENSSL OFF CACHE BOOL "" FORCE)
 set(OQS_MINIMAL_BUILD "SIG_ml_dsa_44" CACHE STRING "" FORCE)
 add_subdirectory("${REPO_ROOT}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
-file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
+file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c" "${FLINT_DIR}/src/ui/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
@@ -105,6 +105,8 @@ add_library(main SHARED
     "${SRC_DIR}/practices/meditation/meditation_manual.c"
     "${SRC_DIR}/practices/meditation/meditation_config.c"
     "${SRC_DIR}/screens/habits_screen.c"
+    "${SRC_DIR}/screens/habits/edit.c"
+    "${SRC_DIR}/screens/habits/session.c"
     "${SRC_DIR}/practices/meditation/meditation_music.c"
     "${SRC_DIR}/core/theme.c"
     "${SRC_DIR}/storage/data.c"
