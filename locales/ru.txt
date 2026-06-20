@@ -1,0 +1,613 @@
+[app_title]
+Inner Breeze
+---
+[tab_history]
+История
+---
+[tab_habits]
+Привычки
+---
+[tab_practice]
+Практика
+---
+[habit_add_button]
+Добавить привычку
+---
+[habit_done_button]
+Готово
+---
+[habit_not_done_button]
+Отметить
+---
+[tab_manual]
+Обучение
+---
+[tab_settings]
+Настройки
+---
+[play_button]
+СТАРТ
+---
+[exercise_wim_hof]
+Дыхание Вима Хофа
+---
+[exercise_meditation]
+Медитация
+---
+[meditation_title]
+Медитация
+---
+[meditation_manual_title]
+Медитация
+---
+[meditation_manual_intro_text]
+Сядьте спокойно и сделайте эту сессию простой: остановитесь, подышите и начните.
+---
+[meditation_manual_text]
+Включите музыку, если хотите. Гонг отмечает начало и конец.
+---
+[meditation_music_settings_title]
+Музыка для медитации
+---
+[meditation_music_section_title]
+Фоновая музыка
+---
+[meditation_music_enabled_label]
+Воспроизводить фоновую музыку
+---
+[meditation_music_shuffle_label]
+Случайный трек
+---
+[meditation_music_track_label]
+Трек
+---
+[meditation_music_download_button]
+Скачать аудио
+---
+[meditation_music_redownload_button]
+Скачать заново
+---
+[meditation_music_test_button]
+Проверить звук
+---
+[meditation_music_stop_test_button]
+Остановить проверку
+---
+[meditation_music_network_error_title]
+Нет сети
+---
+[meditation_music_network_error_message]
+Не удалось подключиться к серверу аудио для медитации. Проверьте разрешения сети Android и подключение к интернету, затем попробуйте снова.
+---
+[meditation_music_attribution]
+Музыка: Elijah_K.
+---
+[duration_5m]
+5 мин
+---
+[duration_15m]
+15 мин
+---
+[duration_30m]
+30 мин
+---
+[duration_1h]
+1 ч
+---
+[duration_2h]
+2 ч
+---
+[breath_button]
+ДЫШАТЬ
+---
+[results_title]
+ИТОГИ
+---
+[home_button]
+ДОМОЙ
+---
+[exit_session_title]
+Выйти из сессии?
+---
+[save_completed_rounds_message]
+Сохранить завершенные раунды перед выходом?
+---
+[cancel_button]
+Отмена
+---
+[ok_button]
+OK
+---
+[save_button]
+Сохранить
+---
+[save_results_button]
+Сохранить
+---
+[discard_button]
+Сбросить
+---
+[all_progress_lost_message]
+Весь прогресс будет потерян.
+---
+[meditation_under_minute_exit_message]
+Это не будет сохранено.
+---
+[meditation_save_elapsed_message]
+Сохранить эту медитацию перед выходом?
+---
+[exit_button]
+Выйти
+---
+[round_times_title]
+Время раундов
+---
+[results_rounds]
+%d раундов
+---
+[results_best]
+лучшее %dс
+---
+[results_avg]
+среднее %dс
+---
+[round_result_label]
+Раунд %d  %dс
+---
+[starting_in]
+НАЧАЛО ЧЕРЕЗ %2d
+---
+[session_round_label]
+РАУНД %d
+---
+[settings_title]
+Настройки
+---
+[practice_config_title]
+Практика
+---
+[settings_section_breathing]
+Дыхание
+---
+[settings_section_session]
+Сессия
+---
+[settings_tab_app]
+Приложение
+---
+[settings_tab_theme]
+Тема
+---
+[settings_tab_device]
+Устройство
+---
+[settings_section_sound]
+Звук
+---
+[settings_section_appearance]
+Внешний вид
+---
+[settings_section_language]
+Язык
+---
+[settings_tab_data]
+Данные
+---
+[settings_section_data]
+Данные
+---
+[settings_tab_about]
+О приложении
+---
+
+[theme_label]
+Тема
+---
+[theme_mode_label]
+Режим темы
+---
+[theme_system]
+Системная
+---
+[orientation_label]
+Ориентация
+---
+[orientation_system]
+Системная
+---
+[orientation_portrait]
+Портретная
+---
+[orientation_landscape]
+Альбомная
+---
+[orientation_sensor]
+Датчик
+---
+[speed_label]
+Скорость
+---
+[progressive_speed_label]
+Постепенная скорость
+---
+[progressive_start_speed_label]
+Начальная скорость
+---
+[modify_start_speed_button]
+Изменить начальную скорость
+---
+[breath_animation_label]
+Анимация дыхания
+---
+[breath_animation_linear]
+Линейная
+---
+[breath_animation_in_out]
+Вдох / выдох
+---
+[progressive_start_speed_editor_title]
+Начальная скорость
+---
+[play_in_background_label]
+Воспроизводить в фоне
+---
+[max_rounds_label]
+Макс. раундов
+---
+[max_breaths_label]
+Макс. вдохов
+---
+[pause_after_round_label]
+Пауза после раунда
+---
+[advanced_session_controls_label]
+Расширенное управление сессией
+---
+[hold_display_label]
+Отображение задержки
+---
+[hold_display_stopwatch]
+Секундомер
+---
+[hold_display_circle]
+Круг
+---
+[volume_label]
+Громкость
+---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
+[reset_to_defaults_label]
+Сбросить настройки
+---
+[fullscreen_label]
+Полный экран
+---
+[language_label]
+Язык
+---
+[language_picker_title]
+Выберите язык
+---
+[next_button]
+Далее
+---
+[coming_soon_label]
+Скоро...
+---
+
+[total_sessions_label]
+Всего сессий: %d
+---
+[data_size_label]
+Размер данных: %s
+---
+[storage_label]
+Хранилище: %s
+---
+[export_data_button]
+Экспорт данных
+---
+[delete_all_data_button]
+Удалить все данные
+---
+[export_data_dialog_title]
+Экспорт данных
+---
+[export_failed]
+Экспорт не удался
+---
+[exported_label]
+Экспортировано
+---
+[import_data_button]
+Импорт данных
+---
+[import_data_dialog_title]
+Импорт данных
+---
+[import_failed]
+Импорт не удался
+---
+[imported_data]
+Данные импортированы
+---
+[imported_sessions]
+Импортировано сессий: %d
+---
+[import_invalid_file]
+Недопустимый файл экспорта
+---
+[import_cancelled]
+Импорт отменен
+---
+[import_choice_title]
+Импортировать настройки?
+---
+[import_choice_message]
+Найдены данные и настройки.
+---
+[import_data_only_button]
+Данные
+---
+[import_data_settings_button]
+Данные+настройки
+---
+[export_cancelled]
+Экспорт отменен
+---
+[no_data_to_export]
+Нет данных для экспорта
+---
+[no_data_to_delete]
+Нет данных для удаления
+---
+[delete_all_data_title]
+Удалить все данные?
+---
+[delete_all_data_message]
+Это навсегда удалит все сохраненные сессии.
+---
+[delete_cancelled]
+Удаление отменено
+---
+[deleted_sessions]
+Удалено сессий: %lld
+---
+[toggle_off]
+ВЫКЛ
+---
+[toggle_on]
+ВКЛ
+---
+[theme_light]
+Светлая
+---
+[theme_dark]
+Темная
+---
+[on_screen_keyboard_label]
+Экранная клавиатура
+---
+[tutorial_title]
+Обучение
+---
+[tutorial_page_label]
+%d/%d
+---
+[tutorial_method_title]
+Метод
+---
+[tutorial_step1_title]
+Шаг 1: вдох и выдох
+---
+[tutorial_step2_title]
+Шаг 2: выдох и задержка
+---
+[tutorial_step3_title]
+Шаг 3: вдох и задержка
+---
+[tutorial_progressive_speed_title]
+Постепенная скорость
+---
+[tutorial_step_intro]
+Эта дыхательная практика основана на методе Вима Хофа.
+
+Она может быть мощной. Выполняйте ее осторожно.
+
+Практикуйте сидя или лежа.
+Никогда не выполняйте ее за рулем,
+стоя или в воде.
+---
+[tutorial_step_method]
+Просто следуйте 3 шагам:
+
+1. Вдохните и выдохните 30 раз.
+2. Выдохните и задержите дыхание.
+3. Когда почувствуете желание вдохнуть, вдохните и задержите дыхание на 15 секунд.
+
+Выдохните, затем повторите процесс.
+
+Используйте значок ключа %i, чтобы настроить раунды, вдохи, скорость и паузы.
+---
+[tutorial_step_breathe]
+Вдохните и выдохните 30 раз.
+
+Найдите ритм, который ощущается естественно: ровный и быстрый, но с полным дыханием.
+---
+[tutorial_step_progressive_speed]
+Постепенная скорость помогает легче войти в первый раунд.
+
+Когда она включена, первый раунд начинается медленнее, а затем постепенно ускоряется до выбранной скорости.
+---
+[tutorial_step_exhale_hold]
+После 30 вдохов выдохните и задержите дыхание так долго, как сможете.
+
+Когда почувствуете желание вдохнуть, нажмите кнопку ДЫШАТЬ.
+---
+[tutorial_step_inhale_hold]
+Вдохните полностью и задержите дыхание на 15 секунд.
+
+Выдохните, и начнется следующий раунд.
+---
+[tutorial_skip_button]
+ПРОПУСТИТЬ
+---
+[tutorial_back_button]
+НАЗАД
+---
+[tutorial_next_button]
+ДАЛЕЕ
+---
+[tutorial_finish_button]
+ГОТОВО
+---
+[tutorial_start_button]
+НАЧАТЬ
+---
+[share_sheet_title]
+Экспорт данных сессии
+---
+[export_metadata_header]
+Экспорт данных Inner Breeze
+---
+[export_metadata_version]
+Версия: %s
+---
+[export_metadata_date]
+Дата экспорта: %s
+---
+[export_metadata_count]
+Количество сессий: %d
+---
+[delete_history_title]
+Удалить?
+---
+[delete_session_message]
+Удалить эту сессию? Это нельзя отменить.
+---
+[delete_round_message]
+Удалить этот раунд? Это нельзя отменить.
+---
+[delete_button]
+Удалить
+---
+[back_button]
+Назад
+---
+[close_button]
+Закрыть
+---
+[sync_account_title]
+Аккаунт
+---
+[sync_configure_account_button]
+Настроить аккаунт
+---
+[sync_create_account_button]
+Создать аккаунт
+---
+[sync_account_created]
+Аккаунт создан
+---
+[sync_account_create_failed]
+Не удалось создать аккаунт
+---
+[sync_import_key_button]
+Импорт .key файла
+---
+[sync_import_key_dialog_title]
+Импорт ключа аккаунта
+---
+[sync_private_key_imported]
+Ключ аккаунта импортирован
+---
+[sync_private_key_import_failed]
+Не удалось импортировать ключ аккаунта
+---
+[sync_private_key_import_cancelled]
+Импорт ключа аккаунта отменен
+---
+[sync_liboqs_unavailable]
+liboqs не собран для этой платформы.
+---
+[sync_public_id_label]
+Публичный ID
+---
+[sync_copy_id_button]
+Копировать ID
+---
+[sync_public_id_copied]
+Публичный ID скопирован
+---
+[sync_backup_key_button]
+Резервная копия ключа
+---
+[sync_remote_label]
+Сервер
+---
+[sync_connect_button]
+Подключить
+---
+[sync_connected_button]
+Подключено
+---
+[sync_server_url_invalid]
+Используйте https:// или loopback, например localhost:8080
+---
+[sync_server_saved]
+Сервер синхронизации сохранен
+---
+[sync_connected]
+Удаленная синхронизация завершена
+---
+[sync_failed]
+Удаленная синхронизация не удалась
+---
+[sync_unavailable]
+Удаленная синхронизация недоступна на этой платформе
+---
+[sync_no_account]
+Создайте аккаунт перед подключением
+---
+[sync_auth_failed]
+Сервер отклонил этот аккаунт
+---
+[sync_backup_warning]
+Сохраните этот приватный ключ там, где только вы им управляете. Любой, у кого он есть, сможет получить доступ к аккаунту.
+---
+[sync_backup_title]
+Резервная копия ключа аккаунта
+---
+[sync_save_key_file_button]
+Сохранить .key файл
+---
+[sync_save_key_dialog_title]
+Сохранить ключ аккаунта
+---
+[sync_private_key_backup_saved]
+Резервная копия ключа аккаунта сохранена
+---
+[sync_private_key_backup_failed]
+Не удалось сохранить резервную копию ключа аккаунта
+---
+[sync_private_key_backup_cancelled]
+Сохранение резервной копии ключа аккаунта отменено
+---
+[sync_delete_account_button]
+Удалить аккаунт
+---
+[sync_delete_account_title]
+Удалить аккаунт?
+---
+[sync_delete_account_message]
+Удалить этот аккаунт с удаленного сервера и с этого устройства? Это нельзя отменить.
+
+---
+[sync_account_deleted]
+Аккаунт удален
+---
+[sync_account_delete_cancelled]
+Удаление аккаунта отменено
+---

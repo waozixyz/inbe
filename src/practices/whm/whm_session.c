@@ -402,7 +402,7 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 {
     char text[CountSize];
     int count;
-    int font = flint_px(16);
+    int font = FLINT_TEXT_16;
     Color text_color = app->inbe.phase == InbePhaseHold &&
                        app->hold_display_mode == HOLD_DISPLAY_CIRCLE
                            ? text_color_for_background(theme_get_bg())
@@ -467,8 +467,8 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         DrawRectangle(segment_x, y, current_w, h, fill);
         ui_draw_bevel(segment_x, y, current_w, h, top, bottom);
 
-        while(font > flint_px(11) && flint_text_measure(labels[i], font) > current_w - flint_px(12))
-            font--;
+        if(flint_text_measure(labels[i], font) > current_w - flint_px(12))
+            font = FLINT_TEXT_12;
         text_w = flint_text_measure(labels[i], font);
         flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
                         flint_ui_text_y(labels[i], y, h, font), font, theme_get_text());
@@ -541,7 +541,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int clicked = 0;
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     const char *play_text = locale_get("play_button");
-    int font = flint_px(16);
+    int font = FLINT_TEXT_16;
     float scale = 1.0f;
 
     int radius = flint_px(44);
@@ -594,7 +594,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     int remaining;
     int max_text_w;
     int text_y;
-    int font = flint_px(16);
+    int font = FLINT_TEXT_16;
 
     if(app->inbe.phase != InbePhaseStarting)
         return;
@@ -626,7 +626,7 @@ draw_session_round_label(InbeApp *app)
     int top_bar_right;
     int text_x;
     int text_y;
-    int font = flint_px(16);
+    int font = FLINT_TEXT_16;
 
     if(app->inbe.phase != InbePhaseBreathe)
         return;
@@ -694,23 +694,27 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         }
     }
 
-    if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
-           .id = 500,
-           .x = view_width - flint_px(56),
-           .y = flint_px(12),
-           .icon_size = flint_px(24),
-           .icon_padding = flint_px(10),
-           .icon = sound_icon_for_volume(app),
-           .open = &app->volume_popup_active,
-           .value = &app->sound_volume,
-           .min = SETTINGS_VOLUME_MIN,
-           .max = SETTINGS_VOLUME_MAX,
-           .popup_width = flint_px(44),
-           .popup_height = flint_px(200)
-       })) {
-        app->settings_dirty = 1;
-        update_session_sounds(app);
-        save_settings(app);
+    if(app->show_session_volume_control) {
+        if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
+               .id = 500,
+               .x = view_width - flint_px(56),
+               .y = flint_px(12),
+               .icon_size = flint_px(24),
+               .icon_padding = flint_px(10),
+               .icon = sound_icon_for_volume(app),
+               .open = &app->volume_popup_active,
+               .value = &app->sound_volume,
+               .min = SETTINGS_VOLUME_MIN,
+               .max = SETTINGS_VOLUME_MAX,
+               .popup_width = flint_px(44),
+               .popup_height = flint_px(200)
+           })) {
+            app->settings_dirty = 1;
+            update_session_sounds(app);
+            save_settings(app);
+        }
+    } else {
+        app->volume_popup_active = 0;
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
@@ -754,60 +758,35 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     if(app->advanced_session_controls) {
-        int back_hover = 0;
-        int pause_hover = 0;
-        int forward_hover = 0;
-        int control_size = flint_px(24);
-        int control_padding = flint_px(10);
-        int control_gap = flint_px(12);
         int min_view_dim = view_width < view_height ? view_width : view_height;
-        int available_row_w = view_width - flint_px(48);
-        int max_btn_w = min_view_dim / 6;
-        int max_btn_w_by_row;
-        int control_btn_w;
-        int control_y;
-        int pause_x;
-        int back_x;
-        int forward_x;
+        FlintUIIconRowItem controls[] = {
+            {app->icons[UI_ICON_TYPE_BACKWARD], 0},
+            {app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE], 0},
+            {app->icons[UI_ICON_TYPE_FORWARD], 0}
+        };
+        FlintUIIconRowResult row = ui_draw_bottom_icon_row((FlintUIBottomIconRow){
+            .center_x = center_x,
+            .view_width = view_width,
+            .view_height = view_height,
+            .count = 3,
+            .items = controls,
+            .icon_size = flint_px(24),
+            .icon_padding = flint_px(10),
+            .gap = flint_px(12),
+            .side_margin = flint_px(24),
+            .bottom_margin = flint_px(6),
+            .max_button_width = min_view_dim / 6,
+            .min_icon_size = flint_px(16),
+            .min_icon_padding = flint_px(6),
+            .min_gap = flint_px(8)
+        });
 
-        if(available_row_w < flint_px(120))
-            available_row_w = flint_px(120);
-
-        max_btn_w_by_row = (available_row_w - control_gap * 2) / 3;
-        if(max_btn_w <= 0 || max_btn_w > max_btn_w_by_row)
-            max_btn_w = max_btn_w_by_row;
-
-        control_btn_w = control_size + control_padding * 2;
-        if(control_btn_w > max_btn_w) {
-            control_btn_w = max_btn_w;
-            control_padding = control_btn_w / 4;
-            control_size = control_btn_w - control_padding * 2;
-        }
-
-        if(control_padding < flint_px(6))
-            control_padding = flint_px(6);
-        if(control_size < flint_px(16))
-            control_size = flint_px(16);
-
-        control_btn_w = control_size + control_padding * 2;
-        control_gap = control_btn_w / 4;
-        if(control_gap < flint_px(8))
-            control_gap = flint_px(8);
-        control_y = view_height - flint_px(6) - control_btn_w;
-        breath_max_y = control_y - flint_px(44);
-        pause_x = center_x - control_btn_w / 2;
-        back_x = pause_x - control_btn_w - control_gap;
-        forward_x = pause_x + control_btn_w + control_gap;
-
-        if(ui_draw_icon_btn_padded(back_x, control_y, control_size, control_padding,
-                                   app->icons[UI_ICON_TYPE_BACKWARD], &back_hover))
+        breath_max_y = row.y - flint_px(44);
+        if(row.clicked_index == 0)
             session_step_back(app);
-        if(ui_draw_icon_btn_padded(pause_x, control_y, control_size, control_padding,
-                                   app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE],
-                                   &pause_hover))
+        else if(row.clicked_index == 1)
             app->session_paused = !app->session_paused;
-        if(ui_draw_icon_btn_padded(forward_x, control_y, control_size, control_padding,
-                                   app->icons[UI_ICON_TYPE_FORWARD], &forward_hover))
+        else if(row.clicked_index == 2)
             session_step_forward(app);
     }
 
@@ -837,11 +816,27 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     if(app->inbe.phase == InbePhaseHold) {
-        int breath_y = center_y + app->inbe.rmax + flint_px(24);
+        const char *breath_label = locale_get("breath_button");
+        int breath_font = FLINT_TEXT_16;
+        int breath_w = flint_text_measure(breath_label, breath_font) + flint_px(72);
+        int breath_h = flint_text_line_height(breath_font) + flint_px(28);
+        int breath_y = center_y + app->inbe.rmax + flint_px(10);
+        int breath_x;
+        int breath_hover = 0;
+
+        if(breath_w < flint_px(184))
+            breath_w = flint_px(184);
+        if(breath_w > view_width - flint_px(24))
+            breath_w = view_width - flint_px(24);
         if(breath_y > breath_max_y)
             breath_y = breath_max_y;
-        if(ui_draw_text_btn(center_x, breath_y, locale_get("breath_button"), hover))
+        breath_x = center_x - breath_w / 2;
+        if(ui_draw_generic_button(breath_x, breath_y, breath_w, breath_h,
+                                  breath_label, UI_BUTTON_STYLE_PRIMARY, 0,
+                                  &breath_hover))
             finish_hold(app);
+        if(hover != NULL)
+            *hover = breath_hover;
     }
 }
 
@@ -860,7 +855,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     int discard_hover = 0;
     int save_hover = 0;
     int action_y = view_height - flint_px(40);
-    int title_font = flint_px(32);
+    int title_font;
     int title_w;
 
     (void)center_y;
@@ -876,6 +871,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
         responsive_max_w = min_content_w;
     flint_centered_column(responsive_max_w, flint_page_side_padding(), &box_x, &box_w);
 
+    title_font = flint_ui_title_font(locale_get("results_title"), view_width - flint_px(48));
     title_w = flint_text_measure(locale_get("results_title"), title_font);
     flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, theme_get_text());
 
@@ -888,33 +884,30 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     if(best < 0)
         best = 0;
 
-    DrawRectangle(box_x, box_y, box_w, flint_px(88), flint_darken(theme_get_bg(), 6));
-    DrawLine(box_x, box_y + flint_px(29), box_x + box_w, box_y + flint_px(29), flint_darken(theme_get_bg(), 30));
-    DrawLine(box_x, box_y + flint_px(58), box_x + box_w, box_y + flint_px(58), flint_darken(theme_get_bg(), 30));
     {
-        char line[64];
-        int text_x = box_x + flint_px(10);
-        int text_w = box_w - flint_px(20);
-        int summary_font = flint_px(16);
-        locale_format(line, sizeof(line), "results_rounds", rounds);
-        flint_ui_draw_text_left_in_rect(line,
-                                        (Rectangle){(float)text_x, (float)box_y,
-                                                    (float)text_w, (float)flint_px(29)},
-                                        summary_font, theme_get_text());
-        locale_format(line, sizeof(line), "results_best", best);
-        flint_ui_draw_text_left_in_rect(line,
-                                        (Rectangle){(float)text_x,
-                                                    (float)(box_y + flint_px(29)),
-                                                    (float)text_w, (float)flint_px(29)},
-                                        summary_font, theme_get_text());
-        locale_format(line, sizeof(line), "results_avg", rounds > 0 ? total / rounds : 0);
-        if(view_width < 420 && flint_text_measure(line, summary_font) > text_w)
-            snprintf(line, sizeof(line), "%ds", rounds > 0 ? total / rounds : 0);
-        flint_ui_draw_text_left_in_rect(line,
-                                        (Rectangle){(float)text_x,
-                                                    (float)(box_y + flint_px(58)),
-                                                    (float)text_w, (float)flint_px(29)},
-                                        summary_font, theme_get_text());
+        char lines[3][64];
+        FlintUIInfoRow rows[3];
+        int summary_font = FLINT_TEXT_16;
+
+        locale_format(lines[0], sizeof(lines[0]), "results_rounds", rounds);
+        locale_format(lines[1], sizeof(lines[1]), "results_best", best);
+        locale_format(lines[2], sizeof(lines[2]), "results_avg",
+                      rounds > 0 ? total / rounds : 0);
+        if(view_width < 420 && flint_text_measure(lines[2], summary_font) > box_w - flint_px(20))
+            snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0);
+        for(int i = 0; i < 3; i++)
+            rows[i] = (FlintUIInfoRow){lines[i], summary_font, theme_get_text()};
+        ui_draw_info_rows((FlintUIInfoRows){
+            .x = box_x,
+            .y = box_y,
+            .width = box_w,
+            .row_height = flint_px(29),
+            .rows = rows,
+            .row_count = 3,
+            .background = flint_darken(theme_get_bg(), 6),
+            .separator = flint_darken(theme_get_bg(), 30),
+            .default_text = theme_get_text()
+        });
     }
 
     flint_ui_draw_text_left_in_rect(locale_get("round_times_title"),
@@ -923,16 +916,21 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
                                     flint_ui_font(), flint_darken(theme_get_text(), 20));
     for(int i = 0; i < rounds; i++) {
         char row[48];
+        FlintUIInfoRow info_row;
         int row_font = flint_ui_font();
         locale_format(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
-        DrawRectangle(box_x, row_y - 1, box_w, row_h, flint_darken(theme_get_bg(), 4));
-        DrawLine(box_x, row_y + row_h - 2, box_x + box_w, row_y + row_h - 2, flint_darken(theme_get_bg(), 26));
-        flint_ui_draw_text_left_in_rect(row,
-                                        (Rectangle){(float)(box_x + flint_px(10)),
-                                                    (float)row_y,
-                                                    (float)(box_w - flint_px(20)),
-                                                    (float)row_h},
-                                        row_font, theme_get_text());
+        info_row = (FlintUIInfoRow){row, row_font, theme_get_text()};
+        ui_draw_info_rows((FlintUIInfoRows){
+            .x = box_x,
+            .y = row_y - 1,
+            .width = box_w,
+            .row_height = row_h,
+            .rows = &info_row,
+            .row_count = 1,
+            .background = flint_darken(theme_get_bg(), 4),
+            .separator = flint_darken(theme_get_bg(), 26),
+            .default_text = theme_get_text()
+        });
         row_y += row_h;
     }
 

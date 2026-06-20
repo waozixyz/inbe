@@ -254,6 +254,9 @@ Kreis
 [volume_label]
 Lautstärke
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
 ---

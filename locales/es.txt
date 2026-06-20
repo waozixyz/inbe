@@ -254,6 +254,9 @@ Circulo
 [volume_label]
 Volumen
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 Restablecer valores predeterminados
 ---

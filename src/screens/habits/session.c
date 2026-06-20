@@ -73,6 +73,22 @@ habit_session_handle_physical_keyboard(InbeApp *app, const HabitLinkedEntry *ent
     return 0;
 }
 
+typedef struct HabitSessionScrollPageContext {
+    InbeApp *app;
+    HabitLinkedContext *linked;
+    int y;
+} HabitSessionScrollPageContext;
+
+static int
+habit_session_scroll_page_content_height(int content_w, void *user_data)
+{
+    HabitSessionScrollPageContext *ctx = user_data;
+
+    return draw_habit_session_edit_content(ctx->app, ctx->linked,
+                                           0, content_w, ctx->y, 0) -
+           ctx->y;
+}
+
 
 /* Habit session edit screen */
 void
@@ -85,15 +101,9 @@ draw_habit_session_edit_screen(InbeApp *app)
     int nav_h = flint_px(TAB_BAR_H);
     int keyboard_h;
     int viewport_h;
-    int content_x;
-    int content_w;
     int max_w = flint_px(400);
-    int side_padding = flint_page_side_padding();
     int y = top_h + flint_px(14);
-    int content_h;
     FlintUIHeader header;
-    FlintUIScrollArea scroll_area;
-    FlintUIScrollView scroll_view;
 
     if(app == NULL)
         return;
@@ -124,21 +134,20 @@ draw_habit_session_edit_screen(InbeApp *app)
         return;
     }
 
-    flint_centered_column(max_w, side_padding, &content_x, &content_w);
-    content_h = draw_habit_session_edit_content(app, &ctx, content_x, content_w, y, 0) - y;
-    scroll_area = (FlintUIScrollArea){
-        .bounds = {0.0f, (float)y, (float)view_width, (float)viewport_h},
-        .content_height = content_h,
-        .content_x = content_x,
-        .content_width = content_w,
-        .scroll_offset = &app->habit_session_edit.scroll,
-        .wheel_step = flint_px(42),
-        .scrollbar_x = view_width - flint_px(8)
-    };
-    scroll_view = ui_scroll_container_begin(scroll_area);
-    draw_habit_session_edit_content(app, &ctx, scroll_view.content_x, scroll_view.content_w,
-                                    scroll_view.content_y, 1);
-    ui_scroll_container_end(scroll_area, scroll_view);
+    {
+        HabitSessionScrollPageContext page_ctx = {app, &ctx, y};
+        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = y,
+            .height = viewport_h,
+            .max_content_width = max_w,
+            .scroll_offset = &app->habit_session_edit.scroll,
+            .content_height = habit_session_scroll_page_content_height,
+            .user_data = &page_ctx
+        });
+        draw_habit_session_edit_content(app, &ctx, page.content_x, page.content_w,
+                                        page.content_y, 1);
+        ui_scroll_page_end(page);
+    }
 
     if(app->habit_session_edit.active) {
         HabitLinkedEntry *active_entry = NULL;
@@ -292,47 +301,45 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
        app->habit_detail_index >= 0 &&
        app->habit_detail_index < app->habits.count) {
         InbeHabit *habit = &app->habits.items[app->habit_detail_index];
-        int minimum_count = ctx->count;
-        int total_count = habit_effective_day_count(habit, ctx->day_filter, ctx);
-        int button_h = flint_px(34);
-        int step_w = flint_px(42);
-        int gap = flint_px(8);
-        int minus_x = content_x;
-        int plus_x = content_x + content_w - step_w;
-        int label_x = minus_x + step_w + gap;
-        int label_w = plus_x - label_x - gap;
-        int hover = 0;
-        char total_text[64];
-        char min_text[64];
 
-        y += flint_px(6);
-        if(draw) {
-            snprintf(total_text, sizeof(total_text), "Total count %d", total_count);
-            snprintf(min_text, sizeof(min_text), "Minimum %d from session%s",
-                     minimum_count, minimum_count == 1 ? "" : "s");
-            if(ui_draw_generic_button(minus_x, y, step_w, button_h, "-",
-                                      UI_BUTTON_STYLE_SECONDARY,
-                                      total_count <= minimum_count, &hover)) {
-                habit_apply_count_action(app, app->habit_detail_index,
-                                         ctx->day_filter, -1, minimum_count);
-                app_auto_sync(app);
-                return y;
+        if(habit_counting_enabled(habit)) {
+            int minimum_count = ctx->count;
+            int total_count = habit_effective_day_count(habit, ctx->day_filter, ctx);
+            int button_h = flint_px(34);
+            int step_w = flint_px(42);
+            int gap = flint_px(8);
+            int minus_x = content_x;
+            int plus_x = content_x + content_w - step_w;
+            int label_x = minus_x + step_w + gap;
+            int label_w = plus_x - label_x - gap;
+            int hover = 0;
+            char total_text[64];
+
+            y += flint_px(6);
+            if(draw) {
+                snprintf(total_text, sizeof(total_text), "Total count %d", total_count);
+                if(ui_draw_generic_button(minus_x, y, step_w, button_h, "-",
+                                          UI_BUTTON_STYLE_SECONDARY,
+                                          total_count <= minimum_count, &hover)) {
+                    habit_apply_count_action(app, app->habit_detail_index,
+                                             ctx->day_filter, -1, minimum_count);
+                    app_auto_sync(app);
+                    return y;
+                }
+                DrawRectangle(label_x, y, label_w, button_h, flint_darken(theme_get_bg(), 5));
+                flint_text_draw(total_text, label_x + flint_px(8),
+                                flint_ui_text_y(total_text, y, button_h, flint_ui_font_small()),
+                                flint_ui_font_small(), theme_get_text());
+                if(ui_draw_generic_button(plus_x, y, step_w, button_h, "+",
+                                          UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                    habit_apply_count_action(app, app->habit_detail_index,
+                                             ctx->day_filter, 1, minimum_count);
+                    app_auto_sync(app);
+                    return y;
+                }
             }
-            DrawRectangle(label_x, y, label_w, button_h, flint_darken(theme_get_bg(), 5));
-            flint_text_draw(total_text, label_x + flint_px(8),
-                            y + flint_px(4), flint_ui_font_small(), theme_get_text());
-            flint_text_draw(min_text, label_x + flint_px(8),
-                            y + flint_px(20), flint_px(FLINT_TEXT_8),
-                            flint_darken(theme_get_text(), 18));
-            if(ui_draw_generic_button(plus_x, y, step_w, button_h, "+",
-                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-                habit_apply_count_action(app, app->habit_detail_index,
-                                         ctx->day_filter, 1, minimum_count);
-                app_auto_sync(app);
-                return y;
-            }
+            y += button_h + flint_px(8);
         }
-        y += button_h + flint_px(8);
     }
 
     return y;

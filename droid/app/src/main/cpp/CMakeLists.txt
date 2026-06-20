@@ -25,8 +25,6 @@ set(INBE_EMBEDDED_INPUTS
     assets/practices/meditation/1.jpg
     assets/fonts/locales.png
     assets/fonts/locales.dat
-    assets/fonts/locales-8.png
-    assets/fonts/locales-8.dat
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)

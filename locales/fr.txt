@@ -254,6 +254,9 @@ Cercle
 [volume_label]
 Volume
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 Réinitialiser
 ---

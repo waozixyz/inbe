@@ -254,6 +254,9 @@ In / Out
 [volume_label]
 音量
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 デフォルトに戻す
 ---

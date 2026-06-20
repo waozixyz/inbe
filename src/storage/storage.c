@@ -994,8 +994,7 @@ storage_append_habits_json(JsonBuilder *json, long long through_seq)
             json_appendf(json, ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
                          sqlite3_column_int(stmt, 5),
                          sqlite3_column_int(stmt, 6),
-                         (sqlite3_column_int(stmt, 7) != 0 ||
-                          sqlite3_column_int(stmt, 6) != 0) ? 1 : 0,
+                         sqlite3_column_int(stmt, 7) != 0 ? 1 : 0,
                          sqlite3_column_int(stmt, 8),
                          sqlite3_column_int64(stmt, 9));
             json_append(json, ",\"updated_at\":");
@@ -1304,7 +1303,9 @@ storage_apply_sync_response_json(const char *response_json)
         "       CAST(COALESCE(json_extract(value,'$.color_b'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.sync_mode'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.sync_activity'),0) AS INTEGER),"
-        "       CASE WHEN CAST(COALESCE(json_extract(value,'$.sync_activity'),0) AS INTEGER)<>0 THEN 1 ELSE 0 END,"
+        "       CAST(COALESCE(json_extract(value,'$.counter_enabled'),"
+        "                     (SELECT counter_enabled FROM habits WHERE id=COALESCE(json_extract(value,'$.id'),'')),"
+        "                     0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.sort_order'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER),"
         "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS INTEGER) "
@@ -1315,7 +1316,11 @@ storage_apply_sync_response_json(const char *response_json)
         " color_b=excluded.color_b,sync_mode=excluded.sync_mode,sync_activity=excluded.sync_activity,"
         " counter_enabled=excluded.counter_enabled,sort_order=excluded.sort_order,deleted_at=excluded.deleted_at,"
         " updated_at=excluded.updated_at "
-        "WHERE excluded.updated_at >= habits.updated_at";
+        "WHERE excluded.updated_at > habits.updated_at "
+        "OR (excluded.updated_at = habits.updated_at AND NOT EXISTS ("
+        " SELECT 1 FROM sync_outbox "
+        " WHERE entity_type='habit' AND entity_id=habits.id AND local_date=0"
+        "))";
     static const char *habit_days_sql =
         "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.habit_id'),''),"
@@ -1680,9 +1685,7 @@ storage_habits_load(void *habits_ptr)
                                (unsigned char)sqlite3_column_int(stmt, 4), 255};
         habit->sync_mode = sqlite3_column_int(stmt, 5);
         habit->sync_activity = sqlite3_column_int(stmt, 6);
-        habit->counter_enabled = sqlite3_column_int(stmt, 7) != 0 ||
-                                 (habit->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
-                                  habit->sync_activity != 0);
+        habit->counter_enabled = sqlite3_column_int(stmt, 7) != 0;
         index++;
     }
     sqlite3_finalize(stmt);
@@ -1748,11 +1751,12 @@ storage_habits_save(const void *habits_ptr)
                               "counter_enabled=excluded.counter_enabled,"
                               "sort_order=excluded.sort_order,"
                               "deleted_at=0,"
-                              "updated_at=CASE WHEN habits.user_id<>excluded.user_id OR habits.name<>excluded.name OR "
+                              "updated_at=excluded.updated_at "
+                              "WHERE habits.user_id<>excluded.user_id OR habits.name<>excluded.name OR "
                               "habits.color_r<>excluded.color_r OR habits.color_g<>excluded.color_g OR habits.color_b<>excluded.color_b OR "
                               "habits.sync_mode<>excluded.sync_mode OR habits.sync_activity<>excluded.sync_activity OR "
                               "habits.counter_enabled<>excluded.counter_enabled OR habits.sort_order<>excluded.sort_order OR "
-                              "habits.deleted_at<>0 THEN excluded.updated_at ELSE habits.updated_at END",
+                              "habits.deleted_at<>0",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habit->id);
@@ -1766,10 +1770,10 @@ storage_habits_save(const void *habits_ptr)
         sqlite3_bind_int(stmt, 9, habit->counter_enabled ? 1 : 0);
         sqlite3_bind_int(stmt, 10, i);
         sqlite3_bind_int64(stmt, 11, changed_at);
-        sqlite3_step(stmt);
+        if(sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0)
+            storage_enqueue_sync_habit(habit->id);
         sqlite3_finalize(stmt);
         stmt = NULL;
-        storage_enqueue_sync_habit(habit->id);
         if(sqlite3_prepare_v2(g_storage.db,
                               "INSERT OR IGNORE INTO sync_seen_habits(id) VALUES(?1)",
                               -1, &stmt, NULL) == SQLITE_OK) {

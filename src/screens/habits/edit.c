@@ -31,7 +31,7 @@ habit_edit_begin(InbeApp *app, int index)
         .color = app->habits.items[index].color,
         .sync_mode = app->habits.items[index].sync_mode,
         .sync_activity = app->habits.items[index].sync_activity,
-        .counter_enabled = habit_counting_enabled(&app->habits.items[index])
+        .counter_enabled = app->habits.items[index].counter_enabled
     };
     snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s",
              app->habits.items[index].name);
@@ -72,6 +72,49 @@ habit_edit_trimmed_text(InbeApp *app)
     return start;
 }
 
+static int
+habit_edit_section_label(int x, int y, const char *label)
+{
+    int font = flint_ui_font_small();
+    int label_w = flint_text_measure(label, font);
+    int icon_d = flint_px(18);
+
+    flint_text_draw(label, x, y, font, flint_darken(theme_get_text(), 34));
+    return ui_draw_info_button(x + label_w + flint_px(16),
+                               y + font / 2 + flint_px(1), icon_d);
+}
+
+static int
+habit_edit_info_modal(const char *title, const char *message)
+{
+    FlintUIPanelFrame frame;
+    int y;
+    int button_w = flint_px(112);
+    int button_h = flint_px(36);
+    int hover = 0;
+    int result = 0;
+
+    frame = ui_draw_modal_frame(flint_px(320), flint_px(196), title,
+                                (Texture2D){0}, (Texture2D){0});
+    y = frame.content_y;
+    flint_ui_paragraph_draw((FlintUIParagraph){
+        .text = message,
+        .width = frame.content_w,
+        .font = flint_ui_font(),
+        .line_gap = flint_px(4),
+        .color = theme_get_text()
+    }, frame.content_x, &y);
+
+    if(ui_draw_generic_button(frame.x + (frame.w - button_w) / 2,
+                              frame.y + frame.h - button_h - flint_px(16),
+                              button_w, button_h, locale_get("ok_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+        result = 1;
+    if(frame.right_clicked)
+        result = 1;
+    return result;
+}
+
 void
 habit_edit_commit(InbeApp *app)
 {
@@ -93,8 +136,6 @@ habit_edit_commit(InbeApp *app)
             app->habit_edit.sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
         else
             app->habit_edit.sync_mode = INBE_HABIT_SYNC_NONE;
-        if(app->habit_edit.sync_activity != 0)
-            app->habit_edit.counter_enabled = 1;
         if(app->habit_edit.is_new) {
             int created = habits_add_custom(&app->habits, text, app->habit_edit.color,
                                                  app->habit_edit.sync_mode,
@@ -222,7 +263,7 @@ draw_habit_edit_screen(InbeApp *app)
     int label_font = flint_ui_font_small();
     int field_h = flint_px(40);
     int hover = 0;
-    int title_font = flint_px(22);
+    int title_font;
     int title_w;
 
     if(app == NULL)
@@ -244,6 +285,7 @@ draw_habit_edit_screen(InbeApp *app)
         app->inbe.screen = InbeScreenHabits;
         return;
     }
+    title_font = flint_ui_title_font(title, view_width - flint_px(120));
     title_w = flint_text_measure(title, title_font);
     flint_text_draw(title, (view_width - title_w) / 2,
                     flint_ui_text_y(title, 0, top_h, title_font),
@@ -256,6 +298,24 @@ draw_habit_edit_screen(InbeApp *app)
     }
 
     flint_centered_column(max_w, flint_page_side_padding(), &content_x, &content_w);
+
+    if(app->modal.active && app->modal.type == UIModalHabitPracticeListInfo) {
+        if(habit_edit_info_modal("Practice list",
+                                 "Link this habit to practice sessions. Days with matching sessions will show as completed and can open the session editor.")) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        }
+        return;
+    }
+
+    if(app->modal.active && app->modal.type == UIModalHabitCountingInfo) {
+        if(habit_edit_info_modal("Counting",
+                                 "Multiple counts lets one day store more than one count. Leave it off for simple done or not done habit tracking.")) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        }
+        return;
+    }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteHabit) {
         int modal_result = ui_draw_modal("Delete habit?",
@@ -312,7 +372,11 @@ draw_habit_edit_screen(InbeApp *app)
     }
     y += flint_px(34);
 
-    flint_text_draw("Practice list", content_x, y, label_font, flint_darken(theme_get_text(), 34));
+    if(habit_edit_section_label(content_x, y, "Practice list")) {
+        app->modal.active = 1;
+        app->modal.type = UIModalHabitPracticeListInfo;
+        app->modal.selected_button = 0;
+    }
     y += flint_px(24);
     for(int i = 0; i < EXERCISE_COUNT; i++) {
         int enabled = (app->habit_edit.sync_activity & habit_activity_mask_for(i)) != 0;
@@ -324,26 +388,19 @@ draw_habit_edit_screen(InbeApp *app)
             app->habit_edit.sync_mode = app->habit_edit.sync_activity != 0
                                             ? INBE_HABIT_SYNC_ACTIVITIES
                                             : INBE_HABIT_SYNC_NONE;
-            if(app->habit_edit.sync_activity != 0)
-                app->habit_edit.counter_enabled = 1;
         }
         y += flint_px(42);
     }
 
     y += flint_px(4);
-    flint_text_draw("Counting", content_x, y, label_font, flint_darken(theme_get_text(), 34));
+    if(habit_edit_section_label(content_x, y, "Counting")) {
+        app->modal.active = 1;
+        app->modal.type = UIModalHabitCountingInfo;
+        app->modal.selected_button = 0;
+    }
     y += flint_px(24);
-    if(app->habit_edit.sync_activity != 0) {
-        int forced_counter = 1;
-        ui_draw_checkbox_toggle_disabled(content_x, y, "Allow multiple counts",
-                                         &forced_counter, 1);
-        app->habit_edit.counter_enabled = 1;
-        y += flint_px(30);
-        flint_text_draw("Required for practice-linked habits", content_x, y,
-                        label_font, flint_darken(theme_get_text(), 42));
-        y += flint_px(12);
-    } else if(ui_draw_checkbox_toggle(content_x, y, "Allow multiple counts",
-                                      &app->habit_edit.counter_enabled)) {
+    if(ui_draw_checkbox_toggle(content_x, y, "Multiple counts",
+                               &app->habit_edit.counter_enabled)) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0;
     }
     y += flint_px(42);
@@ -364,5 +421,3 @@ draw_habit_edit_screen(InbeApp *app)
 
     flint_clip_end();
 }
-
-

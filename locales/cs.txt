@@ -254,6 +254,9 @@ Kruh
 [volume_label]
 Hlasitost
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 Obnovit výchozí
 ---

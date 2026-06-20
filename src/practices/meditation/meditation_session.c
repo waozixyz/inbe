@@ -198,7 +198,7 @@ meditation_draw_setup_modal(InbeApp *app)
     int modal_h = flint_px(236);
     int modal_x;
     int modal_y;
-    int title_font = flint_px(18);
+    int title_font;
     int title_w;
     int btn_h = flint_px(38);
     int gap = flint_px(10);
@@ -226,6 +226,7 @@ meditation_draw_setup_modal(InbeApp *app)
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
                   flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
 
+    title_font = flint_ui_title_font(locale_get("meditation_title"), modal_w - side * 2);
     title_w = flint_text_measure(locale_get("meditation_title"), title_font);
     flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
                     modal_y + flint_px(16), title_font, theme_get_text());
@@ -258,22 +259,26 @@ meditation_draw_setup_modal(InbeApp *app)
 static void
 draw_meditation_sound_controls(InbeApp *app)
 {
-    if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
-           .id = 501,
-           .x = view_width - flint_px(56),
-           .y = flint_px(12),
-           .icon_size = flint_px(24),
-           .icon_padding = flint_px(10),
-           .icon = meditation_sound_icon_for_volume(app),
-           .open = &app->volume_popup_active,
-           .value = &app->sound_volume,
-           .min = SETTINGS_VOLUME_MIN,
-           .max = SETTINGS_VOLUME_MAX,
-           .popup_width = flint_px(44),
-           .popup_height = flint_px(200)
-       })) {
-        app->settings_dirty = 1;
-        save_settings(app);
+    if(app->show_session_volume_control) {
+        if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
+               .id = 501,
+               .x = view_width - flint_px(56),
+               .y = flint_px(12),
+               .icon_size = flint_px(24),
+               .icon_padding = flint_px(10),
+               .icon = meditation_sound_icon_for_volume(app),
+               .open = &app->volume_popup_active,
+               .value = &app->sound_volume,
+               .min = SETTINGS_VOLUME_MIN,
+               .max = SETTINGS_VOLUME_MAX,
+               .popup_width = flint_px(44),
+               .popup_height = flint_px(200)
+           })) {
+            app->settings_dirty = 1;
+            save_settings(app);
+        }
+    } else {
+        app->volume_popup_active = 0;
     }
 }
 
@@ -282,7 +287,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
     char time_text[32];
     int return_hover = 0;
-    int font = flint_px(48);
+    int font = FLINT_TEXT_24;
     int max_w;
     int text_w;
 
@@ -330,8 +335,8 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
 
     format_meditation_time(time_text, sizeof(time_text), app->meditation.remaining_seconds);
     max_w = view_width - flint_px(48);
-    while(font > flint_px(28) && flint_text_measure(time_text, font) > max_w)
-        font--;
+    if(flint_text_measure(time_text, font) > max_w)
+        font = FLINT_TEXT_16;
     text_w = flint_text_measure(time_text, font);
     flint_text_draw(time_text, center_x - text_w / 2,
                     flint_ui_text_y(time_text, center_y - font, font * 2, font),

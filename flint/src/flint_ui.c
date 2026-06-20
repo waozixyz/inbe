@@ -360,6 +360,28 @@ ui_draw_text_centered_in_rect(const char *text, Rectangle rect, int font_size, C
     flint_clip_end();
 }
 
+static int
+ui_text_next_smaller_size(int font_size)
+{
+    if(font_size > FLINT_TEXT_16)
+        return FLINT_TEXT_16;
+    if(font_size > FLINT_TEXT_12)
+        return FLINT_TEXT_12;
+    return FLINT_TEXT_8;
+}
+
+static int
+ui_text_normalize_size(int font_size)
+{
+    if(font_size <= FLINT_TEXT_8)
+        return FLINT_TEXT_8;
+    if(font_size <= FLINT_TEXT_12)
+        return FLINT_TEXT_12;
+    if(font_size <= FLINT_TEXT_16)
+        return FLINT_TEXT_16;
+    return FLINT_TEXT_24;
+}
+
 void
 flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color)
 {
@@ -378,15 +400,13 @@ ui_draw_fitted_text_in_rect(const char *text, Rectangle rect,
                             int preferred_size, int min_size, Color color)
 {
     const char *value = text != NULL ? text : "";
-    int font_size = flint_text_size(preferred_size);
-    int min_allowed = flint_text_size(min_size);
+    int font_size = ui_text_normalize_size(preferred_size);
+    int min_allowed = ui_text_normalize_size(min_size);
 
-    if(min_allowed < min_size)
-        min_allowed = flint_text_size(min_size + 1);
     if(font_size < min_allowed)
         font_size = min_allowed;
     while(font_size > min_allowed && flint_text_measure(value, font_size) > (int)rect.width)
-        font_size = flint_text_size(font_size - 1);
+        font_size = ui_text_next_smaller_size(font_size);
     ui_draw_text_centered_in_rect(value, rect, font_size, color);
 }
 
@@ -547,13 +567,25 @@ ui_focus_draw(Rectangle bounds)
 int
 flint_ui_font(void)
 {
-    return flint_px(16);
+    return FLINT_TEXT_16;
 }
 
 int
 flint_ui_font_small(void)
 {
-    return flint_ui_font();
+    return FLINT_TEXT_12;
+}
+
+int
+flint_ui_title_font(const char *title, int max_width)
+{
+    const char *value = title != NULL ? title : "";
+
+    if(max_width <= 0 || flint_text_measure(value, FLINT_TEXT_24) <= max_width)
+        return FLINT_TEXT_24;
+    if(flint_text_measure(value, FLINT_TEXT_16) <= max_width)
+        return FLINT_TEXT_16;
+    return FLINT_TEXT_12;
 }
 
 int
@@ -1158,9 +1190,9 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
 
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    int font = flint_clamp_px(20, 16, 22);
-    int w = (int)flint_text_measure(label, font) + flint_px(20);
-    int h = flint_clamp_px(30, 26, 34);
+    int font = FLINT_TEXT_16;
+    int w = (int)flint_text_measure(label, font) + flint_px(24);
+    int h = flint_text_line_height(font) + flint_px(12);
 
     x = x - w / 2;
     if(!hover)
@@ -1185,7 +1217,8 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
         *hover = 0;
     }
 
-    flint_text_draw(label, x + flint_px(10), flint_ui_text_y(label, y, h, font), font, c_text);
+    ui_draw_fitted_text_in_rect(label, (Rectangle){(float)x, (float)y, (float)w, (float)h},
+                                font, FLINT_TEXT_12, c_text);
 
     return pressed;
 }
@@ -1696,8 +1729,12 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
 {
     int font = flint_ui_font();
     int box_size = flint_px(22);
+    int label_gap = flint_px(10);
+    int label_w = flint_text_measure(label, font);
+    int label_h = flint_text_line_height(font);
+    int row_h = box_size > label_h ? box_size : label_h;
     int hover = 0;
-    Rectangle bounds = {x, y, box_size, box_size};
+    Rectangle bounds = {x, y, box_size + label_gap + label_w, row_h};
     Vector2 mouse_world = ui_mouse_world();
     Color box_color = disabled ? flint_darken(c_button, 18) : c_button;
     Color mark_color = disabled ? flint_darken(c_text, 35) : c_text;
@@ -1716,19 +1753,21 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
     if(pressed)
         *value = !(*value);
 
-    DrawRectangle(x, y, box_size, box_size, box_color);
-    ui_draw_bevel(x, y, box_size, box_size, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
+    DrawRectangle(x, y + (row_h - box_size) / 2, box_size, box_size, box_color);
+    ui_draw_bevel(x, y + (row_h - box_size) / 2, box_size, box_size,
+                  flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
     if(*value) {
         int padding = flint_px(4);
-        DrawLine(x + padding, y + padding, x + box_size / 2,
-                 y + box_size - padding, mark_color);
-        DrawLine(x + box_size / 2, y + box_size - padding,
-                 x + box_size - padding, y + padding, mark_color);
+        int box_y = y + (row_h - box_size) / 2;
+        DrawLine(x + padding, box_y + padding, x + box_size / 2,
+                 box_y + box_size - padding, mark_color);
+        DrawLine(x + box_size / 2, box_y + box_size - padding,
+                 x + box_size - padding, box_y + padding, mark_color);
     }
 
-    flint_text_draw(label, x + box_size + flint_px(10),
-                    flint_ui_text_y(label, y, box_size, font),
+    flint_text_draw(label, x + box_size + label_gap,
+                    flint_ui_text_y(label, y, row_h, font),
                     font, label_color);
 
     return pressed;
@@ -1738,6 +1777,41 @@ int
 ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
 {
     return ui_draw_checkbox_toggle_disabled(x, y, label, value, 0);
+}
+
+int
+ui_draw_info_button(int center_x, int center_y, int diameter)
+{
+    Vector2 mouse_world = ui_mouse_world();
+    int min_touch = flint_px(32);
+    int radius;
+    int hover = 0;
+    Rectangle hit;
+    Color fill;
+    Color stroke;
+    Color text;
+    int font;
+
+    if(diameter <= 0)
+        diameter = flint_px(18);
+    radius = diameter / 2;
+    hit = ui_centered_min_hit_rect(center_x - radius, center_y - radius,
+                                  diameter, diameter, min_touch, min_touch);
+
+    if(CheckCollisionPointRec(mouse_world, hit) && !ui_input_captures_click(mouse_world)) {
+        hover = 1;
+        ui_mark_clickable();
+    }
+
+    fill = hover ? c_button_hover : flint_darken(c_bg, 8);
+    stroke = c_text;
+    text = c_text;
+    DrawCircle(center_x, center_y, radius, fill);
+    DrawCircleLines(center_x, center_y, radius, stroke);
+    font = flint_ui_font_small();
+    flint_ui_draw_text_centered("i", center_x, center_y, font, text);
+
+    return hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
 /* Higher-level widgets live in flint/src/ui/widgets.c. */

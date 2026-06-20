@@ -227,7 +227,6 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     int small_font = flint_ui_font_small();
     int btn_h = flint_px(36);
     int gap = flint_px(10);
-    int half_w = (w - gap) / 2;
     int hover = 0;
 
     flint_text_draw(locale_get("sync_account_title"), x, *y, font, theme_get_text());
@@ -262,17 +261,29 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     settings_draw_hex_groups(account.public_id, x, y, small_font, theme_get_text(), 2, 32);
     *y += flint_px(4);
 
-    if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_copy_id_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        SetClipboardText(account.public_id);
-        settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
-    }
-    if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
-                              locale_get("sync_backup_key_button"),
-                              UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalSyncAccountBackup;
-        app->modal.selected_button = 0;
+    {
+        FlintUIButtonRowItem buttons[2] = {
+            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {locale_get("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
+        };
+        int clicked = ui_draw_button_row((FlintUIButtonRow){
+            .x = x,
+            .y = *y,
+            .width = w,
+            .height = btn_h,
+            .gap = gap,
+            .items = buttons,
+            .count = 2
+        });
+
+        if(clicked == 0) {
+            SetClipboardText(account.public_id);
+            settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+        } else if(clicked == 1) {
+            app->modal.active = 1;
+            app->modal.type = UIModalSyncAccountBackup;
+            app->modal.selected_button = 0;
+        }
     }
     *y += btn_h + flint_px(16);
 }
@@ -286,7 +297,6 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     int small_font = flint_ui_font_small();
     int btn_h = flint_px(36);
     int gap = flint_px(10);
-    int half_w = (w - gap) / 2;
     int hover = 0;
     int commit = 0;
     FlintUITextInputStyle input_style = settings_sync_text_style();
@@ -299,9 +309,23 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
 
     if(!has_account) {
+        FlintUIButtonRowItem buttons[2] = {
+            {locale_get("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {locale_get("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
+        };
+        int clicked;
+
         *y += flint_px(12);
-        if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_create_account_button"),
-                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+        clicked = ui_draw_button_row((FlintUIButtonRow){
+            .x = x,
+            .y = *y,
+            .width = w,
+            .height = btn_h,
+            .gap = gap,
+            .items = buttons,
+            .count = 2
+        });
+        if(clicked == 0) {
             if(sync_account_create(&account)) {
                 has_account = 1;
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
@@ -311,10 +335,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
             } else {
                 settings_screen_set_status_error(locale_get("sync_account_create_failed"));
             }
-        }
-        if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
-                                  locale_get("sync_import_key_button"),
-                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+        } else if(clicked == 1) {
             if(!settings_start_sync_key_import(app))
                 settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
         }
@@ -360,17 +381,29 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         settings_sync_run_connect(app);
     *y += btn_h + flint_px(12);
 
-    if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_copy_id_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        SetClipboardText(account.public_id);
-        settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
-    }
-    if(ui_draw_generic_button(x + half_w + gap, *y, half_w, btn_h,
-                              locale_get("sync_backup_key_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalSyncAccountBackup;
-        app->modal.selected_button = 0;
+    {
+        FlintUIButtonRowItem buttons[2] = {
+            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {locale_get("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        };
+        int clicked = ui_draw_button_row((FlintUIButtonRow){
+            .x = x,
+            .y = *y,
+            .width = w,
+            .height = btn_h,
+            .gap = gap,
+            .items = buttons,
+            .count = 2
+        });
+
+        if(clicked == 0) {
+            SetClipboardText(account.public_id);
+            settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+        } else if(clicked == 1) {
+            app->modal.active = 1;
+            app->modal.type = UIModalSyncAccountBackup;
+            app->modal.selected_button = 0;
+        }
     }
     *y += btn_h + flint_px(12);
 
