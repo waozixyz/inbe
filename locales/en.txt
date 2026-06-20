@@ -611,3 +611,81 @@ Account deleted
 [sync_account_delete_cancelled]
 Account deletion cancelled
 ---
+[habit_new_default_name]
+New Habit
+---
+[habit_new_title]
+New Habit
+---
+[habit_edit_title]
+Edit Habit
+---
+[habit_name_label]
+Name
+---
+[habit_underline_label]
+Underline
+---
+[habit_practice_list_title]
+Practice list
+---
+[habit_practice_list_info]
+Link this habit to practice sessions. Days with matching sessions will show as completed and can open the session editor.
+---
+[habit_counting_title]
+Counting
+---
+[habit_counting_info]
+Multiple counts lets one day store more than one count. Leave it off for simple done or not done habit tracking.
+---
+[habit_multiple_counts_label]
+Multiple counts
+---
+[habit_delete_title]
+Delete habit?
+---
+[habit_delete_message]
+Delete this habit? This cannot be undone.
+---
+[habit_delete_button]
+Delete Habit
+---
+[habit_add_new_option]
+Add new habit
+---
+[habit_load_more_button]
+Load more
+---
+[habit_empty_title]
+No habits created
+---
+[habit_create_button]
+Create habit
+---
+[habit_stats_no_rounds_week]
+No rounds in the last week
+---
+[habit_stats_current_streak]
+Current streak
+---
+[habit_stats_last_30_days]
+Last 30 days
+---
+[habit_stats_wim_hof_hold_rounds]
+Wim Hof hold rounds
+---
+[habit_stats_weekday_pattern]
+Weekday pattern
+---
+[habit_stats_practice_time]
+Practice time
+---
+[habit_stats_best_hold]
+Best hold
+---
+[habit_stats_total_hold]
+Total hold
+---
+[habit_stats_best_streak]
+Best streak
+---

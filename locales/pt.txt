@@ -20,7 +20,7 @@ Feito
 Marcar
 ---
 [tab_manual]
-Tutorial
+Manual
 ---
 [tab_settings]
 Configurações
@@ -41,7 +41,7 @@ Meditação
 Meditação
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+Uma prática de meditação simples para respirar, acalmar e estar presente.
 ---
 [meditation_manual_text]
 Escolha musica se quiser. Um gongo marca o inicio e o fim.
@@ -80,19 +80,19 @@ Rede indisponível
 Não foi possível acessar o servidor de áudio de meditação. Verifique as permissões de rede do Android e sua conexão com a internet, depois tente novamente.
 ---
 [duration_5m]
-5m
+5 min
 ---
 [duration_15m]
-15m
+15 min
 ---
 [duration_30m]
-30m
+30 min
 ---
 [duration_1h]
-1h
+1 h
 ---
 [duration_2h]
-2h
+2 h
 ---
 [breath_button]
 RESPIRAR
@@ -216,13 +216,13 @@ Velocidade inicial
 Modificar velocidade inicial
 ---
 [breath_animation_label]
-Breathing animation
+Animação da respiração
 ---
 [breath_animation_linear]
-Linear
+Constante
 ---
 [breath_animation_in_out]
-In / Out
+Entrada / saída
 ---
 [progressive_start_speed_editor_title]
 Velocidade inicial
@@ -255,7 +255,7 @@ Circulo
 Volume
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+Mostrar controle de volume nas sessões
 ---
 [reset_to_defaults_label]
 Restaurar padrões
@@ -334,31 +334,31 @@ Dados
 Dados+Config.
 ---
 [export_cancelled]
-Export cancelled
+Exportação cancelada
 ---
 [no_data_to_export]
-No data to export
+Não há dados para exportar
 ---
 [no_data_to_delete]
-No data to delete
+Não há dados para excluir
 ---
 [delete_all_data_title]
-Delete all data?
+Excluir todos os dados?
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+Isso excluirá permanentemente todas as sessões salvas.
 ---
 [delete_cancelled]
-Delete cancelled
+Exclusão cancelada
 ---
 [deleted_sessions]
-Deleted %lld sessions
+%lld sessões excluídas
 ---
 [toggle_off]
-OFF
+DESLIGADO
 ---
 [toggle_on]
-ON
+LIGADO
 ---
 [theme_light]
 Claro
@@ -400,20 +400,20 @@ Nunca use enquanto dirige,
 em pé ou na água.
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+Siga 3 passos:
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. Inspire e expire 30 vezes.
+2. Expire e segure.
+3. Quando sentir vontade de respirar, inspire e segure por 15 segundos.
 
-Exhale, then repeat the process.
+Expire e repita o processo.
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+Use o ícone de chave %i para ajustar rodadas, respirações, velocidade e pausas.
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+Inspire e expire 30 vezes.
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+Encontre um ritmo natural: constante e rápido, mas ainda respirando profundamente.
 ---
 [tutorial_step_progressive_speed]
 A velocidade progressiva torna a primeira rodada mais fácil de começar.
@@ -421,17 +421,17 @@ A velocidade progressiva torna a primeira rodada mais fácil de começar.
 Quando ativada, a primeira rodada começa na velocidade 1 nas primeiras 5 respirações e depois aumenta gradualmente até a velocidade escolhida.
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+Depois de 30 respirações, expire e segure o máximo que puder.
 
-When you feel the urge to breathe, press the BREATH button.
+Quando sentir vontade de respirar, pressione o botão RESPIRAR.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+Inspire completamente e segure por 15 segundos.
 
-Exhale, and the next round will begin.
+Expire e a próxima rodada começará.
 ---
 [tutorial_skip_button]
-SKIP
+PULAR
 ---
 [tutorial_back_button]
 VOLTAR
@@ -494,120 +494,197 @@ Paisagem
 Sensor
 ---
 [back_button]
-Back
+Voltar
 ---
 [close_button]
-Close
+Fechar
 ---
 [sync_account_title]
-Account
+Conta
 ---
 [sync_configure_account_button]
-Configure Account
+Configurar conta
 ---
 [sync_create_account_button]
-Create Account
+Criar conta
 ---
 [sync_account_created]
-Account created
+Conta criada
 ---
 [sync_account_create_failed]
-Could not create account
+Não foi possível criar a conta
 ---
 [sync_import_key_button]
-Import .key File
+Importar arquivo .key
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+Importar chave da conta
 ---
 [sync_private_key_imported]
-Account key imported
+Chave da conta importada
 ---
 [sync_private_key_import_failed]
-Could not import account key
+Não foi possível importar a chave da conta
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+Importação da chave cancelada
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs não foi compilado para este alvo.
 ---
 [sync_public_id_label]
-Public ID
+ID público
 ---
 [sync_copy_id_button]
-Copy ID
+Copiar ID
 ---
 [sync_public_id_copied]
-Public ID copied
+ID público copiado
 ---
 [sync_backup_key_button]
-Backup Key
+Fazer backup da chave
 ---
 [sync_remote_label]
-Remote
+Remoto
 ---
 [sync_connect_button]
-Connect
+Conectar
 ---
 [sync_connected_button]
-Connected
+Conectado
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+Use https:// ou loopback como localhost:8080
 ---
 [sync_server_saved]
-Sync server saved
+Servidor de sincronização salvo
 ---
 [sync_connected]
-Remote sync complete
+Sincronização remota concluída
 ---
 [sync_failed]
-Remote sync failed
+Falha na sincronização remota
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+A sincronização remota não está disponível nesta plataforma
 ---
 [sync_no_account]
-Create an account before connecting
+Crie uma conta antes de conectar
 ---
 [sync_auth_failed]
-Remote rejected this account
+O remoto rejeitou esta conta
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+Salve esta chave privada em um local que você controla. Qualquer pessoa com ela pode reivindicar esta conta.
 ---
 [sync_backup_title]
-Backup Account Key
+Backup da chave da conta
 ---
 [sync_save_key_file_button]
-Save .key File
+Salvar arquivo .key
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+Salvar chave da conta
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+Backup da chave da conta salvo
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+Não foi possível salvar o backup da chave da conta
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+Backup da chave da conta cancelado
 ---
 [sync_delete_account_button]
-Delete Account
+Excluir conta
 ---
 [sync_delete_account_title]
-Delete Account?
+Excluir conta?
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+Excluir esta conta do servidor remoto e deste dispositivo? Esta ação não pode ser desfeita.
 ---
 [sync_account_deleted]
-Account deleted
+Conta excluída
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+Exclusão da conta cancelada
+---
+[habit_new_default_name]
+Novo hábito
+---
+[habit_new_title]
+Novo hábito
+---
+[habit_edit_title]
+Editar hábito
+---
+[habit_name_label]
+Nome
+---
+[habit_underline_label]
+Sublinhado
+---
+[habit_practice_list_title]
+Lista de práticas
+---
+[habit_practice_list_info]
+Vincule este hábito às sessões de prática. Dias com sessões correspondentes aparecerão como concluídos e poderão abrir o editor de sessão.
+---
+[habit_counting_title]
+Contagem
+---
+[habit_counting_info]
+Contagens múltiplas permitem salvar mais de uma contagem em um dia. Deixe desligado para acompanhar apenas feito ou não feito.
+---
+[habit_multiple_counts_label]
+Contagens múltiplas
+---
+[habit_delete_title]
+Excluir hábito?
+---
+[habit_delete_message]
+Excluir este hábito? Esta ação não pode ser desfeita.
+---
+[habit_delete_button]
+Excluir hábito
+---
+[habit_add_new_option]
+Adicionar novo hábito
+---
+[habit_load_more_button]
+Carregar mais
+---
+[habit_empty_title]
+Nenhum hábito criado
+---
+[habit_create_button]
+Criar hábito
+---
+[habit_stats_no_rounds_week]
+Nenhuma rodada na última semana
+---
+[habit_stats_current_streak]
+Sequência atual
+---
+[habit_stats_last_30_days]
+Últimos 30 dias
+---
+[habit_stats_wim_hof_hold_rounds]
+Rodadas de retenção Wim Hof
+---
+[habit_stats_weekday_pattern]
+Padrão por dia da semana
+---
+[habit_stats_practice_time]
+Tempo de prática
+---
+[habit_stats_best_hold]
+Melhor retenção
+---
+[habit_stats_total_hold]
+Retenção total
+---
+[habit_stats_best_streak]
+Melhor sequência
 ---

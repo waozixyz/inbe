@@ -41,7 +41,7 @@
 瞑想
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+呼吸、落ち着き、気づきのためのシンプルな瞑想練習です。
 ---
 [meditation_manual_text]
 必要なら音楽を選んでください。ゴングが始まりと終わりを知らせます。
@@ -216,13 +216,13 @@ OK
 開始速度を変更
 ---
 [breath_animation_label]
-Breathing animation
+呼吸アニメーション
 ---
 [breath_animation_linear]
-Linear
+リニア
 ---
 [breath_animation_in_out]
-In / Out
+吸う / 吐く
 ---
 [progressive_start_speed_editor_title]
 開始速度
@@ -255,7 +255,7 @@ In / Out
 音量
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+セッション中に音量コントロールを表示
 ---
 [reset_to_defaults_label]
 デフォルトに戻す
@@ -319,7 +319,7 @@ Show volume control in sessions
 無効なエクスポートファイル
 ---
 [import_cancelled]
-Import cancelled
+インポートをキャンセルしました
 ---
 [import_choice_title]
 設定もインポートしますか？
@@ -334,31 +334,31 @@ Import cancelled
 データ+設定
 ---
 [export_cancelled]
-Export cancelled
+エクスポートをキャンセルしました
 ---
 [no_data_to_export]
-No data to export
+エクスポートするデータがありません
 ---
 [no_data_to_delete]
-No data to delete
+削除するデータがありません
 ---
 [delete_all_data_title]
-Delete all data?
+すべてのデータを削除しますか？
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+保存済みのすべてのセッションが完全に削除されます。
 ---
 [delete_cancelled]
-Delete cancelled
+削除をキャンセルしました
 ---
 [deleted_sessions]
-Deleted %lld sessions
+%lld 件のセッションを削除しました
 ---
 [toggle_off]
-OFF
+オフ
 ---
 [toggle_on]
-ON
+オン
 ---
 [theme_light]
 ライト
@@ -402,33 +402,33 @@ ON
 立っているとき、水中では行わないでください。
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+3つの手順に従ってください:
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. 30回、吸って吐きます。
+2. 息を吐いて止めます。
+3. 息を吸いたくなったら、吸って15秒止めます。
 
-Exhale, then repeat the process.
+吐いてから、この流れを繰り返します。
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+レンチアイコン %i でラウンド、呼吸数、速度、一時停止を調整できます。
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+30回、吸って吐きます。
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+自然に感じるリズムを見つけてください。安定して速く、ただししっかり呼吸します。
 ---
 [tutorial_step_progressive_speed]
 段階的速度は、最初のラウンドに入りやすくします。
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+30回呼吸したら、吐いて、できるだけ長く息を止めます。
 
-When you feel the urge to breathe, press the BREATH button.
+息を吸いたくなったら、呼吸ボタンを押します。
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+しっかり吸って15秒止めます。
 
-Exhale, and the next round will begin.
+吐くと次のラウンドが始まります。
 ---
 [tutorial_skip_button]
 スキップ
@@ -494,120 +494,197 @@ Inner Breeze データ書き出し
 センサー
 ---
 [back_button]
-Back
+戻る
 ---
 [close_button]
-Close
+閉じる
 ---
 [sync_account_title]
-Account
+アカウント
 ---
 [sync_configure_account_button]
-Configure Account
+アカウントを設定
 ---
 [sync_create_account_button]
-Create Account
+アカウントを作成
 ---
 [sync_account_created]
-Account created
+アカウントを作成しました
 ---
 [sync_account_create_failed]
-Could not create account
+アカウントを作成できませんでした
 ---
 [sync_import_key_button]
-Import .key File
+.keyファイルをインポート
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+アカウントキーをインポート
 ---
 [sync_private_key_imported]
-Account key imported
+アカウントキーをインポートしました
 ---
 [sync_private_key_import_failed]
-Could not import account key
+アカウントキーをインポートできませんでした
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+アカウントキーのインポートをキャンセルしました
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs はこの対象向けにビルドされていません。
 ---
 [sync_public_id_label]
-Public ID
+公開ID
 ---
 [sync_copy_id_button]
-Copy ID
+IDをコピー
 ---
 [sync_public_id_copied]
-Public ID copied
+公開IDをコピーしました
 ---
 [sync_backup_key_button]
-Backup Key
+キーをバックアップ
 ---
 [sync_remote_label]
-Remote
+リモート
 ---
 [sync_connect_button]
-Connect
+接続
 ---
 [sync_connected_button]
-Connected
+接続済み
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+https:// または localhost:8080 のようなループバックを使用してください
 ---
 [sync_server_saved]
-Sync server saved
+同期サーバーを保存しました
 ---
 [sync_connected]
-Remote sync complete
+リモート同期が完了しました
 ---
 [sync_failed]
-Remote sync failed
+リモート同期に失敗しました
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+このプラットフォームではリモート同期を利用できません
 ---
 [sync_no_account]
-Create an account before connecting
+接続する前にアカウントを作成してください
 ---
 [sync_auth_failed]
-Remote rejected this account
+リモートがこのアカウントを拒否しました
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+この秘密キーは自分で管理できる場所に保存してください。これを持つ人は誰でもこのアカウントを取得できます。
 ---
 [sync_backup_title]
-Backup Account Key
+アカウントキーをバックアップ
 ---
 [sync_save_key_file_button]
-Save .key File
+.keyファイルを保存
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+アカウントキーを保存
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+アカウントキーのバックアップを保存しました
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+アカウントキーのバックアップを保存できませんでした
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+アカウントキーのバックアップをキャンセルしました
 ---
 [sync_delete_account_button]
-Delete Account
+アカウントを削除
 ---
 [sync_delete_account_title]
-Delete Account?
+アカウントを削除しますか？
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+このアカウントをリモートサーバーとこのデバイスから削除しますか？この操作は元に戻せません。
 ---
 [sync_account_deleted]
-Account deleted
+アカウントを削除しました
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+アカウント削除をキャンセルしました
+---
+[habit_new_default_name]
+新しい習慣
+---
+[habit_new_title]
+新しい習慣
+---
+[habit_edit_title]
+習慣を編集
+---
+[habit_name_label]
+名前
+---
+[habit_underline_label]
+下線
+---
+[habit_practice_list_title]
+練習リスト
+---
+[habit_practice_list_info]
+この習慣を練習セッションに関連付けます。一致するセッションがある日は完了として表示され、セッション編集画面を開けます。
+---
+[habit_counting_title]
+カウント
+---
+[habit_counting_info]
+複数カウントを使うと、1日に複数回分を記録できます。単純に完了か未完了だけを追跡する場合はオフのままにしてください。
+---
+[habit_multiple_counts_label]
+複数カウント
+---
+[habit_delete_title]
+習慣を削除しますか？
+---
+[habit_delete_message]
+この習慣を削除しますか？この操作は元に戻せません。
+---
+[habit_delete_button]
+習慣を削除
+---
+[habit_add_new_option]
+新しい習慣を追加
+---
+[habit_load_more_button]
+さらに読み込む
+---
+[habit_empty_title]
+習慣がありません
+---
+[habit_create_button]
+習慣を作成
+---
+[habit_stats_no_rounds_week]
+過去1週間にラウンドはありません
+---
+[habit_stats_current_streak]
+現在の連続記録
+---
+[habit_stats_last_30_days]
+過去30日
+---
+[habit_stats_wim_hof_hold_rounds]
+ヴィム・ホフ息止めラウンド
+---
+[habit_stats_weekday_pattern]
+曜日の傾向
+---
+[habit_stats_practice_time]
+練習時間
+---
+[habit_stats_best_hold]
+最長息止め
+---
+[habit_stats_total_hold]
+合計息止め
+---
+[habit_stats_best_streak]
+最長連続記録
 ---

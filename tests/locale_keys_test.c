@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
 
 enum {
     MAX_KEYS = 1024,
@@ -143,6 +144,75 @@ check_locale_file(const LocaleKeys *english, const char *path)
     }
 }
 
+static void
+scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
+{
+    FILE *fp;
+    char line[2048];
+    int line_no = 0;
+
+    fp = fopen(path, "rb");
+    if(fp == NULL)
+        return;
+
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        char *cursor = line;
+        line_no++;
+        while((cursor = strstr(cursor, "locale_get(\"")) != NULL) {
+            char key[MAX_KEY_LEN];
+            char *start = cursor + strlen("locale_get(\"");
+            char *end = strchr(start, '"');
+            size_t len;
+
+            if(end == NULL)
+                break;
+            len = (size_t)(end - start);
+            if(len >= sizeof(key))
+                len = sizeof(key) - 1;
+            memcpy(key, start, len);
+            key[len] = '\0';
+            if(!keys_contains(english, key)) {
+                fprintf(stderr, "FAIL %s:%d locale_get missing English key [%s]\n",
+                        path, line_no, key);
+                failures++;
+            }
+            cursor = end + 1;
+        }
+    }
+    fclose(fp);
+}
+
+static void
+scan_locale_get_calls_in_dir(const LocaleKeys *english, const char *dir_path)
+{
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(dir_path);
+    if(dir == NULL)
+        return;
+    while((entry = readdir(dir)) != NULL) {
+        char path[MAX_PATH_LEN];
+        struct stat st;
+        const char *name = entry->d_name;
+        size_t len = strlen(name);
+
+        if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+            continue;
+        snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+        if(stat(path, &st) != 0)
+            continue;
+        if(S_ISDIR(st.st_mode)) {
+            scan_locale_get_calls_in_dir(english, path);
+        } else if(len > 2 && strcmp(name + len - 2, ".c") == 0) {
+            scan_locale_get_calls_in_file(english, path);
+        } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
+            scan_locale_get_calls_in_file(english, path);
+        }
+    }
+    closedir(dir);
+}
+
 int
 main(void)
 {
@@ -152,6 +222,8 @@ main(void)
 
     if(!load_locale_keys("locales/en.txt", &english))
         return 1;
+    scan_locale_get_calls_in_dir(&english, "src");
+    scan_locale_get_calls_in_dir(&english, "flint/src");
 
     dir = opendir("locales");
     if(dir == NULL) {

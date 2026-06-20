@@ -41,7 +41,7 @@ Wim Hof 呼吸
 冥想
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+一个用于呼吸、平静与觉察的简单冥想练习。
 ---
 [meditation_manual_text]
 如果需要，可以选择音乐。锣声会提示开始和结束。
@@ -216,13 +216,13 @@ Settle into a quiet seat and let this session be simple: arrive, breathe, and be
 修改起始速度
 ---
 [breath_animation_label]
-Breathing animation
+呼吸动画
 ---
 [breath_animation_linear]
-Linear
+线性
 ---
 [breath_animation_in_out]
-In / Out
+吸气 / 呼气
 ---
 [progressive_start_speed_editor_title]
 起始速度
@@ -255,7 +255,7 @@ In / Out
 音量
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+在会话中显示音量控制
 ---
 [reset_to_defaults_label]
 恢复默认
@@ -319,7 +319,7 @@ Show volume control in sessions
 无效的导出文件
 ---
 [import_cancelled]
-Import cancelled
+导入已取消
 ---
 [import_choice_title]
 导入设置？
@@ -334,25 +334,25 @@ Import cancelled
 数据+设置
 ---
 [export_cancelled]
-Export cancelled
+导出已取消
 ---
 [no_data_to_export]
-No data to export
+没有可导出的数据
 ---
 [no_data_to_delete]
-No data to delete
+没有可删除的数据
 ---
 [delete_all_data_title]
-Delete all data?
+删除所有数据？
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+这将永久删除所有已保存的会话。
 ---
 [delete_cancelled]
-Delete cancelled
+删除已取消
 ---
 [deleted_sessions]
-Deleted %lld sessions
+已删除 %lld 个会话
 ---
 [toggle_off]
 关
@@ -400,33 +400,33 @@ Deleted %lld sessions
 站立或水中时进行。
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+只需按照 3 个步骤:
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. 吸气和呼气 30 次。
+2. 呼气并屏息。
+3. 当你想呼吸时，吸气并保持 15 秒。
 
-Exhale, then repeat the process.
+呼气，然后重复这个过程。
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+使用扳手图标 %i 调整轮次、呼吸次数、速度和暂停。
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+吸气和呼气 30 次。
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+找到自然的节奏：稳定且快速，同时保持充分呼吸。
 ---
 [tutorial_step_progressive_speed]
 递进速度会让第一轮更容易进入。
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+30 次呼吸后，呼气并尽可能长时间屏息。
 
-When you feel the urge to breathe, press the BREATH button.
+当你想呼吸时，按下呼吸按钮。
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+充分吸气并保持 15 秒。
 
-Exhale, and the next round will begin.
+呼气后，下一轮将开始。
 ---
 [tutorial_skip_button]
 跳过
@@ -492,120 +492,197 @@ Inner Breeze 数据导出
 传感器
 ---
 [back_button]
-Back
+返回
 ---
 [close_button]
-Close
+关闭
 ---
 [sync_account_title]
-Account
+账户
 ---
 [sync_configure_account_button]
-Configure Account
+配置账户
 ---
 [sync_create_account_button]
-Create Account
+创建账户
 ---
 [sync_account_created]
-Account created
+账户已创建
 ---
 [sync_account_create_failed]
-Could not create account
+无法创建账户
 ---
 [sync_import_key_button]
-Import .key File
+导入 .key 文件
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+导入账户密钥
 ---
 [sync_private_key_imported]
-Account key imported
+账户密钥已导入
 ---
 [sync_private_key_import_failed]
-Could not import account key
+无法导入账户密钥
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+账户密钥导入已取消
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs 未为此目标构建。
 ---
 [sync_public_id_label]
-Public ID
+公开 ID
 ---
 [sync_copy_id_button]
-Copy ID
+复制 ID
 ---
 [sync_public_id_copied]
-Public ID copied
+公开 ID 已复制
 ---
 [sync_backup_key_button]
-Backup Key
+备份密钥
 ---
 [sync_remote_label]
-Remote
+远程
 ---
 [sync_connect_button]
-Connect
+连接
 ---
 [sync_connected_button]
-Connected
+已连接
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+请使用 https:// 或 localhost:8080 这样的回环地址
 ---
 [sync_server_saved]
-Sync server saved
+同步服务器已保存
 ---
 [sync_connected]
-Remote sync complete
+远程同步完成
 ---
 [sync_failed]
-Remote sync failed
+远程同步失败
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+此平台不支持远程同步
 ---
 [sync_no_account]
-Create an account before connecting
+连接前请先创建账户
 ---
 [sync_auth_failed]
-Remote rejected this account
+远程服务器拒绝了此账户
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+请将此私钥保存到你可控制的位置。任何拥有它的人都可以认领此账户。
 ---
 [sync_backup_title]
-Backup Account Key
+备份账户密钥
 ---
 [sync_save_key_file_button]
-Save .key File
+保存 .key 文件
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+保存账户密钥
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+账户密钥备份已保存
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+无法保存账户密钥备份
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+账户密钥备份已取消
 ---
 [sync_delete_account_button]
-Delete Account
+删除账户
 ---
 [sync_delete_account_title]
-Delete Account?
+删除账户？
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+从远程服务器和此设备删除此账户？此操作无法撤销。
 ---
 [sync_account_deleted]
-Account deleted
+账户已删除
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+账户删除已取消
+---
+[habit_new_default_name]
+新习惯
+---
+[habit_new_title]
+新习惯
+---
+[habit_edit_title]
+编辑习惯
+---
+[habit_name_label]
+名称
+---
+[habit_underline_label]
+下划线
+---
+[habit_practice_list_title]
+练习列表
+---
+[habit_practice_list_info]
+将此习惯关联到练习会话。有匹配会话的日期会显示为已完成，并可打开会话编辑器。
+---
+[habit_counting_title]
+计数
+---
+[habit_counting_info]
+多次计数允许一天保存多个次数。若只需要简单记录完成或未完成，请保持关闭。
+---
+[habit_multiple_counts_label]
+多次计数
+---
+[habit_delete_title]
+删除习惯？
+---
+[habit_delete_message]
+删除此习惯？此操作无法撤销。
+---
+[habit_delete_button]
+删除习惯
+---
+[habit_add_new_option]
+添加新习惯
+---
+[habit_load_more_button]
+加载更多
+---
+[habit_empty_title]
+尚未创建习惯
+---
+[habit_create_button]
+创建习惯
+---
+[habit_stats_no_rounds_week]
+过去一周没有轮次
+---
+[habit_stats_current_streak]
+当前连续记录
+---
+[habit_stats_last_30_days]
+过去30天
+---
+[habit_stats_wim_hof_hold_rounds]
+Wim Hof 屏息轮次
+---
+[habit_stats_weekday_pattern]
+星期模式
+---
+[habit_stats_practice_time]
+练习时间
+---
+[habit_stats_best_hold]
+最佳屏息
+---
+[habit_stats_total_hold]
+屏息总时长
+---
+[habit_stats_best_streak]
+最佳连续记录
 ---

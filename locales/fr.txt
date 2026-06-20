@@ -41,7 +41,7 @@ Méditation
 Méditation
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+Une pratique de méditation simple pour respirer, se calmer et être présent.
 ---
 [meditation_manual_text]
 Choisissez de la musique si vous le souhaitez. Un gong marque le debut et la fin.
@@ -80,19 +80,19 @@ Réseau indisponible
 Impossible de joindre le serveur audio de méditation. Vérifiez les autorisations réseau d'Android et votre connexion internet, puis réessayez.
 ---
 [duration_5m]
-5m
+5 min
 ---
 [duration_15m]
-15m
+15 min
 ---
 [duration_30m]
-30m
+30 min
 ---
 [duration_1h]
-1h
+1 h
 ---
 [duration_2h]
-2h
+2 h
 ---
 [breath_button]
 RESPIRER
@@ -170,7 +170,7 @@ Respiration
 Séance
 ---
 [settings_tab_app]
-App
+Appli
 ---
 [settings_tab_theme]
 Thème
@@ -216,13 +216,13 @@ Vitesse de depart
 Modifier la vitesse de depart
 ---
 [breath_animation_label]
-Breathing animation
+Animation de respiration
 ---
 [breath_animation_linear]
-Linear
+Linéaire
 ---
 [breath_animation_in_out]
-In / Out
+Inspiration / expiration
 ---
 [progressive_start_speed_editor_title]
 Vitesse de depart
@@ -255,7 +255,7 @@ Cercle
 Volume
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+Afficher le contrôle du volume pendant les séances
 ---
 [reset_to_defaults_label]
 Réinitialiser
@@ -334,31 +334,31 @@ Données
 Données+Réglages
 ---
 [export_cancelled]
-Export cancelled
+Exportation annulée
 ---
 [no_data_to_export]
-No data to export
+Aucune donnée à exporter
 ---
 [no_data_to_delete]
-No data to delete
+Aucune donnée à supprimer
 ---
 [delete_all_data_title]
-Delete all data?
+Supprimer toutes les données ?
 ---
 [delete_all_data_message]
-This will permanently delete all saved sessions.
+Cela supprimera définitivement toutes les séances enregistrées.
 ---
 [delete_cancelled]
-Delete cancelled
+Suppression annulée
 ---
 [deleted_sessions]
-Deleted %lld sessions
+%lld séances supprimées
 ---
 [toggle_off]
-OFF
+DÉSACTIVÉ
 ---
 [toggle_on]
-ON
+ACTIVÉ
 ---
 [theme_light]
 Clair
@@ -400,20 +400,20 @@ Ne l'utilisez jamais en conduisant,
 debout ou dans l'eau.
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+Suivez simplement 3 étapes :
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. Inspirez et expirez 30 fois.
+2. Expirez et retenez votre souffle.
+3. Quand vous ressentez le besoin de respirer, inspirez et retenez 15 secondes.
 
-Exhale, then repeat the process.
+Expirez, puis recommencez.
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+Utilisez l’icône clé %i pour ajuster les séries, respirations, vitesse et pauses.
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+Inspirez et expirez 30 fois.
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+Trouvez un rythme naturel : régulier et rapide, tout en respirant pleinement.
 ---
 [tutorial_step_progressive_speed]
 La vitesse progressive rend le premier cycle plus facile à commencer.
@@ -421,17 +421,17 @@ La vitesse progressive rend le premier cycle plus facile à commencer.
 Quand elle est activée, le premier cycle commence à la vitesse 1 pendant les 5 premières respirations, puis augmente progressivement jusqu'à la vitesse choisie.
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+Après 30 respirations, expirez et retenez aussi longtemps que possible.
 
-When you feel the urge to breathe, press the BREATH button.
+Quand vous ressentez le besoin de respirer, appuyez sur le bouton RESPIRER.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+Inspirez pleinement et retenez 15 secondes.
 
-Exhale, and the next round will begin.
+Expirez, puis la série suivante commencera.
 ---
 [tutorial_skip_button]
-SKIP
+PASSER
 ---
 [tutorial_back_button]
 RETOUR
@@ -494,120 +494,197 @@ Paysage
 Capteur
 ---
 [back_button]
-Back
+Retour
 ---
 [close_button]
-Close
+Fermer
 ---
 [sync_account_title]
-Account
+Compte
 ---
 [sync_configure_account_button]
-Configure Account
+Configurer le compte
 ---
 [sync_create_account_button]
-Create Account
+Créer un compte
 ---
 [sync_account_created]
-Account created
+Compte créé
 ---
 [sync_account_create_failed]
-Could not create account
+Impossible de créer le compte
 ---
 [sync_import_key_button]
-Import .key File
+Importer un fichier .key
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+Importer la clé du compte
 ---
 [sync_private_key_imported]
-Account key imported
+Clé du compte importée
 ---
 [sync_private_key_import_failed]
-Could not import account key
+Impossible d’importer la clé du compte
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+Importation de la clé annulée
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs n’est pas compilé pour cette cible.
 ---
 [sync_public_id_label]
-Public ID
+ID public
 ---
 [sync_copy_id_button]
-Copy ID
+Copier l’ID
 ---
 [sync_public_id_copied]
-Public ID copied
+ID public copié
 ---
 [sync_backup_key_button]
-Backup Key
+Sauvegarder la clé
 ---
 [sync_remote_label]
-Remote
+Distant
 ---
 [sync_connect_button]
-Connect
+Connecter
 ---
 [sync_connected_button]
-Connected
+Connecté
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+Utilisez https:// ou une boucle locale comme localhost:8080
 ---
 [sync_server_saved]
-Sync server saved
+Serveur de synchronisation enregistré
 ---
 [sync_connected]
-Remote sync complete
+Synchronisation distante terminée
 ---
 [sync_failed]
-Remote sync failed
+Échec de la synchronisation distante
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+La synchronisation distante n’est pas disponible sur cette plateforme
 ---
 [sync_no_account]
-Create an account before connecting
+Créez un compte avant de vous connecter
 ---
 [sync_auth_failed]
-Remote rejected this account
+Le serveur distant a rejeté ce compte
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+Enregistrez cette clé privée dans un endroit que vous contrôlez. Toute personne qui la possède peut revendiquer ce compte.
 ---
 [sync_backup_title]
-Backup Account Key
+Sauvegarder la clé du compte
 ---
 [sync_save_key_file_button]
-Save .key File
+Enregistrer le fichier .key
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+Enregistrer la clé du compte
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+Sauvegarde de la clé enregistrée
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+Impossible d’enregistrer la sauvegarde de la clé
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+Sauvegarde de la clé annulée
 ---
 [sync_delete_account_button]
-Delete Account
+Supprimer le compte
 ---
 [sync_delete_account_title]
-Delete Account?
+Supprimer le compte ?
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+Supprimer ce compte du serveur distant et de cet appareil ? Cette action est irréversible.
 ---
 [sync_account_deleted]
-Account deleted
+Compte supprimé
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+Suppression du compte annulée
+---
+[habit_new_default_name]
+Nouvelle habitude
+---
+[habit_new_title]
+Nouvelle habitude
+---
+[habit_edit_title]
+Modifier l'habitude
+---
+[habit_name_label]
+Nom
+---
+[habit_underline_label]
+Soulignement
+---
+[habit_practice_list_title]
+Liste des pratiques
+---
+[habit_practice_list_info]
+Associez cette habitude aux séances de pratique. Les jours avec des séances correspondantes apparaîtront comme terminés et pourront ouvrir l'éditeur de séance.
+---
+[habit_counting_title]
+Comptage
+---
+[habit_counting_info]
+Les comptages multiples permettent d'enregistrer plus d'un compte dans une journée. Laissez désactivé pour un suivi simple fait ou non fait.
+---
+[habit_multiple_counts_label]
+Comptages multiples
+---
+[habit_delete_title]
+Supprimer l'habitude ?
+---
+[habit_delete_message]
+Supprimer cette habitude ? Cette action est irréversible.
+---
+[habit_delete_button]
+Supprimer l'habitude
+---
+[habit_add_new_option]
+Ajouter une nouvelle habitude
+---
+[habit_load_more_button]
+Charger plus
+---
+[habit_empty_title]
+Aucune habitude créée
+---
+[habit_create_button]
+Créer une habitude
+---
+[habit_stats_no_rounds_week]
+Aucune série la semaine dernière
+---
+[habit_stats_current_streak]
+Série actuelle
+---
+[habit_stats_last_30_days]
+30 derniers jours
+---
+[habit_stats_wim_hof_hold_rounds]
+Séries de rétention Wim Hof
+---
+[habit_stats_weekday_pattern]
+Rythme par jour
+---
+[habit_stats_practice_time]
+Temps de pratique
+---
+[habit_stats_best_hold]
+Meilleure rétention
+---
+[habit_stats_total_hold]
+Rétention totale
+---
+[habit_stats_best_streak]
+Meilleure série
 ---

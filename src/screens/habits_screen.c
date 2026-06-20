@@ -750,7 +750,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         option_count = INBE_HABIT_MAX;
     for(int i = 0; i < option_count; i++)
         options[i] = app->habits.items[i].name;
-    options[option_count++] = "Add new habit";
+    options[option_count++] = locale_get("habit_add_new_option");
 
     selected = app->habits.selected;
     if(selected < 0 || selected >= app->habits.count)
@@ -1249,7 +1249,7 @@ habit_stats_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     for(int i = 0; i < point_count; i++)
         DrawCircle(points[i].x, points[i].y, flint_px(3), accent);
     if(point_count <= 0) {
-        const char *empty = "No rounds in the last week";
+        const char *empty = locale_get("habit_stats_no_rounds_week");
         int text_w = flint_text_measure(empty, FLINT_TEXT_12);
         flint_text_draw(empty, content_x + (content_w - text_w) / 2,
                         y + graph_h / 2 - flint_px(8), FLINT_TEXT_12,
@@ -1329,15 +1329,15 @@ draw_habits_stats_view(InbeApp *app, InbeHabit *active,
     snprintf(value, sizeof(value), "%d day%s", current_streak,
              current_streak == 1 ? "" : "s");
     habit_stats_draw_metric(content_x, y, metric_w, metric_h,
-                            "Current streak", value, active->color);
+                            locale_get("habit_stats_current_streak"), value, active->color);
     snprintf(value, sizeof(value), "%d/%d", last_30_done, last_30_total);
     habit_stats_draw_metric(content_x + metric_w + metrics_gap, y,
                             content_w - metric_w - metrics_gap, metric_h,
-                            "Last 30 days", value, flint_lighten(active->color, 24));
+                            locale_get("habit_stats_last_30_days"), value, flint_lighten(active->color, 24));
     y += metric_h + flint_px(22);
 
     if(has_wim_hof_rounds) {
-        habit_stats_draw_section_title("Wim Hof hold rounds", content_x, y);
+        habit_stats_draw_section_title(locale_get("habit_stats_wim_hof_hold_rounds"), content_x, y);
         y += flint_px(28);
         habit_stats_draw_hold_graph(app, linked_ctx, content_x, y, content_w,
                                     &today_tm, EXERCISE_WIM_HOF,
@@ -1345,7 +1345,7 @@ draw_habits_stats_view(InbeApp *app, InbeHabit *active,
         y += flint_px(194);
     }
 
-    habit_stats_draw_section_title("Weekday pattern", content_x, y);
+    habit_stats_draw_section_title(locale_get("habit_stats_weekday_pattern"), content_x, y);
     y += flint_px(28);
     DrawRectangle(content_x, y, content_w, chart_h, flint_darken(theme_get_bg(), 7));
     {
@@ -1374,20 +1374,20 @@ draw_habits_stats_view(InbeApp *app, InbeHabit *active,
     if(linked_ctx != NULL && linked_ctx->count > 0) {
         char best[32];
         char total[32];
-        habit_stats_draw_section_title("Practice time", content_x, y);
+        habit_stats_draw_section_title(locale_get("habit_stats_practice_time"), content_x, y);
         y += flint_px(28);
         habit_format_duration(linked_ctx->best_seconds, best, sizeof(best));
         habit_format_duration(linked_ctx->total_seconds, total, sizeof(total));
         habit_stats_draw_metric(content_x, y, metric_w, metric_h,
-                                "Best hold", best, active->color);
+                                locale_get("habit_stats_best_hold"), best, active->color);
         habit_stats_draw_metric(content_x + metric_w + metrics_gap, y,
                                 content_w - metric_w - metrics_gap, metric_h,
-                                "Total hold", total, flint_lighten(active->color, 20));
+                                locale_get("habit_stats_total_hold"), total, flint_lighten(active->color, 20));
     } else {
         snprintf(value, sizeof(value), "%d day%s", best_streak,
                  best_streak == 1 ? "" : "s");
         habit_stats_draw_metric(content_x, y, content_w, metric_h,
-                                "Best streak", value, active->color);
+                                locale_get("habit_stats_best_streak"), value, active->color);
     }
 
 }
@@ -1542,7 +1542,7 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
     }
 
     y += flint_px(8);
-    if(ui_draw_generic_button(content_x, y, content_w, load_h, "Load more",
+    if(ui_draw_generic_button(content_x, y, content_w, load_h, locale_get("habit_load_more_button"),
                               UI_BUTTON_STYLE_SECONDARY,
                               app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS,
                               &load_hover)) {
@@ -1620,8 +1620,8 @@ draw_habits_screen(InbeApp *app)
     flint_centered_column(max_w, side_padding, &content_x, &content_w);
 
     if(app->habits.count <= 0) {
-        const char *empty_text = "No habits created";
-        const char *create_text = "Create habit";
+        const char *empty_text = locale_get("habit_empty_title");
+        const char *create_text = locale_get("habit_create_button");
         int empty_font = FLINT_TEXT_16;
         int button_w = content_w < flint_px(240) ? content_w : flint_px(240);
         int button_h = flint_px(42);

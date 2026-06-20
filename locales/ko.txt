@@ -41,7 +41,7 @@ Inner Breeze
 명상
 ---
 [meditation_manual_intro_text]
-Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
+호흡, 안정, 알아차림을 위한 간단한 명상 연습입니다.
 ---
 [meditation_manual_text]
 원하면 음악을 선택하세요. 징 소리가 시작과 끝을 알립니다.
@@ -233,13 +233,13 @@ Settle into a quiet seat and let this session be simple: arrive, breathe, and be
 시작 속도 수정
 ---
 [breath_animation_label]
-Breathing animation
+호흡 애니메이션
 ---
 [breath_animation_linear]
-Linear
+선형
 ---
 [breath_animation_in_out]
-In / Out
+들이마심 / 내쉼
 ---
 [progressive_start_speed_editor_title]
 시작 속도
@@ -272,7 +272,7 @@ In / Out
 음량
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+세션에서 볼륨 조절 표시
 ---
 [reset_to_defaults_label]
 기본값으로 재설정
@@ -415,20 +415,20 @@ Show volume control in sessions
 운전 중, 서 있거나 물속에서는 사용하지 마세요.
 ---
 [tutorial_step_method]
-Simply follow 3 steps:
+3단계를 따라 하세요:
 
-1. Breathe in and out 30 times.
-2. Exhale and hold.
-3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
+1. 30번 들이마시고 내쉽니다.
+2. 내쉬고 멈춥니다.
+3. 숨을 쉬고 싶어지면 들이마시고 15초 동안 멈춥니다.
 
-Exhale, then repeat the process.
+내쉰 뒤 과정을 반복합니다.
 
-Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
+렌치 아이콘 %i 로 라운드, 호흡 수, 속도, 일시정지를 조정할 수 있습니다.
 ---
 [tutorial_step_breathe]
-Breathe in and out 30 times.
+30번 들이마시고 내쉽니다.
 
-Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
+자연스럽게 느껴지는 리듬을 찾으세요. 안정적이고 빠르되, 충분히 호흡하세요.
 ---
 [tutorial_step_progressive_speed]
 점진적 속도는 첫 라운드를 쉽게 시작할 수 있게 해줍니다.
@@ -436,14 +436,14 @@ Find a rhythm that feels natural to you: steady and quick, while still breathing
 켜면 첫 라운드가 느리게 시작된 후 점차 선택한 속도까지 증가합니다.
 ---
 [tutorial_step_exhale_hold]
-After 30 breaths, exhale and hold as long as you can.
+30번 호흡한 뒤 내쉬고 가능한 한 오래 멈춥니다.
 
-When you feel the urge to breathe, press the BREATH button.
+숨을 쉬고 싶어지면 호흡 버튼을 누르세요.
 ---
 [tutorial_step_inhale_hold]
-Inhale fully and hold for 15 seconds.
+깊게 들이마시고 15초 동안 멈춥니다.
 
-Exhale, and the next round will begin.
+내쉬면 다음 라운드가 시작됩니다.
 ---
 [tutorial_skip_button]
 건너뛰기
@@ -491,120 +491,197 @@ Inner Breeze 데이터 내보내기
 음악: Elijah_K.
 ---
 [back_button]
-Back
+뒤로
 ---
 [close_button]
-Close
+닫기
 ---
 [sync_account_title]
-Account
+계정
 ---
 [sync_configure_account_button]
-Configure Account
+계정 설정
 ---
 [sync_create_account_button]
-Create Account
+계정 만들기
 ---
 [sync_account_created]
-Account created
+계정 생성됨
 ---
 [sync_account_create_failed]
-Could not create account
+계정을 만들 수 없음
 ---
 [sync_import_key_button]
-Import .key File
+.key 파일 가져오기
 ---
 [sync_import_key_dialog_title]
-Import Account Key
+계정 키 가져오기
 ---
 [sync_private_key_imported]
-Account key imported
+계정 키를 가져왔습니다
 ---
 [sync_private_key_import_failed]
-Could not import account key
+계정 키를 가져올 수 없음
 ---
 [sync_private_key_import_cancelled]
-Account key import cancelled
+계정 키 가져오기가 취소됨
 ---
 [sync_liboqs_unavailable]
-liboqs is not built for this target.
+liboqs가 이 대상용으로 빌드되지 않았습니다.
 ---
 [sync_public_id_label]
-Public ID
+공개 ID
 ---
 [sync_copy_id_button]
-Copy ID
+ID 복사
 ---
 [sync_public_id_copied]
-Public ID copied
+공개 ID 복사됨
 ---
 [sync_backup_key_button]
-Backup Key
+키 백업
 ---
 [sync_remote_label]
-Remote
+원격
 ---
 [sync_connect_button]
-Connect
+연결
 ---
 [sync_connected_button]
-Connected
+연결됨
 ---
 [sync_server_url_invalid]
-Use https:// or loopback like localhost:8080
+https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [sync_server_saved]
-Sync server saved
+동기화 서버 저장됨
 ---
 [sync_connected]
-Remote sync complete
+원격 동기화 완료
 ---
 [sync_failed]
-Remote sync failed
+원격 동기화 실패
 ---
 [sync_unavailable]
-Remote sync is not available on this platform
+이 플랫폼에서는 원격 동기화를 사용할 수 없습니다
 ---
 [sync_no_account]
-Create an account before connecting
+연결하기 전에 계정을 만드세요
 ---
 [sync_auth_failed]
-Remote rejected this account
+원격에서 이 계정을 거부했습니다
 ---
 [sync_backup_warning]
-Save this private key somewhere you control. Anyone with it can claim this account.
+이 개인 키를 직접 관리하는 곳에 저장하세요. 이 키를 가진 사람은 누구나 이 계정을 가져갈 수 있습니다.
 ---
 [sync_backup_title]
-Backup Account Key
+계정 키 백업
 ---
 [sync_save_key_file_button]
-Save .key File
+.key 파일 저장
 ---
 [sync_save_key_dialog_title]
-Save Account Key
+계정 키 저장
 ---
 [sync_private_key_backup_saved]
-Account key backup saved
+계정 키 백업 저장됨
 ---
 [sync_private_key_backup_failed]
-Could not save account key backup
+계정 키 백업을 저장할 수 없음
 ---
 [sync_private_key_backup_cancelled]
-Account key backup cancelled
+계정 키 백업 취소됨
 ---
 [sync_delete_account_button]
-Delete Account
+계정 삭제
 ---
 [sync_delete_account_title]
-Delete Account?
+계정을 삭제할까요?
 ---
 [sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+원격 서버와 이 기기에서 이 계정을 삭제할까요? 이 작업은 되돌릴 수 없습니다.
 ---
 [sync_account_deleted]
-Account deleted
+계정 삭제됨
 ---
 [sync_account_delete_cancelled]
-Account deletion cancelled
+계정 삭제 취소됨
+---
+[habit_new_default_name]
+새 습관
+---
+[habit_new_title]
+새 습관
+---
+[habit_edit_title]
+습관 편집
+---
+[habit_name_label]
+이름
+---
+[habit_underline_label]
+밑줄
+---
+[habit_practice_list_title]
+연습 목록
+---
+[habit_practice_list_info]
+이 습관을 연습 세션에 연결합니다. 일치하는 세션이 있는 날은 완료로 표시되며 세션 편집기를 열 수 있습니다.
+---
+[habit_counting_title]
+횟수
+---
+[habit_counting_info]
+여러 횟수를 켜면 하루에 둘 이상의 횟수를 저장할 수 있습니다. 단순히 완료 여부만 추적하려면 꺼 두세요.
+---
+[habit_multiple_counts_label]
+여러 횟수
+---
+[habit_delete_title]
+습관을 삭제할까요?
+---
+[habit_delete_message]
+이 습관을 삭제할까요? 이 작업은 되돌릴 수 없습니다.
+---
+[habit_delete_button]
+습관 삭제
+---
+[habit_add_new_option]
+새 습관 추가
+---
+[habit_load_more_button]
+더 불러오기
+---
+[habit_empty_title]
+생성된 습관 없음
+---
+[habit_create_button]
+습관 만들기
+---
+[habit_stats_no_rounds_week]
+지난주 라운드 없음
+---
+[habit_stats_current_streak]
+현재 연속 기록
+---
+[habit_stats_last_30_days]
+지난 30일
+---
+[habit_stats_wim_hof_hold_rounds]
+윔 호프 숨 참기 라운드
+---
+[habit_stats_weekday_pattern]
+요일 패턴
+---
+[habit_stats_practice_time]
+연습 시간
+---
+[habit_stats_best_hold]
+최고 숨 참기
+---
+[habit_stats_total_hold]
+총 숨 참기
+---
+[habit_stats_best_streak]
+최고 연속 기록
 ---
