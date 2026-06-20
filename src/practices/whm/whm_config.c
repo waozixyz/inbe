@@ -114,6 +114,7 @@ whm_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
     if(tab_count <= 0 || tab_count > WHM_SUBTAB_RENDER_MAX)
         return -1;
     for(int i = 0; i < tab_count; i++) {
+        tabs[i] = (FlintUISubtab){0};
         tabs[i].label = tab_names[i];
         tabs[i].disabled = 0;
     }
@@ -342,7 +343,7 @@ whm_config_screen_draw(InbeApp *app)
     if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
         app->practice_config_tab = 0;
 
-    header = ui_draw_title_header(title_h, locale_get("exercise_wim_hof"),
+    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
                                   (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
     if(header.right_clicked) {
         if(app->settings_dirty)

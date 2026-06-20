@@ -420,8 +420,8 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
     } else if(strcmp(request->scene, "habits_stats") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.tab = HABIT_TAB_STATISTICS;
         app->inbe.screen = InbeScreenHabits;
-        app->habits.view_mode = HABIT_VIEW_STATS;
     } else if(strcmp(request->scene, "theme_selection") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_THEME;

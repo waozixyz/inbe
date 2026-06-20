@@ -25,6 +25,9 @@ Inner Breeze
 [tab_settings]
 설정
 ---
+[tab_statistics]
+통계
+---
 [play_button]
 시작
 ---
@@ -204,6 +207,42 @@ Inner Breeze
 ---
 [theme_system]
 시스템
+---
+[theme_sky]
+하늘
+---
+[theme_ocean]
+바다
+---
+[theme_forest]
+숲
+---
+[theme_sunset]
+일몰
+---
+[theme_lavender]
+라벤더
+---
+[theme_cherry]
+체리
+---
+[theme_dawn]
+새벽
+---
+[theme_sage]
+세이지
+---
+[theme_sepia]
+세피아
+---
+[theme_mono]
+모노
+---
+[theme_mint]
+민트
+---
+[theme_cobalt]
+코발트
 ---
 [orientation_label]
 화면 방향
@@ -684,4 +723,40 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [habit_stats_best_streak]
 최고 연속 기록
+---
+[bottom_nav_customize_button]
+하단 내비게이션 사용자화
+---
+[bottom_nav_customize_title]
+하단 내비게이션
+---
+[bottom_nav_add_button]
+항목 추가
+---
+[bottom_nav_slot_1]
+항목 1
+---
+[bottom_nav_slot_2]
+항목 2
+---
+[bottom_nav_slot_3]
+항목 3
+---
+[bottom_nav_slot_4]
+항목 4
+---
+[bottom_nav_slot_5]
+항목 5
+---
+[bottom_nav_slot_6]
+항목 6
+---
+[bottom_nav_slot_7]
+항목 7
+---
+[bottom_nav_slot_8]
+항목 8
+---
+[reset_button]
+초기화
 ---

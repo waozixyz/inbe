@@ -25,6 +25,9 @@ Manual
 [tab_settings]
 Configurações
 ---
+[tab_statistics]
+Estatísticas
+---
 [play_button]
 INICIAR
 ---
@@ -478,6 +481,42 @@ Música por Elijah_K.
 [theme_system]
 Sistema
 ---
+[theme_sky]
+Céu
+---
+[theme_ocean]
+Oceano
+---
+[theme_forest]
+Floresta
+---
+[theme_sunset]
+Pôr do sol
+---
+[theme_lavender]
+Lavanda
+---
+[theme_cherry]
+Cereja
+---
+[theme_dawn]
+Amanhecer
+---
+[theme_sage]
+Sálvia
+---
+[theme_sepia]
+Sépia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menta
+---
+[theme_cobalt]
+Cobalto
+---
 [orientation_label]
 Orientação
 ---
@@ -687,4 +726,40 @@ Retenção total
 ---
 [habit_stats_best_streak]
 Melhor sequência
+---
+[bottom_nav_customize_button]
+Personalizar navegação inferior
+---
+[bottom_nav_customize_title]
+Navegação inferior
+---
+[bottom_nav_add_button]
+Adicionar item
+---
+[bottom_nav_slot_1]
+Item 1
+---
+[bottom_nav_slot_2]
+Item 2
+---
+[bottom_nav_slot_3]
+Item 3
+---
+[bottom_nav_slot_4]
+Item 4
+---
+[bottom_nav_slot_5]
+Item 5
+---
+[bottom_nav_slot_6]
+Item 6
+---
+[bottom_nav_slot_7]
+Item 7
+---
+[bottom_nav_slot_8]
+Item 8
+---
+[reset_button]
+Redefinir
 ---

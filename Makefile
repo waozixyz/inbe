@@ -157,6 +157,7 @@ APP_SRCS := \
 	src/practices/meditation/meditation_manual.c \
 	src/practices/meditation/meditation_config.c \
 	src/screens/habits_screen.c \
+	src/screens/statistics_screen.c \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/practices/meditation/meditation_music.c \
@@ -223,13 +224,18 @@ WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
+WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
 CHROME_WEB_STORE_WORKER := packaging/chrome-web-store/service_worker.js
-CHROME_WEB_STORE_ICON := web-assets/icons/icon-512x512.png
-MAGICK ?= magick
+CHROME_WEB_STORE_ICON_DIR := packaging/chrome-web-store/icons
+CHROME_WEB_STORE_ICONS := \
+	$(CHROME_WEB_STORE_ICON_DIR)/icon-16.png \
+	$(CHROME_WEB_STORE_ICON_DIR)/icon-32.png \
+	$(CHROME_WEB_STORE_ICON_DIR)/icon-48.png \
+	$(CHROME_WEB_STORE_ICON_DIR)/icon-128.png
 WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
@@ -750,7 +756,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	fi
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/usr/share/applications/$(APP_NAME).desktop
-	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(APP_NAME).appdata.xml
+	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
@@ -761,7 +767,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -791,8 +797,10 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-lidbfs.js \
 		-lm
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index.html
+	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
+	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	cp -R web-assets $(WEB_DIST_DIR)/
-	cp manifest.json $(WEB_DIST_DIR)/
+	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
 android-copy-assets:
 	$(MAKE) $(FONT_OUTPUTS)
@@ -959,17 +967,14 @@ web:
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 
-$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICON) | $(CHROME_WEB_STORE_DIR)
+$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICONS) | $(CHROME_WEB_STORE_DIR)
 	rm -rf $(CHROME_WEB_STORE_DIR)
 	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(CHROME_WEB_STORE_DIR)/
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(CHROME_WEB_STORE_MANIFEST) > $(CHROME_WEB_STORE_DIR)/manifest.json
 	cp $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_DIR)/service_worker.js
-	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 16x16 $(CHROME_WEB_STORE_DIR)/icons/icon-16.png
-	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 32x32 $(CHROME_WEB_STORE_DIR)/icons/icon-32.png
-	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 48x48 $(CHROME_WEB_STORE_DIR)/icons/icon-48.png
-	$(MAGICK) $(CHROME_WEB_STORE_ICON) -filter point -resize 128x128 $(CHROME_WEB_STORE_DIR)/icons/icon-128.png
+	cp $(CHROME_WEB_STORE_ICONS) $(CHROME_WEB_STORE_DIR)/icons/
 	rm -f $(CHROME_WEB_STORE_ZIP)
 	cd $(CHROME_WEB_STORE_DIR) && zip -9 -r $(abspath $(CHROME_WEB_STORE_ZIP)) .
 

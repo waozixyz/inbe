@@ -36,6 +36,7 @@ Vector2 ui_mouse_world(void);
 void ui_mark_clickable(void);
 void ui_mark_disabled(void);
 int ui_pointer_drag_is_horizontal(void);
+int ui_hover_effects_enabled(void);
 int ui_base_input_captures_click(Vector2 point, int include_pointer_drag);
 int ui_input_captures_click_internal(Vector2 point, int include_pointer_drag);
 void ui_push_input_clip(Rectangle bounds);

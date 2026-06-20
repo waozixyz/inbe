@@ -26,6 +26,64 @@ habit_session_text_filter(int codepoint, void *user_data)
     return 0;
 }
 
+static const char *
+habit_session_last_substring(const char *text, const char *needle)
+{
+    const char *match = NULL;
+    const char *cursor;
+    size_t needle_len;
+
+    if(text == NULL || needle == NULL || needle[0] == '\0')
+        return NULL;
+    needle_len = strlen(needle);
+    for(cursor = text; (cursor = strstr(cursor, needle)) != NULL; cursor += needle_len)
+        match = cursor;
+    return match;
+}
+
+static void
+habit_session_draw_round_line(const char *line, const char *seconds_text,
+                              int x, int y, int w, int h, int font,
+                              int editing)
+{
+    const char *value_at;
+    const char *suffix;
+    char prefix[64];
+    size_t prefix_len;
+    int text_y;
+    int draw_x;
+
+    if(!editing) {
+        flint_ui_draw_text_left_in_rect(line,
+                                        (Rectangle){(float)x, (float)y, (float)w, (float)h},
+                                        font, theme_get_text());
+        return;
+    }
+
+    value_at = habit_session_last_substring(line, seconds_text);
+    if(value_at == NULL) {
+        flint_ui_draw_text_left_in_rect(line,
+                                        (Rectangle){(float)x, (float)y, (float)w, (float)h},
+                                        font, theme_get_text());
+        return;
+    }
+
+    prefix_len = (size_t)(value_at - line);
+    if(prefix_len >= sizeof(prefix))
+        prefix_len = sizeof(prefix) - 1;
+    memcpy(prefix, line, prefix_len);
+    prefix[prefix_len] = '\0';
+    suffix = value_at + strlen(seconds_text);
+    text_y = flint_ui_text_y(line, y, h, font);
+    draw_x = x;
+
+    flint_text_draw(prefix, draw_x, text_y, font, theme_get_text());
+    draw_x += flint_text_measure(prefix, font);
+    flint_text_draw(seconds_text, draw_x, text_y, font, theme_get_button_hover());
+    draw_x += flint_text_measure(seconds_text, font);
+    flint_text_draw(suffix, draw_x, text_y, font, theme_get_text());
+}
+
 static int
 habit_session_delete_round(const HabitLinkedEntry *entry, int round)
 {
@@ -98,7 +156,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     InbeHabit *habit;
     char date_text[32];
     int top_h = flint_px(58);
-    int nav_h = flint_px(TAB_BAR_H);
+    int bottom_reserved;
     int keyboard_h;
     int viewport_h;
     int max_w = flint_px(400);
@@ -107,6 +165,7 @@ draw_habit_session_edit_screen(InbeApp *app)
 
     if(app == NULL)
         return;
+    bottom_reserved = app_content_bottom_reserved(app);
     if(app->habit_detail_index < 0 || app->habit_detail_index >= app->habits.count) {
         app->inbe.screen = InbeScreenHabits;
         return;
@@ -122,7 +181,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
 
     keyboard_h = habit_session_keyboard_height(app);
-    viewport_h = view_height - top_h - nav_h - keyboard_h;
+    viewport_h = view_height - top_h - bottom_reserved - keyboard_h;
     if(viewport_h < flint_px(80))
         viewport_h = flint_px(80);
 
@@ -250,6 +309,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
             for(int r = 0; r < ctx->entries[i].round_count; r++) {
                 char round_line[64];
+                char round_seconds[16];
                 int round_trash_x = content_x + content_w - icon_w;
                 int round_edit_x = round_trash_x - icon_w - flint_px(4);
                 int round_text_x = content_x + flint_px(16);
@@ -266,19 +326,26 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     if(editing_round)
                         locale_format(round_line, sizeof(round_line), "round_result_label",
                                       r + 1, atoi(app->habit_session_edit.text));
+                    snprintf(round_seconds, sizeof(round_seconds), "%d",
+                             editing_round ? atoi(app->habit_session_edit.text)
+                                           : ctx->entries[i].rounds[r]);
                     if(round_text_w < flint_px(80))
                         round_text_w = flint_px(80);
-                    flint_ui_draw_text_left_in_rect(
-                        round_line,
-                        (Rectangle){(float)round_text_x, (float)y,
-                                    (float)round_text_w, (float)flint_px(24)},
-                        row_font,
-                        editing_round ? theme_get_button_hover()
-                                      : theme_get_text());
+                    habit_session_draw_round_line(round_line, round_seconds,
+                                                  round_text_x, y, round_text_w,
+                                                  flint_px(24), row_font,
+                                                  editing_round);
                     if(ui_draw_icon_btn_padded(round_edit_x, y - flint_px(6),
                                                icon_size, icon_padding,
-                                               app->icons[UI_ICON_TYPE_PENCIL], &hover_round_edit)) {
-                        habit_session_begin_round_edit(app, &ctx->entries[i], r);
+                                               app->icons[editing_round ? UI_ICON_TYPE_SAVE
+                                                                        : UI_ICON_TYPE_PENCIL],
+                                               &hover_round_edit)) {
+                        if(editing_round) {
+                            if(habit_session_commit_edit(app, &ctx->entries[i]))
+                                return y;
+                        } else {
+                            habit_session_begin_round_edit(app, &ctx->entries[i], r);
+                        }
                         return y;
                     }
                     if(ui_draw_icon_btn_padded(round_trash_x, y - flint_px(6),
@@ -290,7 +357,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                         return y;
                     }
                 }
-                y += flint_px(24);
+                y += flint_px(28);
             }
             y += flint_px(4);
         }

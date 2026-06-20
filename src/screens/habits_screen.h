@@ -23,8 +23,15 @@ enum {
 
 enum {
     HABIT_VIEW_CALENDAR = 0,
-    HABIT_VIEW_WEEKLY = 1,
-    HABIT_VIEW_STATS = 2
+    HABIT_VIEW_WEEKLY = 1
+};
+
+enum {
+    HABIT_TAB_WEEKLY = 0,
+    HABIT_TAB_MONTHLY,
+    HABIT_TAB_STATISTICS,
+    HABIT_TAB_EDIT,
+    HABIT_TAB_COUNT
 };
 
 /* Habits-specific enums */
@@ -60,6 +67,7 @@ typedef struct InbeHabits {
     int month_offset;
     int selector_open;
     int view_mode;
+    int tab;
     int weekly_days;
     int loaded;
     int dirty;

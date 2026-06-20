@@ -1,0 +1,4 @@
+### Changed
+- Add a responsive Flint sidebar, configurable bottom navigation, and independent Statistics screen.
+### Fixed
+- Preserve queued local habit counter settings when applying sync responses.

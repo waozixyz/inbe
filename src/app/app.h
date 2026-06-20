@@ -18,7 +18,6 @@ enum {
     SETTINGS_VOLUME_MIN = 0,
     SETTINGS_VOLUME_MAX = 100,
     SETTINGS_TITLE_H = 50,
-    TAB_BAR_H = 58,
     SETTINGS_CONTENT_H = 400,
     CONTENT_MAX_W = 440,
     CONTENT_SIDE_PAD = 16,
@@ -65,6 +64,7 @@ typedef enum {
     UIModalConfirmDeleteSyncAccount,
     UIModalHabitPracticeListInfo,
     UIModalHabitCountingInfo,
+    UIModalBottomNavConfig,
 } UIModalType;
 
 typedef struct {
@@ -117,6 +117,16 @@ typedef enum AppMainTab {
     APP_MAIN_TAB_HABITS = 0,
     APP_MAIN_TAB_PRACTICE = 1,
 } AppMainTab;
+
+typedef enum AppNavRoute {
+    APP_NAV_ROUTE_NONE = -1,
+    APP_NAV_ROUTE_PRACTICE = 0,
+    APP_NAV_ROUTE_HABITS = 1,
+    APP_NAV_ROUTE_SETTINGS = 2,
+    APP_NAV_ROUTE_COUNT = 3,
+} AppNavRoute;
+
+#define APP_BOTTOM_NAV_MAX_ITEMS 8
 
 typedef struct WhmPracticeState {
     Texture2D image_1;
@@ -223,7 +233,12 @@ struct InbeApp {
     int orientation_mode;
     int android_orientation;
     int main_tab;
-    int pending_bottom_tab;
+    int sidebar_open;
+    int pending_sidebar_route;
+    int bottom_nav_count;
+    int bottom_nav_routes[APP_BOTTOM_NAV_MAX_ITEMS];
+    int bottom_nav_draft_count;
+    int bottom_nav_draft_routes[APP_BOTTOM_NAV_MAX_ITEMS];
     InbeHabits habits;
     int habit_detail_index;
     int habit_detail_day;
@@ -247,6 +262,7 @@ struct InbeApp {
     int session_paused;
     int backgrounded;
     int results_saved;
+    int modal_open_frame;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;
@@ -258,6 +274,10 @@ struct InbeApp {
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
+int app_draw_sidebar_toggle(InbeApp *app, int x, int y);
+int app_content_top_reserved(const InbeApp *app);
+int app_content_bottom_reserved(const InbeApp *app);
+int app_toolbar_height(void);
 int app_auto_sync(InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);

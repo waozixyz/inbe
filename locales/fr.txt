@@ -25,6 +25,9 @@ Tutoriel
 [tab_settings]
 Réglages
 ---
+[tab_statistics]
+Statistiques
+---
 [play_button]
 DÉMARRER
 ---
@@ -478,6 +481,42 @@ Musique par Elijah_K.
 [theme_system]
 Système
 ---
+[theme_sky]
+Ciel
+---
+[theme_ocean]
+Océan
+---
+[theme_forest]
+Forêt
+---
+[theme_sunset]
+Coucher de soleil
+---
+[theme_lavender]
+Lavande
+---
+[theme_cherry]
+Cerise
+---
+[theme_dawn]
+Aube
+---
+[theme_sage]
+Sauge
+---
+[theme_sepia]
+Sépia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menthe
+---
+[theme_cobalt]
+Cobalt
+---
 [orientation_label]
 Orientation
 ---
@@ -687,4 +726,40 @@ Rétention totale
 ---
 [habit_stats_best_streak]
 Meilleure série
+---
+[bottom_nav_customize_button]
+Personnaliser la navigation du bas
+---
+[bottom_nav_customize_title]
+Navigation du bas
+---
+[bottom_nav_add_button]
+Ajouter un élément
+---
+[bottom_nav_slot_1]
+Élément 1
+---
+[bottom_nav_slot_2]
+Élément 2
+---
+[bottom_nav_slot_3]
+Élément 3
+---
+[bottom_nav_slot_4]
+Élément 4
+---
+[bottom_nav_slot_5]
+Élément 5
+---
+[bottom_nav_slot_6]
+Élément 6
+---
+[bottom_nav_slot_7]
+Élément 7
+---
+[bottom_nav_slot_8]
+Élément 8
+---
+[reset_button]
+Réinitialiser
 ---

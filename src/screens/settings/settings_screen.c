@@ -30,6 +30,7 @@ settings_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
         return -1;
 
     for(int i = 0; i < tab_count; i++) {
+        tabs[i] = (FlintUISubtab){0};
         tabs[i].label = tab_names[i];
         tabs[i].disabled = 0;
     }
@@ -145,6 +146,7 @@ int
 settings_screen_draw(InbeApp *app)
 {
     int top_margin = 0;
+    int main_header_h;
     int detail_header_h;
     int top_tab_h;
     int top_tab_y;
@@ -169,6 +171,16 @@ settings_screen_draw(InbeApp *app)
     if(settings_data_draw_pending_file_dialog(app))
         return 1;
 
+    main_header_h = settings_data_is_configuring(app) ? 0 : flint_px(58);
+    if(main_header_h > 0) {
+        Texture2D left_icon = (Texture2D){0};
+        FlintUIHeader header = ui_draw_title_header(main_header_h,
+                                                    locale_get("settings_title"),
+                                                    left_icon,
+                                                    (Texture2D){0});
+        (void)header.left_clicked;
+    }
+
     detail_header_h = settings_data_is_configuring(app) ? flint_px(58) : 0;
     if(detail_header_h > 0) {
         FlintUIHeader header = ui_draw_title_header(detail_header_h,
@@ -184,10 +196,10 @@ settings_screen_draw(InbeApp *app)
     }
 
     top_tab_h = detail_header_h > 0 ? 0 : flint_px(40);
-    top_tab_y = top_margin + detail_header_h;
+    top_tab_y = top_margin + main_header_h + detail_header_h;
     tab_gap = top_tab_h > 0 ? flint_px(14) : 0;
     tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
-    content_viewport_h = view_height - tab_content_start_y - flint_px(TAB_BAR_H);
+    content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app);
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     settings_data_handle_android_import(app);

@@ -25,6 +25,9 @@ Anleitung
 [tab_settings]
 Einstellungen
 ---
+[tab_statistics]
+Statistiken
+---
 [play_button]
 START
 ---
@@ -478,6 +481,42 @@ Musik von Elijah_K.
 [theme_system]
 System
 ---
+[theme_sky]
+Himmel
+---
+[theme_ocean]
+Ozean
+---
+[theme_forest]
+Wald
+---
+[theme_sunset]
+Sonnenuntergang
+---
+[theme_lavender]
+Lavendel
+---
+[theme_cherry]
+Kirsche
+---
+[theme_dawn]
+Morgenrot
+---
+[theme_sage]
+Salbei
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Minze
+---
+[theme_cobalt]
+Kobalt
+---
 [orientation_label]
 Ausrichtung
 ---
@@ -687,4 +726,40 @@ Gesamte Atemhaltezeit
 ---
 [habit_stats_best_streak]
 Beste Serie
+---
+[bottom_nav_customize_button]
+Untere Navigation anpassen
+---
+[bottom_nav_customize_title]
+Untere Navigation
+---
+[bottom_nav_add_button]
+Eintrag hinzufügen
+---
+[bottom_nav_slot_1]
+Eintrag 1
+---
+[bottom_nav_slot_2]
+Eintrag 2
+---
+[bottom_nav_slot_3]
+Eintrag 3
+---
+[bottom_nav_slot_4]
+Eintrag 4
+---
+[bottom_nav_slot_5]
+Eintrag 5
+---
+[bottom_nav_slot_6]
+Eintrag 6
+---
+[bottom_nav_slot_7]
+Eintrag 7
+---
+[bottom_nav_slot_8]
+Eintrag 8
+---
+[reset_button]
+Zurücksetzen
 ---

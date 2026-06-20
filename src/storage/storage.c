@@ -24,6 +24,30 @@
 
 static long long storage_max_sync_outbox_seq(void);
 
+static long long
+storage_next_change_time(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    long long now = now_seconds();
+    long long latest = 0;
+
+    if(g_storage.db == NULL)
+        return now;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT MAX(updated_at) FROM ("
+                          " SELECT COALESCE(MAX(updated_at),0) AS updated_at FROM habits"
+                          " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM habit_days"
+                          " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM sessions"
+                          " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM settings"
+                          ")",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            latest = sqlite3_column_int64(stmt, 0);
+        sqlite3_finalize(stmt);
+    }
+    return latest >= now ? latest + 1 : now;
+}
+
 static int
 fill_random_bytes(unsigned char *data, size_t len)
 {
@@ -1370,7 +1394,12 @@ storage_apply_sync_response_json(const char *response_json)
         "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
         " completed=excluded.completed,count=excluded.count,updated_at=excluded.updated_at "
         "WHERE excluded.updated_at > habit_days.updated_at "
-        "OR (excluded.updated_at = habit_days.updated_at AND excluded.count > habit_days.count)";
+        "OR (excluded.updated_at = habit_days.updated_at AND excluded.count > habit_days.count "
+        "    AND NOT EXISTS ("
+        "     SELECT 1 FROM sync_outbox "
+        "     WHERE entity_type='habit_day' AND entity_id=habit_days.habit_id "
+        "       AND local_date=habit_days.local_date"
+        "    ))";
     static const char *sessions_sql =
         "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,deleted_at,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
@@ -1435,6 +1464,7 @@ storage_apply_sync_response_json(const char *response_json)
     if(server_version > 0)
         set_meta_int64("sync_last_server_version", server_version);
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
+    g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();
@@ -1764,7 +1794,7 @@ storage_habits_save(const void *habits_ptr)
 {
     const InbeHabits *habits = habits_ptr;
     sqlite3_stmt *stmt = NULL;
-    long long changed_at = now_seconds();
+    long long changed_at = storage_next_change_time();
     if(habits == NULL || g_storage.db == NULL)
         return;
     storage_mark_habits_initialized();

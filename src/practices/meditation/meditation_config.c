@@ -36,7 +36,7 @@ meditation_config_screen_draw(InbeApp *app)
     int scroll_h;
     FlintUIHeader header;
 
-    header = ui_draw_title_header(title_h, locale_get("exercise_meditation"),
+    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
                                   (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
     if(header.right_clicked) {
         if(app->settings_dirty)

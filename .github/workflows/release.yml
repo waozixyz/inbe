@@ -34,7 +34,7 @@ jobs:
         run: make test
 
   build-web:
-    name: Build Web
+    name: Build Web and Chrome Extension
     runs-on: ubuntu-latest
     needs: test
 
@@ -66,8 +66,10 @@ jobs:
           set -euo pipefail
           make package-unpackaged-assets
           make web
+          make chrome-web-store
           mkdir -p build/release/web
           cp build/dist/inbe-web.zip build/release/web/
+          cp build/dist/inbe-chrome-web-store.zip build/release/web/
 
       - name: Upload Web Artifact
         uses: actions/upload-artifact@v4

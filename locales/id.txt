@@ -25,6 +25,9 @@ Manual
 [tab_settings]
 Pengaturan
 ---
+[tab_statistics]
+Statistik
+---
 [play_button]
 MULAI
 ---
@@ -478,6 +481,42 @@ Musik oleh Elijah_K.
 [theme_system]
 Sistem
 ---
+[theme_sky]
+Langit
+---
+[theme_ocean]
+Samudra
+---
+[theme_forest]
+Hutan
+---
+[theme_sunset]
+Senja
+---
+[theme_lavender]
+Lavender
+---
+[theme_cherry]
+Ceri
+---
+[theme_dawn]
+Fajar
+---
+[theme_sage]
+Sage
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Mint
+---
+[theme_cobalt]
+Kobalt
+---
 [orientation_label]
 Orientasi
 ---
@@ -687,4 +726,40 @@ Total tahan
 ---
 [habit_stats_best_streak]
 Rangkaian terbaik
+---
+[bottom_nav_customize_button]
+Sesuaikan navigasi bawah
+---
+[bottom_nav_customize_title]
+Navigasi bawah
+---
+[bottom_nav_add_button]
+Tambah item
+---
+[bottom_nav_slot_1]
+Item 1
+---
+[bottom_nav_slot_2]
+Item 2
+---
+[bottom_nav_slot_3]
+Item 3
+---
+[bottom_nav_slot_4]
+Item 4
+---
+[bottom_nav_slot_5]
+Item 5
+---
+[bottom_nav_slot_6]
+Item 6
+---
+[bottom_nav_slot_7]
+Item 7
+---
+[bottom_nav_slot_8]
+Item 8
+---
+[reset_button]
+Reset
 ---

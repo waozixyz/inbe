@@ -1,4 +1,12 @@
 # Changelog
+## [1.4.6] - 2026-06-20
+### Changed
+- Move habit weekly, monthly, statistics, and edit views into icon tabs under the habit selector.
+- Improve Flint form, modal, tab, and scrollbar widgets for measured layouts and cleaner scrolling.
+
+### Fixed
+- Prevent habit info modal text from overlapping the OK button.
+
 ## [1.4.5] - 2026-06-20
 ### Changed
 - Fix spacing issues and translations
