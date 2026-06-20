@@ -1,0 +1,3 @@
+### Fixed
+- Refresh expired native sync auth tokens before sending queued changes.
+- Require first-time meditation users to continue through the tutorial before starting.

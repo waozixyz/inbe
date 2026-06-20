@@ -183,24 +183,29 @@ meditation_manual_draw(InbeApp *app)
 
     {
         int gap = flint_px(10);
-        int button_w = (content_w - gap) / 2;
+        int manual_seen = exercise_manual_seen(app, EXERCISE_MEDITATION);
+        int show_left = page > 0 || manual_seen;
+        int button_w = show_left ? (content_w - gap) / 2 : content_w;
+        int right_x = show_left ? content_x + button_w + gap : content_x;
         int hover = 0;
         const char *left = page == 0 ? locale_get("tutorial_skip_button")
                                      : locale_get("tutorial_back_button");
         const char *right = page == 0 ? locale_get("tutorial_next_button")
                                       : locale_get("tutorial_start_button");
 
-        if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left, UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-            if(page == 0)
-                meditation_manual_start(app);
-            else {
-                app->tutorial_step = 0;
-                app->manual_scroll = 0;
+        if(show_left) {
+            if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
+                                      left, UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+                if(page == 0)
+                    meditation_manual_start(app);
+                else {
+                    app->tutorial_step = 0;
+                    app->manual_scroll = 0;
+                }
             }
         }
-        if(ui_draw_generic_button(content_x + button_w + gap, footer_y, button_w,
-                                  button_h, right, UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+        if(ui_draw_generic_button(right_x, footer_y, button_w, button_h, right,
+                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(page == 0) {
                 app->tutorial_step = 1;
                 app->manual_scroll = 0;

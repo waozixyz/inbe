@@ -1376,8 +1376,13 @@ sync_client_sync(const char *base_url)
         return INBE_SYNC_CLIENT_INVALID_URL;
     if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token)))
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
     payload = storage_build_sync_payload_json(account.public_id, NULL);
     if(payload == NULL)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;

@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.3] - 2026-06-20
+### Fixed
+- Refresh expired native sync auth tokens before sending queued changes.
+- Require first-time meditation users to continue through the tutorial before starting.
+
 ## [1.4.2] - 2026-06-20
 ### Fixed
 - Improve sync auth, websocket reconnects, and queued habit/session updates.
