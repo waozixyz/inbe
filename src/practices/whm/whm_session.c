@@ -861,7 +861,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     if(app->inbe.phase == InbePhaseHold) {
-        int breath_y = center_y + (int)(app->inbe.rmax * flint_dpi_scale() + 0.5f) + flint_px(24);
+        int breath_y = center_y + app->inbe.rmax + flint_px(24);
         if(breath_y > breath_max_y)
             breath_y = breath_max_y;
         if(ui_draw_text_btn(center_x, breath_y, locale_get("breath_button"), hover))
