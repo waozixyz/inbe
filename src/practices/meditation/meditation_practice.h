@@ -14,5 +14,6 @@ void meditation_config_screen_draw(InbeApp *app);
 void meditation_draw_setup_modal(InbeApp *app);
 void meditation_draw_screen(InbeApp *app, int center_x, int center_y);
 void meditation_request_exit(InbeApp *app);
+void meditation_background_tick(InbeApp *app, int elapsed_ms);
 
 #endif

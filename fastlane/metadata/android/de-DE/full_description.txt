@@ -2,11 +2,9 @@ Eine freie, quelloffene App für Atmung, Meditation und Gewohnheiten.
 
 Funktionen:
 - Geführte Übungen mit visuellen und akustischen Hinweisen
-- Mind, Yoga und Fitness für Gewohnheiten und Übungen
-- Anpassbare Atemsitzungen und Meditationstimer
-- Gewohnheitstracking mit Sitzungsverlauf
+- Mind, Yoga und Fitness für verschiedene Übungsroutinen
+- Anpassbare Atemsitzungen, Meditationstimer und Zähler
+- Gewohnheitstracking mit Verlauf und verknüpften Übungszahlen
+- Optionale Synchronisierung von Gewohnheiten, Sitzungen und Fortschritt
 - Lokale Speicherung mit Import und Export
 - Anpassbare Designs mit hellen und dunklen Varianten
-- Touch-optimierte Oberfläche für Mobilgeräte
-
-Verfügbare Plattformen: Linux, Windows, Android, WebAssembly.

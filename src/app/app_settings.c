@@ -280,7 +280,7 @@ app_load_settings(InbeApp *app)
 
     load_language_setting(app, settings_missing);
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(PLATFORM_WEB)
     app->inbe.play_in_background =
         storage_get_setting_int("play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",

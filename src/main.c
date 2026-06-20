@@ -188,6 +188,25 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 #endif
 
 static void
+draw_full_frame(int width, int height)
+{
+    BeginDrawing();
+    ClearBackground(theme_get_bg());
+    app_update_draw(&inbe_app, (Rectangle){
+        0,
+        0,
+        (float)width,
+        (float)height
+    });
+    if(inbe_app.cursor_disabled)
+        SetMouseCursor(MOUSE_CURSOR_NOT_ALLOWED);
+    else if(inbe_app.cursor_clickable)
+        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
+    else
+        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+}
+
+static void
 frame(void)
 {
 #if defined(PLATFORM_WEB)
@@ -222,7 +241,7 @@ frame(void)
     int content_height = android_clamp_content_size(height, safe_top, safe_bottom);
 
     BeginDrawing();
-    ClearBackground(theme_get_bg());
+    ClearBackground(BLACK);
     flint_clip_begin(content_x, content_y, content_width, content_height);
     app_update_draw(&inbe_app, (Rectangle){
         (float)content_x,
@@ -231,21 +250,10 @@ frame(void)
         (float)content_height
     });
     flint_clip_end();
+#elif defined(PLATFORM_WEB)
+    draw_full_frame(width, height);
 #else
-    BeginDrawing();
-    ClearBackground(theme_get_bg());
-    app_update_draw(&inbe_app, (Rectangle){
-        0,
-        0,
-        (float)width,
-        (float)height
-    });
-    if(inbe_app.cursor_disabled)
-        SetMouseCursor(MOUSE_CURSOR_NOT_ALLOWED);
-    else if(inbe_app.cursor_clickable)
-        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-    else
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+    draw_full_frame(width, height);
 #endif
     EndDrawing();
 }

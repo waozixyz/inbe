@@ -17,9 +17,9 @@
     <meta name="twitter:image" content="https://inbe.waozi.xyz/og.jpg">
     <meta name="twitter:site" content="@waozixyz">
     <meta name="twitter:creator" content="@waozixyz">
-    <link rel="icon" type="image/png" sizes="32x32" href="/web-assets/icons/favicon-32x32.png">
-    <link rel="apple-touch-icon" href="/web-assets/icons/apple-touch-icon.png">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" sizes="32x32" href="web-assets/icons/favicon-32x32.png">
+    <link rel="apple-touch-icon" href="web-assets/icons/apple-touch-icon.png">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#779999">
     <style>
       html, body {
@@ -147,7 +147,7 @@
   <body>
     <div class="loading-screen" id="loading-screen" role="status" aria-live="polite">
       <div class="loading-panel">
-        <img class="loading-mark" src="/web-assets/icons/icon-192x192.png" alt="" width="76" height="76">
+        <img class="loading-mark" src="web-assets/icons/icon-192x192.png" alt="" width="76" height="76">
         <h1 class="loading-title">Inner Breeze</h1>
         <div id="status">Downloading...</div>
         <progress value="0" max="100" id="progress" hidden></progress>
@@ -307,6 +307,86 @@
           if (text) Module.printErr('[post-exception status] ' + text);
         };
       };
+
+      (function() {
+        var backgroundTimer = 0;
+        var lastBackgroundTick = 0;
+
+        function callExport(name, args) {
+          var fn = Module && Module['_' + name];
+          if (typeof fn !== 'function') return 0;
+          try {
+            return fn.apply(null, args || []);
+          } catch (e) {
+            console.error('Web background callback failed:', name, e);
+            return 0;
+          }
+        }
+
+        function playInBackgroundEnabled() {
+          return callExport('app_web_get_play_in_background') ? true : false;
+        }
+
+        function resumeWebAudio() {
+          var miniaudio = window.miniaudio;
+          if (!miniaudio || !miniaudio.devices) return;
+          miniaudio.devices.forEach(function(device) {
+            if (!device || !device.webaudio || device.state !== miniaudio.device_state.started) return;
+            if (device.webaudio.state !== 'running') {
+              device.webaudio.resume().catch(function(error) {
+                console.error('Failed to resume web audio:', error);
+              });
+            }
+          });
+        }
+
+        function runBackgroundTick() {
+          var now = performance.now();
+          var elapsed = lastBackgroundTick ? now - lastBackgroundTick : 0;
+          lastBackgroundTick = now;
+          resumeWebAudio();
+          if (elapsed > 0) callExport('app_web_background_tick', [Math.max(1, Math.round(elapsed))]);
+        }
+
+        function stopBackgroundTimer() {
+          if (backgroundTimer) {
+            clearInterval(backgroundTimer);
+            backgroundTimer = 0;
+          }
+          lastBackgroundTick = 0;
+        }
+
+        function startBackgroundTimer() {
+          if (backgroundTimer || !playInBackgroundEnabled()) return;
+          lastBackgroundTick = performance.now();
+          runBackgroundTick();
+          backgroundTimer = setInterval(runBackgroundTick, 250);
+        }
+
+        function applyVisibilityState() {
+          var hidden = document.hidden;
+          if (hidden) {
+            callExport('app_web_set_backgrounded', [1]);
+            startBackgroundTimer();
+          } else {
+            runBackgroundTick();
+            stopBackgroundTimer();
+            callExport('app_web_set_backgrounded', [0]);
+            resumeWebAudio();
+          }
+        }
+
+        document.addEventListener('visibilitychange', applyVisibilityState, false);
+        window.addEventListener('pagehide', function() {
+          callExport('app_web_set_backgrounded', [1]);
+          runBackgroundTick();
+        }, false);
+        window.addEventListener('pageshow', applyVisibilityState, false);
+        window.addEventListener('blur', function() {
+          if (document.hidden) applyVisibilityState();
+        }, false);
+        window.addEventListener('focus', applyVisibilityState, false);
+      })();
     </script>
     {{{ SCRIPT }}}
   </body>

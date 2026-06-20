@@ -71,6 +71,30 @@ meditation_finish(InbeApp *app)
     app->inbe.screen = InbeScreenStart;
 }
 
+void
+meditation_background_tick(InbeApp *app, int elapsed_ms)
+{
+    int elapsed_seconds;
+
+    if(app == NULL || elapsed_ms <= 0)
+        return;
+    if(app->inbe.screen != InbeScreenMeditation || app->session_paused)
+        return;
+
+    elapsed_seconds = elapsed_ms / 1000;
+    if(elapsed_seconds <= 0)
+        return;
+
+    if(elapsed_seconds >= app->meditation.remaining_seconds)
+        app->meditation.remaining_seconds = 0;
+    else
+        app->meditation.remaining_seconds -= elapsed_seconds;
+    app->meditation.frame_ticks = 0;
+
+    if(app->meditation.remaining_seconds <= 0)
+        meditation_finish(app);
+}
+
 static int
 meditation_elapsed_seconds(InbeApp *app)
 {
@@ -331,12 +355,20 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
                     flint_ui_text_y(time_text, center_y - font, font * 2, font),
                     font, theme_get_text());
 
-    app->meditation.frame_ticks++;
-    if(app->meditation.frame_ticks >= 60) {
-        app->meditation.frame_ticks = 0;
-        if(app->meditation.remaining_seconds > 0)
-            app->meditation.remaining_seconds--;
-        if(app->meditation.remaining_seconds <= 0)
-            meditation_finish(app);
+    if(!(
+#if defined(PLATFORM_WEB)
+        app->backgrounded
+#else
+        0
+#endif
+    )) {
+        app->meditation.frame_ticks++;
+        if(app->meditation.frame_ticks >= 60) {
+            app->meditation.frame_ticks = 0;
+            if(app->meditation.remaining_seconds > 0)
+                app->meditation.remaining_seconds--;
+            if(app->meditation.remaining_seconds <= 0)
+                meditation_finish(app);
+        }
     }
 }

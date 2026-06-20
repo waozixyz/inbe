@@ -19,6 +19,7 @@ node_modules
 *.nix-profile
 .claude.json
 .bash_history
+.env
 
 
 *.exe

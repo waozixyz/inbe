@@ -1,0 +1,15 @@
+{
+  "name": "__CLICK_PACKAGE__",
+  "title": "__CLICK_TITLE__",
+  "version": "__APP_VERSION__",
+  "architecture": "__CLICK_ARCH__",
+  "framework": "__CLICK_FRAMEWORK__",
+  "description": "Syncable breathing, meditation, and habit practice app.",
+  "maintainer": "__CLICK_MAINTAINER__",
+  "hooks": {
+    "inbe": {
+      "apparmor": "inbe.apparmor",
+      "desktop": "inbe.desktop"
+    }
+  }
+}

@@ -1,1 +1,1 @@
-A free, open-source app for breathing, meditation, and habit tracking.
+Syncable breathing, meditation, and habit practice app.

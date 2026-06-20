@@ -23,7 +23,7 @@ settings_device_content_height(void)
 {
     int height = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
     height += flint_px(76);
 #endif
 #if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
@@ -67,7 +67,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
     }
     *y += flint_px(74);
 
-#ifdef __ANDROID__
+#if defined(__ANDROID__) || defined(PLATFORM_WEB)
     {
         int play_in_background = app->inbe.play_in_background;
         flint_text_draw(locale_get("play_in_background_label"), x, *y,

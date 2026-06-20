@@ -1,2 +1,11 @@
 #!/bin/sh
-exec "$APPDIR/usr/bin/inbe" "$@"
+HERE="${APPDIR:-$(dirname "$(readlink -f "$0")")}"
+LOADER="$HERE/usr/lib/ld-linux-x86-64.so.2"
+SYSTEM_LIBRARY_PATH="/lib/x86_64-linux-gnu:/usr/lib/x86_64-linux-gnu:/lib64:/usr/lib64:/lib:/usr/lib"
+LIBRARY_PATH="$HERE/usr/lib:$HERE/usr/bin:$SYSTEM_LIBRARY_PATH"
+
+if [ -x "$LOADER" ]; then
+	exec "$LOADER" --library-path "$LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$HERE/usr/bin/inbe" "$@"
+fi
+
+exec "$HERE/usr/bin/inbe" "$@"
