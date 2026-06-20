@@ -39,6 +39,8 @@ typedef struct StorageState {
     char user_id[INBE_STORAGE_ID_SIZE];
     char text_value[8192];
     int last_sync_changed;
+    int materialize_defer;
+    int materialize_needed;
     long long pending_sync_outbox_seq;
 } StorageState;
 
@@ -396,36 +398,24 @@ storage_enqueue_sync_session(const char *session_id)
 static void
 storage_enqueue_all_sync_state(void)
 {
-    sqlite3_stmt *stmt = NULL;
-
     if(g_storage.db == NULL)
         return;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT id FROM habits WHERE user_id=?1", -1,
-                          &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, g_storage.user_id);
-        while(sqlite3_step(stmt) == SQLITE_ROW)
-            storage_enqueue_sync_habit((const char *)sqlite3_column_text(stmt, 0));
-        sqlite3_finalize(stmt);
-        stmt = NULL;
-    }
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT hd.habit_id,hd.local_date FROM habit_days hd "
-                          "JOIN habits h ON h.id=hd.habit_id WHERE h.user_id=?1",
-                          -1, &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, g_storage.user_id);
-        while(sqlite3_step(stmt) == SQLITE_ROW)
-            storage_enqueue_sync_habit_day((const char *)sqlite3_column_text(stmt, 0),
-                                           sqlite3_column_int(stmt, 1));
-        sqlite3_finalize(stmt);
-        stmt = NULL;
-    }
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT id FROM sessions WHERE user_id=?1", -1,
-                          &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, g_storage.user_id);
-        while(sqlite3_step(stmt) == SQLITE_ROW)
-            storage_enqueue_sync_session((const char *)sqlite3_column_text(stmt, 0));
-        sqlite3_finalize(stmt);
-    }
+    if(!exec_sql("BEGIN IMMEDIATE"))
+        return;
+    exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+             "SELECT 'habit',id,0,strftime('%s','now') FROM habits "
+             "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+    exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+             "SELECT 'habit_day',hd.habit_id,hd.local_date,strftime('%s','now') "
+             "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+             "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+    exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+             "SELECT 'session',id,0,strftime('%s','now') FROM sessions "
+             "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+    exec_sql("COMMIT");
 }
 
 static int
@@ -923,7 +913,7 @@ set_meta_int64(const char *key, long long value)
 }
 
 void
-inbe_storage_reset_sync_state(void)
+storage_reset_sync_state(void)
 {
     if(g_storage.db == NULL)
         return;
@@ -936,7 +926,7 @@ inbe_storage_reset_sync_state(void)
 }
 
 const char *
-inbe_storage_sync_client_id(void)
+storage_sync_client_id(void)
 {
     static char client_id[64];
     const char *stored;
@@ -962,7 +952,7 @@ inbe_storage_sync_client_id(void)
 }
 
 int
-inbe_storage_settings_empty(void)
+storage_settings_empty(void)
 {
     sqlite3_stmt *stmt = NULL;
     int count = 0;
@@ -979,14 +969,14 @@ inbe_storage_settings_empty(void)
 }
 
 int
-inbe_storage_get_setting_int(const char *key, int fallback)
+storage_get_setting_int(const char *key, int fallback)
 {
-    const char *text = inbe_storage_get_setting_text(key);
+    const char *text = storage_get_setting_text(key);
     return text != NULL && text[0] != '\0' ? atoi(text) : fallback;
 }
 
 const char *
-inbe_storage_get_setting_text(const char *key)
+storage_get_setting_text(const char *key)
 {
     sqlite3_stmt *stmt = NULL;
     g_storage.text_value[0] = '\0';
@@ -1008,7 +998,7 @@ inbe_storage_get_setting_text(const char *key)
 }
 
 void
-inbe_storage_set_setting_text(const char *key, const char *value)
+storage_set_setting_text(const char *key, const char *value)
 {
     sqlite3_stmt *stmt = NULL;
     if(g_storage.db == NULL || key == NULL)
@@ -1028,7 +1018,7 @@ inbe_storage_set_setting_text(const char *key, const char *value)
 }
 
 void
-inbe_storage_settings_begin_write(void)
+storage_settings_begin_write(void)
 {
     if(g_storage.db == NULL)
         return;
@@ -1036,7 +1026,7 @@ inbe_storage_settings_begin_write(void)
 }
 
 void
-inbe_storage_settings_end_write(void)
+storage_settings_end_write(void)
 {
     if(g_storage.db == NULL)
         return;
@@ -1045,11 +1035,11 @@ inbe_storage_settings_end_write(void)
 }
 
 void
-inbe_storage_set_setting_int(const char *key, int value)
+storage_set_setting_int(const char *key, int value)
 {
     char text[32];
     snprintf(text, sizeof(text), "%d", value);
-    inbe_storage_set_setting_text(key, text);
+    storage_set_setting_text(key, text);
 }
 
 static int
@@ -1288,6 +1278,10 @@ storage_materialize_session_habit_days(void)
 
     if(g_storage.db == NULL || g_storage.user_id[0] == '\0')
         return 0;
+    if(g_storage.materialize_defer > 0) {
+        g_storage.materialize_needed = 1;
+        return 1;
+    }
 
     changed_at = now_seconds();
     if(!exec_sql("BEGIN IMMEDIATE"))
@@ -1367,7 +1361,7 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
 }
 
 int
-inbe_storage_save_session_for_activity(const int *round_times, int round_count,
+storage_save_session_for_activity(const int *round_times, int round_count,
                                        int topic, int activity,
                                        char *out_id, size_t out_id_size)
 {
@@ -1391,14 +1385,14 @@ inbe_storage_save_session_for_activity(const int *round_times, int round_count,
 }
 
 int
-inbe_storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
+storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
 {
-    return inbe_storage_save_session_for_activity(round_times, round_count, 0, 0,
+    return storage_save_session_for_activity(round_times, round_count, 0, 0,
                                                   out_id, out_id_size);
 }
 
 int
-inbe_storage_load_session(const char *path_or_id, int *round_times, int max_rounds,
+storage_load_session(const char *path_or_id, int *round_times, int max_rounds,
                           int *year, int *month, int *day,
                           int *hour, int *minute, int *second)
 {
@@ -1449,7 +1443,7 @@ inbe_storage_load_session(const char *path_or_id, int *round_times, int max_roun
 }
 
 int
-inbe_storage_replace_session(const char *path_or_id, const int *round_times, int round_count)
+storage_replace_session(const char *path_or_id, const int *round_times, int round_count)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -1463,7 +1457,7 @@ inbe_storage_replace_session(const char *path_or_id, const int *round_times, int
             saved[saved_count++] = round_times[i];
     }
     if(saved_count <= 0)
-        return inbe_storage_delete_session(path_or_id);
+        return storage_delete_session(path_or_id);
 
     exec_sql("BEGIN IMMEDIATE");
     if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1, &stmt, NULL) != SQLITE_OK)
@@ -1506,7 +1500,7 @@ fail:
 }
 
 int
-inbe_storage_rename_session_time(const char *path_or_id, int hour, int minute)
+storage_rename_session_time(const char *path_or_id, int hour, int minute)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -1547,7 +1541,7 @@ inbe_storage_rename_session_time(const char *path_or_id, int hour, int minute)
 }
 
 int
-inbe_storage_delete_session(const char *path_or_id)
+storage_delete_session(const char *path_or_id)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -1724,7 +1718,7 @@ storage_append_sessions_json(JsonBuilder *json, long long through_seq)
 }
 
 char *
-inbe_storage_build_sync_payload_json(const char *user_id_hash, const char *public_key_hex)
+storage_build_sync_payload_json(const char *user_id_hash, const char *public_key_hex)
 {
     JsonBuilder json = {0};
     long long since_server_version;
@@ -1743,7 +1737,7 @@ inbe_storage_build_sync_payload_json(const char *user_id_hash, const char *publi
     json_append(&json, "{");
     json_append_key_string(&json, "user_id_hash", user_id_hash);
     json_append(&json, ",");
-    json_append_key_string(&json, "client_id", inbe_storage_sync_client_id());
+    json_append_key_string(&json, "client_id", storage_sync_client_id());
     json_appendf(&json, ",\"since_server_version\":%lld", since_server_version);
     if(since_server_version <= 0 || !full_upload_done)
         json_append(&json, ",\"bootstrap\":true");
@@ -1767,7 +1761,7 @@ inbe_storage_build_sync_payload_json(const char *user_id_hash, const char *publi
 }
 
 void
-inbe_storage_free_sync_payload_json(char *payload)
+storage_free_sync_payload_json(char *payload)
 {
     free(payload);
 }
@@ -1895,7 +1889,7 @@ storage_exec_json_user_sql(const char *sql, const char *json)
 }
 
 int
-inbe_storage_apply_sync_response_json(const char *response_json)
+storage_apply_sync_response_json(const char *response_json)
 {
     static const char *habits_sql =
         "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
@@ -1997,19 +1991,19 @@ inbe_storage_apply_sync_response_json(const char *response_json)
         set_meta_int64("sync_last_server_version", server_version);
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     set_meta_int64("sync_full_upload_done", 1);
-    inbe_storage_mark_habits_initialized();
+    storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;
 }
 
 int
-inbe_storage_last_sync_changed(void)
+storage_last_sync_changed(void)
 {
     return g_storage.last_sync_changed;
 }
 
 void
-inbe_storage_purge_synced_deleted_data(void)
+storage_purge_synced_deleted_data(void)
 {
     static const char *const sqls[] = {
         "DELETE FROM session_rounds WHERE session_id IN "
@@ -2041,7 +2035,7 @@ fail:
 }
 
 void
-inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user)
+storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user)
 {
     sqlite3_stmt *stmt = NULL;
     if(callback == NULL || g_storage.db == NULL)
@@ -2071,7 +2065,7 @@ inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, voi
             ss = tm->tm_sec;
         }
         snprintf(dbid, sizeof(dbid), "db:%s", id != NULL ? id : "");
-        count = inbe_storage_load_session(dbid, rounds, MaxRounds, NULL, NULL, NULL, NULL, NULL, NULL);
+        count = storage_load_session(dbid, rounds, MaxRounds, NULL, NULL, NULL, NULL, NULL, NULL);
         if(count > 0)
             callback(dbid, y, m, d, hh, mm, ss, topic, activity, rounds, count, user);
     }
@@ -2079,16 +2073,16 @@ inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, voi
 }
 
 int
-inbe_storage_has_any(void)
+storage_has_any(void)
 {
     sqlite3_stmt *stmt = NULL;
-    int count = inbe_storage_session_count();
+    int count = storage_session_count();
 
     if(count > 0)
         return 1;
     if(g_storage.db == NULL)
         return 0;
-    count = inbe_storage_habit_count();
+    count = storage_habit_count();
     if(count > 0)
         return 1;
     if(sqlite3_prepare_v2(g_storage.db,
@@ -2102,7 +2096,7 @@ inbe_storage_has_any(void)
 }
 
 int
-inbe_storage_session_count(void)
+storage_session_count(void)
 {
     sqlite3_stmt *stmt = NULL;
     int count = 0;
@@ -2117,10 +2111,10 @@ inbe_storage_session_count(void)
 }
 
 long long
-inbe_storage_total_size(void)
+storage_total_size(void)
 {
     struct stat st;
-    if(!inbe_storage_has_any())
+    if(!storage_has_any())
         return 0;
     if(g_storage.db_path[0] != '\0' && stat(g_storage.db_path, &st) == 0)
         return (long long)st.st_size;
@@ -2128,12 +2122,12 @@ inbe_storage_total_size(void)
 }
 
 long long
-inbe_storage_delete_all_sessions(void)
+storage_delete_all_sessions(void)
 {
     sqlite3_stmt *stmt = NULL;
-    int count = inbe_storage_session_count();
+    int count = storage_session_count();
     int habit_day_count = 0;
-    int habit_count = inbe_storage_habit_count();
+    int habit_count = storage_habit_count();
     long long deleted_at = now_seconds();
     int changed = 0;
 
@@ -2237,13 +2231,13 @@ fail:
 }
 
 int
-inbe_storage_habits_empty(void)
+storage_habits_empty(void)
 {
-    return inbe_storage_habit_count() == 0;
+    return storage_habit_count() == 0;
 }
 
 int
-inbe_storage_habit_count(void)
+storage_habit_count(void)
 {
     sqlite3_stmt *stmt = NULL;
     int count = 0;
@@ -2258,7 +2252,7 @@ inbe_storage_habit_count(void)
 }
 
 int
-inbe_storage_habits_load(void *habits_ptr)
+storage_habits_load(void *habits_ptr)
 {
     InbeHabits *habits = habits_ptr;
     sqlite3_stmt *stmt = NULL;
@@ -2266,7 +2260,7 @@ inbe_storage_habits_load(void *habits_ptr)
 
     if(habits == NULL || g_storage.db == NULL)
         return 0;
-    inbe_habits_free(habits);
+    habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled "
@@ -2298,7 +2292,7 @@ inbe_storage_habits_load(void *habits_ptr)
         bind_text(stmt, 1, habits->items[i].id);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int d = habits->items[i].day_count++;
-            if(!inbe_habit_reserve_days(&habits->items[i], habits->items[i].day_count)) {
+            if(!habit_reserve_days(&habits->items[i], habits->items[i].day_count)) {
                 habits->items[i].day_count--;
                 break;
             }
@@ -2316,21 +2310,21 @@ inbe_storage_habits_load(void *habits_ptr)
 }
 
 void
-inbe_storage_mark_habits_initialized(void)
+storage_mark_habits_initialized(void)
 {
     if(g_storage.db != NULL)
         set_meta("habits_initialized", "true");
 }
 
 void
-inbe_storage_habits_save(const void *habits_ptr)
+storage_habits_save(const void *habits_ptr)
 {
     const InbeHabits *habits = habits_ptr;
     sqlite3_stmt *stmt = NULL;
     long long changed_at = now_seconds();
     if(habits == NULL || g_storage.db == NULL)
         return;
-    inbe_storage_mark_habits_initialized();
+    storage_mark_habits_initialized();
     exec_sql("BEGIN IMMEDIATE");
     exec_sql("CREATE TEMP TABLE IF NOT EXISTS sync_seen_habits(id TEXT PRIMARY KEY);"
              "DELETE FROM sync_seen_habits;");
@@ -2438,7 +2432,7 @@ inbe_storage_habits_save(const void *habits_ptr)
 }
 
 int
-inbe_storage_export_zip(const char *path)
+storage_export_zip(const char *path)
 {
     mz_zip_archive archive;
     FILE *fp;
@@ -2477,7 +2471,7 @@ inbe_storage_export_zip(const char *path)
     }
     snprintf(metadata, sizeof(metadata),
              "{\n\"format\":\"inbe-data-sqlite\",\n\"format_version\":1,\n\"app_version\":\"%s\",\n\"user_id\":\"%s\",\n\"session_count\":%d,\n\"habit_count\":%d\n}\n",
-             INBE_VERSION_STRING, g_storage.user_id, inbe_storage_session_count(), inbe_storage_habit_count());
+             INBE_VERSION_STRING, g_storage.user_id, storage_session_count(), storage_habit_count());
     mz_zip_writer_add_mem(&archive, "inbe-data/metadata.json", metadata, strlen(metadata), MZ_NO_COMPRESSION);
     mz_zip_writer_add_mem(&archive, "inbe-data/inbe.db", buf, (size_t)size, MZ_BEST_COMPRESSION);
     free(buf);
@@ -2611,6 +2605,7 @@ import_legacy_session_zip(mz_zip_archive *archive)
 
     if(archive == NULL)
         return 0;
+    g_storage.materialize_defer++;
     file_count = mz_zip_reader_get_num_files(archive);
     for(mz_uint i = 0; i < file_count; i++) {
         mz_zip_archive_file_stat stat;
@@ -2640,6 +2635,11 @@ import_legacy_session_zip(mz_zip_archive *archive)
         if(import_legacy_session_bytes(stat.m_filename, text, text_size))
             imported++;
         free(text);
+    }
+    g_storage.materialize_defer--;
+    if(g_storage.materialize_defer == 0 && g_storage.materialize_needed) {
+        g_storage.materialize_needed = 0;
+        storage_materialize_session_habit_days();
     }
     if(imported <= 0)
         TraceLog(LOG_WARNING, "DATA: no legacy sessions found in archive");
@@ -2962,6 +2962,7 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
     sqlite3_stmt *hstmt = NULL;
     int ok = 0;
     int imported_settings = 0;
+    int deferred_materialize = 0;
 
     if(db_path == NULL || db_path[0] == '\0')
         return 0;
@@ -2969,6 +2970,8 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
         TraceLog(LOG_WARNING, "DATA: sqlite import could not open %s", db_path);
         goto done;
     }
+    g_storage.materialize_defer++;
+    deferred_materialize = 1;
     if(sqlite3_prepare_v2(src,
                           "SELECT id,started_at,local_date,topic,activity,source FROM sessions WHERE deleted_at=0",
                           -1, &stmt, NULL) != SQLITE_OK) {
@@ -3103,6 +3106,13 @@ try_tickmate:
         TraceLog(LOG_WARNING, "DATA: sqlite import was neither Inbe nor supported Tickmate schema");
 
 done:
+    if(deferred_materialize && g_storage.materialize_defer > 0) {
+        g_storage.materialize_defer--;
+        if(g_storage.materialize_defer == 0 && g_storage.materialize_needed) {
+            g_storage.materialize_needed = 0;
+            storage_materialize_session_habit_days();
+        }
+    }
     sqlite3_finalize(stmt);
     sqlite3_finalize(hstmt);
     if(src != NULL)
@@ -3115,13 +3125,13 @@ done:
 }
 
 int
-inbe_storage_import_zip(const char *path)
+storage_import_zip(const char *path)
 {
-    return inbe_storage_import_zip_ex(path, INBE_STORAGE_IMPORT_DATA_ONLY);
+    return storage_import_zip_ex(path, INBE_STORAGE_IMPORT_DATA_ONLY);
 }
 
 int
-inbe_storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
+storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
 {
     mz_zip_archive archive;
     int ok = 0;
@@ -3171,7 +3181,7 @@ inbe_storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
 }
 
 int
-inbe_storage_inspect_import(const char *path, InbeStorageImportInfo *info)
+storage_inspect_import(const char *path, InbeStorageImportInfo *info)
 {
     mz_zip_archive archive;
     int ok = 0;
@@ -3228,7 +3238,7 @@ inbe_storage_inspect_import(const char *path, InbeStorageImportInfo *info)
 }
 
 int
-inbe_storage_init(const char *root)
+storage_init(const char *root)
 {
     if(root == NULL || root[0] == '\0')
         return 0;
@@ -3248,7 +3258,7 @@ inbe_storage_init(const char *root)
 }
 
 void
-inbe_storage_close(void)
+storage_close(void)
 {
     if(g_storage.db != NULL) {
         sqlite3_close(g_storage.db);
@@ -3257,7 +3267,7 @@ inbe_storage_close(void)
 }
 
 const char *
-inbe_storage_db_path(void)
+storage_db_path(void)
 {
     return g_storage.db_path;
 }

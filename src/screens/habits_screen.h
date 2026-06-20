@@ -61,6 +61,7 @@ typedef struct InbeHabits {
     int view_mode;
     int weekly_days;
     int loaded;
+    int dirty;
 } InbeHabits;
 
 /* Additional structures */
@@ -90,24 +91,25 @@ typedef struct HabitLinkedContext {
 } HabitLinkedContext;
 
 /* Core habits functions */
-void inbe_habits_init(InbeHabits *habits);
-void inbe_habits_free(InbeHabits *habits);
-void inbe_habits_save(const InbeHabits *habits);
-int inbe_habits_clear_days(InbeHabits *habits);
-int inbe_habit_reserve_days(InbeHabit *habit, int capacity);
-int inbe_habits_today_index(void);
-int inbe_habit_completed_day(const InbeHabit *habit, int day_index);
-int inbe_habit_completed_today(const InbeHabit *habit);
-void inbe_habit_set_day(InbeHabits *habits, int index, int day_index, int completed);
-void inbe_habit_set_day_count(InbeHabits *habits, int index, int day_index, int count);
-int inbe_habit_day_count(const InbeHabit *habit, int day_index);
-void inbe_habit_toggle_day(InbeHabits *habits, int index, int day_index);
-void inbe_habit_increment_day(InbeHabits *habits, int index, int day_index, int delta);
-void inbe_habit_toggle_today(InbeHabits *habits, int index);
-void inbe_habits_add_default(InbeHabits *habits);
-void inbe_habits_add_default_set(InbeHabits *habits);
-void inbe_habits_delete(InbeHabits *habits, int index);
-int inbe_habits_add_custom(InbeHabits *habits, const char *name, Color color,
+void habits_init(InbeHabits *habits);
+void habits_free(InbeHabits *habits);
+void habits_save(InbeHabits *habits);
+void habits_flush_save(InbeApp *app);
+int habits_clear_days(InbeHabits *habits);
+int habit_reserve_days(InbeHabit *habit, int capacity);
+int habits_today_index(void);
+int habit_completed_day(const InbeHabit *habit, int day_index);
+int habit_completed_today(const InbeHabit *habit);
+void habit_set_day(InbeHabits *habits, int index, int day_index, int completed);
+void habit_set_day_count(InbeHabits *habits, int index, int day_index, int count);
+int habit_day_count(const InbeHabit *habit, int day_index);
+void habit_toggle_day(InbeHabits *habits, int index, int day_index);
+void habit_increment_day(InbeHabits *habits, int index, int day_index, int delta);
+void habit_toggle_today(InbeHabits *habits, int index);
+void habits_add_default(InbeHabits *habits);
+void habits_add_default_set(InbeHabits *habits);
+void habits_delete(InbeHabits *habits, int index);
+int habits_add_custom(InbeHabits *habits, const char *name, Color color,
                            int sync_mode, int sync_activity);
 int habit_activity_mask_for(int exercise);
 int habit_matches_activity(const InbeHabit *habit, int exercise_type);

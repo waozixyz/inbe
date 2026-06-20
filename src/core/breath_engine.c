@@ -17,7 +17,7 @@ count_value(const char v[CountSize])
 }
 
 int
-inbe_breath_half_ticks_for_speed(int speed)
+breath_half_ticks_for_speed(int speed)
 {
 	static const int breath_half_ticks[] = {180, 160, 144, 132, 120, 108, 93, 74};
 
@@ -62,7 +62,7 @@ inccount(char v[CountSize])
 }
 
 int
-inbe_get_play_in_background(Inbe *inbe)
+get_play_in_background(Inbe *inbe)
 {
 	return inbe->play_in_background;
 }
@@ -124,7 +124,7 @@ lerp_int(int a, int b, int num, int den)
 static int
 effective_breath_half_ticks(const Inbe *l)
 {
-    int target_ticks = inbe_breath_half_ticks_for_speed(l->speed_level);
+    int target_ticks = breath_half_ticks_for_speed(l->speed_level);
     int start_speed = l->progressive_start_speed;
 
     if(!l->progressive_speed || l->round != 0)
@@ -138,13 +138,13 @@ effective_breath_half_ticks(const Inbe *l)
     int completed_breaths = count_value(l->count);
 
     if(completed_breaths < 5)
-        return inbe_breath_half_ticks_for_speed(start_speed);
+        return breath_half_ticks_for_speed(start_speed);
 
     if(completed_breaths >= 10)
         return target_ticks;
 
     return lerp_int(
-        inbe_breath_half_ticks_for_speed(start_speed),
+        breath_half_ticks_for_speed(start_speed),
         target_ticks,
         completed_breaths - 4,
         5
@@ -182,7 +182,7 @@ animated_span(const Inbe *l, int span, int frame, int half_ticks)
 }
 
 float
-inbe_draw_radius(const Inbe *l)
+draw_radius(const Inbe *l)
 {
     if(l == 0)
         return 0.0f;

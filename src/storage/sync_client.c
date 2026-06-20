@@ -37,18 +37,8 @@ typedef struct SyncBuffer {
     size_t cap;
 } SyncBuffer;
 
-static void
-sync_buffer_init(SyncBuffer *buffer)
-{
-    if(buffer == NULL)
-        return;
-    buffer->data = NULL;
-    buffer->len = 0;
-    buffer->cap = 0;
-}
-
 const char *
-inbe_sync_client_result_name(InbeSyncClientResult result)
+sync_client_result_name(InbeSyncClientResult result)
 {
     switch(result) {
         case INBE_SYNC_CLIENT_OK:
@@ -92,6 +82,9 @@ sync_log_http_failure(const char *step, long status, const char *response)
     TraceLog(LOG_WARNING, "SYNC: %s failed status=%ld response=%s", step, status, snippet);
 }
 
+static InbeSyncClientResult sync_login(const char *base_url, const InbeSyncAccount *account);
+static int sync_load_valid_auth_token(char *out, size_t out_size);
+
 static int
 sync_has_prefix(const char *text, const char *prefix)
 {
@@ -126,7 +119,7 @@ sync_loopback_authority_valid(const char *authority)
 }
 
 int
-inbe_sync_client_url_valid(const char *url)
+sync_client_url_valid(const char *url)
 {
     if(url == NULL || url[0] == '\0')
         return 0;
@@ -138,14 +131,14 @@ inbe_sync_client_url_valid(const char *url)
 }
 
 int
-inbe_sync_client_normalize_url(const char *input, char *out, size_t out_size)
+sync_client_normalize_url(const char *input, char *out, size_t out_size)
 {
     int len;
 
     if(out == NULL || out_size == 0)
         return 0;
     out[0] = '\0';
-    if(!inbe_sync_client_url_valid(input))
+    if(!sync_client_url_valid(input))
         return 0;
     if(sync_has_prefix(input, "https://") || sync_has_prefix(input, "http://"))
         len = snprintf(out, out_size, "%s", input);
@@ -223,7 +216,7 @@ sync_buffer_append_json_string(SyncBuffer *buffer, const char *text)
 
 #if defined(INBE_SYNC_CLIENT_TESTS)
 int
-inbe_sync_client_test_response_buffer(const char *first, const char *second,
+sync_client_test_response_buffer(const char *first, const char *second,
                                       char *out, size_t out_size)
 {
     SyncBuffer buffer = {0};
@@ -292,7 +285,7 @@ sync_build_message(const char *method, const char *path, const char *nonce_hex,
     if(method == NULL || path == NULL || nonce_hex == NULL || body == NULL ||
        out == NULL || out_size == 0)
         return 0;
-    inbe_sync_sha256_hex((const uint8_t *)body, strlen(body), body_hash);
+    sync_sha256_hex((const uint8_t *)body, strlen(body), body_hash);
     if(body_hash[0] == '\0')
         return 0;
     len = snprintf(out, out_size, "inbe-sync-v1\n%s\n%s\n%s\n%s\n",
@@ -652,6 +645,118 @@ EM_ASYNC_JS(int, sync_web_http_request,
     }
 });
 
+EM_JS(int, sync_web_fetch_start_js,
+      (int request_id, const char *method_ptr, const char *url_ptr,
+       const char *body_ptr, const char *headers_ptr), {
+    const method = UTF8ToString(method_ptr);
+    const url = UTF8ToString(url_ptr);
+    const body = body_ptr ? UTF8ToString(body_ptr) : "";
+    const headerLines = headers_ptr ? UTF8ToString(headers_ptr) : "";
+    const headers = {};
+
+    if(!Module.__inbeSyncFetches)
+        Module.__inbeSyncFetches = {};
+    Module.__inbeSyncFetches[request_id] = {state: 0, status: 0, text: ""};
+
+    for(const line of headerLines.split("\n")) {
+        if(!line) continue;
+        const colon = line.indexOf(":");
+        if(colon <= 0) continue;
+        headers[line.slice(0, colon).trim()] = line.slice(colon + 1).trim();
+    }
+
+    fetch(url, {
+        method,
+        headers,
+        body: method === "GET" ? undefined : body,
+        credentials: "omit",
+        redirect: "manual"
+    }).then(async response => {
+        const text = await response.text();
+        Module.__inbeSyncFetches[request_id] = {
+            state: 1,
+            status: response.status,
+            text
+        };
+    }).catch(error => {
+        console.error("Inbe sync HTTP failed:", error);
+        Module.__inbeSyncFetches[request_id] = {
+            state: 2,
+            status: 0,
+            text: ""
+        };
+    });
+    return 1;
+});
+
+EM_JS(int, sync_web_fetch_poll_js,
+      (int request_id, char *response_ptr, int response_size, long *status_ptr), {
+    const requests = Module.__inbeSyncFetches || {};
+    const request = requests[request_id];
+    if(!request)
+        return 2;
+    if(request.state === 0)
+        return 0;
+    setValue(status_ptr, request.status || 0, "i32");
+    stringToUTF8(request.text || "", response_ptr, response_size);
+    delete requests[request_id];
+    return request.state === 1 ? 1 : 2;
+});
+
+EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
+    const url = UTF8ToString(url_ptr);
+    const now = Date.now();
+    if(Module.__inbeSyncWebSocket &&
+       Module.__inbeSyncWebSocketUrl === url &&
+       (Module.__inbeSyncWebSocket.readyState === WebSocket.OPEN ||
+        Module.__inbeSyncWebSocket.readyState === WebSocket.CONNECTING))
+        return 1;
+    if(Module.__inbeSyncWebSocketRetryAt && now < Module.__inbeSyncWebSocketRetryAt)
+        return 1;
+    if(Module.__inbeSyncWebSocket) {
+        try { Module.__inbeSyncWebSocket.close(); } catch(e) {}
+        Module.__inbeSyncWebSocket = null;
+    }
+    Module.__inbeSyncWebSocketUrl = url;
+    try {
+        const ws = new WebSocket(url);
+        Module.__inbeSyncWebSocket = ws;
+        ws.onopen = function() {
+            Module.__inbeSyncWebSocketRetryAt = 0;
+            console.info("Inbe sync WebSocket connected");
+        };
+        ws.onmessage = function(event) {
+            try {
+                const message = JSON.parse(String(event.data || ""));
+                if(message.type === "sync_ready" || message.type === "sync_changed")
+                    Module.__inbeSyncWebSocketEvent = 1;
+            } catch(e) {
+                if(String(event.data || "").indexOf("sync_changed") >= 0)
+                    Module.__inbeSyncWebSocketEvent = 1;
+            }
+        };
+        ws.onclose = function() {
+            if(Module.__inbeSyncWebSocket === ws)
+                Module.__inbeSyncWebSocket = null;
+            Module.__inbeSyncWebSocketRetryAt = Date.now() + 2000;
+        };
+        ws.onerror = function(event) {
+            console.warn("Inbe sync WebSocket error:", event);
+        };
+        return 1;
+    } catch(e) {
+        console.warn("Inbe sync WebSocket failed:", e);
+        Module.__inbeSyncWebSocketRetryAt = Date.now() + 2000;
+        return 0;
+    }
+});
+
+EM_JS(int, sync_websocket_poll_js, (void), {
+    const event = Module.__inbeSyncWebSocketEvent ? 1 : 0;
+    Module.__inbeSyncWebSocketEvent = 0;
+    return event;
+});
+
 static int
 sync_http_request(const char *method, const char *url, const char *body,
                   const char *const *headers, int header_count,
@@ -691,6 +796,379 @@ sync_http_request(const char *method, const char *url, const char *body,
     response->len = strlen(response_text);
     response->cap = INBE_SYNC_WEB_RESPONSE_MAX;
     return 1;
+}
+
+typedef enum WebSyncState {
+    WEB_SYNC_IDLE,
+    WEB_SYNC_WAIT_CHALLENGE,
+    WEB_SYNC_WAIT_LOGIN,
+    WEB_SYNC_WAIT_SYNC
+} WebSyncState;
+
+typedef struct WebSyncJob {
+    WebSyncState state;
+    int request_id;
+    char base_url[512];
+    InbeSyncAccount account;
+    SyncBuffer login_body;
+    char *payload;
+    char *response_text;
+    long status;
+    InbeSyncClientResult result;
+    int retried_auth;
+} WebSyncJob;
+
+static WebSyncJob g_web_sync = {0};
+static int g_web_sync_next_request_id = 1;
+
+static void
+web_sync_reset(void)
+{
+    free(g_web_sync.login_body.data);
+    if(g_web_sync.payload != NULL)
+        storage_free_sync_payload_json(g_web_sync.payload);
+    free(g_web_sync.response_text);
+    memset(&g_web_sync, 0, sizeof(g_web_sync));
+}
+
+static int
+web_sync_start_fetch(const char *method, const char *url, const char *body,
+                     const char *const *headers, int header_count,
+                     WebSyncState wait_state)
+{
+    SyncBuffer header_blob = {0};
+
+    free(g_web_sync.response_text);
+    g_web_sync.response_text = NULL;
+    g_web_sync.status = 0;
+
+    for(int i = 0; i < header_count; i++) {
+        if(headers[i] != NULL &&
+           (!sync_buffer_append(&header_blob, headers[i], strlen(headers[i])) ||
+            !sync_buffer_append(&header_blob, "\n", 1))) {
+            free(header_blob.data);
+            return 0;
+        }
+    }
+
+    g_web_sync.response_text = (char *)calloc(1, INBE_SYNC_WEB_RESPONSE_MAX);
+    if(g_web_sync.response_text == NULL) {
+        free(header_blob.data);
+        return 0;
+    }
+    g_web_sync.request_id = g_web_sync_next_request_id++;
+    if(g_web_sync_next_request_id <= 0)
+        g_web_sync_next_request_id = 1;
+    g_web_sync.state = wait_state;
+    if(!sync_web_fetch_start_js(g_web_sync.request_id, method, url,
+                                body != NULL ? body : "",
+                                header_blob.data != NULL ? header_blob.data : "")) {
+        free(header_blob.data);
+        return 0;
+    }
+    free(header_blob.data);
+    return 1;
+}
+
+static int
+web_sync_poll_fetch(SyncBuffer *response)
+{
+    int poll;
+
+    if(response == NULL || g_web_sync.response_text == NULL)
+        return 2;
+    poll = sync_web_fetch_poll_js(g_web_sync.request_id,
+                                  g_web_sync.response_text,
+                                  INBE_SYNC_WEB_RESPONSE_MAX,
+                                  &g_web_sync.status);
+    if(poll != 1)
+        return poll;
+    response->data = g_web_sync.response_text;
+    response->len = strlen(g_web_sync.response_text);
+    response->cap = INBE_SYNC_WEB_RESPONSE_MAX;
+    g_web_sync.response_text = NULL;
+    return 1;
+}
+
+static int
+web_sync_start_challenge(void)
+{
+    char url[768];
+
+    sync_join_url(url, sizeof(url), g_web_sync.base_url, INBE_CHALLENGE_PATH);
+    if(strlen(url) + strlen(g_web_sync.account.public_id) + 10 >= sizeof(url))
+        return 0;
+    strncat(url, "?user_id=", sizeof(url) - strlen(url) - 1);
+    strncat(url, g_web_sync.account.public_id, sizeof(url) - strlen(url) - 1);
+    return web_sync_start_fetch("GET", url, NULL, NULL, 0, WEB_SYNC_WAIT_CHALLENGE);
+}
+
+static int
+web_sync_start_login(const char *nonce_hex)
+{
+    char message[256];
+    char signature_hex[5000];
+    char url[768];
+    char user_header[96];
+    char signature_header[5050];
+    const char *headers[3];
+
+    if(!sync_build_message("POST", INBE_LOGIN_PATH, nonce_hex,
+                           g_web_sync.login_body.data, message, sizeof(message)))
+        return 0;
+    if(!sync_account_sign_hex((const uint8_t *)message, strlen(message),
+                                   signature_hex, sizeof(signature_hex)))
+        return 0;
+    sync_join_url(url, sizeof(url), g_web_sync.base_url, INBE_LOGIN_PATH);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s",
+             g_web_sync.account.public_id);
+    snprintf(signature_header, sizeof(signature_header), "X-Inbe-Signature: %s",
+             signature_hex);
+    headers[0] = "Content-Type: application/json";
+    headers[1] = user_header;
+    headers[2] = signature_header;
+    return web_sync_start_fetch("POST", url, g_web_sync.login_body.data,
+                                headers, 3, WEB_SYNC_WAIT_LOGIN);
+}
+
+static int
+web_sync_start_sync(void)
+{
+    char token[4096];
+    char url[768];
+    char user_header[96];
+    char auth_header[4200];
+    const char *headers[3];
+
+    if(!sync_load_valid_auth_token(token, sizeof(token)))
+        return 0;
+    if(g_web_sync.payload == NULL) {
+        g_web_sync.payload = storage_build_sync_payload_json(g_web_sync.account.public_id, NULL);
+        if(g_web_sync.payload == NULL)
+            return 0;
+    }
+    sync_join_url(url, sizeof(url), g_web_sync.base_url, INBE_SYNC_PATH);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s",
+             g_web_sync.account.public_id);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    headers[0] = "Content-Type: application/json";
+    headers[1] = user_header;
+    headers[2] = auth_header;
+    return web_sync_start_fetch("POST", url, g_web_sync.payload,
+                                headers, 3, WEB_SYNC_WAIT_SYNC);
+}
+
+static int
+web_sync_build_login_body(void)
+{
+    if(g_web_sync.login_body.data != NULL)
+        return 1;
+    return sync_buffer_append(&g_web_sync.login_body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) &&
+           sync_buffer_append_json_string(&g_web_sync.login_body, g_web_sync.account.public_id) &&
+           sync_buffer_append(&g_web_sync.login_body, ",\"client_id\":", strlen(",\"client_id\":")) &&
+           sync_buffer_append_json_string(&g_web_sync.login_body, storage_sync_client_id()) &&
+           sync_buffer_append(&g_web_sync.login_body, ",\"public_key\":", strlen(",\"public_key\":")) &&
+           sync_buffer_append_json_string(&g_web_sync.login_body, g_web_sync.account.public_key_hex) &&
+           sync_buffer_append(&g_web_sync.login_body, "}", 1);
+}
+
+int
+sync_client_web_sync_start(const char *base_url)
+{
+    char token[4096];
+
+    if(g_web_sync.state != WEB_SYNC_IDLE)
+        return 0;
+    if(!sync_client_url_valid(base_url))
+        return 0;
+    if(!sync_account_load(&g_web_sync.account))
+        return 0;
+    snprintf(g_web_sync.base_url, sizeof(g_web_sync.base_url), "%s", base_url);
+    g_web_sync.result = INBE_SYNC_CLIENT_OK;
+
+    if(sync_load_valid_auth_token(token, sizeof(token)))
+        return web_sync_start_sync();
+
+    if(!web_sync_build_login_body()) {
+        web_sync_reset();
+        return 0;
+    }
+    if(!web_sync_start_challenge()) {
+        web_sync_reset();
+        return 0;
+    }
+    return 1;
+}
+
+int
+sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
+{
+    SyncBuffer response = {0};
+    int poll;
+
+    if(result != NULL)
+        *result = INBE_SYNC_CLIENT_OK;
+    if(changed != NULL)
+        *changed = 0;
+    if(g_web_sync.state == WEB_SYNC_IDLE)
+        return 0;
+
+    poll = web_sync_poll_fetch(&response);
+    if(poll == 0)
+        return 0;
+    if(poll == 2) {
+        if(result != NULL)
+            *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+        web_sync_reset();
+        return 1;
+    }
+
+    if(g_web_sync.state == WEB_SYNC_WAIT_CHALLENGE) {
+        char nonce_hex[65];
+        if(g_web_sync.status != 200 ||
+           !sync_find_json_string(response.data, "nonce", nonce_hex, sizeof(nonce_hex)) ||
+           strlen(nonce_hex) != 64) {
+            sync_log_http_failure("challenge", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = g_web_sync.status == 401
+                              ? INBE_SYNC_CLIENT_AUTH_FAILED
+                              : INBE_SYNC_CLIENT_CHALLENGE_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        free(response.data);
+        if(!web_sync_start_login(nonce_hex)) {
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_SIGN_FAILED;
+            web_sync_reset();
+            return 1;
+        }
+        return 0;
+    }
+
+    if(g_web_sync.state == WEB_SYNC_WAIT_LOGIN) {
+        char token[4096];
+        long long expires_in;
+        long long expires_at;
+
+        if(g_web_sync.status == 401) {
+            sync_log_http_failure("login auth", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_AUTH_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        if(g_web_sync.status < 200 || g_web_sync.status >= 300) {
+            sync_log_http_failure("login", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        expires_in = sync_find_json_int64(response.data, "expires_in_seconds", 3600);
+        if(!sync_find_json_string(response.data, "auth_token", token, sizeof(token))) {
+            sync_log_http_failure("login payload", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        expires_at = (long long)time(NULL) + expires_in - 30;
+        if(expires_at < (long long)time(NULL))
+            expires_at = (long long)time(NULL);
+        {
+            char text[32];
+            snprintf(text, sizeof(text), "%lld", expires_at);
+            storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, token);
+            storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, text);
+        }
+        free(response.data);
+        if(!web_sync_start_sync()) {
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+            web_sync_reset();
+            return 1;
+        }
+        return 0;
+    }
+
+    if(g_web_sync.state == WEB_SYNC_WAIT_SYNC) {
+        if(g_web_sync.status == 401) {
+            sync_client_clear_auth_token();
+            sync_log_http_failure("sync auth", g_web_sync.status, response.data);
+            free(response.data);
+            if(!g_web_sync.retried_auth) {
+                g_web_sync.retried_auth = 1;
+                if(web_sync_build_login_body() && web_sync_start_challenge())
+                    return 0;
+            }
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_AUTH_FAILED;
+            web_sync_reset();
+            return 1;
+        }
+        if(g_web_sync.status < 200 || g_web_sync.status >= 300) {
+            sync_log_http_failure("sync", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        if(!storage_apply_sync_response_json(response.data)) {
+            sync_log_http_failure("sync payload", g_web_sync.status, response.data);
+            if(result != NULL)
+                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+            free(response.data);
+            web_sync_reset();
+            return 1;
+        }
+        if(changed != NULL)
+            *changed = storage_last_sync_changed();
+        free(response.data);
+        storage_purge_synced_deleted_data();
+        if(result != NULL)
+            *result = INBE_SYNC_CLIENT_OK;
+        web_sync_reset();
+        return 1;
+    }
+
+    web_sync_reset();
+    if(result != NULL)
+        *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+    return 1;
+}
+
+int
+sync_client_web_start_remote_events(const char *base_url)
+{
+    InbeSyncAccount account;
+    char token[4096];
+    char ws_url[6000];
+
+    if(!sync_client_url_valid(base_url))
+        return 0;
+    if(!sync_account_load(&account))
+        return 0;
+    if(!sync_load_valid_auth_token(token, sizeof(token)))
+        return 0;
+    if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
+        return 0;
+    if(strlen(ws_url) + strlen(token) + strlen("?token=") >= sizeof(ws_url))
+        return 0;
+    strncat(ws_url, "?token=", sizeof(ws_url) - strlen(ws_url) - 1);
+    strncat(ws_url, token, sizeof(ws_url) - strlen(ws_url) - 1);
+    return sync_websocket_start_js(ws_url);
+}
+
+int
+sync_client_web_poll_remote_event(void)
+{
+    return sync_websocket_poll_js();
 }
 #endif
 
@@ -744,7 +1222,7 @@ sync_login(const char *base_url, const InbeSyncAccount *account)
     if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
        !sync_buffer_append_json_string(&body, account->public_id) ||
        !sync_buffer_append(&body, ",\"client_id\":", strlen(",\"client_id\":")) ||
-       !sync_buffer_append_json_string(&body, inbe_storage_sync_client_id()) ||
+       !sync_buffer_append_json_string(&body, storage_sync_client_id()) ||
        !sync_buffer_append(&body, ",\"public_key\":", strlen(",\"public_key\":")) ||
        !sync_buffer_append_json_string(&body, account->public_key_hex) ||
        !sync_buffer_append(&body, "}", 1)) {
@@ -762,7 +1240,7 @@ sync_login(const char *base_url, const InbeSyncAccount *account)
         free(body.data);
         return INBE_SYNC_CLIENT_SIGN_FAILED;
     }
-    if(!inbe_sync_account_sign_hex((const uint8_t *)message, strlen(message),
+    if(!sync_account_sign_hex((const uint8_t *)message, strlen(message),
                                    signature_hex, sizeof(signature_hex))) {
         free(body.data);
         return INBE_SYNC_CLIENT_SIGN_FAILED;
@@ -801,8 +1279,8 @@ sync_login(const char *base_url, const InbeSyncAccount *account)
     {
         char text[32];
         snprintf(text, sizeof(text), "%lld", expires_at);
-        inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, token);
-        inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, text);
+        storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, token);
+        storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, text);
     }
     free(response.data);
     return INBE_SYNC_CLIENT_OK;
@@ -819,9 +1297,9 @@ sync_load_valid_auth_token(char *out, size_t out_size)
     if(out == NULL || out_size == 0)
         return 0;
     out[0] = '\0';
-    token = inbe_storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_KEY);
+    token = storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_KEY);
     snprintf(token_copy, sizeof(token_copy), "%s", token != NULL ? token : "");
-    expires_text = inbe_storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY);
+    expires_text = storage_get_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY);
     expires_at = expires_text != NULL ? atoll(expires_text) : 0;
     if(token_copy[0] == '\0' || expires_at <= (long long)time(NULL))
         return 0;
@@ -830,10 +1308,10 @@ sync_load_valid_auth_token(char *out, size_t out_size)
 }
 
 void
-inbe_sync_client_clear_auth_token(void)
+sync_client_clear_auth_token(void)
 {
-    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, "");
-    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
+    storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, "");
+    storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
 }
 
 static InbeSyncClientResult
@@ -868,7 +1346,7 @@ sync_send_bearer(const char *base_url, const char *user_id, const char *body, co
         free(response.data);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
     }
-    if(!inbe_storage_apply_sync_response_json(response.data)) {
+    if(!storage_apply_sync_response_json(response.data)) {
         sync_log_http_failure("sync payload", status, response.data);
         free(response.data);
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
@@ -878,67 +1356,55 @@ sync_send_bearer(const char *base_url, const char *user_id, const char *body, co
 }
 
 InbeSyncClientResult
-inbe_sync_client_sync(const char *base_url)
+sync_client_sync(const char *base_url)
 {
     InbeSyncAccount account;
     char *payload;
     InbeSyncClientResult result;
     char token[4096];
 
-    if(!inbe_sync_client_url_valid(base_url))
+    if(!sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    payload = inbe_storage_build_sync_payload_json(account.public_id, NULL);
+    if(!sync_load_valid_auth_token(token, sizeof(token)))
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    payload = storage_build_sync_payload_json(account.public_id, NULL);
     if(payload == NULL)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
     result = sync_send_bearer(base_url, account.public_id, payload, token);
     if(result == INBE_SYNC_CLIENT_AUTH_FAILED) {
-        inbe_sync_client_clear_auth_token();
+        sync_client_clear_auth_token();
         result = sync_login(base_url, &account);
         if(result == INBE_SYNC_CLIENT_OK && sync_load_valid_auth_token(token, sizeof(token)))
             result = sync_send_bearer(base_url, account.public_id, payload, token);
         else if(result == INBE_SYNC_CLIENT_OK)
             result = INBE_SYNC_CLIENT_AUTH_FAILED;
     }
-    inbe_storage_free_sync_payload_json(payload);
+    storage_free_sync_payload_json(payload);
     if(result == INBE_SYNC_CLIENT_OK)
-        inbe_storage_purge_synced_deleted_data();
+        storage_purge_synced_deleted_data();
     return result;
 }
 
 InbeSyncClientResult
-inbe_sync_client_wait_for_remote_event(const char *base_url)
+sync_client_wait_for_remote_event(const char *base_url)
 {
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
     InbeSyncAccount account;
-    InbeSyncClientResult result;
     char token[4096];
     char ws_url[6000];
     char auth_header[4200];
     const char *headers[1];
-    SyncBuffer response;
+    SyncBuffer response = {0};
     long status = 0;
 
-    sync_buffer_init(&response);
-    if(!inbe_sync_client_url_valid(base_url))
+    if(!sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
+    if(!sync_load_valid_auth_token(token, sizeof(token)))
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
     if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
         return INBE_SYNC_CLIENT_INVALID_URL;
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
@@ -946,11 +1412,15 @@ inbe_sync_client_wait_for_remote_event(const char *base_url)
 
     if(!sync_android_websocket_wait(ws_url, headers, 1, &response, &status)) {
         TraceLog(LOG_WARNING, "SYNC: websocket connect failed http=%ld url=%s", status, ws_url);
+        if(status == 401)
+            sync_client_clear_auth_token();
         free(response.data);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
     }
     if(status != 101) {
         TraceLog(LOG_WARNING, "SYNC: websocket connect failed http=%ld url=%s", status, ws_url);
+        if(status == 401)
+            sync_client_clear_auth_token();
         free(response.data);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
     }
@@ -962,7 +1432,6 @@ inbe_sync_client_wait_for_remote_event(const char *base_url)
     return INBE_SYNC_CLIENT_REQUEST_FAILED;
 #elif !defined(__EMSCRIPTEN__)
     InbeSyncAccount account;
-    InbeSyncClientResult result;
     char token[4096];
     char ws_url[6000];
     CURL *curl;
@@ -973,17 +1442,12 @@ inbe_sync_client_wait_for_remote_event(const char *base_url)
     char message[2048];
     size_t message_len = 0;
 
-    if(!inbe_sync_client_url_valid(base_url))
+    if(!sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
+    if(!sync_load_valid_auth_token(token, sizeof(token)))
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
     if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
         return INBE_SYNC_CLIENT_INVALID_URL;
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
@@ -1006,6 +1470,8 @@ inbe_sync_client_wait_for_remote_event(const char *base_url)
         curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
         TraceLog(LOG_WARNING, "SYNC: websocket connect failed code=%d http=%ld url=%s", (int)code,
                  status, ws_url);
+        if(status == 401)
+            sync_client_clear_auth_token();
         curl_slist_free_all(curl_headers);
         curl_easy_cleanup(curl);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
@@ -1063,7 +1529,7 @@ inbe_sync_client_wait_for_remote_event(const char *base_url)
 }
 
 InbeSyncClientResult
-inbe_sync_client_delete_account(const char *base_url)
+sync_client_delete_account(const char *base_url)
 {
     InbeSyncAccount account;
     char url[768];
@@ -1075,9 +1541,9 @@ inbe_sync_client_delete_account(const char *base_url)
     int len;
     int ok;
 
-    if(!inbe_sync_client_url_valid(base_url))
+    if(!sync_client_url_valid(base_url))
         return INBE_SYNC_CLIENT_INVALID_URL;
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
 
     len = snprintf(exported_key, sizeof(exported_key),

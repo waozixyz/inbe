@@ -349,7 +349,7 @@ sync_account_validate_import(InbeSyncAccount *account)
         return 0;
     if(!hex_to_bytes(account->public_key_hex, public_key, sizeof(public_key)))
         return 0;
-    inbe_sync_sha256_hex(public_key, sizeof(public_key), expected_public_id);
+    sync_sha256_hex(public_key, sizeof(public_key), expected_public_id);
     if(account->public_id[0] == '\0') {
         snprintf(account->public_id, sizeof(account->public_id), "%s", expected_public_id);
         return 1;
@@ -360,7 +360,7 @@ sync_account_validate_import(InbeSyncAccount *account)
 }
 
 void
-inbe_sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
+sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
 {
     uint8_t digest[32];
     Sha256Ctx sha;
@@ -386,7 +386,7 @@ account_has_values(const InbeSyncAccount *account)
 }
 
 int
-inbe_sync_account_available(void)
+sync_account_available(void)
 {
 #if defined(INBE_HAS_LIBOQS)
     return 1;
@@ -396,7 +396,7 @@ inbe_sync_account_available(void)
 }
 
 int
-inbe_sync_account_load(InbeSyncAccount *account)
+sync_account_load(InbeSyncAccount *account)
 {
     const char *public_id;
     const char *public_key;
@@ -407,20 +407,20 @@ inbe_sync_account_load(InbeSyncAccount *account)
         return 0;
     memset(account, 0, sizeof(*account));
 
-    public_id = inbe_storage_get_setting_text(SYNC_PUBLIC_ID_KEY);
+    public_id = storage_get_setting_text(SYNC_PUBLIC_ID_KEY);
     if(public_id != NULL)
         snprintf(account->public_id, sizeof(account->public_id), "%s", public_id);
-    public_key = inbe_storage_get_setting_text(SYNC_PUBLIC_KEY_KEY);
+    public_key = storage_get_setting_text(SYNC_PUBLIC_KEY_KEY);
     if(public_key != NULL)
         snprintf(account->public_key_hex, sizeof(account->public_key_hex), "%s", public_key);
-    private_key = inbe_storage_get_setting_text(SYNC_PRIVATE_KEY_KEY);
+    private_key = storage_get_setting_text(SYNC_PRIVATE_KEY_KEY);
     if(private_key != NULL)
         snprintf(account->private_key_hex, sizeof(account->private_key_hex), "%s", private_key);
     return account_has_values(account);
 }
 
 int
-inbe_sync_account_create(InbeSyncAccount *account)
+sync_account_create(InbeSyncAccount *account)
 {
 #if defined(INBE_HAS_LIBOQS)
     OQS_SIG *sig;
@@ -459,13 +459,13 @@ inbe_sync_account_create(InbeSyncAccount *account)
     bytes_to_hex(private_key, sizeof(private_key), generated.private_key_hex,
                  sizeof(generated.private_key_hex));
 
-    inbe_storage_settings_begin_write();
-    inbe_storage_set_setting_text(SYNC_PUBLIC_ID_KEY, generated.public_id);
-    inbe_storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, generated.public_key_hex);
-    inbe_storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, generated.private_key_hex);
-    inbe_sync_client_clear_auth_token();
-    inbe_storage_reset_sync_state();
-    inbe_storage_settings_end_write();
+    storage_settings_begin_write();
+    storage_set_setting_text(SYNC_PUBLIC_ID_KEY, generated.public_id);
+    storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, generated.public_key_hex);
+    storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, generated.private_key_hex);
+    sync_client_clear_auth_token();
+    storage_reset_sync_state();
+    storage_settings_end_write();
 
     *account = generated;
     return 1;
@@ -476,7 +476,7 @@ inbe_sync_account_create(InbeSyncAccount *account)
 }
 
 int
-inbe_sync_account_import_private_key(InbeSyncAccount *account, const char *filename)
+sync_account_import_private_key(InbeSyncAccount *account, const char *filename)
 {
     char *body;
     InbeSyncAccount imported;
@@ -501,34 +501,34 @@ inbe_sync_account_import_private_key(InbeSyncAccount *account, const char *filen
     }
     UnloadFileText(body);
 
-    inbe_storage_settings_begin_write();
-    inbe_storage_set_setting_text(SYNC_PUBLIC_ID_KEY, imported.public_id);
-    inbe_storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, imported.public_key_hex);
-    inbe_storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, imported.private_key_hex);
-    inbe_sync_client_clear_auth_token();
-    inbe_storage_reset_sync_state();
-    inbe_storage_settings_end_write();
+    storage_settings_begin_write();
+    storage_set_setting_text(SYNC_PUBLIC_ID_KEY, imported.public_id);
+    storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, imported.public_key_hex);
+    storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, imported.private_key_hex);
+    sync_client_clear_auth_token();
+    storage_reset_sync_state();
+    storage_settings_end_write();
 
     *account = imported;
     return 1;
 }
 
 int
-inbe_sync_account_clear(void)
+sync_account_clear(void)
 {
     data_init();
-    inbe_storage_settings_begin_write();
-    inbe_storage_set_setting_text(SYNC_PUBLIC_ID_KEY, "");
-    inbe_storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, "");
-    inbe_storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, "");
-    inbe_sync_client_clear_auth_token();
-    inbe_storage_reset_sync_state();
-    inbe_storage_settings_end_write();
+    storage_settings_begin_write();
+    storage_set_setting_text(SYNC_PUBLIC_ID_KEY, "");
+    storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, "");
+    storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, "");
+    sync_client_clear_auth_token();
+    storage_reset_sync_state();
+    storage_settings_end_write();
     return 1;
 }
 
 int
-inbe_sync_account_export_private_key(const InbeSyncAccount *account, const char *filename)
+sync_account_export_private_key(const InbeSyncAccount *account, const char *filename)
 {
     char body[8200];
     int len;
@@ -557,7 +557,7 @@ inbe_sync_account_export_private_key(const InbeSyncAccount *account, const char 
 }
 
 int
-inbe_sync_account_sign_hex(const uint8_t *message, size_t message_len,
+sync_account_sign_hex(const uint8_t *message, size_t message_len,
                            char *out_signature_hex, size_t out_size)
 {
 #if defined(INBE_HAS_LIBOQS)
@@ -571,7 +571,7 @@ inbe_sync_account_sign_hex(const uint8_t *message, size_t message_len,
        (message == NULL && message_len > 0))
         return 0;
     out_signature_hex[0] = '\0';
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return 0;
     if(!hex_to_bytes(account.private_key_hex, private_key, sizeof(private_key)))
         return 0;

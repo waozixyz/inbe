@@ -3,7 +3,7 @@
 #include <stdio.h>
 #include <string.h>
 
-int inbe_sync_client_test_response_buffer(const char *first, const char *second,
+int sync_client_test_response_buffer(const char *first, const char *second,
                                           char *out, size_t out_size);
 
 static int failures = 0;
@@ -13,12 +13,12 @@ check_valid(const char *input, const char *normalized)
 {
     char out[256];
 
-    if(!inbe_sync_client_url_valid(input)) {
+    if(!sync_client_url_valid(input)) {
         fprintf(stderr, "FAIL valid %s\n", input);
         failures++;
         return;
     }
-    if(!inbe_sync_client_normalize_url(input, out, sizeof(out)) ||
+    if(!sync_client_normalize_url(input, out, sizeof(out)) ||
        strcmp(out, normalized) != 0) {
         fprintf(stderr, "FAIL normalize %s: got %s, want %s\n",
                 input, out, normalized);
@@ -31,11 +31,11 @@ check_invalid(const char *input)
 {
     char out[256];
 
-    if(inbe_sync_client_url_valid(input)) {
+    if(sync_client_url_valid(input)) {
         fprintf(stderr, "FAIL invalid accepted %s\n", input);
         failures++;
     }
-    if(inbe_sync_client_normalize_url(input, out, sizeof(out))) {
+    if(sync_client_normalize_url(input, out, sizeof(out))) {
         fprintf(stderr, "FAIL invalid normalized %s to %s\n", input, out);
         failures++;
     }
@@ -46,7 +46,7 @@ check_response_buffer(void)
 {
     char out[64];
 
-    if(!inbe_sync_client_test_response_buffer("{\"nonce\":\"", "abc\"}", out, sizeof(out)) ||
+    if(!sync_client_test_response_buffer("{\"nonce\":\"", "abc\"}", out, sizeof(out)) ||
        strcmp(out, "{\"nonce\":\"abc\"}") != 0) {
         fprintf(stderr, "FAIL response buffer append: got %s\n", out);
         failures++;

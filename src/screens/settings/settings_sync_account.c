@@ -67,11 +67,11 @@ settings_start_sync_key_export(InbeApp *app, const InbeSyncAccount *account)
     settings_backup_filename(filename, sizeof(filename));
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
     (void)app;
-    return inbe_sync_account_export_private_key(account, filename) ? 2 : 3;
+    return sync_account_export_private_key(account, filename) ? 2 : 3;
 #else
     if(save_dialog_callback != NULL)
         return save_dialog_callback(app, filename);
-    return inbe_sync_account_export_private_key(account, filename) ? 2 : 3;
+    return sync_account_export_private_key(account, filename) ? 2 : 3;
 #endif
 }
 
@@ -95,7 +95,7 @@ settings_sync_server_normalize(InbeApp *app, char *out, size_t out_size)
 {
     if(app == NULL || out == NULL || out_size == 0)
         return 0;
-    if(!inbe_sync_client_normalize_url(app->sync_server_url, out, out_size))
+    if(!sync_client_normalize_url(app->sync_server_url, out, out_size))
         return 0;
     snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s", out);
     app->sync_server_url_cursor = (int)strlen(app->sync_server_url);
@@ -113,7 +113,7 @@ settings_sync_server_save(InbeApp *app)
         settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
         return;
     }
-    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
+    storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     settings_screen_set_status_success(locale_get("sync_server_saved"), url);
 }
 
@@ -125,12 +125,12 @@ settings_sync_server_connected(InbeApp *app)
     char saved_normalized[sizeof(app->sync_server_url)];
     InbeSyncAccount account;
 
-    if(app == NULL || !inbe_sync_account_load(&account))
+    if(app == NULL || !sync_account_load(&account))
         return 0;
-    if(!inbe_sync_client_normalize_url(app->sync_server_url, url, sizeof(url)))
+    if(!sync_client_normalize_url(app->sync_server_url, url, sizeof(url)))
         return 0;
-    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
-    if(!inbe_sync_client_normalize_url(saved_url, saved_normalized, sizeof(saved_normalized)))
+    saved_url = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(!sync_client_normalize_url(saved_url, saved_normalized, sizeof(saved_normalized)))
         return 0;
     return strcmp(saved_normalized, url) == 0;
 }
@@ -168,8 +168,8 @@ settings_sync_run_connect(InbeApp *app)
         settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
         return;
     }
-    inbe_storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
-    result = inbe_sync_client_sync(url);
+    storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
+    result = sync_client_sync(url);
     if(result == INBE_SYNC_CLIENT_OK) {
         app_reload_after_import(app, 0);
         settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
@@ -187,20 +187,20 @@ settings_sync_account_delete_confirmed(InbeApp *app)
 
     if(app == NULL)
         return;
-    if(!inbe_sync_account_load(&account)) {
+    if(!sync_account_load(&account)) {
         settings_screen_set_status_error(locale_get("sync_no_account"));
         return;
     }
 
     if(settings_sync_server_normalize(app, url, sizeof(url))) {
-        result = inbe_sync_client_delete_account(url);
+        result = sync_client_delete_account(url);
         if(result != INBE_SYNC_CLIENT_OK)
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result);
     } else {
         TraceLog(LOG_WARNING, "SYNC: remote account delete skipped due to invalid URL");
     }
 
-    inbe_sync_account_clear();
+    sync_account_clear();
     settings_screen_set_status_success(locale_get("sync_account_deleted"), NULL);
 }
 
@@ -222,7 +222,7 @@ void
 settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
-    int has_account = inbe_sync_account_load(&account);
+    int has_account = sync_account_load(&account);
     int font = flint_ui_font();
     int small_font = flint_ui_font_small();
     int btn_h = flint_px(36);
@@ -233,7 +233,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     flint_text_draw(locale_get("sync_account_title"), x, *y, font, theme_get_text());
     *y += flint_px(26);
 
-    if(!inbe_sync_account_available()) {
+    if(!sync_account_available()) {
         flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
                         flint_darken(theme_get_text(), 35));
         *y += flint_px(32);
@@ -243,7 +243,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     if(!has_account) {
         if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-            if(inbe_sync_account_create(&account)) {
+            if(sync_account_create(&account)) {
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
                 app->modal.active = 1;
                 app->modal.type = UIModalSyncAccountBackup;
@@ -281,7 +281,7 @@ void
 settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
-    int has_account = inbe_sync_account_load(&account);
+    int has_account = sync_account_load(&account);
     int font = flint_ui_font();
     int small_font = flint_ui_font_small();
     int btn_h = flint_px(36);
@@ -291,7 +291,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     int commit = 0;
     FlintUITextInputStyle input_style = settings_sync_text_style();
 
-    if(!inbe_sync_account_available()) {
+    if(!sync_account_available()) {
         flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
                         flint_darken(theme_get_text(), 35));
         *y += flint_px(32);
@@ -302,7 +302,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         *y += flint_px(12);
         if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-            if(inbe_sync_account_create(&account)) {
+            if(sync_account_create(&account)) {
                 has_account = 1;
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
                 app->modal.active = 1;
@@ -403,7 +403,7 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
     FlintUIParagraph warning;
 
     memset(&account, 0, sizeof(account));
-    inbe_sync_account_load(&account);
+    sync_account_load(&account);
 
     warning = (FlintUIParagraph){
         .text = locale_get("sync_backup_warning"),

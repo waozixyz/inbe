@@ -262,7 +262,7 @@ settings_sync_server_load(InbeApp *app)
 
     if(app == NULL)
         return;
-    saved = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
     snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
              saved != NULL && saved[0] != '\0'
                  ? saved
@@ -628,10 +628,13 @@ settings_import_sync_key_path(InbeApp *app, const char *path)
     InbeSyncAccount account;
 
     if(path != NULL && path[0] != '\0' &&
-       inbe_sync_account_import_private_key(&account, path)) {
+       sync_account_import_private_key(&account, path)) {
+        const char *saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+        if(saved == NULL || saved[0] == '\0')
+            storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, INBE_SYNC_SERVER_URL_DEFAULT);
         settings_screen_set_status_success(locale_get("sync_private_key_imported"), NULL);
         TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
-        (void)app;
+        app_auto_sync(app);
         return 1;
     }
 
@@ -735,8 +738,8 @@ settings_data_draw_pending_file_dialog(InbeApp *app)
             InbeSyncAccount account;
             const char *path = flint_file_dialog_get_path(&export_dlg);
             if(path != NULL && path[0] != '\0' &&
-               inbe_sync_account_load(&account) &&
-               inbe_sync_account_export_private_key(&account, path)) {
+               sync_account_load(&account) &&
+               sync_account_export_private_key(&account, path)) {
                 settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), GetFileName(path));
                 TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
             } else {
@@ -804,17 +807,17 @@ settings_data_draw_modals(InbeApp *app)
             app->modal.type = UIModalNone;
             if(deleted > 0) {
                 char deleted_message[128];
-                inbe_habits_free(&app->habits);
+                habits_free(&app->habits);
                 memset(&app->habits, 0, sizeof(app->habits));
                 app->habits.loaded = 1;
                 locale_format(deleted_message, sizeof(deleted_message),
                               "deleted_sessions", deleted);
                 settings_screen_set_status_success(deleted_message, NULL);
             } else {
-                int cleared = inbe_habits_clear_days(&app->habits);
+                int cleared = habits_clear_days(&app->habits);
                 if(cleared > 0) {
                     char deleted_message[128];
-                    inbe_habits_save(&app->habits);
+                    habits_save(&app->habits);
                     locale_format(deleted_message, sizeof(deleted_message),
                                   "deleted_sessions", cleared);
                     settings_screen_set_status_success(deleted_message, NULL);

@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.2] - 2026-06-20
+### Fixed
+- Improve sync auth, websocket reconnects, and queued habit/session updates.
+- Reduce SQLite-related UI flicker and speed up bulk import sync queueing.
+
 ## [1.4.1] - 2026-06-19
 ### Changed
 - Improve account management

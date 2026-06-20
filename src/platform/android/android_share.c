@@ -125,7 +125,7 @@ int android_share_export(const char *filename)
     }
 
     snprintf(export_path, sizeof(export_path), "%s/%s", data_root(), filename);
-    if(!inbe_storage_export_zip(export_path)) {
+    if(!storage_export_zip(export_path)) {
         TraceLog(LOG_ERROR, "ANDROID_SHARE: failed to export SQLite ZIP");
         return 0;
     }

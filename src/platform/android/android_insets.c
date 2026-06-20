@@ -81,7 +81,7 @@ static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
 	__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", msg);
 	if (app != NULL) {
 		InbeApp *inbe_app = (InbeApp*)app;
-		jint result = inbe_get_play_in_background(&inbe_app->inbe);
+		jint result = get_play_in_background(&inbe_app->inbe);
 		char msg[128];
 		snprintf(msg, sizeof(msg), "nativeGetPlayInBackground: returning %d", result);
 		__android_log_write(ANDROID_LOG_INFO, "INBE_JNI", msg);

@@ -31,52 +31,52 @@ typedef struct InbeStorageImportInfo {
     int setting_count;
 } InbeStorageImportInfo;
 
-int inbe_storage_init(const char *root);
-void inbe_storage_close(void);
-const char *inbe_storage_db_path(void);
+int storage_init(const char *root);
+void storage_close(void);
+const char *storage_db_path(void);
 
-int inbe_storage_get_setting_int(const char *key, int fallback);
-const char *inbe_storage_get_setting_text(const char *key);
-void inbe_storage_set_setting_int(const char *key, int value);
-void inbe_storage_set_setting_text(const char *key, const char *value);
-void inbe_storage_settings_begin_write(void);
-void inbe_storage_settings_end_write(void);
-int inbe_storage_settings_empty(void);
+int storage_get_setting_int(const char *key, int fallback);
+const char *storage_get_setting_text(const char *key);
+void storage_set_setting_int(const char *key, int value);
+void storage_set_setting_text(const char *key, const char *value);
+void storage_settings_begin_write(void);
+void storage_settings_end_write(void);
+int storage_settings_empty(void);
 
-int inbe_storage_save_session(const int *round_times, int round_count,
+int storage_save_session(const int *round_times, int round_count,
                               char *out_id, size_t out_id_size);
-int inbe_storage_save_session_for_activity(const int *round_times, int round_count,
+int storage_save_session_for_activity(const int *round_times, int round_count,
                                            int topic, int activity,
                                            char *out_id, size_t out_id_size);
-int inbe_storage_replace_session(const char *id, const int *round_times, int round_count);
-int inbe_storage_rename_session_time(const char *id, int hour, int minute);
-int inbe_storage_delete_session(const char *id);
-int inbe_storage_load_session(const char *id, int *round_times, int max_rounds,
+int storage_replace_session(const char *id, const int *round_times, int round_count);
+int storage_rename_session_time(const char *id, int hour, int minute);
+int storage_delete_session(const char *id);
+int storage_load_session(const char *id, int *round_times, int max_rounds,
                               int *year, int *month, int *day,
                               int *hour, int *minute, int *second);
-void inbe_storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
-int inbe_storage_has_any(void);
-int inbe_storage_session_count(void);
-int inbe_storage_habit_count(void);
-long long inbe_storage_total_size(void);
-long long inbe_storage_delete_all_sessions(void);
-char *inbe_storage_build_sync_payload_json(const char *user_id_hash,
+void storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
+int storage_has_any(void);
+int storage_session_count(void);
+int storage_habit_count(void);
+long long storage_total_size(void);
+long long storage_delete_all_sessions(void);
+char *storage_build_sync_payload_json(const char *user_id_hash,
                                            const char *public_key_hex);
-void inbe_storage_free_sync_payload_json(char *payload);
-int inbe_storage_apply_sync_response_json(const char *response_json);
-int inbe_storage_last_sync_changed(void);
-void inbe_storage_purge_synced_deleted_data(void);
-const char *inbe_storage_sync_client_id(void);
-void inbe_storage_reset_sync_state(void);
+void storage_free_sync_payload_json(char *payload);
+int storage_apply_sync_response_json(const char *response_json);
+int storage_last_sync_changed(void);
+void storage_purge_synced_deleted_data(void);
+const char *storage_sync_client_id(void);
+void storage_reset_sync_state(void);
 
-int inbe_storage_habits_empty(void);
-int inbe_storage_habits_load(void *habits);
-void inbe_storage_habits_save(const void *habits);
-void inbe_storage_mark_habits_initialized(void);
+int storage_habits_empty(void);
+int storage_habits_load(void *habits);
+void storage_habits_save(const void *habits);
+void storage_mark_habits_initialized(void);
 
-int inbe_storage_export_zip(const char *path);
-int inbe_storage_import_zip(const char *path);
-int inbe_storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
-int inbe_storage_inspect_import(const char *path, InbeStorageImportInfo *info);
+int storage_export_zip(const char *path);
+int storage_import_zip(const char *path);
+int storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
+int storage_inspect_import(const char *path, InbeStorageImportInfo *info);
 
 #endif
