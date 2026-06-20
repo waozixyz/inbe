@@ -119,7 +119,7 @@ settings_tab_content_height(InbeApp *app, int tab, int content_w)
     if(tab == SETTINGS_TAB_THEME)
         return settings_theme_content_height(content_w);
     if(tab == SETTINGS_TAB_DEVICE)
-        return settings_device_content_height();
+        return settings_device_content_height(content_w);
     if(settings_data_is_configuring(app))
         return flint_px(430);
     return settings_data_content_height(content_w);
