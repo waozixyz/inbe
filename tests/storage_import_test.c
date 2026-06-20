@@ -214,6 +214,129 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
 }
 
 static void
+test_sync_payload_omits_uploaded_state_after_upload_marker(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-full-local-state");
+    check_true("init sync watermark db", inbe_storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    inbe_habit_set_day_count(&habits, 0, 20260612, 12);
+    inbe_habits_save(&habits);
+
+    inbe_storage_close();
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        sqlite3_stmt *stmt = NULL;
+        long long updated_at = 0;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open sync watermark raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            if(sqlite3_prepare_v2(db,
+                                  "SELECT updated_at FROM habit_days WHERE local_date=20260612",
+                                  -1, &stmt, NULL) == SQLITE_OK &&
+               sqlite3_step(stmt) == SQLITE_ROW)
+                updated_at = sqlite3_column_int64(stmt, 0);
+            if(stmt != NULL)
+                sqlite3_finalize(stmt);
+            check_true("set sync watermark raw meta",
+                       updated_at > 0 &&
+                       sqlite3_exec(db,
+                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            if(updated_at > 0) {
+                char sql[192];
+                snprintf(sql, sizeof(sql),
+                         "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_upload_at','%lld');",
+                         updated_at);
+                check_true("set sync same second upload marker",
+                           sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
+            }
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen sync watermark db", inbe_storage_init(root));
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("habit day omitted from sync payload after upload marker",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260612") == NULL &&
+               strstr(payload, "\"count\":12") == NULL);
+    inbe_storage_free_sync_payload_json(payload);
+    inbe_storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_payload_includes_queued_current_edits(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-queued-edit");
+    check_true("init queued sync db", inbe_storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    inbe_habit_set_day_count(&habits, 0, 20260617, 7);
+    inbe_habits_save(&habits);
+
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("queued habit day included in sync payload",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260617") != NULL &&
+               strstr(payload, "\"count\":7") != NULL);
+    inbe_storage_free_sync_payload_json(payload);
+
+    inbe_storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_outbox_preserves_edits_after_snapshot(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+    const char *empty_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-outbox-snapshot");
+    check_true("init outbox snapshot db", inbe_storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    inbe_habits_add_default_set(&habits);
+    inbe_habit_set_day_count(&habits, 0, 20260618, 1);
+    inbe_habits_save(&habits);
+
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("first queued edit in payload",
+               payload != NULL && strstr(payload, "\"local_date\":20260618") != NULL);
+    inbe_storage_free_sync_payload_json(payload);
+
+    inbe_habit_set_day_count(&habits, 0, 20260619, 2);
+    inbe_habits_save(&habits);
+    check_true("apply response clears only snapshotted outbox",
+               inbe_storage_apply_sync_response_json(empty_response));
+
+    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("later edit remains queued after snapshot clear",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260619") != NULL &&
+               strstr(payload, "\"count\":2") != NULL);
+    check_true("earlier edit was cleared after snapshot success",
+               payload != NULL && strstr(payload, "\"local_date\":20260618") == NULL);
+    inbe_storage_free_sync_payload_json(payload);
+
+    inbe_storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_apply_preserves_counter_counts(void)
 {
     char root[512];
@@ -597,6 +720,7 @@ test_delete_all_resets_habits_to_empty_storage(void)
     deleted = inbe_storage_delete_all_sessions();
     check_true("delete all removed habit data", deleted >= 2);
     check_int("delete all habit count after", inbe_storage_habit_count(), 0);
+    check_true("delete all hides active data", !inbe_storage_has_any());
 
     inbe_habits_add_default_set(&habits);
     memset(&habits, 0, sizeof(habits));
@@ -985,6 +1109,9 @@ main(void)
     test_tickmate_db_import();
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
+    test_sync_payload_omits_uploaded_state_after_upload_marker();
+    test_sync_payload_includes_queued_current_edits();
+    test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
     test_session_linked_counts_materialize_for_sync();
     test_existing_sessions_materialize_after_habit_save();

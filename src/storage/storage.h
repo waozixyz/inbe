@@ -65,6 +65,7 @@ char *inbe_storage_build_sync_payload_json(const char *user_id_hash,
 void inbe_storage_free_sync_payload_json(char *payload);
 int inbe_storage_apply_sync_response_json(const char *response_json);
 int inbe_storage_last_sync_changed(void);
+void inbe_storage_purge_synced_deleted_data(void);
 const char *inbe_storage_sync_client_id(void);
 void inbe_storage_reset_sync_state(void);
 

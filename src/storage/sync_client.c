@@ -10,23 +10,20 @@
 #include <time.h>
 
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-#define INBE_SYNC_CLIENT_HAS_ANDROID 1
 #include <android_native_app_glue.h>
 #include <jni.h>
 extern struct android_app *GetAndroidApp(void);
 #elif defined(__EMSCRIPTEN__)
-#define INBE_SYNC_CLIENT_HAS_WEB 1
 #include <emscripten.h>
-#elif defined(FLINT_HAS_LIBCURL) && !defined(__EMSCRIPTEN__)
-#define INBE_SYNC_CLIENT_HAS_CURL 1
+#else
 #include <curl/curl.h>
+#if LIBCURL_VERSION_NUM < 0x075600
+#error "Inbe sync requires libcurl 7.86.0 or newer with websocket support"
 #endif
-
-#if defined(INBE_SYNC_CLIENT_HAS_CURL) || defined(INBE_SYNC_CLIENT_HAS_ANDROID) || defined(INBE_SYNC_CLIENT_HAS_WEB)
-#define INBE_SYNC_CLIENT_HAS_HTTP 1
 #endif
 
 #define INBE_SYNC_PATH "/api/v1/sync"
+#define INBE_SYNC_WS_PATH "/api/v1/sync/ws"
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
 #define INBE_LOGIN_PATH "/api/v1/sync/login"
 #define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
@@ -40,14 +37,22 @@ typedef struct SyncBuffer {
     size_t cap;
 } SyncBuffer;
 
+static void
+sync_buffer_init(SyncBuffer *buffer)
+{
+    if(buffer == NULL)
+        return;
+    buffer->data = NULL;
+    buffer->len = 0;
+    buffer->cap = 0;
+}
+
 const char *
 inbe_sync_client_result_name(InbeSyncClientResult result)
 {
     switch(result) {
         case INBE_SYNC_CLIENT_OK:
             return "ok";
-        case INBE_SYNC_CLIENT_UNAVAILABLE:
-            return "unavailable";
         case INBE_SYNC_CLIENT_INVALID_URL:
             return "invalid_url";
         case INBE_SYNC_CLIENT_NO_ACCOUNT:
@@ -253,6 +258,31 @@ sync_join_url(char *out, size_t out_size, const char *base_url, const char *path
 }
 
 static int
+sync_join_ws_url(char *out, size_t out_size, const char *base_url, const char *path)
+{
+    char http_url[768];
+    const char *body;
+    const char *scheme;
+    int len;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    sync_join_url(http_url, sizeof(http_url), base_url, path);
+    if(sync_has_prefix(http_url, "https://")) {
+        scheme = "wss://";
+        body = http_url + 8;
+    } else if(sync_has_prefix(http_url, "http://")) {
+        scheme = "ws://";
+        body = http_url + 7;
+    } else {
+        return 0;
+    }
+    len = snprintf(out, out_size, "%s%s", scheme, body);
+    return len > 0 && (size_t)len < out_size;
+}
+
+static int
 sync_build_message(const char *method, const char *path, const char *nonce_hex,
                    const char *body, char *out, size_t out_size)
 {
@@ -327,7 +357,7 @@ sync_find_json_int64(const char *json, const char *key, long long fallback)
     return strtoll(p, NULL, 10);
 }
 
-#if defined(INBE_SYNC_CLIENT_HAS_CURL)
+#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(__EMSCRIPTEN__)
 static size_t
 sync_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -382,7 +412,7 @@ sync_http_request(const char *method, const char *url, const char *body,
     curl_easy_cleanup(curl);
     return res == CURLE_OK;
 }
-#elif defined(INBE_SYNC_CLIENT_HAS_ANDROID)
+#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 static int
 sync_buffer_set(SyncBuffer *response, const char *text)
 {
@@ -497,7 +527,94 @@ done:
         (*jvm)->DetachCurrentThread(jvm);
     return ok;
 }
-#elif defined(INBE_SYNC_CLIENT_HAS_WEB)
+
+static int
+sync_android_websocket_wait(const char *url, const char *const *headers, int header_count,
+                            SyncBuffer *response, long *status)
+{
+    struct android_app *app = GetAndroidApp();
+    JavaVM *jvm;
+    JNIEnv *env = NULL;
+    jobject activity;
+    jclass activity_class;
+    jclass string_class = NULL;
+    jmethodID method_id;
+    jstring jurl = NULL;
+    jobjectArray jheaders = NULL;
+    jstring result = NULL;
+    const char *result_text = NULL;
+    const char *newline;
+    int attached = 0;
+    int ok = 0;
+
+    if(status != NULL)
+        *status = 0;
+    if(app == NULL || app->activity == NULL || app->activity->vm == NULL ||
+       app->activity->clazz == NULL || url == NULL)
+        return 0;
+
+    jvm = app->activity->vm;
+    activity = app->activity->clazz;
+    if((*jvm)->GetEnv(jvm, (void **)&env, JNI_VERSION_1_6) != JNI_OK) {
+        if((*jvm)->AttachCurrentThread(jvm, &env, NULL) != JNI_OK || env == NULL)
+            return 0;
+        attached = 1;
+    }
+
+    activity_class = (*env)->GetObjectClass(env, activity);
+    if(activity_class == NULL)
+        goto done;
+    method_id = (*env)->GetMethodID(env, activity_class, "syncWebSocketWait",
+                                    "(Ljava/lang/String;[Ljava/lang/String;)Ljava/lang/String;");
+    if(method_id == NULL)
+        goto done;
+
+    jurl = (*env)->NewStringUTF(env, url);
+    string_class = (*env)->FindClass(env, "java/lang/String");
+    if(jurl == NULL || string_class == NULL)
+        goto done;
+    jheaders = (*env)->NewObjectArray(env, header_count, string_class, NULL);
+    if(jheaders == NULL)
+        goto done;
+    for(int i = 0; i < header_count; i++) {
+        jstring value = (*env)->NewStringUTF(env, headers[i] != NULL ? headers[i] : "");
+        if(value == NULL)
+            goto done;
+        (*env)->SetObjectArrayElement(env, jheaders, i, value);
+        (*env)->DeleteLocalRef(env, value);
+    }
+
+    result = (jstring)(*env)->CallObjectMethod(env, activity, method_id, jurl, jheaders);
+    if((*env)->ExceptionCheck(env) || result == NULL)
+        goto done;
+    result_text = (*env)->GetStringUTFChars(env, result, NULL);
+    if(result_text == NULL)
+        goto done;
+    newline = strchr(result_text, '\n');
+    if(newline == NULL)
+        goto done;
+    if(status != NULL)
+        *status = strtol(result_text, NULL, 10);
+    ok = sync_buffer_set(response, newline + 1);
+
+done:
+    if(result_text != NULL && result != NULL)
+        (*env)->ReleaseStringUTFChars(env, result, result_text);
+    if(result != NULL)
+        (*env)->DeleteLocalRef(env, result);
+    if(jheaders != NULL)
+        (*env)->DeleteLocalRef(env, jheaders);
+    if(jurl != NULL)
+        (*env)->DeleteLocalRef(env, jurl);
+    if((*env)->ExceptionCheck(env)) {
+        (*env)->ExceptionDescribe(env);
+        (*env)->ExceptionClear(env);
+    }
+    if(attached)
+        (*jvm)->DetachCurrentThread(jvm);
+    return ok;
+}
+#elif defined(__EMSCRIPTEN__)
 EM_ASYNC_JS(int, sync_web_http_request,
             (const char *method_ptr, const char *url_ptr, const char *body_ptr,
              const char *headers_ptr, char *response_ptr, int response_size,
@@ -577,7 +694,6 @@ sync_http_request(const char *method, const char *url, const char *body,
 }
 #endif
 
-#if defined(INBE_SYNC_CLIENT_HAS_HTTP)
 static InbeSyncClientResult
 sync_fetch_challenge(const char *base_url, const char *user_id, char nonce_hex[65])
 {
@@ -760,21 +876,10 @@ sync_send_bearer(const char *base_url, const char *user_id, const char *body, co
     free(response.data);
     return INBE_SYNC_CLIENT_OK;
 }
-#endif
-
-#if !defined(INBE_SYNC_CLIENT_HAS_HTTP)
-void
-inbe_sync_client_clear_auth_token(void)
-{
-    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, "");
-    inbe_storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
-}
-#endif
 
 InbeSyncClientResult
 inbe_sync_client_sync(const char *base_url)
 {
-#if defined(INBE_SYNC_CLIENT_HAS_HTTP)
     InbeSyncAccount account;
     char *payload;
     InbeSyncClientResult result;
@@ -804,17 +909,162 @@ inbe_sync_client_sync(const char *base_url)
             result = INBE_SYNC_CLIENT_AUTH_FAILED;
     }
     inbe_storage_free_sync_payload_json(payload);
+    if(result == INBE_SYNC_CLIENT_OK)
+        inbe_storage_purge_synced_deleted_data();
     return result;
+}
+
+InbeSyncClientResult
+inbe_sync_client_wait_for_remote_event(const char *base_url)
+{
+#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+    InbeSyncAccount account;
+    InbeSyncClientResult result;
+    char token[4096];
+    char ws_url[6000];
+    char auth_header[4200];
+    const char *headers[1];
+    SyncBuffer response;
+    long status = 0;
+
+    sync_buffer_init(&response);
+    if(!inbe_sync_client_url_valid(base_url))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    if(!inbe_sync_account_load(&account))
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    headers[0] = auth_header;
+
+    if(!sync_android_websocket_wait(ws_url, headers, 1, &response, &status)) {
+        TraceLog(LOG_WARNING, "SYNC: websocket connect failed http=%ld url=%s", status, ws_url);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(status != 101) {
+        TraceLog(LOG_WARNING, "SYNC: websocket connect failed http=%ld url=%s", status, ws_url);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(response.data != NULL && strstr(response.data, "\"type\":\"sync_changed\"") != NULL) {
+        free(response.data);
+        return INBE_SYNC_CLIENT_OK;
+    }
+    free(response.data);
+    return INBE_SYNC_CLIENT_REQUEST_FAILED;
+#elif !defined(__EMSCRIPTEN__)
+    InbeSyncAccount account;
+    InbeSyncClientResult result;
+    char token[4096];
+    char ws_url[6000];
+    CURL *curl;
+    struct curl_slist *curl_headers = NULL;
+    CURLcode code;
+    long status = 0;
+    char auth_header[4200];
+    char message[2048];
+    size_t message_len = 0;
+
+    if(!inbe_sync_client_url_valid(base_url))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    if(!inbe_sync_account_load(&account))
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+    curl = curl_easy_init();
+    if(curl == NULL)
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    curl_headers = curl_slist_append(curl_headers, auth_header);
+    curl_easy_setopt(curl, CURLOPT_URL, ws_url);
+    curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
+    curl_easy_setopt(curl, CURLOPT_USERAGENT, "inbe-sync/1");
+    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, curl_headers);
+    curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 0L);
+    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 15L);
+    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 0L);
+
+    code = curl_easy_perform(curl);
+    if(code != CURLE_OK) {
+        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &status);
+        TraceLog(LOG_WARNING, "SYNC: websocket connect failed code=%d http=%ld url=%s", (int)code,
+                 status, ws_url);
+        curl_slist_free_all(curl_headers);
+        curl_easy_cleanup(curl);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    curl_slist_free_all(curl_headers);
+
+    for(;;) {
+        char buffer[512];
+        size_t got = 0;
+        const struct curl_ws_frame *meta = NULL;
+
+        code = curl_ws_recv(curl, buffer, sizeof(buffer) - 1, &got, &meta);
+        if(code == CURLE_AGAIN) {
+            struct timespec delay;
+            delay.tv_sec = 0;
+            delay.tv_nsec = 100000000L;
+            nanosleep(&delay, NULL);
+            continue;
+        }
+        if(code == CURLE_GOT_NOTHING) {
+            curl_easy_cleanup(curl);
+            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        }
+        if(code != CURLE_OK) {
+            TraceLog(LOG_WARNING, "SYNC: websocket recv failed code=%d", (int)code);
+            curl_easy_cleanup(curl);
+            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        }
+        if(meta != NULL && (meta->flags & CURLWS_CLOSE)) {
+            curl_easy_cleanup(curl);
+            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        }
+        if(meta != NULL && !(meta->flags & CURLWS_TEXT))
+            continue;
+        if(got > 0) {
+            if(got > sizeof(message) - 1 - message_len)
+                got = sizeof(message) - 1 - message_len;
+            memcpy(message + message_len, buffer, got);
+            message_len += got;
+            message[message_len] = '\0';
+        }
+        if(meta == NULL || meta->bytesleft != 0)
+            continue;
+        if(strstr(message, "\"type\":\"sync_changed\"") != NULL) {
+            curl_easy_cleanup(curl);
+            return INBE_SYNC_CLIENT_OK;
+        }
+        message_len = 0;
+        message[0] = '\0';
+    }
 #else
     (void)base_url;
-    return INBE_SYNC_CLIENT_UNAVAILABLE;
+    return INBE_SYNC_CLIENT_REQUEST_FAILED;
 #endif
 }
 
 InbeSyncClientResult
 inbe_sync_client_delete_account(const char *base_url)
 {
-#if defined(INBE_SYNC_CLIENT_HAS_HTTP)
     InbeSyncAccount account;
     char url[768];
     char exported_key[8200];
@@ -854,8 +1104,4 @@ inbe_sync_client_delete_account(const char *base_url)
     if(status == 401 || status == 403)
         return INBE_SYNC_CLIENT_AUTH_FAILED;
     return status >= 200 && status < 300 ? INBE_SYNC_CLIENT_OK : INBE_SYNC_CLIENT_REQUEST_FAILED;
-#else
-    (void)base_url;
-    return INBE_SYNC_CLIENT_UNAVAILABLE;
-#endif
 }

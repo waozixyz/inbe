@@ -5,7 +5,6 @@
 
 typedef enum InbeSyncClientResult {
     INBE_SYNC_CLIENT_OK = 0,
-    INBE_SYNC_CLIENT_UNAVAILABLE,
     INBE_SYNC_CLIENT_INVALID_URL,
     INBE_SYNC_CLIENT_NO_ACCOUNT,
     INBE_SYNC_CLIENT_PAYLOAD_FAILED,
@@ -18,6 +17,7 @@ typedef enum InbeSyncClientResult {
 int inbe_sync_client_url_valid(const char *url);
 int inbe_sync_client_normalize_url(const char *input, char *out, size_t out_size);
 InbeSyncClientResult inbe_sync_client_sync(const char *base_url);
+InbeSyncClientResult inbe_sync_client_wait_for_remote_event(const char *base_url);
 InbeSyncClientResult inbe_sync_client_delete_account(const char *base_url);
 const char *inbe_sync_client_result_name(InbeSyncClientResult result);
 void inbe_sync_client_clear_auth_token(void);

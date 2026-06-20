@@ -141,8 +141,6 @@ settings_sync_result_key(InbeSyncClientResult result)
     switch(result) {
         case INBE_SYNC_CLIENT_OK:
             return "sync_connected";
-        case INBE_SYNC_CLIENT_UNAVAILABLE:
-            return "sync_unavailable";
         case INBE_SYNC_CLIENT_INVALID_URL:
             return "sync_server_url_invalid";
         case INBE_SYNC_CLIENT_NO_ACCOUNT:

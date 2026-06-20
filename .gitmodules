@@ -13,3 +13,6 @@
 [submodule "vendor/liboqs"]
 	path = vendor/liboqs
 	url = https://github.com/open-quantum-safe/liboqs.git
+[submodule "vendor/curl"]
+	path = vendor/curl
+	url = https://github.com/curl/curl.git
