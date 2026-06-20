@@ -1,1 +1,1 @@
-Una app libre para respiración, meditación y hábitos.
+Respiración, meditación y hábitos con sincronización.

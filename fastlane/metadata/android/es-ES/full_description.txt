@@ -2,11 +2,9 @@ Una app libre y de código abierto para respiración, meditación y hábitos.
 
 Funciones:
 - Prácticas guiadas con señales visuales y de audio
-- Organización Mind, Yoga y Fitness para hábitos y prácticas
-- Sesiones de respiración y temporizadores de meditación configurables
-- Seguimiento de hábitos con historial de sesiones
+- Organización Mind, Yoga y Fitness para distintas rutinas de práctica
+- Sesiones de respiración, temporizadores y contadores configurables
+- Seguimiento de hábitos con historial y recuentos vinculados a prácticas
+- Sincronización opcional de hábitos, sesiones y progreso
 - Almacenamiento local con importación y exportación
 - Temas personalizables con variantes claras y oscuras
-- Interfaz optimizada para pantallas táctiles
-
-Plataformas disponibles: Linux, Windows, Android, WebAssembly.

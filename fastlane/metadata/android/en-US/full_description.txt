@@ -2,11 +2,9 @@ A free, open-source practice app for breathing, meditation, and habit tracking.
 
 Features:
 - Guided practice sessions with visual and audio cues
-- Mind, Yoga, and Fitness organization for habits and practice views
-- Configurable breathing sessions and meditation timers
-- Habit tracking with session history
+- Mind, Yoga, and Fitness organization for different practice routines
+- Customizable breathing sessions, meditation timers, and habit counters
+- Habit tracking with session history and linked practice counts
+- Optional sync for habits, sessions, and practice progress
 - Local storage with import/export support
 - Theme customization with light and dark variants
-- Touch-optimized UI for mobile devices
-
-Available platforms: Linux, Windows, Android, WebAssembly.

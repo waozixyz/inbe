@@ -86,9 +86,12 @@
 
           aarch64PkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
             aarch64Pkgs.SDL2.dev
+            aarch64Pkgs.curl.dev
+            aarch64Pkgs.openssl.dev
             aarch64Pkgs.libdrm.dev
             aarch64Pkgs.libgbm
             aarch64Pkgs.libglvnd.dev
+            aarch64Pkgs.zlib.dev
           ];
 
           windowsTargetPkgs = pkgs.lib.optionals windowsCrossEnabled [
@@ -190,6 +193,8 @@ EOF
               sdl2Pkgs.SDL2
               sdl2Pkgs.SDL2.dev
 	      butler
+              binutils
+              clickable
               cmake
               curl
               curl.dev
@@ -200,6 +205,7 @@ EOF
               gradle
               imagemagick
               jdk17
+              libxml2
               libdrm
               libdrm.dev
               libgbm
@@ -215,6 +221,7 @@ EOF
               ninja
               openssl
               openssl.dev
+              patchelf
               pkg-config
               pipewire
               rsync
@@ -223,11 +230,17 @@ EOF
               aarch64Pkgs.stdenv.cc
               aarch64Pkgs.SDL2
               aarch64Pkgs.SDL2.dev
+              aarch64Pkgs.curl
+              aarch64Pkgs.curl.dev
+              aarch64Pkgs.openssl
+              aarch64Pkgs.openssl.dev
               aarch64Pkgs.libdrm
               aarch64Pkgs.libdrm.dev
               aarch64Pkgs.libgbm
               aarch64Pkgs.libglvnd
               aarch64Pkgs.libglvnd.dev
+              aarch64Pkgs.zlib
+              aarch64Pkgs.zlib.dev
             ] ++ windowsTargetPkgs;
 
             profile = ''
@@ -264,6 +277,7 @@ EOF
 
               export AARCH64_CC="${aarch64Pkgs.stdenv.cc}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}cc"
               export AARCH64_AR="${aarch64Pkgs.stdenv.cc.bintools.bintools}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}ar"
+              export AARCH64_RANLIB="${aarch64Pkgs.stdenv.cc.bintools.bintools}/bin/${aarch64Pkgs.stdenv.cc.targetPrefix}ranlib"
               export AARCH64_PKG_CONFIG_PATH="${aarch64PkgConfigPath}"
               export AARCH64_RAY_SDL_CFLAGS="-D_GNU_SOURCE=1 -D_REENTRANT -I${aarch64Pkgs.SDL2.dev}/include -I${aarch64Pkgs.SDL2.dev}/include/SDL2"
               export AARCH64_RAY_SDL_LDLIBS="-L${aarch64Pkgs.SDL2}/lib -lSDL2"
@@ -272,6 +286,9 @@ EOF
               export AARCH64_RAY_CFLAGS="$AARCH64_RAY_SDL_CFLAGS $AARCH64_RAY_GL_CFLAGS"
               export AARCH64_RAY_LDLIBS="$AARCH64_RAY_SDL_LDLIBS $AARCH64_RAY_GL_LDLIBS"
               export AARCH64_RAY_SDL_INCLUDE_DIR="${aarch64Pkgs.SDL2.dev}/include"
+              export AARCH64_FLINT_CURL_CFLAGS="$(PKG_CONFIG_PATH="$AARCH64_PKG_CONFIG_PATH" pkg-config --cflags libcurl)"
+              export AARCH64_FLINT_CURL_LDLIBS="$(PKG_CONFIG_PATH="$AARCH64_PKG_CONFIG_PATH" pkg-config --libs libcurl)"
+              export AARCH64_CLICK_RUNTIME_LIBS="${aarch64Pkgs.SDL2}/lib/libSDL2-2.0.so.0 ${aarch64Pkgs.curl.out}/lib/libcurl.so.4 ${aarch64Pkgs.openssl.out}/lib/libssl.so.3 ${aarch64Pkgs.openssl.out}/lib/libcrypto.so.3 ${aarch64Pkgs.libdrm}/lib/libdrm.so.2 ${aarch64Pkgs.libgbm}/lib/libgbm.so.1 ${aarch64Pkgs.libglvnd}/lib/libEGL.so.1 ${aarch64Pkgs.libglvnd}/lib/libGLESv2.so.2 ${aarch64Pkgs.zlib}/lib/libz.so.1"
 
               ${windowsProfile}
 

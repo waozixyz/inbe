@@ -26,6 +26,33 @@ LINUX_APPIMAGE_DIR := packaging/linux/appimage
 LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
+LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
+CLICK_PACKAGE ?= inbe
+CLICK_TITLE ?= $(APP_TITLE)
+CLICK_MAINTAINER ?= Waozi Project <waozi@waozi.xyz>
+CLICK_ARCH ?= arm64
+CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
+CLICK_POLICY_VERSION ?= 20.04
+CLICK_INCLUDE_METAINFO ?= 0
+CLICK_DIR := packaging/click
+CLICK_MANIFEST_TEMPLATE := $(CLICK_DIR)/manifest.json.in
+CLICK_CONTROL_TEMPLATE := $(CLICK_DIR)/control.in
+CLICK_APPARMOR_TEMPLATE := $(CLICK_DIR)/inbe.apparmor.in
+CLICK_DESKTOP_TEMPLATE := $(CLICK_DIR)/inbe.desktop.in
+CLICK_METAINFO_TEMPLATE := $(CLICK_DIR)/inbe.metainfo.xml.in
+CLICK_RUNNER := $(CLICK_DIR)/run-inbe.sh
+CLICK_BUILD_DIR := $(BUILD_OBJ_DIR)/click/$(CLICK_ARCH)
+CLICK_ROOT := $(CLICK_BUILD_DIR)/$(CLICK_PACKAGE)
+CLICK_CONTROL_DIR := $(CLICK_BUILD_DIR)/control
+CLICK_BIN_DIR := $(BUILD_BIN_DIR)/click/$(CLICK_ARCH)
+CLICK_DIST_DIR := $(BUILD_DIST_DIR)/click
+CLICK_TARGET = $(CLICK_DIST_DIR)/$(CLICK_PACKAGE)_$(APP_VERSION)_$(CLICK_ARCH).click
+CLICK_BIN := $(CLICK_BIN_DIR)/$(APP_NAME)
+CLICK_BIN_INPUT := $(if $(strip $(CLICK_BIN_SOURCE)),$(CLICK_BIN_SOURCE),$(CLICK_BIN))
+CLICK_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib
+CLICK_RAYLIB_A := $(CLICK_RAYLIB_BUILD_DIR)/libraylib.a
+CLICK_PATCHELF_INTERPRETER ?= /lib/ld-linux-aarch64.so.1
+CLICK_RUNTIME_LIBS ?= $(AARCH64_CLICK_RUNTIME_LIBS)
 WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
@@ -134,6 +161,8 @@ APP_SRCS := \
 	src/practices/meditation/meditation_music.c \
 	src/core/theme.c \
 	src/storage/data.c \
+	src/storage/db.c \
+	src/storage/import.c \
 	src/storage/storage.c \
 	src/storage/sync_account.c \
 	src/storage/sync_client.c \
@@ -164,6 +193,7 @@ APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
+CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(AARCH64_FLINT_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
 WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lws2_32 -liphlpapi -lcrypt32 -lsecur32 -lbcrypt -ladvapi32 -lm
@@ -204,8 +234,8 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run test dist appimage vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
-.NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle
+.PHONY: all native run test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
 
@@ -228,12 +258,22 @@ dist:
 	$(MAKE) package-unpackaged-assets && \
 	$(MAKE) web && \
 	$(MAKE) chrome-web-store && \
+	$(MAKE) click && \
 	$(MAKE) appimage && \
 	$(MAKE) windows && \
 	$(MAKE) android-release PASSWORD="$$password" && \
 	$(MAKE) android-bundle PASSWORD="$$password"
 
 appimage: $(APPIMAGE_TARGET)
+
+click: $(CLICK_TARGET)
+
+click-verify: $(CLICK_TARGET)
+	@command -v clickable >/dev/null || { \
+		echo "clickable is missing. Re-enter the flake shell with: nix develop"; \
+		exit 1; \
+	}
+	clickable review $(CLICK_TARGET)
 
 vendor-prebuilds: vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows
 
@@ -253,11 +293,11 @@ test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST) $(LOCALE_KEYS_TEST) $(SY
 	$(SYNC_URL_TEST)
 	$(SYNC_ACCOUNT_TEST)
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/storage.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c src/storage/storage.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(FLINT_TEXT_SCALING_TEST): tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c flint/include/flint_text.h flint/include/flint_clip.h flint/include/flint_scaling.h | $(TEST_BIN_DIR)
@@ -278,14 +318,14 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/storage.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
@@ -337,6 +377,24 @@ $(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
 		CC="$(WEB_CC)" \
 		AR="$(WEB_AR)" \
 		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+
+$(CLICK_RAYLIB_A): $(RAYLIB_SOURCES)
+	rm -rf $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src
+	mkdir -p $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src $(CLICK_RAYLIB_BUILD_DIR)
+	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src/
+	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src \
+		PLATFORM=PLATFORM_DESKTOP_SDL \
+		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
+		RAYLIB_LIBTYPE=STATIC \
+		RAYLIB_RELEASE_PATH=../raylib \
+		RAYLIB_MODULE_AUDIO=TRUE \
+		RAYLIB_MODULE_MODELS=FALSE \
+		CC="$(AARCH64_CC)" \
+		AR="$(AARCH64_AR)" \
+		RANLIB="$(AARCH64_RANLIB)" \
+		SDL_INCLUDE_PATH="$(AARCH64_RAY_SDL_INCLUDE_DIR)" \
+		SDL_LIBRARIES="$(AARCH64_RAY_SDL_LDLIBS)" \
+		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(AARCH64_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(WIN64_RAYLIB_A): $(RAYLIB_SOURCES)
 	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src
@@ -532,6 +590,95 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 
+$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) | $(CLICK_BIN_DIR)
+	$(AARCH64_CC) $(CLICK_CFLAGS) \
+		$(APP_INCLUDE) \
+		$(FLINT_INCLUDE) \
+		$(SQLITE_INCLUDE) \
+		-I$(RAYLIB_DIR) \
+		$(AARCH64_RAY_CFLAGS) \
+		-DPLATFORM_DESKTOP \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
+		-DSUPPORT_FILEFORMAT_MP3=1 \
+		-o $@ \
+		$(SRC) \
+		$(FLINT_SRCS) \
+		$(SQLITE_SRC) \
+		$(CLICK_RAYLIB_A) \
+		$(AARCH64_RAY_LDLIBS) \
+		$(AARCH64_FLINT_CURL_LDLIBS) \
+		-lm -lpthread -ldl -lrt \
+		$(LDFLAGS)
+	@if command -v patchelf >/dev/null; then \
+		patchelf --set-interpreter "$(CLICK_PATCHELF_INTERPRETER)" --set-rpath '$$ORIGIN/../lib' $@; \
+	fi
+
+$(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_TEMPLATE) $(CLICK_APPARMOR_TEMPLATE) $(CLICK_DESKTOP_TEMPLATE) $(CLICK_METAINFO_TEMPLATE) $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
+	@command -v ar >/dev/null || { \
+		echo "ar is missing. Re-enter the flake shell with: nix develop"; \
+		exit 1; \
+	}
+	rm -rf $(CLICK_ROOT) $(CLICK_CONTROL_DIR)
+	rm -f $(CLICK_DIST_DIR)/$(CLICK_PACKAGE)_*_$(CLICK_ARCH).click
+	rm -f $(CLICK_BUILD_DIR)/debian-binary $(CLICK_BUILD_DIR)/control.tar.gz $(CLICK_BUILD_DIR)/data.tar.gz
+	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
+	mkdir -p $(CLICK_CONTROL_DIR)
+	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
+	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-inbe.sh
+	chmod +x $(CLICK_ROOT)/run-inbe.sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
+	@for lib in $(CLICK_RUNTIME_LIBS); do \
+		if [ -f "$$lib" ]; then \
+			cp -L "$$lib" $(CLICK_ROOT)/usr/lib/; \
+		fi; \
+	done
+	@if command -v patchelf >/dev/null; then \
+		for elf in $(CLICK_ROOT)/usr/lib/*.so*; do \
+			if [ -f "$$elf" ]; then patchelf --set-rpath '$$ORIGIN' "$$elf" >/dev/null 2>&1 || true; fi; \
+		done; \
+	fi
+	sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
+		-e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
+		-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
+		-e 's#__CLICK_ARCH__#$(CLICK_ARCH)#g' \
+		-e 's#__CLICK_FRAMEWORK__#$(CLICK_FRAMEWORK)#g' \
+		-e 's#__CLICK_MAINTAINER__#$(CLICK_MAINTAINER)#g' \
+		$(CLICK_MANIFEST_TEMPLATE) > $(CLICK_ROOT)/manifest.json
+	cp $(CLICK_ROOT)/manifest.json $(CLICK_CONTROL_DIR)/manifest
+	installed_size=$$(du -sk $(CLICK_ROOT) | awk '{ print $$1 }'); \
+	sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
+		-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
+		-e 's#__CLICK_ARCH__#$(CLICK_ARCH)#g' \
+		-e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
+		-e 's#__CLICK_MAINTAINER__#$(CLICK_MAINTAINER)#g' \
+		-e "s#__INSTALLED_SIZE__#$$installed_size#g" \
+		$(CLICK_CONTROL_TEMPLATE) > $(CLICK_CONTROL_DIR)/control
+	printf '%s\n' '#! /bin/sh' \
+		'echo "Click packages may not be installed directly using dpkg."' \
+		'echo "Use '\''click install'\'' instead."' \
+		'exit 1' > $(CLICK_CONTROL_DIR)/preinst
+	sed -e 's#__CLICK_POLICY_VERSION__#$(CLICK_POLICY_VERSION)#g' \
+		$(CLICK_APPARMOR_TEMPLATE) > $(CLICK_ROOT)/inbe.apparmor
+	sed -e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
+		$(CLICK_DESKTOP_TEMPLATE) > $(CLICK_ROOT)/inbe.desktop
+	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
+		sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
+			-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
+			-e 's#__RELEASE_DATE__#$(shell date -u +%Y-%m-%d)#g' \
+			$(CLICK_METAINFO_TEMPLATE) > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_PACKAGE).metainfo.xml; \
+	fi
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
+	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
+	cd $(CLICK_ROOT) && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs md5sum > $(abspath $(CLICK_CONTROL_DIR)/md5sums)
+	printf '2.0\n' > $(CLICK_BUILD_DIR)/debian-binary
+	tar -C $(CLICK_CONTROL_DIR) --sort=name --owner=0 --group=0 --numeric-owner -czf $(abspath $(CLICK_BUILD_DIR)/control.tar.gz) control manifest md5sums preinst
+	tar -C $(CLICK_ROOT) --sort=name --owner=0 --group=0 --numeric-owner -czf $(abspath $(CLICK_BUILD_DIR)/data.tar.gz) inbe.apparmor inbe.desktop inbe.png manifest.json run-inbe.sh usr
+	cd $(CLICK_BUILD_DIR) && ar rcs $(abspath $@) debian-binary control.tar.gz data.tar.gz
+	test -f $@
+	ar t $@ | grep -qx debian-binary
+	ar t $@ | grep -qx control.tar.gz
+	ar t $@ | grep -qx data.tar.gz
+
 $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -572,7 +719,7 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AM
 		$(WINDOWS_LDFLAGS)
 	$(WIN32_STRIP) $@
 
-$(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)
+$(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)
 	@command -v linuxdeploy-plugin-appimage >/dev/null || { \
 		echo "linuxdeploy-plugin-appimage is missing. Re-enter the flake shell with: nix develop"; \
 		exit 1; \
@@ -588,13 +735,29 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	rm -rf $(LINUX_APPDIR)
 	rm -rf $(LINUX_DIST_DIR)/*.AppDir
 	rm -f $(LINUX_DIST_DIR)/*.AppImage
-	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps
+	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/lib $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps $(LINUX_APPDIR)/usr/share/metainfo
 	cp $(TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	cp $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPDIR)/AppRun
 	chmod +x $(LINUX_APPDIR)/AppRun
+	@loader=$$(LC_ALL=C readelf -l $(TARGET) | sed -n 's#.*Requesting program interpreter: \(.*\)]#\1#p'); \
+	if printf '%s\n' "$$loader" | grep -q '^/nix/store/.*glibc.*/'; then \
+		glibc_lib_dir=$$(dirname "$$loader"); \
+		echo "Bundling glibc loader: $$loader"; \
+		cp "$$loader" $(LINUX_APPDIR)/usr/lib/; \
+		for lib in libc.so.6 libm.so.6 libpthread.so.0 libdl.so.2 librt.so.1 libresolv.so.2 libnss_files.so.2; do \
+			if [ -f "$$glibc_lib_dir/$$lib" ]; then \
+				cp "$$glibc_lib_dir/$$lib" $(LINUX_APPDIR)/usr/lib/; \
+				chmod u+w $(LINUX_APPDIR)/usr/lib/$$lib; \
+			fi; \
+		done; \
+		chmod u+w $(LINUX_APPDIR)/usr/lib/$$(basename "$$loader"); \
+	else \
+		echo "Not bundling glibc; build interpreter is $$loader"; \
+	fi
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/usr/share/applications/$(APP_NAME).desktop
+	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(APP_NAME).appdata.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
@@ -630,6 +793,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-sFETCH=1 \
 		-sALLOW_MEMORY_GROWTH=1 \
 		-sSTACK_SIZE=8388608 \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick \
 		--shell-file src/web_shell.html \
 		-lidbfs.js \
 		-lm
@@ -847,5 +1011,32 @@ $(error libcurl metadata is missing. Sync is required; enter the flake shell wit
 endif
 ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
 $(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
+endif
+endif
+
+NEEDS_CLICK_ENV := $(filter click click-verify,$(MAKECMDGOALS))
+ifneq ($(strip $(NEEDS_CLICK_ENV)),)
+ifeq ($(strip $(CLICK_BIN_SOURCE)),)
+ifeq ($(strip $(AARCH64_CC)),)
+$(error AARCH64_CC is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_AR)),)
+$(error AARCH64_AR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_RANLIB)),)
+$(error AARCH64_RANLIB is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_RAY_CFLAGS)),)
+$(error AARCH64_RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_RAY_LDLIBS)),)
+$(error AARCH64_RAY_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_RAY_SDL_INCLUDE_DIR)),)
+$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
+ifeq ($(strip $(AARCH64_FLINT_CURL_LDLIBS)),)
+$(error AARCH64_FLINT_CURL_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+endif
 endif
 endif

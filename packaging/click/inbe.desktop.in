@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=__CLICK_TITLE__
+Exec=run-inbe.sh
+Icon=inbe
+Terminal=false
+X-Ubuntu-Touch=true
+X-Ubuntu-Supported-Orientations=portrait,landscape

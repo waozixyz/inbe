@@ -1,0 +1,3 @@
+### Fixed
+- Build the Ubuntu Touch Click package with the OpenStore package id and review-compatible control metadata.
+- Omit Click AppStream metadata by default to avoid OpenStore revision import failures.
