@@ -1,7 +1,7 @@
 #include "practice_registry.h"
 
 #include "app.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "practices/whm/whm_practice.h"
 #include "practices/whm/whm_session.h"
 #include "practices/meditation/meditation_practice.h"

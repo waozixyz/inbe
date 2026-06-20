@@ -1,7 +1,7 @@
 #include "meditation_music.h"
 
 #include "app.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "miniz.h"
 #include "flint_color.h"
@@ -306,7 +306,11 @@ music_track_path(InbeApp *app, int track, char *out, size_t out_size)
        file_exists(out))
         return;
 
+#if defined(PLATFORM_WEB)
+    out[0] = '\0';
+#else
     snprintf(out, out_size, "unpackaged_assets/audio/%s", g_tracks[track].file);
+#endif
 }
 
 static int

@@ -216,6 +216,8 @@ int ui_draw_slider_vertical_with_marks(int id, int x, int y, int h,
 int ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
                          const char *off_label, const char *on_label);
 int ui_draw_checkbox_toggle(int x, int y, const char *label, int *value);
+int ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
+                                     int *value, int disabled);
 int ui_draw_dropdown_button(int id, int x, int y, int w, int h, const char **options, int option_count, int *selected_index);
 int ui_draw_dropdown_menu(int id);
 int ui_dropdown_captures_click(Vector2 point);
@@ -230,8 +232,6 @@ typedef struct UITab {
     const char *label;
     Texture2D icon;
     UIIconType icon_type;
-    void (*on_click)(void *user_data);
-    void *user_data;
 } UITab;
 
 typedef struct UITabBar {
@@ -242,7 +242,7 @@ typedef struct UITabBar {
 int ui_nav_button_width(const char *label, int icon_size, int show_label, int font);
 int ui_draw_nav_button(int x, int y, int icon_size, Texture2D icon, const char *label, int show_label, int *hover);
 int ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon, const char *label, int show_label, int *hover);
-void ui_draw_tab_bar(UITab *tabs, int count);
+int ui_draw_tab_bar(UITab *tabs, int count);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
 int ui_draw_modal(const char *title, const char *message, const char *cancel_btn, const char *confirm_btn);

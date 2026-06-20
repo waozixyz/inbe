@@ -1,4 +1,18 @@
 # Changelog
+## [1.4.2] - 2026-06-20
+### Fixed
+- Improve sync auth, websocket reconnects, and queued habit/session updates.
+- Reduce SQLite-related UI flicker and speed up bulk import sync queueing.
+
+## [1.4.1] - 2026-06-19
+### Changed
+- Improve account management
+
+## [1.4.0] - 2026-06-19
+### Added
+- optional sync client, offline account creation
+- simplify tutorial
+
 ## [1.3.6] - 2026-06-18
 ### Fixed
 - Fixed Tickmate `.db` imports so zero-based months map correctly and long habit histories load without dropping later dates.

@@ -2,7 +2,7 @@
 
 #include "app.h"
 #include "device_preferences.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "practices/meditation/meditation_music.h"
 #include "practices/whm/whm_session.h"
 #include "storage.h"
@@ -55,27 +55,8 @@ static void
 sync_web_storage(void)
 {
     EM_ASM({
-        if(typeof FS !== 'undefined' && typeof FS.syncfs === 'function') {
-            if(Module.inbeSyncfsTimer)
-                clearTimeout(Module.inbeSyncfsTimer);
-            Module.__inbeStorageSyncPending = true;
-            Module.inbeSyncfsTimer = setTimeout(function() {
-                Module.inbeSyncfsTimer = 0;
-                Module.__inbeStorageSyncing = true;
-                try {
-                    FS.syncfs(false, function(err) {
-                        Module.__inbeStorageSyncing = false;
-                        Module.__inbeStorageSyncPending = false;
-                        if(err) console.error("IDBFS save failed:", err);
-                        else console.log("IDBFS synced");
-                    });
-                } catch(e) {
-                    Module.__inbeStorageSyncing = false;
-                    Module.__inbeStorageSyncPending = false;
-                    console.error("IDBFS sync error:", e);
-                }
-            }, 250);
-        }
+        if(typeof Module.__inbeScheduleStorageSync === 'function')
+            Module.__inbeScheduleStorageSync(250, true);
     });
 }
 #endif
@@ -84,14 +65,14 @@ static void
 save_int_settings(const IntSetting *settings, size_t count)
 {
     for(size_t i = 0; i < count; i++)
-        inbe_storage_set_setting_int(settings[i].key, settings[i].value);
+        storage_set_setting_int(settings[i].key, settings[i].value);
 }
 
 static void
 load_int_settings(const LoadedIntSetting *settings, size_t count)
 {
     for(size_t i = 0; i < count; i++)
-        *settings[i].dst = inbe_storage_get_setting_int(settings[i].key,
+        *settings[i].dst = storage_get_setting_int(settings[i].key,
                                                         settings[i].fallback);
 }
 
@@ -99,7 +80,7 @@ static void
 load_bool_settings(const LoadedBoolSetting *settings, size_t count)
 {
     for(size_t i = 0; i < count; i++)
-        *settings[i].dst = inbe_storage_get_setting_int(settings[i].key,
+        *settings[i].dst = storage_get_setting_int(settings[i].key,
                                                         settings[i].fallback) != 0;
 }
 
@@ -107,7 +88,7 @@ static void
 load_clamped_settings(const LoadedClampedSetting *settings, size_t count)
 {
     for(size_t i = 0; i < count; i++) {
-        int value = inbe_storage_get_setting_int(settings[i].key, settings[i].fallback);
+        int value = storage_get_setting_int(settings[i].key, settings[i].fallback);
         *settings[i].dst = clampi(value, settings[i].min_value, settings[i].max_value);
     }
 }
@@ -117,7 +98,7 @@ apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause
 {
     speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX);
     inbe->speed_level = speed;
-    inbe->breath_half_ticks = inbe_breath_half_ticks_for_speed(speed);
+    inbe->breath_half_ticks = breath_half_ticks_for_speed(speed);
     inbe->breath_animation = clampi(inbe->breath_animation,
                                     InbeBreathAnimationLinear,
                                     InbeBreathAnimationCount - 1);
@@ -184,12 +165,12 @@ save_settings(InbeApp *app)
         {"practice_category_tab", app->practice_category_tab},
     };
 
-    inbe_storage_settings_begin_write();
+    storage_settings_begin_write();
     save_int_settings(int_settings, sizeof(int_settings) / sizeof(int_settings[0]));
-    inbe_storage_set_setting_text("language",
+    storage_set_setting_text("language",
                                   (app->language_selected && app->language[0] != '\0') ?
                                       app->language : "");
-    inbe_storage_settings_end_write();
+    storage_settings_end_write();
 #if defined(PLATFORM_WEB)
     sync_web_storage();
 #endif
@@ -200,7 +181,7 @@ save_settings(InbeApp *app)
 static void
 load_language_setting(InbeApp *app, int settings_missing)
 {
-    const char *language = inbe_storage_get_setting_text("language");
+    const char *language = storage_get_setting_text("language");
 
     app->language_needs_save = 0;
     if(language != NULL && language[0] != '\0') {
@@ -235,7 +216,7 @@ app_load_settings(InbeApp *app)
     if(app == NULL)
         return 0;
 
-    settings_missing = inbe_storage_settings_empty();
+    settings_missing = storage_settings_empty();
 
     {
         LoadedIntSetting settings[] = {
@@ -292,7 +273,7 @@ app_load_settings(InbeApp *app)
         load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
 
-    manual_seen_mask = inbe_storage_get_setting_int("exercise_manual_seen_mask", -1);
+    manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)
         manual_seen_mask = app->tutorial_seen ? exercise_manual_bit(EXERCISE_WIM_HOF) : 0;
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
@@ -301,7 +282,7 @@ app_load_settings(InbeApp *app)
 
 #ifdef __ANDROID__
     app->inbe.play_in_background =
-        inbe_storage_get_setting_int("play_in_background", 1) != 0;
+        storage_get_setting_int("play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
              app->inbe.play_in_background);
 #else

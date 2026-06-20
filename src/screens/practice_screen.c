@@ -2,15 +2,6 @@
 #include "app.h"
 #include "practices/practice_registry.h"
 
-void
-on_practice_tab_click(void *user_data)
-{
-    InbeApp *app = user_data;
-    extern void app_request_bottom_tab(InbeApp *app, int bottom_tab);
-    enum { APP_BOTTOM_TAB_PRACTICE = 1 };
-    app_request_bottom_tab(app, APP_BOTTOM_TAB_PRACTICE);
-}
-
 int
 practice_activity_count_for_tab(int tab)
 {

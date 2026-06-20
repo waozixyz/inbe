@@ -397,21 +397,20 @@ Jangan gunakan saat mengemudi,
 berdiri, atau di dalam air.
 ---
 [tutorial_step_method]
-Ikuti 4 langkah sederhana:
+Simply follow 3 steps:
 
-1. Bernapas secara ritmis.
-2. Buang napas dan tahan.
-3. Tarik napas dalam dan tahan.
-4. Buang napas dan ulangi.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-Gunakan ikon kunci pas %i untuk menyesuaikan ronde, nafas, kecepatan, dan jeda.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-Isi paru-paru Anda sepenuhnya, lalu biarkan napas keluar.
+Breathe in and out 30 times.
 
-Gunakan slider ini untuk mengatur kecepatan lingkaran pernapasan.
-
-Temukan ritme yang terasa alami bagi Anda.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
@@ -419,17 +418,14 @@ Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
 Saat aktif, ronde pertama dimulai pada kecepatan 1 untuk 5 nafas pertama, lalu bertambah hingga kecepatan yang dipilih.
 ---
 [tutorial_step_exhale_hold]
-Setelah ronde pernapasan,
-buang napas secara normal dan tahan.
+After 30 breaths, exhale and hold as long as you can.
 
-Lepaskan saat tubuh Anda
-meminta udara. Jangan dipaksa.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-Tarik napas sepenuhnya dan tahan sekitar 15 detik.
+Inhale fully and hold for 15 seconds.
 
-Lalu buang napas dan mulai ronde berikutnya.
-Seiring waktu, setiap ronde mungkin terasa lebih dalam.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 LEWATI
@@ -493,4 +489,122 @@ Lanskap
 ---
 [orientation_sensor]
 Sensor
+---
+[back_button]
+Back
+---
+[close_button]
+Close
+---
+[sync_account_title]
+Account
+---
+[sync_configure_account_button]
+Configure Account
+---
+[sync_create_account_button]
+Create Account
+---
+[sync_account_created]
+Account created
+---
+[sync_account_create_failed]
+Could not create account
+---
+[sync_import_key_button]
+Import .key File
+---
+[sync_import_key_dialog_title]
+Import Account Key
+---
+[sync_private_key_imported]
+Account key imported
+---
+[sync_private_key_import_failed]
+Could not import account key
+---
+[sync_private_key_import_cancelled]
+Account key import cancelled
+---
+[sync_liboqs_unavailable]
+liboqs is not built for this target.
+---
+[sync_public_id_label]
+Public ID
+---
+[sync_copy_id_button]
+Copy ID
+---
+[sync_public_id_copied]
+Public ID copied
+---
+[sync_backup_key_button]
+Backup Key
+---
+[sync_remote_label]
+Remote
+---
+[sync_connect_button]
+Connect
+---
+[sync_connected_button]
+Connected
+---
+[sync_server_url_invalid]
+Use https:// or loopback like localhost:8080
+---
+[sync_server_saved]
+Sync server saved
+---
+[sync_connected]
+Remote sync complete
+---
+[sync_failed]
+Remote sync failed
+---
+[sync_unavailable]
+Remote sync is not available on this platform
+---
+[sync_no_account]
+Create an account before connecting
+---
+[sync_auth_failed]
+Remote rejected this account
+---
+[sync_backup_warning]
+Save this private key somewhere you control. Anyone with it can claim this account.
+---
+[sync_backup_title]
+Backup Account Key
+---
+[sync_save_key_file_button]
+Save .key File
+---
+[sync_save_key_dialog_title]
+Save Account Key
+---
+[sync_private_key_backup_saved]
+Account key backup saved
+---
+[sync_private_key_backup_failed]
+Could not save account key backup
+---
+[sync_private_key_backup_cancelled]
+Account key backup cancelled
+---
+[sync_delete_account_button]
+Delete Account
+---
+[sync_delete_account_title]
+Delete Account?
+---
+[sync_delete_account_message]
+Delete this account from the remote server and this device? This cannot be undone.
+
+---
+[sync_account_deleted]
+Account deleted
+---
+[sync_account_delete_cancelled]
+Account deletion cancelled
 ---

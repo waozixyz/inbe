@@ -397,21 +397,20 @@ Nikdy ho nepoužívejte při řízení,
 vestoje ani ve vodě.
 ---
 [tutorial_step_method]
-Stačí postupovat ve 4 krocích:
+Simply follow 3 steps:
 
-1. Dýchejte rytmicky.
-2. Vydechněte a zadržte dech.
-3. Zhluboka se nadechněte a zadržte dech.
-4. Vydechněte a opakujte.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-Pomocí ikony ozubeného kola %i upravíte kola, nádechy, rychlost a pauzy.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-Naplňte plíce úplně a potom nechte dech volně odejít.
+Breathe in and out 30 times.
 
-Tímto posuvníkem nastavíte tempo dechového kruhu.
-
-Najděte rytmus, který vám připadá přirozený.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 Postupná rychlost usnadňuje vstup do prvního kola.
@@ -419,17 +418,14 @@ Postupná rychlost usnadňuje vstup do prvního kola.
 Když je zapnutá, první kolo začne rychlostí 1 pro prvních 5 nádechů a potom se postupně zvýší na vámi vybranou rychlost.
 ---
 [tutorial_step_exhale_hold]
-Po dechovém kole
-normálně vydechněte a zadržte dech.
+After 30 breaths, exhale and hold as long as you can.
 
-Uvolněte se, až si tělo řekne
-o vzduch. Nenuťte to.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-Plně se nadechněte a zadržte dech asi na 15 sekund.
+Inhale fully and hold for 15 seconds.
 
-Potom vydechněte a začněte další kolo.
-Časem může každé kolo působit hlouběji.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 PŘESKOČIT
@@ -493,4 +489,122 @@ Na šířku
 ---
 [orientation_sensor]
 Senzor
+---
+[back_button]
+Back
+---
+[close_button]
+Close
+---
+[sync_account_title]
+Account
+---
+[sync_configure_account_button]
+Configure Account
+---
+[sync_create_account_button]
+Create Account
+---
+[sync_account_created]
+Account created
+---
+[sync_account_create_failed]
+Could not create account
+---
+[sync_import_key_button]
+Import .key File
+---
+[sync_import_key_dialog_title]
+Import Account Key
+---
+[sync_private_key_imported]
+Account key imported
+---
+[sync_private_key_import_failed]
+Could not import account key
+---
+[sync_private_key_import_cancelled]
+Account key import cancelled
+---
+[sync_liboqs_unavailable]
+liboqs is not built for this target.
+---
+[sync_public_id_label]
+Public ID
+---
+[sync_copy_id_button]
+Copy ID
+---
+[sync_public_id_copied]
+Public ID copied
+---
+[sync_backup_key_button]
+Backup Key
+---
+[sync_remote_label]
+Remote
+---
+[sync_connect_button]
+Connect
+---
+[sync_connected_button]
+Connected
+---
+[sync_server_url_invalid]
+Use https:// or loopback like localhost:8080
+---
+[sync_server_saved]
+Sync server saved
+---
+[sync_connected]
+Remote sync complete
+---
+[sync_failed]
+Remote sync failed
+---
+[sync_unavailable]
+Remote sync is not available on this platform
+---
+[sync_no_account]
+Create an account before connecting
+---
+[sync_auth_failed]
+Remote rejected this account
+---
+[sync_backup_warning]
+Save this private key somewhere you control. Anyone with it can claim this account.
+---
+[sync_backup_title]
+Backup Account Key
+---
+[sync_save_key_file_button]
+Save .key File
+---
+[sync_save_key_dialog_title]
+Save Account Key
+---
+[sync_private_key_backup_saved]
+Account key backup saved
+---
+[sync_private_key_backup_failed]
+Could not save account key backup
+---
+[sync_private_key_backup_cancelled]
+Account key backup cancelled
+---
+[sync_delete_account_button]
+Delete Account
+---
+[sync_delete_account_title]
+Delete Account?
+---
+[sync_delete_account_message]
+Delete this account from the remote server and this device? This cannot be undone.
+
+---
+[sync_account_deleted]
+Account deleted
+---
+[sync_account_delete_cancelled]
+Account deletion cancelled
 ---

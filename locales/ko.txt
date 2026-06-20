@@ -412,21 +412,20 @@ In / Out
 운전 중, 서 있거나 물속에서는 사용하지 마세요.
 ---
 [tutorial_step_method]
-다음 4단계를 따르세요:
+Simply follow 3 steps:
 
-1. 리듬적으로 호흡합니다.
-2. 내뱉고 참습니다.
-3. 깊게 들이마시고 참습니다.
-4. 내뱉고 반복합니다.
+1. Breathe in and out 30 times.
+2. Exhale and hold.
+3. When you feel the urge to breathe, breathe in and hold for 15 seconds.
 
-톱니바퀴 아이콘 %i을 사용하여 라운드, 호흡, 속도 및 일시정지를 조정할 수 있습니다.
+Exhale, then repeat the process.
+
+Use the wrench icon %i to adjust rounds, breaths, speed, and pauses.
 ---
 [tutorial_step_breathe]
-폐를 완전히 채운 후 자연스럽게 내뱉으세요.
+Breathe in and out 30 times.
 
-이 슬라이더로 호흡 원의 속도를 설정합니다.
-
-자연스러운 리듬을 찾아보세요.
+Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
 [tutorial_step_progressive_speed]
 점진적 속도는 첫 라운드를 쉽게 시작할 수 있게 해줍니다.
@@ -434,17 +433,14 @@ In / Out
 켜면 첫 라운드가 느리게 시작된 후 점차 선택한 속도까지 증가합니다.
 ---
 [tutorial_step_exhale_hold]
-자연스럽게 내뱉고 참습니다.
+After 30 breaths, exhale and hold as long as you can.
 
-중앙 숫자가 계속 카운트됩니다. 원형 모드는 여러 진행 막대를 표시합니다.
-
-몸이 공기를 필요로 할 때 놓으세요.
+When you feel the urge to breathe, press the BREATH button.
 ---
 [tutorial_step_inhale_hold]
-완전히 들이마시고 약 15초간 참으세요.
+Inhale fully and hold for 15 seconds.
 
-그 후 내뱉고 다음 라운드를 시작하세요.
-시간이 지날수록 각 라운드가 더 깊어질 수 있습니다.
+Exhale, and the next round will begin.
 ---
 [tutorial_skip_button]
 건너뛰기
@@ -490,4 +486,122 @@ Inner Breeze 데이터 내보내기
 ---
 [meditation_music_attribution]
 음악: Elijah_K.
+---
+[back_button]
+Back
+---
+[close_button]
+Close
+---
+[sync_account_title]
+Account
+---
+[sync_configure_account_button]
+Configure Account
+---
+[sync_create_account_button]
+Create Account
+---
+[sync_account_created]
+Account created
+---
+[sync_account_create_failed]
+Could not create account
+---
+[sync_import_key_button]
+Import .key File
+---
+[sync_import_key_dialog_title]
+Import Account Key
+---
+[sync_private_key_imported]
+Account key imported
+---
+[sync_private_key_import_failed]
+Could not import account key
+---
+[sync_private_key_import_cancelled]
+Account key import cancelled
+---
+[sync_liboqs_unavailable]
+liboqs is not built for this target.
+---
+[sync_public_id_label]
+Public ID
+---
+[sync_copy_id_button]
+Copy ID
+---
+[sync_public_id_copied]
+Public ID copied
+---
+[sync_backup_key_button]
+Backup Key
+---
+[sync_remote_label]
+Remote
+---
+[sync_connect_button]
+Connect
+---
+[sync_connected_button]
+Connected
+---
+[sync_server_url_invalid]
+Use https:// or loopback like localhost:8080
+---
+[sync_server_saved]
+Sync server saved
+---
+[sync_connected]
+Remote sync complete
+---
+[sync_failed]
+Remote sync failed
+---
+[sync_unavailable]
+Remote sync is not available on this platform
+---
+[sync_no_account]
+Create an account before connecting
+---
+[sync_auth_failed]
+Remote rejected this account
+---
+[sync_backup_warning]
+Save this private key somewhere you control. Anyone with it can claim this account.
+---
+[sync_backup_title]
+Backup Account Key
+---
+[sync_save_key_file_button]
+Save .key File
+---
+[sync_save_key_dialog_title]
+Save Account Key
+---
+[sync_private_key_backup_saved]
+Account key backup saved
+---
+[sync_private_key_backup_failed]
+Could not save account key backup
+---
+[sync_private_key_backup_cancelled]
+Account key backup cancelled
+---
+[sync_delete_account_button]
+Delete Account
+---
+[sync_delete_account_title]
+Delete Account?
+---
+[sync_delete_account_message]
+Delete this account from the remote server and this device? This cannot be undone.
+
+---
+[sync_account_deleted]
+Account deleted
+---
+[sync_account_delete_cancelled]
+Account deletion cancelled
 ---

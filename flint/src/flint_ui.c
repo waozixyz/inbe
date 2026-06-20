@@ -50,6 +50,7 @@ static int g_ui_text_input_codepoints[UI_TEXT_INPUT_QUEUE_MAX];
 static int g_ui_text_input_codepoint_count = 0;
 static int g_ui_text_input_backspace_count = 0;
 static int g_ui_text_input_enter_count = 0;
+static double g_ui_backspace_next_repeat_at = 0.0;
 
 #define UI_INPUT_CLIP_STACK_MAX 16
 static Rectangle g_ui_input_clip_stack[UI_INPUT_CLIP_STACK_MAX];
@@ -86,6 +87,32 @@ ui_pointer_dx(void)
 {
     Vector2 mouse = GetMousePosition();
     return (int)mouse.x - g_ui_pointer_start_x;
+}
+
+static int
+ui_backspace_repeat_count(void)
+{
+    double now;
+    int count = 0;
+
+    if(IsKeyPressed(KEY_BACKSPACE)) {
+        g_ui_backspace_next_repeat_at = GetTime() + 0.34;
+        return 1;
+    }
+    if(!IsKeyDown(KEY_BACKSPACE)) {
+        g_ui_backspace_next_repeat_at = 0.0;
+        return 0;
+    }
+    now = GetTime();
+    if(g_ui_backspace_next_repeat_at <= 0.0) {
+        g_ui_backspace_next_repeat_at = now + 0.34;
+        return 0;
+    }
+    while(now >= g_ui_backspace_next_repeat_at && count < 8) {
+        count++;
+        g_ui_backspace_next_repeat_at += 0.045;
+    }
+    return count;
 }
 
 static int
@@ -650,8 +677,8 @@ flint_ui_text_edit(FlintUITextEdit edit)
         changed = 1;
     }
 
-    if(IsKeyPressed(KEY_BACKSPACE) || g_ui_text_input_backspace_count > 0) {
-        int repeat = g_ui_text_input_backspace_count > 0 ? g_ui_text_input_backspace_count : 1;
+    {
+        int repeat = g_ui_text_input_backspace_count + ui_backspace_repeat_count();
         for(int i = 0; i < repeat; i++) {
             int start = ui_utf8_prev_offset(edit.text, *edit.cursor_position);
             changed |= ui_text_delete_range(edit.text, edit.text_size,
@@ -1132,6 +1159,7 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
     Vector2 mouse_world = ui_mouse_world();
     int mx = (int)mouse_world.x;
     int my = (int)mouse_world.y;
+    int local_hover = 0;
 
     int mb = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
@@ -1140,6 +1168,8 @@ ui_draw_text_btn(int x, int y, const char *label, int *hover)
     int h = flint_clamp_px(30, 26, 34);
 
     x = x - w / 2;
+    if(!hover)
+        hover = &local_hover;
 
     int pressed = 0;
 
@@ -1666,35 +1696,53 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
 }
 
 int
-ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
+ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
+                                int *value, int disabled)
 {
     int font = flint_ui_font();
     int box_size = flint_px(22);
     int hover = 0;
     Rectangle bounds = {x, y, box_size, box_size};
     Vector2 mouse_world = ui_mouse_world();
+    Color box_color = disabled ? flint_darken(c_button, 18) : c_button;
+    Color mark_color = disabled ? flint_darken(c_text, 35) : c_text;
+    Color label_color = disabled ? flint_darken(c_text, 35) : c_text;
 
     if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
-        hover = 1;
-        ui_mark_clickable();
+        if(disabled)
+            ui_mark_disabled();
+        else {
+            hover = 1;
+            ui_mark_clickable();
+        }
     }
 
     int pressed = hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     if(pressed)
         *value = !(*value);
 
-    DrawRectangle(x, y, box_size, box_size, c_button);
+    DrawRectangle(x, y, box_size, box_size, box_color);
     ui_draw_bevel(x, y, box_size, box_size, flint_darken(c_bg, 30), flint_lighten(c_bg, 20));
 
     if(*value) {
         int padding = flint_px(4);
-        DrawLine(x + padding, y + padding, x + box_size / 2, y + box_size - padding, c_text);
-        DrawLine(x + box_size / 2, y + box_size - padding, x + box_size - padding, y + padding, c_text);
+        DrawLine(x + padding, y + padding, x + box_size / 2,
+                 y + box_size - padding, mark_color);
+        DrawLine(x + box_size / 2, y + box_size - padding,
+                 x + box_size - padding, y + padding, mark_color);
     }
 
-    flint_text_draw(label, x + box_size + flint_px(10), flint_ui_text_y(label, y, box_size, font), font, c_text);
+    flint_text_draw(label, x + box_size + flint_px(10),
+                    flint_ui_text_y(label, y, box_size, font),
+                    font, label_color);
 
     return pressed;
+}
+
+int
+ui_draw_checkbox_toggle(int x, int y, const char *label, int *value)
+{
+    return ui_draw_checkbox_toggle_disabled(x, y, label, value, 0);
 }
 
 /* Per-dropdown state to track open/closed and click handling */
@@ -2354,7 +2402,7 @@ ui_draw_nav_button_expand(int x, int y, int icon_size, int w, Texture2D icon,
  * TAB BAR
  * ================================================================ */
 
-void
+int
 ui_draw_tab_bar(UITab *tabs, int count)
 {
     int bar_h = flint_clamp_px(58, 54, 66);
@@ -2411,6 +2459,7 @@ ui_draw_tab_bar(UITab *tabs, int count)
     int group_x = side_margin + (available_w - total_w) / 2 + remainder / 2;
     int button_y = bar_y + (bar_h - button_h) / 2;
     int tab_hover = 0;
+    int clicked = -1;
 
     DrawRectangle(0, bar_y, ui_view_width, bar_h, flint_darken(c_bg, 10));
     DrawLine(0, bar_y, ui_view_width, bar_y, flint_darken(c_bg, 42));
@@ -2422,12 +2471,12 @@ ui_draw_tab_bar(UITab *tabs, int count)
 
         if(ui_draw_nav_button_expand(x, button_y, button_size, w, tabs[i].icon,
                                         tabs[i].label, show_labels, &tab_hover)) {
-            if(tabs[i].on_click)
-                tabs[i].on_click(tabs[i].user_data);
+            clicked = i;
         }
 
         x += w + group_gap;
     }
+    return clicked;
 }
 
 /* ================================================================

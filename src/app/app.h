@@ -61,6 +61,8 @@ typedef enum {
     UIModalEditProgressiveStartSpeed,
     UIModalMeditationNetworkError,
     UIModalConfirmImportDataSettings,
+    UIModalSyncAccountBackup,
+    UIModalConfirmDeleteSyncAccount,
 } UIModalType;
 
 typedef struct {
@@ -138,6 +140,29 @@ typedef struct MeditationPracticeState {
     char music_status[128];
 } MeditationPracticeState;
 
+typedef struct HabitSessionEditState {
+    int scroll;
+    int active;
+    int kind;
+    int round;
+    int cursor;
+    char path[FS_PATH_MAX];
+    char text[16];
+} HabitSessionEditState;
+
+typedef struct HabitEditState {
+    int active;
+    int is_new;
+    int index;
+    int cursor;
+    int focused;
+    char text[INBE_HABIT_NAME_SIZE];
+    Color color;
+    int sync_mode;
+    int sync_activity;
+    int counter_enabled;
+} HabitEditState;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -170,6 +195,10 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
+    int settings_data_view;
+    int sync_server_url_cursor;
+    int sync_server_url_focused;
+    char sync_server_url[256];
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
@@ -197,22 +226,14 @@ struct InbeApp {
     int habit_detail_index;
     int habit_detail_day;
     char habit_detail_session_path[FS_PATH_MAX];
-    int habit_session_edit_scroll;
-    int habit_session_edit_active;
-    int habit_session_edit_kind;
-    int habit_session_edit_round;
-    int habit_session_edit_cursor;
-    char habit_session_edit_path[FS_PATH_MAX];
-    char habit_session_edit_text[16];
-    int habit_edit_active;
-    int habit_edit_is_new;
-    int habit_edit_index;
-    int habit_edit_cursor;
-    int habit_edit_focused;
-    char habit_edit_text[INBE_HABIT_NAME_SIZE];
-    Color habit_edit_color;
-    int habit_edit_sync_mode;
-    int habit_edit_sync_activity;
+    HabitSessionEditState habit_session_edit;
+    HabitEditState habit_edit;
+    int habit_counter_press_day;
+    int habit_counter_press_index;
+    int habit_counter_press_frames;
+    int habit_counter_press_long_done;
+    int habit_counter_press_start_x;
+    int habit_counter_press_start_y;
     int advanced_session_controls;
     int hold_display_mode;
     int exercise_type;
@@ -231,9 +252,10 @@ struct InbeApp {
     float play_circle_scale;
 };
 
-void inbe_app_init(void *app);
-void inbe_app_update_draw(void *app, Rectangle viewport);
-void inbe_app_destroy(void *app);
+void app_init(void *app);
+void app_update_draw(void *app, Rectangle viewport);
+void app_destroy(void *app);
+int app_auto_sync(InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);

@@ -14,7 +14,6 @@ const char *practice_activity_label(int exercise);
 int practice_activity_index_for_tab(int tab, int exercise);
 void practice_clamp_activity_to_tab(InbeApp *app);
 
-void on_practice_tab_click(void *user_data);
 void app_request_bottom_tab(InbeApp *app, int bottom_tab);
 
 #endif
