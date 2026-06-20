@@ -151,6 +151,18 @@ ui_scroll_container_begin(FlintUIScrollArea area)
     int inside = CheckCollisionPointRec(mouse_world, area.bounds);
     int captured = ui_input_captures_click(mouse_world);
     int drag_threshold = flint_px(5);
+    int scrollbar_w = flint_px(8);
+    int scrollbar_x = area.scrollbar_x > 0
+                          ? area.scrollbar_x
+                          : (int)(area.bounds.x + area.bounds.width) - scrollbar_w;
+    Rectangle scrollbar_bounds = {
+        (float)scrollbar_x,
+        area.bounds.y,
+        (float)scrollbar_w,
+        area.bounds.height
+    };
+    int on_scrollbar = view.max_scroll > 0 &&
+                       CheckCollisionPointRec(mouse_world, scrollbar_bounds);
 
     if(area.scroll_offset != NULL) {
         *area.scroll_offset = ui_clampi(*area.scroll_offset, 0, view.max_scroll);
@@ -176,7 +188,8 @@ ui_scroll_container_begin(FlintUIScrollArea area)
 
         if(view.max_scroll > 0 &&
            g_ui_pointer_owner == UI_POINTER_OWNER_NONE &&
-           IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured) {
+           IsMouseButtonPressed(MOUSE_BUTTON_LEFT) && inside && !captured &&
+           !on_scrollbar) {
             content_drag_active = 1;
             content_dragging = 0;
             content_drag_start_y = (int)mouse_world.y;
@@ -286,11 +299,13 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
     int thumb_hover = thumb_active && ui_hover_effects_enabled();
 
     /* Handle drag state */
-    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) && !input_captured) {
+    if(IsMouseButtonDown(MOUSE_BUTTON_LEFT) &&
+       (!input_captured || scrollbar_drag_active)) {
         if(!scrollbar_drag_active) {
             /* Start drag if clicking on thumb */
-            if(thumb_active) {
+            if(thumb_active && g_ui_pointer_owner == UI_POINTER_OWNER_NONE) {
                 scrollbar_drag_active = 1;
+                g_ui_pointer_owner = UI_POINTER_OWNER_SCROLL;
                 scrollbar_drag_start_y = my;
                 scrollbar_drag_start_scroll = *scroll_offset;
             }
@@ -304,6 +319,8 @@ ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offse
             if(*scroll_offset > max_scroll) *scroll_offset = max_scroll;
         }
     } else {
+        if(scrollbar_drag_active && g_ui_pointer_owner == UI_POINTER_OWNER_SCROLL)
+            g_ui_pointer_owner = UI_POINTER_OWNER_NONE;
         scrollbar_drag_active = 0;
     }
 

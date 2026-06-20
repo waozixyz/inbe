@@ -3,6 +3,7 @@
 #include "habits/habits.h"
 
 #include "practice_screen.h"
+#include "statistics_screen.h"
 #include "data.h"
 #include "storage.h"
 #include "app.h"
@@ -737,12 +738,14 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
 {
     static const char *options[INBE_HABIT_MAX + 1];
     static int dropdown_selected = 0;
+    FlintUISubtab tabs[HABIT_TAB_COUNT];
     int option_count;
     int selected;
     int top_h = flint_px(58);
+    int tab_h = flint_px(40);
+    int clicked_tab = -1;
     FlintUIToolbarHeaderResult header_result;
     FlintUIToolbarResult toolbar_result;
-    FlintUIToolbarAction actions[2];
 
     if(app == NULL)
         return;
@@ -758,21 +761,10 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
     if(selected < 0 || selected >= app->habits.count)
         selected = 0;
 
-    actions[0] = (FlintUIToolbarAction){
-        app->icons[app->habits.view_mode == HABIT_VIEW_WEEKLY
-                       ? UI_ICON_TYPE_CALENDAR
-                       : UI_ICON_TYPE_WEEKLY],
-        app->modal.active || app->habits.count <= 0
-    };
-    actions[1] = (FlintUIToolbarAction){
-        app->icons[UI_ICON_TYPE_PENCIL],
-        app->modal.active || app->habits.count <= 0
-    };
-
     if(!draw_menu) {
         dropdown_selected = selected;
         header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-            .leading_icon = app->sidebar_open ? (Texture2D){0} : app->icons[UI_ICON_TYPE_STACK],
+            .leading_icon = (Texture2D){0},
             .toolbar = (FlintUIToolbar){
             .id = 301,
             .height = top_h,
@@ -782,30 +774,58 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             .dropdown_min_width = flint_px(150),
             .dropdown_max_width = flint_px(260),
             .dropdown_height = flint_px(36),
-            .actions = actions,
-            .action_count = 2,
-            .action_icon_size = flint_px(20),
-            .action_icon_padding = flint_px(8),
-            .action_gap = flint_px(6),
             .side_padding = flint_px(12)
             }
         });
-        if(header_result.leading_clicked)
-            app->sidebar_open = 1;
+        (void)header_result.leading_clicked;
         toolbar_result = header_result.toolbar;
+        (void)toolbar_result;
 
-        if(toolbar_result.clicked_action == 0) {
-            app->habits.view_mode = app->habits.view_mode == HABIT_VIEW_WEEKLY
-                                        ? HABIT_VIEW_CALENDAR
-                                        : HABIT_VIEW_WEEKLY;
+        tabs[HABIT_TAB_WEEKLY] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_WEEKLY],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active || app->habits.count <= 0
+        };
+        tabs[HABIT_TAB_MONTHLY] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_CALENDAR],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active || app->habits.count <= 0
+        };
+        tabs[HABIT_TAB_STATISTICS] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_STAT],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active || app->habits.count <= 0
+        };
+        tabs[HABIT_TAB_EDIT] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_PENCIL],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active
+        };
+        clicked_tab = ui_draw_subtab_bar((FlintUISubtabBar){
+            .bounds = {0, (float)top_h, (float)view_width, (float)tab_h},
+            .tabs = tabs,
+            .count = HABIT_TAB_COUNT,
+            .selected_index = app->habits.tab,
+            .font = flint_ui_font()
+        });
+        if(clicked_tab >= 0 && clicked_tab < HABIT_TAB_COUNT &&
+           clicked_tab != app->habits.tab) {
+            if(app->habit_edit.active)
+                habit_edit_commit(app);
+            app->habits.tab = clicked_tab;
             app->habits.scroll = 0;
-            if(app->habits.view_mode == HABIT_VIEW_WEEKLY)
-                app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
-            return;
-        }
-        if(toolbar_result.clicked_action == 1) {
-            habit_edit_begin(app, app->habits.selected);
-            return;
+            if(clicked_tab == HABIT_TAB_WEEKLY) {
+                app->habits.view_mode = HABIT_VIEW_WEEKLY;
+                if(app->habits.weekly_days < HABIT_WEEKLY_INITIAL_DAYS)
+                    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+            } else if(clicked_tab == HABIT_TAB_MONTHLY) {
+                app->habits.view_mode = HABIT_VIEW_CALENDAR;
+            } else if(clicked_tab == HABIT_TAB_EDIT) {
+                if(app->habits.count > 0)
+                    habit_edit_begin(app, app->habits.selected);
+                else
+                    habit_edit_begin_new(app);
+            }
         }
 
         return;
@@ -827,9 +847,16 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             return;
         }
         if(app->habits.selected != dropdown_selected) {
+            int was_edit_tab = app->habits.tab == HABIT_TAB_EDIT;
+            if(was_edit_tab && app->habit_edit.active)
+                habit_edit_commit(app);
             app->habits.selected = dropdown_selected;
             app->habits.scroll = 0;
             app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+            if(was_edit_tab) {
+                app->habits.tab = HABIT_TAB_EDIT;
+                habit_edit_begin(app, app->habits.selected);
+            }
         }
     }
 }
@@ -1257,7 +1284,17 @@ draw_habits_screen(InbeApp *app)
     if(app == NULL)
         return;
 
-    content_top = app_content_top_reserved(app);
+    if(app->habits.tab < HABIT_TAB_WEEKLY || app->habits.tab >= HABIT_TAB_COUNT) {
+        app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
+                              ? HABIT_TAB_WEEKLY
+                              : HABIT_TAB_MONTHLY;
+    }
+    if(app->habits.tab == HABIT_TAB_WEEKLY)
+        app->habits.view_mode = HABIT_VIEW_WEEKLY;
+    else if(app->habits.tab == HABIT_TAB_MONTHLY)
+        app->habits.view_mode = HABIT_VIEW_CALENDAR;
+
+    content_top = app_content_top_reserved(app) + flint_px(40);
     content_bottom = app_content_bottom_reserved(app);
     y = content_top + flint_px(8);
     viewport_h = view_height - content_top - content_bottom;
@@ -1301,6 +1338,24 @@ draw_habits_screen(InbeApp *app)
     if(app->habits.view_mode != HABIT_VIEW_WEEKLY)
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
     weekly_days = habit_weekly_visible_days(&app->habits);
+
+    if(app->habits.tab == HABIT_TAB_STATISTICS) {
+        draw_statistics_content(app, content_top);
+        draw_habits_top_bar(app, 0);
+        if(app->inbe.screen == InbeScreenHabits)
+            draw_habits_top_bar(app, 1);
+        return;
+    }
+
+    if(app->habits.tab == HABIT_TAB_EDIT) {
+        if(!app->habit_edit.active || app->habit_edit.index != app->habits.selected)
+            habit_edit_begin(app, app->habits.selected);
+        draw_habit_edit_screen(app);
+        draw_habits_top_bar(app, 0);
+        if(app->inbe.screen == InbeScreenHabits)
+            draw_habits_top_bar(app, 1);
+        return;
+    }
 
     if(app->habits.month_offset > 0)
         app->habits.month_offset = 0;

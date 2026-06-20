@@ -1,10 +1,11 @@
 # Changelog
 ## [1.4.6] - 2026-06-20
 ### Changed
-- Add a responsive Flint sidebar, configurable bottom navigation, and independent Statistics screen.
+- Move habit weekly, monthly, statistics, and edit views into icon tabs under the habit selector.
+- Improve Flint form, modal, tab, and scrollbar widgets for measured layouts and cleaner scrolling.
 
 ### Fixed
-- Preserve queued local habit counter settings when applying sync responses.
+- Prevent habit info modal text from overlapping the OK button.
 
 ## [1.4.5] - 2026-06-20
 ### Changed

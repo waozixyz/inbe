@@ -159,6 +159,17 @@ typedef struct {
 } FlintUIBottomNavConfigResult;
 
 typedef struct {
+    const char *message;
+    int width;
+    int header_h;
+    int button_h;
+    int line_gap;
+    int extra_lines;
+    int min_height;
+    int font;
+} FlintUIParagraphModalMeasure;
+
+typedef struct {
     Texture2D icon;
     int disabled;
 } FlintUIToolbarAction;
@@ -276,6 +287,33 @@ typedef struct {
 } FlintUITextField;
 
 typedef struct {
+    const char *label;
+    FlintUITextField field;
+    int label_font;
+    int label_h;
+    int field_h;
+    int gap;
+    int bottom_gap;
+    Color label_color;
+} FlintUILabelTextField;
+
+typedef struct {
+    const char *label;
+    int font;
+    int info_button;
+    int icon_diameter;
+    int height;
+    Color color;
+} FlintUISectionLabel;
+
+typedef struct {
+    const char *label;
+    int *value;
+    int height;
+    int disabled;
+} FlintUICheckboxRow;
+
+typedef struct {
     const char *text;
     Texture2D icon;
     UIIconType icon_type;
@@ -288,6 +326,8 @@ typedef struct {
 
 typedef struct {
     const char *label;
+    Texture2D icon;
+    int icon_size;
     int disabled;
     Color accent;
 } FlintUISubtab;
@@ -411,6 +451,13 @@ FlintUIBottomNavConfigResult ui_draw_bottom_nav_config_modal(FlintUIBottomNavCon
 FlintUIToolbarResult ui_draw_toolbar(FlintUIToolbar toolbar);
 FlintUIToolbarHeaderResult ui_draw_toolbar_header(FlintUIToolbarHeader header);
 void ui_draw_info_rows(FlintUIInfoRows rows);
+int ui_label_text_field_height(FlintUILabelTextField row);
+int ui_draw_label_text_field(FlintUILabelTextField row, int x, int y, int w);
+int ui_section_label_height(FlintUISectionLabel label);
+int ui_draw_section_label(FlintUISectionLabel label, int x, int y);
+int ui_checkbox_row_height(FlintUICheckboxRow row);
+int ui_draw_checkbox_row(FlintUICheckboxRow row, int x, int y);
+int ui_button_row_height(FlintUIButtonRow row);
 int ui_draw_button_row(FlintUIButtonRow row);
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 
@@ -447,6 +494,7 @@ void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, 
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);
 int ui_draw_modal(const char *title, const char *message, const char *cancel_btn, const char *confirm_btn);
 int ui_draw_modal_3btn(const char *title, const char *message, const char *left_btn, const char *middle_btn, const char *right_btn);
+int ui_paragraph_modal_height(FlintUIParagraphModalMeasure measure);
 int ui_draw_screen_header(const char *title, int show_close);
 int ui_screen_header_height(void);
 FlintUIHeader ui_draw_title_header(int height, const char *title,

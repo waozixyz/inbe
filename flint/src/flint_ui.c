@@ -1372,6 +1372,8 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
         Color accent = bar.tabs[i].accent.a != 0 ? bar.tabs[i].accent : c_button_hover;
         Color text_color = c_text;
         const char *label = bar.tabs[i].label ? bar.tabs[i].label : "";
+        Texture2D icon = bar.tabs[i].icon;
+        int icon_size = bar.tabs[i].icon_size > 0 ? bar.tabs[i].icon_size : flint_px(20);
 
         if(is_disabled) {
             text_color = flint_darken(c_text, 70);
@@ -1404,7 +1406,19 @@ ui_draw_subtab_bar(FlintUISubtabBar bar)
 
         if(label_rect.width < 1)
             label_rect.width = 1;
-        ui_draw_fitted_text_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
+        if(icon.id != 0) {
+            Rectangle src = {0, 0, (float)icon.width, (float)icon.height};
+            Rectangle dst = {
+                tab_x + (draw_w - icon_size) / 2.0f,
+                bar_y + (tab_h - icon_size) / 2.0f,
+                (float)icon_size,
+                (float)icon_size
+            };
+            Color icon_color = is_disabled ? flint_darken(c_icon, 40) : c_icon;
+            DrawTexturePro(icon, src, dst, (Vector2){0}, 0, icon_color);
+        } else {
+            ui_draw_fitted_text_in_rect(label, label_rect, font, FLINT_TEXT_8, text_color);
+        }
     }
 
     return clicked_tab;

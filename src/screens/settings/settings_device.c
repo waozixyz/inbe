@@ -74,12 +74,6 @@ settings_device_draw_toggle_row(int x, int w, int *y, const char *label, int *va
     return 0;
 }
 
-static int
-settings_device_button_row_height(void)
-{
-    return flint_px(58);
-}
-
 int
 settings_device_content_height(int content_w)
 {
@@ -93,7 +87,6 @@ settings_device_content_height(int content_w)
     height += flint_px(50);
 #endif
     height += settings_device_toggle_row_height(locale_get("show_session_volume_control_label"), label_w);
-    height += settings_device_button_row_height();
     height += settings_device_toggle_row_height(locale_get("on_screen_keyboard_label"), label_w);
     return height;
 }
@@ -137,22 +130,6 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         app->show_session_volume_control = show_session_volume;
         app->settings_dirty = 1;
         save_settings(app);
-    }
-
-    {
-        int hover = 0;
-        int button_h = flint_px(38);
-        if(ui_draw_generic_button(x, *y, w, button_h,
-                                  locale_get("bottom_nav_customize_button"),
-                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-            app->bottom_nav_draft_count = app->bottom_nav_count;
-            for(int i = 0; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
-                app->bottom_nav_draft_routes[i] = app->bottom_nav_routes[i];
-            app->modal.active = 1;
-            app->modal.type = UIModalBottomNavConfig;
-            app->modal_open_frame = app->inbe.frame;
-        }
-        *y += settings_device_button_row_height();
     }
 
 #if defined(__ANDROID__) || defined(PLATFORM_WEB)

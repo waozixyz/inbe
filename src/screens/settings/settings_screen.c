@@ -30,6 +30,7 @@ settings_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
         return -1;
 
     for(int i = 0; i < tab_count; i++) {
+        tabs[i] = (FlintUISubtab){0};
         tabs[i].label = tab_names[i];
         tabs[i].disabled = 0;
     }
@@ -172,13 +173,12 @@ settings_screen_draw(InbeApp *app)
 
     main_header_h = settings_data_is_configuring(app) ? 0 : flint_px(58);
     if(main_header_h > 0) {
-        Texture2D left_icon = app->sidebar_open ? (Texture2D){0} : app->icons[UI_ICON_TYPE_STACK];
+        Texture2D left_icon = (Texture2D){0};
         FlintUIHeader header = ui_draw_title_header(main_header_h,
                                                     locale_get("settings_title"),
                                                     left_icon,
                                                     (Texture2D){0});
-        if(header.left_clicked && !app->sidebar_open)
-            app->sidebar_open = 1;
+        (void)header.left_clicked;
     }
 
     detail_header_h = settings_data_is_configuring(app) ? flint_px(58) : 0;

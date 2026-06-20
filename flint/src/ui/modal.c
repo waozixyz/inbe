@@ -155,6 +155,44 @@ ui_draw_modal_3btn(const char *title, const char *message,
     return result;
 }
 
+int
+ui_paragraph_modal_height(FlintUIParagraphModalMeasure measure)
+{
+    int width = measure.width > 0 ? measure.width : flint_px(320);
+    int header_h = measure.header_h > 0 ? measure.header_h : flint_px(58);
+    int button_h = measure.button_h > 0 ? measure.button_h : flint_px(36);
+    int line_gap = measure.line_gap > 0 ? measure.line_gap : flint_px(4);
+    int font = measure.font > 0 ? measure.font : flint_ui_font();
+    int extra_lines = measure.extra_lines > 0 ? measure.extra_lines : 0;
+    int min_h = measure.min_height > 0 ? measure.min_height : 0;
+    int content_w;
+    FlintUIParagraph paragraph;
+    int height;
+
+    if(width > ui_view_width - flint_px(24))
+        width = ui_view_width - flint_px(24);
+    if(width < flint_px(160))
+        width = flint_px(160);
+    content_w = width - flint_px(36);
+    if(content_w < flint_px(120))
+        content_w = flint_px(120);
+    paragraph = (FlintUIParagraph){
+        .text = measure.message,
+        .width = content_w,
+        .font = font,
+        .line_gap = line_gap,
+        .color = c_text
+    };
+    height = header_h +
+             flint_ui_paragraph_height(paragraph) +
+             extra_lines * (font + line_gap) +
+             button_h +
+             flint_px(18);
+    if(height < min_h)
+        height = min_h;
+    return height;
+}
+
 /* ================================================================
  * SCREEN HEADER (TITLE BAR)
  * ================================================================ */

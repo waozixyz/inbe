@@ -114,6 +114,7 @@ whm_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
     if(tab_count <= 0 || tab_count > WHM_SUBTAB_RENDER_MAX)
         return -1;
     for(int i = 0; i < tab_count; i++) {
+        tabs[i] = (FlintUISubtab){0};
         tabs[i].label = tab_names[i];
         tabs[i].disabled = 0;
     }

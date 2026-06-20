@@ -13,7 +13,6 @@
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/practice_screen.h"
-#include "screens/statistics_screen.h"
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
 #include "storage.h"
@@ -522,7 +521,8 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
 }
 
 enum {
-    APP_SETTINGS_SAVE_DELAY_TICKS = 30
+    APP_SETTINGS_SAVE_DELAY_TICKS = 30,
+    APP_SIDEBAR_ENABLED = 0
 };
 
 static void
@@ -537,6 +537,8 @@ app_schedule_settings_save(InbeApp *app)
 static int
 app_sidebar_is_wide_layout(void)
 {
+    if(!APP_SIDEBAR_ENABLED)
+        return 0;
     return app_full_view_width >= flint_px(600);
 }
 
@@ -573,12 +575,10 @@ app_apply_sidebar_route(InbeApp *app, int route)
         break;
     case APP_NAV_ROUTE_HABITS:
         app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
-        break;
-    case APP_NAV_ROUTE_STATISTICS:
-        if(app->inbe.screen == InbeScreenPracticeConfig)
-            app_leave_practice_config(app);
-        app->habits.scroll = 0;
-        app->inbe.screen = InbeScreenStatistics;
+        if(app->habits.tab == HABIT_TAB_STATISTICS || app->habits.tab == HABIT_TAB_EDIT)
+            app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
+                                  ? HABIT_TAB_WEEKLY
+                                  : HABIT_TAB_MONTHLY;
         break;
     case APP_NAV_ROUTE_SETTINGS:
         if(app->inbe.screen == InbeScreenPracticeConfig)
@@ -652,6 +652,8 @@ app_draw_sidebar_toggle(InbeApp *app, int x, int y)
     int hover = 0;
     Texture2D icon;
 
+    if(!APP_SIDEBAR_ENABLED)
+        return 0;
     if(app == NULL || app->modal.active)
         return 0;
     if(app->sidebar_open && app_sidebar_is_wide_layout())
@@ -674,7 +676,7 @@ app_bottom_nav_default_routes(int *routes, int *count)
         return;
     routes[0] = APP_NAV_ROUTE_HABITS;
     routes[1] = APP_NAV_ROUTE_PRACTICE;
-    routes[2] = APP_NAV_ROUTE_STATISTICS;
+    routes[2] = APP_NAV_ROUTE_SETTINGS;
     if(count != NULL)
         *count = 3;
 }
@@ -692,7 +694,6 @@ app_nav_route_valid(int route)
 {
     return route == APP_NAV_ROUTE_HABITS ||
            route == APP_NAV_ROUTE_PRACTICE ||
-           route == APP_NAV_ROUTE_STATISTICS ||
            route == APP_NAV_ROUTE_SETTINGS;
 }
 
@@ -717,7 +718,6 @@ app_nav_route_label(int route)
     switch(route) {
     case APP_NAV_ROUTE_HABITS: return locale_get("tab_habits");
     case APP_NAV_ROUTE_PRACTICE: return locale_get("tab_practice");
-    case APP_NAV_ROUTE_STATISTICS: return locale_get("tab_statistics");
     case APP_NAV_ROUTE_SETTINGS: return locale_get("tab_settings");
     default: break;
     }
@@ -732,7 +732,6 @@ app_nav_route_icon(InbeApp *app, int route)
     switch(route) {
     case APP_NAV_ROUTE_HABITS: return app->icons[UI_ICON_TYPE_HABIT];
     case APP_NAV_ROUTE_PRACTICE: return app->icons[UI_ICON_TYPE_AMEN];
-    case APP_NAV_ROUTE_STATISTICS: return app->icons[UI_ICON_TYPE_STAT];
     case APP_NAV_ROUTE_SETTINGS: return app->icons[UI_ICON_TYPE_GEAR];
     default: break;
     }
@@ -749,8 +748,6 @@ app_current_nav_route(const InbeApp *app)
         return APP_NAV_ROUTE_PRACTICE;
     case InbeScreenHabits:
         return APP_NAV_ROUTE_HABITS;
-    case InbeScreenStatistics:
-        return APP_NAV_ROUTE_STATISTICS;
     case InbeScreenSettings:
         return APP_NAV_ROUTE_SETTINGS;
     default:
@@ -783,8 +780,6 @@ app_nav_route_active(const InbeApp *app, int route)
         return app->inbe.screen == InbeScreenHabits ||
                app->inbe.screen == InbeScreenHabitEdit ||
                app->inbe.screen == InbeScreenHabitSessionEdit;
-    if(route == APP_NAV_ROUTE_STATISTICS)
-        return app->inbe.screen == InbeScreenStatistics;
     if(route == APP_NAV_ROUTE_SETTINGS)
         return app->inbe.screen == InbeScreenSettings;
     return 0;
@@ -935,10 +930,6 @@ app_draw_sidebar(InbeApp *app, int width, int height)
     y += button_h + button_gap;
     app_draw_sidebar_button(app, APP_NAV_ROUTE_HABITS, pad, y, button_w,
                             app->icons[UI_ICON_TYPE_HABIT], locale_get("tab_habits"));
-    y += button_h + button_gap;
-    app_draw_sidebar_button(app, APP_NAV_ROUTE_STATISTICS, pad, y, button_w,
-                            app->icons[UI_ICON_TYPE_STAT], locale_get("tab_statistics"));
-
     app_draw_sidebar_button(app, APP_NAV_ROUTE_SETTINGS, pad, height - pad - button_h, button_w,
                             app->icons[UI_ICON_TYPE_GEAR], locale_get("tab_settings"));
 }
@@ -1134,6 +1125,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     int selected = -1;
     int detail_index = -1;
     int view_mode = HABIT_VIEW_CALENDAR;
+    int habit_tab = HABIT_TAB_WEEKLY;
     int month_offset = 0;
     int scroll = 0;
     int weekly_days = 0;
@@ -1150,6 +1142,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         selected = app->habits.selected;
         detail_index = app->habit_detail_index;
         view_mode = app->habits.view_mode;
+        habit_tab = app->habits.tab;
         month_offset = app->habits.month_offset;
         scroll = app->habits.scroll;
         weekly_days = app->habits.weekly_days;
@@ -1185,6 +1178,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         if(app->habit_detail_index < 0 && detail_index >= 0 && detail_index < app->habits.count)
             app->habit_detail_index = detail_index;
         app->habits.view_mode = view_mode;
+        app->habits.tab = habit_tab;
         app->habits.month_offset = month_offset;
         app->habits.scroll = scroll;
         app->habits.weekly_days = weekly_days;
@@ -1510,13 +1504,11 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenHabits:
+        if(app->habits.tab == HABIT_TAB_EDIT && app->habit_edit.active) {
+            habit_edit_commit(app);
+            break;
+        }
         app->inbe.screen = InbeScreenStart;
-        break;
-
-    case InbeScreenStatistics:
-        app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                               ? InbeScreenHabits
-                               : InbeScreenStart;
         break;
 
     case InbeScreenHabitEdit:
@@ -1577,7 +1569,7 @@ static void
 app_draw_bottom_nav_config_modal(InbeApp *app)
 {
     const char *slot_labels[APP_BOTTOM_NAV_MAX_ITEMS];
-    FlintUIBottomNavOption options[4];
+    FlintUIBottomNavOption options[3];
     FlintUIBottomNavConfigResult result;
 
     if(app == NULL)
@@ -1601,11 +1593,6 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         app_nav_route_icon(app, APP_NAV_ROUTE_PRACTICE)
     };
     options[2] = (FlintUIBottomNavOption){
-        APP_NAV_ROUTE_STATISTICS,
-        app_nav_route_label(APP_NAV_ROUTE_STATISTICS),
-        app_nav_route_icon(app, APP_NAV_ROUTE_STATISTICS)
-    };
-    options[3] = (FlintUIBottomNavOption){
         APP_NAV_ROUTE_SETTINGS,
         app_nav_route_label(APP_NAV_ROUTE_SETTINGS),
         app_nav_route_icon(app, APP_NAV_ROUTE_SETTINGS)
@@ -1619,7 +1606,7 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         .max_route_count = APP_BOTTOM_NAV_MAX_ITEMS,
         .slot_labels = slot_labels,
         .options = options,
-        .option_count = 4,
+        .option_count = 3,
         .add_label = locale_get("bottom_nav_add_button"),
         .cancel_label = locale_get("cancel_button"),
         .save_label = locale_get("save_button"),
@@ -1723,11 +1710,6 @@ updateapp(InbeApp *app)
         goto finish_frame;
     }
 
-    if(app->inbe.screen == InbeScreenStatistics) {
-        draw_statistics_screen(app);
-        goto finish_frame;
-    }
-
     if(app->inbe.screen == InbeScreenHabitEdit) {
         draw_habit_edit_screen(app);
         goto finish_frame;
@@ -1780,7 +1762,7 @@ updateapp(InbeApp *app)
                 app->modal.active
             };
             header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-                .leading_icon = app->sidebar_open ? (Texture2D){0} : app->icons[UI_ICON_TYPE_STACK],
+                .leading_icon = (Texture2D){0},
                 .toolbar = (FlintUIToolbar){
                     .id = 300,
                     .height = flint_px(58),
@@ -1798,7 +1780,7 @@ updateapp(InbeApp *app)
                     .side_padding = flint_px(12)
                 }
             });
-            if(header_result.leading_clicked)
+            if(APP_SIDEBAR_ENABLED && header_result.leading_clicked)
                 app->sidebar_open = 1;
             if(header_result.toolbar.clicked_action == 0) {
                 app->tutorial_step = 0;
@@ -1908,7 +1890,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     DrawRectangleRec(viewport, theme_get_bg());
 
-    if(app->sidebar_open && !app_sidebar_is_wide_layout()) {
+    if(APP_SIDEBAR_ENABLED && app->sidebar_open && !app_sidebar_is_wide_layout()) {
         app->camera = (Camera2D){0};
         app->camera.zoom = 1.0f;
         app->camera.offset.x = viewport.x;
@@ -1927,7 +1909,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         return;
     }
 
-    if(app->sidebar_open && app_sidebar_is_wide_layout()) {
+    if(APP_SIDEBAR_ENABLED && app->sidebar_open && app_sidebar_is_wide_layout()) {
         sidebar_w = app_sidebar_width();
         frame_camera = (Camera2D){0};
         frame_camera.zoom = 1.0f;

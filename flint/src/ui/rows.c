@@ -36,6 +36,75 @@ ui_draw_info_rows(FlintUIInfoRows rows)
 }
 
 int
+ui_label_text_field_height(FlintUILabelTextField row)
+{
+    int label_h = row.label_h > 0 ? row.label_h : flint_px(22);
+    int field_h = row.field_h > 0 ? row.field_h : flint_px(40);
+    int gap = row.gap > 0 ? row.gap : 0;
+    int bottom_gap = row.bottom_gap > 0 ? row.bottom_gap : flint_px(24);
+
+    return label_h + gap + field_h + bottom_gap;
+}
+
+int
+ui_draw_label_text_field(FlintUILabelTextField row, int x, int y, int w)
+{
+    int label_font = row.label_font > 0 ? row.label_font : flint_ui_font_small();
+    int label_h = row.label_h > 0 ? row.label_h : flint_px(22);
+    int field_h = row.field_h > 0 ? row.field_h : flint_px(40);
+    int gap = row.gap > 0 ? row.gap : 0;
+    Color label_color = row.label_color.a != 0 ? row.label_color : flint_darken(c_text, 34);
+    FlintUITextField field = row.field;
+
+    flint_text_draw(row.label != NULL ? row.label : "", x, y, label_font, label_color);
+    field.bounds = (Rectangle){(float)x, (float)(y + label_h + gap), (float)w, (float)field_h};
+    return flint_ui_text_field(field);
+}
+
+int
+ui_section_label_height(FlintUISectionLabel label)
+{
+    return label.height > 0 ? label.height : flint_px(24);
+}
+
+int
+ui_draw_section_label(FlintUISectionLabel label, int x, int y)
+{
+    int font = label.font > 0 ? label.font : flint_ui_font_small();
+    int icon_d = label.icon_diameter > 0 ? label.icon_diameter : flint_px(18);
+    Color color = label.color.a != 0 ? label.color : flint_darken(c_text, 34);
+    const char *text = label.label != NULL ? label.label : "";
+    int label_w;
+
+    flint_text_draw(text, x, y, font, color);
+    if(!label.info_button)
+        return 0;
+    label_w = flint_text_measure(text, font);
+    return ui_draw_info_button(x + label_w + flint_px(16),
+                               y + font / 2 + flint_px(1), icon_d);
+}
+
+int
+ui_checkbox_row_height(FlintUICheckboxRow row)
+{
+    return row.height > 0 ? row.height : flint_px(42);
+}
+
+int
+ui_draw_checkbox_row(FlintUICheckboxRow row, int x, int y)
+{
+    if(row.disabled)
+        return ui_draw_checkbox_toggle_disabled(x, y, row.label, row.value, 1);
+    return ui_draw_checkbox_toggle(x, y, row.label, row.value);
+}
+
+int
+ui_button_row_height(FlintUIButtonRow row)
+{
+    return row.height > 0 ? row.height : flint_px(40);
+}
+
+int
 ui_draw_button_row(FlintUIButtonRow row)
 {
     int clicked = -1;

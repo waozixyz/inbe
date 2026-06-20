@@ -3,6 +3,6 @@
 
 #include "app_fwd.h"
 
-void draw_statistics_screen(InbeApp *app);
+void draw_statistics_content(InbeApp *app, int content_top);
 
 #endif

@@ -395,74 +395,6 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     }
 }
 
-static void
-statistics_draw_top_bar(InbeApp *app, int draw_menu)
-{
-    static const char *options[INBE_HABIT_MAX + 1];
-    static int dropdown_selected = 0;
-    int option_count;
-    int selected;
-    int top_h = flint_px(58);
-    FlintUIToolbarHeaderResult header_result;
-    FlintUIToolbarResult toolbar_result;
-
-    if(app == NULL)
-        return;
-
-    option_count = app->habits.count;
-    if(option_count > INBE_HABIT_MAX)
-        option_count = INBE_HABIT_MAX;
-    for(int i = 0; i < option_count; i++)
-        options[i] = app->habits.items[i].name;
-    options[option_count++] = locale_get("habit_add_new_option");
-
-    selected = app->habits.selected;
-    if(selected < 0 || selected >= app->habits.count)
-        selected = 0;
-
-    if(!draw_menu) {
-        dropdown_selected = selected;
-        header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-            .leading_icon = app->sidebar_open ? (Texture2D){0} : app->icons[UI_ICON_TYPE_STACK],
-            .toolbar = (FlintUIToolbar){
-            .id = 302,
-            .height = top_h,
-            .options = app->modal.active ? NULL : options,
-            .option_count = app->modal.active ? 0 : option_count,
-            .selected_index = &dropdown_selected,
-            .dropdown_min_width = flint_px(150),
-            .dropdown_max_width = flint_px(260),
-            .dropdown_height = flint_px(36),
-            .side_padding = flint_px(12)
-            }
-        });
-        if(header_result.leading_clicked)
-            app->sidebar_open = 1;
-        toolbar_result = header_result.toolbar;
-        (void)toolbar_result;
-        return;
-    }
-
-    if(app->modal.active)
-        return;
-
-    toolbar_result = ui_draw_toolbar((FlintUIToolbar){
-        .id = 302,
-        .draw_menu = 1,
-        .options = options,
-        .option_count = option_count,
-        .selected_index = &dropdown_selected
-    });
-    if(toolbar_result.selected_menu_item >= 0) {
-        if(dropdown_selected == app->habits.count) {
-            habit_edit_begin_new(app);
-            return;
-        }
-        app->habits.selected = dropdown_selected;
-        app->habits.scroll = 0;
-    }
-}
-
 typedef struct StatisticsScrollPageContext {
     int linked_count;
 } StatisticsScrollPageContext;
@@ -476,9 +408,8 @@ statistics_scroll_page_content_height(int content_w, void *user_data)
 }
 
 void
-draw_statistics_screen(InbeApp *app)
+draw_statistics_content(InbeApp *app, int content_top)
 {
-    int content_top;
     int content_bottom;
     int viewport_h;
     int scroll_y;
@@ -489,17 +420,12 @@ draw_statistics_screen(InbeApp *app)
 
     if(app == NULL)
         return;
-    content_top = app_content_top_reserved(app);
     content_bottom = app_content_bottom_reserved(app);
     viewport_h = view_height - content_top - content_bottom;
     scroll_y = content_top + flint_px(4);
     scroll_h = viewport_h - flint_px(4);
-    if(app->habits.count <= 0) {
-        statistics_draw_top_bar(app, 0);
-        if(app->inbe.screen == InbeScreenStatistics)
-            statistics_draw_top_bar(app, 1);
+    if(app->habits.count <= 0)
         return;
-    }
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
         app->habits.selected = 0;
 
@@ -531,7 +457,4 @@ draw_statistics_screen(InbeApp *app)
         ui_set_input_blocked(0);
     }
     free(linked_ctx);
-    statistics_draw_top_bar(app, 0);
-    if(app->inbe.screen == InbeScreenStatistics)
-        statistics_draw_top_bar(app, 1);
 }
