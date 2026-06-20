@@ -845,7 +845,7 @@ endif
 ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
 $(error libcurl metadata is missing. Sync is required; enter the flake shell with 'nix develop' or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
 endif
-ifneq ($(shell test $$((16#$(FLINT_CURL_VERSION_HEX))) -ge $$((16#075600)) 2>/dev/null && echo yes),yes)
+ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
 $(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
 endif
 endif
