@@ -97,8 +97,9 @@ habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
     int inside = !disabled && CheckCollisionPointRec(mouse, bounds);
     int same = app->habit_counter_press_index == habit_index &&
                app->habit_counter_press_day == day_index;
+    int captured = ui_input_captures_click(mouse);
 
-    if(disabled)
+    if(disabled || captured)
         return 0;
     if((inside && IsMouseButtonReleased(MOUSE_BUTTON_RIGHT)) ||
        habit_web_context_click_in_bounds(app, bounds))
@@ -855,7 +856,8 @@ habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
                               ? GetScreenToWorld2D(GetMousePosition(), app->camera)
                               : GetMousePosition();
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
-    int inside = !disabled && CheckCollisionPointRec(mouse_world, bounds);
+    int inside = !disabled && CheckCollisionPointRec(mouse_world, bounds) &&
+                 !ui_input_captures_click(mouse_world);
     Color fill = completed ? theme_get_button() : flint_darken(theme_get_bg(), 10);
     Color text = disabled ? flint_darken(theme_get_text(), 35) : theme_get_text();
     int font = FLINT_TEXT_16;
@@ -1135,11 +1137,13 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
             action = habit_counter_day_action(app, selected, day_index,
                                               button_x, y, button_w, row_h,
                                               future_day, !has_linked_day);
-            if(action == 0 && has_linked_day &&
-               !future_day && CheckCollisionPointRec(GetScreenToWorld2D(GetMousePosition(), app->camera),
-                                                     (Rectangle){(float)button_x, (float)y, (float)button_w, (float)row_h}) &&
-               IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                habit_open_linked_edit_page(app, selected, day_index);
+            if(action == 0 && has_linked_day && !future_day) {
+                Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+                if(CheckCollisionPointRec(mouse_world,
+                                          (Rectangle){(float)button_x, (float)y, (float)button_w, (float)row_h}) &&
+                   !ui_input_captures_click(mouse_world) &&
+                   IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                    habit_open_linked_edit_page(app, selected, day_index);
             }
         } else if(habit_weekly_summary_button(app, button_x, y, button_w, row_h, completed, future_day,
                                               primary, secondary)) {
@@ -1428,12 +1432,14 @@ draw_habits_screen(InbeApp *app)
                 action = habit_counter_day_action(app, selected, day_index,
                                                   cell_x, cell_y, cell_w, cell_h,
                                                   future_day, !has_linked_day);
-                if(action == 0 && has_linked_day && !future_day &&
-                   CheckCollisionPointRec(GetScreenToWorld2D(GetMousePosition(), app->camera),
-                                          (Rectangle){(float)cell_x, (float)cell_y,
-                                                      (float)cell_w, (float)cell_h}) &&
-                   IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-                    habit_open_linked_edit_page(app, selected, day_index);
+                if(action == 0 && has_linked_day && !future_day) {
+                    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+                    if(CheckCollisionPointRec(mouse_world,
+                                              (Rectangle){(float)cell_x, (float)cell_y,
+                                                          (float)cell_w, (float)cell_h}) &&
+                       !ui_input_captures_click(mouse_world) &&
+                       IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+                        habit_open_linked_edit_page(app, selected, day_index);
                 }
             } else if(habit_calendar_day_cell(app, cell_x, cell_y, cell_w, cell_h,
                                               day_label, completed, future_day)) {

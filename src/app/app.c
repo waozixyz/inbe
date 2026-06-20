@@ -1633,6 +1633,8 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         app->bottom_nav_count = app->bottom_nav_draft_count;
         for(int i = 0; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
             app->bottom_nav_routes[i] = app->bottom_nav_draft_routes[i];
+        for(int i = app->bottom_nav_count; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
+            app->bottom_nav_routes[i] = APP_NAV_ROUTE_HABITS;
         app_bottom_nav_normalize(app);
         app->settings_dirty = 1;
         save_settings(app);

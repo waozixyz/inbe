@@ -35,3 +35,38 @@ jobs:
 
       - name: Run Tests
         run: make test
+
+  build-chrome-extension:
+    name: Build Chrome Extension
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Install Web Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential imagemagick zlib1g-dev zip
+
+      - name: Set up Emscripten
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install latest
+          "$HOME/emsdk/emsdk" activate latest
+          echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
+          echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
+          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+
+      - name: Build Chrome Extension ZIP
+        run: |
+          set -euo pipefail
+          make package-unpackaged-assets
+          make chrome-web-store
+          test -f build/dist/inbe-chrome-web-store.zip

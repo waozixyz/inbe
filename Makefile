@@ -224,6 +224,7 @@ WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
+WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
@@ -762,7 +763,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -792,8 +793,10 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-lidbfs.js \
 		-lm
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index.html
+	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
+	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	cp -R web-assets $(WEB_DIST_DIR)/
-	cp manifest.json $(WEB_DIST_DIR)/
+	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
 android-copy-assets:
 	$(MAKE) $(FONT_OUTPUTS)
