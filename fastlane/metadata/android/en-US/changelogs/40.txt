@@ -1,0 +1,2 @@
+### Changed
+- Fix spacing issues and translations
