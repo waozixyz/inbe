@@ -1,6 +1,6 @@
 #include "app.h"
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
@@ -27,9 +27,9 @@
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
-#elif !defined(_WIN32)
+#else
 #include <pthread.h>
-#define INBE_NATIVE_SYNC_THREAD 1
+#include <unistd.h>
 #endif
 
 #ifdef __ANDROID__
@@ -42,8 +42,7 @@ void set_global_inbe_app(InbeApp *app);
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
-#define INBE_SYNC_POLL_SECONDS 2.0
-#define INBE_SYNC_DIRTY_DELAY_SECONDS 0.15
+#define INBE_SYNC_INPUT_QUIET_SECONDS 0.45
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -53,12 +52,13 @@ InbeConfig config = {
     .title_custom = 1
 };
 
-static double g_next_sync_poll = 0.0;
 static double g_dirty_sync_at = 0.0;
+static double g_last_sync_input_at = 0.0;
 static int g_sync_running = 0;
 static int g_sync_refresh_pending = 0;
+static int g_remote_sync_due = 0;
 
-#if defined(INBE_NATIVE_SYNC_THREAD)
+#if !defined(PLATFORM_WEB)
 typedef struct InbeSyncWorkerArgs {
     char url[256];
 } InbeSyncWorkerArgs;
@@ -67,17 +67,19 @@ static pthread_mutex_t g_sync_mutex = PTHREAD_MUTEX_INITIALIZER;
 static int g_sync_finished = 0;
 static int g_sync_finished_result = INBE_SYNC_CLIENT_OK;
 static int g_sync_finished_changed = 0;
+static int g_sync_events_running = 0;
+static char g_sync_events_url[256];
 
 static void *
-inbe_app_sync_worker(void *userdata)
+app_sync_worker(void *userdata)
 {
     InbeSyncWorkerArgs *args = userdata;
     InbeSyncClientResult result = INBE_SYNC_CLIENT_INVALID_URL;
     int changed = 0;
 
     if(args != NULL) {
-        result = inbe_sync_client_sync(args->url);
-        changed = result == INBE_SYNC_CLIENT_OK && inbe_storage_last_sync_changed();
+        result = sync_client_sync(args->url);
+        changed = result == INBE_SYNC_CLIENT_OK && storage_last_sync_changed();
         free(args);
     }
 
@@ -91,7 +93,7 @@ inbe_app_sync_worker(void *userdata)
 }
 
 static void
-inbe_app_collect_finished_sync(void)
+app_collect_finished_sync(void)
 {
     int finished;
     int result;
@@ -112,48 +114,168 @@ inbe_app_collect_finished_sync(void)
             g_sync_refresh_pending = 1;
     } else {
         TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
-                 result, inbe_sync_client_result_name(result));
+                 result, sync_client_result_name(result));
     }
 }
-#else
-static void
-inbe_app_collect_finished_sync(void)
+
+static void *
+app_sync_events_worker(void *userdata)
 {
+    InbeSyncWorkerArgs *args = userdata;
+
+    if(args == NULL)
+        return NULL;
+    for(;;) {
+        InbeSyncClientResult result;
+        pthread_mutex_lock(&g_sync_mutex);
+        if(g_sync_running) {
+            pthread_mutex_unlock(&g_sync_mutex);
+            sleep(1);
+            continue;
+        }
+        pthread_mutex_unlock(&g_sync_mutex);
+
+        result = sync_client_wait_for_remote_event(args->url);
+        pthread_mutex_lock(&g_sync_mutex);
+        if(result == INBE_SYNC_CLIENT_OK)
+            g_remote_sync_due = 1;
+        pthread_mutex_unlock(&g_sync_mutex);
+        if(result != INBE_SYNC_CLIENT_OK)
+            sleep(2);
+    }
+    return NULL;
+}
+
+static void
+app_ensure_sync_events(const char *url)
+{
+    pthread_t thread;
+    InbeSyncWorkerArgs *args;
+
+    if(url == NULL || url[0] == '\0')
+        return;
+    pthread_mutex_lock(&g_sync_mutex);
+    if(g_sync_events_running && strcmp(g_sync_events_url, url) == 0) {
+        pthread_mutex_unlock(&g_sync_mutex);
+        return;
+    }
+    if(g_sync_events_running) {
+        pthread_mutex_unlock(&g_sync_mutex);
+        return;
+    }
+    g_sync_events_running = 1;
+    g_remote_sync_due = 1;
+    snprintf(g_sync_events_url, sizeof(g_sync_events_url), "%s", url);
+    pthread_mutex_unlock(&g_sync_mutex);
+
+    args = malloc(sizeof(*args));
+    if(args == NULL) {
+        pthread_mutex_lock(&g_sync_mutex);
+        g_sync_events_running = 0;
+        g_sync_events_url[0] = '\0';
+        pthread_mutex_unlock(&g_sync_mutex);
+        return;
+    }
+    snprintf(args->url, sizeof(args->url), "%s", url);
+    if(pthread_create(&thread, NULL, app_sync_events_worker, args) != 0) {
+        free(args);
+        pthread_mutex_lock(&g_sync_mutex);
+        g_sync_events_running = 0;
+        g_sync_events_url[0] = '\0';
+        pthread_mutex_unlock(&g_sync_mutex);
+        TraceLog(LOG_WARNING, "SYNC: failed to start websocket event thread");
+        return;
+    }
+    pthread_detach(thread);
+    TraceLog(LOG_INFO, "SYNC: websocket event listener started");
+}
+#else
+static char g_sync_events_url[256];
+static double g_sync_events_retry_at = 0.0;
+
+static void
+app_collect_finished_sync(void)
+{
+    InbeSyncClientResult result;
+    int changed = 0;
+
+    if(sync_client_web_poll_remote_event())
+        g_remote_sync_due = 1;
+    if(!g_sync_running)
+        return;
+    if(!sync_client_web_sync_poll(&result, &changed))
+        return;
+    g_sync_running = 0;
+    if(result == INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
+        if(changed)
+            g_sync_refresh_pending = 1;
+    } else {
+        TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
+                 result, sync_client_result_name(result));
+    }
+}
+
+static void
+app_ensure_sync_events(const char *url)
+{
+    double now;
+
+    if(url == NULL || url[0] == '\0')
+        return;
+    if(strcmp(g_sync_events_url, url) == 0) {
+        sync_client_web_start_remote_events(url);
+        return;
+    }
+    now = GetTime();
+    if(now < g_sync_events_retry_at)
+        return;
+    if(!sync_client_web_start_remote_events(url)) {
+        g_sync_events_retry_at = now + 2.0;
+        return;
+    }
+    g_remote_sync_due = 1;
+    snprintf(g_sync_events_url, sizeof(g_sync_events_url), "%s", url);
+    TraceLog(LOG_INFO, "SYNC: websocket event listener started");
 }
 #endif
 
 static int
-inbe_app_background_sync_safe(const InbeApp *app)
+app_background_sync_safe(const InbeApp *app)
 {
     if(app == NULL)
         return 0;
-    if(app->modal.active || app->habit_edit_active || app->habit_session_edit_active)
+    if(app->modal.active)
         return 0;
-    if(app->inbe.screen == InbeScreenSession ||
-       app->inbe.screen == InbeScreenMeditation ||
-       app->inbe.screen == InbeScreenHabitEdit ||
-       app->inbe.screen == InbeScreenHabitSessionEdit)
+    if(app->inbe.screen == InbeScreenPracticeSession ||
+       app->inbe.screen == InbeScreenMeditation)
         return 0;
     return 1;
 }
 
-static void
-inbe_app_apply_pending_sync_refresh(InbeApp *app)
+static int
+app_input_active(void)
 {
-    if(!g_sync_refresh_pending || !inbe_app_background_sync_safe(app))
+    return IsMouseButtonDown(MOUSE_BUTTON_LEFT) ||
+           IsMouseButtonPressed(MOUSE_BUTTON_LEFT) ||
+           IsMouseButtonReleased(MOUSE_BUTTON_LEFT) ||
+           IsMouseButtonDown(MOUSE_BUTTON_RIGHT) ||
+           IsMouseButtonPressed(MOUSE_BUTTON_RIGHT) ||
+           IsMouseButtonReleased(MOUSE_BUTTON_RIGHT);
+}
+
+static void
+app_apply_pending_sync_refresh(InbeApp *app)
+{
+    if(!g_sync_refresh_pending || !app_background_sync_safe(app))
         return;
     g_sync_refresh_pending = 0;
-#if defined(PLATFORM_WEB)
-    (void)app;
-    return;
-#else
     TraceLog(LOG_INFO, "SYNC: applying remote refresh");
     app_reload_after_import(app, 0);
-#endif
 }
 
 static int
-inbe_app_sync_url(char *url, size_t url_size)
+app_sync_url(char *url, size_t url_size)
 {
     const char *saved_url;
     InbeSyncAccount account;
@@ -161,22 +283,25 @@ inbe_app_sync_url(char *url, size_t url_size)
     if(url == NULL || url_size == 0)
         return 0;
     url[0] = '\0';
-    if(!inbe_sync_account_load(&account))
+    if(!sync_account_load(&account))
         return 0;
-    saved_url = inbe_storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
-    if(!inbe_sync_client_normalize_url(saved_url, url, url_size))
+    saved_url = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(!sync_client_normalize_url(saved_url != NULL && saved_url[0] != '\0'
+                                       ? saved_url
+                                       : "https://api.waozi.xyz",
+                                       url, url_size))
         return 0;
     return 1;
 }
 
 static int
-inbe_app_sync_now(InbeApp *app)
+app_sync_now(InbeApp *app)
 {
     char url[256];
 
-    if(app == NULL || !inbe_app_sync_url(url, sizeof(url)))
+    if(app == NULL || !app_sync_url(url, sizeof(url)))
         return 0;
-#if defined(INBE_NATIVE_SYNC_THREAD)
+#if !defined(PLATFORM_WEB)
     {
         pthread_t thread;
         InbeSyncWorkerArgs *args;
@@ -198,7 +323,7 @@ inbe_app_sync_now(InbeApp *app)
         }
         snprintf(args->url, sizeof(args->url), "%s", url);
         TraceLog(LOG_INFO, "SYNC: starting background sync");
-        if(pthread_create(&thread, NULL, inbe_app_sync_worker, args) != 0) {
+        if(pthread_create(&thread, NULL, app_sync_worker, args) != 0) {
             free(args);
             pthread_mutex_lock(&g_sync_mutex);
             g_sync_running = 0;
@@ -210,47 +335,31 @@ inbe_app_sync_now(InbeApp *app)
         return 1;
     }
 #else
-    InbeSyncClientResult result;
-
     if(g_sync_running)
         return 0;
     g_sync_running = 1;
-    TraceLog(LOG_INFO, "SYNC: starting sync");
-    result = inbe_sync_client_sync(url);
-    g_sync_running = 0;
-    if(result != INBE_SYNC_CLIENT_OK) {
-        TraceLog(LOG_WARNING, "SYNC: sync failed result=%d name=%s",
-                 result, inbe_sync_client_result_name(result));
+    TraceLog(LOG_INFO, "SYNC: starting background sync");
+    if(!sync_client_web_sync_start(url)) {
+        g_sync_running = 0;
+        TraceLog(LOG_WARNING, "SYNC: failed to start background sync");
         return 0;
     }
-    TraceLog(LOG_INFO, "SYNC: sync complete changed=%d", inbe_storage_last_sync_changed());
-    if(inbe_storage_last_sync_changed())
-        g_sync_refresh_pending = 1;
     return 1;
 #endif
 }
 
 int
-inbe_app_auto_sync(InbeApp *app)
+app_auto_sync(InbeApp *app)
 {
     double due;
     double now;
     char url[256];
 
-    if(app == NULL || !inbe_app_sync_url(url, sizeof(url)))
+    if(app == NULL || !app_sync_url(url, sizeof(url)))
         return 0;
-#if defined(PLATFORM_WEB)
-    (void)url;
-    return 0;
-#endif
     now = GetTime();
-    if(inbe_app_background_sync_safe(app) && inbe_app_sync_now(app)) {
-        g_next_sync_poll = now + INBE_SYNC_POLL_SECONDS;
-        g_dirty_sync_at = 0.0;
-        TraceLog(LOG_INFO, "SYNC: dispatched local changes");
-        return 1;
-    }
-    due = now + INBE_SYNC_DIRTY_DELAY_SECONDS;
+    g_last_sync_input_at = now;
+    due = now + INBE_SYNC_INPUT_QUIET_SECONDS;
     if(g_dirty_sync_at <= 0.0 || due < g_dirty_sync_at)
         g_dirty_sync_at = due;
     TraceLog(LOG_INFO, "SYNC: queued local changes");
@@ -258,40 +367,58 @@ inbe_app_auto_sync(InbeApp *app)
 }
 
 static void
-inbe_app_poll_remote_sync(InbeApp *app)
+app_pump_sync(InbeApp *app)
 {
     double now;
     int should_sync = 0;
+    int dirty_due = 0;
+    char url[256];
 
     if(app == NULL)
         return;
-    inbe_app_collect_finished_sync();
-    inbe_app_apply_pending_sync_refresh(app);
-#if defined(PLATFORM_WEB)
-    return;
-#endif
+    app_collect_finished_sync();
+    app_apply_pending_sync_refresh(app);
+    if(!app_sync_url(url, sizeof(url)))
+        return;
+    app_ensure_sync_events(url);
     now = GetTime();
-    if(g_next_sync_poll <= 0.0)
-        g_next_sync_poll = now + 0.25;
+    if(app_input_active())
+        g_last_sync_input_at = now;
     if(g_dirty_sync_at > 0.0 && now >= g_dirty_sync_at) {
         should_sync = 1;
-        g_dirty_sync_at = 0.0;
-    } else if(now >= g_next_sync_poll) {
-        should_sync = 1;
+        dirty_due = 1;
     }
+#if !defined(PLATFORM_WEB)
+    pthread_mutex_lock(&g_sync_mutex);
+#endif
+    if(g_remote_sync_due) {
+        should_sync = 1;
+        g_remote_sync_due = 0;
+    }
+#if !defined(PLATFORM_WEB)
+    pthread_mutex_unlock(&g_sync_mutex);
+#endif
     if(!should_sync)
         return;
-    if(!inbe_app_background_sync_safe(app)) {
+    if(now < g_last_sync_input_at + INBE_SYNC_INPUT_QUIET_SECONDS) {
+        if(g_dirty_sync_at <= 0.0)
+            g_dirty_sync_at = g_last_sync_input_at + INBE_SYNC_INPUT_QUIET_SECONDS;
+        return;
+    }
+    if(!app_background_sync_safe(app)) {
         TraceLog(LOG_INFO, "SYNC: delayed; app is active");
         if(g_dirty_sync_at <= 0.0)
             g_dirty_sync_at = now + 1.0;
-        g_next_sync_poll = now + 1.0;
         return;
     }
-    g_next_sync_poll = now + INBE_SYNC_POLL_SECONDS;
-    if(inbe_app_sync_now(app))
+    if(app_sync_now(app)) {
+        if(dirty_due)
+            g_dirty_sync_at = 0.0;
         TraceLog(LOG_INFO, "SYNC: dispatched");
-    inbe_app_apply_pending_sync_refresh(app);
+    } else if(dirty_due) {
+        g_dirty_sync_at = now + INBE_SYNC_INPUT_QUIET_SECONDS;
+    }
+    app_apply_pending_sync_refresh(app);
 }
 
 int view_width = INBE_DEFAULT_WIDTH;
@@ -418,17 +545,14 @@ app_flush_deferred_settings(InbeApp *app)
 static int
 app_should_draw_bottom_nav(const InbeApp *app)
 {
-    if(app == NULL || app->modal.active)
+    if(app == NULL || app->modal.active || app->habit_session_edit.active)
         return 0;
-
     switch(app->inbe.screen) {
     case InbeScreenStart:
     case InbeScreenSettings:
     case InbeScreenHabits:
     case InbeScreenHabitEdit:
-        return !app->habit_session_edit_active;
-    case InbeScreenHabitSessionEdit:
-        return 0;
+        return 1;
     default:
         return 0;
     }
@@ -465,24 +589,10 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
     }
 }
 
-/* ================================================================
- * TAB BAR DEFINITIONS
- * ================================================================ */
-
-static void on_habits_tab_click(void *user_data) {
-    InbeApp *app = user_data;
-    app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
-}
-
-static void on_settings_screen_click(void *user_data) {
-    InbeApp *app = user_data;
-    app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
-}
-
 static UITab g_tabs[] = {
-    {NULL, {0}, UI_ICON_TYPE_HOME, on_habits_tab_click, NULL},
-    {NULL, {0}, UI_ICON_TYPE_AMEN, NULL, NULL},
-    {NULL, {0}, UI_ICON_TYPE_GEAR, on_settings_screen_click, NULL}
+    {NULL, {0}, UI_ICON_TYPE_HOME},
+    {NULL, {0}, UI_ICON_TYPE_AMEN},
+    {NULL, {0}, UI_ICON_TYPE_GEAR}
 };
 
 static UITabBar g_tab_bar = {g_tabs, 3};
@@ -490,8 +600,17 @@ static UITabBar g_tab_bar = {g_tabs, 3};
 static void
 app_draw_bottom_nav(InbeApp *app)
 {
-    if(app_should_draw_bottom_nav(app))
-        ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+    int tab;
+
+    if(!app_should_draw_bottom_nav(app))
+        return;
+    tab = ui_draw_tab_bar(g_tab_bar.tabs, g_tab_bar.count);
+    if(tab == 0)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_HABITS);
+    else if(tab == 1)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_PRACTICE);
+    else if(tab == 2)
+        app_request_bottom_tab(app, APP_BOTTOM_TAB_SETTINGS);
 }
 
 static int
@@ -729,7 +848,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         practice_update_session_sounds(app);
     }
 
-    inbe_habits_init(&app->habits);
+    habits_init(&app->habits);
     if(!reload_settings) {
         app->habits.selected = -1;
         for(int i = 0; i < app->habits.count; i++) {
@@ -760,8 +879,8 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         app->habit_detail_index = -1;
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
         app->habits.selected = app->habits.count > 0 ? 0 : -1;
-    app->habit_session_edit_active = 0;
-    app->habit_edit_active = 0;
+    app->habit_session_edit.active = 0;
+    app->habit_edit.active = 0;
 }
 
 static Texture2D
@@ -888,7 +1007,7 @@ init_audio(InbeApp *app)
 }
 
 void
-inbe_app_init(void *vapp) {
+app_init(void *vapp) {
     InbeApp *app = vapp;
     if(app == 0)
         return;
@@ -926,7 +1045,6 @@ inbe_app_init(void *vapp) {
 #endif
 
     inbeinit(&app->inbe);
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -934,18 +1052,10 @@ inbe_app_init(void *vapp) {
         save_settings(app);
         app->language_needs_save = 0;
     }
-    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + 80);
-    inbe_habits_init(&app->habits);
+    practice_update_circle_bounds(app, flint_px(48), flint_px(56) + flint_px(80));
+    habits_init(&app->habits);
     app->habit_detail_index = -1;
-    app->habit_detail_day = 0;
-    app->habit_detail_session_path[0] = '\0';
-    app->habit_session_edit_scroll = 0;
-    app->habit_session_edit_active = 0;
-    app->habit_session_edit_kind = 0;
-    app->habit_session_edit_round = -1;
-    app->habit_session_edit_cursor = 0;
-    app->habit_session_edit_path[0] = '\0';
-    app->habit_session_edit_text[0] = '\0';
+    app->habit_session_edit = (HabitSessionEditState){.round = -1};
     app->pending_bottom_tab = APP_BOTTOM_TAB_NONE;
     app_open_main_tab(app, app->main_tab, 0);
     init_audio(app);
@@ -959,42 +1069,15 @@ inbe_app_init(void *vapp) {
     app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_scroll = 0;
-    app->settings_drag_slider = 0;
-    app->settings_drag_scrollbar = 0;
-    app->settings_drag_content = 0;
-    app->settings_drag_content_y = 0;
-    app->settings_dirty = 0;
-    app->settings_save_delay_ticks = 0;
     app->settings_tab = SETTINGS_TAB_DEVICE;
-    app->settings_data_view = 0;
-    app->sync_server_url_cursor = 0;
-    app->sync_server_url_focused = 0;
-    app->sync_server_url[0] = '\0';
-    app->practice_config_tab = 0;
-    app->practice_coming_soon_ticks = 0;
-    app->habit_edit_active = 0;
-    app->habit_edit_is_new = 0;
-    app->habit_edit_index = -1;
-    app->habit_edit_cursor = 0;
-    app->habit_edit_focused = 0;
-    app->habit_edit_text[0] = '\0';
-    app->habit_edit_color = (Color){99, 196, 165, 255};
-    app->habit_edit_sync_mode = INBE_HABIT_SYNC_NONE;
-    app->habit_edit_sync_activity = 0;
-    app->manual_scroll = 0;
-    app->manual_drag_scrollbar = 0;
-    app->manual_drag_content = 0;
-    app->manual_drag_content_y = 0;
-    app->tutorial_step = 0;
-    app->session_paused = 0;
-    app->backgrounded = 0;
-    app->results_saved = 0;
-    app->results_path[0] = '\0';
+    app->habit_edit = (HabitEditState){
+        .index = -1,
+        .color = {99, 196, 165, 255},
+        .sync_mode = INBE_HABIT_SYNC_NONE
+    };
     practice_update_session_sounds(app);
     reset_settings_preview(app);
     inbeinit(&app->start_speed_preview);
-    app->start_speed_preview_speed = 0;
 
     // Load all icons
     flint_load_all_icons(app->icons);
@@ -1002,16 +1085,10 @@ inbe_app_init(void *vapp) {
     /* Update tab bar icons */
     g_tabs[0].icon = app->icons[UI_ICON_TYPE_HABIT];
     g_tabs[0].icon_type = UI_ICON_TYPE_NONE;
-    g_tabs[0].user_data = app;
     g_tabs[1].icon = app->icons[UI_ICON_TYPE_AMEN];
     g_tabs[1].icon_type = UI_ICON_TYPE_AMEN;
-    g_tabs[1].user_data = app;
-    g_tabs[1].on_click = on_practice_tab_click;
     g_tabs[2].icon = app->icons[UI_ICON_TYPE_GEAR];
     g_tabs[2].icon_type = UI_ICON_TYPE_GEAR;
-    g_tabs[2].user_data = app;
-
-    app->volume_popup_active = 0;
 
     ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
@@ -1020,14 +1097,11 @@ inbe_app_init(void *vapp) {
     else
         app->inbe.screen = InbeScreenStart;
 
-    /* Reset modal state */
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->modal.selected_button = 0;
+    app->modal = (UIModal){0};
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
-    inbe_app_auto_sync(app);
+    app_auto_sync(app);
 }
 
 static void
@@ -1077,7 +1151,7 @@ handle_back_button(InbeApp *app)
 
     case InbeScreenResults:
         practice_ensure_results_saved(app);
-        inbe_app_init(app);
+        app_init(app);
         break;
 
     case InbeScreenSession:
@@ -1089,7 +1163,7 @@ handle_back_button(InbeApp *app)
                 android_timer_stop();
             }
 #endif
-            inbe_app_init(app);
+            app_init(app);
         } else {
             /* Show confirmation modal */
             app->modal.active = 1;
@@ -1328,7 +1402,7 @@ finish_frame:
 }
 
 void
-inbe_app_update_draw(void *vapp, Rectangle viewport) {
+app_update_draw(void *vapp, Rectangle viewport) {
     InbeApp *app = vapp;
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
@@ -1353,7 +1427,6 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
     ui_set_cursor_disabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
-    inbe_app_poll_remote_sync(app);
 
     DrawRectangleRec(viewport, theme_get_bg());
     flint_clip_begin((int)viewport.x, (int)viewport.y, (int)viewport.width, (int)viewport.height);
@@ -1362,6 +1435,8 @@ inbe_app_update_draw(void *vapp, Rectangle viewport) {
             updateapp(app);
         EndMode2D();
     flint_clip_end();
+    habits_flush_save(app);
+    app_pump_sync(app);
 }
 
 void
@@ -1378,13 +1453,14 @@ static void SafeUnloadSound(Sound sound) {
 }
 
 void
-inbe_app_destroy(void *vapp)
+app_destroy(void *vapp)
 {
     InbeApp *app = vapp;
     if (app == NULL) return;
 
     if(app->settings_dirty || app->settings_save_delay_ticks > 0)
         save_settings(app);
+    habits_flush_save(app);
 
     // Unload all icons
     flint_unload_all_icons(app->icons);

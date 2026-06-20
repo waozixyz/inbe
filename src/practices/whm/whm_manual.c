@@ -1,7 +1,7 @@
 #include "whm_practice.h"
 #include "app.h"
 #include "whm_session.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "flint_clip.h"
 #include "flint_ui.h"

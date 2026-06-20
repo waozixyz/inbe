@@ -106,7 +106,6 @@ add_library(main SHARED
     "${SRC_DIR}/practices/meditation/meditation_config.c"
     "${SRC_DIR}/screens/habits_screen.c"
     "${SRC_DIR}/practices/meditation/meditation_music.c"
-    "${SRC_DIR}/core/locale.c"
     "${SRC_DIR}/core/theme.c"
     "${SRC_DIR}/storage/data.c"
     "${SRC_DIR}/storage/storage.c"

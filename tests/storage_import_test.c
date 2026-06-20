@@ -151,13 +151,14 @@ write_source_database(const char *root)
     int rounds[] = {45, 60, 75};
     InbeHabits habits;
 
-    check_true("init source db", inbe_storage_init(root));
-    check_true("save source session", inbe_storage_save_session(rounds, 3, NULL, 0));
+    check_true("init source db", storage_init(root));
+    check_true("save source session", storage_save_session(rounds, 3, NULL, 0));
     memset(&habits, 0, sizeof(habits));
-    inbe_habits_add_default_set(&habits);
-    inbe_habit_set_day(&habits, 0, 20260613, 1);
-    check_int("source sessions", inbe_storage_session_count(), 1);
-    inbe_storage_close();
+    habits_add_default_set(&habits);
+    habit_set_day(&habits, 0, 20260613, 1);
+    habits_save(&habits);
+    check_int("source sessions", storage_session_count(), 1);
+    storage_close();
 }
 
 static void
@@ -214,6 +215,131 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
 }
 
 static void
+test_sync_payload_omits_uploaded_state_after_upload_marker(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-full-local-state");
+    check_true("init sync watermark db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habit_set_day_count(&habits, 0, 20260612, 12);
+    habits_save(&habits);
+
+    storage_close();
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        sqlite3_stmt *stmt = NULL;
+        long long updated_at = 0;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open sync watermark raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            if(sqlite3_prepare_v2(db,
+                                  "SELECT updated_at FROM habit_days WHERE local_date=20260612",
+                                  -1, &stmt, NULL) == SQLITE_OK &&
+               sqlite3_step(stmt) == SQLITE_ROW)
+                updated_at = sqlite3_column_int64(stmt, 0);
+            if(stmt != NULL)
+                sqlite3_finalize(stmt);
+            check_true("set sync watermark raw meta",
+                       updated_at > 0 &&
+                       sqlite3_exec(db,
+                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            if(updated_at > 0) {
+                char sql[192];
+                snprintf(sql, sizeof(sql),
+                         "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_upload_at','%lld');",
+                         updated_at);
+                check_true("set sync same second upload marker",
+                           sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
+            }
+            check_true("clear uploaded outbox raw meta",
+                       sqlite3_exec(db, "DELETE FROM sync_outbox;", NULL, NULL, NULL) == SQLITE_OK);
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen sync watermark db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("habit day omitted from sync payload after upload marker",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260612") == NULL &&
+               strstr(payload, "\"count\":12") == NULL);
+    storage_free_sync_payload_json(payload);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_payload_includes_queued_current_edits(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-queued-edit");
+    check_true("init queued sync db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habit_set_day_count(&habits, 0, 20260617, 7);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("queued habit day included in sync payload",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260617") != NULL &&
+               strstr(payload, "\"count\":7") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_outbox_preserves_edits_after_snapshot(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+    const char *empty_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-outbox-snapshot");
+    check_true("init outbox snapshot db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habit_set_day_count(&habits, 0, 20260618, 1);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("first queued edit in payload",
+               payload != NULL && strstr(payload, "\"local_date\":20260618") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    habit_set_day_count(&habits, 0, 20260619, 2);
+    habits_save(&habits);
+    check_true("apply response clears only snapshotted outbox",
+               storage_apply_sync_response_json(empty_response));
+
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("later edit remains queued after snapshot clear",
+               payload != NULL &&
+               strstr(payload, "\"local_date\":20260619") != NULL &&
+               strstr(payload, "\"count\":2") != NULL);
+    check_true("earlier edit was cleared after snapshot success",
+               payload != NULL && strstr(payload, "\"local_date\":20260618") == NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_apply_preserves_counter_counts(void)
 {
     char root[512];
@@ -230,8 +356,8 @@ test_sync_apply_preserves_counter_counts(void)
         "],\"sessions\":[]}}";
 
     make_clean_root(root, sizeof(root), "sync-counter");
-    check_true("init sync counter db", inbe_storage_init(root));
-    inbe_storage_close();
+    check_true("init sync counter db", storage_init(root));
+    storage_close();
 
     {
         char db_path[512];
@@ -250,15 +376,15 @@ test_sync_apply_preserves_counter_counts(void)
         }
     }
 
-    check_true("reopen sync counter db", inbe_storage_init(root));
-    check_true("apply lower equal counter", inbe_storage_apply_sync_response_json(lower_count_response));
-    inbe_storage_close();
+    check_true("reopen sync counter db", storage_init(root));
+    check_true("apply lower equal counter", storage_apply_sync_response_json(lower_count_response));
+    storage_close();
     check_int("lower equal sync does not reset counter",
               read_raw_habit_day_count(root, habit_id, 20260619), 4);
 
-    check_true("reopen sync counter db for repair", inbe_storage_init(root));
-    check_true("apply higher equal counter", inbe_storage_apply_sync_response_json(higher_count_response));
-    inbe_storage_close();
+    check_true("reopen sync counter db for repair", storage_init(root));
+    check_true("apply higher equal counter", storage_apply_sync_response_json(higher_count_response));
+    storage_close();
     check_int("higher equal sync repairs counter",
               read_raw_habit_day_count(root, habit_id, 20260619), 5);
 
@@ -273,47 +399,47 @@ test_session_linked_counts_materialize_for_sync(void)
     char second_id[INBE_STORAGE_ID_SIZE + 4];
     int first_rounds[] = {30};
     int second_rounds[] = {45};
-    int today = inbe_habits_today_index();
+    int today = habits_today_index();
     InbeHabits habits;
     char *payload;
 
     make_clean_root(root, sizeof(root), "session-linked-count");
-    check_true("init linked counter db", inbe_storage_init(root));
+    check_true("init linked counter db", storage_init(root));
     memset(&habits, 0, sizeof(habits));
-    inbe_habits_add_default_set(&habits);
+    habits_add_default_set(&habits);
 
     check_true("save linked session one",
-               inbe_storage_save_session_for_activity(first_rounds, 1, 0, 1,
+               storage_save_session_for_activity(first_rounds, 1, 0, 1,
                                                       first_id, sizeof(first_id)));
     check_true("save linked session two",
-               inbe_storage_save_session_for_activity(second_rounds, 1, 0, 1,
+               storage_save_session_for_activity(second_rounds, 1, 0, 1,
                                                       second_id, sizeof(second_id)));
 
     memset(&habits, 0, sizeof(habits));
-    check_true("load linked counter habits", inbe_storage_habits_load(&habits));
+    check_true("load linked counter habits", storage_habits_load(&habits));
     check_int("linked sessions materialize count",
-              inbe_habit_day_count(&habits.items[0], today), 2);
+              habit_day_count(&habits.items[0], today), 2);
 
-    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("linked session count is in sync payload",
                payload != NULL && strstr(payload, "\"count\":2") != NULL);
-    inbe_storage_free_sync_payload_json(payload);
+    storage_free_sync_payload_json(payload);
 
-    check_true("delete linked session one", inbe_storage_delete_session(first_id));
+    check_true("delete linked session one", storage_delete_session(first_id));
     memset(&habits, 0, sizeof(habits));
-    check_true("reload linked counter after delete", inbe_storage_habits_load(&habits));
+    check_true("reload linked counter after delete", storage_habits_load(&habits));
     check_int("linked session delete lowers derived count",
-              inbe_habit_day_count(&habits.items[0], today), 1);
+              habit_day_count(&habits.items[0], today), 1);
 
-    inbe_habit_set_day_count(&habits, 0, today, 4);
-    inbe_habits_save(&habits);
-    check_true("delete linked session two", inbe_storage_delete_session(second_id));
+    habit_set_day_count(&habits, 0, today, 4);
+    habits_save(&habits);
+    check_true("delete linked session two", storage_delete_session(second_id));
     memset(&habits, 0, sizeof(habits));
-    check_true("reload linked counter after manual override", inbe_storage_habits_load(&habits));
+    check_true("reload linked counter after manual override", storage_habits_load(&habits));
     check_int("linked session delete preserves manual count",
-              inbe_habit_day_count(&habits.items[0], today), 4);
+              habit_day_count(&habits.items[0], today), 4);
 
-    inbe_storage_close();
+    storage_close();
     remove_tree(root);
 }
 
@@ -322,28 +448,28 @@ test_existing_sessions_materialize_after_habit_save(void)
 {
     char root[512];
     int rounds[] = {30};
-    int today = inbe_habits_today_index();
+    int today = habits_today_index();
     InbeHabits habits;
     char *payload;
 
     make_clean_root(root, sizeof(root), "existing-session-linked-count");
-    check_true("init existing linked counter db", inbe_storage_init(root));
+    check_true("init existing linked counter db", storage_init(root));
     check_true("save existing linked session",
-               inbe_storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
+               storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
 
     memset(&habits, 0, sizeof(habits));
-    inbe_habits_add_default_set(&habits);
+    habits_add_default_set(&habits);
     memset(&habits, 0, sizeof(habits));
-    check_true("load existing linked counter habits", inbe_storage_habits_load(&habits));
+    check_true("load existing linked counter habits", storage_habits_load(&habits));
     check_int("existing linked session materializes after habit save",
-              inbe_habit_day_count(&habits.items[0], today), 1);
+              habit_day_count(&habits.items[0], today), 1);
 
-    payload = inbe_storage_build_sync_payload_json("test-hash", "test-public-key");
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("existing linked session count is in sync payload",
                payload != NULL && strstr(payload, "\"count\":1") != NULL);
-    inbe_storage_free_sync_payload_json(payload);
+    storage_free_sync_payload_json(payload);
 
-    inbe_storage_close();
+    storage_close();
     remove_tree(root);
 }
 
@@ -394,15 +520,15 @@ test_session_metadata(void)
     int rounds[] = {30, 45};
 
     make_clean_root(root, sizeof(root), "metadata");
-    check_true("init metadata db", inbe_storage_init(root));
+    check_true("init metadata db", storage_init(root));
     check_true("save metadata session",
-               inbe_storage_save_session_for_activity(rounds, 2, 2, 3, NULL, 0));
+               storage_save_session_for_activity(rounds, 2, 2, 3, NULL, 0));
     g_seen_topic = -1;
     g_seen_activity = -1;
-    inbe_storage_list_session_records(metadata_history_callback, NULL);
+    storage_list_session_records(metadata_history_callback, NULL);
     check_int("metadata topic", g_seen_topic, 2);
     check_int("metadata activity", g_seen_activity, 3);
-    inbe_storage_close();
+    storage_close();
     remove_tree(root);
 }
 
@@ -411,13 +537,13 @@ assert_imported_database(const char *root)
 {
     InbeHabits habits;
 
-    check_true("init imported db", inbe_storage_init(root));
-    check_int("imported sessions", inbe_storage_session_count(), 1);
+    check_true("init imported db", storage_init(root));
+    check_int("imported sessions", storage_session_count(), 1);
     memset(&habits, 0, sizeof(habits));
-    check_true("imported habits load", inbe_storage_habits_load(&habits));
+    check_true("imported habits load", storage_habits_load(&habits));
     check_int("imported habit count", habits.count, 1);
-    check_true("imported habit day", inbe_habit_completed_day(&habits.items[0], 20260613));
-    inbe_storage_close();
+    check_true("imported habit day", habit_completed_day(&habits.items[0], 20260613));
+    storage_close();
 }
 
 static void
@@ -430,9 +556,9 @@ test_raw_db_import(void)
     write_source_database(source);
     make_path(db_path, sizeof(db_path), source, "inbe.db");
 
-    check_true("init raw import dest", inbe_storage_init(dest));
-    check_true("raw db import", inbe_storage_import_zip(db_path));
-    inbe_storage_close();
+    check_true("init raw import dest", storage_init(dest));
+    check_true("raw db import", storage_import_zip(db_path));
+    storage_close();
     assert_imported_database(dest);
 
     remove_tree(source);
@@ -449,13 +575,13 @@ test_zip_db_import(void)
     write_source_database(source);
     make_path(zip_path, sizeof(zip_path), source, "export.zip");
 
-    check_true("init export source", inbe_storage_init(source));
-    check_true("export zip", inbe_storage_export_zip(zip_path));
-    inbe_storage_close();
+    check_true("init export source", storage_init(source));
+    check_true("export zip", storage_export_zip(zip_path));
+    storage_close();
 
-    check_true("init zip import dest", inbe_storage_init(dest));
-    check_true("zip db import", inbe_storage_import_zip(zip_path));
-    inbe_storage_close();
+    check_true("init zip import dest", storage_init(dest));
+    check_true("zip db import", storage_import_zip(zip_path));
+    storage_close();
     assert_imported_database(dest);
 
     remove_tree(source);
@@ -473,54 +599,58 @@ test_habit_name_merge_import(void)
     make_clean_root(dest, sizeof(dest), "habit-name-dest");
     make_path(zip_path, sizeof(zip_path), source, "export.zip");
 
-    check_true("init habit merge source", inbe_storage_init(source));
+    check_true("init habit merge source", storage_init(source));
     memset(&habits, 0, sizeof(habits));
     check_int("add imported meditation",
-              inbe_habits_add_custom(&habits, "meditation",
+              habits_add_custom(&habits, "meditation",
                                       (Color){224, 124, 104, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               0);
-    inbe_habit_set_day(&habits, 0, 20260613, 1);
+    habit_set_day(&habits, 0, 20260613, 1);
+    habits_save(&habits);
     check_int("add imported push ups",
-              inbe_habits_add_custom(&habits, "Push ups",
+              habits_add_custom(&habits, "Push ups",
                                       (Color){180, 132, 220, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               1);
-    inbe_habit_set_day(&habits, 1, 20260614, 1);
+    habit_set_day(&habits, 1, 20260614, 1);
+    habits_save(&habits);
     check_int("add imported cold shower",
-              inbe_habits_add_custom(&habits, "Cold Shower",
+              habits_add_custom(&habits, "Cold Shower",
                                       (Color){99, 196, 165, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               2);
-    inbe_habit_set_day(&habits, 2, 20260615, 1);
-    check_true("habit merge export", inbe_storage_export_zip(zip_path));
-    inbe_storage_close();
+    habit_set_day(&habits, 2, 20260615, 1);
+    habits_save(&habits);
+    check_true("habit merge export", storage_export_zip(zip_path));
+    storage_close();
 
-    check_true("init habit merge dest", inbe_storage_init(dest));
+    check_true("init habit merge dest", storage_init(dest));
     memset(&habits, 0, sizeof(habits));
-    inbe_habits_add_default_set(&habits);
-    inbe_habit_set_day(&habits, 0, 20260612, 1);
-    check_true("habit merge import", inbe_storage_import_zip(zip_path));
+    habits_add_default_set(&habits);
+    habit_set_day(&habits, 0, 20260612, 1);
+    habits_save(&habits);
+    check_true("habit merge import", storage_import_zip(zip_path));
     memset(&habits, 0, sizeof(habits));
-    check_true("habit merge load", inbe_storage_habits_load(&habits));
+    check_true("habit merge load", storage_habits_load(&habits));
     check_int("habit merge count", habits.count, 3);
     habit = find_habit_ci(&habits, "Meditation");
     check_true("habit merge meditation exists", habit != NULL);
     check_true("habit merge preserves local case",
                habit != NULL && strcmp(habit->name, "Meditation") == 0);
     check_true("habit merge keeps local day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260612));
+               habit != NULL && habit_completed_day(habit, 20260612));
     check_true("habit merge imports day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260613));
+               habit != NULL && habit_completed_day(habit, 20260613));
     habit = find_habit_ci(&habits, "Push ups");
     check_true("habit merge push ups exists", habit != NULL);
     check_true("habit merge push ups day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260614));
+               habit != NULL && habit_completed_day(habit, 20260614));
     habit = find_habit_ci(&habits, "Cold Shower");
     check_true("habit merge cold shower exists", habit != NULL);
     check_true("habit merge cold shower day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260615));
-    inbe_storage_close();
+               habit != NULL && habit_completed_day(habit, 20260615));
+    storage_close();
 
     remove_tree(source);
     remove_tree(dest);
@@ -537,39 +667,40 @@ test_import_conflict_prefers_data_over_empty(void)
     make_clean_root(dest, sizeof(dest), "conflict-dest");
     make_path(zip_path, sizeof(zip_path), source, "conflict-export.zip");
 
-    check_true("init conflict source", inbe_storage_init(source));
+    check_true("init conflict source", storage_init(source));
     memset(&habits, 0, sizeof(habits));
     check_int("add conflict source habit",
-              inbe_habits_add_custom(&habits, "Meditation",
+              habits_add_custom(&habits, "Meditation",
                                       (Color){224, 124, 104, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               0);
-    inbe_storage_set_setting_text("language", "");
-    inbe_storage_close();
+    storage_set_setting_text("language", "");
+    storage_close();
     insert_raw_habit_day(source, "habit-1", 20260618, 0);
-    check_true("reopen conflict source", inbe_storage_init(source));
-    check_true("conflict source export", inbe_storage_export_zip(zip_path));
-    inbe_storage_close();
+    check_true("reopen conflict source", storage_init(source));
+    check_true("conflict source export", storage_export_zip(zip_path));
+    storage_close();
 
-    check_true("init conflict dest", inbe_storage_init(dest));
+    check_true("init conflict dest", storage_init(dest));
     memset(&habits, 0, sizeof(habits));
     check_int("add conflict dest habit",
-              inbe_habits_add_custom(&habits, "Meditation",
+              habits_add_custom(&habits, "Meditation",
                                       (Color){126, 183, 230, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               0);
-    inbe_habit_set_day(&habits, 0, 20260618, 1);
-    inbe_storage_set_setting_text("language", "en");
+    habit_set_day(&habits, 0, 20260618, 1);
+    habits_save(&habits);
+    storage_set_setting_text("language", "en");
     check_true("conflict import",
-               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
+               storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
     memset(&habits, 0, sizeof(habits));
-    check_true("conflict habits load", inbe_storage_habits_load(&habits));
+    check_true("conflict habits load", storage_habits_load(&habits));
     habit = find_habit_ci(&habits, "Meditation");
     check_true("conflict keeps completed day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260618));
+               habit != NULL && habit_completed_day(habit, 20260618));
     check_str("conflict keeps non-empty setting",
-              inbe_storage_get_setting_text("language"), "en");
-    inbe_storage_close();
+              storage_get_setting_text("language"), "en");
+    storage_close();
 
     remove_tree(source);
     remove_tree(dest);
@@ -583,30 +714,32 @@ test_delete_all_resets_habits_to_empty_storage(void)
     long long deleted;
 
     make_clean_root(root, sizeof(root), "delete-all");
-    check_true("init delete all db", inbe_storage_init(root));
+    check_true("init delete all db", storage_init(root));
     memset(&habits, 0, sizeof(habits));
     check_int("add delete all habit",
-              inbe_habits_add_custom(&habits, "Work out",
+              habits_add_custom(&habits, "Work out",
                                       (Color){99, 196, 165, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               0);
-    inbe_habit_set_day(&habits, 0, 20260618, 1);
-    check_int("delete all habit count before", inbe_storage_habit_count(), 1);
-    check_true("delete all sees habit-only data", inbe_storage_has_any());
+    habit_set_day(&habits, 0, 20260618, 1);
+    habits_save(&habits);
+    check_int("delete all habit count before", storage_habit_count(), 1);
+    check_true("delete all sees habit-only data", storage_has_any());
 
-    deleted = inbe_storage_delete_all_sessions();
+    deleted = storage_delete_all_sessions();
     check_true("delete all removed habit data", deleted >= 2);
-    check_int("delete all habit count after", inbe_storage_habit_count(), 0);
+    check_int("delete all habit count after", storage_habit_count(), 0);
+    check_true("delete all hides active data", !storage_has_any());
 
-    inbe_habits_add_default_set(&habits);
+    habits_add_default_set(&habits);
     memset(&habits, 0, sizeof(habits));
-    check_true("load default habit after delete all", inbe_storage_habits_load(&habits));
+    check_true("load default habit after delete all", storage_habits_load(&habits));
     check_int("default habit count after delete all", habits.count, 1);
     check_true("default meditation after delete all",
                strcmp(habits.items[0].name, "Meditation") == 0);
     check_true("old workout day removed",
-               !inbe_habit_completed_day(&habits.items[0], 20260618));
-    inbe_storage_close();
+               !habit_completed_day(&habits.items[0], 20260618));
+    storage_close();
 
     remove_tree(root);
 }
@@ -617,34 +750,37 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
     int rounds[] = {77};
     InbeHabits habits;
 
-    check_true("init multi habit source", inbe_storage_init(root));
+    check_true("init multi habit source", storage_init(root));
     check_true("save multi habit source session",
-               inbe_storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
+               storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
     memset(&habits, 0, sizeof(habits));
     check_int("add meditation habit",
-              inbe_habits_add_custom(&habits, "Meditation",
+              habits_add_custom(&habits, "Meditation",
                                       (Color){224, 124, 104, 255},
                                       INBE_HABIT_SYNC_ACTIVITIES,
                                       (1 << 0) | (1 << 1)),
               0);
     check_int("add push ups habit",
-              inbe_habits_add_custom(&habits, "Push ups",
+              habits_add_custom(&habits, "Push ups",
                                       (Color){180, 132, 220, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               1);
     check_int("add cold shower habit",
-              inbe_habits_add_custom(&habits, "Cold Shower",
+              habits_add_custom(&habits, "Cold Shower",
                                       (Color){99, 196, 165, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               2);
-    inbe_habit_set_day(&habits, 0, 20260617, 1);
-    inbe_habit_set_day(&habits, 1, 20260617, 1);
-    inbe_habit_set_day(&habits, 2, 20260617, 1);
-    inbe_storage_set_setting_int("speed", 7);
-    inbe_storage_set_setting_text("language", "en");
-    inbe_storage_set_setting_text("future_unknown_key", "ignore-me");
-    check_true("export multi habit source", inbe_storage_export_zip(zip_path));
-    inbe_storage_close();
+    habit_set_day(&habits, 0, 20260617, 1);
+    habits_save(&habits);
+    habit_set_day(&habits, 1, 20260617, 1);
+    habits_save(&habits);
+    habit_set_day(&habits, 2, 20260617, 1);
+    habits_save(&habits);
+    storage_set_setting_int("speed", 7);
+    storage_set_setting_text("language", "en");
+    storage_set_setting_text("future_unknown_key", "ignore-me");
+    check_true("export multi habit source", storage_export_zip(zip_path));
+    storage_close();
 }
 
 static void
@@ -653,10 +789,10 @@ assert_multi_habits_imported(const char *root, int want_speed)
     InbeHabits habits;
     InbeHabit *habit;
 
-    check_true("init multi habit import db", inbe_storage_init(root));
-    check_int("multi habit imported sessions", inbe_storage_session_count(), 1);
+    check_true("init multi habit import db", storage_init(root));
+    check_int("multi habit imported sessions", storage_session_count(), 1);
     memset(&habits, 0, sizeof(habits));
-    check_true("multi habit load", inbe_storage_habits_load(&habits));
+    check_true("multi habit load", storage_habits_load(&habits));
     check_int("multi habit count", habits.count, 3);
     habit = find_habit_ci(&habits, "Meditation");
     check_true("multi meditation exists", habit != NULL);
@@ -667,18 +803,18 @@ assert_multi_habits_imported(const char *root, int want_speed)
               habit != NULL ? habit->sync_activity : -1,
               (1 << 0) | (1 << 1));
     check_true("multi meditation day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+               habit != NULL && habit_completed_day(habit, 20260617));
     habit = find_habit_ci(&habits, "Push ups");
     check_true("multi push ups day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+               habit != NULL && habit_completed_day(habit, 20260617));
     habit = find_habit_ci(&habits, "Cold Shower");
     check_true("multi cold shower day",
-               habit != NULL && inbe_habit_completed_day(habit, 20260617));
+               habit != NULL && habit_completed_day(habit, 20260617));
     check_int("multi import speed setting",
-              inbe_storage_get_setting_int("speed", -1), want_speed);
+              storage_get_setting_int("speed", -1), want_speed);
     check_str("multi import unknown setting",
-              inbe_storage_get_setting_text("future_unknown_key"), NULL);
-    inbe_storage_close();
+              storage_get_setting_text("future_unknown_key"), NULL);
+    storage_close();
 }
 
 static void
@@ -693,25 +829,25 @@ test_import_modes_preserve_habits_and_settings_choice(void)
     make_path(zip_path, sizeof(zip_path), source, "multi-export.zip");
     write_multi_habit_source_database(source, zip_path);
 
-    check_true("init inspect dest", inbe_storage_init(dest_data));
+    check_true("init inspect dest", storage_init(dest_data));
     memset(&info, 0, sizeof(info));
-    check_true("inspect multi export", inbe_storage_inspect_import(zip_path, &info));
+    check_true("inspect multi export", storage_inspect_import(zip_path, &info));
     check_true("inspect valid", info.valid);
     check_true("inspect sessions", info.has_sessions);
     check_true("inspect habits", info.has_habits);
     check_true("inspect settings", info.has_settings);
     check_int("inspect habit count", info.habit_count, 3);
-    inbe_storage_set_setting_int("speed", 1);
+    storage_set_setting_int("speed", 1);
     check_true("multi data only import",
-               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_ONLY));
-    inbe_storage_close();
+               storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_ONLY));
+    storage_close();
     assert_multi_habits_imported(dest_data, 1);
 
-    check_true("init settings import dest", inbe_storage_init(dest_settings));
-    inbe_storage_set_setting_int("speed", 1);
+    check_true("init settings import dest", storage_init(dest_settings));
+    storage_set_setting_int("speed", 1);
     check_true("multi data settings import",
-               inbe_storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
-    inbe_storage_close();
+               storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
+    storage_close();
     assert_multi_habits_imported(dest_settings, 7);
 
     remove_tree(source);
@@ -750,15 +886,15 @@ test_legacy_zip_import(void)
     make_path(zip_path, sizeof(zip_path), source, "legacy.zip");
     write_legacy_zip(zip_path, "custom-root");
 
-    check_true("init legacy import dest", inbe_storage_init(dest));
-    check_true("legacy zip import", inbe_storage_import_zip(zip_path));
-    check_int("legacy imported sessions", inbe_storage_session_count(), 1);
+    check_true("init legacy import dest", storage_init(dest));
+    check_true("legacy zip import", storage_import_zip(zip_path));
+    check_int("legacy imported sessions", storage_session_count(), 1);
     g_seen_round_count = -1;
     g_seen_first_round = -1;
-    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    storage_list_session_records(legacy_history_callback, NULL);
     check_int("legacy round count", g_seen_round_count, 4);
     check_int("legacy first round", g_seen_first_round, 31);
-    inbe_storage_close();
+    storage_close();
 
     remove_tree(source);
     remove_tree(dest);
@@ -787,18 +923,18 @@ test_legacy_file_startup_migration(void)
     make_path(session_path, sizeof(session_path), root, "2026/06/13/inbe-010203");
     write_text_file(session_path, "31\n35\n39\n27\n");
 
-    check_true("init legacy file migration db", inbe_storage_init(root));
-    check_int("legacy file migrated sessions", inbe_storage_session_count(), 1);
+    check_true("init legacy file migration db", storage_init(root));
+    check_int("legacy file migrated sessions", storage_session_count(), 1);
     g_seen_round_count = -1;
     g_seen_first_round = -1;
-    inbe_storage_list_session_records(legacy_history_callback, NULL);
+    storage_list_session_records(legacy_history_callback, NULL);
     check_int("legacy file round count", g_seen_round_count, 4);
     check_int("legacy file first round", g_seen_first_round, 31);
-    inbe_storage_close();
+    storage_close();
 
-    check_true("reopen migrated db", inbe_storage_init(root));
-    check_int("legacy file migration one session", inbe_storage_session_count(), 1);
-    inbe_storage_close();
+    check_true("reopen migrated db", storage_init(root));
+    check_int("legacy file migration one session", storage_session_count(), 1);
+    storage_close();
     remove_tree(root);
 }
 
@@ -885,29 +1021,29 @@ test_tickmate_db_import(void)
     make_path(db_path, sizeof(db_path), source, "tickmate.db");
     write_tickmate_database(db_path);
 
-    check_true("init tickmate import dest", inbe_storage_init(dest));
-    check_true("tickmate db import", inbe_storage_import_zip(db_path));
+    check_true("init tickmate import dest", storage_init(dest));
+    check_true("tickmate db import", storage_import_zip(db_path));
     memset(&habits, 0, sizeof(habits));
-    check_true("tickmate habits load", inbe_storage_habits_load(&habits));
+    check_true("tickmate habits load", storage_habits_load(&habits));
     check_int("tickmate habit count", habits.count, 1);
-    check_true("tickmate january day", inbe_habit_completed_day(&habits.items[0], 20260101));
-    check_true("tickmate february day", inbe_habit_completed_day(&habits.items[0], 20260202));
-    check_true("tickmate march day", inbe_habit_completed_day(&habits.items[0], 20260303));
-    check_true("tickmate april day", inbe_habit_completed_day(&habits.items[0], 20260404));
-    check_true("tickmate may day", inbe_habit_completed_day(&habits.items[0], 20260505));
-    check_true("tickmate june day", inbe_habit_completed_day(&habits.items[0], 20260606));
-    check_true("tickmate july day", inbe_habit_completed_day(&habits.items[0], 20260707));
-    check_true("tickmate august day", inbe_habit_completed_day(&habits.items[0], 20260808));
-    check_true("tickmate september day", inbe_habit_completed_day(&habits.items[0], 20260909));
-    check_true("tickmate october day", inbe_habit_completed_day(&habits.items[0], 20261010));
-    check_true("tickmate november day", inbe_habit_completed_day(&habits.items[0], 20261111));
-    check_true("tickmate december day", inbe_habit_completed_day(&habits.items[0], 20261212));
+    check_true("tickmate january day", habit_completed_day(&habits.items[0], 20260101));
+    check_true("tickmate february day", habit_completed_day(&habits.items[0], 20260202));
+    check_true("tickmate march day", habit_completed_day(&habits.items[0], 20260303));
+    check_true("tickmate april day", habit_completed_day(&habits.items[0], 20260404));
+    check_true("tickmate may day", habit_completed_day(&habits.items[0], 20260505));
+    check_true("tickmate june day", habit_completed_day(&habits.items[0], 20260606));
+    check_true("tickmate july day", habit_completed_day(&habits.items[0], 20260707));
+    check_true("tickmate august day", habit_completed_day(&habits.items[0], 20260808));
+    check_true("tickmate september day", habit_completed_day(&habits.items[0], 20260909));
+    check_true("tickmate october day", habit_completed_day(&habits.items[0], 20261010));
+    check_true("tickmate november day", habit_completed_day(&habits.items[0], 20261111));
+    check_true("tickmate december day", habit_completed_day(&habits.items[0], 20261212));
     check_true("tickmate loads thousands of days",
-               inbe_habit_completed_day(&habits.items[0], 20571108));
+               habit_completed_day(&habits.items[0], 20571108));
     check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
     check_int("tickmate enables counter habit", habits.items[0].counter_enabled, 1);
-    check_int("tickmate imports count", inbe_habit_day_count(&habits.items[0], 20250101), 3);
-    inbe_storage_close();
+    check_int("tickmate imports count", habit_day_count(&habits.items[0], 20250101), 3);
+    storage_close();
 
     remove_tree(source);
     remove_tree(dest);
@@ -924,22 +1060,23 @@ test_tickmate_reimport_recovers_counter_data(void)
     make_path(db_path, sizeof(db_path), source, "tickmate.db");
     write_tickmate_database(db_path);
 
-    check_true("init tickmate reimport dest", inbe_storage_init(dest));
+    check_true("init tickmate reimport dest", storage_init(dest));
     memset(&habits, 0, sizeof(habits));
     check_int("add old boolean meditation",
-              inbe_habits_add_custom(&habits, "Meditation",
+              habits_add_custom(&habits, "Meditation",
                                       (Color){99, 196, 165, 255},
                                       INBE_HABIT_SYNC_NONE, 0),
               0);
-    inbe_habit_set_day(&habits, 0, 20250101, 1);
-    check_true("tickmate reimport", inbe_storage_import_zip(db_path));
+    habit_set_day(&habits, 0, 20250101, 1);
+    habits_save(&habits);
+    check_true("tickmate reimport", storage_import_zip(db_path));
     memset(&habits, 0, sizeof(habits));
-    check_true("tickmate reimport load", inbe_storage_habits_load(&habits));
+    check_true("tickmate reimport load", storage_habits_load(&habits));
     check_int("tickmate reimport habit count", habits.count, 1);
     check_int("tickmate reimport enables counter", habits.items[0].counter_enabled, 1);
     check_int("tickmate reimport restores count",
-              inbe_habit_day_count(&habits.items[0], 20250101), 3);
-    inbe_storage_close();
+              habit_day_count(&habits.items[0], 20250101), 3);
+    storage_close();
 
     remove_tree(source);
     remove_tree(dest);
@@ -957,16 +1094,16 @@ test_external_tickmate_db_import(void)
         return;
 
     make_clean_root(dest, sizeof(dest), "external-tickmate-dest");
-    check_true("init external tickmate import dest", inbe_storage_init(dest));
+    check_true("init external tickmate import dest", storage_init(dest));
     memset(&info, 0, sizeof(info));
-    check_true("inspect external tickmate db", inbe_storage_inspect_import(db_path, &info));
+    check_true("inspect external tickmate db", storage_inspect_import(db_path, &info));
     check_true("external tickmate db valid", info.valid);
     check_true("external tickmate db has habits", info.has_habits);
-    check_true("external tickmate db import", inbe_storage_import_zip(db_path));
+    check_true("external tickmate db import", storage_import_zip(db_path));
     memset(&habits, 0, sizeof(habits));
-    check_true("external tickmate habits load", inbe_storage_habits_load(&habits));
+    check_true("external tickmate habits load", storage_habits_load(&habits));
     check_true("external tickmate habit count", habits.count > 0);
-    inbe_storage_close();
+    storage_close();
 
     remove_tree(dest);
 }
@@ -985,6 +1122,9 @@ main(void)
     test_tickmate_db_import();
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
+    test_sync_payload_omits_uploaded_state_after_upload_marker();
+    test_sync_payload_includes_queued_current_edits();
+    test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
     test_session_linked_counts_materialize_for_sync();
     test_existing_sessions_materialize_after_habit_save();

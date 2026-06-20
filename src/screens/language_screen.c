@@ -1,7 +1,7 @@
 #include "language_screen.h"
 
 #include "app.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "flint_ui.h"
 #include "raylib.h"

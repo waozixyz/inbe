@@ -1,7 +1,7 @@
 #include "whm_session.h"
 
 #include "data.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
@@ -280,7 +280,7 @@ session_ensure_results_saved(InbeApp *app)
                                            app->results_path, sizeof(app->results_path))) {
         app->results_saved = 1;
         sync_habits_for_activity(app, app->exercise_type);
-        inbe_app_auto_sync(app);
+        app_auto_sync(app);
         TraceLog(LOG_INFO, "INBE: session saved successfully");
         return 1;
     }
@@ -342,7 +342,7 @@ finish_round(InbeApp *app)
 #endif
             app->inbe.screen = InbeScreenResults;
         } else {
-            inbe_app_init(app);
+            app_init(app);
         }
     }
 }
@@ -527,7 +527,7 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
 void
 session_draw_inbe(InbeApp *app, int center_x, int center_y)
 {
-    float radius = inbe_draw_radius(&app->inbe);
+    float radius = draw_radius(&app->inbe);
 
     if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
         draw_hold_progress_outline(app, center_x, center_y);
@@ -653,7 +653,7 @@ draw_session_round_label(InbeApp *app)
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
-    float r = inbe_draw_radius(inbe) * 0.72f;
+    float r = draw_radius(inbe) * 0.72f;
     DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, theme_get_circle());
     DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
              0.0f, 360.0f, 96, theme_get_text());
@@ -693,7 +693,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
                                flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
         if(app->session_paused) {
             stop_android_background_session(app);
-            inbe_app_init(app);
+            app_init(app);
         } else {
             app->modal.active = 1;
             app->modal.type = UIModalConfirmExitSession;
@@ -752,12 +752,12 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
                 stop_android_background_session(app);
                 app->modal.active = 0;
                 app->modal.type = UIModalNone;
-                inbe_app_init(app);
+                app_init(app);
             } else if(modal_result == 3) {
                 stop_android_background_session(app);
                 app->modal.active = 0;
                 app->modal.type = UIModalNone;
-                inbe_app_init(app);
+                app_init(app);
             }
         } else {
             modal_result = ui_draw_modal(locale_get("exit_session_title"),
@@ -771,7 +771,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
                 stop_android_background_session(app);
                 app->modal.active = 0;
                 app->modal.type = UIModalNone;
-                inbe_app_init(app);
+                app_init(app);
             }
         }
         return;
@@ -884,7 +884,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     (void)center_y;
 
     if(rounds <= 0) {
-        inbe_app_init(app);
+        app_init(app);
         return;
     }
 
@@ -956,11 +956,11 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
 
     if(ui_draw_text_btn(center_x - box_w / 4, action_y, locale_get("discard_button"), &discard_hover)) {
         session_discard_saved_results(app);
-        inbe_app_init(app);
+        app_init(app);
     }
     if(ui_draw_text_btn(center_x + box_w / 4, action_y, locale_get("save_results_button"), &save_hover)) {
         if(session_ensure_results_saved(app))
-            inbe_app_init(app);
+            app_init(app);
     }
     if(discard_hover || save_hover)
         *hover = 1;

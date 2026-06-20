@@ -3,7 +3,7 @@
 #include "app.h"
 #include "app_settings.h"
 #include "device_preferences.h"
-#include "locale.h"
+#include "flint_locale.h"
 #include "theme.h"
 #include "flint_theme_meta.h"
 #include "flint_ui.h"
