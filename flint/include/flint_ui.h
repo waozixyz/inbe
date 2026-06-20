@@ -61,6 +61,115 @@ typedef struct {
 } FlintUIIconButton;
 
 typedef struct {
+    int id;
+    int x;
+    int y;
+    int icon_size;
+    int icon_padding;
+    Texture2D icon;
+    int *open;
+    int *value;
+    int min;
+    int max;
+    int popup_width;
+    int popup_height;
+} FlintUIIconSliderPopup;
+
+typedef struct {
+    Texture2D icon;
+    int disabled;
+} FlintUIIconRowItem;
+
+typedef struct {
+    int center_x;
+    int view_width;
+    int view_height;
+    int count;
+    const FlintUIIconRowItem *items;
+    int icon_size;
+    int icon_padding;
+    int gap;
+    int side_margin;
+    int bottom_margin;
+    int max_button_width;
+    int min_icon_size;
+    int min_icon_padding;
+    int min_gap;
+} FlintUIBottomIconRow;
+
+typedef struct {
+    int clicked_index;
+    int y;
+    int button_width;
+} FlintUIIconRowResult;
+
+typedef struct {
+    Texture2D icon;
+    int disabled;
+} FlintUIToolbarAction;
+
+typedef struct {
+    int id;
+    int x;
+    int y;
+    int width;
+    int height;
+    int draw_menu;
+    const char **options;
+    int option_count;
+    int *selected_index;
+    int dropdown_min_width;
+    int dropdown_max_width;
+    int dropdown_height;
+    const FlintUIToolbarAction *actions;
+    int action_count;
+    int action_icon_size;
+    int action_icon_padding;
+    int action_gap;
+    int side_padding;
+} FlintUIToolbar;
+
+typedef struct {
+    int selected_menu_item;
+    int clicked_action;
+} FlintUIToolbarResult;
+
+typedef struct {
+    const char *text;
+    int font;
+    Color color;
+} FlintUIInfoRow;
+
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int row_height;
+    int padding_x;
+    const FlintUIInfoRow *rows;
+    int row_count;
+    Color background;
+    Color separator;
+    Color default_text;
+} FlintUIInfoRows;
+
+typedef struct {
+    const char *label;
+    UIButtonStyle style;
+    int disabled;
+} FlintUIButtonRowItem;
+
+typedef struct {
+    int x;
+    int y;
+    int width;
+    int height;
+    int gap;
+    const FlintUIButtonRowItem *items;
+    int count;
+} FlintUIButtonRow;
+
+typedef struct {
     Rectangle bounds;
     const char *text;
     int cursor_position;
@@ -161,6 +270,31 @@ typedef struct {
     int right_clicked;
 } FlintUIHeader;
 
+typedef int (*FlintUIScrollPageHeightFn)(int content_width, void *user_data);
+
+typedef struct {
+    int y;
+    int height;
+    int max_content_width;
+    int min_content_width;
+    int side_padding;
+    int *scroll_offset;
+    int wheel_step;
+    int scrollbar_x;
+    int measure_passes;
+    FlintUIScrollPageHeightFn content_height;
+    void *user_data;
+} FlintUIScrollPageSpec;
+
+typedef struct {
+    FlintUIScrollArea area;
+    FlintUIScrollView view;
+    int content_x;
+    int content_y;
+    int content_w;
+    int content_h;
+} FlintUIScrollPage;
+
 typedef void (*FlintUITextInputPlatformCallback)(int active);
 
 void ui_init(int width, int height, float dpi);
@@ -175,6 +309,7 @@ int ui_input_captures_click(Vector2 point);
 /* DPI scaling, color, and layout functions now from Flint: flint_px, flint_clamp_px, flint_lighten, flint_darken, flint_centered_column, flint_page_side_padding */
 int flint_ui_font(void);
 int flint_ui_font_small(void);
+int flint_ui_title_font(const char *title, int max_width);
 int flint_ui_text_y(const char *text, int box_y, int box_h, int font);
 void flint_ui_draw_text_centered(const char *text, int center_x, int center_y, int font, Color color);
 void flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color);
@@ -198,6 +333,12 @@ int ui_icon_btn_size(UIIconSize size);
 int ui_icon_btn_padding(UIIconSize size);
 int ui_draw_icon_btn(int x, int y, UIIconSize size, Texture2D icon, int *hover);
 int ui_draw_icon_btn_padded(int x, int y, int size, int padding, Texture2D icon, int *hover);
+int ui_draw_info_button(int center_x, int center_y, int diameter);
+int ui_draw_icon_slider_popup(FlintUIIconSliderPopup popup);
+FlintUIIconRowResult ui_draw_bottom_icon_row(FlintUIBottomIconRow row);
+FlintUIToolbarResult ui_draw_toolbar(FlintUIToolbar toolbar);
+void ui_draw_info_rows(FlintUIInfoRows rows);
+int ui_draw_button_row(FlintUIButtonRow row);
 int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 
 /* Generic button component with unified styling */
@@ -262,6 +403,8 @@ int ui_scrollbar_safe_content_width(int content_x, int content_width,
 FlintUIScrollView ui_scroll_container_measure(FlintUIScrollArea area);
 FlintUIScrollView ui_scroll_container_begin(FlintUIScrollArea area);
 void ui_scroll_container_end(FlintUIScrollArea area, FlintUIScrollView view);
+FlintUIScrollPage ui_scroll_page_begin(FlintUIScrollPageSpec spec);
+void ui_scroll_page_end(FlintUIScrollPage page);
 int ui_draw_scrollbar(int x, int y, int viewport_h, int content_h, int *scroll_offset, int max_scroll);
 
 void ui_focus_begin(void);

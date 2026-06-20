@@ -99,7 +99,7 @@ RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.
 FLINT_DIR := flint
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
-FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c)) $(FLINT_ICON_ASSETS_C)
+FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c) $(wildcard $(FLINT_DIR)/src/ui/*.c)) $(FLINT_ICON_ASSETS_C)
 FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
@@ -135,7 +135,6 @@ WEB_LIBOQS_A := $(WEB_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WEB_LIBOQS_INCLUDE := -I$(WEB_LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
-FLINT_TEXT_SCALING_TEST := $(TEST_BIN_DIR)/flint_text_scaling_test
 LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
@@ -158,6 +157,8 @@ APP_SRCS := \
 	src/practices/meditation/meditation_manual.c \
 	src/practices/meditation/meditation_config.c \
 	src/screens/habits_screen.c \
+	src/screens/habits/edit.c \
+	src/screens/habits/session.c \
 	src/practices/meditation/meditation_music.c \
 	src/core/theme.c \
 	src/storage/data.c \
@@ -180,7 +181,7 @@ APP_SRCS := \
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
-FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat assets/fonts/locales-8.png assets/fonts/locales-8.dat
+FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
 OTFCHOP_DIR ?= vendor/otfchop
 FONT_TOOL := $(OTFCHOP_DIR)/otfchop
 FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
@@ -286,26 +287,18 @@ vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(
 run: $(TARGET)
 	./$(TARGET)
 
-test: $(STORAGE_IMPORT_TEST) $(FLINT_TEXT_SCALING_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST)
+test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST)
 	$(STORAGE_IMPORT_TEST)
-	$(FLINT_TEXT_SCALING_TEST)
 	$(LOCALE_KEYS_TEST)
 	$(SYNC_URL_TEST)
 	$(SYNC_ACCOUNT_TEST)
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
-
-$(FLINT_TEXT_SCALING_TEST): tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c flint/include/flint_text.h flint/include/flint_clip.h flint/include/flint_scaling.h | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -ffunction-sections -fdata-sections \
-		-Iflint/include -Ivendor/raylib/src \
-		-o $@ \
-		tests/flint_text_scaling_test.c flint/src/flint_text.c flint/src/flint_clip.c flint/src/flint_scaling.c \
-		-Wl,--gc-sections -lm
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -338,10 +331,7 @@ $(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfc
 	$(MAKE) -C vendor/otfchop otfchop
 
 assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
-	$(FONT_TOOL) --size 16 $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
-
-assets/fonts/locales-8.png assets/fonts/locales-8.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
-	$(FONT_TOOL) --size 8 $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales-8
+	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
 
 $(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)

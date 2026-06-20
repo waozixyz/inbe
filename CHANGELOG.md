@@ -1,8 +1,22 @@
 # Changelog
 ## [1.4.4] - 2026-06-20
+### Added
+- Add Russian localization.
+- Add a habit stats view with streak, recent activity, weekday, and linked-practice diagrams.
+- Add optional in-session volume controls, hidden by default.
+- Add Mint and Cobalt themes.
+
+### Changed
+- Use one canonical pixel font atlas with Flint-managed DPI scaling and cleaner title sizing.
+- Simplify habit counting so multiple counts are opt-in and independent of linked practices.
+- Improve habit weekly/calendar spacing, mobile calendar touch feedback, and theme picker ordering.
+- Reorganize repeated screen UI into reusable Flint helpers.
+
 ### Fixed
-- Build the Ubuntu Touch Click package with the OpenStore package id and review-compatible control metadata.
-- Omit Click AppStream metadata by default to avoid OpenStore revision import failures.
+- Build the Ubuntu Touch Click package with the OpenStore package id
+- Refactor code base
+- Sync habit multiple-count settings correctly across clients and preserve queued local habit edits.
+- Preserve linked session day behavior while hiding redundant count badges.
 
 ## [1.4.3] - 2026-06-20
 ### Fixed

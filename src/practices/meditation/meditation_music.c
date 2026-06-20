@@ -258,7 +258,7 @@ music_attribution_paragraph(int content_w)
         .icon_type = UI_ICON_TYPE_NONE,
         .icon_size = 0,
         .width = content_w,
-        .font = flint_px(FLINT_TEXT_8),
+        .font = FLINT_TEXT_12,
         .line_gap = flint_px(4),
         .color = flint_darken(theme_get_text(), 34),
     };

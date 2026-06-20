@@ -271,6 +271,9 @@ In / Out
 [volume_label]
 음량
 ---
+[show_session_volume_control_label]
+Show volume control in sessions
+---
 [reset_to_defaults_label]
 기본값으로 재설정
 ---

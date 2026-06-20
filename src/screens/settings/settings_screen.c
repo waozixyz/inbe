@@ -125,16 +125,26 @@ settings_tab_content_height(InbeApp *app, int tab, int content_w)
     return settings_data_content_height(content_w);
 }
 
+typedef struct SettingsScrollPageContext {
+    InbeApp *app;
+    int tab;
+} SettingsScrollPageContext;
+
+static int
+settings_scroll_page_content_height(int content_w, void *user_data)
+{
+    SettingsScrollPageContext *ctx = user_data;
+    int planned_content_w = content_w - flint_px(16);
+
+    if(planned_content_w < flint_px(160))
+        planned_content_w = content_w;
+    return settings_tab_content_height(ctx->app, ctx->tab, planned_content_w);
+}
+
 int
 settings_screen_draw(InbeApp *app)
 {
     int top_margin = 0;
-    int content_x;
-    int content_w;
-    int responsive_max_w = (int)(view_width * 0.96f);
-    int max_content_w = flint_px(CONTENT_MAX_W);
-    int min_content_w = flint_px(320);
-    int side_padding;
     int detail_header_h;
     int top_tab_h;
     int top_tab_y;
@@ -149,14 +159,6 @@ settings_screen_draw(InbeApp *app)
     };
     SettingsThemeState theme_state = {0};
     SettingsDeviceState device_state = {0};
-
-    if(responsive_max_w > max_content_w)
-        responsive_max_w = max_content_w;
-    if(responsive_max_w < min_content_w)
-        responsive_max_w = min_content_w;
-
-    side_padding = flint_page_side_padding();
-    flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
@@ -209,51 +211,26 @@ settings_screen_draw(InbeApp *app)
     }
 
     {
-        int draw_w = content_w;
-        int app_content_h;
-        FlintUIScrollArea scroll_area;
+        SettingsScrollPageContext page_ctx = {app, app->settings_tab};
+        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = tab_content_start_y,
+            .height = content_viewport_h,
+            .max_content_width = flint_px(CONTENT_MAX_W),
+            .min_content_width = flint_px(320),
+            .scroll_offset = &app->settings_scroll,
+            .content_height = settings_scroll_page_content_height,
+            .user_data = &page_ctx
+        });
+        int y = page.content_y;
 
-        for(int pass = 0; pass < 3; pass++) {
-            int planned_content_w = draw_w - flint_px(16);
-            FlintUIScrollView measured;
+        if(app->settings_tab == SETTINGS_TAB_THEME)
+            settings_theme_draw(app, page.content_x, page.content_w, &y, &theme_state);
+        else if(app->settings_tab == SETTINGS_TAB_DEVICE)
+            settings_device_draw(app, page.content_x, page.content_w, &y, &device_state);
+        else
+            settings_data_draw(app, page.content_x, page.content_w, &y);
 
-            if(planned_content_w < flint_px(160))
-                planned_content_w = draw_w;
-            app_content_h = settings_tab_content_height(app, app->settings_tab, planned_content_w);
-            scroll_area = (FlintUIScrollArea){
-                .bounds = {0.0f, (float)tab_content_start_y,
-                           (float)view_width, (float)content_viewport_h},
-                .content_height = app_content_h,
-                .content_x = content_x,
-                .content_width = content_w,
-                .scroll_offset = &app->settings_scroll,
-                .wheel_step = flint_px(42),
-                .scrollbar_x = view_width - flint_px(8)
-            };
-            measured = ui_scroll_container_measure(scroll_area);
-            if(measured.content_w == draw_w)
-                break;
-            draw_w = measured.content_w;
-        }
-
-        {
-            int y;
-            FlintUIScrollView scroll_view = ui_scroll_container_begin(scroll_area);
-            int draw_x = scroll_view.content_x;
-
-            draw_w = scroll_view.content_w;
-            y = scroll_view.content_y;
-
-            if(app->settings_tab == SETTINGS_TAB_THEME)
-                settings_theme_draw(app, draw_x, draw_w, &y, &theme_state);
-            else if(app->settings_tab == SETTINGS_TAB_DEVICE)
-                settings_device_draw(app, draw_x, draw_w, &y, &device_state);
-            else
-                settings_data_draw(app, draw_x, draw_w, &y);
-
-            y += flint_px(40);
-            ui_scroll_container_end(scroll_area, scroll_view);
-        }
+        ui_scroll_page_end(page);
     }
 
     ui_set_dropdown_clip_top(tab_content_start_y);

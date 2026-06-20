@@ -822,8 +822,6 @@ import_sqlite_db_file(const char *db_path, InbeStorageImportMode mode)
             int sync_activity = sqlite3_column_int(stmt, 6);
             int counter_enabled = sqlite3_column_int(stmt, 7) != 0;
             int sort_order = sqlite3_column_int(stmt, 8);
-            if(sync_activity != 0)
-                counter_enabled = 1;
 
             if(import_habit_id == NULL || import_habit_id[0] == '\0' ||
                name == NULL || name[0] == '\0')

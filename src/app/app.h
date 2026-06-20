@@ -63,6 +63,8 @@ typedef enum {
     UIModalConfirmImportDataSettings,
     UIModalSyncAccountBackup,
     UIModalConfirmDeleteSyncAccount,
+    UIModalHabitPracticeListInfo,
+    UIModalHabitCountingInfo,
 } UIModalType;
 
 typedef struct {
@@ -235,6 +237,7 @@ struct InbeApp {
     int habit_counter_press_start_x;
     int habit_counter_press_start_y;
     int advanced_session_controls;
+    int show_session_volume_control;
     int hold_display_mode;
     int exercise_type;
     int practice_config_tab;

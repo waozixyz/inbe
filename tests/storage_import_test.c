@@ -392,6 +392,95 @@ test_sync_apply_preserves_counter_counts(void)
 }
 
 static void
+test_sync_apply_updates_habit_counter_enabled(void)
+{
+    char root[512];
+    InbeHabits habits;
+    const char *enabled_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":["
+        "{\"id\":\"counter-toggle\",\"name\":\"Counter Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":1,\"sort_order\":0,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
+        "],\"habit_days\":[],\"sessions\":[]}}";
+    const char *disabled_response =
+        "{\"server_version\":2,\"changes\":{\"habits\":["
+        "{\"id\":\"counter-toggle\",\"name\":\"Counter Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"}"
+        "],\"habit_days\":[],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-counter-enabled");
+    check_true("init sync counter enabled db", storage_init(root));
+    check_true("apply counter enabled habit", storage_apply_sync_response_json(enabled_response));
+    memset(&habits, 0, sizeof(habits));
+    check_true("load enabled counter habit", storage_habits_load(&habits));
+    check_int("remote enables multiple counts", habits.count, 1);
+    check_int("counter enabled after remote enable", habits.items[0].counter_enabled, 1);
+
+    check_true("apply counter disabled habit", storage_apply_sync_response_json(disabled_response));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload disabled counter habit", storage_habits_load(&habits));
+    check_int("counter disabled after remote disable", habits.items[0].counter_enabled, 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_apply_preserves_queued_habit_counter_enabled(void)
+{
+    char root[512];
+    char db_path[512];
+    char sql[512];
+    char response[1024];
+    InbeHabits habits;
+    char habit_id[INBE_STORAGE_ID_SIZE];
+    char *payload;
+    sqlite3 *db = NULL;
+
+    make_clean_root(root, sizeof(root), "sync-counter-enabled-queued");
+    check_true("init queued counter enabled db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    snprintf(habit_id, sizeof(habit_id), "%s", habits.items[0].id);
+    habits.items[0].counter_enabled = 1;
+    habits_save(&habits);
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open queued counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        snprintf(sql, sizeof(sql),
+                 "UPDATE habits SET updated_at=1781902800 WHERE id='%s';",
+                 habit_id);
+        check_true("pin queued counter updated_at", sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+    }
+
+    snprintf(response, sizeof(response),
+             "{\"server_version\":1,\"changes\":{\"habits\":["
+             "{\"id\":\"%s\",\"name\":\"Breathe\",\"color_r\":0,\"color_g\":0,\"color_b\":0,"
+             "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+             "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
+             "],\"habit_days\":[],\"sessions\":[]}}",
+             habit_id);
+
+    check_true("reopen queued counter enabled db", storage_init(root));
+    check_true("apply stale equal counter enabled habit", storage_apply_sync_response_json(response));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload queued counter enabled habit", storage_habits_load(&habits));
+    check_int("queued local counter enabled survives equal remote", habits.items[0].counter_enabled, 1);
+
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("queued local counter enabled remains in payload",
+               payload != NULL && strstr(payload, "\"counter_enabled\":1") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_session_linked_counts_materialize_for_sync(void)
 {
     char root[512];
@@ -1126,6 +1215,8 @@ main(void)
     test_sync_payload_includes_queued_current_edits();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
+    test_sync_apply_updates_habit_counter_enabled();
+    test_sync_apply_preserves_queued_habit_counter_enabled();
     test_session_linked_counts_materialize_for_sync();
     test_existing_sessions_materialize_after_habit_save();
     test_session_metadata();

@@ -483,15 +483,6 @@ int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
 /* Theme colors are now accessed via theme accessor functions */
 
-#define LOCALE_FONT_PNG "assets/fonts/locales.png"
-#define LOCALE_FONT_8_PNG "assets/fonts/locales-8.png"
-
-#define LOCALE_FONT_DAT "assets/fonts/locales.dat"
-#define LOCALE_FONT_8_DAT "assets/fonts/locales-8.dat"
-#define LOCALE_FONT_BASE_SIZE 16
-#define LOCALE_FONT_8_BASE_SIZE 8
-
-
 static void
 app_leave_practice_config(InbeApp *app)
 {
@@ -675,52 +666,44 @@ static int
 load_locale_font(InbeApp *app)
 {
     Font font;
-    Font font_8;
     Image white;
     const FlintEmbeddedAsset *png;
     const FlintEmbeddedAsset *dat;
-    const FlintEmbeddedAsset *png_8;
-    const FlintEmbeddedAsset *dat_8;
 
     if(app == NULL)
         return 0;
 
-    png = flint_embedded_asset(LOCALE_FONT_PNG);
-    dat = flint_embedded_asset(LOCALE_FONT_DAT);
-    png_8 = flint_embedded_asset(LOCALE_FONT_8_PNG);
-    dat_8 = flint_embedded_asset(LOCALE_FONT_8_DAT);
-    if(png == NULL || dat == NULL || png_8 == NULL || dat_8 == NULL)
+    png = flint_embedded_asset("assets/fonts/locales.png");
+    dat = flint_embedded_asset("assets/fonts/locales.dat");
+    if(png == NULL || dat == NULL)
         return 0;
 
-    font = flint_text_load_chopped_font_from_memory(png->data, png->size, dat->data, dat->size,
-                                                    LOCALE_FONT_BASE_SIZE);
+    font = flint_text_load_chopped_font_from_memory(png->data, png->size,
+                                                    dat->data, dat->size,
+                                                    FLINT_TEXT_BASE_SIZE);
     if(font.texture.id == 0)
         return 0;
-    font_8 = flint_text_load_chopped_font_from_memory(png_8->data, png_8->size,
-                                                      dat_8->data, dat_8->size,
-                                                      LOCALE_FONT_8_BASE_SIZE);
-    if(font_8.texture.id == 0) {
-        flint_text_unload_font(&font);
-        return 0;
-    }
 
     white = GenImageColor(1, 1, WHITE);
     app->font_shapes_texture = LoadTextureFromImage(white);
     UnloadImage(white);
     if(app->font_shapes_texture.id == 0) {
         flint_text_unload_font(&font);
-        flint_text_unload_font(&font_8);
-        return 0;
+        goto fail;
     }
     SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
 
-    // Store the locale font in the app for use in text rendering
     app->locale_font = font;
-    app->locale_font_8 = font_8;
-    flint_text_set_font(font);
-    flint_text_set_small_font(font_8);
+    app->locale_font_8 = font;
+    flint_text_set_font(app->locale_font);
+    flint_text_set_small_font(app->locale_font);
     SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
     return 1;
+
+fail:
+    app->locale_font = (Font){0};
+    app->locale_font_8 = (Font){0};
+    return 0;
 }
 
 static void
@@ -732,7 +715,8 @@ unload_locale_font(InbeApp *app)
     flint_text_set_font((Font){0});
     flint_text_set_small_font((Font){0});
     flint_text_unload_font(&app->locale_font);
-    flint_text_unload_font(&app->locale_font_8);
+    app->locale_font = (Font){0};
+    app->locale_font_8 = (Font){0};
 }
 
 static void

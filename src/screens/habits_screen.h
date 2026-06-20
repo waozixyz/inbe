@@ -23,7 +23,8 @@ enum {
 
 enum {
     HABIT_VIEW_CALENDAR = 0,
-    HABIT_VIEW_WEEKLY = 1
+    HABIT_VIEW_WEEKLY = 1,
+    HABIT_VIEW_STATS = 2
 };
 
 /* Habits-specific enums */

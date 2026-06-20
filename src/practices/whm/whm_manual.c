@@ -39,7 +39,7 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
 {
     int seconds = (app->inbe.frame / 60) % 60;
     char text[CountSize];
-    int font = flint_px(16);
+    int font = FLINT_TEXT_16;
     int thickness = flint_px(5);
     Color text_color = theme_get_text();
 
@@ -129,6 +129,23 @@ manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_f
     return actual_content_h;
 }
 
+typedef struct WhmManualScrollPageContext {
+    InbeApp *app;
+    int step;
+    int body_font;
+    int top_padding;
+} WhmManualScrollPageContext;
+
+static int
+whm_manual_scroll_page_content_height(int content_w, void *user_data)
+{
+    WhmManualScrollPageContext *ctx = user_data;
+
+    return manual_tutorial_content_height(ctx->app, ctx->step,
+                                          content_w, ctx->body_font) +
+           ctx->top_padding;
+}
+
 void
 whm_manual_close(InbeApp *app, int mark_seen)
 {
@@ -158,14 +175,11 @@ whm_manual_draw(InbeApp *app)
     int footer_content_pad = flint_ui_font() / 2;
     int content_area_h = viewport_h - footer_content_pad;  /* For scissor mode and scroll calculations */
     int previous_step;
-    int content_x;
-    int content_w;
+    int content_x = 0;
+    int content_w = 0;
     const char *title = locale_get("tutorial_title");
-    char page_label[32];
     int close_clicked = 0;
     int step = app->tutorial_step;
-    FlintUIScrollArea scroll_area;
-    FlintUIScrollView scroll_view;
 
     step = clampi(step, 0, (int)TUTORIAL_STEPS_COUNT - 1);
     app->tutorial_step = step;
@@ -196,62 +210,36 @@ whm_manual_draw(InbeApp *app)
     default: break;
     }
 
-    /* Calculate responsive content width */
-    int responsive_max_w = (int)(view_width * 0.96f);
-    int max_content_w = flint_px(CONTENT_MAX_W);
-    if(responsive_max_w > max_content_w)
-        responsive_max_w = max_content_w;
-    int min_width = flint_px(280);
-    if(responsive_max_w < min_width)
-        responsive_max_w = min_width;
-
-    int side_padding = flint_page_side_padding();
-    flint_centered_column(responsive_max_w, side_padding, &content_x, &content_w);
-
     close_clicked = ui_draw_screen_header(title, 1);
     if(close_clicked)
         whm_manual_close(app, 0);
 
     {
         int top_padding = flint_px(16);
-        int total_content_h;
+        int responsive_max_w = (int)(view_width * 0.96f);
+        int max_content_w = flint_px(CONTENT_MAX_W);
+        WhmManualScrollPageContext page_ctx;
+        FlintUIScrollPage page;
 
-        for(int pass = 0; pass < 3; pass++) {
-            FlintUIScrollView measured;
+        if(responsive_max_w > max_content_w)
+            responsive_max_w = max_content_w;
+        if(responsive_max_w < flint_px(280))
+            responsive_max_w = flint_px(280);
 
-            total_content_h = manual_tutorial_content_height(app, step, content_w, body_font) +
-                              top_padding;
-            scroll_area = (FlintUIScrollArea){
-                .bounds = {0.0f, (float)title_h, (float)view_width, (float)content_area_h},
-                .content_height = total_content_h,
-                .content_x = content_x,
-                .content_width = content_w,
-                .scroll_offset = &app->manual_scroll,
-                .wheel_step = flint_px(42),
-                .scrollbar_x = view_width - flint_px(8)
-            };
-            measured = ui_scroll_container_measure(scroll_area);
-            if(measured.content_w == content_w)
-                break;
-            content_w = measured.content_w;
-        }
-        scroll_area = (FlintUIScrollArea){
-            .bounds = {0.0f, (float)title_h, (float)view_width, (float)content_area_h},
-            .content_height = manual_tutorial_content_height(app, step, content_w, body_font) +
-                              top_padding,
-            .content_x = content_x,
-            .content_width = content_w,
+        page_ctx = (WhmManualScrollPageContext){app, step, body_font, top_padding};
+        page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = title_h,
+            .height = content_area_h,
+            .max_content_width = responsive_max_w,
+            .min_content_width = flint_px(280),
             .scroll_offset = &app->manual_scroll,
-            .wheel_step = flint_px(42),
-            .scrollbar_x = view_width - flint_px(8)
-        };
-    }
+            .content_height = whm_manual_scroll_page_content_height,
+            .user_data = &page_ctx
+        });
 
-    scroll_view = ui_scroll_container_begin(scroll_area);
-    content_x = scroll_view.content_x;
-    content_w = scroll_view.content_w;
-    {
-        int y = scroll_view.content_y + flint_px(16);
+        content_x = page.content_x;
+        content_w = page.content_w;
+        int y = page.content_y + top_padding;
         if(step == 0) {
             int img_h = flint_px(170);
             ui_draw_tutorial_image(app->whm.image_1, "practices/whm/1.jpg", content_x, y, content_w, img_h);
@@ -303,42 +291,37 @@ whm_manual_draw(InbeApp *app)
         } else {
             draw_tutorial_paragraph(app, 4, content_x, &y, content_w, body_font);
         }
+        ui_scroll_page_end(page);
     }
-    ui_scroll_container_end(scroll_area, scroll_view);
 
-    locale_format(page_label, sizeof(page_label), "tutorial_page_label",
-                  step + 1, (int)TUTORIAL_STEPS_COUNT);
-
-    int left_hover = 0;
-    int right_hover = 0;
     const char *left_label = step == 0 ? locale_get("tutorial_skip_button") : locale_get("tutorial_back_button");
     const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_start_button") : locale_get("tutorial_next_button");
     int footer_gap = flint_px(10);
-    int page_font = flint_ui_font();
     int button_h = flint_px(34);
-    int button_w = (content_w - footer_gap) / 2;
     int footer_y = view_height - flint_px(38);
-    int counter_gap = flint_px(6);
+    FlintUIButtonRowItem footer_buttons[2] = {
+        {left_label, UI_BUTTON_STYLE_PRIMARY, 0},
+        {right_label, UI_BUTTON_STYLE_PRIMARY, 0}
+    };
+    int footer_clicked;
 
-
-    flint_text_draw(page_label,
-             view_width / 2 - flint_text_measure(page_label, page_font) / 2,
-             footer_y - page_font - counter_gap, page_font, theme_get_text());
-
-    if(step == 0) {
-        if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover))
+    footer_clicked = ui_draw_button_row((FlintUIButtonRow){
+        .x = content_x,
+        .y = footer_y,
+        .width = content_w,
+        .height = button_h,
+        .gap = footer_gap,
+        .items = footer_buttons,
+        .count = 2
+    });
+    if(footer_clicked == 0) {
+        if(step == 0)
             manual_screen_start_exercise(app);
-    } else {
-        if(ui_draw_generic_button(content_x, footer_y, button_w, button_h,
-                                  left_label, UI_BUTTON_STYLE_PRIMARY, 0, &left_hover)) {
+        else {
             app->tutorial_step--;
             app->manual_scroll = 0;
         }
-    }
-
-    if(ui_draw_generic_button(content_x + button_w + footer_gap, footer_y, button_w, button_h,
-                              right_label, UI_BUTTON_STYLE_PRIMARY, 0, &right_hover)) {
+    } else if(footer_clicked == 1) {
         if(step == (int)TUTORIAL_STEPS_COUNT - 1)
             manual_screen_start_exercise(app);
         else {

@@ -25,6 +25,24 @@ make_user_id(char *out, size_t out_size)
     snprintf(out, out_size, "local-%lld-%u", now_seconds(), r);
 }
 
+static int
+storage_join_path(char *out, size_t out_size, const char *root, const char *name)
+{
+    size_t root_len;
+    size_t name_len;
+
+    if(out == NULL || out_size == 0 || root == NULL || root[0] == '\0' || name == NULL)
+        return 0;
+    root_len = strlen(root);
+    name_len = strlen(name);
+    if(root_len + 1 + name_len + 1 > out_size)
+        return 0;
+    memcpy(out, root, root_len);
+    out[root_len] = '/';
+    memcpy(out + root_len + 1, name, name_len + 1);
+    return 1;
+}
+
 int
 path_exists(const char *path)
 {
@@ -402,7 +420,11 @@ storage_init(const char *root)
         return 0;
     snprintf(g_storage.root, sizeof(g_storage.root), "%s", root);
     ensure_dir_local(g_storage.root);
-    snprintf(g_storage.db_path, sizeof(g_storage.db_path), "%s/inbe.db", g_storage.root);
+    if(!storage_join_path(g_storage.db_path, sizeof(g_storage.db_path),
+                          g_storage.root, "inbe.db")) {
+        TraceLog(LOG_ERROR, "STORAGE: database path is too long");
+        return 0;
+    }
     if(sqlite3_open(g_storage.db_path, &g_storage.db) != SQLITE_OK) {
         TraceLog(LOG_ERROR, "STORAGE: failed to open %s", g_storage.db_path);
         return 0;

@@ -32,8 +32,7 @@ if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
         OTFCHOP_DIR="vendor/otfchop"
         make -C "$OTFCHOP_DIR" otfchop
     fi
-    "$OTFCHOP_DIR/otfchop" --size 16 "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales
-    "$OTFCHOP_DIR/otfchop" --size 8 "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales-8
+    "$OTFCHOP_DIR/otfchop" "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales
 else
     echo "Using versioned fonts..."
 fi
@@ -46,8 +45,6 @@ sh flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/practices/meditation/1.jpg \
     assets/fonts/locales.png \
     assets/fonts/locales.dat \
-    assets/fonts/locales-8.png \
-    assets/fonts/locales-8.dat \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"
