@@ -287,6 +287,8 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
 static int
 whm_config_content_height(InbeApp *app, int content_w)
 {
+    int bottom_padding = app_content_bottom_reserved(app) + flint_px(24);
+
     if(app->practice_config_tab == 0) {
         int span = content_w < flint_px(240) ? content_w : flint_px(240);
         int preview_radius = span / 2;
@@ -301,13 +303,14 @@ whm_config_content_height(InbeApp *app, int content_w)
         if(app->inbe.progressive_speed)
             h += flint_px(58);
         h += flint_px(76);
-        return h;
+        return h + bottom_padding;
     }
 
     return flint_px(66) * 3 +
            flint_px(26) + flint_px(52) +
            flint_px(76) +
-           flint_px(36) + flint_px(28);
+           flint_px(36) + flint_px(28) +
+           bottom_padding;
 }
 
 typedef struct WhmConfigScrollPageContext {
@@ -362,7 +365,7 @@ whm_config_screen_draw(InbeApp *app)
         app->settings_scroll = 0;
     }
     scroll_y = title_h + config_tab_h + config_tab_gap;
-    scroll_h = view_height - scroll_y;
+    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app) - flint_px(8);
     if(scroll_h < 0)
         scroll_h = 0;
 

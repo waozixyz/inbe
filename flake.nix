@@ -195,6 +195,7 @@ EOF
 	      butler
               binutils
               clickable
+              ccache
               cmake
               curl
               curl.dev
@@ -254,6 +255,9 @@ EOF
               export ANDROID_HOME="${sdk}/libexec/android-sdk"
               export ANDROID_SDK_ROOT="${sdk}/libexec/android-sdk"
               export ANDROID_NDK_ROOT="${ndkPath}"
+              export CCACHE_DIR="$PWD/.ccache"
+              export CCACHE_BASEDIR="$PWD"
+              export CCACHE_COMPRESS=1
 
               export PKG_CONFIG_PATH="/usr/lib64/pkgconfig:/usr/lib/pkgconfig:/usr/share/pkgconfig:${pkgConfigPath}:$PKG_CONFIG_PATH"
 

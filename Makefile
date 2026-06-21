@@ -57,6 +57,8 @@ WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
+ANDROID_FAST_ABI ?= $(shell adb shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1)
+ANDROID_DEBUG_ABIS ?= $(if $(strip $(ANDROID_FAST_ABI)),$(ANDROID_FAST_ABI),arm64-v8a)
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
@@ -241,7 +243,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -848,6 +850,10 @@ android-debug: android-copy-assets android-local-properties
 	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug
 	$(MAKE) android-copy-debug-apks
 
+android-debug-fast: android-copy-assets android-local-properties
+	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)"
+	$(MAKE) android-copy-debug-apks
+
 android-release:
 	$(MAKE) android-check-keystore PASSWORD="$(PASSWORD)"
 	$(MAKE) android-copy-assets
@@ -924,6 +930,13 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	fi
 
 android-install: android-debug
+	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
+	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
+	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
+	adb install -r "$$APK"; \
+	adb shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+
+android-install-fast: android-debug-fast
 	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
 	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \

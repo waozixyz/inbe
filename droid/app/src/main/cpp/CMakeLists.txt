@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 project(Inbe C)
 
+find_program(CCACHE_PROGRAM ccache)
+if(CCACHE_PROGRAM)
+    set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+endif()
+
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
 set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")

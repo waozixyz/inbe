@@ -13,7 +13,8 @@ extern int view_height;
 static int
 meditation_config_content_height(InbeApp *app, int content_w)
 {
-    return meditation_music_measure_settings(app, content_w, 1, 1);
+    return meditation_music_measure_settings(app, content_w, 1, 1) +
+           app_content_bottom_reserved(app) + flint_px(24);
 }
 
 typedef struct MeditationConfigScrollPageContext {
@@ -50,7 +51,7 @@ meditation_config_screen_draw(InbeApp *app)
     }
 
     scroll_y = title_h + flint_px(16);
-    scroll_h = view_height - scroll_y;
+    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app) - flint_px(8);
     if(scroll_h < 0)
         scroll_h = 0;
 
