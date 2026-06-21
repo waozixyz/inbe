@@ -2054,3 +2054,41 @@ app_destroy(void *vapp)
 
     free(app);
 }
+
+int
+app_should_use_tab_bar(const InbeApp *app)
+{
+    if(app == NULL)
+        return 0;
+    
+    // Check navigation mode setting
+    switch(app->navigation_mode) {
+        case NAV_MODE_DROPDOWN:
+            return 0;  // Always use dropdown
+        case NAV_MODE_TABBAR:
+            return 1;  // Always use tab bar
+        case NAV_MODE_AUTO:
+        default:
+            break;  // Continue to intelligent detection
+    }
+    
+    // Intelligent mode: calculate if tabs fit in available space
+    int tab_count = 0;
+    int tab_gap = 4;
+    int min_tab_width = 120;
+    int available_width = ui_view_width - 24; // Subtract side padding
+    
+    // Count practice/habit tabs
+    tab_count += practice_count(); // Exercise types
+    if(app->habits.count > 0) {
+        tab_count += app->habits.count + 1; // Habits + "Add new" tab
+    }
+    
+    // Calculate total width needed
+    int total_gap_width = tab_gap * (tab_count - 1);
+    int total_tabs_width = min_tab_width * tab_count + total_gap_width;
+    
+    // Use tab bar if tabs fit, otherwise use dropdown
+    return total_tabs_width <= available_width;
+}
+

@@ -1,0 +1,10 @@
+clickable_minimum_required: "7"
+builder: custom
+framework: ubuntu-sdk-20.04
+kill: inbe
+prebuild: make -C ${ROOT} vendor-prebuilds
+build: make -C ${ROOT} CLICK_ARCH=${ARCH}
+build_dir: ${ROOT}/build/obj/click/${ARCH}
+install_dir: ${ROOT}/build/obj/click/${ARCH}/inbe
+postbuild: make -C ${ROOT} CLICK_ARCH=${ARCH} click
+ignore_review_errors: false

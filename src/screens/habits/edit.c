@@ -173,6 +173,13 @@ habit_edit_commit(InbeApp *app)
                 habits_save(&app->habits);
             }
         } else {
+            // Check for duplicate names when editing existing habit
+            if(habits_name_exists(&app->habits, text, index)) {
+                // Show error modal or prevent the update
+                // For now, just return without saving
+                habit_edit_cancel(app);
+                return;
+            }
             snprintf(app->habits.items[index].name,
                      sizeof(app->habits.items[index].name), "%s", text);
             app->habits.items[index].color = app->habit_edit.color;

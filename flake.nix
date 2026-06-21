@@ -194,7 +194,7 @@ EOF
               sdl2Pkgs.SDL2.dev
 	      butler
               binutils
-              clickable
+              ubports-click
               ccache
               cmake
               curl

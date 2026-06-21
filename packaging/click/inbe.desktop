@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=__CLICK_TITLE__
+Name=Inner Breeze
 Exec=run-inbe.sh
 Icon=inbe
 Terminal=false

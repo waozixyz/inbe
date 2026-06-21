@@ -52,8 +52,8 @@ ui_draw_toolbar(FlintUIToolbar toolbar)
         int dropdown_h = toolbar.dropdown_height > 0
                              ? toolbar.dropdown_height
                              : flint_px(36);
-        int dropdown_x = toolbar.x + side_padding;
-        int dropdown_y = toolbar.y + (toolbar.height - dropdown_h) / 2;
+        int dropdown_x = 0;
+        int dropdown_y = toolbar.y;
         int dropdown_w = controls_x - dropdown_x;
         int dropdown_available_w;
 

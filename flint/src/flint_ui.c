@@ -406,7 +406,7 @@ flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size,
     flint_clip_end();
 }
 
-static void
+void
 ui_draw_fitted_text_in_rect(const char *text, Rectangle rect,
                             int preferred_size, int min_size, Color color)
 {
@@ -1038,6 +1038,12 @@ ui_init(int width, int height, float dpi)
     ui_view_width = width;
     ui_view_height = height;
     flint_set_dpi_scale(dpi);
+}
+
+int
+ui_is_desktop_mode(void)
+{
+    return ui_view_width >= flint_px(500);
 }
 
 void

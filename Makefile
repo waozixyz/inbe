@@ -36,11 +36,6 @@ CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
 CLICK_POLICY_VERSION ?= 20.04
 CLICK_INCLUDE_METAINFO ?= 0
 CLICK_DIR := packaging/click
-CLICK_MANIFEST_TEMPLATE := $(CLICK_DIR)/manifest.json.in
-CLICK_CONTROL_TEMPLATE := $(CLICK_DIR)/control.in
-CLICK_APPARMOR_TEMPLATE := $(CLICK_DIR)/inbe.apparmor.in
-CLICK_DESKTOP_TEMPLATE := $(CLICK_DIR)/inbe.desktop.in
-CLICK_METAINFO_TEMPLATE := $(CLICK_DIR)/inbe.metainfo.xml.in
 CLICK_RUNNER := $(CLICK_DIR)/run-inbe.sh
 CLICK_BUILD_DIR := $(BUILD_OBJ_DIR)/click/$(CLICK_ARCH)
 CLICK_ROOT := $(CLICK_BUILD_DIR)/$(CLICK_PACKAGE)
@@ -304,6 +299,7 @@ run-fresh: $(TARGET)
 
 screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
+
 
 test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(GUIDE_OVERLAY_TEST)
 	$(STORAGE_IMPORT_TEST)
@@ -637,15 +633,13 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 	fi
 
 $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_TEMPLATE) $(CLICK_APPARMOR_TEMPLATE) $(CLICK_DESKTOP_TEMPLATE) $(CLICK_METAINFO_TEMPLATE) $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
-	@command -v ar >/dev/null || { \
-		echo "ar is missing. Re-enter the flake shell with: nix develop"; \
+	@command -v zip >/dev/null || { \
+		echo "zip is missing. Re-enter the flake shell with: nix develop"; \
 		exit 1; \
 	}
-	rm -rf $(CLICK_ROOT) $(CLICK_CONTROL_DIR)
+	rm -rf $(CLICK_ROOT)
 	rm -f $(CLICK_DIST_DIR)/$(CLICK_PACKAGE)_*_$(CLICK_ARCH).click
-	rm -f $(CLICK_BUILD_DIR)/debian-binary $(CLICK_BUILD_DIR)/control.tar.gz $(CLICK_BUILD_DIR)/data.tar.gz
 	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
-	mkdir -p $(CLICK_CONTROL_DIR)
 	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
 	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-inbe.sh
 	chmod +x $(CLICK_ROOT)/run-inbe.sh $(CLICK_ROOT)/usr/bin/$(APP_NAME)
@@ -659,47 +653,16 @@ $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_T
 			if [ -f "$$elf" ]; then patchelf --set-rpath '$$ORIGIN' "$$elf" >/dev/null 2>&1 || true; fi; \
 		done; \
 	fi
-	sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
-		-e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
-		-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
-		-e 's#__CLICK_ARCH__#$(CLICK_ARCH)#g' \
-		-e 's#__CLICK_FRAMEWORK__#$(CLICK_FRAMEWORK)#g' \
-		-e 's#__CLICK_MAINTAINER__#$(CLICK_MAINTAINER)#g' \
-		$(CLICK_MANIFEST_TEMPLATE) > $(CLICK_ROOT)/manifest.json
-	cp $(CLICK_ROOT)/manifest.json $(CLICK_CONTROL_DIR)/manifest
-	installed_size=$$(du -sk $(CLICK_ROOT) | awk '{ print $$1 }'); \
-	sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
-		-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
-		-e 's#__CLICK_ARCH__#$(CLICK_ARCH)#g' \
-		-e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
-		-e 's#__CLICK_MAINTAINER__#$(CLICK_MAINTAINER)#g' \
-		-e "s#__INSTALLED_SIZE__#$$installed_size#g" \
-		$(CLICK_CONTROL_TEMPLATE) > $(CLICK_CONTROL_DIR)/control
-	printf '%s\n' '#! /bin/sh' \
-		'echo "Click packages may not be installed directly using dpkg."' \
-		'echo "Use '\''click install'\'' instead."' \
-		'exit 1' > $(CLICK_CONTROL_DIR)/preinst
-	sed -e 's#__CLICK_POLICY_VERSION__#$(CLICK_POLICY_VERSION)#g' \
-		$(CLICK_APPARMOR_TEMPLATE) > $(CLICK_ROOT)/inbe.apparmor
-	sed -e 's#__CLICK_TITLE__#$(CLICK_TITLE)#g' \
-		$(CLICK_DESKTOP_TEMPLATE) > $(CLICK_ROOT)/inbe.desktop
-	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
-		sed -e 's#__CLICK_PACKAGE__#$(CLICK_PACKAGE)#g' \
-			-e 's#__APP_VERSION__#$(APP_VERSION)#g' \
-			-e 's#__RELEASE_DATE__#$(shell date -u +%Y-%m-%d)#g' \
-			$(CLICK_METAINFO_TEMPLATE) > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_PACKAGE).metainfo.xml; \
-	fi
+		cp $(CLICK_DIR)/manifest.json $(CLICK_ROOT)/manifest.json
+		cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
+		cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
+		@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
+			mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
+			cp $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_PACKAGE).metainfo.xml; \
+		fi
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
-	cd $(CLICK_ROOT) && find . -type f -printf '%P\n' | LC_ALL=C sort | xargs md5sum > $(abspath $(CLICK_CONTROL_DIR)/md5sums)
-	printf '2.0\n' > $(CLICK_BUILD_DIR)/debian-binary
-	tar -C $(CLICK_CONTROL_DIR) --sort=name --owner=0 --group=0 --numeric-owner -czf $(abspath $(CLICK_BUILD_DIR)/control.tar.gz) control manifest md5sums preinst
-	tar -C $(CLICK_ROOT) --sort=name --owner=0 --group=0 --numeric-owner -czf $(abspath $(CLICK_BUILD_DIR)/data.tar.gz) inbe.apparmor inbe.desktop inbe.png manifest.json run-inbe.sh usr
-	cd $(CLICK_BUILD_DIR) && ar rcs $(abspath $@) debian-binary control.tar.gz data.tar.gz
-	test -f $@
-	ar t $@ | grep -qx debian-binary
-	ar t $@ | grep -qx control.tar.gz
-	ar t $@ | grep -qx data.tar.gz
+	cd $(CLICK_ROOT) && zip -qr $(abspath $@) .
 
 $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \

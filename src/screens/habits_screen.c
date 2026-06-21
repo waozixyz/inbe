@@ -319,21 +319,66 @@ habits_delete(InbeHabits *habits, int index)
 }
 
 int
+habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index)
+{
+    if(habits == NULL || name == NULL)
+        return 0;
+
+    for(int i = 0; i < habits->count; i++) {
+        if(i == exclude_index)
+            continue;  // Skip current habit when editing
+        if(strcmp(habits->items[i].name, name) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+void
+habits_generate_unique_name(InbeHabits *habits, char *name_buffer, size_t buffer_size, const char *base_name)
+{
+    if(habits == NULL || name_buffer == NULL || base_name == NULL)
+        return;
+
+    // Try base name first
+    snprintf(name_buffer, buffer_size, "%s", base_name);
+
+    if(!habits_name_exists(habits, name_buffer, -1))
+        return;
+
+    // Append numbers until we find a unique name
+    for(int i = 2; i < 100; i++) {
+        snprintf(name_buffer, buffer_size, "%s %d", base_name, i);
+        if(!habits_name_exists(habits, name_buffer, -1))
+            return;
+    }
+
+    // Fallback to timestamp-based name
+    snprintf(name_buffer, buffer_size, "%s %ld", base_name, (long)time(NULL));
+}
+
+int
 habits_add_custom(InbeHabits *habits, const char *name, Color color,
                        int sync_mode, int sync_activity)
 {
     InbeHabit *habit;
     int number;
+    char unique_name[INBE_HABIT_NAME_SIZE];
 
     if(habits == NULL || habits->count >= INBE_HABIT_MAX)
         return -1;
+
+    // Ensure name is unique
+    const char *final_name = name != NULL && name[0] != '\0' ? name : "Habit";
+    if(habits_name_exists(habits, final_name, -1)) {
+        habits_generate_unique_name(habits, unique_name, sizeof(unique_name), final_name);
+        final_name = unique_name;
+    }
 
     number = habits->count + 1;
     habit = &habits->items[habits->count];
     memset(habit, 0, sizeof(*habit));
     snprintf(habit->id, sizeof(habit->id), "habit-%d", number);
-    copy_text(habit->name, sizeof(habit->name),
-              name != NULL && name[0] != '\0' ? name : "Habit");
+    copy_text(habit->name, sizeof(habit->name), final_name);
     habit->color = color;
     habit->color.a = 255;
     habit->sync_mode = sync_mode;
@@ -739,6 +784,44 @@ habit_open_linked_edit_page(InbeApp *app, int habit_index, int day_index)
     app_switch_screen(app, InbeScreenHabitSessionEdit);
 }
 
+static int
+habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
+{
+    FlintUITab tabs[INBE_HABIT_MAX + 1];
+    int tab_count = 0;
+
+    if(app == NULL)
+        return -1;
+
+    // Create tab for each habit
+    for(int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++) {
+        tabs[tab_count++] = (FlintUITab){
+            .label = app->habits.items[i].name,
+            .icon = (Texture2D){0},
+            .icon_size = 0,
+            .disabled = app->modal.active,
+            .accent = app->habits.items[i].color
+        };
+    }
+
+    // Add "Add new habit" option as last tab
+    tabs[tab_count++] = (FlintUITab){
+        .label = locale_get("habit_add_new_option"),
+        .icon = app->icons[UI_ICON_TYPE_PLUS],
+        .icon_size = flint_px(16),
+        .disabled = app->modal.active
+    };
+
+    return ui_draw_tab_bar((FlintUITabBar){
+        .bounds = {0, (float)y, (float)view_width, (float)ui_tab_bar_height()},
+        .tabs = tabs,
+        .count = tab_count,
+        .selected_index = app->habits.selected,
+        .min_tab_width = flint_px(120),
+        .max_tab_width = flint_px(180)
+    });
+}
+
 static void
 draw_habits_top_bar(InbeApp *app, int draw_menu)
 {
@@ -768,25 +851,52 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         selected = 0;
 
     if(!draw_menu) {
-        dropdown_selected = selected;
-        header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-            .leading_icon = (Texture2D){0},
-            .toolbar = (FlintUIToolbar){
-            .id = 301,
-            .height = top_h,
-            .options = app->modal.active ? NULL : options,
-            .option_count = app->modal.active ? 0 : option_count,
-            .selected_index = &dropdown_selected,
-            .dropdown_min_width = flint_px(150),
-            .dropdown_max_width = flint_px(260),
-            .dropdown_height = flint_px(36),
-            .side_padding = flint_px(12)
-            }
-        });
-        (void)header_result.leading_clicked;
-        toolbar_result = header_result.toolbar;
-        (void)toolbar_result;
+        // Desktop mode: use tab bar instead of dropdown
+        if(app_should_use_tab_bar(app)) {
+            int clicked_habit = habits_screen_draw_desktop_tab_bar(app, 0);
 
+            // Handle habit selection
+            if(clicked_habit >= 0) {
+                if(clicked_habit == app->habits.count) {
+                    // "Add new habit" clicked
+                    habit_edit_begin_new(app);
+                } else if(clicked_habit != app->habits.selected) {
+                    // Different habit selected
+                    int was_edit_tab = app->habits.tab == HABIT_TAB_EDIT;
+                    if(was_edit_tab && app->habit_edit.active)
+                        habit_edit_commit(app);
+                    app->habits.selected = clicked_habit;
+                    app->habits.scroll = 0;
+                    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+                    if(was_edit_tab) {
+                        app->habits.tab = HABIT_TAB_EDIT;
+                        habit_edit_begin(app, app->habits.selected);
+                    }
+                }
+            }
+        } else {
+            // Mobile mode: keep existing dropdown
+            dropdown_selected = selected;
+            header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
+                .leading_icon = (Texture2D){0},
+                .toolbar = (FlintUIToolbar){
+                .id = 301,
+                .height = top_h,
+                .options = app->modal.active ? NULL : options,
+                .option_count = app->modal.active ? 0 : option_count,
+                .selected_index = &dropdown_selected,
+                .dropdown_min_width = flint_px(150),
+                .dropdown_max_width = flint_px(260),
+                .dropdown_height = flint_px(36),
+                .side_padding = flint_px(12)
+                }
+            });
+            (void)header_result.leading_clicked;
+            toolbar_result = header_result.toolbar;
+            (void)toolbar_result;
+        }
+
+        // Keep existing subtab bar for Weekly/Monthly/Statistics/Edit (works in both modes)
         tabs[HABIT_TAB_WEEKLY] = (FlintUISubtab){
             .icon = app->icons[UI_ICON_TYPE_WEEKLY],
             .icon_size = flint_px(20),
@@ -807,8 +917,10 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             .icon_size = flint_px(20),
             .disabled = app->modal.active
         };
+
+        int tab_y = ui_tab_bar_height();
         clicked_tab = ui_draw_subtab_bar((FlintUISubtabBar){
-            .bounds = {0, (float)top_h, (float)view_width, (float)tab_h},
+            .bounds = {0, (float)tab_y, (float)view_width, (float)tab_h},
             .tabs = tabs,
             .count = HABIT_TAB_COUNT,
             .selected_index = app->habits.tab

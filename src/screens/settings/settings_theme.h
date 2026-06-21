@@ -5,6 +5,7 @@
 
 typedef struct SettingsThemeState {
     int draw_theme_mode_menu;
+    int draw_nav_mode_menu;
 } SettingsThemeState;
 
 int settings_theme_content_height(int content_w);

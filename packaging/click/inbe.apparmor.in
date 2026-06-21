@@ -1,6 +1,0 @@
-{
-  "policy_groups": [
-    "networking"
-  ],
-  "policy_version": __CLICK_POLICY_VERSION__
-}

@@ -131,7 +131,7 @@ flint_ui_draw_guide_overlay(FlintUIGuideOverlay guide)
     int close_size = flint_px(28);
     int page_font = FLINT_TEXT_12;
     int line_gap = guide.line_gap > 0 ? guide.line_gap : flint_px(6);
-    char page_text[16];
+    char page_text[32];
     FlintUIParagraph paragraph;
     int paragraph_h;
     int tip_h;

@@ -341,6 +341,24 @@ typedef struct {
 } FlintUISubtabBar;
 
 typedef struct {
+    const char *label;
+    Texture2D icon;
+    int icon_size;
+    int disabled;
+    Color accent;
+} FlintUITab;
+
+typedef struct {
+    Rectangle bounds;
+    const FlintUITab *tabs;
+    int count;
+    int selected_index;
+    int font;
+    int min_tab_width;
+    int max_tab_width;
+} FlintUITabBar;
+
+typedef struct {
     Rectangle anchor;
     const char *text;
 } FlintUIGuideStep;
@@ -436,6 +454,7 @@ typedef void (*FlintUITextInputPlatformCallback)(int active);
 
 void ui_init(int width, int height, float dpi);
 void ui_set_colors(Color text, Color bg, Color surface, Color circle, Color button, Color button_hover, Color icon);
+int ui_is_desktop_mode(void);
 void ui_set_frame(Camera2D camera);
 void flint_ui_set_text_input_platform_callback(FlintUITextInputPlatformCallback callback);
 void ui_set_cursor_clickable(int *cursor_clickable);
@@ -451,6 +470,7 @@ int flint_ui_title_font(const char *title, int max_width);
 int flint_ui_text_y(const char *text, int box_y, int box_h, int font);
 void flint_ui_draw_text_centered(const char *text, int center_x, int center_y, int font, Color color);
 void flint_ui_draw_text_left_in_rect(const char *text, Rectangle rect, int font_size, Color color);
+void ui_draw_fitted_text_in_rect(const char *text, Rectangle rect, int preferred_size, int min_size, Color color);
 void flint_ui_draw_text_input(Rectangle bounds, const char *text, int cursor_position,
                               int focused, int cursor_visible, int font,
                               FlintUITextInputStyle style);
@@ -495,6 +515,8 @@ int ui_draw_text_btn(int x, int y, const char *label, int *hover);
 int ui_draw_generic_button(int x, int y, int w, int h, const char *label,
                            UIButtonStyle style, int disabled, int *hover);
 int ui_draw_subtab_bar(FlintUISubtabBar bar);
+int ui_draw_tab_bar(FlintUITabBar bar);
+int ui_tab_bar_height(void);
 
 void ui_draw_icon_link(int x, int y, int icon_size, Texture2D icon, const char *url);
 int ui_draw_slider(int id, int x, int y, int w, const char *label, int min, int max, int *value, const char *suffix);
