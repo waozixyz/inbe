@@ -1,0 +1,4 @@
+### Added
+- Added guide to habits page
+### Changed
+- fix orientation issues

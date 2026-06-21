@@ -2,6 +2,8 @@
 ## [1.4.10] - 2026-06-21
 ### Added
 - Added guide to habits page
+### Changed
+- fix orientation issues
 
 ## [1.4.9] - 2026-06-21
 ### Fixed
