@@ -775,3 +775,15 @@ Az budete pripraveni zacit cviceni, pouzijte kartu se sluncem.
 [practice_guide_config]
 Upravte konfiguraci praxe podle svych potreb.
 ---
+[habits_guide_dropdown]
+Zde vyberte navyky nebo vytvorte novy.
+---
+[habits_guide_practice_list]
+Navyk muze obsahovat data sezeni z vasich praktik.
+---
+[habits_guide_views]
+Zvolte Tyden nebo Kalendar pro kontrolu navyku.
+---
+[habits_guide_statistics]
+Zde zobrazite statistiky navyku.
+---

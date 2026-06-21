@@ -1,4 +1,5 @@
 #include "android_share.h"
+#include "platform.h"
 #include "data.h"
 #include "flint_locale.h"
 #include "storage.h"
@@ -11,7 +12,7 @@
 
 #define FS_PATH_MAX 512
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include <android/native_activity.h>
 #include <android_native_app_glue.h>
 

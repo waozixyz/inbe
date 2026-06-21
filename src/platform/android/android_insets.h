@@ -1,7 +1,9 @@
 #ifndef INBE_ANDROID_INSETS_H
 #define INBE_ANDROID_INSETS_H
 
-#ifdef __ANDROID__
+#include "platform.h"
+
+#if INBE_ANDROID_BUILD
 #include <jni.h>
 
 typedef struct {

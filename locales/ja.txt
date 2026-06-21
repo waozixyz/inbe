@@ -775,3 +775,15 @@ https:// または localhost:8080 のようなループバックを使用して�
 [practice_guide_config]
 自分に合うように練習の設定を変更できます。
 ---
+[habits_guide_dropdown]
+ここで習慣を選ぶか、新しく作成できます。
+---
+[habits_guide_practice_list]
+習慣には練習セッションのデータを含められます。
+---
+[habits_guide_views]
+週間またはカレンダー表示で習慣を確認できます。
+---
+[habits_guide_statistics]
+ここで習慣の統計を確認できます。
+---

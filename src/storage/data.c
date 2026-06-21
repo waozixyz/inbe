@@ -1,8 +1,9 @@
 #include "data.h"
 
+#include "platform.h"
 #include "storage.h"
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_share.h"
 #endif
 
@@ -29,7 +30,7 @@ ensure_dir(const char *path)
     if(DirectoryExists(path))
         return 1;
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return MakeDirectory(path) || DirectoryExists(path);
 #else
     snprintf(temp, sizeof(temp), "%s", path);
@@ -57,7 +58,7 @@ data_root(void)
 
 #if defined(PLATFORM_WEB)
     snprintf(g_data_root, sizeof(g_data_root), "/home/inbe");
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#elif INBE_ANDROID_BUILD
     snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory());
 #elif defined(_WIN32)
     {
@@ -127,12 +128,6 @@ data_save_session_path_for_activity(const int *round_times, int round_count,
     data_init();
     return storage_save_session_for_activity(round_times, round_count, topic, activity,
                                                   out_path, out_path_size);
-}
-
-int
-data_save_session(const int *round_times, int round_count)
-{
-    return data_save_session_path(round_times, round_count, NULL, 0);
 }
 
 int
@@ -212,7 +207,7 @@ int
 data_export(const char *path)
 {
     data_init();
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     char filename[64];
     if(path != NULL && path[0] != '\0')
         return android_share_export(path);

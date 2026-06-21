@@ -341,6 +341,35 @@ typedef struct {
 } FlintUISubtabBar;
 
 typedef struct {
+    Rectangle anchor;
+    const char *text;
+} FlintUIGuideStep;
+
+typedef struct {
+    const FlintUIGuideStep *steps;
+    int count;
+    int *step;
+    int view_width;
+    int view_height;
+    int reserved_top;
+    int reserved_bottom;
+    int max_width;
+    int line_gap;
+    int paragraph_font;
+    Texture2D close_icon;
+    Texture2D back_icon;
+    Texture2D next_icon;
+    Texture2D done_icon;
+} FlintUIGuideOverlay;
+
+typedef struct {
+    int closed;
+    int finished;
+    int changed;
+    int step;
+} FlintUIGuideResult;
+
+typedef struct {
     Rectangle bounds;
     int content_height;
     int content_x;
@@ -435,6 +464,7 @@ int flint_ui_text_input(FlintUITextInput input);
 int flint_ui_text_field(FlintUITextField field);
 int flint_ui_paragraph_height(FlintUIParagraph paragraph);
 void flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y);
+FlintUIGuideResult flint_ui_draw_guide_overlay(FlintUIGuideOverlay guide);
 void ui_draw_bevel(int x, int y, int w, int h, Color light, Color dark);
 void ui_draw_text_lines(const char **lines, int count, int x, int *y, int font, int line_h, Color color);
 /* Icon fallback drawing now from Flint: flint_draw_icon_fallback */
@@ -487,8 +517,7 @@ void ui_set_dropdown_clip_bottom(int bottom);
 int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            const char *light_label, const char *dark_label,
                            int *theme_id, int *dark_mode);
-int ui_draw_theme_picker(int x, int y, int w, const char *label,
-                         int dark_mode, int *theme_id);
+int ui_draw_theme_picker(int x, int y, int w, int dark_mode, int *theme_id);
 int ui_theme_picker_height(int w);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);

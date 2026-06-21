@@ -18,7 +18,7 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_dpi.h"
@@ -42,7 +42,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_timer.h"
 #include "android_device.h"
@@ -53,7 +53,7 @@ void set_global_inbe_app(InbeApp *app);
 InbeApp *get_global_inbe_app(void);
 #endif
 
-#if defined(PLATFORM_WEB) || defined(__ANDROID__)
+#if defined(PLATFORM_WEB) || INBE_ANDROID_BUILD
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 #else
@@ -935,7 +935,7 @@ app_draw_sidebar_button(InbeApp *app, int route, int x, int y, int w,
         DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height},
                        (Rectangle){x + flint_px(12), icon_y,
                                    icon_size, icon_size},
-                       (Vector2){0}, 0, theme_get_icon());
+                       (Vector2){0}, 0, flint_theme_get_icon());
     }
 }
 
@@ -956,8 +956,8 @@ app_draw_sidebar(InbeApp *app, int width, int height)
 
     if(app == NULL)
         return;
-    DrawRectangle(0, 0, width, height, flint_darken(theme_get_bg(), 8));
-    DrawLine(width - 1, 0, width - 1, height, flint_darken(theme_get_bg(), 42));
+    DrawRectangle(0, 0, width, height, flint_darken(flint_theme_get_bg(), 8));
+    DrawLine(width - 1, 0, width - 1, height, flint_darken(flint_theme_get_bg(), 42));
 
     if(app->sidebar_open) {
         int hover = 0;
@@ -979,7 +979,7 @@ app_draw_sidebar(InbeApp *app, int width, int height)
         title_x = width - pad - title_w;
     flint_text_draw(locale_get("app_title"), title_x,
                     flint_ui_text_y(locale_get("app_title"), 0, title_h, title_font),
-                    title_font, theme_get_text());
+                    title_font, flint_theme_get_text());
 
     app_draw_sidebar_button(app, APP_NAV_ROUTE_PRACTICE, pad, y, button_w,
                             app->icons[UI_ICON_TYPE_AMEN], locale_get("tab_practice"));
@@ -1045,6 +1045,39 @@ unload_locale_font(InbeApp *app)
     flint_text_unload_font(&app->locale_font);
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
+}
+
+static void
+discard_locale_font_cpu(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    free(app->locale_font.glyphs);
+    free(app->locale_font.recs);
+    app->locale_font = (Font){0};
+    app->locale_font_8 = (Font){0};
+    flint_text_set_font((Font){0});
+    flint_text_set_small_font((Font){0});
+}
+
+static void
+app_reload_graphics_resources(InbeApp *app)
+{
+    if(app == NULL || !app->graphics_reload_requested)
+        return;
+
+    app->graphics_reload_requested = 0;
+    TraceLog(LOG_INFO, "ANDROID: Reloading graphics resources");
+
+    for(int i = 0; i < UI_ICON_TYPE_COUNT; i++)
+        app->icons[i] = (Texture2D){0};
+    flint_load_all_icons(app->icons);
+    ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
+
+    app->font_shapes_texture = (Texture2D){0};
+    discard_locale_font_cpu(app);
+    if(!load_locale_font(app))
+        TraceLog(LOG_WARNING, "FONT: Failed to reload chopped locale font");
 }
 
 void
@@ -1247,6 +1280,15 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     app->habit_edit.active = 0;
 }
 
+#if INBE_ANDROID_BUILD
+void
+app_request_graphics_reload(InbeApp *app)
+{
+    if(app != NULL)
+        app->graphics_reload_requested = 1;
+}
+#endif
+
 static Texture2D
 load_pixel_texture_from_asset(const char *path)
 {
@@ -1376,11 +1418,10 @@ app_init(void *vapp) {
     if(app == 0)
         return;
 
-    // Initialize locale_font to empty
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     if (app->inbe.screen == InbeScreenSession) {
         android_allow_screen_off();
     }
@@ -1403,7 +1444,7 @@ app_init(void *vapp) {
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     flint_dpi_update(view_width, view_height);
     ui_init(view_width, view_height, flint_dpi_scale());
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     flint_ui_set_text_input_platform_callback(android_device_set_soft_keyboard_visible);
 #endif
 
@@ -1611,7 +1652,7 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
             if (app->inbe.play_in_background) {
                 android_wakelock_release();
                 android_timer_stop();
@@ -1739,6 +1780,8 @@ updateapp(InbeApp *app)
     int hover = 0;
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
+    int habits_guide_active = 0;
+    int guide_active = 0;
 
     app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1749,13 +1792,18 @@ updateapp(InbeApp *app)
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
+    habits_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
-    ui_set_input_blocked(first_run_guide_active);
+    habits_guide_active = habits_screen_first_run_guide_active(app);
+    guide_active = first_run_guide_active || habits_guide_active;
+    ui_set_input_blocked(guide_active);
 
     if(IsKeyPressed(KEY_BACK)) {
-        if(first_run_guide_active) {
+        if(first_run_guide_active || habits_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
+            app->habits_guide_step = 0;
+            habits_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
@@ -1850,9 +1898,10 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
-    if(first_run_guide_active)
+    if(guide_active)
         ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
+    habits_screen_draw_first_run_guide(app);
     ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
@@ -1876,6 +1925,8 @@ app_update_draw(void *vapp, Rectangle viewport) {
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
 
+    app_reload_graphics_resources(app);
+
     full_width = (int)viewport.width;
     full_height = (int)viewport.height;
     app_full_view_width = full_width;
@@ -1897,7 +1948,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     app_device_preferences_update(app);
     app_refresh_theme(app);
 
-    DrawRectangleRec(viewport, theme_get_bg());
+    DrawRectangleRec(viewport, flint_theme_get_bg());
 
     if(APP_SIDEBAR_ENABLED && app->sidebar_open && !app_sidebar_is_wide_layout()) {
         app->camera = (Camera2D){0};
@@ -1907,7 +1958,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         ui_set_frame(app->camera);
         flint_clip_begin((int)viewport.x, (int)viewport.y, full_width, full_height);
         BeginMode2D(app->camera);
-            DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
+            DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
             app_draw_sidebar(app, view_width, view_height);
         EndMode2D();
         flint_clip_end();
@@ -1950,7 +2001,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     flint_clip_begin((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
-            DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
+            DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
             updateapp(app);
         EndMode2D();
     flint_clip_end();

@@ -3,8 +3,6 @@
 #include "practices/practice_registry.h"
 #include "flint_locale.h"
 #include "flint_ui.h"
-#include "theme.h"
-#include <stdio.h>
 
 extern int view_width;
 extern int view_height;
@@ -12,11 +10,6 @@ extern int view_height;
 enum {
     PRACTICE_GUIDE_STEPS = 4
 };
-
-typedef struct PracticeGuideStep {
-    Rectangle anchor;
-    const char *text;
-} PracticeGuideStep;
 
 int
 practice_activity_count_for_tab(int tab)
@@ -42,12 +35,6 @@ practice_activity_label(int exercise)
     return practice_label(exercise);
 }
 
-int
-practice_activity_index_for_tab(int tab, int exercise)
-{
-    (void)tab;
-    return practice_clamp_id(exercise);
-}
 
 void
 practice_clamp_activity_to_tab(InbeApp *app)
@@ -89,8 +76,7 @@ practice_screen_draw_tab_bar(InbeApp *app, int y)
         .bounds = {0, (float)y, (float)view_width, (float)tab_h},
         .tabs = tabs,
         .count = PRACTICE_TAB_COUNT,
-        .selected_index = app->practice_tab,
-        .font = flint_ui_font()
+        .selected_index = app->practice_tab
     });
 }
 
@@ -256,230 +242,46 @@ practice_screen_prepare_first_run_guide(InbeApp *app)
         app->practice_tab = PRACTICE_TAB_PLAY;
 }
 
-static void
-practice_screen_draw_guide_arrow(Rectangle tip, Rectangle anchor)
-{
-    int anchor_cx = (int)(anchor.x + anchor.width / 2);
-    int anchor_cy = (int)(anchor.y + anchor.height / 2);
-    int tip_left = (int)tip.x;
-    int tip_right = (int)(tip.x + tip.width);
-    int tip_top = (int)tip.y;
-    int tip_bottom = (int)(tip.y + tip.height);
-    int point_x = anchor_cx;
-    int point_y = anchor_cy;
-    int base_x = clampi(anchor_cx, tip_left + flint_px(18), tip_right - flint_px(18));
-    Color color = theme_get_button();
-
-    if(anchor_cy < tip_top) {
-        DrawTriangle((Vector2){(float)base_x, (float)tip_top},
-                     (Vector2){(float)(base_x - flint_px(8)), (float)(tip_top - flint_px(12))},
-                     (Vector2){(float)(base_x + flint_px(8)), (float)(tip_top - flint_px(12))},
-                     color);
-        point_y = tip_top - flint_px(12);
-    } else if(anchor_cy > tip_bottom) {
-        DrawTriangle((Vector2){(float)base_x, (float)tip_bottom},
-                     (Vector2){(float)(base_x + flint_px(8)), (float)(tip_bottom + flint_px(12))},
-                     (Vector2){(float)(base_x - flint_px(8)), (float)(tip_bottom + flint_px(12))},
-                     color);
-        point_y = tip_bottom + flint_px(12);
-    } else if(anchor_cx < tip_left) {
-        DrawTriangle((Vector2){(float)tip_left, (float)anchor_cy},
-                     (Vector2){(float)(tip_left - flint_px(12)), (float)(anchor_cy + flint_px(8))},
-                     (Vector2){(float)(tip_left - flint_px(12)), (float)(anchor_cy - flint_px(8))},
-                     color);
-        point_x = tip_left - flint_px(12);
-    } else {
-        DrawTriangle((Vector2){(float)tip_right, (float)anchor_cy},
-                     (Vector2){(float)(tip_right + flint_px(12)), (float)(anchor_cy - flint_px(8))},
-                     (Vector2){(float)(tip_right + flint_px(12)), (float)(anchor_cy + flint_px(8))},
-                     color);
-        point_x = tip_right + flint_px(12);
-    }
-
-    DrawLineEx((Vector2){(float)point_x, (float)point_y},
-               (Vector2){(float)anchor_cx, (float)anchor_cy},
-               (float)flint_px(2), theme_get_text());
-}
-
-static Rectangle
-practice_screen_guide_tip_bounds(Rectangle anchor, int w, int h)
-{
-    int margin = flint_px(12);
-    int gap = flint_px(20);
-    int x = (int)(anchor.x + anchor.width / 2) - w / 2;
-    int y;
-
-    if(x < margin)
-        x = margin;
-    if(x + w > view_width - margin)
-        x = view_width - margin - w;
-    if(x < margin)
-        x = margin;
-
-    if(anchor.y + anchor.height + gap + h < view_height - ui_bottom_nav_height())
-        y = (int)(anchor.y + anchor.height + gap);
-    else
-        y = (int)(anchor.y - gap - h);
-
-    if(y < app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H))
-        y = app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H) + margin;
-    if(y + h > view_height - ui_bottom_nav_height() - margin)
-        y = view_height - ui_bottom_nav_height() - margin - h;
-    if(y < margin)
-        y = margin;
-
-    return (Rectangle){(float)x, (float)y, (float)w, (float)h};
-}
-
 void
 practice_screen_draw_first_run_guide(InbeApp *app)
 {
-    PracticeGuideStep steps[PRACTICE_GUIDE_STEPS];
-    int step;
-    int margin = flint_px(12);
-    int tip_w = view_width - margin * 2;
-    int pad = flint_px(12);
-    int button_size = flint_px(34);
-    int font = flint_ui_font();
-    int page_font = FLINT_TEXT_12;
-    char page_text[16];
-    FlintUIParagraph paragraph;
-    int paragraph_h;
-    int tip_h;
-    Rectangle tip;
-    int y;
-    int finish;
-    int close_size = flint_px(28);
+    FlintUIGuideStep steps[PRACTICE_GUIDE_STEPS];
+    FlintUIGuideResult result;
 
     if(!practice_screen_first_run_guide_active(app))
         return;
 
-    steps[0] = (PracticeGuideStep){
+    steps[0] = (FlintUIGuideStep){
         practice_screen_dropdown_anchor(),
         locale_get("practice_guide_dropdown")
     };
-    steps[1] = (PracticeGuideStep){
+    steps[1] = (FlintUIGuideStep){
         practice_screen_tab_anchor(PRACTICE_TAB_MANUAL),
         locale_get("practice_guide_manual")
     };
-    steps[2] = (PracticeGuideStep){
+    steps[2] = (FlintUIGuideStep){
         practice_screen_tab_anchor(PRACTICE_TAB_PLAY),
         locale_get("practice_guide_sun")
     };
-    steps[3] = (PracticeGuideStep){
+    steps[3] = (FlintUIGuideStep){
         practice_screen_tab_anchor(PRACTICE_TAB_CONFIG),
         locale_get("practice_guide_config")
     };
 
-    step = clampi(app->tutorial_step, 0, PRACTICE_GUIDE_STEPS - 1);
-    app->tutorial_step = step;
-    if(IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)) {
-        if(step >= PRACTICE_GUIDE_STEPS - 1)
-            practice_screen_finish_first_run_guide(app);
-        else
-            app->tutorial_step = step + 1;
-        return;
-    }
-    if(IsKeyPressed(KEY_LEFT) && step > 0) {
-        app->tutorial_step = step - 1;
-        return;
-    }
-    if(IsKeyPressed(KEY_ESCAPE)) {
+    result = flint_ui_draw_guide_overlay((FlintUIGuideOverlay){
+        .steps = steps,
+        .count = PRACTICE_GUIDE_STEPS,
+        .step = &app->tutorial_step,
+        .view_width = view_width,
+        .view_height = view_height,
+        .reserved_top = app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H),
+        .reserved_bottom = ui_bottom_nav_height(),
+        .max_width = flint_px(300),
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .back_icon = app->icons[UI_ICON_TYPE_BACKWARD],
+        .next_icon = app->icons[UI_ICON_TYPE_FORWARD],
+        .done_icon = app->icons[UI_ICON_TYPE_CHECK]
+    });
+    if(result.closed || result.finished)
         practice_screen_finish_first_run_guide(app);
-        return;
-    }
-
-    if(tip_w > flint_px(300))
-        tip_w = flint_px(300);
-    paragraph = (FlintUIParagraph){
-        .text = steps[step].text,
-        .icon = (Texture2D){0},
-        .icon_type = UI_ICON_TYPE_NONE,
-        .icon_size = 0,
-        .width = tip_w - pad * 2 - close_size - flint_px(8),
-        .font = font,
-        .line_gap = flint_px(6),
-        .color = theme_get_text(),
-    };
-    paragraph_h = flint_ui_paragraph_height(paragraph);
-    tip_h = pad + paragraph_h + flint_px(12) + button_size + pad;
-    if(tip_h < flint_px(112))
-        tip_h = flint_px(112);
-    tip = practice_screen_guide_tip_bounds(steps[step].anchor, tip_w, tip_h);
-
-    DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 86});
-    DrawRectangleLinesEx(steps[step].anchor, (float)flint_px(2), theme_get_text());
-    DrawRectangleRounded(tip, 0.08f, 8, theme_get_button());
-    DrawRectangleRoundedLines(tip, 0.08f, 8,
-                              flint_darken(theme_get_button(), 35));
-    practice_screen_draw_guide_arrow(tip, steps[step].anchor);
-
-    if(flint_ui_icon_button((FlintUIIconButton){
-           .bounds = {
-               tip.x + tip.width - pad - close_size,
-               tip.y + pad,
-               (float)close_size,
-               (float)close_size
-           },
-           .icon = app->icons[UI_ICON_TYPE_X],
-           .icon_size = flint_px(16),
-           .icon_padding = flint_px(6),
-           .background = theme_get_button(),
-           .hover_background = theme_get_button_hover(),
-           .icon_color = theme_get_text(),
-           .border = flint_darken(theme_get_button(), 35)
-       })) {
-        practice_screen_finish_first_run_guide(app);
-        return;
-    }
-
-    y = (int)tip.y + pad;
-    flint_ui_paragraph_draw(paragraph, (int)tip.x + pad, &y);
-
-    snprintf(page_text, sizeof(page_text), "%d/%d", step + 1, PRACTICE_GUIDE_STEPS);
-    flint_text_draw(page_text, (int)tip.x + pad,
-                    (int)tip.y + (int)tip.height - pad - button_size +
-                        (button_size - page_font) / 2,
-                    page_font, theme_get_text());
-
-    finish = step >= PRACTICE_GUIDE_STEPS - 1;
-    if(step > 0) {
-        if(flint_ui_icon_button((FlintUIIconButton){
-               .bounds = {
-                   tip.x + tip.width - pad - button_size * 2 - flint_px(8),
-                   tip.y + tip.height - pad - button_size,
-                   (float)button_size,
-                   (float)button_size
-               },
-               .icon = app->icons[UI_ICON_TYPE_BACKWARD],
-               .icon_size = flint_px(19),
-               .icon_padding = flint_px(7),
-               .background = theme_get_button(),
-               .hover_background = theme_get_button_hover(),
-               .icon_color = theme_get_text(),
-               .border = flint_darken(theme_get_button(), 35)
-           })) {
-            app->tutorial_step = step - 1;
-        }
-    }
-    if(flint_ui_icon_button((FlintUIIconButton){
-           .bounds = {
-               tip.x + tip.width - pad - button_size,
-               tip.y + tip.height - pad - button_size,
-               (float)button_size,
-               (float)button_size
-           },
-           .icon = app->icons[finish ? UI_ICON_TYPE_CHECK : UI_ICON_TYPE_FORWARD],
-           .icon_size = flint_px(19),
-           .icon_padding = flint_px(7),
-           .background = theme_get_button(),
-           .hover_background = theme_get_button_hover(),
-           .icon_color = theme_get_text(),
-           .border = flint_darken(theme_get_button(), 35)
-       })) {
-        if(finish)
-            practice_screen_finish_first_run_guide(app);
-        else
-            app->tutorial_step = step + 1;
-    }
 }

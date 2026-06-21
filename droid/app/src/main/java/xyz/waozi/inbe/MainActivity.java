@@ -77,6 +77,7 @@ public class MainActivity extends NativeActivity {
     private native void nativeTextInputCommit(int codepoint);
     private native void nativeTextInputBackspace();
     private native void nativeTextInputEnter();
+    private native void nativeInvalidateGraphicsResources();
 
     private void requestDownloadNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -658,6 +659,7 @@ public class MainActivity extends NativeActivity {
     @Override
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
+        nativeInvalidateGraphicsResources();
         pushDeviceConfiguration();
         requestInsetRefresh();
     }
@@ -856,6 +858,7 @@ public class MainActivity extends NativeActivity {
     protected void onResume() {
         super.onResume();
         activityPaused = false;
+        nativeInvalidateGraphicsResources();
         syncLifecycleState("onResume");
     }
 

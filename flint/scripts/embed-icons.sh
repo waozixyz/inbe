@@ -50,4 +50,8 @@ icon_enum()
     printf 'const unsigned int flint_icon_asset_count = %su;\n' "$count"
 } > "$tmp"
 
-mv "$tmp" "$out"
+if [ -f "$out" ] && cmp -s "$tmp" "$out"; then
+    rm "$tmp"
+else
+    mv "$tmp" "$out"
+fi

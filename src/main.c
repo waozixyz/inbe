@@ -6,7 +6,7 @@
 #include "flint_dpi.h"
 #include "flint_theme_meta.h"
 #include "flint_web.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "device_preferences.h"
 #include <stdarg.h>
 #include <stddef.h>
@@ -15,14 +15,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-#define INBE_ANDROID_BUILD 1
-#else
-#define INBE_ANDROID_BUILD 0
-#endif
-
-
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
                                                 const char *caption, unsigned int type);
 #define MB_OK 0x00000000u
@@ -30,7 +23,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
 #define WIN_ERROR_LOG_CAP 2048
 #endif
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_insets.h"
 #include "android_device.h"
 #include "android_runtime_assets.h"
@@ -58,7 +51,7 @@ typedef struct ScreenshotRequest {
     char output[512];
 } ScreenshotRequest;
 
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
 static FILE *win_log_file;
 static char win_recent_errors[WIN_ERROR_LOG_CAP];
 static int win_recent_errors_len;
@@ -192,6 +185,17 @@ void set_global_inbe_app(InbeApp *app);
 #if INBE_ANDROID_BUILD
 static AndroidInsets insets;
 
+typedef struct AndroidViewport {
+    int x;
+    int y;
+    int width;
+    int height;
+    int top;
+    int bottom;
+    int left;
+    int right;
+} AndroidViewport;
+
 static int
 android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 {
@@ -202,13 +206,78 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 
     return content_size;
 }
+
+static int
+android_maxi(int a, int b)
+{
+    return a > b ? a : b;
+}
+
+static int
+android_nonnegative(int value)
+{
+    return value > 0 ? value : 0;
+}
+
+static AndroidViewport
+android_resolve_viewport(int width, int height, AndroidInsets value)
+{
+    static AndroidViewport last_logged = {-1, -1, -1, -1, -1, -1, -1, -1};
+    AndroidViewport viewport;
+    int status = android_nonnegative(value.status_bar);
+    int nav = android_nonnegative(value.nav_bar);
+    int cutout_left = android_nonnegative(value.cutout_left);
+    int cutout_top = android_nonnegative(value.cutout_top);
+    int cutout_right = android_nonnegative(value.cutout_right);
+    int cutout_bottom = android_nonnegative(value.cutout_bottom);
+    int min_content_h = height / 2;
+
+    viewport.left = cutout_left;
+    viewport.right = cutout_right;
+    viewport.top = android_maxi(cutout_top, status);
+    viewport.bottom = android_maxi(cutout_bottom, nav);
+
+    if(min_content_h < 1)
+        min_content_h = 1;
+    if(viewport.top + viewport.bottom >= height - min_content_h) {
+        viewport.top = cutout_top;
+        viewport.bottom = cutout_bottom;
+    }
+
+    viewport.x = viewport.left;
+    viewport.y = viewport.top;
+    viewport.width = android_clamp_content_size(width, viewport.left, viewport.right);
+    viewport.height = android_clamp_content_size(height, viewport.top, viewport.bottom);
+
+    if(viewport.width <= 0) {
+        viewport.x = 0;
+        viewport.width = width;
+    }
+    if(viewport.height <= 0) {
+        viewport.y = 0;
+        viewport.height = height;
+    }
+
+    if(viewport.x != last_logged.x || viewport.y != last_logged.y ||
+       viewport.width != last_logged.width || viewport.height != last_logged.height ||
+       viewport.top != last_logged.top || viewport.bottom != last_logged.bottom ||
+       viewport.left != last_logged.left || viewport.right != last_logged.right) {
+        TraceLog(LOG_INFO,
+                 "ANDROID_VIEWPORT: screen=%dx%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
+                 width, height, viewport.x, viewport.y, viewport.width, viewport.height,
+                 viewport.left, viewport.top, viewport.right, viewport.bottom);
+        last_logged = viewport;
+    }
+
+    return viewport;
+}
 #endif
 
 static void
 draw_full_frame(int width, int height)
 {
     BeginDrawing();
-    ClearBackground(theme_get_bg());
+    ClearBackground(flint_theme_get_bg());
     app_update_draw(&inbe_app, (Rectangle){
         0,
         0,
@@ -232,7 +301,17 @@ frame(void)
 
     int width = GetScreenWidth();
     int height = GetScreenHeight();
-#if !defined(PLATFORM_WEB)
+#if INBE_ANDROID_BUILD
+    struct android_app *android_app = GetAndroidApp();
+    if(android_app != NULL && android_app->window != NULL) {
+        int window_width = ANativeWindow_getWidth(android_app->window);
+        int window_height = ANativeWindow_getHeight(android_app->window);
+        if(window_width > 0)
+            width = window_width;
+        if(window_height > 0)
+            height = window_height;
+    }
+#elif !defined(PLATFORM_WEB)
     int render_width = GetRenderWidth();
     int render_height = GetRenderHeight();
 
@@ -243,28 +322,27 @@ frame(void)
 #endif
 
 #if INBE_ANDROID_BUILD
+    AndroidViewport viewport;
+    static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
+
     android_insets_get(&insets);
-
-    int safe_top = insets.cutout_top > insets.status_bar ?
-                   insets.cutout_top : insets.status_bar;
-    int safe_bottom = insets.cutout_bottom > insets.nav_bar ?
-                      insets.cutout_bottom : insets.nav_bar;
-    int safe_left = insets.cutout_left;
-    int safe_right = insets.cutout_right;
-
-    int content_x = safe_left;
-    int content_y = safe_top;
-    int content_width = android_clamp_content_size(width, safe_left, safe_right);
-    int content_height = android_clamp_content_size(height, safe_top, safe_bottom);
+    viewport = android_resolve_viewport(width, height, insets);
+    if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||
+       viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||
+       viewport.top != previous_viewport.top || viewport.bottom != previous_viewport.bottom ||
+       viewport.left != previous_viewport.left || viewport.right != previous_viewport.right) {
+        flint_dpi_invalidate();
+        previous_viewport = viewport;
+    }
 
     BeginDrawing();
     ClearBackground(BLACK);
-    flint_clip_begin(content_x, content_y, content_width, content_height);
+    flint_clip_begin(viewport.x, viewport.y, viewport.width, viewport.height);
     app_update_draw(&inbe_app, (Rectangle){
-        (float)content_x,
-        (float)content_y,
-        (float)content_width,
-        (float)content_height
+        (float)viewport.x,
+        (float)viewport.y,
+        (float)viewport.width,
+        (float)viewport.height
     });
     flint_clip_end();
 #elif defined(PLATFORM_WEB)
@@ -507,11 +585,11 @@ int main(int argc, char **argv) {
 
 #if defined(PLATFORM_WEB)
     SetConfigFlags(flint_web_window_flags());
-#elif !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#elif !INBE_ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
     windows_install_logger();
     TraceLog(LOG_INFO, "INBE: Windows startup");
 #endif
@@ -529,7 +607,7 @@ int main(int argc, char **argv) {
     InitWindow(window_w, window_h, config.title);
     if(!IsWindowReady()) {
         TraceLog(LOG_ERROR, "INBE: InitWindow failed");
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
         windows_show_startup_error();
         windows_close_logger();
 #endif
@@ -554,7 +632,7 @@ int main(int argc, char **argv) {
 #else
     if(run_screenshot_mode(&screenshot)) {
         CloseWindow();
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
         windows_close_logger();
 #endif
         return 0;
@@ -565,7 +643,7 @@ int main(int argc, char **argv) {
     }
 
     CloseWindow();
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
     windows_close_logger();
 #endif
 #endif

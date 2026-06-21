@@ -16,6 +16,14 @@ flint_dpi_init(void)
 }
 
 void
+flint_dpi_invalidate(void)
+{
+    flint_dpi_state.view_width = -1;
+    flint_dpi_state.view_height = -1;
+    flint_dpi_state.needs_update = 1;
+}
+
+void
 flint_dpi_update(int view_width, int view_height)
 {
     int previous_width = flint_dpi_state.view_width;

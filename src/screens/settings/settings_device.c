@@ -5,13 +5,13 @@
 #include "device_preferences.h"
 #include "language_screen.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 
 static int
 settings_device_orientation_option_count(void)
 {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return 4;
 #else
     return 3;
@@ -23,10 +23,7 @@ settings_device_label_paragraph(const char *label, int w)
 {
     return (FlintUIParagraph){
         .text = label,
-        .font = flint_ui_font(),
-        .line_gap = flint_px(4),
-        .width = w,
-        .color = theme_get_text()
+        .width = w
     };
 }
 
@@ -80,10 +77,10 @@ settings_device_content_height(int content_w)
     int height = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
     int label_w = content_w > 0 ? content_w : flint_px(240);
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID) || defined(PLATFORM_WEB)
+#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
     height += settings_device_toggle_row_height(locale_get("play_in_background_label"), label_w);
 #endif
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+#if !INBE_ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += flint_px(50);
 #endif
     height += settings_device_toggle_row_height(locale_get("show_session_volume_control_label"), label_w);
@@ -132,7 +129,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         save_settings(app);
     }
 
-#if defined(__ANDROID__) || defined(PLATFORM_WEB)
+#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
     {
         int play_in_background = app->inbe.play_in_background;
         if(settings_device_draw_toggle_row(x, w, y, locale_get("play_in_background_label"),
@@ -149,7 +146,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
                                        APP_ORIENTATION_SYSTEM,
                                        orientation_max);
         flint_text_draw(locale_get("orientation_label"), x, *y,
-                        flint_ui_font(), theme_get_text());
+                        flint_ui_font(), flint_theme_get_text());
         ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
                                 orientation_options, orientation_option_count,
                                 &app->orientation_mode);
@@ -157,7 +154,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         *y += flint_px(76);
     }
 
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(PLATFORM_WEB)
+#if !INBE_ANDROID_BUILD && !defined(PLATFORM_WEB)
     if(ui_draw_checkbox_toggle(x, *y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
         if(app->fullscreen_enabled && !IsWindowFullscreen())
             ToggleFullscreen();

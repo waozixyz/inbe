@@ -323,6 +323,32 @@ test_sync_backfill_includes_existing_habits(void)
 }
 
 static void
+test_sync_payload_excludes_local_settings(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-local-settings");
+    check_true("init local settings sync db", storage_init(root));
+    storage_set_setting_text("theme", "dark");
+    storage_set_setting_text("main_tab", "0");
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("settings are not present in sync payload",
+               payload != NULL &&
+               strstr(payload, "\"preferences\"") == NULL &&
+               strstr(payload, "\"theme\"") == NULL &&
+               strstr(payload, "\"main_tab\"") == NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_payload_includes_queued_current_edits(void)
 {
     char root[512];
@@ -1260,6 +1286,7 @@ main(void)
     test_external_tickmate_db_import();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
     test_sync_backfill_includes_existing_habits();
+    test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();

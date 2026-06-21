@@ -8,6 +8,7 @@ ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 CC ?= gcc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
 GRADLE ?= gradle
+ADB ?= adb
 ARCH := $(shell uname -m)
 ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
 ANDROID_KEY_ALIAS ?= inbe-key
@@ -57,7 +58,7 @@ WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
-ANDROID_FAST_ABI ?= $(shell adb shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1)
+ANDROID_FAST_ABI ?= $(shell $(ADB) shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1)
 ANDROID_DEBUG_ABIS ?= $(if $(strip $(ANDROID_FAST_ABI)),$(ANDROID_FAST_ABI),arm64-v8a)
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
@@ -101,6 +102,7 @@ RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.
 FLINT_DIR := flint
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
+FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
 FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c) $(wildcard $(FLINT_DIR)/src/ui/*.c)) $(FLINT_ICON_ASSETS_C)
 FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
 FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
@@ -140,6 +142,7 @@ STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
+GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 FLINT_RUNTIME_ASSET_CFLAGS := $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
@@ -163,7 +166,6 @@ APP_SRCS := \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/practices/meditation/meditation_music.c \
-	src/core/theme.c \
 	src/storage/data.c \
 	src/storage/db.c \
 	src/storage/import.c \
@@ -193,7 +195,7 @@ EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUT
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party
-APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=0,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=1
+APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
@@ -243,7 +245,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -303,11 +305,12 @@ run-fresh: $(TARGET)
 screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
 
-test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST)
+test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(GUIDE_OVERLAY_TEST)
 	$(STORAGE_IMPORT_TEST)
 	$(LOCALE_KEYS_TEST)
 	$(SYNC_URL_TEST)
 	$(SYNC_ACCOUNT_TEST)
+	$(GUIDE_OVERLAY_TEST)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
@@ -323,7 +326,7 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Ivendor/raylib/src $(FLINT_CURL_CFLAGS) -o $@ \
+		-Isrc/storage -Isrc -Isrc/core -Ivendor/raylib/src $(FLINT_CURL_CFLAGS) -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
@@ -334,6 +337,12 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/s
 		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
+$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c flint/src/ui/guide.c flint/include/flint_ui.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-Iflint/include -Ivendor/raylib/src \
+		-o $@ \
+		tests/guide_overlay_test.c
+
 $(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
 	mkdir -p $@
 
@@ -342,6 +351,8 @@ $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
 
 assets/fonts:
 	mkdir -p $@
+
+FORCE:
 
 $(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
 	$(MAKE) -C vendor/otfchop otfchop
@@ -352,7 +363,12 @@ assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) 
 $(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
-$(FLINT_ICON_ASSETS_C): $(FLINT_ICON_FILES) $(FLINT_DIR)/scripts/embed-icons.sh
+$(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
+	@tmp="$@.tmp"; \
+	find $(FLINT_DIR)/icons -maxdepth 1 -type f -name '*.png' | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
+	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
+
+$(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
 	sh $(FLINT_DIR)/scripts/embed-icons.sh $(FLINT_DIR)/icons $@
 
 $(RAYLIB_A): $(RAYLIB_SOURCES)
@@ -573,7 +589,7 @@ $(WIN32_CURL_A): $(CURL_DIR)/CMakeLists.txt
 		-DBUILD_TESTING=OFF
 	$(CMAKE) --build $(WIN32_CURL_BUILD_DIR) --target install
 
-$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(LINUX_BIN_DIR)
+$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -584,7 +600,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		-DINBE_HAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-DSUPPORT_FILEFORMAT_MP3=1 \
+		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
 		$(FLINT_SRCS) \
@@ -596,7 +612,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) 
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) | $(CLICK_BIN_DIR)
+$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -606,7 +622,7 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_
 		-DPLATFORM_DESKTOP \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-DSUPPORT_FILEFORMAT_MP3=1 \
+		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
 		$(FLINT_SRCS) \
@@ -685,7 +701,7 @@ $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_T
 	ar t $@ | grep -qx control.tar.gz
 	ar t $@ | grep -qx data.tar.gz
 
-$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -705,7 +721,7 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AM
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -774,7 +790,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -786,7 +802,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
-		-DSUPPORT_FILEFORMAT_MP3=1 \
+		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
 		$(FLINT_WEB_SRCS) \
@@ -930,25 +946,37 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	fi
 
 android-install: android-debug
-	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
+	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
 	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
-	adb install -r "$$APK"; \
-	adb shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+	$(ADB) install -r "$$APK"; \
+	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
 
 android-install-fast: android-debug-fast
-	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
+	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
 	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
-	adb install -r "$$APK"; \
-	adb shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+	$(ADB) install -r "$$APK"; \
+	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
 
 android-install-release: android-release
-	@ABI=$$(adb shell getprop ro.product.cpu.abi | tr -d '\r'); \
+	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/release/app-$${ABI}-release.apk; \
 	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/release/app-release.apk; fi; \
-	adb install -r "$$APK"; \
-	adb shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+	$(ADB) install -r "$$APK"; \
+	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+
+android-avd:
+	bash scripts/emulator.sh
+	@adb_cmd="$$HOME/.android-sdk-writable/platform-tools/adb"; \
+	if [ ! -x "$$adb_cmd" ]; then adb_cmd="$${ANDROID_SDK_ROOT:-$${ANDROID_HOME}}/platform-tools/adb"; fi; \
+	if [ ! -x "$$adb_cmd" ]; then adb_cmd=adb; fi; \
+	abi=$$("$$adb_cmd" -e shell getprop ro.product.cpu.abi | tr -d '\r'); \
+	if [ -z "$$abi" ]; then \
+		echo "No emulator ABI detected. Is the AVD running?"; \
+		exit 1; \
+	fi; \
+	$(MAKE) android-install-fast ADB="$$adb_cmd -e" ANDROID_DEBUG_ABIS="$$abi"
 
 android-clean:
 	$(GRADLE) -p droid clean

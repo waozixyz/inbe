@@ -1,7 +1,9 @@
 #ifndef INBE_ANDROID_TIMER_H
 #define INBE_ANDROID_TIMER_H
 
-#ifdef __ANDROID__
+#include "platform.h"
+
+#if INBE_ANDROID_BUILD
 #include <jni.h>
 #include <pthread.h>
 void android_timer_init(void);

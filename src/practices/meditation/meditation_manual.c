@@ -3,7 +3,7 @@
 #include "app.h"
 #include "flint_locale.h"
 #include "screens/manual_screen.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 
@@ -48,13 +48,8 @@ draw_intro_page(InbeApp *app, int content_x, int content_w, int *y)
 
     paragraph = (FlintUIParagraph){
         .text = locale_get("meditation_manual_intro_text"),
-        .icon = (Texture2D){0},
-        .icon_type = UI_ICON_TYPE_NONE,
-        .icon_size = 0,
         .width = content_w,
-        .font = flint_ui_font(),
         .line_gap = flint_px(8),
-        .color = theme_get_text(),
     };
     flint_ui_paragraph_draw(paragraph, content_x, y);
 }
@@ -64,13 +59,8 @@ intro_page_height(int content_w)
 {
     FlintUIParagraph paragraph = {
         .text = locale_get("meditation_manual_intro_text"),
-        .icon = (Texture2D){0},
-        .icon_type = UI_ICON_TYPE_NONE,
-        .icon_size = 0,
         .width = content_w,
-        .font = flint_ui_font(),
         .line_gap = flint_px(8),
-        .color = theme_get_text(),
     };
 
     return flint_px(190) + flint_px(22) + flint_ui_paragraph_height(paragraph) +

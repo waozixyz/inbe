@@ -4,7 +4,7 @@
 #include "app_settings.h"
 #include "device_preferences.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_theme_meta.h"
 #include "flint_ui.h"
 
@@ -26,14 +26,13 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     theme_mode_options[1] = locale_get("theme_light");
     theme_mode_options[2] = locale_get("theme_dark");
     app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-    flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), theme_get_text());
+    flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
     ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
                             theme_mode_options, 3, &app->theme_mode);
     state->draw_theme_mode_menu = 1;
     *y += flint_px(76);
 
-    if(ui_draw_theme_picker(x, *y, w, locale_get("theme_label"),
-                            app->dark_mode, &app->theme_id)) {
+    if(ui_draw_theme_picker(x, *y, w, app->dark_mode, &app->theme_id)) {
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
         app_refresh_theme(app);
         app->settings_dirty = 1;

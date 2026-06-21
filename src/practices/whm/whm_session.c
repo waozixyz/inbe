@@ -1,14 +1,15 @@
 #include "whm_session.h"
+#include "platform.h"
 
 #include "data.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
 
 #include <stdio.h>
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
 #include "android_timer.h"
 #include "android_wakelock.h"
 void set_global_inbe_app(InbeApp *app);
@@ -213,7 +214,7 @@ session_start(InbeApp *app)
     app->results_path[0] = '\0';
     remember_sound_state(app);
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     android_keep_screen_on();
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
     if(app->inbe.play_in_background) {
@@ -331,7 +332,7 @@ finish_round(InbeApp *app)
         reset_round_start(&app->inbe);
     } else {
         if(session_ensure_results_saved(app)) {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
             android_allow_screen_off();
 #endif
             app_switch_screen(app, InbeScreenResults);
@@ -405,8 +406,8 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
     int font = FLINT_TEXT_16;
     Color text_color = app->inbe.phase == InbePhaseHold &&
                        app->hold_display_mode == HOLD_DISPLAY_CIRCLE
-                           ? text_color_for_background(theme_get_bg())
-                           :  text_color_for_background(theme_get_circle());
+                           ? text_color_for_background(flint_theme_get_bg())
+                           :  text_color_for_background(flint_theme_get_circle());
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -450,7 +451,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
                          !ui_input_captures_click(mouse_world);
         int hovered = active_hit && ui_hover_effects_enabled();
         int active = i == selected;
-        Color fill = active ? theme_get_button() : flint_darken(theme_get_bg(), 10);
+        Color fill = active ? flint_theme_get_button() : flint_darken(flint_theme_get_bg(), 10);
         Color top = flint_lighten(fill, 35);
         Color bottom = flint_darken(fill, 45);
         int font = flint_ui_font();
@@ -459,9 +460,9 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         if(active_hit) {
             app->cursor_clickable = 1;
             if(hovered && !active) {
-                fill = theme_get_button_hover();
-                top = flint_darken(theme_get_button_hover(), 40);
-                bottom = flint_lighten(theme_get_button_hover(), 40);
+                fill = flint_theme_get_button_hover();
+                top = flint_darken(flint_theme_get_button_hover(), 40);
+                bottom = flint_lighten(flint_theme_get_button_hover(), 40);
             }
         }
 
@@ -472,7 +473,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
             font = FLINT_TEXT_12;
         text_w = flint_text_measure(labels[i], font);
         flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
-                        flint_ui_text_y(labels[i], y, h, font), font, theme_get_text());
+                        flint_ui_text_y(labels[i], y, h, font), font, flint_theme_get_text());
 
         if(active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
            !ui_input_captures_click(mouse_world) && selected != i) {
@@ -511,10 +512,10 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
 
         if(i < completed_minutes) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, theme_get_text());
+                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, flint_theme_get_text());
         } else if(sweep > 0.0f) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, theme_get_text());
+                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, flint_theme_get_text());
         }
     }
 }
@@ -527,9 +528,9 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
     if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
         draw_hold_progress_outline(app, center_x, center_y);
     } else {
-        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, theme_get_circle());
+        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, flint_theme_get_circle());
         DrawRing((Vector2){(float)center_x, (float)center_y}, radius - 0.75f,
-                 radius + 0.75f, 0.0f, 360.0f, 96, theme_get_text());
+                 radius + 0.75f, 0.0f, 360.0f, 96, flint_theme_get_text());
     }
     draw_session_counter(app, center_x, center_y);
 }
@@ -575,11 +576,11 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     }
 
     int scaled_radius = (int)(radius * scale);
-    DrawCircle(center_x, center_y, scaled_radius, theme_get_circle());
-    DrawCircleLines(center_x, center_y, scaled_radius, theme_get_text());
+    DrawCircle(center_x, center_y, scaled_radius, flint_theme_get_circle());
+    DrawCircleLines(center_x, center_y, scaled_radius, flint_theme_get_text());
 
     // Draw PLAY text in center
-    flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(theme_get_circle()));
+    flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(flint_theme_get_circle()));
 
     if(active) {
         app->cursor_clickable = 1;
@@ -616,7 +617,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     text_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(40);
     if(text_y < flint_px(20))
         text_y = flint_px(20);
-    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, theme_get_text());
+    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, flint_theme_get_text());
 }
 
 static void
@@ -643,16 +644,16 @@ draw_session_round_label(InbeApp *app)
     text_x = top_bar_left + (top_bar_right - top_bar_left - max_text_w) / 2;
     text_y = flint_ui_text_y(text, flint_px(12), flint_px(24) + flint_px(10) * 2, font);
 
-    flint_text_draw(text, text_x, text_y, font, theme_get_text());
+    flint_text_draw(text, text_x, text_y, font, flint_theme_get_text());
 }
 
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
     float r = draw_radius(inbe) * 0.72f;
-    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, theme_get_circle());
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, flint_theme_get_circle());
     DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
-             0.0f, 360.0f, 96, theme_get_text());
+             0.0f, 360.0f, 96, flint_theme_get_text());
 }
 
 static Texture2D
@@ -668,7 +669,7 @@ sound_icon_for_volume(InbeApp *app)
 static void
 stop_android_background_session(InbeApp *app)
 {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     if(app->inbe.play_in_background) {
         android_wakelock_release();
         android_timer_stop();
@@ -803,7 +804,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         0
 #endif
     )) {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
         pthread_mutex_t *timer_mutex = android_timer_get_mutex();
         if(timer_mutex) {
             pthread_mutex_lock(timer_mutex);
@@ -876,7 +877,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
 
     title_font = flint_ui_title_font(locale_get("results_title"), view_width - flint_px(48));
     title_w = flint_text_measure(locale_get("results_title"), title_font);
-    flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, theme_get_text());
+    flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, flint_theme_get_text());
 
     for(int i = 0; i < rounds; i++) {
         int seconds = round_times[i];
@@ -899,7 +900,7 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
         if(view_width < 420 && flint_text_measure(lines[2], summary_font) > box_w - flint_px(20))
             snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0);
         for(int i = 0; i < 3; i++)
-            rows[i] = (FlintUIInfoRow){lines[i], summary_font, theme_get_text()};
+            rows[i] = (FlintUIInfoRow){lines[i], summary_font, flint_theme_get_text()};
         ui_draw_info_rows((FlintUIInfoRows){
             .x = box_x,
             .y = box_y,
@@ -907,22 +908,22 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
             .row_height = flint_px(29),
             .rows = rows,
             .row_count = 3,
-            .background = flint_darken(theme_get_bg(), 6),
-            .separator = flint_darken(theme_get_bg(), 30),
-            .default_text = theme_get_text()
+            .background = flint_darken(flint_theme_get_bg(), 6),
+            .separator = flint_darken(flint_theme_get_bg(), 30),
+            .default_text = flint_theme_get_text()
         });
     }
 
     flint_ui_draw_text_left_in_rect(locale_get("round_times_title"),
                                     (Rectangle){(float)box_x, (float)flint_px(181),
                                                 (float)box_w, (float)flint_px(28)},
-                                    flint_ui_font(), flint_darken(theme_get_text(), 20));
+                                    flint_ui_font(), flint_darken(flint_theme_get_text(), 20));
     for(int i = 0; i < rounds; i++) {
         char row[48];
         FlintUIInfoRow info_row;
         int row_font = flint_ui_font();
         locale_format(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
-        info_row = (FlintUIInfoRow){row, row_font, theme_get_text()};
+        info_row = (FlintUIInfoRow){row, row_font, flint_theme_get_text()};
         ui_draw_info_rows((FlintUIInfoRows){
             .x = box_x,
             .y = row_y - 1,
@@ -930,9 +931,9 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
             .row_height = row_h,
             .rows = &info_row,
             .row_count = 1,
-            .background = flint_darken(theme_get_bg(), 4),
-            .separator = flint_darken(theme_get_bg(), 26),
-            .default_text = theme_get_text()
+            .background = flint_darken(flint_theme_get_bg(), 4),
+            .separator = flint_darken(flint_theme_get_bg(), 26),
+            .default_text = flint_theme_get_text()
         });
         row_y += row_h;
     }

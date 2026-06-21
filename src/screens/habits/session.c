@@ -1,4 +1,5 @@
 #include "habits.h"
+#include "platform.h"
 
 static void
 habit_session_begin_round_edit(InbeApp *app, const HabitLinkedEntry *entry, int round)
@@ -56,7 +57,7 @@ habit_session_draw_round_line(const char *line, const char *seconds_text,
     if(!editing) {
         flint_ui_draw_text_left_in_rect(line,
                                         (Rectangle){(float)x, (float)y, (float)w, (float)h},
-                                        font, theme_get_text());
+                                        font, flint_theme_get_text());
         return;
     }
 
@@ -64,7 +65,7 @@ habit_session_draw_round_line(const char *line, const char *seconds_text,
     if(value_at == NULL) {
         flint_ui_draw_text_left_in_rect(line,
                                         (Rectangle){(float)x, (float)y, (float)w, (float)h},
-                                        font, theme_get_text());
+                                        font, flint_theme_get_text());
         return;
     }
 
@@ -77,11 +78,11 @@ habit_session_draw_round_line(const char *line, const char *seconds_text,
     text_y = flint_ui_text_y(line, y, h, font);
     draw_x = x;
 
-    flint_text_draw(prefix, draw_x, text_y, font, theme_get_text());
+    flint_text_draw(prefix, draw_x, text_y, font, flint_theme_get_text());
     draw_x += flint_text_measure(prefix, font);
-    flint_text_draw(seconds_text, draw_x, text_y, font, theme_get_button_hover());
+    flint_text_draw(seconds_text, draw_x, text_y, font, flint_theme_get_button_hover());
     draw_x += flint_text_measure(seconds_text, font);
-    flint_text_draw(suffix, draw_x, text_y, font, theme_get_text());
+    flint_text_draw(suffix, draw_x, text_y, font, flint_theme_get_text());
 }
 
 static int
@@ -238,7 +239,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
     if(ctx->count <= 0) {
         if(draw)
-            flint_text_draw("No sessions", content_x, y, flint_ui_font(), theme_get_text());
+            flint_text_draw("No sessions", content_x, y, flint_ui_font(), flint_theme_get_text());
         return y + row_h;
     }
 
@@ -255,7 +256,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
         if(draw) {
             flint_text_draw(practice_activity_label(activity), content_x, y,
-                            section_font, flint_darken(theme_get_text(), 12));
+                            section_font, flint_darken(flint_theme_get_text(), 12));
         }
         y += section_h;
 
@@ -288,10 +289,10 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             if(draw) {
                 flint_text_draw(time_text, content_x,
                                 flint_ui_text_y(time_text, y, row_h, row_font),
-                                row_font, theme_get_text());
+                                row_font, flint_theme_get_text());
                 flint_text_draw(summary_text, summary_x,
                                 flint_ui_text_y(summary_text, y, row_h, row_font),
-                                row_font, flint_darken(theme_get_text(), 12));
+                                row_font, flint_darken(flint_theme_get_text(), 12));
                 if(ui_draw_icon_btn_padded(trash_x, y - flint_px(4), icon_size, icon_padding,
                                            app->icons[UI_ICON_TYPE_TRASH], &hover_trash)) {
                     if(data_delete_session(ctx->entries[i].path))
@@ -338,7 +339,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     if(ui_draw_icon_btn_padded(round_edit_x, y - flint_px(6),
                                                icon_size, icon_padding,
                                                app->icons[editing_round ? UI_ICON_TYPE_SAVE
-                                                                        : UI_ICON_TYPE_PENCIL],
+                                                                        : UI_ICON_TYPE_EDIT],
                                                &hover_round_edit)) {
                         if(editing_round) {
                             if(habit_session_commit_edit(app, &ctx->entries[i]))
@@ -393,10 +394,10 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     app_auto_sync(app);
                     return y;
                 }
-                DrawRectangle(label_x, y, label_w, button_h, flint_darken(theme_get_bg(), 5));
+                DrawRectangle(label_x, y, label_w, button_h, flint_darken(flint_theme_get_bg(), 5));
                 flint_text_draw(total_text, label_x + flint_px(8),
                                 flint_ui_text_y(total_text, y, button_h, flint_ui_font_small()),
-                                flint_ui_font_small(), theme_get_text());
+                                flint_ui_font_small(), flint_theme_get_text());
                 if(ui_draw_generic_button(plus_x, y, step_w, button_h, "+",
                                           UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
                     habit_apply_count_action(app, app->habit_detail_index,
@@ -420,7 +421,7 @@ habit_session_keyboard_height(InbeApp *app)
     int gap = flint_px(6);
     int pad = flint_px(10);
 
-#if !(defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID))
+#if !INBE_ANDROID_BUILD
     if(app == NULL || !app->on_screen_keyboard_enabled)
         return 0;
 #endif
@@ -447,15 +448,15 @@ habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
     int w = view_width - x * 2;
     int key_w = (w - gap * 2) / 3;
 
-#if !(defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID))
+#if !INBE_ANDROID_BUILD
     if(app == NULL || !app->on_screen_keyboard_enabled)
         return 0;
 #endif
     if(app == NULL || !app->habit_session_edit.active || keyboard_h <= 0)
         return 0;
 
-    DrawRectangle(0, y, view_width, keyboard_h, flint_darken(theme_get_bg(), 10));
-    DrawLine(0, y, view_width, y, flint_darken(theme_get_bg(), 42));
+    DrawRectangle(0, y, view_width, keyboard_h, flint_darken(flint_theme_get_bg(), 10));
+    DrawLine(0, y, view_width, y, flint_darken(flint_theme_get_bg(), 42));
 
     for(int i = 0; i < 12; i++) {
         int col = i % 3;

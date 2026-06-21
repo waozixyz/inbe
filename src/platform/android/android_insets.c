@@ -18,6 +18,7 @@
 // External functions from main.c
 extern InbeApp* get_global_inbe_app(void);
 extern void set_global_inbe_app(InbeApp *app);
+extern void app_request_graphics_reload(InbeApp *app);
 
 #define LOG_TAG "INBE_INSETS"
 
@@ -170,6 +171,16 @@ static void nativeResumeSession(JNIEnv *env, jobject thiz)
 	}
 }
 
+static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
+{
+	(void)env;
+	(void)thiz;
+
+	InbeApp *inbe_app = get_global_inbe_app();
+	if(inbe_app != NULL)
+		app_request_graphics_reload(inbe_app);
+}
+
 // JNI method table
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
@@ -188,6 +199,7 @@ static const JNINativeMethod g_methods[] = {
     {"nativeTextInputCommit", "(I)V", (void*)android_device_native_text_input_commit},
     {"nativeTextInputBackspace", "()V", (void*)android_device_native_text_input_backspace},
     {"nativeTextInputEnter", "()V", (void*)android_device_native_text_input_enter},
+    {"nativeInvalidateGraphicsResources", "()V", (void*)nativeInvalidateGraphicsResources},
 };
 
 // JNI_OnLoad - Register native methods

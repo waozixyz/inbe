@@ -1,7 +1,8 @@
 #include "device_preferences.h"
-#include "theme.h"
+#include "platform.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_device.h"
 #endif
 #if defined(PLATFORM_WEB)
@@ -13,10 +14,10 @@
 void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
-    theme_set_current(theme_id, dark_mode);
-    ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
-                  theme_get_circle(), theme_get_button(), theme_get_button_hover(),
-                  theme_get_icon());
+    flint_theme_set_current(theme_id, dark_mode);
+    ui_set_colors(flint_theme_get_text(), flint_theme_get_bg(), flint_theme_get_surface(),
+                  flint_theme_get_circle(), flint_theme_get_button(), flint_theme_get_button_hover(),
+                  flint_theme_get_icon());
 }
 
 int
@@ -28,7 +29,7 @@ app_effective_dark_mode(InbeApp *app)
         return 0;
     if(app->theme_mode == APP_THEME_DARK)
         return 1;
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return android_device_system_dark() != 0;
 #else
     return 0;
@@ -49,7 +50,7 @@ app_apply_orientation_preference(InbeApp *app)
 {
     if(app == NULL)
         return;
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     android_device_set_orientation_mode(app->orientation_mode);
 #elif defined(PLATFORM_WEB)
     flint_web_set_orientation_mode(app->orientation_mode);
@@ -70,7 +71,7 @@ app_device_preferences_init(InbeApp *app)
 {
     if(app == NULL)
         return;
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     app->android_orientation = android_device_orientation();
 #else
     app->android_orientation = APP_DEVICE_ORIENTATION_UNKNOWN;
@@ -88,7 +89,7 @@ app_device_preferences_update(InbeApp *app)
     if(app == NULL)
         return;
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     orientation = android_device_orientation();
 #endif
     if(app->android_orientation != orientation)

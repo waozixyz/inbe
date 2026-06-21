@@ -3,7 +3,7 @@
 #include "screens/manual_screen.h"
 #include "whm_session.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_theme_meta.h"
@@ -42,7 +42,7 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
     char text[CountSize];
     int font = FLINT_TEXT_16;
     int thickness = flint_px(5);
-    Color text_color = theme_get_text();
+    Color text_color = flint_theme_get_text();
 
     count_from_int(text, seconds);
     if(thickness < 3)
@@ -54,12 +54,12 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
         DrawRing((Vector2){center_x, center_y},
                  (float)(radius + flint_px(8) - thickness / 2),
                  (float)(radius + flint_px(8) + thickness / 2),
-                 -90.0f, -90.0f + sweep, 96, theme_get_text());
-        text_color = manual_text_color_for_background(theme_get_bg());
+                 -90.0f, -90.0f + sweep, 96, flint_theme_get_text());
+        text_color = manual_text_color_for_background(flint_theme_get_bg());
     } else {
-        DrawCircle(center_x, center_y, radius, theme_get_circle());
-        DrawCircleLines(center_x, center_y, radius, theme_get_text());
-        text_color = manual_text_color_for_background(theme_get_circle());
+        DrawCircle(center_x, center_y, radius, flint_theme_get_circle());
+        DrawCircleLines(center_x, center_y, radius, flint_theme_get_text());
+        text_color = manual_text_color_for_background(flint_theme_get_circle());
     }
 
     flint_ui_draw_text_centered(text, center_x, center_y, font, text_color);
@@ -77,7 +77,6 @@ tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
         .width = content_w,
         .font = body_font,
         .line_gap = TUTORIAL_LINE_SPACING,
-        .color = theme_get_text(),
     };
 }
 

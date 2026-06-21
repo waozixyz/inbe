@@ -123,8 +123,8 @@ ui_draw_theme_grid(int x, int circle_y, int w, int dark, int *theme_id)
         }
 
         DrawCircle(cx, cy, layout.circle_size / 2, theme_color);
-        DrawCircleLines(cx, cy, layout.circle_size / 2 + (selected == theme ? flint_px(2) : flint_px(1)),
-                        selected == theme ? c_text : flint_darken(c_bg, 30));
+        DrawCircleLines(cx, cy, layout.circle_size / 2 + (selected == (int)theme ? flint_px(2) : flint_px(1)),
+                        selected == (int)theme ? c_text : flint_darken(c_bg, 30));
 
         Rectangle bounds = {
             (float)(cx - layout.circle_size / 2 - flint_px(4)),
@@ -191,13 +191,11 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
 }
 
 int
-ui_draw_theme_picker(int x, int y, int w, const char *label, int dark_mode,
+ui_draw_theme_picker(int x, int y, int w, int dark_mode,
                      int *theme_id)
 {
     int changed = 0;
-    int font = flint_ui_font();
 
-    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
     if(ui_draw_theme_grid(x, y + flint_px(54), w, dark_mode != 0, theme_id))
         changed = 1;
 

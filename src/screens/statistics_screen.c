@@ -3,7 +3,7 @@
 #include "app.h"
 #include "habits/habits.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 
 extern int view_width;
 extern int view_height;
@@ -50,22 +50,22 @@ statistics_draw_metric(int x, int y, int w, int h, const char *label,
     int value_font = FLINT_TEXT_24;
     int value_w;
 
-    DrawRectangle(x, y, w, h, flint_darken(theme_get_bg(), 8));
+    DrawRectangle(x, y, w, h, flint_darken(flint_theme_get_bg(), 8));
     DrawRectangle(x, y, flint_px(4), h, accent);
-    DrawLine(x, y + h - 1, x + w, y + h - 1, flint_darken(theme_get_bg(), 30));
+    DrawLine(x, y + h - 1, x + w, y + h - 1, flint_darken(flint_theme_get_bg(), 30));
     flint_text_draw(label, x + flint_px(12), y + flint_px(8),
-                    label_font, flint_darken(theme_get_text(), 20));
+                    label_font, flint_darken(flint_theme_get_text(), 20));
     value_w = flint_text_measure(value, value_font);
     if(value_w > w - flint_px(24))
         value_font = FLINT_TEXT_16;
     flint_text_draw(value, x + flint_px(12), y + flint_px(30),
-                    value_font, theme_get_text());
+                    value_font, flint_theme_get_text());
 }
 
 static void
 statistics_draw_section_title(const char *title, int x, int y)
 {
-    flint_text_draw(title, x, y, FLINT_TEXT_16, theme_get_text());
+    flint_text_draw(title, x, y, FLINT_TEXT_16, flint_theme_get_text());
 }
 
 static int
@@ -144,7 +144,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     const char *labels[GRAPH_DAYS] = {"6d", "5d", "4d", "3d", "2d", "1d", "Now"};
     char axis_label[32];
 
-    DrawRectangle(content_x, y, content_w, graph_h, flint_darken(theme_get_bg(), 7));
+    DrawRectangle(content_x, y, content_w, graph_h, flint_darken(flint_theme_get_bg(), 7));
     for(int i = 0; linked_ctx != NULL && i < linked_ctx->count; i++) {
         const HabitLinkedEntry *entry = &linked_ctx->entries[i];
         int day_index;
@@ -188,20 +188,20 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
 
     for(int i = 1; i < GRAPH_DAYS; i++) {
         int x = plot_x + (plot_w * i) / GRAPH_DAYS;
-        DrawLine(x, plot_y, x, plot_y + plot_h, flint_darken(theme_get_bg(), 22));
+        DrawLine(x, plot_y, x, plot_y + plot_h, flint_darken(flint_theme_get_bg(), 22));
     }
     for(int i = 0; i <= 2; i++) {
         int line_y = plot_y + (plot_h * i) / 2;
         int seconds = max_hold - (max_hold * i) / 2;
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds);
         DrawLine(plot_x, line_y, plot_x + plot_w, line_y,
-                 flint_darken(theme_get_bg(), 20));
+                 flint_darken(flint_theme_get_bg(), 20));
         flint_text_draw(axis_label, content_x + flint_px(4),
                         line_y - flint_px(8), FLINT_TEXT_12,
-                        flint_darken(theme_get_text(), 24));
+                        flint_darken(flint_theme_get_text(), 24));
     }
     DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h,
-             flint_darken(theme_get_text(), 42));
+             flint_darken(flint_theme_get_text(), 42));
 
     {
         int day_seen[GRAPH_DAYS] = {0};
@@ -257,13 +257,13 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         int text_w = flint_text_measure(empty, FLINT_TEXT_12);
         flint_text_draw(empty, content_x + (content_w - text_w) / 2,
                         y + graph_h / 2 - flint_px(8), FLINT_TEXT_12,
-                        flint_darken(theme_get_text(), 24));
+                        flint_darken(flint_theme_get_text(), 24));
     }
     for(int i = 0; i < GRAPH_DAYS; i++) {
         int day_x = plot_x + (plot_w * i) / GRAPH_DAYS;
         flint_text_draw(labels[i], day_x + flint_px(2),
                         y + graph_h - flint_px(20), FLINT_TEXT_12,
-                        flint_darken(theme_get_text(), 24));
+                        flint_darken(flint_theme_get_text(), 24));
     }
 
     (void)app;
@@ -351,7 +351,7 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
 
     statistics_draw_section_title(locale_get("habit_stats_weekday_pattern"), content_x, y);
     y += flint_px(28);
-    DrawRectangle(content_x, y, content_w, chart_h, flint_darken(theme_get_bg(), 7));
+    DrawRectangle(content_x, y, content_w, chart_h, flint_darken(flint_theme_get_bg(), 7));
     {
         const char *labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
         int slot_w = content_w / 7;
@@ -367,10 +367,10 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
                 w = flint_px(4);
             DrawRectangle(x, bar_y, w, h,
                           weekday_counts[i] > 0 ? flint_lighten(active->color, 12)
-                                                 : flint_darken(theme_get_bg(), 24));
+                                                 : flint_darken(flint_theme_get_bg(), 24));
             flint_text_draw(labels[i], x + (w - flint_text_measure(labels[i], FLINT_TEXT_12)) / 2,
                             y + chart_h - flint_px(18), FLINT_TEXT_12,
-                            flint_darken(theme_get_text(), 18));
+                            flint_darken(flint_theme_get_text(), 18));
         }
     }
     y += chart_h + flint_px(24);

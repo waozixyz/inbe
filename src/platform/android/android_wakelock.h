@@ -1,7 +1,9 @@
 #ifndef INBE_ANDROID_WAKELOCK_H
 #define INBE_ANDROID_WAKELOCK_H
 
-#ifdef __ANDROID__
+#include "platform.h"
+
+#if INBE_ANDROID_BUILD
 #include <jni.h>
 void android_wakelock_init(void);
 void android_wakelock_acquire(void);

@@ -40,7 +40,6 @@ storage_next_change_time(void)
                           " SELECT COALESCE(MAX(updated_at),0) AS updated_at FROM habits"
                           " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM habit_days"
                           " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM sessions"
-                          " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM settings"
                           ")",
                           -1, &stmt, NULL) == SQLITE_OK) {
         if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -350,6 +349,7 @@ storage_reset_sync_state(void)
     set_meta_int64("sync_last_server_version", 0);
     set_meta_int64("sync_last_upload_at", 0);
     set_meta_int64("sync_full_upload_done", 0);
+    set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
     storage_enqueue_all_sync_state();
     storage_schedule_persist();
@@ -1214,7 +1214,7 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         json_append(&json, ",");
         json_append_key_string(&json, "public_key", public_key_hex);
     }
-    json_append(&json, ",\"preferences\":[],");
+    json_append(&json, ",");
     storage_append_habits_json(&json, through_seq);
     json_append(&json, ",");
     storage_append_habit_days_json(&json, through_seq);

@@ -775,3 +775,15 @@ Gunakan tab matahari saat Anda siap memulai latihan.
 [practice_guide_config]
 Ubah konfigurasi praktik agar sesuai dengan kebutuhan Anda.
 ---
+[habits_guide_dropdown]
+Pilih kebiasaan di sini atau buat yang baru.
+---
+[habits_guide_practice_list]
+Kebiasaan dapat menyertakan data sesi dari praktik Anda.
+---
+[habits_guide_views]
+Pilih Mingguan atau Kalender untuk meninjau kebiasaan.
+---
+[habits_guide_statistics]
+Lihat statistik kebiasaan Anda di sini.
+---

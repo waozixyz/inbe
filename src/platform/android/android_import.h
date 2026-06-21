@@ -1,6 +1,7 @@
 #ifndef ANDROID_IMPORT_H
 #define ANDROID_IMPORT_H
 
+#include "platform.h"
 #include <stddef.h>
 
 int android_import_open_picker(const char *mime_types);
@@ -12,7 +13,7 @@ enum {
     ANDROID_IMPORT_RESULT_CANCELLED = 2
 };
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include <jni.h>
 void android_import_native_selected(JNIEnv *env, jobject thiz, jstring path);
 void android_import_native_cancelled(JNIEnv *env, jobject thiz);

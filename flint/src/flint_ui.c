@@ -1,4 +1,5 @@
 #include "flint_ui.h"
+#include "platform.h"
 #include "ui/ui.h"
 #include "flint_clip.h"
 #include "flint_dpi.h"
@@ -193,10 +194,10 @@ ui_input_captures_click(Vector2 point)
 int
 ui_hover_effects_enabled(void)
 {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return 0;
 #else
-    return 1;
+    return !g_ui_input_blocked;
 #endif
 }
 
@@ -821,8 +822,8 @@ flint_ui_icon_button(FlintUIIconButton button)
     int draw_size = button.icon_size;
     Color background = button.background.a != 0 ? button.background : c_button;
     Color hover_background = button.hover_background.a != 0 ? button.hover_background : c_button_hover;
-    Color icon_color = button.icon_color.a != 0 ? button.icon_color : c_icon;
-    Color border = button.border.a != 0 ? button.border : flint_lighten(background, 32);
+    Color icon_color = button.icon_color.a != 0 ? button.icon_color : c_text;
+    Color border = button.border.a != 0 ? button.border : flint_darken(background, 35);
     float radius = button.radius > 0.0f ? button.radius : 0.12f;
 
     if(draw_size <= 0) {
@@ -983,8 +984,9 @@ flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y)
     if(y == NULL || paragraph.width <= 0)
         return;
     int font = paragraph.font > 0 ? paragraph.font : flint_ui_font();
+    Color color = paragraph.color.a != 0 ? paragraph.color : c_text;
     FlintTextLayout layout = flint_ui_paragraph_layout(paragraph);
-    flint_text_layout_draw(&layout, x, y, font, paragraph.color);
+    flint_text_layout_draw(&layout, x, y, font, color);
     flint_text_layout_free(&layout);
 }
 
@@ -1715,7 +1717,6 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
                      const char *off_label, const char *on_label)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hover = 0;
     int min_touch = flint_px(36);
     int font = flint_ui_font();
     int off_w = flint_text_measure(off_label, font);
@@ -1729,7 +1730,6 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
     if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
-        hover = ui_hover_effects_enabled();
         ui_mark_clickable();
     }
 
@@ -1771,7 +1771,6 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
     int label_w = flint_text_measure(label, font);
     int label_h = flint_text_line_height(font);
     int row_h = box_size > label_h ? box_size : label_h;
-    int hover = 0;
     Rectangle bounds = {x, y, box_size + label_gap + label_w, row_h};
     Vector2 mouse_world = ui_mouse_world();
     Color box_color = disabled ? flint_darken(c_button, 18) : c_button;
@@ -1782,7 +1781,6 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
         if(disabled)
             ui_mark_disabled();
         else {
-            hover = ui_hover_effects_enabled();
             ui_mark_clickable();
         }
     }

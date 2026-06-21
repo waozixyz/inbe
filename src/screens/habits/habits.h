@@ -6,7 +6,7 @@
 #include "data.h"
 #include "storage.h"
 #include "app.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_runtime_assets.h"
 #include "flint_locale.h"
 #include "breath_engine.h"
