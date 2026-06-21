@@ -25,49 +25,51 @@ guide_draw_arrow(Rectangle tip, Rectangle anchor)
     int tip_right = (int)(tip.x + tip.width);
     int tip_top = (int)tip.y;
     int tip_bottom = (int)(tip.y + tip.height);
-    int point_x = anchor_cx;
-    int point_y = anchor_cy;
-    int base_x = guide_clampi(anchor_cx, tip_left + flint_px(18),
-                              tip_right - flint_px(18));
-    Color color = flint_theme_get_button();
+    int arrow_size = flint_px(10);
+    Vector2 start, end;
+    Color color = flint_theme_get_text();
 
     if(anchor_cy < tip_top) {
-        DrawTriangle((Vector2){(float)base_x, (float)tip_top},
-                     (Vector2){(float)(base_x - flint_px(8)),
-                               (float)(tip_top - flint_px(12))},
-                     (Vector2){(float)(base_x + flint_px(8)),
-                               (float)(tip_top - flint_px(12))},
+        start.x = (float)anchor_cx;
+        start.y = (float)(anchor_cy + anchor.height / 2);
+        end.x = (float)anchor_cx;
+        end.y = (float)tip_top;
+        DrawLineEx(start, end, (float)flint_px(2), color);
+        DrawTriangle((Vector2){end.x, end.y},
+                     (Vector2){end.x - arrow_size, end.y - arrow_size},
+                     (Vector2){end.x + arrow_size, end.y - arrow_size},
                      color);
-        point_y = tip_top - flint_px(12);
     } else if(anchor_cy > tip_bottom) {
-        DrawTriangle((Vector2){(float)base_x, (float)tip_bottom},
-                     (Vector2){(float)(base_x + flint_px(8)),
-                               (float)(tip_bottom + flint_px(12))},
-                     (Vector2){(float)(base_x - flint_px(8)),
-                               (float)(tip_bottom + flint_px(12))},
+        start.x = (float)anchor_cx;
+        start.y = (float)(anchor_cy - anchor.height / 2);
+        end.x = (float)anchor_cx;
+        end.y = (float)tip_bottom;
+        DrawLineEx(start, end, (float)flint_px(2), color);
+        DrawTriangle((Vector2){end.x, end.y},
+                     (Vector2){end.x + arrow_size, end.y + arrow_size},
+                     (Vector2){end.x - arrow_size, end.y + arrow_size},
                      color);
-        point_y = tip_bottom + flint_px(12);
     } else if(anchor_cx < tip_left) {
-        DrawTriangle((Vector2){(float)tip_left, (float)anchor_cy},
-                     (Vector2){(float)(tip_left - flint_px(12)),
-                               (float)(anchor_cy + flint_px(8))},
-                     (Vector2){(float)(tip_left - flint_px(12)),
-                               (float)(anchor_cy - flint_px(8))},
+        start.x = (float)(anchor_cx + anchor.width / 2);
+        start.y = (float)anchor_cy;
+        end.x = (float)tip_left;
+        end.y = (float)anchor_cy;
+        DrawLineEx(start, end, (float)flint_px(2), color);
+        DrawTriangle((Vector2){end.x, end.y},
+                     (Vector2){end.x - arrow_size, end.y - arrow_size},
+                     (Vector2){end.x - arrow_size, end.y + arrow_size},
                      color);
-        point_x = tip_left - flint_px(12);
     } else {
-        DrawTriangle((Vector2){(float)tip_right, (float)anchor_cy},
-                     (Vector2){(float)(tip_right + flint_px(12)),
-                               (float)(anchor_cy - flint_px(8))},
-                     (Vector2){(float)(tip_right + flint_px(12)),
-                               (float)(anchor_cy + flint_px(8))},
+        start.x = (float)(anchor_cx - anchor.width / 2);
+        start.y = (float)anchor_cy;
+        end.x = (float)tip_right;
+        end.y = (float)anchor_cy;
+        DrawLineEx(start, end, (float)flint_px(2), color);
+        DrawTriangle((Vector2){end.x, end.y},
+                     (Vector2){end.x + arrow_size, end.y - arrow_size},
+                     (Vector2){end.x + arrow_size, end.y + arrow_size},
                      color);
-        point_x = tip_right + flint_px(12);
     }
-
-    DrawLineEx((Vector2){(float)point_x, (float)point_y},
-               (Vector2){(float)anchor_cx, (float)anchor_cy},
-               (float)flint_px(2), flint_theme_get_text());
 }
 
 static Rectangle

@@ -300,7 +300,7 @@ run: $(TARGET)
 run-fresh: $(TARGET)
 	@root=$$(mktemp -d /tmp/inbe-fresh.XXXXXX); \
 	echo "INBE_DATA_ROOT=$$root"; \
-	INBE_DATA_ROOT="$$root" ./$(TARGET)
+	INBE_FORCE_DARK_MODE=1 INBE_DATA_ROOT="$$root" ./$(TARGET)
 
 screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"

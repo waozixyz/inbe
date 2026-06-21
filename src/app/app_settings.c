@@ -12,6 +12,7 @@
 
 #include <stddef.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
@@ -310,6 +311,11 @@ app_load_settings(InbeApp *app)
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
 
     load_language_setting(app, settings_missing);
+
+    // Check for environment variable override for dark mode
+    if(getenv("INBE_FORCE_DARK_MODE") != NULL) {
+        app->theme_mode = APP_THEME_DARK;
+    }
 
 #if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
     app->inbe.play_in_background =

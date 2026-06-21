@@ -230,16 +230,10 @@ practice_screen_first_run_guide_active(const InbeApp *app)
 void
 practice_screen_prepare_first_run_guide(InbeApp *app)
 {
-    int step;
-
     if(!practice_screen_first_run_guide_active(app))
         return;
 
-    step = clampi(app->tutorial_step, 0, PRACTICE_GUIDE_STEPS - 1);
-    if(step == 1)
-        app->practice_tab = PRACTICE_TAB_MANUAL;
-    else
-        app->practice_tab = PRACTICE_TAB_PLAY;
+    app->practice_tab = PRACTICE_TAB_PLAY;
 }
 
 void
