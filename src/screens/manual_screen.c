@@ -94,26 +94,20 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     DrawLine(0, nav.y + h - 1, view_width, nav.y + h - 1,
              flint_darken(theme_get_bg(), 28));
 
-    if(flint_ui_icon_button((FlintUIIconButton){
-           .bounds = {(float)inner_x, (float)button_y,
-                      (float)button_size, (float)button_size},
-           .icon = app->icons[UI_ICON_TYPE_BACKWARD],
-           .icon_size = flint_px(20),
-           .icon_padding = button_pad,
-           .disabled = page <= 0 && !nav.show_left_on_first,
-           .background = theme_get_button(),
-           .hover_background = theme_get_button_hover(),
-           .icon_color = theme_get_text(),
-           .border = flint_darken(theme_get_button(), 35)
-       })) {
-        if(page > 0) {
+    if(page > 0) {
+        if(flint_ui_icon_button((FlintUIIconButton){
+               .bounds = {(float)inner_x, (float)button_y,
+                          (float)button_size, (float)button_size},
+               .icon = app->icons[UI_ICON_TYPE_BACKWARD],
+               .icon_size = flint_px(20),
+               .icon_padding = button_pad,
+               .background = theme_get_button(),
+               .hover_background = theme_get_button_hover(),
+               .icon_color = theme_get_text(),
+               .border = flint_darken(theme_get_button(), 35)
+           })) {
             app->tutorial_step = page - 1;
             app->manual_scroll = 0;
-        } else if(nav.show_left_on_first) {
-            if(nav.close != NULL)
-                nav.close(app, 1);
-            else
-                nav.start(app);
         }
     }
 

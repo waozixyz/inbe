@@ -96,6 +96,8 @@ language_screen_draw(InbeApp *app)
     flint_text_draw(locale_get("language_label"), dropdown_x, dropdown_y - flint_px(24), label_font, theme_get_text());
 
     if(ui_draw_text_btn(button_x, button_y, locale_get("next_button"), &next_hover)) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->practice_tab = PRACTICE_TAB_PLAY;
         app_switch_screen(app, InbeScreenStart);
     }
 

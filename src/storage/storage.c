@@ -24,6 +24,8 @@
 
 static long long storage_max_sync_outbox_seq(void);
 
+#define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
+
 static long long
 storage_next_change_time(void)
 {
@@ -1190,8 +1192,12 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
 
     if(g_storage.db == NULL || user_id_hash == NULL || user_id_hash[0] == '\0')
         return NULL;
+    if(!migrate_schema())
+        return NULL;
     if(!storage_materialize_session_habit_days())
         return NULL;
+    if(!get_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0))
+        storage_enqueue_all_sync_state();
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
     through_seq = storage_max_sync_outbox_seq();
@@ -1331,10 +1337,15 @@ storage_exec_json_user_sql(const char *sql, const char *json)
 {
     sqlite3_stmt *stmt = NULL;
     int rc;
+    int attempt;
 
     if(g_storage.db == NULL || sql == NULL || json == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK) {
+    for(attempt = 0; attempt < 2; attempt++) {
+        if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) == SQLITE_OK)
+            break;
+        if(attempt == 0 && migrate_schema())
+            continue;
         TraceLog(LOG_WARNING, "SYNC: changes SQL prepare failed: %s", sqlite3_errmsg(g_storage.db));
         return 0;
     }
@@ -1439,6 +1450,8 @@ storage_apply_sync_response_json(const char *response_json)
 
     if(g_storage.db == NULL || response_json == NULL || response_json[0] == '\0')
         return 0;
+    if(!migrate_schema())
+        return 0;
     g_storage.last_sync_changed = 0;
     if(!storage_json_valid(response_json))
         return 0;
@@ -1466,6 +1479,7 @@ storage_apply_sync_response_json(const char *response_json)
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
+    set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;

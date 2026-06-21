@@ -250,6 +250,10 @@ test_sync_payload_omits_uploaded_state_after_upload_marker(void)
                        sqlite3_exec(db,
                                     "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
                                     NULL, NULL, NULL) == SQLITE_OK);
+            check_true("set sync backfill marker raw meta",
+                       sqlite3_exec(db,
+                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
+                                    NULL, NULL, NULL) == SQLITE_OK);
             if(updated_at > 0) {
                 char sql[192];
                 snprintf(sql, sizeof(sql),
@@ -271,6 +275,49 @@ test_sync_payload_omits_uploaded_state_after_upload_marker(void)
                strstr(payload, "\"local_date\":20260612") == NULL &&
                strstr(payload, "\"count\":12") == NULL);
     storage_free_sync_payload_json(payload);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_backfill_includes_existing_habits(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "sync-existing-habit-backfill");
+    check_true("init backfill sync db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habits_save(&habits);
+
+    storage_close();
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open backfill raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            check_true("mark old full upload done",
+                       sqlite3_exec(db,
+                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            check_true("clear old outbox",
+                       sqlite3_exec(db, "DELETE FROM sync_outbox;", NULL, NULL, NULL) == SQLITE_OK);
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen backfill sync db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("existing habit included by one-time sync backfill",
+               payload != NULL &&
+               strstr(payload, "\"habits\":[{") != NULL &&
+               strstr(payload, "\"habit_days\"") != NULL);
+    storage_free_sync_payload_json(payload);
+
     storage_close();
     remove_tree(root);
 }
@@ -1212,6 +1259,7 @@ main(void)
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
+    test_sync_backfill_includes_existing_habits();
     test_sync_payload_includes_queued_current_edits();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();

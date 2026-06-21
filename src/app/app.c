@@ -1411,6 +1411,8 @@ app_init(void *vapp) {
     data_init();
     if(app_load_settings(app))
         save_settings(app);
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    app->practice_config_tab = 0;
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;
