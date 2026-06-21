@@ -761,3 +761,15 @@ Elemento 8
 [reset_button]
 Ripristina
 ---
+[practice_guide_dropdown]
+Scegli qui la tua pratica.
+---
+[practice_guide_manual]
+Leggi il tutorial prima di iniziare una pratica per capire l'esercizio completo.
+---
+[practice_guide_sun]
+Usa la scheda con il sole quando sei pronto per iniziare l'esercizio.
+---
+[practice_guide_config]
+Modifica la configurazione della pratica in base alle tue esigenze.
+---

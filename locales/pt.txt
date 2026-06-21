@@ -763,3 +763,15 @@ Item 8
 [reset_button]
 Redefinir
 ---
+[practice_guide_dropdown]
+Escolha a sua pratica aqui.
+---
+[practice_guide_manual]
+Leia o tutorial antes de iniciar uma pratica para entender o exercicio completo.
+---
+[practice_guide_sun]
+Use a aba do sol quando estiver pronto para iniciar o exercicio.
+---
+[practice_guide_config]
+Altere a configuracao da pratica de acordo com as suas necessidades.
+---

@@ -325,7 +325,8 @@ whm_config_scroll_page_content_height(int content_w, void *user_data)
 void
 whm_config_screen_draw(InbeApp *app)
 {
-    int title_h = ui_screen_header_height();
+    int integrated = app->inbe.screen == InbeScreenStart;
+    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int config_tab_h = flint_px(40);
     int config_tab_gap = flint_px(14);
     int scroll_y;
@@ -336,20 +337,22 @@ whm_config_screen_draw(InbeApp *app)
         locale_get("settings_section_breathing"),
         locale_get("settings_section_session"),
     };
-    FlintUIHeader header;
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
     if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
         app->practice_config_tab = 0;
 
-    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
-                                  (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
-    if(header.right_clicked) {
-        if(app->settings_dirty)
-            save_settings(app);
-        app->settings_scroll = 0;
-        app_switch_screen(app, InbeScreenStart);
+    if(!integrated) {
+        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
+                                                    (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
+        if(header.right_clicked) {
+            if(app->settings_dirty)
+                save_settings(app);
+            app->settings_scroll = 0;
+            app->practice_tab = PRACTICE_TAB_PLAY;
+            app_switch_screen(app, InbeScreenStart);
+        }
     }
 
     clicked_config_tab = whm_draw_subtab_bar(title_h, config_tab_h, config_tabs, 2,

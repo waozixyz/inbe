@@ -32,23 +32,84 @@ settings_sync_account_set_import_dialog(SettingsSyncKeyImportDialog callback)
 }
 
 static void
-settings_draw_hex_groups(const char *text, int x, int *y, int font, Color color,
-                         int groups, int group_chars)
+settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
+                              FlintUITextInputStyle style)
 {
     char line[128];
+    int text_len;
+    int pad_x;
+    int pad_y = flint_px(8);
+    int line_h = flint_text_line_height(font);
+    int content_w;
+    int line_count = 0;
     int offset = 0;
+    int field_h;
+    int draw_y;
 
     if(text == NULL || y == NULL)
         return;
-    for(int i = 0; i < groups && text[offset] != '\0'; i++) {
-        int len = group_chars;
-        if((int)strlen(text + offset) < len)
-            len = (int)strlen(text + offset);
+
+    text_len = (int)strlen(text);
+    pad_x = style.padding_x > 0 ? style.padding_x : flint_px(10);
+    content_w = w - pad_x * 2;
+    if(content_w < flint_px(24))
+        content_w = flint_px(24);
+
+    while(offset < text_len) {
+        int len;
+
+        if(flint_text_measure(text + offset, font) <= content_w) {
+            offset = text_len;
+            line_count++;
+            break;
+        }
+
+        len = 1;
+        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
+            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
+            if(flint_text_measure(line, font) > content_w)
+                break;
+            len++;
+        }
+        offset += len;
+        line_count++;
+    }
+    if(line_count < 1)
+        line_count = 1;
+
+    field_h = line_count * line_h + pad_y * 2;
+    DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w, (float)field_h},
+                         style.radius > 0.0f ? style.radius : 0.08f, 8,
+                         style.background);
+    DrawRectangleRoundedLines((Rectangle){(float)x, (float)*y, (float)w, (float)field_h},
+                              style.radius > 0.0f ? style.radius : 0.08f, 8,
+                              style.border);
+
+    offset = 0;
+    draw_y = *y + pad_y;
+    while(offset < text_len) {
+        int len;
+
+        if(flint_text_measure(text + offset, font) <= content_w) {
+            snprintf(line, sizeof(line), "%s", text + offset);
+            flint_text_draw(line, x + pad_x, draw_y, font, style.text);
+            break;
+        }
+
+        len = 1;
+        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
+            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
+            if(flint_text_measure(line, font) > content_w)
+                break;
+            len++;
+        }
         snprintf(line, sizeof(line), "%.*s", len, text + offset);
-        flint_text_draw(line, x, *y, font, color);
-        *y += flint_px(17);
+        flint_text_draw(line, x + pad_x, draw_y, font, style.text);
+        draw_y += line_h;
         offset += len;
     }
+
+    *y += field_h;
 }
 
 static void
@@ -258,7 +319,8 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
                     flint_darken(theme_get_text(), 30));
     *y += flint_px(18);
-    settings_draw_hex_groups(account.public_id, x, y, small_font, theme_get_text(), 2, 32);
+    settings_draw_public_id_field(account.public_id, x, w, y, small_font,
+                                  settings_sync_text_style());
     *y += flint_px(4);
 
     {
@@ -351,7 +413,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
                     flint_darken(theme_get_text(), 30));
     *y += flint_px(18);
-    settings_draw_hex_groups(account.public_id, x, y, small_font, theme_get_text(), 2, 32);
+    settings_draw_public_id_field(account.public_id, x, w, y, small_font, input_style);
     *y += flint_px(8);
 
     flint_text_draw(locale_get("sync_remote_label"), x, *y, small_font,

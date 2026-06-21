@@ -763,3 +763,15 @@ https:// または localhost:8080 のようなループバックを使用して�
 [reset_button]
 リセット
 ---
+[practice_guide_dropdown]
+ここで練習を選びます。
+---
+[practice_guide_manual]
+練習を始める前にチュートリアルを読んで、エクササイズ全体を理解してください。
+---
+[practice_guide_sun]
+エクササイズを始める準備ができたら、太陽タブを使います。
+---
+[practice_guide_config]
+自分に合うように練習の設定を変更できます。
+---

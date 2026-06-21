@@ -763,3 +763,15 @@ Item 8
 [reset_button]
 Reset
 ---
+[practice_guide_dropdown]
+Pilih praktik Anda di sini.
+---
+[practice_guide_manual]
+Baca tutorial sebelum memulai praktik agar Anda memahami seluruh latihan.
+---
+[practice_guide_sun]
+Gunakan tab matahari saat Anda siap memulai latihan.
+---
+[practice_guide_config]
+Ubah konfigurasi praktik agar sesuai dengan kebutuhan Anda.
+---

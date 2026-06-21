@@ -492,7 +492,7 @@ int view_height = INBE_DEFAULT_HEIGHT;
 static int app_full_view_width = INBE_DEFAULT_WIDTH;
 /* Theme colors are now accessed via theme accessor functions */
 
-static void
+void
 app_leave_practice_config(InbeApp *app)
 {
     if(app == NULL)
@@ -563,10 +563,12 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
     if(app == NULL)
         return;
 
-    if(app->inbe.screen == InbeScreenPracticeConfig)
+    if(app->practice_tab == PRACTICE_TAB_CONFIG)
         app_leave_practice_config(app);
 
     app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
+    if(app->main_tab == APP_MAIN_TAB_PRACTICE)
+        app->practice_tab = PRACTICE_TAB_PLAY;
     app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                ? InbeScreenHabits
                                : InbeScreenStart);
@@ -635,7 +637,7 @@ app_apply_sidebar_route(InbeApp *app, int route)
                                   : HABIT_TAB_MONTHLY;
         break;
     case APP_NAV_ROUTE_SETTINGS:
-        if(app->inbe.screen == InbeScreenPracticeConfig)
+        if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         reset_settings_preview(app);
         app->settings_tab = SETTINGS_TAB_DEVICE;
@@ -686,7 +688,8 @@ app_toolbar_height(void)
 int
 app_content_top_reserved(const InbeApp *app)
 {
-    (void)app;
+    if(app != NULL && app->inbe.screen == InbeScreenStart)
+        return app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H);
     return app_toolbar_height();
 }
 
@@ -828,8 +831,7 @@ app_nav_route_active(const InbeApp *app, int route)
     if(app == NULL)
         return 0;
     if(route == APP_NAV_ROUTE_PRACTICE)
-        return app->inbe.screen == InbeScreenStart ||
-               app->inbe.screen == InbeScreenPracticeConfig;
+        return app->inbe.screen == InbeScreenStart;
     if(route == APP_NAV_ROUTE_HABITS)
         return app->inbe.screen == InbeScreenHabits ||
                app->inbe.screen == InbeScreenHabitEdit ||
@@ -1547,6 +1549,18 @@ handle_back_button(InbeApp *app)
     }
 
     switch(app->inbe.screen) {
+    case InbeScreenStart:
+        if(app->practice_tab == PRACTICE_TAB_CONFIG)
+            app_leave_practice_config(app);
+        if(app->practice_tab != PRACTICE_TAB_PLAY) {
+            app->practice_tab = PRACTICE_TAB_PLAY;
+            app->manual_scroll = 0;
+            app->settings_scroll = 0;
+            app->tutorial_step = 0;
+            break;
+        }
+        break;
+
     case InbeScreenSettings:
         if(app->settings_dirty)
             save_settings(app);
@@ -1618,7 +1632,6 @@ handle_back_button(InbeApp *app)
         }
         break;
 
-    case InbeScreenStart:
     default:
         break;
     }
@@ -1732,6 +1745,7 @@ updateapp(InbeApp *app)
     }
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
+    practice_screen_prepare_first_run_guide(app);
 
     if(IsKeyPressed(KEY_BACK)) {
         if(app->modal.active) {
@@ -1748,20 +1762,8 @@ updateapp(InbeApp *app)
         goto finish_frame;
     }
 
-    if(app->inbe.screen == InbeScreenPracticeConfig) {
-        const PracticeDefinition *practice = practice_get(app->exercise_type);
-        if(practice->draw_config != NULL)
-            practice->draw_config(app);
-        goto finish_frame;
-    }
-
     if(app->inbe.screen == InbeScreenLanguage) {
         language_screen_draw(app);
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenManual) {
-        manual_screen_draw(app);
         goto finish_frame;
     }
 
@@ -1780,7 +1782,7 @@ updateapp(InbeApp *app)
         goto finish_frame;
     }
 
-    if(app->inbe.screen == InbeScreenStart) {
+    if(app->inbe.screen == InbeScreenStart && app->practice_tab == PRACTICE_TAB_PLAY) {
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
@@ -1788,7 +1790,7 @@ updateapp(InbeApp *app)
     }
 
     int play_circle_clicked = 0;
-    if(app->inbe.screen == InbeScreenStart)
+    if(app->inbe.screen == InbeScreenStart && app->practice_tab == PRACTICE_TAB_PLAY)
         play_circle_clicked = practice_draw_start_preview(app, center_x, center_y);
     else if(app->inbe.screen == InbeScreenSession)
         practice_draw_active_breathing(app, center_x, center_y);
@@ -1797,90 +1799,21 @@ updateapp(InbeApp *app)
     switch (app->inbe.screen) {
     case InbeScreenStart:
         {
-            const char *exercise_options[EXERCISE_COUNT];
-            int exercise_values[EXERCISE_COUNT];
-            FlintUIToolbarAction toolbar_actions[2];
-            FlintUIToolbarHeaderResult header_result;
-            FlintUIToolbarResult menu_result;
-            int activity_count;
-            int activity_index;
-            int exercise_changed = 0;
+            practice_screen_draw_top_bar(app, 0);
 
-            activity_count = EXERCISE_COUNT;
-            for(int i = 0; i < activity_count; i++) {
-                exercise_values[i] = i;
-                exercise_options[i] = practice_activity_label(exercise_values[i]);
-            }
-            activity_index = clampi(app->exercise_type, 0, EXERCISE_COUNT - 1);
-
-            toolbar_actions[0] = (FlintUIToolbarAction){
-                app->icons[UI_ICON_TYPE_MANUAL],
-                app->modal.active
-            };
-            toolbar_actions[1] = (FlintUIToolbarAction){
-                app->icons[UI_ICON_TYPE_WRENCH],
-                app->modal.active
-            };
-            header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-                .leading_icon = (Texture2D){0},
-                .toolbar = (FlintUIToolbar){
-                    .id = 300,
-                    .height = flint_px(58),
-                    .options = app->modal.active ? NULL : exercise_options,
-                    .option_count = app->modal.active ? 0 : activity_count,
-                    .selected_index = &activity_index,
-                    .dropdown_min_width = flint_px(160),
-                    .dropdown_max_width = flint_px(230),
-                    .dropdown_height = flint_px(36),
-                    .actions = toolbar_actions,
-                    .action_count = 2,
-                    .action_icon_size = flint_px(20),
-                    .action_icon_padding = flint_px(8),
-                    .action_gap = flint_px(8),
-                    .side_padding = flint_px(12)
-                }
-            });
-            if(APP_SIDEBAR_ENABLED && header_result.leading_clicked)
-                app->sidebar_open = 1;
-            if(header_result.toolbar.clicked_action == 0) {
-                app->tutorial_step = 0;
-                app->manual_scroll = 0;
-                app_switch_screen(app, InbeScreenManual);
-            }
-            if(header_result.toolbar.clicked_action == 1) {
-                reset_settings_preview(app);
-                app->settings_scroll = 0;
-                app->practice_config_tab = 0;
-                app_switch_screen(app, InbeScreenPracticeConfig);
+            if(app->practice_tab == PRACTICE_TAB_MANUAL) {
+                manual_screen_draw(app);
+            } else if(app->practice_tab == PRACTICE_TAB_CONFIG) {
+                const PracticeDefinition *practice = practice_get(app->exercise_type);
+                if(practice->draw_config != NULL)
+                    practice->draw_config(app);
+            } else if(!app->modal.active && app->tutorial_seen && play_circle_clicked) {
+                const PracticeDefinition *practice = practice_get(app->exercise_type);
+                if(practice->start != NULL)
+                    practice->start(app);
             }
 
-            if(!app->modal.active && play_circle_clicked) {
-                if(!exercise_manual_seen(app, app->exercise_type)) {
-                    app->tutorial_step = 0;
-                    app->manual_scroll = 0;
-                    app_switch_screen(app, InbeScreenManual);
-                } else {
-                    const PracticeDefinition *practice = practice_get(app->exercise_type);
-                    if(practice->start != NULL)
-                        practice->start(app);
-                }
-            }
-
-            menu_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-                .toolbar = (FlintUIToolbar){
-                    .id = 300,
-                    .draw_menu = 1,
-                    .options = exercise_options,
-                    .option_count = activity_count,
-                    .selected_index = &activity_index
-                }
-            }).toolbar;
-            if(!app->modal.active && menu_result.selected_menu_item >= 0) {
-                app->exercise_type = exercise_values[activity_index];
-                exercise_changed = 1;
-            }
-            if(exercise_changed)
-                save_settings(app);
+            practice_screen_draw_top_bar(app, 1);
         }
         if(app->modal.active && app->modal.type == UIModalMeditationSetup) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
@@ -1909,6 +1842,7 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
+    practice_screen_draw_first_run_guide(app);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);

@@ -52,6 +52,13 @@ enum {
     PRACTICE_CATEGORY_COUNT
 };
 
+enum {
+    PRACTICE_TAB_MANUAL = 0,
+    PRACTICE_TAB_PLAY,
+    PRACTICE_TAB_CONFIG,
+    PRACTICE_TAB_COUNT
+};
+
 typedef enum {
     UIModalNone,
     UIModalConfirmExitSession,
@@ -256,6 +263,7 @@ struct InbeApp {
     int show_session_volume_control;
     int hold_display_mode;
     int exercise_type;
+    int practice_tab;
     int practice_config_tab;
     int practice_category_tab;
     int practice_coming_soon_ticks;
@@ -278,6 +286,7 @@ void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
 void app_switch_screen(InbeApp *app, int screen);
+void app_leave_practice_config(InbeApp *app);
 int app_draw_sidebar_toggle(InbeApp *app, int x, int y);
 int app_content_top_reserved(const InbeApp *app);
 int app_content_bottom_reserved(const InbeApp *app);

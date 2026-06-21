@@ -31,19 +31,22 @@ meditation_config_scroll_page_content_height(int content_w, void *user_data)
 void
 meditation_config_screen_draw(InbeApp *app)
 {
-    int title_h = ui_screen_header_height();
+    int integrated = app->inbe.screen == InbeScreenStart;
+    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int scroll_y;
     int scroll_h;
-    FlintUIHeader header;
 
-    header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
-                                  (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
-    if(header.right_clicked) {
-        if(app->settings_dirty)
-            save_settings(app);
-        meditation_practice_leave_config(app);
-        app->settings_scroll = 0;
-        app_switch_screen(app, InbeScreenStart);
+    if(!integrated) {
+        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
+                                                    (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
+        if(header.right_clicked) {
+            if(app->settings_dirty)
+                save_settings(app);
+            meditation_practice_leave_config(app);
+            app->settings_scroll = 0;
+            app->practice_tab = PRACTICE_TAB_PLAY;
+            app_switch_screen(app, InbeScreenStart);
+        }
     }
 
     scroll_y = title_h + flint_px(16);

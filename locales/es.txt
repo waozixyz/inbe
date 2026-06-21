@@ -763,3 +763,15 @@ Elemento 8
 [reset_button]
 Restablecer
 ---
+[practice_guide_dropdown]
+Elige tu practica aqui.
+---
+[practice_guide_manual]
+Lee el tutorial antes de iniciar una practica para entender todo el ejercicio.
+---
+[practice_guide_sun]
+Usa la pestana del sol cuando estes listo para iniciar el ejercicio.
+---
+[practice_guide_config]
+Cambia la configuracion de la practica segun tus necesidades.
+---

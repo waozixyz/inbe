@@ -763,3 +763,15 @@ Ajouter un élément
 [reset_button]
 Réinitialiser
 ---
+[practice_guide_dropdown]
+Choisissez votre pratique ici.
+---
+[practice_guide_manual]
+Lisez le tutoriel avant de commencer une pratique afin de comprendre tout l'exercice.
+---
+[practice_guide_sun]
+Utilisez l'onglet soleil lorsque vous etes pret a commencer l'exercice.
+---
+[practice_guide_config]
+Modifiez la configuration de la pratique selon vos besoins.
+---
