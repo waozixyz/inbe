@@ -39,7 +39,7 @@ meditation_start(InbeApp *app, int seconds)
     app->volume_popup_active = 0;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenMeditation;
+    app_switch_screen(app, InbeScreenMeditation);
     app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
 }
@@ -68,7 +68,7 @@ meditation_finish(InbeApp *app)
     app->session_paused = 0;
     app->volume_popup_active = 0;
     meditation_music_stop(app);
-    app->inbe.screen = InbeScreenStart;
+    app_switch_screen(app, InbeScreenStart);
 }
 
 void
@@ -141,7 +141,7 @@ meditation_exit_to_start(InbeApp *app)
     app->volume_popup_active = 0;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app->inbe.screen = InbeScreenStart;
+    app_switch_screen(app, InbeScreenStart);
 }
 
 void

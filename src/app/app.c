@@ -63,6 +63,10 @@ InbeApp *get_global_inbe_app(void);
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_INPUT_QUIET_SECONDS 0.45
 
+enum {
+    APP_SCREEN_TRANSITION_TICKS = 8
+};
+
 InbeConfig config = {
     .title = "Inner Breeze",
     .width = INBE_DEFAULT_WIDTH,
@@ -503,6 +507,56 @@ app_leave_practice_config(InbeApp *app)
     app->settings_scroll = 0;
 }
 
+void
+app_switch_screen(InbeApp *app, int screen)
+{
+    if(app == NULL)
+        return;
+    if(app->inbe.screen == screen &&
+       (!app->screen_transition.active ||
+        app->screen_transition_target == screen))
+        return;
+
+    app->screen_transition_target = screen;
+    if(app->screen_transition.active) {
+        if(app->inbe.screen != screen)
+            flint_transition_reverse_to_out(&app->screen_transition);
+        return;
+    }
+
+    flint_transition_begin(&app->screen_transition, APP_SCREEN_TRANSITION_TICKS);
+}
+
+static void
+app_advance_screen_transition(InbeApp *app)
+{
+    int completed_phase;
+
+    if(app == NULL)
+        return;
+    completed_phase = flint_transition_step(&app->screen_transition);
+    if(completed_phase == FLINT_TRANSITION_OUT)
+        app->inbe.screen = app->screen_transition_target;
+    else if(completed_phase == FLINT_TRANSITION_IN)
+        app->screen_transition_target = app->inbe.screen;
+}
+
+static void
+app_observe_direct_screen_change(InbeApp *app, int before_screen)
+{
+    if(app == NULL || app->screen_transition.active ||
+       before_screen == app->inbe.screen)
+        return;
+
+    app->screen_transition = (FlintTransition){
+        .active = 1,
+        .phase = FLINT_TRANSITION_IN,
+        .ticks = 0,
+        .duration = APP_SCREEN_TRANSITION_TICKS
+    };
+    app->screen_transition_target = app->inbe.screen;
+}
+
 static void
 app_open_main_tab(InbeApp *app, int main_tab, int persist)
 {
@@ -513,9 +567,9 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
         app_leave_practice_config(app);
 
     app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
-    app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                           ? InbeScreenHabits
-                           : InbeScreenStart;
+    app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                               ? InbeScreenHabits
+                               : InbeScreenStart);
     if(persist)
         save_settings(app);
 }
@@ -586,7 +640,7 @@ app_apply_sidebar_route(InbeApp *app, int route)
         reset_settings_preview(app);
         app->settings_tab = SETTINGS_TAB_DEVICE;
         app->settings_scroll = 0;
-        app->inbe.screen = InbeScreenSettings;
+        app_switch_screen(app, InbeScreenSettings);
         app_schedule_settings_save(app);
         break;
     default:
@@ -1367,7 +1421,11 @@ app_init(void *vapp) {
     app->sidebar_open = 0;
     app->pending_sidebar_route = APP_NAV_ROUTE_NONE;
     app_bottom_nav_normalize(app);
-    app_open_main_tab(app, app->main_tab, 0);
+    flint_transition_reset(&app->screen_transition);
+    app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
+                           ? InbeScreenHabits
+                           : InbeScreenStart;
+    app->screen_transition_target = app->inbe.screen;
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
@@ -1398,6 +1456,7 @@ app_init(void *vapp) {
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
+    app->screen_transition_target = app->inbe.screen;
 
     app->modal = (UIModal){0};
     app->meditation.duration_seconds = 0;
@@ -1492,15 +1551,15 @@ handle_back_button(InbeApp *app)
         if(app->settings_dirty)
             save_settings(app);
         settings_screen_clear_status();
-        app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
-                               ? InbeScreenHabits
-                               : InbeScreenStart;
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
         app->settings_scroll = 0;
         break;
 
     case InbeScreenPracticeConfig:
         app_leave_practice_config(app);
-        app->inbe.screen = InbeScreenStart;
+        app_switch_screen(app, InbeScreenStart);
         break;
 
     case InbeScreenHabits:
@@ -1508,17 +1567,17 @@ handle_back_button(InbeApp *app)
             habit_edit_commit(app);
             break;
         }
-        app->inbe.screen = InbeScreenStart;
+        app_switch_screen(app, InbeScreenStart);
         break;
 
     case InbeScreenHabitEdit:
         habit_edit_cancel(app);
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         break;
 
     case InbeScreenHabitSessionEdit:
         habit_session_cancel_edit(app);
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         break;
 
     case InbeScreenLanguage:
@@ -1663,6 +1722,7 @@ updateapp(InbeApp *app)
     int center_x = view_width / 2;
     int center_y = view_height / 2;
     int hover = 0;
+    int frame_screen = app->inbe.screen;
 
     app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1785,20 +1845,20 @@ updateapp(InbeApp *app)
             if(header_result.toolbar.clicked_action == 0) {
                 app->tutorial_step = 0;
                 app->manual_scroll = 0;
-                app->inbe.screen = InbeScreenManual;
+                app_switch_screen(app, InbeScreenManual);
             }
             if(header_result.toolbar.clicked_action == 1) {
                 reset_settings_preview(app);
                 app->settings_scroll = 0;
                 app->practice_config_tab = 0;
-                app->inbe.screen = InbeScreenPracticeConfig;
+                app_switch_screen(app, InbeScreenPracticeConfig);
             }
 
             if(!app->modal.active && play_circle_clicked) {
                 if(!exercise_manual_seen(app, app->exercise_type)) {
                     app->tutorial_step = 0;
                     app->manual_scroll = 0;
-                    app->inbe.screen = InbeScreenManual;
+                    app_switch_screen(app, InbeScreenManual);
                 } else {
                     const PracticeDefinition *practice = practice_get(app->exercise_type);
                     if(practice->start != NULL)
@@ -1851,6 +1911,10 @@ finish_frame:
     app_draw_bottom_nav(app);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
+    app_observe_direct_screen_change(app, frame_screen);
+    flint_transition_draw_fade(&app->screen_transition, view_width, view_height,
+                               (Color){0, 0, 0, 255});
+    app_advance_screen_transition(app);
     app->inbe.frame++;
 }
 

@@ -5,6 +5,7 @@
 #include "breath_engine.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
+#include "flint_transition.h"
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 
@@ -259,6 +260,8 @@ struct InbeApp {
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;
+    FlintTransition screen_transition;
+    int screen_transition_target;
     int session_paused;
     int backgrounded;
     int results_saved;
@@ -274,6 +277,7 @@ struct InbeApp {
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
+void app_switch_screen(InbeApp *app, int screen);
 int app_draw_sidebar_toggle(InbeApp *app, int x, int y);
 int app_content_top_reserved(const InbeApp *app);
 int app_content_bottom_reserved(const InbeApp *app);

@@ -43,7 +43,7 @@ meditation_config_screen_draw(InbeApp *app)
             save_settings(app);
         meditation_practice_leave_config(app);
         app->settings_scroll = 0;
-        app->inbe.screen = InbeScreenStart;
+        app_switch_screen(app, InbeScreenStart);
     }
 
     scroll_y = title_h + flint_px(16);

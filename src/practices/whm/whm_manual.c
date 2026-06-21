@@ -153,7 +153,7 @@ whm_manual_close(InbeApp *app, int mark_seen)
         mark_exercise_manual_seen(app, EXERCISE_WIM_HOF);
     app->tutorial_step = 0;
     app->manual_scroll = 0;
-    app->inbe.screen = InbeScreenStart;
+    app_switch_screen(app, InbeScreenStart);
 }
 
 static void

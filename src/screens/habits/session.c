@@ -167,7 +167,7 @@ draw_habit_session_edit_screen(InbeApp *app)
         return;
     bottom_reserved = app_content_bottom_reserved(app);
     if(app->habit_detail_index < 0 || app->habit_detail_index >= app->habits.count) {
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         return;
     }
 
@@ -175,7 +175,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     habit_collect_linked_entries(habit, app->habit_detail_day, &ctx);
     if(ctx.count <= 0) {
         habit_session_cancel_edit(app);
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         return;
     }
     habit_format_date(app->habit_detail_day, date_text, sizeof(date_text));
@@ -189,7 +189,7 @@ draw_habit_session_edit_screen(InbeApp *app)
                                   app->icons[UI_ICON_TYPE_RETURN], (Texture2D){0});
     if(header.left_clicked) {
         habit_session_cancel_edit(app);
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         return;
     }
 

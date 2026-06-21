@@ -39,7 +39,7 @@ habit_edit_begin(InbeApp *app, int index)
              app->habits.items[index].name);
     app->habit_edit.cursor = (int)strlen(app->habit_edit.text);
     app->habits.tab = HABIT_TAB_EDIT;
-    app->inbe.screen = InbeScreenHabits;
+    app_switch_screen(app, InbeScreenHabits);
 }
 
 void
@@ -194,7 +194,7 @@ habit_edit_commit(InbeApp *app)
     app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
                           ? HABIT_TAB_WEEKLY
                           : HABIT_TAB_MONTHLY;
-    app->inbe.screen = InbeScreenHabits;
+    app_switch_screen(app, InbeScreenHabits);
 }
 
 static void
@@ -333,7 +333,7 @@ draw_habit_edit_screen(InbeApp *app)
         app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
                               ? HABIT_TAB_WEEKLY
                               : HABIT_TAB_MONTHLY;
-        app->inbe.screen = InbeScreenHabits;
+        app_switch_screen(app, InbeScreenHabits);
         return;
     }
 
@@ -346,7 +346,7 @@ draw_habit_edit_screen(InbeApp *app)
            ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
                                    flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
             habit_edit_cancel(app);
-            app->inbe.screen = InbeScreenHabits;
+            app_switch_screen(app, InbeScreenHabits);
             return;
         }
         title_font = flint_ui_title_font(title, view_width - flint_px(120));
@@ -400,7 +400,7 @@ draw_habit_edit_screen(InbeApp *app)
                 habits_delete(&app->habits, index);
                 app_auto_sync(app);
             }
-            app->inbe.screen = InbeScreenHabits;
+            app_switch_screen(app, InbeScreenHabits);
         }
         return;
     }

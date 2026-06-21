@@ -349,7 +349,7 @@ whm_config_screen_draw(InbeApp *app)
         if(app->settings_dirty)
             save_settings(app);
         app->settings_scroll = 0;
-        app->inbe.screen = InbeScreenStart;
+        app_switch_screen(app, InbeScreenStart);
     }
 
     clicked_config_tab = whm_draw_subtab_bar(title_h, config_tab_h, config_tabs, 2,
