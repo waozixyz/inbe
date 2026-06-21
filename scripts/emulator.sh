@@ -2,7 +2,7 @@
 
 set -e
 
-AVD_NAME="inbe-test"
+AVD_NAME="${AVD_NAME:-inbe-test}"
 
 # Check for Android SDK location
 if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
@@ -27,10 +27,20 @@ else
   export ANDROID_AVD_HOME="$PERSISTENT_SDK_ROOT/avd"
 fi
 
+ADB_CMD="${ANDROID_SDK_ROOT}/platform-tools/adb"
+if [ ! -x "$ADB_CMD" ]; then
+  ADB_CMD="$(command -v adb)"
+fi
+
+EMULATOR_CMD="${ANDROID_SDK_ROOT}/emulator/emulator"
+if [ ! -x "$EMULATOR_CMD" ]; then
+  EMULATOR_CMD="$(command -v emulator)"
+fi
+
 # Check if emulator is already running
-if adb devices | grep -q "emulator"; then
+if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   echo "✅ Emulator already running"
-  adb devices
+  "$ADB_CMD" devices
   exit 0
 fi
 
@@ -41,19 +51,20 @@ unset ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 
 # Launch emulator in background with KVM acceleration
-emulator @"$AVD_NAME" \
+"$EMULATOR_CMD" @"$AVD_NAME" \
   -gpu host \
   -skin 1440x2960 \
   -no-snapshot-load \
   -no-boot-anim \
-  -qemu -enable-kvm \
-  -verbose > /tmp/emulator.log 2>&1 &
+  -verbose \
+  -qemu -enable-kvm > /tmp/emulator.log 2>&1 &
 
 echo "⏳ Waiting for boot (this may take a while)..."
 timeout_seconds=120
 elapsed=0
 
-while ! adb shell getprop sys.boot_completed 2>/dev/null | grep -q "1"; do
+timeout 20 "$ADB_CMD" -e wait-for-device >/dev/null 2>&1 || true
+while ! "$ADB_CMD" -e shell getprop sys.boot_completed 2>/dev/null | grep -q "1"; do
   if [ $elapsed -ge $timeout_seconds ]; then
     echo "❌ Timeout waiting for boot. Check /tmp/emulator.log"
     exit 1
@@ -77,8 +88,8 @@ done
 echo "✅ Pixel 8 Pro emulator ready!"
 echo ""
 echo "📱 Device info:"
-adb shell getprop ro.product.model
-adb shell getprop ro.build.version.release
-adb shell getprop ro.build.version.sdk
+"$ADB_CMD" -e shell getprop ro.product.model
+"$ADB_CMD" -e shell getprop ro.build.version.release
+"$ADB_CMD" -e shell getprop ro.build.version.sdk
 echo ""
-echo "   Connect with: adb shell"
+echo "   Connect with: $ADB_CMD -e shell"

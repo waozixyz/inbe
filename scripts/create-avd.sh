@@ -31,38 +31,93 @@ done
 mkdir -p "$ANDROID_SDK_ROOT/system-images"
 mkdir -p "$ANDROID_SDK_ROOT/avd"
 
-# Determine system image paths
-# Prefer x86_64 for faster emulation
-TARGET_DIR="$ANDROID_SDK_ROOT/system-images/android-34/google_apis_playstore/x86_64"
-ABI_TYPE="x86_64"
-ABI_DISPLAY="x86_64"
+ANDROID_API="${ANDROID_API:-34}"
+SYSTEM_IMAGE_TYPE=""
+ABI_TYPE=""
+SOURCE_DIR=""
+TARGET_DIR=""
 
-# Find system image in Nix store
-SYSTEM_IMAGE_BASE=$(find "$ORIGINAL_SDK_ROOT/../.." -maxdepth 1 -type d -name "*system-image*34*google_apis_playstore*" | head -1)
+image_dir_ready() {
+  dir="$1"
+  [ -d "$dir" ] && { [ -f "$dir/source.properties" ] || [ -f "$dir/system.img" ] || [ -f "$dir/kernel-ranchu" ]; }
+}
 
-if [ -z "$SYSTEM_IMAGE_BASE" ] || [ ! -d "$SYSTEM_IMAGE_BASE" ]; then
-  echo "❌ Error: System image not found in Nix store"
-  echo "   Searched for: *system-image*34*google_apis_playstore* in $ORIGINAL_SDK_ROOT/../.."
-  exit 1
-fi
+find_system_image() {
+  for spec in \
+    "google_apis x86_64" \
+    "default x86_64" \
+    "google_apis arm64-v8a" \
+    "default arm64-v8a"; do
+    set -- $spec
+    type="$1"
+    abi="$2"
+    for root in "$ANDROID_SDK_ROOT" "$ORIGINAL_SDK_ROOT"; do
+      dir="$root/system-images/android-$ANDROID_API/$type/$abi"
+      if image_dir_ready "$dir"; then
+        SYSTEM_IMAGE_TYPE="$type"
+        ABI_TYPE="$abi"
+        SOURCE_DIR="$dir"
+        TARGET_DIR="$ANDROID_SDK_ROOT/system-images/android-$ANDROID_API/$type/$abi"
+        return 0
+      fi
+    done
+  done
+  return 1
+}
 
-echo "📋 Found system image base: $SYSTEM_IMAGE_BASE"
-
-# Check and copy system image from Nix store
-if [ ! -d "$TARGET_DIR" ]; then
-  echo "📋 Copying system image ($ABI_TYPE)..."
-
-  SOURCE_DIR="$SYSTEM_IMAGE_BASE/libexec/android-sdk/system-images/android-34/google_apis_playstore/$ABI_TYPE"
-
-  if [ ! -d "$SOURCE_DIR" ]; then
-    echo "❌ Error: Source directory not found: $SOURCE_DIR"
-    exit 1
+install_system_image() {
+  if command -v sdkmanager >/dev/null 2>&1; then
+    SDKMANAGER=sdkmanager
+  elif [ -x "$ANDROID_SDK_ROOT/cmdline-tools/11.0/bin/sdkmanager" ]; then
+    SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/11.0/bin/sdkmanager"
+  elif [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
+    SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
+  else
+    echo "❌ Error: sdkmanager not found"
+    return 1
   fi
 
-  mkdir -p "$TARGET_DIR"
-  cp -r "$SOURCE_DIR"/* "$TARGET_DIR/"
-  echo "✅ Copied $ABI_TYPE system image"
+  for spec in \
+    "google_apis x86_64" \
+    "default x86_64" \
+    "google_apis arm64-v8a" \
+    "default arm64-v8a"; do
+    set -- $spec
+    type="$1"
+    abi="$2"
+    package="system-images;android-$ANDROID_API;$type;$abi"
+    echo "📦 Installing Android system image: $package"
+    if yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "$package"; then
+      if find_system_image; then
+        return 0
+      fi
+    fi
+  done
+
+  return 1
+}
+
+if ! find_system_image; then
+  echo "ℹ️  Android $ANDROID_API system image not found locally. Installing one now..."
+  if ! install_system_image; then
+    echo "❌ Error: Could not install an Android $ANDROID_API emulator system image"
+    exit 1
+  fi
 fi
+
+if [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
+  echo "📋 Copying system image ($SYSTEM_IMAGE_TYPE/$ABI_TYPE)..."
+  if [ -e "$TARGET_DIR" ]; then
+    chmod -R u+w "$TARGET_DIR" 2>/dev/null || true
+    rm -rf "$TARGET_DIR"
+  fi
+  mkdir -p "$TARGET_DIR"
+  cp -R --no-preserve=mode,ownership "$SOURCE_DIR"/. "$TARGET_DIR"/
+fi
+
+ABI_DISPLAY="$ABI_TYPE"
+PLAYSTORE_ENABLED=false
+echo "📋 Using system image: android-$ANDROID_API/$SYSTEM_IMAGE_TYPE/$ABI_TYPE"
 
 # Check if AVD already exists
 if [ -d "$ANDROID_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
@@ -82,7 +137,7 @@ mkdir -p "$AVD_DIR"
 cat > "$AVD_DIR/config.ini" << EOF
 AvdId=$AVD_NAME
 avd.ini.encoding=UTF-8
-PlayStore.enabled=true
+PlayStore.enabled=$PLAYSTORE_ENABLED
 abi.type=$ABI_TYPE
 hw.cpu.arch=$ABI_TYPE
 hw.device.name=Pixel 8 Pro
@@ -106,7 +161,7 @@ hw.gps=yes
 hw.gsmModem=yes
 hw.keyboard=yes
 hw.touchScreen=yes
-image.sysdir.1=system-images/android-34/google_apis_playstore/$ABI_TYPE/
+image.sysdir.1=system-images/android-$ANDROID_API/$SYSTEM_IMAGE_TYPE/$ABI_TYPE/
 showDeviceFrame=yes
 skin.name=1440x2960
 skin.path=1440x2960
@@ -120,7 +175,7 @@ EOF
 
 echo "✅ Done!"
 echo "   Device: Pixel 8 Pro"
-echo "   Android: 14 (API 34)"
+echo "   Android: 14 (API $ANDROID_API)"
 echo "   ABI: $ABI_DISPLAY"
 echo ""
 echo "   Run with: bash scripts/emulator.sh"

@@ -803,7 +803,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             .disabled = app->modal.active || app->habits.count <= 0
         };
         tabs[HABIT_TAB_EDIT] = (FlintUISubtab){
-            .icon = app->icons[UI_ICON_TYPE_PENCIL],
+            .icon = app->icons[UI_ICON_TYPE_EDIT],
             .icon_size = flint_px(20),
             .disabled = app->modal.active
         };
@@ -1447,9 +1447,12 @@ draw_habits_screen(InbeApp *app)
     int scroll_y;
     int scroll_h;
     int weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+    int screen_input_blocked;
 
     if(app == NULL)
         return;
+    screen_input_blocked = app->modal.active ||
+                           habits_screen_first_run_guide_active(app);
 
     if(app->habits.tab < HABIT_TAB_WEEKLY || app->habits.tab >= HABIT_TAB_COUNT) {
         app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
@@ -1583,12 +1586,12 @@ draw_habits_screen(InbeApp *app)
         y = page.content_y + flint_px(8);
 
         if(app->habits.view_mode == HABIT_VIEW_WEEKLY) {
-            ui_set_input_blocked(app->modal.active);
+            ui_set_input_blocked(screen_input_blocked);
             draw_habits_weekly_view(app, active, selected, linked_ctx,
                                     content_x, content_w, y, weekly_days);
             ui_scroll_page_end(page);
             free(linked_ctx);
-            ui_set_input_blocked(0);
+            ui_set_input_blocked(screen_input_blocked);
             draw_habits_top_bar(app, 0);
             if(app->inbe.screen == InbeScreenHabits)
                 draw_habits_top_bar(app, 1);
@@ -1596,7 +1599,7 @@ draw_habits_screen(InbeApp *app)
         }
 
         forward_disabled = app->habits.month_offset >= 0;
-        ui_set_input_blocked(app->modal.active);
+        ui_set_input_blocked(screen_input_blocked);
         if(ui_draw_generic_button(content_x, y, flint_px(44), month_h, "<",
                                   UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
             app->habits.month_offset--;
@@ -1711,7 +1714,7 @@ draw_habits_screen(InbeApp *app)
         ui_scroll_page_end(page);
     }
     free(linked_ctx);
-    ui_set_input_blocked(0);
+    ui_set_input_blocked(screen_input_blocked);
     draw_habits_top_bar(app, 0);
     if(app->inbe.screen == InbeScreenHabits)
         draw_habits_top_bar(app, 1);

@@ -197,7 +197,7 @@ ui_hover_effects_enabled(void)
 #if INBE_ANDROID_BUILD
     return 0;
 #else
-    return 1;
+    return !g_ui_input_blocked;
 #endif
 }
 

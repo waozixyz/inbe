@@ -349,6 +349,7 @@ storage_reset_sync_state(void)
     set_meta_int64("sync_last_server_version", 0);
     set_meta_int64("sync_last_upload_at", 0);
     set_meta_int64("sync_full_upload_done", 0);
+    set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
     storage_enqueue_all_sync_state();
     storage_schedule_persist();

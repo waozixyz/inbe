@@ -339,7 +339,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     if(ui_draw_icon_btn_padded(round_edit_x, y - flint_px(6),
                                                icon_size, icon_padding,
                                                app->icons[editing_round ? UI_ICON_TYPE_SAVE
-                                                                        : UI_ICON_TYPE_PENCIL],
+                                                                        : UI_ICON_TYPE_EDIT],
                                                &hover_round_edit)) {
                         if(editing_round) {
                             if(habit_session_commit_edit(app, &ctx->entries[i]))

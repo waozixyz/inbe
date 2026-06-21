@@ -85,7 +85,7 @@ flint_load_all_icons(Texture2D *icons)
         "stat.png",            // UI_ICON_TYPE_STAT
         "home.png",            // UI_ICON_TYPE_HOME
         "trash.png",           // UI_ICON_TYPE_TRASH
-        "pencil.png",          // UI_ICON_TYPE_PENCIL
+        "edit.png",            // UI_ICON_TYPE_PENCIL
         "save.png",            // UI_ICON_TYPE_SAVE
         "wrench.png",          // UI_ICON_TYPE_WRENCH
         "plus.png",            // UI_ICON_TYPE_PLUS

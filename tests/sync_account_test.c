@@ -2,6 +2,7 @@
 #include "storage.h"
 
 #include <dirent.h>
+#include <sqlite3.h>
 #include <stdarg.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -187,6 +188,23 @@ write_key_file(const char *path, const char *public_id,
 }
 
 static void
+exec_db_sql(const char *label, const char *sql)
+{
+    sqlite3 *db = NULL;
+    char *error = NULL;
+
+    check_true(label, sqlite3_open(storage_db_path(), &db) == SQLITE_OK);
+    if(db == NULL)
+        return;
+    if(sqlite3_exec(db, sql, NULL, NULL, &error) != SQLITE_OK) {
+        fprintf(stderr, "FAIL %s: %s\n", label, error != NULL ? error : "sqlite error");
+        sqlite3_free(error);
+        g_failures++;
+    }
+    sqlite3_close(db);
+}
+
+static void
 make_account_values(char public_id[65], char public_key_hex[2625],
                     char private_key_hex[5121])
 {
@@ -306,11 +324,71 @@ test_reject_invalid_keys(void)
     remove_tree(root);
 }
 
+static void
+test_imported_account_backfills_existing_local_data(void)
+{
+    char root[512];
+    char key_path[1024];
+    char public_id[65];
+    char public_key[2625];
+    char private_key[5121];
+    InbeSyncAccount account;
+    char *payload;
+    int rounds[] = {30, 45, 60};
+
+    make_clean_root(root, sizeof(root), "account-backfill");
+    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    make_account_values(public_id, public_key, private_key);
+    write_key_file(key_path, public_id, public_key, private_key);
+
+    check_true("init account backfill storage", storage_init(root));
+    check_true("save existing local session",
+               storage_save_session_at_for_activity(20260621, 8, 15, 0,
+                                                    rounds, 3, 0, 1, NULL, 0));
+    exec_db_sql("insert existing local habit",
+                "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                "VALUES('habit-local',(SELECT id FROM users LIMIT 1),'Existing Local Habit',"
+                "64,128,192,1,1,1,0,0,strftime('%s','now'));"
+                "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                "VALUES('habit-local',20260621,1,5,strftime('%s','now'));"
+                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','44');"
+                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
+                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');"
+                "DELETE FROM sync_outbox;");
+
+    check_true("import account resets sync state",
+               sync_account_import_private_key(&account, key_path));
+    check_str("imported deterministic account", account.public_id, public_id);
+
+    payload = storage_build_sync_payload_json(account.public_id, account.public_key_hex);
+    check_true("account bootstrap payload built", payload != NULL);
+    if(payload != NULL) {
+        check_true("account bootstrap flag present", strstr(payload, "\"bootstrap\":true") != NULL);
+        check_true("existing local habit uploaded",
+                   strstr(payload, "Existing Local Habit") != NULL);
+        check_true("existing local habit day uploaded",
+                   strstr(payload, "\"local_date\":20260621") != NULL &&
+                   strstr(payload, "\"count\":5") != NULL);
+        check_true("existing local session uploaded",
+                   strstr(payload, "\"sessions\":[{") != NULL &&
+                   strstr(payload, "\"rounds\":[") != NULL);
+        check_true("local settings still excluded",
+                   strstr(payload, "\"preferences\"") == NULL &&
+                   strstr(payload, "\"settings\"") == NULL);
+    }
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
 int
 main(void)
 {
     test_import_export_clear();
     test_reject_invalid_keys();
+    test_imported_account_backfills_existing_local_data();
 
     if(g_failures != 0) {
         fprintf(stderr, "%d sync account test failure(s)\n", g_failures);
