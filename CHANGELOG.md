@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.8] - 2026-06-21
+### Changed
+- Fixed start screen
+- Fixed schema on first sync
+
 ## [1.4.7] - 2026-06-21
 ### Changed
 - Rework Practice into Manual, start, and configuration tabs with a new localized first-run guide.

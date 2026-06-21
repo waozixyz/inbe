@@ -245,7 +245,7 @@ practice_screen_prepare_first_run_guide(InbeApp *app)
         return;
 
     step = clampi(app->tutorial_step, 0, PRACTICE_GUIDE_STEPS - 1);
-    if(step <= 1)
+    if(step == 1)
         app->practice_tab = PRACTICE_TAB_MANUAL;
     else
         app->practice_tab = PRACTICE_TAB_PLAY;
@@ -343,7 +343,6 @@ practice_screen_draw_first_run_guide(InbeApp *app)
     int tip_h;
     Rectangle tip;
     int y;
-    int back_disabled;
     int finish;
 
     if(app == NULL || app->tutorial_seen || app->modal.active)
@@ -420,25 +419,25 @@ practice_screen_draw_first_run_guide(InbeApp *app)
                         (button_size - page_font) / 2,
                     page_font, theme_get_text());
 
-    back_disabled = step <= 0;
     finish = step >= PRACTICE_GUIDE_STEPS - 1;
-    if(flint_ui_icon_button((FlintUIIconButton){
-           .bounds = {
-               tip.x + tip.width - pad - button_size * 2 - flint_px(8),
-               tip.y + tip.height - pad - button_size,
-               (float)button_size,
-               (float)button_size
-           },
-           .icon = app->icons[UI_ICON_TYPE_BACKWARD],
-           .icon_size = flint_px(19),
-           .icon_padding = flint_px(7),
-           .disabled = back_disabled,
-           .background = theme_get_button(),
-           .hover_background = theme_get_button_hover(),
-           .icon_color = theme_get_text(),
-           .border = flint_darken(theme_get_button(), 35)
-       })) {
-        app->tutorial_step = step - 1;
+    if(step > 0) {
+        if(flint_ui_icon_button((FlintUIIconButton){
+               .bounds = {
+                   tip.x + tip.width - pad - button_size * 2 - flint_px(8),
+                   tip.y + tip.height - pad - button_size,
+                   (float)button_size,
+                   (float)button_size
+               },
+               .icon = app->icons[UI_ICON_TYPE_BACKWARD],
+               .icon_size = flint_px(19),
+               .icon_padding = flint_px(7),
+               .background = theme_get_button(),
+               .hover_background = theme_get_button_hover(),
+               .icon_color = theme_get_text(),
+               .border = flint_darken(theme_get_button(), 35)
+           })) {
+            app->tutorial_step = step - 1;
+        }
     }
     if(flint_ui_icon_button((FlintUIIconButton){
            .bounds = {
