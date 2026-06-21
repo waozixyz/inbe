@@ -24,6 +24,7 @@ typedef struct FlintDpiState {
 extern FlintDpiState flint_dpi_state;
 
 void flint_dpi_init(void);
+void flint_dpi_invalidate(void);
 void flint_dpi_update(int view_width, int view_height);
 int flint_dpi_is_dirty(void);
 static inline float flint_dpi_scale(void) { return flint_dpi_state.ui_scale_clamped; }

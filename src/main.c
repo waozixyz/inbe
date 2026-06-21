@@ -301,7 +301,17 @@ frame(void)
 
     int width = GetScreenWidth();
     int height = GetScreenHeight();
-#if !defined(PLATFORM_WEB)
+#if INBE_ANDROID_BUILD
+    struct android_app *android_app = GetAndroidApp();
+    if(android_app != NULL && android_app->window != NULL) {
+        int window_width = ANativeWindow_getWidth(android_app->window);
+        int window_height = ANativeWindow_getHeight(android_app->window);
+        if(window_width > 0)
+            width = window_width;
+        if(window_height > 0)
+            height = window_height;
+    }
+#elif !defined(PLATFORM_WEB)
     int render_width = GetRenderWidth();
     int render_height = GetRenderHeight();
 
@@ -313,9 +323,17 @@ frame(void)
 
 #if INBE_ANDROID_BUILD
     AndroidViewport viewport;
+    static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
     android_insets_get(&insets);
     viewport = android_resolve_viewport(width, height, insets);
+    if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||
+       viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||
+       viewport.top != previous_viewport.top || viewport.bottom != previous_viewport.bottom ||
+       viewport.left != previous_viewport.left || viewport.right != previous_viewport.right) {
+        flint_dpi_invalidate();
+        previous_viewport = viewport;
+    }
 
     BeginDrawing();
     ClearBackground(BLACK);
