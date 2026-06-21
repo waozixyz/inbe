@@ -10,7 +10,7 @@
         android:roundIcon="@mipmap/ic_launcher_round">
         <activity
             android:name="xyz.waozi.inbe.MainActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize|uiMode"
+            android:configChanges="keyboardHidden|uiMode"
             android:exported="true"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:windowLayoutInDisplayCutoutMode="never">

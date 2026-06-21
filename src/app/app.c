@@ -1047,6 +1047,39 @@ unload_locale_font(InbeApp *app)
     app->locale_font_8 = (Font){0};
 }
 
+static void
+discard_locale_font_cpu(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    free(app->locale_font.glyphs);
+    free(app->locale_font.recs);
+    app->locale_font = (Font){0};
+    app->locale_font_8 = (Font){0};
+    flint_text_set_font((Font){0});
+    flint_text_set_small_font((Font){0});
+}
+
+static void
+app_reload_graphics_resources(InbeApp *app)
+{
+    if(app == NULL || !app->graphics_reload_requested)
+        return;
+
+    app->graphics_reload_requested = 0;
+    TraceLog(LOG_INFO, "ANDROID: Reloading graphics resources");
+
+    for(int i = 0; i < UI_ICON_TYPE_COUNT; i++)
+        app->icons[i] = (Texture2D){0};
+    flint_load_all_icons(app->icons);
+    ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
+
+    app->font_shapes_texture = (Texture2D){0};
+    discard_locale_font_cpu(app);
+    if(!load_locale_font(app))
+        TraceLog(LOG_WARNING, "FONT: Failed to reload chopped locale font");
+}
+
 void
 refresh_locale_dependent_text(InbeApp *app)
 {
@@ -1246,6 +1279,15 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     app->habit_session_edit.active = 0;
     app->habit_edit.active = 0;
 }
+
+#if INBE_ANDROID_BUILD
+void
+app_request_graphics_reload(InbeApp *app)
+{
+    if(app != NULL)
+        app->graphics_reload_requested = 1;
+}
+#endif
 
 static Texture2D
 load_pixel_texture_from_asset(const char *path)
@@ -1882,6 +1924,8 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     if(app == 0 || viewport.width <= 0 || viewport.height <= 0)
         return;
+
+    app_reload_graphics_resources(app);
 
     full_width = (int)viewport.width;
     full_height = (int)viewport.height;
