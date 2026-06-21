@@ -60,15 +60,6 @@ font_integer_scale(int font_size)
     return scale > 0 ? scale : 1;
 }
 
-static float
-font_spacing(Font font, int font_size)
-{
-    (void)font_size;
-    if(font.baseSize <= 0)
-        return 1.0f;
-
-    return 1.0f;
-}
 
 void
 flint_text_set_font(Font font)

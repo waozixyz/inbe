@@ -1,11 +1,12 @@
 #include "sync_account.h"
+#include "platform.h"
 
 #include "data.h"
 #include "storage.h"
 #include "sync_client.h"
 #include "raylib.h"
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_share.h"
 #endif
 
@@ -542,7 +543,7 @@ sync_account_export_private_key(const InbeSyncAccount *account, const char *file
     if(len <= 0 || (size_t)len >= sizeof(body))
         return 0;
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return android_share_bytes((const unsigned char *)body, (size_t)len, filename,
                                "application/octet-stream");
 #else

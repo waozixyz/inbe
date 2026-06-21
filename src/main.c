@@ -15,14 +15,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
-#define INBE_ANDROID_BUILD 1
-#else
-#define INBE_ANDROID_BUILD 0
-#endif
-
-
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
                                                 const char *caption, unsigned int type);
 #define MB_OK 0x00000000u
@@ -30,7 +23,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
 #define WIN_ERROR_LOG_CAP 2048
 #endif
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_insets.h"
 #include "android_device.h"
 #include "android_runtime_assets.h"
@@ -58,7 +51,7 @@ typedef struct ScreenshotRequest {
     char output[512];
 } ScreenshotRequest;
 
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
 static FILE *win_log_file;
 static char win_recent_errors[WIN_ERROR_LOG_CAP];
 static int win_recent_errors_len;
@@ -507,11 +500,11 @@ int main(int argc, char **argv) {
 
 #if defined(PLATFORM_WEB)
     SetConfigFlags(flint_web_window_flags());
-#elif !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID)
+#elif !INBE_ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
     windows_install_logger();
     TraceLog(LOG_INFO, "INBE: Windows startup");
 #endif
@@ -529,7 +522,7 @@ int main(int argc, char **argv) {
     InitWindow(window_w, window_h, config.title);
     if(!IsWindowReady()) {
         TraceLog(LOG_ERROR, "INBE: InitWindow failed");
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
         windows_show_startup_error();
         windows_close_logger();
 #endif
@@ -554,7 +547,7 @@ int main(int argc, char **argv) {
 #else
     if(run_screenshot_mode(&screenshot)) {
         CloseWindow();
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
         windows_close_logger();
 #endif
         return 0;
@@ -565,7 +558,7 @@ int main(int argc, char **argv) {
     }
 
     CloseWindow();
-#if defined(_WIN32) && !defined(__ANDROID__)
+#if defined(_WIN32) && !INBE_ANDROID_BUILD
     windows_close_logger();
 #endif
 #endif

@@ -8,6 +8,7 @@
 #endif
 
 #include "sync_client.h"
+#include "platform.h"
 
 #include "storage.h"
 #include "sync_account.h"
@@ -18,7 +19,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include <android_native_app_glue.h>
 #include <jni.h>
 extern struct android_app *GetAndroidApp(void);
@@ -359,7 +360,7 @@ sync_find_json_int64(const char *json, const char *key, long long fallback)
     return strtoll(p, NULL, 10);
 }
 
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(__EMSCRIPTEN__)
+#if !INBE_ANDROID_BUILD && !defined(__EMSCRIPTEN__)
 static size_t
 sync_write_callback(void *ptr, size_t size, size_t nmemb, void *userdata)
 {
@@ -414,7 +415,7 @@ sync_http_request(const char *method, const char *url, const char *body,
     curl_easy_cleanup(curl);
     return res == CURLE_OK;
 }
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#elif INBE_ANDROID_BUILD
 static int
 sync_buffer_set(SyncBuffer *response, const char *text)
 {
@@ -1421,7 +1422,7 @@ sync_client_sync(const char *base_url)
 InbeSyncClientResult
 sync_client_wait_for_remote_event(const char *base_url)
 {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     InbeSyncAccount account;
     char token[4096];
     char ws_url[6000];

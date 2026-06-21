@@ -42,7 +42,7 @@
 #include <unistd.h>
 #endif
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_timer.h"
 #include "android_device.h"
@@ -53,7 +53,7 @@ void set_global_inbe_app(InbeApp *app);
 InbeApp *get_global_inbe_app(void);
 #endif
 
-#if defined(PLATFORM_WEB) || defined(__ANDROID__)
+#if defined(PLATFORM_WEB) || INBE_ANDROID_BUILD
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 #else
@@ -1376,11 +1376,10 @@ app_init(void *vapp) {
     if(app == 0)
         return;
 
-    // Initialize locale_font to empty
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     if (app->inbe.screen == InbeScreenSession) {
         android_allow_screen_off();
     }
@@ -1403,7 +1402,7 @@ app_init(void *vapp) {
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     flint_dpi_update(view_width, view_height);
     ui_init(view_width, view_height, flint_dpi_scale());
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     flint_ui_set_text_input_platform_callback(android_device_set_soft_keyboard_visible);
 #endif
 
@@ -1611,7 +1610,7 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
             if (app->inbe.play_in_background) {
                 android_wakelock_release();
                 android_timer_stop();
@@ -1739,6 +1738,8 @@ updateapp(InbeApp *app)
     int hover = 0;
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
+    int habits_guide_active = 0;
+    int guide_active = 0;
 
     app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1749,13 +1750,18 @@ updateapp(InbeApp *app)
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
+    habits_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
-    ui_set_input_blocked(first_run_guide_active);
+    habits_guide_active = habits_screen_first_run_guide_active(app);
+    guide_active = first_run_guide_active || habits_guide_active;
+    ui_set_input_blocked(guide_active);
 
     if(IsKeyPressed(KEY_BACK)) {
-        if(first_run_guide_active) {
+        if(first_run_guide_active || habits_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
+            app->habits_guide_step = 0;
+            habits_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
@@ -1850,9 +1856,10 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
-    if(first_run_guide_active)
+    if(guide_active)
         ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
+    habits_screen_draw_first_run_guide(app);
     ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);

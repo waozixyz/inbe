@@ -775,3 +775,15 @@ Nutze den Sonnen-Tab, wenn du bereit bist, die Uebung zu starten.
 [practice_guide_config]
 Passe die Konfiguration der Praxis an deine Anforderungen an.
 ---
+[habits_guide_dropdown]
+Wahle hier Gewohnheiten aus oder erstelle eine neue.
+---
+[habits_guide_practice_list]
+Eine Gewohnheit kann Sitzungsdaten deiner Praktiken enthalten.
+---
+[habits_guide_views]
+Wahle Woche oder Kalender, um deine Gewohnheit zu pruefen.
+---
+[habits_guide_statistics]
+Sieh dir hier deine Gewohnheitsstatistiken an.
+---

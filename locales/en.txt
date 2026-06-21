@@ -776,3 +776,15 @@ Use the sun tab when you are ready to start the exercise.
 [practice_guide_config]
 Change the practice configuration to meet your standards.
 ---
+[habits_guide_dropdown]
+Select habits here or create a new one.
+---
+[habits_guide_practice_list]
+A habit can include session data from your practices.
+---
+[habits_guide_views]
+Choose Weekly or Calendar to review your habit.
+---
+[habits_guide_statistics]
+View habit statistics here.
+---

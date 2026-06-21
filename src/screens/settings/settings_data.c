@@ -11,11 +11,11 @@
 #include "version.h"
 #include "flint_theme_meta.h"
 #include "flint_ui.h"
-#if !defined(PLATFORM_ANDROID) && !defined(__ANDROID__) && !defined(ANDROID) && !defined(_WIN32) && !defined(PLATFORM_WEB)
+#if !INBE_ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
 #include "flint_file_dialog.h"
 #endif
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include "android_import.h"
 #endif
 #if defined(PLATFORM_WEB)
@@ -357,7 +357,7 @@ settings_start_sync_key_import_dialog(InbeApp *app)
     }, "/tmp/inbe-sync-key-import.key", SETTINGS_SYNC_KEY_IMPORT_FILTER);
     settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
     return 1;
-#elif defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#elif INBE_ANDROID_BUILD
     (void)app;
     if(android_import_open_picker(SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES)) {
         settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
@@ -473,7 +473,7 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
     settings_draw_version_centered(x, w, y);
 }
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 void
 settings_data_handle_android_import(InbeApp *app)
 {
@@ -601,7 +601,7 @@ static void
 settings_import_data(InbeApp *app)
 {
     settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     if(android_import_open_picker(SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES))
         settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
     else {
@@ -655,7 +655,7 @@ settings_export_data(InbeApp *app)
         return;
     }
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT);
     if(data_export(export_filename)) {
         settings_file_dialog_finish(app);

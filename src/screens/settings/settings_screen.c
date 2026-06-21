@@ -200,7 +200,7 @@ settings_screen_draw(InbeApp *app)
     tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
     content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app);
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     settings_data_handle_android_import(app);
 #elif defined(PLATFORM_WEB)
     settings_data_handle_web_import(app);

@@ -773,3 +773,15 @@ Wim Hof 屏息轮次
 [practice_guide_config]
 根据你的需要调整练习配置。
 ---
+[habits_guide_dropdown]
+在这里选择习惯或创建新习惯。
+---
+[habits_guide_practice_list]
+习惯可以包含你的练习会话数据。
+---
+[habits_guide_views]
+选择每周或日历视图来查看习惯。
+---
+[habits_guide_statistics]
+在这里查看习惯统计。
+---

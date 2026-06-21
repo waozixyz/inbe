@@ -2,7 +2,7 @@
 #define INBE_ANDROID_DEVICE_H
 
 #include "app.h"
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include <jni.h>
 #else
 typedef void JNIEnv;

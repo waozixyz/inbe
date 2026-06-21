@@ -1,4 +1,5 @@
 #include "whm_session.h"
+#include "platform.h"
 
 #include "data.h"
 #include "flint_locale.h"
@@ -8,7 +9,7 @@
 
 #include <stdio.h>
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
 #include "android_timer.h"
 #include "android_wakelock.h"
 void set_global_inbe_app(InbeApp *app);
@@ -213,7 +214,7 @@ session_start(InbeApp *app)
     app->results_path[0] = '\0';
     remember_sound_state(app);
 
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     android_keep_screen_on();
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
     if(app->inbe.play_in_background) {
@@ -331,7 +332,7 @@ finish_round(InbeApp *app)
         reset_round_start(&app->inbe);
     } else {
         if(session_ensure_results_saved(app)) {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
             android_allow_screen_off();
 #endif
             app_switch_screen(app, InbeScreenResults);
@@ -668,7 +669,7 @@ sound_icon_for_volume(InbeApp *app)
 static void
 stop_android_background_session(InbeApp *app)
 {
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
     if(app->inbe.play_in_background) {
         android_wakelock_release();
         android_timer_stop();
@@ -803,7 +804,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         0
 #endif
     )) {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
         pthread_mutex_t *timer_mutex = android_timer_get_mutex();
         if(timer_mutex) {
             pthread_mutex_lock(timer_mutex);

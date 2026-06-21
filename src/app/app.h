@@ -2,6 +2,7 @@
 #define INBE_APP_H
 
 #include "raylib.h"
+#include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
 #include "flint_runtime_assets.h"
@@ -233,6 +234,8 @@ struct InbeApp {
     int manual_drag_content_y;
     int tutorial_step;
     int tutorial_seen;
+    int habits_guide_step;
+    int habits_guide_seen;
     int exercise_manual_seen_mask;
 
     int theme_id;

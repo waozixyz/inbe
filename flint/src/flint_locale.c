@@ -1,4 +1,5 @@
 #include "flint_locale.h"
+#include "platform.h"
 #include "flint_embedded_assets.h"
 
 #include "raylib.h"

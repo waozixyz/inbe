@@ -1,9 +1,10 @@
 #include "android_import.h"
+#include "platform.h"
 
 #include "raylib.h"
 #include <string.h>
 
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
 #include <android/native_activity.h>
 #include <android_native_app_glue.h>
 #include <pthread.h>

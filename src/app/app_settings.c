@@ -144,6 +144,7 @@ save_settings(InbeApp *app)
         {"pause_seconds", app->inbe.pause_seconds},
         {"sound_volume", app->sound_volume},
         {"tutorial_seen", app->tutorial_seen ? 1 : 0},
+        {"habits_guide_seen", app->habits_guide_seen ? 1 : 0},
         {"exercise_manual_seen_mask", app->exercise_manual_seen_mask},
         {"theme", app->theme_id},
         {"dark_mode", app->dark_mode},
@@ -241,9 +242,10 @@ app_load_settings(InbeApp *app)
     {
         LoadedBoolSetting settings[] = {
             {&app->tutorial_seen, "tutorial_seen", 0},
+            {&app->habits_guide_seen, "habits_guide_seen", 0},
             {&app->dark_mode, "dark_mode", 0},
             {&app->fullscreen_enabled, "fullscreen", 0},
-#ifdef __ANDROID__
+#if INBE_ANDROID_BUILD
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 1},
 #else
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 0},
@@ -309,7 +311,7 @@ app_load_settings(InbeApp *app)
 
     load_language_setting(app, settings_missing);
 
-#if defined(__ANDROID__) || defined(PLATFORM_WEB)
+#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
     app->inbe.play_in_background =
         storage_get_setting_int("play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",

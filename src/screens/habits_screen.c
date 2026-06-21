@@ -27,6 +27,12 @@
 static void habits_add_seed(InbeHabits *habits, const char *id, const char *name,
                                  Color color, int activity_mask);
 
+enum {
+    HABITS_GUIDE_STEPS = 4,
+    HABITS_TOP_H = 58,
+    HABITS_TAB_H = 40
+};
+
 static void
 copy_text(char *dst, size_t dst_size, const char *src)
 {
@@ -858,6 +864,168 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             }
         }
     }
+}
+
+static void
+habits_screen_finish_first_run_guide(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->habits_guide_seen = 1;
+    app->habits_guide_step = 0;
+    save_settings(app);
+}
+
+int
+habits_screen_first_run_guide_active(const InbeApp *app)
+{
+    return app != NULL && !app->habits_guide_seen && !app->modal.active &&
+           app->inbe.screen == InbeScreenHabits;
+}
+
+void
+habits_screen_prepare_first_run_guide(InbeApp *app)
+{
+    int step;
+
+    if(!habits_screen_first_run_guide_active(app))
+        return;
+
+    step = clampi(app->habits_guide_step, 0, HABITS_GUIDE_STEPS - 1);
+    app->habits_guide_step = step;
+
+    if(step == 1) {
+        app->habits.tab = HABIT_TAB_EDIT;
+        app->habits.scroll = 0;
+        if(app->habits.count > 0) {
+            if(!app->habit_edit.active || app->habit_edit.index != app->habits.selected)
+                habit_edit_begin(app, app->habits.selected);
+        } else if(!app->habit_edit.active) {
+            habit_edit_begin_new(app);
+        }
+    } else if(step == 2) {
+        if(app->habit_edit.active)
+            habit_edit_cancel(app);
+        app->habits.tab = HABIT_TAB_WEEKLY;
+        app->habits.view_mode = HABIT_VIEW_WEEKLY;
+        app->habits.scroll = 0;
+    } else if(step == 3) {
+        if(app->habit_edit.active)
+            habit_edit_cancel(app);
+        app->habits.tab = HABIT_TAB_STATISTICS;
+        app->habits.scroll = 0;
+    } else {
+        if(app->habit_edit.active)
+            habit_edit_cancel(app);
+    }
+}
+
+static Rectangle
+habits_screen_dropdown_anchor(void)
+{
+    int side_padding = flint_px(12);
+    int dropdown_h = flint_px(36);
+    int dropdown_w = view_width - side_padding * 2;
+
+    if(dropdown_w > flint_px(260))
+        dropdown_w = flint_px(260);
+    if(dropdown_w < flint_px(150))
+        dropdown_w = view_width - side_padding * 2;
+    if(dropdown_w < 1)
+        dropdown_w = 1;
+
+    return (Rectangle){
+        (float)side_padding,
+        (float)((flint_px(HABITS_TOP_H) - dropdown_h) / 2),
+        (float)dropdown_w,
+        (float)dropdown_h
+    };
+}
+
+static Rectangle
+habits_screen_tab_anchor(int first_tab, int tab_count)
+{
+    int top_h = flint_px(HABITS_TOP_H);
+    int tab_h = flint_px(HABITS_TAB_H);
+    int tab_w = view_width / HABIT_TAB_COUNT;
+    int x = first_tab * tab_w;
+    int w = tab_count * tab_w;
+
+    if(first_tab + tab_count >= HABIT_TAB_COUNT)
+        w = view_width - x;
+    if(w < 1)
+        w = 1;
+
+    return (Rectangle){(float)x, (float)top_h, (float)w, (float)tab_h};
+}
+
+static Rectangle
+habits_screen_practice_list_anchor(void)
+{
+    int content_x;
+    int content_w;
+    int top_h = app_content_top_reserved(NULL) + flint_px(HABITS_TAB_H);
+    int y = top_h + flint_px(18);
+    int field_h = flint_px(40);
+    int section_h = ui_section_label_height((FlintUISectionLabel){0});
+
+    flint_centered_column(flint_px(CONTENT_MAX_W), flint_page_side_padding(),
+                          &content_x, &content_w);
+    y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
+    y += flint_px(32);
+    y += flint_px(34);
+
+    return (Rectangle){
+        (float)(content_x - flint_px(6)),
+        (float)(y - flint_px(6)),
+        (float)(content_w + flint_px(12)),
+        (float)(section_h + flint_px(8))
+    };
+}
+
+void
+habits_screen_draw_first_run_guide(InbeApp *app)
+{
+    FlintUIGuideStep steps[HABITS_GUIDE_STEPS];
+    FlintUIGuideResult result;
+
+    if(!habits_screen_first_run_guide_active(app))
+        return;
+
+    steps[0] = (FlintUIGuideStep){
+        habits_screen_dropdown_anchor(),
+        locale_get("habits_guide_dropdown")
+    };
+    steps[1] = (FlintUIGuideStep){
+        habits_screen_practice_list_anchor(),
+        locale_get("habits_guide_practice_list")
+    };
+    steps[2] = (FlintUIGuideStep){
+        habits_screen_tab_anchor(HABIT_TAB_WEEKLY, 2),
+        locale_get("habits_guide_views")
+    };
+    steps[3] = (FlintUIGuideStep){
+        habits_screen_tab_anchor(HABIT_TAB_STATISTICS, 1),
+        locale_get("habits_guide_statistics")
+    };
+
+    result = flint_ui_draw_guide_overlay((FlintUIGuideOverlay){
+        .steps = steps,
+        .count = HABITS_GUIDE_STEPS,
+        .step = &app->habits_guide_step,
+        .view_width = view_width,
+        .view_height = view_height,
+        .reserved_top = flint_px(HABITS_TOP_H + HABITS_TAB_H),
+        .reserved_bottom = ui_bottom_nav_height(),
+        .max_width = flint_px(300),
+        .paragraph_font = flint_ui_font_small(),
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .back_icon = app->icons[UI_ICON_TYPE_BACKWARD],
+        .next_icon = app->icons[UI_ICON_TYPE_FORWARD],
+        .done_icon = app->icons[UI_ICON_TYPE_CHECK]
+    });
+    if(result.closed || result.finished)
+        habits_screen_finish_first_run_guide(app);
 }
 
 static void

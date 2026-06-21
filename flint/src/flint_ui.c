@@ -1,4 +1,5 @@
 #include "flint_ui.h"
+#include "platform.h"
 #include "ui/ui.h"
 #include "flint_clip.h"
 #include "flint_dpi.h"
@@ -193,7 +194,7 @@ ui_input_captures_click(Vector2 point)
 int
 ui_hover_effects_enabled(void)
 {
-#if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
+#if INBE_ANDROID_BUILD
     return 0;
 #else
     return 1;
@@ -1716,7 +1717,6 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
                      const char *off_label, const char *on_label)
 {
     Vector2 mouse_world = ui_mouse_world();
-    int hover = 0;
     int min_touch = flint_px(36);
     int font = flint_ui_font();
     int off_w = flint_text_measure(off_label, font);
@@ -1730,7 +1730,6 @@ ui_draw_toggle_switch(int x, int y, int w, int h, int *value,
     Rectangle bounds = ui_centered_min_hit_rect(x, y, w, h, min_touch, min_touch);
 
     if(CheckCollisionPointRec(mouse_world, bounds) && !ui_input_captures_click(mouse_world)) {
-        hover = ui_hover_effects_enabled();
         ui_mark_clickable();
     }
 
@@ -1772,7 +1771,6 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
     int label_w = flint_text_measure(label, font);
     int label_h = flint_text_line_height(font);
     int row_h = box_size > label_h ? box_size : label_h;
-    int hover = 0;
     Rectangle bounds = {x, y, box_size + label_gap + label_w, row_h};
     Vector2 mouse_world = ui_mouse_world();
     Color box_color = disabled ? flint_darken(c_button, 18) : c_button;
@@ -1783,7 +1781,6 @@ ui_draw_checkbox_toggle_disabled(int x, int y, const char *label,
         if(disabled)
             ui_mark_disabled();
         else {
-            hover = ui_hover_effects_enabled();
             ui_mark_clickable();
         }
     }

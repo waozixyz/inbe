@@ -775,3 +775,15 @@ Usa la pestana del sol cuando estes listo para iniciar el ejercicio.
 [practice_guide_config]
 Cambia la configuracion de la practica segun tus necesidades.
 ---
+[habits_guide_dropdown]
+Selecciona habitos aqui o crea uno nuevo.
+---
+[habits_guide_practice_list]
+Un habito puede incluir datos de sesiones de tus practicas.
+---
+[habits_guide_views]
+Elige Semanal o Calendario para revisar tu habito.
+---
+[habits_guide_statistics]
+Consulta tus estadisticas de habitos aqui.
+---

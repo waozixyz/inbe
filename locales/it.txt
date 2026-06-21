@@ -773,3 +773,15 @@ Usa la scheda con il sole quando sei pronto per iniziare l'esercizio.
 [practice_guide_config]
 Modifica la configurazione della pratica in base alle tue esigenze.
 ---
+[habits_guide_dropdown]
+Seleziona qui le abitudini o creane una nuova.
+---
+[habits_guide_practice_list]
+Un'abitudine puo includere i dati delle sessioni delle tue pratiche.
+---
+[habits_guide_views]
+Scegli Settimanale o Calendario per rivedere l'abitudine.
+---
+[habits_guide_statistics]
+Visualizza qui le statistiche delle abitudini.
+---
