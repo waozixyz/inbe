@@ -258,6 +258,16 @@ jobs:
           restore-keys: |
             windows-apt-${{ runner.os }}-${{ runner.arch }}-
 
+      - name: Cache Windows vendor builds
+        uses: actions/cache@v4
+        with:
+          path: |
+            vendor-builds/windows
+            vendor-builds/sqlite
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/raylib/src/**', 'vendor/curl/**', 'vendor/sqlite/**') }}
+          restore-keys: |
+            windows-vendor-${{ runner.os }}-${{ runner.arch }}-
+
       - name: Install Windows Dependencies
         run: |
           set -euo pipefail
@@ -310,6 +320,29 @@ jobs:
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v3
+
+      - name: Cache Android SDK packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ${{ env.ANDROID_HOME }}/platforms/android-35
+            ${{ env.ANDROID_HOME }}/build-tools/34.0.0
+            ${{ env.ANDROID_HOME }}/ndk/25.1.8937393
+            ${{ env.ANDROID_HOME }}/ndk/28.2.13676358
+            ${{ env.ANDROID_HOME }}/cmake/3.22.1
+          key: android-sdk-${{ runner.os }}-${{ runner.arch }}-api35-bt34-ndk25-ndk28-cmake322
+          restore-keys: |
+            android-sdk-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Cache Android native build
+        uses: actions/cache@v4
+        with:
+          path: |
+            droid/app/.cxx
+            droid/app/build/intermediates/cxx
+          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'flint/src/**/*.c', 'flint/include/**/*.h', 'vendor/raylib/src/**') }}
+          restore-keys: |
+            android-native-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Android SDK Components
         run: |
