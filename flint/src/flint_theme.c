@@ -9,6 +9,7 @@
 static FlintThemeScope scopes[FLINT_THEME_MAX_SCOPES];
 static int scope_count = 0;
 static bool dark_mode = false;
+static int current_theme_id = FLINT_THEME_SKY;
 
 static FlintThemeAggregateVariable aggregate_vars[FLINT_THEME_MAX_VARS];
 static int aggregate_count = 0;
@@ -642,3 +643,27 @@ void flint_theme_reload_themes(void)
 
     flint_theme_aggregate_all();
 }
+
+void
+flint_theme_set_current(int theme_id, int current_dark_mode)
+{
+    current_theme_id = flint_theme_normalize(theme_id);
+    dark_mode = current_dark_mode != 0;
+}
+
+Color
+flint_theme_current_color(const char *key)
+{
+    Color color = BLANK;
+    flint_theme_catalog_color(flint_theme_normalize(current_theme_id),
+                              dark_mode, key, &color);
+    return color;
+}
+
+Color flint_theme_get_text(void) { return flint_theme_current_color("text"); }
+Color flint_theme_get_bg(void) { return flint_theme_current_color("background"); }
+Color flint_theme_get_surface(void) { return flint_theme_current_color("surface"); }
+Color flint_theme_get_circle(void) { return flint_theme_current_color("circle"); }
+Color flint_theme_get_button(void) { return flint_theme_current_color("button"); }
+Color flint_theme_get_button_hover(void) { return flint_theme_current_color("button_hover"); }
+Color flint_theme_get_icon(void) { return flint_theme_current_color("icon"); }

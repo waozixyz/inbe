@@ -4,7 +4,7 @@
 #include "data.h"
 #include "flint_locale.h"
 #include "meditation_music.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 
@@ -222,14 +222,14 @@ meditation_draw_setup_modal(InbeApp *app)
         btn_w = flint_px(64);
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, theme_get_surface());
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
+                  flint_lighten(flint_theme_get_surface(), 40), flint_darken(flint_theme_get_surface(), 40));
 
     title_font = flint_ui_title_font(locale_get("meditation_title"), modal_w - side * 2);
     title_w = flint_text_measure(locale_get("meditation_title"), title_font);
     flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
-                    modal_y + flint_px(16), title_font, theme_get_text());
+                    modal_y + flint_px(16), title_font, flint_theme_get_text());
 
     row_y = modal_y + flint_px(62);
     for(int i = 0; i < 3; i++) {
@@ -340,7 +340,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
     text_w = flint_text_measure(time_text, font);
     flint_text_draw(time_text, center_x - text_w / 2,
                     flint_ui_text_y(time_text, center_y - font, font * 2, font),
-                    font, theme_get_text());
+                    font, flint_theme_get_text());
 
     if(!(
 #if defined(PLATFORM_WEB)

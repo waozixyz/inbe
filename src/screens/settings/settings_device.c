@@ -5,7 +5,7 @@
 #include "device_preferences.h"
 #include "language_screen.h"
 #include "flint_locale.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 
 static int
@@ -23,10 +23,7 @@ settings_device_label_paragraph(const char *label, int w)
 {
     return (FlintUIParagraph){
         .text = label,
-        .font = flint_ui_font(),
-        .line_gap = flint_px(4),
-        .width = w,
-        .color = theme_get_text()
+        .width = w
     };
 }
 
@@ -149,7 +146,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
                                        APP_ORIENTATION_SYSTEM,
                                        orientation_max);
         flint_text_draw(locale_get("orientation_label"), x, *y,
-                        flint_ui_font(), theme_get_text());
+                        flint_ui_font(), flint_theme_get_text());
         ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
                                 orientation_options, orientation_option_count,
                                 &app->orientation_mode);

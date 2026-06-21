@@ -487,8 +487,7 @@ void ui_set_dropdown_clip_bottom(int bottom);
 int ui_draw_theme_switcher(int x, int y, int w, const char *label,
                            const char *light_label, const char *dark_label,
                            int *theme_id, int *dark_mode);
-int ui_draw_theme_picker(int x, int y, int w, const char *label,
-                         int dark_mode, int *theme_id);
+int ui_draw_theme_picker(int x, int y, int w, int dark_mode, int *theme_id);
 int ui_theme_picker_height(int w);
 void ui_draw_tutorial_image_placeholder(const char *label, int x, int y, int w, int h);
 void ui_draw_tutorial_image(Texture2D texture, const char *fallback, int x, int y, int w, int h);

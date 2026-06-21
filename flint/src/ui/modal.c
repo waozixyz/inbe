@@ -180,8 +180,7 @@ ui_paragraph_modal_height(FlintUIParagraphModalMeasure measure)
         .text = measure.message,
         .width = content_w,
         .font = font,
-        .line_gap = line_gap,
-        .color = c_text
+        .line_gap = line_gap
     };
     height = header_h +
              flint_ui_paragraph_height(paragraph) +

@@ -163,7 +163,6 @@ APP_SRCS := \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/practices/meditation/meditation_music.c \
-	src/core/theme.c \
 	src/storage/data.c \
 	src/storage/db.c \
 	src/storage/import.c \

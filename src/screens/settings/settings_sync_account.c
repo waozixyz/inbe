@@ -6,7 +6,7 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 #include <ctype.h>
@@ -269,11 +269,11 @@ static FlintUITextInputStyle
 settings_sync_text_style(void)
 {
     return (FlintUITextInputStyle){
-        .background = flint_darken(theme_get_bg(), 4),
-        .border = theme_get_button(),
-        .focus_border = theme_get_button_hover(),
-        .text = theme_get_text(),
-        .cursor = theme_get_text(),
+        .background = flint_darken(flint_theme_get_bg(), 4),
+        .border = flint_theme_get_button(),
+        .focus_border = flint_theme_get_button_hover(),
+        .text = flint_theme_get_text(),
+        .cursor = flint_theme_get_text(),
         .radius = 0.08f,
         .padding_x = flint_px(10)
     };
@@ -290,12 +290,12 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     int gap = flint_px(10);
     int hover = 0;
 
-    flint_text_draw(locale_get("sync_account_title"), x, *y, font, theme_get_text());
+    flint_text_draw(locale_get("sync_account_title"), x, *y, font, flint_theme_get_text());
     *y += flint_px(26);
 
     if(!sync_account_available()) {
         flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
-                        flint_darken(theme_get_text(), 35));
+                        flint_darken(flint_theme_get_text(), 35));
         *y += flint_px(32);
         return;
     }
@@ -317,7 +317,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     }
 
     flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
-                    flint_darken(theme_get_text(), 30));
+                    flint_darken(flint_theme_get_text(), 30));
     *y += flint_px(18);
     settings_draw_public_id_field(account.public_id, x, w, y, small_font,
                                   settings_sync_text_style());
@@ -365,7 +365,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
 
     if(!sync_account_available()) {
         flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
-                        flint_darken(theme_get_text(), 35));
+                        flint_darken(flint_theme_get_text(), 35));
         *y += flint_px(32);
         return;
     }
@@ -411,13 +411,13 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
 
     flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
-                    flint_darken(theme_get_text(), 30));
+                    flint_darken(flint_theme_get_text(), 30));
     *y += flint_px(18);
     settings_draw_public_id_field(account.public_id, x, w, y, small_font, input_style);
     *y += flint_px(8);
 
     flint_text_draw(locale_get("sync_remote_label"), x, *y, small_font,
-                    flint_darken(theme_get_text(), 30));
+                    flint_darken(flint_theme_get_text(), 30));
     *y += flint_px(18);
     flint_ui_text_field((FlintUITextField){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
@@ -486,7 +486,6 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
 {
     FlintUIPanelFrame frame;
     InbeSyncAccount account;
-    int font = flint_ui_font_small();
     int btn_h = flint_px(36);
     int gap = flint_px(10);
     int pad_bottom = flint_px(24);
@@ -502,10 +501,7 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
 
     warning = (FlintUIParagraph){
         .text = locale_get("sync_backup_warning"),
-        .width = flint_px(336) - flint_px(36),
-        .font = font,
-        .line_gap = flint_px(4),
-        .color = theme_get_text()
+        .width = flint_px(336) - flint_px(36)
     };
     modal_h = flint_px(58) +
               flint_ui_paragraph_height(warning) +

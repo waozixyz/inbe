@@ -7,7 +7,7 @@
 #include "flint_locale.h"
 #include "storage.h"
 #include "sync_account.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "version.h"
 #include "flint_theme_meta.h"
 #include "flint_ui.h"
@@ -180,7 +180,7 @@ settings_draw_import_choice_modal(InbeApp *app)
                                 (Texture2D){0}, (Texture2D){0});
     msg_x = frame.content_x;
     msg_y = frame.content_y;
-    flint_text_draw(message, msg_x, msg_y, font, theme_get_text());
+    flint_text_draw(message, msg_x, msg_y, font, flint_theme_get_text());
 
     btn_y = frame.y + frame.h - flint_px(24) - btn_h * 2 - row_gap;
     btn_w = (frame.content_w - row_gap) / 2;
@@ -424,7 +424,7 @@ settings_draw_version_centered(int x, int w, int *y)
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING);
     text_w = flint_text_measure(version_text, font);
     flint_text_draw(version_text, x + (w - text_w) / 2, *y, font,
-                    flint_darken(theme_get_text(), 40));
+                    flint_darken(flint_theme_get_text(), 40));
     *y += flint_px(22);
 }
 

@@ -57,4 +57,14 @@ void flint_theme_set_dark_mode(bool dark);
 bool flint_theme_get_dark_mode(void);
 void flint_theme_reload_themes(void);
 
+void flint_theme_set_current(int theme_id, int dark_mode);
+Color flint_theme_current_color(const char *key);
+Color flint_theme_get_text(void);
+Color flint_theme_get_bg(void);
+Color flint_theme_get_surface(void);
+Color flint_theme_get_circle(void);
+Color flint_theme_get_button(void);
+Color flint_theme_get_button_hover(void);
+Color flint_theme_get_icon(void);
+
 #endif

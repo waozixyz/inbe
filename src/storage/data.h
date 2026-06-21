@@ -22,7 +22,6 @@ typedef struct DataImportInfo {
 void data_init(void);
 const char *data_root(void);
 const char *data_today_dir(void);
-int data_save_session(const int *round_times, int round_count);
 int data_save_session_path(const int *round_times, int round_count, char *out_path, size_t out_path_size);
 int data_save_session_path_for_activity(const int *round_times, int round_count,
                                         int topic, int activity,

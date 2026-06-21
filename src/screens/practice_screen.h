@@ -11,7 +11,6 @@
 int practice_activity_count_for_tab(int tab);
 int practice_activity_for_tab(int tab, int index);
 const char *practice_activity_label(int exercise);
-int practice_activity_index_for_tab(int tab, int exercise);
 void practice_clamp_activity_to_tab(InbeApp *app);
 void practice_screen_open_tab(InbeApp *app, int tab);
 void practice_screen_draw_top_bar(InbeApp *app, int draw_menu);

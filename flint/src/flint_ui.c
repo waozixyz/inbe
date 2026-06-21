@@ -821,8 +821,8 @@ flint_ui_icon_button(FlintUIIconButton button)
     int draw_size = button.icon_size;
     Color background = button.background.a != 0 ? button.background : c_button;
     Color hover_background = button.hover_background.a != 0 ? button.hover_background : c_button_hover;
-    Color icon_color = button.icon_color.a != 0 ? button.icon_color : c_icon;
-    Color border = button.border.a != 0 ? button.border : flint_lighten(background, 32);
+    Color icon_color = button.icon_color.a != 0 ? button.icon_color : c_text;
+    Color border = button.border.a != 0 ? button.border : flint_darken(background, 35);
     float radius = button.radius > 0.0f ? button.radius : 0.12f;
 
     if(draw_size <= 0) {
@@ -983,8 +983,9 @@ flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y)
     if(y == NULL || paragraph.width <= 0)
         return;
     int font = paragraph.font > 0 ? paragraph.font : flint_ui_font();
+    Color color = paragraph.color.a != 0 ? paragraph.color : c_text;
     FlintTextLayout layout = flint_ui_paragraph_layout(paragraph);
-    flint_text_layout_draw(&layout, x, y, font, paragraph.color);
+    flint_text_layout_draw(&layout, x, y, font, color);
     flint_text_layout_free(&layout);
 }
 

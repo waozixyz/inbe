@@ -3,7 +3,7 @@
 #include "app.h"
 #include "flint_locale.h"
 #include "whm_session.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 
@@ -65,9 +65,9 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
     title_y = modal_y + flint_px(14);
 
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, theme_get_surface());
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(theme_get_surface(), 40), flint_darken(theme_get_surface(), 40));
+                  flint_lighten(flint_theme_get_surface(), 40), flint_darken(flint_theme_get_surface(), 40));
 
     title = locale_get("progressive_start_speed_editor_title");
     title_w = flint_text_measure(title, title_font);
@@ -76,7 +76,7 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
         title_font--;
         title_w = flint_text_measure(title, title_font);
     }
-    flint_text_draw(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, theme_get_text());
+    flint_text_draw(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, flint_theme_get_text());
 
     if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6), modal_y + flint_px(6),
                                close_size, close_padding, app->icons[UI_ICON_TYPE_X], &close_hover)) {
@@ -122,8 +122,7 @@ whm_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
         .bounds = {0, (float)y, (float)view_width, (float)h},
         .tabs = tabs,
         .count = tab_count,
-        .selected_index = selected_tab,
-        .font = flint_ui_font()
+        .selected_index = selected_tab
     });
 }
 
@@ -150,7 +149,7 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
                                         InbeBreathAnimationLinear,
                                         InbeBreathAnimationCount - 1);
 
-    flint_text_draw(locale_get("breath_animation_label"), content_x, y, flint_ui_font(), theme_get_text());
+    flint_text_draw(locale_get("breath_animation_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
     ui_draw_dropdown_button(104, content_x, y + flint_px(26), content_w, flint_px(36),
                             animation_options, InbeBreathAnimationCount,
                             &app->inbe.breath_animation);
@@ -182,7 +181,7 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
     }
     y += preview_padding + preview_radius * 2 + flint_px(102);
 
-    flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), theme_get_text());
+    flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
     if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &progressive_speed,
                              locale_get("toggle_off"), locale_get("toggle_on"))) {
         app->inbe.progressive_speed = progressive_speed;
@@ -249,11 +248,11 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
         app->settings_dirty = 1;
     }
     y += flint_px(66);
-    flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), theme_get_text());
+    flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
     y += flint_px(26);
     draw_hold_display_mode_selector(app, content_x, y, content_w);
     y += flint_px(52);
-    flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), theme_get_text());
+    flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
     if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &advanced_session_controls,
                              locale_get("toggle_off"), locale_get("toggle_on"))) {
         app->advanced_session_controls = advanced_session_controls;

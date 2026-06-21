@@ -112,7 +112,6 @@ add_library(main SHARED
     "${SRC_DIR}/screens/habits/edit.c"
     "${SRC_DIR}/screens/habits/session.c"
     "${SRC_DIR}/practices/meditation/meditation_music.c"
-    "${SRC_DIR}/core/theme.c"
     "${SRC_DIR}/storage/data.c"
     "${SRC_DIR}/storage/db.c"
     "${SRC_DIR}/storage/import.c"

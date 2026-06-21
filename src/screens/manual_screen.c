@@ -4,7 +4,7 @@
 #include "flint_locale.h"
 #include "flint_ui.h"
 #include "practices/practice_registry.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include <stdio.h>
 
 extern int view_width;
@@ -90,9 +90,9 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     inner_x = (view_width - inner_w) / 2;
     button_y = nav.y + (h - button_size) / 2;
 
-    DrawRectangle(0, nav.y, view_width, h, flint_darken(theme_get_bg(), 5));
+    DrawRectangle(0, nav.y, view_width, h, flint_darken(flint_theme_get_bg(), 5));
     DrawLine(0, nav.y + h - 1, view_width, nav.y + h - 1,
-             flint_darken(theme_get_bg(), 28));
+             flint_darken(flint_theme_get_bg(), 28));
 
     if(page > 0) {
         if(flint_ui_icon_button((FlintUIIconButton){
@@ -101,10 +101,6 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
                .icon = app->icons[UI_ICON_TYPE_BACKWARD],
                .icon_size = flint_px(20),
                .icon_padding = button_pad,
-               .background = theme_get_button(),
-               .hover_background = theme_get_button_hover(),
-               .icon_color = theme_get_text(),
-               .border = flint_darken(theme_get_button(), 35)
            })) {
             app->tutorial_step = page - 1;
             app->manual_scroll = 0;
@@ -115,7 +111,7 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     text_w = flint_text_measure(page_text, font);
     flint_text_draw(page_text, inner_x + (inner_w - text_w) / 2,
                     flint_text_y(page_text, nav.y, h, font), font,
-                    theme_get_text());
+                    flint_theme_get_text());
 
     if(flint_ui_icon_button((FlintUIIconButton){
            .bounds = {(float)(inner_x + inner_w - button_size), (float)button_y,
@@ -124,10 +120,6 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
                                                           : UI_ICON_TYPE_FORWARD],
            .icon_size = flint_px(20),
            .icon_padding = button_pad,
-           .background = theme_get_button(),
-           .hover_background = theme_get_button_hover(),
-           .icon_color = theme_get_text(),
-           .border = flint_darken(theme_get_button(), 35)
        })) {
         if(page == nav.page_count - 1) {
             if(nav.close != NULL)

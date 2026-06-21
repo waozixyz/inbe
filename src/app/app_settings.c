@@ -6,7 +6,7 @@
 #include "practices/meditation/meditation_music.h"
 #include "practices/whm/whm_session.h"
 #include "storage.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
 

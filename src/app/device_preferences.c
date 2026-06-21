@@ -1,5 +1,5 @@
 #include "device_preferences.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #if defined(PLATFORM_ANDROID) || defined(__ANDROID__) || defined(ANDROID)
 #include "android_device.h"
@@ -13,10 +13,10 @@
 void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
-    theme_set_current(theme_id, dark_mode);
-    ui_set_colors(theme_get_text(), theme_get_bg(), theme_get_surface(),
-                  theme_get_circle(), theme_get_button(), theme_get_button_hover(),
-                  theme_get_icon());
+    flint_theme_set_current(theme_id, dark_mode);
+    ui_set_colors(flint_theme_get_text(), flint_theme_get_bg(), flint_theme_get_surface(),
+                  flint_theme_get_circle(), flint_theme_get_button(), flint_theme_get_button_hover(),
+                  flint_theme_get_icon());
 }
 
 int

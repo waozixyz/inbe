@@ -6,7 +6,7 @@
 #include "flint_dpi.h"
 #include "flint_theme_meta.h"
 #include "flint_web.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "device_preferences.h"
 #include <stdarg.h>
 #include <stddef.h>
@@ -208,7 +208,7 @@ static void
 draw_full_frame(int width, int height)
 {
     BeginDrawing();
-    ClearBackground(theme_get_bg());
+    ClearBackground(flint_theme_get_bg());
     app_update_draw(&inbe_app, (Rectangle){
         0,
         0,

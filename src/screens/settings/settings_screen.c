@@ -6,7 +6,7 @@
 #include "settings_data.h"
 #include "settings_device.h"
 #include "settings_theme.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
 #include <stdio.h>
@@ -39,8 +39,7 @@ settings_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
         .bounds = {0, (float)y, (float)view_width, (float)h},
         .tabs = tabs,
         .count = tab_count,
-        .selected_index = selected_tab,
-        .font = flint_ui_font()
+        .selected_index = selected_tab
     });
 }
 
@@ -93,14 +92,14 @@ settings_draw_status(int x, int *y)
         return;
 
     status_font = flint_ui_font_small();
-    status_color = (unified_status_type == 2) ? RED : theme_get_text();
+    status_color = (unified_status_type == 2) ? RED : flint_theme_get_text();
 
     flint_text_draw(unified_status, x, *y, status_font, status_color);
     *y += flint_px(18);
 
     if(unified_detail[0] != '\0') {
         flint_text_draw(unified_detail, x, *y, status_font,
-                        flint_darken(theme_get_text(), 40));
+                        flint_darken(flint_theme_get_text(), 40));
         *y += flint_px(18);
     }
 }

@@ -191,13 +191,12 @@ ui_draw_theme_switcher(int x, int y, int w, const char *label,
 }
 
 int
-ui_draw_theme_picker(int x, int y, int w, const char *label, int dark_mode,
+ui_draw_theme_picker(int x, int y, int w, int dark_mode,
                      int *theme_id)
 {
     int changed = 0;
     int font = flint_ui_font();
 
-    flint_text_draw(label ? label : "Theme", x, y, font, c_text);
     if(ui_draw_theme_grid(x, y + flint_px(54), w, dark_mode != 0, theme_id))
         changed = 1;
 

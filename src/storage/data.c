@@ -130,12 +130,6 @@ data_save_session_path_for_activity(const int *round_times, int round_count,
 }
 
 int
-data_save_session(const int *round_times, int round_count)
-{
-    return data_save_session_path(round_times, round_count, NULL, 0);
-}
-
-int
 data_replace_session(const char *path, const int *round_times, int round_count)
 {
     data_init();

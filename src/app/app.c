@@ -18,7 +18,7 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
-#include "theme.h"
+#include "flint_theme.h"
 #include "flint_clip.h"
 #include "flint_ui.h"
 #include "flint_dpi.h"
@@ -935,7 +935,7 @@ app_draw_sidebar_button(InbeApp *app, int route, int x, int y, int w,
         DrawTexturePro(icon, (Rectangle){0, 0, icon.width, icon.height},
                        (Rectangle){x + flint_px(12), icon_y,
                                    icon_size, icon_size},
-                       (Vector2){0}, 0, theme_get_icon());
+                       (Vector2){0}, 0, flint_theme_get_icon());
     }
 }
 
@@ -956,8 +956,8 @@ app_draw_sidebar(InbeApp *app, int width, int height)
 
     if(app == NULL)
         return;
-    DrawRectangle(0, 0, width, height, flint_darken(theme_get_bg(), 8));
-    DrawLine(width - 1, 0, width - 1, height, flint_darken(theme_get_bg(), 42));
+    DrawRectangle(0, 0, width, height, flint_darken(flint_theme_get_bg(), 8));
+    DrawLine(width - 1, 0, width - 1, height, flint_darken(flint_theme_get_bg(), 42));
 
     if(app->sidebar_open) {
         int hover = 0;
@@ -979,7 +979,7 @@ app_draw_sidebar(InbeApp *app, int width, int height)
         title_x = width - pad - title_w;
     flint_text_draw(locale_get("app_title"), title_x,
                     flint_ui_text_y(locale_get("app_title"), 0, title_h, title_font),
-                    title_font, theme_get_text());
+                    title_font, flint_theme_get_text());
 
     app_draw_sidebar_button(app, APP_NAV_ROUTE_PRACTICE, pad, y, button_w,
                             app->icons[UI_ICON_TYPE_AMEN], locale_get("tab_practice"));
@@ -1897,7 +1897,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     app_device_preferences_update(app);
     app_refresh_theme(app);
 
-    DrawRectangleRec(viewport, theme_get_bg());
+    DrawRectangleRec(viewport, flint_theme_get_bg());
 
     if(APP_SIDEBAR_ENABLED && app->sidebar_open && !app_sidebar_is_wide_layout()) {
         app->camera = (Camera2D){0};
@@ -1907,7 +1907,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
         ui_set_frame(app->camera);
         flint_clip_begin((int)viewport.x, (int)viewport.y, full_width, full_height);
         BeginMode2D(app->camera);
-            DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
+            DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
             app_draw_sidebar(app, view_width, view_height);
         EndMode2D();
         flint_clip_end();
@@ -1950,7 +1950,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     flint_clip_begin((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
-            DrawRectangle(0, 0, view_width, view_height, theme_get_bg());
+            DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
             updateapp(app);
         EndMode2D();
     flint_clip_end();

@@ -95,19 +95,14 @@ habit_edit_info_modal(const char *title, const char *message)
 
     paragraph = (FlintUIParagraph){
         .text = message,
-        .width = flint_px(320) - flint_px(36),
-        .font = flint_ui_font(),
-        .line_gap = flint_px(4),
-        .color = theme_get_text()
+        .width = flint_px(320) - flint_px(36)
     };
     modal_h = ui_paragraph_modal_height((FlintUIParagraphModalMeasure){
         .message = message,
         .width = flint_px(320),
         .button_h = button_h,
-        .line_gap = flint_px(4),
         .extra_lines = 2,
-        .min_height = flint_px(196),
-        .font = flint_ui_font()
+        .min_height = flint_px(196)
     });
 
     frame = ui_draw_modal_frame(flint_px(320), modal_h, title,
@@ -227,11 +222,11 @@ static FlintUITextField
 habit_edit_text_field(InbeApp *app, int font)
 {
     FlintUITextInputStyle style = {
-        .background = flint_darken(theme_get_bg(), 4),
-        .border = theme_get_button(),
-        .focus_border = theme_get_button_hover(),
-        .text = theme_get_text(),
-        .cursor = theme_get_text(),
+        .background = flint_darken(flint_theme_get_bg(), 4),
+        .border = flint_theme_get_button(),
+        .focus_border = flint_theme_get_button_hover(),
+        .text = flint_theme_get_text(),
+        .cursor = flint_theme_get_text(),
         .radius = 0.08f,
         .padding_x = flint_px(10)
     };
@@ -265,11 +260,11 @@ habit_color_button(InbeApp *app, int x, int y, Color color, int selected)
 
     DrawCircle(x, y, radius, color);
     DrawCircleLines(x, y, radius + flint_px(2),
-                    selected ? theme_get_text() : flint_darken(theme_get_bg(), 42));
+                    selected ? flint_theme_get_text() : flint_darken(flint_theme_get_bg(), 42));
     if(active) {
         app->cursor_clickable = 1;
         if(hovered)
-            DrawCircleLines(x, y, radius + flint_px(5), theme_get_button_hover());
+            DrawCircleLines(x, y, radius + flint_px(5), flint_theme_get_button_hover());
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             return 1;
     }
@@ -340,8 +335,8 @@ draw_habit_edit_screen(InbeApp *app)
     title = app->habit_edit.is_new ? locale_get("habit_new_title") : locale_get("habit_edit_title");
 
     if(app->inbe.screen == InbeScreenHabitEdit) {
-        DrawRectangle(0, 0, view_width, top_h, theme_get_bg());
-        DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(theme_get_button(), 18));
+        DrawRectangle(0, 0, view_width, top_h, flint_theme_get_bg());
+        DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(flint_theme_get_button(), 18));
         if(!app->modal.active &&
            ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
                                    flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
@@ -353,7 +348,7 @@ draw_habit_edit_screen(InbeApp *app)
         title_w = flint_text_measure(title, title_font);
         flint_text_draw(title, (view_width - title_w) / 2,
                         flint_ui_text_y(title, 0, top_h, title_font),
-                        title_font, theme_get_text());
+                        title_font, flint_theme_get_text());
         if(!app->modal.active &&
            ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
                                    flint_px(24), flint_px(8), app->icons[UI_ICON_TYPE_CHECK], &hover)) {
@@ -433,13 +428,13 @@ draw_habit_edit_screen(InbeApp *app)
         .field = habit_edit_text_field(app, font),
         .field_h = field_h,
         .label_font = label_font,
-        .label_color = flint_darken(theme_get_text(), 34)
+        .label_color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y, content_w);
     habit_edit_clamp_cursor(app);
     y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
 
     flint_text_draw(locale_get("habit_underline_label"), content_x, y,
-                    label_font, flint_darken(theme_get_text(), 34));
+                    label_font, flint_darken(flint_theme_get_text(), 34));
     y += flint_px(32);
     color_options[0] = (Color){94, 166, 232, 255};
     color_options[1] = (Color){99, 196, 165, 255};
@@ -460,7 +455,7 @@ draw_habit_edit_screen(InbeApp *app)
     if(ui_draw_section_label((FlintUISectionLabel){
         .label = locale_get("habit_practice_list_title"),
         .info_button = 1,
-        .color = flint_darken(theme_get_text(), 34)
+        .color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y)) {
         app->modal.active = 1;
         app->modal.type = UIModalHabitPracticeListInfo;
@@ -488,7 +483,7 @@ draw_habit_edit_screen(InbeApp *app)
     if(ui_draw_section_label((FlintUISectionLabel){
         .label = locale_get("habit_counting_title"),
         .info_button = 1,
-        .color = flint_darken(theme_get_text(), 34)
+        .color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y)) {
         app->modal.active = 1;
         app->modal.type = UIModalHabitCountingInfo;
