@@ -234,14 +234,19 @@ practice_screen_finish_first_run_guide(InbeApp *app)
     save_settings(app);
 }
 
+int
+practice_screen_first_run_guide_active(const InbeApp *app)
+{
+    return app != NULL && !app->tutorial_seen && !app->modal.active &&
+           app->inbe.screen == InbeScreenStart;
+}
+
 void
 practice_screen_prepare_first_run_guide(InbeApp *app)
 {
     int step;
 
-    if(app == NULL || app->tutorial_seen || app->inbe.screen != InbeScreenStart)
-        return;
-    if(app->modal.active)
+    if(!practice_screen_first_run_guide_active(app))
         return;
 
     step = clampi(app->tutorial_step, 0, PRACTICE_GUIDE_STEPS - 1);
@@ -344,10 +349,9 @@ practice_screen_draw_first_run_guide(InbeApp *app)
     Rectangle tip;
     int y;
     int finish;
+    int close_size = flint_px(28);
 
-    if(app == NULL || app->tutorial_seen || app->modal.active)
-        return;
-    if(app->inbe.screen != InbeScreenStart)
+    if(!practice_screen_first_run_guide_active(app))
         return;
 
     steps[0] = (PracticeGuideStep){
@@ -392,7 +396,7 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         .icon = (Texture2D){0},
         .icon_type = UI_ICON_TYPE_NONE,
         .icon_size = 0,
-        .width = tip_w - pad * 2,
+        .width = tip_w - pad * 2 - close_size - flint_px(8),
         .font = font,
         .line_gap = flint_px(6),
         .color = theme_get_text(),
@@ -409,6 +413,25 @@ practice_screen_draw_first_run_guide(InbeApp *app)
     DrawRectangleRoundedLines(tip, 0.08f, 8,
                               flint_darken(theme_get_button(), 35));
     practice_screen_draw_guide_arrow(tip, steps[step].anchor);
+
+    if(flint_ui_icon_button((FlintUIIconButton){
+           .bounds = {
+               tip.x + tip.width - pad - close_size,
+               tip.y + pad,
+               (float)close_size,
+               (float)close_size
+           },
+           .icon = app->icons[UI_ICON_TYPE_X],
+           .icon_size = flint_px(16),
+           .icon_padding = flint_px(6),
+           .background = theme_get_button(),
+           .hover_background = theme_get_button_hover(),
+           .icon_color = theme_get_text(),
+           .border = flint_darken(theme_get_button(), 35)
+       })) {
+        practice_screen_finish_first_run_guide(app);
+        return;
+    }
 
     y = (int)tip.y + pad;
     flint_ui_paragraph_draw(paragraph, (int)tip.x + pad, &y);

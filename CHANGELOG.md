@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.9] - 2026-06-21
+### Fixed
+- Fix Practice startup, manual navigation, configuration scrolling, and sync backfill issues.
+- Add skip feature to on screen guide
+
 ## [1.4.8] - 2026-06-21
 ### Changed
 - Fixed start screen

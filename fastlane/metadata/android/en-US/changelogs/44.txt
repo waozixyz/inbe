@@ -1,0 +1,2 @@
+### Fixed
+- Fix Practice startup, manual navigation, configuration scrolling, and sync backfill issues.

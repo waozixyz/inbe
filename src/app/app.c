@@ -1738,6 +1738,7 @@ updateapp(InbeApp *app)
     int center_y = view_height / 2;
     int hover = 0;
     int frame_screen = app->inbe.screen;
+    int first_run_guide_active = 0;
 
     app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1748,9 +1749,14 @@ updateapp(InbeApp *app)
     if(app->practice_coming_soon_ticks > 0)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
+    first_run_guide_active = practice_screen_first_run_guide_active(app);
+    ui_set_input_blocked(first_run_guide_active);
 
     if(IsKeyPressed(KEY_BACK)) {
-        if(app->modal.active) {
+        if(first_run_guide_active) {
+            app->tutorial_step = 0;
+            practice_screen_prepare_first_run_guide(app);
+        } else if(app->modal.active) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
         } else {
@@ -1844,7 +1850,10 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
+    if(first_run_guide_active)
+        ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
+    ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);

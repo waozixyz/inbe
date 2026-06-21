@@ -15,6 +15,7 @@ int practice_activity_index_for_tab(int tab, int exercise);
 void practice_clamp_activity_to_tab(InbeApp *app);
 void practice_screen_open_tab(InbeApp *app, int tab);
 void practice_screen_draw_top_bar(InbeApp *app, int draw_menu);
+int practice_screen_first_run_guide_active(const InbeApp *app);
 void practice_screen_prepare_first_run_guide(InbeApp *app);
 void practice_screen_draw_first_run_guide(InbeApp *app);
 
