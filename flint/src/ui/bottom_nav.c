@@ -3,7 +3,7 @@
 int
 ui_bottom_nav_height(void)
 {
-    return flint_px(46);
+    return flint_px(40);
 }
 
 FlintUIBottomNavResult
@@ -14,7 +14,7 @@ ui_draw_bottom_nav(FlintUIBottomNav nav)
     int height = nav.height > 0 ? nav.height : ui_bottom_nav_height();
     int bottom_margin = nav.bottom_margin > 0 ? nav.bottom_margin : 0;
     int side_margin = nav.side_margin > 0 ? nav.side_margin : 0;
-    int icon_size = nav.icon_size > 0 ? nav.icon_size : flint_px(24);
+    int icon_size = nav.icon_size > 0 ? nav.icon_size : flint_px(22);
     int y = nav.view_height - bottom_margin - height;
     int available_w = nav.view_width - side_margin * 2;
     int tab_w;

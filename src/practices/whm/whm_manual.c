@@ -1,5 +1,6 @@
 #include "whm_practice.h"
 #include "app.h"
+#include "screens/manual_screen.h"
 #include "whm_session.h"
 #include "flint_locale.h"
 #include "theme.h"
@@ -153,7 +154,8 @@ whm_manual_close(InbeApp *app, int mark_seen)
         mark_exercise_manual_seen(app, EXERCISE_WIM_HOF);
     app->tutorial_step = 0;
     app->manual_scroll = 0;
-    app->inbe.screen = InbeScreenStart;
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    app_switch_screen(app, InbeScreenStart);
 }
 
 static void
@@ -168,39 +170,21 @@ manual_screen_start_exercise(InbeApp *app)
 void
 whm_manual_draw(InbeApp *app)
 {
-    int title_h = ui_screen_header_height();
-    int tab_h = flint_px(56);
-    int viewport_h = view_height - title_h - tab_h;
+    int integrated = app->inbe.screen == InbeScreenStart;
+    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
+    int nav_h = manual_screen_guide_nav_height();
+    int nav_y = view_height - app_content_bottom_reserved(app) - nav_h;
+    int content_y = title_h;
+    int viewport_h = nav_y - content_y;
     int body_font = flint_ui_font();
     int footer_content_pad = flint_ui_font() / 2;
     int content_area_h = viewport_h - footer_content_pad;  /* For scissor mode and scroll calculations */
-    int previous_step;
-    int content_x = 0;
-    int content_w = 0;
     const char *title = locale_get("tutorial_title");
-    int close_clicked = 0;
     int step = app->tutorial_step;
 
-    step = clampi(step, 0, (int)TUTORIAL_STEPS_COUNT - 1);
-    app->tutorial_step = step;
-    previous_step = step;
-
-    if(IsKeyPressed(KEY_RIGHT) || IsKeyPressed(KEY_ENTER)) {
-        if(step < (int)TUTORIAL_STEPS_COUNT - 1)
-            app->tutorial_step++;
-        else
-            manual_screen_start_exercise(app);
-    }
-    if(IsKeyPressed(KEY_LEFT) && step > 0)
-        app->tutorial_step--;
-    if(IsKeyPressed(KEY_ESCAPE))
-        whm_manual_close(app, 0);
-
-    step = app->tutorial_step;
-    if(previous_step != step) {
-        app->manual_scroll = 0;
-        previous_step = step;
-    }
+    step = manual_screen_guide_update_page(app, (int)TUTORIAL_STEPS_COUNT,
+                                           manual_screen_start_exercise,
+                                           whm_manual_close);
 
     switch(step) {
     case 1: title = locale_get("tutorial_method_title"); break;
@@ -210,8 +194,7 @@ whm_manual_draw(InbeApp *app)
     default: break;
     }
 
-    close_clicked = ui_draw_screen_header(title, 1);
-    if(close_clicked)
+    if(!integrated && ui_draw_screen_header(title, 1))
         whm_manual_close(app, 0);
 
     {
@@ -228,7 +211,7 @@ whm_manual_draw(InbeApp *app)
 
         page_ctx = (WhmManualScrollPageContext){app, step, body_font, top_padding};
         page = ui_scroll_page_begin((FlintUIScrollPageSpec){
-            .y = title_h,
+            .y = content_y,
             .height = content_area_h,
             .max_content_width = responsive_max_w,
             .min_content_width = flint_px(280),
@@ -237,38 +220,38 @@ whm_manual_draw(InbeApp *app)
             .user_data = &page_ctx
         });
 
-        content_x = page.content_x;
-        content_w = page.content_w;
         int y = page.content_y + top_padding;
         if(step == 0) {
             int img_h = flint_px(170);
-            ui_draw_tutorial_image(app->whm.image_1, "practices/whm/1.jpg", content_x, y, content_w, img_h);
+            ui_draw_tutorial_image(app->whm.image_1, "practices/whm/1.jpg",
+                                   page.content_x, y, page.content_w, img_h);
             y += img_h + flint_px(22);
 
-            draw_tutorial_paragraph(app, 0, content_x, &y, content_w, body_font);
+            draw_tutorial_paragraph(app, 0, page.content_x, &y, page.content_w, body_font);
         } else if(step == 1) {
-            draw_tutorial_paragraph(app, 1, content_x, &y, content_w, body_font);
+            draw_tutorial_paragraph(app, 1, page.content_x, &y, page.content_w, body_font);
         } else if(step == 2) {
             int speed = app->inbe.speed_level;
-            draw_tutorial_paragraph(app, 2, content_x, &y, content_w, body_font);
+            draw_tutorial_paragraph(app, 2, page.content_x, &y, page.content_w, body_font);
             y += flint_px(20);  /* Increased spacing between text and circle */
 
-            update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
+            update_preview_bounds(&app->settings_preview, page.content_w, flint_px(132));
             apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                            int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             app->settings_preview.progressive_speed = 0;
             inbestep(&app->settings_preview);
             if(app->settings_preview.phase != InbePhaseBreathe) {
                 reset_settings_preview(app);
-                update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
+                update_preview_bounds(&app->settings_preview, page.content_w, flint_px(132));
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
                 app->settings_preview.progressive_speed = 0;
             }
-            draw_preview_inbe(&app->settings_preview, content_x + content_w / 2, y + flint_px(40));
+            draw_preview_inbe(&app->settings_preview,
+                              page.content_x + page.content_w / 2, y + flint_px(40));
             y += (int)(app->settings_preview.rmax * 0.72f) + flint_px(54);
 
-            if(ui_draw_slider(10, content_x, y, content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
+            if(ui_draw_slider(10, page.content_x, y, page.content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
                 apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
@@ -281,54 +264,28 @@ whm_manual_draw(InbeApp *app)
             int hold_preview_radius = flint_px(54);
             int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
             int breath_button_hover = 0;
-            int center_x = content_x + content_w / 2;
+            int center_x = page.content_x + page.content_w / 2;
             y += hold_preview_extent;
             draw_tutorial_hold_preview(app, center_x, y, hold_preview_radius);
             y += hold_preview_extent + flint_px(24);
             ui_draw_text_btn(center_x, y, locale_get("breath_button"), &breath_button_hover);
             y += flint_px(42) + flint_px(18);
-            draw_tutorial_paragraph(app, 3, content_x, &y, content_w, body_font);
+            draw_tutorial_paragraph(app, 3, page.content_x, &y, page.content_w, body_font);
         } else {
-            draw_tutorial_paragraph(app, 4, content_x, &y, content_w, body_font);
+            draw_tutorial_paragraph(app, 4, page.content_x, &y, page.content_w, body_font);
         }
         ui_scroll_page_end(page);
     }
 
-    const char *left_label = step == 0 ? locale_get("tutorial_skip_button") : locale_get("tutorial_back_button");
-    const char *right_label = step == (int)TUTORIAL_STEPS_COUNT - 1 ? locale_get("tutorial_start_button") : locale_get("tutorial_next_button");
-    int footer_gap = flint_px(10);
-    int button_h = flint_px(34);
-    int footer_y = view_height - flint_px(38);
-    FlintUIButtonRowItem footer_buttons[2] = {
-        {left_label, UI_BUTTON_STYLE_PRIMARY, 0},
-        {right_label, UI_BUTTON_STYLE_PRIMARY, 0}
-    };
-    int footer_clicked;
-
-    footer_clicked = ui_draw_button_row((FlintUIButtonRow){
-        .x = content_x,
-        .y = footer_y,
-        .width = content_w,
-        .height = button_h,
-        .gap = footer_gap,
-        .items = footer_buttons,
-        .count = 2
+    manual_screen_guide_draw_nav(app, (ManualGuideNav){
+        .page = step,
+        .page_count = (int)TUTORIAL_STEPS_COUNT,
+        .y = nav_y,
+        .h = nav_h,
+        .show_left_on_first = 1,
+        .start = manual_screen_start_exercise,
+        .close = whm_manual_close
     });
-    if(footer_clicked == 0) {
-        if(step == 0)
-            manual_screen_start_exercise(app);
-        else {
-            app->tutorial_step--;
-            app->manual_scroll = 0;
-        }
-    } else if(footer_clicked == 1) {
-        if(step == (int)TUTORIAL_STEPS_COUNT - 1)
-            manual_screen_start_exercise(app);
-        else {
-            app->tutorial_step++;
-            app->manual_scroll = 0;
-        }
-    }
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
         app->settings_drag_slider = 0;

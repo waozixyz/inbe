@@ -1,0 +1,2 @@
+build-essential
+zlib1g-dev

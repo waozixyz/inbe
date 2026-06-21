@@ -1,0 +1,3 @@
+### Changed
+- Rework Practice into Manual, start, and configuration tabs with a new localized first-run guide.
+- Simplify Meditation's manual to one page and make bottom navigation more compact.

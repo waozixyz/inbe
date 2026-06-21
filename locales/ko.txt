@@ -760,3 +760,15 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [reset_button]
 초기화
 ---
+[practice_guide_dropdown]
+여기에서 연습을 선택하세요.
+---
+[practice_guide_manual]
+연습을 시작하기 전에 튜토리얼을 읽고 전체 운동을 이해하세요.
+---
+[practice_guide_sun]
+운동을 시작할 준비가 되면 태양 탭을 사용하세요.
+---
+[practice_guide_config]
+필요에 맞게 연습 설정을 변경하세요.
+---

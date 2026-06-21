@@ -207,7 +207,7 @@ session_start(InbeApp *app)
     app->saved_pause_seconds = app->inbe.pause_seconds;
     app->inbe.pause_seconds = 3;
     session_update_circle_bounds_for_view(&app->inbe, 0, flint_px(56) + 80);
-    app->inbe.screen = InbeScreenSession;
+    app_switch_screen(app, InbeScreenSession);
     app->session_paused = 0;
     app->results_saved = 0;
     app->results_path[0] = '\0';
@@ -334,7 +334,7 @@ finish_round(InbeApp *app)
 #ifdef __ANDROID__
             android_allow_screen_off();
 #endif
-            app->inbe.screen = InbeScreenResults;
+            app_switch_screen(app, InbeScreenResults);
         } else {
             app_init(app);
         }

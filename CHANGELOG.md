@@ -1,4 +1,9 @@
 # Changelog
+## [1.4.7] - 2026-06-21
+### Changed
+- Rework Practice into Manual, start, and configuration tabs with a new localized first-run guide.
+- Simplify Meditation's manual to one page and make bottom navigation more compact.
+
 ## [1.4.6] - 2026-06-20
 ### Changed
 - Move habit weekly, monthly, statistics, and edit views into icon tabs under the habit selector.

@@ -715,6 +715,19 @@ EM_JS(int, sync_web_fetch_poll_js,
 EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
     const url = UTF8ToString(url_ptr);
     const now = Date.now();
+    function scheduleRetry() {
+        const failures = Math.min((Module.__inbeSyncWebSocketFailures || 0) + 1, 8);
+        Module.__inbeSyncWebSocketFailures = failures;
+        Module.__inbeSyncWebSocketRetryAt = Date.now() +
+            Math.min(300000, 2000 * Math.pow(2, failures - 1));
+    }
+    function logSocketError(event) {
+        const logAt = Module.__inbeSyncWebSocketLogAt || 0;
+        if(Date.now() < logAt)
+            return;
+        Module.__inbeSyncWebSocketLogAt = Date.now() + 60000;
+        console.warn("Inbe sync WebSocket unavailable; remote sync events will retry in the background.", event);
+    }
     if(Module.__inbeSyncWebSocket &&
        Module.__inbeSyncWebSocketUrl === url &&
        (Module.__inbeSyncWebSocket.readyState === WebSocket.OPEN ||
@@ -732,6 +745,8 @@ EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
         Module.__inbeSyncWebSocket = ws;
         ws.onopen = function() {
             Module.__inbeSyncWebSocketRetryAt = 0;
+            Module.__inbeSyncWebSocketFailures = 0;
+            Module.__inbeSyncWebSocketLogAt = 0;
             console.info("Inbe sync WebSocket connected");
         };
         ws.onmessage = function(event) {
@@ -744,18 +759,20 @@ EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
                     Module.__inbeSyncWebSocketEvent = 1;
             }
         };
-        ws.onclose = function() {
+        ws.onclose = function(event) {
             if(Module.__inbeSyncWebSocket === ws)
                 Module.__inbeSyncWebSocket = null;
-            Module.__inbeSyncWebSocketRetryAt = Date.now() + 2000;
+            scheduleRetry();
+            if(ws.__inbeHadError)
+                logSocketError(event);
         };
         ws.onerror = function(event) {
-            console.warn("Inbe sync WebSocket error:", event);
+            ws.__inbeHadError = true;
         };
         return 1;
     } catch(e) {
-        console.warn("Inbe sync WebSocket failed:", e);
-        Module.__inbeSyncWebSocketRetryAt = Date.now() + 2000;
+        scheduleRetry();
+        logSocketError(e);
         return 0;
     }
 });

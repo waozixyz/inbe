@@ -761,3 +761,15 @@ Wim Hof 屏息轮次
 [reset_button]
 重置
 ---
+[practice_guide_dropdown]
+在这里选择你的练习。
+---
+[practice_guide_manual]
+开始练习前请先阅读教程，了解完整的练习流程。
+---
+[practice_guide_sun]
+准备开始练习时，请使用太阳标签。
+---
+[practice_guide_config]
+根据你的需要调整练习配置。
+---

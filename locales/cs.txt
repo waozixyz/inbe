@@ -763,3 +763,15 @@ Položka 8
 [reset_button]
 Obnovit
 ---
+[practice_guide_dropdown]
+Zde si vyberte praxi.
+---
+[practice_guide_manual]
+Pred zahajenim praxe si prectete navod, abyste porozumeli celemu cviceni.
+---
+[practice_guide_sun]
+Az budete pripraveni zacit cviceni, pouzijte kartu se sluncem.
+---
+[practice_guide_config]
+Upravte konfiguraci praxe podle svych potreb.
+---

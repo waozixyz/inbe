@@ -730,7 +730,7 @@ habit_open_linked_edit_page(InbeApp *app, int habit_index, int day_index)
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
     app->modal.active = 0;
     app->modal.type = 0;
-    app->inbe.screen = InbeScreenHabitSessionEdit;
+    app_switch_screen(app, InbeScreenHabitSessionEdit);
 }
 
 static void

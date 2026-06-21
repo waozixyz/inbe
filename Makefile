@@ -241,7 +241,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -292,6 +292,11 @@ vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(
 
 run: $(TARGET)
 	./$(TARGET)
+
+run-fresh: $(TARGET)
+	@root=$$(mktemp -d /tmp/inbe-fresh.XXXXXX); \
+	echo "INBE_DATA_ROOT=$$root"; \
+	INBE_DATA_ROOT="$$root" ./$(TARGET)
 
 screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
@@ -987,7 +992,7 @@ clean-linux:
 clean-vendor-builds:
 	rm -rf $(VENDOR_BUILD_DIR)
 
-NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
+NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop')

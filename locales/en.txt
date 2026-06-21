@@ -764,3 +764,15 @@ Item 8
 [reset_button]
 Reset
 ---
+[practice_guide_dropdown]
+Choose your practice here.
+---
+[practice_guide_manual]
+Read the tutorial before starting a practice so you understand the full exercise.
+---
+[practice_guide_sun]
+Use the sun tab when you are ready to start the exercise.
+---
+[practice_guide_config]
+Change the practice configuration to meet your standards.
+---
