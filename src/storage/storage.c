@@ -1759,6 +1759,7 @@ storage_habits_load(void *habits_ptr)
     while(index < INBE_HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
         InbeHabit *habit = &habits->items[index];
         snprintf(habit->id, sizeof(habit->id), "%s", (const char *)sqlite3_column_text(stmt, 0));
+        snprintf(habits->loaded_ids[index], sizeof(habits->loaded_ids[index]), "%s", habit->id);
         snprintf(habit->name, sizeof(habit->name), "%s", (const char *)sqlite3_column_text(stmt, 1));
         habit->color = (Color){(unsigned char)sqlite3_column_int(stmt, 2),
                                (unsigned char)sqlite3_column_int(stmt, 3),
@@ -1770,6 +1771,7 @@ storage_habits_load(void *habits_ptr)
     }
     sqlite3_finalize(stmt);
     habits->count = index;
+    habits->loaded_count = index;
 
     for(int i = 0; i < habits->count; i++) {
         if(sqlite3_prepare_v2(g_storage.db,
@@ -1814,7 +1816,21 @@ storage_habits_save(const void *habits_ptr)
     storage_mark_habits_initialized();
     exec_sql("BEGIN IMMEDIATE");
     exec_sql("CREATE TEMP TABLE IF NOT EXISTS sync_seen_habits(id TEXT PRIMARY KEY);"
-             "DELETE FROM sync_seen_habits;");
+             "CREATE TEMP TABLE IF NOT EXISTS sync_loaded_habits(id TEXT PRIMARY KEY);"
+             "DELETE FROM sync_seen_habits;"
+             "DELETE FROM sync_loaded_habits;");
+    for(int i = 0; i < habits->loaded_count && i < INBE_HABIT_MAX; i++) {
+        if(habits->loaded_ids[i][0] == '\0')
+            continue;
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "INSERT OR IGNORE INTO sync_loaded_habits(id) VALUES(?1)",
+                              -1, &stmt, NULL) != SQLITE_OK)
+            continue;
+        bind_text(stmt, 1, habits->loaded_ids[i]);
+        sqlite3_step(stmt);
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
     for(int i = 0; i < habits->count; i++) {
         const InbeHabit *habit = &habits->items[i];
         if(sqlite3_prepare_v2(g_storage.db,
@@ -1888,6 +1904,7 @@ storage_habits_save(const void *habits_ptr)
     }
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT id FROM habits WHERE user_id=?1 AND deleted_at=0 "
+                          "AND id IN (SELECT id FROM sync_loaded_habits) "
                           "AND id NOT IN (SELECT id FROM sync_seen_habits)",
                           -1, &stmt, NULL) == SQLITE_OK) {
         char deleted_ids[INBE_HABIT_MAX][INBE_STORAGE_ID_SIZE];
@@ -1914,6 +1931,7 @@ storage_habits_save(const void *habits_ptr)
         }
     }
     exec_sql("DELETE FROM sync_seen_habits;");
+    exec_sql("DELETE FROM sync_loaded_habits;");
     exec_sql("COMMIT");
     storage_materialize_session_habit_days();
     storage_schedule_persist();

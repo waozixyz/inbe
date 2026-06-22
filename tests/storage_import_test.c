@@ -500,6 +500,48 @@ test_sync_apply_updates_habit_counter_enabled(void)
 }
 
 static void
+test_stale_habit_save_keeps_synced_remote_habits(void)
+{
+    char root[512];
+    InbeHabits stale_habits;
+    InbeHabits loaded_habits;
+    const char *remote_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":["
+        "{\"id\":\"habit-2\",\"name\":\"Push ups\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":1,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"},"
+        "{\"id\":\"habit-3\",\"name\":\"Cold Shower\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":2,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"}"
+        "],\"habit_days\":["
+        "{\"habit_id\":\"habit-2\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "\"updated_at\":\"2026-06-19T21:00:00Z\"},"
+        "{\"habit_id\":\"habit-3\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "\"updated_at\":\"2026-06-19T21:01:00Z\"}"
+        "],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-stale-habit-save");
+    check_true("init stale habit save db", storage_init(root));
+    memset(&stale_habits, 0, sizeof(stale_habits));
+    habits_add_default_set(&stale_habits);
+
+    check_true("apply remote habits behind stale UI",
+               storage_apply_sync_response_json(remote_response));
+    habits_save(&stale_habits);
+
+    memset(&loaded_habits, 0, sizeof(loaded_habits));
+    check_true("load habits after stale save", storage_habits_load(&loaded_habits));
+    check_int("stale save keeps remote habit rows", loaded_habits.count, 3);
+    check_true("remote push ups survived", find_habit_ci(&loaded_habits, "Push ups") != NULL);
+    check_true("remote cold shower survived", find_habit_ci(&loaded_habits, "Cold Shower") != NULL);
+
+    habits_free(&stale_habits);
+    habits_free(&loaded_habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_apply_preserves_queued_habit_counter_enabled(void)
 {
     char root[512];
@@ -1291,6 +1333,7 @@ main(void)
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
     test_sync_apply_updates_habit_counter_enabled();
+    test_stale_habit_save_keeps_synced_remote_habits();
     test_sync_apply_preserves_queued_habit_counter_enabled();
     test_session_linked_counts_materialize_for_sync();
     test_existing_sessions_materialize_after_habit_save();

@@ -235,6 +235,14 @@ habits_save(InbeHabits *habits)
     if(habits != NULL)
         habits->dirty = 0;
     storage_habits_save(habits);
+    if(habits != NULL) {
+        habits->loaded_count = habits->count;
+        for(int i = 0; i < habits->loaded_count; i++)
+            copy_text(habits->loaded_ids[i], sizeof(habits->loaded_ids[i]),
+                      habits->items[i].id);
+        for(int i = habits->loaded_count; i < INBE_HABIT_MAX; i++)
+            habits->loaded_ids[i][0] = '\0';
+    }
     return;
 }
 
@@ -804,9 +812,9 @@ habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
         };
     }
 
-    // Add "Add new habit" option as last tab
+    // Add "+" option as last tab
     tabs[tab_count++] = (FlintUITab){
-        .label = locale_get("habit_add_new_option"),
+        .label = NULL,
         .icon = app->icons[UI_ICON_TYPE_PLUS],
         .icon_size = flint_px(16),
         .disabled = app->modal.active
@@ -817,8 +825,8 @@ habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
         .tabs = tabs,
         .count = tab_count,
         .selected_index = app->habits.selected,
-        .min_tab_width = flint_px(120),
-        .max_tab_width = flint_px(180)
+        .min_tab_width = flint_px(100),
+        .max_tab_width = flint_px(160)
     });
 }
 

@@ -157,25 +157,27 @@ ui_draw_tab_bar(FlintUITabBar bar)
     static int last_selected_index = -1;
 
     if(needs_scroll) {
-        // Auto-scroll to selected tab only when selection changes
-        if(bar.selected_index >= 0 && bar.selected_index < bar.count &&
-           bar.selected_index != last_selected_index) {
-            last_selected_index = bar.selected_index;
-
+        // Always ensure selected tab is visible when drawing
+        if(bar.selected_index >= 0 && bar.selected_index < bar.count) {
             int selected_tab_x = start_x + bar.selected_index * (tab_w + tab_gap) - scroll_offset;
             int selected_tab_end = selected_tab_x + tab_w;
 
+            // Scroll if selected tab is not visible
             if(selected_tab_x < bar_x) {
                 scroll_offset -= (bar_x - selected_tab_x) + tab_gap;
+                // Clamp after auto-scroll
+                if(scroll_offset < 0)
+                    scroll_offset = 0;
+                if(scroll_offset > max_scroll)
+                    scroll_offset = max_scroll;
             } else if(selected_tab_end > bar_x + bar_w) {
                 scroll_offset += (selected_tab_end - (bar_x + bar_w)) + tab_gap;
+                // Clamp after auto-scroll
+                if(scroll_offset < 0)
+                    scroll_offset = 0;
+                if(scroll_offset > max_scroll)
+                    scroll_offset = max_scroll;
             }
-
-            // Clamp after auto-scroll
-            if(scroll_offset < 0)
-                scroll_offset = 0;
-            if(scroll_offset > max_scroll)
-                scroll_offset = max_scroll;
         }
 
         // Handle manual drag scrolling

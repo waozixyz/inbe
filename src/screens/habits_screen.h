@@ -61,7 +61,9 @@ typedef struct InbeHabit {
 
 typedef struct InbeHabits {
     InbeHabit items[INBE_HABIT_MAX];
+    char loaded_ids[INBE_HABIT_MAX][INBE_HABIT_ID_SIZE];
     int count;
+    int loaded_count;
     int selected;
     int scroll;
     int month_offset;
