@@ -55,6 +55,9 @@
 [meditation_music_section_title]
 背景音楽
 ---
+[meditation_music_master_toggle]
+メディテーション音楽
+---
 [meditation_music_enabled_label]
 背景音楽を再生
 ---
@@ -65,13 +68,13 @@
 曲
 ---
 [meditation_music_download_button]
-音声をダウンロード
+音楽をダウンロード
 ---
 [meditation_music_redownload_button]
-音声を再ダウンロード
+音楽を再ダウンロード
 ---
 [meditation_music_test_button]
-試聴
+音楽をテスト
 ---
 [meditation_music_stop_test_button]
 テスト停止
@@ -80,7 +83,7 @@
 ネットワークを利用できません
 ---
 [meditation_music_network_error_message]
-瞑想音声サーバーに接続できませんでした。Android のネットワーク権限とインターネット接続を確認してから、もう一度お試しください。
+瞑想音楽サーバーに接続できませんでした。Android のネットワーク権限とインターネット接続を確認してから、もう一度お試しください。
 ---
 [duration_5m]
 5分

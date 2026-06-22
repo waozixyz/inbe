@@ -17,6 +17,7 @@ typedef struct {
 
 void android_insets_init(void);
 void android_insets_get(AndroidInsets *out);
+int android_insets_is_initialized(void);
 void android_wakelock_set_activity(JNIEnv *env, jobject activity);
 #else
 typedef struct {

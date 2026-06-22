@@ -55,6 +55,9 @@ Música de meditación
 [meditation_music_section_title]
 Música de fondo
 ---
+[meditation_music_master_toggle]
+Música de meditación
+---
 [meditation_music_enabled_label]
 Reproducir música de fondo
 ---
@@ -65,13 +68,13 @@ Pista aleatoria
 Pista
 ---
 [meditation_music_download_button]
-Descargar audio
+Descargar música
 ---
 [meditation_music_redownload_button]
-Descargar audio de nuevo
+Descargar música de nuevo
 ---
 [meditation_music_test_button]
-Probar reproducción
+Probar música
 ---
 [meditation_music_stop_test_button]
 Detener prueba
@@ -80,7 +83,7 @@ Detener prueba
 Red no disponible
 ---
 [meditation_music_network_error_message]
-No se pudo acceder al servidor de audio de meditación. Revisa los permisos de red de Android y tu conexión a internet, e inténtalo de nuevo.
+No se pudo acceder al servidor de música de meditación. Revisa los permisos de red de Android y tu conexión a internet, e inténtalo de nuevo.
 ---
 [duration_5m]
 5 min

@@ -55,6 +55,9 @@ Musik meditasi
 [meditation_music_section_title]
 Musik latar
 ---
+[meditation_music_master_toggle]
+Musik meditasi
+---
 [meditation_music_enabled_label]
 Putar musik latar
 ---
@@ -65,13 +68,13 @@ Trek acak
 Trek
 ---
 [meditation_music_download_button]
-Unduh audio
+Unduh musik
 ---
 [meditation_music_redownload_button]
-Unduh ulang audio
+Unduh ulang musik
 ---
 [meditation_music_test_button]
-Coba putar
+Coba musik
 ---
 [meditation_music_stop_test_button]
 Hentikan tes
@@ -80,7 +83,7 @@ Hentikan tes
 Jaringan tidak tersedia
 ---
 [meditation_music_network_error_message]
-Tidak dapat menjangkau server audio meditasi. Periksa izin jaringan Android dan koneksi internetmu, lalu coba lagi.
+Tidak dapat menjangkau server musik meditasi. Periksa izin jaringan Android dan koneksi internetmu, lalu coba lagi.
 ---
 [duration_5m]
 5 mnt

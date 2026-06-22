@@ -55,6 +55,9 @@ Meditationsmusik
 [meditation_music_section_title]
 Hintergrundmusik
 ---
+[meditation_music_master_toggle]
+Meditationsmusik
+---
 [meditation_music_enabled_label]
 Hintergrundmusik abspielen
 ---
@@ -65,13 +68,13 @@ Zufälliger Titel
 Titel
 ---
 [meditation_music_download_button]
-Audio herunterladen
+Musik herunterladen
 ---
 [meditation_music_redownload_button]
-Audio erneut herunterladen
+Musik erneut herunterladen
 ---
 [meditation_music_test_button]
-Testwiedergabe
+Musik testen
 ---
 [meditation_music_stop_test_button]
 Test stoppen
@@ -80,7 +83,7 @@ Test stoppen
 Netzwerk nicht verfügbar
 ---
 [meditation_music_network_error_message]
-Der Meditations-Audioserver konnte nicht erreicht werden. Prüfe die Android-Netzwerkberechtigungen und deine Internetverbindung und versuche es erneut.
+Der Meditations-Musikserver konnte nicht erreicht werden. Prüfe die Android-Netzwerkberechtigungen und deine Internetverbindung und versuche es erneut.
 ---
 [duration_5m]
 5 Min.

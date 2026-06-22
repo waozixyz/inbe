@@ -619,76 +619,84 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
        app->meditation.music_track >= MEDITATION_MUSIC_TRACK_COUNT)
         app->meditation.music_track = 0;
 
-    if(!app->meditation.music_enabled) {
-        app->meditation.music_enabled = 1;
-        app->settings_dirty = 1;
-    }
-
-    flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
+    // Master music enable/disable toggle
+    flint_text_draw(locale_get("meditation_music_master_toggle"), content_x, *y, flint_ui_font(), flint_theme_get_text());
     if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
-                             &app->meditation.music_shuffle,
+                             &app->meditation.music_enabled,
                              locale_get("toggle_off"), locale_get("toggle_on"))) {
         app->settings_dirty = 1;
         meditation_music_unload(app);
     }
     *y += flint_px(76);
 
-    if(!app->meditation.music_shuffle) {
-        flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
-        if(ui_draw_dropdown_button(401, content_x, *y + flint_px(24), content_w, flint_px(36),
-                                   g_track_options, MEDITATION_MUSIC_TRACK_COUNT,
-                                   &app->meditation.music_track)) {
+    // Only show music options if music is enabled
+    if(app->meditation.music_enabled) {
+        flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
+        if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
+                                 &app->meditation.music_shuffle,
+                                 locale_get("toggle_off"), locale_get("toggle_on"))) {
             app->settings_dirty = 1;
             meditation_music_unload(app);
         }
-        *y += flint_px(74);
-    }
+        *y += flint_px(76);
 
-    installed = meditation_music_available(app);
-    if(installed) {
-        test_label = app->meditation.music_playing ?
-                         locale_get("meditation_music_stop_test_button") :
-                         locale_get("meditation_music_test_button");
-        button_w = flint_text_measure(test_label, flint_ui_font()) + flint_px(24);
-        if(button_w > content_w)
-            button_w = content_w;
-        if(ui_draw_generic_button(content_x, *y, button_w, button_h,
-                                  test_label,
-                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover))
-            meditation_music_test_track(app);
-        *y += button_h + flint_px(12);
-    }
-
-    if(download_supported() && (!installed || show_installed_download)) {
-        button_w = flint_text_measure(locale_get(installed ? "meditation_music_redownload_button"
-                                                           : "meditation_music_download_button"),
-                                      flint_ui_font()) + flint_px(24);
-        if(button_w > content_w)
-            button_w = content_w;
-        if(ui_draw_generic_button(content_x, *y, button_w, button_h,
-                                  locale_get(installed ? "meditation_music_redownload_button"
-                                                       : "meditation_music_download_button"),
-                                  UI_BUTTON_STYLE_PRIMARY, 0, &hover))
-            start_download(app);
-        *y += button_h + flint_px(12);
-    }
-
-    if(show_status && (!installed || app->meditation.music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
-        if(app->meditation.music_download.status == FLINT_RUNTIME_ASSET_DOWNLOADING) {
-            format_download_status(download_status, sizeof(download_status),
-                                   &app->meditation.music_download);
-            flint_text_draw(download_status, content_x, *y, flint_ui_font(), flint_theme_get_text());
-            *y += flint_px(28);
-            draw_download_progress(app, content_x, *y, content_w);
-            *y += flint_px(22);
-        } else {
-            flint_text_draw(app->meditation.music_status, content_x, *y, flint_ui_font(), flint_theme_get_text());
-            *y += flint_px(34);
+        if(!app->meditation.music_shuffle) {
+            flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
+            if(ui_draw_dropdown_button(401, content_x, *y + flint_px(24), content_w, flint_px(36),
+                                       g_track_options, MEDITATION_MUSIC_TRACK_COUNT,
+                                       &app->meditation.music_track)) {
+                app->settings_dirty = 1;
+                meditation_music_unload(app);
+            }
+            *y += flint_px(74);
         }
-    }
 
-    draw_music_attribution(content_x, content_w, y);
-    *y += flint_px(10);
+        installed = meditation_music_available(app);
+        if(installed) {
+            test_label = app->meditation.music_playing ?
+                             locale_get("meditation_music_stop_test_button") :
+                             locale_get("meditation_music_test_button");
+            button_w = flint_text_measure(test_label, flint_ui_font()) + flint_px(24);
+            if(button_w > content_w)
+                button_w = content_w;
+            if(ui_draw_generic_button(content_x, *y, button_w, button_h,
+                                      test_label,
+                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+                meditation_music_test_track(app);
+            *y += button_h + flint_px(12);
+        }
+
+        if(download_supported() && (!installed || show_installed_download)) {
+            button_w = flint_text_measure(locale_get(installed ? "meditation_music_redownload_button"
+                                                               : "meditation_music_download_button"),
+                                          flint_ui_font()) + flint_px(24);
+            if(button_w > content_w)
+                button_w = content_w;
+            if(ui_draw_generic_button(content_x, *y, button_w, button_h,
+                                      locale_get(installed ? "meditation_music_redownload_button"
+                                                           : "meditation_music_download_button"),
+                                      UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+                start_download(app);
+            *y += button_h + flint_px(12);
+        }
+
+        if(show_status && (!installed || app->meditation.music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
+            if(app->meditation.music_download.status == FLINT_RUNTIME_ASSET_DOWNLOADING) {
+                format_download_status(download_status, sizeof(download_status),
+                                       &app->meditation.music_download);
+                flint_text_draw(download_status, content_x, *y, flint_ui_font(), flint_theme_get_text());
+                *y += flint_px(28);
+                draw_download_progress(app, content_x, *y, content_w);
+                *y += flint_px(22);
+            } else {
+                flint_text_draw(app->meditation.music_status, content_x, *y, flint_ui_font(), flint_theme_get_text());
+                *y += flint_px(34);
+            }
+        }
+
+        draw_music_attribution(content_x, content_w, y);
+        *y += flint_px(10);
+    }
 }
 
 int
@@ -696,28 +704,31 @@ meditation_music_measure_settings(InbeApp *app, int content_w,
                                   int show_installed_download, int show_status)
 {
     int installed;
-    int h = flint_px(76);
+    int h = flint_px(76);  // Master toggle
 
     if(app == NULL)
         return 0;
 
-    if(!app->meditation.music_shuffle)
-        h += flint_px(74);
+    // Only measure music options if music is enabled
+    if(app->meditation.music_enabled) {
+        if(!app->meditation.music_shuffle)
+            h += flint_px(74);
 
-    installed = meditation_music_available(app);
-    if(installed)
-        h += flint_px(48);
-    if(download_supported() && (!installed || show_installed_download))
-        h += flint_px(48);
+        installed = meditation_music_available(app);
+        if(installed)
+            h += flint_px(48);
+        if(download_supported() && (!installed || show_installed_download))
+            h += flint_px(48);
 
-    if(show_status && (!installed || app->meditation.music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
-        if(app->meditation.music_download.status == FLINT_RUNTIME_ASSET_DOWNLOADING)
-            h += flint_px(50);
-        else
-            h += flint_px(34);
+        if(show_status && (!installed || app->meditation.music_download.status != FLINT_RUNTIME_ASSET_IDLE)) {
+            if(app->meditation.music_download.status == FLINT_RUNTIME_ASSET_DOWNLOADING)
+                h += flint_px(50);
+            else
+                h += flint_px(34);
+        }
+
+        h += music_attribution_height(content_w) + flint_px(10);
     }
-
-    h += music_attribution_height(content_w) + flint_px(10);
 
     return h;
 }
