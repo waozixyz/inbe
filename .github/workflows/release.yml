@@ -283,7 +283,6 @@ jobs:
         id: snapcraft
         with:
           path: packaging/snap/snap
-          snapcraft-args: --target-latest
 
       - name: Prepare Release Directory
         run: |
