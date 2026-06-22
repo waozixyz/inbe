@@ -52,7 +52,7 @@ generate_transparent() {
     local size=$1
     local output=$2
     magick "$SOURCE_IMAGE" \
-        -filter lanczos \
+        -filter point \
         -resize "${size}x${size}" \
         -strip \
         +set date:create +set date:modify +set date:timestamp \
@@ -65,7 +65,7 @@ generate_maskable() {
     local output=$2
     local logo_size=$((size * 4 / 5))
     magick "$SOURCE_IMAGE" \
-        -filter lanczos \
+        -filter point \
         -resize "${logo_size}x${logo_size}" \
         -background none \
         -gravity center \

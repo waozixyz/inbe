@@ -1,7 +1,0 @@
-Initial release
-
-• Breathing exercise tutorial with 5 steps
-• Configurable settings: speed, rounds, breaths, pause duration
-• Session history tracking and statistics
-• Support for Linux, Windows, Android, and WebAssembly
-• Dark theme with customizable colors

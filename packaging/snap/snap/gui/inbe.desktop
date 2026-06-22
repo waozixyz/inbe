@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Inner Breeze
+Exec=inbe
+Icon=inbe
+Comment=Syncable breathing, meditation, and habit practice app
+Categories=Utility;Health;
+Terminal=false
+StartupNotify=true
+StartupWMClass=inbe
+Keywords=meditation;breathing;mindfulness;habits;wellness;
