@@ -26,6 +26,7 @@ static long long storage_max_sync_outbox_seq(void);
 static int storage_has_orphan_habit_days(void);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
+#define STORAGE_SYNC_HABIT_NAME_REPAIR_KEY "sync_habit_name_repair_v1_done"
 
 static long long
 storage_next_change_time(void)
@@ -1201,7 +1202,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         storage_enqueue_all_sync_state();
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
-    if(storage_has_orphan_habit_days())
+    if(!get_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0) ||
+       storage_has_orphan_habit_days())
         since_server_version = 0;
     through_seq = storage_max_sync_outbox_seq();
     g_storage.pending_sync_outbox_seq = through_seq;
@@ -1619,6 +1621,7 @@ storage_apply_sync_response_json(const char *response_json)
     g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 1);
+    set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;

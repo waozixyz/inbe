@@ -424,6 +424,10 @@ habits_init(InbeHabits *habits)
         return;
     data_init();
     if(storage_habits_load(habits)) {
+        if(habits->count <= 0) {
+            habits_add_default_set(habits);
+            return;
+        }
         if(habits->count == 3 &&
            strcmp(habits->items[0].id, "mind") == 0 &&
            strcmp(habits->items[1].id, "yoga") == 0 &&

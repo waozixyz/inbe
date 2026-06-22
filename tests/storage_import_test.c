@@ -578,6 +578,48 @@ test_sync_payload_resets_cursor_for_orphan_habit_days(void)
 }
 
 static void
+test_sync_payload_runs_one_time_habit_name_repair(void)
+{
+    char root[512];
+    char db_path[512];
+    char *payload;
+    const char *empty_response =
+        "{\"server_version\":530,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[]}}";
+    sqlite3 *db = NULL;
+
+    make_clean_root(root, sizeof(root), "sync-habit-name-repair");
+    check_true("init habit name repair db", storage_init(root));
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open habit name repair raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("set old sync cursor",
+                   sqlite3_exec(db,
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','530');"
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen habit name repair db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("habit name repair requests full snapshot",
+               payload != NULL && strstr(payload, "\"since_server_version\":0") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply habit name repair response", storage_apply_sync_response_json(empty_response));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("habit name repair only runs once",
+               payload != NULL && strstr(payload, "\"since_server_version\":530") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_apply_merges_duplicate_habit_names(void)
 {
     char root[512];
@@ -1030,6 +1072,45 @@ test_delete_all_resets_habits_to_empty_storage(void)
 }
 
 static void
+test_empty_initialized_habits_seed_meditation_on_startup(void)
+{
+    char root[512];
+    char db_path[512];
+    sqlite3 *db = NULL;
+    InbeHabits habits;
+
+    make_clean_root(root, sizeof(root), "empty-initialized-habits");
+    check_true("init empty initialized habit db", storage_init(root));
+    storage_mark_habits_initialized();
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open empty initialized raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("clear empty initialized habits",
+                   sqlite3_exec(db, "DELETE FROM habit_days; DELETE FROM habits;",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen empty initialized habit db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_init(&habits);
+    check_int("empty initialized startup seeds one habit", habits.count, 1);
+    check_str("empty initialized startup seeds meditation", habits.items[0].name, "Meditation");
+    habits_free(&habits);
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("load seeded meditation from storage", storage_habits_load(&habits));
+    check_int("seeded meditation persisted", habits.count, 1);
+    check_str("persisted seeded habit name", habits.items[0].name, "Meditation");
+
+    habits_free(&habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 write_multi_habit_source_database(const char *root, const char *zip_path)
 {
     int rounds[] = {77};
@@ -1407,6 +1488,7 @@ main(void)
     test_tickmate_db_import();
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
+    test_empty_initialized_habits_seed_meditation_on_startup();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
@@ -1416,6 +1498,7 @@ main(void)
     test_sync_apply_updates_habit_counter_enabled();
     test_stale_habit_save_keeps_synced_remote_habits();
     test_sync_payload_resets_cursor_for_orphan_habit_days();
+    test_sync_payload_runs_one_time_habit_name_repair();
     test_sync_apply_merges_duplicate_habit_names();
     test_sync_apply_preserves_queued_habit_counter_enabled();
     test_session_linked_counts_materialize_for_sync();
