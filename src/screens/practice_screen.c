@@ -141,8 +141,8 @@ practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
 static int
 practice_screen_selector_height(InbeApp *app)
 {
-    return app_should_use_tab_bar(app) ? ui_tab_bar_height()
-                                       : app_toolbar_height();
+    (void)app;
+    return ui_tab_bar_height();
 }
 
 void
@@ -205,14 +205,13 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
             .leading_icon = (Texture2D){0},
             .toolbar = (FlintUIToolbar){
                 .id = 300,
-                .height = app_toolbar_height(),
+                .height = ui_tab_bar_height(),
                 .options = app->modal.active ? NULL : exercise_options,
                 .option_count = app->modal.active ? 0 : activity_count,
                 .selected_index = &activity_index,
                 .dropdown_min_width = flint_px(160),
-                .dropdown_max_width = flint_px(230),
                 .dropdown_height = flint_px(36),
-                .side_padding = flint_px(12)
+                .side_padding = -1
             }
         });
     }
@@ -229,12 +228,10 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
 static Rectangle
 practice_screen_dropdown_anchor(void)
 {
-    int side_padding = flint_px(12);
+    int side_padding = 0;
     int dropdown_h = flint_px(36);
     int dropdown_w = view_width - side_padding * 2;
 
-    if(dropdown_w > flint_px(230))
-        dropdown_w = flint_px(230);
     if(dropdown_w < flint_px(160))
         dropdown_w = view_width - side_padding * 2;
     if(dropdown_w < 1)
@@ -242,7 +239,7 @@ practice_screen_dropdown_anchor(void)
 
     return (Rectangle){
         (float)side_padding,
-        (float)((app_toolbar_height() - dropdown_h) / 2),
+        (float)((ui_tab_bar_height() - dropdown_h) / 2),
         (float)dropdown_w,
         (float)dropdown_h
     };
@@ -342,7 +339,7 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         .step = &app->tutorial_step,
         .view_width = view_width,
         .view_height = view_height,
-        .reserved_top = app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H),
+        .reserved_top = practice_screen_selector_height(app) + flint_px(PRACTICE_CATEGORY_TAB_H),
         .reserved_bottom = ui_bottom_nav_height(),
         .max_width = flint_px(300),
         .close_icon = app->icons[UI_ICON_TYPE_X],

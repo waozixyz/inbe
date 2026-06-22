@@ -795,9 +795,6 @@ Wim Hof 屏息轮次
 [nav_mode_label]
 导航
 ---
-[nav_mode_auto]
-自动
----
 [nav_mode_dropdown]
 下拉
 ---

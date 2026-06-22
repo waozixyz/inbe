@@ -94,6 +94,15 @@ load_clamped_settings(const LoadedClampedSetting *settings, size_t count)
     }
 }
 
+static int
+load_navigation_mode(void)
+{
+    int value = storage_get_setting_int("navigation_mode", NAV_MODE_TABBAR);
+    if(value == NAV_MODE_DROPDOWN)
+        return NAV_MODE_DROPDOWN;
+    return NAV_MODE_TABBAR;
+}
+
 void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
@@ -151,6 +160,7 @@ save_settings(InbeApp *app)
         {"dark_mode", app->dark_mode},
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
+        {"navigation_mode", app->navigation_mode},
         {"main_tab", app->main_tab},
         {"fullscreen", app->fullscreen_enabled ? 1 : 0},
         {"on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0},
@@ -304,6 +314,8 @@ app_load_settings(InbeApp *app)
         };
         load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
+
+    app->navigation_mode = load_navigation_mode();
 
     manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)

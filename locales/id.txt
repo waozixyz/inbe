@@ -797,9 +797,6 @@ Lihat statistik kebiasaan Anda di sini.
 [nav_mode_label]
 Navigasi
 ---
-[nav_mode_auto]
-Otomatis
----
 [nav_mode_dropdown]
 Dropdown
 ---

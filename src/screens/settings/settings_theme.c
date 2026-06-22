@@ -11,7 +11,7 @@
 int
 settings_theme_content_height(int content_w)
 {
-    return flint_px(76) + ui_theme_picker_height(content_w) + flint_px(60);
+    return flint_px(152) + ui_theme_picker_height(content_w) + flint_px(60);
 }
 
 void
@@ -32,15 +32,19 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     state->draw_theme_mode_menu = 1;
     *y += flint_px(76);
 
-    // Navigation mode setting
-    const char *nav_mode_options[3];
-    nav_mode_options[0] = locale_get("nav_mode_auto");
-    nav_mode_options[1] = locale_get("nav_mode_dropdown");
-    nav_mode_options[2] = locale_get("nav_mode_tabbar");
-    app->navigation_mode = clampi(app->navigation_mode, NAV_MODE_AUTO, NAV_MODE_TABBAR);
-    flint_text_draw(locale_get("nav_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-    ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
-                            nav_mode_options, 3, &app->navigation_mode);
+    {
+        const char *nav_mode_options[2];
+        nav_mode_options[NAV_MODE_TABBAR] = locale_get("nav_mode_tabbar");
+        nav_mode_options[NAV_MODE_DROPDOWN] = locale_get("nav_mode_dropdown");
+        if(app->navigation_mode != NAV_MODE_DROPDOWN)
+            app->navigation_mode = NAV_MODE_TABBAR;
+
+        flint_text_draw(locale_get("nav_mode_label"), x, *y, flint_ui_font(),
+                        flint_theme_get_text());
+        ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
+                                nav_mode_options, 2,
+                                &app->navigation_mode);
+    }
     state->draw_nav_mode_menu = 1;
     *y += flint_px(76);
 
@@ -73,7 +77,8 @@ settings_theme_handle_overlays(InbeApp *app, const SettingsThemeState *state)
     if(state->draw_nav_mode_menu && ui_draw_dropdown_menu(103))
         nav_mode_changed = 1;
     if(nav_mode_changed) {
-        app->navigation_mode = clampi(app->navigation_mode, NAV_MODE_AUTO, NAV_MODE_TABBAR);
+        if(app->navigation_mode != NAV_MODE_DROPDOWN)
+            app->navigation_mode = NAV_MODE_TABBAR;
         app->settings_dirty = 1;
         save_settings(app);
     }

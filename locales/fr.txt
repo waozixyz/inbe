@@ -797,9 +797,6 @@ Consultez vos statistiques d'habitudes ici.
 [nav_mode_label]
 Navigation
 ---
-[nav_mode_auto]
-Auto
----
 [nav_mode_dropdown]
 Déroulante
 ---

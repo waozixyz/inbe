@@ -30,7 +30,7 @@ static void habits_repair_default_meditation_link(InbeHabits *habits);
 
 enum {
     HABITS_GUIDE_STEPS = 4,
-    HABITS_TOP_H = 58,
+    HABITS_TOP_H = 36,
     HABITS_TAB_H = 40
 };
 
@@ -843,8 +843,8 @@ habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
 static int
 habits_screen_selector_height(InbeApp *app)
 {
-    return app_should_use_tab_bar(app) ? ui_tab_bar_height()
-                                       : flint_px(HABITS_TOP_H);
+    (void)app;
+    return flint_px(HABITS_TOP_H);
 }
 
 int
@@ -936,9 +936,8 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
                 .option_count = app->modal.active ? 0 : option_count,
                 .selected_index = &dropdown_selected,
                 .dropdown_min_width = flint_px(150),
-                .dropdown_max_width = flint_px(260),
                 .dropdown_height = flint_px(36),
-                .side_padding = flint_px(12)
+                .side_padding = -1
                 }
             });
             (void)header_result.leading_clicked;
@@ -1085,12 +1084,10 @@ habits_screen_prepare_first_run_guide(InbeApp *app)
 static Rectangle
 habits_screen_dropdown_anchor(void)
 {
-    int side_padding = flint_px(12);
+    int side_padding = 0;
     int dropdown_h = flint_px(36);
     int dropdown_w = view_width - side_padding * 2;
 
-    if(dropdown_w > flint_px(260))
-        dropdown_w = flint_px(260);
     if(dropdown_w < flint_px(150))
         dropdown_w = view_width - side_padding * 2;
     if(dropdown_w < 1)
@@ -1133,7 +1130,7 @@ habits_screen_habit_tabs_anchor(InbeApp *app)
             0,
             0,
             (float)view_width,
-            (float)ui_tab_bar_height()
+            (float)flint_px(HABITS_TOP_H)
         };
     }
 

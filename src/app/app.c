@@ -694,9 +694,7 @@ int
 app_content_top_reserved(const InbeApp *app)
 {
     if(app != NULL && app->inbe.screen == InbeScreenStart) {
-        int selector_h = app_should_use_tab_bar(app) ? ui_tab_bar_height()
-                                                     : app_toolbar_height();
-        return selector_h + flint_px(PRACTICE_CATEGORY_TAB_H);
+        return ui_tab_bar_height() + flint_px(PRACTICE_CATEGORY_TAB_H);
     }
     return app_toolbar_height();
 }
@@ -2069,18 +2067,6 @@ app_should_use_tab_bar(const InbeApp *app)
 {
     if(app == NULL)
         return 0;
-    
-    // Check navigation mode setting
-    switch(app->navigation_mode) {
-        case NAV_MODE_DROPDOWN:
-            return 0;  // Always use dropdown
-        case NAV_MODE_TABBAR:
-            return 1;  // Always use tab bar
-        case NAV_MODE_AUTO:
-        default:
-            break;  // Continue to intelligent detection
-    }
-    
-    // Intelligent mode: show tab bar on wider screens
-    return ui_view_width > 500;
+
+    return app->navigation_mode == NAV_MODE_TABBAR;
 }
