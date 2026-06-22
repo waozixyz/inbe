@@ -542,6 +542,87 @@ test_stale_habit_save_keeps_synced_remote_habits(void)
 }
 
 static void
+test_sync_payload_resets_cursor_for_orphan_habit_days(void)
+{
+    char root[512];
+    char db_path[512];
+    char *payload;
+    sqlite3 *db = NULL;
+
+    make_clean_root(root, sizeof(root), "sync-orphan-habit-days");
+    check_true("init orphan habit day db", storage_init(root));
+    storage_close();
+    insert_raw_habit_day(root, "habit-2", 20260617, 1);
+    insert_raw_habit_day(root, "habit-3", 20260618, 1);
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open orphan cursor raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("set orphan sync cursor",
+                   sqlite3_exec(db,
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','530');"
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen orphan habit day db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("orphan habit days request full snapshot",
+               payload != NULL && strstr(payload, "\"since_server_version\":0") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_apply_merges_duplicate_habit_names(void)
+{
+    char root[512];
+    InbeHabits habits;
+    InbeHabit *merged;
+    const char *response =
+        "{\"server_version\":1,\"changes\":{\"habits\":["
+        "{\"id\":\"habit-1\",\"name\":\"New Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"},"
+        "{\"id\":\"habit-2\",\"name\":\"New Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":1,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"},"
+        "{\"id\":\"meditation\",\"name\":\"Meditation\",\"color_r\":126,\"color_g\":183,\"color_b\":230,"
+        "\"sync_mode\":1,\"sync_activity\":3,\"counter_enabled\":0,\"sort_order\":2,"
+        "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:02:00Z\"}"
+        "],\"habit_days\":["
+        "{\"habit_id\":\"habit-1\",\"local_date\":20260617,\"completed\":true,\"count\":1,"
+        "\"updated_at\":\"2026-06-19T21:00:00Z\"},"
+        "{\"habit_id\":\"habit-2\",\"local_date\":20260618,\"completed\":true,\"count\":1,"
+        "\"updated_at\":\"2026-06-19T21:01:00Z\"},"
+        "{\"habit_id\":\"meditation\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "\"updated_at\":\"2026-06-19T21:02:00Z\"}"
+        "],\"sessions\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-duplicate-habit-names");
+    check_true("init duplicate habit name db", storage_init(root));
+    check_true("apply duplicate named habits", storage_apply_sync_response_json(response));
+    memset(&habits, 0, sizeof(habits));
+    check_true("load merged duplicate habits", storage_habits_load(&habits));
+    check_int("duplicate habit names collapse to one tab", habits.count, 2);
+    merged = find_habit_ci(&habits, "New Habit");
+    check_true("merged habit visible", merged != NULL);
+    if(merged != NULL) {
+        check_true("first duplicate day kept", habit_completed_day(merged, 20260617));
+        check_true("second duplicate day moved", habit_completed_day(merged, 20260618));
+    }
+    check_true("meditation remains visible", find_habit_ci(&habits, "Meditation") != NULL);
+
+    habits_free(&habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_sync_apply_preserves_queued_habit_counter_enabled(void)
 {
     char root[512];
@@ -1334,6 +1415,8 @@ main(void)
     test_sync_apply_preserves_counter_counts();
     test_sync_apply_updates_habit_counter_enabled();
     test_stale_habit_save_keeps_synced_remote_habits();
+    test_sync_payload_resets_cursor_for_orphan_habit_days();
+    test_sync_apply_merges_duplicate_habit_names();
     test_sync_apply_preserves_queued_habit_counter_enabled();
     test_session_linked_counts_materialize_for_sync();
     test_existing_sessions_materialize_after_habit_save();

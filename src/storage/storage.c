@@ -23,6 +23,7 @@
 #endif
 
 static long long storage_max_sync_outbox_seq(void);
+static int storage_has_orphan_habit_days(void);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
 
@@ -1200,6 +1201,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         storage_enqueue_all_sync_state();
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
+    if(storage_has_orphan_habit_days())
+        since_server_version = 0;
     through_seq = storage_max_sync_outbox_seq();
     g_storage.pending_sync_outbox_seq = through_seq;
     json.ok = 1;
@@ -1288,6 +1291,26 @@ storage_max_sync_outbox_seq(void)
     return seq;
 }
 
+static int
+storage_has_orphan_habit_days(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT 1 FROM habit_days hd "
+                          "WHERE hd.habit_id<>'' "
+                          "AND NOT EXISTS (SELECT 1 FROM habits h WHERE h.id=hd.habit_id) "
+                          "LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    found = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return found;
+}
+
 static void
 storage_clear_uploaded_outbox(long long through_seq)
 {
@@ -1360,6 +1383,121 @@ storage_exec_json_user_sql(const char *sql, const char *json)
     }
     sqlite3_finalize(stmt);
     return 1;
+}
+
+static int
+storage_ascii_equal_ci(const char *a, const char *b)
+{
+    unsigned char ca;
+    unsigned char cb;
+
+    if(a == NULL || b == NULL)
+        return 0;
+    while(*a != '\0' && *b != '\0') {
+        ca = (unsigned char)*a++;
+        cb = (unsigned char)*b++;
+        if(ca >= 'A' && ca <= 'Z')
+            ca = (unsigned char)(ca - 'A' + 'a');
+        if(cb >= 'A' && cb <= 'Z')
+            cb = (unsigned char)(cb - 'A' + 'a');
+        if(ca != cb)
+            return 0;
+    }
+    return *a == '\0' && *b == '\0';
+}
+
+static int
+storage_merge_habit_into(const char *keeper_id, const char *duplicate_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    static const char *const sqls[] = {
+        "UPDATE habit_days "
+        "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM habit_days d "
+        "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
+        " count=MAX(count,COALESCE((SELECT d.count FROM habit_days d "
+        "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
+        " session_count=MAX(session_count,COALESCE((SELECT d.session_count FROM habit_days d "
+        "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
+        " updated_at=MAX(updated_at,COALESCE((SELECT d.updated_at FROM habit_days d "
+        "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)) "
+        "WHERE habit_id=?1 AND EXISTS (SELECT 1 FROM habit_days d "
+        "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date)",
+        "INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,updated_at) "
+        "SELECT ?1,d.local_date,d.completed,d.count,d.session_count,d.updated_at "
+        "FROM habit_days d WHERE d.habit_id=?2 "
+        "AND NOT EXISTS (SELECT 1 FROM habit_days k "
+        "    WHERE k.habit_id=?1 AND k.local_date=d.local_date)",
+        "DELETE FROM habit_days WHERE habit_id=?2",
+        "DELETE FROM habits WHERE id=?2"
+    };
+    int ok = 1;
+
+    if(keeper_id == NULL || duplicate_id == NULL ||
+       keeper_id[0] == '\0' || duplicate_id[0] == '\0' ||
+       strcmp(keeper_id, duplicate_id) == 0)
+        return 1;
+
+    for(size_t i = 0; i < sizeof(sqls) / sizeof(sqls[0]); i++) {
+        if(sqlite3_prepare_v2(g_storage.db, sqls[i], -1, &stmt, NULL) != SQLITE_OK)
+            return 0;
+        bind_text(stmt, 1, keeper_id);
+        bind_text(stmt, 2, duplicate_id);
+        ok = sqlite3_step(stmt) == SQLITE_DONE;
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+        if(!ok)
+            return 0;
+    }
+    return ok;
+}
+
+static int
+storage_merge_duplicate_habit_names(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    struct {
+        char id[INBE_STORAGE_ID_SIZE];
+        char name[INBE_HABIT_NAME_SIZE];
+        int merged;
+    } rows[64];
+    int count = 0;
+    int ok = 1;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id,name FROM habits WHERE user_id=?1 AND deleted_at=0 "
+                          "ORDER BY sort_order,id",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    while(count < (int)(sizeof(rows) / sizeof(rows[0])) &&
+          sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *id = (const char *)sqlite3_column_text(stmt, 0);
+        const char *name = (const char *)sqlite3_column_text(stmt, 1);
+
+        snprintf(rows[count].id, sizeof(rows[count].id), "%s", id != NULL ? id : "");
+        snprintf(rows[count].name, sizeof(rows[count].name), "%s", name != NULL ? name : "");
+        rows[count].merged = 0;
+        count++;
+    }
+    sqlite3_finalize(stmt);
+
+    for(int i = 0; i < count && ok; i++) {
+        if(rows[i].merged || rows[i].name[0] == '\0')
+            continue;
+        for(int j = i + 1; j < count; j++) {
+            if(rows[j].merged)
+                continue;
+            if(!storage_ascii_equal_ci(rows[i].name, rows[j].name))
+                continue;
+            ok = storage_merge_habit_into(rows[i].id, rows[j].id);
+            rows[j].merged = 1;
+            if(!ok)
+                break;
+        }
+    }
+    return ok;
 }
 
 int
@@ -1460,6 +1598,7 @@ storage_apply_sync_response_json(const char *response_json)
         return 0;
     if(!storage_exec_json_user_sql(habits_sql, response_json) ||
        !storage_exec_json_user_sql(habit_days_sql, response_json) ||
+       !storage_merge_duplicate_habit_names() ||
        !storage_exec_json_user_sql(sessions_sql, response_json) ||
        !storage_exec_json_user_sql(delete_rounds_sql, response_json) ||
        !storage_exec_json_user_sql(rounds_sql, response_json)) {

@@ -45,6 +45,7 @@ mkdir -p "$PROJECT_ROOT/windows"
 mkdir -p "$PROJECT_ROOT/packaging/linux/appimage"
 mkdir -p "$PROJECT_ROOT/packaging/chrome-web-store/icons"
 mkdir -p "$PROJECT_ROOT/web-assets/icons"
+mkdir -p "$PROJECT_ROOT/fastlane/metadata/android/en-US/images"
 
 generate_transparent() {
     local size=$1
@@ -52,6 +53,9 @@ generate_transparent() {
     magick "$SOURCE_IMAGE" \
         -filter lanczos \
         -resize "${size}x${size}" \
+        -strip \
+        +set date:create +set date:modify +set date:timestamp \
+        -define png:exclude-chunk=time \
         "$output"
 }
 
@@ -68,6 +72,9 @@ generate_maskable() {
         \( -size "${size}x${size}" "xc:$SKY_BLUE" \) +swap \
         -compose over \
         -composite \
+        -strip \
+        +set date:create +set date:modify +set date:timestamp \
+        -define png:exclude-chunk=time \
         "$output"
 }
 
@@ -106,9 +113,9 @@ echo "🪟 Generating Windows icon..."
 
 # ICO supports transparency; do not flatten.
 magick \
-    "$SOURCE_IMAGE" -resize 256x256 \
-    "$SOURCE_IMAGE" -resize 192x192 \
-    "$SOURCE_IMAGE" -resize 32x32 \
+    "$SOURCE_IMAGE" -resize 256x256 -strip \
+    "$SOURCE_IMAGE" -resize 192x192 -strip \
+    "$SOURCE_IMAGE" -resize 32x32 -strip \
     "$PROJECT_ROOT/windows/inbe.ico"
 
 echo "✅ Windows icon generated"
@@ -119,6 +126,13 @@ echo "🐧 Generating Linux AppImage icon..."
 generate_transparent 256 "$PROJECT_ROOT/packaging/linux/appimage/inbe.png"
 
 echo "✅ Linux AppImage icon generated"
+
+echo "🏪 Generating Fastlane store icon..."
+
+# F-Droid/Fastlane store listing icon expects a 512x512 PNG.
+generate_maskable 512 "$PROJECT_ROOT/fastlane/metadata/android/en-US/images/icon.png"
+
+echo "✅ Fastlane store icon generated"
 
 echo "🌐 Generating Chrome Web Store icons..."
 
@@ -151,6 +165,7 @@ echo "Generated icons:"
 echo "  📱 Android: mipmap PNGs + adaptive drawable foreground/background"
 echo "  🪟 Windows: windows/inbe.ico (256, 192, 32 resolutions)"
 echo "  🐧 Linux:   packaging/linux/appimage/inbe.png (256x256 transparent)"
+echo "  🏪 Store:   fastlane/metadata/android/en-US/images/icon.png (512x512)"
 echo "  🌐 Chrome:  packaging/chrome-web-store/icons/ (16, 32, 48, 128)"
 echo "  🌐 Web:    web-assets/icons/ (transparent + maskable PWA icons)"
 echo

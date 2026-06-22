@@ -89,7 +89,8 @@ while IFS= read -r VERSION; do
         continue
     fi
 
-    # Extract changelog content for this version
+    # Extract Fastlane-friendly changelog content for this version. F-Droid
+    # displays changelogs as text, so avoid literal Markdown heading markers.
     CHANGELOG_CONTENT=$(awk -v ver="$VERSION" '
         BEGIN { in_section=0 }
         /^## \[/ {
@@ -100,8 +101,13 @@ while IFS= read -r VERSION; do
             }
         }
         in_section {
-            # Print section headers and bullet points
-            if (/^### / || /^- /) print
+            if (/^### /) {
+                sub(/^### /, "")
+                print
+                print "---"
+            } else if (/^- /) {
+                print
+            }
         }
     ' "$CHANGELOG_FILE")
 

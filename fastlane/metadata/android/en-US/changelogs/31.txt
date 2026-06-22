@@ -1,2 +1,3 @@
-### Fixed
+Fixed
+---
 - Import now restores habits, habit sync settings, and optionally app settings from Inbe SQLite exports.
