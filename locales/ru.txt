@@ -55,6 +55,9 @@ Inner Breeze
 [meditation_music_section_title]
 Фоновая музыка
 ---
+[meditation_music_master_toggle]
+Музыка для медитации
+---
 [meditation_music_enabled_label]
 Воспроизводить фоновую музыку
 ---
@@ -65,13 +68,13 @@ Inner Breeze
 Трек
 ---
 [meditation_music_download_button]
-Скачать аудио
+Скачать музыку
 ---
 [meditation_music_redownload_button]
 Скачать заново
 ---
 [meditation_music_test_button]
-Проверить звук
+Проверить музыку
 ---
 [meditation_music_stop_test_button]
 Остановить проверку
@@ -80,7 +83,7 @@ Inner Breeze
 Нет сети
 ---
 [meditation_music_network_error_message]
-Не удалось подключиться к серверу аудио для медитации. Проверьте разрешения сети Android и подключение к интернету, затем попробуйте снова.
+Не удалось подключиться к серверу музыки для медитации. Проверьте разрешения сети Android и подключение к интернету, затем попробуйте снова.
 ---
 [meditation_music_attribution]
 Музыка: Elijah_K.

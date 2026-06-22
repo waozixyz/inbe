@@ -859,6 +859,7 @@ public class MainActivity extends NativeActivity {
         super.onResume();
         activityPaused = false;
         nativeInvalidateGraphicsResources();
+        requestInsetRefresh();
         syncLifecycleState("onResume");
     }
 

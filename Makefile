@@ -28,10 +28,6 @@ LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
-LINUX_SNAP_BUILD_DIR := $(BUILD_OBJ_DIR)/snap/linux
-LINUX_SNAP_DIR := packaging/snap
-LINUX_SNAP_NAME := $(APP_NAME)-linux-$(ARCH).snap
-LINUX_SNAP_TARGET := $(LINUX_DIST_DIR)/$(LINUX_SNAP_NAME)
 CLICK_PACKAGE ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
 CLICK_MAINTAINER ?= Waozi Project <waozi@waozi.xyz>
@@ -244,7 +240,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run run-fresh screenshot test dist appimage click click-verify snap snap-clean vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -270,7 +266,6 @@ dist:
 	$(MAKE) chrome-web-store && \
 	$(MAKE) click && \
 	$(MAKE) appimage && \
-	$(MAKE) snap && \
 	$(MAKE) windows && \
 	$(MAKE) android-release PASSWORD="$$password" && \
 	$(MAKE) android-bundle PASSWORD="$$password"
@@ -285,27 +280,6 @@ click-verify: $(CLICK_TARGET)
 		exit 1; \
 	}
 	clickable review $(CLICK_TARGET)
-
-snap: $(LINUX_SNAP_TARGET)
-
-$(LINUX_SNAP_TARGET): $(TARGET) | $(LINUX_DIST_DIR) $(LINUX_SNAP_BUILD_DIR)
-	@command -v snapcraft >/dev/null || { \
-		echo "snapcraft is missing. Install with: sudo snap install snapcraft --classic"; \
-		exit 1; \
-	}
-	rm -rf $(LINUX_SNAP_BUILD_DIR)/snap
-	rm -f $(LINUX_DIST_DIR)/*.snap
-	cd $(LINUX_SNAP_DIR) && \
-		APP_VERSION=$(APP_VERSION) snapcraft \
-		--target-latest \
-		--output=$(abspath $(LINUX_SNAP_TARGET)) \
-		--destructive-mode
-	test -f $@
-
-snap-clean:
-	rm -rf $(BUILD_OBJ_DIR)/snap
-	rm -f $(LINUX_DIST_DIR)/*.snap
-	rm -rf $(LINUX_SNAP_DIR)/snap
 
 vendor-prebuilds: vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows
 
@@ -365,7 +339,7 @@ $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c flint/src/ui/guide.c flint/inc
 		-o $@ \
 		tests/guide_overlay_test.c
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(LINUX_SNAP_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
+$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):

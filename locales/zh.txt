@@ -55,6 +55,9 @@ Wim Hof 呼吸
 [meditation_music_section_title]
 背景音乐
 ---
+[meditation_music_master_toggle]
+冥想音乐
+---
 [meditation_music_enabled_label]
 播放背景音乐
 ---
@@ -65,13 +68,13 @@ Wim Hof 呼吸
 曲目
 ---
 [meditation_music_download_button]
-下载音频
+下载音乐
 ---
 [meditation_music_redownload_button]
-重新下载音频
+重新下载音乐
 ---
 [meditation_music_test_button]
-测试播放
+测试音乐
 ---
 [meditation_music_stop_test_button]
 停止测试
@@ -80,7 +83,7 @@ Wim Hof 呼吸
 网络不可用
 ---
 [meditation_music_network_error_message]
-无法连接到冥想音频服务器。请检查 Android 网络权限和互联网连接，然后重试。
+无法连接到冥想音乐服务器。请检查 Android 网络权限和互联网连接，然后重试。
 ---
 [duration_5m]
 5分钟

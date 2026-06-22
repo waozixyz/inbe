@@ -55,6 +55,9 @@ Inner Breeze
 [meditation_music_section_title]
 배경 음악
 ---
+[meditation_music_master_toggle]
+명상 음악
+---
 [meditation_music_enabled_label]
 배경 음악 재생
 ---
@@ -65,13 +68,13 @@ Inner Breeze
 트랙
 ---
 [meditation_music_download_button]
-오디오 다운로드
+음악 다운로드
 ---
 [meditation_music_redownload_button]
-오디오 재다운로드
+음악 재다운로드
 ---
 [meditation_music_test_button]
-오디오 테스트
+음악 테스트
 ---
 [meditation_music_stop_test_button]
 테스트 중지
@@ -80,7 +83,7 @@ Inner Breeze
 네트워크를 사용할 수 없음
 ---
 [meditation_music_network_error_message]
-명상 오디오 서버에 연결할 수 없습니다. Android 네트워크 권한과 인터넷 연결을 확인한 뒤 다시 시도하세요.
+명상 음악 서버에 연결할 수 없습니다. Android 네트워크 권한과 인터넷 연결을 확인한 뒤 다시 시도하세요.
 ---
 [duration_5m]
 5분

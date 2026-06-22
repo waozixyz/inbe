@@ -50,6 +50,7 @@ static volatile struct {
     int cutout_bottom;
 } current_insets = {0};
 static pthread_mutex_t insets_mutex = PTHREAD_MUTEX_INITIALIZER;
+static volatile int insets_initialized = 0;
 
 // JNI function - Java calls this to push inset values
 static void nativeSetInsets(JNIEnv *env, jobject thiz,
@@ -66,6 +67,7 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
     current_insets.cutout_top = cutout_top;
     current_insets.cutout_right = cutout_right;
     current_insets.cutout_bottom = cutout_bottom;
+    insets_initialized = 1;
     pthread_mutex_unlock(&insets_mutex);
 
     // Memory barrier to ensure all threads see the updated values
@@ -240,6 +242,7 @@ void android_insets_init(void) {
     __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== android_insets_init ===");
     pthread_mutex_lock(&insets_mutex);
     memset((void *)&current_insets, 0, sizeof(current_insets));
+    insets_initialized = 0;
     pthread_mutex_unlock(&insets_mutex);
     __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== android_insets_init DONE ===");
 }
@@ -258,4 +261,12 @@ void android_insets_get(AndroidInsets *out) {
     }
 
     pthread_mutex_unlock(&insets_mutex);
+}
+
+int android_insets_is_initialized(void) {
+    int result;
+    pthread_mutex_lock(&insets_mutex);
+    result = insets_initialized;
+    pthread_mutex_unlock(&insets_mutex);
+    return result;
 }

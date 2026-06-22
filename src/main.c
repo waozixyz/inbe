@@ -229,19 +229,23 @@ android_resolve_viewport(int width, int height, AndroidInsets value)
     int cutout_left = android_nonnegative(value.cutout_left);
     int cutout_top = android_nonnegative(value.cutout_top);
     int cutout_right = android_nonnegative(value.cutout_right);
-    int cutout_bottom = android_nonnegative(value.cutout_bottom);
+    // cutout_bottom intentionally ignored - Android API is unreliable
     int min_content_h = height / 2;
 
     viewport.left = cutout_left;
     viewport.right = cutout_right;
     viewport.top = android_maxi(cutout_top, status);
-    viewport.bottom = android_maxi(cutout_bottom, nav);
+    // Ignore cutout_bottom - Android's getDisplayCutout() API is unreliable and
+    // incorrectly reports bottom cutout values. Real cutouts are notches/camera
+    // holes at the top, not the bottom. The bottom inset should only be nav bar.
+    viewport.bottom = nav;
 
     if(min_content_h < 1)
         min_content_h = 1;
     if(viewport.top + viewport.bottom >= height - min_content_h) {
         viewport.top = cutout_top;
-        viewport.bottom = cutout_bottom;
+        // Keep nav bar for bottom, don't use unreliable cutout_bottom
+        viewport.bottom = nav;
     }
 
     viewport.x = viewport.left;
@@ -326,6 +330,13 @@ frame(void)
     static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
     android_insets_get(&insets);
+
+    // Safety check: Don't render if insets haven't been initialized yet
+    // This prevents rendering with incorrect positioning on app start/restart
+    if (!android_insets_is_initialized()) {
+        return;  // Skip this frame, BeginDrawing() hasn't been called yet
+    }
+
     viewport = android_resolve_viewport(width, height, insets);
     if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||
        viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||

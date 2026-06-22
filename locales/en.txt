@@ -55,6 +55,9 @@ Meditation Music
 [meditation_music_section_title]
 Background Music
 ---
+[meditation_music_master_toggle]
+Meditation music
+---
 [meditation_music_enabled_label]
 Play background music
 ---
@@ -65,13 +68,13 @@ Random track
 Track
 ---
 [meditation_music_download_button]
-Download audio
+Download music
 ---
 [meditation_music_redownload_button]
-Redownload audio
+Redownload music
 ---
 [meditation_music_test_button]
-Test audio
+Test music
 ---
 [meditation_music_stop_test_button]
 Stop test
@@ -80,7 +83,7 @@ Stop test
 Network unavailable
 ---
 [meditation_music_network_error_message]
-Could not reach the meditation audio server. Check Android network permissions and your internet connection, then try again.
+Could not reach the meditation music server. Check Android network permissions and your internet connection, then try again.
 ---
 [meditation_music_attribution]
 Music by Elijah_K.
