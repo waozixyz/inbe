@@ -356,6 +356,8 @@ typedef struct {
     int font;
     int min_tab_width;
     int max_tab_width;
+    int *scroll_offset;
+    int focus_selected;
 } FlintUITabBar;
 
 typedef struct {

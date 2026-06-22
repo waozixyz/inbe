@@ -66,6 +66,8 @@ typedef struct InbeHabits {
     int loaded_count;
     int selected;
     int scroll;
+    int tab_scroll;
+    int focus_selected_tab;
     int month_offset;
     int selector_open;
     int view_mode;
@@ -139,6 +141,7 @@ void habit_edit_cancel(InbeApp *app);
 void draw_habits_screen(InbeApp *app);
 void draw_habit_edit_screen(InbeApp *app);
 void draw_habit_session_edit_screen(InbeApp *app);
+int habits_screen_top_reserved(InbeApp *app);
 int habits_screen_first_run_guide_active(const InbeApp *app);
 void habits_screen_prepare_first_run_guide(InbeApp *app);
 void habits_screen_draw_first_run_guide(InbeApp *app);

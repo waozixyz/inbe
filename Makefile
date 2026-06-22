@@ -235,7 +235,7 @@ CHROME_WEB_STORE_ICONS := \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-32.png \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-48.png \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-128.png
-WEB_ASSET_FILES := $(shell find web-assets -type f 2>/dev/null)
+WEB_ASSET_FILES := $(shell find web-assets site-icons -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
@@ -785,7 +785,9 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SR
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index.html
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
+	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
 	cp -R web-assets $(WEB_DIST_DIR)/
+	cp -R site-icons $(WEB_DIST_DIR)/
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
 android-copy-assets:

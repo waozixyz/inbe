@@ -517,6 +517,9 @@ app_switch_screen(InbeApp *app, int screen)
         app->screen_transition_target == screen))
         return;
 
+    if(screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
+        app->habits.focus_selected_tab = 1;
+
     app->screen_transition_target = screen;
     if(app->screen_transition.active) {
         if(app->inbe.screen != screen)
@@ -554,6 +557,8 @@ app_observe_direct_screen_change(InbeApp *app, int before_screen)
         .ticks = 0,
         .duration = APP_SCREEN_TRANSITION_TICKS
     };
+    if(app->inbe.screen == InbeScreenHabits && before_screen != InbeScreenHabits)
+        app->habits.focus_selected_tab = 1;
     app->screen_transition_target = app->inbe.screen;
 }
 
@@ -688,8 +693,11 @@ app_toolbar_height(void)
 int
 app_content_top_reserved(const InbeApp *app)
 {
-    if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return app_toolbar_height() + flint_px(PRACTICE_CATEGORY_TAB_H);
+    if(app != NULL && app->inbe.screen == InbeScreenStart) {
+        int selector_h = app_should_use_tab_bar(app) ? ui_tab_bar_height()
+                                                     : app_toolbar_height();
+        return selector_h + flint_px(PRACTICE_CATEGORY_TAB_H);
+    }
     return app_toolbar_height();
 }
 
@@ -1470,6 +1478,7 @@ app_init(void *vapp) {
     app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
                            ? InbeScreenHabits
                            : InbeScreenStart;
+    app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
     app->screen_transition_target = app->inbe.screen;
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -2075,4 +2084,3 @@ app_should_use_tab_bar(const InbeApp *app)
     // Intelligent mode: show tab bar on wider screens
     return ui_view_width > 500;
 }
-

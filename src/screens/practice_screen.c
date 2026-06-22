@@ -138,6 +138,13 @@ practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
     });
 }
 
+static int
+practice_screen_selector_height(InbeApp *app)
+{
+    return app_should_use_tab_bar(app) ? ui_tab_bar_height()
+                                       : app_toolbar_height();
+}
+
 void
 practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
 {
@@ -213,7 +220,7 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
     // Keep existing subtab bar for Play/Manual/Config (works in both modes)
     {
         int clicked = practice_screen_draw_tab_bar(app,
-            ui_tab_bar_height());
+            practice_screen_selector_height(app));
         if(clicked >= 0 && clicked != app->practice_tab)
             practice_screen_open_tab(app, clicked);
     }
@@ -242,7 +249,7 @@ practice_screen_dropdown_anchor(void)
 }
 
 static Rectangle
-practice_screen_tab_anchor(int tab)
+practice_screen_tab_anchor(InbeApp *app, int tab)
 {
     int tab_h = flint_px(PRACTICE_CATEGORY_TAB_H);
     int tab_w = view_width / PRACTICE_TAB_COUNT;
@@ -251,7 +258,7 @@ practice_screen_tab_anchor(int tab)
 
     return (Rectangle){
         (float)x,
-        (float)ui_tab_bar_height(),
+        (float)practice_screen_selector_height(app),
         (float)w,
         (float)tab_h
     };
@@ -317,15 +324,15 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         locale_get("practice_guide_dropdown")
     };
     steps[1] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_MANUAL),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_MANUAL),
         locale_get("practice_guide_manual")
     };
     steps[2] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_PLAY),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_PLAY),
         locale_get("practice_guide_sun")
     };
     steps[3] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_CONFIG),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_CONFIG),
         locale_get("practice_guide_config")
     };
 

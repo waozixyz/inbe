@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 set -e
 
 # Icon Generation Script for Inner Breeze
@@ -45,6 +45,7 @@ mkdir -p "$PROJECT_ROOT/windows"
 mkdir -p "$PROJECT_ROOT/packaging/linux/appimage"
 mkdir -p "$PROJECT_ROOT/packaging/chrome-web-store/icons"
 mkdir -p "$PROJECT_ROOT/web-assets/icons"
+mkdir -p "$PROJECT_ROOT/site-icons"
 mkdir -p "$PROJECT_ROOT/fastlane/metadata/android/en-US/images"
 
 generate_transparent() {
@@ -147,14 +148,14 @@ echo "✅ Chrome Web Store icons generated"
 echo "🌐 Generating Web/PWA icons..."
 
 # Web/PWA icons (for manifest.json and web_shell.html)
-generate_transparent 192 "$PROJECT_ROOT/web-assets/icons/icon-192x192.png"
-generate_transparent 512 "$PROJECT_ROOT/web-assets/icons/icon-512x512.png"
-generate_maskable 192 "$PROJECT_ROOT/web-assets/icons/maskable-192x192.png"
-generate_maskable 512 "$PROJECT_ROOT/web-assets/icons/maskable-512x512.png"
-generate_transparent 180 "$PROJECT_ROOT/web-assets/icons/apple-touch-icon.png"
+generate_transparent 192 "$PROJECT_ROOT/site-icons/icon-192x192.png"
+generate_transparent 512 "$PROJECT_ROOT/site-icons/icon-512x512.png"
+generate_maskable 192 "$PROJECT_ROOT/site-icons/maskable-192x192.png"
+generate_maskable 512 "$PROJECT_ROOT/site-icons/maskable-512x512.png"
+generate_transparent 180 "$PROJECT_ROOT/site-icons/apple-touch-icon.png"
 
 # Favicon PNG supports transparency.
-generate_transparent 32 "$PROJECT_ROOT/web-assets/icons/favicon-32x32.png"
+generate_transparent 32 "$PROJECT_ROOT/site-icons/favicon-32x32.png"
 
 echo "✅ Web/PWA icons generated"
 
@@ -167,6 +168,6 @@ echo "  🪟 Windows: windows/inbe.ico (256, 192, 32 resolutions)"
 echo "  🐧 Linux:   packaging/linux/appimage/inbe.png (256x256 transparent)"
 echo "  🏪 Store:   fastlane/metadata/android/en-US/images/icon.png (512x512)"
 echo "  🌐 Chrome:  packaging/chrome-web-store/icons/ (16, 32, 48, 128)"
-echo "  🌐 Web:    web-assets/icons/ (transparent + maskable PWA icons)"
+echo "  🌐 Web:    site-icons/ (transparent + maskable PWA icons)"
 echo
 echo "💡 Tip: Review generated icons before committing to version control."

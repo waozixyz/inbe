@@ -6,6 +6,21 @@ ui_tab_bar_height(void)
     return flint_px(36);
 }
 
+static int
+ui_tab_bar_tab_width(FlintUITabBar bar, int index, int min_tab_w, int icon_tab_w)
+{
+    const FlintUITab *tab;
+
+    if(index < 0 || index >= bar.count || bar.tabs == NULL)
+        return min_tab_w;
+
+    tab = &bar.tabs[index];
+    if((tab->label == NULL || tab->label[0] == '\0') && tab->icon.id != 0)
+        return icon_tab_w;
+
+    return min_tab_w;
+}
+
 int
 ui_draw_tab_bar(FlintUITabBar bar)
 {
@@ -19,6 +34,13 @@ ui_draw_tab_bar(FlintUITabBar bar)
     int bar_h = (int)bar.bounds.height;
     int tab_gap = flint_px(4);
     int min_tab_w = bar.min_tab_width > 0 ? bar.min_tab_width : flint_px(120);
+    int max_tab_w = bar.max_tab_width > 0 ? bar.max_tab_width : min_tab_w;
+    int icon_tab_w = bar_h + tab_gap * 2;
+    static int default_scroll_offset = 0;
+    static Vector2 last_drag_pos = {0};
+    static int is_dragging = 0;
+    int *scroll_offset = bar.scroll_offset != NULL ? bar.scroll_offset
+                                                   : &default_scroll_offset;
 
     if(bar.tabs == NULL || bar.count <= 0 || bar.bounds.width <= 0 || bar.bounds.height <= 0)
         return -1;
@@ -27,30 +49,54 @@ ui_draw_tab_bar(FlintUITabBar bar)
     DrawRectangle(bar_x, bar_y, bar_w, bar_h, flint_darken(c_bg, 12));
     DrawLine(bar_x, bar_y, bar_x + bar_w, bar_y, flint_darken(c_bg, 38));
 
-    // Calculate tab widths - use minimum width to prevent overflow
-    int tab_w = min_tab_w;
+    if(max_tab_w < min_tab_w)
+        max_tab_w = min_tab_w;
+    if(icon_tab_w > max_tab_w)
+        icon_tab_w = max_tab_w;
 
     // Calculate if scrolling is needed
     int total_gap_w = tab_gap * (bar.count - 1);
-    int total_tabs_w = tab_w * bar.count + total_gap_w;
+    int total_tabs_w = total_gap_w;
+    for(int i = 0; i < bar.count; i++)
+        total_tabs_w += ui_tab_bar_tab_width(bar, i, min_tab_w, icon_tab_w);
     int needs_scroll = total_tabs_w > bar_w;
 
     // Set scroll offset
-    static int scroll_offset = 0;
-    if(scroll_offset < 0)
-        scroll_offset = 0;
+    if(*scroll_offset < 0)
+        *scroll_offset = 0;
     int max_scroll = total_tabs_w - bar_w;
     if(max_scroll < 0)
         max_scroll = 0;
-    if(scroll_offset > max_scroll)
-        scroll_offset = max_scroll;
+    if(*scroll_offset > max_scroll)
+        *scroll_offset = max_scroll;
+
+    if(needs_scroll && bar.focus_selected &&
+       bar.selected_index >= 0 && bar.selected_index < bar.count) {
+        int selected_tab_w = ui_tab_bar_tab_width(bar, bar.selected_index,
+                                                  min_tab_w, icon_tab_w);
+        int selected_tab_x = bar_x + tab_gap - *scroll_offset;
+        for(int i = 0; i < bar.selected_index; i++)
+            selected_tab_x += ui_tab_bar_tab_width(bar, i, min_tab_w,
+                                                   icon_tab_w) + tab_gap;
+        int selected_tab_end = selected_tab_x + selected_tab_w;
+
+        if(selected_tab_x < bar_x)
+            *scroll_offset -= (bar_x - selected_tab_x) + tab_gap;
+        else if(selected_tab_end > bar_x + bar_w)
+            *scroll_offset += (selected_tab_end - (bar_x + bar_w)) + tab_gap;
+
+        if(*scroll_offset < 0)
+            *scroll_offset = 0;
+        if(*scroll_offset > max_scroll)
+            *scroll_offset = max_scroll;
+    }
 
     // Start from left (not centered)
-    int start_x = bar_x + tab_gap - scroll_offset;
+    int tab_x = bar_x + tab_gap - *scroll_offset;
 
     for(int i = 0; i < bar.count; i++) {
         const FlintUITab *tab = &bar.tabs[i];
-        int tab_x = start_x + i * (tab_w + tab_gap);
+        int tab_w = ui_tab_bar_tab_width(bar, i, min_tab_w, icon_tab_w);
         Rectangle tab_rect = {(float)tab_x, (float)bar_y, (float)tab_w, (float)bar_h};
         int input_captured = ui_input_captures_click(mouse_world);
         int is_active = CheckCollisionPointRec(mouse_world, tab_rect) && !input_captured;
@@ -149,39 +195,13 @@ ui_draw_tab_bar(FlintUITabBar bar)
             if(released)
                 clicked_tab = i;
         }
+
+        tab_x += tab_w + tab_gap;
     }
 
-    // Handle horizontal scrolling with mouse drag
-    static Vector2 last_drag_pos = {0};
-    static int is_dragging = 0;
-    static int last_selected_index = -1;
-
     if(needs_scroll) {
-        // Always ensure selected tab is visible when drawing
-        if(bar.selected_index >= 0 && bar.selected_index < bar.count) {
-            int selected_tab_x = start_x + bar.selected_index * (tab_w + tab_gap) - scroll_offset;
-            int selected_tab_end = selected_tab_x + tab_w;
-
-            // Scroll if selected tab is not visible
-            if(selected_tab_x < bar_x) {
-                scroll_offset -= (bar_x - selected_tab_x) + tab_gap;
-                // Clamp after auto-scroll
-                if(scroll_offset < 0)
-                    scroll_offset = 0;
-                if(scroll_offset > max_scroll)
-                    scroll_offset = max_scroll;
-            } else if(selected_tab_end > bar_x + bar_w) {
-                scroll_offset += (selected_tab_end - (bar_x + bar_w)) + tab_gap;
-                // Clamp after auto-scroll
-                if(scroll_offset < 0)
-                    scroll_offset = 0;
-                if(scroll_offset > max_scroll)
-                    scroll_offset = max_scroll;
-            }
-        }
-
         // Handle manual drag scrolling
-        Vector2 current_pos = GetMousePosition();
+        Vector2 current_pos = mouse_world;
         int is_mouse_down = IsMouseButtonDown(MOUSE_BUTTON_LEFT);
 
         // Check if mouse is over tab bar area
@@ -196,13 +216,13 @@ ui_draw_tab_bar(FlintUITabBar bar)
         if(is_dragging) {
             if(is_mouse_down) {
                 float dx = current_pos.x - last_drag_pos.x;
-                scroll_offset -= (int)dx;
+                *scroll_offset -= (int)dx;
 
                 // Clamp scroll offset
-                if(scroll_offset < 0)
-                    scroll_offset = 0;
-                if(scroll_offset > max_scroll)
-                    scroll_offset = max_scroll;
+                if(*scroll_offset < 0)
+                    *scroll_offset = 0;
+                if(*scroll_offset > max_scroll)
+                    *scroll_offset = max_scroll;
 
                 last_drag_pos = current_pos;
             } else {

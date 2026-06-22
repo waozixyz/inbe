@@ -363,7 +363,7 @@ draw_habit_edit_screen(InbeApp *app)
             return;
         }
     } else {
-        top_h = app_content_top_reserved(app) + flint_px(40);
+        top_h = habits_screen_top_reserved(app);
         y = top_h + flint_px(18);
     }
 

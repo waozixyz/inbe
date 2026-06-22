@@ -3,6 +3,8 @@
 ### Changed
 - New logo
 - improve tabbar ui
+### Fixed
+- sync issues
 
 ## [1.4.11] - 2026-06-21
 ### Added

@@ -1146,13 +1146,62 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
     habits_init(&habits);
     check_int("empty initialized startup seeds one habit", habits.count, 1);
     check_str("empty initialized startup seeds meditation", habits.items[0].name, "Meditation");
+    check_int("empty initialized startup seeds linked mode",
+              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("empty initialized startup seeds linked activities",
+              habits.items[0].sync_activity,
+              (1 << 0) | (1 << 1));
     habits_free(&habits);
 
     memset(&habits, 0, sizeof(habits));
     check_true("load seeded meditation from storage", storage_habits_load(&habits));
     check_int("seeded meditation persisted", habits.count, 1);
     check_str("persisted seeded habit name", habits.items[0].name, "Meditation");
+    check_int("persisted seeded linked mode",
+              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("persisted seeded linked activities",
+              habits.items[0].sync_activity,
+              (1 << 0) | (1 << 1));
 
+    habits_free(&habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_existing_default_meditation_links_on_startup(void)
+{
+    char root[512];
+    InbeHabits habits;
+
+    make_clean_root(root, sizeof(root), "default-meditation-link-repair");
+    check_true("init default meditation repair db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    check_int("add unlinked default meditation",
+              habits_add_custom(&habits, "Meditation",
+                                (Color){126, 183, 230, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
+              0);
+    habits_free(&habits);
+
+    memset(&habits, 0, sizeof(habits));
+    habits_init(&habits);
+    check_int("default meditation repair count", habits.count, 1);
+    check_str("default meditation repair name", habits.items[0].name, "Meditation");
+    check_int("default meditation repair sync mode",
+              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("default meditation repair sync activity",
+              habits.items[0].sync_activity,
+              (1 << 0) | (1 << 1));
+    habits_free(&habits);
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("load repaired default meditation", storage_habits_load(&habits));
+    check_int("persisted repaired sync mode",
+              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("persisted repaired sync activity",
+              habits.items[0].sync_activity,
+              (1 << 0) | (1 << 1));
     habits_free(&habits);
     storage_close();
     remove_tree(root);
@@ -1538,6 +1587,7 @@ main(void)
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_empty_initialized_habits_seed_meditation_on_startup();
+    test_existing_default_meditation_links_on_startup();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
