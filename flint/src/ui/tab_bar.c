@@ -12,7 +12,7 @@ ui_draw_tab_bar(FlintUITabBar bar)
     Vector2 mouse_world = ui_mouse_world();
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     int clicked_tab = -1;
-    int font = bar.font > 0 ? bar.font : flint_ui_font();
+    int font = bar.font > 0 ? bar.font : FLINT_TEXT_12;
     int bar_x = (int)bar.bounds.x;
     int bar_y = (int)bar.bounds.y;
     int bar_w = (int)bar.bounds.width;
@@ -136,7 +136,7 @@ ui_draw_tab_bar(FlintUITabBar bar)
         };
 
         if(text_rect.width > 0 && tab->label != NULL) {
-            ui_draw_fitted_text_in_rect(tab->label, text_rect, font, FLINT_TEXT_8, text_color);
+            flint_ui_draw_text_left_in_rect(tab->label, text_rect, font, text_color);
         }
 
         // Handle click detection

@@ -785,3 +785,16 @@ Scegli Settimanale o Calendario per rivedere l'abitudine.
 [habits_guide_statistics]
 Visualizza qui le statistiche delle abitudini.
 ---
+---
+[nav_mode_label]
+Navigazione
+---
+[nav_mode_auto]
+Automatico
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Schede
+---

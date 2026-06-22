@@ -787,3 +787,16 @@ Zvolte Tyden nebo Kalendar pro kontrolu navyku.
 [habits_guide_statistics]
 Zde zobrazite statistiky navyku.
 ---
+---
+[nav_mode_label]
+Navigace
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Rozbalovací
+---
+[nav_mode_tabbar]
+Karty
+---

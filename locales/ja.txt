@@ -787,3 +787,16 @@ https:// または localhost:8080 のようなループバックを使用して�
 [habits_guide_statistics]
 ここで習慣の統計を確認できます。
 ---
+---
+[nav_mode_label]
+ナビゲーション
+---
+[nav_mode_auto]
+自動
+---
+[nav_mode_dropdown]
+ドロップダウン
+---
+[nav_mode_tabbar]
+タブ
+---

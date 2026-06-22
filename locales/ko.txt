@@ -784,3 +784,16 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [habits_guide_statistics]
 여기에서 습관 통계를 확인하세요.
 ---
+---
+[nav_mode_label]
+탐색
+---
+[nav_mode_auto]
+자동
+---
+[nav_mode_dropdown]
+드롭다운
+---
+[nav_mode_tabbar]
+탭
+---

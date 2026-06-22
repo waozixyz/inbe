@@ -787,3 +787,16 @@ Choisissez Hebdomadaire ou Calendrier pour suivre votre habitude.
 [habits_guide_statistics]
 Consultez vos statistiques d'habitudes ici.
 ---
+---
+[nav_mode_label]
+Navigation
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Déroulante
+---
+[nav_mode_tabbar]
+Onglets
+---

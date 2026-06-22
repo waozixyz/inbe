@@ -787,3 +787,16 @@ Wahle Woche oder Kalender, um deine Gewohnheit zu pruefen.
 [habits_guide_statistics]
 Sieh dir hier deine Gewohnheitsstatistiken an.
 ---
+---
+[nav_mode_label]
+Navigation
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Tabs
+---

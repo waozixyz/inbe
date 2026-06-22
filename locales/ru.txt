@@ -788,3 +788,16 @@ liboqs не собран для этой платформы.
 [habits_guide_statistics]
 Здесь можно посмотреть статистику привычек.
 ---
+---
+[nav_mode_label]
+Навигация
+---
+[nav_mode_auto]
+Авто
+---
+[nav_mode_dropdown]
+Выпадающий
+---
+[nav_mode_tabbar]
+Вкладки
+---

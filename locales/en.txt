@@ -788,3 +788,15 @@ Choose Weekly or Calendar to review your habit.
 [habits_guide_statistics]
 View habit statistics here.
 ---
+[nav_mode_label]
+Navigation
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Tabs
+---

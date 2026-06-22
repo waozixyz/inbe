@@ -785,3 +785,16 @@ Wim Hof 屏息轮次
 [habits_guide_statistics]
 在这里查看习惯统计。
 ---
+---
+[nav_mode_label]
+导航
+---
+[nav_mode_auto]
+自动
+---
+[nav_mode_dropdown]
+下拉
+---
+[nav_mode_tabbar]
+标签页
+---

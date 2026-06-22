@@ -787,3 +787,16 @@ Escolha Semanal ou Calendario para revisar seu habito.
 [habits_guide_statistics]
 Veja suas estatisticas de habitos aqui.
 ---
+---
+[nav_mode_label]
+Navegação
+---
+[nav_mode_auto]
+Automático
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Abas
+---

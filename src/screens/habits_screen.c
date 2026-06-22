@@ -1057,7 +1057,6 @@ habits_screen_dropdown_anchor(void)
 static Rectangle
 habits_screen_tab_anchor(int first_tab, int tab_count)
 {
-    int top_h = flint_px(HABITS_TOP_H);
     int tab_h = flint_px(HABITS_TAB_H);
     int tab_w = view_width / HABIT_TAB_COUNT;
     int x = first_tab * tab_w;
@@ -1068,7 +1067,27 @@ habits_screen_tab_anchor(int first_tab, int tab_count)
     if(w < 1)
         w = 1;
 
-    return (Rectangle){(float)x, (float)top_h, (float)w, (float)tab_h};
+    return (Rectangle){(float)x, (float)ui_tab_bar_height(), (float)w, (float)tab_h};
+}
+
+static Rectangle
+habits_screen_habit_tabs_anchor(InbeApp *app)
+{
+    if(app == NULL)
+        return (Rectangle){0};
+
+    // Desktop mode: highlight all habit tabs (top tab bar)
+    if(app_should_use_tab_bar(app)) {
+        return (Rectangle){
+            0,
+            0,
+            (float)view_width,
+            (float)ui_tab_bar_height()
+        };
+    }
+
+    // Mobile mode: highlight the dropdown
+    return habits_screen_dropdown_anchor();
 }
 
 static Rectangle
@@ -1105,7 +1124,7 @@ habits_screen_draw_first_run_guide(InbeApp *app)
         return;
 
     steps[0] = (FlintUIGuideStep){
-        habits_screen_dropdown_anchor(),
+        habits_screen_habit_tabs_anchor(app),
         locale_get("habits_guide_dropdown")
     };
     steps[1] = (FlintUIGuideStep){

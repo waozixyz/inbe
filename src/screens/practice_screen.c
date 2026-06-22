@@ -251,10 +251,30 @@ practice_screen_tab_anchor(int tab)
 
     return (Rectangle){
         (float)x,
-        (float)app_toolbar_height(),
+        (float)ui_tab_bar_height(),
         (float)w,
         (float)tab_h
     };
+}
+
+static Rectangle
+practice_screen_exercise_tabs_anchor(InbeApp *app)
+{
+    if(app == NULL)
+        return (Rectangle){0};
+
+    // Desktop mode: highlight all exercise tabs (top tab bar)
+    if(app_should_use_tab_bar(app)) {
+        return (Rectangle){
+            0,
+            0,
+            (float)view_width,
+            (float)ui_tab_bar_height()
+        };
+    }
+
+    // Mobile mode: highlight the dropdown
+    return practice_screen_dropdown_anchor();
 }
 
 static void
@@ -293,7 +313,7 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         return;
 
     steps[0] = (FlintUIGuideStep){
-        practice_screen_dropdown_anchor(),
+        practice_screen_exercise_tabs_anchor(app),
         locale_get("practice_guide_dropdown")
     };
     steps[1] = (FlintUIGuideStep){

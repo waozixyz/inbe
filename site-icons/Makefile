@@ -1,7 +1,7 @@
 # Icon sizes for Inner Breeze
-# Run 'make' to regenerate from ../icons/inbe.png
+# Run 'make' to regenerate from ../flint/icons/inbe.png
 
-SOURCE_PNG := ../icons/lotus.png
+SOURCE_PNG := ../flint/icons/inbe.png
 
 .PHONY: all clean
 
