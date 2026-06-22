@@ -452,8 +452,8 @@ test_sync_apply_preserves_counter_counts(void)
     check_true("reopen sync counter db", storage_init(root));
     check_true("apply lower equal counter", storage_apply_sync_response_json(lower_count_response));
     storage_close();
-    check_int("lower equal sync does not reset counter",
-              read_raw_habit_day_count(root, habit_id, 20260619), 4);
+    check_int("lower equal sync applies latest server count",
+              read_raw_habit_day_count(root, habit_id, 20260619), 1);
 
     check_true("reopen sync counter db for repair", storage_init(root));
     check_true("apply higher equal counter", storage_apply_sync_response_json(higher_count_response));
@@ -751,6 +751,21 @@ test_session_linked_counts_materialize_for_sync(void)
     check_true("linked session count is in sync payload",
                payload != NULL && strstr(payload, "\"count\":2") != NULL);
     storage_free_sync_payload_json(payload);
+
+    habit_set_day_count(&habits, 0, today, 0);
+    habits_save(&habits);
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload linked counter after manual clear", storage_habits_load(&habits));
+    check_int("manual clear overrides linked sessions",
+              habit_day_count(&habits.items[0], today), 0);
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_true("manual clear is in sync payload",
+               payload != NULL && strstr(payload, "\"completed\":false") != NULL &&
+               strstr(payload, "\"count\":0") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    habit_set_day_count(&habits, 0, today, 2);
+    habits_save(&habits);
 
     check_true("delete linked session one", storage_delete_session(first_id));
     memset(&habits, 0, sizeof(habits));

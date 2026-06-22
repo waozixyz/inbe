@@ -631,6 +631,12 @@ storage_apply_session_habit_count(const char *habit_id, int local_date,
     old_session_count = sqlite3_column_int(stmt, 2);
     sqlite3_finalize(stmt);
 
+    if(old_count <= 0 && !old_completed && old_session_count > 0) {
+        if(session_count == old_session_count)
+            return 1;
+        return storage_update_habit_day_session_count(habit_id, local_date, session_count);
+    }
+
     next_count = old_count;
     if(old_count <= old_session_count || session_count > old_count)
         next_count = session_count;
@@ -1579,8 +1585,7 @@ storage_apply_sync_response_json(const char *response_json)
         "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
         " completed=excluded.completed,count=excluded.count,updated_at=excluded.updated_at "
         "WHERE excluded.updated_at > habit_days.updated_at "
-        "OR (excluded.updated_at = habit_days.updated_at AND excluded.count > habit_days.count "
-        "    AND NOT EXISTS ("
+        "OR (excluded.updated_at = habit_days.updated_at AND NOT EXISTS ("
         "     SELECT 1 FROM sync_outbox "
         "     WHERE entity_type='habit_day' AND entity_id=habit_days.habit_id "
         "       AND local_date=habit_days.local_date"
