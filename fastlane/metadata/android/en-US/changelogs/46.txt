@@ -1,0 +1,4 @@
+### Added
+- tab bar mode for habits and exercises
+### Changed
+- fix ut click file

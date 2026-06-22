@@ -173,6 +173,13 @@ habit_edit_commit(InbeApp *app)
                 habits_save(&app->habits);
             }
         } else {
+            // Check for duplicate names when editing existing habit
+            if(habits_name_exists(&app->habits, text, index)) {
+                // Show error modal or prevent the update
+                // For now, just return without saving
+                habit_edit_cancel(app);
+                return;
+            }
             snprintf(app->habits.items[index].name,
                      sizeof(app->habits.items[index].name), "%s", text);
             app->habits.items[index].color = app->habit_edit.color;
@@ -356,7 +363,7 @@ draw_habit_edit_screen(InbeApp *app)
             return;
         }
     } else {
-        top_h = app_content_top_reserved(app) + flint_px(40);
+        top_h = habits_screen_top_reserved(app);
         y = top_h + flint_px(18);
     }
 

@@ -1,4 +1,17 @@
 # Changelog
+## [1.5.0] - 2026-06-22
+### Changed
+- New logo
+- improve tabbar ui
+### Fixed
+- sync issues
+
+## [1.4.11] - 2026-06-21
+### Added
+- tab bar mode for habits and exercises
+### Changed
+- fix ut click file
+
 ## [1.4.10] - 2026-06-21
 ### Added
 - Added guide to habits page

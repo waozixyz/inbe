@@ -32,6 +32,18 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     state->draw_theme_mode_menu = 1;
     *y += flint_px(76);
 
+    // Navigation mode setting
+    const char *nav_mode_options[3];
+    nav_mode_options[0] = locale_get("nav_mode_auto");
+    nav_mode_options[1] = locale_get("nav_mode_dropdown");
+    nav_mode_options[2] = locale_get("nav_mode_tabbar");
+    app->navigation_mode = clampi(app->navigation_mode, NAV_MODE_AUTO, NAV_MODE_TABBAR);
+    flint_text_draw(locale_get("nav_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+    ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
+                            nav_mode_options, 3, &app->navigation_mode);
+    state->draw_nav_mode_menu = 1;
+    *y += flint_px(76);
+
     if(ui_draw_theme_picker(x, *y, w, app->dark_mode, &app->theme_id)) {
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
         app_refresh_theme(app);
@@ -45,6 +57,7 @@ void
 settings_theme_handle_overlays(InbeApp *app, const SettingsThemeState *state)
 {
     int theme_mode_changed = 0;
+    int nav_mode_changed = 0;
 
     if(app == NULL || state == NULL)
         return;
@@ -53,6 +66,14 @@ settings_theme_handle_overlays(InbeApp *app, const SettingsThemeState *state)
     if(theme_mode_changed) {
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
         app_refresh_theme(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+    }
+
+    if(state->draw_nav_mode_menu && ui_draw_dropdown_menu(103))
+        nav_mode_changed = 1;
+    if(nav_mode_changed) {
+        app->navigation_mode = clampi(app->navigation_mode, NAV_MODE_AUTO, NAV_MODE_TABBAR);
         app->settings_dirty = 1;
         save_settings(app);
     }

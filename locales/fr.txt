@@ -199,7 +199,6 @@ Données
 [settings_tab_about]
 À propos
 ---
-
 [theme_label]
 Thème
 ---
@@ -278,7 +277,6 @@ Suivant
 [coming_soon_label]
 Bientôt...
 ---
-
 [total_sessions_label]
 Séances totales : %d
 ---
@@ -290,9 +288,6 @@ Stockage : %s
 ---
 [export_data_button]
 Exporter les données
----
-[delete_all_data_button]
-Supprimer toutes les données
 ---
 [export_data_dialog_title]
 Exporter les données
@@ -344,12 +339,6 @@ Aucune donnée à exporter
 ---
 [no_data_to_delete]
 Aucune donnée à supprimer
----
-[delete_all_data_title]
-Supprimer toutes les données ?
----
-[delete_all_data_message]
-Cela supprimera définitivement toutes les séances enregistrées.
 ---
 [delete_cancelled]
 Suppression annulée
@@ -474,6 +463,9 @@ Supprimer ce cycle ? Cette action est irréversible.
 ---
 [delete_button]
 Supprimer
+---
+[clear_button]
+Effacer
 ---
 [meditation_music_attribution]
 Musique par Elijah_K.
@@ -634,20 +626,35 @@ Impossible d’enregistrer la sauvegarde de la clé
 [sync_private_key_backup_cancelled]
 Sauvegarde de la clé annulée
 ---
-[sync_delete_account_button]
-Supprimer le compte
+[clear_local_data_button]
+Effacer les données locales
 ---
-[sync_delete_account_title]
-Supprimer le compte ?
+[clear_local_data_title]
+Effacer les données locales ?
 ---
-[sync_delete_account_message]
-Supprimer ce compte du serveur distant et de cet appareil ? Cette action est irréversible.
+[clear_local_data_message]
+Efface uniquement les données stockées sur cet appareil. Les données de synchronisation distantes ne sont pas modifiées.
 ---
-[sync_account_deleted]
-Compte supprimé
+[sync_logout_button]
+Se déconnecter
 ---
-[sync_account_delete_cancelled]
-Suppression du compte annulée
+[sync_logged_out]
+Déconnecté
+---
+[sync_clear_remote_data_button]
+Effacer les données distantes
+---
+[sync_clear_remote_data_title]
+Effacer les données distantes ?
+---
+[sync_clear_remote_data_message]
+Efface ce compte de synchronisation du serveur distant, puis vous déconnecte sur cet appareil. Cette action est irréversible.
+---
+[sync_remote_data_cleared]
+Données distantes effacées
+---
+[sync_clear_remote_data_cancelled]
+Effacement des données distantes annulé
 ---
 [habit_new_default_name]
 Nouvelle habitude
@@ -786,4 +793,16 @@ Choisissez Hebdomadaire ou Calendrier pour suivre votre habitude.
 ---
 [habits_guide_statistics]
 Consultez vos statistiques d'habitudes ici.
+---
+[nav_mode_label]
+Navigation
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Déroulante
+---
+[nav_mode_tabbar]
+Onglets
 ---

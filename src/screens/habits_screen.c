@@ -26,6 +26,7 @@
 /* Helper functions */
 static void habits_add_seed(InbeHabits *habits, const char *id, const char *name,
                                  Color color, int activity_mask);
+static void habits_repair_default_meditation_link(InbeHabits *habits);
 
 enum {
     HABITS_GUIDE_STEPS = 4,
@@ -235,6 +236,14 @@ habits_save(InbeHabits *habits)
     if(habits != NULL)
         habits->dirty = 0;
     storage_habits_save(habits);
+    if(habits != NULL) {
+        habits->loaded_count = habits->count;
+        for(int i = 0; i < habits->loaded_count; i++)
+            copy_text(habits->loaded_ids[i], sizeof(habits->loaded_ids[i]),
+                      habits->items[i].id);
+        for(int i = habits->loaded_count; i < INBE_HABIT_MAX; i++)
+            habits->loaded_ids[i][0] = '\0';
+    }
     return;
 }
 
@@ -319,21 +328,66 @@ habits_delete(InbeHabits *habits, int index)
 }
 
 int
+habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index)
+{
+    if(habits == NULL || name == NULL)
+        return 0;
+
+    for(int i = 0; i < habits->count; i++) {
+        if(i == exclude_index)
+            continue;  // Skip current habit when editing
+        if(strcmp(habits->items[i].name, name) == 0)
+            return 1;
+    }
+    return 0;
+}
+
+void
+habits_generate_unique_name(InbeHabits *habits, char *name_buffer, size_t buffer_size, const char *base_name)
+{
+    if(habits == NULL || name_buffer == NULL || base_name == NULL)
+        return;
+
+    // Try base name first
+    snprintf(name_buffer, buffer_size, "%s", base_name);
+
+    if(!habits_name_exists(habits, name_buffer, -1))
+        return;
+
+    // Append numbers until we find a unique name
+    for(int i = 2; i < 100; i++) {
+        snprintf(name_buffer, buffer_size, "%s %d", base_name, i);
+        if(!habits_name_exists(habits, name_buffer, -1))
+            return;
+    }
+
+    // Fallback to timestamp-based name
+    snprintf(name_buffer, buffer_size, "%s %ld", base_name, (long)time(NULL));
+}
+
+int
 habits_add_custom(InbeHabits *habits, const char *name, Color color,
                        int sync_mode, int sync_activity)
 {
     InbeHabit *habit;
     int number;
+    char unique_name[INBE_HABIT_NAME_SIZE];
 
     if(habits == NULL || habits->count >= INBE_HABIT_MAX)
         return -1;
+
+    // Ensure name is unique
+    const char *final_name = name != NULL && name[0] != '\0' ? name : "Habit";
+    if(habits_name_exists(habits, final_name, -1)) {
+        habits_generate_unique_name(habits, unique_name, sizeof(unique_name), final_name);
+        final_name = unique_name;
+    }
 
     number = habits->count + 1;
     habit = &habits->items[habits->count];
     memset(habit, 0, sizeof(*habit));
     snprintf(habit->id, sizeof(habit->id), "habit-%d", number);
-    copy_text(habit->name, sizeof(habit->name),
-              name != NULL && name[0] != '\0' ? name : "Habit");
+    copy_text(habit->name, sizeof(habit->name), final_name);
     habit->color = color;
     habit->color.a = 255;
     habit->sync_mode = sync_mode;
@@ -371,6 +425,11 @@ habits_init(InbeHabits *habits)
         return;
     data_init();
     if(storage_habits_load(habits)) {
+        if(habits->count <= 0) {
+            habits_add_default_set(habits);
+            return;
+        }
+        habits_repair_default_meditation_link(habits);
         if(habits->count == 3 &&
            strcmp(habits->items[0].id, "mind") == 0 &&
            strcmp(habits->items[1].id, "yoga") == 0 &&
@@ -739,6 +798,80 @@ habit_open_linked_edit_page(InbeApp *app, int habit_index, int day_index)
     app_switch_screen(app, InbeScreenHabitSessionEdit);
 }
 
+static int
+habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
+{
+    FlintUITab tabs[INBE_HABIT_MAX + 1];
+    int tab_count = 0;
+
+    if(app == NULL)
+        return -1;
+
+    // Create tab for each habit
+    for(int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++) {
+        tabs[tab_count++] = (FlintUITab){
+            .label = app->habits.items[i].name,
+            .icon = (Texture2D){0},
+            .icon_size = 0,
+            .disabled = app->modal.active,
+            .accent = app->habits.items[i].color
+        };
+    }
+
+    // Add "+" option as last tab
+    tabs[tab_count++] = (FlintUITab){
+        .label = NULL,
+        .icon = app->icons[UI_ICON_TYPE_PLUS],
+        .icon_size = flint_px(16),
+        .disabled = app->modal.active
+    };
+
+    int clicked = ui_draw_tab_bar((FlintUITabBar){
+        .bounds = {0, (float)y, (float)view_width, (float)ui_tab_bar_height()},
+        .tabs = tabs,
+        .count = tab_count,
+        .selected_index = app->habits.selected,
+        .min_tab_width = flint_px(100),
+        .max_tab_width = flint_px(160),
+        .scroll_offset = &app->habits.tab_scroll,
+        .focus_selected = app->habits.focus_selected_tab
+    });
+    app->habits.focus_selected_tab = 0;
+    return clicked;
+}
+
+static int
+habits_screen_selector_height(InbeApp *app)
+{
+    return app_should_use_tab_bar(app) ? ui_tab_bar_height()
+                                       : flint_px(HABITS_TOP_H);
+}
+
+int
+habits_screen_top_reserved(InbeApp *app)
+{
+    return habits_screen_selector_height(app) + flint_px(HABITS_TAB_H);
+}
+
+static void
+habits_repair_default_meditation_link(InbeHabits *habits)
+{
+    int default_activity = habit_activity_mask_for(EXERCISE_WIM_HOF) |
+                           habit_activity_mask_for(EXERCISE_MEDITATION);
+
+    if(habits == NULL || habits->count != 1)
+        return;
+    if(strcmp(habits->items[0].name, "Meditation") != 0)
+        return;
+    if(habits->items[0].sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
+       habits->items[0].sync_activity == default_activity)
+        return;
+
+    habits->items[0].sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
+    habits->items[0].sync_activity = default_activity;
+    habits_save(habits);
+}
+
 static void
 draw_habits_top_bar(InbeApp *app, int draw_menu)
 {
@@ -768,25 +901,52 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         selected = 0;
 
     if(!draw_menu) {
-        dropdown_selected = selected;
-        header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
-            .leading_icon = (Texture2D){0},
-            .toolbar = (FlintUIToolbar){
-            .id = 301,
-            .height = top_h,
-            .options = app->modal.active ? NULL : options,
-            .option_count = app->modal.active ? 0 : option_count,
-            .selected_index = &dropdown_selected,
-            .dropdown_min_width = flint_px(150),
-            .dropdown_max_width = flint_px(260),
-            .dropdown_height = flint_px(36),
-            .side_padding = flint_px(12)
-            }
-        });
-        (void)header_result.leading_clicked;
-        toolbar_result = header_result.toolbar;
-        (void)toolbar_result;
+        // Desktop mode: use tab bar instead of dropdown
+        if(app_should_use_tab_bar(app)) {
+            int clicked_habit = habits_screen_draw_desktop_tab_bar(app, 0);
 
+            // Handle habit selection
+            if(clicked_habit >= 0) {
+                if(clicked_habit == app->habits.count) {
+                    // "Add new habit" clicked
+                    habit_edit_begin_new(app);
+                } else if(clicked_habit != app->habits.selected) {
+                    // Different habit selected
+                    int was_edit_tab = app->habits.tab == HABIT_TAB_EDIT;
+                    if(was_edit_tab && app->habit_edit.active)
+                        habit_edit_commit(app);
+                    app->habits.selected = clicked_habit;
+                    app->habits.scroll = 0;
+                    app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
+                    if(was_edit_tab) {
+                        app->habits.tab = HABIT_TAB_EDIT;
+                        habit_edit_begin(app, app->habits.selected);
+                    }
+                }
+            }
+        } else {
+            // Mobile mode: keep existing dropdown
+            dropdown_selected = selected;
+            header_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
+                .leading_icon = (Texture2D){0},
+                .toolbar = (FlintUIToolbar){
+                .id = 301,
+                .height = top_h,
+                .options = app->modal.active ? NULL : options,
+                .option_count = app->modal.active ? 0 : option_count,
+                .selected_index = &dropdown_selected,
+                .dropdown_min_width = flint_px(150),
+                .dropdown_max_width = flint_px(260),
+                .dropdown_height = flint_px(36),
+                .side_padding = flint_px(12)
+                }
+            });
+            (void)header_result.leading_clicked;
+            toolbar_result = header_result.toolbar;
+            (void)toolbar_result;
+        }
+
+        // Keep existing subtab bar for Weekly/Monthly/Statistics/Edit (works in both modes)
         tabs[HABIT_TAB_WEEKLY] = (FlintUISubtab){
             .icon = app->icons[UI_ICON_TYPE_WEEKLY],
             .icon_size = flint_px(20),
@@ -807,8 +967,10 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
             .icon_size = flint_px(20),
             .disabled = app->modal.active
         };
+
+        int tab_y = habits_screen_selector_height(app);
         clicked_tab = ui_draw_subtab_bar((FlintUISubtabBar){
-            .bounds = {0, (float)top_h, (float)view_width, (float)tab_h},
+            .bounds = {0, (float)tab_y, (float)view_width, (float)tab_h},
             .tabs = tabs,
             .count = HABIT_TAB_COUNT,
             .selected_index = app->habits.tab
@@ -943,9 +1105,8 @@ habits_screen_dropdown_anchor(void)
 }
 
 static Rectangle
-habits_screen_tab_anchor(int first_tab, int tab_count)
+habits_screen_tab_anchor(InbeApp *app, int first_tab, int tab_count)
 {
-    int top_h = flint_px(HABITS_TOP_H);
     int tab_h = flint_px(HABITS_TAB_H);
     int tab_w = view_width / HABIT_TAB_COUNT;
     int x = first_tab * tab_w;
@@ -956,15 +1117,36 @@ habits_screen_tab_anchor(int first_tab, int tab_count)
     if(w < 1)
         w = 1;
 
-    return (Rectangle){(float)x, (float)top_h, (float)w, (float)tab_h};
+    return (Rectangle){(float)x, (float)habits_screen_selector_height(app),
+                       (float)w, (float)tab_h};
 }
 
 static Rectangle
-habits_screen_practice_list_anchor(void)
+habits_screen_habit_tabs_anchor(InbeApp *app)
+{
+    if(app == NULL)
+        return (Rectangle){0};
+
+    // Desktop mode: highlight all habit tabs (top tab bar)
+    if(app_should_use_tab_bar(app)) {
+        return (Rectangle){
+            0,
+            0,
+            (float)view_width,
+            (float)ui_tab_bar_height()
+        };
+    }
+
+    // Mobile mode: highlight the dropdown
+    return habits_screen_dropdown_anchor();
+}
+
+static Rectangle
+habits_screen_practice_list_anchor(InbeApp *app)
 {
     int content_x;
     int content_w;
-    int top_h = app_content_top_reserved(NULL) + flint_px(HABITS_TAB_H);
+    int top_h = habits_screen_top_reserved(app);
     int y = top_h + flint_px(18);
     int field_h = flint_px(40);
     int section_h = ui_section_label_height((FlintUISectionLabel){0});
@@ -993,19 +1175,19 @@ habits_screen_draw_first_run_guide(InbeApp *app)
         return;
 
     steps[0] = (FlintUIGuideStep){
-        habits_screen_dropdown_anchor(),
+        habits_screen_habit_tabs_anchor(app),
         locale_get("habits_guide_dropdown")
     };
     steps[1] = (FlintUIGuideStep){
-        habits_screen_practice_list_anchor(),
+        habits_screen_practice_list_anchor(app),
         locale_get("habits_guide_practice_list")
     };
     steps[2] = (FlintUIGuideStep){
-        habits_screen_tab_anchor(HABIT_TAB_WEEKLY, 2),
+        habits_screen_tab_anchor(app, HABIT_TAB_WEEKLY, 2),
         locale_get("habits_guide_views")
     };
     steps[3] = (FlintUIGuideStep){
-        habits_screen_tab_anchor(HABIT_TAB_STATISTICS, 1),
+        habits_screen_tab_anchor(app, HABIT_TAB_STATISTICS, 1),
         locale_get("habits_guide_statistics")
     };
 
@@ -1015,7 +1197,7 @@ habits_screen_draw_first_run_guide(InbeApp *app)
         .step = &app->habits_guide_step,
         .view_width = view_width,
         .view_height = view_height,
-        .reserved_top = flint_px(HABITS_TOP_H + HABITS_TAB_H),
+        .reserved_top = habits_screen_top_reserved(app),
         .reserved_bottom = ui_bottom_nav_height(),
         .max_width = flint_px(300),
         .paragraph_font = flint_ui_font_small(),
@@ -1464,7 +1646,7 @@ draw_habits_screen(InbeApp *app)
     else if(app->habits.tab == HABIT_TAB_MONTHLY)
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
 
-    content_top = app_content_top_reserved(app) + flint_px(40);
+    content_top = habits_screen_top_reserved(app);
     content_bottom = app_content_bottom_reserved(app);
     y = content_top + flint_px(8);
     viewport_h = view_height - content_top - content_bottom;

@@ -1,0 +1,7 @@
+Package: inbe
+Version: 1.4.10
+Architecture: arm64
+Maintainer: Waozi Project <waozi@waozi.xyz>
+Click-Version: 0.4
+Installed-Size: 12560
+Description: Inner Breeze

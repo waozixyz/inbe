@@ -109,6 +109,42 @@ practice_screen_open_tab(InbeApp *app, int tab)
     }
 }
 
+static int
+practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
+{
+    FlintUITab tabs[EXERCISE_COUNT];
+    int tab_count = 0;
+
+    if(app == NULL)
+        return -1;
+
+    // Create tab for each exercise type
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        tabs[tab_count++] = (FlintUITab){
+            .label = practice_activity_label(i),
+            .icon = (Texture2D){0},
+            .icon_size = 0,
+            .disabled = app->modal.active
+        };
+    }
+
+    return ui_draw_tab_bar((FlintUITabBar){
+        .bounds = {0, (float)y, (float)view_width, (float)ui_tab_bar_height()},
+        .tabs = tabs,
+        .count = tab_count,
+        .selected_index = app->exercise_type,
+        .min_tab_width = flint_px(120),
+        .max_tab_width = flint_px(180)
+    });
+}
+
+static int
+practice_screen_selector_height(InbeApp *app)
+{
+    return app_should_use_tab_bar(app) ? ui_tab_bar_height()
+                                       : app_toolbar_height();
+}
+
 void
 practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
 {
@@ -150,23 +186,41 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
         return;
     }
 
-    (void)ui_draw_toolbar_header((FlintUIToolbarHeader){
-        .leading_icon = (Texture2D){0},
-        .toolbar = (FlintUIToolbar){
-            .id = 300,
-            .height = app_toolbar_height(),
-            .options = app->modal.active ? NULL : exercise_options,
-            .option_count = app->modal.active ? 0 : activity_count,
-            .selected_index = &activity_index,
-            .dropdown_min_width = flint_px(160),
-            .dropdown_max_width = flint_px(230),
-            .dropdown_height = flint_px(36),
-            .side_padding = flint_px(12)
+    // Desktop mode: use tab bar instead of dropdown
+    if(app_should_use_tab_bar(app)) {
+        int clicked_exercise = practice_screen_draw_desktop_tab_bar(app, 0);
+        if(clicked_exercise >= 0 && clicked_exercise != app->exercise_type) {
+            if(app->practice_tab == PRACTICE_TAB_CONFIG)
+                app_leave_practice_config(app);
+            app->exercise_type = clicked_exercise;
+            app->manual_scroll = 0;
+            app->settings_scroll = 0;
+            app->tutorial_step = 0;
+            app->practice_config_tab = 0;
+            save_settings(app);
         }
-    });
+    } else {
+        // Mobile mode: keep existing dropdown
+        (void)ui_draw_toolbar_header((FlintUIToolbarHeader){
+            .leading_icon = (Texture2D){0},
+            .toolbar = (FlintUIToolbar){
+                .id = 300,
+                .height = app_toolbar_height(),
+                .options = app->modal.active ? NULL : exercise_options,
+                .option_count = app->modal.active ? 0 : activity_count,
+                .selected_index = &activity_index,
+                .dropdown_min_width = flint_px(160),
+                .dropdown_max_width = flint_px(230),
+                .dropdown_height = flint_px(36),
+                .side_padding = flint_px(12)
+            }
+        });
+    }
 
+    // Keep existing subtab bar for Play/Manual/Config (works in both modes)
     {
-        int clicked = practice_screen_draw_tab_bar(app, app_toolbar_height());
+        int clicked = practice_screen_draw_tab_bar(app,
+            practice_screen_selector_height(app));
         if(clicked >= 0 && clicked != app->practice_tab)
             practice_screen_open_tab(app, clicked);
     }
@@ -195,7 +249,7 @@ practice_screen_dropdown_anchor(void)
 }
 
 static Rectangle
-practice_screen_tab_anchor(int tab)
+practice_screen_tab_anchor(InbeApp *app, int tab)
 {
     int tab_h = flint_px(PRACTICE_CATEGORY_TAB_H);
     int tab_w = view_width / PRACTICE_TAB_COUNT;
@@ -204,10 +258,30 @@ practice_screen_tab_anchor(int tab)
 
     return (Rectangle){
         (float)x,
-        (float)app_toolbar_height(),
+        (float)practice_screen_selector_height(app),
         (float)w,
         (float)tab_h
     };
+}
+
+static Rectangle
+practice_screen_exercise_tabs_anchor(InbeApp *app)
+{
+    if(app == NULL)
+        return (Rectangle){0};
+
+    // Desktop mode: highlight all exercise tabs (top tab bar)
+    if(app_should_use_tab_bar(app)) {
+        return (Rectangle){
+            0,
+            0,
+            (float)view_width,
+            (float)ui_tab_bar_height()
+        };
+    }
+
+    // Mobile mode: highlight the dropdown
+    return practice_screen_dropdown_anchor();
 }
 
 static void
@@ -230,16 +304,10 @@ practice_screen_first_run_guide_active(const InbeApp *app)
 void
 practice_screen_prepare_first_run_guide(InbeApp *app)
 {
-    int step;
-
     if(!practice_screen_first_run_guide_active(app))
         return;
 
-    step = clampi(app->tutorial_step, 0, PRACTICE_GUIDE_STEPS - 1);
-    if(step == 1)
-        app->practice_tab = PRACTICE_TAB_MANUAL;
-    else
-        app->practice_tab = PRACTICE_TAB_PLAY;
+    app->practice_tab = PRACTICE_TAB_PLAY;
 }
 
 void
@@ -252,19 +320,19 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         return;
 
     steps[0] = (FlintUIGuideStep){
-        practice_screen_dropdown_anchor(),
+        practice_screen_exercise_tabs_anchor(app),
         locale_get("practice_guide_dropdown")
     };
     steps[1] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_MANUAL),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_MANUAL),
         locale_get("practice_guide_manual")
     };
     steps[2] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_PLAY),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_PLAY),
         locale_get("practice_guide_sun")
     };
     steps[3] = (FlintUIGuideStep){
-        practice_screen_tab_anchor(PRACTICE_TAB_CONFIG),
+        practice_screen_tab_anchor(app, PRACTICE_TAB_CONFIG),
         locale_get("practice_guide_config")
     };
 

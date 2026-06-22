@@ -116,6 +116,12 @@ typedef enum AppOrientationMode {
     APP_ORIENTATION_SENSOR = 3,
 } AppOrientationMode;
 
+typedef enum NavigationMode {
+    NAV_MODE_TABBAR = 0,
+    NAV_MODE_DROPDOWN = 1,
+    NAV_MODE_AUTO = 2,
+} NavigationMode;
+
 typedef enum AppDeviceOrientation {
     APP_DEVICE_ORIENTATION_UNKNOWN = 0,
     APP_DEVICE_ORIENTATION_PORTRAIT = 1,
@@ -243,6 +249,7 @@ struct InbeApp {
     int dark_mode;
     int theme_mode;
     int orientation_mode;
+    int navigation_mode;
     int android_orientation;
     int main_tab;
     int sidebar_open;
@@ -296,6 +303,7 @@ int app_content_top_reserved(const InbeApp *app);
 int app_content_bottom_reserved(const InbeApp *app);
 int app_toolbar_height(void);
 int app_auto_sync(InbeApp *app);
+int app_should_use_tab_bar(const InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);

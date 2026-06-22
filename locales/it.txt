@@ -343,9 +343,6 @@ Spazio: %s
 [export_data_button]
 Esporta Dati
 ---
-[delete_all_data_button]
-Elimina Tutti i Dati
----
 [export_data_dialog_title]
 Esporta Dati
 ---
@@ -396,12 +393,6 @@ Nessun dato da esportare
 ---
 [no_data_to_delete]
 Nessun dato da eliminare
----
-[delete_all_data_title]
-Eliminare tutti i dati?
----
-[delete_all_data_message]
-Ciò eliminerà permanentemente tutte le sessioni salvate.
 ---
 [delete_cancelled]
 Eliminazione annullata
@@ -527,6 +518,9 @@ Eliminare questo round? Questa azione non può essere annullata.
 [delete_button]
 Elimina
 ---
+[clear_button]
+Cancella
+---
 [meditation_music_attribution]
 Musica di Elijah_K.
 ---
@@ -632,20 +626,35 @@ Impossibile salvare il backup della chiave account
 [sync_private_key_backup_cancelled]
 Backup chiave account annullato
 ---
-[sync_delete_account_button]
-Elimina account
+[clear_local_data_button]
+Cancella dati locali
 ---
-[sync_delete_account_title]
-Eliminare account?
+[clear_local_data_title]
+Cancellare i dati locali?
 ---
-[sync_delete_account_message]
-Eliminare questo account dal server remoto e da questo dispositivo? L’azione non può essere annullata.
+[clear_local_data_message]
+Cancella solo i dati salvati su questo dispositivo. I dati di sincronizzazione remoti non vengono modificati.
 ---
-[sync_account_deleted]
-Account eliminato
+[sync_logout_button]
+Esci
 ---
-[sync_account_delete_cancelled]
-Eliminazione account annullata
+[sync_logged_out]
+Disconnesso
+---
+[sync_clear_remote_data_button]
+Cancella dati remoti
+---
+[sync_clear_remote_data_title]
+Cancellare i dati remoti?
+---
+[sync_clear_remote_data_message]
+Cancella questo account di sincronizzazione dal server remoto e poi esce su questo dispositivo. L’azione non può essere annullata.
+---
+[sync_remote_data_cleared]
+Dati remoti cancellati
+---
+[sync_clear_remote_data_cancelled]
+Cancellazione dei dati remoti annullata
 ---
 [habit_new_default_name]
 Nuova abitudine
@@ -784,4 +793,16 @@ Scegli Settimanale o Calendario per rivedere l'abitudine.
 ---
 [habits_guide_statistics]
 Visualizza qui le statistiche delle abitudini.
+---
+[nav_mode_label]
+Navigazione
+---
+[nav_mode_auto]
+Automatico
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Schede
 ---

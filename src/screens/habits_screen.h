@@ -61,9 +61,13 @@ typedef struct InbeHabit {
 
 typedef struct InbeHabits {
     InbeHabit items[INBE_HABIT_MAX];
+    char loaded_ids[INBE_HABIT_MAX][INBE_HABIT_ID_SIZE];
     int count;
+    int loaded_count;
     int selected;
     int scroll;
+    int tab_scroll;
+    int focus_selected_tab;
     int month_offset;
     int selector_open;
     int view_mode;
@@ -118,6 +122,8 @@ void habit_toggle_today(InbeHabits *habits, int index);
 void habits_add_default(InbeHabits *habits);
 void habits_add_default_set(InbeHabits *habits);
 void habits_delete(InbeHabits *habits, int index);
+int habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index);
+void habits_generate_unique_name(InbeHabits *habits, char *name_buffer, size_t buffer_size, const char *base_name);
 int habits_add_custom(InbeHabits *habits, const char *name, Color color,
                            int sync_mode, int sync_activity);
 int habit_activity_mask_for(int exercise);
@@ -135,6 +141,7 @@ void habit_edit_cancel(InbeApp *app);
 void draw_habits_screen(InbeApp *app);
 void draw_habit_edit_screen(InbeApp *app);
 void draw_habit_session_edit_screen(InbeApp *app);
+int habits_screen_top_reserved(InbeApp *app);
 int habits_screen_first_run_guide_active(const InbeApp *app);
 void habits_screen_prepare_first_run_guide(InbeApp *app);
 void habits_screen_draw_first_run_guide(InbeApp *app);

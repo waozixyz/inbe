@@ -199,7 +199,6 @@ Daten
 [settings_tab_about]
 Über
 ---
-
 [theme_label]
 Thema
 ---
@@ -278,7 +277,6 @@ Weiter
 [coming_soon_label]
 Demnächst...
 ---
-
 [total_sessions_label]
 Gesamtsitzungen: %d
 ---
@@ -290,9 +288,6 @@ Speicher: %s
 ---
 [export_data_button]
 Daten exportieren
----
-[delete_all_data_button]
-Alle Daten löschen
 ---
 [export_data_dialog_title]
 Daten exportieren
@@ -344,12 +339,6 @@ Keine Daten zum Exportieren
 ---
 [no_data_to_delete]
 Keine Daten zum Löschen
----
-[delete_all_data_title]
-Alle Daten löschen?
----
-[delete_all_data_message]
-Dadurch werden alle gespeicherten Sitzungen dauerhaft gelöscht.
 ---
 [delete_cancelled]
 Löschen abgebrochen
@@ -473,6 +462,9 @@ Diese Sitzung löschen? Das kann nicht rückgängig gemacht werden.
 Diese Runde löschen? Das kann nicht rückgängig gemacht werden.
 ---
 [delete_button]
+Löschen
+---
+[clear_button]
 Löschen
 ---
 [meditation_music_attribution]
@@ -634,20 +626,35 @@ Kontoschlüssel-Sicherung konnte nicht gespeichert werden
 [sync_private_key_backup_cancelled]
 Kontoschlüssel-Sicherung abgebrochen
 ---
-[sync_delete_account_button]
-Konto löschen
+[clear_local_data_button]
+Lokale Daten löschen
 ---
-[sync_delete_account_title]
-Konto löschen?
+[clear_local_data_title]
+Lokale Daten löschen?
 ---
-[sync_delete_account_message]
-Dieses Konto vom Remote-Server und von diesem Gerät löschen? Das kann nicht rückgängig gemacht werden.
+[clear_local_data_message]
+Löscht nur die auf diesem Gerät gespeicherten Daten. Remote-Sync-Daten bleiben unverändert.
 ---
-[sync_account_deleted]
-Konto gelöscht
+[sync_logout_button]
+Abmelden
 ---
-[sync_account_delete_cancelled]
-Kontolöschung abgebrochen
+[sync_logged_out]
+Abgemeldet
+---
+[sync_clear_remote_data_button]
+Remote-Daten löschen
+---
+[sync_clear_remote_data_title]
+Remote-Daten löschen?
+---
+[sync_clear_remote_data_message]
+Löscht dieses Sync-Konto vom Remote-Server und meldet dieses Gerät danach ab. Das kann nicht rückgängig gemacht werden.
+---
+[sync_remote_data_cleared]
+Remote-Daten gelöscht
+---
+[sync_clear_remote_data_cancelled]
+Löschen der Remote-Daten abgebrochen
 ---
 [habit_new_default_name]
 Neue Gewohnheit
@@ -786,4 +793,16 @@ Wahle Woche oder Kalender, um deine Gewohnheit zu pruefen.
 ---
 [habits_guide_statistics]
 Sieh dir hier deine Gewohnheitsstatistiken an.
+---
+[nav_mode_label]
+Navigation
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Dropdown
+---
+[nav_mode_tabbar]
+Tabs
 ---

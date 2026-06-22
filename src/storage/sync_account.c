@@ -9,6 +9,9 @@
 #if INBE_ANDROID_BUILD
 #include "android_share.h"
 #endif
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
 
 #if defined(INBE_HAS_LIBOQS)
 #include <oqs/oqs.h>
@@ -546,6 +549,24 @@ sync_account_export_private_key(const InbeSyncAccount *account, const char *file
 #if INBE_ANDROID_BUILD
     return android_share_bytes((const unsigned char *)body, (size_t)len, filename,
                                "application/octet-stream");
+#elif defined(PLATFORM_WEB)
+    EM_ASM({
+        const ptr = $0;
+        const len = $1;
+        const filename = UTF8ToString($2);
+        const bytes = HEAPU8.slice(ptr, ptr + len);
+        const blob = new Blob([bytes], {type: "application/octet-stream"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename || "inbe-sync.key";
+        a.style.display = "none";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }, body, len, filename);
+    return 1;
 #else
     if(strchr(filename, '/') != NULL || strchr(filename, '\\') != NULL)
         return SaveFileData(filename, body, len);

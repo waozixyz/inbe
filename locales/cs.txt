@@ -199,7 +199,6 @@ Data
 [settings_tab_about]
 O aplikaci
 ---
-
 [theme_label]
 Motiv
 ---
@@ -278,7 +277,6 @@ Další
 [coming_soon_label]
 Brzy...
 ---
-
 [total_sessions_label]
 Celkem sezení: %d
 ---
@@ -290,9 +288,6 @@ Velikost dat: %s
 ---
 [export_data_button]
 Exportovat data
----
-[delete_all_data_button]
-Smazat všechna data
 ---
 [export_data_dialog_title]
 Exportovat data
@@ -344,12 +339,6 @@ Export zrušen
 ---
 [no_data_to_delete]
 Žádná data ke smazání
----
-[delete_all_data_title]
-Smazat všechna data?
----
-[delete_all_data_message]
-Tím se trvale smažou všechna uložená sezení.
 ---
 [delete_cancelled]
 Mazání zrušeno
@@ -474,6 +463,9 @@ Smazat toto kolo? Tuto akci nelze vrátit.
 ---
 [delete_button]
 Smazat
+---
+[clear_button]
+Vymazat
 ---
 [meditation_music_attribution]
 Hudba od Elijah_K.
@@ -634,20 +626,35 @@ Zálohu klíče účtu se nepodařilo uložit
 [sync_private_key_backup_cancelled]
 Záloha klíče účtu zrušena
 ---
-[sync_delete_account_button]
-Smazat účet
+[clear_local_data_button]
+Vymazat místní data
 ---
-[sync_delete_account_title]
-Smazat účet?
+[clear_local_data_title]
+Vymazat místní data?
 ---
-[sync_delete_account_message]
-Smazat tento účet ze vzdáleného serveru a z tohoto zařízení? Tuto akci nelze vrátit zpět.
+[clear_local_data_message]
+Vymaže pouze data uložená v tomto zařízení. Vzdálená synchronizační data se nezmění.
 ---
-[sync_account_deleted]
-Účet smazán
+[sync_logout_button]
+Odhlásit se
 ---
-[sync_account_delete_cancelled]
-Smazání účtu zrušeno
+[sync_logged_out]
+Odhlášeno
+---
+[sync_clear_remote_data_button]
+Vymazat vzdálená data
+---
+[sync_clear_remote_data_title]
+Vymazat vzdálená data?
+---
+[sync_clear_remote_data_message]
+Vymaže tento synchronizační účet ze vzdáleného serveru a potom se na tomto zařízení odhlásí. Tuto akci nelze vrátit zpět.
+---
+[sync_remote_data_cleared]
+Vzdálená data vymazána
+---
+[sync_clear_remote_data_cancelled]
+Mazání vzdálených dat zrušeno
 ---
 [habit_new_default_name]
 Nový návyk
@@ -786,4 +793,16 @@ Zvolte Tyden nebo Kalendar pro kontrolu navyku.
 ---
 [habits_guide_statistics]
 Zde zobrazite statistiky navyku.
+---
+[nav_mode_label]
+Navigace
+---
+[nav_mode_auto]
+Auto
+---
+[nav_mode_dropdown]
+Rozbalovací
+---
+[nav_mode_tabbar]
+Karty
 ---

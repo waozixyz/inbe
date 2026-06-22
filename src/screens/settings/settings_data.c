@@ -431,11 +431,13 @@ settings_draw_version_centered(int x, int w, int *y)
 void
 settings_data_draw(InbeApp *app, int x, int w, int *y)
 {
+    InbeSyncAccount account;
     int data_button_h = flint_px(36);
     int hover_account = 0;
     int hover_import = 0;
     int hover_export = 0;
     int hover_delete = 0;
+    int has_account = sync_account_load(&account);
 
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
     settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
@@ -462,11 +464,13 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
         settings_export_data(app);
     *y += data_button_h + flint_px(12);
 
-    if(ui_draw_generic_button(x, *y, w, data_button_h,
-                              locale_get("delete_all_data_button"),
-                              UI_BUTTON_STYLE_DANGER, 0, &hover_delete))
-        settings_request_delete_all_data(app);
-    *y += data_button_h + flint_px(12);
+    if(!has_account) {
+        if(ui_draw_generic_button(x, *y, w, data_button_h,
+                                  locale_get("clear_local_data_button"),
+                                  UI_BUTTON_STYLE_DANGER, 0, &hover_delete))
+            settings_request_delete_all_data(app);
+        *y += data_button_h + flint_px(12);
+    }
     settings_screen_draw_status_reserved(x, y, flint_px(42));
     settings_draw_link_icons(app, x, w, y);
     *y += flint_px(8);
@@ -510,6 +514,34 @@ void settings_data_handle_android_import(InbeApp *app) { (void)app; }
 #if defined(PLATFORM_WEB)
 #define SETTINGS_WEB_IMPORT_PATH "/tmp/inbe-web-import.zip"
 #define SETTINGS_WEB_SYNC_KEY_IMPORT_PATH "/tmp/inbe-sync-key-import.key"
+#define SETTINGS_WEB_EXPORT_PATH "/tmp/inbe-web-export.zip"
+
+static int
+settings_web_download_file(const char *path, const char *filename, const char *mime)
+{
+    return EM_ASM_INT({
+        try {
+            const path = UTF8ToString($0);
+            const filename = UTF8ToString($1);
+            const mime = UTF8ToString($2);
+            const bytes = FS.readFile(path);
+            const blob = new Blob([bytes], {type: mime || "application/octet-stream"});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = filename || "inbe-export.zip";
+            a.style.display = "none";
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            return 1;
+        } catch(e) {
+            console.error("Inbe web download failed:", e);
+            return 0;
+        }
+    }, path, filename, mime);
+}
 
 static void
 settings_web_import_open_picker(void)
@@ -670,6 +702,16 @@ settings_export_data(InbeApp *app)
     settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT);
     settings_apply_file_dialog_theme(app);
     flint_file_dialog_begin_save(&export_dlg, locale_get("export_data_dialog_title"), export_filename);
+#elif defined(PLATFORM_WEB)
+    (void)app;
+    if(data_export(SETTINGS_WEB_EXPORT_PATH) &&
+       settings_web_download_file(SETTINGS_WEB_EXPORT_PATH, export_filename, "application/zip")) {
+        settings_screen_set_status_success(locale_get("exported_label"), NULL);
+        TraceLog(LOG_INFO, "DATA: Web export download started");
+    } else {
+        settings_screen_set_status_error(locale_get("export_failed"));
+        TraceLog(LOG_ERROR, "DATA: Web export failed");
+    }
 #else
     (void)app;
     settings_screen_set_status_error(locale_get("export_failed"));
@@ -793,10 +835,10 @@ settings_data_draw_modals(InbeApp *app)
     }
 
     if(app->modal.type == UIModalConfirmDeleteData) {
-        int modal_result = ui_draw_modal(locale_get("delete_all_data_title"),
-                                         locale_get("delete_all_data_message"),
+        int modal_result = ui_draw_modal(locale_get("clear_local_data_title"),
+                                         locale_get("clear_local_data_message"),
                                          locale_get("cancel_button"),
-                                         locale_get("delete_button"));
+                                         locale_get("clear_button"));
         if(modal_result == 1) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
@@ -830,18 +872,18 @@ settings_data_draw_modals(InbeApp *app)
     }
 
     if(app->modal.type == UIModalConfirmDeleteSyncAccount) {
-        int modal_result = ui_draw_modal(locale_get("sync_delete_account_title"),
-                                         locale_get("sync_delete_account_message"),
+        int modal_result = ui_draw_modal(locale_get("sync_clear_remote_data_title"),
+                                         locale_get("sync_clear_remote_data_message"),
                                          locale_get("cancel_button"),
-                                         locale_get("delete_button"));
+                                         locale_get("clear_button"));
         if(modal_result == 1) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
-            settings_screen_set_status_error(locale_get("sync_account_delete_cancelled"));
+            settings_screen_set_status_error(locale_get("sync_clear_remote_data_cancelled"));
         } else if(modal_result == 2) {
             app->modal.active = 0;
             app->modal.type = UIModalNone;
-            settings_sync_account_delete_confirmed(app);
+            settings_sync_account_clear_remote_confirmed(app);
         }
         return 1;
     }

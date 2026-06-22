@@ -1,7 +1,0 @@
-Package: __CLICK_PACKAGE__
-Version: __APP_VERSION__
-Architecture: __CLICK_ARCH__
-Maintainer: __CLICK_MAINTAINER__
-Click-Version: 0.4
-Installed-Size: __INSTALLED_SIZE__
-Description: __CLICK_TITLE__
