@@ -119,7 +119,6 @@ typedef enum AppOrientationMode {
 typedef enum NavigationMode {
     NAV_MODE_TABBAR = 0,
     NAV_MODE_DROPDOWN = 1,
-    NAV_MODE_AUTO = 2,
 } NavigationMode;
 
 typedef enum AppDeviceOrientation {

@@ -4,7 +4,10 @@ FlintUIToolbarResult
 ui_draw_toolbar(FlintUIToolbar toolbar)
 {
     FlintUIToolbarResult result = {-1, -1};
-    int side_padding = toolbar.side_padding > 0 ? toolbar.side_padding : flint_px(12);
+    int side_padding = toolbar.side_padding < 0
+                           ? 0
+                           : (toolbar.side_padding > 0 ? toolbar.side_padding
+                                                       : flint_px(12));
     int action_icon_size = toolbar.action_icon_size > 0
                                ? toolbar.action_icon_size
                                : flint_px(20);

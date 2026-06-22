@@ -797,9 +797,6 @@ https:// または localhost:8080 のようなループバックを使用して�
 [nav_mode_label]
 ナビゲーション
 ---
-[nav_mode_auto]
-自動
----
 [nav_mode_dropdown]
 ドロップダウン
 ---

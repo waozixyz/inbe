@@ -797,9 +797,6 @@ Zde zobrazite statistiky navyku.
 [nav_mode_label]
 Navigace
 ---
-[nav_mode_auto]
-Auto
----
 [nav_mode_dropdown]
 Rozbalovací
 ---

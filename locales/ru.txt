@@ -797,9 +797,6 @@ liboqs не собран для этой платформы.
 [nav_mode_label]
 Навигация
 ---
-[nav_mode_auto]
-Авто
----
 [nav_mode_dropdown]
 Выпадающий
 ---

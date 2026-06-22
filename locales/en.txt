@@ -797,9 +797,6 @@ View habit statistics here.
 [nav_mode_label]
 Navigation
 ---
-[nav_mode_auto]
-Auto
----
 [nav_mode_dropdown]
 Dropdown
 ---
