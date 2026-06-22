@@ -214,6 +214,33 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
     return count;
 }
 
+static int
+read_raw_session_round_seconds(const char *root, const char *session_id, int round_index)
+{
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int seconds = -1;
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open raw session round db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return seconds;
+    if(sqlite3_prepare_v2(db,
+                          "SELECT seconds FROM session_rounds WHERE session_id=?1 AND round_index=?2",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_text(stmt, 1, session_id, -1, SQLITE_TRANSIENT);
+        sqlite3_bind_int(stmt, 2, round_index);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            seconds = sqlite3_column_int(stmt, 0);
+    } else {
+        check_true("prepare raw session round", 0);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return seconds;
+}
+
 static void
 test_sync_payload_omits_uploaded_state_after_upload_marker(void)
 {
@@ -460,6 +487,73 @@ test_sync_apply_preserves_counter_counts(void)
     storage_close();
     check_int("higher equal sync repairs counter",
               read_raw_habit_day_count(root, habit_id, 20260619), 5);
+
+    remove_tree(root);
+}
+
+static void
+test_sync_apply_sessions_last_write_wins(void)
+{
+    char root[512];
+    const char *session_id = "session-equal-time";
+    const char *remote_response =
+        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":["
+        "{\"id\":\"session-equal-time\",\"started_at\":\"2026-06-19T21:00:00Z\","
+        "\"local_date\":20260619,\"topic\":\"0\",\"activity\":1,\"source\":\"remote\","
+        "\"rounds_hash\":\"remote\",\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\","
+        "\"rounds\":[{\"round_index\":0,\"hold_seconds\":45}]}"
+        "]}}";
+
+    make_clean_root(root, sizeof(root), "sync-session-lww");
+    check_true("init sync session db", storage_init(root));
+    storage_close();
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open sync session raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            check_true("insert sync session",
+                       sqlite3_exec(db,
+                                    "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,deleted_at,updated_at) "
+                                    "VALUES('session-equal-time','default',1781902800,20260619,0,1,'local',1781902800,111,0,1781902800);"
+                                    "INSERT INTO session_rounds(session_id,round_index,seconds) "
+                                    "VALUES('session-equal-time',0,60);",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen sync session db", storage_init(root));
+    check_true("apply equal session update", storage_apply_sync_response_json(remote_response));
+    storage_close();
+    check_int("equal session update replaces rounds",
+              read_raw_session_round_seconds(root, session_id, 0), 45);
+
+    {
+        char db_path[512];
+        sqlite3 *db = NULL;
+        make_path(db_path, sizeof(db_path), root, "inbe.db");
+        check_true("open queued sync session raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+        if(db != NULL) {
+            check_true("reset queued sync session",
+                       sqlite3_exec(db,
+                                    "UPDATE sessions SET source='local',rounds_hash=111,updated_at=1781902800 WHERE id='session-equal-time';"
+                                    "DELETE FROM session_rounds WHERE session_id='session-equal-time';"
+                                    "INSERT INTO session_rounds(session_id,round_index,seconds) VALUES('session-equal-time',0,60);"
+                                    "INSERT OR REPLACE INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                                    "VALUES('session','session-equal-time',0,1781902800);",
+                                    NULL, NULL, NULL) == SQLITE_OK);
+            sqlite3_close(db);
+        }
+    }
+
+    check_true("reopen queued sync session db", storage_init(root));
+    check_true("apply equal queued session update", storage_apply_sync_response_json(remote_response));
+    storage_close();
+    check_int("equal queued session keeps local rounds",
+              read_raw_session_round_seconds(root, session_id, 0), 60);
 
     remove_tree(root);
 }
@@ -1609,6 +1703,7 @@ main(void)
     test_sync_payload_includes_queued_current_edits();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
+    test_sync_apply_sessions_last_write_wins();
     test_sync_apply_updates_habit_counter_enabled();
     test_stale_habit_save_keeps_synced_remote_habits();
     test_sync_payload_resets_cursor_for_orphan_habit_days();

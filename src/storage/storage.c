@@ -1609,13 +1609,25 @@ storage_apply_sync_response_json(const char *response_json)
         " topic=excluded.topic,activity=excluded.activity,source=excluded.source,"
         " imported_at=excluded.imported_at,rounds_hash=excluded.rounds_hash,deleted_at=excluded.deleted_at,"
         " updated_at=excluded.updated_at "
-        "WHERE excluded.updated_at >= sessions.updated_at";
+        "WHERE excluded.updated_at > sessions.updated_at "
+        "OR (excluded.updated_at = sessions.updated_at AND NOT EXISTS ("
+        " SELECT 1 FROM sync_outbox "
+        " WHERE entity_type='session' AND entity_id=sessions.id AND local_date=0"
+        "))";
     static const char *delete_rounds_sql =
         "DELETE FROM session_rounds WHERE session_id IN ("
         " SELECT COALESCE(json_extract(value,'$.id'),'') "
         " FROM json_each(?1,'$.changes.sessions') "
-        " WHERE CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
-        "       >= COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')),0)"
+        " WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
+        " AND ("
+        "       NOT EXISTS (SELECT 1 FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')) "
+        "       OR CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
+        "          > COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')),0) "
+        "       OR (CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
+        "           = COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')),0) "
+        "           AND NOT EXISTS (SELECT 1 FROM sync_outbox "
+        "               WHERE entity_type='session' AND entity_id=COALESCE(json_extract(value,'$.id'),'') AND local_date=0))"
+        " )"
         ")";
     static const char *rounds_sql =
         "INSERT OR REPLACE INTO session_rounds(session_id,round_index,seconds) "
@@ -1623,7 +1635,13 @@ storage_apply_sync_response_json(const char *response_json)
         "       CAST(COALESCE(json_extract(r.value,'$.round_index'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) "
         "FROM json_each(?1,'$.changes.sessions') AS s, json_each(s.value,'$.rounds') AS r "
-        "WHERE COALESCE(json_extract(s.value,'$.id'),'')<>''";
+        "WHERE COALESCE(json_extract(s.value,'$.id'),'')<>'' "
+        "AND (CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
+        "       > COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
+        "OR (CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
+        "       = COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
+        "    AND NOT EXISTS (SELECT 1 FROM sync_outbox "
+        "        WHERE entity_type='session' AND entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
     long long server_version;
     long long old_server_version;
 
@@ -1640,9 +1658,9 @@ storage_apply_sync_response_json(const char *response_json)
     if(!storage_exec_json_user_sql(habits_sql, response_json) ||
        !storage_exec_json_user_sql(habit_days_sql, response_json) ||
        !storage_merge_duplicate_habit_names() ||
-       !storage_exec_json_user_sql(sessions_sql, response_json) ||
        !storage_exec_json_user_sql(delete_rounds_sql, response_json) ||
-       !storage_exec_json_user_sql(rounds_sql, response_json)) {
+       !storage_exec_json_user_sql(rounds_sql, response_json) ||
+       !storage_exec_json_user_sql(sessions_sql, response_json)) {
         exec_sql("ROLLBACK");
         return 0;
     }
