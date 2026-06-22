@@ -24,9 +24,13 @@
 
 static long long storage_max_sync_outbox_seq(void);
 static int storage_has_orphan_habit_days(void);
+static int storage_json_array_count(const char *json, const char *path);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
 #define STORAGE_SYNC_HABIT_NAME_REPAIR_KEY "sync_habit_name_repair_v1_done"
+#define STORAGE_SYNC_PUBLIC_ID_KEY "sync_public_id"
+#define STORAGE_SYNC_PUBLIC_KEY_KEY "sync_public_key"
+#define STORAGE_SYNC_PRIVATE_KEY_KEY "sync_private_key"
 
 static long long
 storage_next_change_time(void)
@@ -290,9 +294,12 @@ storage_enqueue_sync_session(const char *session_id)
 void
 storage_enqueue_all_sync_state(void)
 {
+    int owns_transaction;
+
     if(g_storage.db == NULL)
         return;
-    if(!exec_sql("BEGIN IMMEDIATE"))
+    owns_transaction = sqlite3_get_autocommit(g_storage.db) != 0;
+    if(owns_transaction && !exec_sql("BEGIN IMMEDIATE"))
         return;
     exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
              "SELECT 'habit',id,0,strftime('%s','now') FROM habits "
@@ -307,7 +314,8 @@ storage_enqueue_all_sync_state(void)
              "SELECT 'session',id,0,strftime('%s','now') FROM sessions "
              "WHERE user_id=(SELECT id FROM users LIMIT 1) "
              "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
-    exec_sql("COMMIT");
+    if(owns_transaction)
+        exec_sql("COMMIT");
 }
 
 static unsigned int
@@ -352,6 +360,7 @@ storage_reset_sync_state(void)
     set_meta_int64("sync_last_upload_at", 0);
     set_meta_int64("sync_full_upload_done", 0);
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
     storage_enqueue_all_sync_state();
     storage_schedule_persist();
@@ -1231,6 +1240,13 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         free(json.data);
         return NULL;
     }
+    TraceLog(LOG_INFO,
+             "SYNC: payload since=%lld bootstrap=%d outbox_through=%lld habits=%d habit_days=%d sessions=%d",
+             since_server_version, since_server_version <= 0 || !full_upload_done,
+             through_seq,
+             storage_json_array_count(json.data, "$.habits"),
+             storage_json_array_count(json.data, "$.habit_days"),
+             storage_json_array_count(json.data, "$.sessions"));
     return json.data;
 }
 
@@ -1313,6 +1329,18 @@ storage_has_orphan_habit_days(void)
     return found;
 }
 
+static int
+storage_has_sync_account(void)
+{
+    const char *public_id = storage_get_setting_text(STORAGE_SYNC_PUBLIC_ID_KEY);
+    const char *public_key = storage_get_setting_text(STORAGE_SYNC_PUBLIC_KEY_KEY);
+    const char *private_key = storage_get_setting_text(STORAGE_SYNC_PRIVATE_KEY_KEY);
+
+    return public_id != NULL && public_id[0] != '\0' &&
+           public_key != NULL && public_key[0] != '\0' &&
+           private_key != NULL && private_key[0] != '\0';
+}
+
 static void
 storage_clear_uploaded_outbox(long long through_seq)
 {
@@ -1331,6 +1359,12 @@ storage_clear_uploaded_outbox(long long through_seq)
 static int
 storage_json_array_has_items(const char *json, const char *path)
 {
+    return storage_json_array_count(json, path) > 0;
+}
+
+static int
+storage_json_array_count(const char *json, const char *path)
+{
     sqlite3_stmt *stmt = NULL;
     int count = 0;
 
@@ -1345,7 +1379,7 @@ storage_json_array_has_items(const char *json, const char *path)
     if(sqlite3_step(stmt) == SQLITE_ROW)
         count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
-    return count > 0;
+    return count;
 }
 
 static int
@@ -1613,6 +1647,12 @@ storage_apply_sync_response_json(const char *response_json)
     }
     storage_materialize_session_habit_days();
     server_version = storage_json_extract_int64(response_json, "$.server_version", 0);
+    TraceLog(LOG_INFO,
+             "SYNC: response server_version=%lld old_server_version=%lld habits=%d habit_days=%d sessions=%d",
+             server_version, old_server_version,
+             storage_json_array_count(response_json, "$.changes.habits"),
+             storage_json_array_count(response_json, "$.changes.habit_days"),
+             storage_json_array_count(response_json, "$.changes.sessions"));
     if(server_version > old_server_version && storage_sync_response_has_changes(response_json))
         g_storage.last_sync_changed = 1;
     if(server_version > 0)
@@ -1774,6 +1814,32 @@ storage_delete_all_sessions(void)
     }
     if(count <= 0 && habit_day_count <= 0 && habit_count <= 0)
         return 0;
+
+    if(!storage_has_sync_account()) {
+        if(!exec_sql("BEGIN IMMEDIATE"))
+            return 0;
+        if(!exec_sql("DELETE FROM session_rounds WHERE session_id IN "
+                     "(SELECT id FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1));"
+                     "DELETE FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1);"
+                     "DELETE FROM habit_days WHERE habit_id IN "
+                     "(SELECT id FROM habits WHERE user_id=(SELECT id FROM users LIMIT 1));"
+                     "DELETE FROM habits WHERE user_id=(SELECT id FROM users LIMIT 1);"
+                     "DELETE FROM sync_outbox;")) {
+            exec_sql("ROLLBACK");
+            return 0;
+        }
+        set_meta_int64("sync_last_server_version", 0);
+        set_meta_int64("sync_last_upload_at", 0);
+        set_meta_int64("sync_full_upload_done", 0);
+        set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0);
+        if(!exec_sql("COMMIT")) {
+            exec_sql("ROLLBACK");
+            return 0;
+        }
+        storage_schedule_persist();
+        return count + habit_day_count + habit_count;
+    }
 
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;

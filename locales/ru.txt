@@ -202,7 +202,6 @@ OK
 [settings_tab_about]
 О приложении
 ---
-
 [theme_label]
 Тема
 ---
@@ -335,7 +334,6 @@ OK
 [coming_soon_label]
 Скоро...
 ---
-
 [total_sessions_label]
 Всего сессий: %d
 ---
@@ -347,9 +345,6 @@ OK
 ---
 [export_data_button]
 Экспорт данных
----
-[delete_all_data_button]
-Удалить все данные
 ---
 [export_data_dialog_title]
 Экспорт данных
@@ -401,12 +396,6 @@ OK
 ---
 [no_data_to_delete]
 Нет данных для удаления
----
-[delete_all_data_title]
-Удалить все данные?
----
-[delete_all_data_message]
-Это навсегда удалит все сохраненные сессии.
 ---
 [delete_cancelled]
 Удаление отменено
@@ -532,6 +521,9 @@ OK
 [delete_button]
 Удалить
 ---
+[clear_button]
+Очистить
+---
 [back_button]
 Назад
 ---
@@ -634,21 +626,35 @@ liboqs не собран для этой платформы.
 [sync_private_key_backup_cancelled]
 Сохранение резервной копии ключа аккаунта отменено
 ---
-[sync_delete_account_button]
-Удалить аккаунт
+[clear_local_data_button]
+Очистить локальные данные
 ---
-[sync_delete_account_title]
-Удалить аккаунт?
+[clear_local_data_title]
+Очистить локальные данные?
 ---
-[sync_delete_account_message]
-Удалить этот аккаунт с удаленного сервера и с этого устройства? Это нельзя отменить.
-
+[clear_local_data_message]
+Будут очищены только данные на этом устройстве. Удалённые данные синхронизации не изменятся.
 ---
-[sync_account_deleted]
-Аккаунт удален
+[sync_logout_button]
+Выйти
 ---
-[sync_account_delete_cancelled]
-Удаление аккаунта отменено
+[sync_logged_out]
+Выполнен выход
+---
+[sync_clear_remote_data_button]
+Очистить удалённые данные
+---
+[sync_clear_remote_data_title]
+Очистить удалённые данные?
+---
+[sync_clear_remote_data_message]
+Этот аккаунт синхронизации будет очищен на удалённом сервере, а затем на этом устройстве будет выполнен выход. Это действие нельзя отменить.
+---
+[sync_remote_data_cleared]
+Удалённые данные очищены
+---
+[sync_clear_remote_data_cancelled]
+Очистка удалённых данных отменена
 ---
 [habit_new_default_name]
 Новая привычка
@@ -787,7 +793,6 @@ liboqs не собран для этой платформы.
 ---
 [habits_guide_statistics]
 Здесь можно посмотреть статистику привычек.
----
 ---
 [nav_mode_label]
 Навигация

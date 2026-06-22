@@ -10,7 +10,7 @@ void settings_sync_account_set_save_dialog(SettingsSyncKeySaveDialog callback);
 void settings_sync_account_set_import_dialog(SettingsSyncKeyImportDialog callback);
 void settings_sync_account_draw(InbeApp *app, int x, int w, int *y);
 void settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y);
-void settings_sync_account_delete_confirmed(InbeApp *app);
+void settings_sync_account_clear_remote_confirmed(InbeApp *app);
 int settings_sync_account_draw_backup_modal(InbeApp *app);
 
 #endif

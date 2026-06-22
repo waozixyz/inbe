@@ -1072,6 +1072,54 @@ test_delete_all_resets_habits_to_empty_storage(void)
 }
 
 static void
+test_delete_all_without_sync_account_does_not_queue_remote_deletes(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char *payload;
+    long long deleted;
+
+    make_clean_root(root, sizeof(root), "delete-all-no-sync-account");
+    check_true("init local reset db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "");
+    storage_set_setting_text("sync_public_key", "");
+    storage_set_setting_text("sync_private_key", "");
+
+    memset(&habits, 0, sizeof(habits));
+    check_int("add local reset habit",
+              habits_add_custom(&habits, "Work out",
+                                (Color){99, 196, 165, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
+              0);
+    habit_set_day(&habits, 0, 20260618, 1);
+    habits_save(&habits);
+
+    deleted = storage_delete_all_sessions();
+    check_true("local reset deleted rows", deleted >= 2);
+    check_int("local reset active habit count", storage_habit_count(), 0);
+
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", "test-private-key");
+    storage_reset_sync_state();
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("fresh imported account sends bootstrap",
+               payload != NULL &&
+               strstr(payload, "\"since_server_version\":0") != NULL &&
+               strstr(payload, "\"bootstrap\":true") != NULL);
+    check_true("fresh imported account has no stale habit tombstones",
+               payload != NULL && strstr(payload, "\"habits\":[]") != NULL);
+    check_true("fresh imported account has no stale habit day clears",
+               payload != NULL && strstr(payload, "\"habit_days\":[]") != NULL);
+    check_true("fresh imported account has no stale session tombstones",
+               payload != NULL && strstr(payload, "\"sessions\":[]") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_empty_initialized_habits_seed_meditation_on_startup(void)
 {
     char root[512];
@@ -1482,6 +1530,7 @@ main(void)
     test_habit_name_merge_import();
     test_import_conflict_prefers_data_over_empty();
     test_delete_all_resets_habits_to_empty_storage();
+    test_delete_all_without_sync_account_does_not_queue_remote_deletes();
     test_import_modes_preserve_habits_and_settings_choice();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();

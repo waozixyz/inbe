@@ -199,7 +199,6 @@ Datos
 [settings_tab_about]
 Acerca de
 ---
-
 [theme_label]
 Tema
 ---
@@ -278,7 +277,6 @@ Más
 [coming_soon_label]
 Próximamente...
 ---
-
 [total_sessions_label]
 Sesiones totales: %d
 ---
@@ -290,9 +288,6 @@ Almacenamiento: %s
 ---
 [export_data_button]
 Exportar datos
----
-[delete_all_data_button]
-Eliminar todos los datos
 ---
 [export_data_dialog_title]
 Exportar datos
@@ -344,12 +339,6 @@ No hay datos para exportar
 ---
 [no_data_to_delete]
 No hay datos para eliminar
----
-[delete_all_data_title]
-¿Eliminar todos los datos?
----
-[delete_all_data_message]
-Esto eliminará permanentemente todas las sesiones guardadas.
 ---
 [delete_cancelled]
 Eliminación cancelada
@@ -474,6 +463,9 @@ Recuento de sesiones: %d
 ---
 [delete_button]
 Eliminar
+---
+[clear_button]
+Borrar
 ---
 [meditation_music_attribution]
 Música de Elijah_K.
@@ -634,20 +626,35 @@ No se pudo guardar el respaldo de la clave
 [sync_private_key_backup_cancelled]
 Respaldo de clave cancelado
 ---
-[sync_delete_account_button]
-Eliminar cuenta
+[clear_local_data_button]
+Borrar datos locales
 ---
-[sync_delete_account_title]
-¿Eliminar cuenta?
+[clear_local_data_title]
+¿Borrar datos locales?
 ---
-[sync_delete_account_message]
-¿Eliminar esta cuenta del servidor remoto y de este dispositivo? Esta acción no se puede deshacer.
+[clear_local_data_message]
+Borra solo los datos guardados en este dispositivo. Los datos remotos de sincronización no cambian.
 ---
-[sync_account_deleted]
-Cuenta eliminada
+[sync_logout_button]
+Cerrar sesión
 ---
-[sync_account_delete_cancelled]
-Eliminación de cuenta cancelada
+[sync_logged_out]
+Sesión cerrada
+---
+[sync_clear_remote_data_button]
+Borrar datos remotos
+---
+[sync_clear_remote_data_title]
+¿Borrar datos remotos?
+---
+[sync_clear_remote_data_message]
+Borra esta cuenta de sincronización del servidor remoto y luego cierra sesión en este dispositivo. Esta acción no se puede deshacer.
+---
+[sync_remote_data_cleared]
+Datos remotos borrados
+---
+[sync_clear_remote_data_cancelled]
+Borrado de datos remotos cancelado
 ---
 [habit_new_default_name]
 Nuevo hábito
@@ -786,7 +793,6 @@ Elige Semanal o Calendario para revisar tu habito.
 ---
 [habits_guide_statistics]
 Consulta tus estadisticas de habitos aqui.
----
 ---
 [nav_mode_label]
 Navegación

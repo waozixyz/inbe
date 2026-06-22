@@ -202,7 +202,6 @@ Data
 [settings_tab_about]
 About
 ---
-
 [theme_label]
 Theme
 ---
@@ -335,7 +334,6 @@ Next
 [coming_soon_label]
 Coming soon...
 ---
-
 [total_sessions_label]
 Total Sessions: %d
 ---
@@ -347,9 +345,6 @@ Storage: %s
 ---
 [export_data_button]
 Export Data
----
-[delete_all_data_button]
-Delete All Data
 ---
 [export_data_dialog_title]
 Export Data
@@ -401,12 +396,6 @@ No data to export
 ---
 [no_data_to_delete]
 No data to delete
----
-[delete_all_data_title]
-Delete all data?
----
-[delete_all_data_message]
-This will permanently delete all saved sessions.
 ---
 [delete_cancelled]
 Delete cancelled
@@ -532,6 +521,9 @@ Delete this round? This cannot be undone.
 [delete_button]
 Delete
 ---
+[clear_button]
+Clear
+---
 [back_button]
 Back
 ---
@@ -634,21 +626,35 @@ Could not save account key backup
 [sync_private_key_backup_cancelled]
 Account key backup cancelled
 ---
-[sync_delete_account_button]
-Delete Account
+[clear_local_data_button]
+Clear Local Data
 ---
-[sync_delete_account_title]
-Delete Account?
+[clear_local_data_title]
+Clear Local Data?
 ---
-[sync_delete_account_message]
-Delete this account from the remote server and this device? This cannot be undone.
-
+[clear_local_data_message]
+Clear only the data stored on this device. Remote sync data is not changed.
 ---
-[sync_account_deleted]
-Account deleted
+[sync_logout_button]
+Log out
 ---
-[sync_account_delete_cancelled]
-Account deletion cancelled
+[sync_logged_out]
+Logged out
+---
+[sync_clear_remote_data_button]
+Clear Remote Data
+---
+[sync_clear_remote_data_title]
+Clear Remote Data?
+---
+[sync_clear_remote_data_message]
+Clear this sync account from the remote server, then log out on this device. This cannot be undone.
+---
+[sync_remote_data_cleared]
+Remote data cleared
+---
+[sync_clear_remote_data_cancelled]
+Remote data clear cancelled
 ---
 [habit_new_default_name]
 New Habit

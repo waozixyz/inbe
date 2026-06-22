@@ -970,7 +970,8 @@ web_sync_start_sync(void)
     if(!sync_load_valid_auth_token(token, sizeof(token)))
         return 0;
     if(g_web_sync.payload == NULL) {
-        g_web_sync.payload = storage_build_sync_payload_json(g_web_sync.account.public_id, NULL);
+        g_web_sync.payload = storage_build_sync_payload_json(g_web_sync.account.public_id,
+                                                             g_web_sync.account.public_key_hex);
         if(g_web_sync.payload == NULL)
             return 0;
     }
@@ -1401,7 +1402,7 @@ sync_client_sync(const char *base_url)
         if(!sync_load_valid_auth_token(token, sizeof(token)))
             return INBE_SYNC_CLIENT_AUTH_FAILED;
     }
-    payload = storage_build_sync_payload_json(account.public_id, NULL);
+    payload = storage_build_sync_payload_json(account.public_id, account.public_key_hex);
     if(payload == NULL)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
     result = sync_send_bearer(base_url, account.public_id, payload, token);

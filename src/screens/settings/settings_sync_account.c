@@ -239,8 +239,17 @@ settings_sync_run_connect(InbeApp *app)
     }
 }
 
+static void
+settings_sync_account_logout(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    sync_account_clear();
+    settings_screen_set_status_success(locale_get("sync_logged_out"), NULL);
+}
+
 void
-settings_sync_account_delete_confirmed(InbeApp *app)
+settings_sync_account_clear_remote_confirmed(InbeApp *app)
 {
     InbeSyncAccount account;
     InbeSyncClientResult result;
@@ -262,7 +271,7 @@ settings_sync_account_delete_confirmed(InbeApp *app)
     }
 
     sync_account_clear();
-    settings_screen_set_status_success(locale_get("sync_account_deleted"), NULL);
+    settings_screen_set_status_success(locale_get("sync_remote_data_cleared"), NULL);
 }
 
 static FlintUITextInputStyle
@@ -469,11 +478,27 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     }
     *y += btn_h + flint_px(12);
 
-    if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_delete_account_button"),
-                              UI_BUTTON_STYLE_DANGER, 0, &hover)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalConfirmDeleteSyncAccount;
-        app->modal.selected_button = 0;
+    {
+        FlintUIButtonRowItem buttons[2] = {
+            {locale_get("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {locale_get("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0}
+        };
+        int clicked = ui_draw_button_row((FlintUIButtonRow){
+            .x = x,
+            .y = *y,
+            .width = w,
+            .height = btn_h,
+            .gap = gap,
+            .items = buttons,
+            .count = 2
+        });
+        if(clicked == 0) {
+            settings_sync_account_logout(app);
+        } else if(clicked == 1) {
+            app->modal.active = 1;
+            app->modal.type = UIModalConfirmDeleteSyncAccount;
+            app->modal.selected_button = 0;
+        }
     }
     *y += btn_h + flint_px(12);
 

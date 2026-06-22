@@ -343,9 +343,6 @@ Inner Breeze
 [export_data_button]
 데이터 내보내기
 ---
-[delete_all_data_button]
-모든 데이터 삭제
----
 [export_data_dialog_title]
 데이터 내보내기
 ---
@@ -396,12 +393,6 @@ Inner Breeze
 ---
 [no_data_to_delete]
 삭제할 데이터 없음
----
-[delete_all_data_title]
-모든 데이터를 삭제하시겠습니까?
----
-[delete_all_data_message]
-저장된 모든 세션이 영구적으로 삭제됩니다.
 ---
 [delete_cancelled]
 삭제 취소됨
@@ -526,6 +517,9 @@ Inner Breeze 데이터 내보내기
 [delete_button]
 삭제
 ---
+[clear_button]
+지우기
+---
 [meditation_music_attribution]
 음악: Elijah_K.
 ---
@@ -631,20 +625,35 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [sync_private_key_backup_cancelled]
 계정 키 백업 취소됨
 ---
-[sync_delete_account_button]
-계정 삭제
+[clear_local_data_button]
+로컬 데이터 지우기
 ---
-[sync_delete_account_title]
-계정을 삭제할까요?
+[clear_local_data_title]
+로컬 데이터를 지울까요?
 ---
-[sync_delete_account_message]
-원격 서버와 이 기기에서 이 계정을 삭제할까요? 이 작업은 되돌릴 수 없습니다.
+[clear_local_data_message]
+이 기기에 저장된 데이터만 지웁니다. 원격 동기화 데이터는 변경되지 않습니다.
 ---
-[sync_account_deleted]
-계정 삭제됨
+[sync_logout_button]
+로그아웃
 ---
-[sync_account_delete_cancelled]
-계정 삭제 취소됨
+[sync_logged_out]
+로그아웃됨
+---
+[sync_clear_remote_data_button]
+원격 데이터 지우기
+---
+[sync_clear_remote_data_title]
+원격 데이터를 지울까요?
+---
+[sync_clear_remote_data_message]
+이 동기화 계정을 원격 서버에서 지운 뒤 이 기기에서 로그아웃합니다. 이 작업은 되돌릴 수 없습니다.
+---
+[sync_remote_data_cleared]
+원격 데이터가 지워졌습니다
+---
+[sync_clear_remote_data_cancelled]
+원격 데이터 지우기가 취소되었습니다
 ---
 [habit_new_default_name]
 새 습관
@@ -783,7 +792,6 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [habits_guide_statistics]
 여기에서 습관 통계를 확인하세요.
----
 ---
 [nav_mode_label]
 탐색
