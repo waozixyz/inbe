@@ -519,17 +519,20 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         screenshot_apply_theme(app, FLINT_THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->inbe.screen = InbeScreenStart;
-    } else if(strcmp(request->scene, "manual_whm") == 0) {
+    } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->tutorial_step = 0;
+        app->practice_tab = PRACTICE_TAB_MANUAL;
         app->inbe.screen = InbeScreenManual;
     } else if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->tutorial_step = 2;
+        app->practice_tab = PRACTICE_TAB_MANUAL;
         app->inbe.screen = InbeScreenManual;
-    } else if(strcmp(request->scene, "meditation_tutorial") == 0) {
+    } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         app->exercise_type = EXERCISE_MEDITATION;
         app->tutorial_step = 0;
+        app->practice_tab = PRACTICE_TAB_MANUAL;
         app->inbe.screen = InbeScreenManual;
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
