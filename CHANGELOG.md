@@ -1,4 +1,8 @@
 # Changelog
+## [1.5.1] - 2026-06-22
+### Fixed
+- icon scaling
+
 ## [1.5.0] - 2026-06-22
 ### Changed
 - New logo

@@ -1,0 +1,103 @@
+name: inbe
+title: Inner Breeze
+summary: Syncable breathing, meditation, and habit practice app
+description: |
+  Inner Breeze is a free, open-source practice app for breathing,
+  meditation, and habit tracking with visual and audio cues, meditation
+  timers, habit counters, session history, and optional sync.
+
+version: '1.5.0'
+license: MIT
+base: core22
+confinement: strict
+grade: stable
+
+contact: waozi@waozi.xyz
+website: https://inbe.waozi.xyz/
+issues: https://github.com/waozixyz/inbe/issues
+
+architectures:
+  - build-on: amd64
+  - build-on: arm64
+
+apps:
+  inbe:
+    command-chain: [bin/desktop-launch]
+    command: bin/inbe
+    desktop: gui/inbe.desktop
+    environment:
+      LD_LIBRARY_PATH: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET:$SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/pulseaudio:$LD_LIBRARY_PATH
+      DISABLE_WAYLAND: 1
+    plugs:
+      - desktop
+      - desktop-legacy
+      - wayland
+      - x11
+      - opengl
+      - audio-playback
+      - pulseaudio
+      - alsa
+      - network
+      - home
+    extensions:
+      - gnome-3-38-2204
+
+parts:
+  desktop-glib:
+    plugin: nil
+    stage-packages:
+      - libglib2.0-0
+
+  sdl2-runtime:
+    plugin: nil
+    stage-packages:
+      - libSDL2-2.0-0
+      - libSDL2-image-2.0-0
+      - libSDL2-ttf-2.0-0
+      - libgl1-mesa-glx
+      - libgl1-mesa-dri
+      - libgles2-mesa
+      - libglvnd0
+      - libdrm2
+      - libgbm1
+      - libegl1
+      - libxkbcommon0
+      - libpulse0
+      - libasound2
+      - libasound2-data
+      - libasound2-plugins
+
+  openssl:
+    plugin: nil
+    stage-packages:
+      - libssl3
+      - libcrypto++7
+
+  inbe:
+    plugin: make
+    source: .
+    build-packages:
+      - build-essential
+      - cmake
+      - libssl-dev
+      - libcurl4-openssl-dev
+      - pkg-config
+    override-build: |
+      make vendor-prebuilds-native
+      make native
+      install -D -m755 build/bin/linux/inbe-linux-$SNAPCRAFT_ARCH_TRIPLET $SNAPCRAFT_PART_INSTALL/bin/inbe
+      strip $SNAPCRAFT_PART_INSTALL/bin/inbe
+    prime:
+      - bin/inbe
+
+  gui-assets:
+    plugin: dump
+    source: packaging/linux/appimage
+    organize:
+      inbe.desktop: gui/inbe.desktop
+      inbe.png: gui/inbe.png
+      inbe.appdata.xml: gui/inbe.metainfo.xml
+    prime:
+      - gui/inbe.desktop
+      - gui/inbe.png
+      - gui/inbe.metainfo.xml

@@ -236,6 +236,69 @@ jobs:
           path: build/release/linux/*
           if-no-files-found: error
 
+  build-snap:
+    name: Build Snap
+    runs-on: ubuntu-latest
+    needs: test
+    strategy:
+      matrix:
+        architecture:
+          - amd64
+          - arm64
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Set up QEMU for multi-architecture support
+        uses: docker/setup-qemu-action@v3
+        if: matrix.architecture == 'arm64'
+
+      - name: Build Snap
+        uses: snapcore/action-build@v1
+        id: snapcraft
+        with:
+          path: packaging/snap/snap
+          snapcraft-args: --target-latest
+
+      - name: Prepare Release Directory
+        run: |
+          set -euo pipefail
+          mkdir -p build/release/snap
+          ARCH="${{ matrix.architecture }}"
+          cp "${{ steps.snapcraft.outputs.snap }}" "build/release/snap/inbe-linux-${ARCH}.snap"
+
+      - name: Upload Snap Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-snap-${{ matrix.architecture }}
+          path: build/release/snap/*
+          if-no-files-found: error
+
   build-windows:
     name: Build Windows
     runs-on: ubuntu-latest
@@ -401,6 +464,7 @@ jobs:
       - build-web
       - build-chrome-extension
       - build-linux
+      - build-snap
       - build-windows
       - build-android
 
