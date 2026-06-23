@@ -745,14 +745,22 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	@# Manually copy critical X11/OpenGL libraries that linuxdeploy might miss
+	@for lib in libX11.so.6 libXext.so.6 libdrm.so.2 libgbm.so.1 libEGL.so.1 libGLESv2.so.2 libGLdispatch.so.0 libglapi.so.0; do \
+		found=$$(find /usr/lib /lib -name "$$lib" 2>/dev/null | head -n 1); \
+		if [ -n "$$found" ]; then \
+			echo "Copying $$lib from $$found"; \
+			cp "$$found" $(LINUX_APPDIR)/usr/lib/ 2>/dev/null || true; \
+		fi; \
+	done
 	@# Detect if running on NixOS (by checking if loader is in /nix/store)
 	@loader=$$(LC_ALL=C readelf -l $(TARGET) | sed -n 's#.*Requesting program interpreter: \(.*\)]#\1#p'); \
 	if printf '%s\n' "$$loader" | grep -q '^/nix/store/.*glibc.*/'; then \
 		LIBRARY_FLAGS=""; \
 		echo "Building on NixOS - linuxdeploy will auto-detect libraries from /nix/store"; \
 	else \
-		LIBRARY_FLAGS="--library libX11.so.6 --library libXext.so.6 --library libdrm.so.2 --library libgbm.so.1 --library libEGL.so.1 --library libGLESv2.so.2 --library libglapi.so.0 --library libGLdispatch.so.0"; \
-		echo "Building on FHS system - using explicit library flags"; \
+		LIBRARY_FLAGS=""; \
+		echo "Building on FHS system - linuxdeploy will auto-detect libraries"; \
 	fi; \
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
