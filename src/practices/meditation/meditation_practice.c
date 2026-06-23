@@ -28,6 +28,7 @@ meditation_practice_start(InbeApp *app)
     app->modal.active = 1;
     app->modal.type = UIModalMeditationSetup;
     app->modal.selected_button = 0;
+    app->modal_open_frame = app->inbe.frame;
     app_switch_screen(app, InbeScreenStart);
 }
 

@@ -1,4 +1,8 @@
 # Changelog
+## [1.5.3] - 2026-06-23
+### Fixed
+- modal issues
+
 ## [1.5.2] - 2026-06-23
 ### Changed
 - let you disable screen transitions
