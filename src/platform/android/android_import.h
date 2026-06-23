@@ -13,7 +13,7 @@ enum {
     ANDROID_IMPORT_RESULT_CANCELLED = 2
 };
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include <jni.h>
 void android_import_native_selected(JNIEnv *env, jobject thiz, jstring path);
 void android_import_native_cancelled(JNIEnv *env, jobject thiz);

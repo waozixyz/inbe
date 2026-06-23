@@ -11,7 +11,7 @@
 static int
 settings_device_orientation_option_count(void)
 {
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     return 4;
 #else
     return 3;
@@ -77,10 +77,10 @@ settings_device_content_height(int content_w)
     int height = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
     int label_w = content_w > 0 ? content_w : flint_px(240);
 
-#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
     height += settings_device_toggle_row_height(locale_get("play_in_background_label"), label_w);
 #endif
-#if !INBE_ANDROID_BUILD && !defined(PLATFORM_WEB)
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += flint_px(50);
 #endif
     height += settings_device_toggle_row_height(locale_get("show_session_volume_control_label"), label_w);
@@ -129,7 +129,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         save_settings(app);
     }
 
-#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
     {
         int play_in_background = app->inbe.play_in_background;
         if(settings_device_draw_toggle_row(x, w, y, locale_get("play_in_background_label"),
@@ -154,7 +154,7 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         *y += flint_px(76);
     }
 
-#if !INBE_ANDROID_BUILD && !defined(PLATFORM_WEB)
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     if(ui_draw_checkbox_toggle(x, *y, locale_get("fullscreen_label"), &app->fullscreen_enabled)) {
         if(app->fullscreen_enabled && !IsWindowFullscreen())
             ToggleFullscreen();

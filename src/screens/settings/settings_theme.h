@@ -6,10 +6,12 @@
 typedef struct SettingsThemeState {
     int draw_theme_mode_menu;
     int draw_nav_mode_menu;
+    int draw_transition_menu;
+    int theme_picker_modal_open;
 } SettingsThemeState;
 
 int settings_theme_content_height(int content_w);
 void settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *state);
-void settings_theme_handle_overlays(InbeApp *app, const SettingsThemeState *state);
+void settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state);
 
 #endif

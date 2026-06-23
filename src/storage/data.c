@@ -3,7 +3,7 @@
 #include "platform.h"
 #include "storage.h"
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include "android_share.h"
 #endif
 
@@ -30,7 +30,7 @@ ensure_dir(const char *path)
     if(DirectoryExists(path))
         return 1;
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     return MakeDirectory(path) || DirectoryExists(path);
 #else
     snprintf(temp, sizeof(temp), "%s", path);
@@ -58,7 +58,7 @@ data_root(void)
 
 #if defined(PLATFORM_WEB)
     snprintf(g_data_root, sizeof(g_data_root), "/home/inbe");
-#elif INBE_ANDROID_BUILD
+#elif ANDROID_BUILD
     snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory());
 #elif defined(_WIN32)
     {
@@ -207,7 +207,7 @@ int
 data_export(const char *path)
 {
     data_init();
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     char filename[64];
     if(path != NULL && path[0] != '\0')
         return android_share_export(path);

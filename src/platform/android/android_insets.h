@@ -3,7 +3,7 @@
 
 #include "platform.h"
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include <jni.h>
 
 typedef struct {

@@ -15,7 +15,7 @@
 #include <string.h>
 #include <time.h>
 
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
                                                 const char *caption, unsigned int type);
 #define MB_OK 0x00000000u
@@ -23,7 +23,7 @@ __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
 #define WIN_ERROR_LOG_CAP 2048
 #endif
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include "android_insets.h"
 #include "android_device.h"
 #include "android_runtime_assets.h"
@@ -51,7 +51,7 @@ typedef struct ScreenshotRequest {
     char output[512];
 } ScreenshotRequest;
 
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
 static FILE *win_log_file;
 static char win_recent_errors[WIN_ERROR_LOG_CAP];
 static int win_recent_errors_len;
@@ -182,7 +182,7 @@ InbeApp* get_global_inbe_app(void) {
 void set_global_inbe_app(InbeApp *app);
 
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 static AndroidInsets insets;
 
 typedef struct AndroidViewport {
@@ -305,7 +305,7 @@ frame(void)
 
     int width = GetScreenWidth();
     int height = GetScreenHeight();
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     struct android_app *android_app = GetAndroidApp();
     if(android_app != NULL && android_app->window != NULL) {
         int window_width = ANativeWindow_getWidth(android_app->window);
@@ -325,7 +325,7 @@ frame(void)
         height = render_height;
 #endif
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     AndroidViewport viewport;
     static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
@@ -592,8 +592,8 @@ int main(int argc, char **argv) {
         config.width = screenshot.width;
         config.height = screenshot.height;
     }
-    int window_w = INBE_ANDROID_BUILD ? 0 : config.width;
-    int window_h = INBE_ANDROID_BUILD ? 0 : config.height;
+    int window_w = ANDROID_BUILD ? 0 : config.width;
+    int window_h = ANDROID_BUILD ? 0 : config.height;
 
 #if defined(PLATFORM_WEB)
     flint_web_viewport_size(config.width, config.height, &window_w, &window_h);
@@ -601,22 +601,22 @@ int main(int argc, char **argv) {
     config.height = window_h;
 #endif
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
 #endif
 
 #if defined(PLATFORM_WEB)
     SetConfigFlags(flint_web_window_flags());
-#elif !INBE_ANDROID_BUILD
+#elif !ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE);
 #endif
 
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
     windows_install_logger();
     TraceLog(LOG_INFO, "INBE: Windows startup");
 #endif
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     android_insets_init();
     android_device_init();
     android_wakelock_init();
@@ -629,7 +629,7 @@ int main(int argc, char **argv) {
     InitWindow(window_w, window_h, config.title);
     if(!IsWindowReady()) {
         TraceLog(LOG_ERROR, "INBE: InitWindow failed");
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
         windows_show_startup_error();
         windows_close_logger();
 #endif
@@ -641,7 +641,7 @@ int main(int argc, char **argv) {
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
 
-    #if INBE_ANDROID_BUILD
+    #if ANDROID_BUILD
     inbe_app.fullscreen_enabled = 0;
     #endif
     if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
@@ -654,7 +654,7 @@ int main(int argc, char **argv) {
 #else
     if(run_screenshot_mode(&screenshot)) {
         CloseWindow();
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
         windows_close_logger();
 #endif
         return 0;
@@ -665,7 +665,7 @@ int main(int argc, char **argv) {
     }
 
     CloseWindow();
-#if defined(_WIN32) && !INBE_ANDROID_BUILD
+#if defined(_WIN32) && !ANDROID_BUILD
     windows_close_logger();
 #endif
 #endif

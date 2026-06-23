@@ -126,7 +126,7 @@ settings_start_sync_key_export(InbeApp *app, const InbeSyncAccount *account)
     char filename[64];
 
     settings_backup_filename(filename, sizeof(filename));
-#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
     (void)app;
     return sync_account_export_private_key(account, filename) ? 2 : 3;
 #else

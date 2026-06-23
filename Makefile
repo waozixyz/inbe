@@ -365,7 +365,7 @@ $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
-	sh $(FLINT_DIR)/scripts/embed-icons.sh $(FLINT_DIR)/icons $@
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/flint_icon_assets.c
 
 $(RAYLIB_A): $(RAYLIB_SOURCES)
 	rm -rf $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src
@@ -750,6 +750,14 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \
 		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png) \
+		--library libX11.so.6 \
+		--library libXext.so.6 \
+		--library libdrm.so.2 \
+		--library libgbm.so.1 \
+		--library libEGL.so.1 \
+		--library libGLESv2.so.2 \
+		--library libglapi.so.0 \
+		--library libGLdispatch.so.0 \
 		--output appimage
 	test -f $@
 

@@ -161,6 +161,7 @@ save_settings(InbeApp *app)
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
         {"navigation_mode", app->navigation_mode},
+        {"transition_mode", app->transition_mode},
         {"main_tab", app->main_tab},
         {"fullscreen", app->fullscreen_enabled ? 1 : 0},
         {"on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0},
@@ -256,7 +257,7 @@ app_load_settings(InbeApp *app)
             {&app->habits_guide_seen, "habits_guide_seen", 0},
             {&app->dark_mode, "dark_mode", 0},
             {&app->fullscreen_enabled, "fullscreen", 0},
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 1},
 #else
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 0},
@@ -311,6 +312,8 @@ app_load_settings(InbeApp *app)
              0, MEDITATION_MUSIC_TRACK_COUNT - 1},
             {&app->practice_category_tab, "practice_category_tab", PRACTICE_CATEGORY_MIND,
              0, PRACTICE_CATEGORY_COUNT - 1},
+            {&app->transition_mode, "transition_mode", APP_TRANSITION_FADE,
+             APP_TRANSITION_NONE, APP_TRANSITION_FADE},
         };
         load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
@@ -329,7 +332,7 @@ app_load_settings(InbeApp *app)
         app->theme_mode = APP_THEME_DARK;
     }
 
-#if INBE_ANDROID_BUILD || defined(PLATFORM_WEB)
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
     app->inbe.play_in_background =
         storage_get_setting_int("play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
