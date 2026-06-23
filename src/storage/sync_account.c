@@ -6,7 +6,7 @@
 #include "sync_client.h"
 #include "raylib.h"
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include "android_share.h"
 #endif
 #if defined(PLATFORM_WEB)
@@ -546,7 +546,7 @@ sync_account_export_private_key(const InbeSyncAccount *account, const char *file
     if(len <= 0 || (size_t)len >= sizeof(body))
         return 0;
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     return android_share_bytes((const unsigned char *)body, (size_t)len, filename,
                                "application/octet-stream");
 #elif defined(PLATFORM_WEB)

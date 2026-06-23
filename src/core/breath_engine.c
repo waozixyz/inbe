@@ -94,7 +94,7 @@ inbeinit(Inbe *l)
     l->progressive_speed = 1;
     l->progressive_start_speed = DefaultProgressiveStartSpeed;
     l->breath_animation = InbeBreathAnimationLinear;
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     l->play_in_background = 1;  // Enabled by default on Android
 #else
     l->play_in_background = 0;  // Disabled on other platforms

@@ -9,6 +9,7 @@
 #include "flint_transition.h"
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
+#include "screens/settings/settings_theme.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -74,6 +75,7 @@ typedef enum {
     UIModalHabitPracticeListInfo,
     UIModalHabitCountingInfo,
     UIModalBottomNavConfig,
+    UIModalThemePicker,
 } UIModalType;
 
 typedef struct {
@@ -120,6 +122,11 @@ typedef enum NavigationMode {
     NAV_MODE_TABBAR = 0,
     NAV_MODE_DROPDOWN = 1,
 } NavigationMode;
+
+typedef enum AppTransitionMode {
+    APP_TRANSITION_NONE = 0,
+    APP_TRANSITION_FADE = 1,
+} AppTransitionMode;
 
 typedef enum AppDeviceOrientation {
     APP_DEVICE_ORIENTATION_UNKNOWN = 0,
@@ -249,6 +256,7 @@ struct InbeApp {
     int theme_mode;
     int orientation_mode;
     int navigation_mode;
+    int transition_mode;
     int android_orientation;
     int main_tab;
     int sidebar_open;
@@ -290,6 +298,7 @@ struct InbeApp {
     UIModal modal;
     int play_circle_hover;
     float play_circle_scale;
+    SettingsThemeState theme_state;
 };
 
 void app_init(void *app);

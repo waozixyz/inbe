@@ -3,7 +3,7 @@
 
 #include "platform.h"
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include <jni.h>
 void android_wakelock_init(void);
 void android_wakelock_acquire(void);

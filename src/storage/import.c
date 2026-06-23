@@ -478,12 +478,87 @@ make_temp_path(char *out, size_t out_size, const char *name)
     return 1;
 }
 
+typedef struct {
+    char **paths;
+    int count;
+    int capacity;
+} ImportedFiles;
+
+static void
+imported_files_init(ImportedFiles *files)
+{
+    if(files == NULL)
+        return;
+    files->paths = NULL;
+    files->count = 0;
+    files->capacity = 0;
+}
+
+static void
+imported_files_add(ImportedFiles *files, const char *path)
+{
+    char *copy;
+    char **new_paths;
+    int new_capacity;
+
+    if(files == NULL || path == NULL)
+        return;
+    if(files->count >= files->capacity) {
+        new_capacity = files->capacity == 0 ? 64 : files->capacity * 2;
+        new_paths = realloc(files->paths, (size_t)new_capacity * sizeof(char *));
+        if(new_paths == NULL)
+            return;
+        files->paths = new_paths;
+        files->capacity = new_capacity;
+    }
+    copy = strdup(path);
+    if(copy == NULL)
+        return;
+    files->paths[files->count++] = copy;
+}
+
+static void
+imported_files_cleanup(ImportedFiles *files)
+{
+    int i;
+
+    if(files == NULL)
+        return;
+    if(files->paths != NULL) {
+        for(i = 0; i < files->count; i++) {
+            if(files->paths[i] != NULL)
+                free(files->paths[i]);
+        }
+        free(files->paths);
+    }
+    files->paths = NULL;
+    files->count = 0;
+    files->capacity = 0;
+}
+
+static void
+delete_imported_legacy_files(ImportedFiles *files)
+{
+    int i;
+
+    if(files == NULL)
+        return;
+    for(i = 0; i < files->count; i++) {
+        if(files->paths[i] != NULL) {
+            if(remove(files->paths[i]) == 0)
+                TraceLog(LOG_INFO, "DATA: deleted migrated legacy file %s", files->paths[i]);
+            else
+                TraceLog(LOG_WARNING, "DATA: failed to delete %s", files->paths[i]);
+        }
+    }
+}
+
 static int
-migrate_legacy_file_sessions_in_dir(const char *dir_path)
+migrate_legacy_file_sessions_in_dir(const char *dir_path, ImportedFiles *imported)
 {
     DIR *dir;
     struct dirent *entry;
-    int imported = 0;
+    int count = 0;
 
     if(dir_path == NULL || dir_path[0] == '\0')
         return 0;
@@ -500,7 +575,7 @@ migrate_legacy_file_sessions_in_dir(const char *dir_path)
         if(stat(child, &st) != 0)
             continue;
         if(S_ISDIR(st.st_mode)) {
-            imported += migrate_legacy_file_sessions_in_dir(child);
+            count += migrate_legacy_file_sessions_in_dir(child, imported);
         } else if(S_ISREG(st.st_mode)) {
             int year;
             int month;
@@ -513,8 +588,10 @@ migrate_legacy_file_sessions_in_dir(const char *dir_path)
                 size_t size = 0;
                 char *bytes = read_file_heap(child, &size);
                 if(bytes != NULL) {
-                    if(import_legacy_session_bytes(child, bytes, size))
-                        imported++;
+                    if(import_legacy_session_bytes(child, bytes, size)) {
+                        count++;
+                        imported_files_add(imported, child);
+                    }
                     free(bytes);
                 } else {
                     TraceLog(LOG_WARNING, "DATA: legacy file migration could not read %s", child);
@@ -523,19 +600,29 @@ migrate_legacy_file_sessions_in_dir(const char *dir_path)
         }
     }
     closedir(dir);
-    return imported;
+    return count;
 }
 
 void
 migrate_legacy_file_sessions_once(void)
 {
+    ImportedFiles imported;
+
     if(g_storage.db == NULL || g_storage.root[0] == '\0')
         return;
     if(meta_equals("legacy_file_sessions_migrated", "1"))
         return;
-    migrate_legacy_file_sessions_in_dir(g_storage.root);
+
+    imported_files_init(&imported);
+    migrate_legacy_file_sessions_in_dir(g_storage.root, &imported);
     set_meta("legacy_file_sessions_migrated", "1");
     storage_schedule_persist();
+
+    if(imported.count > 0) {
+        TraceLog(LOG_INFO, "DATA: deleting %d migrated legacy file(s)", imported.count);
+        delete_imported_legacy_files(&imported);
+    }
+    imported_files_cleanup(&imported);
 }
 
 static int

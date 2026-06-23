@@ -806,3 +806,12 @@ https:// または localhost:8080 のようなループバックを使用して�
 [nav_mode_tabbar]
 タブ
 ---
+
+[transition_label]
+Transition
+[transition_none]
+None
+[transition_fade]
+Fade
+[theme_picker_title]
+Choose Theme

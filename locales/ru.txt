@@ -806,3 +806,12 @@ liboqs не собран для этой платформы.
 [nav_mode_tabbar]
 Вкладки
 ---
+
+[transition_label]
+Transition
+[transition_none]
+None
+[transition_fade]
+Fade
+[theme_picker_title]
+Choose Theme

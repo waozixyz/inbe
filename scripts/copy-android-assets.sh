@@ -38,7 +38,7 @@ else
 fi
 
 mkdir -p build
-sh flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
+sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
     assets/practices/whm/1.jpg \
     assets/practices/whm/2.jpg \

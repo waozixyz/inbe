@@ -12,7 +12,7 @@
 
 #define FS_PATH_MAX 512
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include <android/native_activity.h>
 #include <android_native_app_glue.h>
 

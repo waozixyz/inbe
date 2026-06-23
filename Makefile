@@ -94,7 +94,7 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_DIR := flint
+FLINT_DIR := vendor/flint
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
@@ -322,20 +322,20 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core -Ivendor/raylib/src $(FLINT_CURL_CFLAGS) -o $@ \
+		-Isrc/storage -Isrc -Isrc/core -Ivendor/flint/include -Ivendor/raylib/src $(FLINT_CURL_CFLAGS) -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
 $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/flint/include -Ivendor/raylib/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
-$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c flint/src/ui/guide.c flint/include/flint_ui.h | $(TEST_BIN_DIR)
+$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Iflint/include -Ivendor/raylib/src \
+		-Ivendor/flint/include -Ivendor/raylib/src \
 		-o $@ \
 		tests/guide_overlay_test.c
 
@@ -365,7 +365,7 @@ $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
-	sh $(FLINT_DIR)/scripts/embed-icons.sh $(FLINT_DIR)/icons $@
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/flint_icon_assets.c
 
 $(RAYLIB_A): $(RAYLIB_SOURCES)
 	rm -rf $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src
@@ -745,11 +745,29 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	@# Manually copy critical X11/OpenGL libraries that linuxdeploy might miss
+	@for lib in libX11.so.6 libXext.so.6 libdrm.so.2 libgbm.so.1 libEGL.so.1 libGLESv2.so.2 libGLdispatch.so.0 libglapi.so.0; do \
+		found=$$(find /usr/lib /lib -name "$$lib" 2>/dev/null | head -n 1); \
+		if [ -n "$$found" ]; then \
+			echo "Copying $$lib from $$found"; \
+			cp "$$found" $(LINUX_APPDIR)/usr/lib/ 2>/dev/null || true; \
+		fi; \
+	done
+	@# Detect if running on NixOS (by checking if loader is in /nix/store)
+	@loader=$$(LC_ALL=C readelf -l $(TARGET) | sed -n 's#.*Requesting program interpreter: \(.*\)]#\1#p'); \
+	if printf '%s\n' "$$loader" | grep -q '^/nix/store/.*glibc.*/'; then \
+		LIBRARY_FLAGS=""; \
+		echo "Building on NixOS - linuxdeploy will auto-detect libraries from /nix/store"; \
+	else \
+		LIBRARY_FLAGS=""; \
+		echo "Building on FHS system - linuxdeploy will auto-detect libraries"; \
+	fi; \
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \
 		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png) \
+		$$LIBRARY_FLAGS \
 		--output appimage
 	test -f $@
 

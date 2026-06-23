@@ -421,7 +421,7 @@ habit_session_keyboard_height(InbeApp *app)
     int gap = flint_px(6);
     int pad = flint_px(10);
 
-#if !INBE_ANDROID_BUILD
+#if !ANDROID_BUILD
     if(app == NULL || !app->on_screen_keyboard_enabled)
         return 0;
 #endif
@@ -448,7 +448,7 @@ habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
     int w = view_width - x * 2;
     int key_w = (w - gap * 2) / 3;
 
-#if !INBE_ANDROID_BUILD
+#if !ANDROID_BUILD
     if(app == NULL || !app->on_screen_keyboard_enabled)
         return 0;
 #endif

@@ -1,0 +1,4 @@
+Changed
+---
+- let you disable screen transitions
+- added theme modal

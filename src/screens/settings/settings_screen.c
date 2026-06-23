@@ -158,7 +158,6 @@ settings_screen_draw(InbeApp *app)
         locale_get("settings_tab_theme"),
         locale_get("settings_tab_data"),
     };
-    SettingsThemeState theme_state = {0};
     SettingsDeviceState device_state = {0};
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
@@ -200,7 +199,7 @@ settings_screen_draw(InbeApp *app)
     tab_content_start_y = top_tab_y + top_tab_h + tab_gap;
     content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app);
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     settings_data_handle_android_import(app);
 #elif defined(PLATFORM_WEB)
     settings_data_handle_web_import(app);
@@ -218,6 +217,10 @@ settings_screen_draw(InbeApp *app)
         app->settings_tab = clicked_top_tab;
         app->settings_scroll = 0;
         app->settings_data_view = 0;
+        if(app->modal.type == UIModalThemePicker) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        }
         settings_screen_clear_status();
     }
 
@@ -235,7 +238,7 @@ settings_screen_draw(InbeApp *app)
         int y = page.content_y;
 
         if(app->settings_tab == SETTINGS_TAB_THEME)
-            settings_theme_draw(app, page.content_x, page.content_w, &y, &theme_state);
+            settings_theme_draw(app, page.content_x, page.content_w, &y, &app->theme_state);
         else if(app->settings_tab == SETTINGS_TAB_DEVICE)
             settings_device_draw(app, page.content_x, page.content_w, &y, &device_state);
         else
@@ -246,7 +249,7 @@ settings_screen_draw(InbeApp *app)
 
     ui_set_dropdown_clip_top(tab_content_start_y);
     if(app->settings_tab == SETTINGS_TAB_THEME)
-        settings_theme_handle_overlays(app, &theme_state);
+        settings_theme_handle_overlays(app, &app->theme_state);
     else if(app->settings_tab == SETTINGS_TAB_DEVICE)
         settings_device_handle_overlays(app, &device_state);
     ui_set_dropdown_clip_top(0);

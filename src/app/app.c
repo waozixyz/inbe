@@ -12,6 +12,7 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
+#include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
@@ -42,7 +43,7 @@
 #include <unistd.h>
 #endif
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_timer.h"
 #include "android_device.h"
@@ -53,7 +54,7 @@ void set_global_inbe_app(InbeApp *app);
 InbeApp *get_global_inbe_app(void);
 #endif
 
-#if defined(PLATFORM_WEB) || INBE_ANDROID_BUILD
+#if defined(PLATFORM_WEB) || ANDROID_BUILD
 #define INBE_DEFAULT_WIDTH 320
 #define INBE_DEFAULT_HEIGHT 560
 #else
@@ -1286,7 +1287,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     app->habit_edit.active = 0;
 }
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
 void
 app_request_graphics_reload(InbeApp *app)
 {
@@ -1427,7 +1428,7 @@ app_init(void *vapp) {
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
 
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     if (app->inbe.screen == InbeScreenSession) {
         android_allow_screen_off();
     }
@@ -1450,7 +1451,7 @@ app_init(void *vapp) {
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     flint_dpi_update(view_width, view_height);
     ui_init(view_width, view_height, flint_dpi_scale());
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
     flint_ui_set_text_input_platform_callback(android_device_set_soft_keyboard_visible);
 #endif
 
@@ -1659,7 +1660,7 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
-#if INBE_ANDROID_BUILD
+#if ANDROID_BUILD
             if (app->inbe.play_in_background) {
                 android_wakelock_release();
                 android_timer_stop();
@@ -1777,6 +1778,8 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalBottomNavConfig)
         app_draw_bottom_nav_config_modal(app);
+    if(app->modal.type == UIModalThemePicker)
+        settings_screen_draw_theme_picker_modal(app);
 }
 
 static void
@@ -1914,8 +1917,10 @@ finish_frame:
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
-    flint_transition_draw_fade(&app->screen_transition, view_width, view_height,
-                               (Color){0, 0, 0, 255});
+    if(app->transition_mode == APP_TRANSITION_FADE) {
+        flint_transition_draw_fade(&app->screen_transition, view_width, view_height,
+                                   flint_theme_get_bg());
+    }
     app_advance_screen_transition(app);
     app->inbe.frame++;
 }

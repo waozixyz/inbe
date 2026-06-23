@@ -804,3 +804,12 @@ Wim Hof 屏息轮次
 [nav_mode_tabbar]
 标签页
 ---
+
+[transition_label]
+Transition
+[transition_none]
+None
+[transition_fade]
+Fade
+[theme_picker_title]
+Choose Theme

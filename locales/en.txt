@@ -806,3 +806,15 @@ Dropdown
 [nav_mode_tabbar]
 Tabs
 ---
+[transition_label]
+Transition
+---
+[transition_none]
+None
+---
+[transition_fade]
+Fade
+---
+[theme_picker_title]
+Choose Theme
+---
