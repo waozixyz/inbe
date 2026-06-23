@@ -745,19 +745,21 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	@# Detect if running on NixOS (by checking if loader is in /nix/store)
+	@loader=$$(LC_ALL=C readelf -l $(TARGET) | sed -n 's#.*Requesting program interpreter: \(.*\)]#\1#p'); \
+	if printf '%s\n' "$$loader" | grep -q '^/nix/store/.*glibc.*/'; then \
+		LIBRARY_FLAGS=""; \
+		echo "Building on NixOS - linuxdeploy will auto-detect libraries from /nix/store"; \
+	else \
+		LIBRARY_FLAGS="--library libX11.so.6 --library libXext.so.6 --library libdrm.so.2 --library libgbm.so.1 --library libEGL.so.1 --library libGLESv2.so.2 --library libglapi.so.0 --library libGLdispatch.so.0"; \
+		echo "Building on FHS system - using explicit library flags"; \
+	fi; \
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \
 		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png) \
-		--library libX11.so.6 \
-		--library libXext.so.6 \
-		--library libdrm.so.2 \
-		--library libgbm.so.1 \
-		--library libEGL.so.1 \
-		--library libGLESv2.so.2 \
-		--library libglapi.so.0 \
-		--library libGLdispatch.so.0 \
+		$$LIBRARY_FLAGS \
 		--output appimage
 	test -f $@
 

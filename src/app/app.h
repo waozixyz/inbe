@@ -75,6 +75,7 @@ typedef enum {
     UIModalHabitPracticeListInfo,
     UIModalHabitCountingInfo,
     UIModalBottomNavConfig,
+    UIModalThemePicker,
 } UIModalType;
 
 typedef struct {

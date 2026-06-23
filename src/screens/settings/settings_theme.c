@@ -73,20 +73,31 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     int circle_x = x + w / 2;
     int circle_y = *y + circle_size / 2;
 
-    DrawCircle(circle_x, circle_y, circle_size / 2, theme_color);
-    DrawCircleLines(circle_x, circle_y, circle_size / 2 + flint_px(2),
-                    flint_theme_get_text());
-
-    // Check for click to open modal
+    // Check for hover
     Rectangle circle_bounds = {
         (float)(circle_x - circle_size),
         (float)(circle_y - circle_size),
         (float)(circle_size * 2),
         (float)(circle_size * 2)
     };
-    if(CheckCollisionPointRec(GetMousePosition(), circle_bounds) &&
-       IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
-        state->theme_picker_modal_open = 1;
+    int is_hovered = CheckCollisionPointRec(GetMousePosition(), circle_bounds);
+
+    // Draw circle with hover effect
+    int draw_size = is_hovered ? circle_size + flint_px(4) : circle_size;
+    DrawCircle(circle_x, circle_y, draw_size / 2, theme_color);
+    DrawCircleLines(circle_x, circle_y, draw_size / 2 + flint_px(2),
+                    flint_theme_get_text());
+
+    // Check for click to open modal (skip if modal is active or just closed)
+    if(is_hovered && !app->modal.active &&
+       !ui_input_captures_click(GetMousePosition()) &&
+       app->inbe.frame - app->modal_open_frame > 1) {
+        ui_mark_clickable();
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+            app->modal.active = 1;
+            app->modal.type = UIModalThemePicker;
+            app->modal_open_frame = app->inbe.frame;
+        }
     }
     *y += circle_size + flint_px(20);
 }
@@ -125,29 +136,34 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->settings_dirty = 1;
         save_settings(app);
     }
+}
 
-    if(state->theme_picker_modal_open) {
-        int modal_w = flint_px(320);
-        int modal_h = flint_px(360);
-        const char *title = locale_get("theme_picker_title");
-        FlintUIPanelFrame frame;
+void
+settings_screen_draw_theme_picker_modal(InbeApp *app)
+{
+    int modal_w = flint_px(320);
+    int modal_h = flint_px(360);
+    const char *title = locale_get("theme_picker_title");
+    FlintUIPanelFrame frame;
 
-        frame = ui_draw_modal_frame(modal_w, modal_h, title,
-                                   (Texture2D){0},
-                                   app->icons[UI_ICON_TYPE_X]);
+    frame = ui_draw_modal_frame(modal_w, modal_h, title,
+                               (Texture2D){0},
+                               app->icons[UI_ICON_TYPE_X]);
 
-        if(frame.right_clicked) {
-            ((SettingsThemeState *)state)->theme_picker_modal_open = 0;
-            return;
-        }
+    if(frame.right_clicked) {
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
+        return;
+    }
 
-        // Draw theme picker in modal content area
-        if(ui_draw_theme_picker(frame.content_x, frame.content_y,
-                                frame.content_w, app->dark_mode, &app->theme_id)) {
-            app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
-            app_refresh_theme(app);
-            app->settings_dirty = 1;
-            save_settings(app);
-        }
+    // Draw theme picker in modal content area
+    if(ui_draw_theme_picker(frame.content_x, frame.content_y,
+                            frame.content_w, app->dark_mode, &app->theme_id)) {
+        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+        app_refresh_theme(app);
+        app->settings_dirty = 1;
+        save_settings(app);
+        app->modal.active = 0;
+        app->modal.type = UIModalNone;
     }
 }

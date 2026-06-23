@@ -1,4 +1,9 @@
 # Changelog
+## [1.5.2] - 2026-06-23
+### Changed
+- let you disable screen transitions
+- added theme modal
+
 ## [1.5.1] - 2026-06-22
 ### Fixed
 - icon scaling

@@ -97,7 +97,12 @@ load_clamped_settings(const LoadedClampedSetting *settings, size_t count)
 static int
 load_navigation_mode(void)
 {
-    int value = storage_get_setting_int("navigation_mode", NAV_MODE_TABBAR);
+#if ANDROID_BUILD
+    int default_nav = NAV_MODE_DROPDOWN;
+#else
+    int default_nav = NAV_MODE_TABBAR;
+#endif
+    int value = storage_get_setting_int("navigation_mode", default_nav);
     if(value == NAV_MODE_DROPDOWN)
         return NAV_MODE_DROPDOWN;
     return NAV_MODE_TABBAR;

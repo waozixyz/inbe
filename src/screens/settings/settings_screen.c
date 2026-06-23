@@ -217,6 +217,10 @@ settings_screen_draw(InbeApp *app)
         app->settings_tab = clicked_top_tab;
         app->settings_scroll = 0;
         app->settings_data_view = 0;
+        if(app->modal.type == UIModalThemePicker) {
+            app->modal.active = 0;
+            app->modal.type = UIModalNone;
+        }
         settings_screen_clear_status();
     }
 

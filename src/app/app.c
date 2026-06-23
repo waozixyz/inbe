@@ -12,6 +12,7 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
+#include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
@@ -1777,6 +1778,8 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalBottomNavConfig)
         app_draw_bottom_nav_config_modal(app);
+    if(app->modal.type == UIModalThemePicker)
+        settings_screen_draw_theme_picker_modal(app);
 }
 
 static void
