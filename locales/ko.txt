@@ -805,3 +805,12 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [nav_mode_tabbar]
 탭
 ---
+
+[transition_label]
+Transition
+[transition_none]
+None
+[transition_fade]
+Fade
+[theme_picker_title]
+Choose Theme
