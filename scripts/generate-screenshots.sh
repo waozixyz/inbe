@@ -158,6 +158,53 @@ EOF
         sqlite3 "$data_root/inbe.db" "INSERT INTO habit_days(habit_id, local_date, completed, count, session_count, updated_at) VALUES ('$habit_id', $local_date, $completed, $count, 0, $updated_at);"
       done
     done
+
+    # Generate varied session data for the last 28 days
+    session_count=0
+    for day_offset in {0..27}; do
+      local_date=$(date -d "$day_offset days ago" +%Y%m%d)
+      day_start_time=$(date -d "$day_offset days ago" +%s)
+
+      # Decide session pattern: 40% no sessions, 40% 1 session, 20% 2 sessions
+      session_pattern=$((RANDOM % 10))
+      num_sessions=0
+      if [ $session_pattern -lt 4 ]; then
+        num_sessions=0
+      elif [ $session_pattern -lt 8 ]; then
+        num_sessions=1
+      else
+        num_sessions=2
+      fi
+
+      for session_num in $(seq 1 $num_sessions); do
+        # Only WHM sessions (topic=0, activity=0)
+        topic=0
+
+        # Vary start times throughout the day
+        hour=$((8 + RANDOM % 12))
+        minute=$((RANDOM % 60))
+        started_at=$((day_start_time + hour * 3600 + minute * 60))
+        updated_at=$((started_at + 300))  # Session ends ~5 min later
+
+        session_id="session-$session_count"
+        session_count=$((session_count + 1))
+
+        # Generate round hash (just use timestamp)
+        rounds_hash=$started_at
+
+        sqlite3 "$data_root/inbe.db" "INSERT INTO sessions(id, user_id, started_at, local_date, topic, activity, source, imported_at, rounds_hash, deleted_at, updated_at) VALUES ('$session_id', '$USER_ID', $started_at, $local_date, $topic, 0, 'screenshot', 0, $rounds_hash, 0, $updated_at);"
+
+        # Generate rounds with varied durations
+        if [ $topic -eq 0 ]; then
+          # WHM: 3-5 rounds, 30-90 seconds each
+          num_rounds=$((3 + RANDOM % 3))
+          for round_index in $(seq 0 $((num_rounds - 1))); do
+            seconds=$((30 + RANDOM % 61))  # 30-90 seconds
+            sqlite3 "$data_root/inbe.db" "INSERT INTO session_rounds(session_id, round_index, seconds) VALUES ('$session_id', $round_index, $seconds);"
+          done
+        fi
+      done
+    done
   fi
 
   INBE_DATA_ROOT="$data_root" xvfb-run -a -s "-screen 0 ${width}x${height}x24" \

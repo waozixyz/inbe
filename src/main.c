@@ -521,19 +521,19 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->inbe.screen = InbeScreenStart;
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
-        app->tutorial_step = 0;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenManual;
+        app->inbe.screen = InbeScreenStart;
+        app->tutorial_step = 0;
     } else if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
-        app->tutorial_step = 2;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenManual;
+        app->inbe.screen = InbeScreenStart;
+        app->tutorial_step = 2;
     } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         app->exercise_type = EXERCISE_MEDITATION;
-        app->tutorial_step = 0;
         app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenManual;
+        app->inbe.screen = InbeScreenStart;
+        app->tutorial_step = 0;
     } else {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->inbe.screen = InbeScreenStart;
@@ -557,6 +557,14 @@ run_screenshot_mode(const ScreenshotRequest *request)
         warmup_frames = 150;
     for(int i = 0; i < warmup_frames; i++)
         frame();
+
+    if(strcmp(request->scene, "tutorial_whm_step2") == 0) {
+        inbe_app.tutorial_step = 2;
+    } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
+        inbe_app.tutorial_step = 0;
+    } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
+        inbe_app.tutorial_step = 0;
+    }
     capture = LoadImageFromScreen();
     if(capture.data == NULL)
         return 1;

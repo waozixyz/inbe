@@ -94,7 +94,7 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_DIR := flint
+FLINT_DIR := vendor/flint
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256

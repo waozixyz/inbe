@@ -77,8 +77,8 @@ The AVD is configured with:
 ## Project Structure
 
 - `src/` - Inbe application code
-- `flint/` - first-party UI/runtime support code used directly by Inbe
 - `vendor/` - external third-party dependencies
+- `vendor/flint/` - first-party UI/runtime support code used directly by Inbe
 - `wasm4/` - Standalone WASM-4 version
 - `assets/` - Images and sounds
 - `droid/` - Android build configuration

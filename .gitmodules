@@ -16,3 +16,6 @@
 [submodule "vendor/curl"]
 	path = vendor/curl
 	url = https://github.com/curl/curl.git
+[submodule "vendor/flint"]
+	path = vendor/flint
+	url = git@github.com:waozixyz/flint.git

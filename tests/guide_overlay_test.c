@@ -133,7 +133,7 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
     (void)startPos; (void)endPos; (void)thick; (void)color;
 }
 
-#include "../flint/src/ui/guide.c"
+#include "../vendor/flint/src/ui/guide.c"
 
 static FlintUIGuideOverlay
 test_guide(int *step)
