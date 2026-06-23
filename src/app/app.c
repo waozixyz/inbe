@@ -1881,7 +1881,9 @@ updateapp(InbeApp *app)
 
             practice_screen_draw_top_bar(app, 1);
         }
-        if(app->modal.active && app->modal.type == UIModalMeditationSetup) {
+        // Skip drawing on the same frame modal opens to prevent click propagation
+        if(app->modal.active && app->modal.type == UIModalMeditationSetup &&
+           app->modal_open_frame != app->inbe.frame) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_setup_modal != NULL)
                 practice->draw_setup_modal(app);
