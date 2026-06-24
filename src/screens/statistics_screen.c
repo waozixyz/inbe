@@ -450,11 +450,9 @@ draw_statistics_content(InbeApp *app, int content_top)
             .content_height = statistics_scroll_page_content_height,
             .user_data = &page_ctx
         });
-        ui_set_input_blocked(app->modal.active);
         statistics_draw_view(app, active, linked_ctx, page.content_x,
                              page.content_w, page.content_y + flint_px(8));
         ui_scroll_page_end(page);
-        ui_set_input_blocked(0);
     }
     free(linked_ctx);
 }

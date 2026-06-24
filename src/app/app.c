@@ -788,6 +788,25 @@ app_nav_route_label(int route)
     return "";
 }
 
+void
+app_open_modal(InbeApp *app, UIModalType type)
+{
+    if(app == NULL)
+        return;
+    app->modal.active = 1;
+    app->modal.type = type;
+    app->modal_open_frame = app->inbe.frame;
+}
+
+void
+app_close_modal(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->modal.active = 0;
+    app->modal.type = UIModalNone;
+}
+
 static Texture2D
 app_nav_route_icon(InbeApp *app, int route)
 {
@@ -1669,9 +1688,7 @@ handle_back_button(InbeApp *app)
             app_init(app);
         } else {
             /* Show confirmation modal */
-            app->modal.active = 1;
-            app->modal.type = UIModalConfirmExitSession;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalConfirmExitSession);
         }
         break;
 
@@ -1737,8 +1754,7 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         .close_icon = app->icons[UI_ICON_TYPE_X]
     });
     if(result.action == 1) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     } else if(result.action == 2) {
         app->bottom_nav_count = app->bottom_nav_draft_count;
         for(int i = 0; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
@@ -1748,8 +1764,7 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         app_bottom_nav_normalize(app);
         app->settings_dirty = 1;
         save_settings(app);
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     } else if(result.action == 3) {
         app_bottom_nav_default_routes(app->bottom_nav_draft_routes,
                                       &app->bottom_nav_draft_count);
@@ -1772,8 +1787,7 @@ draw_global_modal(InbeApp *app)
                                      locale_get("ok_button"),
                                      locale_get("ok_button"));
         if(modal_result != 0) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         }
     }
     if(app->modal.type == UIModalBottomNavConfig)
@@ -1815,8 +1829,7 @@ updateapp(InbeApp *app)
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         } else {
             handle_back_button(app);
         }

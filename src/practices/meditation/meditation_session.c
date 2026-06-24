@@ -37,8 +37,7 @@ meditation_start(InbeApp *app, int seconds)
     app->meditation.frame_ticks = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
+    app_close_modal(app);
     app_switch_screen(app, InbeScreenMeditation);
     app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
@@ -139,8 +138,7 @@ meditation_exit_to_start(InbeApp *app)
     app->meditation.frame_ticks = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
+    app_close_modal(app);
     app_switch_screen(app, InbeScreenStart);
 }
 
@@ -149,9 +147,7 @@ meditation_request_exit(InbeApp *app)
 {
     if(app == NULL)
         return;
-    app->modal.active = 1;
-    app->modal.type = UIModalConfirmExitSession;
-    app->modal.selected_button = 0;
+    app_open_modal(app, UIModalConfirmExitSession);
 }
 
 static void
@@ -221,6 +217,9 @@ meditation_draw_setup_modal(InbeApp *app)
     if(btn_w < flint_px(64))
         btn_w = flint_px(64);
 
+    ui_set_modal_capture((Rectangle){
+        (float)modal_x, (float)modal_y, (float)modal_w, (float)modal_h
+    });
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
@@ -251,8 +250,7 @@ meditation_draw_setup_modal(InbeApp *app)
     if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
                               locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
                               0, &cancel_hover)) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     }
 }
 
@@ -310,8 +308,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
                                               locale_get("save_button"),
                                               locale_get("discard_button"));
             if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
             } else if(modal_result == 2) {
                 meditation_save_elapsed(app);
                 meditation_exit_to_start(app);
@@ -324,8 +321,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
                                          locale_get("cancel_button"),
                                          locale_get("exit_button"));
             if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
             } else if(modal_result == 2) {
                 meditation_exit_to_start(app);
             }

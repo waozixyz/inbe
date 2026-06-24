@@ -566,9 +566,7 @@ meditation_music_update(InbeApp *app)
         if(is_network_download_error(&app->meditation.music_download)) {
             set_status(app, locale_get("meditation_music_network_error_title"));
             if(!app->meditation.music_network_error_notified && !app->modal.active) {
-                app->modal.active = 1;
-                app->modal.type = UIModalMeditationNetworkError;
-                app->modal.selected_button = 0;
+                app_open_modal(app, UIModalMeditationNetworkError);
                 app->meditation.music_network_error_notified = 1;
             }
         } else if(app->meditation.music_download.error[0] != '\0') {

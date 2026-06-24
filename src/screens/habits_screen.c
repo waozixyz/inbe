@@ -793,8 +793,7 @@ habit_open_linked_edit_page(InbeApp *app, int habit_index, int day_index)
     app->habit_detail_day = day_index;
     app->habit_detail_session_path[0] = '\0';
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
-    app->modal.active = 0;
-    app->modal.type = 0;
+    app_close_modal(app);
     app_switch_screen(app, InbeScreenHabitSessionEdit);
 }
 
@@ -1630,8 +1629,7 @@ draw_habits_screen(InbeApp *app)
 
     if(app == NULL)
         return;
-    screen_input_blocked = app->modal.active ||
-                           habits_screen_first_run_guide_active(app);
+    screen_input_blocked = habits_screen_first_run_guide_active(app);
 
     if(app->habits.tab < HABIT_TAB_WEEKLY || app->habits.tab >= HABIT_TAB_COUNT) {
         app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY

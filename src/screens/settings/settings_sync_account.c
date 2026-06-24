@@ -314,9 +314,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             if(sync_account_create(&account)) {
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
-                app->modal.active = 1;
-                app->modal.type = UIModalSyncAccountBackup;
-                app->modal.selected_button = 0;
+                app_open_modal(app, UIModalSyncAccountBackup);
             } else {
                 settings_screen_set_status_error(locale_get("sync_account_create_failed"));
             }
@@ -351,9 +349,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
             SetClipboardText(account.public_id);
             settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
         } else if(clicked == 1) {
-            app->modal.active = 1;
-            app->modal.type = UIModalSyncAccountBackup;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalSyncAccountBackup);
         }
     }
     *y += btn_h + flint_px(16);
@@ -400,9 +396,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
             if(sync_account_create(&account)) {
                 has_account = 1;
                 settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
-                app->modal.active = 1;
-                app->modal.type = UIModalSyncAccountBackup;
-                app->modal.selected_button = 0;
+                app_open_modal(app, UIModalSyncAccountBackup);
             } else {
                 settings_screen_set_status_error(locale_get("sync_account_create_failed"));
             }
@@ -471,9 +465,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
             SetClipboardText(account.public_id);
             settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
         } else if(clicked == 1) {
-            app->modal.active = 1;
-            app->modal.type = UIModalSyncAccountBackup;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalSyncAccountBackup);
         }
     }
     *y += btn_h + flint_px(12);
@@ -495,9 +487,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         if(clicked == 0) {
             settings_sync_account_logout(app);
         } else if(clicked == 1) {
-            app->modal.active = 1;
-            app->modal.type = UIModalConfirmDeleteSyncAccount;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalConfirmDeleteSyncAccount);
         }
     }
     *y += btn_h + flint_px(12);

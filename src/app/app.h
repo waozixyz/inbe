@@ -81,7 +81,6 @@ typedef enum {
 typedef struct {
     int active;
     UIModalType type;
-    int selected_button;
 } UIModal;
 
 typedef struct InbeConfig {
@@ -315,6 +314,9 @@ int app_should_use_tab_bar(const InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
+
+void app_open_modal(InbeApp *app, UIModalType type);
+void app_close_modal(InbeApp *app);
 
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);

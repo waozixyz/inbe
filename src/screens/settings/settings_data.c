@@ -150,9 +150,7 @@ settings_begin_import_for_path(InbeApp *app, const char *path)
     if((info.has_sessions || info.has_habits) && info.has_settings) {
         snprintf(pending_import_path, sizeof(pending_import_path), "%s", path);
         pending_import_info = info;
-        app->modal.active = 1;
-        app->modal.type = UIModalConfirmImportDataSettings;
-        app->modal.selected_button = 0;
+        app_open_modal(app, UIModalConfirmImportDataSettings);
         settings_screen_clear_status();
         return;
     }
@@ -722,9 +720,7 @@ static void
 settings_request_delete_all_data(InbeApp *app)
 {
     if(data_has_any()) {
-        app->modal.active = 1;
-        app->modal.type = UIModalConfirmDeleteData;
-        app->modal.selected_button = 0;
+        app_open_modal(app, UIModalConfirmDeleteData);
     } else {
         settings_screen_set_status_error(locale_get("no_data_to_delete"));
     }
@@ -816,8 +812,7 @@ settings_data_draw_modals(InbeApp *app)
     if(app->modal.type == UIModalConfirmImportDataSettings) {
         int modal_result = settings_draw_import_choice_modal(app);
         if(modal_result == 1) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             settings_clear_pending_import();
             settings_screen_set_status_error(locale_get("import_cancelled"));
         } else if(modal_result == 2 || modal_result == 3) {
@@ -826,8 +821,7 @@ settings_data_draw_modals(InbeApp *app)
                                       ? DATA_IMPORT_DATA_AND_SETTINGS
                                       : DATA_IMPORT_DATA_ONLY;
             snprintf(import_path, sizeof(import_path), "%s", pending_import_path);
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             settings_clear_pending_import();
             settings_perform_import(app, import_path, mode);
         }
@@ -840,13 +834,11 @@ settings_data_draw_modals(InbeApp *app)
                                          locale_get("cancel_button"),
                                          locale_get("clear_button"));
         if(modal_result == 1) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             settings_screen_set_status_error(locale_get("delete_cancelled"));
         } else if(modal_result == 2) {
             long long deleted = data_delete_all();
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             if(deleted > 0) {
                 char deleted_message[128];
                 habits_free(&app->habits);
@@ -877,12 +869,10 @@ settings_data_draw_modals(InbeApp *app)
                                          locale_get("cancel_button"),
                                          locale_get("clear_button"));
         if(modal_result == 1) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             settings_screen_set_status_error(locale_get("sync_clear_remote_data_cancelled"));
         } else if(modal_result == 2) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             settings_sync_account_clear_remote_confirmed(app);
         }
         return 1;
@@ -891,8 +881,7 @@ settings_data_draw_modals(InbeApp *app)
     if(app->modal.type == UIModalSyncAccountBackup) {
         int modal_result = settings_sync_account_draw_backup_modal(app);
         if(modal_result == 1 || modal_result == 2 || modal_result == 3 || modal_result == 4) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             if(modal_result == 2)
                 settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), NULL);
             else if(modal_result == 3)
