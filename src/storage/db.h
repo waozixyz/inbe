@@ -31,6 +31,7 @@ int schema_create(void);
 int migrate_schema(void);
 int load_or_create_user(void);
 int meta_equals(const char *key, const char *value);
+const char *get_meta_text(const char *key);
 void set_meta(const char *key, const char *value);
 long long get_meta_int64(const char *key, long long fallback);
 void set_meta_int64(const char *key, long long value);

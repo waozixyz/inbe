@@ -199,6 +199,114 @@ settings_draw_import_choice_modal(InbeApp *app)
 }
 
 static int
+settings_draw_sync_review_modal(InbeApp *app)
+{
+    FlintUIPanelFrame frame;
+    char local_summary[256];
+    char remote_summary[256];
+    int modal_w = view_width >= flint_px(620) ? flint_px(560) : flint_px(336);
+    int modal_h = view_height >= flint_px(520) ? flint_px(440) : view_height - flint_px(32);
+    int btn_h = flint_px(36);
+    int gap = flint_px(10);
+    int col_gap = flint_px(12);
+    int btn_y;
+    int col_y;
+    int col_h;
+    int col_w;
+    int right_x;
+    int remote_y;
+    int hover = 0;
+    static int local_scroll = 0;
+    static int remote_scroll = 0;
+
+    (void)app;
+    if(modal_h < flint_px(320))
+        modal_h = flint_px(320);
+    storage_sync_review_summary(local_summary, sizeof(local_summary),
+                                remote_summary, sizeof(remote_summary));
+    frame = ui_draw_modal_frame(modal_w, modal_h, "Sync needs review",
+                                (Texture2D){0}, (Texture2D){0});
+    flint_text_draw("Local and remote data differ. Choose what to keep.",
+                    frame.content_x, frame.content_y,
+                    flint_ui_font(), flint_theme_get_text());
+    col_y = frame.content_y + flint_px(40);
+    btn_y = frame.y + frame.h - flint_px(24) - btn_h;
+    col_h = btn_y - col_y - flint_px(14);
+    if(col_h < flint_px(120))
+        col_h = flint_px(120);
+    col_w = frame.content_w;
+    right_x = frame.content_x;
+    remote_y = col_y;
+    if(frame.content_w >= flint_px(420)) {
+        col_w = (frame.content_w - col_gap) / 2;
+        right_x = frame.content_x + col_w + col_gap;
+    } else {
+        col_h = (col_h - col_gap) / 2;
+        remote_y = col_y + col_h + col_gap;
+    }
+
+    FlintUIScrollView local_view = ui_scroll_container_begin((FlintUIScrollArea){
+        .bounds = {(float)frame.content_x, (float)col_y, (float)col_w, (float)col_h},
+        .content_height = flint_px(120),
+        .content_x = frame.content_x + flint_px(10),
+        .content_width = col_w - flint_px(20),
+        .scroll_offset = &local_scroll,
+        .wheel_step = flint_px(24)
+    });
+    flint_text_draw("Local", local_view.content_x, local_view.content_y,
+                    flint_ui_font(), flint_theme_get_text());
+    {
+        char *line = strtok(local_summary, "\n");
+        int line_y = local_view.content_y + flint_px(28);
+        while(line != NULL) {
+            flint_text_draw(line, local_view.content_x, line_y,
+                            flint_ui_font(), flint_theme_get_text());
+            line_y += flint_px(24);
+            line = strtok(NULL, "\n");
+        }
+    }
+    ui_scroll_container_end((FlintUIScrollArea){
+        .bounds = {(float)frame.content_x, (float)col_y, (float)col_w, (float)col_h},
+        .scroll_offset = &local_scroll
+    }, local_view);
+
+    FlintUIScrollView remote_view = ui_scroll_container_begin((FlintUIScrollArea){
+        .bounds = {(float)right_x, (float)remote_y, (float)col_w, (float)col_h},
+        .content_height = flint_px(120),
+        .content_x = right_x + flint_px(10),
+        .content_width = col_w - flint_px(20),
+        .scroll_offset = &remote_scroll,
+        .wheel_step = flint_px(24)
+    });
+    flint_text_draw("Remote", remote_view.content_x, remote_view.content_y,
+                    flint_ui_font(), flint_theme_get_text());
+    {
+        char *line = strtok(remote_summary, "\n");
+        int line_y = remote_view.content_y + flint_px(28);
+        while(line != NULL) {
+            flint_text_draw(line, remote_view.content_x, line_y,
+                            flint_ui_font(), flint_theme_get_text());
+            line_y += flint_px(24);
+            line = strtok(NULL, "\n");
+        }
+    }
+    ui_scroll_container_end((FlintUIScrollArea){
+        .bounds = {(float)right_x, (float)remote_y, (float)col_w, (float)col_h},
+        .scroll_offset = &remote_scroll
+    }, remote_view);
+
+    if(ui_draw_generic_button(frame.content_x, btn_y,
+                              (frame.content_w - gap) / 2, btn_h,
+                              "Keep local", UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+        return 1;
+    if(ui_draw_generic_button(frame.content_x + (frame.content_w + gap) / 2, btn_y,
+                              (frame.content_w - gap) / 2, btn_h,
+                              "Use remote", UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+        return 2;
+    return 0;
+}
+
+static int
 settings_link_icon_columns(int content_w)
 {
     int max_columns = 5;
@@ -886,6 +994,24 @@ settings_data_draw_modals(InbeApp *app)
                 settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), NULL);
             else if(modal_result == 3)
                 settings_screen_set_status_error(locale_get("sync_private_key_backup_failed"));
+        }
+        return 1;
+    }
+
+    if(app->modal.type == UIModalSyncReview) {
+        int modal_result = settings_draw_sync_review_modal(app);
+        if(modal_result == 1 || modal_result == 2) {
+            int use_remote = modal_result == 2;
+            if(storage_apply_pending_sync_review(use_remote)) {
+                app_close_modal(app);
+                if(use_remote)
+                    app_reload_after_import(app, 0);
+                else
+                    app_auto_sync(app);
+                settings_screen_set_status_success(use_remote ? "Using remote data" : "Keeping local data", NULL);
+            } else {
+                settings_screen_set_status_error("Sync review failed");
+            }
         }
         return 1;
     }

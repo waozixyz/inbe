@@ -444,6 +444,8 @@ app_pump_sync(InbeApp *app)
     if(app == NULL)
         return;
     app_collect_finished_sync();
+    if(storage_sync_review_pending() && !app->modal.active)
+        app_open_modal(app, UIModalSyncReview);
     app_apply_pending_sync_refresh(app);
     if(!app_sync_url(url, sizeof(url)))
         return;
