@@ -1448,12 +1448,16 @@ sync_client_register_alias(const char *base_url, const char *alias)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
     if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
+
+    TraceLog(LOG_INFO, "SYNC: alias login refresh started");
+    result = sync_login(base_url, &account);
+    if(result != INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_WARNING, "SYNC: alias login refresh failed result=%d", (int)result);
+        return result;
+    }
     if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
+        TraceLog(LOG_WARNING, "SYNC: alias login refresh did not produce token");
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
     }
     if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
        !sync_buffer_append_json_string(&body, account.public_id) ||
@@ -1464,6 +1468,7 @@ sync_client_register_alias(const char *base_url, const char *alias)
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
     }
     sync_join_url(url, sizeof(url), base_url, INBE_ACCOUNT_ALIAS_PATH);
+    TraceLog(LOG_INFO, "SYNC: alias request url=%s alias=@%s", url, alias);
     snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account.public_id);
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
     headers[0] = "Content-Type: application/json";
@@ -1485,8 +1490,12 @@ sync_client_register_alias(const char *base_url, const char *alias)
         free(response.data);
         return INBE_SYNC_CLIENT_REQUEST_FAILED;
     }
-    if(sync_find_json_string(response.data, "alias", saved_alias, sizeof(saved_alias)))
+    if(sync_find_json_string(response.data, "alias", saved_alias, sizeof(saved_alias))) {
         storage_set_setting_text("sync_account_alias", saved_alias);
+        TraceLog(LOG_INFO, "SYNC: alias response stored @%s", saved_alias);
+    } else {
+        TraceLog(LOG_WARNING, "SYNC: alias response missing alias field");
+    }
     free(response.data);
     return INBE_SYNC_CLIENT_OK;
 #endif

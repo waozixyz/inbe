@@ -716,7 +716,8 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
 
     {
         FlintUIButtonRowItem buttons[2] = {
-            {locale_get("skip_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {locale_get(app->sync_alias_then_backup ? "skip_button" : "close_button"),
+             UI_BUTTON_STYLE_SECONDARY, 0},
             {locale_get("sync_alias_register_button"), UI_BUTTON_STYLE_PRIMARY,
              !settings_sync_alias_valid(app->sync_alias_input)}
         };
@@ -732,11 +733,23 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
         if(clicked == 0)
             return 3;
         if(clicked == 1 || (commit && settings_sync_alias_valid(app->sync_alias_input))) {
-            if(settings_sync_server_normalize(app, url, sizeof(url)) &&
-               sync_client_register_alias(url, app->sync_alias_input) == INBE_SYNC_CLIENT_OK)
-                result = 1;
-            else
+            if(settings_sync_server_normalize(app, url, sizeof(url))) {
+                InbeSyncClientResult alias_result;
+                TraceLog(LOG_INFO, "SYNC: registering alias @%s with %s",
+                         app->sync_alias_input, url);
+                alias_result = sync_client_register_alias(url, app->sync_alias_input);
+                if(alias_result == INBE_SYNC_CLIENT_OK) {
+                    TraceLog(LOG_INFO, "SYNC: alias registered @%s", app->sync_alias_input);
+                    result = 1;
+                } else {
+                    TraceLog(LOG_WARNING, "SYNC: alias register failed result=%d alias=@%s",
+                             (int)alias_result, app->sync_alias_input);
+                    result = 2;
+                }
+            } else {
+                TraceLog(LOG_WARNING, "SYNC: alias register failed invalid server url");
                 result = 2;
+            }
         }
     }
     return result;
