@@ -118,6 +118,9 @@ Enregistrer les cycles terminés avant de quitter ?
 [cancel_button]
 Annuler
 ---
+[skip_button]
+Ignorer
+---
 [ok_button]
 OK
 ---
@@ -574,6 +577,33 @@ Copier l’ID
 ---
 [sync_public_id_copied]
 ID public copié
+---
+[sync_public_id_full_title]
+ID public complet
+---
+[sync_public_id_full_message]
+Voici l’identifiant complet du compte.
+---
+[sync_alias_button]
+Alias
+---
+[sync_alias_title]
+Alias du compte
+---
+[sync_alias_message]
+Choisissez un nom court pour ce compte. C’est facultatif.
+---
+[sync_alias_rule]
+4 à 32 lettres, chiffres ou tiret bas.
+---
+[sync_alias_register_button]
+Enregistrer
+---
+[sync_alias_registered]
+Alias enregistré
+---
+[sync_alias_failed]
+Alias indisponible ou échec distant
 ---
 [sync_backup_key_button]
 Sauvegarder la clé

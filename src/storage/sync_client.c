@@ -36,6 +36,7 @@ extern struct android_app *GetAndroidApp(void);
 #define INBE_SYNC_WS_PATH "/api/v1/sync/ws"
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
 #define INBE_LOGIN_PATH "/api/v1/sync/login"
+#define INBE_ACCOUNT_ALIAS_PATH "/api/v1/account/alias"
 #define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
 #define INBE_SYNC_WEB_RESPONSE_MAX (4 * 1024 * 1024)
 #define INBE_SYNC_AUTH_TOKEN_KEY "sync_auth_token"
@@ -1418,6 +1419,77 @@ sync_client_sync(const char *base_url)
     if(result == INBE_SYNC_CLIENT_OK)
         storage_purge_synced_deleted_data();
     return result;
+}
+
+InbeSyncClientResult
+sync_client_register_alias(const char *base_url, const char *alias)
+{
+#if defined(__EMSCRIPTEN__)
+    (void)base_url;
+    (void)alias;
+    return INBE_SYNC_CLIENT_REQUEST_FAILED;
+#else
+    InbeSyncAccount account;
+    char token[4096];
+    char url[768];
+    char user_header[96];
+    char auth_header[4200];
+    const char *headers[3];
+    SyncBuffer body = {0};
+    SyncBuffer response = {0};
+    long status = 0;
+    InbeSyncClientResult result;
+    int ok;
+    char saved_alias[40];
+
+    if(!sync_client_url_valid(base_url))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    if(alias == NULL || alias[0] == '\0')
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    if(!sync_account_load(&account))
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
+       !sync_buffer_append_json_string(&body, account.public_id) ||
+       !sync_buffer_append(&body, ",\"alias\":", strlen(",\"alias\":")) ||
+       !sync_buffer_append_json_string(&body, alias) ||
+       !sync_buffer_append(&body, "}", 1)) {
+        free(body.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+    sync_join_url(url, sizeof(url), base_url, INBE_ACCOUNT_ALIAS_PATH);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account.public_id);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    headers[0] = "Content-Type: application/json";
+    headers[1] = user_header;
+    headers[2] = auth_header;
+    ok = sync_http_request("POST", url, body.data, headers, 3, &response, &status);
+    free(body.data);
+    if(!ok) {
+        sync_log_http_failure("alias request", status, response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(status == 401) {
+        sync_log_http_failure("alias auth", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+    if(status < 200 || status >= 300) {
+        sync_log_http_failure("alias", status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(sync_find_json_string(response.data, "alias", saved_alias, sizeof(saved_alias)))
+        storage_set_setting_text("sync_account_alias", saved_alias);
+    free(response.data);
+    return INBE_SYNC_CLIENT_OK;
+#endif
 }
 
 InbeSyncClientResult

@@ -38,6 +38,7 @@ static void storage_delete_sync_review_json(void);
 #define STORAGE_SYNC_PENDING_REVIEW_KEY "sync_pending_review_pending"
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
+#define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 
 static long long
 storage_next_change_time(void)
@@ -1766,6 +1767,7 @@ storage_apply_sync_response_json(const char *response_json)
     long long server_version;
     long long old_server_version;
     char server_hash[80];
+    char account_alias[40];
 
     if(g_storage.db == NULL || response_json == NULL || response_json[0] == '\0')
         return 0;
@@ -1774,6 +1776,8 @@ storage_apply_sync_response_json(const char *response_json)
     g_storage.last_sync_changed = 0;
     if(!storage_json_valid(response_json))
         return 0;
+    if(storage_json_extract_text(response_json, "$.account_alias", account_alias, sizeof(account_alias)))
+        storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
         if(!storage_write_sync_review_json(response_json))

@@ -204,8 +204,8 @@ settings_draw_sync_review_modal(InbeApp *app)
     FlintUIPanelFrame frame;
     char local_summary[256];
     char remote_summary[256];
-    int modal_w = view_width >= flint_px(620) ? flint_px(560) : flint_px(336);
-    int modal_h = view_height >= flint_px(520) ? flint_px(440) : view_height - flint_px(32);
+    int modal_w = ui_view_width >= flint_px(620) ? flint_px(560) : flint_px(336);
+    int modal_h = ui_view_height >= flint_px(520) ? flint_px(440) : ui_view_height - flint_px(32);
     int btn_h = flint_px(36);
     int gap = flint_px(10);
     int col_gap = flint_px(12);

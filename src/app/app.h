@@ -77,6 +77,8 @@ typedef enum {
     UIModalBottomNavConfig,
     UIModalThemePicker,
     UIModalSyncReview,
+    UIModalSyncAlias,
+    UIModalSyncPublicId,
 } UIModalType;
 
 typedef struct {
@@ -233,6 +235,10 @@ struct InbeApp {
     int sync_server_url_cursor;
     int sync_server_url_focused;
     char sync_server_url[256];
+    int sync_alias_cursor;
+    int sync_alias_focused;
+    int sync_alias_then_backup;
+    char sync_alias_input[40];
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
