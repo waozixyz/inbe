@@ -593,11 +593,23 @@ Alias du compte
 [sync_alias_message]
 Choisissez un nom court pour ce compte. C’est facultatif.
 ---
+[sync_alias_change_title]
+Modifier l’alias
+---
+[sync_alias_change_message]
+Modifiez le nom court de ce compte sur ce serveur de synchronisation.
+---
 [sync_alias_rule]
 4 à 32 lettres, chiffres ou tiret bas.
 ---
 [sync_alias_register_button]
 Enregistrer
+---
+[sync_alias_save_button]
+Enregistrer l’alias
+---
+[sync_alias_saved]
+Alias enregistré
 ---
 [sync_alias_registered]
 Alias enregistré

@@ -593,11 +593,23 @@ Account Alias
 [sync_alias_message]
 Choose a short name for this account. This is optional.
 ---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
 [sync_alias_rule]
 4-32 letters, numbers, or underscore.
 ---
 [sync_alias_register_button]
 Register
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---
 [sync_alias_registered]
 Alias registered

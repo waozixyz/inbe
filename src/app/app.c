@@ -1803,7 +1803,7 @@ draw_global_modal(InbeApp *app)
             int then_backup = app->sync_alias_then_backup;
             app->sync_alias_then_backup = 0;
             app_close_modal(app);
-            settings_screen_set_status_success(locale_get("sync_alias_registered"), NULL);
+            settings_screen_set_status_success(locale_get("sync_alias_saved"), NULL);
             if(then_backup)
                 app_open_modal(app, UIModalSyncAccountBackup);
         } else if(modal_result == 2) {
