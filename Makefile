@@ -138,8 +138,9 @@ LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
 SYNC_REVIEW_TEST := $(TEST_BIN_DIR)/sync_review_test
+FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(GUIDE_OVERLAY_TEST)
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(GUIDE_OVERLAY_TEST)
 FLINT_RUNTIME_ASSET_CFLAGS := $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
@@ -361,6 +362,11 @@ $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
+
+$(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-o $@ \
+		tests/font_locale_test.c
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
