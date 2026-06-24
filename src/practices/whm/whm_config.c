@@ -64,6 +64,9 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
     modal_y = (view_height - modal_h) / 2;
     title_y = modal_y + flint_px(14);
 
+    ui_set_modal_capture((Rectangle){
+        (float)modal_x, (float)modal_y, (float)modal_w, (float)modal_h
+    });
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
     ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
@@ -80,8 +83,7 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
 
     if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6), modal_y + flint_px(6),
                                close_size, close_padding, app->icons[UI_ICON_TYPE_X], &close_hover)) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
         return;
     }
 
@@ -203,9 +205,7 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
         if(ui_draw_generic_button(content_x, y, modify_w, flint_px(36),
                                   locale_get("modify_start_speed_button"),
                                   UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
-            app->modal.active = 1;
-            app->modal.type = UIModalEditProgressiveStartSpeed;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalEditProgressiveStartSpeed);
         }
         y += flint_px(58);
     }

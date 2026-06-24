@@ -121,6 +121,9 @@ Save completed rounds before exit?
 [cancel_button]
 Cancel
 ---
+[skip_button]
+Skip
+---
 [ok_button]
 OK
 ---
@@ -574,6 +577,33 @@ Copy ID
 ---
 [sync_public_id_copied]
 Public ID copied
+---
+[sync_public_id_full_title]
+Full Public ID
+---
+[sync_public_id_full_message]
+This is the full account identifier.
+---
+[sync_alias_button]
+Alias
+---
+[sync_alias_title]
+Account Alias
+---
+[sync_alias_message]
+Choose a short name for this account. This is optional.
+---
+[sync_alias_rule]
+4-32 letters, numbers, or underscore.
+---
+[sync_alias_register_button]
+Register
+---
+[sync_alias_registered]
+Alias registered
+---
+[sync_alias_failed]
+Alias unavailable or remote failed
 ---
 [sync_backup_key_button]
 Backup Key

@@ -25,12 +25,20 @@
 static long long storage_max_sync_outbox_seq(void);
 static int storage_has_orphan_habit_days(void);
 static int storage_json_array_count(const char *json, const char *path);
+static int storage_write_sync_review_json(const char *json);
+static char *storage_read_sync_review_json(void);
+static void storage_delete_sync_review_json(void);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
 #define STORAGE_SYNC_HABIT_NAME_REPAIR_KEY "sync_habit_name_repair_v1_done"
 #define STORAGE_SYNC_PUBLIC_ID_KEY "sync_public_id"
 #define STORAGE_SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define STORAGE_SYNC_PRIVATE_KEY_KEY "sync_private_key"
+#define STORAGE_SYNC_LAST_SERVER_HASH_KEY "sync_last_server_state_hash"
+#define STORAGE_SYNC_PENDING_REVIEW_KEY "sync_pending_review_pending"
+#define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
+#define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
+#define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 
 static long long
 storage_next_change_time(void)
@@ -339,6 +347,80 @@ make_session_id(long long started_at, const int *round_times, int round_count,
     snprintf(out, out_size, "s-%lld-%08x", started_at, hash_rounds(round_times, round_count));
 }
 
+static void
+storage_sync_review_path(char *out, size_t out_size)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    snprintf(out, out_size, "%s/sync-review.json", g_storage.root);
+}
+
+static int
+storage_write_sync_review_json(const char *json)
+{
+    char path[INBE_STORAGE_PATH_SIZE];
+    FILE *file;
+    size_t len;
+
+    if(json == NULL)
+        return 0;
+    storage_sync_review_path(path, sizeof(path));
+    file = fopen(path, "wb");
+    if(file == NULL)
+        return 0;
+    len = strlen(json);
+    if(fwrite(json, 1, len, file) != len) {
+        fclose(file);
+        return 0;
+    }
+    return fclose(file) == 0;
+}
+
+static char *
+storage_read_sync_review_json(void)
+{
+    char path[INBE_STORAGE_PATH_SIZE];
+    FILE *file;
+    long size;
+    char *data;
+
+    storage_sync_review_path(path, sizeof(path));
+    file = fopen(path, "rb");
+    if(file == NULL)
+        return NULL;
+    if(fseek(file, 0, SEEK_END) != 0) {
+        fclose(file);
+        return NULL;
+    }
+    size = ftell(file);
+    if(size < 0 || size > 8 * 1024 * 1024) {
+        fclose(file);
+        return NULL;
+    }
+    rewind(file);
+    data = (char *)malloc((size_t)size + 1);
+    if(data == NULL) {
+        fclose(file);
+        return NULL;
+    }
+    if(fread(data, 1, (size_t)size, file) != (size_t)size) {
+        free(data);
+        fclose(file);
+        return NULL;
+    }
+    data[size] = '\0';
+    fclose(file);
+    return data;
+}
+
+static void
+storage_delete_sync_review_json(void)
+{
+    char path[INBE_STORAGE_PATH_SIZE];
+    storage_sync_review_path(path, sizeof(path));
+    remove(path);
+}
+
 static int
 parse_db_id(const char *path_or_id, char *out, size_t out_size)
 {
@@ -359,6 +441,10 @@ storage_reset_sync_state(void)
     set_meta_int64("sync_last_server_version", 0);
     set_meta_int64("sync_last_upload_at", 0);
     set_meta_int64("sync_full_upload_done", 0);
+    set_meta(STORAGE_SYNC_LAST_SERVER_HASH_KEY, "");
+    set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+    set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0);
+    storage_delete_sync_review_json();
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
@@ -1228,6 +1314,15 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     json_append(&json, ",");
     json_append_key_string(&json, "client_id", storage_sync_client_id());
     json_appendf(&json, ",\"since_server_version\":%lld", since_server_version);
+    if(get_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0) != 0)
+        json_append(&json, ",\"full_sync_requested\":true");
+    {
+        const char *last_server_hash = get_meta_text(STORAGE_SYNC_LAST_SERVER_HASH_KEY);
+        if(last_server_hash != NULL && last_server_hash[0] != '\0') {
+            json_append(&json, ",");
+            json_append_key_string(&json, "last_server_state_hash", last_server_hash);
+        }
+    }
     if(since_server_version <= 0 || !full_upload_done)
         json_append(&json, ",\"bootstrap\":true");
     if(public_key_hex != NULL && public_key_hex[0] != '\0') {
@@ -1296,6 +1391,33 @@ storage_json_extract_int64(const char *json, const char *path, long long fallbac
         value = sqlite3_column_int64(stmt, 0);
     sqlite3_finalize(stmt);
     return value;
+}
+
+static int
+storage_json_extract_text(const char *json, const char *path, char *out, size_t out_size)
+{
+    sqlite3_stmt *stmt = NULL;
+    const unsigned char *text;
+    int ok = 0;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(g_storage.db == NULL || json == NULL || path == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(json_extract(?1,?2),'')", -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, json);
+    bind_text(stmt, 2, path);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        text = sqlite3_column_text(stmt, 0);
+        if(text != NULL) {
+            snprintf(out, out_size, "%s", (const char *)text);
+            ok = out[0] != '\0';
+        }
+    }
+    sqlite3_finalize(stmt);
+    return ok;
 }
 
 static long long
@@ -1644,6 +1766,8 @@ storage_apply_sync_response_json(const char *response_json)
         "        WHERE entity_type='session' AND entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
     long long server_version;
     long long old_server_version;
+    char server_hash[80];
+    char account_alias[40];
 
     if(g_storage.db == NULL || response_json == NULL || response_json[0] == '\0')
         return 0;
@@ -1652,6 +1776,18 @@ storage_apply_sync_response_json(const char *response_json)
     g_storage.last_sync_changed = 0;
     if(!storage_json_valid(response_json))
         return 0;
+    if(storage_json_extract_text(response_json, "$.account_alias", account_alias, sizeof(account_alias)))
+        storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
+    if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
+       get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
+        if(!storage_write_sync_review_json(response_json))
+            return 0;
+        set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");
+        g_storage.pending_sync_outbox_seq = 0;
+        storage_schedule_persist();
+        TraceLog(LOG_WARNING, "SYNC: full snapshot review required");
+        return 1;
+    }
     old_server_version = get_meta_int64("sync_last_server_version", 0);
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
@@ -1680,6 +1816,12 @@ storage_apply_sync_response_json(const char *response_json)
         g_storage.last_sync_changed = 1;
     if(server_version > 0)
         set_meta_int64("sync_last_server_version", server_version);
+    if(storage_json_extract_text(response_json, "$.server_state_hash", server_hash, sizeof(server_hash)))
+        set_meta(STORAGE_SYNC_LAST_SERVER_HASH_KEY, server_hash);
+    set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+    storage_delete_sync_review_json();
+    set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
+    set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0);
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
@@ -1688,6 +1830,78 @@ storage_apply_sync_response_json(const char *response_json)
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;
+}
+
+int
+storage_sync_review_pending(void)
+{
+    return get_meta_int64(STORAGE_SYNC_PENDING_REVIEW_KEY, 0) != 0;
+}
+
+void
+storage_sync_review_summary(char *local_out, size_t local_size,
+                            char *remote_out, size_t remote_size)
+{
+    char *json = storage_read_sync_review_json();
+    int local_sessions = storage_session_count();
+    int local_habits = storage_habit_count();
+    int remote_sessions = json != NULL ? storage_json_array_count(json, "$.changes.sessions") : 0;
+    int remote_habits = json != NULL ? storage_json_array_count(json, "$.changes.habits") : 0;
+    int remote_days = json != NULL ? storage_json_array_count(json, "$.changes.habit_days") : 0;
+
+    if(local_out != NULL && local_size > 0)
+        snprintf(local_out, local_size, "Sessions: %d\nHabits: %d\nUnsynced local changes will be uploaded.", local_sessions, local_habits);
+    if(remote_out != NULL && remote_size > 0)
+        snprintf(remote_out, remote_size, "Sessions: %d\nHabits: %d\nHabit days: %d\nRemote snapshot from Lyra.", remote_sessions, remote_habits, remote_days);
+    free(json);
+}
+
+int
+storage_apply_pending_sync_review(int use_remote)
+{
+    char *json = storage_read_sync_review_json();
+    char *copy;
+    int ok;
+
+    if(json == NULL || json[0] == '\0') {
+        free(json);
+        return 0;
+    }
+    if(!use_remote) {
+        set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+        storage_delete_sync_review_json();
+        set_meta(STORAGE_SYNC_LAST_SERVER_HASH_KEY, "");
+        storage_reset_sync_state();
+        set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 1);
+        free(json);
+        return 1;
+    }
+    copy = strdup(json);
+    free(json);
+    if(copy == NULL)
+        return 0;
+    if(!exec_sql("BEGIN IMMEDIATE") ||
+       !exec_sql("DELETE FROM session_rounds") ||
+       !exec_sql("DELETE FROM sessions") ||
+       !exec_sql("DELETE FROM habit_days") ||
+       !exec_sql("DELETE FROM habits") ||
+       !exec_sql("DELETE FROM sync_outbox") ||
+       !exec_sql("COMMIT")) {
+        exec_sql("ROLLBACK");
+        free(copy);
+        return 0;
+    }
+    set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
+    ok = storage_apply_sync_response_json(copy);
+    free(copy);
+    if(ok) {
+        exec_sql("DELETE FROM sync_outbox");
+        g_storage.pending_sync_outbox_seq = 0;
+        set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+        storage_delete_sync_review_json();
+        storage_schedule_persist();
+    }
+    return ok;
 }
 
 int

@@ -137,7 +137,10 @@ STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
 LOCALE_KEYS_TEST := $(TEST_BIN_DIR)/locale_keys_test
 SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
+SYNC_REVIEW_TEST := $(TEST_BIN_DIR)/sync_review_test
+FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(GUIDE_OVERLAY_TEST)
 FLINT_RUNTIME_ASSET_CFLAGS := $(FLINT_CURL_CFLAGS)
 FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
@@ -182,7 +185,7 @@ LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
-OTFCHOP_DIR ?= vendor/otfchop
+OTFCHOP_DIR ?= $(FLINT_DIR)/tools/otfchop
 FONT_TOOL := $(OTFCHOP_DIR)/otfchop
 FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
@@ -301,12 +304,32 @@ screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
 
 
-test: $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(GUIDE_OVERLAY_TEST)
-	$(STORAGE_IMPORT_TEST)
-	$(LOCALE_KEYS_TEST)
-	$(SYNC_URL_TEST)
-	$(SYNC_ACCOUNT_TEST)
-	$(GUIDE_OVERLAY_TEST)
+.SILENT: test $(TESTS)
+
+test: $(TESTS)
+	echo "== Inbe tests =="; \
+	status=0; \
+	for test_bin in $(TESTS); do \
+		name=$$(basename "$$test_bin"); \
+		log=$$(mktemp /tmp/inbe-test.XXXXXX); \
+		printf "%-28s" "$$name"; \
+		if "$$test_bin" >"$$log" 2>&1; then \
+			echo "PASS"; \
+			rm -f "$$log"; \
+		else \
+			echo "FAIL"; \
+			cat "$$log"; \
+			rm -f "$$log"; \
+			status=1; \
+			break; \
+		fi; \
+	done; \
+	if [ "$$status" -eq 0 ]; then \
+		echo "== PASS: all Inbe tests =="; \
+	else \
+		echo "== FAIL: Inbe tests =="; \
+	fi; \
+	exit "$$status"
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
@@ -333,6 +356,18 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/s
 		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
+$(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/flint/include -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-o $@ \
+		tests/sync_review_test.c src/storage/storage.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		-Wl,--gc-sections -lm -lpthread -ldl
+
+$(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-o $@ \
+		tests/font_locale_test.c
+
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Ivendor/flint/include -Ivendor/raylib/src \
@@ -350,8 +385,8 @@ assets/fonts:
 
 FORCE:
 
-$(FONT_TOOL): vendor/otfchop/otfchop.c vendor/otfchop/stb_truetype.h vendor/otfchop/stb_image_write.h
-	$(MAKE) -C vendor/otfchop otfchop
+$(FONT_TOOL): $(OTFCHOP_DIR)/otfchop.c $(OTFCHOP_DIR)/stb_truetype.h $(OTFCHOP_DIR)/stb_image_write.h
+	$(MAKE) -C $(OTFCHOP_DIR) otfchop
 
 assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
 	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales

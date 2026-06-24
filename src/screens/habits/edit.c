@@ -370,8 +370,7 @@ draw_habit_edit_screen(InbeApp *app)
     if(app->modal.active && app->modal.type == UIModalHabitPracticeListInfo) {
         if(habit_edit_info_modal(locale_get("habit_practice_list_title"),
                                  locale_get("habit_practice_list_info"))) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         }
         return;
     }
@@ -379,8 +378,7 @@ draw_habit_edit_screen(InbeApp *app)
     if(app->modal.active && app->modal.type == UIModalHabitCountingInfo) {
         if(habit_edit_info_modal(locale_get("habit_counting_title"),
                                  locale_get("habit_counting_info"))) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         }
         return;
     }
@@ -391,12 +389,10 @@ draw_habit_edit_screen(InbeApp *app)
                                          locale_get("cancel_button"),
                                          locale_get("delete_button"));
         if(modal_result == 1) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         } else if(modal_result == 2) {
             int index = app->habit_edit.index;
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
             habit_edit_cancel(app);
             if(index >= 0 && index < app->habits.count) {
                 habits_delete(&app->habits, index);
@@ -464,9 +460,7 @@ draw_habit_edit_screen(InbeApp *app)
         .info_button = 1,
         .color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalHabitPracticeListInfo;
-        app->modal.selected_button = 0;
+        app_open_modal(app, UIModalHabitPracticeListInfo);
     }
     y += ui_section_label_height((FlintUISectionLabel){0});
     for(int i = 0; i < EXERCISE_COUNT; i++) {
@@ -492,9 +486,7 @@ draw_habit_edit_screen(InbeApp *app)
         .info_button = 1,
         .color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y)) {
-        app->modal.active = 1;
-        app->modal.type = UIModalHabitCountingInfo;
-        app->modal.selected_button = 0;
+        app_open_modal(app, UIModalHabitCountingInfo);
     }
     y += ui_section_label_height((FlintUISectionLabel){0});
     if(ui_draw_checkbox_row((FlintUICheckboxRow){
@@ -535,9 +527,7 @@ draw_habit_edit_screen(InbeApp *app)
             .count = action_count
         });
         if(!app->habit_edit.is_new && clicked_action == 0) {
-            app->modal.active = 1;
-            app->modal.type = UIModalConfirmDeleteHabit;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalConfirmDeleteHabit);
         } else if((app->habit_edit.is_new && clicked_action == 0) ||
                   (!app->habit_edit.is_new && clicked_action == 1)) {
             ui_scroll_page_end(page);

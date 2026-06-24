@@ -1725,12 +1725,8 @@ main(void)
 void
 TraceLog(int logLevel, const char *text, ...)
 {
-    va_list args;
     (void)logLevel;
-    va_start(args, text);
-    vfprintf(stderr, text, args);
-    fputc('\n', stderr);
-    va_end(args);
+    (void)text;
 }
 
 bool

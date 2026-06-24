@@ -205,8 +205,6 @@ settings_screen_draw(InbeApp *app)
     settings_data_handle_web_import(app);
 #endif
 
-    ui_set_input_blocked(app->modal.active);
-
     if(content_viewport_h < 0)
         content_viewport_h = 0;
 
@@ -218,8 +216,7 @@ settings_screen_draw(InbeApp *app)
         app->settings_scroll = 0;
         app->settings_data_view = 0;
         if(app->modal.type == UIModalThemePicker) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         }
         settings_screen_clear_status();
     }
@@ -254,7 +251,6 @@ settings_screen_draw(InbeApp *app)
         settings_device_handle_overlays(app, &device_state);
     ui_set_dropdown_clip_top(0);
 
-    ui_set_input_blocked(0);
     settings_data_draw_modals(app);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty)

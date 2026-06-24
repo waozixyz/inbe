@@ -76,12 +76,14 @@ typedef enum {
     UIModalHabitCountingInfo,
     UIModalBottomNavConfig,
     UIModalThemePicker,
+    UIModalSyncReview,
+    UIModalSyncAlias,
+    UIModalSyncPublicId,
 } UIModalType;
 
 typedef struct {
     int active;
     UIModalType type;
-    int selected_button;
 } UIModal;
 
 typedef struct InbeConfig {
@@ -233,6 +235,10 @@ struct InbeApp {
     int sync_server_url_cursor;
     int sync_server_url_focused;
     char sync_server_url[256];
+    int sync_alias_cursor;
+    int sync_alias_focused;
+    int sync_alias_then_backup;
+    char sync_alias_input[40];
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
@@ -315,6 +321,9 @@ int app_should_use_tab_bar(const InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
+
+void app_open_modal(InbeApp *app, UIModalType type);
+void app_close_modal(InbeApp *app);
 
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);

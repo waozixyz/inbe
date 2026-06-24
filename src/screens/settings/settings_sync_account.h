@@ -12,5 +12,7 @@ void settings_sync_account_draw(InbeApp *app, int x, int w, int *y);
 void settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y);
 void settings_sync_account_clear_remote_confirmed(InbeApp *app);
 int settings_sync_account_draw_backup_modal(InbeApp *app);
+int settings_sync_account_draw_alias_modal(InbeApp *app);
+int settings_sync_account_draw_public_id_modal(InbeApp *app);
 
 #endif

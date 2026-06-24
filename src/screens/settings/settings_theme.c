@@ -94,9 +94,7 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
        app->inbe.frame - app->modal_open_frame > 1) {
         ui_mark_clickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            app->modal.active = 1;
-            app->modal.type = UIModalThemePicker;
-            app->modal_open_frame = app->inbe.frame;
+            app_open_modal(app, UIModalThemePicker);
         }
     }
     *y += circle_size + flint_px(20);
@@ -151,8 +149,7 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
                                app->icons[UI_ICON_TYPE_X]);
 
     if(frame.right_clicked) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
         return;
     }
 
@@ -163,7 +160,6 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
         app_refresh_theme(app);
         app->settings_dirty = 1;
         save_settings(app);
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     }
 }

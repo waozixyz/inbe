@@ -78,10 +78,22 @@ The AVD is configured with:
 
 - `src/` - Inbe application code
 - `vendor/` - external third-party dependencies
-- `vendor/flint/` - first-party UI/runtime support code used directly by Inbe
+- `vendor/flint/` - **git submodule** for first-party UI/runtime support code used directly by Inbe
 - `wasm4/` - Standalone WASM-4 version
 - `assets/` - Images and sounds
 - `droid/` - Android build configuration
+
+## Flint submodule workflow
+
+`vendor/flint` is a source submodule (not a one-off copied sync). To update Inbe after a Flint change:
+
+1. Push changes in the Flint repo.
+2. In Inbe, update the submodule pointer:
+   - `git submodule update --init --recursive vendor/flint`
+   - `git -C vendor/flint pull`
+3. Commit Inbe with the updated `vendor/flint` submodule reference.
+
+When updating other projects that vendor Flint as a submodule, this keeps UI behavior and API docs aligned.
 
 ## License
 

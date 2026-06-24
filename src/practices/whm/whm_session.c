@@ -692,9 +692,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             stop_android_background_session(app);
             app_init(app);
         } else {
-            app->modal.active = 1;
-            app->modal.type = UIModalConfirmExitSession;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalConfirmExitSession);
         }
     }
 
@@ -729,18 +727,15 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
                                               locale_get("save_button"),
                                               locale_get("discard_button"));
             if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
             } else if(modal_result == 2) {
                 session_ensure_results_saved(app);
                 stop_android_background_session(app);
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
                 app_init(app);
             } else if(modal_result == 3) {
                 stop_android_background_session(app);
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
                 app_init(app);
             }
         } else {
@@ -749,12 +744,10 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
                                          locale_get("cancel_button"),
                                          locale_get("exit_button"));
             if(modal_result == 1) {
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
             } else if(modal_result == 2) {
                 stop_android_background_session(app);
-                app->modal.active = 0;
-                app->modal.type = UIModalNone;
+                app_close_modal(app);
                 app_init(app);
             }
         }

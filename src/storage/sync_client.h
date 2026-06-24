@@ -17,6 +17,7 @@ typedef enum InbeSyncClientResult {
 int sync_client_url_valid(const char *url);
 int sync_client_normalize_url(const char *input, char *out, size_t out_size);
 InbeSyncClientResult sync_client_sync(const char *base_url);
+InbeSyncClientResult sync_client_register_alias(const char *base_url, const char *alias);
 InbeSyncClientResult sync_client_wait_for_remote_event(const char *base_url);
 InbeSyncClientResult sync_client_delete_account(const char *base_url);
 const char *sync_client_result_name(InbeSyncClientResult result);

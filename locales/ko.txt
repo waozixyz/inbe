@@ -814,3 +814,33 @@ None
 Fade
 [theme_picker_title]
 Choose Theme
+[skip_button]
+Skip
+---
+[sync_public_id_full_title]
+Full Public ID
+---
+[sync_public_id_full_message]
+Use this if you need the full account identifier.
+---
+[sync_alias_button]
+Alias
+---
+[sync_alias_title]
+Choose Alias
+---
+[sync_alias_message]
+Pick a short alias for this account on the current sync server.
+---
+[sync_alias_rule]
+4-32 characters: lowercase letters, numbers, or underscore.
+---
+[sync_alias_register_button]
+Register Alias
+---
+[sync_alias_registered]
+Alias registered.
+---
+[sync_alias_failed]
+Could not register alias.
+---

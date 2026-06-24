@@ -295,6 +295,25 @@ meta_equals(const char *key, const char *value)
     return ok;
 }
 
+const char *
+get_meta_text(const char *key)
+{
+    sqlite3_stmt *stmt = NULL;
+    g_storage.text_value[0] = '\0';
+
+    if(g_storage.db == NULL || key == NULL)
+        return NULL;
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT value FROM meta WHERE key=?1", -1, &stmt, NULL) != SQLITE_OK)
+        return NULL;
+    bind_text(stmt, 1, key);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *text = (const char *)sqlite3_column_text(stmt, 0);
+        snprintf(g_storage.text_value, sizeof(g_storage.text_value), "%s", text != NULL ? text : "");
+    }
+    sqlite3_finalize(stmt);
+    return g_storage.text_value[0] != '\0' ? g_storage.text_value : NULL;
+}
+
 void
 set_meta(const char *key, const char *value)
 {

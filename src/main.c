@@ -496,7 +496,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         return;
 
     app->language_selected = 1;
-    app->modal.active = 0;
+    app_close_modal(app);
     app->settings_scroll = 0;
     app->manual_scroll = 0;
     app->tutorial_step = 0;

@@ -1,4 +1,11 @@
 # Changelog
+## [1.5.4] - 2026-06-24
+### Changed
+- Use Flint-managed modal handling so modal dialogs block background input consistently.
+- Add optional sync account aliases, with compact public ID display and full ID reveal modal.
+- Make sync state tracking more robust with snapshot hash checks and review flow for unresolved differences.
+- Use Flint's built-in font chopping pipeline and verify multilingual locale glyph coverage.
+
 ## [1.5.3] - 2026-06-23
 ### Fixed
 - modal issues

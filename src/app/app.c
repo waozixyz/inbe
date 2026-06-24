@@ -12,6 +12,7 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
+#include "screens/settings/settings_sync_account.h"
 #include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
@@ -444,6 +445,8 @@ app_pump_sync(InbeApp *app)
     if(app == NULL)
         return;
     app_collect_finished_sync();
+    if(storage_sync_review_pending() && !app->modal.active)
+        app_open_modal(app, UIModalSyncReview);
     app_apply_pending_sync_refresh(app);
     if(!app_sync_url(url, sizeof(url)))
         return;
@@ -786,6 +789,25 @@ app_nav_route_label(int route)
     default: break;
     }
     return "";
+}
+
+void
+app_open_modal(InbeApp *app, UIModalType type)
+{
+    if(app == NULL)
+        return;
+    app->modal.active = 1;
+    app->modal.type = type;
+    app->modal_open_frame = app->inbe.frame;
+}
+
+void
+app_close_modal(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->modal.active = 0;
+    app->modal.type = UIModalNone;
 }
 
 static Texture2D
@@ -1669,9 +1691,7 @@ handle_back_button(InbeApp *app)
             app_init(app);
         } else {
             /* Show confirmation modal */
-            app->modal.active = 1;
-            app->modal.type = UIModalConfirmExitSession;
-            app->modal.selected_button = 0;
+            app_open_modal(app, UIModalConfirmExitSession);
         }
         break;
 
@@ -1737,8 +1757,7 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         .close_icon = app->icons[UI_ICON_TYPE_X]
     });
     if(result.action == 1) {
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     } else if(result.action == 2) {
         app->bottom_nav_count = app->bottom_nav_draft_count;
         for(int i = 0; i < APP_BOTTOM_NAV_MAX_ITEMS; i++)
@@ -1748,8 +1767,7 @@ app_draw_bottom_nav_config_modal(InbeApp *app)
         app_bottom_nav_normalize(app);
         app->settings_dirty = 1;
         save_settings(app);
-        app->modal.active = 0;
-        app->modal.type = UIModalNone;
+        app_close_modal(app);
     } else if(result.action == 3) {
         app_bottom_nav_default_routes(app->bottom_nav_draft_routes,
                                       &app->bottom_nav_draft_count);
@@ -1772,14 +1790,37 @@ draw_global_modal(InbeApp *app)
                                      locale_get("ok_button"),
                                      locale_get("ok_button"));
         if(modal_result != 0) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         }
     }
     if(app->modal.type == UIModalBottomNavConfig)
         app_draw_bottom_nav_config_modal(app);
     if(app->modal.type == UIModalThemePicker)
         settings_screen_draw_theme_picker_modal(app);
+    if(app->modal.type == UIModalSyncAlias) {
+        modal_result = settings_sync_account_draw_alias_modal(app);
+        if(modal_result == 1) {
+            int then_backup = app->sync_alias_then_backup;
+            app->sync_alias_then_backup = 0;
+            app_close_modal(app);
+            settings_screen_set_status_success(locale_get("sync_alias_registered"), NULL);
+            if(then_backup)
+                app_open_modal(app, UIModalSyncAccountBackup);
+        } else if(modal_result == 2) {
+            settings_screen_set_status_error(locale_get("sync_alias_failed"));
+        } else if(modal_result == 3) {
+            int then_backup = app->sync_alias_then_backup;
+            app->sync_alias_then_backup = 0;
+            app_close_modal(app);
+            if(then_backup)
+                app_open_modal(app, UIModalSyncAccountBackup);
+        }
+    }
+    if(app->modal.type == UIModalSyncPublicId) {
+        modal_result = settings_sync_account_draw_public_id_modal(app);
+        if(modal_result != 0)
+            app_close_modal(app);
+    }
 }
 
 static void
@@ -1815,8 +1856,7 @@ updateapp(InbeApp *app)
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
-            app->modal.active = 0;
-            app->modal.type = UIModalNone;
+            app_close_modal(app);
         } else {
             handle_back_button(app);
         }
