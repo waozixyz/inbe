@@ -36,86 +36,19 @@ static int
 settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
                               FlintUITextInputStyle style)
 {
-    char line[128];
-    int text_len;
-    int pad_x;
-    int pad_y = flint_px(8);
-    int line_h = flint_text_line_height(font);
-    int content_w;
-    int line_count = 0;
-    int offset = 0;
     int field_h;
-    int draw_y;
-    Rectangle bounds;
     int clicked = 0;
 
     if(text == NULL || y == NULL)
         return 0;
 
-    text_len = (int)strlen(text);
-    pad_x = style.padding_x > 0 ? style.padding_x : flint_px(10);
-    content_w = w - pad_x * 2;
-    if(content_w < flint_px(24))
-        content_w = flint_px(24);
-
-    while(offset < text_len) {
-        int len;
-
-        if(flint_text_measure(text + offset, font) <= content_w) {
-            offset = text_len;
-            line_count++;
-            break;
-        }
-
-        len = 1;
-        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
-            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
-            if(flint_text_measure(line, font) > content_w)
-                break;
-            len++;
-        }
-        offset += len;
-        line_count++;
-    }
-    if(line_count < 1)
-        line_count = 1;
-
-    field_h = line_count * line_h + pad_y * 2;
-    bounds = (Rectangle){(float)x, (float)*y, (float)w, (float)field_h};
-    clicked = CheckCollisionPointRec(GetMousePosition(), bounds) &&
-              IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-              !ui_input_captures_click(GetMousePosition());
-    DrawRectangleRounded(bounds,
-                         style.radius > 0.0f ? style.radius : 0.08f, 8,
-                         style.background);
-    DrawRectangleRoundedLines(bounds,
-                              style.radius > 0.0f ? style.radius : 0.08f, 8,
-                              style.border);
-
-    offset = 0;
-    draw_y = *y + pad_y;
-    while(offset < text_len) {
-        int len;
-
-        if(flint_text_measure(text + offset, font) <= content_w) {
-            snprintf(line, sizeof(line), "%s", text + offset);
-            flint_text_draw(line, x + pad_x, draw_y, font, style.text);
-            break;
-        }
-
-        len = 1;
-        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
-            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
-            if(flint_text_measure(line, font) > content_w)
-                break;
-            len++;
-        }
-        snprintf(line, sizeof(line), "%.*s", len, text + offset);
-        flint_text_draw(line, x + pad_x, draw_y, font, style.text);
-        draw_y += line_h;
-        offset += len;
-    }
-
+    field_h = flint_ui_readonly_text_box_height(text, font, w, style, 0);
+    clicked = flint_ui_readonly_text_box((FlintUIReadonlyTextBox){
+        .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
+        .text = text,
+        .font = font,
+        .style = style
+    });
     *y += field_h;
     return clicked;
 }
