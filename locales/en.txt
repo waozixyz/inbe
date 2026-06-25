@@ -83,7 +83,7 @@ Stop test
 Network unavailable
 ---
 [meditation_music_network_error_message]
-Could not reach the meditation music server. Check Android network permissions and your internet connection, then try again.
+Could not reach the meditation music file. Check your internet connection, then try again.
 ---
 [meditation_music_attribution]
 Music by Elijah_K.

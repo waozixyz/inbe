@@ -83,7 +83,7 @@ Ferma test
 Rete non disponibile
 ---
 [meditation_music_network_error_message]
-Impossibile raggiungere il server musica per la meditazione. Controlla le autorizzazioni di rete di Android e la connessione a internet, poi riprova.
+Impossibile raggiungere il file musicale per la meditazione. Controlla la connessione a internet, poi riprova.
 ---
 [duration_5m]
 5 min

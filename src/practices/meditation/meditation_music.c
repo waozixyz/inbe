@@ -13,9 +13,13 @@
 #include <stdlib.h>
 #include <string.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
+
 #ifndef INBE_MEDITATION_AUDIO_URL
 #if defined(PLATFORM_WEB)
-#define INBE_MEDITATION_AUDIO_URL "/web-assets/dl/inbe-meditation-audio-v1.zip"
+#define INBE_MEDITATION_AUDIO_URL "web-assets/dl/inbe-meditation-audio-v1.zip"
 #else
 #define INBE_MEDITATION_AUDIO_URL "https://inbe.waozi.xyz/web-assets/dl/inbe-meditation-audio-v1.zip"
 #endif
@@ -151,21 +155,13 @@ set_status(InbeApp *app, const char *message)
 static int
 download_supported(void)
 {
-#if defined(PLATFORM_WEB)
-    return 0;
-#else
     return 1;
-#endif
 }
 
 static const char *
 missing_audio_message(void)
 {
-#if defined(PLATFORM_WEB)
-    return "Audio is unavailable";
-#else
     return "Download audio before playing music";
-#endif
 }
 
 static int
@@ -368,6 +364,17 @@ extract_audio_archive(InbeApp *app, const char *archive_path)
     mz_zip_reader_end(&archive);
     snprintf(app->meditation.music_status, sizeof(app->meditation.music_status),
              "Installed %d audio files", extracted);
+#if defined(PLATFORM_WEB)
+    if(extracted > 0) {
+        EM_ASM({
+            if(typeof FS !== 'undefined' && FS.syncfs) {
+                FS.syncfs(false, function(err) {
+                    if(err) console.error('meditation audio save failed', err);
+                });
+            }
+        });
+    }
+#endif
     return extracted > 0;
 }
 
@@ -550,8 +557,10 @@ meditation_music_update(InbeApp *app)
         return;
     if(app->meditation.music_test_playing &&
        (app->exercise_type != EXERCISE_MEDITATION ||
-        (app->inbe.screen != InbeScreenPracticeConfig &&
-         app->inbe.screen != InbeScreenManual))) {
+        !((app->inbe.screen == InbeScreenStart &&
+           app->practice_tab == PRACTICE_TAB_CONFIG) ||
+          app->inbe.screen == InbeScreenPracticeConfig ||
+          app->inbe.screen == InbeScreenManual))) {
         meditation_music_stop(app);
         return;
     }

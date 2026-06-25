@@ -1,4 +1,7 @@
 # Changelog
+## [1.5.7] - 2026-06-25
+- Fix test music
+
 ## [1.5.6] - 2026-06-24
 ### Fixed
 - Modal button issue

@@ -83,7 +83,7 @@ Arrêter le test
 Réseau indisponible
 ---
 [meditation_music_network_error_message]
-Impossible de joindre le serveur de musique de méditation. Vérifiez les autorisations réseau d'Android et votre connexion internet, puis réessayez.
+Impossible de joindre le fichier de musique de méditation. Vérifiez votre connexion internet, puis réessayez.
 ---
 [duration_5m]
 5 min

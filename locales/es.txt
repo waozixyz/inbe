@@ -83,7 +83,7 @@ Detener prueba
 Red no disponible
 ---
 [meditation_music_network_error_message]
-No se pudo acceder al servidor de música de meditación. Revisa los permisos de red de Android y tu conexión a internet, e inténtalo de nuevo.
+No se pudo acceder al archivo de música de meditación. Revisa tu conexión a internet e inténtalo de nuevo.
 ---
 [duration_5m]
 5 min

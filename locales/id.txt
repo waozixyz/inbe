@@ -83,7 +83,7 @@ Hentikan tes
 Jaringan tidak tersedia
 ---
 [meditation_music_network_error_message]
-Tidak dapat menjangkau server musik meditasi. Periksa izin jaringan Android dan koneksi internetmu, lalu coba lagi.
+Tidak dapat membuka file musik meditasi. Periksa koneksi internetmu, lalu coba lagi.
 ---
 [duration_5m]
 5 mnt
