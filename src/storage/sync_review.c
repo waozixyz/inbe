@@ -174,6 +174,15 @@ review_activity_name(int activity)
 }
 
 static void
+review_append_activity_heading(ReviewText *out, int activity)
+{
+    review_append(out, review_activity_name(activity));
+    if(activity != 0 && activity != 1)
+        review_appendf(out, " %d", activity);
+    review_append(out, "\n");
+}
+
+static void
 review_append_local_rounds(ReviewText *out, const char *session_id)
 {
     sqlite3_stmt *stmt = NULL;
@@ -202,12 +211,13 @@ review_append_local(ReviewText *out)
 {
     sqlite3_stmt *stmt = NULL;
     int rows = 0;
+    int last_activity = -1000000;
 
     review_append(out, "Sessions\n");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT id,local_date,strftime('%H:%M',started_at,'unixepoch','localtime'),activity,deleted_at "
-                          "FROM sessions WHERE user_id=?1 ORDER BY local_date DESC,started_at DESC,id",
+                          "FROM sessions WHERE user_id=?1 ORDER BY activity,local_date DESC,started_at DESC,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -215,13 +225,16 @@ review_append_local(ReviewText *out)
             int local_date = sqlite3_column_int(stmt, 1);
             const char *time_text = (const char *)sqlite3_column_text(stmt, 2);
             int activity = sqlite3_column_int(stmt, 3);
-            review_appendf(out, "%04d-%02d-%02d %s %s",
+            if(activity != last_activity) {
+                if(rows > 0)
+                    review_append(out, "\n");
+                review_append_activity_heading(out, activity);
+                last_activity = activity;
+            }
+            review_appendf(out, "%04d-%02d-%02d %s\n",
                            local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100, time_text != NULL ? time_text : "--:--",
-                           review_activity_name(activity));
-            if(activity != 0 && activity != 1)
-                review_appendf(out, " %d", activity);
-            review_append(out, " rounds ");
+                           local_date % 100, time_text != NULL ? time_text : "--:--");
+            review_append(out, "rounds ");
             review_append_local_rounds(out, id);
             if(sqlite3_column_int64(stmt, 4) != 0)
                 review_append(out, " deleted");
@@ -294,6 +307,7 @@ review_append_remote(ReviewText *out, const char *json)
 {
     sqlite3_stmt *stmt = NULL;
     int rows = 0;
+    int last_activity = -1000000;
 
     review_append(out, "Sessions\n");
     if(g_storage.db != NULL && json != NULL &&
@@ -303,7 +317,7 @@ review_append_remote(ReviewText *out, const char *json)
                           "       CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER),"
                           "       CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER),"
                           "       COALESCE((SELECT group_concat(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) || 's', ',') FROM json_each(s.value,'$.rounds') AS r),'none') "
-                          "FROM json_each(?1,'$.changes.sessions') AS s ORDER BY 1 DESC,2 DESC",
+                          "FROM json_each(?1,'$.changes.sessions') AS s ORDER BY 3,1 DESC,2 DESC",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, json);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -311,13 +325,16 @@ review_append_remote(ReviewText *out, const char *json)
             const char *time_text = (const char *)sqlite3_column_text(stmt, 1);
             int activity = sqlite3_column_int(stmt, 2);
             const char *rounds = (const char *)sqlite3_column_text(stmt, 4);
-            review_appendf(out, "%04d-%02d-%02d %s %s",
+            if(activity != last_activity) {
+                if(rows > 0)
+                    review_append(out, "\n");
+                review_append_activity_heading(out, activity);
+                last_activity = activity;
+            }
+            review_appendf(out, "%04d-%02d-%02d %s\n",
                            local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100, time_text != NULL ? time_text : "--:--",
-                           review_activity_name(activity));
-            if(activity != 0 && activity != 1)
-                review_appendf(out, " %d", activity);
-            review_appendf(out, " rounds %s", rounds != NULL ? rounds : "none");
+                           local_date % 100, time_text != NULL ? time_text : "--:--");
+            review_appendf(out, "rounds %s", rounds != NULL ? rounds : "none");
             if(sqlite3_column_int64(stmt, 3) != 0)
                 review_append(out, " deleted");
             review_append(out, "\n");

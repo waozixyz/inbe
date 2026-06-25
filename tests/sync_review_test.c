@@ -283,13 +283,13 @@ test_full_snapshot_waits_for_review(void)
     check_true("review detail builds",
                storage_sync_review_details(&local_detail, &remote_detail));
     check_contains("local detail session line", local_detail,
-                   "2026-06-24 08:20 Meditation rounds 40s");
+                   "Meditation\n2026-06-24 08:20\nrounds 40s");
     check_contains("local detail habit line", local_detail,
                    "Local Breath activity Wim Hof counter");
     check_contains("local detail habit day line", local_detail,
                    "2026-06-24 Local Breath completed=1 count=4 sessions=0");
     check_contains("remote detail session line", remote_detail,
-                   "2026-06-24 07:00 Unknown 3 rounds 55s");
+                   "Unknown 3\n2026-06-24 07:00\nrounds 55s");
     check_contains("remote detail habit line", remote_detail,
                    "Remote Breath activity Wim Hof counter");
     check_contains("remote detail habit day line", remote_detail,

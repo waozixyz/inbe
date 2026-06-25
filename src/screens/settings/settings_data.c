@@ -265,7 +265,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         const char *p = local_detail;
         local_content_h = flint_px(34);
         while(p != NULL && *p != '\0') {
-            local_content_h += flint_px(24);
+            local_content_h += flint_px(20);
             p = strchr(p, '\n');
             if(p != NULL)
                 p++;
@@ -273,7 +273,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         p = remote_detail;
         remote_content_h = flint_px(34);
         while(p != NULL && *p != '\0') {
-            remote_content_h += flint_px(24);
+            remote_content_h += flint_px(20);
             p = strchr(p, '\n');
             if(p != NULL)
                 p++;
@@ -295,8 +295,8 @@ settings_draw_sync_review_modal(InbeApp *app)
         int line_y = local_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, local_view.content_x, line_y,
-                            flint_ui_font(), flint_theme_get_text());
-            line_y += flint_px(24);
+                            FLINT_TEXT_14, flint_theme_get_text());
+            line_y += flint_px(20);
             line = strtok(NULL, "\n");
         }
     }
@@ -320,8 +320,8 @@ settings_draw_sync_review_modal(InbeApp *app)
         int line_y = remote_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, remote_view.content_x, line_y,
-                            flint_ui_font(), flint_theme_get_text());
-            line_y += flint_px(24);
+                            FLINT_TEXT_14, flint_theme_get_text());
+            line_y += flint_px(20);
             line = strtok(NULL, "\n");
         }
     }
