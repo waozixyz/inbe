@@ -23,6 +23,7 @@
 #endif
 #include "raylib.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 enum {
@@ -202,8 +203,10 @@ static int
 settings_draw_sync_review_modal(InbeApp *app)
 {
     FlintUIPanelFrame frame;
-    char local_summary[256];
-    char remote_summary[256];
+    char *local_detail = NULL;
+    char *remote_detail = NULL;
+    FlintUIParagraph intro;
+    int intro_h;
     int modal_w = ui_view_width >= flint_px(620) ? flint_px(560) : flint_px(336);
     int modal_h = ui_view_height >= flint_px(520) ? flint_px(440) : ui_view_height - flint_px(32);
     int btn_h = flint_px(36);
@@ -218,18 +221,32 @@ settings_draw_sync_review_modal(InbeApp *app)
     int hover = 0;
     static int local_scroll = 0;
     static int remote_scroll = 0;
+    int local_content_h = flint_px(40);
+    int remote_content_h = flint_px(40);
 
     (void)app;
     if(modal_h < flint_px(320))
         modal_h = flint_px(320);
-    storage_sync_review_summary(local_summary, sizeof(local_summary),
-                                remote_summary, sizeof(remote_summary));
+    if(!storage_sync_review_details(&local_detail, &remote_detail)) {
+        free(local_detail);
+        free(remote_detail);
+        return 0;
+    }
     frame = ui_draw_modal_frame(modal_w, modal_h, "Sync needs review",
                                 (Texture2D){0}, (Texture2D){0});
-    flint_text_draw("Local and remote data differ. Choose what to keep.",
-                    frame.content_x, frame.content_y,
-                    flint_ui_font(), flint_theme_get_text());
-    col_y = frame.content_y + flint_px(40);
+    intro = (FlintUIParagraph){
+        .text = "Local and remote data differ. Review the actual records below, then choose which side to keep.",
+        .width = frame.content_w,
+        .font = flint_ui_font(),
+        .line_gap = flint_px(4),
+        .color = flint_theme_get_text()
+    };
+    intro_h = flint_ui_paragraph_height(intro);
+    {
+        int intro_y = frame.content_y;
+        flint_ui_paragraph_draw(intro, frame.content_x, &intro_y);
+    }
+    col_y = frame.content_y + intro_h + flint_px(16);
     btn_y = frame.y + frame.h - flint_px(24) - btn_h;
     col_h = btn_y - col_y - flint_px(14);
     if(col_h < flint_px(120))
@@ -244,10 +261,28 @@ settings_draw_sync_review_modal(InbeApp *app)
         col_h = (col_h - col_gap) / 2;
         remote_y = col_y + col_h + col_gap;
     }
+    {
+        const char *p = local_detail;
+        local_content_h = flint_px(34);
+        while(p != NULL && *p != '\0') {
+            local_content_h += flint_px(24);
+            p = strchr(p, '\n');
+            if(p != NULL)
+                p++;
+        }
+        p = remote_detail;
+        remote_content_h = flint_px(34);
+        while(p != NULL && *p != '\0') {
+            remote_content_h += flint_px(24);
+            p = strchr(p, '\n');
+            if(p != NULL)
+                p++;
+        }
+    }
 
     FlintUIScrollView local_view = ui_scroll_container_begin((FlintUIScrollArea){
         .bounds = {(float)frame.content_x, (float)col_y, (float)col_w, (float)col_h},
-        .content_height = flint_px(120),
+        .content_height = local_content_h,
         .content_x = frame.content_x + flint_px(10),
         .content_width = col_w - flint_px(20),
         .scroll_offset = &local_scroll,
@@ -256,7 +291,7 @@ settings_draw_sync_review_modal(InbeApp *app)
     flint_text_draw("Local", local_view.content_x, local_view.content_y,
                     flint_ui_font(), flint_theme_get_text());
     {
-        char *line = strtok(local_summary, "\n");
+        char *line = strtok(local_detail, "\n");
         int line_y = local_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, local_view.content_x, line_y,
@@ -272,7 +307,7 @@ settings_draw_sync_review_modal(InbeApp *app)
 
     FlintUIScrollView remote_view = ui_scroll_container_begin((FlintUIScrollArea){
         .bounds = {(float)right_x, (float)remote_y, (float)col_w, (float)col_h},
-        .content_height = flint_px(120),
+        .content_height = remote_content_h,
         .content_x = right_x + flint_px(10),
         .content_width = col_w - flint_px(20),
         .scroll_offset = &remote_scroll,
@@ -281,7 +316,7 @@ settings_draw_sync_review_modal(InbeApp *app)
     flint_text_draw("Remote", remote_view.content_x, remote_view.content_y,
                     flint_ui_font(), flint_theme_get_text());
     {
-        char *line = strtok(remote_summary, "\n");
+        char *line = strtok(remote_detail, "\n");
         int line_y = remote_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, remote_view.content_x, line_y,
@@ -297,12 +332,20 @@ settings_draw_sync_review_modal(InbeApp *app)
 
     if(ui_draw_generic_button(frame.content_x, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
-                              "Keep local", UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+                              "Keep local", UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+        free(local_detail);
+        free(remote_detail);
         return 1;
+    }
     if(ui_draw_generic_button(frame.content_x + (frame.content_w + gap) / 2, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
-                              "Use remote", UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+                              "Use remote", UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+        free(local_detail);
+        free(remote_detail);
         return 2;
+    }
+    free(local_detail);
+    free(remote_detail);
     return 0;
 }
 

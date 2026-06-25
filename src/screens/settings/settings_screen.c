@@ -251,8 +251,6 @@ settings_screen_draw(InbeApp *app)
         settings_device_handle_overlays(app, &device_state);
     ui_set_dropdown_clip_top(0);
 
-    settings_data_draw_modals(app);
-
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty)
         save_settings(app);
 

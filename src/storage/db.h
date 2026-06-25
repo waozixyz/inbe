@@ -39,6 +39,8 @@ void set_meta_int64(const char *key, long long value);
 void storage_schedule_persist(void);
 void storage_enqueue_all_sync_state(void);
 int storage_materialize_session_habit_days(void);
+int storage_sync_review_write_json(const char *json);
+void storage_sync_review_delete_json(void);
 int insert_session_at_ex(long long started_at, int local_date, const int *round_times,
                          int round_count, int topic, int activity, const char *source,
                          char *out_id, size_t out_id_size);

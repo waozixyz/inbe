@@ -261,8 +261,8 @@ static void
 test_full_snapshot_waits_for_review(void)
 {
     char root[1024];
-    char local_summary[256];
-    char remote_summary[256];
+    char *local_detail = NULL;
+    char *remote_detail = NULL;
 
     make_clean_root(root, sizeof(root), "pending");
     check_true("init pending db", storage_init(root));
@@ -280,13 +280,22 @@ test_full_snapshot_waits_for_review(void)
     check_int("remote habit not applied yet",
               read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 0);
 
-    storage_sync_review_summary(local_summary, sizeof(local_summary),
-                                remote_summary, sizeof(remote_summary));
-    check_contains("local summary sessions", local_summary, "Sessions: 1");
-    check_contains("local summary habits", local_summary, "Habits: 1");
-    check_contains("remote summary sessions", remote_summary, "Sessions: 1");
-    check_contains("remote summary habits", remote_summary, "Habits: 1");
-    check_contains("remote summary habit days", remote_summary, "Habit days: 1");
+    check_true("review detail builds",
+               storage_sync_review_details(&local_detail, &remote_detail));
+    check_contains("local detail session line", local_detail,
+                   "2026-06-24 08:20 Meditation rounds 40s");
+    check_contains("local detail habit line", local_detail,
+                   "Local Breath activity Wim Hof counter");
+    check_contains("local detail habit day line", local_detail,
+                   "2026-06-24 Local Breath completed=1 count=4 sessions=0");
+    check_contains("remote detail session line", remote_detail,
+                   "2026-06-24 07:00 Unknown 3 rounds 55s");
+    check_contains("remote detail habit line", remote_detail,
+                   "Remote Breath activity Wim Hof counter");
+    check_contains("remote detail habit day line", remote_detail,
+                   "2026-06-24 Remote Breath completed=1 count=7");
+    free(local_detail);
+    free(remote_detail);
 
     storage_close();
     remove_tree(root);
