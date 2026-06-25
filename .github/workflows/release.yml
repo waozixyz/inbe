@@ -518,14 +518,16 @@ jobs:
           merge-multiple: true
 
       - name: Install Butler
+        uses: AnimMouse/setup-butler@v1
+        with:
+          version: latest
+
+      - name: Check Butler
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y unzip
-          curl -L -o butler.zip https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default
-          unzip -q butler.zip -d butler
-          chmod +x butler/butler
-          ./butler/butler -V
+          butler -V
 
       - name: Publish Release Builds to itch.io
         run: |
@@ -545,7 +547,7 @@ jobs:
           mkdir -p build/itch/inbe-web
           unzip -q "$web_zip" -d build/itch/inbe-web
 
-          ./butler/butler push build/itch/inbe-web waozi/inbe:html5 --userversion "$VERSION"
-          ./butler/butler push "$android_apk" waozi/inbe:android --userversion "$VERSION"
-          ./butler/butler push "$windows_zip" waozi/inbe:windows --userversion "$VERSION"
-          ./butler/butler push "$linux_appimage" waozi/inbe:linux --userversion "$VERSION"
+          butler push build/itch/inbe-web waozi/inbe:html5 --userversion "$VERSION"
+          butler push "$android_apk" waozi/inbe:android --userversion "$VERSION"
+          butler push "$windows_zip" waozi/inbe:windows --userversion "$VERSION"
+          butler push "$linux_appimage" waozi/inbe:linux --userversion "$VERSION"
