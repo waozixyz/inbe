@@ -19,6 +19,11 @@ typedef struct ReviewText {
     int ok;
 } ReviewText;
 
+static void review_append_local(ReviewText *out);
+static void review_append_remote(ReviewText *out, const char *json);
+static void review_append_unique_lines(ReviewText *out, const char *prefix,
+                                       const char *lines, const char *other);
+
 static int
 review_reserve(ReviewText *text, size_t extra)
 {
@@ -162,6 +167,44 @@ storage_sync_review_read_json(void)
     return data;
 }
 
+static int
+storage_sync_review_diff_for_json(const char *json, int include_empty_message,
+                                  char **diff_out)
+{
+    ReviewText local = {0};
+    ReviewText remote = {0};
+    ReviewText diff = {0};
+
+    if(diff_out != NULL)
+        *diff_out = NULL;
+    if(diff_out == NULL)
+        return 0;
+    local.ok = 1;
+    remote.ok = 1;
+    diff.ok = 1;
+    review_append_local(&local);
+    review_append_remote(&remote, json);
+    if(!local.ok || !remote.ok) {
+        free(local.data);
+        free(remote.data);
+        return 0;
+    }
+    review_append_unique_lines(&diff, "- ", local.data != NULL ? local.data : "",
+                               remote.data != NULL ? remote.data : "");
+    review_append_unique_lines(&diff, "+ ", remote.data != NULL ? remote.data : "",
+                               local.data != NULL ? local.data : "");
+    if(diff.len == 0 && include_empty_message)
+        review_append(&diff, "No visible differences.\n");
+    free(local.data);
+    free(remote.data);
+    if(!diff.ok) {
+        free(diff.data);
+        return 0;
+    }
+    *diff_out = diff.data != NULL ? diff.data : strdup("");
+    return *diff_out != NULL;
+}
+
 void
 storage_sync_review_delete_json(void)
 {
@@ -232,7 +275,7 @@ review_append_local(ReviewText *out)
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT id,local_date,strftime('%H:%M',started_at,'unixepoch','localtime'),activity,deleted_at "
-                          "FROM sessions WHERE user_id=?1 ORDER BY activity,local_date DESC,started_at DESC,id",
+                          "FROM sessions WHERE user_id=?1 AND deleted_at=0 ORDER BY activity,local_date DESC,started_at DESC,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -312,7 +355,9 @@ review_append_remote(ReviewText *out, const char *json)
                           "       CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER),"
                           "       CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER),"
                           "       COALESCE((SELECT group_concat(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) || 's', ',') FROM json_each(s.value,'$.rounds') AS r),'none') "
-                          "FROM json_each(?1,'$.changes.sessions') AS s ORDER BY 3,1 DESC,2 DESC",
+                          "FROM json_each(?1,'$.changes.sessions') AS s "
+                          "WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
+                          "ORDER BY 3,1 DESC,2 DESC",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, json);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -409,6 +454,104 @@ storage_sync_review_details(char **local_out, char **remote_out)
         free(remote.data);
     return (local_out == NULL || *local_out != NULL) &&
            (remote_out == NULL || *remote_out != NULL);
+}
+
+static int
+review_line_equal(const char *line, size_t line_len, const char *other)
+{
+    const char *p = other;
+    const char *end;
+    size_t len;
+
+    if(line == NULL || other == NULL)
+        return 0;
+    while(*p != '\0') {
+        end = strchr(p, '\n');
+        len = end != NULL ? (size_t)(end - p) : strlen(p);
+        if(len == line_len && strncmp(p, line, line_len) == 0)
+            return 1;
+        if(end == NULL)
+            break;
+        p = end + 1;
+    }
+    return 0;
+}
+
+static void
+review_append_unique_lines(ReviewText *out, const char *prefix,
+                           const char *lines, const char *other)
+{
+    const char *p = lines;
+    const char *end;
+    size_t len;
+
+    if(out == NULL || prefix == NULL || lines == NULL)
+        return;
+    while(*p != '\0') {
+        end = strchr(p, '\n');
+        len = end != NULL ? (size_t)(end - p) : strlen(p);
+        if(len > 0 && !review_line_equal(p, len, other)) {
+            review_append(out, prefix);
+            if(!review_reserve(out, len + 2))
+                return;
+            memcpy(out->data + out->len, p, len);
+            out->len += len;
+            out->data[out->len++] = '\n';
+            out->data[out->len] = '\0';
+        }
+        if(end == NULL)
+            break;
+        p = end + 1;
+    }
+}
+
+int
+storage_sync_review_diff(char **diff_out)
+{
+    char *json = storage_sync_review_read_json();
+    int ok = storage_sync_review_diff_for_json(json, 1, diff_out);
+
+    free(json);
+    return ok;
+}
+
+int
+storage_sync_review_has_visible_diff(void)
+{
+    char *json = storage_sync_review_read_json();
+    int result = storage_sync_review_json_has_visible_diff(json);
+
+    free(json);
+    return result;
+}
+
+int
+storage_sync_review_clear_if_no_visible_diff(void)
+{
+    if(!storage_sync_review_pending())
+        return 0;
+    if(storage_sync_review_has_visible_diff())
+        return 0;
+    set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+    storage_sync_review_delete_json();
+    set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
+    storage_schedule_persist();
+    return 1;
+}
+
+int
+storage_sync_review_json_has_visible_diff(const char *json)
+{
+    char *diff = NULL;
+    int has_diff;
+
+    if(!storage_sync_review_diff_for_json(json, 0, &diff)) {
+        free(diff);
+        return 1;
+    }
+    has_diff = diff != NULL && diff[0] != '\0';
+    free(diff);
+    return has_diff;
 }
 
 int

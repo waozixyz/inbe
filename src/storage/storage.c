@@ -1703,6 +1703,16 @@ storage_apply_sync_response_json(const char *response_json)
         storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
+        if(!storage_sync_review_json_has_visible_diff(response_json)) {
+            char *copy = strdup(response_json);
+            int ok;
+            if(copy == NULL)
+                return 0;
+            set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
+            ok = storage_apply_sync_response_json(copy);
+            free(copy);
+            return ok;
+        }
         if(!storage_sync_review_write_json(response_json))
             return 0;
         set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");
@@ -2214,6 +2224,26 @@ storage_habits_save(const void *habits_ptr)
         sqlite3_finalize(stmt);
         stmt = NULL;
         for(int i = 0; i < deleted_count; i++) {
+            if(sqlite3_prepare_v2(g_storage.db,
+                                  "SELECT local_date FROM habit_days "
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  -1, &stmt, NULL) == SQLITE_OK) {
+                bind_text(stmt, 1, deleted_ids[i]);
+                while(sqlite3_step(stmt) == SQLITE_ROW)
+                    storage_enqueue_sync_habit_day(deleted_ids[i], sqlite3_column_int(stmt, 0));
+                sqlite3_finalize(stmt);
+                stmt = NULL;
+            }
+            if(sqlite3_prepare_v2(g_storage.db,
+                                  "UPDATE habit_days SET completed=0,count=0,session_count=0,updated_at=?2 "
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  -1, &stmt, NULL) == SQLITE_OK) {
+                bind_text(stmt, 1, deleted_ids[i]);
+                sqlite3_bind_int64(stmt, 2, changed_at);
+                sqlite3_step(stmt);
+                sqlite3_finalize(stmt);
+                stmt = NULL;
+            }
             if(sqlite3_prepare_v2(g_storage.db,
                                   "UPDATE habits SET deleted_at=?2,updated_at=?2 WHERE id=?1",
                                   -1, &stmt, NULL) != SQLITE_OK)
