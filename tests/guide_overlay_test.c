@@ -185,9 +185,15 @@ test_blocks_passthrough(void)
     result = flint_ui_draw_guide_overlay(test_guide(&step));
     expect(!result.closed && !result.finished && !result.changed,
            "plain draw should not change guide state");
-    expect(input_blocked, "guide should leave screen input blocked");
+    expect(!input_blocked, "guide must restore unblocked input after draw");
     expect(!icon_saw_blocked, "guide buttons should be evaluated while temporarily unblocked");
-    expect(!ui_hover_effects_enabled(), "guide should disable hover effects behind overlay");
+    expect(ui_hover_effects_enabled(), "guide must restore hover effects after draw");
+
+    input_blocked = 1;
+    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    expect(!result.closed && !result.finished && !result.changed,
+           "plain draw with preblocked input should not change guide state");
+    expect(input_blocked, "guide must restore preblocked input after draw");
 }
 
 static void
@@ -200,26 +206,26 @@ test_next_back_close_finish(void)
     icon_click_call = 2;
     result = flint_ui_draw_guide_overlay(test_guide(&step));
     expect(result.changed && step == 1, "next button should advance step");
-    expect(input_blocked, "next button should restore blocked input");
+    expect(!input_blocked, "next button should restore unblocked input");
 
     reset_input();
     icon_click_call = 2;
     result = flint_ui_draw_guide_overlay(test_guide(&step));
     expect(result.changed && step == 0, "back button should return to previous step");
-    expect(input_blocked, "back button should restore blocked input");
+    expect(!input_blocked, "back button should restore unblocked input");
 
     reset_input();
     icon_click_call = 1;
     result = flint_ui_draw_guide_overlay(test_guide(&step));
     expect(result.closed, "close button should close guide");
-    expect(input_blocked, "close button should restore blocked input");
+    expect(!input_blocked, "close button should restore unblocked input");
 
     step = 2;
     reset_input();
     icon_click_call = 3;
     result = flint_ui_draw_guide_overlay(test_guide(&step));
     expect(result.finished, "check button should finish guide on last step");
-    expect(input_blocked, "finish button should restore blocked input");
+    expect(!input_blocked, "finish button should restore unblocked input");
 }
 
 static void

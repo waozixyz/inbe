@@ -12,6 +12,7 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/settings/settings_screen.h"
+#include "screens/settings/settings_data.h"
 #include "screens/settings/settings_sync_account.h"
 #include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
@@ -321,6 +322,32 @@ app_background_sync_safe(const InbeApp *app)
     return 1;
 }
 
+static const char *
+app_modal_type_name(UIModalType type)
+{
+    switch(type) {
+    case UIModalNone: return "none";
+    case UIModalConfirmExitSession: return "confirm_exit_session";
+    case UIModalMeditationSetup: return "meditation_setup";
+    case UIModalConfirmDeleteData: return "confirm_delete_data";
+    case UIModalConfirmDeleteHabit: return "confirm_delete_habit";
+    case UIModalEditProgressiveStartSpeed: return "edit_progressive_start_speed";
+    case UIModalMeditationNetworkError: return "meditation_network_error";
+    case UIModalConfirmImportDataSettings: return "confirm_import_data_settings";
+    case UIModalSyncAccountBackup: return "sync_account_backup";
+    case UIModalConfirmDeleteSyncAccount: return "confirm_delete_sync_account";
+    case UIModalHabitPracticeListInfo: return "habit_practice_list_info";
+    case UIModalHabitCountingInfo: return "habit_counting_info";
+    case UIModalBottomNavConfig: return "bottom_nav_config";
+    case UIModalThemePicker: return "theme_picker";
+    case UIModalSyncReview: return "sync_review";
+    case UIModalSyncAlias: return "sync_alias";
+    case UIModalSyncPublicId: return "sync_public_id";
+    default: break;
+    }
+    return "unknown";
+}
+
 static int
 app_input_active(void)
 {
@@ -476,7 +503,14 @@ app_pump_sync(InbeApp *app)
         return;
     }
     if(!app_background_sync_safe(app)) {
-        TraceLog(LOG_INFO, "SYNC: delayed; app is active");
+        TraceLog(LOG_INFO,
+                 "SYNC: delayed; modal=%d type=%s screen=%d pending_review=%d tutorial_seen=%d habits_guide_seen=%d",
+                 app->modal.active,
+                 app_modal_type_name(app->modal.type),
+                 app->inbe.screen,
+                 storage_sync_review_pending(),
+                 app->tutorial_seen,
+                 app->habits_guide_seen);
         if(g_dirty_sync_at <= 0.0)
             g_dirty_sync_at = now + 1.0;
         return;
@@ -1782,6 +1816,9 @@ draw_global_modal(InbeApp *app)
     if(app == NULL || !app->modal.active)
         return;
     if(app->modal_open_frame == app->inbe.frame)
+        return;
+
+    if(settings_data_draw_modals(app))
         return;
 
     if(app->modal.type == UIModalMeditationNetworkError) {
