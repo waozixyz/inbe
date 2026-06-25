@@ -83,7 +83,7 @@ Parar teste
 Rede indisponível
 ---
 [meditation_music_network_error_message]
-Não foi possível acessar o servidor de música de meditação. Verifique as permissões de rede do Android e sua conexão com a internet, depois tente novamente.
+Não foi possível acessar o arquivo de música de meditação. Verifique sua conexão com a internet e tente novamente.
 ---
 [duration_5m]
 5 min

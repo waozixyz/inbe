@@ -83,7 +83,7 @@ Zastavit test
 Síť není dostupná
 ---
 [meditation_music_network_error_message]
-Nelze se připojit k serveru s meditační hudbou. Zkontrolujte síťová oprávnění Androidu a připojení k internetu a zkuste to znovu.
+Nelze načíst soubor s meditační hudbou. Zkontrolujte připojení k internetu a zkuste to znovu.
 ---
 [duration_5m]
 5 min
