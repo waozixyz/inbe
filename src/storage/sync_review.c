@@ -232,7 +232,7 @@ review_append_local(ReviewText *out)
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT id,local_date,strftime('%H:%M',started_at,'unixepoch','localtime'),activity,deleted_at "
-                          "FROM sessions WHERE user_id=?1 ORDER BY activity,local_date DESC,started_at DESC,id",
+                          "FROM sessions WHERE user_id=?1 AND deleted_at=0 ORDER BY activity,local_date DESC,started_at DESC,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -312,7 +312,9 @@ review_append_remote(ReviewText *out, const char *json)
                           "       CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER),"
                           "       CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER),"
                           "       COALESCE((SELECT group_concat(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) || 's', ',') FROM json_each(s.value,'$.rounds') AS r),'none') "
-                          "FROM json_each(?1,'$.changes.sessions') AS s ORDER BY 3,1 DESC,2 DESC",
+                          "FROM json_each(?1,'$.changes.sessions') AS s "
+                          "WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
+                          "ORDER BY 3,1 DESC,2 DESC",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, json);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -409,6 +411,86 @@ storage_sync_review_details(char **local_out, char **remote_out)
         free(remote.data);
     return (local_out == NULL || *local_out != NULL) &&
            (remote_out == NULL || *remote_out != NULL);
+}
+
+static int
+review_line_equal(const char *line, size_t line_len, const char *other)
+{
+    const char *p = other;
+    const char *end;
+    size_t len;
+
+    if(line == NULL || other == NULL)
+        return 0;
+    while(*p != '\0') {
+        end = strchr(p, '\n');
+        len = end != NULL ? (size_t)(end - p) : strlen(p);
+        if(len == line_len && strncmp(p, line, line_len) == 0)
+            return 1;
+        if(end == NULL)
+            break;
+        p = end + 1;
+    }
+    return 0;
+}
+
+static void
+review_append_unique_lines(ReviewText *out, const char *prefix,
+                           const char *lines, const char *other)
+{
+    const char *p = lines;
+    const char *end;
+    size_t len;
+
+    if(out == NULL || prefix == NULL || lines == NULL)
+        return;
+    while(*p != '\0') {
+        end = strchr(p, '\n');
+        len = end != NULL ? (size_t)(end - p) : strlen(p);
+        if(len > 0 && !review_line_equal(p, len, other)) {
+            review_append(out, prefix);
+            if(!review_reserve(out, len + 2))
+                return;
+            memcpy(out->data + out->len, p, len);
+            out->len += len;
+            out->data[out->len++] = '\n';
+            out->data[out->len] = '\0';
+        }
+        if(end == NULL)
+            break;
+        p = end + 1;
+    }
+}
+
+int
+storage_sync_review_diff(char **diff_out)
+{
+    char *local = NULL;
+    char *remote = NULL;
+    ReviewText diff = {0};
+
+    if(diff_out != NULL)
+        *diff_out = NULL;
+    if(diff_out == NULL)
+        return 0;
+    if(!storage_sync_review_details(&local, &remote)) {
+        free(local);
+        free(remote);
+        return 0;
+    }
+    diff.ok = 1;
+    review_append_unique_lines(&diff, "- ", local, remote);
+    review_append_unique_lines(&diff, "+ ", remote, local);
+    if(diff.len == 0)
+        review_append(&diff, "No visible differences.\n");
+    free(local);
+    free(remote);
+    if(!diff.ok) {
+        free(diff.data);
+        return 0;
+    }
+    *diff_out = diff.data != NULL ? diff.data : strdup("");
+    return *diff_out != NULL;
 }
 
 int

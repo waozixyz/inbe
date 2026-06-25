@@ -257,12 +257,33 @@ remote_snapshot_response(void)
            "}";
 }
 
+static const char *
+deleted_only_remote_snapshot_response(void)
+{
+    return "{"
+           "\"server_version\":13,"
+           "\"server_state_hash\":\"remote-hash-deleted\","
+           "\"full_snapshot_required\":true,"
+           "\"changes_complete\":false,"
+           "\"changes\":{"
+           "\"habits\":[],"
+           "\"habit_days\":[],"
+           "\"sessions\":[{\"id\":\"deleted-session\",\"started_at\":\"2026-06-24T10:00:00Z\","
+           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"lyra-test\","
+           "\"rounds_hash\":202,\"deleted_at\":1782300000,\"updated_at\":\"2026-06-24T10:00:00Z\","
+           "\"rounds\":[{\"round_index\":0,\"hold_seconds\":55}]}],"
+           "\"meditation_logs\":[]"
+           "}"
+           "}";
+}
+
 static void
 test_full_snapshot_waits_for_review(void)
 {
     char root[1024];
     char *local_detail = NULL;
     char *remote_detail = NULL;
+    char *diff_detail = NULL;
 
     make_clean_root(root, sizeof(root), "pending");
     check_true("init pending db", storage_init(root));
@@ -290,9 +311,42 @@ test_full_snapshot_waits_for_review(void)
                    "Unknown 3\n2026-06-24 07:00\nrounds 55s");
     check_contains("remote detail habit day line", remote_detail,
                    "Habit days\nRemote Breath\n2026-06-24 count 7");
+    check_true("review diff builds", storage_sync_review_diff(&diff_detail));
+    check_contains("diff local session", diff_detail, "- Meditation");
+    check_contains("diff remote session", diff_detail, "+ Unknown 3");
+    check_contains("diff local habit day", diff_detail, "- Local Breath");
+    check_contains("diff remote habit day", diff_detail, "+ Remote Breath");
     free(local_detail);
     free(remote_detail);
+    free(diff_detail);
 
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_review_ignores_deleted_remote_rows(void)
+{
+    char root[1024];
+    char *remote_detail = NULL;
+    char *diff_detail = NULL;
+    char *local_detail = NULL;
+
+    make_clean_root(root, sizeof(root), "deleted-review");
+    check_true("init deleted review db", storage_init(root));
+    check_true("apply deleted review response",
+               storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
+    check_true("deleted review detail builds",
+               storage_sync_review_details(&local_detail, &remote_detail));
+    check_not_contains("deleted remote hidden from detail", remote_detail, "deleted-session");
+    check_not_contains("deleted remote marker hidden from detail", remote_detail, "deleted");
+    check_true("deleted review diff builds", storage_sync_review_diff(&diff_detail));
+    check_not_contains("deleted remote hidden from diff", diff_detail, "deleted-session");
+    check_not_contains("deleted remote marker hidden from diff", diff_detail, "deleted");
+
+    free(local_detail);
+    free(remote_detail);
+    free(diff_detail);
     storage_close();
     remove_tree(root);
 }
@@ -394,6 +448,7 @@ int
 main(void)
 {
     test_full_snapshot_waits_for_review();
+    test_review_ignores_deleted_remote_rows();
     test_keep_local_requests_full_replace();
     test_use_remote_replaces_local_data();
     test_normal_response_records_server_hash();
