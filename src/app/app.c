@@ -1954,8 +1954,7 @@ finish_frame:
         ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
-    if(!guide_active)
-        ui_set_input_blocked(0);
+    ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
