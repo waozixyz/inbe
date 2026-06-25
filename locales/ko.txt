@@ -301,6 +301,12 @@ Inner Breeze
 [advanced_session_controls_label]
 고급 세션 제어
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 홀드 표시
 ---
@@ -674,10 +680,10 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 밑줄
 ---
 [habit_practice_list_title]
-연습 목록
+Session Data From
 ---
 [habit_practice_list_info]
-이 습관을 연습 세션에 연결합니다. 일치하는 세션이 있는 날은 완료로 표시되며 세션 편집기를 열 수 있습니다.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 횟수

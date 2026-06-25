@@ -250,6 +250,12 @@ Pause après cycle
 [advanced_session_controls_label]
 Contrôles avancés de séance
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Affichage de la retention
 ---
@@ -717,10 +723,10 @@ Nom
 Soulignement
 ---
 [habit_practice_list_title]
-Liste des pratiques
+Session Data From
 ---
 [habit_practice_list_info]
-Associez cette habitude aux séances de pratique. Les jours avec des séances correspondantes apparaîtront comme terminés et pourront ouvrir l'éditeur de séance.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Comptage

@@ -183,6 +183,7 @@ save_settings(InbeApp *app)
         {"progressive_start_speed", app->inbe.progressive_start_speed},
         {"breath_animation", app->inbe.breath_animation},
         {"advanced_session_controls", app->advanced_session_controls ? 1 : 0},
+        {"double_tap_to_breathe", app->double_tap_to_breathe ? 1 : 0},
         {"show_session_volume_control", app->show_session_volume_control ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
@@ -269,6 +270,7 @@ app_load_settings(InbeApp *app)
 #endif
             {&app->inbe.progressive_speed, "progressive_speed", 1},
             {&app->advanced_session_controls, "advanced_session_controls", 0},
+            {&app->double_tap_to_breathe, "double_tap_to_breathe", 0},
             {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.music_enabled, "meditation_music_enabled", 1},
             {&app->meditation.music_shuffle, "meditation_music_shuffle", 0},

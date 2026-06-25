@@ -247,6 +247,12 @@ Pause nach Runde
 [advanced_session_controls_label]
 Erweiterte Sitzungssteuerung
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Atemhalteanzeige
 ---
@@ -675,10 +681,10 @@ Bezeichnung
 Unterstreichung
 ---
 [habit_practice_list_title]
-Übungsliste
+Session Data From
 ---
 [habit_practice_list_info]
-Verknüpfe diese Gewohnheit mit Übungssitzungen. Tage mit passenden Sitzungen werden als erledigt angezeigt und können den Sitzungseditor öffnen.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Zählen

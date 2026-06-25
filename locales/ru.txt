@@ -304,6 +304,12 @@ OK
 [advanced_session_controls_label]
 Расширенное управление сессией
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Отображение задержки
 ---
@@ -675,10 +681,10 @@ liboqs не собран для этой платформы.
 Подчеркивание
 ---
 [habit_practice_list_title]
-Список практик
+Session Data From
 ---
 [habit_practice_list_info]
-Свяжите эту привычку с сеансами практики. Дни с подходящими сеансами будут отмечены как выполненные и смогут открыть редактор сеанса.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Подсчет

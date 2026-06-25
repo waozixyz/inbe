@@ -301,6 +301,12 @@ Pausa dopo round
 [advanced_session_controls_label]
 Controlli avanzati sessione
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Visualizzazione trattenuta
 ---
@@ -675,10 +681,10 @@ Nome
 Sottolineatura
 ---
 [habit_practice_list_title]
-Elenco pratiche
+Session Data From
 ---
 [habit_practice_list_info]
-Collega questa abitudine alle sessioni di pratica. I giorni con sessioni corrispondenti verranno mostrati come completati e potranno aprire l'editor della sessione.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Conteggio

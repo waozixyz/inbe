@@ -285,6 +285,8 @@ struct InbeApp {
     int habit_counter_press_start_y;
     int advanced_session_controls;
     int show_session_volume_control;
+    int double_tap_to_breathe;
+    double breath_tap_last_time;
     int hold_display_mode;
     int exercise_type;
     int practice_tab;

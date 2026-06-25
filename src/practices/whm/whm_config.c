@@ -220,6 +220,7 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
+    int double_tap_to_breathe = app->double_tap_to_breathe;
     int advanced_session_controls = app->advanced_session_controls;
     int toggle_w = flint_px(56);
     int toggle_h = flint_px(30);
@@ -252,6 +253,13 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
     y += flint_px(26);
     draw_hold_display_mode_selector(app, content_x, y, content_w);
     y += flint_px(52);
+    flint_text_draw(locale_get("double_tap_to_breathe_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
+    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &double_tap_to_breathe,
+                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+        app->double_tap_to_breathe = double_tap_to_breathe;
+        app->settings_dirty = 1;
+    }
+    y += flint_px(76);
     flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
     if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &advanced_session_controls,
                              locale_get("toggle_off"), locale_get("toggle_on"))) {
@@ -273,6 +281,7 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
         app->inbe.breath_animation = InbeBreathAnimationLinear;
         app->settings_preview.breath_animation = InbeBreathAnimationLinear;
         app->advanced_session_controls = 0;
+        app->double_tap_to_breathe = 0;
         app->hold_display_mode = HOLD_DISPLAY_CIRCLE;
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -307,6 +316,7 @@ whm_config_content_height(InbeApp *app, int content_w)
 
     return flint_px(66) * 3 +
            flint_px(26) + flint_px(52) +
+           flint_px(76) +
            flint_px(76) +
            flint_px(36) + flint_px(28) +
            bottom_padding;

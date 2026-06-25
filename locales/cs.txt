@@ -247,6 +247,12 @@ Pauza po kole
 [advanced_session_controls_label]
 Pokročilé ovládání sezení
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Zobrazeni zadrze
 ---
@@ -675,10 +681,10 @@ Název
 Podtržení
 ---
 [habit_practice_list_title]
-Seznam cvičení
+Session Data From
 ---
 [habit_practice_list_info]
-Propojte tento návyk se cvičeními. Dny s odpovídajícími záznamy se zobrazí jako splněné a mohou otevřít editor sezení.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Počítání
