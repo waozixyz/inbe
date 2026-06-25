@@ -169,7 +169,7 @@ jobs:
 
   build-linux:
     name: Build Linux
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -228,6 +228,37 @@ jobs:
           mkdir -p build/release/linux
           find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
           test -n "$(find build/release/linux -type f -print -quit)"
+
+      - name: Smoke Test Linux AppImage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: "1"
+          DISPLAY: ":99"
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils
+          appimage="$(find build/release/linux -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
+          chmod +x "$appimage"
+          Xvfb "$DISPLAY" -screen 0 800x600x24 >/tmp/inbe-xvfb.log 2>&1 &
+          xvfb_pid=$!
+          trap 'kill "$app_pid" "$xvfb_pid" >/dev/null 2>&1 || true' EXIT
+          sleep 2
+          "$appimage" >/tmp/inbe-appimage.log 2>&1 &
+          app_pid=$!
+          for _ in $(seq 1 30); do
+            if xwininfo -tree -root | grep -q 'Inner Breeze'; then
+              exit 0
+            fi
+            if ! kill -0 "$app_pid" >/dev/null 2>&1; then
+              echo "AppImage exited before opening a window"
+              cat /tmp/inbe-appimage.log || true
+              exit 1
+            fi
+            sleep 1
+          done
+          echo "AppImage did not open an X11 window within 30 seconds"
+          cat /tmp/inbe-appimage.log || true
+          exit 1
 
       - name: Upload Linux Artifact
         uses: actions/upload-artifact@v4
