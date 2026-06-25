@@ -518,16 +518,22 @@ jobs:
           merge-multiple: true
 
       - name: Install Butler
-        uses: AnimMouse/setup-butler@v1
-        with:
-          version: latest
-
-      - name: Check Butler
         run: |
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y unzip
-          butler -V
+          curl -fsSL \
+            https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default \
+            -o "$RUNNER_TEMP/butler.zip"
+          mkdir -p "$RUNNER_TEMP/butler"
+          unzip -q "$RUNNER_TEMP/butler.zip" -d "$RUNNER_TEMP/butler"
+          chmod +x "$RUNNER_TEMP/butler/butler"
+          echo "$RUNNER_TEMP/butler" >> "$GITHUB_PATH"
+
+      - name: Check Butler
+        run: |
+          set -euo pipefail
+          butler version
 
       - name: Publish Release Builds to itch.io
         run: |
