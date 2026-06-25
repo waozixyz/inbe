@@ -1869,7 +1869,6 @@ updateapp(InbeApp *app)
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
-    int guide_active = 0;
 
     app_apply_pending_sidebar_route(app);
     for(int i = 0; i < practice_count(); i++) {
@@ -1883,7 +1882,6 @@ updateapp(InbeApp *app)
     habits_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
-    guide_active = first_run_guide_active || habits_guide_active;
     ui_set_input_blocked(app->modal.active);
 
     if(IsKeyPressed(KEY_BACK)) {

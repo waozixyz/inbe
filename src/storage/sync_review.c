@@ -85,9 +85,19 @@ review_appendf(ReviewText *text, const char *fmt, ...)
 static void
 storage_sync_review_path(char *out, size_t out_size)
 {
+    const char *name = "sync-review.json";
+    size_t root_len;
+    size_t name_len;
+
     if(out == NULL || out_size == 0)
         return;
-    snprintf(out, out_size, "%s/sync-review.json", g_storage.root);
+    root_len = strlen(g_storage.root);
+    name_len = strlen(name);
+    if(root_len + 1 + name_len + 1 > out_size) {
+        out[0] = '\0';
+        return;
+    }
+    snprintf(out, out_size, "%s/%s", g_storage.root, name);
 }
 
 int
@@ -100,6 +110,8 @@ storage_sync_review_write_json(const char *json)
     if(json == NULL)
         return 0;
     storage_sync_review_path(path, sizeof(path));
+    if(path[0] == '\0')
+        return 0;
     file = fopen(path, "wb");
     if(file == NULL)
         return 0;
@@ -120,6 +132,8 @@ storage_sync_review_read_json(void)
     char *data;
 
     storage_sync_review_path(path, sizeof(path));
+    if(path[0] == '\0')
+        return NULL;
     file = fopen(path, "rb");
     if(file == NULL)
         return NULL;
@@ -153,7 +167,8 @@ storage_sync_review_delete_json(void)
 {
     char path[INBE_STORAGE_PATH_SIZE];
     storage_sync_review_path(path, sizeof(path));
-    remove(path);
+    if(path[0] != '\0')
+        remove(path);
 }
 
 int

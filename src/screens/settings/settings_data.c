@@ -295,7 +295,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         int line_y = local_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, local_view.content_x, line_y,
-                            FLINT_TEXT_14, flint_theme_get_text());
+                            flint_ui_font_small(), flint_theme_get_text());
             line_y += flint_px(20);
             line = strtok(NULL, "\n");
         }
@@ -320,7 +320,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         int line_y = remote_view.content_y + flint_px(28);
         while(line != NULL) {
             flint_text_draw(line, remote_view.content_x, line_y,
-                            FLINT_TEXT_14, flint_theme_get_text());
+                            flint_ui_font_small(), flint_theme_get_text());
             line_y += flint_px(20);
             line = strtok(NULL, "\n");
         }
