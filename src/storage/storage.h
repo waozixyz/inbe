@@ -70,8 +70,7 @@ void storage_free_sync_payload_json(char *payload);
 int storage_apply_sync_response_json(const char *response_json);
 int storage_last_sync_changed(void);
 int storage_sync_review_pending(void);
-void storage_sync_review_summary(char *local_out, size_t local_size,
-                                 char *remote_out, size_t remote_size);
+int storage_sync_review_details(char **local_out, char **remote_out);
 int storage_apply_pending_sync_review(int use_remote);
 void storage_purge_synced_deleted_data(void);
 const char *storage_sync_client_id(void);
