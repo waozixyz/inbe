@@ -1,4 +1,13 @@
 # Changelog
+## [1.5.6] - 2026-06-24
+### Fixed
+- Modal button issue
+
+## [1.5.5] - 2026-06-24
+### Fixed
+- modal capture bug
+- fix sync diff
+
 ## [1.5.4] - 2026-06-24
 ### Changed
 - Use Flint-managed modal handling so modal dialogs block background input consistently.
