@@ -472,8 +472,13 @@ app_pump_sync(InbeApp *app)
     if(app == NULL)
         return;
     app_collect_finished_sync();
-    if(storage_sync_review_pending() && !app->modal.active)
-        app_open_modal(app, UIModalSyncReview);
+    if(storage_sync_review_pending() && !app->modal.active) {
+        if(storage_sync_review_clear_if_no_visible_diff()) {
+            app_reload_after_import(app, 0);
+        } else {
+            app_open_modal(app, UIModalSyncReview);
+        }
+    }
     app_apply_pending_sync_refresh(app);
     if(!app_sync_url(url, sizeof(url)))
         return;

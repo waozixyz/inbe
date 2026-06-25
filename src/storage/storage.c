@@ -1703,6 +1703,16 @@ storage_apply_sync_response_json(const char *response_json)
         storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
+        if(!storage_sync_review_json_has_visible_diff(response_json)) {
+            char *copy = strdup(response_json);
+            int ok;
+            if(copy == NULL)
+                return 0;
+            set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
+            ok = storage_apply_sync_response_json(copy);
+            free(copy);
+            return ok;
+        }
         if(!storage_sync_review_write_json(response_json))
             return 0;
         set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");

@@ -19,6 +19,11 @@ typedef struct ReviewText {
     int ok;
 } ReviewText;
 
+static void review_append_local(ReviewText *out);
+static void review_append_remote(ReviewText *out, const char *json);
+static void review_append_unique_lines(ReviewText *out, const char *prefix,
+                                       const char *lines, const char *other);
+
 static int
 review_reserve(ReviewText *text, size_t extra)
 {
@@ -160,6 +165,44 @@ storage_sync_review_read_json(void)
     data[size] = '\0';
     fclose(file);
     return data;
+}
+
+static int
+storage_sync_review_diff_for_json(const char *json, int include_empty_message,
+                                  char **diff_out)
+{
+    ReviewText local = {0};
+    ReviewText remote = {0};
+    ReviewText diff = {0};
+
+    if(diff_out != NULL)
+        *diff_out = NULL;
+    if(diff_out == NULL)
+        return 0;
+    local.ok = 1;
+    remote.ok = 1;
+    diff.ok = 1;
+    review_append_local(&local);
+    review_append_remote(&remote, json);
+    if(!local.ok || !remote.ok) {
+        free(local.data);
+        free(remote.data);
+        return 0;
+    }
+    review_append_unique_lines(&diff, "- ", local.data != NULL ? local.data : "",
+                               remote.data != NULL ? remote.data : "");
+    review_append_unique_lines(&diff, "+ ", remote.data != NULL ? remote.data : "",
+                               local.data != NULL ? local.data : "");
+    if(diff.len == 0 && include_empty_message)
+        review_append(&diff, "No visible differences.\n");
+    free(local.data);
+    free(remote.data);
+    if(!diff.ok) {
+        free(diff.data);
+        return 0;
+    }
+    *diff_out = diff.data != NULL ? diff.data : strdup("");
+    return *diff_out != NULL;
 }
 
 void
@@ -465,32 +508,50 @@ review_append_unique_lines(ReviewText *out, const char *prefix,
 int
 storage_sync_review_diff(char **diff_out)
 {
-    char *local = NULL;
-    char *remote = NULL;
-    ReviewText diff = {0};
+    char *json = storage_sync_review_read_json();
+    int ok = storage_sync_review_diff_for_json(json, 1, diff_out);
 
-    if(diff_out != NULL)
-        *diff_out = NULL;
-    if(diff_out == NULL)
+    free(json);
+    return ok;
+}
+
+int
+storage_sync_review_has_visible_diff(void)
+{
+    char *json = storage_sync_review_read_json();
+    int result = storage_sync_review_json_has_visible_diff(json);
+
+    free(json);
+    return result;
+}
+
+int
+storage_sync_review_clear_if_no_visible_diff(void)
+{
+    if(!storage_sync_review_pending())
         return 0;
-    if(!storage_sync_review_details(&local, &remote)) {
-        free(local);
-        free(remote);
+    if(storage_sync_review_has_visible_diff())
         return 0;
+    set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
+    storage_sync_review_delete_json();
+    set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
+    storage_schedule_persist();
+    return 1;
+}
+
+int
+storage_sync_review_json_has_visible_diff(const char *json)
+{
+    char *diff = NULL;
+    int has_diff;
+
+    if(!storage_sync_review_diff_for_json(json, 0, &diff)) {
+        free(diff);
+        return 1;
     }
-    diff.ok = 1;
-    review_append_unique_lines(&diff, "- ", local, remote);
-    review_append_unique_lines(&diff, "+ ", remote, local);
-    if(diff.len == 0)
-        review_append(&diff, "No visible differences.\n");
-    free(local);
-    free(remote);
-    if(!diff.ok) {
-        free(diff.data);
-        return 0;
-    }
-    *diff_out = diff.data != NULL ? diff.data : strdup("");
-    return *diff_out != NULL;
+    has_diff = diff != NULL && diff[0] != '\0';
+    free(diff);
+    return has_diff;
 }
 
 int

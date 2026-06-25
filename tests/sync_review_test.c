@@ -328,24 +328,21 @@ static void
 test_review_ignores_deleted_remote_rows(void)
 {
     char root[1024];
-    char *remote_detail = NULL;
     char *diff_detail = NULL;
-    char *local_detail = NULL;
 
     make_clean_root(root, sizeof(root), "deleted-review");
     check_true("init deleted review db", storage_init(root));
     check_true("apply deleted review response",
                storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
-    check_true("deleted review detail builds",
-               storage_sync_review_details(&local_detail, &remote_detail));
-    check_not_contains("deleted remote hidden from detail", remote_detail, "deleted-session");
-    check_not_contains("deleted remote marker hidden from detail", remote_detail, "deleted");
-    check_true("deleted review diff builds", storage_sync_review_diff(&diff_detail));
+    check_false("deleted-only review not pending",
+                storage_sync_review_pending());
+    check_true("deleted review json has no visible diff",
+               !storage_sync_review_json_has_visible_diff(deleted_only_remote_snapshot_response()));
+    check_true("deleted review diff builds",
+               storage_sync_review_diff(&diff_detail));
     check_not_contains("deleted remote hidden from diff", diff_detail, "deleted-session");
     check_not_contains("deleted remote marker hidden from diff", diff_detail, "deleted");
 
-    free(local_detail);
-    free(remote_detail);
     free(diff_detail);
     storage_close();
     remove_tree(root);

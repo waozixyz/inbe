@@ -276,7 +276,10 @@ settings_sync_run_connect(InbeApp *app)
     storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     result = sync_client_sync(url);
     if(result == INBE_SYNC_CLIENT_OK) {
-        if(storage_sync_review_pending()) {
+        if(storage_sync_review_clear_if_no_visible_diff()) {
+            app_reload_after_import(app, 0);
+            settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+        } else if(storage_sync_review_pending()) {
             app_open_modal(app, UIModalSyncReview);
             settings_screen_set_status_error("Sync needs review");
         } else {
