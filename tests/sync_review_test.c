@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <time.h>
 #include <unistd.h>
 
 static int g_failures = 0;
@@ -304,11 +305,11 @@ test_full_snapshot_waits_for_review(void)
     check_true("review detail builds",
                storage_sync_review_details(&local_detail, &remote_detail));
     check_contains("local detail session line", local_detail,
-                   "Meditation\n2026-06-24 08:20\nrounds 40s");
+                   "Meditation\n2026-06-24 11:20\nrounds 40s");
     check_contains("local detail habit day line", local_detail,
                    "Habit days\nLocal Breath\n2026-06-24 count 4");
     check_contains("remote detail session line", remote_detail,
-                   "Unknown 3\n2026-06-24 07:00\nrounds 55s");
+                   "Unknown 3\n2026-06-24 10:00\nrounds 55s");
     check_contains("remote detail habit day line", remote_detail,
                    "Habit days\nRemote Breath\n2026-06-24 count 7");
     check_true("review diff builds", storage_sync_review_diff(&diff_detail));
@@ -444,6 +445,9 @@ test_normal_response_records_server_hash(void)
 int
 main(void)
 {
+    setenv("TZ", "UTC", 1);
+    tzset();
+
     test_full_snapshot_waits_for_review();
     test_review_ignores_deleted_remote_rows();
     test_keep_local_requests_full_replace();

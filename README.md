@@ -44,6 +44,17 @@ make android-debug
 make android-release PASSWORD=your-keystore-password
 ```
 
+## Release Automation
+
+GitHub Actions builds release artifacts for web, Linux, Windows, Android, and
+the Chrome extension. When a new version tag is created by the release workflow,
+the web, Android, Windows, and Linux builds are also published to itch.io.
+
+Required repository secrets:
+
+- `ITCH_API_KEY` - itch.io Butler API key for publishing `waozi/inbe:html5`,
+  `waozi/inbe:android`, `waozi/inbe:windows`, and `waozi/inbe:linux`
+
 ### Android Emulator Testing
 
 For automated testing with camera notch (cutout) support:
