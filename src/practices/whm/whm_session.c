@@ -6,17 +6,19 @@
 #include "flint_theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
+#include "practices/practice_registry.h"
 
 #include <stdio.h>
 
 #if ANDROID_BUILD
 #include "android_timer.h"
 #include "android_wakelock.h"
-void set_global_inbe_app(InbeApp *app);
 #endif
 
 extern int view_width;
 extern int view_height;
+
+static int whm_background_remainder_ms = 0;
 
 static Color
 text_color_for_background(Color background)
@@ -190,6 +192,39 @@ update_session_sounds(InbeApp *app)
 }
 
 void
+session_background_start(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    whm_background_remainder_ms = 0;
+    remember_sound_state(app);
+}
+
+void
+session_advance_elapsed(InbeApp *app, int elapsed_ms)
+{
+    int elapsed_total;
+    int frame_count;
+
+    if(app == NULL || elapsed_ms <= 0)
+        return;
+    if(app->inbe.screen != InbeScreenSession || app->session_paused)
+        return;
+
+    elapsed_total = elapsed_ms + whm_background_remainder_ms;
+    if(elapsed_total > 5 * 60 * 1000)
+        elapsed_total = 5 * 60 * 1000;
+
+    frame_count = (elapsed_total * 60) / 1000;
+    whm_background_remainder_ms = elapsed_total - (frame_count * 1000) / 60;
+
+    for(int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++) {
+        inbestep(&app->inbe);
+        practice_update_session_sounds(app);
+    }
+}
+
+void
 session_start(InbeApp *app)
 {
     int speed = app->inbe.speed_level;
@@ -216,16 +251,9 @@ session_start(InbeApp *app)
 
 #if ANDROID_BUILD
     android_keep_screen_on();
-    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
-    if(app->inbe.play_in_background) {
-        android_wakelock_acquire();
-        android_timer_set_app(app);
-        set_global_inbe_app(app);
-        android_timer_start();
-    } else {
-        set_global_inbe_app(app);
-    }
 #endif
+    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
+    practice_active_background_start(app);
 }
 
 static int
@@ -666,14 +694,7 @@ sound_icon_for_volume(InbeApp *app)
 static void
 stop_android_background_session(InbeApp *app)
 {
-#if ANDROID_BUILD
-    if(app->inbe.play_in_background) {
-        android_wakelock_release();
-        android_timer_stop();
-    }
-#else
-    (void)app;
-#endif
+    practice_active_background_stop(app);
 }
 
 void

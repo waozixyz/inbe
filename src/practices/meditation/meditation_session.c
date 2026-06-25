@@ -6,12 +6,15 @@
 #include "meditation_music.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
+#include "practices/practice_registry.h"
 #include "raylib.h"
 
 #include <stdio.h>
 
 extern int view_width;
 extern int view_height;
+
+static int meditation_background_remainder_ms = 0;
 
 static Texture2D
 meditation_sound_icon_for_volume(InbeApp *app)
@@ -35,12 +38,14 @@ meditation_start(InbeApp *app, int seconds)
     app->meditation.duration_seconds = seconds;
     app->meditation.remaining_seconds = seconds;
     app->meditation.frame_ticks = 0;
+    meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
     app_close_modal(app);
     app_switch_screen(app, InbeScreenMeditation);
     app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
+    practice_active_background_start(app);
 }
 
 static void
@@ -64,23 +69,30 @@ meditation_finish(InbeApp *app)
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
+    meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
     meditation_music_stop(app);
+    practice_active_background_stop(app);
     app_switch_screen(app, InbeScreenStart);
 }
 
 void
-meditation_background_tick(InbeApp *app, int elapsed_ms)
+meditation_advance_elapsed(InbeApp *app, int elapsed_ms)
 {
+    int elapsed_total;
     int elapsed_seconds;
 
     if(app == NULL || elapsed_ms <= 0)
         return;
-    if(app->inbe.screen != InbeScreenMeditation || app->session_paused)
+    if(app->inbe.screen != InbeScreenMeditation || app->session_paused) {
+        meditation_background_remainder_ms = 0;
         return;
+    }
 
-    elapsed_seconds = elapsed_ms / 1000;
+    elapsed_total = elapsed_ms + meditation_background_remainder_ms;
+    elapsed_seconds = elapsed_total / 1000;
+    meditation_background_remainder_ms = elapsed_total % 1000;
     if(elapsed_seconds <= 0)
         return;
 
@@ -136,9 +148,11 @@ meditation_exit_to_start(InbeApp *app)
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
+    meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
     app_close_modal(app);
+    practice_active_background_stop(app);
     app_switch_screen(app, InbeScreenStart);
 }
 

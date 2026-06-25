@@ -19,11 +19,34 @@ static int timer_running = 0;
 static int timer_active = 0; // Only step when timer is active (activity paused)
 static void *g_app = NULL;
 
+static int
+monotonic_elapsed_ms(struct timespec *last_tick)
+{
+    struct timespec now;
+    long long elapsed_ms;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if(last_tick->tv_sec == 0 && last_tick->tv_nsec == 0) {
+        *last_tick = now;
+        return FRAME_TIME_US / 1000;
+    }
+
+    elapsed_ms = (long long)(now.tv_sec - last_tick->tv_sec) * 1000LL +
+                 (now.tv_nsec - last_tick->tv_nsec) / 1000000LL;
+    *last_tick = now;
+    if(elapsed_ms <= 0)
+        return FRAME_TIME_US / 1000;
+    if(elapsed_ms > 5 * 60 * 1000)
+        return 5 * 60 * 1000;
+    return (int)elapsed_ms;
+}
+
 static void*
 timer_thread_func(void *arg) {
     (void)arg;
     __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer thread started");
     int frame_count = 0;
+    struct timespec last_tick = {0};
 
     while (1) {
         pthread_mutex_lock(&timer_mutex);
@@ -49,8 +72,7 @@ timer_thread_func(void *arg) {
             // Update practice state and sounds with mutex protection
             pthread_mutex_lock(&inbe_state_mutex);
             InbeApp *app = (InbeApp*)g_app;
-            inbestep(&app->inbe);
-            practice_update_session_sounds(app);
+            practice_active_advance_elapsed(app, monotonic_elapsed_ms(&last_tick));
             pthread_mutex_unlock(&inbe_state_mutex);
 
             // Sleep for exact frame time (60fps = ~16.666ms)
@@ -61,6 +83,7 @@ timer_thread_func(void *arg) {
                 __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer: Paused (inactive)");
                 frame_count = 0;
             }
+            last_tick = (struct timespec){0};
             usleep(50000); // 50ms
         }
     }
@@ -125,7 +148,10 @@ android_timer_stop(void) {
     timer_active = 0;
     pthread_mutex_unlock(&timer_mutex);
 
-    pthread_join(timer_thread, NULL);
+    if(pthread_equal(pthread_self(), timer_thread))
+        pthread_detach(timer_thread);
+    else
+        pthread_join(timer_thread, NULL);
     TraceLog(LOG_INFO, "INBE: Background timer stopped");
 }
 

@@ -1,4 +1,8 @@
 # Changelog
+## [1.5.8] - 2026-06-25
+### Fixed
+- Background play for meditation practice
+
 ## [1.5.7] - 2026-06-25
 - Fix test music
 

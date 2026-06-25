@@ -14,6 +14,8 @@ int session_draw_start_preview(InbeApp *app, int center_x, int center_y);
 void session_update_screen(InbeApp *app, int center_x, int center_y, int *hover);
 void session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover);
 void update_session_sounds(InbeApp *app);
+void session_background_start(InbeApp *app);
+void session_advance_elapsed(InbeApp *app, int elapsed_ms);
 void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 int draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w);
