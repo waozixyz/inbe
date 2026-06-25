@@ -1847,7 +1847,7 @@ updateapp(InbeApp *app)
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
     guide_active = first_run_guide_active || habits_guide_active;
-    ui_set_input_blocked(guide_active);
+    ui_set_input_blocked(guide_active || app->modal.active);
 
     if(IsKeyPressed(KEY_BACK)) {
         if(first_run_guide_active || habits_guide_active) {
