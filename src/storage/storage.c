@@ -2225,6 +2225,26 @@ storage_habits_save(const void *habits_ptr)
         stmt = NULL;
         for(int i = 0; i < deleted_count; i++) {
             if(sqlite3_prepare_v2(g_storage.db,
+                                  "SELECT local_date FROM habit_days "
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  -1, &stmt, NULL) == SQLITE_OK) {
+                bind_text(stmt, 1, deleted_ids[i]);
+                while(sqlite3_step(stmt) == SQLITE_ROW)
+                    storage_enqueue_sync_habit_day(deleted_ids[i], sqlite3_column_int(stmt, 0));
+                sqlite3_finalize(stmt);
+                stmt = NULL;
+            }
+            if(sqlite3_prepare_v2(g_storage.db,
+                                  "UPDATE habit_days SET completed=0,count=0,session_count=0,updated_at=?2 "
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  -1, &stmt, NULL) == SQLITE_OK) {
+                bind_text(stmt, 1, deleted_ids[i]);
+                sqlite3_bind_int64(stmt, 2, changed_at);
+                sqlite3_step(stmt);
+                sqlite3_finalize(stmt);
+                stmt = NULL;
+            }
+            if(sqlite3_prepare_v2(g_storage.db,
                                   "UPDATE habits SET deleted_at=?2,updated_at=?2 WHERE id=?1",
                                   -1, &stmt, NULL) != SQLITE_OK)
                 continue;

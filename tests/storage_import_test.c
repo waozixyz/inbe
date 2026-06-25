@@ -1229,6 +1229,55 @@ test_delete_all_without_sync_account_does_not_queue_remote_deletes(void)
 }
 
 static void
+test_deleted_habit_payload_clears_remote_days(void)
+{
+    char root[512];
+    InbeHabits habits;
+    char deleted_id[INBE_STORAGE_ID_SIZE];
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "deleted-habit-payload");
+    check_true("init deleted habit payload db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", "test-private-key");
+
+    memset(&habits, 0, sizeof(habits));
+    check_int("add deleted payload habit",
+              habits_add_custom(&habits, "Cold shower",
+                                (Color){99, 196, 165, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
+              0);
+    habit_set_day_count(&habits, 0, 20260618, 3);
+    habits_save(&habits);
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    storage_free_sync_payload_json(payload);
+    check_true("apply upload marker before delete",
+               storage_apply_sync_response_json("{\"server_version\":1,\"server_state_hash\":\"h1\",\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}}"));
+
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload deleted payload habit", storage_habits_load(&habits));
+    snprintf(deleted_id, sizeof(deleted_id), "%s", habits.items[0].id);
+    habits_delete(&habits, 0);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("deleted habit payload includes tombstone",
+               payload != NULL &&
+               strstr(payload, deleted_id) != NULL &&
+               strstr(payload, "\"deleted_at\":0") == NULL);
+    check_true("deleted habit payload clears habit day",
+               payload != NULL &&
+               strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               strstr(payload, "\"completed\":false") != NULL &&
+               strstr(payload, "\"count\":0") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_empty_initialized_habits_seed_meditation_on_startup(void)
 {
     char root[512];
@@ -1689,6 +1738,7 @@ main(void)
     test_import_conflict_prefers_data_over_empty();
     test_delete_all_resets_habits_to_empty_storage();
     test_delete_all_without_sync_account_does_not_queue_remote_deletes();
+    test_deleted_habit_payload_clears_remote_days();
     test_import_modes_preserve_habits_and_settings_choice();
     test_legacy_zip_import();
     test_legacy_file_startup_migration();

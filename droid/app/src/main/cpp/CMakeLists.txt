@@ -2,8 +2,11 @@ cmake_minimum_required(VERSION 3.22)
 project(Inbe C)
 
 find_program(CCACHE_PROGRAM ccache)
-if(CCACHE_PROGRAM)
+if(CCACHE_PROGRAM AND EXISTS "${CCACHE_PROGRAM}")
     set(CMAKE_C_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
+else()
+    set(CMAKE_C_COMPILER_LAUNCHER "")
+    set(CMAKE_C_COMPILER_LAUNCHER "" CACHE STRING "" FORCE)
 endif()
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
@@ -116,6 +119,7 @@ add_library(main SHARED
     "${SRC_DIR}/storage/db.c"
     "${SRC_DIR}/storage/import.c"
     "${SRC_DIR}/storage/storage.c"
+    "${SRC_DIR}/storage/sync_review.c"
     "${SRC_DIR}/storage/sync_account.c"
     "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
