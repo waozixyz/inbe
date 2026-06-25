@@ -1847,7 +1847,7 @@ updateapp(InbeApp *app)
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
     guide_active = first_run_guide_active || habits_guide_active;
-    ui_set_input_blocked(guide_active || app->modal.active);
+    ui_set_input_blocked(app->modal.active);
 
     if(IsKeyPressed(KEY_BACK)) {
         if(first_run_guide_active || habits_guide_active) {
@@ -1950,8 +1950,7 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
-    if(guide_active)
-        ui_set_input_blocked(0);
+    ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
     ui_set_input_blocked(0);
