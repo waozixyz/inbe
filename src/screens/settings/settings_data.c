@@ -235,10 +235,10 @@ settings_draw_sync_review_modal(InbeApp *app)
     frame = ui_draw_modal_frame(modal_w, modal_h, "Sync needs review",
                                 (Texture2D){0}, (Texture2D){0});
     intro = (FlintUIParagraph){
-        .text = "Local and remote data differ. Review the actual records below, then choose which side to keep.",
+        .text = "Local and remote data differ. Compare Local data and Remote data, then choose which side to keep.",
         .width = frame.content_w,
-        .font = flint_ui_font(),
-        .line_gap = flint_px(4),
+        .font = flint_ui_font_small(),
+        .line_gap = flint_px(2),
         .color = flint_theme_get_text()
     };
     intro_h = flint_ui_paragraph_height(intro);
@@ -288,7 +288,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         .scroll_offset = &local_scroll,
         .wheel_step = flint_px(24)
     });
-    flint_text_draw("Local", local_view.content_x, local_view.content_y,
+    flint_text_draw("Local data", local_view.content_x, local_view.content_y,
                     flint_ui_font(), flint_theme_get_text());
     {
         char *line = strtok(local_detail, "\n");
@@ -313,7 +313,7 @@ settings_draw_sync_review_modal(InbeApp *app)
         .scroll_offset = &remote_scroll,
         .wheel_step = flint_px(24)
     });
-    flint_text_draw("Remote", remote_view.content_x, remote_view.content_y,
+    flint_text_draw("Remote data", remote_view.content_x, remote_view.content_y,
                     flint_ui_font(), flint_theme_get_text());
     {
         char *line = strtok(remote_detail, "\n");

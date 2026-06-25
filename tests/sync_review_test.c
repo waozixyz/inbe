@@ -284,16 +284,12 @@ test_full_snapshot_waits_for_review(void)
                storage_sync_review_details(&local_detail, &remote_detail));
     check_contains("local detail session line", local_detail,
                    "Meditation\n2026-06-24 08:20\nrounds 40s");
-    check_contains("local detail habit line", local_detail,
-                   "Local Breath activity Wim Hof counter");
     check_contains("local detail habit day line", local_detail,
-                   "2026-06-24 Local Breath completed=1 count=4 sessions=0");
+                   "Habit days\nLocal Breath\n2026-06-24 count 4");
     check_contains("remote detail session line", remote_detail,
                    "Unknown 3\n2026-06-24 07:00\nrounds 55s");
-    check_contains("remote detail habit line", remote_detail,
-                   "Remote Breath activity Wim Hof counter");
     check_contains("remote detail habit day line", remote_detail,
-                   "2026-06-24 Remote Breath completed=1 count=7");
+                   "Habit days\nRemote Breath\n2026-06-24 count 7");
     free(local_detail);
     free(remote_detail);
 

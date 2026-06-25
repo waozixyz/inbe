@@ -262,53 +262,33 @@ review_append_local(ReviewText *out)
         review_append(out, "No sessions\n");
 
     rows = 0;
-    review_append(out, "\nHabits\n");
-    if(g_storage.db != NULL &&
-       sqlite3_prepare_v2(g_storage.db,
-                          "SELECT name,sync_mode,sync_activity,counter_enabled,deleted_at "
-                          "FROM habits WHERE user_id=?1 ORDER BY sort_order,name,id",
-                          -1, &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, g_storage.user_id);
-        while(sqlite3_step(stmt) == SQLITE_ROW) {
-            const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            int sync_activity = sqlite3_column_int(stmt, 2);
-            review_appendf(out, "%s activity %s",
-                           name != NULL && name[0] != '\0' ? name : "(unnamed)",
-                           review_activity_name(sync_activity));
-            if(sqlite3_column_int(stmt, 1) != 0)
-                review_append(out, " synced");
-            if(sqlite3_column_int(stmt, 3) != 0)
-                review_append(out, " counter");
-            if(sqlite3_column_int64(stmt, 4) != 0)
-                review_append(out, " deleted");
-            review_append(out, "\n");
-            rows++;
-        }
-        sqlite3_finalize(stmt);
-    }
-    if(rows == 0)
-        review_append(out, "No habits\n");
-
-    rows = 0;
     review_append(out, "\nHabit days\n");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT h.name,hd.local_date,hd.completed,hd.count,hd.session_count "
+                          "SELECT h.name,hd.local_date,hd.count "
                           "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
                           "WHERE h.user_id=?1 AND (hd.completed!=0 OR hd.count>0 OR hd.session_count>0) "
-                          "ORDER BY hd.local_date DESC,h.name",
+                          "ORDER BY h.name,hd.local_date DESC",
                           -1, &stmt, NULL) == SQLITE_OK) {
+        char last_name[256] = "";
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = sqlite3_column_int(stmt, 1);
             const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            review_appendf(out, "%04d-%02d-%02d %s completed=%d count=%d sessions=%d\n",
+            const char *safe_name = name != NULL && name[0] != '\0' ? name : "(unnamed)";
+            if(strcmp(last_name, safe_name) != 0) {
+                if(rows > 0)
+                    review_append(out, "\n");
+                review_append(out, safe_name);
+                review_append(out, "\n");
+                snprintf(last_name, sizeof(last_name), "%s", safe_name);
+            }
+            review_appendf(out, "%04d-%02d-%02d",
                            local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100,
-                           name != NULL && name[0] != '\0' ? name : "(unnamed)",
-                           sqlite3_column_int(stmt, 2),
-                           sqlite3_column_int(stmt, 3),
-                           sqlite3_column_int(stmt, 4));
+                           local_date % 100);
+            if(sqlite3_column_int(stmt, 2) > 0)
+                review_appendf(out, " count %d", sqlite3_column_int(stmt, 2));
+            review_append(out, "\n");
             rows++;
         }
         sqlite3_finalize(stmt);
@@ -361,57 +341,35 @@ review_append_remote(ReviewText *out, const char *json)
         review_append(out, "No sessions\n");
 
     rows = 0;
-    review_append(out, "\nHabits\n");
-    if(g_storage.db != NULL && json != NULL &&
-       sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COALESCE(json_extract(value,'$.name'),''),"
-                          "       CAST(COALESCE(json_extract(value,'$.sync_mode'),0) AS INTEGER),"
-                          "       CAST(COALESCE(json_extract(value,'$.sync_activity'),0) AS INTEGER),"
-                          "       CAST(COALESCE(json_extract(value,'$.counter_enabled'),0) AS INTEGER),"
-                          "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER) "
-                          "FROM json_each(?1,'$.changes.habits') ORDER BY 1",
-                          -1, &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, json);
-        while(sqlite3_step(stmt) == SQLITE_ROW) {
-            const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            int sync_activity = sqlite3_column_int(stmt, 2);
-            review_appendf(out, "%s activity %s",
-                           name != NULL && name[0] != '\0' ? name : "(unnamed)",
-                           review_activity_name(sync_activity));
-            if(sqlite3_column_int(stmt, 1) != 0)
-                review_append(out, " synced");
-            if(sqlite3_column_int(stmt, 3) != 0)
-                review_append(out, " counter");
-            if(sqlite3_column_int64(stmt, 4) != 0)
-                review_append(out, " deleted");
-            review_append(out, "\n");
-            rows++;
-        }
-        sqlite3_finalize(stmt);
-    }
-    if(rows == 0)
-        review_append(out, "No habits\n");
-
-    rows = 0;
     review_append(out, "\nHabit days\n");
     if(g_storage.db != NULL && json != NULL &&
        sqlite3_prepare_v2(g_storage.db,
                           "SELECT COALESCE((SELECT COALESCE(json_extract(h.value,'$.name'),'') FROM json_each(?1,'$.changes.habits') AS h WHERE COALESCE(json_extract(h.value,'$.id'),'')=COALESCE(json_extract(d.value,'$.habit_id'),'')),COALESCE(json_extract(d.value,'$.habit_id'),'')),"
                           "       CAST(COALESCE(json_extract(d.value,'$.local_date'),0) AS INTEGER),"
-                          "       CASE WHEN json_extract(d.value,'$.completed') THEN 1 ELSE 0 END,"
                           "       CAST(COALESCE(json_extract(d.value,'$.count'),0) AS INTEGER) "
-                          "FROM json_each(?1,'$.changes.habit_days') AS d ORDER BY 2 DESC,1",
+                          "FROM json_each(?1,'$.changes.habit_days') AS d "
+                          "WHERE json_extract(d.value,'$.completed') OR CAST(COALESCE(json_extract(d.value,'$.count'),0) AS INTEGER)>0 "
+                          "ORDER BY 1,2 DESC",
                           -1, &stmt, NULL) == SQLITE_OK) {
+        char last_name[256] = "";
         bind_text(stmt, 1, json);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = sqlite3_column_int(stmt, 1);
             const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            review_appendf(out, "%04d-%02d-%02d %s completed=%d count=%d\n",
+            const char *safe_name = name != NULL && name[0] != '\0' ? name : "(unknown)";
+            if(strcmp(last_name, safe_name) != 0) {
+                if(rows > 0)
+                    review_append(out, "\n");
+                review_append(out, safe_name);
+                review_append(out, "\n");
+                snprintf(last_name, sizeof(last_name), "%s", safe_name);
+            }
+            review_appendf(out, "%04d-%02d-%02d",
                            local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100,
-                           name != NULL && name[0] != '\0' ? name : "(unknown)",
-                           sqlite3_column_int(stmt, 2),
-                           sqlite3_column_int(stmt, 3));
+                           local_date % 100);
+            if(sqlite3_column_int(stmt, 2) > 0)
+                review_appendf(out, " count %d", sqlite3_column_int(stmt, 2));
+            review_append(out, "\n");
             rows++;
         }
         sqlite3_finalize(stmt);
