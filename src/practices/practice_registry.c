@@ -6,6 +6,24 @@
 #include "practices/whm/whm_session.h"
 #include "practices/meditation/meditation_practice.h"
 
+#if ANDROID_BUILD
+#include "android_timer.h"
+#include "android_wakelock.h"
+void set_global_inbe_app(InbeApp *app);
+#endif
+
+static int
+practice_whm_is_active(const InbeApp *app)
+{
+    return app != NULL && app->inbe.screen == InbeScreenSession;
+}
+
+static int
+practice_meditation_is_active(const InbeApp *app)
+{
+    return app != NULL && app->inbe.screen == InbeScreenMeditation;
+}
+
 static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
     {
         .id = PRACTICE_WHM,
@@ -21,6 +39,10 @@ static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
         .draw_setup_modal = NULL,
         .draw_active_session = NULL,
         .request_exit = NULL,
+        .is_active = practice_whm_is_active,
+        .background_start = session_background_start,
+        .background_stop = NULL,
+        .advance_elapsed = session_advance_elapsed,
     },
     {
         .id = PRACTICE_MEDITATION,
@@ -36,6 +58,10 @@ static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
         .draw_setup_modal = meditation_draw_setup_modal,
         .draw_active_session = meditation_draw_screen,
         .request_exit = meditation_request_exit,
+        .is_active = practice_meditation_is_active,
+        .background_start = NULL,
+        .background_stop = NULL,
+        .advance_elapsed = meditation_advance_elapsed,
     },
 };
 
@@ -64,6 +90,89 @@ const char *
 practice_label(int id)
 {
     return locale_get(practice_get(id)->label_key);
+}
+
+const PracticeDefinition *
+practice_active(const InbeApp *app)
+{
+    for(int i = 0; i < practice_count(); i++) {
+        const PracticeDefinition *practice = practice_get(i);
+        if(practice->is_active != NULL && practice->is_active(app))
+            return practice;
+    }
+    return NULL;
+}
+
+int
+practice_active_supports_background(const InbeApp *app)
+{
+    const PracticeDefinition *practice = practice_active(app);
+    return practice != NULL && practice->advance_elapsed != NULL;
+}
+
+void
+practice_active_background_start(InbeApp *app)
+{
+    const PracticeDefinition *practice = practice_active(app);
+
+    if(app == NULL)
+        return;
+
+#if ANDROID_BUILD
+    set_global_inbe_app(app);
+#endif
+
+    if(practice == NULL || practice->advance_elapsed == NULL)
+        return;
+
+    if(practice->background_start != NULL)
+        practice->background_start(app);
+
+#if ANDROID_BUILD
+    if(app->inbe.play_in_background) {
+        android_wakelock_acquire();
+        android_timer_set_app(app);
+        android_timer_start();
+    }
+#endif
+}
+
+void
+practice_active_background_stop(InbeApp *app)
+{
+    const PracticeDefinition *practice = practice_active(app);
+
+    if(app == NULL)
+        return;
+
+    if(practice != NULL && practice->background_stop != NULL)
+        practice->background_stop(app);
+
+#if ANDROID_BUILD
+    if(app->inbe.play_in_background && practice != NULL &&
+       practice->advance_elapsed != NULL) {
+        android_wakelock_release();
+        android_timer_stop();
+    }
+#endif
+}
+
+void
+practice_active_advance_elapsed(InbeApp *app, int elapsed_ms)
+{
+    const PracticeDefinition *practice;
+
+    if(app == NULL || elapsed_ms <= 0 || !app->inbe.play_in_background)
+        return;
+
+    practice = practice_active(app);
+    if(practice == NULL || practice->advance_elapsed == NULL)
+        return;
+
+    practice->advance_elapsed(app, elapsed_ms);
+    if(practice->update != NULL && practice->is_active != NULL &&
+       practice->is_active(app))
+        practice->update(app);
 }
 
 void

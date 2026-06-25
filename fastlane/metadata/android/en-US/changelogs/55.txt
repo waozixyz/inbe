@@ -1,0 +1,3 @@
+Fixed
+---
+- Background play for meditation practice

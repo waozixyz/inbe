@@ -47,7 +47,6 @@
 
 #if ANDROID_BUILD
 #include "android_wakelock.h"
-#include "android_timer.h"
 #include "android_device.h"
 void set_global_inbe_app(InbeApp *app);
 #endif
@@ -83,11 +82,6 @@ static double g_last_sync_input_at = 0.0;
 static int g_sync_running = 0;
 static int g_sync_refresh_pending = 0;
 static int g_remote_sync_due = 0;
-
-#if defined(PLATFORM_WEB)
-static int g_web_background_remainder_ms = 0;
-static int g_web_background_meditation_remainder_ms = 0;
-#endif
 
 #if !defined(PLATFORM_WEB)
 typedef struct InbeSyncWorkerArgs {
@@ -1502,13 +1496,10 @@ app_init(void *vapp) {
     app->locale_font_8 = (Font){0};
 
 #if ANDROID_BUILD
-    if (app->inbe.screen == InbeScreenSession) {
+    if (practice_active(app) != NULL) {
         android_allow_screen_off();
     }
-    if (app->inbe.play_in_background) {
-        android_timer_stop();
-        android_wakelock_release();
-    }
+    practice_active_background_stop(app);
 #endif
 
 #if defined(PLATFORM_WEB)
@@ -1610,10 +1601,6 @@ app_web_set_backgrounded(int active)
         return;
 
     app->backgrounded = active ? 1 : 0;
-    if(!active) {
-        g_web_background_remainder_ms = 0;
-        g_web_background_meditation_remainder_ms = 0;
-    }
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -1621,41 +1608,11 @@ void
 app_web_background_tick(int elapsed_ms)
 {
     InbeApp *app = get_global_inbe_app();
-    int frame_count;
-    int elapsed_total;
 
     if(app == NULL || elapsed_ms <= 0)
         return;
     app->backgrounded = 1;
-    if(!app->inbe.play_in_background)
-        return;
-
-    if(app->inbe.screen == InbeScreenSession && !app->session_paused) {
-        g_web_background_meditation_remainder_ms = 0;
-        elapsed_total = elapsed_ms + g_web_background_remainder_ms;
-        if(elapsed_total > 5 * 60 * 1000)
-            elapsed_total = 5 * 60 * 1000;
-        frame_count = (elapsed_total * 60) / 1000;
-        g_web_background_remainder_ms = elapsed_total - (frame_count * 1000) / 60;
-
-        for(int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++) {
-            inbestep(&app->inbe);
-            practice_update_session_sounds(app);
-        }
-        return;
-    }
-
-    g_web_background_remainder_ms = 0;
-    if(app->inbe.screen == InbeScreenMeditation && !app->session_paused) {
-        elapsed_total = elapsed_ms + g_web_background_meditation_remainder_ms;
-        g_web_background_meditation_remainder_ms = elapsed_total % 1000;
-        meditation_background_tick(app, elapsed_total - g_web_background_meditation_remainder_ms);
-        if(app->inbe.screen == InbeScreenMeditation) {
-            const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
-            if(practice->update != NULL)
-                practice->update(app);
-        }
-    }
+    practice_active_advance_elapsed(app, elapsed_ms);
 }
 #endif
 
@@ -1733,12 +1690,7 @@ handle_back_button(InbeApp *app)
     case InbeScreenSession:
         /* When paused, exit immediately */
         if(app->session_paused) {
-#if ANDROID_BUILD
-            if (app->inbe.play_in_background) {
-                android_wakelock_release();
-                android_timer_stop();
-            }
-#endif
+            practice_active_background_stop(app);
             app_init(app);
         } else {
             /* Show confirmation modal */
