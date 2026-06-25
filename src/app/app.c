@@ -563,6 +563,13 @@ app_switch_screen(InbeApp *app, int screen)
     if(screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
 
+    if(app->transition_mode == APP_TRANSITION_NONE) {
+        flint_transition_reset(&app->screen_transition);
+        app->inbe.screen = screen;
+        app->screen_transition_target = screen;
+        return;
+    }
+
     app->screen_transition_target = screen;
     if(app->screen_transition.active) {
         if(app->inbe.screen != screen)
@@ -593,6 +600,11 @@ app_observe_direct_screen_change(InbeApp *app, int before_screen)
     if(app == NULL || app->screen_transition.active ||
        before_screen == app->inbe.screen)
         return;
+
+    if(app->transition_mode == APP_TRANSITION_NONE) {
+        app->screen_transition_target = app->inbe.screen;
+        return;
+    }
 
     app->screen_transition = (FlintTransition){
         .active = 1,
