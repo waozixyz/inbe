@@ -247,6 +247,12 @@ OK
 [advanced_session_controls_label]
 詳細なセッション設定
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 ホールド表示
 ---
@@ -675,10 +681,10 @@ https:// または localhost:8080 のようなループバックを使用して�
 下線
 ---
 [habit_practice_list_title]
-練習リスト
+Session Data From
 ---
 [habit_practice_list_info]
-この習慣を練習セッションに関連付けます。一致するセッションがある日は完了として表示され、セッション編集画面を開けます。
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 カウント
@@ -844,4 +850,16 @@ Alias registered.
 ---
 [sync_alias_failed]
 Could not register alias.
+---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---

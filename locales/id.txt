@@ -247,6 +247,12 @@ Jeda setelah ronde
 [advanced_session_controls_label]
 Kontrol sesi lanjutan
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Tampilan tahan napas
 ---
@@ -675,10 +681,10 @@ Nama
 Garis bawah
 ---
 [habit_practice_list_title]
-Daftar latihan
+Session Data From
 ---
 [habit_practice_list_info]
-Hubungkan kebiasaan ini ke sesi latihan. Hari dengan sesi yang cocok akan tampil selesai dan dapat membuka editor sesi.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Penghitungan
@@ -844,4 +850,16 @@ Alias registered.
 ---
 [sync_alias_failed]
 Could not register alias.
+---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---

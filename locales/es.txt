@@ -247,6 +247,12 @@ Pausa después de ronda
 [advanced_session_controls_label]
 Controles avanzados de sesión
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Visualizacion de retencion
 ---
@@ -675,10 +681,10 @@ Nombre
 Subrayado
 ---
 [habit_practice_list_title]
-Lista de prácticas
+Session Data From
 ---
 [habit_practice_list_info]
-Vincula este hábito con sesiones de práctica. Los días con sesiones coincidentes aparecerán como completados y podrán abrir el editor de sesión.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Conteo
@@ -844,4 +850,16 @@ Alias registered.
 ---
 [sync_alias_failed]
 Could not register alias.
+---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---

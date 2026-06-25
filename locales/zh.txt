@@ -247,6 +247,12 @@ Wim Hof 呼吸
 [advanced_session_controls_label]
 高级练习控制
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 屏息显示
 ---
@@ -673,10 +679,10 @@ liboqs 未为此目标构建。
 下划线
 ---
 [habit_practice_list_title]
-练习列表
+Session Data From
 ---
 [habit_practice_list_info]
-将此习惯关联到练习会话。有匹配会话的日期会显示为已完成，并可打开会话编辑器。
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 计数
@@ -842,4 +848,16 @@ Alias registered.
 ---
 [sync_alias_failed]
 Could not register alias.
+---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---

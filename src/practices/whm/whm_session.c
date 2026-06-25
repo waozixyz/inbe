@@ -632,9 +632,6 @@ draw_session_round_label(InbeApp *app)
     int text_y;
     int font = FLINT_TEXT_16;
 
-    if(app->inbe.phase != InbePhaseBreathe)
-        return;
-
     locale_format(max_text, sizeof(max_text), "session_round_label", MaxRounds);
     max_text_w = flint_text_measure(max_text, font);
     locale_format(text, sizeof(text), "session_round_label", app->inbe.round + 1);
@@ -812,14 +809,40 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         }
     }
 
+    if(app->inbe.phase != InbePhaseHold)
+        app->breath_tap_last_time = 0.0;
+
     if(app->inbe.phase == InbePhaseHold) {
         const char *breath_label = locale_get("breath_button");
         int breath_font = FLINT_TEXT_16;
         int breath_w = flint_text_measure(breath_label, breath_font) + flint_px(72);
         int breath_h = flint_text_line_height(breath_font) + flint_px(28);
-        int breath_y = center_y + app->inbe.rmax + flint_px(10);
+        int breath_y = center_y + app->inbe.rmax - flint_px(2);
         int breath_x;
         int breath_hover = 0;
+
+        if(app->double_tap_to_breathe) {
+            const char *hint = locale_get("double_tap_to_breathe_hint");
+            int hint_font = flint_ui_font();
+            int hint_w = flint_text_measure(hint, hint_font);
+            int hint_y = center_y + app->inbe.rmax + flint_px(12);
+
+            if(hint_y > breath_max_y)
+                hint_y = breath_max_y;
+            flint_text_draw(hint, center_x - hint_w / 2, hint_y, hint_font,
+                            flint_theme_get_text());
+            if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                double now = GetTime();
+                if(app->breath_tap_last_time > 0.0 &&
+                   now - app->breath_tap_last_time <= 0.35) {
+                    app->breath_tap_last_time = 0.0;
+                    finish_hold(app);
+                } else {
+                    app->breath_tap_last_time = now;
+                }
+            }
+            return;
+        }
 
         if(breath_w < flint_px(184))
             breath_w = flint_px(184);

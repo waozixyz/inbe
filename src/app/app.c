@@ -1803,7 +1803,7 @@ draw_global_modal(InbeApp *app)
             int then_backup = app->sync_alias_then_backup;
             app->sync_alias_then_backup = 0;
             app_close_modal(app);
-            settings_screen_set_status_success(locale_get("sync_alias_registered"), NULL);
+            settings_screen_set_status_success(locale_get("sync_alias_saved"), NULL);
             if(then_backup)
                 app_open_modal(app, UIModalSyncAccountBackup);
         } else if(modal_result == 2) {
@@ -1954,8 +1954,7 @@ finish_frame:
         ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
-    if(!guide_active)
-        ui_set_input_blocked(0);
+    ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);

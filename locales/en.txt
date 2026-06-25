@@ -307,6 +307,12 @@ Pause after round
 [advanced_session_controls_label]
 Advanced session controls
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Hold display
 ---
@@ -593,11 +599,23 @@ Account Alias
 [sync_alias_message]
 Choose a short name for this account. This is optional.
 ---
+[sync_alias_change_title]
+Change Alias
+---
+[sync_alias_change_message]
+Change the short name for this account on this sync server.
+---
 [sync_alias_rule]
 4-32 letters, numbers, or underscore.
 ---
 [sync_alias_register_button]
 Register
+---
+[sync_alias_save_button]
+Save Alias
+---
+[sync_alias_saved]
+Alias saved
 ---
 [sync_alias_registered]
 Alias registered
@@ -708,7 +726,7 @@ Underline
 Practice list
 ---
 [habit_practice_list_info]
-Link this habit to practice sessions. Days with matching sessions will show as completed and can open the session editor.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Counting

@@ -90,6 +90,7 @@ static const char *const importable_setting_keys[] = {
     "progressive_speed",
     "progressive_start_speed",
     "breath_animation",
+    "double_tap_to_breathe",
     "advanced_session_controls",
     "hold_display_mode",
     "exercise_type",

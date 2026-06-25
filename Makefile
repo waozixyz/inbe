@@ -755,7 +755,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	rm -rf $(LINUX_APPDIR)
 	rm -rf $(LINUX_DIST_DIR)/*.AppDir
 	rm -f $(LINUX_DIST_DIR)/*.AppImage
-	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/lib $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps $(LINUX_APPDIR)/usr/share/metainfo
+	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/lib $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps $(LINUX_APPDIR)/usr/share/metainfo $(LINUX_APPDIR)/usr/share/appdata
 	cp $(TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	cp $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPDIR)/AppRun
@@ -778,6 +778,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
 	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/usr/share/applications/$(APP_NAME).desktop
 	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
+	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/appdata/$(ANDROID_APP_ID).appdata.xml
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
 	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
 	@# Manually copy critical X11/OpenGL libraries that linuxdeploy might miss

@@ -250,6 +250,12 @@ Pause après cycle
 [advanced_session_controls_label]
 Contrôles avancés de séance
 ---
+[double_tap_to_breathe_label]
+Double tap to breathe
+---
+[double_tap_to_breathe_hint]
+Double tap screen to breathe
+---
 [hold_display_label]
 Affichage de la retention
 ---
@@ -593,11 +599,23 @@ Alias du compte
 [sync_alias_message]
 Choisissez un nom court pour ce compte. C’est facultatif.
 ---
+[sync_alias_change_title]
+Modifier l’alias
+---
+[sync_alias_change_message]
+Modifiez le nom court de ce compte sur ce serveur de synchronisation.
+---
 [sync_alias_rule]
 4 à 32 lettres, chiffres ou tiret bas.
 ---
 [sync_alias_register_button]
 Enregistrer
+---
+[sync_alias_save_button]
+Enregistrer l’alias
+---
+[sync_alias_saved]
+Alias enregistré
 ---
 [sync_alias_registered]
 Alias enregistré
@@ -705,10 +723,10 @@ Nom
 Soulignement
 ---
 [habit_practice_list_title]
-Liste des pratiques
+Session Data From
 ---
 [habit_practice_list_info]
-Associez cette habitude aux séances de pratique. Les jours avec des séances correspondantes apparaîtront comme terminés et pourront ouvrir l'éditeur de séance.
+Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
 ---
 [habit_counting_title]
 Comptage

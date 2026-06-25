@@ -1,0 +1,6 @@
+Changed
+---
+- Use Flint-managed modal handling so modal dialogs block background input consistently.
+- Add optional sync account aliases, with compact public ID display and full ID reveal modal.
+- Make sync state tracking more robust with snapshot hash checks and review flow for unresolved differences.
+- Use Flint's built-in font chopping pipeline and verify multilingual locale glyph coverage.

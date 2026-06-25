@@ -36,86 +36,19 @@ static int
 settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
                               FlintUITextInputStyle style)
 {
-    char line[128];
-    int text_len;
-    int pad_x;
-    int pad_y = flint_px(8);
-    int line_h = flint_text_line_height(font);
-    int content_w;
-    int line_count = 0;
-    int offset = 0;
     int field_h;
-    int draw_y;
-    Rectangle bounds;
     int clicked = 0;
 
     if(text == NULL || y == NULL)
         return 0;
 
-    text_len = (int)strlen(text);
-    pad_x = style.padding_x > 0 ? style.padding_x : flint_px(10);
-    content_w = w - pad_x * 2;
-    if(content_w < flint_px(24))
-        content_w = flint_px(24);
-
-    while(offset < text_len) {
-        int len;
-
-        if(flint_text_measure(text + offset, font) <= content_w) {
-            offset = text_len;
-            line_count++;
-            break;
-        }
-
-        len = 1;
-        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
-            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
-            if(flint_text_measure(line, font) > content_w)
-                break;
-            len++;
-        }
-        offset += len;
-        line_count++;
-    }
-    if(line_count < 1)
-        line_count = 1;
-
-    field_h = line_count * line_h + pad_y * 2;
-    bounds = (Rectangle){(float)x, (float)*y, (float)w, (float)field_h};
-    clicked = CheckCollisionPointRec(GetMousePosition(), bounds) &&
-              IsMouseButtonPressed(MOUSE_LEFT_BUTTON) &&
-              !ui_input_captures_click(GetMousePosition());
-    DrawRectangleRounded(bounds,
-                         style.radius > 0.0f ? style.radius : 0.08f, 8,
-                         style.background);
-    DrawRectangleRoundedLines(bounds,
-                              style.radius > 0.0f ? style.radius : 0.08f, 8,
-                              style.border);
-
-    offset = 0;
-    draw_y = *y + pad_y;
-    while(offset < text_len) {
-        int len;
-
-        if(flint_text_measure(text + offset, font) <= content_w) {
-            snprintf(line, sizeof(line), "%s", text + offset);
-            flint_text_draw(line, x + pad_x, draw_y, font, style.text);
-            break;
-        }
-
-        len = 1;
-        while(offset + len < text_len && len + 1 < (int)sizeof(line)) {
-            snprintf(line, sizeof(line), "%.*s", len + 1, text + offset);
-            if(flint_text_measure(line, font) > content_w)
-                break;
-            len++;
-        }
-        snprintf(line, sizeof(line), "%.*s", len, text + offset);
-        flint_text_draw(line, x + pad_x, draw_y, font, style.text);
-        draw_y += line_h;
-        offset += len;
-    }
-
+    field_h = flint_ui_readonly_text_box_height(text, font, w, style, 0);
+    clicked = flint_ui_readonly_text_box((FlintUIReadonlyTextBox){
+        .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
+        .text = text,
+        .font = font,
+        .style = style
+    });
     *y += field_h;
     return clicked;
 }
@@ -678,16 +611,25 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
     int commit = 0;
     int result = 0;
     char url[256];
+    char current_alias[40];
+    const char *stored_alias;
+    int has_alias;
+    int unchanged_alias;
 
     if(app == NULL)
         return 3;
+    stored_alias = storage_get_setting_text(INBE_SYNC_ACCOUNT_ALIAS_KEY);
+    snprintf(current_alias, sizeof(current_alias), "%s", stored_alias != NULL ? stored_alias : "");
+    settings_sync_alias_normalize(current_alias);
+    has_alias = current_alias[0] != '\0';
 
     frame = ui_draw_modal_frame(flint_px(336), flint_px(238),
-                                locale_get("sync_alias_title"),
+                                locale_get(has_alias ? "sync_alias_change_title" : "sync_alias_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
 
-    flint_text_draw(locale_get("sync_alias_message"), frame.content_x, y,
+    flint_text_draw(locale_get(has_alias ? "sync_alias_change_message" : "sync_alias_message"),
+                    frame.content_x, y,
                     flint_ui_font_small(), flint_darken(flint_theme_get_text(), 20));
     y += flint_px(40);
 
@@ -713,13 +655,15 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
     flint_text_draw(locale_get("sync_alias_rule"), frame.content_x, y,
                     flint_ui_font_small(), flint_darken(flint_theme_get_text(), 35));
     y += flint_px(34);
+    unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0;
 
     {
         FlintUIButtonRowItem buttons[2] = {
             {locale_get(app->sync_alias_then_backup ? "skip_button" : "close_button"),
              UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_alias_register_button"), UI_BUTTON_STYLE_PRIMARY,
-             !settings_sync_alias_valid(app->sync_alias_input)}
+            {locale_get(has_alias ? "sync_alias_save_button" : "sync_alias_register_button"),
+             UI_BUTTON_STYLE_PRIMARY,
+             !settings_sync_alias_valid(app->sync_alias_input) || unchanged_alias}
         };
         int clicked = ui_draw_button_row((FlintUIButtonRow){
             .x = frame.content_x,
@@ -732,14 +676,14 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
         });
         if(clicked == 0)
             return 3;
-        if(clicked == 1 || (commit && settings_sync_alias_valid(app->sync_alias_input))) {
+        if(clicked == 1 || (commit && settings_sync_alias_valid(app->sync_alias_input) && !unchanged_alias)) {
             if(settings_sync_server_normalize(app, url, sizeof(url))) {
                 InbeSyncClientResult alias_result;
-                TraceLog(LOG_INFO, "SYNC: registering alias @%s with %s",
+                TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
                          app->sync_alias_input, url);
                 alias_result = sync_client_register_alias(url, app->sync_alias_input);
                 if(alias_result == INBE_SYNC_CLIENT_OK) {
-                    TraceLog(LOG_INFO, "SYNC: alias registered @%s", app->sync_alias_input);
+                    TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input);
                     result = 1;
                 } else {
                     TraceLog(LOG_WARNING, "SYNC: alias register failed result=%d alias=@%s",
