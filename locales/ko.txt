@@ -37,6 +37,9 @@ Inner Breeze
 [exercise_meditation]
 명상
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 명상
 ---

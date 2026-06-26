@@ -228,7 +228,7 @@ settings_draw_sync_review_modal(InbeApp *app)
     frame = ui_draw_modal_frame(modal_w, modal_h, "Sync needs review",
                                 (Texture2D){0}, (Texture2D){0});
     intro = (FlintUIParagraph){
-        .text = "Review data differences. Deleted remote rows are ignored.",
+        .text = "Review data differences.",
         .width = frame.content_w,
         .font = flint_ui_font_small(),
         .line_gap = flint_px(2),

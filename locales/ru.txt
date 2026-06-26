@@ -37,6 +37,9 @@ Inner Breeze
 [exercise_meditation]
 Медитация
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 Медитация
 ---

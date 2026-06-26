@@ -37,6 +37,9 @@ Wim Hofovo dýchání
 [exercise_meditation]
 Meditace
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 Meditace
 ---

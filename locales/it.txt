@@ -37,6 +37,9 @@ Respirazione Wim Hof
 [exercise_meditation]
 Meditazione
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 Meditazione
 ---

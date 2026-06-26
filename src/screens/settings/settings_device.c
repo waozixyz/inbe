@@ -77,9 +77,7 @@ settings_device_content_height(int content_w)
     int height = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
     int label_w = content_w > 0 ? content_w : flint_px(240);
 
-#if ANDROID_BUILD || defined(PLATFORM_WEB)
     height += settings_device_toggle_row_height(locale_get("play_in_background_label"), label_w);
-#endif
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += flint_px(50);
 #endif
@@ -129,16 +127,15 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
         save_settings(app);
     }
 
-#if ANDROID_BUILD || defined(PLATFORM_WEB)
     {
         int play_in_background = app->inbe.play_in_background;
         if(settings_device_draw_toggle_row(x, w, y, locale_get("play_in_background_label"),
                                            &play_in_background)) {
             app->inbe.play_in_background = play_in_background;
             app->settings_dirty = 1;
+            save_settings(app);
         }
     }
-#endif
 
     {
         int orientation_max = orientation_option_count - 1;

@@ -25,8 +25,7 @@
 
 /* Helper functions */
 static void habits_add_seed(InbeHabits *habits, const char *id, const char *name,
-                                 Color color, int activity_mask);
-static void habits_repair_default_meditation_link(InbeHabits *habits);
+                            Color color, int activity_mask);
 
 enum {
     HABITS_GUIDE_STEPS = 4,
@@ -300,6 +299,8 @@ habits_add_default_set(InbeHabits *habits)
     habits_add_seed(habits, "meditation", "Meditation", (Color){126, 183, 230, 255},
                          habit_activity_mask_for(EXERCISE_WIM_HOF) |
                          habit_activity_mask_for(EXERCISE_MEDITATION));
+    habits_add_seed(habits, "yoga", "Yoga", (Color){239, 178, 102, 255},
+                         habit_activity_mask_for(EXERCISE_SUN_SALUTATION));
     habits->selected = 0;
     habits->loaded = 1;
     habits_save(habits);
@@ -429,7 +430,6 @@ habits_init(InbeHabits *habits)
             habits_add_default_set(habits);
             return;
         }
-        habits_repair_default_meditation_link(habits);
         if(habits->count == 3 &&
            strcmp(habits->items[0].id, "mind") == 0 &&
            strcmp(habits->items[1].id, "yoga") == 0 &&
@@ -850,25 +850,6 @@ int
 habits_screen_top_reserved(InbeApp *app)
 {
     return habits_screen_selector_height(app) + flint_px(HABITS_TAB_H);
-}
-
-static void
-habits_repair_default_meditation_link(InbeHabits *habits)
-{
-    int default_activity = habit_activity_mask_for(EXERCISE_WIM_HOF) |
-                           habit_activity_mask_for(EXERCISE_MEDITATION);
-
-    if(habits == NULL || habits->count != 1)
-        return;
-    if(strcmp(habits->items[0].name, "Meditation") != 0)
-        return;
-    if(habits->items[0].sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
-       habits->items[0].sync_activity == default_activity)
-        return;
-
-    habits->items[0].sync_mode = INBE_HABIT_SYNC_ACTIVITIES;
-    habits->items[0].sync_activity = default_activity;
-    habits_save(habits);
 }
 
 static void

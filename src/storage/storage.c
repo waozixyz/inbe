@@ -1,8 +1,8 @@
 #include "storage.h"
 
+#include "breath_engine.h"
 #include "db.h"
 #include "screens/habits_screen.h"
-#include "breath_engine.h"
 
 #include "raylib.h"
 #include <sqlite3.h>
@@ -10,8 +10,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include <sys/stat.h>
+#include <time.h>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -22,9 +22,14 @@
 #pragma GCC diagnostic ignored "-Wformat-truncation"
 #endif
 
-static long long storage_max_sync_outbox_seq(void);
-static int storage_has_orphan_habit_days(void);
-static int storage_json_array_count(const char *json, const char *path);
+static long long
+storage_max_sync_outbox_seq(void);
+static int
+storage_has_orphan_habit_days(void);
+static int
+storage_json_array_count(const char *json, const char *path);
+static int
+storage_clear_local_sync_data(void);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
 #define STORAGE_SYNC_HABIT_NAME_REPAIR_KEY "sync_habit_name_repair_v1_done"
@@ -32,6 +37,7 @@ static int storage_json_array_count(const char *json, const char *path);
 #define STORAGE_SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define STORAGE_SYNC_PRIVATE_KEY_KEY "sync_private_key"
 #define STORAGE_SYNC_LAST_SERVER_HASH_KEY "sync_last_server_state_hash"
+#define STORAGE_SYNC_SERVER_CLOCK_KEY "sync_server_clock"
 #define STORAGE_SYNC_PENDING_REVIEW_KEY "sync_pending_review_pending"
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
@@ -87,25 +93,9 @@ make_client_uuid(char out[37])
     fill_random_bytes(bytes, sizeof(bytes));
     bytes[6] = (unsigned char)((bytes[6] & 0x0f) | 0x40);
     bytes[8] = (unsigned char)((bytes[8] & 0x3f) | 0x80);
-    snprintf(out,
-             37,
-             "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-             bytes[0],
-             bytes[1],
-             bytes[2],
-             bytes[3],
-             bytes[4],
-             bytes[5],
-             bytes[6],
-             bytes[7],
-             bytes[8],
-             bytes[9],
-             bytes[10],
-             bytes[11],
-             bytes[12],
-             bytes[13],
-             bytes[14],
-             bytes[15]);
+    snprintf(out, 37, "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+             bytes[0], bytes[1], bytes[2], bytes[3], bytes[4], bytes[5], bytes[6], bytes[7],
+             bytes[8], bytes[9], bytes[10], bytes[11], bytes[12], bytes[13], bytes[14], bytes[15]);
 }
 
 typedef struct JsonBuilder {
@@ -260,14 +250,12 @@ storage_enqueue_sync_entity(const char *entity_type, const char *entity_id, int 
 
     if(g_storage.db == NULL || entity_type == NULL || entity_id == NULL || entity_id[0] == '\0')
         return 0;
-    if(sqlite3_prepare_v2(
-           g_storage.db,
-           "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
-           "VALUES(?1,?2,?3,?4) "
-           "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at",
-           -1,
-           &stmt,
-           NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                          "VALUES(?1,?2,?3,?4) "
+                          "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+                          "queued_at=excluded.queued_at",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, entity_type);
     bind_text(stmt, 2, entity_id);
@@ -309,16 +297,19 @@ storage_enqueue_all_sync_state(void)
     exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
              "SELECT 'habit',id,0,strftime('%s','now') FROM habits "
              "WHERE user_id=(SELECT id FROM users LIMIT 1) "
-             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+             "queued_at=excluded.queued_at");
     exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
              "SELECT 'habit_day',hd.habit_id,hd.local_date,strftime('%s','now') "
              "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
              "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
-             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+             "queued_at=excluded.queued_at");
     exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
              "SELECT 'session',id,0,strftime('%s','now') FROM sessions "
              "WHERE user_id=(SELECT id FROM users LIMIT 1) "
-             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET queued_at=excluded.queued_at");
+             "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+             "queued_at=excluded.queued_at");
     if(owns_transaction)
         exec_sql("COMMIT");
 }
@@ -338,8 +329,8 @@ hash_rounds(const int *round_times, int round_count)
 }
 
 static void
-make_session_id(long long started_at, const int *round_times, int round_count,
-                char *out, size_t out_size)
+make_session_id(long long started_at, const int *round_times, int round_count, char *out,
+                size_t out_size)
 {
     snprintf(out, out_size, "s-%lld-%08x", started_at, hash_rounds(round_times, round_count));
 }
@@ -385,7 +376,8 @@ storage_sync_client_id(void)
     stored = NULL;
     if(g_storage.db != NULL) {
         sqlite3_stmt *stmt = NULL;
-        if(sqlite3_prepare_v2(g_storage.db, "SELECT value FROM meta WHERE key='sync_client_id'", -1, &stmt, NULL) == SQLITE_OK &&
+        if(sqlite3_prepare_v2(g_storage.db, "SELECT value FROM meta WHERE key='sync_client_id'", -1,
+                              &stmt, NULL) == SQLITE_OK &&
            sqlite3_step(stmt) == SQLITE_ROW) {
             stored = (const char *)sqlite3_column_text(stmt, 0);
             if(stored != NULL)
@@ -409,7 +401,8 @@ storage_settings_empty(void)
 
     if(g_storage.db == NULL)
         return 1;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM settings WHERE user_id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM settings WHERE user_id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 1;
     bind_text(stmt, 1, g_storage.user_id);
     if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -433,15 +426,15 @@ storage_get_setting_text(const char *key)
 
     if(g_storage.db == NULL || key == NULL)
         return NULL;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT value FROM settings WHERE user_id=?1 AND key=?2",
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT value FROM settings WHERE user_id=?1 AND key=?2",
                           -1, &stmt, NULL) != SQLITE_OK)
         return NULL;
     bind_text(stmt, 1, g_storage.user_id);
     bind_text(stmt, 2, key);
     if(sqlite3_step(stmt) == SQLITE_ROW) {
         const char *text = (const char *)sqlite3_column_text(stmt, 0);
-        snprintf(g_storage.text_value, sizeof(g_storage.text_value), "%s", text != NULL ? text : "");
+        snprintf(g_storage.text_value, sizeof(g_storage.text_value), "%s",
+                 text != NULL ? text : "");
     }
     sqlite3_finalize(stmt);
     return g_storage.text_value[0] != '\0' ? g_storage.text_value : NULL;
@@ -454,8 +447,10 @@ storage_set_setting_text(const char *key, const char *value)
     if(g_storage.db == NULL || key == NULL)
         return;
     if(sqlite3_prepare_v2(g_storage.db,
-                          "INSERT INTO settings(user_id,key,value,updated_at) VALUES(?1,?2,?3,?4) "
-                          "ON CONFLICT(user_id,key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
+                          "INSERT INTO settings(user_id,key,value,updated_at) "
+                          "VALUES(?1,?2,?3,?4) "
+                          "ON CONFLICT(user_id,key) DO UPDATE SET "
+                          "value=excluded.value,updated_at=excluded.updated_at",
                           -1, &stmt, NULL) != SQLITE_OK)
         return;
     bind_text(stmt, 1, g_storage.user_id);
@@ -507,19 +502,17 @@ storage_build_session_habit_counts(void)
                  ");"))
         return 0;
 
-    if(sqlite3_prepare_v2(
-           g_storage.db,
-           "INSERT INTO inbe_session_habit_counts(habit_id,local_date,session_count) "
-           "SELECT h.id,s.local_date,COUNT(*) "
-           "FROM habits h JOIN sessions s ON s.user_id=h.user_id "
-           "WHERE h.user_id=?1 AND h.deleted_at=0 AND s.deleted_at=0 "
-           "  AND h.sync_mode=?2 AND h.sync_activity<>0 "
-           "  AND s.local_date>0 AND s.activity>=0 AND s.activity<30 "
-           "  AND (h.sync_activity & (1 << s.activity))<>0 "
-           "GROUP BY h.id,s.local_date",
-           -1,
-           &stmt,
-           NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "INSERT INTO "
+                          "inbe_session_habit_counts(habit_id,local_date,session_count) "
+                          "SELECT h.id,s.local_date,COUNT(*) "
+                          "FROM habits h JOIN sessions s ON s.user_id=h.user_id "
+                          "WHERE h.user_id=?1 AND h.deleted_at=0 AND s.deleted_at=0 "
+                          "  AND h.sync_mode=?2 AND h.sync_activity<>0 "
+                          "  AND s.local_date>0 AND s.activity>=0 AND s.activity<30 "
+                          "  AND (h.sync_activity & (1 << s.activity))<>0 "
+                          "GROUP BY h.id,s.local_date",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
     sqlite3_bind_int(stmt, 2, INBE_HABIT_SYNC_ACTIVITIES);
@@ -529,19 +522,18 @@ storage_build_session_habit_counts(void)
 }
 
 static int
-storage_insert_habit_day_count(const char *habit_id, int local_date,
-                               int count, long long updated_at)
+storage_insert_habit_day_count(const char *habit_id, int local_date, int count,
+                               long long updated_at)
 {
     sqlite3_stmt *stmt = NULL;
     int rc;
 
-    if(sqlite3_prepare_v2(
-           g_storage.db,
-           "INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,updated_at) "
-           "VALUES(?1,?2,?3,?4,?4,?5)",
-           -1,
-           &stmt,
-           NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "INSERT INTO "
+                          "habit_days(habit_id,local_date,completed,count,"
+                          "session_count,updated_at) "
+                          "VALUES(?1,?2,?3,?4,?4,?5)",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, habit_id);
     sqlite3_bind_int(stmt, 2, local_date);
@@ -556,21 +548,17 @@ storage_insert_habit_day_count(const char *habit_id, int local_date,
 }
 
 static int
-storage_update_habit_day_count(const char *habit_id, int local_date,
-                               int completed, int count, int session_count,
-                               long long updated_at)
+storage_update_habit_day_count(const char *habit_id, int local_date, int completed, int count,
+                               int session_count, long long updated_at)
 {
     sqlite3_stmt *stmt = NULL;
     int rc;
 
-    if(sqlite3_prepare_v2(
-           g_storage.db,
-           "UPDATE habit_days "
-           "SET completed=?3,count=?4,session_count=?5,updated_at=?6 "
-           "WHERE habit_id=?1 AND local_date=?2",
-           -1,
-           &stmt,
-           NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE habit_days "
+                          "SET completed=?3,count=?4,session_count=?5,updated_at=?6 "
+                          "WHERE habit_id=?1 AND local_date=?2",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, habit_id);
     sqlite3_bind_int(stmt, 2, local_date);
@@ -586,8 +574,7 @@ storage_update_habit_day_count(const char *habit_id, int local_date,
 }
 
 static int
-storage_update_habit_day_session_count(const char *habit_id, int local_date,
-                                       int session_count)
+storage_update_habit_day_session_count(const char *habit_id, int local_date, int session_count)
 {
     sqlite3_stmt *stmt = NULL;
     int rc;
@@ -606,8 +593,8 @@ storage_update_habit_day_session_count(const char *habit_id, int local_date,
 }
 
 static int
-storage_apply_session_habit_count(const char *habit_id, int local_date,
-                                  int session_count, long long changed_at)
+storage_apply_session_habit_count(const char *habit_id, int local_date, int session_count,
+                                  long long changed_at)
 {
     sqlite3_stmt *stmt = NULL;
     int rc;
@@ -650,14 +637,13 @@ storage_apply_session_habit_count(const char *habit_id, int local_date,
     if(old_count <= old_session_count || session_count > old_count)
         next_count = session_count;
     next_completed = next_count > 0 ? 1 : 0;
-    if(next_completed == old_completed &&
-       next_count == old_count &&
+    if(next_completed == old_completed && next_count == old_count &&
        session_count == old_session_count)
         return 1;
     if(next_completed == old_completed && next_count == old_count)
         return storage_update_habit_day_session_count(habit_id, local_date, session_count);
-    return storage_update_habit_day_count(habit_id, local_date, next_completed,
-                                          next_count, session_count, changed_at);
+    return storage_update_habit_day_count(habit_id, local_date, next_completed, next_count,
+                                          session_count, changed_at);
 }
 
 static int
@@ -666,17 +652,16 @@ storage_clear_stale_session_habit_counts(long long changed_at)
     sqlite3_stmt *stmt = NULL;
     int ok = 1;
 
-    if(sqlite3_prepare_v2(
-           g_storage.db,
-           "SELECT hd.habit_id,hd.local_date,hd.count,hd.session_count "
-           "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
-           "WHERE h.user_id=?1 AND h.deleted_at=0 AND h.sync_mode=?2 AND h.sync_activity<>0 "
-           "  AND hd.session_count>0 "
-           "  AND NOT EXISTS (SELECT 1 FROM inbe_session_habit_counts c "
-           "                  WHERE c.habit_id=hd.habit_id AND c.local_date=hd.local_date)",
-           -1,
-           &stmt,
-           NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT hd.habit_id,hd.local_date,hd.count,hd.session_count "
+                          "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                          "WHERE h.user_id=?1 AND h.deleted_at=0 AND h.sync_mode=?2 AND "
+                          "h.sync_activity<>0 "
+                          "  AND hd.session_count>0 "
+                          "  AND NOT EXISTS (SELECT 1 FROM inbe_session_habit_counts c "
+                          "                  WHERE c.habit_id=hd.habit_id AND "
+                          "c.local_date=hd.local_date)",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
     sqlite3_bind_int(stmt, 2, INBE_HABIT_SYNC_ACTIVITIES);
@@ -718,7 +703,8 @@ storage_apply_session_habit_counts(long long changed_at)
         char habit_id_copy[INBE_STORAGE_ID_SIZE];
 
         snprintf(habit_id_copy, sizeof(habit_id_copy), "%s", habit_id != NULL ? habit_id : "");
-        ok = storage_apply_session_habit_count(habit_id_copy, local_date, session_count, changed_at);
+        ok =
+            storage_apply_session_habit_count(habit_id_copy, local_date, session_count, changed_at);
         if(!ok)
             break;
     }
@@ -742,8 +728,7 @@ storage_materialize_session_habit_days(void)
     changed_at = now_seconds();
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
-    ok = storage_build_session_habit_counts() &&
-         storage_apply_session_habit_counts(changed_at) &&
+    ok = storage_build_session_habit_counts() && storage_apply_session_habit_counts(changed_at) &&
          exec_sql("DROP TABLE IF EXISTS temp.inbe_session_habit_counts;");
     if(ok) {
         exec_sql("COMMIT");
@@ -756,9 +741,8 @@ storage_materialize_session_habit_days(void)
 }
 
 int
-insert_session_at_ex(long long started_at, int local_date, const int *round_times,
-                     int round_count, int topic, int activity, const char *source,
-                     char *out_id, size_t out_id_size)
+insert_session_at_ex(long long started_at, int local_date, const int *round_times, int round_count,
+                     int topic, int activity, const char *source, char *out_id, size_t out_id_size)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -773,7 +757,9 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
     make_session_id(started_at, round_times, round_count, id, sizeof(id));
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "INSERT OR IGNORE INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,updated_at) "
+                          "INSERT OR IGNORE INTO "
+                          "sessions(id,user_id,started_at,local_date,topic,"
+                          "activity,source,imported_at,rounds_hash,updated_at) "
                           "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
@@ -796,14 +782,15 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
     if(inserted) {
         for(int i = 0; i < round_count; i++) {
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
+                                  "INSERT OR REPLACE INTO "
+                                  "session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
                                   -1, &stmt, NULL) != SQLITE_OK)
                 return 0;
             bind_text(stmt, 1, id);
             sqlite3_bind_int(stmt, 2, i);
             sqlite3_bind_int(stmt, 3, round_times[i]);
             sqlite3_step(stmt);
-                sqlite3_finalize(stmt);
+            sqlite3_finalize(stmt);
         }
         storage_enqueue_sync_session(id);
     }
@@ -817,9 +804,8 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
 }
 
 int
-storage_save_session_for_activity(const int *round_times, int round_count,
-                                       int topic, int activity,
-                                       char *out_id, size_t out_id_size)
+storage_save_session_for_activity(const int *round_times, int round_count, int topic, int activity,
+                                  char *out_id, size_t out_id_size)
 {
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
@@ -836,15 +822,14 @@ storage_save_session_for_activity(const int *round_times, int round_count,
     if(saved_count <= 0)
         return 0;
     local_date = (tm->tm_year + 1900) * 10000 + (tm->tm_mon + 1) * 100 + tm->tm_mday;
-    return insert_session_at_ex((long long)now, local_date, saved, saved_count,
-                                topic, activity, "app", out_id, out_id_size);
+    return insert_session_at_ex((long long)now, local_date, saved, saved_count, topic, activity,
+                                "app", out_id, out_id_size);
 }
 
 int
 storage_save_session_at_for_activity(int local_date, int hour, int minute, int second,
-                                     const int *round_times, int round_count,
-                                     int topic, int activity,
-                                     char *out_id, size_t out_id_size)
+                                     const int *round_times, int round_count, int topic,
+                                     int activity, char *out_id, size_t out_id_size)
 {
     struct tm tm;
     time_t started_at;
@@ -872,21 +857,19 @@ storage_save_session_at_for_activity(int local_date, int hour, int minute, int s
     if(started_at == (time_t)-1)
         return 0;
 
-    return insert_session_at_ex((long long)started_at, local_date, saved, saved_count,
-                                topic, activity, "app", out_id, out_id_size);
+    return insert_session_at_ex((long long)started_at, local_date, saved, saved_count, topic,
+                                activity, "app", out_id, out_id_size);
 }
 
 int
 storage_save_session(const int *round_times, int round_count, char *out_id, size_t out_id_size)
 {
-    return storage_save_session_for_activity(round_times, round_count, 0, 0,
-                                                  out_id, out_id_size);
+    return storage_save_session_for_activity(round_times, round_count, 0, 0, out_id, out_id_size);
 }
 
 int
-storage_load_session(const char *path_or_id, int *round_times, int max_rounds,
-                          int *year, int *month, int *day,
-                          int *hour, int *minute, int *second)
+storage_load_session(const char *path_or_id, int *round_times, int max_rounds, int *year,
+                     int *month, int *day, int *hour, int *minute, int *second)
 {
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
@@ -898,7 +881,8 @@ storage_load_session(const char *path_or_id, int *round_times, int max_rounds,
         return 0;
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT started_at,local_date FROM sessions WHERE id=?1 AND deleted_at=0",
+                          "SELECT started_at,local_date FROM sessions WHERE "
+                          "id=?1 AND deleted_at=0",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
@@ -910,21 +894,28 @@ storage_load_session(const char *path_or_id, int *round_times, int max_rounds,
     if(started_at == 0)
         return 0;
 
-    if(year) *year = local_date / 10000;
-    if(month) *month = (local_date / 100) % 100;
-    if(day) *day = local_date % 100;
+    if(year)
+        *year = local_date / 10000;
+    if(month)
+        *month = (local_date / 100) % 100;
+    if(day)
+        *day = local_date % 100;
     {
         time_t t = (time_t)started_at;
         struct tm *tm = localtime(&t);
         if(tm != NULL) {
-            if(hour) *hour = tm->tm_hour;
-            if(minute) *minute = tm->tm_min;
-            if(second) *second = tm->tm_sec;
+            if(hour)
+                *hour = tm->tm_hour;
+            if(minute)
+                *minute = tm->tm_min;
+            if(second)
+                *second = tm->tm_sec;
         }
     }
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT seconds FROM session_rounds WHERE session_id=?1 ORDER BY round_index",
+                          "SELECT seconds FROM session_rounds WHERE "
+                          "session_id=?1 ORDER BY round_index",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
@@ -942,7 +933,8 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
     int saved[MaxRounds];
     int saved_count = 0;
 
-    if(!parse_db_id(path_or_id, id, sizeof(id)) || round_times == NULL || round_count < 0 || round_count > MaxRounds)
+    if(!parse_db_id(path_or_id, id, sizeof(id)) || round_times == NULL || round_count < 0 ||
+       round_count > MaxRounds)
         return 0;
     for(int i = 0; i < round_count; i++) {
         if(round_times[i] > 0)
@@ -952,7 +944,8 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
         return storage_delete_session(path_or_id);
 
     exec_sql("BEGIN IMMEDIATE");
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         goto fail;
     bind_text(stmt, 1, id);
     sqlite3_step(stmt);
@@ -960,7 +953,8 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
     stmt = NULL;
     for(int i = 0; i < saved_count; i++) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
+                              "INSERT INTO session_rounds(session_id,round_index,seconds) "
+                              "VALUES(?1,?2,?3)",
                               -1, &stmt, NULL) != SQLITE_OK)
             goto fail;
         bind_text(stmt, 1, id);
@@ -971,7 +965,9 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
         sqlite3_finalize(stmt);
         stmt = NULL;
     }
-    if(sqlite3_prepare_v2(g_storage.db, "UPDATE sessions SET rounds_hash=?2,updated_at=?3 WHERE id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET rounds_hash=?2,updated_at=?3 WHERE id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         goto fail;
     bind_text(stmt, 1, id);
     sqlite3_bind_int64(stmt, 2, (sqlite3_int64)hash_rounds(saved, saved_count));
@@ -1000,9 +996,11 @@ storage_rename_session_time(const char *path_or_id, int hour, int minute)
     time_t t;
     struct tm *tm;
 
-    if(!parse_db_id(path_or_id, id, sizeof(id)) || hour < 0 || hour > 23 || minute < 0 || minute > 59)
+    if(!parse_db_id(path_or_id, id, sizeof(id)) || hour < 0 || hour > 23 || minute < 0 ||
+       minute > 59)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT started_at FROM sessions WHERE id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT started_at FROM sessions WHERE id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
     if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -1019,7 +1017,9 @@ storage_rename_session_time(const char *path_or_id, int hour, int minute)
     t = mktime(tm);
     if(t == (time_t)-1)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "UPDATE sessions SET started_at=?2,updated_at=?3 WHERE id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET started_at=?2,updated_at=?3 WHERE id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
     sqlite3_bind_int64(stmt, 2, (sqlite3_int64)t);
@@ -1039,7 +1039,9 @@ storage_delete_session(const char *path_or_id)
     char id[INBE_STORAGE_ID_SIZE];
     if(!parse_db_id(path_or_id, id, sizeof(id)))
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "UPDATE sessions SET deleted_at=?2,updated_at=?2 WHERE id=?1", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET deleted_at=?2,updated_at=?2 WHERE id=?1", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, id);
     sqlite3_bind_int64(stmt, 2, now_seconds());
@@ -1060,9 +1062,12 @@ storage_append_habits_json(JsonBuilder *json, long long through_seq)
     json_append(json, "\"habits\":[");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at "
+                          "SELECT "
+                          "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
+                          "enabled,sort_order,deleted_at,updated_at "
                           "FROM habits WHERE user_id=?1 AND id IN ("
-                          " SELECT entity_id FROM sync_outbox WHERE entity_type='habit' AND seq<=?2"
+                          " SELECT entity_id FROM sync_outbox WHERE entity_type='habit' AND "
+                          "seq<=?2"
                           ") ORDER BY updated_at,sort_order,id",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
@@ -1076,14 +1081,13 @@ storage_append_habits_json(JsonBuilder *json, long long through_seq)
             json_append(json, ",");
             json_append_key_string(json, "name", (const char *)sqlite3_column_text(stmt, 1));
             json_appendf(json, ",\"color_r\":%d,\"color_g\":%d,\"color_b\":%d",
-                         sqlite3_column_int(stmt, 2),
-                         sqlite3_column_int(stmt, 3),
+                         sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
                          sqlite3_column_int(stmt, 4));
-            json_appendf(json, ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":%d,\"sort_order\":%d,\"deleted_at\":%lld",
-                         sqlite3_column_int(stmt, 5),
-                         sqlite3_column_int(stmt, 6),
-                         sqlite3_column_int(stmt, 7) != 0 ? 1 : 0,
-                         sqlite3_column_int(stmt, 8),
+            json_appendf(json,
+                         ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":"
+                         "%d,\"sort_order\":%d,\"deleted_at\":%lld",
+                         sqlite3_column_int(stmt, 5), sqlite3_column_int(stmt, 6),
+                         sqlite3_column_int(stmt, 7) != 0 ? 1 : 0, sqlite3_column_int(stmt, 8),
                          sqlite3_column_int64(stmt, 9));
             json_append(json, ",\"updated_at\":");
             json_append_epoch(json, sqlite3_column_int64(stmt, 10));
@@ -1104,11 +1108,13 @@ storage_append_habit_days_json(JsonBuilder *json, long long through_seq)
     json_append(json, "\"habit_days\":[");
     if(g_storage.db != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT hd.habit_id,hd.local_date,hd.completed,hd.count,hd.updated_at "
+                          "SELECT "
+                          "hd.habit_id,hd.local_date,hd.completed,hd.count,hd.updated_at "
                           "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
                           "WHERE h.user_id=?1 AND EXISTS ("
                           " SELECT 1 FROM sync_outbox o WHERE o.entity_type='habit_day' "
-                          " AND o.entity_id=hd.habit_id AND o.local_date=hd.local_date AND o.seq<=?2"
+                          " AND o.entity_id=hd.habit_id AND o.local_date=hd.local_date AND "
+                          "o.seq<=?2"
                           ") "
                           "ORDER BY hd.updated_at,hd.habit_id,hd.local_date",
                           -1, &stmt, NULL) == SQLITE_OK) {
@@ -1167,14 +1173,16 @@ storage_append_sessions_json(JsonBuilder *json, long long through_seq)
     int first = 1;
 
     json_append(json, "\"sessions\":[");
-    if(g_storage.db != NULL &&
-       sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,started_at,local_date,topic,activity,source,rounds_hash,deleted_at,updated_at "
-                          "FROM sessions WHERE user_id=?1 AND id IN ("
-                          " SELECT entity_id FROM sync_outbox WHERE entity_type='session' AND seq<=?2"
-                          ") "
-                          "ORDER BY updated_at,started_at,id",
-                          -1, &stmt, NULL) == SQLITE_OK) {
+    if(g_storage.db != NULL && sqlite3_prepare_v2(g_storage.db,
+                                                  "SELECT "
+                                                  "id,started_at,local_date,topic,activity,source,"
+                                                  "rounds_hash,deleted_at,updated_at "
+                                                  "FROM sessions WHERE user_id=?1 AND id IN ("
+                                                  " SELECT entity_id FROM sync_outbox WHERE "
+                                                  "entity_type='session' AND seq<=?2"
+                                                  ") "
+                                                  "ORDER BY updated_at,started_at,id",
+                                                  -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         sqlite3_bind_int64(stmt, 2, through_seq);
         while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -1189,17 +1197,249 @@ storage_append_sessions_json(JsonBuilder *json, long long through_seq)
             json_append(json, ",\"started_at\":");
             json_append_epoch(json, started_at);
             json_appendf(json, ",\"local_date\":%d,\"topic\":\"%d\",\"activity\":%d,",
-                         sqlite3_column_int(stmt, 2),
-                         sqlite3_column_int(stmt, 3),
+                         sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
                          sqlite3_column_int(stmt, 4));
             json_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
             json_append(json, ",");
             json_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
-            json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":",
-                         sqlite3_column_int64(stmt, 7));
+            json_appendf(json,
+                         ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 7));
             json_append_epoch(json, updated_at > 0 ? updated_at : started_at);
             json_append(json, ",");
             storage_append_session_rounds_json(json, id);
+            json_append(json, "}");
+        }
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    json_append(json, "]");
+}
+
+static int
+storage_append_habit_payload_json(JsonBuilder *json, const char *habit_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(g_storage.db == NULL || habit_id == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT "
+                          "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
+                          "enabled,sort_order,deleted_at,updated_at "
+                          "FROM habits WHERE user_id=?1 AND id=?2",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, habit_id);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        found = 1;
+        json_append(json, "{");
+        json_append_key_string(json, "id", (const char *)sqlite3_column_text(stmt, 0));
+        json_append(json, ",");
+        json_append_key_string(json, "name", (const char *)sqlite3_column_text(stmt, 1));
+        json_appendf(json, ",\"color_r\":%d,\"color_g\":%d,\"color_b\":%d",
+                     sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
+                     sqlite3_column_int(stmt, 4));
+        json_appendf(json,
+                     ",\"sync_mode\":%d,\"sync_activity\":%d,\"counter_enabled\":%"
+                     "d,\"sort_order\":%d,\"deleted_at\":%lld",
+                     sqlite3_column_int(stmt, 5), sqlite3_column_int(stmt, 6),
+                     sqlite3_column_int(stmt, 7) != 0 ? 1 : 0, sqlite3_column_int(stmt, 8),
+                     sqlite3_column_int64(stmt, 9));
+        json_append(json, ",\"updated_at\":");
+        json_append_epoch(json, sqlite3_column_int64(stmt, 10));
+        json_append(json, "}");
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+storage_append_habit_day_payload_json(JsonBuilder *json, const char *habit_id, int local_date)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(g_storage.db == NULL || habit_id == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT "
+                          "hd.habit_id,hd.local_date,hd.completed,hd.count,hd.updated_at "
+                          "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                          "WHERE h.user_id=?1 AND hd.habit_id=?2 AND hd.local_date=?3",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, habit_id);
+    sqlite3_bind_int(stmt, 3, local_date);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        found = 1;
+        json_append(json, "{");
+        json_append_key_string(json, "habit_id", (const char *)sqlite3_column_text(stmt, 0));
+        json_appendf(json, ",\"local_date\":%d,\"completed\":%s,\"count\":%d,\"updated_at\":",
+                     sqlite3_column_int(stmt, 1),
+                     sqlite3_column_int(stmt, 2) != 0 ? "true" : "false",
+                     sqlite3_column_int(stmt, 3));
+        json_append_epoch(json, sqlite3_column_int64(stmt, 4));
+        json_append(json, "}");
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+storage_append_session_payload_json(JsonBuilder *json, const char *session_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(g_storage.db == NULL || session_id == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT "
+                          "id,started_at,local_date,topic,activity,source,"
+                          "rounds_hash,deleted_at,updated_at "
+                          "FROM sessions WHERE user_id=?1 AND id=?2",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, session_id);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *id = (const char *)sqlite3_column_text(stmt, 0);
+        long long started_at = sqlite3_column_int64(stmt, 1);
+        long long updated_at = sqlite3_column_int64(stmt, 8);
+        found = 1;
+        json_append(json, "{");
+        json_append_key_string(json, "id", id);
+        json_append(json, ",\"started_at\":");
+        json_append_epoch(json, started_at);
+        json_appendf(json, ",\"local_date\":%d,\"topic\":\"%d\",\"activity\":%d,",
+                     sqlite3_column_int(stmt, 2), sqlite3_column_int(stmt, 3),
+                     sqlite3_column_int(stmt, 4));
+        json_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
+        json_append(json, ",");
+        json_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
+        json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 7));
+        json_append_epoch(json, updated_at > 0 ? updated_at : started_at);
+        json_append(json, ",");
+        storage_append_session_rounds_json(json, id);
+        json_append(json, "}");
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+static int
+storage_sync_op_is_delete(const char *entity_type, const char *entity_id, int local_date)
+{
+    sqlite3_stmt *stmt = NULL;
+    int deleted = 0;
+
+    if(g_storage.db == NULL || entity_type == NULL || entity_id == NULL)
+        return 1;
+    if(strcmp(entity_type, "habit") == 0) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "SELECT deleted_at FROM habits WHERE user_id=?1 AND id=?2", -1, &stmt,
+                              NULL) != SQLITE_OK)
+            return 0;
+        bind_text(stmt, 1, g_storage.user_id);
+        bind_text(stmt, 2, entity_id);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            deleted = sqlite3_column_int64(stmt, 0) > 0;
+        else
+            deleted = 1;
+    } else if(strcmp(entity_type, "session") == 0) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "SELECT deleted_at FROM sessions WHERE user_id=?1 AND id=?2", -1,
+                              &stmt, NULL) != SQLITE_OK)
+            return 0;
+        bind_text(stmt, 1, g_storage.user_id);
+        bind_text(stmt, 2, entity_id);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            deleted = sqlite3_column_int64(stmt, 0) > 0;
+        else
+            deleted = 1;
+    } else if(strcmp(entity_type, "habit_day") == 0) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "SELECT completed,count FROM habit_days WHERE "
+                              "habit_id=?1 AND local_date=?2",
+                              -1, &stmt, NULL) != SQLITE_OK)
+            return 0;
+        bind_text(stmt, 1, entity_id);
+        sqlite3_bind_int(stmt, 2, local_date);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            deleted = sqlite3_column_int(stmt, 0) == 0 && sqlite3_column_int(stmt, 1) == 0;
+        else
+            deleted = 1;
+    }
+    sqlite3_finalize(stmt);
+    return deleted;
+}
+
+static void
+storage_append_sync_op_payload(JsonBuilder *json, const char *entity_type, const char *entity_id,
+                               int local_date)
+{
+    int found = 0;
+
+    if(strcmp(entity_type, "habit") == 0)
+        found = storage_append_habit_payload_json(json, entity_id);
+    else if(strcmp(entity_type, "habit_day") == 0)
+        found = storage_append_habit_day_payload_json(json, entity_id, local_date);
+    else if(strcmp(entity_type, "session") == 0)
+        found = storage_append_session_payload_json(json, entity_id);
+    if(!found)
+        json_append(json, "{}");
+}
+
+static void
+storage_append_sync_ops_json(JsonBuilder *json, long long through_seq)
+{
+    sqlite3_stmt *stmt = NULL;
+    const char *client_id = storage_sync_client_id();
+    int first = 1;
+
+    json_append(json, "\"ops\":[");
+    if(g_storage.db != NULL &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT seq,entity_type,entity_id,local_date,queued_at "
+                          "FROM sync_outbox WHERE seq<=?1 ORDER BY seq",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_int64(stmt, 1, through_seq);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            long long seq = sqlite3_column_int64(stmt, 0);
+            const char *entity_type = (const char *)sqlite3_column_text(stmt, 1);
+            const char *entity_id = (const char *)sqlite3_column_text(stmt, 2);
+            int local_date = sqlite3_column_int(stmt, 3);
+            long long queued_at = sqlite3_column_int64(stmt, 4);
+            int is_delete = storage_sync_op_is_delete(entity_type, entity_id, local_date);
+            char op_id[160];
+
+            if(entity_type == NULL || entity_id == NULL || entity_id[0] == '\0')
+                continue;
+            snprintf(op_id, sizeof(op_id), "%s:%lld", client_id, seq);
+            if(!first)
+                json_append(json, ",");
+            first = 0;
+            json_append(json, "{");
+            json_append(json, "\"op_id\":");
+            json_append_string(json, op_id);
+            json_append(json, ",\"client_id\":");
+            json_append_string(json, client_id);
+            json_appendf(json, ",\"seq\":%lld", seq);
+            json_append(json, ",\"entity_type\":");
+            json_append_string(json, entity_type);
+            json_append(json, ",\"entity_id\":");
+            json_append_string(json, entity_id);
+            if(local_date > 0)
+                json_appendf(json, ",\"local_date\":%d", local_date);
+            json_append(json, ",\"op_type\":");
+            json_append_string(json, is_delete ? "delete" : "upsert");
+            json_append(json, ",\"payload\":");
+            storage_append_sync_op_payload(json, entity_type, entity_id, local_date);
+            json_append(json, ",\"created_at\":");
+            json_append_epoch(json, queued_at);
             json_append(json, "}");
         }
     }
@@ -1226,17 +1466,18 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         storage_enqueue_all_sync_state();
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
-    if(!get_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0) ||
-       storage_has_orphan_habit_days())
+    if(!get_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0) || storage_has_orphan_habit_days())
         since_server_version = 0;
     through_seq = storage_max_sync_outbox_seq();
     g_storage.pending_sync_outbox_seq = through_seq;
     json.ok = 1;
     json_append(&json, "{");
+    json_append(&json, "\"protocol_version\":2,");
     json_append_key_string(&json, "user_id_hash", user_id_hash);
     json_append(&json, ",");
     json_append_key_string(&json, "client_id", storage_sync_client_id());
     json_appendf(&json, ",\"since_server_version\":%lld", since_server_version);
+    json_appendf(&json, ",\"client_clock\":%lld", get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0));
     if(get_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0) != 0)
         json_append(&json, ",\"full_sync_requested\":true");
     {
@@ -1258,6 +1499,8 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     storage_append_habit_days_json(&json, through_seq);
     json_append(&json, ",");
     storage_append_sessions_json(&json, through_seq);
+    json_append(&json, ",");
+    storage_append_sync_ops_json(&json, through_seq);
     json_append(&json, "}");
 
     if(!json.ok || json.data == NULL) {
@@ -1265,9 +1508,9 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         return NULL;
     }
     TraceLog(LOG_INFO,
-             "SYNC: payload since=%lld bootstrap=%d outbox_through=%lld habits=%d habit_days=%d sessions=%d",
-             since_server_version, since_server_version <= 0 || !full_upload_done,
-             through_seq,
+             "SYNC: payload since=%lld bootstrap=%d outbox_through=%lld "
+             "habits=%d habit_days=%d sessions=%d",
+             since_server_version, since_server_version <= 0 || !full_upload_done, through_seq,
              storage_json_array_count(json.data, "$.habits"),
              storage_json_array_count(json.data, "$.habit_days"),
              storage_json_array_count(json.data, "$.sessions"));
@@ -1305,7 +1548,8 @@ storage_json_extract_int64(const char *json, const char *path, long long fallbac
 
     if(g_storage.db == NULL || json == NULL || path == NULL)
         return fallback;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT CAST(COALESCE(json_extract(?1,?2),?3) AS INTEGER)", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT CAST(COALESCE(json_extract(?1,?2),?3) AS INTEGER)",
+                          -1, &stmt, NULL) != SQLITE_OK)
         return fallback;
     bind_text(stmt, 1, json);
     bind_text(stmt, 2, path);
@@ -1328,7 +1572,8 @@ storage_json_extract_text(const char *json, const char *path, char *out, size_t 
     out[0] = '\0';
     if(g_storage.db == NULL || json == NULL || path == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(json_extract(?1,?2),'')", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(json_extract(?1,?2),'')", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, json);
     bind_text(stmt, 2, path);
@@ -1351,8 +1596,8 @@ storage_max_sync_outbox_seq(void)
 
     if(g_storage.db == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(MAX(seq),0) FROM sync_outbox", -1,
-                          &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(MAX(seq),0) FROM sync_outbox", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         seq = sqlite3_column_int64(stmt, 0);
@@ -1387,9 +1632,8 @@ storage_has_sync_account(void)
     const char *public_key = storage_get_setting_text(STORAGE_SYNC_PUBLIC_KEY_KEY);
     const char *private_key = storage_get_setting_text(STORAGE_SYNC_PRIVATE_KEY_KEY);
 
-    return public_id != NULL && public_id[0] != '\0' &&
-           public_key != NULL && public_key[0] != '\0' &&
-           private_key != NULL && private_key[0] != '\0';
+    return public_id != NULL && public_id[0] != '\0' && public_key != NULL &&
+           public_key[0] != '\0' && private_key != NULL && private_key[0] != '\0';
 }
 
 static void
@@ -1399,8 +1643,8 @@ storage_clear_uploaded_outbox(long long through_seq)
 
     if(g_storage.db == NULL || through_seq <= 0)
         return;
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM sync_outbox WHERE seq<=?1", -1,
-                          &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM sync_outbox WHERE seq<=?1", -1, &stmt, NULL) !=
+       SQLITE_OK)
         return;
     sqlite3_bind_int64(stmt, 1, through_seq);
     sqlite3_step(stmt);
@@ -1421,8 +1665,7 @@ storage_json_array_count(const char *json, const char *path)
 
     if(g_storage.db == NULL || json == NULL || path == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COALESCE(json_array_length(json_extract(?1,?2)),0)",
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COALESCE(json_array_length(json_extract(?1,?2)),0)",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, json);
@@ -1499,29 +1742,31 @@ storage_merge_habit_into(const char *keeper_id, const char *duplicate_id)
     sqlite3_stmt *stmt = NULL;
     static const char *const sqls[] = {
         "UPDATE habit_days "
-        "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM habit_days d "
+        "SET completed=MAX(completed,COALESCE((SELECT d.completed FROM "
+        "habit_days d "
         "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
         " count=MAX(count,COALESCE((SELECT d.count FROM habit_days d "
         "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
-        " session_count=MAX(session_count,COALESCE((SELECT d.session_count FROM habit_days d "
+        " session_count=MAX(session_count,COALESCE((SELECT d.session_count FROM "
+        "habit_days d "
         "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)),"
-        " updated_at=MAX(updated_at,COALESCE((SELECT d.updated_at FROM habit_days d "
+        " updated_at=MAX(updated_at,COALESCE((SELECT d.updated_at FROM "
+        "habit_days d "
         "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date),0)) "
         "WHERE habit_id=?1 AND EXISTS (SELECT 1 FROM habit_days d "
         "    WHERE d.habit_id=?2 AND d.local_date=habit_days.local_date)",
-        "INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,updated_at) "
+        "INSERT INTO "
+        "habit_days(habit_id,local_date,completed,count,session_count,updated_at)"
+        " "
         "SELECT ?1,d.local_date,d.completed,d.count,d.session_count,d.updated_at "
         "FROM habit_days d WHERE d.habit_id=?2 "
         "AND NOT EXISTS (SELECT 1 FROM habit_days k "
         "    WHERE k.habit_id=?1 AND k.local_date=d.local_date)",
-        "DELETE FROM habit_days WHERE habit_id=?2",
-        "DELETE FROM habits WHERE id=?2"
-    };
+        "DELETE FROM habit_days WHERE habit_id=?2", "DELETE FROM habits WHERE id=?2"};
     int ok = 1;
 
-    if(keeper_id == NULL || duplicate_id == NULL ||
-       keeper_id[0] == '\0' || duplicate_id[0] == '\0' ||
-       strcmp(keeper_id, duplicate_id) == 0)
+    if(keeper_id == NULL || duplicate_id == NULL || keeper_id[0] == '\0' ||
+       duplicate_id[0] == '\0' || strcmp(keeper_id, duplicate_id) == 0)
         return 1;
 
     for(size_t i = 0; i < sizeof(sqls) / sizeof(sqls[0]); i++) {
@@ -1558,8 +1803,7 @@ storage_merge_duplicate_habit_names(void)
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
-    while(count < (int)(sizeof(rows) / sizeof(rows[0])) &&
-          sqlite3_step(stmt) == SQLITE_ROW) {
+    while(count < (int)(sizeof(rows) / sizeof(rows[0])) && sqlite3_step(stmt) == SQLITE_ROW) {
         const char *id = (const char *)sqlite3_column_text(stmt, 0);
         const char *name = (const char *)sqlite3_column_text(stmt, 1);
 
@@ -1591,26 +1835,35 @@ int
 storage_apply_sync_response_json(const char *response_json)
 {
     static const char *habits_sql =
-        "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+        "INSERT INTO "
+        "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,"
+        "counter_enabled,sort_order,deleted_at,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
         "       COALESCE(json_extract(value,'$.name'),''),"
         "       CAST(COALESCE(json_extract(value,'$.color_r'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.color_g'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.color_b'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.sync_mode'),0) AS INTEGER),"
-        "       CAST(COALESCE(json_extract(value,'$.sync_activity'),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.sync_activity'),0) AS "
+        "INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.counter_enabled'),"
-        "                     (SELECT counter_enabled FROM habits WHERE id=COALESCE(json_extract(value,'$.id'),'')),"
+        "                     (SELECT counter_enabled FROM habits WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')),"
         "                     0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.sort_order'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER),"
-        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS INTEGER) "
+        "       "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS "
+        "INTEGER) "
         "FROM json_each(?1,'$.changes.habits') "
         "WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
         "ON CONFLICT(id) DO UPDATE SET "
-        " user_id=excluded.user_id,name=excluded.name,color_r=excluded.color_r,color_g=excluded.color_g,"
-        " color_b=excluded.color_b,sync_mode=excluded.sync_mode,sync_activity=excluded.sync_activity,"
-        " counter_enabled=excluded.counter_enabled,sort_order=excluded.sort_order,deleted_at=excluded.deleted_at,"
+        " user_id=excluded.user_id,name=excluded.name,color_r=excluded.color_r,"
+        "color_g=excluded.color_g,"
+        " color_b=excluded.color_b,sync_mode=excluded.sync_mode,sync_activity="
+        "excluded.sync_activity,"
+        " counter_enabled=excluded.counter_enabled,sort_order=excluded.sort_"
+        "order,deleted_at=excluded.deleted_at,"
         " updated_at=excluded.updated_at "
         "WHERE excluded.updated_at > habits.updated_at "
         "OR (excluded.updated_at = habits.updated_at AND NOT EXISTS ("
@@ -1622,13 +1875,17 @@ storage_apply_sync_response_json(const char *response_json)
         "SELECT COALESCE(json_extract(value,'$.habit_id'),''),"
         "       CAST(COALESCE(json_extract(value,'$.local_date'),0) AS INTEGER),"
         "       CASE WHEN json_extract(value,'$.completed') THEN 1 ELSE 0 END,"
-        "       CAST(COALESCE(json_extract(value,'$.count'),CASE WHEN json_extract(value,'$.completed') THEN 1 ELSE 0 END) AS INTEGER),"
-        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS INTEGER) "
+        "       CAST(COALESCE(json_extract(value,'$.count'),CASE WHEN "
+        "json_extract(value,'$.completed') THEN 1 ELSE 0 END) AS INTEGER),"
+        "       "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS "
+        "INTEGER) "
         "FROM json_each(?1,'$.changes.habit_days') "
         "WHERE COALESCE(json_extract(value,'$.habit_id'),'')<>'' "
         "  AND CAST(COALESCE(json_extract(value,'$.local_date'),0) AS INTEGER)>0 "
         "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
-        " completed=excluded.completed,count=excluded.count,updated_at=excluded.updated_at "
+        " completed=excluded.completed,count=excluded.count,updated_at=excluded."
+        "updated_at "
         "WHERE excluded.updated_at > habit_days.updated_at "
         "OR (excluded.updated_at = habit_days.updated_at AND NOT EXISTS ("
         "     SELECT 1 FROM sync_outbox "
@@ -1636,23 +1893,33 @@ storage_apply_sync_response_json(const char *response_json)
         "       AND local_date=habit_days.local_date"
         "    ))";
     static const char *sessions_sql =
-        "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,deleted_at,updated_at) "
+        "INSERT INTO "
+        "sessions(id,user_id,started_at,local_date,topic,activity,source,"
+        "imported_at,rounds_hash,deleted_at,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
-        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER),"
+        "       "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.started_at')),'0') AS "
+        "INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.local_date'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.topic'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.activity'),0) AS INTEGER),"
         "       COALESCE(json_extract(value,'$.source'),''),"
-        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER),"
+        "       "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
+        "strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.rounds_hash'),0) AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER),"
-        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
+        "       "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
+        "strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
         "FROM json_each(?1,'$.changes.sessions') "
         "WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
         "ON CONFLICT(id) DO UPDATE SET "
-        " user_id=excluded.user_id,started_at=excluded.started_at,local_date=excluded.local_date,"
+        " user_id=excluded.user_id,started_at=excluded.started_at,local_date="
+        "excluded.local_date,"
         " topic=excluded.topic,activity=excluded.activity,source=excluded.source,"
-        " imported_at=excluded.imported_at,rounds_hash=excluded.rounds_hash,deleted_at=excluded.deleted_at,"
+        " imported_at=excluded.imported_at,rounds_hash=excluded.rounds_hash,"
+        "deleted_at=excluded.deleted_at,"
         " updated_at=excluded.updated_at "
         "WHERE excluded.updated_at > sessions.updated_at "
         "OR (excluded.updated_at = sessions.updated_at AND NOT EXISTS ("
@@ -1665,29 +1932,48 @@ storage_apply_sync_response_json(const char *response_json)
         " FROM json_each(?1,'$.changes.sessions') "
         " WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
         " AND ("
-        "       NOT EXISTS (SELECT 1 FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')) "
-        "       OR CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
-        "          > COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')),0) "
-        "       OR (CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
-        "           = COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(value,'$.id'),'')),0) "
+        "       NOT EXISTS (SELECT 1 FROM sessions WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')) "
+        "       OR "
+        "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
+        "strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
+        "          > COALESCE((SELECT updated_at FROM sessions WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')),0) "
+        "       OR "
+        "(CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
+        "strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER) "
+        "           = COALESCE((SELECT updated_at FROM sessions WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')),0) "
         "           AND NOT EXISTS (SELECT 1 FROM sync_outbox "
-        "               WHERE entity_type='session' AND entity_id=COALESCE(json_extract(value,'$.id'),'') AND local_date=0))"
+        "               WHERE entity_type='session' AND "
+        "entity_id=COALESCE(json_extract(value,'$.id'),'') AND local_date=0))"
         " )"
         ")";
     static const char *rounds_sql =
         "INSERT OR REPLACE INTO session_rounds(session_id,round_index,seconds) "
         "SELECT COALESCE(json_extract(s.value,'$.id'),''),"
-        "       CAST(COALESCE(json_extract(r.value,'$.round_index'),0) AS INTEGER),"
-        "       CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) "
-        "FROM json_each(?1,'$.changes.sessions') AS s, json_each(s.value,'$.rounds') AS r "
+        "       CAST(COALESCE(json_extract(r.value,'$.round_index'),0) AS "
+        "INTEGER),"
+        "       CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS "
+        "INTEGER) "
+        "FROM json_each(?1,'$.changes.sessions') AS s, "
+        "json_each(s.value,'$.rounds') AS r "
         "WHERE COALESCE(json_extract(s.value,'$.id'),'')<>'' "
-        "AND (CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
-        "       > COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
-        "OR (CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
-        "       = COALESCE((SELECT updated_at FROM sessions WHERE id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
+        "AND "
+        "(CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),"
+        "strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
+        "       > COALESCE((SELECT updated_at FROM sessions WHERE "
+        "id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
+        "OR "
+        "(CAST(COALESCE(strftime('%s',json_extract(s.value,'$.updated_at')),"
+        "strftime('%s',json_extract(s.value,'$.started_at')),'0') AS INTEGER) "
+        "       = COALESCE((SELECT updated_at FROM sessions WHERE "
+        "id=COALESCE(json_extract(s.value,'$.id'),'')),0) "
         "    AND NOT EXISTS (SELECT 1 FROM sync_outbox "
-        "        WHERE entity_type='session' AND entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
+        "        WHERE entity_type='session' AND "
+        "entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
     long long server_version;
+    long long server_clock;
     long long old_server_version;
     char server_hash[80];
     char account_alias[40];
@@ -1699,7 +1985,8 @@ storage_apply_sync_response_json(const char *response_json)
     g_storage.last_sync_changed = 0;
     if(!storage_json_valid(response_json))
         return 0;
-    if(storage_json_extract_text(response_json, "$.account_alias", account_alias, sizeof(account_alias)))
+    if(storage_json_extract_text(response_json, "$.account_alias", account_alias,
+                                 sizeof(account_alias)))
         storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
@@ -1708,6 +1995,10 @@ storage_apply_sync_response_json(const char *response_json)
             int ok;
             if(copy == NULL)
                 return 0;
+            if(!storage_clear_local_sync_data()) {
+                free(copy);
+                return 0;
+            }
             set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
             ok = storage_apply_sync_response_json(copy);
             free(copy);
@@ -1739,8 +2030,10 @@ storage_apply_sync_response_json(const char *response_json)
     }
     storage_materialize_session_habit_days();
     server_version = storage_json_extract_int64(response_json, "$.server_version", 0);
+    server_clock = storage_json_extract_int64(response_json, "$.server_clock", 0);
     TraceLog(LOG_INFO,
-             "SYNC: response server_version=%lld old_server_version=%lld habits=%d habit_days=%d sessions=%d",
+             "SYNC: response server_version=%lld old_server_version=%lld "
+             "habits=%d habit_days=%d sessions=%d",
              server_version, old_server_version,
              storage_json_array_count(response_json, "$.changes.habits"),
              storage_json_array_count(response_json, "$.changes.habit_days"),
@@ -1749,7 +2042,10 @@ storage_apply_sync_response_json(const char *response_json)
         g_storage.last_sync_changed = 1;
     if(server_version > 0)
         set_meta_int64("sync_last_server_version", server_version);
-    if(storage_json_extract_text(response_json, "$.server_state_hash", server_hash, sizeof(server_hash)))
+    if(server_clock > 0)
+        set_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, server_clock);
+    if(storage_json_extract_text(response_json, "$.server_state_hash", server_hash,
+                                 sizeof(server_hash)))
         set_meta(STORAGE_SYNC_LAST_SERVER_HASH_KEY, server_hash);
     set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
     storage_sync_review_delete_json();
@@ -1762,6 +2058,30 @@ storage_apply_sync_response_json(const char *response_json)
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();
+    return 1;
+}
+
+static int
+storage_clear_local_sync_data(void)
+{
+    static const char *const sqls[] = {"DELETE FROM session_rounds", "DELETE FROM sessions",
+                                       "DELETE FROM habit_days", "DELETE FROM habits",
+                                       "DELETE FROM sync_outbox"};
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(!exec_sql("BEGIN IMMEDIATE"))
+        return 0;
+    for(size_t i = 0; i < sizeof(sqls) / sizeof(sqls[0]); i++) {
+        if(!exec_sql(sqls[i])) {
+            exec_sql("ROLLBACK");
+            return 0;
+        }
+    }
+    if(!exec_sql("COMMIT")) {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
     return 1;
 }
 
@@ -1780,12 +2100,14 @@ storage_purge_synced_deleted_data(void)
         " (SELECT entity_id FROM sync_outbox WHERE entity_type='session'))",
         "DELETE FROM sessions WHERE deleted_at>0 AND id NOT IN "
         "(SELECT entity_id FROM sync_outbox WHERE entity_type='session')",
-        "DELETE FROM habit_days WHERE completed=0 AND count=0 AND session_count=0 "
-        "AND NOT EXISTS (SELECT 1 FROM sync_outbox o WHERE o.entity_type='habit_day' "
-        "AND o.entity_id=habit_days.habit_id AND o.local_date=habit_days.local_date)",
+        "DELETE FROM habit_days WHERE completed=0 AND count=0 AND "
+        "session_count=0 "
+        "AND NOT EXISTS (SELECT 1 FROM sync_outbox o WHERE "
+        "o.entity_type='habit_day' "
+        "AND o.entity_id=habit_days.habit_id AND "
+        "o.local_date=habit_days.local_date)",
         "DELETE FROM habits WHERE deleted_at>0 AND id NOT IN "
-        "(SELECT entity_id FROM sync_outbox WHERE entity_type='habit')"
-    };
+        "(SELECT entity_id FROM sync_outbox WHERE entity_type='habit')"};
 
     if(g_storage.db == NULL || get_meta_int64("sync_full_upload_done", 0) == 0)
         return;
@@ -1810,7 +2132,8 @@ storage_list_session_records(InbeStorageSessionRecordCallback callback, void *us
     if(callback == NULL || g_storage.db == NULL)
         return;
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,started_at,local_date,topic,activity FROM sessions WHERE deleted_at=0 ORDER BY started_at DESC LIMIT 48",
+                          "SELECT id,started_at,local_date,topic,activity FROM sessions WHERE "
+                          "deleted_at=0 ORDER BY started_at DESC LIMIT 48",
                           -1, &stmt, NULL) != SQLITE_OK)
         return;
     while(sqlite3_step(stmt) == SQLITE_ROW) {
@@ -1855,8 +2178,8 @@ storage_has_any(void)
     if(count > 0)
         return 1;
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0",
-                          -1, &stmt, NULL) != SQLITE_OK)
+                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", -1,
+                          &stmt, NULL) != SQLITE_OK)
         return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         count = sqlite3_column_int(stmt, 0);
@@ -1871,7 +2194,8 @@ storage_session_count(void)
     int count = 0;
     if(g_storage.db == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM sessions WHERE deleted_at=0", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM sessions WHERE deleted_at=0", -1,
+                          &stmt, NULL) != SQLITE_OK)
         return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         count = sqlite3_column_int(stmt, 0);
@@ -1904,8 +2228,8 @@ storage_delete_all_sessions(void)
         return 0;
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0",
-                          -1, &stmt, NULL) == SQLITE_OK) {
+                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", -1,
+                          &stmt, NULL) == SQLITE_OK) {
         if(sqlite3_step(stmt) == SQLITE_ROW)
             habit_day_count = sqlite3_column_int(stmt, 0);
         sqlite3_finalize(stmt);
@@ -1917,10 +2241,12 @@ storage_delete_all_sessions(void)
         if(!exec_sql("BEGIN IMMEDIATE"))
             return 0;
         if(!exec_sql("DELETE FROM session_rounds WHERE session_id IN "
-                     "(SELECT id FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1));"
+                     "(SELECT id FROM sessions WHERE user_id=(SELECT id FROM users "
+                     "LIMIT 1));"
                      "DELETE FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1);"
                      "DELETE FROM habit_days WHERE habit_id IN "
-                     "(SELECT id FROM habits WHERE user_id=(SELECT id FROM users LIMIT 1));"
+                     "(SELECT id FROM habits WHERE user_id=(SELECT id FROM users LIMIT "
+                     "1));"
                      "DELETE FROM habits WHERE user_id=(SELECT id FROM users LIMIT 1);"
                      "DELETE FROM sync_outbox;")) {
             exec_sql("ROLLBACK");
@@ -1941,8 +2267,7 @@ storage_delete_all_sessions(void)
 
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id FROM sessions WHERE user_id=?1 AND deleted_at=0",
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT id FROM sessions WHERE user_id=?1 AND deleted_at=0",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -1962,8 +2287,7 @@ storage_delete_all_sessions(void)
         sqlite3_finalize(stmt);
         stmt = NULL;
     }
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id FROM habits WHERE user_id=?1 AND deleted_at=0",
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT id FROM habits WHERE user_id=?1 AND deleted_at=0",
                           -1, &stmt, NULL) == SQLITE_OK) {
         bind_text(stmt, 1, g_storage.user_id);
         while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -1985,7 +2309,8 @@ storage_delete_all_sessions(void)
     stmt = NULL;
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "UPDATE habit_days SET completed=0,count=0,session_count=0,updated_at=?1 "
+                          "UPDATE habit_days SET "
+                          "completed=0,count=0,session_count=0,updated_at=?1 "
                           "WHERE habit_id IN (SELECT id FROM habits WHERE user_id=?2) "
                           "  AND (completed!=0 OR count>0 OR session_count>0)",
                           -1, &stmt, NULL) != SQLITE_OK)
@@ -2038,7 +2363,8 @@ storage_habit_count(void)
     int count = 0;
     if(g_storage.db == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habits WHERE deleted_at=0", -1, &stmt, NULL) != SQLITE_OK)
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM habits WHERE deleted_at=0", -1, &stmt,
+                          NULL) != SQLITE_OK)
         return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         count = sqlite3_column_int(stmt, 0);
@@ -2058,7 +2384,9 @@ storage_habits_load(void *habits_ptr)
     habits_free(habits);
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled "
+                          "SELECT "
+                          "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
+                          "enabled "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 10",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
@@ -2066,7 +2394,8 @@ storage_habits_load(void *habits_ptr)
         InbeHabit *habit = &habits->items[index];
         snprintf(habit->id, sizeof(habit->id), "%s", (const char *)sqlite3_column_text(stmt, 0));
         snprintf(habits->loaded_ids[index], sizeof(habits->loaded_ids[index]), "%s", habit->id);
-        snprintf(habit->name, sizeof(habit->name), "%s", (const char *)sqlite3_column_text(stmt, 1));
+        snprintf(habit->name, sizeof(habit->name), "%s",
+                 (const char *)sqlite3_column_text(stmt, 1));
         habit->color = (Color){(unsigned char)sqlite3_column_int(stmt, 2),
                                (unsigned char)sqlite3_column_int(stmt, 3),
                                (unsigned char)sqlite3_column_int(stmt, 4), 255};
@@ -2081,7 +2410,8 @@ storage_habits_load(void *habits_ptr)
 
     for(int i = 0; i < habits->count; i++) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "SELECT local_date,completed,count FROM habit_days WHERE habit_id=?1 ORDER BY local_date",
+                              "SELECT local_date,completed,count FROM habit_days "
+                              "WHERE habit_id=?1 ORDER BY local_date",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habits->items[i].id);
@@ -2094,8 +2424,7 @@ storage_habits_load(void *habits_ptr)
             habits->items[i].days[d].day_index = sqlite3_column_int(stmt, 0);
             habits->items[i].days[d].completed = sqlite3_column_int(stmt, 1) != 0;
             habits->items[i].days[d].count = sqlite3_column_int(stmt, 2);
-            if(habits->items[i].days[d].count <= 0 &&
-               habits->items[i].days[d].completed)
+            if(habits->items[i].days[d].count <= 0 && habits->items[i].days[d].completed)
                 habits->items[i].days[d].count = 1;
         }
         sqlite3_finalize(stmt);
@@ -2129,8 +2458,8 @@ storage_habits_save(const void *habits_ptr)
         if(habits->loaded_ids[i][0] == '\0')
             continue;
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT OR IGNORE INTO sync_loaded_habits(id) VALUES(?1)",
-                              -1, &stmt, NULL) != SQLITE_OK)
+                              "INSERT OR IGNORE INTO sync_loaded_habits(id) VALUES(?1)", -1, &stmt,
+                              NULL) != SQLITE_OK)
             continue;
         bind_text(stmt, 1, habits->loaded_ids[i]);
         sqlite3_step(stmt);
@@ -2140,7 +2469,9 @@ storage_habits_save(const void *habits_ptr)
     for(int i = 0; i < habits->count; i++) {
         const InbeHabit *habit = &habits->items[i];
         if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                              "INSERT INTO "
+                              "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_"
+                              "activity,counter_enabled,sort_order,deleted_at,updated_at) "
                               "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0,?11) "
                               "ON CONFLICT(id) DO UPDATE SET "
                               "user_id=excluded.user_id,"
@@ -2154,10 +2485,15 @@ storage_habits_save(const void *habits_ptr)
                               "sort_order=excluded.sort_order,"
                               "deleted_at=0,"
                               "updated_at=excluded.updated_at "
-                              "WHERE habits.user_id<>excluded.user_id OR habits.name<>excluded.name OR "
-                              "habits.color_r<>excluded.color_r OR habits.color_g<>excluded.color_g OR habits.color_b<>excluded.color_b OR "
-                              "habits.sync_mode<>excluded.sync_mode OR habits.sync_activity<>excluded.sync_activity OR "
-                              "habits.counter_enabled<>excluded.counter_enabled OR habits.sort_order<>excluded.sort_order OR "
+                              "WHERE habits.user_id<>excluded.user_id OR "
+                              "habits.name<>excluded.name OR "
+                              "habits.color_r<>excluded.color_r OR "
+                              "habits.color_g<>excluded.color_g OR "
+                              "habits.color_b<>excluded.color_b OR "
+                              "habits.sync_mode<>excluded.sync_mode OR "
+                              "habits.sync_activity<>excluded.sync_activity OR "
+                              "habits.counter_enabled<>excluded.counter_enabled OR "
+                              "habits.sort_order<>excluded.sort_order OR "
                               "habits.deleted_at<>0",
                               -1, &stmt, NULL) != SQLITE_OK)
             continue;
@@ -2176,8 +2512,7 @@ storage_habits_save(const void *habits_ptr)
             storage_enqueue_sync_habit(habit->id);
         sqlite3_finalize(stmt);
         stmt = NULL;
-        if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT OR IGNORE INTO sync_seen_habits(id) VALUES(?1)",
+        if(sqlite3_prepare_v2(g_storage.db, "INSERT OR IGNORE INTO sync_seen_habits(id) VALUES(?1)",
                               -1, &stmt, NULL) == SQLITE_OK) {
             bind_text(stmt, 1, habit->id);
             sqlite3_step(stmt);
@@ -2186,21 +2521,23 @@ storage_habits_save(const void *habits_ptr)
         }
         for(int d = 0; d < habit->day_count; d++) {
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) VALUES(?1,?2,?3,?4,?5) "
+                                  "INSERT INTO "
+                                  "habit_days(habit_id,local_date,completed,count,updated_at) "
+                                  "VALUES(?1,?2,?3,?4,?5) "
                                   "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
                                   "completed=excluded.completed,"
                                   "count=excluded.count,"
-                                  "updated_at=CASE WHEN habit_days.completed<>excluded.completed OR habit_days.count<>excluded.count "
+                                  "updated_at=CASE WHEN habit_days.completed<>excluded.completed "
+                                  "OR habit_days.count<>excluded.count "
                                   "THEN excluded.updated_at ELSE habit_days.updated_at END",
                                   -1, &stmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(stmt, 1, habit->id);
             sqlite3_bind_int(stmt, 2, habit->days[d].day_index);
-            sqlite3_bind_int(stmt, 3, habit->days[d].count > 0 ||
-                                      habit->days[d].completed ? 1 : 0);
-            sqlite3_bind_int(stmt, 4, habit->days[d].count > 0
-                                      ? habit->days[d].count
-                                      : (habit->days[d].completed ? 1 : 0));
+            sqlite3_bind_int(stmt, 3, habit->days[d].count > 0 || habit->days[d].completed ? 1 : 0);
+            sqlite3_bind_int(stmt, 4,
+                             habit->days[d].count > 0 ? habit->days[d].count
+                                                      : (habit->days[d].completed ? 1 : 0));
             sqlite3_bind_int64(stmt, 5, changed_at);
             sqlite3_step(stmt);
             sqlite3_finalize(stmt);
@@ -2226,7 +2563,8 @@ storage_habits_save(const void *habits_ptr)
         for(int i = 0; i < deleted_count; i++) {
             if(sqlite3_prepare_v2(g_storage.db,
                                   "SELECT local_date FROM habit_days "
-                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 "
+                                  "OR session_count>0)",
                                   -1, &stmt, NULL) == SQLITE_OK) {
                 bind_text(stmt, 1, deleted_ids[i]);
                 while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -2235,8 +2573,10 @@ storage_habits_save(const void *habits_ptr)
                 stmt = NULL;
             }
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "UPDATE habit_days SET completed=0,count=0,session_count=0,updated_at=?2 "
-                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR session_count>0)",
+                                  "UPDATE habit_days SET "
+                                  "completed=0,count=0,session_count=0,updated_at=?2 "
+                                  "WHERE habit_id=?1 AND (completed!=0 OR count>0 OR "
+                                  "session_count>0)",
                                   -1, &stmt, NULL) == SQLITE_OK) {
                 bind_text(stmt, 1, deleted_ids[i]);
                 sqlite3_bind_int64(stmt, 2, changed_at);
@@ -2245,8 +2585,8 @@ storage_habits_save(const void *habits_ptr)
                 stmt = NULL;
             }
             if(sqlite3_prepare_v2(g_storage.db,
-                                  "UPDATE habits SET deleted_at=?2,updated_at=?2 WHERE id=?1",
-                                  -1, &stmt, NULL) != SQLITE_OK)
+                                  "UPDATE habits SET deleted_at=?2,updated_at=?2 WHERE id=?1", -1,
+                                  &stmt, NULL) != SQLITE_OK)
                 continue;
             bind_text(stmt, 1, deleted_ids[i]);
             sqlite3_bind_int64(stmt, 2, changed_at);

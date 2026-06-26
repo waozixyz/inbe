@@ -1,4 +1,11 @@
 # Changelog
+## [1.6.0] - 2026-06-26
+### Added
+- Sun Salutation practice with Yoga habit sync support.
+
+### Changed
+- Improve sync reliability and review handling.
+
 ## [1.5.9] - 2026-06-26
 ### Fixed
 - Android session notification and wakelock for screen-locked playback

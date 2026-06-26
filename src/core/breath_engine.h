@@ -34,6 +34,7 @@ enum {
 	InbeScreenSession,
     InbeScreenPracticeSession = InbeScreenSession,
     InbeScreenMeditation,
+    InbeScreenSunSalutation,
 	InbeScreenResults,
 	InbeScreenSettings,
     InbeScreenPracticeConfig,

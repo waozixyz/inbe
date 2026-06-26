@@ -187,6 +187,7 @@ save_settings(InbeApp *app)
         {"show_session_volume_control", app->show_session_volume_control ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
+        {"sun_salutation_repetitions", app->sun_salutation.repetitions},
         {"meditation_music_enabled", app->meditation.music_enabled ? 1 : 0},
         {"meditation_music_shuffle", app->meditation.music_shuffle ? 1 : 0},
         {"meditation_music_track", app->meditation.music_track},
@@ -315,6 +316,8 @@ app_load_settings(InbeApp *app)
              HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH},
             {&app->exercise_type, "exercise_type", EXERCISE_WIM_HOF,
              EXERCISE_WIM_HOF, EXERCISE_COUNT - 1},
+            {&app->sun_salutation.repetitions, "sun_salutation_repetitions", 3,
+             2, 12},
             {&app->meditation.music_track, "meditation_music_track", 0,
              0, MEDITATION_MUSIC_TRACK_COUNT - 1},
             {&app->practice_category_tab, "practice_category_tab", PRACTICE_CATEGORY_MIND,
@@ -339,14 +342,10 @@ app_load_settings(InbeApp *app)
         app->theme_mode = APP_THEME_DARK;
     }
 
-#if ANDROID_BUILD || defined(PLATFORM_WEB)
     app->inbe.play_in_background =
         storage_get_setting_int("play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
              app->inbe.play_in_background);
-#else
-    app->inbe.play_in_background = 0;
-#endif
     app->backgrounded = 0;
 
     app_device_preferences_init(app);

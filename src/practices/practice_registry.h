@@ -6,7 +6,8 @@
 typedef enum PracticeId {
     PRACTICE_WHM = 0,
     PRACTICE_MEDITATION = 1,
-    PRACTICE_COUNT = 2
+    PRACTICE_SUN_SALUTATION = 2,
+    PRACTICE_COUNT = 3
 } PracticeId;
 
 typedef struct PracticeDefinition {

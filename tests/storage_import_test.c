@@ -1,8 +1,8 @@
-#include "storage.h"
-#include "screens/habits_screen.h"
 #include "breath_engine.h"
 #include "miniz.h"
 #include "raylib.h"
+#include "screens/habits_screen.h"
+#include "storage.h"
 #include <sqlite3.h>
 
 #include <dirent.h>
@@ -50,8 +50,8 @@ check_str(const char *label, const char *got, const char *want)
         return;
     if(got != NULL && want != NULL && strcmp(got, want) == 0)
         return;
-    fprintf(stderr, "FAIL %s: got %s, want %s\n",
-            label, got != NULL ? got : "(null)", want != NULL ? want : "(null)");
+    fprintf(stderr, "FAIL %s: got %s, want %s\n", label, got != NULL ? got : "(null)",
+            want != NULL ? want : "(null)");
     g_failures++;
 }
 
@@ -173,7 +173,8 @@ insert_raw_habit_day(const char *root, const char *habit_id, int local_date, int
     if(db == NULL)
         return;
     if(sqlite3_prepare_v2(db,
-                          "INSERT OR REPLACE INTO habit_days(habit_id,local_date,completed,updated_at) "
+                          "INSERT OR REPLACE INTO "
+                          "habit_days(habit_id,local_date,completed,updated_at) "
                           "VALUES(?1,?2,?3,0)",
                           -1, &stmt, NULL) == SQLITE_OK) {
         sqlite3_bind_text(stmt, 1, habit_id, -1, SQLITE_TRANSIENT);
@@ -199,8 +200,7 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
     check_true("open raw count db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db == NULL)
         return count;
-    if(sqlite3_prepare_v2(db,
-                          "SELECT count FROM habit_days WHERE habit_id=?1 AND local_date=?2",
+    if(sqlite3_prepare_v2(db, "SELECT count FROM habit_days WHERE habit_id=?1 AND local_date=?2",
                           -1, &stmt, NULL) == SQLITE_OK) {
         sqlite3_bind_text(stmt, 1, habit_id, -1, SQLITE_TRANSIENT);
         sqlite3_bind_int(stmt, 2, local_date);
@@ -227,7 +227,8 @@ read_raw_session_round_seconds(const char *root, const char *session_id, int rou
     if(db == NULL)
         return seconds;
     if(sqlite3_prepare_v2(db,
-                          "SELECT seconds FROM session_rounds WHERE session_id=?1 AND round_index=?2",
+                          "SELECT seconds FROM session_rounds WHERE "
+                          "session_id=?1 AND round_index=?2",
                           -1, &stmt, NULL) == SQLITE_OK) {
         sqlite3_bind_text(stmt, 1, session_id, -1, SQLITE_TRANSIENT);
         sqlite3_bind_int(stmt, 2, round_index);
@@ -265,26 +266,27 @@ test_sync_payload_omits_uploaded_state_after_upload_marker(void)
         make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync watermark raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
-            if(sqlite3_prepare_v2(db,
-                                  "SELECT updated_at FROM habit_days WHERE local_date=20260612",
+            if(sqlite3_prepare_v2(db, "SELECT updated_at FROM habit_days WHERE local_date=20260612",
                                   -1, &stmt, NULL) == SQLITE_OK &&
                sqlite3_step(stmt) == SQLITE_ROW)
                 updated_at = sqlite3_column_int64(stmt, 0);
             if(stmt != NULL)
                 sqlite3_finalize(stmt);
             check_true("set sync watermark raw meta",
-                       updated_at > 0 &&
-                       sqlite3_exec(db,
-                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
-                                    NULL, NULL, NULL) == SQLITE_OK);
+                       updated_at > 0 && sqlite3_exec(db,
+                                                      "INSERT OR REPLACE INTO meta(key,value) "
+                                                      "VALUES('sync_full_upload_done','1');",
+                                                      NULL, NULL, NULL) == SQLITE_OK);
             check_true("set sync backfill marker raw meta",
                        sqlite3_exec(db,
-                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
+                                    "INSERT OR REPLACE INTO meta(key,value) "
+                                    "VALUES('sync_backfill_v2_done','1');",
                                     NULL, NULL, NULL) == SQLITE_OK);
             if(updated_at > 0) {
                 char sql[192];
                 snprintf(sql, sizeof(sql),
-                         "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_upload_at','%lld');",
+                         "INSERT OR REPLACE INTO meta(key,value) "
+                         "VALUES('sync_last_upload_at','%lld');",
                          updated_at);
                 check_true("set sync same second upload marker",
                            sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
@@ -298,9 +300,8 @@ test_sync_payload_omits_uploaded_state_after_upload_marker(void)
     check_true("reopen sync watermark db", storage_init(root));
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("habit day omitted from sync payload after upload marker",
-               payload != NULL &&
-               strstr(payload, "\"local_date\":20260612") == NULL &&
-               strstr(payload, "\"count\":12") == NULL);
+               payload != NULL && strstr(payload, "\"local_date\":20260612") == NULL &&
+                   strstr(payload, "\"count\":12") == NULL);
     storage_free_sync_payload_json(payload);
     storage_close();
     remove_tree(root);
@@ -329,7 +330,8 @@ test_sync_backfill_includes_existing_habits(void)
         if(db != NULL) {
             check_true("mark old full upload done",
                        sqlite3_exec(db,
-                                    "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');",
+                                    "INSERT OR REPLACE INTO meta(key,value) "
+                                    "VALUES('sync_full_upload_done','1');",
                                     NULL, NULL, NULL) == SQLITE_OK);
             check_true("clear old outbox",
                        sqlite3_exec(db, "DELETE FROM sync_outbox;", NULL, NULL, NULL) == SQLITE_OK);
@@ -340,9 +342,8 @@ test_sync_backfill_includes_existing_habits(void)
     check_true("reopen backfill sync db", storage_init(root));
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("existing habit included by one-time sync backfill",
-               payload != NULL &&
-               strstr(payload, "\"habits\":[{") != NULL &&
-               strstr(payload, "\"habit_days\"") != NULL);
+               payload != NULL && strstr(payload, "\"habits\":[{") != NULL &&
+                   strstr(payload, "\"habit_days\"") != NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -365,10 +366,8 @@ test_sync_payload_excludes_local_settings(void)
 
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("settings are not present in sync payload",
-               payload != NULL &&
-               strstr(payload, "\"preferences\"") == NULL &&
-               strstr(payload, "\"theme\"") == NULL &&
-               strstr(payload, "\"main_tab\"") == NULL);
+               payload != NULL && strstr(payload, "\"preferences\"") == NULL &&
+                   strstr(payload, "\"theme\"") == NULL && strstr(payload, "\"main_tab\"") == NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -391,9 +390,8 @@ test_sync_payload_includes_queued_current_edits(void)
 
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("queued habit day included in sync payload",
-               payload != NULL &&
-               strstr(payload, "\"local_date\":20260617") != NULL &&
-               strstr(payload, "\"count\":7") != NULL);
+               payload != NULL && strstr(payload, "\"local_date\":20260617") != NULL &&
+                   strstr(payload, "\"count\":7") != NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -406,8 +404,8 @@ test_sync_outbox_preserves_edits_after_snapshot(void)
     char root[512];
     InbeHabits habits;
     char *payload;
-    const char *empty_response =
-        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[]}}";
+    const char *empty_response = "{\"server_version\":1,\"changes\":{\"habits\":["
+                                 "],\"habit_days\":[],\"sessions\":[]}}";
 
     make_clean_root(root, sizeof(root), "sync-outbox-snapshot");
     check_true("init outbox snapshot db", storage_init(root));
@@ -428,9 +426,8 @@ test_sync_outbox_preserves_edits_after_snapshot(void)
 
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("later edit remains queued after snapshot clear",
-               payload != NULL &&
-               strstr(payload, "\"local_date\":20260619") != NULL &&
-               strstr(payload, "\"count\":2") != NULL);
+               payload != NULL && strstr(payload, "\"local_date\":20260619") != NULL &&
+                   strstr(payload, "\"count\":2") != NULL);
     check_true("earlier edit was cleared after snapshot success",
                payload != NULL && strstr(payload, "\"local_date\":20260618") == NULL);
     storage_free_sync_payload_json(payload);
@@ -465,13 +462,18 @@ test_sync_apply_preserves_counter_counts(void)
         make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
-            check_true("insert sync counter habit",
-                       sqlite3_exec(db,
-                                    "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
-                                    "VALUES('counter-habit','default','Counter',255,255,255,0,0,1,0,0,1781902800);"
-                                    "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
-                                    "VALUES('counter-habit',20260619,1,4,1781902800);",
-                                    NULL, NULL, NULL) == SQLITE_OK);
+            check_true(
+                "insert sync counter habit",
+                sqlite3_exec(db,
+                             "INSERT INTO "
+                             "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_"
+                             "activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                             "VALUES('counter-habit','default','Counter',255,255,255,0,0,1,0,"
+                             "0,1781902800);"
+                             "INSERT INTO "
+                             "habit_days(habit_id,local_date,completed,count,updated_at) "
+                             "VALUES('counter-habit',20260619,1,4,1781902800);",
+                             NULL, NULL, NULL) == SQLITE_OK);
             sqlite3_close(db);
         }
     }
@@ -483,7 +485,8 @@ test_sync_apply_preserves_counter_counts(void)
               read_raw_habit_day_count(root, habit_id, 20260619), 1);
 
     check_true("reopen sync counter db for repair", storage_init(root));
-    check_true("apply higher equal counter", storage_apply_sync_response_json(higher_count_response));
+    check_true("apply higher equal counter",
+               storage_apply_sync_response_json(higher_count_response));
     storage_close();
     check_int("higher equal sync repairs counter",
               read_raw_habit_day_count(root, habit_id, 20260619), 5);
@@ -497,10 +500,13 @@ test_sync_apply_sessions_last_write_wins(void)
     char root[512];
     const char *session_id = "session-equal-time";
     const char *remote_response =
-        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":["
+        "{\"server_version\":1,\"changes\":{\"habits\":[],\"habit_days\":[],"
+        "\"sessions\":["
         "{\"id\":\"session-equal-time\",\"started_at\":\"2026-06-19T21:00:00Z\","
-        "\"local_date\":20260619,\"topic\":\"0\",\"activity\":1,\"source\":\"remote\","
-        "\"rounds_hash\":\"remote\",\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\","
+        "\"local_date\":20260619,\"topic\":\"0\",\"activity\":1,\"source\":"
+        "\"remote\","
+        "\"rounds_hash\":\"remote\",\"deleted_at\":0,\"updated_at\":\"2026-06-"
+        "19T21:00:00Z\","
         "\"rounds\":[{\"round_index\":0,\"hold_seconds\":45}]}"
         "]}}";
 
@@ -514,13 +520,17 @@ test_sync_apply_sessions_last_write_wins(void)
         make_path(db_path, sizeof(db_path), root, "inbe.db");
         check_true("open sync session raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
         if(db != NULL) {
-            check_true("insert sync session",
-                       sqlite3_exec(db,
-                                    "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,deleted_at,updated_at) "
-                                    "VALUES('session-equal-time','default',1781902800,20260619,0,1,'local',1781902800,111,0,1781902800);"
-                                    "INSERT INTO session_rounds(session_id,round_index,seconds) "
-                                    "VALUES('session-equal-time',0,60);",
-                                    NULL, NULL, NULL) == SQLITE_OK);
+            check_true(
+                "insert sync session",
+                sqlite3_exec(db,
+                             "INSERT INTO "
+                             "sessions(id,user_id,started_at,local_date,topic,activity,source,"
+                             "imported_at,rounds_hash,deleted_at,updated_at) "
+                             "VALUES('session-equal-time','default',1781902800,20260619,0,1,'"
+                             "local',1781902800,111,0,1781902800);"
+                             "INSERT INTO session_rounds(session_id,round_index,seconds) "
+                             "VALUES('session-equal-time',0,60);",
+                             NULL, NULL, NULL) == SQLITE_OK);
             sqlite3_close(db);
         }
     }
@@ -539,10 +549,15 @@ test_sync_apply_sessions_last_write_wins(void)
         if(db != NULL) {
             check_true("reset queued sync session",
                        sqlite3_exec(db,
-                                    "UPDATE sessions SET source='local',rounds_hash=111,updated_at=1781902800 WHERE id='session-equal-time';"
-                                    "DELETE FROM session_rounds WHERE session_id='session-equal-time';"
-                                    "INSERT INTO session_rounds(session_id,round_index,seconds) VALUES('session-equal-time',0,60);"
-                                    "INSERT OR REPLACE INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                                    "UPDATE sessions SET "
+                                    "source='local',rounds_hash=111,updated_at=1781902800 WHERE "
+                                    "id='session-equal-time';"
+                                    "DELETE FROM session_rounds WHERE "
+                                    "session_id='session-equal-time';"
+                                    "INSERT INTO session_rounds(session_id,round_index,seconds) "
+                                    "VALUES('session-equal-time',0,60);"
+                                    "INSERT OR REPLACE INTO "
+                                    "sync_outbox(entity_type,entity_id,local_date,queued_at) "
                                     "VALUES('session','session-equal-time',0,1781902800);",
                                     NULL, NULL, NULL) == SQLITE_OK);
             sqlite3_close(db);
@@ -550,7 +565,8 @@ test_sync_apply_sessions_last_write_wins(void)
     }
 
     check_true("reopen queued sync session db", storage_init(root));
-    check_true("apply equal queued session update", storage_apply_sync_response_json(remote_response));
+    check_true("apply equal queued session update",
+               storage_apply_sync_response_json(remote_response));
     storage_close();
     check_int("equal queued session keeps local rounds",
               read_raw_session_round_seconds(root, session_id, 0), 60);
@@ -565,14 +581,18 @@ test_sync_apply_updates_habit_counter_enabled(void)
     InbeHabits habits;
     const char *enabled_response =
         "{\"server_version\":1,\"changes\":{\"habits\":["
-        "{\"id\":\"counter-toggle\",\"name\":\"Counter Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":1,\"sort_order\":0,"
+        "{\"id\":\"counter-toggle\",\"name\":\"Counter "
+        "Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":1,\"sort_"
+        "order\":0,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
         "],\"habit_days\":[],\"sessions\":[]}}";
     const char *disabled_response =
         "{\"server_version\":2,\"changes\":{\"habits\":["
-        "{\"id\":\"counter-toggle\",\"name\":\"Counter Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+        "{\"id\":\"counter-toggle\",\"name\":\"Counter "
+        "Toggle\",\"color_r\":10,\"color_g\":20,\"color_b\":30,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+        "order\":0,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"}"
         "],\"habit_days\":[],\"sessions\":[]}}";
 
@@ -601,16 +621,22 @@ test_stale_habit_save_keeps_synced_remote_habits(void)
     InbeHabits loaded_habits;
     const char *remote_response =
         "{\"server_version\":1,\"changes\":{\"habits\":["
-        "{\"id\":\"habit-2\",\"name\":\"Push ups\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":1,"
+        "{\"id\":\"habit-2\",\"name\":\"Push "
+        "ups\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+        "order\":1,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"},"
-        "{\"id\":\"habit-3\",\"name\":\"Cold Shower\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":2,"
+        "{\"id\":\"habit-3\",\"name\":\"Cold "
+        "Shower\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+        "order\":2,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"}"
         "],\"habit_days\":["
-        "{\"habit_id\":\"habit-2\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "{\"habit_id\":\"habit-2\",\"local_date\":20260619,\"completed\":true,"
+        "\"count\":1,"
         "\"updated_at\":\"2026-06-19T21:00:00Z\"},"
-        "{\"habit_id\":\"habit-3\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "{\"habit_id\":\"habit-3\",\"local_date\":20260619,\"completed\":true,"
+        "\"count\":1,"
         "\"updated_at\":\"2026-06-19T21:01:00Z\"}"
         "],\"sessions\":[]}}";
 
@@ -625,9 +651,10 @@ test_stale_habit_save_keeps_synced_remote_habits(void)
 
     memset(&loaded_habits, 0, sizeof(loaded_habits));
     check_true("load habits after stale save", storage_habits_load(&loaded_habits));
-    check_int("stale save keeps remote habit rows", loaded_habits.count, 3);
+    check_int("stale save keeps remote habit rows", loaded_habits.count, 4);
     check_true("remote push ups survived", find_habit_ci(&loaded_habits, "Push ups") != NULL);
     check_true("remote cold shower survived", find_habit_ci(&loaded_habits, "Cold Shower") != NULL);
+    check_true("default yoga survived", find_habit_ci(&loaded_habits, "Yoga") != NULL);
 
     habits_free(&stale_habits);
     habits_free(&loaded_habits);
@@ -654,9 +681,12 @@ test_sync_payload_resets_cursor_for_orphan_habit_days(void)
     if(db != NULL) {
         check_true("set orphan sync cursor",
                    sqlite3_exec(db,
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','530');"
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_last_server_version','530');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_full_upload_done','1');"
+                                "INSERT OR REPLACE INTO meta(key,value) "
+                                "VALUES('sync_backfill_v2_done','1');",
                                 NULL, NULL, NULL) == SQLITE_OK);
         sqlite3_close(db);
     }
@@ -678,7 +708,8 @@ test_sync_payload_runs_one_time_habit_name_repair(void)
     char db_path[512];
     char *payload;
     const char *empty_response =
-        "{\"server_version\":530,\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[]}}";
+        "{\"server_version\":530,\"changes\":{\"habits\":[],\"habit_days\":[],"
+        "\"sessions\":[]}}";
     sqlite3 *db = NULL;
 
     make_clean_root(root, sizeof(root), "sync-habit-name-repair");
@@ -688,12 +719,14 @@ test_sync_payload_runs_one_time_habit_name_repair(void)
     make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open habit name repair raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
-        check_true("set old sync cursor",
-                   sqlite3_exec(db,
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_last_server_version','530');"
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_full_upload_done','1');"
-                                "INSERT OR REPLACE INTO meta(key,value) VALUES('sync_backfill_v2_done','1');",
-                                NULL, NULL, NULL) == SQLITE_OK);
+        check_true("set old sync cursor", sqlite3_exec(db,
+                                                       "INSERT OR REPLACE INTO meta(key,value) "
+                                                       "VALUES('sync_last_server_version','530');"
+                                                       "INSERT OR REPLACE INTO meta(key,value) "
+                                                       "VALUES('sync_full_upload_done','1');"
+                                                       "INSERT OR REPLACE INTO meta(key,value) "
+                                                       "VALUES('sync_backfill_v2_done','1');",
+                                                       NULL, NULL, NULL) == SQLITE_OK);
         sqlite3_close(db);
     }
 
@@ -703,7 +736,8 @@ test_sync_payload_runs_one_time_habit_name_repair(void)
                payload != NULL && strstr(payload, "\"since_server_version\":0") != NULL);
     storage_free_sync_payload_json(payload);
 
-    check_true("apply habit name repair response", storage_apply_sync_response_json(empty_response));
+    check_true("apply habit name repair response",
+               storage_apply_sync_response_json(empty_response));
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("habit name repair only runs once",
                payload != NULL && strstr(payload, "\"since_server_version\":530") != NULL);
@@ -721,21 +755,30 @@ test_sync_apply_merges_duplicate_habit_names(void)
     InbeHabit *merged;
     const char *response =
         "{\"server_version\":1,\"changes\":{\"habits\":["
-        "{\"id\":\"habit-1\",\"name\":\"New Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+        "{\"id\":\"habit-1\",\"name\":\"New "
+        "Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+        "order\":0,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"},"
-        "{\"id\":\"habit-2\",\"name\":\"New Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
-        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":1,"
+        "{\"id\":\"habit-2\",\"name\":\"New "
+        "Habit\",\"color_r\":99,\"color_g\":196,\"color_b\":165,"
+        "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+        "order\":1,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:01:00Z\"},"
-        "{\"id\":\"meditation\",\"name\":\"Meditation\",\"color_r\":126,\"color_g\":183,\"color_b\":230,"
-        "\"sync_mode\":1,\"sync_activity\":3,\"counter_enabled\":0,\"sort_order\":2,"
+        "{\"id\":\"meditation\",\"name\":\"Meditation\",\"color_r\":126,\"color_"
+        "g\":183,\"color_b\":230,"
+        "\"sync_mode\":1,\"sync_activity\":3,\"counter_enabled\":0,\"sort_"
+        "order\":2,"
         "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:02:00Z\"}"
         "],\"habit_days\":["
-        "{\"habit_id\":\"habit-1\",\"local_date\":20260617,\"completed\":true,\"count\":1,"
+        "{\"habit_id\":\"habit-1\",\"local_date\":20260617,\"completed\":true,"
+        "\"count\":1,"
         "\"updated_at\":\"2026-06-19T21:00:00Z\"},"
-        "{\"habit_id\":\"habit-2\",\"local_date\":20260618,\"completed\":true,\"count\":1,"
+        "{\"habit_id\":\"habit-2\",\"local_date\":20260618,\"completed\":true,"
+        "\"count\":1,"
         "\"updated_at\":\"2026-06-19T21:01:00Z\"},"
-        "{\"habit_id\":\"meditation\",\"local_date\":20260619,\"completed\":true,\"count\":1,"
+        "{\"habit_id\":\"meditation\",\"local_date\":20260619,\"completed\":true,"
+        "\"count\":1,"
         "\"updated_at\":\"2026-06-19T21:02:00Z\"}"
         "],\"sessions\":[]}}";
 
@@ -782,26 +825,30 @@ test_sync_apply_preserves_queued_habit_counter_enabled(void)
     make_path(db_path, sizeof(db_path), root, "inbe.db");
     check_true("open queued counter raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
-        snprintf(sql, sizeof(sql),
-                 "UPDATE habits SET updated_at=1781902800 WHERE id='%s';",
+        snprintf(sql, sizeof(sql), "UPDATE habits SET updated_at=1781902800 WHERE id='%s';",
                  habit_id);
-        check_true("pin queued counter updated_at", sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
+        check_true("pin queued counter updated_at",
+                   sqlite3_exec(db, sql, NULL, NULL, NULL) == SQLITE_OK);
         sqlite3_close(db);
     }
 
     snprintf(response, sizeof(response),
              "{\"server_version\":1,\"changes\":{\"habits\":["
-             "{\"id\":\"%s\",\"name\":\"Breathe\",\"color_r\":0,\"color_g\":0,\"color_b\":0,"
-             "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_order\":0,"
+             "{\"id\":\"%s\",\"name\":\"Breathe\",\"color_r\":0,\"color_g\":0,"
+             "\"color_b\":0,"
+             "\"sync_mode\":0,\"sync_activity\":0,\"counter_enabled\":0,\"sort_"
+             "order\":0,"
              "\"deleted_at\":0,\"updated_at\":\"2026-06-19T21:00:00Z\"}"
              "],\"habit_days\":[],\"sessions\":[]}}",
              habit_id);
 
     check_true("reopen queued counter enabled db", storage_init(root));
-    check_true("apply stale equal counter enabled habit", storage_apply_sync_response_json(response));
+    check_true("apply stale equal counter enabled habit",
+               storage_apply_sync_response_json(response));
     memset(&habits, 0, sizeof(habits));
     check_true("reload queued counter enabled habit", storage_habits_load(&habits));
-    check_int("queued local counter enabled survives equal remote", habits.items[0].counter_enabled, 1);
+    check_int("queued local counter enabled survives equal remote", habits.items[0].counter_enabled,
+              1);
 
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("queued local counter enabled remains in payload",
@@ -829,17 +876,15 @@ test_session_linked_counts_materialize_for_sync(void)
     memset(&habits, 0, sizeof(habits));
     habits_add_default_set(&habits);
 
-    check_true("save linked session one",
-               storage_save_session_for_activity(first_rounds, 1, 0, 1,
-                                                      first_id, sizeof(first_id)));
-    check_true("save linked session two",
-               storage_save_session_for_activity(second_rounds, 1, 0, 1,
-                                                      second_id, sizeof(second_id)));
+    check_true("save linked session one", storage_save_session_for_activity(
+                                              first_rounds, 1, 0, 1, first_id, sizeof(first_id)));
+    check_true(
+        "save linked session two",
+        storage_save_session_for_activity(second_rounds, 1, 0, 1, second_id, sizeof(second_id)));
 
     memset(&habits, 0, sizeof(habits));
     check_true("load linked counter habits", storage_habits_load(&habits));
-    check_int("linked sessions materialize count",
-              habit_day_count(&habits.items[0], today), 2);
+    check_int("linked sessions materialize count", habit_day_count(&habits.items[0], today), 2);
 
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("linked session count is in sync payload",
@@ -850,12 +895,12 @@ test_session_linked_counts_materialize_for_sync(void)
     habits_save(&habits);
     memset(&habits, 0, sizeof(habits));
     check_true("reload linked counter after manual clear", storage_habits_load(&habits));
-    check_int("manual clear overrides linked sessions",
-              habit_day_count(&habits.items[0], today), 0);
+    check_int("manual clear overrides linked sessions", habit_day_count(&habits.items[0], today),
+              0);
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("manual clear is in sync payload",
                payload != NULL && strstr(payload, "\"completed\":false") != NULL &&
-               strstr(payload, "\"count\":0") != NULL);
+                   strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
 
     habit_set_day_count(&habits, 0, today, 2);
@@ -910,10 +955,9 @@ test_existing_sessions_materialize_after_habit_save(void)
 }
 
 static void
-metadata_history_callback(const char *id, int year, int month, int day,
-                          int hour, int minute, int second,
-                          int topic, int activity,
-                          const int *rounds, int round_count, void *user)
+metadata_history_callback(const char *id, int year, int month, int day, int hour, int minute,
+                          int second, int topic, int activity, const int *rounds, int round_count,
+                          void *user)
 {
     (void)id;
     (void)year;
@@ -930,10 +974,9 @@ metadata_history_callback(const char *id, int year, int month, int day,
 }
 
 static void
-legacy_history_callback(const char *id, int year, int month, int day,
-                        int hour, int minute, int second,
-                        int topic, int activity,
-                        const int *rounds, int round_count, void *user)
+legacy_history_callback(const char *id, int year, int month, int day, int hour, int minute,
+                        int second, int topic, int activity, const int *rounds, int round_count,
+                        void *user)
 {
     (void)id;
     (void)year;
@@ -972,13 +1015,18 @@ static void
 assert_imported_database(const char *root)
 {
     InbeHabits habits;
+    InbeHabit *meditation;
 
     check_true("init imported db", storage_init(root));
     check_int("imported sessions", storage_session_count(), 1);
     memset(&habits, 0, sizeof(habits));
     check_true("imported habits load", storage_habits_load(&habits));
-    check_int("imported habit count", habits.count, 1);
-    check_true("imported habit day", habit_completed_day(&habits.items[0], 20260613));
+    check_int("imported habit count", habits.count, 2);
+    meditation = find_habit_ci(&habits, "Meditation");
+    check_true("imported meditation habit day",
+               meditation != NULL && habit_completed_day(meditation, 20260613));
+    check_true("imported yoga habit", find_habit_ci(&habits, "Yoga") != NULL);
+    habits_free(&habits);
     storage_close();
 }
 
@@ -1038,23 +1086,20 @@ test_habit_name_merge_import(void)
     check_true("init habit merge source", storage_init(source));
     memset(&habits, 0, sizeof(habits));
     check_int("add imported meditation",
-              habits_add_custom(&habits, "meditation",
-                                      (Color){224, 124, 104, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "meditation", (Color){224, 124, 104, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               0);
     habit_set_day(&habits, 0, 20260613, 1);
     habits_save(&habits);
     check_int("add imported push ups",
-              habits_add_custom(&habits, "Push ups",
-                                      (Color){180, 132, 220, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Push ups", (Color){180, 132, 220, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               1);
     habit_set_day(&habits, 1, 20260614, 1);
     habits_save(&habits);
     check_int("add imported cold shower",
-              habits_add_custom(&habits, "Cold Shower",
-                                      (Color){99, 196, 165, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Cold Shower", (Color){99, 196, 165, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               2);
     habit_set_day(&habits, 2, 20260615, 1);
     habits_save(&habits);
@@ -1069,19 +1114,17 @@ test_habit_name_merge_import(void)
     check_true("habit merge import", storage_import_zip(zip_path));
     memset(&habits, 0, sizeof(habits));
     check_true("habit merge load", storage_habits_load(&habits));
-    check_int("habit merge count", habits.count, 3);
+    check_int("habit merge count", habits.count, 4);
     habit = find_habit_ci(&habits, "Meditation");
     check_true("habit merge meditation exists", habit != NULL);
     check_true("habit merge preserves local case",
                habit != NULL && strcmp(habit->name, "Meditation") == 0);
     check_true("habit merge keeps local day",
                habit != NULL && habit_completed_day(habit, 20260612));
-    check_true("habit merge imports day",
-               habit != NULL && habit_completed_day(habit, 20260613));
+    check_true("habit merge imports day", habit != NULL && habit_completed_day(habit, 20260613));
     habit = find_habit_ci(&habits, "Push ups");
     check_true("habit merge push ups exists", habit != NULL);
-    check_true("habit merge push ups day",
-               habit != NULL && habit_completed_day(habit, 20260614));
+    check_true("habit merge push ups day", habit != NULL && habit_completed_day(habit, 20260614));
     habit = find_habit_ci(&habits, "Cold Shower");
     check_true("habit merge cold shower exists", habit != NULL);
     check_true("habit merge cold shower day",
@@ -1106,9 +1149,8 @@ test_import_conflict_prefers_data_over_empty(void)
     check_true("init conflict source", storage_init(source));
     memset(&habits, 0, sizeof(habits));
     check_int("add conflict source habit",
-              habits_add_custom(&habits, "Meditation",
-                                      (Color){224, 124, 104, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Meditation", (Color){224, 124, 104, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               0);
     storage_set_setting_text("language", "");
     storage_close();
@@ -1120,9 +1162,8 @@ test_import_conflict_prefers_data_over_empty(void)
     check_true("init conflict dest", storage_init(dest));
     memset(&habits, 0, sizeof(habits));
     check_int("add conflict dest habit",
-              habits_add_custom(&habits, "Meditation",
-                                      (Color){126, 183, 230, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Meditation", (Color){126, 183, 230, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               0);
     habit_set_day(&habits, 0, 20260618, 1);
     habits_save(&habits);
@@ -1134,8 +1175,7 @@ test_import_conflict_prefers_data_over_empty(void)
     habit = find_habit_ci(&habits, "Meditation");
     check_true("conflict keeps completed day",
                habit != NULL && habit_completed_day(habit, 20260618));
-    check_str("conflict keeps non-empty setting",
-              storage_get_setting_text("language"), "en");
+    check_str("conflict keeps non-empty setting", storage_get_setting_text("language"), "en");
     storage_close();
 
     remove_tree(source);
@@ -1152,11 +1192,10 @@ test_delete_all_resets_habits_to_empty_storage(void)
     make_clean_root(root, sizeof(root), "delete-all");
     check_true("init delete all db", storage_init(root));
     memset(&habits, 0, sizeof(habits));
-    check_int("add delete all habit",
-              habits_add_custom(&habits, "Work out",
-                                      (Color){99, 196, 165, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
-              0);
+    check_int(
+        "add delete all habit",
+        habits_add_custom(&habits, "Work out", (Color){99, 196, 165, 255}, INBE_HABIT_SYNC_NONE, 0),
+        0);
     habit_set_day(&habits, 0, 20260618, 1);
     habits_save(&habits);
     check_int("delete all habit count before", storage_habit_count(), 1);
@@ -1170,11 +1209,11 @@ test_delete_all_resets_habits_to_empty_storage(void)
     habits_add_default_set(&habits);
     memset(&habits, 0, sizeof(habits));
     check_true("load default habit after delete all", storage_habits_load(&habits));
-    check_int("default habit count after delete all", habits.count, 1);
-    check_true("default meditation after delete all",
-               strcmp(habits.items[0].name, "Meditation") == 0);
+    check_int("default habit count after delete all", habits.count, 2);
+    check_true("default meditation after delete all", find_habit_ci(&habits, "Meditation") != NULL);
+    check_true("default yoga after delete all", find_habit_ci(&habits, "Yoga") != NULL);
     check_true("old workout day removed",
-               !habit_completed_day(&habits.items[0], 20260618));
+               !habit_completed_day(find_habit_ci(&habits, "Meditation"), 20260618));
     storage_close();
 
     remove_tree(root);
@@ -1195,11 +1234,10 @@ test_delete_all_without_sync_account_does_not_queue_remote_deletes(void)
     storage_set_setting_text("sync_private_key", "");
 
     memset(&habits, 0, sizeof(habits));
-    check_int("add local reset habit",
-              habits_add_custom(&habits, "Work out",
-                                (Color){99, 196, 165, 255},
-                                INBE_HABIT_SYNC_NONE, 0),
-              0);
+    check_int(
+        "add local reset habit",
+        habits_add_custom(&habits, "Work out", (Color){99, 196, 165, 255}, INBE_HABIT_SYNC_NONE, 0),
+        0);
     habit_set_day(&habits, 0, 20260618, 1);
     habits_save(&habits);
 
@@ -1213,9 +1251,8 @@ test_delete_all_without_sync_account_does_not_queue_remote_deletes(void)
     storage_reset_sync_state();
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("fresh imported account sends bootstrap",
-               payload != NULL &&
-               strstr(payload, "\"since_server_version\":0") != NULL &&
-               strstr(payload, "\"bootstrap\":true") != NULL);
+               payload != NULL && strstr(payload, "\"since_server_version\":0") != NULL &&
+                   strstr(payload, "\"bootstrap\":true") != NULL);
     check_true("fresh imported account has no stale habit tombstones",
                payload != NULL && strstr(payload, "\"habits\":[]") != NULL);
     check_true("fresh imported account has no stale habit day clears",
@@ -1244,8 +1281,7 @@ test_deleted_habit_payload_clears_remote_days(void)
 
     memset(&habits, 0, sizeof(habits));
     check_int("add deleted payload habit",
-              habits_add_custom(&habits, "Cold shower",
-                                (Color){99, 196, 165, 255},
+              habits_add_custom(&habits, "Cold shower", (Color){99, 196, 165, 255},
                                 INBE_HABIT_SYNC_NONE, 0),
               0);
     habit_set_day_count(&habits, 0, 20260618, 3);
@@ -1253,7 +1289,10 @@ test_deleted_habit_payload_clears_remote_days(void)
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     storage_free_sync_payload_json(payload);
     check_true("apply upload marker before delete",
-               storage_apply_sync_response_json("{\"server_version\":1,\"server_state_hash\":\"h1\",\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}}"));
+               storage_apply_sync_response_json(
+                   "{\"server_version\":1,\"server_state_hash\":\"h1\","
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+                   "\"meditation_logs\":[]}}"));
 
     memset(&habits, 0, sizeof(habits));
     check_true("reload deleted payload habit", storage_habits_load(&habits));
@@ -1263,14 +1302,12 @@ test_deleted_habit_payload_clears_remote_days(void)
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("deleted habit payload includes tombstone",
-               payload != NULL &&
-               strstr(payload, deleted_id) != NULL &&
-               strstr(payload, "\"deleted_at\":0") == NULL);
+               payload != NULL && strstr(payload, deleted_id) != NULL &&
+                   strstr(payload, "\"deleted_at\":0") == NULL);
     check_true("deleted habit payload clears habit day",
-               payload != NULL &&
-               strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
-               strstr(payload, "\"completed\":false") != NULL &&
-               strstr(payload, "\"count\":0") != NULL);
+               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+                   strstr(payload, "\"completed\":false") != NULL &&
+                   strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -1294,31 +1331,52 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
     check_true("open empty initialized raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
     if(db != NULL) {
         check_true("clear empty initialized habits",
-                   sqlite3_exec(db, "DELETE FROM habit_days; DELETE FROM habits;",
-                                NULL, NULL, NULL) == SQLITE_OK);
+                   sqlite3_exec(db, "DELETE FROM habit_days; DELETE FROM habits;", NULL, NULL,
+                                NULL) == SQLITE_OK);
         sqlite3_close(db);
     }
 
     check_true("reopen empty initialized habit db", storage_init(root));
     memset(&habits, 0, sizeof(habits));
     habits_init(&habits);
-    check_int("empty initialized startup seeds one habit", habits.count, 1);
-    check_str("empty initialized startup seeds meditation", habits.items[0].name, "Meditation");
-    check_int("empty initialized startup seeds linked mode",
-              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("empty initialized startup seeds linked activities",
-              habits.items[0].sync_activity,
+    check_int("empty initialized startup seeds default habits", habits.count, 2);
+    check_true("empty initialized startup seeds meditation",
+               find_habit_ci(&habits, "Meditation") != NULL);
+    check_true("empty initialized startup seeds yoga", find_habit_ci(&habits, "Yoga") != NULL);
+    check_int("empty initialized meditation linked mode",
+              find_habit_ci(&habits, "Meditation") != NULL
+                  ? find_habit_ci(&habits, "Meditation")->sync_mode
+                  : -1,
+              INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("empty initialized meditation linked activities",
+              find_habit_ci(&habits, "Meditation") != NULL
+                  ? find_habit_ci(&habits, "Meditation")->sync_activity
+                  : -1,
               (1 << 0) | (1 << 1));
+    check_int("empty initialized yoga linked mode",
+              find_habit_ci(&habits, "Yoga") != NULL ? find_habit_ci(&habits, "Yoga")->sync_mode
+                                                     : -1,
+              INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("empty initialized yoga linked activities",
+              find_habit_ci(&habits, "Yoga") != NULL ? find_habit_ci(&habits, "Yoga")->sync_activity
+                                                     : -1,
+              (1 << 2));
     habits_free(&habits);
 
     memset(&habits, 0, sizeof(habits));
-    check_true("load seeded meditation from storage", storage_habits_load(&habits));
-    check_int("seeded meditation persisted", habits.count, 1);
-    check_str("persisted seeded habit name", habits.items[0].name, "Meditation");
-    check_int("persisted seeded linked mode",
-              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("persisted seeded linked activities",
-              habits.items[0].sync_activity,
+    check_true("load seeded defaults from storage", storage_habits_load(&habits));
+    check_int("seeded defaults persisted", habits.count, 2);
+    check_true("persisted seeded meditation", find_habit_ci(&habits, "Meditation") != NULL);
+    check_true("persisted seeded yoga", find_habit_ci(&habits, "Yoga") != NULL);
+    check_int("persisted meditation linked mode",
+              find_habit_ci(&habits, "Meditation") != NULL
+                  ? find_habit_ci(&habits, "Meditation")->sync_mode
+                  : -1,
+              INBE_HABIT_SYNC_ACTIVITIES);
+    check_int("persisted meditation linked activities",
+              find_habit_ci(&habits, "Meditation") != NULL
+                  ? find_habit_ci(&habits, "Meditation")->sync_activity
+                  : -1,
               (1 << 0) | (1 << 1));
 
     habits_free(&habits);
@@ -1327,39 +1385,39 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
 }
 
 static void
-test_existing_default_meditation_links_on_startup(void)
+test_existing_default_meditation_is_not_repaired_on_startup(void)
 {
     char root[512];
     InbeHabits habits;
+    InbeHabit *meditation;
 
-    make_clean_root(root, sizeof(root), "default-meditation-link-repair");
-    check_true("init default meditation repair db", storage_init(root));
+    make_clean_root(root, sizeof(root), "default-meditation-no-repair");
+    check_true("init default meditation no repair db", storage_init(root));
     memset(&habits, 0, sizeof(habits));
     check_int("add unlinked default meditation",
-              habits_add_custom(&habits, "Meditation",
-                                (Color){126, 183, 230, 255},
+              habits_add_custom(&habits, "Meditation", (Color){126, 183, 230, 255},
                                 INBE_HABIT_SYNC_NONE, 0),
               0);
     habits_free(&habits);
 
     memset(&habits, 0, sizeof(habits));
     habits_init(&habits);
-    check_int("default meditation repair count", habits.count, 1);
-    check_str("default meditation repair name", habits.items[0].name, "Meditation");
-    check_int("default meditation repair sync mode",
-              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("default meditation repair sync activity",
-              habits.items[0].sync_activity,
-              (1 << 0) | (1 << 1));
+    check_int("default meditation no repair count", habits.count, 1);
+    meditation = find_habit_ci(&habits, "Meditation");
+    check_true("default meditation no repair exists", meditation != NULL);
+    check_int("default meditation no repair sync mode",
+              meditation != NULL ? meditation->sync_mode : -1, INBE_HABIT_SYNC_NONE);
+    check_int("default meditation no repair sync activity",
+              meditation != NULL ? meditation->sync_activity : -1, 0);
     habits_free(&habits);
 
     memset(&habits, 0, sizeof(habits));
-    check_true("load repaired default meditation", storage_habits_load(&habits));
-    check_int("persisted repaired sync mode",
-              habits.items[0].sync_mode, INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("persisted repaired sync activity",
-              habits.items[0].sync_activity,
-              (1 << 0) | (1 << 1));
+    check_true("load unchanged default meditation", storage_habits_load(&habits));
+    meditation = find_habit_ci(&habits, "Meditation");
+    check_int("persisted unchanged sync mode", meditation != NULL ? meditation->sync_mode : -1,
+              INBE_HABIT_SYNC_NONE);
+    check_int("persisted unchanged sync activity",
+              meditation != NULL ? meditation->sync_activity : -1, 0);
     habits_free(&habits);
     storage_close();
     remove_tree(root);
@@ -1376,20 +1434,16 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
                storage_save_session_for_activity(rounds, 1, 0, 1, NULL, 0));
     memset(&habits, 0, sizeof(habits));
     check_int("add meditation habit",
-              habits_add_custom(&habits, "Meditation",
-                                      (Color){224, 124, 104, 255},
-                                      INBE_HABIT_SYNC_ACTIVITIES,
-                                      (1 << 0) | (1 << 1)),
+              habits_add_custom(&habits, "Meditation", (Color){224, 124, 104, 255},
+                                INBE_HABIT_SYNC_ACTIVITIES, (1 << 0) | (1 << 1)),
               0);
     check_int("add push ups habit",
-              habits_add_custom(&habits, "Push ups",
-                                      (Color){180, 132, 220, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Push ups", (Color){180, 132, 220, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               1);
     check_int("add cold shower habit",
-              habits_add_custom(&habits, "Cold Shower",
-                                      (Color){99, 196, 165, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Cold Shower", (Color){99, 196, 165, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               2);
     habit_set_day(&habits, 0, 20260617, 1);
     habits_save(&habits);
@@ -1417,24 +1471,17 @@ assert_multi_habits_imported(const char *root, int want_speed)
     check_int("multi habit count", habits.count, 3);
     habit = find_habit_ci(&habits, "Meditation");
     check_true("multi meditation exists", habit != NULL);
-    check_int("multi meditation sync mode",
-              habit != NULL ? habit->sync_mode : -1,
+    check_int("multi meditation sync mode", habit != NULL ? habit->sync_mode : -1,
               INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("multi meditation sync activity",
-              habit != NULL ? habit->sync_activity : -1,
+    check_int("multi meditation sync activity", habit != NULL ? habit->sync_activity : -1,
               (1 << 0) | (1 << 1));
-    check_true("multi meditation day",
-               habit != NULL && habit_completed_day(habit, 20260617));
+    check_true("multi meditation day", habit != NULL && habit_completed_day(habit, 20260617));
     habit = find_habit_ci(&habits, "Push ups");
-    check_true("multi push ups day",
-               habit != NULL && habit_completed_day(habit, 20260617));
+    check_true("multi push ups day", habit != NULL && habit_completed_day(habit, 20260617));
     habit = find_habit_ci(&habits, "Cold Shower");
-    check_true("multi cold shower day",
-               habit != NULL && habit_completed_day(habit, 20260617));
-    check_int("multi import speed setting",
-              storage_get_setting_int("speed", -1), want_speed);
-    check_str("multi import unknown setting",
-              storage_get_setting_text("future_unknown_key"), NULL);
+    check_true("multi cold shower day", habit != NULL && habit_completed_day(habit, 20260617));
+    check_int("multi import speed setting", storage_get_setting_int("speed", -1), want_speed);
+    check_str("multi import unknown setting", storage_get_setting_text("future_unknown_key"), NULL);
     storage_close();
 }
 
@@ -1484,15 +1531,14 @@ write_legacy_zip(const char *path, const char *prefix)
     const char rounds[] = "31\n35\n39\n27\n";
 
     memset(&archive, 0, sizeof(archive));
-    snprintf(archive_name, sizeof(archive_name),
-             "%s/sessions/2026/06/13/inbe-010203", prefix);
+    snprintf(archive_name, sizeof(archive_name), "%s/sessions/2026/06/13/inbe-010203", prefix);
     check_true("create legacy zip", mz_zip_writer_init_file(&archive, path, 0));
     check_true("add legacy metadata",
-               mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt",
-                                     "Legacy Inbe export\n", 19, MZ_NO_COMPRESSION));
+               mz_zip_writer_add_mem(&archive, "lotus-data/metadata.txt", "Legacy Inbe export\n",
+                                     19, MZ_NO_COMPRESSION));
     check_true("add legacy session",
-               mz_zip_writer_add_mem(&archive, archive_name, rounds,
-                                     sizeof(rounds) - 1, MZ_BEST_COMPRESSION));
+               mz_zip_writer_add_mem(&archive, archive_name, rounds, sizeof(rounds) - 1,
+                                     MZ_BEST_COMPRESSION));
     check_true("finalize legacy zip", mz_zip_writer_finalize_archive(&archive));
     mz_zip_writer_end(&archive);
 }
@@ -1577,10 +1623,14 @@ write_tickmate_database(const char *path)
                             "color integer DEFAULT 0,\"order\" integer DEFAULT -1);"
                             "CREATE TABLE ticks(_id integer primary key autoincrement,"
                             "_track_id integer,year integer,month integer,day integer,"
-                            "hour integer,minute integer,second integer,has_time_info integer DEFAULT 0);"
-                            "INSERT INTO tracks(_id,name,description,icon,enabled,multiple_entries_per_day,color,\"order\") "
+                            "hour integer,minute integer,second integer,has_time_info integer "
+                            "DEFAULT 0);"
+                            "INSERT INTO "
+                            "tracks(_id,name,description,icon,enabled,multiple_entries_per_day,"
+                            "color,\"order\") "
                             "VALUES(1,'Meditation','Silenced my mind','',1,1,8925,0);"
-                            "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
+                            "INSERT INTO "
+                            "ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
                             "VALUES(1,2026,0,1,0,0,0,0),"
                             "(1,2026,1,2,0,0,0,0),"
                             "(1,2026,2,3,0,0,0,0),"
@@ -1600,15 +1650,18 @@ write_tickmate_database(const char *path)
         fprintf(stderr, "tickmate setup SQL error: %s\n", error);
         sqlite3_free(error);
     }
-    check_true("prepare large tickmate insert",
-               sqlite3_prepare_v2(db,
-                                  "INSERT INTO ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
-                                  "VALUES(1,?1,?2,?3,0,0,0,0)",
-                                  -1, &stmt, NULL) == SQLITE_OK);
+    check_true(
+        "prepare large tickmate insert",
+        sqlite3_prepare_v2(db,
+                           "INSERT INTO "
+                           "ticks(_track_id,year,month,day,hour,minute,second,has_time_info) "
+                           "VALUES(1,?1,?2,?3,0,0,0,0)",
+                           -1, &stmt, NULL) == SQLITE_OK);
     if(stmt != NULL) {
         struct tm day;
 
-        check_true("begin large tickmate insert", sqlite3_exec(db, "BEGIN", NULL, NULL, NULL) == SQLITE_OK);
+        check_true("begin large tickmate insert",
+                   sqlite3_exec(db, "BEGIN", NULL, NULL, NULL) == SQLITE_OK);
         memset(&day, 0, sizeof(day));
         day.tm_year = 2025 - 1900;
         day.tm_mon = 0;
@@ -1625,7 +1678,8 @@ write_tickmate_database(const char *path)
             day.tm_mday++;
             mktime(&day);
         }
-        check_true("commit large tickmate insert", sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) == SQLITE_OK);
+        check_true("commit large tickmate insert",
+                   sqlite3_exec(db, "COMMIT", NULL, NULL, NULL) == SQLITE_OK);
         sqlite3_finalize(stmt);
     }
     sqlite3_close(db);
@@ -1659,8 +1713,7 @@ test_tickmate_db_import(void)
     check_true("tickmate october day", habit_completed_day(&habits.items[0], 20261010));
     check_true("tickmate november day", habit_completed_day(&habits.items[0], 20261111));
     check_true("tickmate december day", habit_completed_day(&habits.items[0], 20261212));
-    check_true("tickmate loads thousands of days",
-               habit_completed_day(&habits.items[0], 20571108));
+    check_true("tickmate loads thousands of days", habit_completed_day(&habits.items[0], 20571108));
     check_true("tickmate habit name", strcmp(habits.items[0].name, "Meditation") == 0);
     check_int("tickmate enables counter habit", habits.items[0].counter_enabled, 1);
     check_int("tickmate imports count", habit_day_count(&habits.items[0], 20250101), 3);
@@ -1684,9 +1737,8 @@ test_tickmate_reimport_recovers_counter_data(void)
     check_true("init tickmate reimport dest", storage_init(dest));
     memset(&habits, 0, sizeof(habits));
     check_int("add old boolean meditation",
-              habits_add_custom(&habits, "Meditation",
-                                      (Color){99, 196, 165, 255},
-                                      INBE_HABIT_SYNC_NONE, 0),
+              habits_add_custom(&habits, "Meditation", (Color){99, 196, 165, 255},
+                                INBE_HABIT_SYNC_NONE, 0),
               0);
     habit_set_day(&habits, 0, 20250101, 1);
     habits_save(&habits);
@@ -1695,8 +1747,7 @@ test_tickmate_reimport_recovers_counter_data(void)
     check_true("tickmate reimport load", storage_habits_load(&habits));
     check_int("tickmate reimport habit count", habits.count, 1);
     check_int("tickmate reimport enables counter", habits.items[0].counter_enabled, 1);
-    check_int("tickmate reimport restores count",
-              habit_day_count(&habits.items[0], 20250101), 3);
+    check_int("tickmate reimport restores count", habit_day_count(&habits.items[0], 20250101), 3);
     storage_close();
 
     remove_tree(source);
@@ -1746,7 +1797,7 @@ main(void)
     test_tickmate_reimport_recovers_counter_data();
     test_external_tickmate_db_import();
     test_empty_initialized_habits_seed_meditation_on_startup();
-    test_existing_default_meditation_links_on_startup();
+    test_existing_default_meditation_is_not_repaired_on_startup();
     test_sync_payload_omits_uploaded_state_after_upload_marker();
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();

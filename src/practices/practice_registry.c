@@ -5,6 +5,7 @@
 #include "practices/whm/whm_practice.h"
 #include "practices/whm/whm_session.h"
 #include "practices/meditation/meditation_practice.h"
+#include "practices/sun_salutation/sun_salutation_practice.h"
 
 #if ANDROID_BUILD
 #include "android_timer.h"
@@ -22,6 +23,12 @@ static int
 practice_meditation_is_active(const InbeApp *app)
 {
     return app != NULL && app->inbe.screen == InbeScreenMeditation;
+}
+
+static int
+practice_sun_salutation_is_active(const InbeApp *app)
+{
+    return app != NULL && app->inbe.screen == InbeScreenSunSalutation;
 }
 
 static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
@@ -62,6 +69,25 @@ static const PracticeDefinition g_practices[PRACTICE_COUNT] = {
         .background_start = NULL,
         .background_stop = NULL,
         .advance_elapsed = meditation_advance_elapsed,
+    },
+    {
+        .id = PRACTICE_SUN_SALUTATION,
+        .label_key = "exercise_sun_salutation",
+        .init = sun_salutation_practice_init,
+        .destroy = sun_salutation_practice_destroy,
+        .start = sun_salutation_practice_start,
+        .draw_manual = NULL,
+        .close_manual = NULL,
+        .draw_config = sun_salutation_config_screen_draw,
+        .leave_config = NULL,
+        .update = NULL,
+        .draw_setup_modal = NULL,
+        .draw_active_session = sun_salutation_draw_screen,
+        .request_exit = sun_salutation_request_exit,
+        .is_active = practice_sun_salutation_is_active,
+        .background_start = NULL,
+        .background_stop = NULL,
+        .advance_elapsed = NULL,
     },
 };
 

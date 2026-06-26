@@ -104,7 +104,8 @@ typedef enum HoldDisplayMode {
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
-    EXERCISE_COUNT = 2
+    EXERCISE_SUN_SALUTATION = 2,
+    EXERCISE_COUNT = 3
 } ExerciseType;
 
 typedef enum AppThemeMode {
@@ -175,6 +176,13 @@ typedef struct MeditationPracticeState {
     char music_status[128];
 } MeditationPracticeState;
 
+typedef struct SunSalutationPracticeState {
+    Texture2D poses[8];
+    int step;
+    int repetition;
+    int repetitions;
+} SunSalutationPracticeState;
+
 typedef struct HabitSessionEditState {
     int scroll;
     int active;
@@ -211,6 +219,7 @@ struct InbeApp {
 
     WhmPracticeState whm;
     MeditationPracticeState meditation;
+    SunSalutationPracticeState sun_salutation;
     Texture2D font_shapes_texture;
     Font locale_font;
     Font locale_font_8;

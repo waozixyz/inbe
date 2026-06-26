@@ -29,6 +29,17 @@ practice_activity_for_tab(int tab, int index)
     return index;
 }
 
+static int
+practice_screen_play_only(InbeApp *app)
+{
+    const PracticeDefinition *practice;
+
+    if(app == NULL)
+        return 0;
+    practice = practice_get(app->exercise_type);
+    return practice->draw_manual == NULL && practice->draw_config == NULL;
+}
+
 const char *
 practice_activity_label(int exercise)
 {
@@ -48,36 +59,63 @@ static int
 practice_screen_draw_tab_bar(InbeApp *app, int y)
 {
     FlintUISubtab tabs[PRACTICE_TAB_COUNT];
+    int tab_values[PRACTICE_TAB_COUNT];
+    const PracticeDefinition *practice;
     int tab_h = flint_px(PRACTICE_CATEGORY_TAB_H);
+    int tab_count = 0;
+    int selected_index = 0;
+    int clicked;
 
     if(app == NULL)
         return -1;
 
-    tabs[PRACTICE_TAB_PLAY] = (FlintUISubtab){
+    practice = practice_get(app->exercise_type);
+    if(practice_screen_play_only(app)) {
+        app->practice_tab = PRACTICE_TAB_PLAY;
+        return -1;
+    }
+
+    if(practice->draw_manual != NULL) {
+        tabs[tab_count] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_MANUAL],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active
+        };
+        tab_values[tab_count++] = PRACTICE_TAB_MANUAL;
+    }
+    tabs[tab_count] = (FlintUISubtab){
         .icon = app->icons[UI_ICON_TYPE_SUN],
         .icon_size = flint_px(20),
         .disabled = app->modal.active
     };
-    tabs[PRACTICE_TAB_MANUAL] = (FlintUISubtab){
-        .icon = app->icons[UI_ICON_TYPE_MANUAL],
-        .icon_size = flint_px(20),
-        .disabled = app->modal.active
-    };
-    tabs[PRACTICE_TAB_CONFIG] = (FlintUISubtab){
-        .icon = app->icons[UI_ICON_TYPE_WRENCH],
-        .icon_size = flint_px(20),
-        .disabled = app->modal.active
-    };
+    tab_values[tab_count++] = PRACTICE_TAB_PLAY;
+    if(practice->draw_config != NULL) {
+        tabs[tab_count] = (FlintUISubtab){
+            .icon = app->icons[UI_ICON_TYPE_WRENCH],
+            .icon_size = flint_px(20),
+            .disabled = app->modal.active
+        };
+        tab_values[tab_count++] = PRACTICE_TAB_CONFIG;
+    }
 
     if(app->practice_tab < 0 || app->practice_tab >= PRACTICE_TAB_COUNT)
         app->practice_tab = PRACTICE_TAB_PLAY;
+    for(int i = 0; i < tab_count; i++) {
+        if(tab_values[i] == app->practice_tab) {
+            selected_index = i;
+            break;
+        }
+    }
+    if(tab_values[selected_index] != app->practice_tab)
+        app->practice_tab = PRACTICE_TAB_PLAY;
 
-    return ui_draw_subtab_bar((FlintUISubtabBar){
+    clicked = ui_draw_subtab_bar((FlintUISubtabBar){
         .bounds = {0, (float)y, (float)view_width, (float)tab_h},
         .tabs = tabs,
-        .count = PRACTICE_TAB_COUNT,
-        .selected_index = app->practice_tab
+        .count = tab_count,
+        .selected_index = selected_index
     });
+    return clicked >= 0 && clicked < tab_count ? tab_values[clicked] : -1;
 }
 
 void
@@ -92,6 +130,8 @@ practice_screen_open_tab(InbeApp *app, int tab)
         app->practice_tab = PRACTICE_TAB_PLAY;
         app_switch_screen(app, InbeScreenStart);
     } else if(tab == PRACTICE_TAB_MANUAL) {
+        if(practice_get(app->exercise_type)->draw_manual == NULL)
+            return;
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         app->practice_tab = PRACTICE_TAB_MANUAL;
@@ -99,6 +139,8 @@ practice_screen_open_tab(InbeApp *app, int tab)
         app->manual_scroll = 0;
         app_switch_screen(app, InbeScreenStart);
     } else if(tab == PRACTICE_TAB_CONFIG) {
+        if(practice_get(app->exercise_type)->draw_config == NULL)
+            return;
         if(app->practice_tab != PRACTICE_TAB_CONFIG) {
             reset_settings_preview(app);
             app->settings_scroll = 0;
@@ -217,11 +259,13 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
     }
 
     // Keep existing subtab bar for Play/Manual/Config (works in both modes)
-    {
+    if(!practice_screen_play_only(app)) {
         int clicked = practice_screen_draw_tab_bar(app,
             practice_screen_selector_height(app));
         if(clicked >= 0 && clicked != app->practice_tab)
             practice_screen_open_tab(app, clicked);
+    } else {
+        app->practice_tab = PRACTICE_TAB_PLAY;
     }
 }
 
@@ -295,6 +339,7 @@ int
 practice_screen_first_run_guide_active(const InbeApp *app)
 {
     return app != NULL && !app->tutorial_seen && !app->modal.active &&
+           app->exercise_type != EXERCISE_SUN_SALUTATION &&
            app->inbe.screen == InbeScreenStart;
 }
 

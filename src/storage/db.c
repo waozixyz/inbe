@@ -245,6 +245,19 @@ schema_create(void)
         " queued_at INTEGER NOT NULL,"
         " UNIQUE(entity_type,entity_id,local_date)"
         ");"
+        "CREATE TABLE IF NOT EXISTS sync_ops("
+        " op_id TEXT PRIMARY KEY,"
+        " client_id TEXT NOT NULL,"
+        " seq INTEGER NOT NULL,"
+        " entity_type TEXT NOT NULL,"
+        " entity_id TEXT NOT NULL,"
+        " local_date INTEGER NOT NULL DEFAULT 0,"
+        " op_type TEXT NOT NULL,"
+        " payload_json TEXT NOT NULL DEFAULT '',"
+        " created_at INTEGER NOT NULL,"
+        " sent_at INTEGER NOT NULL DEFAULT 0,"
+        " acked_at INTEGER NOT NULL DEFAULT 0"
+        ");"
         "INSERT OR IGNORE INTO meta(key,value) VALUES('schema_version','1');");
 }
 
@@ -417,6 +430,19 @@ migrate_schema(void)
            " local_date INTEGER NOT NULL DEFAULT 0,"
            " queued_at INTEGER NOT NULL,"
            " UNIQUE(entity_type,entity_id,local_date)"
+           ");"
+           "CREATE TABLE IF NOT EXISTS sync_ops("
+           " op_id TEXT PRIMARY KEY,"
+           " client_id TEXT NOT NULL,"
+           " seq INTEGER NOT NULL,"
+           " entity_type TEXT NOT NULL,"
+           " entity_id TEXT NOT NULL,"
+           " local_date INTEGER NOT NULL DEFAULT 0,"
+           " op_type TEXT NOT NULL,"
+           " payload_json TEXT NOT NULL DEFAULT '',"
+           " created_at INTEGER NOT NULL,"
+           " sent_at INTEGER NOT NULL DEFAULT 0,"
+           " acked_at INTEGER NOT NULL DEFAULT 0"
            ");"))
         return 0;
     if(!had_outbox) {
