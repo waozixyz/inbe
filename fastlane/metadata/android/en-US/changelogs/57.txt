@@ -1,0 +1,6 @@
+Added
+---
+- Sun Salutation practice with Yoga habit sync support.
+Changed
+---
+- Improve sync reliability and review handling.
