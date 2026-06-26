@@ -45,7 +45,7 @@ meditation_start(InbeApp *app, int seconds)
     app_switch_screen(app, InbeScreenMeditation);
     app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
-    practice_active_background_start(app);
+    practice_background_start(app, PRACTICE_MEDITATION);
 }
 
 static void

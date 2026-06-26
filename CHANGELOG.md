@@ -1,4 +1,8 @@
 # Changelog
+## [1.5.9] - 2026-06-26
+### Fixed
+- Android session notification and wakelock for screen-locked playback
+
 ## [1.5.8] - 2026-06-25
 ### Fixed
 - Background play for meditation practice

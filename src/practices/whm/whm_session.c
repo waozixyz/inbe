@@ -253,7 +253,7 @@ session_start(InbeApp *app)
     android_keep_screen_on();
 #endif
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
-    practice_active_background_start(app);
+    practice_background_start(app, PRACTICE_WHM);
 }
 
 static int
