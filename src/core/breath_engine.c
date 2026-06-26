@@ -94,11 +94,7 @@ inbeinit(Inbe *l)
     l->progressive_speed = 1;
     l->progressive_start_speed = DefaultProgressiveStartSpeed;
     l->breath_animation = InbeBreathAnimationLinear;
-#if ANDROID_BUILD
-    l->play_in_background = 1;  // Enabled by default on Android
-#else
-    l->play_in_background = 0;  // Disabled on other platforms
-#endif
+    l->play_in_background = 1;
 
     for(int i = 0; i < MaxRounds; i++) {
         cpcount(l->results[i], "000");

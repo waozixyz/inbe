@@ -37,6 +37,9 @@ Pernapasan Wim Hof
 [exercise_meditation]
 Meditasi
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 Meditasi
 ---

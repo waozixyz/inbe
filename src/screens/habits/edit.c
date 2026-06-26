@@ -307,12 +307,7 @@ void
 draw_habit_edit_screen(InbeApp *app)
 {
     const char *title;
-    const char *activity_options[] = {
-        "Wim Hof Breathing",
-        "Meditation",
-        "Sun Salutation",
-        "7-Minute Workout"
-    };
+    const char *activity_options[EXERCISE_COUNT];
     Color color_options[6];
     int top_h = flint_px(58);
     int bottom_reserved;
@@ -330,6 +325,8 @@ draw_habit_edit_screen(InbeApp *app)
     if(app == NULL)
         return;
     bottom_reserved = app_content_bottom_reserved(app);
+    for(int i = 0; i < EXERCISE_COUNT; i++)
+        activity_options[i] = practice_activity_label(i);
 
     if(!app->habit_edit.active) {
         app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY

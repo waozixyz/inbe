@@ -276,7 +276,9 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
             snprintf(time_text, sizeof(time_text), "%02d:%02d",
                      ctx->entries[i].hour, ctx->entries[i].minute);
-            if(activity == EXERCISE_MEDITATION)
+            if(activity == EXERCISE_SUN_SALUTATION)
+                snprintf(summary_text, sizeof(summary_text), "1 session");
+            else if(activity == EXERCISE_MEDITATION)
                 habit_format_duration(ctx->entries[i].total_seconds,
                                       summary_text, sizeof(summary_text));
             else
@@ -303,7 +305,8 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             }
             y += row_h;
 
-            if(activity == EXERCISE_MEDITATION) {
+            if(activity == EXERCISE_MEDITATION ||
+               activity == EXERCISE_SUN_SALUTATION) {
                 y += flint_px(4);
                 continue;
             }

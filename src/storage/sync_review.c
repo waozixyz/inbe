@@ -23,6 +23,8 @@ static void review_append_local(ReviewText *out);
 static void review_append_remote(ReviewText *out, const char *json);
 static void review_append_unique_lines(ReviewText *out, const char *prefix,
                                        const char *lines, const char *other);
+static int review_has_pending_outbox(void);
+static int review_has_unknown_activity(const char *json);
 
 static int
 review_reserve(ReviewText *text, size_t extra)
@@ -226,17 +228,25 @@ review_activity_name(int activity)
     switch(activity) {
     case 0: return "Wim Hof";
     case 1: return "Meditation";
+    case 2: return "Sun Salutation";
     default: break;
     }
-    return "Unknown";
+    return NULL;
+}
+
+static int
+review_activity_uses_duration(int activity)
+{
+    return activity == 1;
 }
 
 static void
 review_append_activity_heading(ReviewText *out, int activity)
 {
-    review_append(out, review_activity_name(activity));
-    if(activity != 0 && activity != 1)
-        review_appendf(out, " %d", activity);
+    const char *name = review_activity_name(activity);
+    if(name == NULL)
+        return;
+    review_append(out, name);
     review_append(out, "\n");
 }
 
@@ -265,6 +275,25 @@ review_append_local_rounds(ReviewText *out, const char *session_id)
 }
 
 static void
+review_append_local_duration(ReviewText *out, const char *session_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int total = 0;
+
+    if(g_storage.db == NULL || session_id == NULL)
+        return;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT COALESCE(SUM(seconds),0) FROM session_rounds WHERE session_id=?1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return;
+    bind_text(stmt, 1, session_id);
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        total = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    review_appendf(out, "duration %ds", total);
+}
+
+static void
 review_append_local(ReviewText *out)
 {
     sqlite3_stmt *stmt = NULL;
@@ -283,6 +312,8 @@ review_append_local(ReviewText *out)
             int local_date = sqlite3_column_int(stmt, 1);
             const char *time_text = (const char *)sqlite3_column_text(stmt, 2);
             int activity = sqlite3_column_int(stmt, 3);
+            if(review_activity_name(activity) == NULL)
+                continue;
             if(activity != last_activity) {
                 if(rows > 0)
                     review_append(out, "\n");
@@ -292,8 +323,14 @@ review_append_local(ReviewText *out)
             review_appendf(out, "%04d-%02d-%02d %s\n",
                            local_date / 10000, (local_date / 100) % 100,
                            local_date % 100, time_text != NULL ? time_text : "--:--");
-            review_append(out, "rounds ");
-            review_append_local_rounds(out, id);
+            if(activity == 2) {
+                review_append(out, "session 1");
+            } else if(review_activity_uses_duration(activity)) {
+                review_append_local_duration(out, id);
+            } else {
+                review_append(out, "rounds ");
+                review_append_local_rounds(out, id);
+            }
             if(sqlite3_column_int64(stmt, 4) != 0)
                 review_append(out, " deleted");
             review_append(out, "\n");
@@ -354,7 +391,8 @@ review_append_remote(ReviewText *out, const char *json)
                           "       COALESCE(strftime('%H:%M',json_extract(s.value,'$.started_at'),'localtime'),'--:--'),"
                           "       CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER),"
                           "       CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER),"
-                          "       COALESCE((SELECT group_concat(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) || 's', ',') FROM json_each(s.value,'$.rounds') AS r),'none') "
+                          "       COALESCE((SELECT group_concat(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER) || 's', ',') FROM json_each(s.value,'$.rounds') AS r),'none'),"
+                          "       CAST(COALESCE((SELECT SUM(CAST(COALESCE(json_extract(r.value,'$.hold_seconds'),0) AS INTEGER)) FROM json_each(s.value,'$.rounds') AS r),0) AS INTEGER) "
                           "FROM json_each(?1,'$.changes.sessions') AS s "
                           "WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
                           "ORDER BY 3,1 DESC,2 DESC",
@@ -365,6 +403,9 @@ review_append_remote(ReviewText *out, const char *json)
             const char *time_text = (const char *)sqlite3_column_text(stmt, 1);
             int activity = sqlite3_column_int(stmt, 2);
             const char *rounds = (const char *)sqlite3_column_text(stmt, 4);
+            int duration = sqlite3_column_int(stmt, 5);
+            if(review_activity_name(activity) == NULL)
+                continue;
             if(activity != last_activity) {
                 if(rows > 0)
                     review_append(out, "\n");
@@ -374,7 +415,12 @@ review_append_remote(ReviewText *out, const char *json)
             review_appendf(out, "%04d-%02d-%02d %s\n",
                            local_date / 10000, (local_date / 100) % 100,
                            local_date % 100, time_text != NULL ? time_text : "--:--");
-            review_appendf(out, "rounds %s", rounds != NULL ? rounds : "none");
+            if(activity == 2)
+                review_append(out, "session 1");
+            else if(review_activity_uses_duration(activity))
+                review_appendf(out, "duration %ds", duration);
+            else
+                review_appendf(out, "rounds %s", rounds != NULL ? rounds : "none");
             if(sqlite3_column_int64(stmt, 3) != 0)
                 review_append(out, " deleted");
             review_append(out, "\n");
@@ -389,7 +435,9 @@ review_append_remote(ReviewText *out, const char *json)
     review_append(out, "\nHabit days\n");
     if(g_storage.db != NULL && json != NULL &&
        sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COALESCE((SELECT COALESCE(json_extract(h.value,'$.name'),'') FROM json_each(?1,'$.changes.habits') AS h WHERE COALESCE(json_extract(h.value,'$.id'),'')=COALESCE(json_extract(d.value,'$.habit_id'),'')),COALESCE(json_extract(d.value,'$.habit_id'),'')),"
+                          "SELECT COALESCE((SELECT COALESCE(json_extract(h.value,'$.name'),'') FROM json_each(?1,'$.changes.habits') AS h WHERE COALESCE(json_extract(h.value,'$.id'),'')=COALESCE(json_extract(d.value,'$.habit_id'),'')),"
+                          "                (SELECT name FROM habits WHERE id=COALESCE(json_extract(d.value,'$.habit_id'),'') LIMIT 1),"
+                          "                ''),"
                           "       CAST(COALESCE(json_extract(d.value,'$.local_date'),0) AS INTEGER),"
                           "       CAST(COALESCE(json_extract(d.value,'$.count'),0) AS INTEGER) "
                           "FROM json_each(?1,'$.changes.habit_days') AS d "
@@ -401,7 +449,9 @@ review_append_remote(ReviewText *out, const char *json)
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = sqlite3_column_int(stmt, 1);
             const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            const char *safe_name = name != NULL && name[0] != '\0' ? name : "(unknown)";
+            const char *safe_name = name != NULL ? name : "";
+            if(safe_name[0] == '\0')
+                continue;
             if(strcmp(last_name, safe_name) != 0) {
                 if(rows > 0)
                     review_append(out, "\n");
@@ -549,9 +599,66 @@ storage_sync_review_json_has_visible_diff(const char *json)
         free(diff);
         return 1;
     }
-    has_diff = diff != NULL && diff[0] != '\0';
+    has_diff = diff != NULL && diff[0] != '\0' &&
+               (review_has_pending_outbox() || review_has_unknown_activity(json));
     free(diff);
     return has_diff;
+}
+
+static int
+review_has_pending_outbox(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    int result = 0;
+
+    if(g_storage.db == NULL)
+        return 1;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 1;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    return result;
+}
+
+static int
+review_has_unknown_activity(const char *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    int result = 0;
+
+    if(g_storage.db == NULL)
+        return 1;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS(SELECT 1 FROM sessions "
+                          "WHERE deleted_at=0 AND activity NOT IN (0,1,2))",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 1;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    if(result)
+        return 1;
+
+    if(json == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS("
+                          " SELECT 1 FROM json_each(?1,'$.changes.sessions') AS s "
+                          " WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
+                          " AND CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER) NOT IN (0,1,2)"
+                          ")",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 1;
+    bind_text(stmt, 1, json);
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    if(result)
+        return 1;
+    return 0;
 }
 
 int

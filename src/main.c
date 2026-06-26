@@ -608,7 +608,7 @@ int main(int argc, char **argv) {
 #if defined(PLATFORM_WEB)
     SetConfigFlags(flint_web_window_flags());
 #elif !ANDROID_BUILD
-    SetConfigFlags(FLAG_WINDOW_RESIZABLE);
+    SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD

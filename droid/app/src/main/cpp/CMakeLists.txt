@@ -31,6 +31,14 @@ set(INBE_EMBEDDED_INPUTS
     assets/practices/whm/1.jpg
     assets/practices/whm/2.jpg
     assets/practices/meditation/1.jpg
+    assets/practices/sunsalutation/pos_0001.png
+    assets/practices/sunsalutation/pos_0002.png
+    assets/practices/sunsalutation/pos_0003.png
+    assets/practices/sunsalutation/pos_0004.png
+    assets/practices/sunsalutation/pos_0005.png
+    assets/practices/sunsalutation/pos_0006.png
+    assets/practices/sunsalutation/pos_0007.png
+    assets/practices/sunsalutation/pos_0008.png
     assets/fonts/locales.png
     assets/fonts/locales.dat
     ${INBE_SOUND_ASSETS}
@@ -110,6 +118,8 @@ add_library(main SHARED
     "${SRC_DIR}/practices/meditation/meditation_session.c"
     "${SRC_DIR}/practices/meditation/meditation_manual.c"
     "${SRC_DIR}/practices/meditation/meditation_config.c"
+    "${SRC_DIR}/practices/sun_salutation/sun_salutation_practice.c"
+    "${SRC_DIR}/practices/sun_salutation/sun_salutation_session.c"
     "${SRC_DIR}/screens/habits_screen.c"
     "${SRC_DIR}/screens/statistics_screen.c"
     "${SRC_DIR}/screens/habits/edit.c"
@@ -153,6 +163,7 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/practices"
     "${SRC_DIR}/practices/whm"
     "${SRC_DIR}/practices/meditation"
+    "${SRC_DIR}/practices/sun_salutation"
     "${SRC_DIR}/storage"
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"

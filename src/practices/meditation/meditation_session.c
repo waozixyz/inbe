@@ -352,11 +352,11 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
                     flint_ui_text_y(time_text, center_y - font, font * 2, font),
                     font, flint_theme_get_text());
 
-    if(!(
+    if((
 #if defined(PLATFORM_WEB)
-        app->backgrounded
+        !app->backgrounded
 #else
-        0
+        !app->backgrounded || app->inbe.play_in_background
 #endif
     )) {
         app->meditation.frame_ticks++;

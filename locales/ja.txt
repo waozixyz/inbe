@@ -37,6 +37,9 @@
 [exercise_meditation]
 瞑想
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 瞑想
 ---

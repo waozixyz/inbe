@@ -311,7 +311,8 @@ app_background_sync_safe(const InbeApp *app)
     if(app->modal.active)
         return 0;
     if(app->inbe.screen == InbeScreenPracticeSession ||
-       app->inbe.screen == InbeScreenMeditation)
+       app->inbe.screen == InbeScreenMeditation ||
+       app->inbe.screen == InbeScreenSunSalutation)
         return 0;
     return 1;
 }
@@ -1834,12 +1835,16 @@ updateapp(InbeApp *app)
 {
     int center_x = view_width / 2;
     int center_y = view_height / 2;
+    int play_center_y;
     int hover = 0;
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
 
     app_apply_pending_sidebar_route(app);
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+    app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
+#endif
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
@@ -1899,9 +1904,10 @@ updateapp(InbeApp *app)
         practice_update_circle_bounds(app, 0, 84);
     }
 
+    play_center_y = center_y - flint_px(12);
     int play_circle_clicked = 0;
     if(app->inbe.screen == InbeScreenStart && app->practice_tab == PRACTICE_TAB_PLAY)
-        play_circle_clicked = practice_draw_start_preview(app, center_x, center_y);
+        play_circle_clicked = practice_draw_start_preview(app, center_x, play_center_y);
     else if(app->inbe.screen == InbeScreenSession)
         practice_draw_active_breathing(app, center_x, center_y);
 
@@ -1941,6 +1947,14 @@ updateapp(InbeApp *app)
     case InbeScreenMeditation:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
+            if(practice->draw_active_session != NULL)
+                practice->draw_active_session(app, center_x, center_y);
+        }
+        break;
+
+    case InbeScreenSunSalutation:
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_SUN_SALUTATION);
             if(practice->draw_active_session != NULL)
                 practice->draw_active_session(app, center_x, center_y);
         }

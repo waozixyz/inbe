@@ -37,6 +37,9 @@ Wim Hof 呼吸
 [exercise_meditation]
 冥想
 ---
+[exercise_sun_salutation]
+Sun Salutation
+---
 [meditation_title]
 冥想
 ---

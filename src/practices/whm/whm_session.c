@@ -572,7 +572,15 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int clicked = 0;
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     const char *play_text = locale_get("play_button");
+    const char *practice_text = practice_label(app->exercise_type);
+    const char *warning_text = "Work in progress";
     int font = FLINT_TEXT_16;
+    int practice_font = flint_ui_font();
+    int warning_font = flint_ui_font_small();
+    int practice_w;
+    int practice_y;
+    int warning_w;
+    int warning_y;
     float scale = 1.0f;
 
     int radius = flint_px(44);
@@ -604,11 +612,30 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     }
 
     int scaled_radius = (int)(radius * scale);
+    practice_w = flint_text_measure(practice_text, practice_font);
+    if(practice_w > view_width - flint_px(48))
+        practice_font = flint_ui_font_small();
+    practice_w = flint_text_measure(practice_text, practice_font);
+    practice_y = center_y - scaled_radius - flint_px(42);
+    if(practice_y < flint_px(8))
+        practice_y = flint_px(8);
+    flint_text_draw(practice_text, center_x - practice_w / 2,
+                    flint_ui_text_y(practice_text, practice_y, flint_px(32), practice_font),
+                    practice_font, flint_theme_get_text());
+
     DrawCircle(center_x, center_y, scaled_radius, flint_theme_get_circle());
     DrawCircleLines(center_x, center_y, scaled_radius, flint_theme_get_text());
 
     // Draw PLAY text in center
     flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(flint_theme_get_circle()));
+
+    if(app->exercise_type == EXERCISE_SUN_SALUTATION) {
+        warning_w = flint_text_measure(warning_text, warning_font);
+        warning_y = center_y + scaled_radius + flint_px(14);
+        flint_text_draw(warning_text, center_x - warning_w / 2,
+                        flint_ui_text_y(warning_text, warning_y, flint_px(28), warning_font),
+                        warning_font, flint_theme_get_text());
+    }
 
     if(active) {
         app->cursor_clickable = 1;
@@ -808,11 +835,11 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     draw_session_status(app, center_x, center_y);
     draw_session_round_label(app);
 
-    if(!app->session_paused && !(
+    if(!app->session_paused && (
 #if defined(PLATFORM_WEB)
-        app->backgrounded
+        !app->backgrounded
 #else
-        0
+        !app->backgrounded || app->inbe.play_in_background
 #endif
     )) {
 #if ANDROID_BUILD

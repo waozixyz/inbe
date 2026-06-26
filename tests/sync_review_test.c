@@ -124,8 +124,7 @@ check_contains(const char *label, const char *text, const char *needle)
 {
     if(text != NULL && strstr(text, needle) != NULL)
         return;
-    fprintf(stderr, "FAIL %s: missing %s in %s\n",
-            label, needle, text != NULL ? text : "(null)");
+    fprintf(stderr, "FAIL %s: missing %s in %s\n", label, needle, text != NULL ? text : "(null)");
     g_failures++;
 }
 
@@ -171,8 +170,7 @@ remove_tree(const char *path)
 static void
 make_clean_root(char *out, size_t out_size, const char *name)
 {
-    snprintf(out, out_size, "/tmp/inbe-sync-review-test-%ld-%s",
-             (long)getpid(), name);
+    snprintf(out, out_size, "/tmp/inbe-sync-review-test-%ld-%s", (long)getpid(), name);
     remove_tree(out);
     check_true("create test root", ensure_dir(out));
     snprintf(g_data_root, sizeof(g_data_root), "%s", out);
@@ -221,17 +219,52 @@ static void
 seed_local_data(const char *root)
 {
     check_true("seed local data",
-               exec_db_sql(root,
-                           "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
-                           "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at)"
-                           "VALUES('local-habit',(SELECT id FROM users LIMIT 1),'Local Breath',10,20,30,0,0,1,1,0,1782300000);"
-                           "INSERT INTO habit_days(habit_id,local_date,completed,count,session_count,updated_at)"
-                           "VALUES('local-habit',20260624,1,4,0,1782300000);"
-                           "INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,"
-                           "imported_at,rounds_hash,deleted_at,updated_at)"
-                           "VALUES('local-session',(SELECT id FROM users LIMIT 1),1782300000,20260624,1,1,'test',1782300000,101,0,1782300000);"
-                           "INSERT INTO session_rounds(session_id,round_index,seconds)"
-                           "VALUES('local-session',0,40);"));
+               exec_db_sql(root, "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                                 "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,"
+                                 "updated_at)"
+                                 "VALUES('local-habit',(SELECT id FROM users LIMIT 1),'Local "
+                                 "Breath',10,20,30,0,0,1,1,0,1782300000);"
+                                 "INSERT INTO "
+                                 "habit_days(habit_id,local_date,completed,count,session_count,"
+                                 "updated_at)"
+                                 "VALUES('local-habit',20260624,1,4,0,1782300000);"
+                                 "INSERT INTO "
+                                 "sessions(id,user_id,started_at,local_date,topic,activity,source,"
+                                 "imported_at,rounds_hash,deleted_at,updated_at)"
+                                 "VALUES('local-session',(SELECT id FROM users LIMIT "
+                                 "1),1782300000,20260624,1,1,'test',1782300000,101,0,1782300000);"
+                                 "INSERT INTO session_rounds(session_id,round_index,seconds)"
+                                 "VALUES('local-session',0,40);"));
+}
+
+static void
+mark_local_data_pending(const char *root)
+{
+    check_true("mark local data pending",
+               exec_db_sql(root, "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('habit','local-habit',0,1782300000);"
+                                 "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('habit_day','local-habit',20260624,1782300000);"
+                                 "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('session','local-session',0,1782300000);"));
+}
+
+static void
+seed_local_yoga_data(const char *root)
+{
+    check_true("seed local yoga data",
+               exec_db_sql(root, "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                                 "sync_mode,sync_activity,counter_enabled,sort_order,deleted_"
+                                 "at,updated_at)"
+                                 "VALUES('yoga',(SELECT id FROM users LIMIT "
+                                 "1),'Yoga',239,178,102,1,4,0,1,0,1782300000);"
+                                 "INSERT INTO "
+                                 "habit_days(habit_id,local_date,completed,count,session_"
+                                 "count,updated_at)"
+                                 "VALUES('yoga',20260624,1,2,0,1782300000);"));
 }
 
 static const char *
@@ -247,11 +280,16 @@ remote_snapshot_response(void)
            "\"color_r\":90,\"color_g\":80,\"color_b\":70,\"sync_mode\":0,"
            "\"sync_activity\":0,\"counter_enabled\":1,\"sort_order\":1,"
            "\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
-           "\"habit_days\":[{\"habit_id\":\"remote-habit\",\"local_date\":20260624,"
-           "\"completed\":true,\"count\":7,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
-           "\"sessions\":[{\"id\":\"remote-session\",\"started_at\":\"2026-06-24T10:00:00Z\","
-           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"lyra-test\","
-           "\"rounds_hash\":202,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\","
+           "\"habit_days\":[{\"habit_id\":\"remote-habit\",\"local_date\":"
+           "20260624,"
+           "\"completed\":true,\"count\":7,\"updated_at\":\"2026-06-24T10:00:"
+           "00Z\"}],"
+           "\"sessions\":[{\"id\":\"remote-session\",\"started_at\":\"2026-06-"
+           "24T10:00:00Z\","
+           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"lyra-"
+           "test\","
+           "\"rounds_hash\":202,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:"
+           "00:00Z\","
            "\"rounds\":[{\"round_index\":0,\"hold_seconds\":55}]}],"
            "\"meditation_logs\":[]"
            "}"
@@ -269,10 +307,41 @@ deleted_only_remote_snapshot_response(void)
            "\"changes\":{"
            "\"habits\":[],"
            "\"habit_days\":[],"
-           "\"sessions\":[{\"id\":\"deleted-session\",\"started_at\":\"2026-06-24T10:00:00Z\","
-           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"lyra-test\","
-           "\"rounds_hash\":202,\"deleted_at\":1782300000,\"updated_at\":\"2026-06-24T10:00:00Z\","
+           "\"sessions\":[{\"id\":\"deleted-session\",\"started_at\":\"2026-06-"
+           "24T10:00:00Z\","
+           "\"local_date\":20260624,\"topic\":2,\"activity\":3,\"source\":\"lyra-"
+           "test\","
+           "\"rounds_hash\":202,\"deleted_at\":1782300000,\"updated_at\":\"2026-"
+           "06-24T10:00:00Z\","
            "\"rounds\":[{\"round_index\":0,\"hold_seconds\":55}]}],"
+           "\"meditation_logs\":[]"
+           "}"
+           "}";
+}
+
+static const char *
+remote_additive_yoga_response(void)
+{
+    return "{"
+           "\"server_version\":14,"
+           "\"server_state_hash\":\"remote-hash-yoga\","
+           "\"full_snapshot_required\":true,"
+           "\"changes_complete\":false,"
+           "\"changes\":{"
+           "\"habits\":[{\"id\":\"yoga\",\"name\":\"Yoga\","
+           "\"color_r\":239,\"color_g\":178,\"color_b\":102,\"sync_mode\":1,"
+           "\"sync_activity\":4,\"counter_enabled\":0,\"sort_order\":1,"
+           "\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
+           "\"habit_days\":[{\"habit_id\":\"yoga\",\"local_date\":20260624,"
+           "\"completed\":true,\"count\":1,\"updated_at\":\"2026-06-24T10:00:"
+           "00Z\"}],"
+           "\"sessions\":[{\"id\":\"sun-session\",\"started_at\":\"2026-06-24T10:"
+           "00:00Z\","
+           "\"local_date\":20260624,\"topic\":0,\"activity\":2,\"source\":"
+           "\"test\","
+           "\"rounds_hash\":303,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:"
+           "00:00Z\","
+           "\"rounds\":[{\"round_index\":0,\"hold_seconds\":1}]}],"
            "\"meditation_logs\":[]"
            "}"
            "}";
@@ -289,6 +358,7 @@ test_full_snapshot_waits_for_review(void)
     make_clean_root(root, sizeof(root), "pending");
     check_true("init pending db", storage_init(root));
     seed_local_data(root);
+    mark_local_data_pending(root);
 
     check_true("apply review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
@@ -302,19 +372,21 @@ test_full_snapshot_waits_for_review(void)
     check_int("remote habit not applied yet",
               read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 0);
 
-    check_true("review detail builds",
-               storage_sync_review_details(&local_detail, &remote_detail));
+    check_true("review detail builds", storage_sync_review_details(&local_detail, &remote_detail));
     check_contains("local detail session line", local_detail,
-                   "Meditation\n2026-06-24 11:20\nrounds 40s");
+                   "Meditation\n2026-06-24 11:20\nduration 40s");
     check_contains("local detail habit day line", local_detail,
                    "Habit days\nLocal Breath\n2026-06-24 count 4");
     check_contains("remote detail session line", remote_detail,
-                   "Unknown 3\n2026-06-24 10:00\nrounds 55s");
+                   "Sun Salutation\n2026-06-24 10:00\nsession 1");
+    check_not_contains("remote detail hides unknown activity", remote_detail, "Unknown");
+    check_not_contains("remote detail hides numeric activity suffix", remote_detail,
+                       "Sun Salutation 2");
     check_contains("remote detail habit day line", remote_detail,
                    "Habit days\nRemote Breath\n2026-06-24 count 7");
     check_true("review diff builds", storage_sync_review_diff(&diff_detail));
     check_contains("diff local session", diff_detail, "- Meditation");
-    check_contains("diff remote session", diff_detail, "+ Unknown 3");
+    check_contains("diff remote session", diff_detail, "+ Sun Salutation");
     check_contains("diff local habit day", diff_detail, "- Local Breath");
     check_contains("diff remote habit day", diff_detail, "+ Remote Breath");
     free(local_detail);
@@ -335,16 +407,115 @@ test_review_ignores_deleted_remote_rows(void)
     check_true("init deleted review db", storage_init(root));
     check_true("apply deleted review response",
                storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
-    check_false("deleted-only review not pending",
-                storage_sync_review_pending());
+    check_false("deleted-only review not pending", storage_sync_review_pending());
     check_true("deleted review json has no visible diff",
                !storage_sync_review_json_has_visible_diff(deleted_only_remote_snapshot_response()));
-    check_true("deleted review diff builds",
-               storage_sync_review_diff(&diff_detail));
+    check_true("deleted review diff builds", storage_sync_review_diff(&diff_detail));
     check_not_contains("deleted remote hidden from diff", diff_detail, "deleted-session");
     check_not_contains("deleted remote marker hidden from diff", diff_detail, "deleted");
 
     free(diff_detail);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_remote_additions_apply_without_review(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "remote-additive");
+    check_true("init remote additive db", storage_init(root));
+    check_true("apply remote additive response",
+               storage_apply_sync_response_json(remote_additive_yoga_response()));
+    check_false("remote additive review not pending", storage_sync_review_pending());
+    check_int("remote additive sun session applied",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='sun-session'"), 1);
+    check_int(
+        "remote additive yoga habit applied",
+        read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='yoga' AND counter_enabled=0"),
+        1);
+    check_int(
+        "remote additive yoga day applied",
+        read_db_count(root, "SELECT COUNT(*) FROM habit_days WHERE habit_id='yoga' AND count=1"),
+        1);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_remote_snapshot_removes_absent_local_yoga_without_pending_edits(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "remote-removes-yoga");
+    check_true("init remote removes yoga db", storage_init(root));
+    seed_local_yoga_data(root);
+    check_true("apply remote deleted yoga response",
+               storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
+    check_false("remote deleted yoga review not pending", storage_sync_review_pending());
+    check_int("remote deleted yoga habit removed",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='yoga'"), 0);
+    check_int("remote deleted yoga day removed",
+              read_db_count(root, "SELECT COUNT(*) FROM habit_days WHERE habit_id='yoga'"), 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_remote_snapshot_keeps_review_for_pending_yoga_delete(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "remote-removes-yoga-pending");
+    check_true("init pending yoga delete db", storage_init(root));
+    seed_local_yoga_data(root);
+    check_true("mark local yoga pending",
+               exec_db_sql(root, "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('habit','yoga',0,1782300000);"));
+    check_true("apply pending remote deleted yoga response",
+               storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
+    check_true("pending yoga delete requires review", storage_sync_review_pending());
+    check_int("pending yoga still local until review",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='yoga'"), 1);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_payload_includes_v2_ops(void)
+{
+    char root[1024];
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "v2-payload");
+    check_true("init v2 payload db", storage_init(root));
+    seed_local_data(root);
+    mark_local_data_pending(root);
+    check_int("sync ops migration table exists",
+              read_db_count(root, "SELECT COUNT(*) FROM sqlite_master WHERE "
+                                  "type='table' AND name='sync_ops'"),
+              1);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_contains("v2 payload protocol", payload, "\"protocol_version\":2");
+    check_contains("v2 payload client clock", payload, "\"client_clock\":0");
+    check_contains("v2 payload ops array", payload, "\"ops\":[");
+    check_contains("v2 payload habit op", payload, "\"entity_type\":\"habit\"");
+    check_contains("v2 payload habit day op", payload, "\"entity_type\":\"habit_day\"");
+    check_contains("v2 payload session op", payload, "\"entity_type\":\"session\"");
+    check_contains("v2 payload deterministic op id", payload, "\"op_id\":");
+    check_contains("v2 payload op client id", payload, "\"client_id\":");
+    check_contains("v2 payload op sequence", payload, "\"seq\":");
+    check_contains("v2 payload session payload", payload, "\"payload\":{\"id\":\"local-session\"");
+    check_contains("v2 payload keeps legacy habits", payload, "\"habits\":[");
+    check_contains("v2 payload keeps legacy sessions", payload, "\"sessions\":[");
+    storage_free_sync_payload_json(payload);
+
     storage_close();
     remove_tree(root);
 }
@@ -358,6 +529,7 @@ test_keep_local_requests_full_replace(void)
     make_clean_root(root, sizeof(root), "keep-local");
     check_true("init keep local db", storage_init(root));
     seed_local_data(root);
+    mark_local_data_pending(root);
     check_true("apply keep local review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
 
@@ -388,6 +560,7 @@ test_use_remote_replaces_local_data(void)
     make_clean_root(root, sizeof(root), "use-remote");
     check_true("init use remote db", storage_init(root));
     seed_local_data(root);
+    mark_local_data_pending(root);
     check_true("apply use remote review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
 
@@ -417,24 +590,26 @@ test_normal_response_records_server_hash(void)
 {
     char root[1024];
     char *payload;
-    const char *response =
-        "{"
-        "\"server_version\":5,"
-        "\"server_state_hash\":\"normal-hash-001\","
-        "\"account_alias\":\"waozi\","
-        "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}"
-        "}";
+    const char *response = "{"
+                           "\"server_version\":5,"
+                           "\"server_clock\":77,"
+                           "\"server_state_hash\":\"normal-hash-001\","
+                           "\"account_alias\":\"waozi\","
+                           "\"changes\":{\"habits\":[],\"habit_days\":[],"
+                           "\"sessions\":[],\"meditation_logs\":[]}"
+                           "}";
 
     make_clean_root(root, sizeof(root), "normal");
     check_true("init normal db", storage_init(root));
     check_true("apply normal response", storage_apply_sync_response_json(response));
     check_false("normal response no review", storage_sync_review_pending());
-    check_contains("normal response saves alias",
-                   storage_get_setting_text("sync_account_alias"), "waozi");
+    check_contains("normal response saves alias", storage_get_setting_text("sync_account_alias"),
+                   "waozi");
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_contains("normal response hash in next payload", payload,
                    "\"last_server_state_hash\":\"normal-hash-001\"");
+    check_contains("normal response clock in next payload", payload, "\"client_clock\":77");
     check_not_contains("normal response no full replace", payload, "full_sync_requested");
     storage_free_sync_payload_json(payload);
 
@@ -450,6 +625,10 @@ main(void)
 
     test_full_snapshot_waits_for_review();
     test_review_ignores_deleted_remote_rows();
+    test_remote_additions_apply_without_review();
+    test_remote_snapshot_removes_absent_local_yoga_without_pending_edits();
+    test_remote_snapshot_keeps_review_for_pending_yoga_delete();
+    test_sync_payload_includes_v2_ops();
     test_keep_local_requests_full_replace();
     test_use_remote_replaces_local_data();
     test_normal_response_records_server_hash();
