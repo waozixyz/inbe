@@ -111,12 +111,14 @@ practice_active_supports_background(const InbeApp *app)
 }
 
 void
-practice_active_background_start(InbeApp *app)
+practice_background_start(InbeApp *app, int id)
 {
-    const PracticeDefinition *practice = practice_active(app);
+    const PracticeDefinition *practice;
 
     if(app == NULL)
         return;
+
+    practice = practice_get(id);
 
 #if ANDROID_BUILD
     set_global_inbe_app(app);
@@ -135,6 +137,15 @@ practice_active_background_start(InbeApp *app)
         android_timer_start();
     }
 #endif
+}
+
+void
+practice_active_background_start(InbeApp *app)
+{
+    const PracticeDefinition *practice = practice_active(app);
+    if(practice == NULL)
+        return;
+    practice_background_start(app, practice->id);
 }
 
 void

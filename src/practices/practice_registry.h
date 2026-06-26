@@ -42,6 +42,7 @@ void practice_update_active_breathing(InbeApp *app, int center_x, int center_y, 
 void practice_draw_results(InbeApp *app, int center_x, int center_y, int *hover);
 const PracticeDefinition *practice_active(const InbeApp *app);
 int practice_active_supports_background(const InbeApp *app);
+void practice_background_start(InbeApp *app, int id);
 void practice_active_background_start(InbeApp *app);
 void practice_active_background_stop(InbeApp *app);
 void practice_active_advance_elapsed(InbeApp *app, int elapsed_ms);

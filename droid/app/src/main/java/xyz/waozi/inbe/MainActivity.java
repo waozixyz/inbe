@@ -14,7 +14,6 @@ import android.graphics.Insets;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.os.PowerManager;
 import android.util.Base64;
 import android.util.Log;
 import android.view.DisplayCutout;
@@ -53,11 +52,11 @@ public class MainActivity extends NativeActivity {
     // [status_bar, nav_bar, cutout_left, cutout_top, cutout_right, cutout_bottom]
     private final int[] cachedInsets = new int[6];
     private boolean insetsInitialized = false;
-    private PowerManager.WakeLock wakeLock = null;
     private boolean activityPaused = false;
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
     private boolean autoPausedForLifecycle = false;
+    private boolean notificationPermissionRequestInFlight = false;
     private int lastDeleteRepeatCount = -1;
 
     private native void nativeSetInsets(int status, int nav,
@@ -79,14 +78,17 @@ public class MainActivity extends NativeActivity {
     private native void nativeTextInputEnter();
     private native void nativeInvalidateGraphicsResources();
 
-    private void requestDownloadNotificationPermissionIfNeeded() {
+    private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+            !notificationPermissionRequestInFlight) {
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
-                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                        checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED &&
+                        !notificationPermissionRequestInFlight) {
+                        notificationPermissionRequestInFlight = true;
                         requestPermissions(new String[] { Manifest.permission.POST_NOTIFICATIONS },
                                            REQUEST_POST_NOTIFICATIONS);
                     }
@@ -95,8 +97,19 @@ public class MainActivity extends NativeActivity {
         }
     }
 
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQUEST_POST_NOTIFICATIONS) {
+            notificationPermissionRequestInFlight = false;
+            boolean granted = grantResults.length > 0 &&
+                grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            Log.d(TAG, "Notification permission result: granted=" + granted);
+        }
+    }
+
     private NotificationManager getDownloadNotificationManager() {
-        requestDownloadNotificationPermissionIfNeeded();
+        requestNotificationPermissionIfNeeded();
         NotificationManager manager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
         if (manager != null && Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel channel = new NotificationChannel(
@@ -592,31 +605,22 @@ public class MainActivity extends NativeActivity {
     }
 
     public void acquireWakeLock() {
-        Log.d(TAG, "acquireWakeLock called - wakeLock=" + wakeLock);
-        if (wakeLock == null) {
-            Log.d(TAG, "Creating new PARTIAL_WAKE_LOCK");
-            PowerManager pm = (PowerManager) getSystemService(Context.POWER_SERVICE);
-            wakeLock = pm.newWakeLock(
-                PowerManager.PARTIAL_WAKE_LOCK,
-                "inbe:meditation_session"
-            );
-            wakeLock.acquire();
-            Log.d(TAG, "Wake lock acquired successfully - held=" + wakeLock.isHeld());
+        Log.d(TAG, "Starting session foreground service");
+        requestNotificationPermissionIfNeeded();
+        Intent intent = new Intent(this, SessionForegroundService.class);
+        intent.setAction(SessionForegroundService.ACTION_START);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent);
         } else {
-            Log.d(TAG, "Wake lock already exists - held=" + wakeLock.isHeld());
+            startService(intent);
         }
     }
 
     public void releaseWakeLock() {
-        Log.d(TAG, "releaseWakeLock called - wakeLock=" + wakeLock);
-        if (wakeLock != null && wakeLock.isHeld()) {
-            Log.d(TAG, "Releasing wake lock - was held=" + wakeLock.isHeld());
-            wakeLock.release();
-            Log.d(TAG, "Wake lock released successfully");
-            wakeLock = null;
-        } else {
-            Log.d(TAG, "Wake lock not held - wakeLock=" + wakeLock + " isHeld=" + (wakeLock != null ? wakeLock.isHeld() : "null"));
-        }
+        Log.d(TAG, "Stopping session foreground service");
+        Intent intent = new Intent(this, SessionForegroundService.class);
+        intent.setAction(SessionForegroundService.ACTION_STOP);
+        stopService(intent);
     }
 
     public void keepScreenOn() {
@@ -654,6 +658,7 @@ public class MainActivity extends NativeActivity {
 
         // Notify native code that activity is ready for wake lock
         nativeWakeLockReady();
+        requestNotificationPermissionIfNeeded();
     }
 
     @Override
