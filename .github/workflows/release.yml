@@ -601,5 +601,5 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: xyz.waozi.inbe
           releaseFiles: build/release/android/*.aab
-          track: alpha
+          tracks: alpha
           status: completed
