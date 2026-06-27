@@ -1656,7 +1656,6 @@ sync_client_delete_account(const char *base_url)
     SyncBuffer response = {0};
     const char *headers[1] = {"Content-Type: application/json"};
     long status = 0;
-    int len;
     int ok;
 
     if(!sync_client_url_valid(base_url))
@@ -1664,10 +1663,7 @@ sync_client_delete_account(const char *base_url)
     if(!sync_account_load(&account))
         return INBE_SYNC_CLIENT_NO_ACCOUNT;
 
-    len = snprintf(exported_key, sizeof(exported_key),
-                   "inbe-sync-key-v1\nalgorithm=ML-DSA-44\npublic_id=%s\npublic_key=%s\nprivate_key=%s\n",
-                   account.public_id, account.public_key_hex, account.private_key_hex);
-    if(len <= 0 || (size_t)len >= sizeof(exported_key))
+    if(!flint_lyra_account_export_text(&account, exported_key, sizeof(exported_key)))
         return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
 
     if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||

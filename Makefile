@@ -125,11 +125,11 @@ SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
 SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
-LIBOQS_DIR := vendor/liboqs
-LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)/liboqs
+LIBOQS_DIR := $(FLINT_DIR)/vendor/liboqs
+LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)/flint-liboqs
 LIBOQS_A := $(LIBOQS_BUILD_DIR)/lib/liboqs.a
 LIBOQS_INCLUDE := -I$(LIBOQS_BUILD_DIR)/include
-WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/liboqs
+WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/flint-liboqs
 WEB_LIBOQS_A := $(WEB_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WEB_LIBOQS_INCLUDE := -I$(WEB_LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
@@ -353,11 +353,11 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/flint_lyra_account.c $(FLINT_DIR)/include/flint_lyra_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/flint_lyra_account.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
@@ -632,7 +632,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
 		$(RAY_CFLAGS) \
-		-DINBE_HAS_LIBOQS=1 \
+		-DFLINT_HAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=0 \
@@ -819,7 +819,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SR
 		$(SQLITE_INCLUDE) \
 		$(WEB_LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
-		-DINBE_HAS_LIBOQS=1 \
+		-DFLINT_HAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
