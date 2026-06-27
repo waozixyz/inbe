@@ -160,6 +160,21 @@ Sun Salutation
 [duration_2h]
 2 ч
 ---
+[meditation_duration_setting]
+Meditation length
+---
+[meditation_duration_custom]
+Custom
+---
+[meditation_custom_minutes]
+Custom time
+---
+[meditation_extend_controls_label]
+Show add-time buttons during meditation
+---
+[finish_button]
+Finish
+---
 [breath_button]
 ДЫШАТЬ
 ---

@@ -393,7 +393,7 @@ jobs:
       - name: Copy Android Assets
         run: ./scripts/copy-android-assets.sh
 
-      - name: Build Android APK
+      - name: Build Android APK and AAB
         env:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
@@ -405,7 +405,13 @@ jobs:
             -Pkeystore.alias="$KEY_ALIAS" \
             -Pkeystore.password="$KEYSTORE_PASSWORD" \
             --stacktrace
+          ./droid/gradlew -p droid bundleRelease \
+            -Pkeystore.path="$HOME/.android/inbe-release.keystore" \
+            -Pkeystore.alias="$KEY_ALIAS" \
+            -Pkeystore.password="$KEYSTORE_PASSWORD" \
+            --stacktrace
           make android-copy-release-apks
+          make android-copy-bundle
 
       - name: Collect Android Release Files
         run: |
@@ -417,6 +423,12 @@ jobs:
             exit 1
           fi
           cp "build/android/inbe-$VERSION.apk" build/release/android/
+          aab="$(find droid/app/build/outputs/bundle/release build/android -type f -name '*.aab' | head -n 1)"
+          if [ -z "$aab" ]; then
+            echo "No release AAB was produced"
+            exit 1
+          fi
+          cp "$aab" "build/release/android/inbe-$VERSION.aab"
 
       - name: Upload Android Artifacts
         uses: actions/upload-artifact@v4
@@ -557,3 +569,37 @@ jobs:
           butler push "$android_apk" waozi/inbe:android --userversion "$VERSION"
           butler push "$windows_zip" waozi/inbe:windows --userversion "$VERSION"
           butler push "$linux_appimage" waozi/inbe:linux --userversion "$VERSION"
+
+  publish-google-play:
+    name: Publish Google Play Alpha
+    runs-on: ubuntu-latest
+    needs:
+      - build-android
+      - release
+    if: needs.release.outputs.tag_pushed == 'true'
+
+    steps:
+      - name: Check Google Play Secret
+        env:
+          PLAY_STORE_JSON_KEY: ${{ secrets.PLAY_STORE_JSON_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -z "${PLAY_STORE_JSON_KEY:-}" ]; then
+            echo "PLAY_STORE_JSON_KEY secret is required to publish Google Play"
+            exit 1
+          fi
+
+      - name: Download Android Release Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-android
+          path: build/release/android
+
+      - name: Publish AAB to Closed Testing Alpha
+        uses: r0adkll/upload-google-play@v1
+        with:
+          serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
+          packageName: xyz.waozi.inbe
+          releaseFiles: build/release/android/*.aab
+          track: alpha
+          status: completed

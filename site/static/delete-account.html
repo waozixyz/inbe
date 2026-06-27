@@ -131,13 +131,15 @@
 		form.addEventListener("submit", async (event) => {
 			event.preventDefault();
 			const exportedKey = keyText.value.trim();
-			if (!exportedKey.startsWith("inbe-sync-key-v1")) {
-				setStatus("error", "Upload the exported inbe-sync.key file.");
+			if (!exportedKey.startsWith("lyra-account-key-v1") &&
+					!exportedKey.startsWith("inbe-sync-key-v1") &&
+					!exportedKey.startsWith("account-key-v1")) {
+				setStatus("error", "Upload the exported account key file.");
 				return;
 			}
 			const userID = keyField(exportedKey, "public_id").toLowerCase();
 			if (!/^[0-9a-f]{64}$/.test(userID)) {
-				setStatus("error", "This key file does not include public_id. Export a new inbe-sync.key from the current Inner Breeze app.");
+				setStatus("error", "This key file does not include public_id. Export a new account key from the current app.");
 				return;
 			}
 			button.disabled = true;

@@ -7,14 +7,130 @@
 #include "flint_ui.h"
 #include "raylib.h"
 
+#include <stdio.h>
+
 extern int view_width;
 extern int view_height;
+
+static const int meditation_config_preset_count = 5;
+
+static int
+meditation_config_duration_height(int content_w)
+{
+    int columns = content_w >= flint_px(520) ? 3 : 2;
+    int count = meditation_config_preset_count + 1;
+    int rows = (count + columns - 1) / columns;
+
+    return flint_px(30) + rows * flint_px(42) + (rows - 1) * flint_px(8) +
+           flint_px(96) + flint_px(78) + flint_px(18);
+}
 
 static int
 meditation_config_content_height(InbeApp *app, int content_w)
 {
-    return meditation_music_measure_settings(app, content_w, 1, 1) +
+    return meditation_config_duration_height(content_w) +
+           meditation_music_measure_settings(app, content_w, 1, 1) +
            app_content_bottom_reserved(app) + flint_px(24);
+}
+
+static void
+meditation_config_save(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->settings_dirty = 1;
+    save_settings(app);
+}
+
+static void
+meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
+{
+    const char *labels[] = {
+        locale_get("duration_5m"),
+        locale_get("duration_15m"),
+        locale_get("duration_30m"),
+        locale_get("duration_1h"),
+        locale_get("duration_2h"),
+        locale_get("meditation_duration_custom")
+    };
+    int mode;
+    int columns;
+    int gap = flint_px(8);
+    int btn_h = flint_px(36);
+    int btn_w;
+    int row_y;
+    int custom_row_y;
+    int toggle_value;
+    int hover = 0;
+    char custom_text[64];
+
+    if(app == NULL || y == NULL)
+        return;
+
+    mode = clampi(app->meditation.duration_mode, 0, meditation_config_preset_count);
+    app->meditation.duration_mode = mode;
+    app->meditation.custom_minutes = clampi(app->meditation.custom_minutes, 1, 240);
+
+    flint_text_draw(locale_get("meditation_duration_setting"), x, *y,
+                    flint_ui_font(), flint_theme_get_text());
+    *y += flint_px(30);
+
+    columns = w >= flint_px(520) ? 3 : 2;
+    btn_w = (w - gap * (columns - 1)) / columns;
+    for(int i = 0; i < meditation_config_preset_count + 1; i++) {
+        int col = i % columns;
+        int row = i / columns;
+        int bx = x + col * (btn_w + gap);
+        int by = *y + row * (btn_h + gap);
+        int style = i == mode ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY;
+
+        if(ui_draw_generic_button(bx, by, btn_w, btn_h, labels[i], style, 0, &hover)) {
+            app->meditation.duration_mode = i;
+            meditation_config_save(app);
+        }
+    }
+
+    row_y = *y + ((meditation_config_preset_count + 1 + columns - 1) / columns) *
+                  (btn_h + gap);
+    *y = row_y + flint_px(8);
+
+    custom_row_y = *y;
+    snprintf(custom_text, sizeof(custom_text), "%s: %d min",
+             locale_get("meditation_custom_minutes"), app->meditation.custom_minutes);
+    flint_text_draw(custom_text, x, custom_row_y,
+                    flint_ui_font(), flint_theme_get_text());
+
+    {
+        const char *adjust_labels[] = {"-5", "-1", "+1", "+5"};
+        const int adjust_values[] = {-5, -1, 1, 5};
+        int adjust_w = flint_px(50);
+        int adjust_total = adjust_w * 4 + gap * 3;
+        int adjust_x = x + (w - adjust_total) / 2;
+        int adjust_y = custom_row_y + flint_px(34);
+
+        for(int i = 0; i < 4; i++) {
+            if(ui_draw_generic_button(adjust_x + i * (adjust_w + gap), adjust_y,
+                                      adjust_w, btn_h, adjust_labels[i],
+                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                app->meditation.custom_minutes =
+                    clampi(app->meditation.custom_minutes + adjust_values[i], 1, 240);
+                app->meditation.duration_mode = meditation_config_preset_count;
+                meditation_config_save(app);
+            }
+        }
+    }
+    *y += flint_px(96);
+
+    flint_text_draw(locale_get("meditation_extend_controls_label"), x, *y,
+                    flint_ui_font(), flint_theme_get_text());
+    toggle_value = app->meditation.show_extend_controls;
+    if(ui_draw_toggle_switch(x, *y + flint_px(26), flint_px(56), flint_px(30),
+                             &toggle_value, locale_get("toggle_off"),
+                             locale_get("toggle_on"))) {
+        app->meditation.show_extend_controls = toggle_value;
+        meditation_config_save(app);
+    }
+    *y += flint_px(78);
 }
 
 typedef struct MeditationConfigScrollPageContext {
@@ -68,6 +184,7 @@ meditation_config_screen_draw(InbeApp *app)
         });
         int y = page.content_y;
 
+        meditation_config_draw_duration(app, page.content_x, page.content_w, &y);
         meditation_music_draw_settings(app, page.content_x, page.content_w,
                                        &y, 1, 1);
         ui_scroll_page_end(page);
