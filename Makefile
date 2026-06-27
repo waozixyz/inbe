@@ -61,7 +61,8 @@ CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
 VERSION_FILE := src/core/version.h
 APP_VERSION := $(shell sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' $(VERSION_FILE) 2>/dev/null)
 
-RAYLIB_DIR := vendor/raylib/src
+FLINT_DIR := vendor/flint
+RAYLIB_DIR = $(FLINT_DIR)/vendor/raylib/src
 RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
 WIN64_ARCH := x86_64
@@ -94,7 +95,6 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_DIR := vendor/flint
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
@@ -180,6 +180,7 @@ APP_SRCS := \
 	src/screens/manual_screen.c \
 	src/screens/settings/settings_screen.c \
 	src/screens/settings/settings_device.c \
+	src/screens/settings/settings_session.c \
 	src/screens/settings/settings_theme.c \
 	src/screens/settings/settings_data.c \
 	src/screens/settings/settings_sync_account.c
@@ -336,7 +337,7 @@ test: $(TESTS)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/raylib/src $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -I$(RAYLIB_DIR) $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
@@ -348,20 +349,20 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core -Ivendor/flint/include -Ivendor/raylib/src $(FLINT_CURL_CFLAGS) -o $@ \
+		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(FLINT_CURL_CFLAGS) -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
 $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/flint/include -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -Ivendor/flint/include -Ivendor/raylib/src $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections -lm -lpthread -ldl
@@ -373,7 +374,7 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Ivendor/flint/include -Ivendor/raylib/src \
+		$(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
 		-o $@ \
 		tests/guide_overlay_test.c
 

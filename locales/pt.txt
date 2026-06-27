@@ -269,7 +269,7 @@ Circulo
 Volume
 ---
 [show_session_volume_control_label]
-Mostrar controle de volume nas sessões
+Mostrar controle de volume
 ---
 [reset_to_defaults_label]
 Restaurar padrões
@@ -865,4 +865,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+Sessao ativa
+---
+[notification_starting_seconds]
+Inicio: %ds
+---
+[notification_breathing_count]
+Inspire e expire: %d
+---
+[notification_hold_seconds]
+Segure: %ds
+---
+[notification_breath_in_seconds]
+Inspire: %ds
+---
+[notification_next_round]
+Proxima rodada
+---
 ---

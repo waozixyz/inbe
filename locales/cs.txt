@@ -269,7 +269,7 @@ Kruh
 Hlasitost
 ---
 [show_session_volume_control_label]
-Zobrazit ovládání hlasitosti v sezeních
+Zobrazit ovladani hlasitosti
 ---
 [reset_to_defaults_label]
 Obnovit výchozí
@@ -865,4 +865,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+Relace je aktivni
+---
+[notification_starting_seconds]
+Start: %ds
+---
+[notification_breathing_count]
+Nadech a vydech: %d
+---
+[notification_hold_seconds]
+Zadrz: %ds
+---
+[notification_breath_in_seconds]
+Nadech: %ds
+---
+[notification_next_round]
+Dalsi kolo
+---
 ---

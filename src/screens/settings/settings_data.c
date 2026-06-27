@@ -45,6 +45,7 @@ enum {
 #define SETTINGS_SYNC_KEY_IMPORT_FILTER ".key"
 #define SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES "application/zip,application/x-zip-compressed,application/vnd.sqlite3,application/x-sqlite,application/x-sqlite3,application/octet-stream"
 #define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "*/*"
+#define SETTINGS_DATA_TOP_PADDING 8
 
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
 static FlintFileDialog export_dlg;
@@ -343,7 +344,8 @@ settings_data_content_height(int content_w)
 {
     int data_button_h = flint_px(36);
 
-    return data_button_h + flint_px(12) +
+    return flint_px(SETTINGS_DATA_TOP_PADDING) +
+           data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
@@ -551,6 +553,7 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
         return;
     }
 
+    *y += flint_px(SETTINGS_DATA_TOP_PADDING);
     if(ui_draw_generic_button(x, *y, w, data_button_h,
                               locale_get("sync_configure_account_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover_account))

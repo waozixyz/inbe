@@ -295,7 +295,7 @@ jobs:
           path: |
             vendor-builds/windows
             vendor-builds/sqlite
-          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/raylib/src/**', 'vendor/curl/**', 'vendor/sqlite/**') }}
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/vendor/raylib/src/**', 'vendor/curl/**', 'vendor/sqlite/**') }}
           restore-keys: |
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
@@ -371,7 +371,7 @@ jobs:
           path: |
             droid/app/.cxx
             droid/app/build/intermediates/cxx
-          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'flint/src/**/*.c', 'flint/include/**/*.h', 'vendor/raylib/src/**') }}
+          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'flint/src/**/*.c', 'flint/include/**/*.h', 'vendor/flint/vendor/raylib/src/**') }}
           restore-keys: |
             android-native-${{ runner.os }}-${{ runner.arch }}-
 

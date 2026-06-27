@@ -329,7 +329,7 @@ Circle
 Volume
 ---
 [show_session_volume_control_label]
-Show volume control in sessions
+Show volume control
 ---
 [reset_to_defaults_label]
 Reset to defaults
@@ -868,4 +868,22 @@ Fade
 ---
 [theme_picker_title]
 Choose Theme
+---
+[notification_session_active]
+Session active
+---
+[notification_starting_seconds]
+Starting: %ds
+---
+[notification_breathing_count]
+In & out: %d
+---
+[notification_hold_seconds]
+Hold: %ds
+---
+[notification_breath_in_seconds]
+Breath in: %ds
+---
+[notification_next_round]
+Next round
 ---

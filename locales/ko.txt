@@ -323,7 +323,7 @@ Double tap screen to breathe
 음량
 ---
 [show_session_volume_control_label]
-세션에서 볼륨 조절 표시
+볼륨 조절 표시
 ---
 [reset_to_defaults_label]
 기본값으로 재설정
@@ -864,4 +864,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+세션 진행 중
+---
+[notification_starting_seconds]
+시작: %d초
+---
+[notification_breathing_count]
+들이쉬고 내쉬기: %d
+---
+[notification_hold_seconds]
+홀드: %d초
+---
+[notification_breath_in_seconds]
+들이쉬기: %d초
+---
+[notification_next_round]
+다음 라운드
+---
 ---

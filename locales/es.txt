@@ -269,7 +269,7 @@ Circulo
 Volumen
 ---
 [show_session_volume_control_label]
-Mostrar control de volumen en las sesiones
+Mostrar control de volumen
 ---
 [reset_to_defaults_label]
 Restablecer valores predeterminados
@@ -865,4 +865,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+Sesion activa
+---
+[notification_starting_seconds]
+Inicio: %ds
+---
+[notification_breathing_count]
+Inhala y exhala: %d
+---
+[notification_hold_seconds]
+Retencion: %ds
+---
+[notification_breath_in_seconds]
+Inhala: %ds
+---
+[notification_next_round]
+Siguiente ronda
+---
 ---
