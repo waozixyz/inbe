@@ -712,6 +712,39 @@ storage_apply_session_habit_counts(long long changed_at)
     return ok && storage_clear_stale_session_habit_counts(changed_at);
 }
 
+static int
+storage_snapshot_habit_day_visible_state(void)
+{
+    return exec_sql("DROP TABLE IF EXISTS temp.inbe_habit_day_visible_before;"
+                    "CREATE TEMP TABLE inbe_habit_day_visible_before("
+                    " habit_id TEXT NOT NULL,"
+                    " local_date INTEGER NOT NULL,"
+                    " completed INTEGER NOT NULL,"
+                    " count INTEGER NOT NULL,"
+                    " PRIMARY KEY(habit_id,local_date)"
+                    ");"
+                    "INSERT INTO inbe_habit_day_visible_before("
+                    "habit_id,local_date,completed,count) "
+                    "SELECT hd.habit_id,hd.local_date,hd.completed,hd.count "
+                    "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                    "WHERE h.user_id=(SELECT id FROM users LIMIT 1)");
+}
+
+static int
+storage_enqueue_materialized_habit_day_changes(void)
+{
+    return exec_sql("INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                    "SELECT 'habit_day',hd.habit_id,hd.local_date,strftime('%s','now') "
+                    "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                    "LEFT JOIN inbe_habit_day_visible_before b "
+                    "ON b.habit_id=hd.habit_id AND b.local_date=hd.local_date "
+                    "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
+                    "AND (b.habit_id IS NULL OR b.completed<>hd.completed OR b.count<>hd.count) "
+                    "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+                    "queued_at=excluded.queued_at;"
+                    "DROP TABLE IF EXISTS temp.inbe_habit_day_visible_before");
+}
+
 int
 storage_materialize_session_habit_days(void)
 {
@@ -728,7 +761,9 @@ storage_materialize_session_habit_days(void)
     changed_at = now_seconds();
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
-    ok = storage_build_session_habit_counts() && storage_apply_session_habit_counts(changed_at) &&
+    ok = storage_snapshot_habit_day_visible_state() &&
+         storage_build_session_habit_counts() && storage_apply_session_habit_counts(changed_at) &&
+         storage_enqueue_materialized_habit_day_changes() &&
          exec_sql("DROP TABLE IF EXISTS temp.inbe_session_habit_counts;");
     if(ok) {
         exec_sql("COMMIT");

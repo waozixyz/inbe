@@ -40,6 +40,60 @@
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+作業中
+---
+[sun_salutation_repetitions_label]
+反復回数
+---
+[sun_salutation_start_speed_label]
+開始テンポ
+---
+[sun_salutation_end_speed_label]
+終了テンポ
+---
+[sun_salutation_tempo_preview_label]
+テンポのプレビュー
+---
+[sun_salutation_tempo_preview_hint]
+最初の反復はゆっくり始まり、その後少しずつ速くなります。
+---
+[sun_salutation_step_1]
+ステップ1: 山のポーズ
+---
+[sun_salutation_step_2]
+ステップ2: 上向きの礼拝
+---
+[sun_salutation_step_3]
+ステップ3: 立位前屈
+---
+[sun_salutation_step_4]
+ステップ4: 半分の前屈
+---
+[sun_salutation_step_5]
+ステップ5: プランク
+---
+[sun_salutation_step_6]
+ステップ6: ロープランク
+---
+[sun_salutation_step_7]
+ステップ7: 上向きの犬のポーズ
+---
+[sun_salutation_step_8]
+ステップ8: 下向きの犬のポーズ
+---
+[sun_salutation_step_9]
+ステップ9: 半分の前屈
+---
+[sun_salutation_step_10]
+ステップ10: 立位前屈
+---
+[sun_salutation_step_11]
+ステップ11: 上向きの礼拝
+---
+[sun_salutation_step_12]
+ステップ12: 山のポーズ
+---
 [meditation_title]
 瞑想
 ---

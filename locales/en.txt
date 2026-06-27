@@ -40,6 +40,60 @@ Meditation
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+Work in progress
+---
+[sun_salutation_repetitions_label]
+Repetitions
+---
+[sun_salutation_start_speed_label]
+Start tempo
+---
+[sun_salutation_end_speed_label]
+End tempo
+---
+[sun_salutation_tempo_preview_label]
+Tempo preview
+---
+[sun_salutation_tempo_preview_hint]
+First repetition starts slower, then the pace gradually increases.
+---
+[sun_salutation_step_1]
+Step 1: Mountain pose
+---
+[sun_salutation_step_2]
+Step 2: Upward salute
+---
+[sun_salutation_step_3]
+Step 3: Standing forward fold
+---
+[sun_salutation_step_4]
+Step 4: Half lift
+---
+[sun_salutation_step_5]
+Step 5: Plank
+---
+[sun_salutation_step_6]
+Step 6: Low plank
+---
+[sun_salutation_step_7]
+Step 7: Upward-facing dog
+---
+[sun_salutation_step_8]
+Step 8: Downward-facing dog
+---
+[sun_salutation_step_9]
+Step 9: Half lift
+---
+[sun_salutation_step_10]
+Step 10: Standing forward fold
+---
+[sun_salutation_step_11]
+Step 11: Upward salute
+---
+[sun_salutation_step_12]
+Step 12: Mountain pose
+---
 [meditation_title]
 Meditation
 ---

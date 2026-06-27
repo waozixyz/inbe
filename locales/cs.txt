@@ -40,6 +40,60 @@ Meditace
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+Pracuje se
+---
+[sun_salutation_repetitions_label]
+Opakovani
+---
+[sun_salutation_start_speed_label]
+Pocatecni tempo
+---
+[sun_salutation_end_speed_label]
+Koncove tempo
+---
+[sun_salutation_tempo_preview_label]
+Nahled tempa
+---
+[sun_salutation_tempo_preview_hint]
+Prvni opakovani zacina pomaleji a tempo se pak postupne zvysuje.
+---
+[sun_salutation_step_1]
+Krok 1: hora
+---
+[sun_salutation_step_2]
+Krok 2: pozdrav vzhuru
+---
+[sun_salutation_step_3]
+Krok 3: predklon ve stoje
+---
+[sun_salutation_step_4]
+Krok 4: polovicni zdvih
+---
+[sun_salutation_step_5]
+Krok 5: prkno
+---
+[sun_salutation_step_6]
+Krok 6: nizke prkno
+---
+[sun_salutation_step_7]
+Krok 7: pes hlavou vzhuru
+---
+[sun_salutation_step_8]
+Krok 8: pes hlavou dolu
+---
+[sun_salutation_step_9]
+Krok 9: polovicni zdvih
+---
+[sun_salutation_step_10]
+Krok 10: predklon ve stoje
+---
+[sun_salutation_step_11]
+Krok 11: pozdrav vzhuru
+---
+[sun_salutation_step_12]
+Krok 12: hora
+---
 [meditation_title]
 Meditace
 ---

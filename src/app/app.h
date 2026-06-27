@@ -182,6 +182,9 @@ typedef struct SunSalutationPracticeState {
     int step;
     int repetition;
     int repetitions;
+    int start_seconds;
+    int end_seconds;
+    int step_ticks;
 } SunSalutationPracticeState;
 
 typedef struct HabitSessionEditState {

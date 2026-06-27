@@ -40,6 +40,60 @@ Meditasi
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+Sedang dikerjakan
+---
+[sun_salutation_repetitions_label]
+Pengulangan
+---
+[sun_salutation_start_speed_label]
+Tempo awal
+---
+[sun_salutation_end_speed_label]
+Tempo akhir
+---
+[sun_salutation_tempo_preview_label]
+Pratinjau tempo
+---
+[sun_salutation_tempo_preview_hint]
+Pengulangan pertama dimulai lebih lambat, lalu tempo meningkat bertahap.
+---
+[sun_salutation_step_1]
+Langkah 1: pose gunung
+---
+[sun_salutation_step_2]
+Langkah 2: salam ke atas
+---
+[sun_salutation_step_3]
+Langkah 3: lipatan depan berdiri
+---
+[sun_salutation_step_4]
+Langkah 4: setengah angkat
+---
+[sun_salutation_step_5]
+Langkah 5: plank
+---
+[sun_salutation_step_6]
+Langkah 6: plank rendah
+---
+[sun_salutation_step_7]
+Langkah 7: anjing menghadap atas
+---
+[sun_salutation_step_8]
+Langkah 8: anjing menghadap bawah
+---
+[sun_salutation_step_9]
+Langkah 9: setengah angkat
+---
+[sun_salutation_step_10]
+Langkah 10: lipatan depan berdiri
+---
+[sun_salutation_step_11]
+Langkah 11: salam ke atas
+---
+[sun_salutation_step_12]
+Langkah 12: pose gunung
+---
 [meditation_title]
 Meditasi
 ---

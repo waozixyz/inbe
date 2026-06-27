@@ -40,6 +40,60 @@ Inner Breeze
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+В работе
+---
+[sun_salutation_repetitions_label]
+Повторения
+---
+[sun_salutation_start_speed_label]
+Начальный темп
+---
+[sun_salutation_end_speed_label]
+Конечный темп
+---
+[sun_salutation_tempo_preview_label]
+Предпросмотр темпа
+---
+[sun_salutation_tempo_preview_hint]
+Первое повторение начинается медленнее, затем темп постепенно растет.
+---
+[sun_salutation_step_1]
+Шаг 1: поза горы
+---
+[sun_salutation_step_2]
+Шаг 2: вытяжение вверх
+---
+[sun_salutation_step_3]
+Шаг 3: наклон вперед стоя
+---
+[sun_salutation_step_4]
+Шаг 4: половинный подъем
+---
+[sun_salutation_step_5]
+Шаг 5: планка
+---
+[sun_salutation_step_6]
+Шаг 6: низкая планка
+---
+[sun_salutation_step_7]
+Шаг 7: собака мордой вверх
+---
+[sun_salutation_step_8]
+Шаг 8: собака мордой вниз
+---
+[sun_salutation_step_9]
+Шаг 9: половинный подъем
+---
+[sun_salutation_step_10]
+Шаг 10: наклон вперед стоя
+---
+[sun_salutation_step_11]
+Шаг 11: вытяжение вверх
+---
+[sun_salutation_step_12]
+Шаг 12: поза горы
+---
 [meditation_title]
 Медитация
 ---

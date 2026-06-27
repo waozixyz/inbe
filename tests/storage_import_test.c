@@ -925,6 +925,116 @@ test_session_linked_counts_materialize_for_sync(void)
 }
 
 static void
+test_deleted_linked_session_clears_synced_habit_day(void)
+{
+    char root[512];
+    char session_id[INBE_STORAGE_ID_SIZE + 4];
+    int rounds[] = {60};
+    int today = habits_today_index();
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "delete-linked-session-sync");
+    check_true("init linked delete sync db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", "test-private-key");
+
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habits_save(&habits);
+
+    check_true("save linked synced session",
+               storage_save_session_for_activity(rounds, 1, 0, 1, session_id,
+                                                 sizeof(session_id)));
+    memset(&habits, 0, sizeof(habits));
+    check_true("load linked synced habit", storage_habits_load(&habits));
+    check_int("linked synced session marks complete", habit_day_count(&habits.items[0], today), 1);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("initial linked habit day uploaded",
+               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+                   strstr(payload, "\"completed\":true") != NULL &&
+                   strstr(payload, "\"count\":1") != NULL);
+    storage_free_sync_payload_json(payload);
+    check_true("apply upload marker before linked delete",
+               storage_apply_sync_response_json(
+                   "{\"server_version\":1,\"server_state_hash\":\"h1\","
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+                   "\"meditation_logs\":[]}}"));
+
+    check_true("delete last linked synced session", storage_delete_session(session_id));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload after linked synced delete", storage_habits_load(&habits));
+    check_int("linked synced delete clears local habit", habit_day_count(&habits.items[0], today),
+              0);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("linked session delete uploads session tombstone",
+               payload != NULL && strstr(payload, "\"sessions\":[{\"id\"") != NULL &&
+                   strstr(payload, "\"deleted_at\":0") == NULL);
+    check_true("linked session delete clears remote habit day",
+               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+                   strstr(payload, "\"completed\":false") != NULL &&
+                   strstr(payload, "\"count\":0") != NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_deleted_linked_session_preserves_manual_habit_count(void)
+{
+    char root[512];
+    char session_id[INBE_STORAGE_ID_SIZE + 4];
+    int rounds[] = {60};
+    int today = habits_today_index();
+    InbeHabits habits;
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "delete-linked-session-manual");
+    check_true("init linked manual delete db", storage_init(root));
+    storage_set_setting_text("sync_public_id", "test-public-id");
+    storage_set_setting_text("sync_public_key", "test-public-key");
+    storage_set_setting_text("sync_private_key", "test-private-key");
+
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habits_save(&habits);
+    check_true("save linked manual session",
+               storage_save_session_for_activity(rounds, 1, 0, 1, session_id,
+                                                 sizeof(session_id)));
+    memset(&habits, 0, sizeof(habits));
+    check_true("load linked manual habit", storage_habits_load(&habits));
+    habit_set_day_count(&habits, 0, today, 4);
+    habits_save(&habits);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    storage_free_sync_payload_json(payload);
+    check_true("apply upload marker before manual linked delete",
+               storage_apply_sync_response_json(
+                   "{\"server_version\":1,\"server_state_hash\":\"h1\","
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],"
+                   "\"meditation_logs\":[]}}"));
+
+    check_true("delete linked session with manual count", storage_delete_session(session_id));
+    memset(&habits, 0, sizeof(habits));
+    check_true("reload manual linked delete habit", storage_habits_load(&habits));
+    check_int("linked delete keeps manual habit count", habit_day_count(&habits.items[0], today),
+              4);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_true("manual count is not cleared remotely",
+               payload != NULL && strstr(payload, "\"completed\":false") == NULL &&
+                   strstr(payload, "\"count\":0") == NULL);
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_existing_sessions_materialize_after_habit_save(void)
 {
     char root[512];
@@ -1812,6 +1922,8 @@ main(void)
     test_sync_apply_merges_duplicate_habit_names();
     test_sync_apply_preserves_queued_habit_counter_enabled();
     test_session_linked_counts_materialize_for_sync();
+    test_deleted_linked_session_clears_synced_habit_day();
+    test_deleted_linked_session_preserves_manual_habit_count();
     test_existing_sessions_materialize_after_habit_save();
     test_session_metadata();
 
