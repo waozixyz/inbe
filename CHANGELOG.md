@@ -1,4 +1,8 @@
 # Changelog
+## [1.6.2] - 2026-06-27
+## Changed
+- Improve sun salutation
+
 ## [1.6.1] - 2026-06-27
 ## Changed
 - Improved notification in session

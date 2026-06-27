@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>Inner Breeze - Breathing, Meditation, and Habits</title>
+	<meta name="description" content="Inner Breeze is a free, open-source breathing and meditation app with Wim Hof breathing, meditation timers, optional background music, habit tracking, themes, and local-first history.">
+	<link rel="canonical" href="https://inbe.waozi.xyz/">
+	<link href="/css/base.css" rel="stylesheet">
+	<link href="/css/components.css" rel="stylesheet">
+	<link href="/theme.css" rel="stylesheet">
+	<link rel="manifest" href="/manifest.json">
+	<link rel="icon" type="image/png" sizes="32x32" href="/site-icons/favicon-32x32.png">
+	<link rel="apple-touch-icon" href="/site-icons/apple-touch-icon.png">
+	<meta name="theme-color" content="#5566aa">
+	<meta property="og:type" content="website">
+	<meta property="og:url" content="https://inbe.waozi.xyz/">
+	<meta property="og:title" content="Inner Breeze">
+	<meta property="og:description" content="Breathing, meditation sessions, habit tracking, themes, and local-first progress history.">
+	<meta property="og:image" content="https://inbe.waozi.xyz/og.jpg">
+	<meta property="og:site_name" content="Inner Breeze">
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content="Inner Breeze">
+	<meta name="twitter:description" content="Breathing, meditation sessions, habit tracking, themes, and local-first progress history.">
+	<meta name="twitter:image" content="https://inbe.waozi.xyz/og.jpg">
+</head>
+<body>
+	<div class="content">
+		<main id="main-content">
+			<section class="hero" aria-label="App introduction and download options">
+				<img class="tk-img" src="/web-assets/icons/inbe.png" width="128" alt="Inner Breeze app logo">
+				<h1>Inner Breeze</h1>
+				<p>calm breathing, meditation sessions, and habit tracking</p>
+				<p class="version">${version}</p>
+				<nav aria-label="Platform downloads" class="platform-buttons">
+					<a href="/build/web/index.html" class="platform-btn web">
+						<img src="/web-assets/icons/wasm.png" alt="">
+						<span>Run Web</span>
+					</a>
+					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" class="platform-btn android" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/droid.png" alt="">
+						<span>Android</span>
+					</a>
+					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" class="platform-btn windows" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/win.png" alt="">
+						<span>Windows</span>
+					</a>
+					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" class="platform-btn linux" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/tux.png" alt="">
+						<span>Linux</span>
+					</a>
+				</nav>
+				<nav aria-label="App store downloads" class="platform-buttons">
+					<a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/playstore.png" alt="">
+						<span>Play Store</span>
+					</a>
+					<a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/fdroid.png" alt="">
+						<span>F-Droid</span>
+					</a>
+					<a href="https://waozi.itch.io/inbe" class="platform-btn web" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/itch.png" alt="">
+						<span>itch.io</span>
+					</a>
+				</nav>
+			</section>
+
+			<section class="features-section">
+				<h2>Features</h2>
+				<div class="features-grid">
+					<div class="feature-item"><h3>Guided Breathing</h3><p>Wim Hof style rounds with clear breath cues, retention timing, and session flow.</p></div>
+					<div class="feature-item"><h3>Meditation Timer</h3><p>Simple 5 minute to 2 hour meditation sessions with a gong and optional background music.</p></div>
+					<div class="feature-item"><h3>Habit Tracking</h3><p>A focused calendar view helps you keep one practice selected and mark completed days.</p></div>
+					<div class="feature-item"><h3>Local History</h3><p>Session data stays on your device, with import and export tools for your own backups.</p></div>
+					<div class="feature-item"><h3>Touch Friendly</h3><p>Designed for phones, tablets, desktop, and the web with consistent controls.</p></div>
+					<div class="feature-item"><h3>Free and Open Source</h3><p>No accounts, no ads, no tracking, and source code available under the MIT license.</p></div>
+				</div>
+			</section>
+
+			<section class="migration-section">
+				<h2>Migrating from inbe-legacy?</h2>
+				<p>Use the web converter to turn an inbe-legacy JSON export into the ZIP format used by current Inner Breeze imports.</p>
+				<p><a href="/legacy-converter.html">Open legacy data converter</a></p>
+			</section>
+
+			<section class="about-section">
+				<h2>Practice Safely</h2>
+				<p>Inner Breeze includes intense breathing exercises and calmer meditation sessions. Choose the practice that fits the moment, stay seated or lying down, and keep the session gentle when you need rest.</p>
+				<ul class="benefits-list">
+					<li>Reduced stress and anxiety</li>
+					<li>Improved focus and mental clarity</li>
+					<li>Better sleep quality</li>
+					<li>Enhanced cold tolerance</li>
+					<li>Increased energy levels</li>
+				</ul>
+				<p class="safety-note"><em>Always practice breathing exercises in a safe environment. Never practice while driving, swimming, or in situations where loss of consciousness could be dangerous.</em></p>
+			</section>
+
+			<section class="info-section">
+				<nav aria-label="Source code" class="platform-buttons">
+					<a href="https://github.com/waozixyz/inbe" class="platform-btn web" target="_blank" rel="noopener">
+						<img src="/web-assets/icons/github.png" alt="">
+						<span>GitHub</span>
+					</a>
+				</nav>
+				<details class="dropdown">
+					<summary>Privacy & Donations</summary>
+					<div class="dropdown-content">
+						<p><strong>Privacy:</strong> Inner Breeze is local-first. Session history, habits, and preferences stay on your device unless you choose to connect optional sync. Sync uses a public-key account identifier and sends only the app data needed to mirror your account on the selected server. No analytics, no tracking, and no sale of personal data.</p>
+						<p><strong>Remote account deletion:</strong> Default sync-server accounts can be deleted at <a href="/delete-account">Delete Sync Account</a> using the exported <code>inbe-sync.key</code>, which includes the sync public ID. The exported key is used only to prove ownership and complete deletion.</p>
+						<p><strong>Free & Open Source:</strong> This app is completely free with no ads, in-app purchases, or premium features. Development is supported by voluntary donations. Donations are processed outside the sync account system and are not app data.</p>
+						<nav aria-label="Donation options" class="dropdown-links"><a href="https://trocador.app/en/anonpay/?ticker_to=xmr&amp;network_to=Mainnet&amp;address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&amp;donation=True&amp;simple_mode=True&amp;amount=0.1&amp;name=Inner+Breeze&amp;email=waotzi@proton.me&amp;ticker_from=xmr&amp;network_from=Mainnet&amp;buttonbgcolor=445588&amp;textcolor=ffffff&amp;bgcolor=eaeaffff" target="_blank" rel="noopener">Donate via Crypto</a></nav>
+					</div>
+				</details>
+			</section>
+		</main>
+		<footer><p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p></footer>
+	</div>
+</body>
+</html>

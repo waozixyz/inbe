@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Privacy Policy - Inner Breeze</title>
+	<link href="/style.css" rel="stylesheet" />
+	<meta name="description" content="Privacy policy for Inner Breeze.">
+	<meta name="theme-color" content="#5566aa">
+</head>
+<body>
+	<div class="content">
+		<section>
+			<h1>Privacy Policy</h1>
+			<p>Last updated: June 19, 2026</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Inner Breeze</h2>
+			<p>Inner Breeze is a free, open-source guided breathing meditation app based on the Wim Hof method.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Data Collection</h2>
+			<p><strong>Inner Breeze is local-first and does not use analytics, tracking, advertising identifiers, or third-party tracking services.</strong></p>
+			<ul>
+				<li>No personal information collection</li>
+				<li>No analytics or tracking</li>
+				<li>No sale of personal data</li>
+				<li>No account is required for offline use</li>
+				<li>Optional sync sends app data only when you choose to connect a sync server</li>
+			</ul>
+		</section>
+
+		<section class="tool-section">
+			<h2>Local Data Storage</h2>
+			<p>The app stores practice data locally on your device:</p>
+			<ul>
+				<li>Breathing session timing data</li>
+				<li>Meditation and session history</li>
+				<li>Habit names, colors, completion days, and related settings</li>
+				<li>App preferences such as theme and practice settings</li>
+				<li>Optional sync public/private key material stored by the app on your device</li>
+			</ul>
+		</section>
+
+		<section class="tool-section">
+			<h2>Optional Sync</h2>
+			<p>Sync is optional. If you connect Inner Breeze to the default sync server or to a custom self-hosted server, the app sends the data needed to mirror your account remotely:</p>
+			<ul>
+				<li>A public-key account identifier derived from your sync public key</li>
+				<li>Your sync public key, used to verify signed sync requests</li>
+				<li>Session, meditation, habit, habit-day, and non-secret preference data</li>
+				<li>Cryptographic challenge and signature metadata used to prevent replay attacks</li>
+			</ul>
+			<p>During normal sync, the sync server does not receive your private key. Your private key remains on your device unless you export it yourself for backup or use the exported key to prove ownership during remote account deletion.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Data Deletion</h2>
+			<p>To delete local data, use the app's data controls or clear the app data through your device's settings.</p>
+			<p>To delete the remote sync account on the default server, use <a href="/delete-account">Delete Sync Account</a>. You must provide the exported <code>inbe-sync.key</code> file, which includes the sync public ID. The exported key is sent over HTTPS to the sync server only to prove account ownership and complete deletion; it is not stored. Remote deletion removes the account row and mirrored sync data for that sync account.</p>
+			<p>If you use a self-hosted sync server, use that server owner's deletion process. Deleting remote sync data does not remove local data from your device or backups you exported yourself.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Donations</h2>
+			<p>Donations are optional and are handled by the external donation/payment provider linked from the website. Donation processing is separate from Inner Breeze sync accounts and app data. Deleting a sync account does not delete records held by an external donation/payment provider.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Permissions</h2>
+			<p>Inner Breeze may use network access for optional sync and file/share access when you import, export, or back up your own data. Core breathing, meditation, and habit tracking features remain usable offline.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Children's Privacy</h2>
+			<p>Inner Breeze is suitable for all ages. The app does not knowingly collect personal information from children. Optional sync should be configured by a parent or guardian when required by local law.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Contact</h2>
+			<p>Questions: <a href="mailto:hello@waozi.xyz">hello@waozi.xyz</a></p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Open Source</h2>
+			<p>Source code available at: <a href="https://git.sr.ht/~waozi/inbe">https://git.sr.ht/~waozi/inbe</a> and <a href="https://github.com/waozixyz/inbe">https://github.com/waozixyz/inbe</a></p>
+		</section>
+
+		<footer>
+			<p><a href="/">Back to Inner Breeze</a> | <a href="/delete-account">Delete Sync Account</a></p>
+		</footer>
+	</div>
+</body>
+</html>

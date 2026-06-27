@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Delete Sync Account - Inner Breeze</title>
+	<link href="/style.css" rel="stylesheet" />
+	<meta name="description" content="Delete an Inner Breeze remote sync account using the exported inbe-sync.key file.">
+	<meta name="theme-color" content="#5566aa">
+	<style>
+		.account-delete-form {
+			display: grid;
+			gap: 1rem;
+			max-width: 760px;
+		}
+		.account-delete-form label {
+			display: grid;
+			gap: 0.4rem;
+			font-weight: 700;
+		}
+		.account-delete-form input,
+		.account-delete-form textarea {
+			box-sizing: border-box;
+			width: 100%;
+			border: 1px solid #aeb6d8;
+			background: #fff;
+			color: #18202a;
+			font: inherit;
+			padding: 0.75rem;
+		}
+		.account-delete-form textarea {
+			min-height: 220px;
+			font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+			font-size: 0.9rem;
+		}
+		.account-delete-form button {
+			width: fit-content;
+			border: 0;
+			background: #4b557f;
+			color: #fff;
+			font: inherit;
+			font-weight: 700;
+			padding: 0.85rem 1rem;
+			cursor: pointer;
+		}
+		.account-delete-form button:disabled {
+			opacity: 0.65;
+			cursor: wait;
+		}
+		.status {
+			border: 1px solid #aeb6d8;
+			padding: 0.85rem;
+			max-width: 760px;
+		}
+		.status:empty {
+			display: none;
+		}
+		.status.success {
+			border-color: #38835f;
+			color: #205b41;
+		}
+		.status.error {
+			border-color: #b85252;
+			color: #8a2626;
+		}
+	</style>
+</head>
+<body>
+	<div class="content">
+		<section>
+			<h1>Delete Sync Account</h1>
+			<p>Use this page to delete the remote Inner Breeze sync account on the default server. Offline app data on your device is not changed.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Required Proof</h2>
+			<p>This deletion requires the exported <code>inbe-sync.key</code> file from Inner Breeze. Current exports include the sync public ID automatically. The key is sent over HTTPS to the sync server only to prove ownership and delete the account. It is not stored.</p>
+			<p>If you lost the exported key, this page cannot delete the remote sync account. Delete local app data from your device settings or from the app's local data controls.</p>
+		</section>
+
+		<section class="tool-section">
+			<h2>Account Deletion</h2>
+			<form id="delete-form" class="account-delete-form">
+				<label>
+					Upload exported key
+					<input id="key-file" name="key_file" type="file" accept=".key,.txt,text/plain">
+				</label>
+				<label>
+					Exported key text
+					<textarea id="exported-key" name="exported_key" spellcheck="false" required readonly placeholder="Upload inbe-sync.key to preview its contents here"></textarea>
+				</label>
+				<button id="delete-button" type="submit">Delete Sync Account</button>
+			</form>
+			<p id="status" class="status" role="status" aria-live="polite"></p>
+		</section>
+
+		<section class="tool-section">
+			<h2>What Gets Deleted</h2>
+			<p>The default sync server removes the remote account row and mirrored sync data for the public ID inside the exported key, including sessions, meditation logs, habits, habit days, and synced preferences. Your local device data, exported backups, and donation records are not part of the sync account.</p>
+		</section>
+
+		<footer>
+			<p><a href="/">Back to Inner Breeze</a> | <a href="/privacy.html">Privacy Policy</a></p>
+		</footer>
+	</div>
+	<script>
+		const apiURL = "https://api.waozi.xyz/api/v1/account/delete-with-key";
+		const keyFile = document.getElementById("key-file");
+		const keyText = document.getElementById("exported-key");
+		const form = document.getElementById("delete-form");
+		const button = document.getElementById("delete-button");
+		const statusBox = document.getElementById("status");
+
+		function setStatus(kind, message) {
+			statusBox.className = "status " + kind;
+			statusBox.textContent = message;
+		}
+
+		function keyField(text, name) {
+			const pattern = new RegExp("^" + name + "=(.+)$", "im");
+			const match = text.match(pattern);
+			return match ? match[1].trim() : "";
+		}
+
+		keyFile.addEventListener("change", async () => {
+			const file = keyFile.files && keyFile.files[0];
+			if (!file) return;
+			keyText.value = await file.text();
+		});
+
+		form.addEventListener("submit", async (event) => {
+			event.preventDefault();
+			const exportedKey = keyText.value.trim();
+			if (!exportedKey.startsWith("inbe-sync-key-v1")) {
+				setStatus("error", "Upload the exported inbe-sync.key file.");
+				return;
+			}
+			const userID = keyField(exportedKey, "public_id").toLowerCase();
+			if (!/^[0-9a-f]{64}$/.test(userID)) {
+				setStatus("error", "This key file does not include public_id. Export a new inbe-sync.key from the current Inner Breeze app.");
+				return;
+			}
+			button.disabled = true;
+			setStatus("", "Deleting sync account...");
+			try {
+				const response = await fetch(apiURL, {
+					method: "POST",
+					headers: {"Content-Type": "application/json"},
+					body: JSON.stringify({user_id_hash: userID, exported_key: exportedKey})
+				});
+				const payload = await response.json().catch(() => ({}));
+				if (!response.ok) {
+					throw new Error(payload.error || "Deletion failed");
+				}
+				keyText.value = "";
+				setStatus("success", "Remote sync account deleted.");
+			} catch (error) {
+				setStatus("error", error.message || "Deletion failed");
+			} finally {
+				button.disabled = false;
+			}
+		});
+	</script>
+</body>
+</html>

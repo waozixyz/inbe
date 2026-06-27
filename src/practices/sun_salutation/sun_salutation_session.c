@@ -11,29 +11,6 @@
 extern int view_width;
 extern int view_height;
 
-enum {
-    SUN_SALUTATION_STEP_COUNT = 12
-};
-
-static const int g_step_pose_index[SUN_SALUTATION_STEP_COUNT] = {
-    0, 1, 2, 3, 4, 5, 6, 7, 3, 2, 1, 0
-};
-
-static const char *g_step_text[SUN_SALUTATION_STEP_COUNT] = {
-    "Step 1: Mountain pose",
-    "Step 2: Upward salute",
-    "Step 3: Standing forward fold",
-    "Step 4: Half lift",
-    "Step 5: Plank",
-    "Step 6: Low plank",
-    "Step 7: Upward-facing dog",
-    "Step 8: Downward-facing dog",
-    "Step 9: Half lift",
-    "Step 10: Standing forward fold",
-    "Step 11: Upward salute",
-    "Step 12: Mountain pose"
-};
-
 static void
 sun_salutation_exit_to_start(InbeApp *app)
 {
@@ -41,6 +18,7 @@ sun_salutation_exit_to_start(InbeApp *app)
         return;
     app->sun_salutation.step = 0;
     app->sun_salutation.repetition = 0;
+    app->sun_salutation.step_ticks = 0;
     app->session_paused = 0;
     app_close_modal(app);
     app_switch_screen(app, InbeScreenStart);
@@ -70,7 +48,16 @@ sun_salutation_practice_start(InbeApp *app)
     app->sun_salutation.step = 0;
     app->sun_salutation.repetition = 0;
     if(app->sun_salutation.repetitions < 2 || app->sun_salutation.repetitions > 12)
-        app->sun_salutation.repetitions = 3;
+        app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS;
+    if(app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX)
+        app->sun_salutation.start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS;
+    if(app->sun_salutation.end_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX)
+        app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS;
+    if(app->sun_salutation.start_seconds < app->sun_salutation.end_seconds)
+        app->sun_salutation.end_seconds = app->sun_salutation.start_seconds;
+    app->sun_salutation.step_ticks = 0;
     app->session_paused = 0;
     app_close_modal(app);
     app_switch_screen(app, InbeScreenSunSalutation);
@@ -82,6 +69,86 @@ sun_salutation_request_exit(InbeApp *app)
     if(app == NULL)
         return;
     app_open_modal(app, UIModalConfirmExitSession);
+}
+
+static int
+sun_salutation_step_seconds(InbeApp *app)
+{
+    int start_seconds;
+    int end_seconds;
+    int repetitions;
+    int repetition;
+
+    if(app == NULL)
+        return SUN_SALUTATION_DEFAULT_START_SECONDS;
+    start_seconds = app->sun_salutation.start_seconds;
+    end_seconds = app->sun_salutation.end_seconds;
+    repetitions = app->sun_salutation.repetitions;
+    repetition = app->sun_salutation.repetition;
+    if(start_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       start_seconds > SUN_SALUTATION_SECONDS_MAX)
+        start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS;
+    if(end_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       end_seconds > SUN_SALUTATION_SECONDS_MAX)
+        end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS;
+    if(start_seconds < end_seconds)
+        end_seconds = start_seconds;
+    if(repetitions < 2)
+        return start_seconds;
+    if(repetition < 0)
+        repetition = 0;
+    if(repetition >= repetitions)
+        repetition = repetitions - 1;
+    return start_seconds + ((end_seconds - start_seconds) * repetition) /
+                               (repetitions - 1);
+}
+
+static void
+sun_salutation_step_forward(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->sun_salutation.step_ticks = 0;
+    if(app->sun_salutation.step >= SUN_SALUTATION_STEP_COUNT - 1) {
+        if(app->sun_salutation.repetition >= app->sun_salutation.repetitions - 1)
+            sun_salutation_finish(app);
+        else {
+            app->sun_salutation.repetition++;
+            app->sun_salutation.step = 0;
+        }
+    } else {
+        app->sun_salutation.step++;
+    }
+}
+
+static void
+sun_salutation_step_back(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->sun_salutation.step_ticks = 0;
+    if(app->sun_salutation.step > 0) {
+        app->sun_salutation.step--;
+    } else if(app->sun_salutation.repetition > 0) {
+        app->sun_salutation.repetition--;
+        app->sun_salutation.step = SUN_SALUTATION_STEP_COUNT - 1;
+    }
+}
+
+static void
+sun_salutation_update_timer(InbeApp *app)
+{
+    int ticks_per_step;
+
+    if(app == NULL || app->inbe.screen != InbeScreenSunSalutation ||
+       app->session_paused)
+        return;
+    ticks_per_step = sun_salutation_step_seconds(app) * 60;
+    if(ticks_per_step <= 0)
+        ticks_per_step = SUN_SALUTATION_DEFAULT_START_SECONDS * 60;
+    app->sun_salutation.step_ticks++;
+    if(app->sun_salutation.step_ticks >= ticks_per_step)
+        sun_salutation_step_forward(app);
 }
 
 static void
@@ -118,23 +185,21 @@ draw_pose_image(Texture2D texture, int top_y, int bottom_y)
 void
 sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
-    FlintUIIconRowItem controls[2];
+    FlintUIIconRowItem controls[3];
     FlintUIIconRowResult row;
     Texture2D pose;
-    char step_label[32];
+    const char *step_label;
     int step;
     int repetition;
     int repetitions;
     int pose_index;
     int title_font = flint_ui_font();
-    int body_font = flint_ui_font();
     int text_w;
     int return_hover = 0;
     int content_top = flint_px(72);
-    const char *warning_text = "Work in progress";
+    const char *warning_text = locale_get("sun_salutation_work_in_progress");
     int warning_font = flint_ui_font_small();
     int warning_y;
-    int text_y;
     int image_bottom;
     int min_view_dim = view_width < view_height ? view_width : view_height;
 
@@ -163,7 +228,15 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     repetition = app->sun_salutation.repetition;
     repetitions = app->sun_salutation.repetitions;
     if(repetitions < 2 || repetitions > 12)
-        repetitions = 3;
+        repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS;
+    if(app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       app->sun_salutation.start_seconds > SUN_SALUTATION_SECONDS_MAX)
+        app->sun_salutation.start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS;
+    if(app->sun_salutation.end_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX)
+        app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS;
+    if(app->sun_salutation.start_seconds < app->sun_salutation.end_seconds)
+        app->sun_salutation.end_seconds = app->sun_salutation.start_seconds;
     if(step < 0)
         step = 0;
     if(step >= SUN_SALUTATION_STEP_COUNT)
@@ -175,11 +248,13 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     app->sun_salutation.step = step;
     app->sun_salutation.repetition = repetition;
     app->sun_salutation.repetitions = repetitions;
-    pose_index = g_step_pose_index[step];
+    pose_index = sun_salutation_step_pose_index(step);
     pose = app->sun_salutation.poses[pose_index];
 
-    snprintf(step_label, sizeof(step_label), "%d/%d - %d/%d",
-             repetition + 1, repetitions, step + 1, SUN_SALUTATION_STEP_COUNT);
+    step_label = sun_salutation_step_label(step);
+    text_w = flint_text_measure(step_label, title_font);
+    if(text_w > view_width - flint_px(64))
+        title_font = flint_ui_font_small();
     text_w = flint_text_measure(step_label, title_font);
     flint_text_draw(step_label, center_x - text_w / 2,
                     flint_ui_text_y(step_label, flint_px(12), flint_px(44), title_font),
@@ -192,55 +267,38 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
 
     controls[0] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_BACKWARD],
                                        step <= 0 && repetition <= 0};
-    controls[1] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_FORWARD], 0};
+    controls[1] = (FlintUIIconRowItem){app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] :
+                                                            app->icons[UI_ICON_TYPE_PAUSE],
+                                       0};
+    controls[2] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_FORWARD], 0};
     row = ui_draw_bottom_icon_row((FlintUIBottomIconRow){
         .center_x = center_x,
         .view_width = view_width,
         .view_height = view_height,
-        .count = 2,
+        .count = 3,
         .items = controls,
         .icon_size = flint_px(24),
         .icon_padding = flint_px(10),
-        .gap = flint_px(16),
+        .gap = flint_px(12),
         .side_margin = flint_px(24),
         .bottom_margin = flint_px(6),
-        .max_button_width = min_view_dim / 5,
+        .max_button_width = min_view_dim / 6,
         .min_icon_size = flint_px(16),
         .min_icon_padding = flint_px(6),
         .min_gap = flint_px(8)
     });
 
-    text_y = row.y - flint_px(72);
-    image_bottom = text_y - flint_px(18);
+    image_bottom = row.y - flint_px(18);
     draw_pose_image(pose, content_top, image_bottom);
 
-    text_w = flint_text_measure(g_step_text[step], body_font);
-    if(text_w > view_width - flint_px(48))
-        body_font = flint_ui_font_small();
-    text_w = flint_text_measure(g_step_text[step], body_font);
-    flint_text_draw(g_step_text[step], center_x - text_w / 2,
-                    flint_ui_text_y(g_step_text[step], text_y, flint_px(44), body_font),
-                    body_font, flint_theme_get_text());
+    if(row.clicked_index == 0)
+        sun_salutation_step_back(app);
+    else if(row.clicked_index == 1)
+        app->session_paused = !app->session_paused;
+    else if(row.clicked_index == 2)
+        sun_salutation_step_forward(app);
 
-    if(row.clicked_index == 0) {
-        if(step > 0) {
-            app->sun_salutation.step--;
-        } else if(repetition > 0) {
-            app->sun_salutation.repetition--;
-            app->sun_salutation.step = SUN_SALUTATION_STEP_COUNT - 1;
-        }
-    } else if(row.clicked_index == 1) {
-        if(step >= SUN_SALUTATION_STEP_COUNT - 1) {
-            if(repetition >= repetitions - 1)
-                sun_salutation_finish(app);
-            else {
-                app->sun_salutation.repetition++;
-                app->sun_salutation.step = 0;
-            }
-        } else {
-            app->sun_salutation.step++;
-        }
-    }
+    sun_salutation_update_timer(app);
 
     (void)center_y;
 }

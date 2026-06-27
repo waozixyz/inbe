@@ -1,0 +1,122 @@
+name: Netlify
+
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: netlify-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Site
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install Packages
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/web-packages.txt
+          sudo apt-get update
+          sudo apt-get install -y "${packages[@]}" tcl
+
+      - name: Set Up Emscripten
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install latest
+          "$HOME/emsdk/emsdk" activate latest
+          echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
+          echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
+          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+
+      - name: Build Site
+        run: |
+          set -euo pipefail
+          make site
+          test -f build/site/index.html
+          test -f build/site/build/web/index.html
+          test -f build/site/build/web/index.js
+          test -f build/site/build/web/index.wasm
+
+      - name: Upload Site Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: inbe-site
+          path: build/site
+          if-no-files-found: error
+
+  deploy-preview:
+    name: Deploy Preview
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - name: Download Site Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: inbe-site
+          path: build/site
+
+      - name: Install Netlify CLI
+        run: npm install --global netlify-cli
+
+      - name: Deploy Preview To Netlify
+        run: |
+          set -euo pipefail
+          auth_token="$(printf '%s' "$NETLIFY_AUTH_TOKEN" | tr -d '\r\n')"
+          site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
+          netlify deploy \
+            --dir build/site \
+            --alias "pr-${{ github.event.pull_request.number }}" \
+            --message "Preview ${{ github.event.pull_request.number }}" \
+            --auth "$auth_token" \
+            --site "$site_id"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+
+  deploy-production:
+    name: Deploy Production
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+
+    steps:
+      - name: Download Site Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: inbe-site
+          path: build/site
+
+      - name: Install Netlify CLI
+        run: npm install --global netlify-cli
+
+      - name: Deploy Production To Netlify
+        run: |
+          set -euo pipefail
+          auth_token="$(printf '%s' "$NETLIFY_AUTH_TOKEN" | tr -d '\r\n')"
+          site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
+          netlify deploy \
+            --dir build/site \
+            --prod \
+            --message "Production ${{ github.sha }}" \
+            --auth "$auth_token" \
+            --site "$site_id"
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

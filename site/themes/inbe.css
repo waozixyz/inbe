@@ -1,0 +1,121 @@
+:root {
+	--page-bg: #edf7f7;
+	--page-tile: url('/web-assets/icons/tile2.png');
+	--page-tile-opacity: 0.08;
+	--panel-bg: #fbfefe;
+	--dark: #28536b;
+	--shadow: rgba(24, 49, 61, 0.12);
+	--light: #ffffff;
+	--button-bg: #e5f2f6;
+	--button-highlight: #ffffff;
+	--button-inset: #ffffff;
+	--link: #2478a8;
+	--link-hover: #175f87;
+	--ink: #18313d;
+	--muted: #5d7885;
+	--panel-shadow: rgba(24, 49, 61, 0.14);
+	--hover-web: #edf8fb;
+	--hover-android: #ecf8ef;
+	--hover-windows: #f8efef;
+	--hover-linux: #f8f7eb;
+	--tool-panel-bg: #f3fafb;
+	--card-bg: #f5fbfc;
+	--card-hover-bg: #eef8fb;
+	--card-active-bg: #e3f0f4;
+}
+
+body::before {
+	background-size: 160px 160px;
+}
+
+.content {
+	margin-top: 28px;
+	margin-bottom: 28px;
+	border: 1px solid rgba(40, 83, 107, 0.22);
+	border-radius: 8px;
+	box-shadow: 0 16px 42px var(--panel-shadow);
+}
+
+.hero {
+	padding: 14px 0 10px;
+}
+
+.hero .tk-img {
+	margin-bottom: 18px;
+}
+
+.hero h1 {
+	margin-bottom: 8px;
+}
+
+.hero > p {
+	max-width: 620px;
+	margin-left: auto;
+	margin-right: auto;
+	color: var(--muted);
+}
+
+.version {
+	background: #edf7fa;
+	border-color: rgba(40, 83, 107, 0.2);
+	opacity: 1;
+}
+
+button,
+.tk-button,
+.platform-btn,
+.download-item,
+.feature-item,
+.platform-section,
+.dropdown summary,
+.dropdown-content,
+.converter-panel {
+	border: 1px solid rgba(40, 83, 107, 0.24);
+	box-shadow: 0 2px 10px rgba(24, 49, 61, 0.08);
+}
+
+button:active,
+.tk-button:active,
+.platform-btn:active,
+.download-item:active,
+.dropdown[open] summary {
+	box-shadow: inset 0 1px 3px rgba(24, 49, 61, 0.16);
+}
+
+.tk-img {
+	border: 1px solid rgba(40, 83, 107, 0.24);
+	box-shadow: 0 8px 24px rgba(24, 49, 61, 0.12);
+}
+
+.platform-btn,
+.download-item {
+	color: var(--dark);
+}
+
+.platform-section {
+	background: #f7fcfd;
+}
+
+.feature-item p,
+.about-section p,
+.migration-section p,
+.benefits-list li,
+.platform-header p,
+.safety-note {
+	color: var(--muted);
+}
+
+.features-grid {
+	grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.feature-item {
+	padding: 16px;
+}
+
+@media (max-width: 768px) {
+	.content {
+		margin: 10px;
+		border-radius: 8px;
+	}
+}

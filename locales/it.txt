@@ -40,6 +40,60 @@ Meditazione
 [exercise_sun_salutation]
 Sun Salutation
 ---
+[sun_salutation_work_in_progress]
+Lavoro in corso
+---
+[sun_salutation_repetitions_label]
+Ripetizioni
+---
+[sun_salutation_start_speed_label]
+Tempo iniziale
+---
+[sun_salutation_end_speed_label]
+Tempo finale
+---
+[sun_salutation_tempo_preview_label]
+Anteprima del tempo
+---
+[sun_salutation_tempo_preview_hint]
+La prima ripetizione inizia piu lenta, poi il ritmo aumenta gradualmente.
+---
+[sun_salutation_step_1]
+Passo 1: posizione della montagna
+---
+[sun_salutation_step_2]
+Passo 2: saluto verso l'alto
+---
+[sun_salutation_step_3]
+Passo 3: piegamento in avanti
+---
+[sun_salutation_step_4]
+Passo 4: mezzo sollevamento
+---
+[sun_salutation_step_5]
+Passo 5: plank
+---
+[sun_salutation_step_6]
+Passo 6: plank basso
+---
+[sun_salutation_step_7]
+Passo 7: cane a testa in su
+---
+[sun_salutation_step_8]
+Passo 8: cane a testa in giu
+---
+[sun_salutation_step_9]
+Passo 9: mezzo sollevamento
+---
+[sun_salutation_step_10]
+Passo 10: piegamento in avanti
+---
+[sun_salutation_step_11]
+Passo 11: saluto verso l'alto
+---
+[sun_salutation_step_12]
+Passo 12: posizione della montagna
+---
 [meditation_title]
 Meditazione
 ---

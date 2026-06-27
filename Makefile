@@ -247,7 +247,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web chrome-web-store
+.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -1033,6 +1033,9 @@ web:
 	$(MAKE) $(WEB_TARGET)
 	rm -f $(WEB_DIST_ZIP)
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
+
+site: web
+	tclsh site/build.tcl
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 
