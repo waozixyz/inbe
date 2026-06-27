@@ -16,6 +16,16 @@ extern int view_height;
 
 static int meditation_background_remainder_ms = 0;
 
+static const int meditation_duration_presets[] = {
+    5 * 60,
+    15 * 60,
+    30 * 60,
+    60 * 60,
+    2 * 60 * 60
+};
+
+static void meditation_timer_complete(InbeApp *app);
+
 static Texture2D
 meditation_sound_icon_for_volume(InbeApp *app)
 {
@@ -35,9 +45,13 @@ meditation_start(InbeApp *app, int seconds)
     if(app == NULL)
         return;
 
+    if(seconds < 60)
+        seconds = 60;
+
     app->meditation.duration_seconds = seconds;
     app->meditation.remaining_seconds = seconds;
     app->meditation.frame_ticks = 0;
+    app->meditation.complete_waiting = 0;
     meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
@@ -46,6 +60,28 @@ meditation_start(InbeApp *app, int seconds)
     app_play_sound(app, app->bell_sound, 1.0f);
     meditation_music_start_session(app);
     practice_background_start(app, PRACTICE_MEDITATION);
+}
+
+int
+meditation_configured_duration_seconds(const InbeApp *app)
+{
+    int mode;
+
+    if(app == NULL)
+        return meditation_duration_presets[1];
+
+    mode = app->meditation.duration_mode;
+    if(mode >= 0 && mode < (int)(sizeof(meditation_duration_presets) /
+                                 sizeof(meditation_duration_presets[0])))
+        return meditation_duration_presets[mode];
+
+    return clampi(app->meditation.custom_minutes, 1, 240) * 60;
+}
+
+void
+meditation_start_configured(InbeApp *app)
+{
+    meditation_start(app, meditation_configured_duration_seconds(app));
 }
 
 static void
@@ -65,16 +101,37 @@ meditation_finish(InbeApp *app)
             app_auto_sync(app);
         }
     }
-    app_play_sound(app, app->bell_sound, 1.0f);
+    if(!app->meditation.complete_waiting)
+        app_play_sound(app, app->bell_sound, 1.0f);
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
+    app->meditation.complete_waiting = 0;
     meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
     meditation_music_stop(app);
     practice_active_background_stop(app);
     app_switch_screen(app, InbeScreenStart);
+}
+
+static void
+meditation_timer_complete(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    if(app->meditation.show_extend_controls) {
+        app->meditation.remaining_seconds = 0;
+        app->meditation.frame_ticks = 0;
+        if(!app->meditation.complete_waiting) {
+            app->meditation.complete_waiting = 1;
+            app_play_sound(app, app->bell_sound, 1.0f);
+        }
+        return;
+    }
+
+    meditation_finish(app);
 }
 
 void
@@ -103,7 +160,7 @@ meditation_advance_elapsed(InbeApp *app, int elapsed_ms)
     app->meditation.frame_ticks = 0;
 
     if(app->meditation.remaining_seconds <= 0)
-        meditation_finish(app);
+        meditation_timer_complete(app);
 }
 
 static int
@@ -148,6 +205,7 @@ meditation_exit_to_start(InbeApp *app)
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
+    app->meditation.complete_waiting = 0;
     meditation_background_remainder_ms = 0;
     app->session_paused = 0;
     app->volume_popup_active = 0;
@@ -191,6 +249,18 @@ draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
 {
     int hover = 0;
     return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
+}
+
+static void
+meditation_extend_session(InbeApp *app, int seconds)
+{
+    if(app == NULL || seconds <= 0)
+        return;
+
+    app->meditation.duration_seconds += seconds;
+    app->meditation.remaining_seconds += seconds;
+    app->meditation.complete_waiting = 0;
+    app->meditation.frame_ticks = 0;
 }
 
 void
@@ -294,6 +364,49 @@ draw_meditation_sound_controls(InbeApp *app)
     }
 }
 
+static void
+draw_meditation_extend_controls(InbeApp *app, int center_x, int y)
+{
+    static const int add_seconds[] = {60, 5 * 60, 10 * 60};
+    const char *labels[] = {"+1", "+5", "+10"};
+    int gap = flint_px(8);
+    int btn_h = flint_px(34);
+    int btn_w = flint_px(58);
+    int finish_w = flint_px(96);
+    int total_w = btn_w * 3 + gap * 2;
+    int x = center_x - total_w / 2;
+    int hover = 0;
+
+    if(app == NULL || !app->meditation.show_extend_controls)
+        return;
+
+    if(x < flint_px(12))
+        x = flint_px(12);
+    if(x + total_w > view_width - flint_px(12))
+        x = view_width - flint_px(12) - total_w;
+
+    for(int i = 0; i < 3; i++) {
+        if(ui_draw_generic_button(x + i * (btn_w + gap), y, btn_w, btn_h, labels[i],
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+            meditation_extend_session(app, add_seconds[i]);
+    }
+
+    if(app->meditation.complete_waiting) {
+        int finish_x = center_x - finish_w / 2;
+        int finish_y = y + btn_h + flint_px(10);
+
+        if(finish_x < flint_px(12))
+            finish_x = flint_px(12);
+        if(finish_x + finish_w > view_width - flint_px(12))
+            finish_x = view_width - flint_px(12) - finish_w;
+
+        if(ui_draw_generic_button(finish_x, finish_y, finish_w, btn_h,
+                                  locale_get("finish_button"), UI_BUTTON_STYLE_PRIMARY,
+                                  0, &hover))
+            meditation_finish(app);
+    }
+}
+
 void
 meditation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
@@ -352,6 +465,10 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
                     flint_ui_text_y(time_text, center_y - font, font * 2, font),
                     font, flint_theme_get_text());
 
+    draw_meditation_extend_controls(app, center_x, center_y + flint_px(42));
+    if(app->meditation.complete_waiting)
+        return;
+
     if((
 #if defined(PLATFORM_WEB)
         !app->backgrounded
@@ -365,7 +482,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
             if(app->meditation.remaining_seconds > 0)
                 app->meditation.remaining_seconds--;
             if(app->meditation.remaining_seconds <= 0)
-                meditation_finish(app);
+                meditation_timer_complete(app);
         }
     }
 }

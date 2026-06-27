@@ -157,6 +157,21 @@ No se pudo acceder al archivo de música de meditación. Revisa tu conexión a i
 [duration_2h]
 2 h
 ---
+[meditation_duration_setting]
+Meditation length
+---
+[meditation_duration_custom]
+Custom
+---
+[meditation_custom_minutes]
+Custom time
+---
+[meditation_extend_controls_label]
+Show add-time buttons during meditation
+---
+[finish_button]
+Finish
+---
 [breath_button]
 RESPIRACIÓN
 ---

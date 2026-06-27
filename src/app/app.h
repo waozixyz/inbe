@@ -163,6 +163,10 @@ typedef struct MeditationPracticeState {
     int duration_seconds;
     int remaining_seconds;
     int frame_ticks;
+    int complete_waiting;
+    int duration_mode;
+    int custom_minutes;
+    int show_extend_controls;
     int music_enabled;
     int music_shuffle;
     int music_track;

@@ -25,8 +25,7 @@ meditation_practice_start(InbeApp *app)
     if(app == NULL)
         return;
     mark_exercise_manual_seen(app, EXERCISE_MEDITATION);
-    app_open_modal(app, UIModalMeditationSetup);
-    app_switch_screen(app, InbeScreenStart);
+    meditation_start_configured(app);
 }
 
 void
