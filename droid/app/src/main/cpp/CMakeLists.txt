@@ -11,8 +11,8 @@ endif()
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
-set(RAYLIB_DIR "${REPO_ROOT}/vendor/raylib/src")
 set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
+set(RAYLIB_DIR "${FLINT_DIR}/vendor/raylib/src")
 set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
 set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
@@ -143,6 +143,7 @@ add_library(main SHARED
     "${SRC_DIR}/screens/manual_screen.c"
     "${SRC_DIR}/screens/settings/settings_screen.c"
     "${SRC_DIR}/screens/settings/settings_device.c"
+    "${SRC_DIR}/screens/settings/settings_session.c"
     "${SRC_DIR}/screens/settings/settings_theme.c"
     "${SRC_DIR}/screens/settings/settings_data.c"
     "${SRC_DIR}/screens/settings/settings_sync_account.c"

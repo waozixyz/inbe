@@ -269,7 +269,7 @@ Kreis
 Lautstärke
 ---
 [show_session_volume_control_label]
-Lautstärkeregler in Sitzungen anzeigen
+Lautstaerkeregler anzeigen
 ---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
@@ -865,4 +865,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+Sitzung aktiv
+---
+[notification_starting_seconds]
+Start: %ds
+---
+[notification_breathing_count]
+Ein und aus: %d
+---
+[notification_hold_seconds]
+Halten: %ds
+---
+[notification_breath_in_seconds]
+Einatmen: %ds
+---
+[notification_next_round]
+Naechste Runde
+---
 ---

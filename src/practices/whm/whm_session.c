@@ -9,6 +9,7 @@
 #include "practices/practice_registry.h"
 
 #include <stdio.h>
+#include <string.h>
 
 #if ANDROID_BUILD
 #include "android_timer.h"
@@ -19,6 +20,10 @@ extern int view_width;
 extern int view_height;
 
 static int whm_background_remainder_ms = 0;
+#if ANDROID_BUILD
+static char whm_last_notification_text[96] = "";
+static void stop_android_background_session(InbeApp *app);
+#endif
 
 static Color
 text_color_for_background(Color background)
@@ -153,6 +158,49 @@ remember_sound_state(InbeApp *app)
     cpcount(app->sound_last_count, app->inbe.count);
 }
 
+#if ANDROID_BUILD
+static void
+session_update_notification(InbeApp *app)
+{
+    char text[96] = "";
+    int count;
+
+    if(app == NULL || app->inbe.screen != InbeScreenSession)
+        return;
+
+    count = int_from_count(app->inbe.count);
+    switch(app->inbe.phase) {
+    case InbePhaseBreathe:
+        locale_format(text, sizeof(text), "notification_breathing_count", count);
+        break;
+    case InbePhaseHold:
+        locale_format(text, sizeof(text), "notification_hold_seconds", count);
+        break;
+    case InbePhaseRecover:
+        locale_format(text, sizeof(text), "notification_breath_in_seconds", count);
+        break;
+    case InbePhaseStarting:
+        locale_format(text, sizeof(text), "notification_starting_seconds",
+                      app->inbe.pause_seconds > 0
+                          ? app->inbe.pause_seconds - app->inbe.sectick / 60
+                          : 0);
+        break;
+    case InbePhaseNext:
+        locale_format(text, sizeof(text), "notification_next_round");
+        break;
+    default:
+        locale_format(text, sizeof(text), "notification_session_active");
+        break;
+    }
+
+    if(strcmp(text, whm_last_notification_text) == 0)
+        return;
+
+    snprintf(whm_last_notification_text, sizeof(whm_last_notification_text), "%s", text);
+    android_wakelock_update_session_notification(text);
+}
+#endif
+
 void
 update_session_sounds(InbeApp *app)
 {
@@ -197,6 +245,9 @@ session_background_start(InbeApp *app)
     if(app == NULL)
         return;
     whm_background_remainder_ms = 0;
+#if ANDROID_BUILD
+    whm_last_notification_text[0] = '\0';
+#endif
     remember_sound_state(app);
 }
 
@@ -221,6 +272,9 @@ session_advance_elapsed(InbeApp *app, int elapsed_ms)
     for(int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++) {
         inbestep(&app->inbe);
         practice_update_session_sounds(app);
+#if ANDROID_BUILD
+        session_update_notification(app);
+#endif
     }
 }
 
@@ -254,6 +308,10 @@ session_start(InbeApp *app)
 #endif
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
     practice_background_start(app, PRACTICE_WHM);
+#if ANDROID_BUILD
+    whm_last_notification_text[0] = '\0';
+    session_update_notification(app);
+#endif
 }
 
 static int
@@ -362,6 +420,7 @@ finish_round(InbeApp *app)
         if(session_ensure_results_saved(app)) {
 #if ANDROID_BUILD
             android_allow_screen_off();
+            stop_android_background_session(app);
 #endif
             app_switch_screen(app, InbeScreenResults);
         } else {
@@ -855,6 +914,9 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             inbestep(&app->inbe);
             update_session_sounds(app);
         }
+#if ANDROID_BUILD
+        session_update_notification(app);
+#endif
     }
 
     if(app->inbe.phase != InbePhaseHold)

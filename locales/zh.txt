@@ -269,7 +269,7 @@ Double tap screen to breathe
 音量
 ---
 [show_session_volume_control_label]
-在会话中显示音量控制
+显示音量控制
 ---
 [reset_to_defaults_label]
 恢复默认
@@ -863,4 +863,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+练习进行中
+---
+[notification_starting_seconds]
+开始: %d秒
+---
+[notification_breathing_count]
+吸气和呼气: %d
+---
+[notification_hold_seconds]
+屏息: %d秒
+---
+[notification_breath_in_seconds]
+吸气: %d秒
+---
+[notification_next_round]
+下一轮
+---
 ---

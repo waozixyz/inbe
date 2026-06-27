@@ -323,7 +323,7 @@ Cerchio
 Volume
 ---
 [show_session_volume_control_label]
-Mostra il controllo volume nelle sessioni
+Mostra il controllo volume
 ---
 [reset_to_defaults_label]
 Ripristina predefiniti
@@ -865,4 +865,23 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+[notification_session_active]
+Sessione attiva
+---
+[notification_starting_seconds]
+Avvio: %ds
+---
+[notification_breathing_count]
+Dentro e fuori: %d
+---
+[notification_hold_seconds]
+Trattieni: %ds
+---
+[notification_breath_in_seconds]
+Inspira: %ds
+---
+[notification_next_round]
+Round successivo
+---
 ---

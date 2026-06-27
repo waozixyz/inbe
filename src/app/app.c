@@ -695,7 +695,7 @@ app_apply_sidebar_route(InbeApp *app, int route)
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         reset_settings_preview(app);
-        app->settings_tab = SETTINGS_TAB_DEVICE;
+        app->settings_tab = SETTINGS_TAB_SESSION;
         app->settings_scroll = 0;
         app_switch_screen(app, InbeScreenSettings);
         app_schedule_settings_save(app);
@@ -1555,7 +1555,7 @@ app_init(void *vapp) {
     app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_tab = SETTINGS_TAB_DEVICE;
+    app->settings_tab = SETTINGS_TAB_SESSION;
     app->habit_edit = (HabitEditState){
         .index = -1,
         .color = {99, 196, 165, 255},

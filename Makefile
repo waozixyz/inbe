@@ -180,6 +180,7 @@ APP_SRCS := \
 	src/screens/manual_screen.c \
 	src/screens/settings/settings_screen.c \
 	src/screens/settings/settings_device.c \
+	src/screens/settings/settings_session.c \
 	src/screens/settings/settings_theme.c \
 	src/screens/settings/settings_data.c \
 	src/screens/settings/settings_sync_account.c

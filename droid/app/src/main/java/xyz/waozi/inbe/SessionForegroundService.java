@@ -16,16 +16,18 @@ import android.util.Log;
 public class SessionForegroundService extends Service {
     public static final String ACTION_START = "xyz.waozi.inbe.action.START_SESSION_FOREGROUND";
     public static final String ACTION_STOP = "xyz.waozi.inbe.action.STOP_SESSION_FOREGROUND";
-
     private static final String TAG = "InbeSessionService";
     private static final String CHANNEL_ID = "active_session";
     private static final int NOTIFICATION_ID = 3001;
+    private static String currentStatusText = "";
+    private static SessionForegroundService activeService = null;
 
     private PowerManager.WakeLock wakeLock = null;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        activeService = this;
         ensureNotificationChannel();
     }
 
@@ -37,7 +39,6 @@ public class SessionForegroundService extends Service {
             stopSession();
             return START_NOT_STICKY;
         }
-
         startSession();
         return START_NOT_STICKY;
     }
@@ -46,6 +47,9 @@ public class SessionForegroundService extends Service {
     public void onDestroy() {
         releaseWakeLock();
         stopForegroundCompat();
+        if (activeService == this) {
+            activeService = null;
+        }
         super.onDestroy();
     }
 
@@ -74,6 +78,23 @@ public class SessionForegroundService extends Service {
         stopForegroundCompat();
         stopSelf();
         Log.d(TAG, "Session foreground service stopped");
+    }
+
+    public static void updateStatus(String statusText) {
+        if (statusText != null && !statusText.isEmpty()) {
+            currentStatusText = statusText;
+        }
+
+        SessionForegroundService service = activeService;
+        if (service == null) {
+            return;
+        }
+
+        NotificationManager manager =
+            (NotificationManager)service.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.notify(NOTIFICATION_ID, service.buildNotification());
+        }
     }
 
     private void stopForegroundCompat() {
@@ -122,9 +143,10 @@ public class SessionForegroundService extends Service {
             ? new Notification.Builder(this, CHANNEL_ID)
             : new Notification.Builder(this);
 
+        CharSequence title = getApplicationInfo().loadLabel(getPackageManager());
         builder.setSmallIcon(android.R.drawable.ic_media_play)
-            .setContentTitle("Inner Breeze session active")
-            .setContentText("Session continues while the screen is locked")
+            .setContentTitle(title)
+            .setContentText(currentStatusText)
             .setContentIntent(pendingIntent)
             .setOngoing(true)
             .setOnlyAlertOnce(true)
@@ -151,10 +173,9 @@ public class SessionForegroundService extends Service {
 
         NotificationChannel channel = new NotificationChannel(
             CHANNEL_ID,
-            "Active sessions",
+            getApplicationInfo().loadLabel(getPackageManager()),
             NotificationManager.IMPORTANCE_LOW
         );
-        channel.setDescription("Keeps active sessions running while the screen is locked");
         manager.createNotificationChannel(channel);
     }
 }

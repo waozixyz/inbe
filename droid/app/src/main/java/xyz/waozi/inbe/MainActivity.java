@@ -623,6 +623,11 @@ public class MainActivity extends NativeActivity {
         stopService(intent);
     }
 
+    public void updateSessionNotification(final String statusText) {
+        if (statusText == null || statusText.isEmpty()) return;
+        SessionForegroundService.updateStatus(statusText);
+    }
+
     public void keepScreenOn() {
         runOnUiThread(new Runnable() {
             @Override

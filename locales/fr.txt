@@ -272,7 +272,7 @@ Cercle
 Volume
 ---
 [show_session_volume_control_label]
-Afficher le contrôle du volume pendant les séances
+Afficher le controle du volume
 ---
 [reset_to_defaults_label]
 Réinitialiser
@@ -866,3 +866,21 @@ None
 Fade
 [theme_picker_title]
 Choose Theme
+---
+[notification_session_active]
+Session active
+---
+[notification_starting_seconds]
+Demarrage : %ds
+---
+[notification_breathing_count]
+Inspirez et expirez : %d
+---
+[notification_hold_seconds]
+Retention : %ds
+---
+[notification_breath_in_seconds]
+Inspirez : %ds
+---
+[notification_next_round]
+Tour suivant

@@ -1,4 +1,9 @@
 # Changelog
+## [1.6.1] - 2026-06-27
+## Changed
+- Improved notification in session
+- Standardized settings screen1
+
 ## [1.6.0] - 2026-06-26
 ### Added
 - Sun Salutation practice with Yoga habit sync support.

@@ -74,14 +74,12 @@ settings_device_draw_toggle_row(int x, int w, int *y, const char *label, int *va
 int
 settings_device_content_height(int content_w)
 {
-    int height = flint_px(74) + flint_px(74) + flint_px(76) + flint_px(40);
+    int height = flint_px(76) + flint_px(76) + flint_px(40);
     int label_w = content_w > 0 ? content_w : flint_px(240);
 
-    height += settings_device_toggle_row_height(locale_get("play_in_background_label"), label_w);
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += flint_px(50);
 #endif
-    height += settings_device_toggle_row_height(locale_get("show_session_volume_control_label"), label_w);
     height += settings_device_toggle_row_height(locale_get("on_screen_keyboard_label"), label_w);
     return height;
 }
@@ -89,8 +87,6 @@ settings_device_content_height(int content_w)
 void
 settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *state)
 {
-    int sound_volume;
-    int show_session_volume;
     int keyboard_toggle;
     const char *orientation_options[] = {
         locale_get("orientation_system"),
@@ -103,39 +99,14 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
     if(app == NULL || y == NULL || state == NULL)
         return;
 
-    sound_volume = app->sound_volume;
-    show_session_volume = app->show_session_volume_control;
     keyboard_toggle = app->on_screen_keyboard_enabled;
 
-    if(language_dropdown_button(app, 101, x, *y, w, flint_px(36), &app->language_index))
+    flint_text_draw(locale_get("language_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+    if(language_dropdown_button(app, 101, x, *y + flint_px(26), w, flint_px(36),
+                                &app->language_index))
         state->language_menu_changed = 1;
     state->draw_language_menu = 1;
-    *y += flint_px(74);
-
-    if(ui_draw_slider(6, x, *y, w, locale_get("volume_label"),
-                      SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &sound_volume, "")) {
-        app->sound_volume = sound_volume;
-        app->settings_dirty = 1;
-        save_settings(app);
-    }
-    *y += flint_px(74);
-
-    if(settings_device_draw_toggle_row(x, w, y, locale_get("show_session_volume_control_label"),
-                                       &show_session_volume)) {
-        app->show_session_volume_control = show_session_volume;
-        app->settings_dirty = 1;
-        save_settings(app);
-    }
-
-    {
-        int play_in_background = app->inbe.play_in_background;
-        if(settings_device_draw_toggle_row(x, w, y, locale_get("play_in_background_label"),
-                                           &play_in_background)) {
-            app->inbe.play_in_background = play_in_background;
-            app->settings_dirty = 1;
-            save_settings(app);
-        }
-    }
+    *y += flint_px(76);
 
     {
         int orientation_max = orientation_option_count - 1;
