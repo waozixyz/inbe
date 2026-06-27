@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<meta charset="utf-8" />
+<head>
+	<title>Inner Breeze Legacy Data Converter</title>
+	<link href="/style.css" rel="stylesheet" />
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<meta name="description" content="Convert inbe-legacy JSON exports into the current Inner Breeze import ZIP format.">
+	<link rel="canonical" href="https://inbe.waozi.xyz/legacy-converter.html">
+</head>
+
+<body>
+	<div class="content">
+		<main id="main-content">
+			<section class="tool-section">
+				<h1>Legacy Data Converter</h1>
+				<p>Coming from inbe-legacy? Convert the old JSON export into the SQLite ZIP file used by the current Inner Breeze import tool.</p>
+				<p class="safety-note"><em>This runs entirely in your browser. Your file is not uploaded.</em></p>
+
+				<div class="converter-panel">
+					<label for="legacy-file">inbe-legacy JSON export</label>
+					<input id="legacy-file" type="file" accept=".json,application/json">
+					<button id="convert-button" type="button">Convert to Inbe SQLite ZIP</button>
+					<p id="converter-status" class="converter-status" role="status">Choose an inbe-legacy JSON export.</p>
+				</div>
+
+				<p><a href="/">Back to downloads</a></p>
+			</section>
+		</main>
+		<footer>
+			<p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p>
+		</footer>
+	</div>
+
+	<script src="/assets/sqljs-1.12.0/sql-wasm.js"></script>
+	<script>
+	(function() {
+		"use strict";
+
+		var fileInput = document.getElementById("legacy-file");
+		var convertButton = document.getElementById("convert-button");
+		var statusEl = document.getElementById("converter-status");
+		var sqlReady = initSqlJs({
+			locateFile: function(file) {
+				return "/assets/sqljs-1.12.0/" + file;
+			}
+		});
+
+		function setStatus(message, isError) {
+			statusEl.textContent = message;
+			statusEl.className = isError ? "converter-status error" : "converter-status";
+		}
+
+		function pad(value, width) {
+			var text = String(value);
+			while(text.length < width) text = "0" + text;
+			return text;
+		}
+
+		function parseDateValue(value) {
+			var numeric;
+			var date;
+
+			if(value === null || value === undefined || value === "") {
+				return null;
+			}
+
+			numeric = Number(value);
+			if(Number.isFinite(numeric) && numeric > 0) {
+				if(numeric < 100000000000) numeric *= 1000;
+				date = new Date(numeric);
+			} else if(typeof value === "string") {
+				date = new Date(value);
+			}
+
+			if(!date || Number.isNaN(date.getTime())) {
+				return null;
+			}
+			return date;
+		}
+
+		function dosDateTime(date) {
+			var year = date.getFullYear();
+			if(year < 1980) year = 1980;
+			return {
+				time: (date.getHours() << 11) | (date.getMinutes() << 5) | Math.floor(date.getSeconds() / 2),
+				date: ((year - 1980) << 9) | ((date.getMonth() + 1) << 5) | date.getDate()
+			};
+		}
+
+		var crcTable = null;
+		function makeCrcTable() {
+			var table = [];
+			for(var n = 0; n < 256; n++) {
+				var c = n;
+				for(var k = 0; k < 8; k++) {
+					c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+				}
+				table[n] = c >>> 0;
+			}
+			return table;
+		}
+
+		function crc32(bytes) {
+			if(crcTable === null) crcTable = makeCrcTable();
+			var crc = 0 ^ -1;
+			for(var i = 0; i < bytes.length; i++) {
+				crc = (crc >>> 8) ^ crcTable[(crc ^ bytes[i]) & 0xff];
+			}
+			return (crc ^ -1) >>> 0;
+		}
+
+		function writeU16(out, value) {
+			out.push(value & 255, (value >>> 8) & 255);
+		}
+
+		function writeU32(out, value) {
+			out.push(value & 255, (value >>> 8) & 255, (value >>> 16) & 255, (value >>> 24) & 255);
+		}
+
+		function appendBytes(out, bytes) {
+			for(var i = 0; i < bytes.length; i++) out.push(bytes[i]);
+		}
+
+		function makeZip(files) {
+			var encoder = new TextEncoder();
+			var out = [];
+			var central = [];
+			var now = dosDateTime(new Date());
+
+			files.forEach(function(file) {
+				var nameBytes = encoder.encode(file.name);
+				var dataBytes = file.bytes ? file.bytes : encoder.encode(file.content);
+				var crc = crc32(dataBytes);
+				var offset = out.length;
+
+				writeU32(out, 0x04034b50);
+				writeU16(out, 20);
+				writeU16(out, 0);
+				writeU16(out, 0);
+				writeU16(out, now.time);
+				writeU16(out, now.date);
+				writeU32(out, crc);
+				writeU32(out, dataBytes.length);
+				writeU32(out, dataBytes.length);
+				writeU16(out, nameBytes.length);
+				writeU16(out, 0);
+				appendBytes(out, nameBytes);
+				appendBytes(out, dataBytes);
+
+				writeU32(central, 0x02014b50);
+				writeU16(central, 20);
+				writeU16(central, 20);
+				writeU16(central, 0);
+				writeU16(central, 0);
+				writeU16(central, now.time);
+				writeU16(central, now.date);
+				writeU32(central, crc);
+				writeU32(central, dataBytes.length);
+				writeU32(central, dataBytes.length);
+				writeU16(central, nameBytes.length);
+				writeU16(central, 0);
+				writeU16(central, 0);
+				writeU16(central, 0);
+				writeU16(central, 0);
+				writeU32(central, 0);
+				writeU32(central, offset);
+				appendBytes(central, nameBytes);
+			});
+
+			var centralOffset = out.length;
+			appendBytes(out, central);
+			writeU32(out, 0x06054b50);
+			writeU16(out, 0);
+			writeU16(out, 0);
+			writeU16(out, files.length);
+			writeU16(out, files.length);
+			writeU32(out, central.length);
+			writeU32(out, centralOffset);
+			writeU16(out, 0);
+
+			return new Blob([new Uint8Array(out)], {type: "application/zip"});
+		}
+
+		function sessionDate(session) {
+			var id = session && session.id;
+			var dateTime = session && session.dateTime;
+			var date = parseDateValue(id);
+
+			if(!date) {
+				date = parseDateValue(dateTime);
+			}
+
+			if(!date) {
+				return null;
+			}
+			return date;
+		}
+
+		function roundSeconds(value) {
+			var number = Number(value);
+			if(!Number.isFinite(number) || number <= 0) return 0;
+			if(number > 999) number = Math.round(number / 1000);
+			else number = Math.round(number);
+			if(number < 1 || number > 999) return 0;
+			return number;
+		}
+
+		function localDateValue(date) {
+			return date.getFullYear() * 10000 + (date.getMonth() + 1) * 100 + date.getDate();
+		}
+
+		function hashRounds(seconds) {
+			var h = 2166136261 >>> 0;
+			seconds.forEach(function(second) {
+				var value = second >>> 0;
+				h ^= value & 0xff;
+				h = Math.imul(h, 16777619) >>> 0;
+				h ^= (value >>> 8) & 0xff;
+				h = Math.imul(h, 16777619) >>> 0;
+			});
+			return h >>> 0;
+		}
+
+		function sessionId(startedAt, seconds) {
+			return "s-" + startedAt + "-" + pad(hashRounds(seconds).toString(16), 8);
+		}
+
+		function collectLegacySessions(data) {
+			var sessions = Array.isArray(data) ? data : data.sessions;
+			var converted = [];
+			var usedSessions = {};
+
+			if(!Array.isArray(sessions)) {
+				throw new Error("No sessions array found in the legacy export.");
+			}
+
+			sessions.forEach(function(session) {
+				var date = sessionDate(session);
+				var rounds = session && session.rounds;
+				var seconds = [];
+				var startedAt;
+				var id;
+
+				if(!date || !rounds || typeof rounds !== "object") return;
+
+				if(Array.isArray(rounds)) {
+					rounds.forEach(function(round) {
+						var value = roundSeconds(round && typeof round === "object" ? round.duration || round.seconds || round.value : round);
+						if(value > 0) seconds.push(value);
+					});
+				} else {
+					Object.keys(rounds).sort(function(a, b) {
+					return Number(a) - Number(b);
+					}).forEach(function(key) {
+						var value = roundSeconds(rounds[key]);
+						if(value > 0) seconds.push(value);
+					});
+				}
+
+				if(seconds.length === 0) return;
+
+				startedAt = Math.floor(date.getTime() / 1000);
+				id = sessionId(startedAt, seconds);
+				while(usedSessions[id]) {
+					date = new Date(date.getTime() + 1000);
+					startedAt = Math.floor(date.getTime() / 1000);
+					id = sessionId(startedAt, seconds);
+				}
+				usedSessions[id] = true;
+
+				converted.push({
+					id: id,
+					startedAt: startedAt,
+					localDate: localDateValue(date),
+					seconds: seconds,
+					roundsHash: hashRounds(seconds)
+				});
+			});
+
+			if(converted.length === 0) {
+				throw new Error("No valid legacy sessions were found.");
+			}
+			return converted;
+		}
+
+		function createInbeDatabase(SQL, sessions) {
+			var db = new SQL.Database();
+			var now = Math.floor(Date.now() / 1000);
+			var userId = "legacy-converter-local";
+			var sessionStmt;
+			var roundStmt;
+			var bytes;
+
+			db.run(
+				"CREATE TABLE meta(key TEXT PRIMARY KEY, value TEXT NOT NULL);" +
+				"CREATE TABLE users(id TEXT PRIMARY KEY, created_at INTEGER NOT NULL, kind TEXT NOT NULL);" +
+				"CREATE TABLE settings(user_id TEXT NOT NULL, key TEXT NOT NULL, value TEXT NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(user_id,key));" +
+				"CREATE TABLE sessions(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, started_at INTEGER NOT NULL, local_date INTEGER NOT NULL, topic INTEGER NOT NULL DEFAULT 0, activity INTEGER NOT NULL DEFAULT 0, source TEXT NOT NULL, imported_at INTEGER NOT NULL, rounds_hash INTEGER NOT NULL, deleted_at INTEGER NOT NULL DEFAULT 0, UNIQUE(user_id,started_at,rounds_hash));" +
+				"CREATE TABLE session_rounds(session_id TEXT NOT NULL, round_index INTEGER NOT NULL, seconds INTEGER NOT NULL, PRIMARY KEY(session_id,round_index));" +
+				"CREATE TABLE habits(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, name TEXT NOT NULL, color_r INTEGER NOT NULL, color_g INTEGER NOT NULL, color_b INTEGER NOT NULL, sync_mode INTEGER NOT NULL, sync_activity INTEGER NOT NULL, sort_order INTEGER NOT NULL, deleted_at INTEGER NOT NULL DEFAULT 0);" +
+				"CREATE TABLE habit_days(habit_id TEXT NOT NULL, local_date INTEGER NOT NULL, completed INTEGER NOT NULL, updated_at INTEGER NOT NULL, PRIMARY KEY(habit_id,local_date));" +
+				"CREATE TABLE imports(id TEXT PRIMARY KEY, imported_at INTEGER NOT NULL, format TEXT NOT NULL, source_name TEXT NOT NULL, session_count INTEGER NOT NULL, habit_count INTEGER NOT NULL);" +
+				"INSERT INTO meta(key,value) VALUES('schema_version','1');"
+			);
+			db.run("INSERT INTO users(id,created_at,kind) VALUES(?,?,?)", [userId, now, "local"]);
+
+			sessionStmt = db.prepare("INSERT INTO sessions(id,user_id,started_at,local_date,topic,activity,source,imported_at,rounds_hash,deleted_at) VALUES(?,?,?,?,?,?,?,?,?,0)");
+			roundStmt = db.prepare("INSERT INTO session_rounds(session_id,round_index,seconds) VALUES(?,?,?)");
+			sessions.forEach(function(session) {
+				sessionStmt.run([session.id, userId, session.startedAt, session.localDate, 0, 0, "legacy-converter", now, session.roundsHash]);
+				session.seconds.forEach(function(second, index) {
+					roundStmt.run([session.id, index, second]);
+				});
+			});
+			sessionStmt.free();
+			roundStmt.free();
+			db.run("INSERT INTO imports(id,imported_at,format,source_name,session_count,habit_count) VALUES(?,?,?,?,?,0)", [
+				"legacy-converter-" + now,
+				now,
+				"inbe-legacy-json",
+				"legacy-converter",
+				sessions.length
+			]);
+
+			bytes = db.export();
+			db.close();
+			return {
+				userId: userId,
+				bytes: bytes
+			};
+		}
+
+		function convertLegacy(SQL, data) {
+			var sessions = collectLegacySessions(data);
+			var database = createInbeDatabase(SQL, sessions);
+			var metadata = {
+				format: "inbe-data-sqlite",
+				format_version: 1,
+				app_version: "legacy-converter",
+				user_id: database.userId,
+				session_count: sessions.length,
+				habit_count: 0
+			};
+
+			return {
+				count: sessions.length,
+				blob: makeZip([
+					{
+						name: "inbe-data/metadata.json",
+						content: JSON.stringify(metadata, null, 2) + "\n"
+					},
+					{
+						name: "inbe-data/inbe.db",
+						bytes: database.bytes
+					}
+				])
+			};
+		}
+
+		function downloadBlob(blob, filename) {
+			var url = URL.createObjectURL(blob);
+			var link = document.createElement("a");
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			setTimeout(function() {
+				URL.revokeObjectURL(url);
+			}, 1000);
+		}
+
+		convertButton.addEventListener("click", function() {
+			var file = fileInput.files && fileInput.files[0];
+			if(!file) {
+				setStatus("Choose a legacy JSON export first.", true);
+				return;
+			}
+
+			Promise.all([sqlReady, file.text()]).then(function(values) {
+				var SQL = values[0];
+				var text = values[1];
+				var data = JSON.parse(text);
+				var result = convertLegacy(SQL, data);
+				downloadBlob(result.blob, "inbe-legacy-converted.zip");
+				setStatus("Converted " + result.count + " sessions. Import the downloaded ZIP in Inner Breeze.", false);
+			}).catch(function(error) {
+				setStatus(error.message || "Conversion failed.", true);
+			});
+		});
+	})();
+	</script>
+</body>
+</html>

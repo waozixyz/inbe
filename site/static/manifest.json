@@ -1,0 +1,22 @@
+{
+  "name": "Inner Breeze",
+  "short_name": "Inner Breeze",
+  "description": "Breathing, meditation sessions, habit tracking, themes, and local-first progress history.",
+  "start_url": "/build/web/index.html",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#5566aa",
+  "icons": [
+    {
+      "src": "/site-icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/site-icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
