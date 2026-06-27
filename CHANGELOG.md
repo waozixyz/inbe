@@ -1,14 +1,23 @@
 # Changelog
+## [1.6.4] - 2026-06-27
+### Changed
+- Move meditation duration selection into practice configuration with custom time support.
+- Add centered in-session meditation add-time controls.
+- Use Flint-managed liboqs, LibreSSL, and curl build paths.
+
+### Fixed
+- Fix Android native build to use Flint's liboqs submodule.
+
 ## [1.6.3] - 2026-06-27
-## Changed
+### Changed
 - Improve theme, habit, and localization UI polish
 
 ## [1.6.2] - 2026-06-27
-## Changed
+### Changed
 - Improve sun salutation
 
 ## [1.6.1] - 2026-06-27
-## Changed
+### Changed
 - Improved notification in session
 - Standardized settings screen1
 

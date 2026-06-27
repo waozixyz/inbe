@@ -1,0 +1,4 @@
+- Move meditation duration selection into practice configuration with custom time support.
+- Add centered in-session meditation add-time controls.
+- Use Flint-managed liboqs, LibreSSL, and curl build paths.
+- Fix Android native build to use Flint's liboqs submodule.
