@@ -191,8 +191,6 @@ proc main {} {
 	foreach pair {
 		{web-assets web-assets}
 		{site-icons site-icons}
-		{uxn uxn}
-		{wasm4 wasm4}
 	} {
 		lassign $pair src dst
 		copy_dir_contents [file join $root_dir $src] [file join $out_dir $dst]
@@ -211,7 +209,6 @@ proc main {} {
 		privacy.html
 		delete-account.html
 		delete-account/index.html
-		builds.html
 		legacy-converter.html
 		manifest.json
 		robots.txt
