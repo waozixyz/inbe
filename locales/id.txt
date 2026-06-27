@@ -305,10 +305,19 @@ Jeda setelah ronde
 Kontrol sesi lanjutan
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Ketuk dua kali untuk bernapas
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Ketuk layar dua kali untuk bernapas
+---
+[session_count_singular]
+%d sesi
+---
+[session_count_plural]
+%d sesi
+---
+[no_sessions]
+Tidak ada sesi
 ---
 [hold_display_label]
 Tampilan tahan napas
@@ -738,10 +747,10 @@ Nama
 Garis bawah
 ---
 [habit_practice_list_title]
-Session Data From
+Data sesi dari
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Pilih sesi latihan mana yang dihitung untuk kebiasaan ini. Hari yang cocok ditandai selesai dan dapat membuka editor sesi.
 ---
 [habit_counting_title]
 Penghitungan
@@ -799,6 +808,12 @@ Total tahan
 ---
 [habit_stats_best_streak]
 Rangkaian terbaik
+---
+[habit_stats_day_singular]
+%d hari
+---
+[habit_stats_day_plural]
+%d hari
 ---
 [bottom_nav_customize_button]
 Sesuaikan navigasi bawah
@@ -864,20 +879,20 @@ Lihat statistik kebiasaan Anda di sini.
 Navigasi
 ---
 [nav_mode_dropdown]
-Dropdown
+Menu
 ---
 [nav_mode_tabbar]
 Tab
 ---
 
 [transition_label]
-Transition
+Transisi
 [transition_none]
-None
+Tidak ada
 [transition_fade]
-Fade
+Pudar
 [theme_picker_title]
-Choose Theme
+Pilih Tema
 [skip_button]
 Skip
 ---

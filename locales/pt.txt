@@ -305,10 +305,19 @@ Pausa após rodada
 Controles avançados da sessão
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Toque duplo para respirar
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Toque duas vezes na tela para respirar
+---
+[session_count_singular]
+%d sessão
+---
+[session_count_plural]
+%d sessões
+---
+[no_sessions]
+Sem sessões
 ---
 [hold_display_label]
 Exibicao da retencao
@@ -549,7 +558,7 @@ Oceano
 Floresta
 ---
 [theme_sunset]
-Pôr do sol
+Poente
 ---
 [theme_lavender]
 Lavanda
@@ -738,10 +747,10 @@ Nome
 Sublinhado
 ---
 [habit_practice_list_title]
-Session Data From
+Dados de sessão
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Escolha quais sessões de prática contam para este hábito. Dias correspondentes aparecem como concluídos e podem abrir o editor de sessão.
 ---
 [habit_counting_title]
 Contagem
@@ -799,6 +808,12 @@ Retenção total
 ---
 [habit_stats_best_streak]
 Melhor sequência
+---
+[habit_stats_day_singular]
+%d dia
+---
+[habit_stats_day_plural]
+%d dias
 ---
 [bottom_nav_customize_button]
 Personalizar navegação inferior
@@ -864,20 +879,20 @@ Veja suas estatisticas de habitos aqui.
 Navegação
 ---
 [nav_mode_dropdown]
-Dropdown
+Menu
 ---
 [nav_mode_tabbar]
 Abas
 ---
 
 [transition_label]
-Transition
+Transição
 [transition_none]
-None
+Nenhuma
 [transition_fade]
-Fade
+Desvanecer
 [theme_picker_title]
-Choose Theme
+Escolher tema
 [skip_button]
 Skip
 ---

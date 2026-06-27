@@ -370,6 +370,15 @@ Double tap to breathe
 [double_tap_to_breathe_hint]
 Double tap screen to breathe
 ---
+[session_count_singular]
+%d session
+---
+[session_count_plural]
+%d sessions
+---
+[no_sessions]
+No sessions
+---
 [hold_display_label]
 Hold display
 ---
@@ -780,7 +789,7 @@ Name
 Underline
 ---
 [habit_practice_list_title]
-Practice list
+Session data from
 ---
 [habit_practice_list_info]
 Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
@@ -841,6 +850,12 @@ Total hold
 ---
 [habit_stats_best_streak]
 Best streak
+---
+[habit_stats_day_singular]
+%d day
+---
+[habit_stats_day_plural]
+%d days
 ---
 [bottom_nav_customize_button]
 Customize bottom navigation

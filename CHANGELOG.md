@@ -1,4 +1,8 @@
 # Changelog
+## [1.6.3] - 2026-06-27
+## Changed
+- Improve theme, habit, and localization UI polish
+
 ## [1.6.2] - 2026-06-27
 ## Changed
 - Improve sun salutation

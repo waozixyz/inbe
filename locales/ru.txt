@@ -362,10 +362,19 @@ OK
 Расширенное управление сессией
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Двойное касание для вдоха
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Коснитесь экрана дважды, чтобы вдохнуть
+---
+[session_count_singular]
+%d сессия
+---
+[session_count_plural]
+%d сессий
+---
+[no_sessions]
+Нет сессий
 ---
 [hold_display_label]
 Отображение задержки
@@ -738,10 +747,10 @@ liboqs не собран для этой платформы.
 Подчеркивание
 ---
 [habit_practice_list_title]
-Session Data From
+Данные сессий из
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Выберите, какие сессии практик учитываются для этой привычки. Совпадающие дни отмечаются как выполненные и могут открыть редактор сессии.
 ---
 [habit_counting_title]
 Подсчет
@@ -799,6 +808,12 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 [habit_stats_best_streak]
 Лучшая серия
+---
+[habit_stats_day_singular]
+%d день
+---
+[habit_stats_day_plural]
+%d дней
 ---
 [bottom_nav_customize_button]
 Настроить нижнюю навигацию
@@ -871,13 +886,13 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 
 [transition_label]
-Transition
+Переход
 [transition_none]
-None
+Нет
 [transition_fade]
-Fade
+Плавно
 [theme_picker_title]
-Choose Theme
+Выбор темы
 [skip_button]
 Skip
 ---

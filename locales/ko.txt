@@ -359,10 +359,19 @@ Sun Salutation
 고급 세션 제어
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+두 번 탭해 호흡
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+화면을 두 번 탭해 호흡
+---
+[session_count_singular]
+%d개 세션
+---
+[session_count_plural]
+%d개 세션
+---
+[no_sessions]
+세션 없음
 ---
 [hold_display_label]
 홀드 표시
@@ -737,10 +746,10 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 밑줄
 ---
 [habit_practice_list_title]
-Session Data From
+세션 데이터
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+이 습관에 포함할 연습 세션을 선택하세요. 일치하는 날은 완료로 표시되며 세션 편집기를 열 수 있습니다.
 ---
 [habit_counting_title]
 횟수
@@ -798,6 +807,12 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 [habit_stats_best_streak]
 최고 연속 기록
+---
+[habit_stats_day_singular]
+%d일
+---
+[habit_stats_day_plural]
+%d일
 ---
 [bottom_nav_customize_button]
 하단 내비게이션 사용자화
@@ -870,13 +885,13 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 
 [transition_label]
-Transition
+전환
 [transition_none]
-None
+없음
 [transition_fade]
-Fade
+페이드
 [theme_picker_title]
-Choose Theme
+테마 선택
 [skip_button]
 Skip
 ---

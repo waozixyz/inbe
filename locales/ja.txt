@@ -305,10 +305,19 @@ OK
 詳細なセッション設定
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+ダブルタップで呼吸
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+画面をダブルタップして呼吸
+---
+[session_count_singular]
+%dセッション
+---
+[session_count_plural]
+%dセッション
+---
+[no_sessions]
+セッションなし
 ---
 [hold_display_label]
 ホールド表示
@@ -738,10 +747,10 @@ https:// または localhost:8080 のようなループバックを使用して�
 下線
 ---
 [habit_practice_list_title]
-Session Data From
+セッションデータ
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+この習慣に含める練習セッションを選びます。一致する日は完了として表示され、セッション編集画面を開けます。
 ---
 [habit_counting_title]
 カウント
@@ -799,6 +808,12 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 [habit_stats_best_streak]
 最長連続記録
+---
+[habit_stats_day_singular]
+%d日
+---
+[habit_stats_day_plural]
+%d日
 ---
 [bottom_nav_customize_button]
 下部ナビゲーションをカスタマイズ
@@ -871,13 +886,13 @@ Choose which practice sessions count for this habit. Matching days show as compl
 ---
 
 [transition_label]
-Transition
+切り替え
 [transition_none]
-None
+なし
 [transition_fade]
-Fade
+フェード
 [theme_picker_title]
-Choose Theme
+テーマ選択
 [skip_button]
 Skip
 ---

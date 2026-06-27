@@ -1246,11 +1246,36 @@ habit_weekly_draw_text_line(const char *text, int x, int y, int w, int h,
                             int text_size, Color color)
 {
     int font_size;
+    const char *draw_text = text;
+    char fitted[128];
 
     if(text == NULL || text[0] == '\0' || w <= 0 || h <= 0)
         return;
     font_size = text_size;
-    flint_text_draw(text, x, flint_text_y(text, y, h, font_size), font_size, color);
+    while(font_size > FLINT_TEXT_8 && flint_text_measure(text, font_size) > w)
+        font_size -= flint_px(1);
+    if(flint_text_measure(text, font_size) > w) {
+        snprintf(fitted, sizeof(fitted), "%s", text);
+        while(fitted[0] != '\0' && flint_text_measure(fitted, font_size) > w) {
+            size_t len = strlen(fitted);
+            size_t cut = len;
+
+            if(len <= 3)
+                break;
+            if(len > 3 && strcmp(fitted + len - 3, "...") == 0)
+                len -= 3;
+            cut = len;
+            do {
+                cut--;
+            } while(cut > 0 && (((unsigned char)fitted[cut] & 0xC0) == 0x80));
+            fitted[cut] = '\0';
+            if(cut + 3 < sizeof(fitted))
+                strncat(fitted, "...", sizeof(fitted) - strlen(fitted) - 1);
+        }
+        draw_text = fitted;
+    }
+    flint_text_draw(draw_text, x + (w - flint_text_measure(draw_text, font_size)) / 2,
+                    flint_text_y(draw_text, y, h, font_size), font_size, color);
 }
 
 static int
@@ -1290,7 +1315,10 @@ habit_weekly_summary(const HabitLinkedContext *ctx, int day_index,
                  mixed ? "Mixed practice" : practice_activity_label(first_activity));
     }
     if(secondary != NULL && secondary_size > 0)
-        snprintf(secondary, secondary_size, "%d session%s", count, count == 1 ? "" : "s");
+        locale_format(secondary, secondary_size,
+                      count == 1 ? "session_count_singular"
+                                 : "session_count_plural",
+                      count);
     return count;
 }
 

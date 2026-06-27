@@ -308,10 +308,19 @@ Pause après cycle
 Contrôles avancés de séance
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Double toucher pour respirer
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Touchez deux fois l'écran pour respirer
+---
+[session_count_singular]
+%d session
+---
+[session_count_plural]
+%d sessions
+---
+[no_sessions]
+Aucune session
 ---
 [hold_display_label]
 Affichage de la retention
@@ -326,7 +335,7 @@ Cercle
 Volume
 ---
 [show_session_volume_control_label]
-Afficher le controle du volume
+Afficher le contrôle du volume
 ---
 [reset_to_defaults_label]
 Réinitialiser
@@ -552,7 +561,7 @@ Océan
 Forêt
 ---
 [theme_sunset]
-Coucher de soleil
+Crépuscule
 ---
 [theme_lavender]
 Lavande
@@ -780,10 +789,10 @@ Nom
 Soulignement
 ---
 [habit_practice_list_title]
-Session Data From
+Données de session
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Choisissez quelles sessions de pratique comptent pour cette habitude. Les jours correspondants sont marqués comme faits et peuvent ouvrir l'éditeur de session.
 ---
 [habit_counting_title]
 Comptage
@@ -841,6 +850,12 @@ Rétention totale
 ---
 [habit_stats_best_streak]
 Meilleure série
+---
+[habit_stats_day_singular]
+%d jour
+---
+[habit_stats_day_plural]
+%d jours
 ---
 [bottom_nav_customize_button]
 Personnaliser la navigation du bas
@@ -913,13 +928,13 @@ Onglets
 ---
 
 [transition_label]
-Transition
+Effet
 [transition_none]
-None
+Aucune
 [transition_fade]
-Fade
+Fondu
 [theme_picker_title]
-Choose Theme
+Choisir un thème
 ---
 [notification_session_active]
 Session active

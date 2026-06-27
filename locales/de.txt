@@ -305,10 +305,19 @@ Pause nach Runde
 Erweiterte Sitzungssteuerung
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Doppeltippen zum Atmen
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Doppeltippe auf den Bildschirm, um zu atmen
+---
+[session_count_singular]
+%d Sitzung
+---
+[session_count_plural]
+%d Sitzungen
+---
+[no_sessions]
+Keine Sitzungen
 ---
 [hold_display_label]
 Atemhalteanzeige
@@ -323,7 +332,7 @@ Kreis
 Lautstärke
 ---
 [show_session_volume_control_label]
-Lautstaerkeregler anzeigen
+Lautstärkeregler anzeigen
 ---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
@@ -549,7 +558,7 @@ Ozean
 Wald
 ---
 [theme_sunset]
-Sonnenuntergang
+Abendrot
 ---
 [theme_lavender]
 Lavendel
@@ -738,10 +747,10 @@ Bezeichnung
 Unterstreichung
 ---
 [habit_practice_list_title]
-Session Data From
+Sitzungsdaten aus
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Wähle, welche Übungssitzungen für diese Gewohnheit zählen. Passende Tage werden als erledigt angezeigt und können den Sitzungseditor öffnen.
 ---
 [habit_counting_title]
 Zählen
@@ -799,6 +808,12 @@ Gesamte Atemhaltezeit
 ---
 [habit_stats_best_streak]
 Beste Serie
+---
+[habit_stats_day_singular]
+%d Tag
+---
+[habit_stats_day_plural]
+%d Tage
 ---
 [bottom_nav_customize_button]
 Untere Navigation anpassen
@@ -864,20 +879,20 @@ Sieh dir hier deine Gewohnheitsstatistiken an.
 Navigation
 ---
 [nav_mode_dropdown]
-Dropdown
+Liste
 ---
 [nav_mode_tabbar]
-Tabs
+Reiter
 ---
 
 [transition_label]
-Transition
+Übergang
 [transition_none]
-None
+Keine
 [transition_fade]
-Fade
+Blende
 [theme_picker_title]
-Choose Theme
+Thema wählen
 [skip_button]
 Skip
 ---

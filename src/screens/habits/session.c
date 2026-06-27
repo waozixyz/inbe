@@ -239,7 +239,8 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
     if(ctx->count <= 0) {
         if(draw)
-            flint_text_draw("No sessions", content_x, y, flint_ui_font(), flint_theme_get_text());
+            flint_text_draw(locale_get("no_sessions"), content_x, y,
+                            flint_ui_font(), flint_theme_get_text());
         return y + row_h;
     }
 
@@ -277,7 +278,8 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             snprintf(time_text, sizeof(time_text), "%02d:%02d",
                      ctx->entries[i].hour, ctx->entries[i].minute);
             if(activity == EXERCISE_SUN_SALUTATION)
-                snprintf(summary_text, sizeof(summary_text), "1 session");
+                locale_format(summary_text, sizeof(summary_text),
+                              "session_count_singular", 1);
             else if(activity == EXERCISE_MEDITATION)
                 habit_format_duration(ctx->entries[i].total_seconds,
                                       summary_text, sizeof(summary_text));
