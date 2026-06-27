@@ -85,6 +85,7 @@ habit_edit_info_modal(const char *title, const char *message)
     FlintUIScrollArea scroll_area;
     int y;
     int modal_h;
+    int modal_w;
     int paragraph_h;
     int button_w = flint_px(112);
     int button_h = flint_px(36);
@@ -93,19 +94,31 @@ habit_edit_info_modal(const char *title, const char *message)
     int hover = 0;
     int result = 0;
 
+    modal_w = view_width - flint_px(36);
+    if(modal_w > flint_px(420))
+        modal_w = flint_px(420);
+    if(modal_w < flint_px(320))
+        modal_w = flint_px(320);
+    if(modal_w > view_width - flint_px(24))
+        modal_w = view_width - flint_px(24);
+    if(modal_w < flint_px(240))
+        modal_w = flint_px(240);
+
     paragraph = (FlintUIParagraph){
         .text = message,
-        .width = flint_px(320) - flint_px(36)
+        .width = modal_w - flint_px(36),
+        .font = flint_ui_font(),
+        .line_gap = flint_px(4)
     };
     modal_h = ui_paragraph_modal_height((FlintUIParagraphModalMeasure){
         .message = message,
-        .width = flint_px(320),
+        .width = modal_w,
         .button_h = button_h,
         .extra_lines = 2,
         .min_height = flint_px(196)
     });
 
-    frame = ui_draw_modal_frame(flint_px(320), modal_h, title,
+    frame = ui_draw_modal_frame(modal_w, modal_h, title,
                                 (Texture2D){0}, (Texture2D){0});
     paragraph.width = frame.content_w;
     paragraph_h = flint_ui_paragraph_height(paragraph);

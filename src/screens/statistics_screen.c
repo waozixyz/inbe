@@ -4,6 +4,7 @@
 #include "habits/habits.h"
 #include "flint_locale.h"
 #include "flint_theme.h"
+#include "flint_ui.h"
 
 extern int view_width;
 extern int view_height;
@@ -62,10 +63,30 @@ statistics_draw_metric(int x, int y, int w, int h, const char *label,
                     value_font, flint_theme_get_text());
 }
 
-static void
-statistics_draw_section_title(const char *title, int x, int y)
+static int
+statistics_draw_section_title(const char *title, int x, int y, int w)
 {
-    flint_text_draw(title, x, y, FLINT_TEXT_16, flint_theme_get_text());
+    FlintUIParagraph paragraph = {
+        .text = title,
+        .width = w,
+        .font = FLINT_TEXT_16,
+        .line_gap = flint_px(3),
+        .color = flint_theme_get_text()
+    };
+    int title_y = y;
+    int height = flint_ui_paragraph_height(paragraph);
+
+    flint_ui_paragraph_draw(paragraph, x, &title_y);
+    return height;
+}
+
+static void
+statistics_format_day_count(char *out, size_t out_size, int count)
+{
+    locale_format(out, out_size,
+                  count == 1 ? "habit_stats_day_singular"
+                             : "habit_stats_day_plural",
+                  count);
 }
 
 static int
@@ -330,8 +351,7 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     }
 
     metric_w = (content_w - metrics_gap) / 2;
-    snprintf(value, sizeof(value), "%d day%s", current_streak,
-             current_streak == 1 ? "" : "s");
+    statistics_format_day_count(value, sizeof(value), current_streak);
     statistics_draw_metric(content_x, y, metric_w, metric_h,
                            locale_get("habit_stats_current_streak"), value, active->color);
     snprintf(value, sizeof(value), "%d/%d", last_30_done, last_30_total);
@@ -341,16 +361,16 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     y += metric_h + flint_px(22);
 
     if(has_wim_hof_rounds) {
-        statistics_draw_section_title(locale_get("habit_stats_wim_hof_hold_rounds"), content_x, y);
-        y += flint_px(28);
+        y += statistics_draw_section_title(locale_get("habit_stats_wim_hof_hold_rounds"),
+                                           content_x, y, content_w) + flint_px(10);
         statistics_draw_hold_graph(app, linked_ctx, content_x, y, content_w,
                                    &today_tm, EXERCISE_WIM_HOF,
                                    active->color);
         y += flint_px(194);
     }
 
-    statistics_draw_section_title(locale_get("habit_stats_weekday_pattern"), content_x, y);
-    y += flint_px(28);
+    y += statistics_draw_section_title(locale_get("habit_stats_weekday_pattern"),
+                                       content_x, y, content_w) + flint_px(10);
     DrawRectangle(content_x, y, content_w, chart_h, flint_darken(flint_theme_get_bg(), 7));
     {
         const char *labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
@@ -378,8 +398,8 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     if(linked_ctx != NULL && linked_ctx->count > 0) {
         char best[32];
         char total[32];
-        statistics_draw_section_title(locale_get("habit_stats_practice_time"), content_x, y);
-        y += flint_px(28);
+        y += statistics_draw_section_title(locale_get("habit_stats_practice_time"),
+                                           content_x, y, content_w) + flint_px(10);
         habit_format_duration(linked_ctx->best_seconds, best, sizeof(best));
         habit_format_duration(linked_ctx->total_seconds, total, sizeof(total));
         statistics_draw_metric(content_x, y, metric_w, metric_h,
@@ -388,8 +408,7 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
                                content_w - metric_w - metrics_gap, metric_h,
                                locale_get("habit_stats_total_hold"), total, flint_lighten(active->color, 20));
     } else {
-        snprintf(value, sizeof(value), "%d day%s", best_streak,
-                 best_streak == 1 ? "" : "s");
+        statistics_format_day_count(value, sizeof(value), best_streak);
         statistics_draw_metric(content_x, y, content_w, metric_h,
                                locale_get("habit_stats_best_streak"), value, active->color);
     }

@@ -305,10 +305,19 @@ Sun Salutation
 高级练习控制
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+双击呼吸
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+双击屏幕开始呼吸
+---
+[session_count_singular]
+%d次会话
+---
+[session_count_plural]
+%d次会话
+---
+[no_sessions]
+没有会话
 ---
 [hold_display_label]
 屏息显示
@@ -736,10 +745,10 @@ liboqs 未为此目标构建。
 下划线
 ---
 [habit_practice_list_title]
-Session Data From
+会话数据来自
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+选择哪些练习会话计入此习惯。匹配的日期会显示为已完成，并可打开会话编辑器。
 ---
 [habit_counting_title]
 计数
@@ -797,6 +806,12 @@ Wim Hof 屏息轮次
 ---
 [habit_stats_best_streak]
 最佳连续记录
+---
+[habit_stats_day_singular]
+%d天
+---
+[habit_stats_day_plural]
+%d天
 ---
 [bottom_nav_customize_button]
 自定义底部导航
@@ -869,13 +884,13 @@ Wim Hof 屏息轮次
 ---
 
 [transition_label]
-Transition
+过渡
 [transition_none]
-None
+无
 [transition_fade]
-Fade
+淡入淡出
 [theme_picker_title]
-Choose Theme
+选择主题
 [skip_button]
 Skip
 ---

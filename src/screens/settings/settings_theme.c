@@ -143,6 +143,10 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
     int modal_h = flint_px(360);
     const char *title = locale_get("theme_picker_title");
     FlintUIPanelFrame frame;
+    FlintUIScrollArea scroll_area;
+    FlintUIScrollView scroll_view;
+    int picker_h;
+    int draw_w;
 
     frame = ui_draw_modal_frame(modal_w, modal_h, title,
                                (Texture2D){0},
@@ -153,13 +157,40 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
         return;
     }
 
-    // Draw theme picker in modal content area
-    if(ui_draw_theme_picker(frame.content_x, frame.content_y,
-                            frame.content_w, app->dark_mode, &app->theme_id)) {
+    draw_w = frame.content_w;
+    picker_h = ui_theme_picker_height(draw_w);
+    scroll_area = (FlintUIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)frame.content_h
+        },
+        .content_height = picker_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &app->theme_state.theme_picker_scroll,
+        .wheel_step = flint_px(42),
+        .scrollbar_x = frame.content_x + frame.content_w - flint_px(8)
+    };
+    for(int i = 0; i < 3; i++) {
+        FlintUIScrollView measured = ui_scroll_container_measure(scroll_area);
+        if(measured.content_w == draw_w)
+            break;
+        draw_w = measured.content_w;
+        scroll_area.content_height = ui_theme_picker_height(draw_w);
+    }
+    picker_h = ui_theme_picker_height(draw_w);
+    scroll_area.content_height = picker_h;
+    scroll_view = ui_scroll_container_begin(scroll_area);
+
+    if(ui_draw_theme_picker(scroll_view.content_x, scroll_view.content_y,
+                            scroll_view.content_w, app->dark_mode, &app->theme_id)) {
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
         app_refresh_theme(app);
         app->settings_dirty = 1;
         save_settings(app);
         app_close_modal(app);
     }
+    ui_scroll_container_end(scroll_area, scroll_view);
 }

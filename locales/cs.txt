@@ -305,10 +305,19 @@ Pauza po kole
 Pokročilé ovládání sezení
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Dvojí klepnutí pro nádech
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Dvakrát klepněte na obrazovku pro nádech
+---
+[session_count_singular]
+%d sezení
+---
+[session_count_plural]
+%d sezení
+---
+[no_sessions]
+Žádná sezení
 ---
 [hold_display_label]
 Zobrazeni zadrze
@@ -323,7 +332,7 @@ Kruh
 Hlasitost
 ---
 [show_session_volume_control_label]
-Zobrazit ovladani hlasitosti
+Zobrazit ovládání hlasitosti
 ---
 [reset_to_defaults_label]
 Obnovit výchozí
@@ -549,7 +558,7 @@ Oceán
 Les
 ---
 [theme_sunset]
-Západ slunce
+Soumrak
 ---
 [theme_lavender]
 Levandule
@@ -738,10 +747,10 @@ Název
 Podtržení
 ---
 [habit_practice_list_title]
-Session Data From
+Data sezení z
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Vyberte, která cvičební sezení se počítají do tohoto návyku. Odpovídající dny se zobrazí jako splněné a mohou otevřít editor sezení.
 ---
 [habit_counting_title]
 Počítání
@@ -799,6 +808,12 @@ Celková zádrž
 ---
 [habit_stats_best_streak]
 Nejlepší série
+---
+[habit_stats_day_singular]
+%d den
+---
+[habit_stats_day_plural]
+%d dní
 ---
 [bottom_nav_customize_button]
 Upravit spodní navigaci
@@ -871,13 +886,13 @@ Karty
 ---
 
 [transition_label]
-Transition
+Přechod
 [transition_none]
-None
+Žádný
 [transition_fade]
-Fade
+Prolnutí
 [theme_picker_title]
-Choose Theme
+Vybrat motiv
 [skip_button]
 Skip
 ---

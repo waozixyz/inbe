@@ -305,10 +305,19 @@ Pausa después de ronda
 Controles avanzados de sesión
 ---
 [double_tap_to_breathe_label]
-Double tap to breathe
+Doble toque para respirar
 ---
 [double_tap_to_breathe_hint]
-Double tap screen to breathe
+Toca dos veces la pantalla para respirar
+---
+[session_count_singular]
+%d sesión
+---
+[session_count_plural]
+%d sesiones
+---
+[no_sessions]
+Sin sesiones
 ---
 [hold_display_label]
 Visualizacion de retencion
@@ -738,10 +747,10 @@ Nombre
 Subrayado
 ---
 [habit_practice_list_title]
-Session Data From
+Datos de sesión
 ---
 [habit_practice_list_info]
-Choose which practice sessions count for this habit. Matching days show as completed and can open the session editor.
+Elige qué sesiones de práctica cuentan para este hábito. Los días coincidentes se muestran como completados y pueden abrir el editor de sesión.
 ---
 [habit_counting_title]
 Conteo
@@ -799,6 +808,12 @@ Retención total
 ---
 [habit_stats_best_streak]
 Mejor racha
+---
+[habit_stats_day_singular]
+%d día
+---
+[habit_stats_day_plural]
+%d días
 ---
 [bottom_nav_customize_button]
 Personalizar navegación inferior
@@ -871,13 +886,13 @@ Pestañas
 ---
 
 [transition_label]
-Transition
+Transición
 [transition_none]
-None
+Ninguna
 [transition_fade]
-Fade
+Fundido
 [theme_picker_title]
-Choose Theme
+Elegir tema
 [skip_button]
 Skip
 ---
