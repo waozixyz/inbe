@@ -16,6 +16,10 @@
 #include <stdio.h>
 #include <string.h>
 
+#if !defined(FLINT_HAS_LIBOQS)
+#error "Inbe sync account builds require FLINT_HAS_LIBOQS; build liboqs for this target instead of disabling sync crypto."
+#endif
+
 #define SYNC_PUBLIC_ID_KEY "sync_public_id"
 #define SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define SYNC_PRIVATE_KEY_KEY "sync_private_key"

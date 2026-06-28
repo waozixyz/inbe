@@ -1,4 +1,9 @@
 # Changelog
+## [1.6.5] - 2026-06-28
+### Fixed
+- Repair habit-day sync for zero-count completions.
+- Require liboqs at build time for every sync-enabled target.
+
 ## [1.6.4] - 2026-06-27
 ### Changed
 - Move meditation duration selection into practice configuration with custom time support.

@@ -47,6 +47,9 @@ CLICK_BIN := $(CLICK_BIN_DIR)/$(APP_NAME)
 CLICK_BIN_INPUT := $(if $(strip $(CLICK_BIN_SOURCE)),$(CLICK_BIN_SOURCE),$(CLICK_BIN))
 CLICK_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib
 CLICK_RAYLIB_A := $(CLICK_RAYLIB_BUILD_DIR)/libraylib.a
+CLICK_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/liboqs
+CLICK_LIBOQS_A := $(CLICK_LIBOQS_BUILD_DIR)/lib/liboqs.a
+CLICK_LIBOQS_INCLUDE := -I$(CLICK_LIBOQS_BUILD_DIR)/include
 CLICK_PATCHELF_INTERPRETER ?= /lib/ld-linux-aarch64.so.1
 CLICK_RUNTIME_LIBS ?= $(AARCH64_CLICK_RUNTIME_LIBS)
 WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
@@ -88,9 +91,15 @@ WIN32_RAYLIB_A := $(WIN32_RAYLIB_BUILD_DIR)/libraylib.a
 WIN64_CURL_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/curl
 WIN64_CURL_INCLUDE_DIR := $(WIN64_CURL_BUILD_DIR)/include
 WIN64_CURL_A := $(WIN64_CURL_BUILD_DIR)/lib/libcurl.a
+WIN64_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/liboqs
+WIN64_LIBOQS_A := $(WIN64_LIBOQS_BUILD_DIR)/lib/liboqs.a
+WIN64_LIBOQS_INCLUDE := -I$(WIN64_LIBOQS_BUILD_DIR)/include
 WIN32_CURL_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/curl
 WIN32_CURL_INCLUDE_DIR := $(WIN32_CURL_BUILD_DIR)/include
 WIN32_CURL_A := $(WIN32_CURL_BUILD_DIR)/lib/libcurl.a
+WIN32_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/liboqs
+WIN32_LIBOQS_A := $(WIN32_LIBOQS_BUILD_DIR)/lib/liboqs.a
+WIN32_LIBOQS_INCLUDE := -I$(WIN32_LIBOQS_BUILD_DIR)/include
 WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
@@ -309,7 +318,7 @@ vendor-prebuilds-native: $(RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMAT
 
 vendor-prebuilds-web: $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
 
-vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
+vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(WIN64_LIBOQS_A) $(WIN32_LIBOQS_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
 
 run: $(TARGET)
 	./$(TARGET)
@@ -368,12 +377,12 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/flint_lyra_account.c $(FLINT_DIR)/include/flint_lyra_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/flint_lyra_account.c $(FLINT_DIR)/include/flint_lyra_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_HAS_LIBOQS=1 -ffunction-sections -fdata-sections \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/flint_lyra_account.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
-		-Wl,--gc-sections -lm -lpthread -ldl
+		$(LIBOQS_A) -Wl,--gc-sections -lm -lpthread -ldl
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
@@ -468,6 +477,23 @@ $(CLICK_RAYLIB_A): $(RAYLIB_SOURCES)
 		SDL_LIBRARIES="$(AARCH64_RAY_SDL_LDLIBS)" \
 		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(AARCH64_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
+$(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
+	rm -rf $(CLICK_LIBOQS_BUILD_DIR)
+	$(CMAKE) -S $(LIBOQS_DIR) -B $(CLICK_LIBOQS_BUILD_DIR) \
+		-DCMAKE_SYSTEM_NAME=Linux \
+		-DCMAKE_SYSTEM_PROCESSOR=aarch64 \
+		-DCMAKE_C_COMPILER=$(AARCH64_CC) \
+		-DCMAKE_AR=$(AARCH64_AR) \
+		-DCMAKE_RANLIB=$(AARCH64_RANLIB) \
+		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DOQS_BUILD_ONLY_LIB=ON \
+		-DOQS_USE_OPENSSL=OFF \
+		-DOQS_DIST_BUILD=OFF \
+		-DOQS_OPT_TARGET=generic \
+		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
+
 $(WIN64_RAYLIB_A): $(RAYLIB_SOURCES)
 	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src
 	mkdir -p $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src $(WIN64_RAYLIB_BUILD_DIR)
@@ -538,6 +564,22 @@ $(WIN64_CURL_A): $(CURL_DIR)/CMakeLists.txt
 		-DBUILD_TESTING=OFF
 	$(CMAKE) --build $(WIN64_CURL_BUILD_DIR) --target install
 
+$(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
+	rm -rf $(WIN64_LIBOQS_BUILD_DIR)
+	$(CMAKE) -S $(LIBOQS_DIR) -B $(WIN64_LIBOQS_BUILD_DIR) \
+		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_C_COMPILER=$(WIN64_CC_PATH) \
+		-DCMAKE_AR=$(WIN64_AR_PATH) \
+		-DCMAKE_RANLIB=$(WIN64_RANLIB_PATH) \
+		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DOQS_BUILD_ONLY_LIB=ON \
+		-DOQS_USE_OPENSSL=OFF \
+		-DOQS_DIST_BUILD=OFF \
+		-DOQS_OPT_TARGET=generic \
+		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+	$(CMAKE) --build $(WIN64_LIBOQS_BUILD_DIR) --target oqs
+
 $(WIN32_CURL_A): $(CURL_DIR)/CMakeLists.txt
 	rm -rf $(WIN32_CURL_BUILD_DIR)
 	$(CMAKE) -S $(CURL_DIR) -B $(WIN32_CURL_BUILD_DIR) \
@@ -569,6 +611,22 @@ $(WIN32_CURL_A): $(CURL_DIR)/CMakeLists.txt
 		-DBUILD_TESTING=OFF
 	$(CMAKE) --build $(WIN32_CURL_BUILD_DIR) --target install
 
+$(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
+	rm -rf $(WIN32_LIBOQS_BUILD_DIR)
+	$(CMAKE) -S $(LIBOQS_DIR) -B $(WIN32_LIBOQS_BUILD_DIR) \
+		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_C_COMPILER=$(WIN32_CC_PATH) \
+		-DCMAKE_AR=$(WIN32_AR_PATH) \
+		-DCMAKE_RANLIB=$(WIN32_RANLIB_PATH) \
+		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DBUILD_SHARED_LIBS=OFF \
+		-DOQS_BUILD_ONLY_LIB=ON \
+		-DOQS_USE_OPENSSL=OFF \
+		-DOQS_DIST_BUILD=OFF \
+		-DOQS_OPT_TARGET=generic \
+		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
+
 $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(LINUX_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
@@ -592,13 +650,15 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) | $(CLICK_BIN_DIR)
+$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		$(CLICK_LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
 		$(AARCH64_RAY_CFLAGS) \
+		-DFLINT_HAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -608,6 +668,7 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 		$(FLINT_SRCS) \
 		$(SQLITE_SRC) \
 		$(CLICK_RAYLIB_A) \
+		$(CLICK_LIBOQS_A) \
 		$(AARCH64_RAY_LDLIBS) \
 		$(AARCH64_FLINT_CURL_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
@@ -648,13 +709,15 @@ $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_T
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
 	cd $(CLICK_ROOT) && zip -qr $(abspath $@) .
 
-$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		$(WIN64_LIBOQS_INCLUDE) \
 		-I$(WIN64_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
+		-DFLINT_HAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
@@ -663,18 +726,21 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_SRC) \
 		$(WIN64_RAYLIB_A) \
 		$(WIN64_CURL_A) \
+		$(WIN64_LIBOQS_A) \
 		$(WINDOWS_LDLIBS) \
 		$(WIN64_THREAD_LDFLAGS) \
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
+		$(WIN32_LIBOQS_INCLUDE) \
 		-I$(WIN32_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
+		-DFLINT_HAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
@@ -683,6 +749,7 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_SRC) \
 		$(WIN32_RAYLIB_A) \
 		$(WIN32_CURL_A) \
+		$(WIN32_LIBOQS_A) \
 		$(WINDOWS_LDLIBS) \
 		$(WIN32_THREAD_LDFLAGS) \
 		$(WINDOWS_LDFLAGS)

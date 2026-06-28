@@ -462,7 +462,9 @@ app_pump_sync(InbeApp *app)
     double now;
     int should_sync = 0;
     int dirty_due = 0;
+    int repair_due = 0;
     char url[256];
+    InbeStorageSyncStatus sync_status;
 
     if(app == NULL)
         return;
@@ -484,6 +486,11 @@ app_pump_sync(InbeApp *app)
     if(g_dirty_sync_at > 0.0 && now >= g_dirty_sync_at) {
         should_sync = 1;
         dirty_due = 1;
+    }
+    if(storage_sync_status(&sync_status) && sync_status.has_account && sync_status.repair_pending &&
+       (g_dirty_sync_at <= 0.0 || now >= g_dirty_sync_at)) {
+        should_sync = 1;
+        repair_due = 1;
     }
 #if !defined(PLATFORM_WEB)
     sync_lock();
@@ -511,15 +518,15 @@ app_pump_sync(InbeApp *app)
                  storage_sync_review_pending(),
                  app->tutorial_seen,
                  app->habits_guide_seen);
-        if(g_dirty_sync_at <= 0.0)
+        if(g_dirty_sync_at <= 0.0 || repair_due)
             g_dirty_sync_at = now + 1.0;
         return;
     }
     if(app_sync_now(app)) {
-        if(dirty_due)
+        if(dirty_due || repair_due)
             g_dirty_sync_at = 0.0;
         TraceLog(LOG_INFO, "SYNC: dispatched");
-    } else if(dirty_due) {
+    } else if(dirty_due || repair_due) {
         g_dirty_sync_at = now + INBE_SYNC_INPUT_QUIET_SECONDS;
     }
     app_apply_pending_sync_refresh(app);

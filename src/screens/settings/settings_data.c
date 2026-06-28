@@ -346,6 +346,7 @@ settings_data_content_height(int content_w)
 
     return flint_px(SETTINGS_DATA_TOP_PADDING) +
            data_button_h + flint_px(12) +
+           flint_px(98) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
@@ -353,6 +354,59 @@ settings_data_content_height(int content_w)
            settings_link_icons_height(content_w) +
            flint_px(8) + flint_px(22) +
            flint_px(40);
+}
+
+static void
+settings_draw_sync_status(int x, int w, int *y)
+{
+    InbeStorageSyncStatus status;
+    char line[160];
+    int font = flint_ui_font_small();
+    int label_font = flint_ui_font();
+    Color label_color = flint_theme_get_text();
+    Color text_color = flint_darken(flint_theme_get_text(), 25);
+    Color warn_color = (Color){196, 126, 45, 255};
+    Color ok_color = (Color){70, 150, 96, 255};
+    int row_y;
+    int left_w;
+
+    if(!storage_sync_status(&status))
+        return;
+
+    flint_text_draw("Sync status", x, *y, label_font, label_color);
+    *y += flint_px(24);
+
+    left_w = w / 2;
+    row_y = *y;
+    snprintf(line, sizeof(line), "Account: %s", status.has_account ? "connected" : "not set");
+    flint_text_draw(line, x, row_y, font, status.has_account ? ok_color : text_color);
+    snprintf(line, sizeof(line), "Queued: %lld", status.queued_changes);
+    flint_text_draw(line, x + left_w, row_y, font,
+                    status.queued_changes > 0 ? warn_color : text_color);
+
+    row_y += flint_px(22);
+    snprintf(line, sizeof(line), "Server: %lld", status.server_version);
+    flint_text_draw(line, x, row_y, font, text_color);
+    snprintf(line, sizeof(line), "Clock: %lld", status.server_clock);
+    flint_text_draw(line, x + left_w, row_y, font, text_color);
+
+    row_y += flint_px(22);
+    if(!status.has_account)
+        snprintf(line, sizeof(line), "Sync not configured");
+    else if(status.review_pending)
+        snprintf(line, sizeof(line), "Review pending");
+    else if(status.repair_pending)
+        snprintf(line, sizeof(line), "Repair sync pending");
+    else if(status.queued_changes > 0)
+        snprintf(line, sizeof(line), "Local changes queued");
+    else if(!status.full_upload_done)
+        snprintf(line, sizeof(line), "Initial upload pending");
+    else
+        snprintf(line, sizeof(line), "Ready");
+    flint_text_draw(line, x, row_y, font,
+                    (status.review_pending || status.repair_pending) ? warn_color : text_color);
+
+    *y += flint_px(74);
 }
 
 int
@@ -559,6 +613,8 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover_account))
         settings_open_sync_account_config(app);
     *y += data_button_h + flint_px(12);
+
+    settings_draw_sync_status(x, w, y);
 
     if(ui_draw_generic_button(x, *y, w, data_button_h,
                               locale_get("import_data_button"),

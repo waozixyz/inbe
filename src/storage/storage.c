@@ -42,6 +42,7 @@ storage_clear_local_sync_data(void);
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
 #define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
+#define STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY "sync_zero_habit_day_repair_v1_done"
 
 static long long
 storage_next_change_time(void)
@@ -1403,9 +1404,7 @@ storage_sync_op_is_delete(const char *entity_type, const char *entity_id, int lo
             return 0;
         bind_text(stmt, 1, entity_id);
         sqlite3_bind_int(stmt, 2, local_date);
-        if(sqlite3_step(stmt) == SQLITE_ROW)
-            deleted = sqlite3_column_int(stmt, 0) == 0 && sqlite3_column_int(stmt, 1) == 0;
-        else
+        if(sqlite3_step(stmt) != SQLITE_ROW)
             deleted = 1;
     }
     sqlite3_finalize(stmt);
@@ -1490,6 +1489,7 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     long long since_server_version;
     long long through_seq;
     int full_upload_done;
+    int force_zero_day_repair;
 
     if(g_storage.db == NULL || user_id_hash == NULL || user_id_hash[0] == '\0')
         return NULL;
@@ -1502,6 +1502,9 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     since_server_version = get_meta_int64("sync_last_server_version", 0);
     full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
     if(!get_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0) || storage_has_orphan_habit_days())
+        since_server_version = 0;
+    force_zero_day_repair = get_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 0) == 0;
+    if(force_zero_day_repair)
         since_server_version = 0;
     through_seq = storage_max_sync_outbox_seq();
     g_storage.pending_sync_outbox_seq = through_seq;
@@ -1517,7 +1520,7 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         json_append(&json, ",\"full_sync_requested\":true");
     {
         const char *last_server_hash = get_meta_text(STORAGE_SYNC_LAST_SERVER_HASH_KEY);
-        if(last_server_hash != NULL && last_server_hash[0] != '\0') {
+        if(!force_zero_day_repair && last_server_hash != NULL && last_server_hash[0] != '\0') {
             json_append(&json, ",");
             json_append_key_string(&json, "last_server_state_hash", last_server_hash);
         }
@@ -2050,6 +2053,7 @@ storage_apply_sync_response_json(const char *response_json)
     old_server_version = get_meta_int64("sync_last_server_version", 0);
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
+    storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     if(!storage_exec_json_user_sql(habits_sql, response_json) ||
        !storage_exec_json_user_sql(habit_days_sql, response_json) ||
        !storage_merge_duplicate_habit_names() ||
@@ -2086,11 +2090,11 @@ storage_apply_sync_response_json(const char *response_json)
     storage_sync_review_delete_json();
     set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
     set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0);
-    storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     g_storage.pending_sync_outbox_seq = 0;
     set_meta_int64("sync_full_upload_done", 1);
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 1);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 1);
+    set_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 1);
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;
@@ -2124,6 +2128,32 @@ int
 storage_last_sync_changed(void)
 {
     return g_storage.last_sync_changed;
+}
+
+int
+storage_sync_status(InbeStorageSyncStatus *status)
+{
+    sqlite3_stmt *stmt = NULL;
+
+    if(status == NULL)
+        return 0;
+    memset(status, 0, sizeof(*status));
+    if(g_storage.db == NULL)
+        return 0;
+
+    status->has_account = storage_has_sync_account();
+    status->review_pending = get_meta_int64(STORAGE_SYNC_PENDING_REVIEW_KEY, 0) != 0;
+    status->repair_pending = get_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 0) == 0;
+    status->full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;
+    status->server_version = get_meta_int64("sync_last_server_version", 0);
+    status->server_clock = get_meta_int64(STORAGE_SYNC_SERVER_CLOCK_KEY, 0);
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM sync_outbox", -1, &stmt, NULL) ==
+       SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            status->queued_changes = sqlite3_column_int64(stmt, 0);
+    }
+    sqlite3_finalize(stmt);
+    return 1;
 }
 
 void

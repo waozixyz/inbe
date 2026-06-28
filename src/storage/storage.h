@@ -31,6 +31,16 @@ typedef struct InbeStorageImportInfo {
     int setting_count;
 } InbeStorageImportInfo;
 
+typedef struct InbeStorageSyncStatus {
+    int has_account;
+    int review_pending;
+    int repair_pending;
+    int full_upload_done;
+    long long server_version;
+    long long server_clock;
+    long long queued_changes;
+} InbeStorageSyncStatus;
+
 int storage_init(const char *root);
 void storage_close(void);
 const char *storage_db_path(void);
@@ -69,6 +79,7 @@ char *storage_build_sync_payload_json(const char *user_id_hash,
 void storage_free_sync_payload_json(char *payload);
 int storage_apply_sync_response_json(const char *response_json);
 int storage_last_sync_changed(void);
+int storage_sync_status(InbeStorageSyncStatus *status);
 int storage_sync_review_pending(void);
 int storage_sync_review_details(char **local_out, char **remote_out);
 int storage_sync_review_diff(char **diff_out);

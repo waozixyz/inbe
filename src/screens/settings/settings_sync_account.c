@@ -354,13 +354,6 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     flint_text_draw(locale_get("sync_account_title"), x, *y, font, flint_theme_get_text());
     *y += flint_px(26);
 
-    if(!sync_account_available()) {
-        flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(32);
-        return;
-    }
-
     if(!has_account) {
         if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
@@ -422,13 +415,6 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     int hover = 0;
     int commit = 0;
     FlintUITextInputStyle input_style = settings_sync_text_style();
-
-    if(!sync_account_available()) {
-        flint_text_draw(locale_get("sync_liboqs_unavailable"), x, *y, small_font,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(32);
-        return;
-    }
 
     if(!has_account) {
         FlintUIButtonRowItem buttons[2] = {
@@ -711,7 +697,6 @@ settings_sync_account_draw_public_id_modal(InbeApp *app)
     int btn_h = flint_px(36);
     int gap = flint_px(10);
     int y;
-    int hover = 0;
     int result = 0;
 
     (void)app;
@@ -719,7 +704,7 @@ settings_sync_account_draw_public_id_modal(InbeApp *app)
     if(!sync_account_load(&account))
         return 1;
 
-    frame = ui_draw_modal_frame(flint_px(356), flint_px(274),
+    frame = ui_draw_modal_frame(flint_px(356), flint_px(218),
                                 locale_get("sync_public_id_full_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
@@ -754,12 +739,5 @@ settings_sync_account_draw_public_id_modal(InbeApp *app)
         }
     }
 
-    if(ui_draw_generic_button(frame.content_x, frame.y + frame.h - btn_h - flint_px(18),
-                              frame.content_w, btn_h,
-                              locale_get("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY,
-                              0, &hover)) {
-        app_close_modal(app);
-        settings_sync_open_alias_modal(app, 0);
-    }
     return result;
 }
