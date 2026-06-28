@@ -73,6 +73,7 @@ WIN64_CC ?= $(or $(WIN_CC),x86_64-w64-mingw32-gcc)
 WIN64_AR ?= $(or $(WIN_AR),x86_64-w64-mingw32-ar)
 WIN64_RANLIB ?= $(or $(WIN_RANLIB),x86_64-w64-mingw32-ranlib)
 WIN64_STRIP ?= $(or $(WIN_STRIP),x86_64-w64-mingw32-strip)
+WIN64_CMAKE_SYSTEM_PROCESSOR ?= x86_64
 WIN64_CC_PATH := $(shell command -v $(WIN64_CC) 2>/dev/null || printf '%s' $(WIN64_CC))
 WIN64_AR_PATH := $(shell command -v $(WIN64_AR) 2>/dev/null || printf '%s' $(WIN64_AR))
 WIN64_RANLIB_PATH := $(shell command -v $(WIN64_RANLIB) 2>/dev/null || printf '%s' $(WIN64_RANLIB))
@@ -81,6 +82,7 @@ WIN32_CC ?= i686-w64-mingw32-gcc
 WIN32_AR ?= i686-w64-mingw32-ar
 WIN32_RANLIB ?= i686-w64-mingw32-ranlib
 WIN32_STRIP ?= i686-w64-mingw32-strip
+WIN32_CMAKE_SYSTEM_PROCESSOR ?= x86
 WIN32_CC_PATH := $(shell command -v $(WIN32_CC) 2>/dev/null || printf '%s' $(WIN32_CC))
 WIN32_AR_PATH := $(shell command -v $(WIN32_AR) 2>/dev/null || printf '%s' $(WIN32_AR))
 WIN32_RANLIB_PATH := $(shell command -v $(WIN32_RANLIB) 2>/dev/null || printf '%s' $(WIN32_RANLIB))
@@ -172,6 +174,7 @@ APP_SRCS := \
 	src/main.c \
 	src/core/breath_engine.c \
 	src/app/app.c \
+	src/app/app_nav.c \
 	src/app/app_settings.c \
 	src/app/device_preferences.c \
 	src/practices/practice_registry.c \
@@ -568,6 +571,7 @@ $(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 	rm -rf $(WIN64_LIBOQS_BUILD_DIR)
 	$(CMAKE) -S $(LIBOQS_DIR) -B $(WIN64_LIBOQS_BUILD_DIR) \
 		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_SYSTEM_PROCESSOR=$(WIN64_CMAKE_SYSTEM_PROCESSOR) \
 		-DCMAKE_C_COMPILER=$(WIN64_CC_PATH) \
 		-DCMAKE_AR=$(WIN64_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN64_RANLIB_PATH) \
@@ -615,6 +619,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 	rm -rf $(WIN32_LIBOQS_BUILD_DIR)
 	$(CMAKE) -S $(LIBOQS_DIR) -B $(WIN32_LIBOQS_BUILD_DIR) \
 		-DCMAKE_SYSTEM_NAME=Windows \
+		-DCMAKE_SYSTEM_PROCESSOR=$(WIN32_CMAKE_SYSTEM_PROCESSOR) \
 		-DCMAKE_C_COMPILER=$(WIN32_CC_PATH) \
 		-DCMAKE_AR=$(WIN32_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN32_RANLIB_PATH) \

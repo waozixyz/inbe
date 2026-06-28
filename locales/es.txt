@@ -800,6 +800,9 @@ Crear hábito
 [habit_stats_no_rounds_week]
 No hay rondas en la última semana
 ---
+[habit_stats_no_rounds_month]
+No hay rondas en el último mes
+---
 [habit_stats_current_streak]
 Racha actual
 ---
@@ -829,41 +832,7 @@ Mejor racha
 ---
 [habit_stats_day_plural]
 %d días
----
-[bottom_nav_customize_button]
-Personalizar navegación inferior
----
-[bottom_nav_customize_title]
-Navegación inferior
----
-[bottom_nav_add_button]
-Añadir elemento
----
-[bottom_nav_slot_1]
-Elemento 1
----
-[bottom_nav_slot_2]
-Elemento 2
----
-[bottom_nav_slot_3]
-Elemento 3
----
-[bottom_nav_slot_4]
-Elemento 4
----
-[bottom_nav_slot_5]
-Elemento 5
----
-[bottom_nav_slot_6]
-Elemento 6
----
-[bottom_nav_slot_7]
-Elemento 7
----
-[bottom_nav_slot_8]
-Elemento 8
----
-[reset_button]
+---[reset_button]
 Restablecer
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ Elige tu practica aqui.
 ---
 [practice_guide_manual]
 Lee el tutorial antes de iniciar una practica para entender todo el ejercicio.
----
-[practice_guide_sun]
-Usa la pestana del sol cuando estes listo para iniciar el ejercicio.
 ---
 [practice_guide_config]
 Cambia la configuracion de la practica segun tus necesidades.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Sesion activa
----
 [notification_starting_seconds]
 Inicio: %ds
 ---
@@ -965,7 +928,7 @@ Retencion: %ds
 [notification_breath_in_seconds]
 Inhala: %ds
 ---
-[notification_next_round]
-Siguiente ronda
+[notification_results]
+Results
 ---
 ---

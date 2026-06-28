@@ -800,6 +800,9 @@ https:// または localhost:8080 のようなループバックを使用して�
 [habit_stats_no_rounds_week]
 過去1週間にラウンドはありません
 ---
+[habit_stats_no_rounds_month]
+過去1か月にラウンドはありません
+---
 [habit_stats_current_streak]
 現在の連続記録
 ---
@@ -829,41 +832,7 @@ https:// または localhost:8080 のようなループバックを使用して�
 ---
 [habit_stats_day_plural]
 %d日
----
-[bottom_nav_customize_button]
-下部ナビゲーションをカスタマイズ
----
-[bottom_nav_customize_title]
-下部ナビゲーション
----
-[bottom_nav_add_button]
-項目を追加
----
-[bottom_nav_slot_1]
-項目1
----
-[bottom_nav_slot_2]
-項目2
----
-[bottom_nav_slot_3]
-項目3
----
-[bottom_nav_slot_4]
-項目4
----
-[bottom_nav_slot_5]
-項目5
----
-[bottom_nav_slot_6]
-項目6
----
-[bottom_nav_slot_7]
-項目7
----
-[bottom_nav_slot_8]
-項目8
----
-[reset_button]
+---[reset_button]
 リセット
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ https:// または localhost:8080 のようなループバックを使用して�
 ---
 [practice_guide_manual]
 練習を始める前にチュートリアルを読んで、エクササイズ全体を理解してください。
----
-[practice_guide_sun]
-エクササイズを始める準備ができたら、太陽タブを使います。
 ---
 [practice_guide_config]
 自分に合うように練習の設定を変更できます。
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-セッション中
----
 [notification_starting_seconds]
 開始: %d秒
 ---
@@ -965,7 +928,7 @@ Alias saved
 [notification_breath_in_seconds]
 吸う: %d秒
 ---
-[notification_next_round]
-次のラウンド
+[notification_results]
+Results
 ---
 ---

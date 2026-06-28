@@ -75,7 +75,8 @@ typedef enum {
     UIModalConfirmDeleteSyncAccount,
     UIModalHabitPracticeListInfo,
     UIModalHabitCountingInfo,
-    UIModalBottomNavConfig,
+    UIModalPracticeManual,
+    UIModalPracticeConfig,
     UIModalThemePicker,
     UIModalSyncReview,
     UIModalSyncAlias,
@@ -150,8 +151,6 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_SETTINGS = 2,
     APP_NAV_ROUTE_COUNT = 3,
 } AppNavRoute;
-
-#define APP_BOTTOM_NAV_MAX_ITEMS 8
 
 typedef struct WhmPracticeState {
     Texture2D image_1;
@@ -282,12 +281,6 @@ struct InbeApp {
     int transition_mode;
     int android_orientation;
     int main_tab;
-    int sidebar_open;
-    int pending_sidebar_route;
-    int bottom_nav_count;
-    int bottom_nav_routes[APP_BOTTOM_NAV_MAX_ITEMS];
-    int bottom_nav_draft_count;
-    int bottom_nav_draft_routes[APP_BOTTOM_NAV_MAX_ITEMS];
     InbeHabits habits;
     int habit_detail_index;
     int habit_detail_day;
@@ -331,9 +324,7 @@ void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
 void app_switch_screen(InbeApp *app, int screen);
 void app_leave_practice_config(InbeApp *app);
-int app_draw_sidebar_toggle(InbeApp *app, int x, int y);
 int app_content_top_reserved(const InbeApp *app);
-int app_content_bottom_reserved(const InbeApp *app);
 int app_toolbar_height(void);
 int app_auto_sync(InbeApp *app);
 int app_should_use_tab_bar(const InbeApp *app);
@@ -357,6 +348,7 @@ void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
 void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 
+#include "app_nav.h"
 #include "app_settings.h"
 
 #endif

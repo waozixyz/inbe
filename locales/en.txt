@@ -842,6 +842,9 @@ Create habit
 [habit_stats_no_rounds_week]
 No rounds in the last week
 ---
+[habit_stats_no_rounds_month]
+No rounds in the last month
+---
 [habit_stats_current_streak]
 Current streak
 ---
@@ -871,54 +874,17 @@ Best streak
 ---
 [habit_stats_day_plural]
 %d days
----
-[bottom_nav_customize_button]
-Customize bottom navigation
----
-[bottom_nav_customize_title]
-Bottom Navigation
----
-[bottom_nav_add_button]
-Add item
----
-[bottom_nav_slot_1]
-Item 1
----
-[bottom_nav_slot_2]
-Item 2
----
-[bottom_nav_slot_3]
-Item 3
----
-[bottom_nav_slot_4]
-Item 4
----
-[bottom_nav_slot_5]
-Item 5
----
-[bottom_nav_slot_6]
-Item 6
----
-[bottom_nav_slot_7]
-Item 7
----
-[bottom_nav_slot_8]
-Item 8
----
-[reset_button]
+---[reset_button]
 Reset
 ---
 [practice_guide_dropdown]
 Choose your practice here.
 ---
 [practice_guide_manual]
-Read the tutorial before starting a practice so you understand the full exercise.
----
-[practice_guide_sun]
-Use the sun tab when you are ready to start the exercise.
+Use this manual icon to open the tutorial before starting.
 ---
 [practice_guide_config]
-Change the practice configuration to meet your standards.
+Use this wrench icon to adjust the practice configuration.
 ---
 [habits_guide_dropdown]
 Select habits here or create a new one.
@@ -953,9 +919,6 @@ Fade
 [theme_picker_title]
 Choose Theme
 ---
-[notification_session_active]
-Session active
----
 [notification_starting_seconds]
 Starting: %ds
 ---
@@ -968,6 +931,6 @@ Hold: %ds
 [notification_breath_in_seconds]
 Breath in: %ds
 ---
-[notification_next_round]
-Next round
+[notification_results]
+Results
 ---

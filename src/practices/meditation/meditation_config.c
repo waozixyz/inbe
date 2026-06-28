@@ -28,9 +28,11 @@ meditation_config_duration_height(int content_w)
 static int
 meditation_config_content_height(InbeApp *app, int content_w)
 {
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeConfig;
     return meditation_config_duration_height(content_w) +
            meditation_music_measure_settings(app, content_w, 1, 1) +
-           app_content_bottom_reserved(app) + flint_px(24);
+           (integrated ? app_content_bottom_reserved(app) : 0) + flint_px(24);
 }
 
 static void
@@ -148,26 +150,32 @@ meditation_config_scroll_page_content_height(int content_w, void *user_data)
 void
 meditation_config_screen_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart;
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeConfig;
     int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int scroll_y;
     int scroll_h;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
 
     if(!integrated) {
         FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
                                                     (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
         if(header.right_clicked) {
-            if(app->settings_dirty)
-                save_settings(app);
-            meditation_practice_leave_config(app);
-            app->settings_scroll = 0;
-            app->practice_tab = PRACTICE_TAB_PLAY;
-            app_switch_screen(app, InbeScreenStart);
+            if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
+                app_close_modal(app);
+            } else {
+                if(app->settings_dirty)
+                    save_settings(app);
+                meditation_practice_leave_config(app);
+                app->settings_scroll = 0;
+                app->practice_tab = PRACTICE_TAB_PLAY;
+                app_switch_screen(app, InbeScreenStart);
+            }
         }
     }
 
     scroll_y = title_h + flint_px(16);
-    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app) - flint_px(8);
+    scroll_h = view_height - scroll_y - bottom_reserved - flint_px(8);
     if(scroll_h < 0)
         scroll_h = 0;
 

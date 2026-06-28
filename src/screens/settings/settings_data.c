@@ -370,7 +370,7 @@ settings_draw_sync_status(int x, int w, int *y)
     int row_y;
     int left_w;
 
-    if(!storage_sync_status(&status))
+    if(!storage_sync_status(&status) || !status.has_account)
         return;
 
     flint_text_draw("Sync status", x, *y, label_font, label_color);
@@ -391,9 +391,7 @@ settings_draw_sync_status(int x, int w, int *y)
     flint_text_draw(line, x + left_w, row_y, font, text_color);
 
     row_y += flint_px(22);
-    if(!status.has_account)
-        snprintf(line, sizeof(line), "Sync not configured");
-    else if(status.review_pending)
+    if(status.review_pending)
         snprintf(line, sizeof(line), "Review pending");
     else if(status.repair_pending)
         snprintf(line, sizeof(line), "Repair sync pending");

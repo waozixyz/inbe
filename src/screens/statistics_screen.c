@@ -12,7 +12,7 @@ extern int view_height;
 static int
 statistics_content_height(int linked_count)
 {
-    return flint_px(linked_count > 0 ? 660 : 420);
+    return flint_px(linked_count > 0 ? 710 : 420);
 }
 
 static int
@@ -132,9 +132,60 @@ statistics_day_offset_from_today(int day_index, const struct tm *today_tm)
     today_time = mktime(&today_copy);
     day_time = mktime(&day_tm);
     diff_days = difftime(today_time, day_time) / 86400.0;
-    if(diff_days < -0.5 || diff_days > 6.5)
+    if(diff_days < -0.5 || diff_days > 30.5)
         return -1;
     return (int)(diff_days + 0.5);
+}
+
+static int
+statistics_draw_hold_range_selector(InbeApp *app, int x, int y, int w)
+{
+    const char *labels[2] = {"1W", "1M"};
+    const int values[2] = {7, 31};
+    int selected = app->habits.hold_stats_range_days == 31 ? 1 : 0;
+    int h = flint_px(34);
+    int segment_w = w / 2;
+    int clicked = 0;
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+
+    for(int i = 0; i < 2; i++) {
+        int segment_x = x + i * segment_w;
+        int current_w = i == 1 ? x + w - segment_x : segment_w;
+        Rectangle rect = {segment_x, y, current_w, h};
+        int active_hit = CheckCollisionPointRec(mouse_world, rect) &&
+                         !ui_input_captures_click(mouse_world);
+        int hovered = active_hit && ui_hover_effects_enabled();
+        int active = i == selected;
+        Color fill = active ? flint_theme_get_button() : flint_darken(flint_theme_get_bg(), 10);
+        Color top = flint_lighten(fill, 35);
+        Color bottom = flint_darken(fill, 45);
+        int font = flint_ui_font();
+        int text_w;
+
+        if(active_hit) {
+            app->cursor_clickable = 1;
+            if(hovered && !active) {
+                fill = flint_theme_get_button_hover();
+                top = flint_darken(flint_theme_get_button_hover(), 40);
+                bottom = flint_lighten(flint_theme_get_button_hover(), 40);
+            }
+        }
+
+        DrawRectangle(segment_x, y, current_w, h, fill);
+        ui_draw_bevel(segment_x, y, current_w, h, top, bottom);
+        text_w = flint_text_measure(labels[i], font);
+        flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
+                        flint_ui_text_y(labels[i], y, h, font), font,
+                        flint_theme_get_text());
+
+        if(active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+           !ui_input_captures_click(mouse_world) && selected != i) {
+            app->habits.hold_stats_range_days = values[i];
+            clicked = 1;
+        }
+    }
+
+    return clicked;
 }
 
 static void
@@ -142,7 +193,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
                            int content_x, int y, int content_w,
                            const struct tm *today_tm, int filter, Color accent)
 {
-    enum { GRAPH_DAYS = 7, MAX_POINTS = 256 };
+    enum { MAX_GRAPH_DAYS = 31, MAX_POINTS = 256 };
     typedef struct {
         int time_key;
         int round_index;
@@ -153,8 +204,9 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     } GraphPoint;
     GraphPoint points[MAX_POINTS];
     int point_count = 0;
-    int day_points[GRAPH_DAYS] = {0};
-    int day_totals[GRAPH_DAYS] = {0};
+    int graph_days = app->habits.hold_stats_range_days == 31 ? 31 : 7;
+    int day_points[MAX_GRAPH_DAYS] = {0};
+    int day_totals[MAX_GRAPH_DAYS] = {0};
     int max_hold = 1;
     int graph_h = flint_px(170);
     int axis_w = flint_px(48);
@@ -162,7 +214,6 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     int plot_y = y + flint_px(8);
     int plot_w = content_w - axis_w - flint_px(10);
     int plot_h = graph_h - flint_px(36);
-    const char *labels[GRAPH_DAYS] = {"6d", "5d", "4d", "3d", "2d", "1d", "Now"};
     char axis_label[32];
 
     DrawRectangle(content_x, y, content_w, graph_h, flint_darken(flint_theme_get_bg(), 7));
@@ -175,10 +226,10 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
             continue;
         day_index = entry->year * 10000 + entry->month * 100 + entry->day;
         day_offset = statistics_day_offset_from_today(day_index, today_tm);
-        if(day_offset < 0 || day_offset >= GRAPH_DAYS)
+        if(day_offset < 0 || day_offset >= graph_days)
             continue;
         for(int r = 0; r < entry->round_count && point_count < MAX_POINTS; r++) {
-            int day_slot = GRAPH_DAYS - 1 - day_offset;
+            int day_slot = graph_days - 1 - day_offset;
             if(entry->rounds[r] > max_hold)
                 max_hold = entry->rounds[r];
             day_points[day_slot]++;
@@ -207,9 +258,11 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         points[j + 1] = point;
     }
 
-    for(int i = 1; i < GRAPH_DAYS; i++) {
-        int x = plot_x + (plot_w * i) / GRAPH_DAYS;
-        DrawLine(x, plot_y, x, plot_y + plot_h, flint_darken(flint_theme_get_bg(), 22));
+    for(int i = 1; i < graph_days; i++) {
+        if(graph_days == 7 || i % 5 == 0) {
+            int x = plot_x + (plot_w * i) / graph_days;
+            DrawLine(x, plot_y, x, plot_y + plot_h, flint_darken(flint_theme_get_bg(), 22));
+        }
     }
     for(int i = 0; i <= 2; i++) {
         int line_y = plot_y + (plot_h * i) / 2;
@@ -225,11 +278,11 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
              flint_darken(flint_theme_get_text(), 42));
 
     {
-        int day_seen[GRAPH_DAYS] = {0};
-        int day_first_x[GRAPH_DAYS];
-        int day_last_x[GRAPH_DAYS];
+        int day_seen[MAX_GRAPH_DAYS] = {0};
+        int day_first_x[MAX_GRAPH_DAYS];
+        int day_last_x[MAX_GRAPH_DAYS];
 
-        for(int i = 0; i < GRAPH_DAYS; i++) {
+        for(int i = 0; i < graph_days; i++) {
             day_first_x[i] = -1;
             day_last_x[i] = -1;
         }
@@ -237,8 +290,8 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
             int day_slot = points[i].day_slot;
             int count = day_points[day_slot] > 0 ? day_points[day_slot] : 1;
             int ordinal = day_seen[day_slot]++;
-            int x0 = plot_x + (plot_w * day_slot) / GRAPH_DAYS;
-            int x1 = plot_x + (plot_w * (day_slot + 1)) / GRAPH_DAYS;
+            int x0 = plot_x + (plot_w * day_slot) / graph_days;
+            int x1 = plot_x + (plot_w * (day_slot + 1)) / graph_days;
             points[i].x = x0 + ((ordinal + 1) * (x1 - x0)) / (count + 1);
             points[i].y = plot_y + plot_h -
                           (points[i].hold_seconds * (plot_h - flint_px(10))) / max_hold;
@@ -253,7 +306,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         int prev_y = 0;
         int has_prev = 0;
 
-        for(int i = 0; i < GRAPH_DAYS; i++) {
+        for(int i = 0; i < graph_days; i++) {
             int avg_seconds;
             int avg_y;
 
@@ -274,20 +327,30 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     for(int i = 0; i < point_count; i++)
         DrawCircle(points[i].x, points[i].y, flint_px(3), accent);
     if(point_count <= 0) {
-        const char *empty = locale_get("habit_stats_no_rounds_week");
+        const char *empty = locale_get(graph_days == 31 ? "habit_stats_no_rounds_month"
+                                                        : "habit_stats_no_rounds_week");
         int text_w = flint_text_measure(empty, FLINT_TEXT_12);
         flint_text_draw(empty, content_x + (content_w - text_w) / 2,
                         y + graph_h / 2 - flint_px(8), FLINT_TEXT_12,
                         flint_darken(flint_theme_get_text(), 24));
     }
-    for(int i = 0; i < GRAPH_DAYS; i++) {
-        int day_x = plot_x + (plot_w * i) / GRAPH_DAYS;
-        flint_text_draw(labels[i], day_x + flint_px(2),
+    for(int i = 0; i < graph_days; i++) {
+        int day_offset = graph_days - 1 - i;
+        int show_label = graph_days == 7 || day_offset == 0 || day_offset % 5 == 0;
+        char label[8];
+        int day_x;
+
+        if(!show_label)
+            continue;
+        if(day_offset == 0)
+            snprintf(label, sizeof(label), "%s", "Now");
+        else
+            snprintf(label, sizeof(label), "%dd", day_offset);
+        day_x = plot_x + (plot_w * i) / graph_days;
+        flint_text_draw(label, day_x + flint_px(2),
                         y + graph_h - flint_px(20), FLINT_TEXT_12,
                         flint_darken(flint_theme_get_text(), 24));
     }
-
-    (void)app;
 }
 
 static void
@@ -363,6 +426,8 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     if(has_wim_hof_rounds) {
         y += statistics_draw_section_title(locale_get("habit_stats_wim_hof_hold_rounds"),
                                            content_x, y, content_w) + flint_px(10);
+        statistics_draw_hold_range_selector(app, content_x, y, flint_px(118));
+        y += flint_px(42);
         statistics_draw_hold_graph(app, linked_ctx, content_x, y, content_w,
                                    &today_tm, EXERCISE_WIM_HOF,
                                    active->color);

@@ -800,6 +800,9 @@ Buat kebiasaan
 [habit_stats_no_rounds_week]
 Tidak ada ronde minggu lalu
 ---
+[habit_stats_no_rounds_month]
+Tidak ada ronde bulan lalu
+---
 [habit_stats_current_streak]
 Rangkaian saat ini
 ---
@@ -829,41 +832,7 @@ Rangkaian terbaik
 ---
 [habit_stats_day_plural]
 %d hari
----
-[bottom_nav_customize_button]
-Sesuaikan navigasi bawah
----
-[bottom_nav_customize_title]
-Navigasi bawah
----
-[bottom_nav_add_button]
-Tambah item
----
-[bottom_nav_slot_1]
-Item 1
----
-[bottom_nav_slot_2]
-Item 2
----
-[bottom_nav_slot_3]
-Item 3
----
-[bottom_nav_slot_4]
-Item 4
----
-[bottom_nav_slot_5]
-Item 5
----
-[bottom_nav_slot_6]
-Item 6
----
-[bottom_nav_slot_7]
-Item 7
----
-[bottom_nav_slot_8]
-Item 8
----
-[reset_button]
+---[reset_button]
 Reset
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ Pilih praktik Anda di sini.
 ---
 [practice_guide_manual]
 Baca tutorial sebelum memulai praktik agar Anda memahami seluruh latihan.
----
-[practice_guide_sun]
-Gunakan tab matahari saat Anda siap memulai latihan.
 ---
 [practice_guide_config]
 Ubah konfigurasi praktik agar sesuai dengan kebutuhan Anda.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Sesi aktif
----
 [notification_starting_seconds]
 Mulai: %ds
 ---
@@ -965,7 +928,7 @@ Tahan: %ds
 [notification_breath_in_seconds]
 Tarik napas: %ds
 ---
-[notification_next_round]
-Ronde berikutnya
+[notification_results]
+Results
 ---
 ---

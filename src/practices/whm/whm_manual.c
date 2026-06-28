@@ -151,6 +151,10 @@ whm_manual_close(InbeApp *app, int mark_seen)
 {
     if(mark_seen)
         mark_exercise_manual_seen(app, EXERCISE_WIM_HOF);
+    if(app != NULL && app->modal.active && app->modal.type == UIModalPracticeManual) {
+        app_close_modal(app);
+        return;
+    }
     app->tutorial_step = 0;
     app->manual_scroll = 0;
     app->practice_tab = PRACTICE_TAB_PLAY;
@@ -169,10 +173,12 @@ manual_screen_start_exercise(InbeApp *app)
 void
 whm_manual_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart;
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeManual;
     int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int nav_h = manual_screen_guide_nav_height();
-    int nav_y = view_height - app_content_bottom_reserved(app) - nav_h;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
+    int nav_y = view_height - bottom_reserved - nav_h;
     int content_y = title_h;
     int viewport_h = nav_y - content_y;
     int body_font = flint_ui_font();
@@ -193,8 +199,13 @@ whm_manual_draw(InbeApp *app)
     default: break;
     }
 
-    if(!integrated && ui_draw_screen_header(title, 1))
-        whm_manual_close(app, 0);
+    if(!integrated) {
+        FlintUIHeader header = ui_draw_title_header(title_h, title,
+                                                    (Texture2D){0},
+                                                    app->icons[UI_ICON_TYPE_X]);
+        if(header.right_clicked)
+            whm_manual_close(app, 0);
+    }
 
     {
         int top_padding = flint_px(16);

@@ -800,6 +800,9 @@ Gewohnheit erstellen
 [habit_stats_no_rounds_week]
 Keine Runden in der letzten Woche
 ---
+[habit_stats_no_rounds_month]
+Keine Runden im letzten Monat
+---
 [habit_stats_current_streak]
 Aktuelle Serie
 ---
@@ -829,41 +832,7 @@ Beste Serie
 ---
 [habit_stats_day_plural]
 %d Tage
----
-[bottom_nav_customize_button]
-Untere Navigation anpassen
----
-[bottom_nav_customize_title]
-Untere Navigation
----
-[bottom_nav_add_button]
-Eintrag hinzufügen
----
-[bottom_nav_slot_1]
-Eintrag 1
----
-[bottom_nav_slot_2]
-Eintrag 2
----
-[bottom_nav_slot_3]
-Eintrag 3
----
-[bottom_nav_slot_4]
-Eintrag 4
----
-[bottom_nav_slot_5]
-Eintrag 5
----
-[bottom_nav_slot_6]
-Eintrag 6
----
-[bottom_nav_slot_7]
-Eintrag 7
----
-[bottom_nav_slot_8]
-Eintrag 8
----
-[reset_button]
+---[reset_button]
 Zurücksetzen
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ Wahle hier deine Praxis aus.
 ---
 [practice_guide_manual]
 Lies das Tutorial, bevor du eine Praxis startest, damit du die ganze Uebung verstehst.
----
-[practice_guide_sun]
-Nutze den Sonnen-Tab, wenn du bereit bist, die Uebung zu starten.
 ---
 [practice_guide_config]
 Passe die Konfiguration der Praxis an deine Anforderungen an.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Sitzung aktiv
----
 [notification_starting_seconds]
 Start: %ds
 ---
@@ -965,7 +928,7 @@ Halten: %ds
 [notification_breath_in_seconds]
 Einatmen: %ds
 ---
-[notification_next_round]
-Naechste Runde
+[notification_results]
+Results
 ---
 ---

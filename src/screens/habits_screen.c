@@ -424,8 +424,12 @@ habits_init(InbeHabits *habits)
 {
     if(habits == NULL)
         return;
+    if(habits->hold_stats_range_days != 31)
+        habits->hold_stats_range_days = 7;
     data_init();
     if(storage_habits_load(habits)) {
+        if(habits->hold_stats_range_days != 31)
+            habits->hold_stats_range_days = 7;
         if(habits->count <= 0) {
             habits_add_default_set(habits);
             return;
@@ -443,6 +447,8 @@ habits_init(InbeHabits *habits)
         return;
     }
     habits_add_default_set(habits);
+    if(habits->hold_stats_range_days != 31)
+        habits->hold_stats_range_days = 7;
 }
 
 void

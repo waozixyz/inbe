@@ -295,7 +295,10 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
 static int
 whm_config_content_height(InbeApp *app, int content_w)
 {
-    int bottom_padding = app_content_bottom_reserved(app) + flint_px(24);
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeConfig;
+    int bottom_padding = (integrated ? app_content_bottom_reserved(app) : 0) +
+                         flint_px(24);
 
     if(app->practice_config_tab == 0) {
         int span = content_w < flint_px(240) ? content_w : flint_px(240);
@@ -337,12 +340,14 @@ whm_config_scroll_page_content_height(int content_w, void *user_data)
 void
 whm_config_screen_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart;
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeConfig;
     int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int config_tab_h = flint_px(40);
     int config_tab_gap = flint_px(14);
     int scroll_y;
     int scroll_h;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
     int draw_breath_animation_menu = 0;
     int clicked_config_tab = -1;
     const char *config_tabs[] = {
@@ -359,11 +364,15 @@ whm_config_screen_draw(InbeApp *app)
         FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
                                                     (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
         if(header.right_clicked) {
-            if(app->settings_dirty)
-                save_settings(app);
-            app->settings_scroll = 0;
-            app->practice_tab = PRACTICE_TAB_PLAY;
-            app_switch_screen(app, InbeScreenStart);
+            if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
+                app_close_modal(app);
+            } else {
+                if(app->settings_dirty)
+                    save_settings(app);
+                app->settings_scroll = 0;
+                app->practice_tab = PRACTICE_TAB_PLAY;
+                app_switch_screen(app, InbeScreenStart);
+            }
         }
     }
 
@@ -374,7 +383,7 @@ whm_config_screen_draw(InbeApp *app)
         app->settings_scroll = 0;
     }
     scroll_y = title_h + config_tab_h + config_tab_gap;
-    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app) - flint_px(8);
+    scroll_h = view_height - scroll_y - bottom_reserved - flint_px(8);
     if(scroll_h < 0)
         scroll_h = 0;
 

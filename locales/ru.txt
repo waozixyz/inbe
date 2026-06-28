@@ -800,6 +800,9 @@ liboqs не собран для этой платформы.
 [habit_stats_no_rounds_week]
 За последнюю неделю раундов нет
 ---
+[habit_stats_no_rounds_month]
+За последний месяц раундов нет
+---
 [habit_stats_current_streak]
 Текущая серия
 ---
@@ -829,41 +832,7 @@ liboqs не собран для этой платформы.
 ---
 [habit_stats_day_plural]
 %d дней
----
-[bottom_nav_customize_button]
-Настроить нижнюю навигацию
----
-[bottom_nav_customize_title]
-Нижняя навигация
----
-[bottom_nav_add_button]
-Добавить пункт
----
-[bottom_nav_slot_1]
-Пункт 1
----
-[bottom_nav_slot_2]
-Пункт 2
----
-[bottom_nav_slot_3]
-Пункт 3
----
-[bottom_nav_slot_4]
-Пункт 4
----
-[bottom_nav_slot_5]
-Пункт 5
----
-[bottom_nav_slot_6]
-Пункт 6
----
-[bottom_nav_slot_7]
-Пункт 7
----
-[bottom_nav_slot_8]
-Пункт 8
----
-[reset_button]
+---[reset_button]
 Сбросить
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ liboqs не собран для этой платформы.
 ---
 [practice_guide_manual]
 Прочитайте руководство перед началом практики, чтобы понять упражнение полностью.
----
-[practice_guide_sun]
-Используйте вкладку с солнцем, когда будете готовы начать упражнение.
 ---
 [practice_guide_config]
 Измените настройки практики под свои требования.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Сессия активна
----
 [notification_starting_seconds]
 Старт: %dс
 ---
@@ -965,7 +928,7 @@ Alias saved
 [notification_breath_in_seconds]
 Вдох: %dс
 ---
-[notification_next_round]
-Следующий раунд
+[notification_results]
+Results
 ---
 ---

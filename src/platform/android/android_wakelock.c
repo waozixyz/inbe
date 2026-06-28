@@ -81,7 +81,7 @@ void android_wakelock_acquire(void) {
 }
 
 void android_wakelock_update_session_notification(const char *status_text) {
-    if(status_text == NULL || status_text[0] == '\0')
+    if(status_text == NULL)
         return;
 
     pthread_mutex_lock(&wakelock_mutex);

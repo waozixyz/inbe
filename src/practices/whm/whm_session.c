@@ -165,7 +165,14 @@ session_update_notification(InbeApp *app)
     char text[96] = "";
     int count;
 
-    if(app == NULL || app->inbe.screen != InbeScreenSession)
+    if(app == NULL)
+        return;
+
+    if(app->inbe.screen == InbeScreenResults) {
+        locale_format(text, sizeof(text), "notification_results");
+        goto update;
+    }
+    if(app->inbe.screen != InbeScreenSession)
         return;
 
     count = int_from_count(app->inbe.count);
@@ -186,13 +193,11 @@ session_update_notification(InbeApp *app)
                           : 0);
         break;
     case InbePhaseNext:
-        locale_format(text, sizeof(text), "notification_next_round");
-        break;
     default:
-        locale_format(text, sizeof(text), "notification_session_active");
         break;
     }
 
+update:
     if(strcmp(text, whm_last_notification_text) == 0)
         return;
 
@@ -420,9 +425,12 @@ finish_round(InbeApp *app)
         if(session_ensure_results_saved(app)) {
 #if ANDROID_BUILD
             android_allow_screen_off();
-            stop_android_background_session(app);
+            android_timer_stop();
 #endif
             app_switch_screen(app, InbeScreenResults);
+#if ANDROID_BUILD
+            session_update_notification(app);
+#endif
         } else {
             app_init(app);
         }
