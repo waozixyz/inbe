@@ -603,3 +603,48 @@ jobs:
           releaseFiles: build/release/android/*.aab
           tracks: alpha
           status: completed
+
+  publish-chrome-web-store:
+    name: Publish Chrome Web Store
+    runs-on: ubuntu-latest
+    needs:
+      - build-chrome-extension
+      - release
+    if: needs.release.outputs.tag_pushed == 'true'
+
+    steps:
+      - name: Check Chrome Web Store Secrets
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${CHROME_CLIENT_ID:-}" ]; then
+            echo "CHROME_CLIENT_ID secret is required to publish Chrome Web Store"
+            exit 1
+          fi
+          if [ -z "${CHROME_CLIENT_SECRET:-}" ]; then
+            echo "CHROME_CLIENT_SECRET secret is required to publish Chrome Web Store"
+            exit 1
+          fi
+          if [ -z "${CHROME_REFRESH_TOKEN:-}" ]; then
+            echo "CHROME_REFRESH_TOKEN secret is required to publish Chrome Web Store"
+            exit 1
+          fi
+
+      - name: Download Chrome Extension Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: release-chrome-web-store
+          path: build/release/chrome-web-store
+
+      - name: Publish Chrome Extension
+        uses: mnao305/chrome-extension-upload-action@v6.0.0
+        with:
+          file-path: build/release/chrome-web-store/inbe-chrome-web-store.zip
+          extension-id: lballhghblaenelehneigekpofgcaifa
+          client-id: ${{ secrets.CHROME_CLIENT_ID }}
+          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
+          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          publish: true
