@@ -73,6 +73,7 @@ typedef struct InbeHabits {
     int view_mode;
     int tab;
     int weekly_days;
+    int hold_stats_range_days;
     int loaded;
     int dirty;
 } InbeHabits;

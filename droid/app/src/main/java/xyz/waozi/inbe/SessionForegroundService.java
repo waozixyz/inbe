@@ -59,6 +59,7 @@ public class SessionForegroundService extends Service {
     }
 
     private void startSession() {
+        currentStatusText = "";
         Notification notification = buildNotification();
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             startForeground(
@@ -74,6 +75,7 @@ public class SessionForegroundService extends Service {
     }
 
     private void stopSession() {
+        currentStatusText = "";
         releaseWakeLock();
         stopForegroundCompat();
         stopSelf();
@@ -81,9 +83,7 @@ public class SessionForegroundService extends Service {
     }
 
     public static void updateStatus(String statusText) {
-        if (statusText != null && !statusText.isEmpty()) {
-            currentStatusText = statusText;
-        }
+        currentStatusText = statusText != null ? statusText : "";
 
         SessionForegroundService service = activeService;
         if (service == null) {

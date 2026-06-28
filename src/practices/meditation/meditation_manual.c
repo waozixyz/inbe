@@ -30,6 +30,10 @@ meditation_manual_close(InbeApp *app, int mark_seen)
         return;
     if(mark_seen)
         mark_exercise_manual_seen(app, EXERCISE_MEDITATION);
+    if(app->modal.active && app->modal.type == UIModalPracticeManual) {
+        app_close_modal(app);
+        return;
+    }
     app->tutorial_step = 0;
     app->manual_scroll = 0;
     app->practice_tab = PRACTICE_TAB_PLAY;
@@ -77,10 +81,12 @@ meditation_manual_scroll_page_content_height(int content_w, void *user_data)
 void
 meditation_manual_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart;
+    int integrated = app->inbe.screen == InbeScreenStart &&
+                     app->modal.type != UIModalPracticeManual;
     int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
     int nav_h = MEDITATION_MANUAL_PAGES > 1 ? manual_screen_guide_nav_height() : 0;
-    int nav_y = view_height - app_content_bottom_reserved(app) - nav_h;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
+    int nav_y = view_height - bottom_reserved - nav_h;
     int content_y = title_h + flint_px(16);
     int content_h = nav_y - content_y - flint_px(16);
     int responsive_max_w = (int)(view_width * 0.90f);
@@ -95,8 +101,14 @@ meditation_manual_draw(InbeApp *app)
     page = manual_screen_guide_update_page(app, MEDITATION_MANUAL_PAGES,
                                            meditation_manual_start,
                                            meditation_manual_close);
-    if(!integrated && ui_draw_screen_header(locale_get("meditation_manual_title"), 1))
-        meditation_manual_close(app, 0);
+    if(!integrated) {
+        FlintUIHeader header = ui_draw_title_header(title_h,
+                                                    locale_get("meditation_manual_title"),
+                                                    (Texture2D){0},
+                                                    app->icons[UI_ICON_TYPE_X]);
+        if(header.right_clicked)
+            meditation_manual_close(app, 0);
+    }
 
     if(content_h < flint_px(120))
         content_h = flint_px(120);

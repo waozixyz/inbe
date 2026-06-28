@@ -798,6 +798,9 @@ liboqs 未为此目标构建。
 [habit_stats_no_rounds_week]
 过去一周没有轮次
 ---
+[habit_stats_no_rounds_month]
+过去一个月没有轮次
+---
 [habit_stats_current_streak]
 当前连续记录
 ---
@@ -827,41 +830,7 @@ Wim Hof 屏息轮次
 ---
 [habit_stats_day_plural]
 %d天
----
-[bottom_nav_customize_button]
-自定义底部导航
----
-[bottom_nav_customize_title]
-底部导航
----
-[bottom_nav_add_button]
-添加项目
----
-[bottom_nav_slot_1]
-项目 1
----
-[bottom_nav_slot_2]
-项目 2
----
-[bottom_nav_slot_3]
-项目 3
----
-[bottom_nav_slot_4]
-项目 4
----
-[bottom_nav_slot_5]
-项目 5
----
-[bottom_nav_slot_6]
-项目 6
----
-[bottom_nav_slot_7]
-项目 7
----
-[bottom_nav_slot_8]
-项目 8
----
-[reset_button]
+---[reset_button]
 重置
 ---
 [practice_guide_dropdown]
@@ -869,9 +838,6 @@ Wim Hof 屏息轮次
 ---
 [practice_guide_manual]
 开始练习前请先阅读教程，了解完整的练习流程。
----
-[practice_guide_sun]
-准备开始练习时，请使用太阳标签。
 ---
 [practice_guide_config]
 根据你的需要调整练习配置。
@@ -948,9 +914,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-练习进行中
----
 [notification_starting_seconds]
 开始: %d秒
 ---
@@ -963,7 +926,7 @@ Alias saved
 [notification_breath_in_seconds]
 吸气: %d秒
 ---
-[notification_next_round]
-下一轮
+[notification_results]
+Results
 ---
 ---

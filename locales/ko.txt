@@ -799,6 +799,9 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [habit_stats_no_rounds_week]
 지난주 라운드 없음
 ---
+[habit_stats_no_rounds_month]
+지난달 라운드 없음
+---
 [habit_stats_current_streak]
 현재 연속 기록
 ---
@@ -828,41 +831,7 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [habit_stats_day_plural]
 %d일
----
-[bottom_nav_customize_button]
-하단 내비게이션 사용자화
----
-[bottom_nav_customize_title]
-하단 내비게이션
----
-[bottom_nav_add_button]
-항목 추가
----
-[bottom_nav_slot_1]
-항목 1
----
-[bottom_nav_slot_2]
-항목 2
----
-[bottom_nav_slot_3]
-항목 3
----
-[bottom_nav_slot_4]
-항목 4
----
-[bottom_nav_slot_5]
-항목 5
----
-[bottom_nav_slot_6]
-항목 6
----
-[bottom_nav_slot_7]
-항목 7
----
-[bottom_nav_slot_8]
-항목 8
----
-[reset_button]
+---[reset_button]
 초기화
 ---
 [practice_guide_dropdown]
@@ -870,9 +839,6 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [practice_guide_manual]
 연습을 시작하기 전에 튜토리얼을 읽고 전체 운동을 이해하세요.
----
-[practice_guide_sun]
-운동을 시작할 준비가 되면 태양 탭을 사용하세요.
 ---
 [practice_guide_config]
 필요에 맞게 연습 설정을 변경하세요.
@@ -949,9 +915,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-세션 진행 중
----
 [notification_starting_seconds]
 시작: %d초
 ---
@@ -964,7 +927,7 @@ Alias saved
 [notification_breath_in_seconds]
 들이쉬기: %d초
 ---
-[notification_next_round]
-다음 라운드
+[notification_results]
+Results
 ---
 ---

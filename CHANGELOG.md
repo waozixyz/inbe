@@ -1,4 +1,8 @@
 # Changelog
+## [1.6.6] - 2026-06-28
+### Changed
+- updated the practice screen ui/ux
+
 ## [1.6.5] - 2026-06-28
 ### Fixed
 - Repair habit-day sync for zero-count completions.

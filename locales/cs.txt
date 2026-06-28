@@ -800,6 +800,9 @@ Vytvořit návyk
 [habit_stats_no_rounds_week]
 Za poslední týden nejsou žádná kola
 ---
+[habit_stats_no_rounds_month]
+Za poslední měsíc nejsou žádná kola
+---
 [habit_stats_current_streak]
 Aktuální série
 ---
@@ -829,41 +832,7 @@ Nejlepší série
 ---
 [habit_stats_day_plural]
 %d dní
----
-[bottom_nav_customize_button]
-Upravit spodní navigaci
----
-[bottom_nav_customize_title]
-Spodní navigace
----
-[bottom_nav_add_button]
-Přidat položku
----
-[bottom_nav_slot_1]
-Položka 1
----
-[bottom_nav_slot_2]
-Položka 2
----
-[bottom_nav_slot_3]
-Položka 3
----
-[bottom_nav_slot_4]
-Položka 4
----
-[bottom_nav_slot_5]
-Položka 5
----
-[bottom_nav_slot_6]
-Položka 6
----
-[bottom_nav_slot_7]
-Položka 7
----
-[bottom_nav_slot_8]
-Položka 8
----
-[reset_button]
+---[reset_button]
 Obnovit
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ Zde si vyberte praxi.
 ---
 [practice_guide_manual]
 Pred zahajenim praxe si prectete navod, abyste porozumeli celemu cviceni.
----
-[practice_guide_sun]
-Az budete pripraveni zacit cviceni, pouzijte kartu se sluncem.
 ---
 [practice_guide_config]
 Upravte konfiguraci praxe podle svych potreb.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Relace je aktivni
----
 [notification_starting_seconds]
 Start: %ds
 ---
@@ -965,7 +928,7 @@ Zadrz: %ds
 [notification_breath_in_seconds]
 Nadech: %ds
 ---
-[notification_next_round]
-Dalsi kolo
+[notification_results]
+Results
 ---
 ---

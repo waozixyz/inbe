@@ -842,6 +842,9 @@ Créer une habitude
 [habit_stats_no_rounds_week]
 Aucune série la semaine dernière
 ---
+[habit_stats_no_rounds_month]
+Aucune série le mois dernier
+---
 [habit_stats_current_streak]
 Série actuelle
 ---
@@ -871,41 +874,7 @@ Meilleure série
 ---
 [habit_stats_day_plural]
 %d jours
----
-[bottom_nav_customize_button]
-Personnaliser la navigation du bas
----
-[bottom_nav_customize_title]
-Navigation du bas
----
-[bottom_nav_add_button]
-Ajouter un élément
----
-[bottom_nav_slot_1]
-Élément 1
----
-[bottom_nav_slot_2]
-Élément 2
----
-[bottom_nav_slot_3]
-Élément 3
----
-[bottom_nav_slot_4]
-Élément 4
----
-[bottom_nav_slot_5]
-Élément 5
----
-[bottom_nav_slot_6]
-Élément 6
----
-[bottom_nav_slot_7]
-Élément 7
----
-[bottom_nav_slot_8]
-Élément 8
----
-[reset_button]
+---[reset_button]
 Réinitialiser
 ---
 [practice_guide_dropdown]
@@ -913,9 +882,6 @@ Choisissez votre pratique ici.
 ---
 [practice_guide_manual]
 Lisez le tutoriel avant de commencer une pratique afin de comprendre tout l'exercice.
----
-[practice_guide_sun]
-Utilisez l'onglet soleil lorsque vous etes pret a commencer l'exercice.
 ---
 [practice_guide_config]
 Modifiez la configuration de la pratique selon vos besoins.
@@ -951,9 +917,6 @@ Fondu
 [theme_picker_title]
 Choisir un thème
 ---
-[notification_session_active]
-Session active
----
 [notification_starting_seconds]
 Demarrage : %ds
 ---
@@ -966,5 +929,6 @@ Retention : %ds
 [notification_breath_in_seconds]
 Inspirez : %ds
 ---
-[notification_next_round]
-Tour suivant
+[notification_results]
+Results
+---

@@ -10,6 +10,7 @@
 #include <stdio.h>
 
 extern int view_width;
+extern int view_height;
 
 static const int g_sun_salutation_pose_sequence[SUN_SALUTATION_STEP_COUNT] = {
     0, 1, 2, 3, 4, 5, 6, 7, 3, 2, 1, 0
@@ -208,6 +209,7 @@ sun_salutation_config_screen_draw(InbeApp *app)
     int content_x;
     int content_w;
     int y;
+    int title_h = app_content_top_reserved(app);
     int repetitions;
     int start_seconds;
     int end_seconds;
@@ -215,9 +217,20 @@ sun_salutation_config_screen_draw(InbeApp *app)
     if(app == NULL)
         return;
     sun_salutation_normalize_settings(app);
+    if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
+        FlintUIHeader header = ui_draw_title_header(ui_screen_header_height(),
+                                                    locale_get("practice_config_title"),
+                                                    (Texture2D){0},
+                                                    app->icons[UI_ICON_TYPE_X]);
+        title_h = ui_screen_header_height();
+        if(header.right_clicked) {
+            app_close_modal(app);
+            return;
+        }
+    }
 
     flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
-    y = app_content_top_reserved(app) + flint_px(20);
+    y = title_h + flint_px(20);
 
     draw_sun_salutation_preview(app, content_x, y, content_w);
     y += sun_salutation_preview_height(content_w) + flint_px(16);

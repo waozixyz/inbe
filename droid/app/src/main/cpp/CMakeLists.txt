@@ -110,6 +110,7 @@ add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/core/breath_engine.c"
     "${SRC_DIR}/app/app.c"
+    "${SRC_DIR}/app/app_nav.c"
     "${SRC_DIR}/app/app_settings.c"
     "${SRC_DIR}/app/device_preferences.c"
     "${SRC_DIR}/practices/practice_registry.c"

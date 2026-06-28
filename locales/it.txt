@@ -800,6 +800,9 @@ Crea abitudine
 [habit_stats_no_rounds_week]
 Nessun round nell'ultima settimana
 ---
+[habit_stats_no_rounds_month]
+Nessun round nell'ultimo mese
+---
 [habit_stats_current_streak]
 Serie attuale
 ---
@@ -829,41 +832,7 @@ Migliore serie
 ---
 [habit_stats_day_plural]
 %d giorni
----
-[bottom_nav_customize_button]
-Personalizza navigazione inferiore
----
-[bottom_nav_customize_title]
-Navigazione inferiore
----
-[bottom_nav_add_button]
-Aggiungi elemento
----
-[bottom_nav_slot_1]
-Elemento 1
----
-[bottom_nav_slot_2]
-Elemento 2
----
-[bottom_nav_slot_3]
-Elemento 3
----
-[bottom_nav_slot_4]
-Elemento 4
----
-[bottom_nav_slot_5]
-Elemento 5
----
-[bottom_nav_slot_6]
-Elemento 6
----
-[bottom_nav_slot_7]
-Elemento 7
----
-[bottom_nav_slot_8]
-Elemento 8
----
-[reset_button]
+---[reset_button]
 Ripristina
 ---
 [practice_guide_dropdown]
@@ -871,9 +840,6 @@ Scegli qui la tua pratica.
 ---
 [practice_guide_manual]
 Leggi il tutorial prima di iniziare una pratica per capire l'esercizio completo.
----
-[practice_guide_sun]
-Usa la scheda con il sole quando sei pronto per iniziare l'esercizio.
 ---
 [practice_guide_config]
 Modifica la configurazione della pratica in base alle tue esigenze.
@@ -950,9 +916,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[notification_session_active]
-Sessione attiva
----
 [notification_starting_seconds]
 Avvio: %ds
 ---
@@ -965,7 +928,7 @@ Trattieni: %ds
 [notification_breath_in_seconds]
 Inspira: %ds
 ---
-[notification_next_round]
-Round successivo
+[notification_results]
+Results
 ---
 ---

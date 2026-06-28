@@ -624,8 +624,7 @@ public class MainActivity extends NativeActivity {
     }
 
     public void updateSessionNotification(final String statusText) {
-        if (statusText == null || statusText.isEmpty()) return;
-        SessionForegroundService.updateStatus(statusText);
+        SessionForegroundService.updateStatus(statusText == null ? "" : statusText);
     }
 
     public void keepScreenOn() {
