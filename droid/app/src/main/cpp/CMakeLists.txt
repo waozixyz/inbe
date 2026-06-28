@@ -22,6 +22,9 @@ set(OQS_BUILD_ONLY_LIB ON CACHE BOOL "" FORCE)
 set(OQS_USE_OPENSSL OFF CACHE BOOL "" FORCE)
 set(OQS_MINIMAL_BUILD "SIG_ml_dsa_44" CACHE STRING "" FORCE)
 add_subdirectory("${FLINT_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
+if(NOT TARGET oqs)
+    message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
+endif()
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c" "${FLINT_DIR}/src/ui/*.c")
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
@@ -185,7 +188,7 @@ target_compile_definitions(main PRIVATE
     SUPPORT_MODULE_RAUDIO=1
     SUPPORT_FILEFORMAT_OGG=1
     FLINT_EMBEDDED_ONLY=1
-    INBE_HAS_LIBOQS=1
+    FLINT_HAS_LIBOQS=1
 )
 
 target_compile_options(main PRIVATE

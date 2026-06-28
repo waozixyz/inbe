@@ -215,6 +215,29 @@ read_raw_habit_day_count(const char *root, const char *habit_id, int local_date)
 }
 
 static int
+read_raw_count_query(const char *root, const char *sql)
+{
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int count = -1;
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open raw count query db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db == NULL)
+        return count;
+    if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK) {
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            count = sqlite3_column_int(stmt, 0);
+    } else {
+        check_true("prepare raw count query", 0);
+    }
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return count;
+}
+
+static int
 read_raw_session_round_seconds(const char *root, const char *session_id, int round_index)
 {
     char db_path[512];
@@ -490,6 +513,68 @@ test_sync_apply_preserves_counter_counts(void)
     storage_close();
     check_int("higher equal sync repairs counter",
               read_raw_habit_day_count(root, habit_id, 20260619), 5);
+
+    remove_tree(root);
+}
+
+static void
+test_sync_apply_clears_acknowledged_outbox_before_equal_timestamp_merge(void)
+{
+    char root[512];
+    char db_path[512];
+    sqlite3 *db = NULL;
+    char *payload = NULL;
+    const char *remote_response =
+        "{\"server_version\":99,\"server_clock\":99,\"changes\":{\"habits\":[],"
+        "\"habit_days\":[{\"habit_id\":\"push-ups\",\"local_date\":20260628,"
+        "\"completed\":true,\"count\":1,\"updated_at\":\"2026-06-28T12:00:00Z\"}],"
+        "\"sessions\":[],\"meditation_logs\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-outbox-equal-remote");
+    check_true("init sync outbox equal db", storage_init(root));
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open sync outbox equal raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true(
+            "insert sync outbox equal state",
+            sqlite3_exec(db,
+                         "INSERT INTO "
+                         "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,"
+                         "counter_enabled,sort_order,deleted_at,updated_at) "
+                         "VALUES('push-ups',(SELECT id FROM users LIMIT 1),'Push Ups',255,255,"
+                         "255,0,0,0,0,0,1782648000);"
+                         "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                         "VALUES('push-ups',20260628,0,0,1782648000);"
+                         "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                         "VALUES('habit_day','push-ups',20260628,1782648000);",
+                         NULL, NULL, NULL) == SQLITE_OK);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen sync outbox equal db", storage_init(root));
+    storage_close();
+    check_int("queued outbox before payload",
+              read_raw_count_query(root, "SELECT COUNT(*) FROM sync_outbox"), 1);
+
+    check_true("reopen sync outbox equal db for payload", storage_init(root));
+    payload = storage_build_sync_payload_json(
+        "55035d07339af4ea8e198413928073c2053c8d294ffd58bfa0c3094cf2ca496d", NULL);
+    check_true("payload includes zero count habit day state",
+               payload != NULL && strstr(payload, "\"habit_id\":\"push-ups\"") != NULL &&
+                   strstr(payload, "\"completed\":false") != NULL &&
+                   strstr(payload, "\"count\":0") != NULL &&
+                   strstr(payload, "\"op_type\":\"upsert\"") != NULL);
+    storage_free_sync_payload_json(payload);
+    check_true("apply equal timestamp remote after ack",
+               storage_apply_sync_response_json(remote_response));
+    storage_close();
+
+    check_int("equal timestamp remote applied after ack",
+              read_raw_habit_day_count(root, "push-ups", 20260628), 1);
+    check_int("acknowledged outbox cleared",
+              read_raw_count_query(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
 
     remove_tree(root);
 }
@@ -1914,6 +1999,7 @@ main(void)
     test_sync_payload_includes_queued_current_edits();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
+    test_sync_apply_clears_acknowledged_outbox_before_equal_timestamp_merge();
     test_sync_apply_sessions_last_write_wins();
     test_sync_apply_updates_habit_counter_enabled();
     test_stale_habit_save_keeps_synced_remote_habits();
