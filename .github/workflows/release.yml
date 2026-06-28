@@ -640,11 +640,54 @@ jobs:
           path: build/release/chrome-web-store
 
       - name: Publish Chrome Extension
-        uses: mnao305/chrome-extension-upload-action@v6.0.0
-        with:
-          file-path: build/release/chrome-web-store/inbe-chrome-web-store.zip
-          extension-id: lballhghblaenelehneigekpofgcaifa
-          client-id: ${{ secrets.CHROME_CLIENT_ID }}
-          client-secret: ${{ secrets.CHROME_CLIENT_SECRET }}
-          refresh-token: ${{ secrets.CHROME_REFRESH_TOKEN }}
-          publish: true
+        env:
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_EXTENSION_ID: lballhghblaenelehneigekpofgcaifa
+          CHROME_EXTENSION_ZIP: build/release/chrome-web-store/inbe-chrome-web-store.zip
+        run: |
+          set -euo pipefail
+
+          token_response="$(curl --fail --silent --show-error \
+            --request POST \
+            --data-urlencode "client_id=${CHROME_CLIENT_ID}" \
+            --data-urlencode "client_secret=${CHROME_CLIENT_SECRET}" \
+            --data-urlencode "refresh_token=${CHROME_REFRESH_TOKEN}" \
+            --data-urlencode "grant_type=refresh_token" \
+            https://oauth2.googleapis.com/token)"
+
+          access_token="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' <<< "$token_response")"
+
+          upload_response="$(curl --fail --silent --show-error \
+            --request PUT \
+            --header "Authorization: Bearer ${access_token}" \
+            --header "x-goog-api-version: 2" \
+            --upload-file "${CHROME_EXTENSION_ZIP}" \
+            "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}")"
+
+          python3 - "$upload_response" <<'PY'
+          import json
+          import sys
+
+          response = json.loads(sys.argv[1])
+          if response.get("uploadState") != "SUCCESS":
+              print(json.dumps(response, indent=2), file=sys.stderr)
+              raise SystemExit("Chrome Web Store upload failed")
+          PY
+
+          publish_response="$(curl --fail --silent --show-error \
+            --request POST \
+            --header "Authorization: Bearer ${access_token}" \
+            --header "x-goog-api-version: 2" \
+            "https://www.googleapis.com/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}/publish")"
+
+          python3 - "$publish_response" <<'PY'
+          import json
+          import sys
+
+          response = json.loads(sys.argv[1])
+          if "OK" not in response.get("status", []):
+              print(json.dumps(response, indent=2), file=sys.stderr)
+              raise SystemExit("Chrome Web Store publish failed")
+          PY
