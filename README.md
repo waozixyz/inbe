@@ -106,6 +106,10 @@ The AVD is configured with:
 
 When updating other projects that vendor Flint as a submodule, this keeps UI behavior and API docs aligned.
 
+## Sync model
+
+Inbe is offline-first. User-owned app data moves through the storage sync chain; social data is server-authorized. Friends, requests, and leaderboard snapshots are cached locally for fast/offline UI, but Lyra owns the authoritative social state and refreshes those caches through authenticated sync.
+
 ## License
 
 MIT - see [LICENSE](LICENSE)

@@ -80,7 +80,8 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
         (float)(circle_size * 2),
         (float)(circle_size * 2)
     };
-    int is_hovered = CheckCollisionPointRec(GetMousePosition(), circle_bounds);
+    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    int is_hovered = CheckCollisionPointRec(mouse_world, circle_bounds);
 
     // Draw circle with hover effect
     int draw_size = is_hovered ? circle_size + flint_px(4) : circle_size;
@@ -90,7 +91,7 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
 
     // Check for click to open modal (skip if modal is active or just closed)
     if(is_hovered && !app->modal.active &&
-       !ui_input_captures_click(GetMousePosition()) &&
+       !ui_input_captures_click(mouse_world) &&
        app->inbe.frame - app->modal_open_frame > 1) {
         ui_mark_clickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {

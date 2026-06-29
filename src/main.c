@@ -208,12 +208,6 @@ android_clamp_content_size(int size, int leading_inset, int trailing_inset)
 }
 
 static int
-android_maxi(int a, int b)
-{
-    return a > b ? a : b;
-}
-
-static int
 android_nonnegative(int value)
 {
     return value > 0 ? value : 0;
@@ -224,34 +218,24 @@ android_resolve_viewport(int width, int height, AndroidInsets value)
 {
     static AndroidViewport last_logged = {-1, -1, -1, -1, -1, -1, -1, -1};
     AndroidViewport viewport;
-    int status = android_nonnegative(value.status_bar);
-    int nav = android_nonnegative(value.nav_bar);
     int cutout_left = android_nonnegative(value.cutout_left);
-    int cutout_top = android_nonnegative(value.cutout_top);
     int cutout_right = android_nonnegative(value.cutout_right);
-    // cutout_bottom intentionally ignored - Android API is unreliable
-    int min_content_h = height / 2;
+    int nav_bar = android_nonnegative(value.nav_bar);
+    int content_top = android_nonnegative(value.status_bar);
+    int cutout_top = android_nonnegative(value.cutout_top);
+
+    if(cutout_top > content_top)
+        content_top = cutout_top;
 
     viewport.left = cutout_left;
     viewport.right = cutout_right;
-    viewport.top = android_maxi(cutout_top, status);
-    // Ignore cutout_bottom - Android's getDisplayCutout() API is unreliable and
-    // incorrectly reports bottom cutout values. Real cutouts are notches/camera
-    // holes at the top, not the bottom. The bottom inset should only be nav bar.
-    viewport.bottom = nav;
-
-    if(min_content_h < 1)
-        min_content_h = 1;
-    if(viewport.top + viewport.bottom >= height - min_content_h) {
-        viewport.top = cutout_top;
-        // Keep nav bar for bottom, don't use unreliable cutout_bottom
-        viewport.bottom = nav;
-    }
+    viewport.top = content_top;
+    viewport.bottom = 0;
 
     viewport.x = viewport.left;
     viewport.y = viewport.top;
     viewport.width = android_clamp_content_size(width, viewport.left, viewport.right);
-    viewport.height = android_clamp_content_size(height, viewport.top, viewport.bottom);
+    viewport.height = height - viewport.top;
 
     if(viewport.width <= 0) {
         viewport.x = 0;
@@ -267,8 +251,9 @@ android_resolve_viewport(int width, int height, AndroidInsets value)
        viewport.top != last_logged.top || viewport.bottom != last_logged.bottom ||
        viewport.left != last_logged.left || viewport.right != last_logged.right) {
         TraceLog(LOG_INFO,
-                 "ANDROID_VIEWPORT: screen=%dx%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
-                 width, height, viewport.x, viewport.y, viewport.width, viewport.height,
+                 "ANDROID_VIEWPORT: surface=%dx%d top=%d nav=%d viewport=%d,%d %dx%d insets l=%d t=%d r=%d b=%d",
+                 width, height, content_top, nav_bar,
+                 viewport.x, viewport.y, viewport.width, viewport.height,
                  viewport.left, viewport.top, viewport.right, viewport.bottom);
         last_logged = viewport;
     }
@@ -305,17 +290,7 @@ frame(void)
 
     int width = GetScreenWidth();
     int height = GetScreenHeight();
-#if ANDROID_BUILD
-    struct android_app *android_app = GetAndroidApp();
-    if(android_app != NULL && android_app->window != NULL) {
-        int window_width = ANativeWindow_getWidth(android_app->window);
-        int window_height = ANativeWindow_getHeight(android_app->window);
-        if(window_width > 0)
-            width = window_width;
-        if(window_height > 0)
-            height = window_height;
-    }
-#elif !defined(PLATFORM_WEB)
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     int render_width = GetRenderWidth();
     int render_height = GetRenderHeight();
 
@@ -330,12 +305,12 @@ frame(void)
     static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
     android_insets_get(&insets);
-
     // Safety check: Don't render if insets haven't been initialized yet
     // This prevents rendering with incorrect positioning on app start/restart
     if (!android_insets_is_initialized()) {
         return;  // Skip this frame, BeginDrawing() hasn't been called yet
     }
+    app_set_android_bottom_nav_height(android_nonnegative(insets.nav_bar));
 
     viewport = android_resolve_viewport(width, height, insets);
     if(viewport.x != previous_viewport.x || viewport.y != previous_viewport.y ||

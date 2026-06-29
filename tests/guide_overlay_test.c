@@ -24,6 +24,12 @@ ui_set_input_blocked(int blocked)
     g_ui_input_blocked = blocked != 0;
 }
 
+void
+ui_set_modal_capture(Rectangle bounds)
+{
+    (void)bounds;
+}
+
 int
 flint_ui_icon_button(FlintUIIconButton button)
 {

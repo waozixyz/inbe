@@ -8,7 +8,6 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "flint_theme.h"
-#include "version.h"
 #include "flint_theme_meta.h"
 #include "flint_ui.h"
 #if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB)
@@ -34,11 +33,6 @@ enum {
     SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT
 };
 
-enum {
-    SETTINGS_DATA_VIEW_MAIN = 0,
-    SETTINGS_DATA_VIEW_SYNC_ACCOUNT = 1
-};
-
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
 #define SETTINGS_DATA_IMPORT_FILTER ".db,.zip"
@@ -57,8 +51,9 @@ typedef struct SettingsFileDialogOrigin {
     int active;
     int screen;
     int settings_tab;
-    int settings_data_view;
     int settings_scroll;
+    int profile_view;
+    int profile_scroll;
 } SettingsFileDialogOrigin;
 
 static SettingsFileDialogOrigin file_dialog_origin;
@@ -70,6 +65,8 @@ static void settings_export_data(InbeApp *app);
 static void settings_request_delete_all_data(InbeApp *app);
 static void settings_sync_server_load(InbeApp *app);
 static int settings_import_sync_key_path(InbeApp *app, const char *path);
+static int settings_start_sync_key_export_dialog(InbeApp *app, const char *filename);
+static int settings_start_sync_key_import_dialog(InbeApp *app);
 
 static void
 settings_clear_pending_import(void)
@@ -87,8 +84,9 @@ settings_file_dialog_begin(InbeApp *app, int action)
     file_dialog_origin.active = 1;
     file_dialog_origin.screen = app->inbe.screen;
     file_dialog_origin.settings_tab = app->settings_tab;
-    file_dialog_origin.settings_data_view = app->settings_data_view;
     file_dialog_origin.settings_scroll = app->settings_scroll;
+    file_dialog_origin.profile_view = app->profile_view;
+    file_dialog_origin.profile_scroll = app->profile_scroll;
 }
 
 static int
@@ -98,8 +96,9 @@ settings_file_dialog_finish(InbeApp *app)
     if(app != NULL && file_dialog_origin.active) {
         app->inbe.screen = file_dialog_origin.screen;
         app->settings_tab = file_dialog_origin.settings_tab;
-        app->settings_data_view = file_dialog_origin.settings_data_view;
         app->settings_scroll = file_dialog_origin.settings_scroll;
+        app->profile_view = file_dialog_origin.profile_view;
+        app->profile_scroll = file_dialog_origin.profile_scroll;
     }
     file_dialog_origin.active = 0;
     data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
@@ -306,58 +305,22 @@ settings_draw_sync_review_modal(InbeApp *app)
     return 0;
 }
 
-static int
-settings_link_icon_columns(int content_w)
-{
-    int max_columns = 5;
-    int min_columns = 2;
-    int icon_size = flint_px(32);
-    int icon_padding = flint_px(4);
-    int icon_spacing = flint_px(20);
-    int icon_btn_w = icon_size + icon_padding * 2;
-
-    for(int columns = max_columns; columns > min_columns; columns--) {
-        int total_w = icon_btn_w * columns + icon_spacing * (columns - 1);
-        if(total_w <= content_w)
-            return columns;
-    }
-
-    return min_columns;
-}
-
-static int
-settings_link_icons_height(int content_w)
-{
-    int link_count = 5;
-    int icon_size = flint_px(32);
-    int icon_padding = flint_px(4);
-    int row_spacing = flint_px(16);
-    int icon_btn_w = icon_size + icon_padding * 2;
-    int columns = settings_link_icon_columns(content_w);
-    int rows = (link_count + columns - 1) / columns;
-
-    return flint_px(8) + rows * icon_btn_w + (rows - 1) * row_spacing;
-}
-
 int
 settings_data_content_height(int content_w)
 {
     int data_button_h = flint_px(36);
+    (void)content_w;
 
     return flint_px(SETTINGS_DATA_TOP_PADDING) +
-           data_button_h + flint_px(12) +
-           flint_px(98) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            data_button_h + flint_px(12) +
            flint_px(42) +
-           settings_link_icons_height(content_w) +
-           flint_px(8) + flint_px(22) +
            flint_px(40);
 }
 
-static void
-settings_draw_sync_status(int x, int w, int *y)
+void
+settings_data_draw_sync_status(int x, int w, int *y)
 {
     InbeStorageSyncStatus status;
     char line[160];
@@ -407,13 +370,6 @@ settings_draw_sync_status(int x, int w, int *y)
     *y += flint_px(74);
 }
 
-int
-settings_data_is_configuring(const InbeApp *app)
-{
-    return app != NULL && app->settings_tab == SETTINGS_TAB_DATA &&
-           app->settings_data_view == SETTINGS_DATA_VIEW_SYNC_ACCOUNT;
-}
-
 static void
 settings_sync_server_load(InbeApp *app)
 {
@@ -429,14 +385,16 @@ settings_sync_server_load(InbeApp *app)
     app->sync_server_url_cursor = (int)strlen(app->sync_server_url);
 }
 
-static void
-settings_open_sync_account_config(InbeApp *app)
+void
+settings_data_open_sync_account_config(InbeApp *app)
 {
     if(app == NULL)
         return;
+    settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
+    settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
     settings_sync_server_load(app);
-    app->settings_data_view = SETTINGS_DATA_VIEW_SYNC_ACCOUNT;
-    app->settings_scroll = 0;
+    app->profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
+    app->profile_scroll = 0;
     app->sync_server_url_focused = 0;
     settings_screen_clear_status();
 }
@@ -535,64 +493,11 @@ settings_start_sync_key_import_dialog(InbeApp *app)
 #endif
 }
 
-static void
-settings_draw_link_icons(InbeApp *app, int content_x, int content_w, int *y)
-{
-    int link_count = 5;
-    int icon_size = flint_px(32);
-    int icon_padding = flint_px(4);
-    int icon_spacing = flint_px(20);
-    int icon_btn_w = icon_size + icon_padding * 2;
-    int columns = settings_link_icon_columns(content_w);
-    int grid_w = icon_btn_w * columns + icon_spacing * (columns - 1);
-    int links_start_x = content_x + (content_w - grid_w) / 2;
-    int row_spacing = flint_px(16);
-    Texture2D icons[5] = {
-        app->icons[UI_ICON_TYPE_DISCORD],
-        app->icons[UI_ICON_TYPE_TELEGRAM],
-        app->icons[UI_ICON_TYPE_GITHUB],
-        app->icons[UI_ICON_TYPE_BTC],
-        app->icons[UI_ICON_TYPE_MONERO]
-    };
-    const char *urls[5] = {
-        "https://discord.com/invite/JbGZ4yENDt",
-        "https://t.me/lotusinbe",
-        "https://github.com/waozixyz/inbe",
-        "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
-        "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
-    };
-
-    *y += flint_px(8);
-    for(int i = 0; i < link_count; i++) {
-        int col = i % columns;
-        int row = i / columns;
-        int icon_x = links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding;
-        int icon_y = *y + row * (icon_btn_w + row_spacing);
-        ui_draw_icon_link(icon_x, icon_y, icon_size, icons[i], urls[i]);
-    }
-    *y += settings_link_icons_height(content_w) - flint_px(8);
-}
-
-static void
-settings_draw_version_centered(int x, int w, int *y)
-{
-    char version_text[32];
-    int font = flint_ui_font_small();
-    int text_w;
-
-    snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING);
-    text_w = flint_text_measure(version_text, font);
-    flint_text_draw(version_text, x + (w - text_w) / 2, *y, font,
-                    flint_darken(flint_theme_get_text(), 40));
-    *y += flint_px(22);
-}
-
 void
-settings_data_draw(InbeApp *app, int x, int w, int *y)
+settings_data_draw_actions(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
     int data_button_h = flint_px(36);
-    int hover_account = 0;
     int hover_import = 0;
     int hover_export = 0;
     int hover_delete = 0;
@@ -600,20 +505,8 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
 
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
     settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
-    if(app != NULL && app->settings_data_view == SETTINGS_DATA_VIEW_SYNC_ACCOUNT) {
-        settings_sync_account_draw_config(app, x, w, y);
-        return;
-    }
 
     *y += flint_px(SETTINGS_DATA_TOP_PADDING);
-    if(ui_draw_generic_button(x, *y, w, data_button_h,
-                              locale_get("sync_configure_account_button"),
-                              UI_BUTTON_STYLE_PRIMARY, 0, &hover_account))
-        settings_open_sync_account_config(app);
-    *y += data_button_h + flint_px(12);
-
-    settings_draw_sync_status(x, w, y);
-
     if(ui_draw_generic_button(x, *y, w, data_button_h,
                               locale_get("import_data_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover_import))
@@ -634,9 +527,6 @@ settings_data_draw(InbeApp *app, int x, int w, int *y)
         *y += data_button_h + flint_px(12);
     }
     settings_screen_draw_status_reserved(x, y, flint_px(42));
-    settings_draw_link_icons(app, x, w, y);
-    *y += flint_px(8);
-    settings_draw_version_centered(x, w, y);
 }
 
 #if ANDROID_BUILD

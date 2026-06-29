@@ -52,6 +52,8 @@ void storage_set_setting_text(const char *key, const char *value);
 void storage_settings_begin_write(void);
 void storage_settings_end_write(void);
 int storage_settings_empty(void);
+int storage_get_social_cache_json(const char *kind, char *out, size_t out_size);
+int storage_set_social_cache_json(const char *kind, const char *json);
 
 int storage_save_session(const int *round_times, int round_count,
                               char *out_id, size_t out_id_size);
@@ -73,6 +75,8 @@ int storage_has_any(void);
 int storage_session_count(void);
 int storage_habit_count(void);
 long long storage_total_size(void);
+int storage_profile_activity_stats(int activity, int today_date,
+                                   int *streak_out, long *avg_hold_out);
 long long storage_delete_all_sessions(void);
 char *storage_build_sync_payload_json(const char *user_id_hash,
                                            const char *public_key_hex);
@@ -86,6 +90,7 @@ int storage_sync_review_diff(char **diff_out);
 int storage_sync_review_has_visible_diff(void);
 int storage_sync_review_json_has_visible_diff(const char *json);
 int storage_sync_review_clear_if_no_visible_diff(void);
+int storage_sync_review_apply_remote_if_local_empty(void);
 int storage_apply_pending_sync_review(int use_remote);
 void storage_purge_synced_deleted_data(void);
 const char *storage_sync_client_id(void);

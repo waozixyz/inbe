@@ -76,7 +76,7 @@ settings_backup_filename(char *out, size_t out_size)
 {
     if(out == NULL || out_size == 0)
         return;
-    snprintf(out, out_size, "inbe-sync.key");
+    snprintf(out, out_size, "account.key");
 }
 
 static int
@@ -277,6 +277,9 @@ settings_sync_run_connect(InbeApp *app)
     result = sync_client_sync(url);
     if(result == INBE_SYNC_CLIENT_OK) {
         if(storage_sync_review_clear_if_no_visible_diff()) {
+            app_reload_after_import(app, 0);
+            settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+        } else if(storage_sync_review_apply_remote_if_local_empty()) {
             app_reload_after_import(app, 0);
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
         } else if(storage_sync_review_pending()) {

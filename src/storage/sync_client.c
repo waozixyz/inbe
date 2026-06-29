@@ -38,6 +38,9 @@ extern struct android_app *GetAndroidApp(void);
 #define INBE_LOGIN_PATH "/api/v1/sync/login"
 #define INBE_ACCOUNT_ALIAS_PATH "/api/v1/account/alias"
 #define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
+#define INBE_FRIENDS_PATH "/api/v1/friends"
+#define INBE_FRIEND_REQUESTS_PATH "/api/v1/friends/requests"
+#define INBE_FRIEND_STATS_PATH "/api/v1/friends/stats"
 #define INBE_SYNC_WEB_RESPONSE_MAX (4 * 1024 * 1024)
 #define INBE_SYNC_AUTH_TOKEN_KEY "sync_auth_token"
 #define INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY "sync_auth_token_expires_at"
@@ -225,6 +228,68 @@ sync_buffer_append_json_string(SyncBuffer *buffer, const char *text)
     return sync_buffer_append(buffer, "\"", 1);
 }
 
+static int
+sync_client_is_hex64(const char *text)
+{
+    if(text == NULL || strlen(text) != 64)
+        return 0;
+    for(int i = 0; i < 64; i++) {
+        char ch = text[i];
+        if(!((ch >= '0' && ch <= '9') ||
+             (ch >= 'a' && ch <= 'f') ||
+             (ch >= 'A' && ch <= 'F')))
+            return 0;
+    }
+    return 1;
+}
+
+int
+sync_client_normalize_friend_target(const char *target, char *out, size_t out_size)
+{
+    char alias[40];
+    int n = 0;
+    int start = 0;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(target == NULL)
+        return 0;
+    while(target[start] == ' ' || target[start] == '\t' ||
+          target[start] == '\n' || target[start] == '\r')
+        start++;
+    if(target[start] == '@')
+        start++;
+
+    if(sync_client_is_hex64(target + start)) {
+        if(out_size < 65)
+            return 0;
+        for(int i = 0; i < 64; i++) {
+            char ch = target[start + i];
+            out[i] = (ch >= 'A' && ch <= 'F') ? (char)(ch - 'A' + 'a') : ch;
+        }
+        out[64] = '\0';
+        return 1;
+    }
+
+    for(int i = start; target[i] != '\0' && n < (int)sizeof(alias) - 1; i++) {
+        unsigned char ch = (unsigned char)target[i];
+        if(ch >= 'A' && ch <= 'Z')
+            ch = (unsigned char)(ch - 'A' + 'a');
+        if((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '_')
+            alias[n++] = (char)ch;
+        else if(ch == ' ' || ch == '\t' || ch == '\n' || ch == '\r')
+            break;
+        else
+            return 0;
+    }
+    alias[n] = '\0';
+    if(n < 4 || n > 32 || out_size < (size_t)n + 2)
+        return 0;
+    snprintf(out, out_size, "@%s", alias);
+    return 1;
+}
+
 #if defined(INBE_SYNC_CLIENT_TESTS)
 int
 sync_client_test_response_buffer(const char *first, const char *second,
@@ -243,7 +308,44 @@ sync_client_test_response_buffer(const char *first, const char *second,
     free(buffer.data);
     return ok;
 }
+
+int
+sync_client_test_friend_request_body(const char *target, char *out, size_t out_size)
+{
+    SyncBuffer body = {0};
+    char normalized[80];
+    int ok;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(!sync_client_normalize_friend_target(target, normalized, sizeof(normalized)))
+        return 0;
+    ok = sync_buffer_append(&body, "{\"target\":", strlen("{\"target\":")) &&
+         sync_buffer_append_json_string(&body, normalized) &&
+         sync_buffer_append(&body, "}", 1);
+    if(ok && body.data != NULL && strlen(body.data) < out_size)
+        snprintf(out, out_size, "%s", body.data);
+    else
+        ok = 0;
+    free(body.data);
+    return ok;
+}
 #endif
+
+static int
+sync_copy_response_text(const SyncBuffer *response, char *out, size_t out_size)
+{
+    if(out == NULL || out_size == 0)
+        return 1;
+    out[0] = '\0';
+    if(response == NULL || response->data == NULL)
+        return 0;
+    if(strlen(response->data) >= out_size)
+        return 0;
+    snprintf(out, out_size, "%s", response->data);
+    return 1;
+}
 
 static void
 sync_join_url(char *out, size_t out_size, const char *base_url, const char *path)
@@ -1500,6 +1602,225 @@ sync_client_register_alias(const char *base_url, const char *alias)
     return INBE_SYNC_CLIENT_OK;
 #endif
 }
+
+static InbeSyncClientResult
+sync_client_bearer_request(const char *base_url, const char *method, const char *path,
+                           const char *body, char *out, size_t out_size)
+{
+    InbeSyncAccount account;
+    char token[4096];
+    char url[1024];
+    char user_header[96];
+    char auth_header[4200];
+    const char *headers[3];
+    int header_count = 0;
+    SyncBuffer response = {0};
+    long status = 0;
+    InbeSyncClientResult result;
+    int ok;
+    int retried_auth = 0;
+
+    if(out != NULL && out_size > 0)
+        out[0] = '\0';
+    if(!sync_client_url_valid(base_url))
+        return INBE_SYNC_CLIENT_INVALID_URL;
+    if(method == NULL || path == NULL)
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    if(!sync_account_load(&account))
+        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+    if(!sync_load_valid_auth_token(token, sizeof(token))) {
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+    }
+
+retry:
+    sync_join_url(url, sizeof(url), base_url, path);
+    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account.public_id);
+    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
+    if(body != NULL)
+        headers[header_count++] = "Content-Type: application/json";
+    headers[header_count++] = user_header;
+    headers[header_count++] = auth_header;
+    ok = sync_http_request(method, url, body != NULL ? body : "", headers, header_count,
+                           &response, &status);
+    if(!ok) {
+        sync_log_http_failure(path, status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(status == 401) {
+        free(response.data);
+        response = (SyncBuffer){0};
+        sync_client_clear_auth_token();
+        if(retried_auth)
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+        retried_auth = 1;
+        result = sync_login(base_url, &account);
+        if(result != INBE_SYNC_CLIENT_OK)
+            return result;
+        if(!sync_load_valid_auth_token(token, sizeof(token)))
+            return INBE_SYNC_CLIENT_AUTH_FAILED;
+        status = 0;
+        header_count = 0;
+        goto retry;
+    }
+    if(status < 200 || status >= 300) {
+        sync_log_http_failure(path, status, response.data);
+        free(response.data);
+        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    }
+    if(!sync_copy_response_text(&response, out, out_size)) {
+        free(response.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+    free(response.data);
+    return INBE_SYNC_CLIENT_OK;
+}
+
+InbeSyncClientResult
+sync_client_send_friend_request(const char *base_url, const char *target)
+{
+    SyncBuffer body = {0};
+    InbeSyncClientResult result;
+    char normalized[80];
+
+    if(!sync_client_normalize_friend_target(target, normalized, sizeof(normalized)))
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    if(!sync_buffer_append(&body, "{\"target\":", strlen("{\"target\":")) ||
+       !sync_buffer_append_json_string(&body, normalized) ||
+       !sync_buffer_append(&body, "}", 1)) {
+        free(body.data);
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    }
+    TraceLog(LOG_INFO, "SYNC: friend request target=%s", normalized);
+    result = sync_client_bearer_request(base_url, "POST", INBE_FRIEND_REQUESTS_PATH,
+                                        body.data, NULL, 0);
+    free(body.data);
+    return result;
+}
+
+InbeSyncClientResult
+sync_client_get_friend_requests(const char *base_url, char *out, size_t out_size)
+{
+    return sync_client_bearer_request(base_url, "GET", INBE_FRIEND_REQUESTS_PATH,
+                                      NULL, out, out_size);
+}
+
+InbeSyncClientResult
+sync_client_get_friends(const char *base_url, char *out, size_t out_size)
+{
+    return sync_client_bearer_request(base_url, "GET", INBE_FRIENDS_PATH,
+                                      NULL, out, out_size);
+}
+
+static InbeSyncClientResult
+sync_client_friend_request_action(const char *base_url, const char *request_id,
+                                  const char *action)
+{
+    char path[256];
+
+    if(request_id == NULL || request_id[0] == '\0' || action == NULL)
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    if(snprintf(path, sizeof(path), "%s/%s/%s", INBE_FRIEND_REQUESTS_PATH,
+                request_id, action) >= (int)sizeof(path))
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    return sync_client_bearer_request(base_url, "POST", path, "{}", NULL, 0);
+}
+
+InbeSyncClientResult
+sync_client_accept_friend_request(const char *base_url, const char *request_id)
+{
+    return sync_client_friend_request_action(base_url, request_id, "accept");
+}
+
+InbeSyncClientResult
+sync_client_decline_friend_request(const char *base_url, const char *request_id)
+{
+    return sync_client_friend_request_action(base_url, request_id, "decline");
+}
+
+InbeSyncClientResult
+sync_client_remove_friend(const char *base_url, const char *friend_user_id)
+{
+    char path[192];
+
+    if(friend_user_id == NULL || friend_user_id[0] == '\0')
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    if(snprintf(path, sizeof(path), "%s/%s", INBE_FRIENDS_PATH,
+                friend_user_id) >= (int)sizeof(path))
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    return sync_client_bearer_request(base_url, "DELETE", path, NULL, NULL, 0);
+}
+
+static int
+sync_url_append_query(char *url, size_t url_size, const char *key, const char *value)
+{
+    const char *p;
+    char sep = strchr(url, '?') == NULL ? '?' : '&';
+
+    if(strlen(url) + strlen(key) + 2 >= url_size)
+        return 0;
+    strncat(url, &sep, 1);
+    strncat(url, key, url_size - strlen(url) - 1);
+    strncat(url, "=", url_size - strlen(url) - 1);
+    if(value == NULL)
+        value = "";
+    for(p = value; *p != '\0'; p++) {
+        char encoded[4];
+        if((*p >= 'A' && *p <= 'Z') || (*p >= 'a' && *p <= 'z') ||
+           (*p >= '0' && *p <= '9') || *p == '_' || *p == '-' ||
+           *p == '.' || *p == ':') {
+            if(strlen(url) + 1 >= url_size)
+                return 0;
+            strncat(url, p, 1);
+        } else {
+            if(strlen(url) + 3 >= url_size)
+                return 0;
+            snprintf(encoded, sizeof(encoded), "%%%02X", (unsigned char)*p);
+            strncat(url, encoded, url_size - strlen(url) - 1);
+        }
+    }
+    return 1;
+}
+
+InbeSyncClientResult
+sync_client_get_friend_stats(const char *base_url, const char *app,
+                             const char *practice, const char *metric,
+                             char *out, size_t out_size)
+{
+    char path[512];
+
+    snprintf(path, sizeof(path), "%s", INBE_FRIEND_STATS_PATH);
+    if(!sync_url_append_query(path, sizeof(path), "app", app != NULL ? app : "inbe") ||
+       !sync_url_append_query(path, sizeof(path), "practice", practice) ||
+       !sync_url_append_query(path, sizeof(path), "metric", metric))
+        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+    return sync_client_bearer_request(base_url, "GET", path, NULL, out, out_size);
+}
+
+#if defined(INBE_SYNC_CLIENT_TESTS)
+int
+sync_client_test_friend_stats_path(const char *app, const char *practice,
+                                   const char *metric, char *out, size_t out_size)
+{
+    char path[512];
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    snprintf(path, sizeof(path), "%s", INBE_FRIEND_STATS_PATH);
+    if(!sync_url_append_query(path, sizeof(path), "app", app) ||
+       !sync_url_append_query(path, sizeof(path), "practice", practice) ||
+       !sync_url_append_query(path, sizeof(path), "metric", metric) ||
+       strlen(path) >= out_size)
+        return 0;
+    snprintf(out, out_size, "%s", path);
+    return 1;
+}
+#endif
 
 InbeSyncClientResult
 sync_client_wait_for_remote_event(const char *base_url)

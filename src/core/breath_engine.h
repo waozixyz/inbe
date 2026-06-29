@@ -40,7 +40,9 @@ enum {
     InbeScreenPracticeConfig,
 	InbeScreenLanguage,
 	InbeScreenManual,
+    InbeScreenProfile,
 	InbeScreenHabits,
+    InbeScreenPet,
 	InbeScreenHabitEdit,
 	InbeScreenHabitSessionEdit,
 };

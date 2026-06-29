@@ -4,6 +4,9 @@ Inner Breeze
 [tab_history]
 History
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 Habits
 ---
@@ -21,6 +24,24 @@ Mark Done
 ---
 [tab_manual]
 Tutorial
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 Settings
@@ -271,14 +292,11 @@ Appearance
 [settings_section_language]
 Language
 ---
-[settings_tab_data]
-Data
----
-[settings_section_data]
-Data
----
 [settings_tab_about]
 About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 Theme
