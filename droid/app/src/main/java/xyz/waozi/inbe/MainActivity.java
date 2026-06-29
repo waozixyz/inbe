@@ -47,7 +47,6 @@ public class MainActivity extends NativeActivity {
 
     // [status_bar, nav_bar, cutouts] mirrored in native.
     private final int[] cachedInsets = new int[6];
-    private boolean insetsInitialized = false;
     private boolean activityPaused = false;
     private boolean windowFocused = true;
     private boolean backgroundExecutionActive = false;
@@ -609,7 +608,6 @@ public class MainActivity extends NativeActivity {
                 cachedInsets[5] = cBottom;
             }
 
-            insetsInitialized = true;
             nativeSetInsets(statusBar, navBar, cLeft, cTop, cRight, cBottom);
 
         } catch (Exception e) {
