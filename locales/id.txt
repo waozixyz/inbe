@@ -67,6 +67,12 @@ Terima
 [profile_friend_decline_button]
 Tolak
 ---
+[profile_friend_remove_title]
+Hapus teman?
+---
+[profile_friend_remove_message]
+%s akan dihapus. Kirim permintaan baru untuk terhubung lagi.
+---
 [profile_updating_status]
 Memperbarui
 ---

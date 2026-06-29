@@ -175,7 +175,8 @@ meditation_config_screen_draw(InbeApp *app)
     }
 
     scroll_y = title_h + flint_px(16);
-    scroll_h = view_height - scroll_y - bottom_reserved - flint_px(8);
+    scroll_h = view_height - scroll_y - bottom_reserved -
+               (integrated ? flint_px(8) : 0);
     if(scroll_h < 0)
         scroll_h = 0;
 

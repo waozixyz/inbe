@@ -89,6 +89,7 @@ int storage_sync_review_details(char **local_out, char **remote_out);
 int storage_sync_review_diff(char **diff_out);
 int storage_sync_review_has_visible_diff(void);
 int storage_sync_review_json_has_visible_diff(const char *json);
+int storage_sync_review_json_should_auto_apply_remote(const char *json);
 int storage_sync_review_clear_if_no_visible_diff(void);
 int storage_sync_review_apply_remote_if_local_empty(void);
 int storage_apply_pending_sync_review(int use_remote);

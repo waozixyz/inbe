@@ -67,6 +67,12 @@ Prijmout
 [profile_friend_decline_button]
 Odmitnout
 ---
+[profile_friend_remove_title]
+Odebrat pritele?
+---
+[profile_friend_remove_message]
+%s bude odebran. Pro obnoveni poslete novou zadost.
+---
 [profile_updating_status]
 Aktualizace
 ---

@@ -67,6 +67,12 @@ Accept
 [profile_friend_decline_button]
 Decline
 ---
+[profile_friend_remove_title]
+Remove friend?
+---
+[profile_friend_remove_message]
+%s will be removed. Send a new request to reconnect.
+---
 [profile_updating_status]
 Updating
 ---

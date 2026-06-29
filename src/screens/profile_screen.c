@@ -295,6 +295,49 @@ profile_json_number_value(const char *object, const char *key)
 static void profile_refresh_friends(InbeApp *app);
 
 static void
+profile_public_id_short(char *out, size_t out_size, const char *user_id)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    if(user_id == NULL || user_id[0] == '\0')
+        snprintf(out, out_size, "----");
+    else
+        snprintf(out, out_size, "%.*s", 4, user_id);
+}
+
+static void
+profile_display_name(char *out, size_t out_size, const char *alias,
+                     const char *user_id)
+{
+    char short_id[8];
+
+    if(out == NULL || out_size == 0)
+        return;
+    if(alias != NULL && alias[0] != '\0') {
+        snprintf(out, out_size, "@%s", alias);
+    } else if(user_id != NULL && user_id[0] != '\0') {
+        profile_public_id_short(short_id, sizeof(short_id), user_id);
+        snprintf(out, out_size, "%s...", short_id);
+    } else {
+        snprintf(out, out_size, "----...");
+    }
+}
+
+static void
+profile_prompt_remove_friend(InbeApp *app, const char *friend_user_id,
+                             const char *friend_name)
+{
+    if(app == NULL || friend_user_id == NULL || friend_user_id[0] == '\0')
+        return;
+    snprintf(app->profile_pending_friend_remove_id,
+             sizeof(app->profile_pending_friend_remove_id), "%s", friend_user_id);
+    snprintf(app->profile_pending_friend_remove_name,
+             sizeof(app->profile_pending_friend_remove_name), "%s",
+             friend_name != NULL && friend_name[0] != '\0' ? friend_name : friend_user_id);
+    app_open_modal(app, UIModalConfirmRemoveFriend);
+}
+
+static void
 profile_draw_json_people(const char *json, const char *array_key,
                          int x, int w, int *y, int with_actions, InbeApp *app)
 {
@@ -304,6 +347,8 @@ profile_draw_json_people(const char *json, const char *array_key,
     int rows = 0;
     int font = flint_ui_font();
     int small = flint_ui_font_small();
+    int with_remove = !with_actions && strcmp(array_key, "friends") == 0;
+    int with_cancel = !with_actions && strcmp(array_key, "outgoing") == 0;
 
     snprintf(key_pattern, sizeof(key_pattern), "\"%s\"", array_key);
     p = strstr(json != NULL ? json : "", key_pattern);
@@ -329,6 +374,8 @@ profile_draw_json_people(const char *json, const char *array_key,
         int row_h = with_actions ? flint_px(42) : flint_px(30);
         int hover_accept = 0;
         int hover_decline = 0;
+        int hover_remove = 0;
+        int hover_cancel = 0;
         char url[256];
 
         id[0] = '\0';
@@ -353,9 +400,32 @@ profile_draw_json_people(const char *json, const char *array_key,
             profile_json_string_value(p, "alias", alias, sizeof(alias));
         if(display_id[0] == '\0')
             snprintf(display_id, sizeof(display_id), "%s", id);
-        snprintf(title, sizeof(title), "%s%s", alias[0] != '\0' ? "@" : "",
-                 alias[0] != '\0' ? alias : display_id);
+        profile_display_name(title, sizeof(title), alias, display_id);
         flint_text_draw(title, x, *y, font, flint_theme_get_text());
+        if(with_remove) {
+            int icon_size = flint_px(18);
+            int icon_padding = flint_px(6);
+            int button_w = icon_size + icon_padding * 2;
+            if(ui_draw_icon_btn_padded(x + w - button_w, *y - flint_px(6),
+                                       icon_size, icon_padding,
+                                       app->icons[UI_ICON_TYPE_TRASH],
+                                       &hover_remove)) {
+                profile_prompt_remove_friend(app, display_id, title);
+            }
+        } else if(with_cancel) {
+            int icon_size = flint_px(18);
+            int icon_padding = flint_px(6);
+            int button_w = icon_size + icon_padding * 2;
+            if(ui_draw_icon_btn_padded(x + w - button_w, *y - flint_px(6),
+                                       icon_size, icon_padding,
+                                       app->icons[UI_ICON_TYPE_TRASH],
+                                       &hover_cancel) &&
+               profile_sync_url(url, sizeof(url))) {
+                app_request_friend_decline(app, id);
+                settings_screen_set_status_success(locale_get("profile_updating_status"),
+                                                   NULL);
+            }
+        }
         if(with_actions) {
             int btn_w = (w - flint_px(8)) / 2;
             if(ui_draw_generic_button(x, *y + flint_px(22), btn_w, flint_px(30),
@@ -383,6 +453,44 @@ profile_draw_json_people(const char *json, const char *array_key,
         flint_text_draw(locale_get("profile_none_label"), x, *y, small,
                         flint_darken(flint_theme_get_text(), 35));
         *y += flint_px(24);
+    }
+}
+
+void
+profile_screen_draw_remove_friend_modal(InbeApp *app)
+{
+    char message[384];
+    int modal_result;
+
+    if(app == NULL || !app->modal.active ||
+       app->modal.type != UIModalConfirmRemoveFriend)
+        return;
+
+    snprintf(message, sizeof(message),
+             locale_get("profile_friend_remove_message"),
+             app->profile_pending_friend_remove_name[0] != '\0'
+                 ? app->profile_pending_friend_remove_name
+                 : "this friend");
+    modal_result = ui_draw_modal(locale_get("profile_friend_remove_title"), message,
+                                 locale_get("cancel_button"),
+                                 locale_get("delete_button"));
+    if(modal_result == 1) {
+        app->profile_pending_friend_remove_id[0] = '\0';
+        app->profile_pending_friend_remove_name[0] = '\0';
+        app_close_modal(app);
+    } else if(modal_result == 2) {
+        char url[256];
+
+        if(profile_sync_url(url, sizeof(url))) {
+            app_request_friend_remove(app, app->profile_pending_friend_remove_id);
+            settings_screen_set_status_success(locale_get("profile_updating_status"),
+                                               NULL);
+        } else {
+            settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        }
+        app->profile_pending_friend_remove_id[0] = '\0';
+        app->profile_pending_friend_remove_name[0] = '\0';
+        app_close_modal(app);
     }
 }
 
@@ -726,9 +834,13 @@ profile_draw_friends(InbeApp *app, int x, int w, int *y)
     int hover_refresh = 0;
     int commit = 0;
     char url[256];
+    int incoming_count;
+    int outgoing_count;
 
     if(!app->profile_friends_loaded)
         profile_load_friends_cache(app);
+    incoming_count = profile_json_array_count(app->profile_friend_requests_json, "incoming");
+    outgoing_count = profile_json_array_count(app->profile_friend_requests_json, "outgoing");
 
     *y += flint_px(16);
     flint_text_draw(locale_get("profile_friends_title"), x, *y, font,
@@ -771,20 +883,24 @@ profile_draw_friends(InbeApp *app, int x, int w, int *y)
     }
     *y += btn_h + flint_px(22);
 
-    flint_text_draw(locale_get("profile_incoming_title"), x, *y, font,
-                    flint_theme_get_text());
-    *y += flint_px(28);
-    profile_draw_json_people(app->profile_friend_requests_json, "incoming", x, w, y, 1, app);
-    *y += flint_px(16);
+    if(incoming_count > 0) {
+        flint_text_draw(locale_get("profile_incoming_title"), x, *y, font,
+                        flint_theme_get_text());
+        *y += flint_px(28);
+        profile_draw_json_people(app->profile_friend_requests_json, "incoming", x, w, y, 1, app);
+        *y += flint_px(16);
+    }
     flint_text_draw(locale_get("profile_friends_title"), x, *y, font,
                     flint_theme_get_text());
     *y += flint_px(28);
     profile_draw_json_people(app->profile_friends_json, "friends", x, w, y, 0, app);
-    *y += flint_px(16);
-    flint_text_draw(locale_get("profile_outgoing_title"), x, *y, font,
-                    flint_theme_get_text());
-    *y += flint_px(28);
-    profile_draw_json_people(app->profile_friend_requests_json, "outgoing", x, w, y, 0, app);
+    if(outgoing_count > 0) {
+        *y += flint_px(16);
+        flint_text_draw(locale_get("profile_outgoing_title"), x, *y, font,
+                        flint_theme_get_text());
+        *y += flint_px(28);
+        profile_draw_json_people(app->profile_friend_requests_json, "outgoing", x, w, y, 0, app);
+    }
 }
 
 static void
@@ -798,24 +914,9 @@ static void
 profile_leaderboard_display_name(char *out, size_t out_size,
                                  const char *alias, const char *user_id)
 {
-    int written;
-
     if(out == NULL || out_size == 0)
         return;
-    if(alias != NULL && alias[0] != '\0') {
-        if(out_size <= 2) {
-            snprintf(out, out_size, "@");
-            return;
-        }
-        written = snprintf(out, out_size, "@%.*s", (int)out_size - 2, alias);
-        if(written < 0)
-            out[0] = '\0';
-    } else if(user_id != NULL && strlen(user_id) > 12) {
-        snprintf(out, out_size, "%.12s...", user_id);
-    } else {
-        snprintf(out, out_size, "%.*s", (int)out_size - 1,
-                 user_id != NULL ? user_id : "");
-    }
+    profile_display_name(out, out_size, alias, user_id);
 }
 
 static int

@@ -206,6 +206,10 @@ app_social_worker(void *userdata)
             result = sync_client_decline_friend_request(args->url, args->action_value);
             if(result != FLINT_LYRA_SYNC_OK)
                 goto done;
+        } else if(strcmp(args->action, "remove") == 0) {
+            result = sync_client_remove_friend(args->url, args->action_value);
+            if(result != FLINT_LYRA_SYNC_OK)
+                goto done;
         }
         result = sync_client_get_friend_requests(args->url, requests_json,
                                                  sizeof(requests_json));
@@ -432,6 +436,7 @@ app_modal_type_name(UIModalType type)
     case UIModalSyncReview: return "sync_review";
     case UIModalSyncAlias: return "sync_alias";
     case UIModalSyncPublicId: return "sync_public_id";
+    case UIModalConfirmRemoveFriend: return "confirm_remove_friend";
     default: break;
     }
     return "unknown";
@@ -687,6 +692,13 @@ app_request_friend_decline(InbeApp *app, const char *request_id)
 {
     (void)app;
     app_request_social_action("decline", request_id);
+}
+
+void
+app_request_friend_remove(InbeApp *app, const char *friend_user_id)
+{
+    (void)app;
+    app_request_social_action("remove", friend_user_id);
 }
 
 static int
@@ -1715,6 +1727,10 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalThemePicker)
         settings_screen_draw_theme_picker_modal(app);
+    if(app->modal.type == UIModalConfirmRemoveFriend) {
+        profile_screen_draw_remove_friend_modal(app);
+        return;
+    }
     if(app->modal.type == UIModalPracticeManual ||
        app->modal.type == UIModalPracticeConfig ||
        app->modal.type == UIModalEditProgressiveStartSpeed) {
@@ -1751,7 +1767,8 @@ static void
 updateapp(InbeApp *app)
 {
     int center_x = view_width / 2;
-    int center_y = view_height / 2;
+    int frame_view_height = view_height;
+    int center_y;
     int play_center_y;
     int hover = 0;
     int frame_screen = app->inbe.screen;
@@ -1759,6 +1776,7 @@ updateapp(InbeApp *app)
     int habits_guide_active = 0;
     int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
+    int global_modal_drawn = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
@@ -1785,6 +1803,9 @@ updateapp(InbeApp *app)
        profile_guide_active) {
         ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
+
+    view_height = app_page_height(app, view_height);
+    center_y = view_height / 2;
 
     if(IsKeyPressed(KEY_BACK)) {
         if(first_run_guide_active || habits_guide_active || profile_guide_active) {
@@ -1907,15 +1928,22 @@ updateapp(InbeApp *app)
     }
 
 finish_frame:
+    if(practice_fullscreen_modal) {
+        draw_global_modal(app);
+        global_modal_drawn = 1;
+    }
+    view_height = frame_view_height;
     app_draw_bottom_nav(app);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
     profile_screen_draw_first_run_guide(app);
-    draw_global_modal(app);
+    if(!global_modal_drawn)
+        draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
     if(app->transition_mode == APP_TRANSITION_FADE) {
-        flint_transition_draw_fade(&app->screen_transition, view_width, view_height,
+        flint_transition_draw_fade(&app->screen_transition, view_width,
+                                   app_page_height(app, view_height),
                                    flint_theme_get_bg());
     }
     app_advance_screen_transition(app);

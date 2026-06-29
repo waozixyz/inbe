@@ -67,6 +67,12 @@ Pet
 [profile_friend_decline_button]
 拒否
 ---
+[profile_friend_remove_title]
+フレンドを削除？
+---
+[profile_friend_remove_message]
+%s を削除します。再接続には新しいリクエストが必要です。
+---
 [profile_updating_status]
 更新中
 ---

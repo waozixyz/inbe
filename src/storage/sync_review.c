@@ -11,6 +11,7 @@
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
 #define STORAGE_SYNC_LAST_SERVER_HASH_KEY "sync_last_server_state_hash"
+#define STORAGE_SYNC_AUTO_APPLY_VISIBLE_CHANGE_LIMIT 2
 
 typedef struct ReviewText {
     char *data;
@@ -24,7 +25,10 @@ static void review_append_remote(ReviewText *out, const char *json);
 static void review_append_unique_lines(ReviewText *out, const char *prefix,
                                        const char *lines, const char *other);
 static int review_has_pending_outbox(void);
+static int review_pending_outbox_sessions_only(void);
 static int review_has_unknown_activity(const char *json);
+static int review_small_session_only_change(const char *diff);
+static int review_visible_change_count(const char *diff);
 
 static int
 review_reserve(ReviewText *text, size_t extra)
@@ -617,6 +621,31 @@ storage_sync_review_json_has_visible_diff(const char *json)
     return has_diff;
 }
 
+int
+storage_sync_review_json_should_auto_apply_remote(const char *json)
+{
+    char *diff = NULL;
+    int result;
+
+    if(review_has_unknown_activity(json))
+        return 0;
+    if(!storage_sync_review_diff_for_json(json, 0, &diff)) {
+        free(diff);
+        return 0;
+    }
+    if(diff == NULL || diff[0] == '\0') {
+        free(diff);
+        return 1;
+    }
+    if(!review_has_pending_outbox()) {
+        free(diff);
+        return 1;
+    }
+    result = review_small_session_only_change(diff);
+    free(diff);
+    return result;
+}
+
 static int
 review_has_pending_outbox(void)
 {
@@ -629,6 +658,25 @@ review_has_pending_outbox(void)
                           "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 1;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    return result;
+}
+
+static int
+review_pending_outbox_sessions_only(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    int result = 0;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1) "
+                          "AND NOT EXISTS(SELECT 1 FROM sync_outbox WHERE entity_type<>'session')",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
     if(sqlite3_step(stmt) == SQLITE_ROW)
         result = sqlite3_column_int(stmt, 0) != 0;
     sqlite3_finalize(stmt);
@@ -671,6 +719,76 @@ review_has_unknown_activity(const char *json)
     if(result)
         return 1;
     return 0;
+}
+
+static int
+review_small_session_only_change(const char *diff)
+{
+    int count;
+
+    if(!review_pending_outbox_sessions_only())
+        return 0;
+    count = review_visible_change_count(diff);
+    return count > 0 && count <= STORAGE_SYNC_AUTO_APPLY_VISIBLE_CHANGE_LIMIT;
+}
+
+static int
+review_line_starts_with_date(const char *line, size_t len)
+{
+    if(line == NULL || len < 10)
+        return 0;
+    return line[0] >= '0' && line[0] <= '9' &&
+           line[1] >= '0' && line[1] <= '9' &&
+           line[2] >= '0' && line[2] <= '9' &&
+           line[3] >= '0' && line[3] <= '9' &&
+           line[4] == '-' &&
+           line[5] >= '0' && line[5] <= '9' &&
+           line[6] >= '0' && line[6] <= '9' &&
+           line[7] == '-' &&
+           line[8] >= '0' && line[8] <= '9' &&
+           line[9] >= '0' && line[9] <= '9';
+}
+
+static int
+review_line_equals_literal(const char *line, size_t len, const char *literal)
+{
+    size_t literal_len;
+
+    if(line == NULL || literal == NULL)
+        return 0;
+    literal_len = strlen(literal);
+    return len == literal_len && strncmp(line, literal, len) == 0;
+}
+
+static int
+review_visible_change_count(const char *diff)
+{
+    const char *p = diff;
+    const char *line;
+    const char *end;
+    size_t len;
+    int date_lines = 0;
+    int changed_lines = 0;
+
+    if(diff == NULL)
+        return 0;
+    while(*p != '\0') {
+        end = strchr(p, '\n');
+        len = end != NULL ? (size_t)(end - p) : strlen(p);
+        if(len > 2 && (p[0] == '-' || p[0] == '+') && p[1] == ' ') {
+            line = p + 2;
+            len -= 2;
+            if(review_line_starts_with_date(line, len))
+                date_lines++;
+            else if(!review_line_equals_literal(line, len, "Sessions") &&
+                    !review_line_equals_literal(line, len, "Habit days"))
+                changed_lines++;
+        }
+        if(end == NULL)
+            break;
+        p = end + 1;
+    }
+    return date_lines > 0 ? date_lines : changed_lines;
 }
 
 int

@@ -67,6 +67,12 @@ Annehmen
 [profile_friend_decline_button]
 Ablehnen
 ---
+[profile_friend_remove_title]
+Freund entfernen?
+---
+[profile_friend_remove_message]
+%s wird entfernt. Sende eine neue Anfrage zum Wiederverbinden.
+---
 [profile_updating_status]
 Aktualisieren
 ---

@@ -92,7 +92,30 @@ app_content_bottom_reserved(const InbeApp *app)
         return 0;
     if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
         return 0;
-    return ui_bottom_nav_height() + app_android_bottom_nav_height();
+    return ui_bottom_nav_height();
+}
+
+int
+app_page_height(const InbeApp *app, int full_height)
+{
+    int bottom_reserved;
+
+    if(full_height <= 0)
+        return 0;
+    bottom_reserved = app_fullscreen_bottom_reserved(app);
+    if(bottom_reserved > 0 && bottom_reserved < full_height)
+        return full_height - bottom_reserved;
+    return full_height;
+}
+
+static int
+app_has_fullscreen_overlay(const InbeApp *app)
+{
+    if(app == NULL || !app->modal.active)
+        return 0;
+    return app->modal.type == UIModalPracticeManual ||
+           app->modal.type == UIModalPracticeConfig ||
+           app->modal.type == UIModalEditProgressiveStartSpeed;
 }
 
 static const char *
@@ -172,7 +195,17 @@ app_should_draw_bottom_nav(const InbeApp *app)
 {
     if(app == NULL)
         return 0;
+    if(app_has_fullscreen_overlay(app))
+        return 0;
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE;
+}
+
+int
+app_fullscreen_bottom_reserved(const InbeApp *app)
+{
+    if(app == NULL)
+        return 0;
+    return app_android_bottom_nav_height();
 }
 
 void
@@ -189,6 +222,9 @@ app_draw_bottom_nav(InbeApp *app)
     FlintUIBottomNavItem items[BOTTOM_NAV_ROUTE_COUNT];
     FlintUIBottomNavResult result;
 
+    if(app_android_bottom_nav_height() > 0)
+        DrawRectangle(0, view_height - app_android_bottom_nav_height(),
+                      view_width, app_android_bottom_nav_height(), BLACK);
     if(!app_should_draw_bottom_nav(app))
         return;
     for(int i = 0; i < BOTTOM_NAV_ROUTE_COUNT; i++) {
@@ -201,9 +237,6 @@ app_draw_bottom_nav(InbeApp *app)
             app->modal.active
         };
     }
-    if(app_android_bottom_nav_height() > 0)
-        DrawRectangle(0, view_height - app_android_bottom_nav_height(),
-                      view_width, app_android_bottom_nav_height(), BLACK);
     result = ui_draw_bottom_nav((FlintUIBottomNav){
         .view_width = view_width,
         .view_height = view_height,
