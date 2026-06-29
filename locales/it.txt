@@ -67,6 +67,12 @@ Accetta
 [profile_friend_decline_button]
 Rifiuta
 ---
+[profile_friend_remove_title]
+Rimuovere amico?
+---
+[profile_friend_remove_message]
+%s sara rimosso. Invia una nuova richiesta per riconnetterti.
+---
 [profile_updating_status]
 Aggiornamento
 ---

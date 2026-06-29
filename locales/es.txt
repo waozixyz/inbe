@@ -67,6 +67,12 @@ Aceptar
 [profile_friend_decline_button]
 Rechazar
 ---
+[profile_friend_remove_title]
+¿Eliminar amigo?
+---
+[profile_friend_remove_message]
+Se eliminara a %s. Envia una nueva solicitud para reconectar.
+---
 [profile_updating_status]
 Actualizando
 ---

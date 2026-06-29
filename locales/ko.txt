@@ -67,6 +67,12 @@ Pet
 [profile_friend_decline_button]
 거절
 ---
+[profile_friend_remove_title]
+친구 삭제?
+---
+[profile_friend_remove_message]
+%s 님이 삭제됩니다. 다시 연결하려면 새 요청을 보내세요.
+---
 [profile_updating_status]
 업데이트 중
 ---

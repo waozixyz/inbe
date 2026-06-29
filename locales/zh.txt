@@ -67,6 +67,12 @@ Pet
 [profile_friend_decline_button]
 拒绝
 ---
+[profile_friend_remove_title]
+删除好友？
+---
+[profile_friend_remove_message]
+将删除 %s。重新连接需发送新请求。
+---
 [profile_updating_status]
 正在更新
 ---

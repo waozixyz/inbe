@@ -67,6 +67,12 @@ Pet
 [profile_friend_decline_button]
 Отклонить
 ---
+[profile_friend_remove_title]
+Удалить друга?
+---
+[profile_friend_remove_message]
+%s будет удален. Для связи отправьте новый запрос.
+---
 [profile_updating_status]
 Обновление
 ---
