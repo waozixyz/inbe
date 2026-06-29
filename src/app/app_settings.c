@@ -160,6 +160,7 @@ save_settings(InbeApp *app)
         {"sound_volume", app->sound_volume},
         {"tutorial_seen", app->tutorial_seen ? 1 : 0},
         {"habits_guide_seen", app->habits_guide_seen ? 1 : 0},
+        {"profile_guide_seen", app->profile_guide_seen ? 1 : 0},
         {"exercise_manual_seen_mask", app->exercise_manual_seen_mask},
         {"theme", app->theme_id},
         {"dark_mode", app->dark_mode},
@@ -258,6 +259,7 @@ app_load_settings(InbeApp *app)
         LoadedBoolSetting settings[] = {
             {&app->tutorial_seen, "tutorial_seen", 0},
             {&app->habits_guide_seen, "habits_guide_seen", 0},
+            {&app->profile_guide_seen, "profile_guide_seen", 0},
             {&app->dark_mode, "dark_mode", 0},
             {&app->fullscreen_enabled, "fullscreen", 0},
 #if ANDROID_BUILD

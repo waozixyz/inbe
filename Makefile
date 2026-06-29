@@ -377,10 +377,10 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/flint_lyra_sync.c $(FLINT_DIR)/src/flint_lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
 		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(FLINT_CURL_CFLAGS) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c \
+		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/flint_lyra_sync.c $(FLINT_DIR)/src/flint_lyra_account.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
 $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/flint_lyra_account.c $(FLINT_DIR)/include/flint_lyra_account.h src/storage/storage.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)

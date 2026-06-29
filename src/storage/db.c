@@ -217,6 +217,7 @@ schema_create(void)
         " id TEXT PRIMARY KEY,"
         " user_id TEXT NOT NULL,"
         " name TEXT NOT NULL,"
+        " description TEXT NOT NULL DEFAULT '',"
         " color_r INTEGER NOT NULL,"
         " color_g INTEGER NOT NULL,"
         " color_b INTEGER NOT NULL,"
@@ -391,6 +392,7 @@ migrate_schema(void)
             " id TEXT PRIMARY KEY,"
             " user_id TEXT NOT NULL,"
             " name TEXT NOT NULL,"
+            " description TEXT NOT NULL DEFAULT '',"
             " color_r INTEGER NOT NULL,"
             " color_g INTEGER NOT NULL,"
             " color_b INTEGER NOT NULL,"
@@ -400,13 +402,16 @@ migrate_schema(void)
             " deleted_at INTEGER NOT NULL DEFAULT 0,"
             " updated_at INTEGER NOT NULL DEFAULT 0"
             ");"
-            "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at,updated_at)"
-            " SELECT id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at,0"
+            "INSERT INTO habits(id,user_id,name,description,color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at,updated_at)"
+            " SELECT id,user_id,name,'',color_r,color_g,color_b,sync_mode,sync_activity,sort_order,deleted_at,0"
             " FROM habits_with_sync_topic;"
             "DROP TABLE habits_with_sync_topic;"
             "COMMIT;"))
             return 0;
     }
+    if(!table_has_column("habits", "description") &&
+       !exec_sql("ALTER TABLE habits ADD COLUMN description TEXT NOT NULL DEFAULT ''"))
+        return 0;
     if(!table_has_column("habits", "counter_enabled") &&
        !exec_sql("ALTER TABLE habits ADD COLUMN counter_enabled INTEGER NOT NULL DEFAULT 0"))
         return 0;

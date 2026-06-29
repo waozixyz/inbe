@@ -5,7 +5,7 @@ Inner Breeze
 Riwayat
 ---
 [tab_profile]
-Profile
+Profil
 ---
 [tab_habits]
 Kebiasaan
@@ -32,16 +32,85 @@ Pet
 Data
 ---
 [profile_data_button]
-Configure Data
+Atur data
 ---
 [profile_habits_label]
-Habits
+Kebiasaan
 ---
 [profile_sessions_label]
-Sessions
+Sesi
 ---
 [profile_storage_label]
-Storage
+Penyimpanan
+---
+[profile_friends_title]
+Teman
+---
+[profile_leaderboard_title]
+Papan peringkat
+---
+[profile_metric_streak]
+Rangkaian
+---
+[profile_metric_avg_time]
+Waktu rata-rata
+---
+[profile_metric_avg_hold]
+Tahan rata-rata
+---
+[profile_none_label]
+Tidak ada
+---
+[profile_friend_accept_button]
+Terima
+---
+[profile_friend_decline_button]
+Tolak
+---
+[profile_updating_status]
+Memperbarui
+---
+[profile_no_account]
+Tidak ada akun
+---
+[profile_account_section]
+Akun
+---
+[profile_configure_button]
+Atur
+---
+[profile_data_section]
+Data
+---
+[profile_sync_section]
+Sinkronisasi
+---
+[profile_friends_count_format]
+%d teman
+---
+[profile_pending_count_format]
+%d tertunda
+---
+[profile_social_section]
+Sosial
+---
+[profile_add_friend_button]
+Tambah teman
+---
+[profile_refresh_button]
+Segarkan
+---
+[profile_incoming_title]
+Masuk
+---
+[profile_outgoing_title]
+Keluar
+---
+[profile_no_leaderboard_data]
+Tidak ada data papan peringkat
+---
+[profile_practice_label]
+Latihan
 ---
 [tab_settings]
 Pengaturan
@@ -287,10 +356,10 @@ Tampilan
 Bahasa
 ---
 [settings_tab_about]
-About
+Tentang
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 ---
 [theme_label]
 Tema
@@ -776,6 +845,9 @@ Edit kebiasaan
 [habit_name_label]
 Nama
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Garis bawah
 ---
@@ -873,6 +945,18 @@ Pilih Mingguan atau Kalender untuk meninjau kebiasaan.
 ---
 [habits_guide_statistics]
 Lihat statistik kebiasaan Anda di sini.
+---
+[profile_guide_account]
+Atur akun sinkronisasi Anda di sini.
+---
+[profile_guide_data]
+Tinjau data lokal dan buka alat cadangan di sini.
+---
+[profile_guide_social]
+Buka teman dan papan peringkat dari sini.
+---
+[profile_guide_social_no_account]
+Buat akun sinkronisasi untuk membuka teman dan papan peringkat.
 ---
 [nav_mode_label]
 Navigasi

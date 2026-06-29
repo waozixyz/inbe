@@ -17,6 +17,7 @@ enum {
     INBE_HABIT_MAX = 10,
     INBE_HABIT_ID_SIZE = 32,
     INBE_HABIT_NAME_SIZE = 40,
+    INBE_HABIT_DESCRIPTION_SIZE = 256,
     HABIT_LINKED_ENTRY_MAX = 128,
     HABIT_LINKED_PATH_SIZE = 80
 };
@@ -50,6 +51,7 @@ typedef struct InbeHabitDay {
 typedef struct InbeHabit {
     char id[INBE_HABIT_ID_SIZE];
     char name[INBE_HABIT_NAME_SIZE];
+    char description[INBE_HABIT_DESCRIPTION_SIZE];
     Color color;
     int sync_mode;
     int sync_activity;

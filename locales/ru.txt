@@ -5,7 +5,7 @@ Inner Breeze
 История
 ---
 [tab_profile]
-Profile
+Профиль
 ---
 [tab_habits]
 Привычки
@@ -29,19 +29,88 @@ Profile
 Pet
 ---
 [profile_data_title]
-Data
+Данные
 ---
 [profile_data_button]
-Configure Data
+Настроить данные
 ---
 [profile_habits_label]
-Habits
+Привычки
 ---
 [profile_sessions_label]
-Sessions
+Сессии
 ---
 [profile_storage_label]
-Storage
+Хранилище
+---
+[profile_friends_title]
+Друзья
+---
+[profile_leaderboard_title]
+Рейтинг
+---
+[profile_metric_streak]
+Серия
+---
+[profile_metric_avg_time]
+Среднее время
+---
+[profile_metric_avg_hold]
+Средняя задержка
+---
+[profile_none_label]
+Нет
+---
+[profile_friend_accept_button]
+Принять
+---
+[profile_friend_decline_button]
+Отклонить
+---
+[profile_updating_status]
+Обновление
+---
+[profile_no_account]
+Нет аккаунта
+---
+[profile_account_section]
+Аккаунт
+---
+[profile_configure_button]
+Настроить
+---
+[profile_data_section]
+Данные
+---
+[profile_sync_section]
+Синхронизация
+---
+[profile_friends_count_format]
+%d друзей
+---
+[profile_pending_count_format]
+%d ожидают
+---
+[profile_social_section]
+Социальное
+---
+[profile_add_friend_button]
+Добавить друга
+---
+[profile_refresh_button]
+Обновить
+---
+[profile_incoming_title]
+Входящие
+---
+[profile_outgoing_title]
+Исходящие
+---
+[profile_no_leaderboard_data]
+Нет данных рейтинга
+---
+[profile_practice_label]
+Практика
 ---
 [tab_settings]
 Настройки
@@ -290,10 +359,10 @@ OK
 Язык
 ---
 [settings_tab_about]
-About
+О приложении
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+Спокойный помощник для дыхания, привычек и синхронизации.
 ---
 [theme_label]
 Тема
@@ -776,6 +845,9 @@ liboqs не собран для этой платформы.
 [habit_name_label]
 Название
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Подчеркивание
 ---
@@ -873,6 +945,18 @@ liboqs не собран для этой платформы.
 ---
 [habits_guide_statistics]
 Здесь можно посмотреть статистику привычек.
+---
+[profile_guide_account]
+Настройте аккаунт синхронизации здесь.
+---
+[profile_guide_data]
+Проверьте локальные данные и откройте резервные копии здесь.
+---
+[profile_guide_social]
+Откройте друзей и рейтинг здесь.
+---
+[profile_guide_social_no_account]
+Создайте аккаунт синхронизации, чтобы открыть друзей и рейтинг.
 ---
 [nav_mode_label]
 Навигация

@@ -1,4 +1,8 @@
 # Changelog
+## [1.7.1] - 2026-06-28
+### Changed
+- Move shared Lyra sync protocol code into Flint and simplify Inbe sync client wiring.
+
 ## [1.7.0] - 2026-06-28
 ### Changed
 - Rework Android safe-area handling to use one native inset path with stable bottom navigation spacing.

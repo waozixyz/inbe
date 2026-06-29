@@ -5,7 +5,7 @@ Inner Breeze
 Verlauf
 ---
 [tab_profile]
-Profile
+Profil
 ---
 [tab_habits]
 Gewohnheiten
@@ -29,19 +29,88 @@ Anleitung
 Pet
 ---
 [profile_data_title]
-Data
+Daten
 ---
 [profile_data_button]
-Configure Data
+Daten konfigurieren
 ---
 [profile_habits_label]
-Habits
+Gewohnheiten
 ---
 [profile_sessions_label]
-Sessions
+Sitzungen
 ---
 [profile_storage_label]
-Storage
+Speicher
+---
+[profile_friends_title]
+Freunde
+---
+[profile_leaderboard_title]
+Bestenliste
+---
+[profile_metric_streak]
+Serie
+---
+[profile_metric_avg_time]
+Durchschnittszeit
+---
+[profile_metric_avg_hold]
+Durchschn. Halten
+---
+[profile_none_label]
+Keine
+---
+[profile_friend_accept_button]
+Annehmen
+---
+[profile_friend_decline_button]
+Ablehnen
+---
+[profile_updating_status]
+Aktualisieren
+---
+[profile_no_account]
+Kein Konto
+---
+[profile_account_section]
+Konto
+---
+[profile_configure_button]
+Konfigurieren
+---
+[profile_data_section]
+Daten
+---
+[profile_sync_section]
+Sync
+---
+[profile_friends_count_format]
+%d Freunde
+---
+[profile_pending_count_format]
+%d ausstehend
+---
+[profile_social_section]
+Sozial
+---
+[profile_add_friend_button]
+Freund hinzufuegen
+---
+[profile_refresh_button]
+Aktualisieren
+---
+[profile_incoming_title]
+Eingehend
+---
+[profile_outgoing_title]
+Ausgehend
+---
+[profile_no_leaderboard_data]
+Keine Bestenlistendaten
+---
+[profile_practice_label]
+Praxis
 ---
 [tab_settings]
 Einstellungen
@@ -287,10 +356,10 @@ Darstellung
 Sprache
 ---
 [settings_tab_about]
-About
+Info
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+Ein ruhiger Begleiter fuer Atemuebungen, Gewohnheiten und Synchronisierung.
 ---
 [theme_label]
 Thema
@@ -776,6 +845,9 @@ Gewohnheit bearbeiten
 [habit_name_label]
 Bezeichnung
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Unterstreichung
 ---
@@ -873,6 +945,18 @@ Wahle Woche oder Kalender, um deine Gewohnheit zu pruefen.
 ---
 [habits_guide_statistics]
 Sieh dir hier deine Gewohnheitsstatistiken an.
+---
+[profile_guide_account]
+Richte hier dein Sync-Konto ein.
+---
+[profile_guide_data]
+Pruefe lokale Daten und oeffne hier Sicherungen.
+---
+[profile_guide_social]
+Oeffne Freunde und Bestenliste von hier.
+---
+[profile_guide_social_no_account]
+Erstelle ein Sync-Konto, um Freunde und Bestenliste freizuschalten.
 ---
 [nav_mode_label]
 Navigation

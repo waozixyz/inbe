@@ -2646,7 +2646,7 @@ storage_habits_load(void *habits_ptr)
     memset(habits, 0, sizeof(*habits));
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT "
-                          "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
+                          "id,name,description,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
                           "enabled "
                           "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 10",
                           -1, &stmt, NULL) != SQLITE_OK)
@@ -2657,12 +2657,14 @@ storage_habits_load(void *habits_ptr)
         snprintf(habits->loaded_ids[index], sizeof(habits->loaded_ids[index]), "%s", habit->id);
         snprintf(habit->name, sizeof(habit->name), "%s",
                  (const char *)sqlite3_column_text(stmt, 1));
-        habit->color = (Color){(unsigned char)sqlite3_column_int(stmt, 2),
-                               (unsigned char)sqlite3_column_int(stmt, 3),
-                               (unsigned char)sqlite3_column_int(stmt, 4), 255};
-        habit->sync_mode = sqlite3_column_int(stmt, 5);
-        habit->sync_activity = sqlite3_column_int(stmt, 6);
-        habit->counter_enabled = sqlite3_column_int(stmt, 7) != 0;
+        snprintf(habit->description, sizeof(habit->description), "%s",
+                 (const char *)sqlite3_column_text(stmt, 2));
+        habit->color = (Color){(unsigned char)sqlite3_column_int(stmt, 3),
+                               (unsigned char)sqlite3_column_int(stmt, 4),
+                               (unsigned char)sqlite3_column_int(stmt, 5), 255};
+        habit->sync_mode = sqlite3_column_int(stmt, 6);
+        habit->sync_activity = sqlite3_column_int(stmt, 7);
+        habit->counter_enabled = sqlite3_column_int(stmt, 8) != 0;
         index++;
     }
     sqlite3_finalize(stmt);
@@ -2731,12 +2733,13 @@ storage_habits_save(const void *habits_ptr)
         const InbeHabit *habit = &habits->items[i];
         if(sqlite3_prepare_v2(g_storage.db,
                               "INSERT INTO "
-                              "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_"
+                              "habits(id,user_id,name,description,color_r,color_g,color_b,sync_mode,sync_"
                               "activity,counter_enabled,sort_order,deleted_at,updated_at) "
-                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,0,?11) "
+                              "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,0,?12) "
                               "ON CONFLICT(id) DO UPDATE SET "
                               "user_id=excluded.user_id,"
                               "name=excluded.name,"
+                              "description=excluded.description,"
                               "color_r=excluded.color_r,"
                               "color_g=excluded.color_g,"
                               "color_b=excluded.color_b,"
@@ -2761,18 +2764,29 @@ storage_habits_save(const void *habits_ptr)
         bind_text(stmt, 1, habit->id);
         bind_text(stmt, 2, g_storage.user_id);
         bind_text(stmt, 3, habit->name);
-        sqlite3_bind_int(stmt, 4, habit->color.r);
-        sqlite3_bind_int(stmt, 5, habit->color.g);
-        sqlite3_bind_int(stmt, 6, habit->color.b);
-        sqlite3_bind_int(stmt, 7, habit->sync_mode);
-        sqlite3_bind_int(stmt, 8, habit->sync_activity);
-        sqlite3_bind_int(stmt, 9, habit->counter_enabled ? 1 : 0);
-        sqlite3_bind_int(stmt, 10, i);
-        sqlite3_bind_int64(stmt, 11, changed_at);
+        bind_text(stmt, 4, habit->description);
+        sqlite3_bind_int(stmt, 5, habit->color.r);
+        sqlite3_bind_int(stmt, 6, habit->color.g);
+        sqlite3_bind_int(stmt, 7, habit->color.b);
+        sqlite3_bind_int(stmt, 8, habit->sync_mode);
+        sqlite3_bind_int(stmt, 9, habit->sync_activity);
+        sqlite3_bind_int(stmt, 10, habit->counter_enabled ? 1 : 0);
+        sqlite3_bind_int(stmt, 11, i);
+        sqlite3_bind_int64(stmt, 12, changed_at);
         if(sqlite3_step(stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0)
             storage_enqueue_sync_habit(habit->id);
         sqlite3_finalize(stmt);
         stmt = NULL;
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "UPDATE habits SET description=?2 "
+                              "WHERE id=?1 AND description<>?2",
+                              -1, &stmt, NULL) == SQLITE_OK) {
+            bind_text(stmt, 1, habit->id);
+            bind_text(stmt, 2, habit->description);
+            sqlite3_step(stmt);
+            sqlite3_finalize(stmt);
+            stmt = NULL;
+        }
         if(sqlite3_prepare_v2(g_storage.db, "INSERT OR IGNORE INTO sync_seen_habits(id) VALUES(?1)",
                               -1, &stmt, NULL) == SQLITE_OK) {
             bind_text(stmt, 1, habit->id);
