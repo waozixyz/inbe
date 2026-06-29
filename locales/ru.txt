@@ -112,6 +112,24 @@ Pet
 [profile_practice_label]
 Практика
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Настройки
 ---
@@ -950,7 +968,7 @@ Description
 Настройте аккаунт синхронизации здесь.
 ---
 [profile_guide_data]
-Проверьте локальные данные и откройте резервные копии здесь.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Откройте друзей и рейтинг здесь.

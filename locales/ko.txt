@@ -112,6 +112,24 @@ Pet
 [profile_practice_label]
 연습
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 설정
 ---
@@ -949,7 +967,7 @@ Description
 여기에서 동기화 계정을 설정하세요.
 ---
 [profile_guide_data]
-여기에서 로컬 데이터를 확인하고 백업 도구를 엽니다.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 여기에서 친구와 순위표를 엽니다.

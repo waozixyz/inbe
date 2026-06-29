@@ -102,7 +102,8 @@ static const char *const importable_setting_keys[] = {
     "meditation_music_track",
     "play_in_background",
     "language",
-    "practice_category_tab"
+    "practice_category_tab",
+    "practice_visible_mask"
 };
 
 static int

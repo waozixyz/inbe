@@ -112,6 +112,24 @@ Pet
 [profile_practice_label]
 プラクティス
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 設定
 ---
@@ -950,7 +968,7 @@ Description
 ここで同期アカウントを設定します。
 ---
 [profile_guide_data]
-ここでローカルデータを確認し、バックアップを開きます。
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 ここからフレンドとランキングを開きます。

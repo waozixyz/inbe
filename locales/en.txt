@@ -112,6 +112,24 @@ No leaderboard data
 [profile_practice_label]
 Practice
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Settings
 ---
@@ -992,7 +1010,7 @@ View habit statistics here.
 Configure your sync account here.
 ---
 [profile_guide_data]
-Review local data and open backup tools here.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Open friends and leaderboard from here.

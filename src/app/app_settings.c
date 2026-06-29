@@ -162,6 +162,7 @@ save_settings(InbeApp *app)
         {"habits_guide_seen", app->habits_guide_seen ? 1 : 0},
         {"profile_guide_seen", app->profile_guide_seen ? 1 : 0},
         {"exercise_manual_seen_mask", app->exercise_manual_seen_mask},
+        {"practice_visible_mask", app->practice_visible_mask},
         {"theme", app->theme_id},
         {"dark_mode", app->dark_mode},
         {"theme_mode", app->theme_mode},
@@ -323,6 +324,11 @@ app_load_settings(InbeApp *app)
     if(manual_seen_mask < 0)
         manual_seen_mask = app->tutorial_seen ? exercise_manual_bit(EXERCISE_WIM_HOF) : 0;
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
+    app->practice_visible_mask = storage_get_setting_int("practice_visible_mask",
+                                                         (1 << EXERCISE_COUNT) - 1);
+    app->practice_visible_mask &= (1 << EXERCISE_COUNT) - 1;
+    if(app->practice_visible_mask == 0)
+        app->practice_visible_mask = (1 << EXERCISE_COUNT) - 1;
 
     load_language_setting(app, settings_missing);
 
