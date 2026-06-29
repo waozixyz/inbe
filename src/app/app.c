@@ -1751,7 +1751,9 @@ static void
 updateapp(InbeApp *app)
 {
     int center_x = view_width / 2;
-    int center_y = view_height / 2;
+    int frame_view_height = view_height;
+    int safe_bottom_reserved = 0;
+    int center_y;
     int play_center_y;
     int hover = 0;
     int frame_screen = app->inbe.screen;
@@ -1759,6 +1761,7 @@ updateapp(InbeApp *app)
     int habits_guide_active = 0;
     int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
+    int global_modal_drawn = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
@@ -1785,6 +1788,11 @@ updateapp(InbeApp *app)
        profile_guide_active) {
         ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
+
+    safe_bottom_reserved = app_fullscreen_bottom_reserved(app);
+    if(safe_bottom_reserved > 0 && safe_bottom_reserved < view_height)
+        view_height -= safe_bottom_reserved;
+    center_y = view_height / 2;
 
     if(IsKeyPressed(KEY_BACK)) {
         if(first_run_guide_active || habits_guide_active || profile_guide_active) {
@@ -1907,11 +1915,17 @@ updateapp(InbeApp *app)
     }
 
 finish_frame:
+    if(practice_fullscreen_modal) {
+        draw_global_modal(app);
+        global_modal_drawn = 1;
+    }
+    view_height = frame_view_height;
     app_draw_bottom_nav(app);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
     profile_screen_draw_first_run_guide(app);
-    draw_global_modal(app);
+    if(!global_modal_drawn)
+        draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
     if(app->transition_mode == APP_TRANSITION_FADE) {
