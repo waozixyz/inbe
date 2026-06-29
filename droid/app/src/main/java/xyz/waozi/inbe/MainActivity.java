@@ -674,6 +674,15 @@ public class MainActivity extends NativeActivity {
     }
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        configureSystemBars();
+        requestInsetRefresh();
+        syncLifecycleState("onNewIntent");
+    }
+
+    @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         windowFocused = hasFocus;

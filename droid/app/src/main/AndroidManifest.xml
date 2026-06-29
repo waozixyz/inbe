@@ -14,6 +14,7 @@
             android:name="xyz.waozi.inbe.MainActivity"
             android:configChanges="keyboardHidden|orientation|screenSize|smallestScreenSize|uiMode"
             android:exported="true"
+            android:launchMode="singleTask"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
             android:windowLayoutInDisplayCutoutMode="never">
             <meta-data
