@@ -4,6 +4,9 @@ Inner Breeze
 [tab_history]
 기록
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 습관
 ---
@@ -21,6 +24,24 @@ Inner Breeze
 ---
 [tab_manual]
 튜토리얼
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 설정
@@ -265,14 +286,11 @@ Finish
 [settings_section_language]
 언어
 ---
-[settings_tab_data]
-데이터
----
-[settings_section_data]
-데이터
----
 [settings_tab_about]
-정보
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 테마

@@ -104,7 +104,9 @@ storage_sync_review_path(char *out, size_t out_size)
         out[0] = '\0';
         return;
     }
-    snprintf(out, out_size, "%s/%s", g_storage.root, name);
+    memcpy(out, g_storage.root, root_len);
+    out[root_len] = '/';
+    memcpy(out + root_len + 1, name, name_len + 1);
 }
 
 int
@@ -587,6 +589,16 @@ storage_sync_review_clear_if_no_visible_diff(void)
     set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
     storage_schedule_persist();
     return 1;
+}
+
+int
+storage_sync_review_apply_remote_if_local_empty(void)
+{
+    if(!storage_sync_review_pending())
+        return 0;
+    if(storage_has_any())
+        return 0;
+    return storage_apply_pending_sync_review(1);
 }
 
 int

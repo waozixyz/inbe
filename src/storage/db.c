@@ -186,6 +186,13 @@ schema_create(void)
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(user_id,key)"
         ");"
+        "CREATE TABLE IF NOT EXISTS social_cache("
+        " user_id TEXT NOT NULL,"
+        " kind TEXT NOT NULL,"
+        " json TEXT NOT NULL,"
+        " updated_at INTEGER NOT NULL,"
+        " PRIMARY KEY(user_id,kind)"
+        ");"
         "CREATE TABLE IF NOT EXISTS sessions("
         " id TEXT PRIMARY KEY,"
         " user_id TEXT NOT NULL,"
@@ -443,6 +450,13 @@ migrate_schema(void)
            " created_at INTEGER NOT NULL,"
            " sent_at INTEGER NOT NULL DEFAULT 0,"
            " acked_at INTEGER NOT NULL DEFAULT 0"
+           ");"
+           "CREATE TABLE IF NOT EXISTS social_cache("
+           " user_id TEXT NOT NULL,"
+           " kind TEXT NOT NULL,"
+           " json TEXT NOT NULL,"
+           " updated_at INTEGER NOT NULL,"
+           " PRIMARY KEY(user_id,kind)"
            ");"))
         return 0;
     if(!had_outbox) {

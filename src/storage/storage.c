@@ -30,6 +30,8 @@ static int
 storage_json_array_count(const char *json, const char *path);
 static int
 storage_clear_local_sync_data(void);
+static int
+storage_json_valid(const char *json);
 
 #define STORAGE_SYNC_BACKFILL_KEY "sync_backfill_v2_done"
 #define STORAGE_SYNC_HABIT_NAME_REPAIR_KEY "sync_habit_name_repair_v1_done"
@@ -58,6 +60,7 @@ storage_next_change_time(void)
                           " SELECT COALESCE(MAX(updated_at),0) AS updated_at FROM habits"
                           " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM habit_days"
                           " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM sessions"
+                          " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM social_cache"
                           ")",
                           -1, &stmt, NULL) == SQLITE_OK) {
         if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -410,6 +413,76 @@ storage_settings_empty(void)
         count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
     return count == 0;
+}
+
+int
+storage_get_social_cache_json(const char *kind, char *out, size_t out_size)
+{
+    sqlite3_stmt *stmt = NULL;
+    int found = 0;
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(g_storage.db == NULL || kind == NULL || kind[0] == '\0')
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT json FROM social_cache WHERE user_id=?1 AND kind=?2",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, kind);
+    if(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *json = (const char *)sqlite3_column_text(stmt, 0);
+        snprintf(out, out_size, "%s", json != NULL ? json : "");
+        found = out[0] != '\0';
+    }
+    sqlite3_finalize(stmt);
+    return found;
+}
+
+int
+storage_set_social_cache_json(const char *kind, const char *json)
+{
+    sqlite3_stmt *stmt = NULL;
+    long long updated_at;
+    int rc;
+    int same = 0;
+
+    if(g_storage.db == NULL || kind == NULL || kind[0] == '\0' ||
+       json == NULL || json[0] == '\0' || !storage_json_valid(json))
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT json=?3 FROM social_cache WHERE user_id=?1 AND kind=?2",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        bind_text(stmt, 2, kind);
+        bind_text(stmt, 3, json);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            same = sqlite3_column_int(stmt, 0) != 0;
+    }
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+    if(same)
+        return 1;
+    updated_at = storage_next_change_time();
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "INSERT INTO social_cache(user_id,kind,json,updated_at) "
+                          "VALUES(?1,?2,?3,?4) "
+                          "ON CONFLICT(user_id,kind) DO UPDATE SET "
+                          "json=excluded.json,updated_at=excluded.updated_at",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, kind);
+    bind_text(stmt, 3, json);
+    sqlite3_bind_int64(stmt, 4, updated_at);
+    rc = sqlite3_step(stmt);
+    sqlite3_finalize(stmt);
+    if(rc != SQLITE_DONE)
+        return 0;
+    storage_schedule_persist();
+    return 2;
 }
 
 int
@@ -1720,7 +1793,8 @@ storage_sync_response_has_changes(const char *json)
     return storage_json_array_has_items(json, "$.changes.habits") ||
            storage_json_array_has_items(json, "$.changes.habit_days") ||
            storage_json_array_has_items(json, "$.changes.sessions") ||
-           storage_json_array_has_items(json, "$.changes.meditation_logs");
+           storage_json_array_has_items(json, "$.changes.meditation_logs") ||
+           storage_json_array_has_items(json, "$.changes.social_cache");
 }
 
 static int
@@ -2010,6 +2084,16 @@ storage_apply_sync_response_json(const char *response_json)
         "    AND NOT EXISTS (SELECT 1 FROM sync_outbox "
         "        WHERE entity_type='session' AND "
         "entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
+    static const char *social_cache_sql =
+        "INSERT INTO social_cache(user_id,kind,json,updated_at) "
+        "SELECT ?2,"
+        "       COALESCE(json_extract(value,'$.kind'),''),"
+        "       json(COALESCE(json_extract(value,'$.json'),'{}')),"
+        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS INTEGER) "
+        "FROM json_each(?1,'$.changes.social_cache') "
+        "WHERE COALESCE(json_extract(value,'$.kind'),'')<>'' "
+        "ON CONFLICT(user_id,kind) DO UPDATE SET "
+        " json=excluded.json,updated_at=excluded.updated_at";
     long long server_version;
     long long server_clock;
     long long old_server_version;
@@ -2059,7 +2143,8 @@ storage_apply_sync_response_json(const char *response_json)
        !storage_merge_duplicate_habit_names() ||
        !storage_exec_json_user_sql(delete_rounds_sql, response_json) ||
        !storage_exec_json_user_sql(rounds_sql, response_json) ||
-       !storage_exec_json_user_sql(sessions_sql, response_json)) {
+       !storage_exec_json_user_sql(sessions_sql, response_json) ||
+       !storage_exec_json_user_sql(social_cache_sql, response_json)) {
         exec_sql("ROLLBACK");
         return 0;
     }
@@ -2105,6 +2190,7 @@ storage_clear_local_sync_data(void)
 {
     static const char *const sqls[] = {"DELETE FROM session_rounds", "DELETE FROM sessions",
                                        "DELETE FROM habit_days", "DELETE FROM habits",
+                                       "DELETE FROM social_cache",
                                        "DELETE FROM sync_outbox"};
 
     if(g_storage.db == NULL)
@@ -2266,6 +2352,116 @@ storage_session_count(void)
         count = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
     return count;
+}
+
+static int
+storage_profile_day_offset(int local_date, int today_date)
+{
+    struct tm day_tm = {0};
+    struct tm today_tm = {0};
+    time_t day_time;
+    time_t today_time;
+    double diff_days;
+
+    if(local_date <= 0 || today_date <= 0)
+        return -1;
+    day_tm.tm_year = local_date / 10000 - 1900;
+    day_tm.tm_mon = (local_date / 100) % 100 - 1;
+    day_tm.tm_mday = local_date % 100;
+    day_tm.tm_hour = 12;
+    today_tm.tm_year = today_date / 10000 - 1900;
+    today_tm.tm_mon = (today_date / 100) % 100 - 1;
+    today_tm.tm_mday = today_date % 100;
+    today_tm.tm_hour = 12;
+    day_time = mktime(&day_tm);
+    today_time = mktime(&today_tm);
+    diff_days = difftime(today_time, day_time) / 86400.0;
+    if(diff_days < -0.5 || diff_days > 370.5)
+        return -1;
+    return (int)(diff_days + 0.5);
+}
+
+int
+storage_profile_activity_stats(int activity, int today_date,
+                               int *streak_out, long *avg_hold_out)
+{
+    sqlite3_stmt *stmt = NULL;
+    int seen[371] = {0};
+    int streak = 0;
+    long avg_value = 0;
+    int mask = 1 << activity;
+
+    if(streak_out != NULL)
+        *streak_out = 0;
+    if(avg_hold_out != NULL)
+        *avg_hold_out = 0;
+    if(g_storage.db == NULL || activity < 0 || activity >= 30)
+        return 0;
+
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT local_date FROM sessions "
+                          "WHERE user_id=?1 AND deleted_at=0 AND activity=?2 "
+                          "  AND local_date>0 "
+                          "UNION "
+                          "SELECT hd.local_date "
+                          "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+                          "WHERE h.user_id=?1 AND h.deleted_at=0 "
+                          "  AND h.sync_mode=?3 AND (h.sync_activity & ?4)<>0 "
+                          "  AND (hd.completed!=0 OR hd.count>0)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    sqlite3_bind_int(stmt, 2, activity);
+    sqlite3_bind_int(stmt, 3, INBE_HABIT_SYNC_ACTIVITIES);
+    sqlite3_bind_int(stmt, 4, mask);
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0), today_date);
+        if(offset >= 0 && offset <= 370)
+            seen[offset] = 1;
+    }
+    sqlite3_finalize(stmt);
+    stmt = NULL;
+
+    while(streak <= 370 && seen[streak])
+        streak++;
+
+    if(activity == 0) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "SELECT COALESCE(AVG(sr.seconds),0) "
+                              "FROM sessions s JOIN session_rounds sr ON sr.session_id=s.id "
+                              "WHERE s.user_id=?1 AND s.deleted_at=0 AND s.activity=?2 "
+                              "  AND sr.seconds>0",
+                              -1, &stmt, NULL) == SQLITE_OK) {
+            bind_text(stmt, 1, g_storage.user_id);
+            sqlite3_bind_int(stmt, 2, activity);
+            if(sqlite3_step(stmt) == SQLITE_ROW)
+                avg_value = (long)sqlite3_column_double(stmt, 0);
+            sqlite3_finalize(stmt);
+        }
+    } else if(activity == 1) {
+        if(sqlite3_prepare_v2(g_storage.db,
+                              "SELECT COALESCE(AVG(total_seconds),0) "
+                              "FROM ("
+                              "  SELECT SUM(sr.seconds) AS total_seconds "
+                              "  FROM sessions s JOIN session_rounds sr ON sr.session_id=s.id "
+                              "  WHERE s.user_id=?1 AND s.deleted_at=0 AND s.activity=?2 "
+                              "    AND sr.seconds>0 "
+                              "  GROUP BY s.id"
+                              ")",
+                              -1, &stmt, NULL) == SQLITE_OK) {
+            bind_text(stmt, 1, g_storage.user_id);
+            sqlite3_bind_int(stmt, 2, activity);
+            if(sqlite3_step(stmt) == SQLITE_ROW)
+                avg_value = (long)sqlite3_column_double(stmt, 0);
+            sqlite3_finalize(stmt);
+        }
+    }
+
+    if(streak_out != NULL)
+        *streak_out = streak;
+    if(avg_hold_out != NULL)
+        *avg_hold_out = avg_value;
+    return 1;
 }
 
 long long

@@ -4,6 +4,9 @@
 [tab_history]
 历史
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 习惯
 ---
@@ -21,6 +24,24 @@
 ---
 [tab_manual]
 教程
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 设置
@@ -265,14 +286,11 @@ Finish
 [settings_section_language]
 语言
 ---
-[settings_tab_data]
-数据
----
-[settings_section_data]
-数据
----
 [settings_tab_about]
-关于
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 主题

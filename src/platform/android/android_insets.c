@@ -57,7 +57,8 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
     jint status_bar, jint nav_bar,
     jint cutout_left, jint cutout_top, jint cutout_right, jint cutout_bottom)
 {
-    TraceLog(LOG_INFO, "INBE: Java insets: status=%d, nav=%d, cutout_top=%d",
+    TraceLog(LOG_INFO,
+             "INBE: Java insets: status=%d nav=%d cutout_top=%d",
              status_bar, nav_bar, cutout_top);
 
     pthread_mutex_lock(&insets_mutex);

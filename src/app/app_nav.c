@@ -8,6 +8,20 @@
 extern int view_width;
 extern int view_height;
 
+static int android_bottom_nav_height = 0;
+
+void
+app_set_android_bottom_nav_height(int height)
+{
+    android_bottom_nav_height = height > 0 ? height : 0;
+}
+
+int
+app_android_bottom_nav_height(void)
+{
+    return android_bottom_nav_height;
+}
+
 static void
 app_open_main_tab(InbeApp *app, int main_tab, int persist)
 {
@@ -34,6 +48,15 @@ app_apply_nav_route(InbeApp *app, int route)
         return;
 
     switch(route) {
+    case APP_NAV_ROUTE_PROFILE:
+        if(app->practice_tab == PRACTICE_TAB_CONFIG)
+            app_leave_practice_config(app);
+        app->profile_view = PROFILE_VIEW_MAIN;
+        app->profile_scroll = 0;
+        app->sync_server_url_focused = 0;
+        settings_screen_clear_status();
+        app_switch_screen(app, InbeScreenProfile);
+        break;
     case APP_NAV_ROUTE_PRACTICE:
         app_open_main_tab(app, APP_MAIN_TAB_PRACTICE, 1);
         break;
@@ -52,6 +75,11 @@ app_apply_nav_route(InbeApp *app, int route)
         app->settings_scroll = 0;
         app_switch_screen(app, InbeScreenSettings);
         break;
+    case APP_NAV_ROUTE_PET:
+        if(app->practice_tab == PRACTICE_TAB_CONFIG)
+            app_leave_practice_config(app);
+        app_switch_screen(app, InbeScreenPet);
+        break;
     default:
         break;
     }
@@ -62,15 +90,19 @@ app_content_bottom_reserved(const InbeApp *app)
 {
     if(app == NULL)
         return 0;
-    return app_current_nav_route(app) != APP_NAV_ROUTE_NONE ? ui_bottom_nav_height() : 0;
+    if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
+        return 0;
+    return ui_bottom_nav_height() + app_android_bottom_nav_height();
 }
 
 static const char *
 app_nav_route_label(int route)
 {
     switch(route) {
+    case APP_NAV_ROUTE_PROFILE: return locale_get("tab_profile");
     case APP_NAV_ROUTE_HABITS: return locale_get("tab_habits");
     case APP_NAV_ROUTE_PRACTICE: return locale_get("tab_practice");
+    case APP_NAV_ROUTE_PET: return locale_get("tab_pet");
     case APP_NAV_ROUTE_SETTINGS: return locale_get("tab_settings");
     default: break;
     }
@@ -83,8 +115,10 @@ app_nav_route_icon(InbeApp *app, int route)
     if(app == NULL)
         return (Texture2D){0};
     switch(route) {
+    case APP_NAV_ROUTE_PROFILE: return app->icons[UI_ICON_TYPE_PROFILE];
     case APP_NAV_ROUTE_HABITS: return app->icons[UI_ICON_TYPE_HABIT];
     case APP_NAV_ROUTE_PRACTICE: return app->icons[UI_ICON_TYPE_AMEN];
+    case APP_NAV_ROUTE_PET: return app->icons[UI_ICON_TYPE_PET];
     case APP_NAV_ROUTE_SETTINGS: return app->icons[UI_ICON_TYPE_GEAR];
     default: break;
     }
@@ -97,10 +131,14 @@ app_current_nav_route(const InbeApp *app)
     if(app == NULL)
         return APP_NAV_ROUTE_NONE;
     switch(app->inbe.screen) {
+    case InbeScreenProfile:
+        return APP_NAV_ROUTE_PROFILE;
     case InbeScreenStart:
         return APP_NAV_ROUTE_PRACTICE;
     case InbeScreenHabits:
         return APP_NAV_ROUTE_HABITS;
+    case InbeScreenPet:
+        return APP_NAV_ROUTE_PET;
     case InbeScreenSettings:
         return APP_NAV_ROUTE_SETTINGS;
     default:
@@ -114,12 +152,16 @@ app_nav_route_active(const InbeApp *app, int route)
 {
     if(app == NULL)
         return 0;
+    if(route == APP_NAV_ROUTE_PROFILE)
+        return app->inbe.screen == InbeScreenProfile;
     if(route == APP_NAV_ROUTE_PRACTICE)
         return app->inbe.screen == InbeScreenStart;
     if(route == APP_NAV_ROUTE_HABITS)
         return app->inbe.screen == InbeScreenHabits ||
                app->inbe.screen == InbeScreenHabitEdit ||
                app->inbe.screen == InbeScreenHabitSessionEdit;
+    if(route == APP_NAV_ROUTE_PET)
+        return app->inbe.screen == InbeScreenPet;
     if(route == APP_NAV_ROUTE_SETTINGS)
         return app->inbe.screen == InbeScreenSettings;
     return 0;
@@ -136,10 +178,12 @@ app_should_draw_bottom_nav(const InbeApp *app)
 void
 app_draw_bottom_nav(InbeApp *app)
 {
-    enum { BOTTOM_NAV_ROUTE_COUNT = 3 };
+    enum { BOTTOM_NAV_ROUTE_COUNT = 5 };
     const int routes[BOTTOM_NAV_ROUTE_COUNT] = {
+        APP_NAV_ROUTE_PROFILE,
         APP_NAV_ROUTE_HABITS,
         APP_NAV_ROUTE_PRACTICE,
+        APP_NAV_ROUTE_PET,
         APP_NAV_ROUTE_SETTINGS
     };
     FlintUIBottomNavItem items[BOTTOM_NAV_ROUTE_COUNT];
@@ -157,9 +201,13 @@ app_draw_bottom_nav(InbeApp *app)
             app->modal.active
         };
     }
+    if(app_android_bottom_nav_height() > 0)
+        DrawRectangle(0, view_height - app_android_bottom_nav_height(),
+                      view_width, app_android_bottom_nav_height(), BLACK);
     result = ui_draw_bottom_nav((FlintUIBottomNav){
         .view_width = view_width,
         .view_height = view_height,
+        .bottom_margin = app_android_bottom_nav_height(),
         .count = BOTTOM_NAV_ROUTE_COUNT,
         .items = items
     });

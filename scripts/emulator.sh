@@ -12,6 +12,14 @@ fi
 
 # Set up writable SDK location
 PERSISTENT_SDK_ROOT="$HOME/.android-sdk-writable"
+ORIGINAL_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+
+mkdir -p "$PERSISTENT_SDK_ROOT"
+for component in build-tools cmake cmdline-tools emulator licenses ndk platforms platform-tools tools; do
+  if [ -n "$ORIGINAL_SDK_ROOT" ] && [ -e "$ORIGINAL_SDK_ROOT/$component" ] && [ ! -e "$PERSISTENT_SDK_ROOT/$component" ]; then
+    ln -sf "$ORIGINAL_SDK_ROOT/$component" "$PERSISTENT_SDK_ROOT/$component"
+  fi
+done
 
 if [ -d "$PERSISTENT_SDK_ROOT" ] && [ -d "$PERSISTENT_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
   export ANDROID_SDK_ROOT="$PERSISTENT_SDK_ROOT"
@@ -86,6 +94,18 @@ while ! "$ADB_CMD" -e shell getprop sys.boot_completed 2>/dev/null | grep -q "1"
 done
 
 echo "✅ Pixel 8 Pro emulator ready!"
+
+echo "🎯 Enabling punch-hole display cutout overlay if available..."
+if "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.hole"; then
+  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.hole || true
+elif "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.corner"; then
+  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.corner || true
+elif "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.tall"; then
+  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.tall || true
+else
+  echo "   No display cutout emulation overlay found on this image"
+fi
+
 echo ""
 echo "📱 Device info:"
 "$ADB_CMD" -e shell getprop ro.product.model

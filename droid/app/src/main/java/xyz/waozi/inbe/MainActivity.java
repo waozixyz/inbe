@@ -11,16 +11,17 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Insets;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
-import android.util.Base64;
 import android.util.Log;
 import android.view.DisplayCutout;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.view.WindowInsets;
+import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import java.io.File;
@@ -28,15 +29,10 @@ import java.io.FileOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.Socket;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
-import java.net.URI;
 import java.net.UnknownHostException;
 import java.net.URL;
-import java.nio.charset.StandardCharsets;
-import java.security.SecureRandom;
-import javax.net.ssl.SSLSocketFactory;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
@@ -49,7 +45,7 @@ public class MainActivity extends NativeActivity {
         System.loadLibrary("main");
     }
 
-    // [status_bar, nav_bar, cutout_left, cutout_top, cutout_right, cutout_bottom]
+    // [status_bar, nav_bar, cutouts] mirrored in native.
     private final int[] cachedInsets = new int[6];
     private boolean insetsInitialized = false;
     private boolean activityPaused = false;
@@ -305,224 +301,11 @@ public class MainActivity extends NativeActivity {
     }
 
     public String syncHttpRequest(String method, String urlText, String body, String[] headers) {
-        HttpURLConnection connection = null;
-        int status = 0;
-
-        try {
-            byte[] bodyBytes = body != null ? body.getBytes(StandardCharsets.UTF_8) : new byte[0];
-            connection = (HttpURLConnection)new URL(urlText).openConnection();
-            connection.setInstanceFollowRedirects(false);
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(30000);
-            connection.setRequestMethod(method);
-            connection.setRequestProperty("User-Agent", "inbe-sync/1");
-            if (headers != null) {
-                for (String header : headers) {
-                    if (header == null) continue;
-                    int colon = header.indexOf(':');
-                    if (colon <= 0) continue;
-                    String key = header.substring(0, colon).trim();
-                    String value = header.substring(colon + 1).trim();
-                    if (!key.isEmpty()) {
-                        connection.setRequestProperty(key, value);
-                    }
-                }
-            }
-            if ("POST".equals(method) || "DELETE".equals(method)) {
-                connection.setDoOutput(true);
-                connection.setFixedLengthStreamingMode(bodyBytes.length);
-                try (OutputStream output = connection.getOutputStream()) {
-                    output.write(bodyBytes);
-                }
-            }
-
-            status = connection.getResponseCode();
-            InputStream stream = status >= 400 ? connection.getErrorStream() : connection.getInputStream();
-            String response = "";
-            if (stream != null) {
-                try (InputStream input = stream) {
-                    byte[] bytes = readAllBytesCompat(input);
-                    response = new String(bytes, StandardCharsets.UTF_8);
-                }
-            }
-            return status + "\n" + response;
-        } catch (Exception e) {
-            Log.e(TAG, "Sync HTTP request failed", e);
-            return status + "\n" + (e.getMessage() != null ? e.getMessage() : "request failed");
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
+        return SyncNetwork.httpRequest(TAG, method, urlText, body, headers);
     }
 
     public String syncWebSocketWait(String urlText, String[] headers) {
-        Socket socket = null;
-
-        try {
-            URI url = new URI(urlText);
-            String protocol = url.getScheme();
-            boolean secure = "wss".equals(protocol);
-            int port = url.getPort();
-            String path = url.getRawPath();
-            if (path == null || path.isEmpty()) path = "/";
-            if (url.getRawQuery() != null && !url.getRawQuery().isEmpty()) {
-                path += "?" + url.getRawQuery();
-            }
-            if (port <= 0) port = secure ? 443 : 80;
-            if (!secure && !"ws".equals(protocol)) {
-                return "0\ninvalid websocket url";
-            }
-
-            socket = secure
-                ? SSLSocketFactory.getDefault().createSocket(url.getHost(), port)
-                : new Socket(url.getHost(), port);
-            socket.setTcpNoDelay(true);
-
-            byte[] keyBytes = new byte[16];
-            new SecureRandom().nextBytes(keyBytes);
-            String key = Base64.encodeToString(keyBytes, Base64.NO_WRAP);
-
-            StringBuilder request = new StringBuilder();
-            request.append("GET ").append(path).append(" HTTP/1.1\r\n");
-            request.append("Host: ").append(url.getHost());
-            if ((secure && port != 443) || (!secure && port != 80)) {
-                request.append(":").append(port);
-            }
-            request.append("\r\n");
-            request.append("Upgrade: websocket\r\n");
-            request.append("Connection: Upgrade\r\n");
-            request.append("Sec-WebSocket-Version: 13\r\n");
-            request.append("Sec-WebSocket-Key: ").append(key).append("\r\n");
-            request.append("User-Agent: inbe-sync/1\r\n");
-            if (headers != null) {
-                for (String header : headers) {
-                    if (header != null && !header.isEmpty()) {
-                        request.append(header).append("\r\n");
-                    }
-                }
-            }
-            request.append("\r\n");
-            socket.getOutputStream().write(request.toString().getBytes(StandardCharsets.US_ASCII));
-            socket.getOutputStream().flush();
-
-            String statusLine = readAsciiLine(socket);
-            int status = parseHttpStatus(statusLine);
-            while (true) {
-                String line = readAsciiLine(socket);
-                if (line == null || line.isEmpty()) break;
-            }
-            if (status != 101) {
-                return status + "\nwebsocket upgrade failed";
-            }
-            Log.i(TAG, "Sync WebSocket connected");
-
-            while (true) {
-                String message = readWebSocketText(socket);
-                if (message == null) {
-                    return "0\nwebsocket closed";
-                }
-                if (message.contains("\"type\":\"sync_changed\"")) {
-                    return "101\n" + message;
-                }
-            }
-        } catch (Exception e) {
-            Log.w(TAG, "WebSocket wait failed", e);
-            return "0\n" + (e.getMessage() != null ? e.getMessage() : "websocket failed");
-        } finally {
-            if (socket != null) {
-                try {
-                    socket.close();
-                } catch (Exception ignored) {
-                }
-            }
-        }
-    }
-
-    private static int parseHttpStatus(String statusLine) {
-        if (statusLine == null) return 0;
-        String[] parts = statusLine.split(" ", 3);
-        if (parts.length < 2) return 0;
-        try {
-            return Integer.parseInt(parts[1]);
-        } catch (NumberFormatException e) {
-            return 0;
-        }
-    }
-
-    private static String readAsciiLine(Socket socket) throws java.io.IOException {
-        StringBuilder line = new StringBuilder();
-        while (true) {
-            int b = socket.getInputStream().read();
-            if (b < 0) {
-                return line.length() > 0 ? line.toString() : null;
-            }
-            if (b == '\n') break;
-            if (b != '\r') line.append((char)b);
-        }
-        return line.toString();
-    }
-
-    private static String readWebSocketText(Socket socket) throws java.io.IOException {
-        int b0 = socket.getInputStream().read();
-        int b1 = socket.getInputStream().read();
-        if (b0 < 0 || b1 < 0) return null;
-
-        int opcode = b0 & 0x0f;
-        boolean masked = (b1 & 0x80) != 0;
-        long length = b1 & 0x7f;
-        if (length == 126) {
-            length = ((long)readByte(socket) << 8) | readByte(socket);
-        } else if (length == 127) {
-            length = 0;
-            for (int i = 0; i < 8; i++) {
-                length = (length << 8) | readByte(socket);
-            }
-        }
-        if (length < 0 || length > 1024 * 1024) {
-            throw new java.io.IOException("websocket frame too large");
-        }
-
-        byte[] mask = null;
-        if (masked) {
-            mask = readExact(socket, 4);
-        }
-        byte[] payload = readExact(socket, (int)length);
-        if (masked) {
-            for (int i = 0; i < payload.length; i++) {
-                payload[i] = (byte)(payload[i] ^ mask[i % 4]);
-            }
-        }
-        if (opcode == 8) return null;
-        if (opcode != 1) return "";
-        return new String(payload, StandardCharsets.UTF_8);
-    }
-
-    private static int readByte(Socket socket) throws java.io.IOException {
-        int b = socket.getInputStream().read();
-        if (b < 0) throw new java.io.IOException("unexpected eof");
-        return b;
-    }
-
-    private static byte[] readExact(Socket socket, int count) throws java.io.IOException {
-        byte[] data = new byte[count];
-        int offset = 0;
-        while (offset < count) {
-            int read = socket.getInputStream().read(data, offset, count - offset);
-            if (read < 0) throw new java.io.IOException("unexpected eof");
-            offset += read;
-        }
-        return data;
-    }
-
-    private static byte[] readAllBytesCompat(InputStream input) throws java.io.IOException {
-        byte[] buffer = new byte[8192];
-        int read;
-        java.io.ByteArrayOutputStream output = new java.io.ByteArrayOutputStream();
-        while ((read = input.read(buffer)) != -1) {
-            output.write(buffer, 0, read);
-        }
-        return output.toByteArray();
+        return SyncNetwork.webSocketWait(TAG, urlText, headers);
     }
 
     public void openImportPicker(final String mimeTypesCsv) {
@@ -649,7 +432,9 @@ public class MainActivity extends NativeActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        configureSystemBars();
         super.onCreate(savedInstanceState);
+        configureSystemBars();
 
         synchronized (cachedInsets) {
             for (int i = 0; i < 6; i++) {
@@ -669,8 +454,43 @@ public class MainActivity extends NativeActivity {
     public void onConfigurationChanged(Configuration newConfig) {
         super.onConfigurationChanged(newConfig);
         nativeInvalidateGraphicsResources();
+        configureSystemBars();
         pushDeviceConfiguration();
         requestInsetRefresh();
+    }
+
+    private void configureSystemBars() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS);
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        getWindow().addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            getWindow().setDecorFitsSystemWindows(false);
+        }
+        getWindow().setNavigationBarColor(Color.BLACK);
+        getWindow().setStatusBarColor(Color.BLACK);
+        int flags = getWindow().getDecorView().getSystemUiVisibility();
+        flags |= View.SYSTEM_UI_FLAG_LAYOUT_STABLE;
+        flags |= View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION;
+        flags |= View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN;
+        flags &= ~View.SYSTEM_UI_FLAG_HIDE_NAVIGATION;
+        flags &= ~View.SYSTEM_UI_FLAG_FULLSCREEN;
+        flags &= ~View.SYSTEM_UI_FLAG_IMMERSIVE;
+        flags &= ~View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            flags &= ~View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR;
+        }
+        getWindow().getDecorView().setSystemUiVisibility(flags);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.hide(WindowInsets.Type.statusBars());
+                controller.show(WindowInsets.Type.navigationBars());
+            }
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            getWindow().setNavigationBarContrastEnforced(false);
+        }
     }
 
     private void pushDeviceConfiguration() {
@@ -739,36 +559,7 @@ public class MainActivity extends NativeActivity {
                     }
                 }
             });
-        } else {
-            fallbackForOldPhones();
         }
-    }
-
-    private void fallbackForOldPhones() {
-        int statusBarHeight = 0;
-        int navBarHeight = 0;
-
-        int resourceId = getResources().getIdentifier("status_bar_height", "dimen", "android");
-        if (resourceId > 0) {
-            statusBarHeight = getResources().getDimensionPixelSize(resourceId);
-        }
-
-        int navResourceId = getResources().getIdentifier("navigation_bar_height", "dimen", "android");
-        if (navResourceId > 0) {
-            navBarHeight = getResources().getDimensionPixelSize(navResourceId);
-        }
-
-        synchronized (cachedInsets) {
-            cachedInsets[0] = statusBarHeight;
-            cachedInsets[1] = navBarHeight;
-            cachedInsets[2] = 0;
-            cachedInsets[3] = 0;
-            cachedInsets[4] = 0;
-            cachedInsets[5] = 0;
-        }
-        
-        insetsInitialized = true;
-        nativeSetInsets(statusBarHeight, navBarHeight, 0, 0, 0, 0);
     }
 
     private void updateInsets(WindowInsets insets) {
@@ -779,7 +570,8 @@ public class MainActivity extends NativeActivity {
             int navBar = 0;
             int cLeft = 0, cTop = 0, cRight = 0, cBottom = 0;
 
-            // System bar calculations
+            // Inbe owns a single edge-to-edge native surface. Java reports the
+            // system bar insets; native applies them once against the real GL surface.
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Insets systemBars = insets.getInsetsIgnoringVisibility(WindowInsets.Type.systemBars());
                 statusBar = systemBars.top;
@@ -788,7 +580,6 @@ public class MainActivity extends NativeActivity {
                 statusBar = insets.getSystemWindowInsetTop();
                 navBar = insets.getSystemWindowInsetBottom();
             }
-
             // Display cutout calculations
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 DisplayCutout cutout = insets.getDisplayCutout();
@@ -867,6 +658,7 @@ public class MainActivity extends NativeActivity {
     protected void onResume() {
         super.onResume();
         activityPaused = false;
+        configureSystemBars();
         nativeInvalidateGraphicsResources();
         requestInsetRefresh();
         syncLifecycleState("onResume");
@@ -876,6 +668,10 @@ public class MainActivity extends NativeActivity {
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         windowFocused = hasFocus;
+        if (hasFocus) {
+            configureSystemBars();
+            requestInsetRefresh();
+        }
         syncLifecycleState("onWindowFocusChanged");
     }
 

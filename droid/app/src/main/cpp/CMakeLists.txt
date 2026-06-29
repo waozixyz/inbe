@@ -34,6 +34,7 @@ set(INBE_EMBEDDED_INPUTS
     assets/practices/whm/1.jpg
     assets/practices/whm/2.jpg
     assets/practices/meditation/1.jpg
+    assets/pet/egg1.png
     assets/practices/sunsalutation/pos_0001.png
     assets/practices/sunsalutation/pos_0002.png
     assets/practices/sunsalutation/pos_0003.png
@@ -128,6 +129,8 @@ add_library(main SHARED
     "${SRC_DIR}/screens/statistics_screen.c"
     "${SRC_DIR}/screens/habits/edit.c"
     "${SRC_DIR}/screens/habits/session.c"
+    "${SRC_DIR}/screens/profile_screen.c"
+    "${SRC_DIR}/screens/pet_screen.c"
     "${SRC_DIR}/practices/meditation/meditation_music.c"
     "${SRC_DIR}/storage/data.c"
     "${SRC_DIR}/storage/db.c"
@@ -149,6 +152,7 @@ add_library(main SHARED
     "${SRC_DIR}/screens/settings/settings_device.c"
     "${SRC_DIR}/screens/settings/settings_session.c"
     "${SRC_DIR}/screens/settings/settings_theme.c"
+    "${SRC_DIR}/screens/settings/settings_about.c"
     "${SRC_DIR}/screens/settings/settings_data.c"
     "${SRC_DIR}/screens/settings/settings_sync_account.c"
     "${INBE_EMBEDDED_ASSETS_C}"

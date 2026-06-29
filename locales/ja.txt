@@ -4,6 +4,9 @@
 [tab_history]
 履歴
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 習慣
 ---
@@ -21,6 +24,24 @@
 ---
 [tab_manual]
 チュートリアル
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 設定
@@ -265,14 +286,11 @@ OK
 [settings_section_language]
 言語
 ---
-[settings_tab_data]
-データ
----
-[settings_section_data]
-データ
----
 [settings_tab_about]
-情報
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 テーマ

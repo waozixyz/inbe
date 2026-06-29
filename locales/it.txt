@@ -4,6 +4,9 @@ Inner Breeze
 [tab_history]
 Cronologia
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 Abitudini
 ---
@@ -21,6 +24,24 @@ Segna Come Fatto
 ---
 [tab_manual]
 Manuale
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 Impostazioni
@@ -265,14 +286,11 @@ Aspetto
 [settings_section_language]
 Lingua
 ---
-[settings_tab_data]
-Dati
----
-[settings_section_data]
-Dati
----
 [settings_tab_about]
-Info
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 Tema

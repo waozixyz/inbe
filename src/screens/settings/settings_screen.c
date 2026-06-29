@@ -3,6 +3,7 @@
 #include "app.h"
 #include "app_settings.h"
 #include "flint_locale.h"
+#include "settings_about.h"
 #include "settings_data.h"
 #include "settings_device.h"
 #include "settings_session.h"
@@ -127,9 +128,8 @@ settings_tab_content_height(InbeApp *app, int tab, int content_w)
         return settings_session_content_height(content_w);
     if(tab == SETTINGS_TAB_DEVICE)
         return settings_device_content_height(content_w);
-    if(settings_data_is_configuring(app))
-        return flint_px(430);
-    return settings_data_content_height(content_w);
+    (void)app;
+    return settings_about_content_height(content_w);
 }
 
 typedef struct SettingsScrollPageContext {
@@ -162,7 +162,7 @@ settings_screen_draw(InbeApp *app)
         locale_get("settings_section_session"),
         locale_get("settings_tab_device"),
         locale_get("settings_section_appearance"),
-        locale_get("settings_tab_data"),
+        locale_get("settings_tab_about"),
     };
     SettingsDeviceState device_state = {0};
 
@@ -176,19 +176,7 @@ settings_screen_draw(InbeApp *app)
     if(settings_data_draw_pending_file_dialog(app))
         return 1;
 
-    detail_header_h = settings_data_is_configuring(app) ? flint_px(58) : 0;
-    if(detail_header_h > 0) {
-        FlintUIHeader header = ui_draw_title_header(detail_header_h,
-                                                    locale_get("sync_configure_account_button"),
-                                                    app->icons[UI_ICON_TYPE_RETURN],
-                                                    (Texture2D){0});
-        if(header.left_clicked) {
-            app->settings_data_view = 0;
-            app->settings_scroll = 0;
-            app->sync_server_url_focused = 0;
-            settings_screen_clear_status();
-        }
-    }
+    detail_header_h = 0;
 
     selector_h = detail_header_h > 0 ? 0 : ui_tab_bar_height();
     tab_content_start_y = detail_header_h + selector_h;
@@ -233,7 +221,6 @@ settings_screen_draw(InbeApp *app)
     if(selected_tab != app->settings_tab) {
         app->settings_tab = selected_tab;
         app->settings_scroll = 0;
-        app->settings_data_view = 0;
         if(app->modal.type == UIModalThemePicker) {
             app_close_modal(app);
         }
@@ -260,7 +247,7 @@ settings_screen_draw(InbeApp *app)
         else if(app->settings_tab == SETTINGS_TAB_DEVICE)
             settings_device_draw(app, page.content_x, page.content_w, &y, &device_state);
         else
-            settings_data_draw(app, page.content_x, page.content_w, &y);
+            settings_about_draw(app, page.content_x, page.content_w, &y);
 
         ui_scroll_page_end(page);
     }
@@ -270,7 +257,6 @@ settings_screen_draw(InbeApp *app)
         if(ui_draw_dropdown_menu(302) && selected_tab != app->settings_tab) {
             app->settings_tab = selected_tab;
             app->settings_scroll = 0;
-            app->settings_data_view = 0;
             if(app->modal.type == UIModalThemePicker) {
                 app_close_modal(app);
             }

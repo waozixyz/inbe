@@ -44,8 +44,22 @@ enum {
     SETTINGS_TAB_SESSION = 0,
     SETTINGS_TAB_DEVICE,
     SETTINGS_TAB_THEME,
-    SETTINGS_TAB_DATA,
+    SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
+};
+
+enum {
+    PROFILE_VIEW_MAIN = 0,
+    PROFILE_VIEW_DATA,
+    PROFILE_VIEW_SYNC_ACCOUNT,
+};
+
+enum {
+    PROFILE_TAB_OVERVIEW = 0,
+    PROFILE_TAB_FRIENDS,
+    PROFILE_TAB_LEADERBOARD,
+    PROFILE_TAB_DATA,
+    PROFILE_TAB_COUNT
 };
 
 enum {
@@ -146,10 +160,12 @@ typedef enum AppMainTab {
 
 typedef enum AppNavRoute {
     APP_NAV_ROUTE_NONE = -1,
-    APP_NAV_ROUTE_PRACTICE = 0,
+    APP_NAV_ROUTE_PROFILE = 0,
     APP_NAV_ROUTE_HABITS = 1,
-    APP_NAV_ROUTE_SETTINGS = 2,
-    APP_NAV_ROUTE_COUNT = 3,
+    APP_NAV_ROUTE_PRACTICE = 2,
+    APP_NAV_ROUTE_PET = 3,
+    APP_NAV_ROUTE_SETTINGS = 4,
+    APP_NAV_ROUTE_COUNT = 5,
 } AppNavRoute;
 
 typedef struct WhmPracticeState {
@@ -190,6 +206,10 @@ typedef struct SunSalutationPracticeState {
     int step_ticks;
 } SunSalutationPracticeState;
 
+typedef struct PetPreviewState {
+    Texture2D egg;
+} PetPreviewState;
+
 typedef struct HabitSessionEditState {
     int scroll;
     int active;
@@ -227,6 +247,7 @@ struct InbeApp {
     WhmPracticeState whm;
     MeditationPracticeState meditation;
     SunSalutationPracticeState sun_salutation;
+    PetPreviewState pet;
     Texture2D font_shapes_texture;
     Font locale_font;
     Font locale_font_8;
@@ -247,7 +268,20 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
-    int settings_data_view;
+    int profile_view;
+    int profile_tab;
+    int profile_tab_scroll;
+    int profile_scroll;
+    int profile_leaderboard_practice;
+    int profile_leaderboard_metric;
+    int profile_leaderboard_loaded;
+    int profile_friend_input_cursor;
+    int profile_friend_input_focused;
+    int profile_friends_loaded;
+    char profile_friend_input[80];
+    char profile_friends_json[8192];
+    char profile_friend_requests_json[8192];
+    char profile_leaderboard_json[8192];
     int sync_server_url_cursor;
     int sync_server_url_focused;
     char sync_server_url[256];
@@ -327,6 +361,10 @@ void app_leave_practice_config(InbeApp *app);
 int app_content_top_reserved(const InbeApp *app);
 int app_toolbar_height(void);
 int app_auto_sync(InbeApp *app);
+void app_request_social_refresh(InbeApp *app);
+void app_request_friend_send(InbeApp *app, const char *target);
+void app_request_friend_accept(InbeApp *app, const char *request_id);
+void app_request_friend_decline(InbeApp *app, const char *request_id);
 int app_should_use_tab_bar(const InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);

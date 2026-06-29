@@ -253,6 +253,15 @@ mark_local_data_pending(const char *root)
 }
 
 static void
+mark_empty_local_pending(const char *root)
+{
+    check_true("mark empty local pending",
+               exec_db_sql(root, "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('account','alias',0,1782300000);"));
+}
+
+static void
 seed_local_yoga_data(const char *root)
 {
     check_true("seed local yoga data",
@@ -392,6 +401,31 @@ test_full_snapshot_waits_for_review(void)
     free(local_detail);
     free(remote_detail);
     free(diff_detail);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_empty_local_pending_snapshot_applies_remote(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "empty-local-pending");
+    check_true("init empty local pending db", storage_init(root));
+    mark_empty_local_pending(root);
+
+    check_true("apply empty local review response",
+               storage_apply_sync_response_json(remote_snapshot_response()));
+    check_true("empty local review pending before policy", storage_sync_review_pending());
+    check_true("empty local applies remote", storage_sync_review_apply_remote_if_local_empty());
+    check_false("empty local review cleared", storage_sync_review_pending());
+    check_int("empty local remote session applied",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 1);
+    check_int("empty local remote habit applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 1);
+    check_int("empty local outbox cleared",
+              read_db_count(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
 
     storage_close();
     remove_tree(root);
@@ -617,6 +651,44 @@ test_normal_response_records_server_hash(void)
     remove_tree(root);
 }
 
+static void
+test_social_cache_is_server_authored_sync_state(void)
+{
+    char root[1024];
+    char cached[512];
+    char *payload;
+    const char *response = "{"
+                           "\"server_version\":9,"
+                           "\"server_clock\":9,"
+                           "\"server_state_hash\":\"social-hash-001\","
+                           "\"changes\":{\"habits\":[],\"habit_days\":[],"
+                           "\"sessions\":[],\"meditation_logs\":[],"
+                           "\"social_cache\":[{\"kind\":\"friends.list\","
+                           "\"json\":{\"friends\":[{\"user_id_hash\":\"server-friend\"}]},"
+                           "\"updated_at\":\"2026-06-28T00:00:00Z\"}]}"
+                           "}";
+
+    make_clean_root(root, sizeof(root), "social-cache");
+    check_true("init social cache db", storage_init(root));
+
+    check_true("store local social cache",
+               storage_set_social_cache_json("friends.list",
+                                             "{\"friends\":[{\"user_id_hash\":\"local-edit\"}]}"));
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_not_contains("social cache not uploaded as typed data", payload, "social_cache");
+    check_not_contains("social cache not uploaded as op", payload, "friends.list");
+    storage_free_sync_payload_json(payload);
+
+    check_true("apply server social cache", storage_apply_sync_response_json(response));
+    check_true("load server social cache",
+               storage_get_social_cache_json("friends.list", cached, sizeof(cached)));
+    check_contains("server social cache replaces local edit", cached, "server-friend");
+    check_not_contains("local social cache edit removed", cached, "local-edit");
+
+    storage_close();
+    remove_tree(root);
+}
+
 int
 main(void)
 {
@@ -624,6 +696,7 @@ main(void)
     tzset();
 
     test_full_snapshot_waits_for_review();
+    test_empty_local_pending_snapshot_applies_remote();
     test_review_ignores_deleted_remote_rows();
     test_remote_additions_apply_without_review();
     test_remote_snapshot_removes_absent_local_yoga_without_pending_edits();
@@ -632,6 +705,7 @@ main(void)
     test_keep_local_requests_full_replace();
     test_use_remote_replaces_local_data();
     test_normal_response_records_server_hash();
+    test_social_cache_is_server_authored_sync_state();
 
     if(g_failures != 0) {
         fprintf(stderr, "%d failures\n", g_failures);

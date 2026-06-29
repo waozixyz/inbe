@@ -4,6 +4,9 @@ Inner Breeze
 [tab_history]
 Historie
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 Návyky
 ---
@@ -21,6 +24,24 @@ Označit
 ---
 [tab_manual]
 Návod
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 Nastavení
@@ -265,14 +286,11 @@ Vzhled
 [settings_section_language]
 Jazyk
 ---
-[settings_tab_data]
-Data
----
-[settings_section_data]
-Data
----
 [settings_tab_about]
-O aplikaci
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 Motiv

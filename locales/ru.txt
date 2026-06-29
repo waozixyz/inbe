@@ -4,6 +4,9 @@ Inner Breeze
 [tab_history]
 История
 ---
+[tab_profile]
+Profile
+---
 [tab_habits]
 Привычки
 ---
@@ -21,6 +24,24 @@ Inner Breeze
 ---
 [tab_manual]
 Обучение
+---
+[tab_pet]
+Pet
+---
+[profile_data_title]
+Data
+---
+[profile_data_button]
+Configure Data
+---
+[profile_habits_label]
+Habits
+---
+[profile_sessions_label]
+Sessions
+---
+[profile_storage_label]
+Storage
 ---
 [tab_settings]
 Настройки
@@ -268,14 +289,11 @@ OK
 [settings_section_language]
 Язык
 ---
-[settings_tab_data]
-Данные
----
-[settings_section_data]
-Данные
----
 [settings_tab_about]
-О приложении
+About
+---
+[about_text]
+A quiet breathing companion for practice, habits, and sync.
 ---
 [theme_label]
 Тема

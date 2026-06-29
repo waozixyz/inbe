@@ -1,4 +1,12 @@
 # Changelog
+## [1.7.0] - 2026-06-28
+### Changed
+- Rework Android safe-area handling to use one native inset path with stable bottom navigation spacing.
+- Move leaderboard stats to synced source data, with local current-user rows shown immediately.
+
+### Fixed
+- Fix profile/friend sync freshness, leaderboard empty states, modal input capture, pet asset embedding, and wrapped text previews.
+
 ## [1.6.6] - 2026-06-28
 ### Changed
 - updated the practice screen ui/ux

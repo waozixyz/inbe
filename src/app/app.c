@@ -11,6 +11,8 @@
 #include "flint_locale.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
+#include "screens/pet_screen.h"
+#include "screens/profile_screen.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/settings/settings_data.h"
 #include "screens/settings/settings_sync_account.h"
@@ -81,12 +83,25 @@ static double g_dirty_sync_at = 0.0;
 static double g_last_sync_input_at = 0.0;
 static int g_sync_running = 0;
 static int g_sync_refresh_pending = 0;
+static int g_social_refresh_pending = 0;
+static int g_social_refresh_running = 0;
 static int g_remote_sync_due = 0;
+static char g_social_pending_action[16];
+static char g_social_pending_value[96];
 
 #if !defined(PLATFORM_WEB)
 typedef struct InbeSyncWorkerArgs {
     char url[256];
 } InbeSyncWorkerArgs;
+
+typedef struct InbeSocialWorkerArgs {
+    char url[256];
+    char practice[32];
+    char metric[32];
+    char leaderboard_key[96];
+    char action[16];
+    char action_value[96];
+} InbeSocialWorkerArgs;
 
 #if defined(_WIN32)
 #define sync_thread_return DWORD WINAPI
@@ -130,8 +145,20 @@ sync_thread_detach(SyncThread thread)
 static int g_sync_finished = 0;
 static int g_sync_finished_result = INBE_SYNC_CLIENT_OK;
 static int g_sync_finished_changed = 0;
+static int g_social_finished = 0;
+static int g_social_finished_result = INBE_SYNC_CLIENT_OK;
+static char g_social_friend_requests_json[8192];
+static char g_social_friends_json[8192];
+static char g_social_leaderboard_json[8192];
+static char g_social_leaderboard_key[96];
 static int g_sync_events_running = 0;
 static char g_sync_events_url[256];
+
+static int app_sync_url(char *url, size_t url_size);
+static const char *app_social_practice_id(int practice);
+static const char *app_social_metric_id(int practice, int metric);
+static void app_social_leaderboard_key(char *out, size_t out_size,
+                                      int practice, int metric);
 
 static sync_thread_return
 app_sync_worker(void *userdata)
@@ -155,6 +182,65 @@ app_sync_worker(void *userdata)
     return sync_thread_done;
 }
 
+static sync_thread_return
+app_social_worker(void *userdata)
+{
+    InbeSocialWorkerArgs *args = userdata;
+    InbeSyncClientResult result = INBE_SYNC_CLIENT_INVALID_URL;
+    InbeSyncClientResult friends_result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+    InbeSyncClientResult leaderboard_result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+    char requests_json[8192] = "{\"incoming\":[],\"outgoing\":[]}";
+    char friends_json[8192] = "{\"friends\":[]}";
+    char leaderboard_json[8192] = "{\"rows\":[]}";
+
+    if(args != NULL) {
+        if(strcmp(args->action, "send") == 0) {
+            result = sync_client_send_friend_request(args->url, args->action_value);
+            if(result != INBE_SYNC_CLIENT_OK)
+                goto done;
+        } else if(strcmp(args->action, "accept") == 0) {
+            result = sync_client_accept_friend_request(args->url, args->action_value);
+            if(result != INBE_SYNC_CLIENT_OK)
+                goto done;
+        } else if(strcmp(args->action, "decline") == 0) {
+            result = sync_client_decline_friend_request(args->url, args->action_value);
+            if(result != INBE_SYNC_CLIENT_OK)
+                goto done;
+        }
+        result = sync_client_get_friend_requests(args->url, requests_json,
+                                                 sizeof(requests_json));
+        if(result == INBE_SYNC_CLIENT_OK) {
+            friends_result = sync_client_get_friends(args->url, friends_json,
+                                                    sizeof(friends_json));
+            leaderboard_result =
+                sync_client_get_friend_stats(args->url, "inbe", args->practice,
+                                             args->metric, leaderboard_json,
+                                             sizeof(leaderboard_json));
+            if(friends_result != INBE_SYNC_CLIENT_OK)
+                result = friends_result;
+            else if(leaderboard_result != INBE_SYNC_CLIENT_OK)
+                result = leaderboard_result;
+        }
+    }
+
+done:
+    sync_lock();
+    g_social_finished_result = result;
+    snprintf(g_social_friend_requests_json, sizeof(g_social_friend_requests_json),
+             "%s", requests_json);
+    snprintf(g_social_friends_json, sizeof(g_social_friends_json), "%s",
+             friends_json);
+    snprintf(g_social_leaderboard_json, sizeof(g_social_leaderboard_json), "%s",
+             leaderboard_json);
+    snprintf(g_social_leaderboard_key, sizeof(g_social_leaderboard_key), "%s",
+             args != NULL ? args->leaderboard_key : "");
+    g_social_finished = 1;
+    g_social_refresh_running = 0;
+    sync_unlock();
+    free(args);
+    return sync_thread_done;
+}
+
 static void
 app_collect_finished_sync(void)
 {
@@ -173,6 +259,7 @@ app_collect_finished_sync(void)
         return;
     if(result == INBE_SYNC_CLIENT_OK) {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
+        g_social_refresh_pending = 1;
         if(changed)
             g_sync_refresh_pending = 1;
     } else {
@@ -271,6 +358,7 @@ app_collect_finished_sync(void)
     g_sync_running = 0;
     if(result == INBE_SYNC_CLIENT_OK) {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
+        g_social_refresh_pending = 1;
         if(changed)
             g_sync_refresh_pending = 1;
     } else {
@@ -365,6 +453,76 @@ app_apply_pending_sync_refresh(InbeApp *app)
     app_reload_after_import(app, 0);
 }
 
+static void
+app_apply_pending_social_refresh(InbeApp *app)
+{
+    char url[256];
+    char action[16] = "";
+    char action_value[96] = "";
+
+    if(!g_social_refresh_pending || !app_background_sync_safe(app))
+        return;
+#if !defined(PLATFORM_WEB)
+    {
+        SyncThread thread;
+        InbeSocialWorkerArgs *args;
+
+        sync_lock();
+        if(g_sync_running || g_social_refresh_running) {
+            sync_unlock();
+            return;
+        }
+        snprintf(action, sizeof(action), "%s", g_social_pending_action);
+        snprintf(action_value, sizeof(action_value), "%s", g_social_pending_value);
+        g_social_pending_action[0] = '\0';
+        g_social_pending_value[0] = '\0';
+        g_social_refresh_running = 1;
+        sync_unlock();
+
+        if(!app_sync_url(url, sizeof(url))) {
+            sync_lock();
+            g_social_refresh_running = 0;
+            sync_unlock();
+            g_social_refresh_pending = 0;
+            return;
+        }
+        args = malloc(sizeof(*args));
+        if(args == NULL) {
+            sync_lock();
+            g_social_refresh_running = 0;
+            sync_unlock();
+            return;
+        }
+        snprintf(args->url, sizeof(args->url), "%s", url);
+        snprintf(args->practice, sizeof(args->practice), "%s",
+                 app_social_practice_id(app->profile_leaderboard_practice));
+        snprintf(args->metric, sizeof(args->metric), "%s",
+                 app_social_metric_id(app->profile_leaderboard_practice,
+                                      app->profile_leaderboard_metric));
+        app_social_leaderboard_key(args->leaderboard_key,
+                                  sizeof(args->leaderboard_key),
+                                  app->profile_leaderboard_practice,
+                                  app->profile_leaderboard_metric);
+        snprintf(args->action, sizeof(args->action), "%s", action);
+        snprintf(args->action_value, sizeof(args->action_value), "%s", action_value);
+        TraceLog(LOG_INFO, "SYNC: starting background social refresh");
+        if(!sync_thread_start(&thread, app_social_worker, args)) {
+            free(args);
+            sync_lock();
+            g_social_refresh_running = 0;
+            sync_unlock();
+            TraceLog(LOG_WARNING, "SYNC: failed to start social refresh thread");
+            return;
+        }
+        sync_thread_detach(thread);
+    }
+#else
+    TraceLog(LOG_INFO, "SYNC: refreshing social cache");
+    profile_screen_refresh_social_cache(app);
+#endif
+    g_social_refresh_pending = 0;
+}
+
 static int
 app_sync_url(char *url, size_t url_size)
 {
@@ -383,6 +541,147 @@ app_sync_url(char *url, size_t url_size)
                                        url, url_size))
         return 0;
     return 1;
+}
+
+static const char *
+app_social_practice_id(int practice)
+{
+    switch(practice) {
+    case EXERCISE_MEDITATION:
+        return "meditation";
+    case EXERCISE_SUN_SALUTATION:
+        return "sun_salutation";
+    case EXERCISE_WIM_HOF:
+    default:
+        return "whm";
+    }
+}
+
+static const char *
+app_social_metric_id(int practice, int metric)
+{
+    if(metric != 1)
+        return "streak";
+    return practice == EXERCISE_MEDITATION ? "avg_time" : "avg_hold";
+}
+
+static void
+app_social_leaderboard_key(char *out, size_t out_size, int practice, int metric)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    snprintf(out, out_size, "leaderboard.inbe.%s.%s",
+             app_social_practice_id(practice),
+             app_social_metric_id(practice, metric));
+}
+
+#if !defined(PLATFORM_WEB)
+static void
+app_collect_finished_social_refresh(InbeApp *app)
+{
+    int finished;
+    int result;
+    char requests_json[8192];
+    char friends_json[8192];
+    char leaderboard_json[8192];
+    char leaderboard_key[96];
+
+    sync_lock();
+    finished = g_social_finished;
+    result = g_social_finished_result;
+    if(finished) {
+        snprintf(requests_json, sizeof(requests_json), "%s",
+                 g_social_friend_requests_json);
+        snprintf(friends_json, sizeof(friends_json), "%s", g_social_friends_json);
+        snprintf(leaderboard_json, sizeof(leaderboard_json), "%s",
+                 g_social_leaderboard_json);
+        snprintf(leaderboard_key, sizeof(leaderboard_key), "%s",
+                 g_social_leaderboard_key);
+        g_social_finished = 0;
+    }
+    sync_unlock();
+
+    if(!finished)
+        return;
+    if(result != INBE_SYNC_CLIENT_OK) {
+        TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
+                 result, sync_client_result_name(result));
+        return;
+    }
+    storage_set_social_cache_json("friends.requests", requests_json);
+    storage_set_social_cache_json("friends.list", friends_json);
+    if(leaderboard_key[0] != '\0')
+        storage_set_social_cache_json(leaderboard_key, leaderboard_json);
+    if(app != NULL) {
+        snprintf(app->profile_friend_requests_json,
+                 sizeof(app->profile_friend_requests_json), "%s", requests_json);
+        snprintf(app->profile_friends_json, sizeof(app->profile_friends_json),
+                 "%s", friends_json);
+        if(leaderboard_key[0] != '\0') {
+            char current_key[96];
+            app_social_leaderboard_key(current_key, sizeof(current_key),
+                                      app->profile_leaderboard_practice,
+                                      app->profile_leaderboard_metric);
+            if(strcmp(current_key, leaderboard_key) == 0)
+                snprintf(app->profile_leaderboard_json,
+                         sizeof(app->profile_leaderboard_json), "%s",
+                         leaderboard_json);
+        }
+        app->profile_friends_loaded = 1;
+        app->profile_leaderboard_loaded = 1;
+    }
+    TraceLog(LOG_INFO, "SYNC: social cache refreshed");
+}
+#else
+static void
+app_collect_finished_social_refresh(InbeApp *app)
+{
+    (void)app;
+}
+#endif
+
+void
+app_request_social_refresh(InbeApp *app)
+{
+    (void)app;
+    g_social_refresh_pending = 1;
+}
+
+static void
+app_request_social_action(const char *action, const char *value)
+{
+    if(action == NULL || action[0] == '\0' || value == NULL || value[0] == '\0')
+        return;
+#if !defined(PLATFORM_WEB)
+    sync_lock();
+    snprintf(g_social_pending_action, sizeof(g_social_pending_action), "%s", action);
+    snprintf(g_social_pending_value, sizeof(g_social_pending_value), "%s", value);
+    g_social_refresh_pending = 1;
+    sync_unlock();
+#else
+    g_social_refresh_pending = 1;
+#endif
+}
+
+void
+app_request_friend_send(InbeApp *app, const char *target)
+{
+    (void)app;
+    app_request_social_action("send", target);
+}
+
+void
+app_request_friend_accept(InbeApp *app, const char *request_id)
+{
+    (void)app;
+    app_request_social_action("accept", request_id);
+}
+
+void
+app_request_friend_decline(InbeApp *app, const char *request_id)
+{
+    (void)app;
+    app_request_social_action("decline", request_id);
 }
 
 static int
@@ -470,6 +769,7 @@ app_pump_sync(InbeApp *app)
     if(app == NULL)
         return;
     app_collect_finished_sync();
+    app_collect_finished_social_refresh(app);
     if(storage_sync_review_pending() && !app->modal.active) {
         if(storage_sync_review_clear_if_no_visible_diff()) {
             app_reload_after_import(app, 0);
@@ -478,6 +778,7 @@ app_pump_sync(InbeApp *app)
         }
     }
     app_apply_pending_sync_refresh(app);
+    app_apply_pending_social_refresh(app);
     if(!app_sync_url(url, sizeof(url)))
         return;
     app_ensure_sync_events(url);
@@ -1295,6 +1596,31 @@ handle_back_button(InbeApp *app)
         app->settings_scroll = 0;
         break;
 
+    case InbeScreenProfile:
+        if(app->profile_view != PROFILE_VIEW_MAIN) {
+            app->profile_view = PROFILE_VIEW_MAIN;
+            app->profile_scroll = 0;
+            app->sync_server_url_focused = 0;
+            settings_screen_clear_status();
+            break;
+        }
+        if(app->profile_tab != PROFILE_TAB_OVERVIEW) {
+            app->profile_tab = PROFILE_TAB_OVERVIEW;
+            app->profile_scroll = 0;
+            settings_screen_clear_status();
+            break;
+        }
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
+        break;
+
+    case InbeScreenPet:
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
+        break;
+
     case InbeScreenPracticeConfig:
         app_leave_practice_config(app);
         app_switch_screen(app, InbeScreenStart);
@@ -1367,6 +1693,8 @@ draw_global_modal(InbeApp *app)
         return;
     if(app->modal_open_frame == app->inbe.frame)
         return;
+
+    ui_clear_input_captures();
 
     if(settings_data_draw_modals(app))
         return;
@@ -1445,7 +1773,9 @@ updateapp(InbeApp *app)
         (app->modal.type == UIModalPracticeManual ||
          app->modal.type == UIModalPracticeConfig ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
-    ui_set_input_blocked(app->modal.active);
+    if(app->modal.active || first_run_guide_active || habits_guide_active) {
+        ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
+    }
 
     if(IsKeyPressed(KEY_BACK)) {
         if(first_run_guide_active || habits_guide_active) {
@@ -1463,6 +1793,17 @@ updateapp(InbeApp *app)
     if(app->inbe.screen == InbeScreenSettings) {
         if(settings_screen_draw(app))
             goto finish_frame;
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenProfile) {
+        if(profile_screen_draw(app))
+            goto finish_frame;
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenPet) {
+        pet_screen_draw(app);
         goto finish_frame;
     }
 
@@ -1556,10 +1897,8 @@ updateapp(InbeApp *app)
 
 finish_frame:
     app_draw_bottom_nav(app);
-    ui_set_input_blocked(0);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
-    ui_set_input_blocked(0);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
@@ -1655,6 +1994,7 @@ app_destroy(void *vapp)
 
     // Unload all icons
     flint_unload_all_icons(app->icons);
+    app_unload_texture(app->pet.egg);
     app_unload_texture(app->font_shapes_texture);
     unload_locale_font(app);
 

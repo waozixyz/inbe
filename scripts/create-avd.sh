@@ -4,7 +4,7 @@ set -e
 
 AVD_NAME="${1:-inbe-test}"
 
-echo "📱 Creating AVD: $AVD_NAME (Pixel 8 Pro - Android 14)"
+echo "📱 Creating AVD: $AVD_NAME (Pixel 8 Pro - Android 14, punch-hole test profile)"
 
 # Check for Android SDK location
 if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
@@ -177,5 +177,6 @@ echo "✅ Done!"
 echo "   Device: Pixel 8 Pro"
 echo "   Android: 14 (API $ANDROID_API)"
 echo "   ABI: $ABI_DISPLAY"
+echo "   Cutout: punch-hole overlay enabled by scripts/emulator.sh after boot"
 echo ""
 echo "   Run with: bash scripts/emulator.sh"

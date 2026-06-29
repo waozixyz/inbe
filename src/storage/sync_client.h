@@ -16,8 +16,18 @@ typedef enum InbeSyncClientResult {
 
 int sync_client_url_valid(const char *url);
 int sync_client_normalize_url(const char *input, char *out, size_t out_size);
+int sync_client_normalize_friend_target(const char *target, char *out, size_t out_size);
 InbeSyncClientResult sync_client_sync(const char *base_url);
 InbeSyncClientResult sync_client_register_alias(const char *base_url, const char *alias);
+InbeSyncClientResult sync_client_send_friend_request(const char *base_url, const char *target);
+InbeSyncClientResult sync_client_get_friend_requests(const char *base_url, char *out, size_t out_size);
+InbeSyncClientResult sync_client_get_friends(const char *base_url, char *out, size_t out_size);
+InbeSyncClientResult sync_client_accept_friend_request(const char *base_url, const char *request_id);
+InbeSyncClientResult sync_client_decline_friend_request(const char *base_url, const char *request_id);
+InbeSyncClientResult sync_client_remove_friend(const char *base_url, const char *friend_user_id);
+InbeSyncClientResult sync_client_get_friend_stats(const char *base_url, const char *app,
+                                                  const char *practice, const char *metric,
+                                                  char *out, size_t out_size);
 InbeSyncClientResult sync_client_wait_for_remote_event(const char *base_url);
 InbeSyncClientResult sync_client_delete_account(const char *base_url);
 const char *sync_client_result_name(InbeSyncClientResult result);
