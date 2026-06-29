@@ -125,6 +125,7 @@ void habit_toggle_today(InbeHabits *habits, int index);
 void habits_add_default(InbeHabits *habits);
 void habits_add_default_set(InbeHabits *habits);
 void habits_delete(InbeHabits *habits, int index);
+int habits_move(InbeHabits *habits, int from_index, int to_index);
 int habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index);
 void habits_generate_unique_name(InbeHabits *habits, char *name_buffer, size_t buffer_size, const char *base_name);
 int habits_add_custom(InbeHabits *habits, const char *name, Color color,

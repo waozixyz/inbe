@@ -112,6 +112,24 @@ Keine Bestenlistendaten
 [profile_practice_label]
 Praxis
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Einstellungen
 ---
@@ -950,7 +968,7 @@ Sieh dir hier deine Gewohnheitsstatistiken an.
 Richte hier dein Sync-Konto ein.
 ---
 [profile_guide_data]
-Pruefe lokale Daten und oeffne hier Sicherungen.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Oeffne Freunde und Bestenliste von hier.

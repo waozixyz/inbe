@@ -112,6 +112,24 @@ Sin datos de clasificacion
 [profile_practice_label]
 Practica
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Configuración
 ---
@@ -950,7 +968,7 @@ Consulta tus estadisticas de habitos aqui.
 Configura tu cuenta de sincronizacion aqui.
 ---
 [profile_guide_data]
-Revisa los datos locales y abre las copias aqui.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Abre amigos y clasificacion desde aqui.

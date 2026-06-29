@@ -112,6 +112,24 @@ Zadna data zebricku
 [profile_practice_label]
 Cviceni
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Nastavení
 ---
@@ -950,7 +968,7 @@ Zde zobrazite statistiky navyku.
 Zde nastavite synchronizacni ucet.
 ---
 [profile_guide_data]
-Zde zkontrolujete lokalni data a otevete zalohy.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Odtud otevete pratele a zebricek.

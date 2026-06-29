@@ -112,6 +112,24 @@ Tidak ada data papan peringkat
 [profile_practice_label]
 Latihan
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 Pengaturan
 ---
@@ -950,7 +968,7 @@ Lihat statistik kebiasaan Anda di sini.
 Atur akun sinkronisasi Anda di sini.
 ---
 [profile_guide_data]
-Tinjau data lokal dan buka alat cadangan di sini.
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 Buka teman dan papan peringkat dari sini.

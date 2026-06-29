@@ -329,6 +329,40 @@ habits_delete(InbeHabits *habits, int index)
 }
 
 int
+habits_move(InbeHabits *habits, int from_index, int to_index)
+{
+    InbeHabit moved;
+
+    if(habits == NULL || from_index < 0 || to_index < 0 ||
+       from_index >= habits->count || to_index >= habits->count ||
+       from_index == to_index)
+        return 0;
+
+    moved = habits->items[from_index];
+    if(from_index < to_index) {
+        for(int i = from_index; i < to_index; i++)
+            habits->items[i] = habits->items[i + 1];
+    } else {
+        for(int i = from_index; i > to_index; i--)
+            habits->items[i] = habits->items[i - 1];
+    }
+    habits->items[to_index] = moved;
+
+    if(habits->selected == from_index) {
+        habits->selected = to_index;
+    } else if(from_index < to_index &&
+              habits->selected > from_index && habits->selected <= to_index) {
+        habits->selected--;
+    } else if(from_index > to_index &&
+              habits->selected >= to_index && habits->selected < from_index) {
+        habits->selected++;
+    }
+
+    habits_save(habits);
+    return 1;
+}
+
+int
 habits_name_exists(const InbeHabits *habits, const char *name, int exclude_index)
 {
     if(habits == NULL || name == NULL)
@@ -880,7 +914,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         option_count = INBE_HABIT_MAX;
     for(int i = 0; i < option_count; i++)
         options[i] = app->habits.items[i].name;
-    options[option_count++] = locale_get("habit_add_new_option");
+    options[option_count++] = "+ Habit";
 
     selected = app->habits.selected;
     if(selected < 0 || selected >= app->habits.count)

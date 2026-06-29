@@ -1,4 +1,13 @@
 # Changelog
+## [1.7.2] - 2026-06-29
+### Added
+- Add local `make install` target.
+- Add Profile controls for habit ordering and practice visibility.
+
+### Changed
+- Move sync status into the Data view and simplify the habits add option.
+- Clean up the README.
+
 ## [1.7.1] - 2026-06-28
 ### Changed
 - Move shared Lyra sync protocol code into Flint and simplify Inbe sync client wiring.

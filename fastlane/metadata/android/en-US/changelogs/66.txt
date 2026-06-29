@@ -1,0 +1,8 @@
+Added
+---
+- Add local `make install` target.
+- Add Profile controls for habit ordering and practice visibility.
+Changed
+---
+- Move sync status into the Data view and simplify the habits add option.
+- Clean up the README.

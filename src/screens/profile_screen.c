@@ -4,6 +4,7 @@
 #include "flint_locale.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
+#include "practice_screen.h"
 #include "settings/settings_data.h"
 #include "settings/settings_screen.h"
 #include "settings/settings_sync_account.h"
@@ -44,13 +45,17 @@ static int
 profile_main_content_height(int content_w)
 {
     (void)content_w;
-    return flint_px(620);
+    return flint_px(700);
 }
 
 static int
 profile_data_content_height(int content_w)
 {
-    return settings_data_content_height(content_w) + flint_px(104);
+    int height = settings_data_content_height(content_w) + flint_px(104);
+
+    if(sync_account_load(&(InbeSyncAccount){0}))
+        height += flint_px(86);
+    return height;
 }
 
 static int
@@ -58,6 +63,20 @@ profile_sync_content_height(int content_w)
 {
     (void)content_w;
     return flint_px(430);
+}
+
+static int
+profile_habits_content_height(int content_w)
+{
+    (void)content_w;
+    return flint_px(90) + flint_px(48) * INBE_HABIT_MAX;
+}
+
+static int
+profile_practices_content_height(int content_w)
+{
+    (void)content_w;
+    return flint_px(92) + flint_px(46) * EXERCISE_COUNT;
 }
 
 static int
@@ -69,6 +88,10 @@ profile_content_height(int content_w, void *user_data)
         return profile_data_content_height(content_w);
     if(app != NULL && app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT)
         return profile_sync_content_height(content_w);
+    if(app != NULL && app->profile_view == PROFILE_VIEW_HABITS)
+        return profile_habits_content_height(content_w);
+    if(app != NULL && app->profile_view == PROFILE_VIEW_PRACTICES)
+        return profile_practices_content_height(content_w);
     if(app != NULL && app->profile_tab == PROFILE_TAB_FRIENDS)
         return flint_px(740);
     if(app != NULL && app->profile_tab == PROFILE_TAB_LEADERBOARD)
@@ -433,11 +456,11 @@ profile_guide_data_anchor(void)
 {
     int x;
     int w;
-    int y = flint_px(88);
+    int y = flint_px(82);
 
     profile_overview_column(&x, &w);
     return (Rectangle){(float)(x - flint_px(6)), (float)(y - flint_px(6)),
-                       (float)(w + flint_px(12)), (float)flint_px(142)};
+                       (float)(w + flint_px(12)), (float)flint_px(190)};
 }
 
 static Rectangle
@@ -445,10 +468,8 @@ profile_guide_social_anchor(InbeApp *app)
 {
     int x;
     int w;
-    int y = flint_px(242);
+    int y = flint_px(278);
 
-    if(sync_account_load(&(InbeSyncAccount){0}))
-        y += flint_px(80);
     (void)app;
     profile_overview_column(&x, &w);
     return (Rectangle){(float)(x - flint_px(6)), (float)(y - flint_px(6)),
@@ -591,6 +612,8 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     int btn_h = flint_px(34);
     int hover_account = 0;
     int hover_data = 0;
+    int hover_habits = 0;
+    int hover_practices = 0;
     int hover_friends = 0;
     int hover_leaderboard = 0;
     int half_w = (w - flint_px(8)) / 2;
@@ -641,19 +664,23 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
         app->profile_scroll = 0;
         settings_screen_clear_status();
     }
+    *y += btn_h + flint_px(8);
+    if(ui_draw_generic_button(x, *y, half_w, btn_h, locale_get("profile_my_habits_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_habits)) {
+        app->profile_view = PROFILE_VIEW_HABITS;
+        app->profile_scroll = 0;
+        settings_screen_clear_status();
+    }
+    if(ui_draw_generic_button(x + half_w + flint_px(8), *y, half_w, btn_h,
+                              locale_get("profile_my_practices_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_practices)) {
+        app->profile_view = PROFILE_VIEW_PRACTICES;
+        app->profile_scroll = 0;
+        settings_screen_clear_status();
+    }
     *y += btn_h + flint_px(20);
     profile_draw_divider(x, w, *y);
     *y += flint_px(18);
-
-    if(has_account) {
-        flint_text_draw(locale_get("profile_sync_section"), x, *y, small,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(22);
-        settings_data_draw_sync_status(x, w, y);
-        *y += flint_px(8);
-        profile_draw_divider(x, w, *y);
-        *y += flint_px(18);
-    }
 
     snprintf(friend_text, sizeof(friend_text), locale_get("profile_friends_count_format"),
              profile_json_array_count(app->profile_friends_json, "friends"));
@@ -1083,8 +1110,77 @@ profile_draw_data(InbeApp *app, int x, int w, int *y)
     flint_text_draw(locale_get("profile_data_title"), x, *y, font, flint_theme_get_text());
     *y += flint_px(28);
     profile_draw_data_summary(x, w, y);
+    settings_data_draw_sync_status(x, w, y);
     *y += flint_px(10);
     settings_data_draw_actions(app, x, w, y);
+}
+
+static void
+profile_draw_habits(InbeApp *app, int x, int w, int *y)
+{
+    int font = flint_ui_font();
+    int small = flint_ui_font_small();
+    int btn_h = flint_px(32);
+    int btn_w = flint_px(74);
+    int gap = flint_px(8);
+
+    *y += flint_px(16);
+    flint_text_draw(locale_get("profile_my_habits_title"), x, *y, font,
+                    flint_theme_get_text());
+    *y += flint_px(34);
+
+    for(int i = 0; i < app->habits.count; i++) {
+        int row_y = *y;
+        int up_hover = 0;
+        int down_hover = 0;
+
+        flint_text_draw(app->habits.items[i].name, x, row_y + flint_px(7),
+                        font, flint_theme_get_text());
+        if(ui_draw_generic_button(x + w - btn_w * 2 - gap, row_y, btn_w, btn_h,
+                                  locale_get("move_up_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, i == 0, &up_hover)) {
+            if(habits_move(&app->habits, i, i - 1))
+                app_auto_sync(app);
+            return;
+        }
+        if(ui_draw_generic_button(x + w - btn_w, row_y, btn_w, btn_h,
+                                  locale_get("move_down_button"),
+                                  UI_BUTTON_STYLE_SECONDARY,
+                                  i == app->habits.count - 1, &down_hover)) {
+            if(habits_move(&app->habits, i, i + 1))
+                app_auto_sync(app);
+            return;
+        }
+        *y += flint_px(46);
+        profile_draw_divider(x, w, *y - flint_px(6));
+    }
+
+    if(app->habits.count <= 0)
+        flint_text_draw(locale_get("habit_empty_title"), x, *y, small,
+                        flint_darken(flint_theme_get_text(), 35));
+}
+
+static void
+profile_draw_practices(InbeApp *app, int x, int w, int *y)
+{
+    int font = flint_ui_font();
+
+    (void)w;
+    *y += flint_px(16);
+    flint_text_draw(locale_get("profile_my_practices_title"), x, *y, font,
+                    flint_theme_get_text());
+    *y += flint_px(34);
+
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        int enabled = practice_is_visible(app, i);
+        if(ui_draw_checkbox_row((FlintUICheckboxRow){
+            .label = profile_practice_label(i),
+            .value = &enabled
+        }, x, *y)) {
+            practice_set_visible(app, i, enabled);
+        }
+        *y += ui_checkbox_row_height((FlintUICheckboxRow){0});
+    }
 }
 
 int
@@ -1119,9 +1215,13 @@ profile_screen_draw(InbeApp *app)
     }
 
     if(app->profile_view != PROFILE_VIEW_MAIN) {
-        const char *title = app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT
-                                ? locale_get("sync_configure_account_button")
-                                : locale_get("profile_data_title");
+        const char *title = locale_get("profile_data_title");
+        if(app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT)
+            title = locale_get("sync_configure_account_button");
+        else if(app->profile_view == PROFILE_VIEW_HABITS)
+            title = locale_get("profile_my_habits_title");
+        else if(app->profile_view == PROFILE_VIEW_PRACTICES)
+            title = locale_get("profile_my_practices_title");
         FlintUIHeader header = ui_draw_title_header(header_h, title,
                                                     app->icons[UI_ICON_TYPE_RETURN],
                                                     (Texture2D){0});
@@ -1161,6 +1261,10 @@ profile_screen_draw(InbeApp *app)
         settings_sync_account_draw_config(app, page.content_x, page.content_w, &y);
     else if(app->profile_view == PROFILE_VIEW_DATA)
         profile_draw_data(app, page.content_x, page.content_w, &y);
+    else if(app->profile_view == PROFILE_VIEW_HABITS)
+        profile_draw_habits(app, page.content_x, page.content_w, &y);
+    else if(app->profile_view == PROFILE_VIEW_PRACTICES)
+        profile_draw_practices(app, page.content_x, page.content_w, &y);
     else if(app->profile_tab == PROFILE_TAB_FRIENDS)
         profile_draw_friends(app, page.content_x, page.content_w, &y);
     else if(app->profile_tab == PROFILE_TAB_LEADERBOARD)

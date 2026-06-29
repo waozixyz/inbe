@@ -112,6 +112,24 @@ Pet
 [profile_practice_label]
 练习
 ---
+[profile_my_habits_button]
+My habits
+---
+[profile_my_practices_button]
+My practices
+---
+[profile_my_habits_title]
+My habits
+---
+[profile_my_practices_title]
+My practices
+---
+[move_up_button]
+Up
+---
+[move_down_button]
+Down
+---
 [tab_settings]
 设置
 ---
@@ -948,7 +966,7 @@ Wim Hof 屏息轮次
 在这里配置同步账户。
 ---
 [profile_guide_data]
-在这里查看本地数据并打开备份工具。
+Manage data, habit order, and visible practices here.
 ---
 [profile_guide_social]
 从这里打开好友和排行榜。

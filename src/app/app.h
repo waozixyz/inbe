@@ -52,6 +52,8 @@ enum {
     PROFILE_VIEW_MAIN = 0,
     PROFILE_VIEW_DATA,
     PROFILE_VIEW_SYNC_ACCOUNT,
+    PROFILE_VIEW_HABITS,
+    PROFILE_VIEW_PRACTICES,
 };
 
 enum {
@@ -311,6 +313,7 @@ struct InbeApp {
     int profile_guide_step;
     int profile_guide_seen;
     int exercise_manual_seen_mask;
+    int practice_visible_mask;
 
     int theme_id;
     int dark_mode;

@@ -277,12 +277,26 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web site chrome-web-store
+.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
 
 native: $(TARGET)
+
+install: $(TARGET)
+	@install_dir="$(HOME)/.local/lib/$(APP_NAME)"; \
+	bin_dir="$(HOME)/.local/bin"; \
+	mkdir -p "$$install_dir" "$$bin_dir"; \
+	cp "$(TARGET)" "$$install_dir/$(APP_NAME)"; \
+	chmod 755 "$$install_dir/$(APP_NAME)"; \
+	ln -sf "$$install_dir/$(APP_NAME)" "$$bin_dir/$(APP_NAME)"; \
+	if [ -d "$(HOME)/bin" ]; then \
+		ln -sf "$$install_dir/$(APP_NAME)" "$(HOME)/bin/$(APP_NAME)"; \
+		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME), $(HOME)/bin/$(APP_NAME)"; \
+	else \
+		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME)"; \
+	fi
 
 dist:
 	@password="$(PASSWORD)"; \

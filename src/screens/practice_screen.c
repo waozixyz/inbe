@@ -14,6 +14,57 @@ enum {
 };
 
 int
+practice_visible_mask_all(void)
+{
+    return (1 << EXERCISE_COUNT) - 1;
+}
+
+static int
+practice_sanitize_visible_mask(int mask)
+{
+    mask &= practice_visible_mask_all();
+    return mask != 0 ? mask : practice_visible_mask_all();
+}
+
+int
+practice_is_visible(const InbeApp *app, int exercise)
+{
+    int mask;
+
+    if(exercise < 0 || exercise >= EXERCISE_COUNT)
+        return 0;
+    mask = practice_sanitize_visible_mask(app != NULL ? app->practice_visible_mask : 0);
+    return (mask & (1 << exercise)) != 0;
+}
+
+static int
+practice_first_visible(const InbeApp *app)
+{
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        if(practice_is_visible(app, i))
+            return i;
+    }
+    return EXERCISE_WIM_HOF;
+}
+
+void
+practice_set_visible(InbeApp *app, int exercise, int visible)
+{
+    int mask;
+
+    if(app == NULL || exercise < 0 || exercise >= EXERCISE_COUNT)
+        return;
+    mask = practice_sanitize_visible_mask(app->practice_visible_mask);
+    if(visible)
+        mask |= 1 << exercise;
+    else if((mask & ~(1 << exercise)) != 0)
+        mask &= ~(1 << exercise);
+    app->practice_visible_mask = practice_sanitize_visible_mask(mask);
+    practice_clamp_activity_to_tab(app);
+    save_settings(app);
+}
+
+int
 practice_activity_count_for_tab(int tab)
 {
     (void)tab;
@@ -43,7 +94,10 @@ practice_clamp_activity_to_tab(InbeApp *app)
 {
     if(app == NULL)
         return;
+    app->practice_visible_mask = practice_sanitize_visible_mask(app->practice_visible_mask);
     app->exercise_type = practice_clamp_id(app->exercise_type);
+    if(!practice_is_visible(app, app->exercise_type))
+        app->exercise_type = practice_first_visible(app);
 }
 
 void
@@ -88,13 +142,20 @@ static int
 practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
 {
     FlintUITab tabs[EXERCISE_COUNT];
+    int values[EXERCISE_COUNT];
     int tab_count = 0;
+    int selected_index = 0;
+    int clicked;
 
     if(app == NULL)
         return -1;
 
-    // Create tab for each exercise type
     for(int i = 0; i < EXERCISE_COUNT; i++) {
+        if(!practice_is_visible(app, i))
+            continue;
+        if(i == app->exercise_type)
+            selected_index = tab_count;
+        values[tab_count] = i;
         tabs[tab_count++] = (FlintUITab){
             .label = practice_activity_label(i),
             .icon = (Texture2D){0},
@@ -102,15 +163,18 @@ practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
             .disabled = app->modal.active
         };
     }
+    if(tab_count <= 0)
+        return -1;
 
-    return ui_draw_tab_bar((FlintUITabBar){
+    clicked = ui_draw_tab_bar((FlintUITabBar){
         .bounds = {0, (float)y, (float)view_width, (float)ui_tab_bar_height()},
         .tabs = tabs,
         .count = tab_count,
-        .selected_index = app->exercise_type,
+        .selected_index = selected_index,
         .min_tab_width = flint_px(120),
         .max_tab_width = flint_px(180)
     });
+    return clicked >= 0 && clicked < tab_count ? values[clicked] : -1;
 }
 
 static int
@@ -131,12 +195,20 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
     if(app == NULL)
         return;
 
-    activity_count = EXERCISE_COUNT;
-    for(int i = 0; i < activity_count; i++) {
-        exercise_values[i] = i;
-        exercise_options[i] = practice_activity_label(exercise_values[i]);
+    practice_clamp_activity_to_tab(app);
+    activity_count = 0;
+    activity_index = 0;
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        if(!practice_is_visible(app, i))
+            continue;
+        if(i == app->exercise_type)
+            activity_index = activity_count;
+        exercise_values[activity_count] = i;
+        exercise_options[activity_count] = practice_activity_label(i);
+        activity_count++;
     }
-    activity_index = clampi(app->exercise_type, 0, EXERCISE_COUNT - 1);
+    if(activity_count <= 0)
+        return;
 
     if(draw_menu) {
         FlintUIToolbarResult menu_result = ui_draw_toolbar_header((FlintUIToolbarHeader){
