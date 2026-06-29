@@ -611,27 +611,21 @@ jobs:
       - build-android
       - release
     if: needs.release.outputs.tag_pushed == 'true'
+    env:
+      AMAZON_CLIENT_ID: ${{ secrets.AMAZON_CLIENT_ID }}
+      AMAZON_CLIENT_SECRET: ${{ secrets.AMAZON_CLIENT_SECRET }}
+      AMAZON_APP_ID: ${{ secrets.AMAZON_APP_ID }}
 
     steps:
       - name: Check Amazon Appstore Secrets
-        env:
-          AMAZON_CLIENT_ID: ${{ secrets.AMAZON_CLIENT_ID }}
-          AMAZON_CLIENT_SECRET: ${{ secrets.AMAZON_CLIENT_SECRET }}
-          AMAZON_APP_ID: ${{ secrets.AMAZON_APP_ID }}
         run: |
           set -euo pipefail
-          if [ -z "${AMAZON_CLIENT_ID:-}" ]; then
-            echo "AMAZON_CLIENT_ID secret is required to publish Amazon Appstore"
-            exit 1
-          fi
-          if [ -z "${AMAZON_CLIENT_SECRET:-}" ]; then
-            echo "AMAZON_CLIENT_SECRET secret is required to publish Amazon Appstore"
-            exit 1
-          fi
-          if [ -z "${AMAZON_APP_ID:-}" ]; then
-            echo "AMAZON_APP_ID secret is required to publish Amazon Appstore"
-            exit 1
-          fi
+          for name in AMAZON_CLIENT_ID AMAZON_CLIENT_SECRET AMAZON_APP_ID; do
+            if [ -z "${!name:-}" ]; then
+              echo "$name secret is required to publish Amazon Appstore"
+              exit 1
+            fi
+          done
 
       - name: Download Android Release Artifact
         uses: actions/download-artifact@v4
@@ -642,10 +636,10 @@ jobs:
       - name: Upload APK to Amazon Appstore
         uses: galonga/upload-amazon-appstore@v1
         with:
-          clientId: ${{ secrets.AMAZON_CLIENT_ID }}
-          clientSecret: ${{ secrets.AMAZON_CLIENT_SECRET }}
-          appId: ${{ secrets.AMAZON_APP_ID }}
-          releaseFile: build/release/android/*.apk
+          clientId: ${{ env.AMAZON_CLIENT_ID }}
+          clientSecret: ${{ env.AMAZON_CLIENT_SECRET }}
+          appId: ${{ env.AMAZON_APP_ID }}
+          releaseFile: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
 
   publish-chrome-web-store:
     name: Publish Chrome Web Store

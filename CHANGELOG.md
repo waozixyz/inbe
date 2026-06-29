@@ -1,7 +1,7 @@
 # Changelog
 ## [1.7.5] - 2026-06-29
 ### Fixed
-- Android lanuch bug
+- Fix Android 15 relaunch freeze.
 
 ## [1.7.4] - 2026-06-29
 ### Fixed
