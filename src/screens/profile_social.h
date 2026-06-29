@@ -5,6 +5,7 @@
 
 void profile_social_load_friends_cache(InbeApp *app);
 void profile_social_load_leaderboard_cache(InbeApp *app);
+void profile_social_refresh_cache(InbeApp *app);
 int profile_social_friends_count(InbeApp *app);
 int profile_social_pending_count(InbeApp *app);
 void profile_social_draw_friends(InbeApp *app, int x, int w, int *y);

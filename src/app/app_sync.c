@@ -9,7 +9,7 @@
 
 #include "app_sync.h"
 
-#include "profile_screen.h"
+#include "profile_social.h"
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
@@ -538,7 +538,7 @@ app_apply_pending_social_refresh(InbeApp *app)
     }
 #else
     TraceLog(LOG_INFO, "SYNC: refreshing social cache");
-    profile_screen_refresh_social_cache(app);
+    profile_social_refresh_cache(app);
 #endif
     g_sync.social_refresh_pending = 0;
 }

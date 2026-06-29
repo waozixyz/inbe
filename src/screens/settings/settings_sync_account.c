@@ -300,7 +300,7 @@ settings_sync_run_connect(InbeApp *app)
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
         } else if(storage_sync_review_pending()) {
             app_open_modal(app, UIModalSyncReview);
-            settings_screen_set_status_error("Sync needs review");
+            settings_screen_set_status_error(locale_get("sync_review_needed"));
         } else {
             app_reload_after_import(app, 0);
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);

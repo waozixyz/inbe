@@ -722,7 +722,7 @@ profile_refresh_leaderboard(InbeApp *app)
 }
 
 void
-profile_screen_refresh_social_cache(InbeApp *app)
+profile_social_refresh_cache(InbeApp *app)
 {
     if(app == NULL)
         return;

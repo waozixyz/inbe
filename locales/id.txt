@@ -788,8 +788,20 @@ Gunakan https:// atau loopback seperti localhost:8080
 [sync_server_saved]
 Server sinkronisasi disimpan
 ---
-[sync_connected]
-Sinkronisasi remote selesai
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 Sinkronisasi remote gagal
