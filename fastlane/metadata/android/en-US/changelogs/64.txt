@@ -1,0 +1,7 @@
+Changed
+---
+- Rework Android safe-area handling to use one native inset path with stable bottom navigation spacing.
+- Move leaderboard stats to synced source data, with local current-user rows shown immediately.
+Fixed
+---
+- Fix profile/friend sync freshness, leaderboard empty states, modal input capture, pet asset embedding, and wrapped text previews.
