@@ -103,9 +103,6 @@ Social
 [profile_add_friend_button]
 Anadir amigo
 ---
-[profile_refresh_button]
-Actualizar
----
 [profile_incoming_title]
 Entrantes
 ---

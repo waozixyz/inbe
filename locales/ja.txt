@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 フレンドを追加
 ---
-[profile_refresh_button]
-更新
----
 [profile_incoming_title]
 受信
 ---

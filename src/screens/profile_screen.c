@@ -292,8 +292,6 @@ profile_json_number_value(const char *object, const char *key)
     return atof(p + 1);
 }
 
-static void profile_refresh_friends(InbeApp *app);
-
 static void
 profile_public_id_short(char *out, size_t out_size, const char *user_id)
 {
@@ -816,22 +814,11 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
 }
 
 static void
-profile_refresh_friends(InbeApp *app)
-{
-    if(app == NULL)
-        return;
-    profile_load_friends_cache(app);
-    app_request_social_refresh(app);
-    settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
-}
-
-static void
 profile_draw_friends(InbeApp *app, int x, int w, int *y)
 {
     int font = flint_ui_font();
     int btn_h = flint_px(34);
     int hover_add = 0;
-    int hover_refresh = 0;
     int commit = 0;
     char url[256];
     int incoming_count;
@@ -874,12 +861,6 @@ profile_draw_friends(InbeApp *app, int x, int w, int *y)
         } else {
             settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
         }
-    }
-    *y += btn_h + flint_px(10);
-    if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("profile_refresh_button"),
-                              UI_BUTTON_STYLE_SECONDARY,
-                              0, &hover_refresh)) {
-        profile_refresh_friends(app);
     }
     *y += btn_h + flint_px(22);
 
@@ -1111,8 +1092,10 @@ profile_screen_refresh_social_cache(InbeApp *app)
 {
     if(app == NULL)
         return;
-    profile_refresh_friends(app);
-    profile_refresh_leaderboard(app);
+    profile_load_friends_cache(app);
+    profile_load_leaderboard_cache(app);
+    app_request_social_refresh(app);
+    settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
 }
 
 static void

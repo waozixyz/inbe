@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 添加好友
 ---
-[profile_refresh_button]
-刷新
----
 [profile_incoming_title]
 收到
 ---

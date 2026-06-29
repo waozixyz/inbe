@@ -24,6 +24,7 @@ static void review_append_local(ReviewText *out);
 static void review_append_remote(ReviewText *out, const char *json);
 static void review_append_unique_lines(ReviewText *out, const char *prefix,
                                        const char *lines, const char *other);
+static int review_has_local_activity(void);
 static int review_has_pending_outbox(void);
 static int review_pending_outbox_sessions_only(void);
 static int review_has_unknown_activity(const char *json);
@@ -600,7 +601,7 @@ storage_sync_review_apply_remote_if_local_empty(void)
 {
     if(!storage_sync_review_pending())
         return 0;
-    if(storage_has_any())
+    if(review_has_local_activity())
         return 0;
     return storage_apply_pending_sync_review(1);
 }
@@ -637,12 +638,40 @@ storage_sync_review_json_should_auto_apply_remote(const char *json)
         free(diff);
         return 1;
     }
+    if(!review_has_local_activity()) {
+        free(diff);
+        return 1;
+    }
     if(!review_has_pending_outbox()) {
         free(diff);
         return 1;
     }
     result = review_small_session_only_change(diff);
     free(diff);
+    return result;
+}
+
+static int
+review_has_local_activity(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    int result = 0;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS("
+                          " SELECT 1 FROM sessions WHERE deleted_at=0"
+                          " UNION ALL"
+                          " SELECT 1 FROM habit_days "
+                          " WHERE completed!=0 OR count>0 OR session_count>0"
+                          " LIMIT 1"
+                          ")",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 1;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
     return result;
 }
 

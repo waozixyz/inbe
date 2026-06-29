@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 친구 추가
 ---
-[profile_refresh_button]
-새로 고침
----
 [profile_incoming_title]
 받은 요청
 ---

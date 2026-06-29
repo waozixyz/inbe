@@ -103,9 +103,6 @@ Social
 [profile_add_friend_button]
 Adicionar amigo
 ---
-[profile_refresh_button]
-Atualizar
----
 [profile_incoming_title]
 Recebidos
 ---

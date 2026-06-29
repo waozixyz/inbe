@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 Добавить друга
 ---
-[profile_refresh_button]
-Обновить
----
 [profile_incoming_title]
 Входящие
 ---

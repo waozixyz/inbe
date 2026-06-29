@@ -44,7 +44,6 @@ monotonic_elapsed_ms(struct timespec *last_tick)
 static void*
 timer_thread_func(void *arg) {
     (void)arg;
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer thread started");
     int frame_count = 0;
     struct timespec last_tick = {0};
 
@@ -88,7 +87,6 @@ android_timer_set_app(void *app_ptr) {
     pthread_mutex_lock(&timer_mutex);
     g_app = app_ptr;
     pthread_mutex_unlock(&timer_mutex);
-    TraceLog(LOG_INFO, "INBE: Timer app pointer set");
 }
 
 pthread_mutex_t*
@@ -113,11 +111,7 @@ android_timer_start(void) {
     int result = pthread_create(&timer_thread, NULL, timer_thread_func, NULL);
     if (result != 0) {
         __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "Failed to create timer thread");
-    } else {
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Timer thread created");
     }
-
-    TraceLog(LOG_INFO, "INBE: Background timer started");
 }
 
 void
@@ -137,7 +131,6 @@ android_timer_stop(void) {
         pthread_detach(timer_thread);
     else
         pthread_join(timer_thread, NULL);
-    TraceLog(LOG_INFO, "INBE: Background timer stopped");
 }
 
 void
@@ -145,7 +138,6 @@ android_timer_activate(void) {
     pthread_mutex_lock(&timer_mutex);
     timer_active = 1;
     pthread_mutex_unlock(&timer_mutex);
-    TraceLog(LOG_INFO, "INBE: Background timer ACTIVATED - screen off");
 }
 
 void
@@ -153,5 +145,4 @@ android_timer_deactivate(void) {
     pthread_mutex_lock(&timer_mutex);
     timer_active = 0;
     pthread_mutex_unlock(&timer_mutex);
-    TraceLog(LOG_INFO, "INBE: Background timer DEACTIVATED - screen on");
 }

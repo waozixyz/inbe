@@ -262,6 +262,17 @@ mark_empty_local_pending(const char *root)
 }
 
 static void
+seed_local_habit_without_activity(const char *root)
+{
+    check_true("seed local habit without activity",
+               exec_db_sql(root, "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                                 "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,"
+                                 "updated_at)"
+                                 "VALUES('empty-local-habit',(SELECT id FROM users LIMIT 1),"
+                                 "'Empty Habit',10,20,30,0,0,1,1,0,1782300000);"));
+}
+
+static void
 seed_local_session_only(const char *root)
 {
     check_true("seed local session only",
@@ -497,6 +508,30 @@ test_empty_local_pending_snapshot_applies_remote(void)
     check_int("empty local remote habit applied",
               read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 1);
     check_int("empty local outbox cleared",
+              read_db_count(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_local_habit_without_activity_does_not_force_review(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "empty-habit-local");
+    check_true("init empty habit local db", storage_init(root));
+    seed_local_habit_without_activity(root);
+    mark_empty_local_pending(root);
+
+    check_true("apply empty habit local response",
+               storage_apply_sync_response_json(remote_snapshot_response()));
+    check_false("empty habit local review not pending", storage_sync_review_pending());
+    check_int("empty habit local remote session applied",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 1);
+    check_int("empty habit local remote habit applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 1);
+    check_int("empty habit local outbox cleared",
               read_db_count(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
 
     storage_close();
@@ -770,6 +805,7 @@ main(void)
     test_full_snapshot_waits_for_review();
     test_tiny_pending_snapshot_applies_remote_without_review();
     test_empty_local_pending_snapshot_applies_remote();
+    test_local_habit_without_activity_does_not_force_review();
     test_review_ignores_deleted_remote_rows();
     test_remote_additions_apply_without_review();
     test_remote_snapshot_removes_absent_local_yoga_without_pending_edits();

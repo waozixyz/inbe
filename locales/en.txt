@@ -103,9 +103,6 @@ Social
 [profile_add_friend_button]
 Add friend
 ---
-[profile_refresh_button]
-Refresh
----
 [profile_incoming_title]
 Incoming
 ---

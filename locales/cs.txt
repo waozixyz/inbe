@@ -103,9 +103,6 @@ Socialni
 [profile_add_friend_button]
 Pridat pritele
 ---
-[profile_refresh_button]
-Obnovit
----
 [profile_incoming_title]
 Prichozi
 ---

@@ -103,9 +103,6 @@ Sosial
 [profile_add_friend_button]
 Tambah teman
 ---
-[profile_refresh_button]
-Segarkan
----
 [profile_incoming_title]
 Masuk
 ---
