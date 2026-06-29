@@ -6,19 +6,23 @@ habit_edit_begin_new(InbeApp *app)
 {
     const char *default_name;
     Color default_color = {99, 196, 165, 255};
-    int created;
 
     if(app == NULL)
         return;
 
     default_name = locale_get("habit_new_default_name");
-    created = habits_add_custom(&app->habits, default_name, default_color,
-                                INBE_HABIT_SYNC_NONE, 0);
-    if(created < 0)
-        return;
-
-    app_auto_sync(app);
-    habit_edit_begin(app, created);
+    app->habit_edit = (HabitEditState){
+        .active = 1,
+        .is_new = 1,
+        .index = -1,
+        .color = default_color,
+        .sync_mode = INBE_HABIT_SYNC_NONE
+    };
+    snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s", default_name);
+    app->habit_edit.cursor = (int)strlen(app->habit_edit.text);
+    app->habit_edit.focused = 1;
+    app->habits.tab = HABIT_TAB_EDIT;
+    app_switch_screen(app, InbeScreenHabits);
 }
 
 void
