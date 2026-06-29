@@ -634,7 +634,7 @@ jobs:
           path: build/release/android
 
       - name: Upload APK to Amazon Appstore
-        uses: galonga/upload-amazon-appstore@v1
+        uses: galonga/upload-amazon-appstore@v1.0.4
         with:
           clientId: ${{ env.AMAZON_CLIENT_ID }}
           clientSecret: ${{ env.AMAZON_CLIENT_SECRET }}
