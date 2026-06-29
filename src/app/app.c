@@ -398,6 +398,11 @@ app_background_sync_safe(const InbeApp *app)
         return 0;
     if(app->modal.active)
         return 0;
+    if(app->habit_edit.active ||
+       app->sync_server_url_focused ||
+       app->sync_alias_focused ||
+       app->profile_friend_input_focused)
+        return 0;
     if(app->inbe.screen == InbeScreenPracticeSession ||
        app->inbe.screen == InbeScreenMeditation ||
        app->inbe.screen == InbeScreenSunSalutation)
@@ -770,7 +775,7 @@ app_pump_sync(InbeApp *app)
         return;
     app_collect_finished_sync();
     app_collect_finished_social_refresh(app);
-    if(storage_sync_review_pending() && !app->modal.active) {
+    if(storage_sync_review_pending() && app_background_sync_safe(app)) {
         if(storage_sync_review_clear_if_no_visible_diff()) {
             app_reload_after_import(app, 0);
         } else {

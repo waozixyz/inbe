@@ -842,6 +842,7 @@ habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
 {
     FlintUITab tabs[INBE_HABIT_MAX + 1];
     int tab_count = 0;
+    int selected_index;
 
     if(app == NULL)
         return -1;
@@ -865,11 +866,14 @@ habits_screen_draw_desktop_tab_bar(InbeApp *app, int y)
         .disabled = app->modal.active
     };
 
+    selected_index = app->habit_edit.active && app->habit_edit.is_new
+                         ? -1
+                         : app->habits.selected;
     int clicked = ui_draw_tab_bar((FlintUITabBar){
         .bounds = {0, (float)y, (float)view_width, (float)ui_tab_bar_height()},
         .tabs = tabs,
         .count = tab_count,
-        .selected_index = app->habits.selected,
+        .selected_index = selected_index,
         .min_tab_width = flint_px(100),
         .max_tab_width = flint_px(160),
         .scroll_offset = &app->habits.tab_scroll,
@@ -895,10 +899,13 @@ habits_screen_top_reserved(InbeApp *app)
 static void
 draw_habits_top_bar(InbeApp *app, int draw_menu)
 {
-    static const char *options[INBE_HABIT_MAX + 1];
+    static const char *options[INBE_HABIT_MAX + 2];
     static int dropdown_selected = 0;
     FlintUISubtab tabs[HABIT_TAB_COUNT];
     int option_count;
+    int habit_offset = 0;
+    int add_option_index;
+    int draft_new;
     int selected;
     int top_h = flint_px(58);
     int tab_h = flint_px(40);
@@ -909,15 +916,19 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
     if(app == NULL)
         return;
 
-    option_count = app->habits.count;
-    if(option_count > INBE_HABIT_MAX)
-        option_count = INBE_HABIT_MAX;
-    for(int i = 0; i < option_count; i++)
-        options[i] = app->habits.items[i].name;
+    draft_new = app->habit_edit.active && app->habit_edit.is_new;
+    option_count = 0;
+    if(draft_new) {
+        options[option_count++] = "";
+        habit_offset = 1;
+    }
+    for(int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++)
+        options[option_count++] = app->habits.items[i].name;
+    add_option_index = option_count;
     options[option_count++] = "+ Habit";
 
-    selected = app->habits.selected;
-    if(selected < 0 || selected >= app->habits.count)
+    selected = draft_new ? 0 : app->habits.selected + habit_offset;
+    if(!draft_new && (app->habits.selected < 0 || app->habits.selected >= app->habits.count))
         selected = 0;
 
     if(!draw_menu) {
@@ -1028,15 +1039,20 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         .selected_index = &dropdown_selected
     });
     if(toolbar_result.selected_menu_item >= 0) {
-        if(dropdown_selected == app->habits.count) {
+        int selected_habit = dropdown_selected - habit_offset;
+
+        if(draft_new && dropdown_selected == 0)
+            return;
+        if(dropdown_selected == add_option_index) {
             habit_edit_begin_new(app);
             return;
         }
-        if(app->habits.selected != dropdown_selected) {
+        if(selected_habit >= 0 && selected_habit < app->habits.count &&
+           app->habits.selected != selected_habit) {
             int was_edit_tab = app->habits.tab == HABIT_TAB_EDIT;
             if(was_edit_tab && app->habit_edit.active)
                 habit_edit_commit(app);
-            app->habits.selected = dropdown_selected;
+            app->habits.selected = selected_habit;
             app->habits.scroll = 0;
             app->habits.weekly_days = HABIT_WEEKLY_INITIAL_DAYS;
             if(was_edit_tab) {
@@ -1079,7 +1095,8 @@ habits_screen_prepare_first_run_guide(InbeApp *app)
         app->habits.tab = HABIT_TAB_EDIT;
         app->habits.scroll = 0;
         if(app->habits.count > 0) {
-            if(!app->habit_edit.active || app->habit_edit.index != app->habits.selected)
+            if(!app->habit_edit.active ||
+               (!app->habit_edit.is_new && app->habit_edit.index != app->habits.selected))
                 habit_edit_begin(app, app->habits.selected);
         } else if(!app->habit_edit.active) {
             habit_edit_begin_new(app);
@@ -1743,7 +1760,8 @@ draw_habits_screen(InbeApp *app)
     }
 
     if(app->habits.tab == HABIT_TAB_EDIT) {
-        if(!app->habit_edit.active || app->habit_edit.index != app->habits.selected)
+        if(!app->habit_edit.active ||
+           (!app->habit_edit.is_new && app->habit_edit.index != app->habits.selected))
             habit_edit_begin(app, app->habits.selected);
         draw_habit_edit_screen(app);
         draw_habits_top_bar(app, 0);

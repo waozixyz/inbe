@@ -1,4 +1,8 @@
 # Changelog
+## [1.7.3] - 2026-06-29
+### Changed
+- Improve habit management
+
 ## [1.7.2] - 2026-06-29
 ### Added
 - Add local `make install` target.
