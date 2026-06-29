@@ -103,9 +103,6 @@ Social
 [profile_add_friend_button]
 Add friend
 ---
-[profile_refresh_button]
-Refresh
----
 [profile_incoming_title]
 Incoming
 ---
@@ -833,8 +830,20 @@ Use https:// or loopback like localhost:8080
 [sync_server_saved]
 Sync server saved
 ---
-[sync_connected]
-Remote sync complete
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 Remote sync failed

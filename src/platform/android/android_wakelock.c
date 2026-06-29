@@ -1,11 +1,8 @@
 #include "android_wakelock.h"
-#include <stdio.h>
-#include <string.h>
 
 #include <raylib.h>
 #include <pthread.h>
 #include <android/log.h>
-#include <android_native_app_glue.h>
 #include <jni.h>
 
 #define LOG_TAG "INBE_WAKE"
@@ -20,7 +17,6 @@ static jmethodID g_allow_screen_off_method = NULL;
 static pthread_mutex_t wakelock_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 void android_wakelock_init(void) {
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== android_wakelock_init ===");
 }
 
 void android_wakelock_set_activity(JNIEnv *env, jobject activity) {
@@ -42,7 +38,6 @@ void android_wakelock_set_activity(JNIEnv *env, jobject activity) {
             g_keep_screen_on_method = (*env)->GetMethodID(env, clazz, "keepScreenOn", "()V");
             g_allow_screen_off_method = (*env)->GetMethodID(env, clazz, "allowScreenOff", "()V");
             (*env)->DeleteLocalRef(env, clazz);
-            __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "Wake lock activity set successfully");
         }
     }
 
@@ -50,14 +45,7 @@ void android_wakelock_set_activity(JNIEnv *env, jobject activity) {
 }
 
 void android_wakelock_acquire(void) {
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== ACQUIRE START ===");
-
     pthread_mutex_lock(&wakelock_mutex);
-
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "ACQUIRE: Checking if g_jvm and g_activity are set");
-    char msg[128];
-    snprintf(msg, sizeof(msg), "ACQUIRE: g_jvm=%p, g_activity=%p", g_jvm, g_activity);
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, msg);
 
     if (!g_jvm || !g_activity) {
         __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "ACQUIRE: JNI not initialized - skipping wake lock");
@@ -73,11 +61,9 @@ void android_wakelock_acquire(void) {
 
     if (env && g_acquire_method) {
         (*env)->CallVoidMethod(env, g_activity, g_acquire_method);
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "ACQUIRE: SUCCESS");
     }
 
     pthread_mutex_unlock(&wakelock_mutex);
-    TraceLog(LOG_INFO, "INBE: Wake lock acquired");
 }
 
 void android_wakelock_update_session_notification(const char *status_text) {
@@ -109,14 +95,7 @@ void android_wakelock_update_session_notification(const char *status_text) {
 }
 
 void android_wakelock_release(void) {
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "=== RELEASE START ===");
-
     pthread_mutex_lock(&wakelock_mutex);
-
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "RELEASE: Checking if g_jvm and g_activity are set");
-    char msg[128];
-    snprintf(msg, sizeof(msg), "RELEASE: g_jvm=%p, g_activity=%p", g_jvm, g_activity);
-    __android_log_write(ANDROID_LOG_INFO, LOG_TAG, msg);
 
     if (!g_jvm || !g_activity) {
         __android_log_write(ANDROID_LOG_ERROR, LOG_TAG, "RELEASE: JNI not initialized - skipping wake lock");
@@ -132,11 +111,9 @@ void android_wakelock_release(void) {
 
     if (env && g_release_method) {
         (*env)->CallVoidMethod(env, g_activity, g_release_method);
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "RELEASE: SUCCESS");
     }
 
     pthread_mutex_unlock(&wakelock_mutex);
-    TraceLog(LOG_INFO, "INBE: Wake lock released");
 }
 
 void android_keep_screen_on(void) {
@@ -156,7 +133,6 @@ void android_keep_screen_on(void) {
 
     if (env && g_keep_screen_on_method) {
         (*env)->CallVoidMethod(env, g_activity, g_keep_screen_on_method);
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "KEEP_SCREEN_ON: SUCCESS");
     }
 
     pthread_mutex_unlock(&wakelock_mutex);
@@ -179,13 +155,11 @@ void android_allow_screen_off(void) {
 
     if (env && g_allow_screen_off_method) {
         (*env)->CallVoidMethod(env, g_activity, g_allow_screen_off_method);
-        __android_log_write(ANDROID_LOG_INFO, LOG_TAG, "ALLOW_SCREEN_OFF: SUCCESS");
     }
 
     pthread_mutex_unlock(&wakelock_mutex);
 }
 
-// Called from JNI to set the JVM reference
 void android_wakelock_set_jvm(JavaVM *vm) {
     g_jvm = vm;
 }

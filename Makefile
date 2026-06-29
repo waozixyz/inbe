@@ -172,6 +172,7 @@ FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
 APP_SRCS := \
 	src/main.c \
+	src/app/app_sync.c \
 	src/core/breath_engine.c \
 	src/app/app.c \
 	src/app/app_nav.c \
@@ -193,6 +194,7 @@ APP_SRCS := \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/screens/profile_screen.c \
+	src/screens/profile_social.c \
 	src/screens/pet_screen.c \
 	src/practices/meditation/meditation_music.c \
 	src/storage/data.c \
@@ -592,6 +594,7 @@ $(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DCMAKE_C_COMPILER=$(WIN64_CC_PATH) \
 		-DCMAKE_AR=$(WIN64_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN64_RANLIB_PATH) \
+		-DCMAKE_EXE_LINKER_FLAGS="$(WIN64_THREAD_LDFLAGS)" \
 		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
@@ -640,6 +643,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DCMAKE_C_COMPILER=$(WIN32_CC_PATH) \
 		-DCMAKE_AR=$(WIN32_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN32_RANLIB_PATH) \
+		-DCMAKE_EXE_LINKER_FLAGS="$(WIN32_THREAD_LDFLAGS)" \
 		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \

@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 添加好友
 ---
-[profile_refresh_button]
-刷新
----
 [profile_incoming_title]
 收到
 ---
@@ -789,8 +786,20 @@ liboqs 未为此目标构建。
 [sync_server_saved]
 同步服务器已保存
 ---
-[sync_connected]
-远程同步完成
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 远程同步失败

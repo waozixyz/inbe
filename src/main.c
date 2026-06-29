@@ -173,9 +173,6 @@ windows_close_logger(void)
 #endif
 
 InbeApp* get_global_inbe_app(void) {
-    if (g_inbe_app_ptr == NULL) {
-        TraceLog(LOG_WARNING, "WARNING: get_global_inbe_app called with NULL pointer");
-    }
     return g_inbe_app_ptr;
 }
 
@@ -305,10 +302,8 @@ frame(void)
     static AndroidViewport previous_viewport = {-1, -1, -1, -1, -1, -1, -1, -1};
 
     android_insets_get(&insets);
-    // Safety check: Don't render if insets haven't been initialized yet
-    // This prevents rendering with incorrect positioning on app start/restart
     if (!android_insets_is_initialized()) {
-        return;  // Skip this frame, BeginDrawing() hasn't been called yet
+        return;
     }
     app_set_android_bottom_nav_height(android_nonnegative(insets.nav_bar));
 
@@ -595,7 +590,6 @@ int main(int argc, char **argv) {
     android_insets_init();
     android_device_init();
     android_wakelock_init();
-    android_timer_init();
     android_runtime_assets_init();
     if(!ChangeDirectory("/data/user/0/xyz.waozi.inbe/files"))
         TraceLog(LOG_WARNING, "INBE: failed to switch to Android files directory");

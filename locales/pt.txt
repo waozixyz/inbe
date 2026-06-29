@@ -103,9 +103,6 @@ Social
 [profile_add_friend_button]
 Adicionar amigo
 ---
-[profile_refresh_button]
-Atualizar
----
 [profile_incoming_title]
 Recebidos
 ---
@@ -791,8 +788,20 @@ Use https:// ou loopback como localhost:8080
 [sync_server_saved]
 Servidor de sincronização salvo
 ---
-[sync_connected]
-Sincronização remota concluída
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 Falha na sincronização remota

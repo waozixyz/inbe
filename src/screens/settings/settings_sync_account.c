@@ -261,6 +261,21 @@ settings_sync_result_key(FlintLyraSyncResult result)
     }
 }
 
+static int
+settings_sync_create_account(InbeApp *app, InbeSyncAccount *account)
+{
+    if(account == NULL)
+        return 0;
+    if(!sync_account_create(account)) {
+        settings_screen_set_status_error(locale_get("sync_account_create_failed"));
+        return 0;
+    }
+    settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
+    app_auto_sync(app);
+    settings_sync_open_alias_modal(app, 1);
+    return 1;
+}
+
 static void
 settings_sync_run_connect(InbeApp *app)
 {
@@ -276,6 +291,7 @@ settings_sync_run_connect(InbeApp *app)
     storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     result = sync_client_sync(url);
     if(result == FLINT_LYRA_SYNC_OK) {
+        app_request_social_refresh(app);
         if(storage_sync_review_clear_if_no_visible_diff()) {
             app_reload_after_import(app, 0);
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
@@ -284,7 +300,7 @@ settings_sync_run_connect(InbeApp *app)
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
         } else if(storage_sync_review_pending()) {
             app_open_modal(app, UIModalSyncReview);
-            settings_screen_set_status_error("Sync needs review");
+            settings_screen_set_status_error(locale_get("sync_review_needed"));
         } else {
             app_reload_after_import(app, 0);
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
@@ -360,12 +376,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
     if(!has_account) {
         if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-            if(sync_account_create(&account)) {
-                settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
-                settings_sync_open_alias_modal(app, 1);
-            } else {
-                settings_screen_set_status_error(locale_get("sync_account_create_failed"));
-            }
+            settings_sync_create_account(app, &account);
         }
         *y += btn_h + flint_px(18);
         return;
@@ -437,13 +448,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
             .count = 2
         });
         if(clicked == 0) {
-            if(sync_account_create(&account)) {
-                has_account = 1;
-                settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
-                settings_sync_open_alias_modal(app, 1);
-            } else {
-                settings_screen_set_status_error(locale_get("sync_account_create_failed"));
-            }
+            has_account = settings_sync_create_account(app, &account);
         } else if(clicked == 1) {
             if(!settings_start_sync_key_import(app))
                 settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));

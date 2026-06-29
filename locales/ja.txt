@@ -103,9 +103,6 @@ Pet
 [profile_add_friend_button]
 フレンドを追加
 ---
-[profile_refresh_button]
-更新
----
 [profile_incoming_title]
 受信
 ---
@@ -791,8 +788,20 @@ https:// または localhost:8080 のようなループバックを使用して�
 [sync_server_saved]
 同期サーバーを保存しました
 ---
-[sync_connected]
-リモート同期が完了しました
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 リモート同期に失敗しました

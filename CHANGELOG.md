@@ -1,4 +1,9 @@
 # Changelog
+## [1.7.5] - 2026-06-29
+### Fixed
+- Fix Android 15 relaunch freeze.
+- Code cleanup
+
 ## [1.7.4] - 2026-06-29
 ### Fixed
 - Clean up practice stats, friend removal, sync review, and Android inset handling.

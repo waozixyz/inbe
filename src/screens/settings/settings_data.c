@@ -225,10 +225,10 @@ settings_draw_sync_review_modal(InbeApp *app)
         free(diff_detail);
         return 0;
     }
-    frame = ui_draw_modal_frame(modal_w, modal_h, "Sync needs review",
+    frame = ui_draw_modal_frame(modal_w, modal_h, locale_get("sync_review_needed"),
                                 (Texture2D){0}, (Texture2D){0});
     intro = (FlintUIParagraph){
-        .text = "Review data differences.",
+        .text = locale_get("sync_review_message"),
         .width = frame.content_w,
         .font = flint_ui_font_small(),
         .line_gap = flint_px(2),
@@ -954,9 +954,9 @@ settings_data_draw_modals(InbeApp *app)
                     app_reload_after_import(app, 0);
                 else
                     app_auto_sync(app);
-                settings_screen_set_status_success(use_remote ? "Using remote data" : "Keeping local data", NULL);
+                settings_screen_set_status_success(locale_get(use_remote ? "sync_review_using_remote" : "sync_review_keeping_local"), NULL);
             } else {
-                settings_screen_set_status_error("Sync review failed");
+                settings_screen_set_status_error(locale_get("sync_review_failed"));
             }
         }
         return 1;

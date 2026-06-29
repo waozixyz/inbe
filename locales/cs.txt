@@ -103,9 +103,6 @@ Socialni
 [profile_add_friend_button]
 Pridat pritele
 ---
-[profile_refresh_button]
-Obnovit
----
 [profile_incoming_title]
 Prichozi
 ---
@@ -791,8 +788,20 @@ Použijte https:// nebo loopback jako localhost:8080
 [sync_server_saved]
 Synchronizační server uložen
 ---
-[sync_connected]
-Vzdálená synchronizace dokončena
+[sync_review_needed]
+Sync needs review
+---
+[sync_review_message]
+Review data differences.
+---
+[sync_review_using_remote]
+Using remote data
+---
+[sync_review_keeping_local]
+Keeping local data
+---
+[sync_review_failed]
+Sync review failed
 ---
 [sync_failed]
 Vzdálená synchronizace selhala

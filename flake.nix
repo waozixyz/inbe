@@ -75,6 +75,32 @@
           sdk = androidComposition.androidsdk;
           ndkPath = "${sdk}/libexec/android-sdk/ndk-bundle";
 
+          emulatorRuntimeLibraryPath = pkgs.lib.makeLibraryPath (with pkgs; [
+            dbus
+            expat
+            fontconfig
+            freetype
+            libbsd
+            libice
+            libmd
+            libpng
+            libsm
+            libuuid
+            libx11
+            libxau
+            libxcb
+            libxdmcp
+            libxkbcommon
+            xcb-util-cursor
+            libXext
+            libXi
+            libxkbfile
+            nspr
+            nss
+            stdenv.cc.cc.lib
+            zlib
+          ]);
+
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
             sdl2Pkgs.SDL2.dev
             pkgs.curl.dev
@@ -180,9 +206,9 @@ EOF
 
             export MCFGTHREADS="${mcfgthreads}"
             export WIN32_MCFGTHREADS="${mcfgthreads32}"
-            export CPATH="$MCFGTHREADS/include:$CPATH"
-            export LIBRARY_PATH="$MCFGTHREADS/lib:$LIBRARY_PATH"
-            export LDFLAGS="-L$MCFGTHREADS/lib $LDFLAGS"
+            export CPATH="$MCFGTHREADS/include:$WIN32_MCFGTHREADS/include:$CPATH"
+            export LIBRARY_PATH="$MCFGTHREADS/lib:$WIN32_MCFGTHREADS/lib:$LIBRARY_PATH"
+            export LDFLAGS="-L$MCFGTHREADS/lib -L$WIN32_MCFGTHREADS/lib $LDFLAGS"
           '';
         in
           (pkgs.buildFHSEnv {
@@ -212,6 +238,27 @@ EOF
               libgbm
               libglvnd
               libglvnd.dev
+              dbus
+              expat
+              fontconfig
+              freetype
+              libbsd
+              libmd
+              libice
+              libsm
+              libxcb
+              libxau
+              libxdmcp
+              libxkbcommon
+              xcb-util-cursor
+              libXi
+              libXext
+              libxkbfile
+              nspr
+              nss
+              libpng
+              libuuid
+              libx11
               alsa-lib
               appimagetool
               libpulseaudio
@@ -255,6 +302,7 @@ EOF
               export ANDROID_HOME="${sdk}/libexec/android-sdk"
               export ANDROID_SDK_ROOT="${sdk}/libexec/android-sdk"
               export ANDROID_NDK_ROOT="${ndkPath}"
+              export ANDROID_EMULATOR_LD_LIBRARY_PATH="$ANDROID_HOME/emulator/lib64:$ANDROID_HOME/emulator/lib64/qt/lib:${emulatorRuntimeLibraryPath}"
               export CCACHE_DIR="$PWD/.ccache"
               export CCACHE_BASEDIR="$PWD"
               export CCACHE_COMPRESS=1
