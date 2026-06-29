@@ -5,7 +5,7 @@ Inner Breeze
 기록
 ---
 [tab_profile]
-Profile
+프로필
 ---
 [tab_habits]
 습관
@@ -29,19 +29,88 @@ Profile
 Pet
 ---
 [profile_data_title]
-Data
+데이터
 ---
 [profile_data_button]
-Configure Data
+데이터 설정
 ---
 [profile_habits_label]
-Habits
+습관
 ---
 [profile_sessions_label]
-Sessions
+세션
 ---
 [profile_storage_label]
-Storage
+저장 공간
+---
+[profile_friends_title]
+친구
+---
+[profile_leaderboard_title]
+순위표
+---
+[profile_metric_streak]
+연속 기록
+---
+[profile_metric_avg_time]
+평균 시간
+---
+[profile_metric_avg_hold]
+평균 유지
+---
+[profile_none_label]
+없음
+---
+[profile_friend_accept_button]
+수락
+---
+[profile_friend_decline_button]
+거절
+---
+[profile_updating_status]
+업데이트 중
+---
+[profile_no_account]
+계정 없음
+---
+[profile_account_section]
+계정
+---
+[profile_configure_button]
+설정
+---
+[profile_data_section]
+데이터
+---
+[profile_sync_section]
+동기화
+---
+[profile_friends_count_format]
+친구 %d명
+---
+[profile_pending_count_format]
+대기 %d개
+---
+[profile_social_section]
+소셜
+---
+[profile_add_friend_button]
+친구 추가
+---
+[profile_refresh_button]
+새로 고침
+---
+[profile_incoming_title]
+받은 요청
+---
+[profile_outgoing_title]
+보낸 요청
+---
+[profile_no_leaderboard_data]
+순위표 데이터 없음
+---
+[profile_practice_label]
+연습
 ---
 [tab_settings]
 설정
@@ -287,10 +356,10 @@ Finish
 언어
 ---
 [settings_tab_about]
-About
+정보
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+호흡, 습관, 동기화를 위한 조용한 동반자입니다.
 ---
 [theme_label]
 테마
@@ -775,6 +844,9 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 [habit_name_label]
 이름
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 밑줄
 ---
@@ -872,6 +944,18 @@ https:// 또는 localhost:8080 같은 루프백을 사용하세요
 ---
 [habits_guide_statistics]
 여기에서 습관 통계를 확인하세요.
+---
+[profile_guide_account]
+여기에서 동기화 계정을 설정하세요.
+---
+[profile_guide_data]
+여기에서 로컬 데이터를 확인하고 백업 도구를 엽니다.
+---
+[profile_guide_social]
+여기에서 친구와 순위표를 엽니다.
+---
+[profile_guide_social_no_account]
+친구와 순위표를 사용하려면 동기화 계정을 만드세요.
 ---
 [nav_mode_label]
 탐색

@@ -241,21 +241,21 @@ settings_sync_server_connected(InbeApp *app)
 }
 
 static const char *
-settings_sync_result_key(InbeSyncClientResult result)
+settings_sync_result_key(FlintLyraSyncResult result)
 {
     switch(result) {
-        case INBE_SYNC_CLIENT_OK:
+        case FLINT_LYRA_SYNC_OK:
             return "sync_connected";
-        case INBE_SYNC_CLIENT_INVALID_URL:
+        case FLINT_LYRA_SYNC_INVALID_URL:
             return "sync_server_url_invalid";
-        case INBE_SYNC_CLIENT_NO_ACCOUNT:
+        case FLINT_LYRA_SYNC_NO_ACCOUNT:
             return "sync_no_account";
-        case INBE_SYNC_CLIENT_AUTH_FAILED:
+        case FLINT_LYRA_SYNC_AUTH_FAILED:
             return "sync_auth_failed";
-        case INBE_SYNC_CLIENT_PAYLOAD_FAILED:
-        case INBE_SYNC_CLIENT_CHALLENGE_FAILED:
-        case INBE_SYNC_CLIENT_SIGN_FAILED:
-        case INBE_SYNC_CLIENT_REQUEST_FAILED:
+        case FLINT_LYRA_SYNC_PAYLOAD_FAILED:
+        case FLINT_LYRA_SYNC_CHALLENGE_FAILED:
+        case FLINT_LYRA_SYNC_SIGN_FAILED:
+        case FLINT_LYRA_SYNC_REQUEST_FAILED:
         default:
             return "sync_failed";
     }
@@ -264,7 +264,7 @@ settings_sync_result_key(InbeSyncClientResult result)
 static void
 settings_sync_run_connect(InbeApp *app)
 {
-    InbeSyncClientResult result;
+    FlintLyraSyncResult result;
     char url[sizeof(app->sync_server_url)];
 
     if(app == NULL)
@@ -275,7 +275,7 @@ settings_sync_run_connect(InbeApp *app)
     }
     storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     result = sync_client_sync(url);
-    if(result == INBE_SYNC_CLIENT_OK) {
+    if(result == FLINT_LYRA_SYNC_OK) {
         if(storage_sync_review_clear_if_no_visible_diff()) {
             app_reload_after_import(app, 0);
             settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
@@ -307,7 +307,7 @@ void
 settings_sync_account_clear_remote_confirmed(InbeApp *app)
 {
     InbeSyncAccount account;
-    InbeSyncClientResult result;
+    FlintLyraSyncResult result;
     char url[sizeof(app->sync_server_url)];
 
     if(app == NULL)
@@ -319,7 +319,7 @@ settings_sync_account_clear_remote_confirmed(InbeApp *app)
 
     if(settings_sync_server_normalize(app, url, sizeof(url))) {
         result = sync_client_delete_account(url);
-        if(result != INBE_SYNC_CLIENT_OK)
+        if(result != FLINT_LYRA_SYNC_OK)
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result);
     } else {
         TraceLog(LOG_WARNING, "SYNC: remote account delete skipped due to invalid URL");
@@ -670,11 +670,11 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
             return 3;
         if(clicked == 1 || (commit && settings_sync_alias_valid(app->sync_alias_input) && !unchanged_alias)) {
             if(settings_sync_server_normalize(app, url, sizeof(url))) {
-                InbeSyncClientResult alias_result;
+                FlintLyraSyncResult alias_result;
                 TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
                          app->sync_alias_input, url);
                 alias_result = sync_client_register_alias(url, app->sync_alias_input);
-                if(alias_result == INBE_SYNC_CLIENT_OK) {
+                if(alias_result == FLINT_LYRA_SYNC_OK) {
                     TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input);
                     result = 1;
                 } else {

@@ -143,10 +143,10 @@ sync_thread_detach(SyncThread thread)
 #endif
 
 static int g_sync_finished = 0;
-static int g_sync_finished_result = INBE_SYNC_CLIENT_OK;
+static int g_sync_finished_result = FLINT_LYRA_SYNC_OK;
 static int g_sync_finished_changed = 0;
 static int g_social_finished = 0;
-static int g_social_finished_result = INBE_SYNC_CLIENT_OK;
+static int g_social_finished_result = FLINT_LYRA_SYNC_OK;
 static char g_social_friend_requests_json[8192];
 static char g_social_friends_json[8192];
 static char g_social_leaderboard_json[8192];
@@ -164,12 +164,12 @@ static sync_thread_return
 app_sync_worker(void *userdata)
 {
     InbeSyncWorkerArgs *args = userdata;
-    InbeSyncClientResult result = INBE_SYNC_CLIENT_INVALID_URL;
+    FlintLyraSyncResult result = FLINT_LYRA_SYNC_INVALID_URL;
     int changed = 0;
 
     if(args != NULL) {
         result = sync_client_sync(args->url);
-        changed = result == INBE_SYNC_CLIENT_OK && storage_last_sync_changed();
+        changed = result == FLINT_LYRA_SYNC_OK && storage_last_sync_changed();
         free(args);
     }
 
@@ -186,9 +186,9 @@ static sync_thread_return
 app_social_worker(void *userdata)
 {
     InbeSocialWorkerArgs *args = userdata;
-    InbeSyncClientResult result = INBE_SYNC_CLIENT_INVALID_URL;
-    InbeSyncClientResult friends_result = INBE_SYNC_CLIENT_REQUEST_FAILED;
-    InbeSyncClientResult leaderboard_result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+    FlintLyraSyncResult result = FLINT_LYRA_SYNC_INVALID_URL;
+    FlintLyraSyncResult friends_result = FLINT_LYRA_SYNC_REQUEST_FAILED;
+    FlintLyraSyncResult leaderboard_result = FLINT_LYRA_SYNC_REQUEST_FAILED;
     char requests_json[8192] = "{\"incoming\":[],\"outgoing\":[]}";
     char friends_json[8192] = "{\"friends\":[]}";
     char leaderboard_json[8192] = "{\"rows\":[]}";
@@ -196,29 +196,29 @@ app_social_worker(void *userdata)
     if(args != NULL) {
         if(strcmp(args->action, "send") == 0) {
             result = sync_client_send_friend_request(args->url, args->action_value);
-            if(result != INBE_SYNC_CLIENT_OK)
+            if(result != FLINT_LYRA_SYNC_OK)
                 goto done;
         } else if(strcmp(args->action, "accept") == 0) {
             result = sync_client_accept_friend_request(args->url, args->action_value);
-            if(result != INBE_SYNC_CLIENT_OK)
+            if(result != FLINT_LYRA_SYNC_OK)
                 goto done;
         } else if(strcmp(args->action, "decline") == 0) {
             result = sync_client_decline_friend_request(args->url, args->action_value);
-            if(result != INBE_SYNC_CLIENT_OK)
+            if(result != FLINT_LYRA_SYNC_OK)
                 goto done;
         }
         result = sync_client_get_friend_requests(args->url, requests_json,
                                                  sizeof(requests_json));
-        if(result == INBE_SYNC_CLIENT_OK) {
+        if(result == FLINT_LYRA_SYNC_OK) {
             friends_result = sync_client_get_friends(args->url, friends_json,
                                                     sizeof(friends_json));
             leaderboard_result =
                 sync_client_get_friend_stats(args->url, "inbe", args->practice,
                                              args->metric, leaderboard_json,
                                              sizeof(leaderboard_json));
-            if(friends_result != INBE_SYNC_CLIENT_OK)
+            if(friends_result != FLINT_LYRA_SYNC_OK)
                 result = friends_result;
-            else if(leaderboard_result != INBE_SYNC_CLIENT_OK)
+            else if(leaderboard_result != FLINT_LYRA_SYNC_OK)
                 result = leaderboard_result;
         }
     }
@@ -257,14 +257,14 @@ app_collect_finished_sync(void)
 
     if(!finished)
         return;
-    if(result == INBE_SYNC_CLIENT_OK) {
+    if(result == FLINT_LYRA_SYNC_OK) {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
         g_social_refresh_pending = 1;
         if(changed)
             g_sync_refresh_pending = 1;
     } else {
         TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
-                 result, sync_client_result_name(result));
+                 result, flint_lyra_sync_result_name(result));
     }
 }
 
@@ -276,7 +276,7 @@ app_sync_events_worker(void *userdata)
     if(args == NULL)
         return sync_thread_done;
     for(;;) {
-        InbeSyncClientResult result;
+        FlintLyraSyncResult result;
         sync_lock();
         if(g_sync_running) {
             sync_unlock();
@@ -287,10 +287,10 @@ app_sync_events_worker(void *userdata)
 
         result = sync_client_wait_for_remote_event(args->url);
         sync_lock();
-        if(result == INBE_SYNC_CLIENT_OK)
+        if(result == FLINT_LYRA_SYNC_OK)
             g_remote_sync_due = 1;
         sync_unlock();
-        if(result != INBE_SYNC_CLIENT_OK)
+        if(result != FLINT_LYRA_SYNC_OK)
             sync_sleep(2);
     }
     return sync_thread_done;
@@ -346,7 +346,7 @@ static double g_sync_events_retry_at = 0.0;
 static void
 app_collect_finished_sync(void)
 {
-    InbeSyncClientResult result;
+    FlintLyraSyncResult result;
     int changed = 0;
 
     if(sync_client_web_poll_remote_event())
@@ -356,14 +356,14 @@ app_collect_finished_sync(void)
     if(!sync_client_web_sync_poll(&result, &changed))
         return;
     g_sync_running = 0;
-    if(result == INBE_SYNC_CLIENT_OK) {
+    if(result == FLINT_LYRA_SYNC_OK) {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
         g_social_refresh_pending = 1;
         if(changed)
             g_sync_refresh_pending = 1;
     } else {
         TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
-                 result, sync_client_result_name(result));
+                 result, flint_lyra_sync_result_name(result));
     }
 }
 
@@ -603,9 +603,9 @@ app_collect_finished_social_refresh(InbeApp *app)
 
     if(!finished)
         return;
-    if(result != INBE_SYNC_CLIENT_OK) {
+    if(result != FLINT_LYRA_SYNC_OK) {
         TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
-                 result, sync_client_result_name(result));
+                 result, flint_lyra_sync_result_name(result));
         return;
     }
     storage_set_social_cache_json("friends.requests", requests_json);
@@ -1752,6 +1752,7 @@ updateapp(InbeApp *app)
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
+    int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
@@ -1766,23 +1767,28 @@ updateapp(InbeApp *app)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
     habits_screen_prepare_first_run_guide(app);
+    profile_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
+    profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
         (app->modal.type == UIModalPracticeManual ||
          app->modal.type == UIModalPracticeConfig ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
-    if(app->modal.active || first_run_guide_active || habits_guide_active) {
+    if(app->modal.active || first_run_guide_active || habits_guide_active ||
+       profile_guide_active) {
         ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
     if(IsKeyPressed(KEY_BACK)) {
-        if(first_run_guide_active || habits_guide_active) {
+        if(first_run_guide_active || habits_guide_active || profile_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
+            app->profile_guide_step = 0;
+            profile_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {
@@ -1899,6 +1905,7 @@ finish_frame:
     app_draw_bottom_nav(app);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
+    profile_screen_draw_first_run_guide(app);
     draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);

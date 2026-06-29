@@ -225,8 +225,11 @@ typedef struct HabitEditState {
     int is_new;
     int index;
     int cursor;
+    int description_cursor;
     int focused;
+    int description_focused;
     char text[INBE_HABIT_NAME_SIZE];
+    char description[INBE_HABIT_DESCRIPTION_SIZE];
     Color color;
     int sync_mode;
     int sync_activity;
@@ -305,6 +308,8 @@ struct InbeApp {
     int tutorial_seen;
     int habits_guide_step;
     int habits_guide_seen;
+    int profile_guide_step;
+    int profile_guide_seen;
     int exercise_manual_seen_mask;
 
     int theme_id;

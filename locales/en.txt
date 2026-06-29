@@ -43,6 +43,75 @@ Sessions
 [profile_storage_label]
 Storage
 ---
+[profile_friends_title]
+Friends
+---
+[profile_leaderboard_title]
+Leaderboard
+---
+[profile_metric_streak]
+Streak
+---
+[profile_metric_avg_time]
+Avg time
+---
+[profile_metric_avg_hold]
+Avg hold
+---
+[profile_none_label]
+None
+---
+[profile_friend_accept_button]
+Accept
+---
+[profile_friend_decline_button]
+Decline
+---
+[profile_updating_status]
+Updating
+---
+[profile_no_account]
+No account
+---
+[profile_account_section]
+Account
+---
+[profile_configure_button]
+Configure
+---
+[profile_data_section]
+Data
+---
+[profile_sync_section]
+Sync
+---
+[profile_friends_count_format]
+%d friends
+---
+[profile_pending_count_format]
+%d pending
+---
+[profile_social_section]
+Social
+---
+[profile_add_friend_button]
+Add friend
+---
+[profile_refresh_button]
+Refresh
+---
+[profile_incoming_title]
+Incoming
+---
+[profile_outgoing_title]
+Outgoing
+---
+[profile_no_leaderboard_data]
+No leaderboard data
+---
+[profile_practice_label]
+Practice
+---
 [tab_settings]
 Settings
 ---
@@ -818,6 +887,9 @@ Edit Habit
 [habit_name_label]
 Name
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Underline
 ---
@@ -915,6 +987,18 @@ Choose Weekly or Calendar to review your habit.
 ---
 [habits_guide_statistics]
 View habit statistics here.
+---
+[profile_guide_account]
+Configure your sync account here.
+---
+[profile_guide_data]
+Review local data and open backup tools here.
+---
+[profile_guide_social]
+Open friends and leaderboard from here.
+---
+[profile_guide_social_no_account]
+Create a sync account to unlock friends and leaderboard.
 ---
 [nav_mode_label]
 Navigation

@@ -5,7 +5,7 @@ Inner Breeze
 Historie
 ---
 [tab_profile]
-Profile
+Profil
 ---
 [tab_habits]
 Návyky
@@ -32,16 +32,85 @@ Pet
 Data
 ---
 [profile_data_button]
-Configure Data
+Nastavit data
 ---
 [profile_habits_label]
-Habits
+Navyky
 ---
 [profile_sessions_label]
-Sessions
+Sezeni
 ---
 [profile_storage_label]
-Storage
+Uloziste
+---
+[profile_friends_title]
+Pratele
+---
+[profile_leaderboard_title]
+Zebricek
+---
+[profile_metric_streak]
+Serie
+---
+[profile_metric_avg_time]
+Prumerny cas
+---
+[profile_metric_avg_hold]
+Prumerna vydrz
+---
+[profile_none_label]
+Zadne
+---
+[profile_friend_accept_button]
+Prijmout
+---
+[profile_friend_decline_button]
+Odmitnout
+---
+[profile_updating_status]
+Aktualizace
+---
+[profile_no_account]
+Zadny ucet
+---
+[profile_account_section]
+Ucet
+---
+[profile_configure_button]
+Nastavit
+---
+[profile_data_section]
+Data
+---
+[profile_sync_section]
+Synchronizace
+---
+[profile_friends_count_format]
+%d pratel
+---
+[profile_pending_count_format]
+%d cekajici
+---
+[profile_social_section]
+Socialni
+---
+[profile_add_friend_button]
+Pridat pritele
+---
+[profile_refresh_button]
+Obnovit
+---
+[profile_incoming_title]
+Prichozi
+---
+[profile_outgoing_title]
+Odchozi
+---
+[profile_no_leaderboard_data]
+Zadna data zebricku
+---
+[profile_practice_label]
+Cviceni
 ---
 [tab_settings]
 Nastavení
@@ -287,10 +356,10 @@ Vzhled
 Jazyk
 ---
 [settings_tab_about]
-About
+O aplikaci
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+Klidny pruvodce pro dychani, navyky a synchronizaci.
 ---
 [theme_label]
 Motiv
@@ -776,6 +845,9 @@ Upravit návyk
 [habit_name_label]
 Název
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Podtržení
 ---
@@ -873,6 +945,18 @@ Zvolte Tyden nebo Kalendar pro kontrolu navyku.
 ---
 [habits_guide_statistics]
 Zde zobrazite statistiky navyku.
+---
+[profile_guide_account]
+Zde nastavite synchronizacni ucet.
+---
+[profile_guide_data]
+Zde zkontrolujete lokalni data a otevete zalohy.
+---
+[profile_guide_social]
+Odtud otevete pratele a zebricek.
+---
+[profile_guide_social_no_account]
+Vytvorte synchronizacni ucet pro odemceni pratel a zebricku.
 ---
 [nav_mode_label]
 Navigace

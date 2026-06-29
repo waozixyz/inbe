@@ -37,7 +37,6 @@ extern struct android_app *GetAndroidApp(void);
 #define INBE_CHALLENGE_PATH "/api/v1/sync/challenge"
 #define INBE_LOGIN_PATH "/api/v1/sync/login"
 #define INBE_ACCOUNT_ALIAS_PATH "/api/v1/account/alias"
-#define INBE_ACCOUNT_DELETE_WITH_KEY_PATH "/api/v1/account/delete-with-key"
 #define INBE_FRIENDS_PATH "/api/v1/friends"
 #define INBE_FRIEND_REQUESTS_PATH "/api/v1/friends/requests"
 #define INBE_FRIEND_STATS_PATH "/api/v1/friends/stats"
@@ -50,31 +49,6 @@ typedef struct SyncBuffer {
     size_t len;
     size_t cap;
 } SyncBuffer;
-
-const char *
-sync_client_result_name(InbeSyncClientResult result)
-{
-    switch(result) {
-        case INBE_SYNC_CLIENT_OK:
-            return "ok";
-        case INBE_SYNC_CLIENT_INVALID_URL:
-            return "invalid_url";
-        case INBE_SYNC_CLIENT_NO_ACCOUNT:
-            return "no_account";
-        case INBE_SYNC_CLIENT_PAYLOAD_FAILED:
-            return "payload_failed";
-        case INBE_SYNC_CLIENT_CHALLENGE_FAILED:
-            return "challenge_failed";
-        case INBE_SYNC_CLIENT_SIGN_FAILED:
-            return "sign_failed";
-        case INBE_SYNC_CLIENT_REQUEST_FAILED:
-            return "request_failed";
-        case INBE_SYNC_CLIENT_AUTH_FAILED:
-            return "auth_failed";
-        default:
-            return "unknown";
-    }
-}
 
 static void
 sync_log_http_failure(const char *step, long status, const char *response)
@@ -96,136 +70,36 @@ sync_log_http_failure(const char *step, long status, const char *response)
     TraceLog(LOG_WARNING, "SYNC: %s failed status=%ld response=%s", step, status, snippet);
 }
 
-static InbeSyncClientResult sync_login(const char *base_url, const InbeSyncAccount *account);
 static int sync_load_valid_auth_token(char *out, size_t out_size);
-
-static int
-sync_has_prefix(const char *text, const char *prefix)
-{
-    return text != NULL && prefix != NULL &&
-           strncmp(text, prefix, strlen(prefix)) == 0;
-}
-
-static int
-sync_url_host_boundary(char ch)
-{
-    return ch == '\0' || ch == ':' || ch == '/' || ch == '?' || ch == '#';
-}
-
-static int
-sync_loopback_authority_valid(const char *authority)
-{
-    static const char *const hosts[] = {
-        "localhost",
-        "127.0.0.1",
-        "10.0.2.2"
-    };
-
-    if(authority == NULL || authority[0] == '\0')
-        return 0;
-    for(size_t i = 0; i < sizeof(hosts) / sizeof(hosts[0]); i++) {
-        size_t len = strlen(hosts[i]);
-        if(strncmp(authority, hosts[i], len) == 0 &&
-           sync_url_host_boundary(authority[len]))
-            return 1;
-    }
-    return 0;
-}
+static FlintLyraSyncResult sync_client_bearer_request(const char *base_url,
+                                                      const char *method,
+                                                      const char *path,
+                                                      const char *body,
+                                                      char *out,
+                                                      size_t out_size);
 
 int
 sync_client_url_valid(const char *url)
 {
-    if(url == NULL || url[0] == '\0')
-        return 0;
-    if(sync_has_prefix(url, "https://"))
-        return url[8] != '\0';
-    if(sync_has_prefix(url, "http://"))
-        return sync_loopback_authority_valid(url + 7);
-    return sync_loopback_authority_valid(url);
+    return flint_lyra_sync_url_valid(url);
 }
 
 int
 sync_client_normalize_url(const char *input, char *out, size_t out_size)
 {
-    int len;
-
-    if(out == NULL || out_size == 0)
-        return 0;
-    out[0] = '\0';
-    if(!sync_client_url_valid(input))
-        return 0;
-    if(sync_has_prefix(input, "https://") || sync_has_prefix(input, "http://"))
-        len = snprintf(out, out_size, "%s", input);
-    else
-        len = snprintf(out, out_size, "http://%s", input);
-    return len > 0 && (size_t)len < out_size;
+    return flint_lyra_sync_normalize_url(input, out, out_size);
 }
 
 static int
 sync_buffer_append(SyncBuffer *buffer, const void *data, size_t bytes)
 {
-    char *next;
-    size_t next_cap;
-
-    if(buffer == NULL || data == NULL || bytes == 0)
-        return 1;
-    if(buffer->cap == 0 || bytes >= buffer->cap - buffer->len) {
-        next_cap = buffer->cap > 0 ? buffer->cap : 1024;
-        while(bytes >= next_cap - buffer->len)
-            next_cap *= 2;
-        next = (char *)realloc(buffer->data, next_cap);
-        if(next == NULL)
-            return 0;
-        buffer->data = next;
-        buffer->cap = next_cap;
-    }
-    memcpy(buffer->data + buffer->len, data, bytes);
-    buffer->len += bytes;
-    buffer->data[buffer->len] = '\0';
-    return 1;
+    return flint_lyra_sync_buffer_append((FlintLyraSyncBuffer *)buffer, data, bytes);
 }
 
 static int
 sync_buffer_append_json_string(SyncBuffer *buffer, const char *text)
 {
-    const char *p;
-
-    if(!sync_buffer_append(buffer, "\"", 1))
-        return 0;
-    if(text == NULL)
-        text = "";
-    for(p = text; *p != '\0'; p++) {
-        char escaped[2];
-        switch(*p) {
-            case '\\':
-                if(!sync_buffer_append(buffer, "\\\\", 2))
-                    return 0;
-                break;
-            case '"':
-                if(!sync_buffer_append(buffer, "\\\"", 2))
-                    return 0;
-                break;
-            case '\n':
-                if(!sync_buffer_append(buffer, "\\n", 2))
-                    return 0;
-                break;
-            case '\r':
-                if(!sync_buffer_append(buffer, "\\r", 2))
-                    return 0;
-                break;
-            case '\t':
-                if(!sync_buffer_append(buffer, "\\t", 2))
-                    return 0;
-                break;
-            default:
-                escaped[0] = *p;
-                escaped[1] = '\0';
-                if(!sync_buffer_append(buffer, escaped, 1))
-                    return 0;
-                break;
-        }
-    }
-    return sync_buffer_append(buffer, "\"", 1);
+    return flint_lyra_sync_buffer_append_json_string((FlintLyraSyncBuffer *)buffer, text);
 }
 
 static int
@@ -333,59 +207,16 @@ sync_client_test_friend_request_body(const char *target, char *out, size_t out_s
 }
 #endif
 
-static int
-sync_copy_response_text(const SyncBuffer *response, char *out, size_t out_size)
-{
-    if(out == NULL || out_size == 0)
-        return 1;
-    out[0] = '\0';
-    if(response == NULL || response->data == NULL)
-        return 0;
-    if(strlen(response->data) >= out_size)
-        return 0;
-    snprintf(out, out_size, "%s", response->data);
-    return 1;
-}
-
 static void
 sync_join_url(char *out, size_t out_size, const char *base_url, const char *path)
 {
-    size_t len;
-
-    if(out == NULL || out_size == 0)
-        return;
-    out[0] = '\0';
-    if(base_url == NULL || path == NULL)
-        return;
-    len = strlen(base_url);
-    while(len > 0 && base_url[len - 1] == '/')
-        len--;
-    snprintf(out, out_size, "%.*s%s", (int)len, base_url, path);
+    flint_lyra_sync_join_url(out, out_size, base_url, path);
 }
 
 static int
 sync_join_ws_url(char *out, size_t out_size, const char *base_url, const char *path)
 {
-    char http_url[768];
-    const char *body;
-    const char *scheme;
-    int len;
-
-    if(out == NULL || out_size == 0)
-        return 0;
-    out[0] = '\0';
-    sync_join_url(http_url, sizeof(http_url), base_url, path);
-    if(sync_has_prefix(http_url, "https://")) {
-        scheme = "wss://";
-        body = http_url + 8;
-    } else if(sync_has_prefix(http_url, "http://")) {
-        scheme = "ws://";
-        body = http_url + 7;
-    } else {
-        return 0;
-    }
-    len = snprintf(out, out_size, "%s%s", scheme, body);
-    return len > 0 && (size_t)len < out_size;
+    return flint_lyra_sync_join_ws_url(out, out_size, base_url, path);
 }
 
 static int
@@ -404,63 +235,6 @@ sync_build_message(const char *method, const char *path, const char *nonce_hex,
     len = snprintf(out, out_size, "inbe-sync-v1\n%s\n%s\n%s\n%s\n",
                    method, path, body_hash, nonce_hex);
     return len > 0 && (size_t)len < out_size;
-}
-
-static int
-sync_find_json_string(const char *json, const char *key, char *out, size_t out_size)
-{
-    char pattern[64];
-    const char *p;
-    char *w;
-    size_t remaining;
-
-    if(json == NULL || key == NULL || out == NULL || out_size == 0)
-        return 0;
-    out[0] = '\0';
-    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
-    p = strstr(json, pattern);
-    if(p == NULL)
-        return 0;
-    p += strlen(pattern);
-    while(*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
-        p++;
-    if(*p++ != ':')
-        return 0;
-    while(*p == ' ' || *p == '\t' || *p == '\r' || *p == '\n')
-        p++;
-    if(*p++ != '"')
-        return 0;
-    w = out;
-    remaining = out_size - 1;
-    while(*p != '\0' && *p != '"' && remaining > 0) {
-        if(*p == '\\')
-            return 0;
-        *w++ = *p++;
-        remaining--;
-    }
-    *w = '\0';
-    return *p == '"' && out[0] != '\0';
-}
-
-static long long
-sync_find_json_int64(const char *json, const char *key, long long fallback)
-{
-    const char *p;
-    char pattern[64];
-
-    if(json == NULL || key == NULL)
-        return fallback;
-    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
-    p = strstr(json, pattern);
-    if(p == NULL)
-        return fallback;
-    p = strchr(p + strlen(pattern), ':');
-    if(p == NULL)
-        return fallback;
-    p++;
-    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
-        p++;
-    return strtoll(p, NULL, 10);
 }
 
 #if !ANDROID_BUILD && !defined(__EMSCRIPTEN__)
@@ -944,7 +718,7 @@ typedef struct WebSyncJob {
     char *payload;
     char *response_text;
     long status;
-    InbeSyncClientResult result;
+    FlintLyraSyncResult result;
     int retried_auth;
 } WebSyncJob;
 
@@ -1115,7 +889,7 @@ sync_client_web_sync_start(const char *base_url)
     if(!sync_account_load(&g_web_sync.account))
         return 0;
     snprintf(g_web_sync.base_url, sizeof(g_web_sync.base_url), "%s", base_url);
-    g_web_sync.result = INBE_SYNC_CLIENT_OK;
+    g_web_sync.result = FLINT_LYRA_SYNC_OK;
 
     if(sync_load_valid_auth_token(token, sizeof(token)))
         return web_sync_start_sync();
@@ -1132,13 +906,13 @@ sync_client_web_sync_start(const char *base_url)
 }
 
 int
-sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
+sync_client_web_sync_poll(FlintLyraSyncResult *result, int *changed)
 {
     SyncBuffer response = {0};
     int poll;
 
     if(result != NULL)
-        *result = INBE_SYNC_CLIENT_OK;
+        *result = FLINT_LYRA_SYNC_OK;
     if(changed != NULL)
         *changed = 0;
     if(g_web_sync.state == WEB_SYNC_IDLE)
@@ -1149,7 +923,7 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         return 0;
     if(poll == 2) {
         if(result != NULL)
-            *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+            *result = FLINT_LYRA_SYNC_REQUEST_FAILED;
         web_sync_reset();
         return 1;
     }
@@ -1157,13 +931,14 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
     if(g_web_sync.state == WEB_SYNC_WAIT_CHALLENGE) {
         char nonce_hex[65];
         if(g_web_sync.status != 200 ||
-           !sync_find_json_string(response.data, "nonce", nonce_hex, sizeof(nonce_hex)) ||
+           !flint_lyra_sync_find_json_string(response.data, "nonce", nonce_hex,
+                                             sizeof(nonce_hex)) ||
            strlen(nonce_hex) != 64) {
             sync_log_http_failure("challenge", g_web_sync.status, response.data);
             if(result != NULL)
                 *result = g_web_sync.status == 401
-                              ? INBE_SYNC_CLIENT_AUTH_FAILED
-                              : INBE_SYNC_CLIENT_CHALLENGE_FAILED;
+                              ? FLINT_LYRA_SYNC_AUTH_FAILED
+                              : FLINT_LYRA_SYNC_CHALLENGE_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
@@ -1171,7 +946,7 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         free(response.data);
         if(!web_sync_start_login(nonce_hex)) {
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_SIGN_FAILED;
+                *result = FLINT_LYRA_SYNC_SIGN_FAILED;
             web_sync_reset();
             return 1;
         }
@@ -1186,7 +961,7 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         if(g_web_sync.status == 401) {
             sync_log_http_failure("login auth", g_web_sync.status, response.data);
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_AUTH_FAILED;
+                *result = FLINT_LYRA_SYNC_AUTH_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
@@ -1194,16 +969,17 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         if(g_web_sync.status < 200 || g_web_sync.status >= 300) {
             sync_log_http_failure("login", g_web_sync.status, response.data);
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+                *result = FLINT_LYRA_SYNC_REQUEST_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
         }
-        expires_in = sync_find_json_int64(response.data, "expires_in_seconds", 3600);
-        if(!sync_find_json_string(response.data, "auth_token", token, sizeof(token))) {
+        expires_in = flint_lyra_sync_find_json_int64(response.data, "expires_in_seconds", 3600);
+        if(!flint_lyra_sync_find_json_string(response.data, "auth_token", token,
+                                             sizeof(token))) {
             sync_log_http_failure("login payload", g_web_sync.status, response.data);
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+                *result = FLINT_LYRA_SYNC_PAYLOAD_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
@@ -1220,7 +996,7 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         free(response.data);
         if(!web_sync_start_sync()) {
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+                *result = FLINT_LYRA_SYNC_PAYLOAD_FAILED;
             web_sync_reset();
             return 1;
         }
@@ -1238,14 +1014,14 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
                     return 0;
             }
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_AUTH_FAILED;
+                *result = FLINT_LYRA_SYNC_AUTH_FAILED;
             web_sync_reset();
             return 1;
         }
         if(g_web_sync.status < 200 || g_web_sync.status >= 300) {
             sync_log_http_failure("sync", g_web_sync.status, response.data);
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+                *result = FLINT_LYRA_SYNC_REQUEST_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
@@ -1253,7 +1029,7 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         if(!storage_apply_sync_response_json(response.data)) {
             sync_log_http_failure("sync payload", g_web_sync.status, response.data);
             if(result != NULL)
-                *result = INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+                *result = FLINT_LYRA_SYNC_PAYLOAD_FAILED;
             free(response.data);
             web_sync_reset();
             return 1;
@@ -1263,14 +1039,14 @@ sync_client_web_sync_poll(InbeSyncClientResult *result, int *changed)
         free(response.data);
         storage_purge_synced_deleted_data();
         if(result != NULL)
-            *result = INBE_SYNC_CLIENT_OK;
+            *result = FLINT_LYRA_SYNC_OK;
         web_sync_reset();
         return 1;
     }
 
     web_sync_reset();
     if(result != NULL)
-        *result = INBE_SYNC_CLIENT_REQUEST_FAILED;
+        *result = FLINT_LYRA_SYNC_REQUEST_FAILED;
     return 1;
 }
 
@@ -1303,118 +1079,85 @@ sync_client_web_poll_remote_event(void)
 }
 #endif
 
-static InbeSyncClientResult
-sync_fetch_challenge(const char *base_url, const char *user_id, char nonce_hex[65])
+static int
+sync_flint_http_request(const char *method, const char *url, const char *body,
+                        const char *const *headers, int header_count,
+                        FlintLyraSyncBuffer *response, long *status, void *user)
 {
-    char url[768];
-    SyncBuffer response = {0};
-    long status = 0;
-    int ok;
-
-    nonce_hex[0] = '\0';
-    sync_join_url(url, sizeof(url), base_url, INBE_CHALLENGE_PATH);
-    if(strlen(url) + strlen(user_id) + 10 >= sizeof(url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
-    strncat(url, "?user_id=", sizeof(url) - strlen(url) - 1);
-    strncat(url, user_id, sizeof(url) - strlen(url) - 1);
-    ok = sync_http_request("GET", url, NULL, NULL, 0, &response, &status);
-    if(!ok || status != 200 ||
-       !sync_find_json_string(response.data, "nonce", nonce_hex, 65) ||
-       strlen(nonce_hex) != 64) {
-        sync_log_http_failure("challenge", status, response.data);
-        free(response.data);
-        return status == 401 ? INBE_SYNC_CLIENT_AUTH_FAILED : INBE_SYNC_CLIENT_CHALLENGE_FAILED;
-    }
-    free(response.data);
-    return INBE_SYNC_CLIENT_OK;
+    (void)user;
+    return sync_http_request(method, url, body, headers, header_count,
+                             (SyncBuffer *)response, status);
 }
 
-static InbeSyncClientResult
-sync_login(const char *base_url, const InbeSyncAccount *account)
+static const char *
+sync_flint_get_text(const char *key, void *user)
 {
-    char nonce_hex[65];
-    char message[256];
-    char signature_hex[5000];
-    char url[768];
-    char user_header[96];
-    char signature_header[5050];
-    const char *headers[3];
-    SyncBuffer body = {0};
-    SyncBuffer response = {0};
-    long status = 0;
-    InbeSyncClientResult challenge_result;
-    int ok;
-    char token[4096];
-    long long expires_in;
-    long long expires_at;
+    (void)user;
+    return storage_get_setting_text(key);
+}
 
-    if(account == NULL)
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
-       !sync_buffer_append_json_string(&body, account->public_id) ||
-       !sync_buffer_append(&body, ",\"client_id\":", strlen(",\"client_id\":")) ||
-       !sync_buffer_append_json_string(&body, storage_sync_client_id()) ||
-       !sync_buffer_append(&body, ",\"public_key\":", strlen(",\"public_key\":")) ||
-       !sync_buffer_append_json_string(&body, account->public_key_hex) ||
-       !sync_buffer_append(&body, "}", 1)) {
-        free(body.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    }
+static void
+sync_flint_set_text(const char *key, const char *value, void *user)
+{
+    (void)user;
+    storage_set_setting_text(key, value);
+}
 
-    challenge_result = sync_fetch_challenge(base_url, account->public_id, nonce_hex);
-    if(challenge_result != INBE_SYNC_CLIENT_OK)
-    {
-        free(body.data);
-        return challenge_result;
-    }
-    if(!sync_build_message("POST", INBE_LOGIN_PATH, nonce_hex, body.data, message, sizeof(message))) {
-        free(body.data);
-        return INBE_SYNC_CLIENT_SIGN_FAILED;
-    }
-    if(!sync_account_sign_hex((const uint8_t *)message, strlen(message),
-                                   signature_hex, sizeof(signature_hex))) {
-        free(body.data);
-        return INBE_SYNC_CLIENT_SIGN_FAILED;
-    }
-    sync_join_url(url, sizeof(url), base_url, INBE_LOGIN_PATH);
-    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account->public_id);
-    snprintf(signature_header, sizeof(signature_header), "X-Inbe-Signature: %s", signature_hex);
-    headers[0] = "Content-Type: application/json";
-    headers[1] = user_header;
-    headers[2] = signature_header;
-    ok = sync_http_request("POST", url, body.data, headers, 3, &response, &status);
-    free(body.data);
-    if(!ok) {
-        sync_log_http_failure("login request", status, response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(status == 401) {
-        sync_log_http_failure("login auth", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    if(status < 200 || status >= 300) {
-        sync_log_http_failure("login", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    expires_in = sync_find_json_int64(response.data, "expires_in_seconds", 3600);
-    if(!sync_find_json_string(response.data, "auth_token", token, sizeof(token))) {
-        sync_log_http_failure("login payload", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    }
-    expires_at = (long long)time(NULL) + expires_in - 30;
-    if(expires_at < (long long)time(NULL))
-        expires_at = (long long)time(NULL);
-    {
-        char text[32];
-        snprintf(text, sizeof(text), "%lld", expires_at);
-        storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_KEY, token);
-        storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, text);
-    }
-    free(response.data);
-    return INBE_SYNC_CLIENT_OK;
+static char *
+sync_flint_build_payload(const char *user_id_hash, const char *public_key_hex,
+                         void *user)
+{
+    (void)user;
+    return storage_build_sync_payload_json(user_id_hash, public_key_hex);
+}
+
+static void
+sync_flint_free_payload(char *payload, void *user)
+{
+    (void)user;
+    storage_free_sync_payload_json(payload);
+}
+
+static int
+sync_flint_apply_response(const char *response_json, void *user)
+{
+    (void)user;
+    return storage_apply_sync_response_json(response_json);
+}
+
+static void
+sync_flint_purge_synced_deleted(void *user)
+{
+    (void)user;
+    storage_purge_synced_deleted_data();
+}
+
+static void
+sync_flint_log_http_failure(const char *step, long status,
+                            const char *response, void *user)
+{
+    (void)user;
+    sync_log_http_failure(step, status, response);
+}
+
+static FlintLyraSyncConfig
+sync_flint_config(const char *base_url, const InbeSyncAccount *account)
+{
+    FlintLyraSyncConfig cfg;
+
+    memset(&cfg, 0, sizeof(cfg));
+    cfg.base_url = base_url;
+    cfg.account = account;
+    cfg.client_id = storage_sync_client_id();
+    cfg.http_request = sync_flint_http_request;
+    cfg.get_text = sync_flint_get_text;
+    cfg.set_text = sync_flint_set_text;
+    cfg.build_payload = sync_flint_build_payload;
+    cfg.free_payload = sync_flint_free_payload;
+    cfg.apply_response = sync_flint_apply_response;
+    cfg.purge_synced_deleted = sync_flint_purge_synced_deleted;
+    cfg.log_http_failure = sync_flint_log_http_failure;
+    return cfg;
 }
 
 static int
@@ -1445,255 +1188,93 @@ sync_client_clear_auth_token(void)
     storage_set_setting_text(INBE_SYNC_AUTH_TOKEN_EXPIRES_KEY, "");
 }
 
-static InbeSyncClientResult
-sync_send_bearer(const char *base_url, const char *user_id, const char *body, const char *token)
-{
-    char url[768];
-    char user_header[96];
-    char auth_header[4200];
-    const char *headers[3];
-    SyncBuffer response = {0};
-    long status = 0;
-    int ok;
-
-    sync_join_url(url, sizeof(url), base_url, INBE_SYNC_PATH);
-    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", user_id);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token != NULL ? token : "");
-    headers[0] = "Content-Type: application/json";
-    headers[1] = user_header;
-    headers[2] = auth_header;
-    ok = sync_http_request("POST", url, body, headers, 3, &response, &status);
-    if(!ok) {
-        sync_log_http_failure("sync request", status, response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(status == 401) {
-        sync_log_http_failure("sync auth", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    if(status < 200 || status >= 300) {
-        sync_log_http_failure("sync", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(!storage_apply_sync_response_json(response.data)) {
-        sync_log_http_failure("sync payload", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    }
-    free(response.data);
-    return INBE_SYNC_CLIENT_OK;
-}
-
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_sync(const char *base_url)
 {
     InbeSyncAccount account;
-    char *payload;
-    InbeSyncClientResult result;
-    char token[4096];
+    FlintLyraSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    payload = storage_build_sync_payload_json(account.public_id, account.public_key_hex);
-    if(payload == NULL)
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    result = sync_send_bearer(base_url, account.public_id, payload, token);
-    if(result == INBE_SYNC_CLIENT_AUTH_FAILED) {
-        sync_client_clear_auth_token();
-        result = sync_login(base_url, &account);
-        if(result == INBE_SYNC_CLIENT_OK && sync_load_valid_auth_token(token, sizeof(token)))
-            result = sync_send_bearer(base_url, account.public_id, payload, token);
-        else if(result == INBE_SYNC_CLIENT_OK)
-            result = INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    storage_free_sync_payload_json(payload);
-    if(result == INBE_SYNC_CLIENT_OK)
-        storage_purge_synced_deleted_data();
-    return result;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
+    cfg = sync_flint_config(base_url, &account);
+    return flint_lyra_sync_run(&cfg);
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_register_alias(const char *base_url, const char *alias)
 {
 #if defined(__EMSCRIPTEN__)
     (void)base_url;
     (void)alias;
-    return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    return FLINT_LYRA_SYNC_REQUEST_FAILED;
 #else
     InbeSyncAccount account;
-    char token[4096];
-    char url[768];
-    char user_header[96];
-    char auth_header[4200];
-    const char *headers[3];
     SyncBuffer body = {0};
-    SyncBuffer response = {0};
-    long status = 0;
-    InbeSyncClientResult result;
-    int ok;
+    FlintLyraSyncResult result;
+    char response[512];
     char saved_alias[40];
 
     if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     if(alias == NULL || alias[0] == '\0')
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
 
-    TraceLog(LOG_INFO, "SYNC: alias login refresh started");
-    result = sync_login(base_url, &account);
-    if(result != INBE_SYNC_CLIENT_OK) {
-        TraceLog(LOG_WARNING, "SYNC: alias login refresh failed result=%d", (int)result);
-        return result;
-    }
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        TraceLog(LOG_WARNING, "SYNC: alias login refresh did not produce token");
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
     if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
        !sync_buffer_append_json_string(&body, account.public_id) ||
        !sync_buffer_append(&body, ",\"alias\":", strlen(",\"alias\":")) ||
        !sync_buffer_append_json_string(&body, alias) ||
        !sync_buffer_append(&body, "}", 1)) {
         free(body.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     }
-    sync_join_url(url, sizeof(url), base_url, INBE_ACCOUNT_ALIAS_PATH);
-    TraceLog(LOG_INFO, "SYNC: alias request url=%s alias=@%s", url, alias);
-    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account.public_id);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
-    headers[0] = "Content-Type: application/json";
-    headers[1] = user_header;
-    headers[2] = auth_header;
-    ok = sync_http_request("POST", url, body.data, headers, 3, &response, &status);
+    TraceLog(LOG_INFO, "SYNC: alias request alias=@%s", alias);
+    result = sync_client_bearer_request(base_url, "POST", INBE_ACCOUNT_ALIAS_PATH,
+                                        body.data, response, sizeof(response));
     free(body.data);
-    if(!ok) {
-        sync_log_http_failure("alias request", status, response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(status == 401) {
-        sync_log_http_failure("alias auth", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-    if(status < 200 || status >= 300) {
-        sync_log_http_failure("alias", status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(sync_find_json_string(response.data, "alias", saved_alias, sizeof(saved_alias))) {
+    if(result != FLINT_LYRA_SYNC_OK)
+        return result;
+    if(flint_lyra_sync_find_json_string(response, "alias", saved_alias,
+                                        sizeof(saved_alias))) {
         storage_set_setting_text("sync_account_alias", saved_alias);
         TraceLog(LOG_INFO, "SYNC: alias response stored @%s", saved_alias);
     } else {
         TraceLog(LOG_WARNING, "SYNC: alias response missing alias field");
     }
-    free(response.data);
-    return INBE_SYNC_CLIENT_OK;
+    return FLINT_LYRA_SYNC_OK;
 #endif
 }
 
-static InbeSyncClientResult
+static FlintLyraSyncResult
 sync_client_bearer_request(const char *base_url, const char *method, const char *path,
                            const char *body, char *out, size_t out_size)
 {
     InbeSyncAccount account;
-    char token[4096];
-    char url[1024];
-    char user_header[96];
-    char auth_header[4200];
-    const char *headers[3];
-    int header_count = 0;
-    SyncBuffer response = {0};
-    long status = 0;
-    InbeSyncClientResult result;
-    int ok;
-    int retried_auth = 0;
+    FlintLyraSyncConfig cfg;
 
-    if(out != NULL && out_size > 0)
-        out[0] = '\0';
-    if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
-    if(method == NULL || path == NULL)
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
-    if(!sync_load_valid_auth_token(token, sizeof(token))) {
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-    }
-
-retry:
-    sync_join_url(url, sizeof(url), base_url, path);
-    snprintf(user_header, sizeof(user_header), "X-Inbe-User: %s", account.public_id);
-    snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
-    if(body != NULL)
-        headers[header_count++] = "Content-Type: application/json";
-    headers[header_count++] = user_header;
-    headers[header_count++] = auth_header;
-    ok = sync_http_request(method, url, body != NULL ? body : "", headers, header_count,
-                           &response, &status);
-    if(!ok) {
-        sync_log_http_failure(path, status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(status == 401) {
-        free(response.data);
-        response = (SyncBuffer){0};
-        sync_client_clear_auth_token();
-        if(retried_auth)
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-        retried_auth = 1;
-        result = sync_login(base_url, &account);
-        if(result != INBE_SYNC_CLIENT_OK)
-            return result;
-        if(!sync_load_valid_auth_token(token, sizeof(token)))
-            return INBE_SYNC_CLIENT_AUTH_FAILED;
-        status = 0;
-        header_count = 0;
-        goto retry;
-    }
-    if(status < 200 || status >= 300) {
-        sync_log_http_failure(path, status, response.data);
-        free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    }
-    if(!sync_copy_response_text(&response, out, out_size)) {
-        free(response.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    }
-    free(response.data);
-    return INBE_SYNC_CLIENT_OK;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
+    cfg = sync_flint_config(base_url, &account);
+    return flint_lyra_sync_bearer_request(&cfg, method, path, body, out, out_size);
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_send_friend_request(const char *base_url, const char *target)
 {
     SyncBuffer body = {0};
-    InbeSyncClientResult result;
+    FlintLyraSyncResult result;
     char normalized[80];
 
     if(!sync_client_normalize_friend_target(target, normalized, sizeof(normalized)))
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     if(!sync_buffer_append(&body, "{\"target\":", strlen("{\"target\":")) ||
        !sync_buffer_append_json_string(&body, normalized) ||
        !sync_buffer_append(&body, "}", 1)) {
         free(body.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     }
     TraceLog(LOG_INFO, "SYNC: friend request target=%s", normalized);
     result = sync_client_bearer_request(base_url, "POST", INBE_FRIEND_REQUESTS_PATH,
@@ -1702,56 +1283,56 @@ sync_client_send_friend_request(const char *base_url, const char *target)
     return result;
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_get_friend_requests(const char *base_url, char *out, size_t out_size)
 {
     return sync_client_bearer_request(base_url, "GET", INBE_FRIEND_REQUESTS_PATH,
                                       NULL, out, out_size);
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_get_friends(const char *base_url, char *out, size_t out_size)
 {
     return sync_client_bearer_request(base_url, "GET", INBE_FRIENDS_PATH,
                                       NULL, out, out_size);
 }
 
-static InbeSyncClientResult
+static FlintLyraSyncResult
 sync_client_friend_request_action(const char *base_url, const char *request_id,
                                   const char *action)
 {
     char path[256];
 
     if(request_id == NULL || request_id[0] == '\0' || action == NULL)
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     if(snprintf(path, sizeof(path), "%s/%s/%s", INBE_FRIEND_REQUESTS_PATH,
                 request_id, action) >= (int)sizeof(path))
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     return sync_client_bearer_request(base_url, "POST", path, "{}", NULL, 0);
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_accept_friend_request(const char *base_url, const char *request_id)
 {
     return sync_client_friend_request_action(base_url, request_id, "accept");
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_decline_friend_request(const char *base_url, const char *request_id)
 {
     return sync_client_friend_request_action(base_url, request_id, "decline");
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_remove_friend(const char *base_url, const char *friend_user_id)
 {
     char path[192];
 
     if(friend_user_id == NULL || friend_user_id[0] == '\0')
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     if(snprintf(path, sizeof(path), "%s/%s", INBE_FRIENDS_PATH,
                 friend_user_id) >= (int)sizeof(path))
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     return sync_client_bearer_request(base_url, "DELETE", path, NULL, NULL, 0);
 }
 
@@ -1786,7 +1367,7 @@ sync_url_append_query(char *url, size_t url_size, const char *key, const char *v
     return 1;
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_get_friend_stats(const char *base_url, const char *app,
                              const char *practice, const char *metric,
                              char *out, size_t out_size)
@@ -1797,7 +1378,7 @@ sync_client_get_friend_stats(const char *base_url, const char *app,
     if(!sync_url_append_query(path, sizeof(path), "app", app != NULL ? app : "inbe") ||
        !sync_url_append_query(path, sizeof(path), "practice", practice) ||
        !sync_url_append_query(path, sizeof(path), "metric", metric))
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
+        return FLINT_LYRA_SYNC_PAYLOAD_FAILED;
     return sync_client_bearer_request(base_url, "GET", path, NULL, out, out_size);
 }
 
@@ -1822,7 +1403,7 @@ sync_client_test_friend_stats_path(const char *app, const char *practice,
 }
 #endif
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_wait_for_remote_event(const char *base_url)
 {
 #if ANDROID_BUILD
@@ -1835,13 +1416,13 @@ sync_client_wait_for_remote_event(const char *base_url)
     long status = 0;
 
     if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
     if(!sync_load_valid_auth_token(token, sizeof(token)))
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
+        return FLINT_LYRA_SYNC_AUTH_FAILED;
     if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
     headers[0] = auth_header;
 
@@ -1850,21 +1431,21 @@ sync_client_wait_for_remote_event(const char *base_url)
         if(status == 401)
             sync_client_clear_auth_token();
         free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        return FLINT_LYRA_SYNC_REQUEST_FAILED;
     }
     if(status != 101) {
         TraceLog(LOG_WARNING, "SYNC: websocket connect failed http=%ld url=%s", status, ws_url);
         if(status == 401)
             sync_client_clear_auth_token();
         free(response.data);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        return FLINT_LYRA_SYNC_REQUEST_FAILED;
     }
     if(response.data != NULL && strstr(response.data, "\"type\":\"sync_changed\"") != NULL) {
         free(response.data);
-        return INBE_SYNC_CLIENT_OK;
+        return FLINT_LYRA_SYNC_OK;
     }
     free(response.data);
-    return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    return FLINT_LYRA_SYNC_REQUEST_FAILED;
 #elif !defined(__EMSCRIPTEN__)
     InbeSyncAccount account;
     char token[4096];
@@ -1878,19 +1459,19 @@ sync_client_wait_for_remote_event(const char *base_url)
     size_t message_len = 0;
 
     if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
     if(!sync_load_valid_auth_token(token, sizeof(token)))
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
+        return FLINT_LYRA_SYNC_AUTH_FAILED;
     if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     snprintf(auth_header, sizeof(auth_header), "Authorization: Bearer %s", token);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
     if(curl == NULL)
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        return FLINT_LYRA_SYNC_REQUEST_FAILED;
     curl_headers = curl_slist_append(curl_headers, auth_header);
     curl_easy_setopt(curl, CURLOPT_URL, ws_url);
     curl_easy_setopt(curl, CURLOPT_CONNECT_ONLY, 2L);
@@ -1909,7 +1490,7 @@ sync_client_wait_for_remote_event(const char *base_url)
             sync_client_clear_auth_token();
         curl_slist_free_all(curl_headers);
         curl_easy_cleanup(curl);
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
+        return FLINT_LYRA_SYNC_REQUEST_FAILED;
     }
     curl_slist_free_all(curl_headers);
 
@@ -1932,16 +1513,16 @@ sync_client_wait_for_remote_event(const char *base_url)
         }
         if(code == CURLE_GOT_NOTHING) {
             curl_easy_cleanup(curl);
-            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+            return FLINT_LYRA_SYNC_REQUEST_FAILED;
         }
         if(code != CURLE_OK) {
             TraceLog(LOG_WARNING, "SYNC: websocket recv failed code=%d", (int)code);
             curl_easy_cleanup(curl);
-            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+            return FLINT_LYRA_SYNC_REQUEST_FAILED;
         }
         if(meta != NULL && (meta->flags & CURLWS_CLOSE)) {
             curl_easy_cleanup(curl);
-            return INBE_SYNC_CLIENT_REQUEST_FAILED;
+            return FLINT_LYRA_SYNC_REQUEST_FAILED;
         }
         if(meta != NULL && !(meta->flags & CURLWS_TEXT))
             continue;
@@ -1956,53 +1537,27 @@ sync_client_wait_for_remote_event(const char *base_url)
             continue;
         if(strstr(message, "\"type\":\"sync_changed\"") != NULL) {
             curl_easy_cleanup(curl);
-            return INBE_SYNC_CLIENT_OK;
+            return FLINT_LYRA_SYNC_OK;
         }
         message_len = 0;
         message[0] = '\0';
     }
 #else
     (void)base_url;
-    return INBE_SYNC_CLIENT_REQUEST_FAILED;
+    return FLINT_LYRA_SYNC_REQUEST_FAILED;
 #endif
 }
 
-InbeSyncClientResult
+FlintLyraSyncResult
 sync_client_delete_account(const char *base_url)
 {
     InbeSyncAccount account;
-    char url[768];
-    char exported_key[8200];
-    SyncBuffer body = {0};
-    SyncBuffer response = {0};
-    const char *headers[1] = {"Content-Type: application/json"};
-    long status = 0;
-    int ok;
+    FlintLyraSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
-        return INBE_SYNC_CLIENT_INVALID_URL;
+        return FLINT_LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
-        return INBE_SYNC_CLIENT_NO_ACCOUNT;
-
-    if(!flint_lyra_account_export_text(&account, exported_key, sizeof(exported_key)))
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-
-    if(!sync_buffer_append(&body, "{\"user_id_hash\":", strlen("{\"user_id_hash\":")) ||
-       !sync_buffer_append_json_string(&body, account.public_id) ||
-       !sync_buffer_append(&body, ",\"exported_key\":", strlen(",\"exported_key\":")) ||
-       !sync_buffer_append_json_string(&body, exported_key) ||
-       !sync_buffer_append(&body, "}", 1)) {
-        free(body.data);
-        return INBE_SYNC_CLIENT_PAYLOAD_FAILED;
-    }
-
-    sync_join_url(url, sizeof(url), base_url, INBE_ACCOUNT_DELETE_WITH_KEY_PATH);
-    ok = sync_http_request("POST", url, body.data, headers, 1, &response, &status);
-    free(body.data);
-    free(response.data);
-    if(!ok)
-        return INBE_SYNC_CLIENT_REQUEST_FAILED;
-    if(status == 401 || status == 403)
-        return INBE_SYNC_CLIENT_AUTH_FAILED;
-    return status >= 200 && status < 300 ? INBE_SYNC_CLIENT_OK : INBE_SYNC_CLIENT_REQUEST_FAILED;
+        return FLINT_LYRA_SYNC_NO_ACCOUNT;
+    cfg = sync_flint_config(base_url, &account);
+    return flint_lyra_sync_delete_account(&cfg);
 }

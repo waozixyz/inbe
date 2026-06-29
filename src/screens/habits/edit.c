@@ -37,7 +37,10 @@ habit_edit_begin(InbeApp *app, int index)
     };
     snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s",
              app->habits.items[index].name);
+    snprintf(app->habit_edit.description, sizeof(app->habit_edit.description), "%s",
+             app->habits.items[index].description);
     app->habit_edit.cursor = (int)strlen(app->habit_edit.text);
+    app->habit_edit.description_cursor = (int)strlen(app->habit_edit.description);
     app->habits.tab = HABIT_TAB_EDIT;
     app_switch_screen(app, InbeScreenHabits);
 }
@@ -183,6 +186,9 @@ habit_edit_commit(InbeApp *app)
                                                  app->habit_edit.sync_activity);
             if(created >= 0 && created < app->habits.count) {
                 app->habits.items[created].counter_enabled = app->habit_edit.counter_enabled != 0;
+                snprintf(app->habits.items[created].description,
+                         sizeof(app->habits.items[created].description), "%s",
+                         app->habit_edit.description);
                 habits_save(&app->habits);
             }
         } else {
@@ -195,6 +201,9 @@ habit_edit_commit(InbeApp *app)
             }
             snprintf(app->habits.items[index].name,
                      sizeof(app->habits.items[index].name), "%s", text);
+            snprintf(app->habits.items[index].description,
+                     sizeof(app->habits.items[index].description), "%s",
+                     app->habit_edit.description);
             app->habits.items[index].color = app->habit_edit.color;
             app->habits.items[index].color.a = 255;
             app->habits.items[index].sync_mode = app->habit_edit.sync_mode;
@@ -213,18 +222,18 @@ habit_edit_commit(InbeApp *app)
 }
 
 static void
-habit_edit_clamp_cursor(InbeApp *app)
+habit_edit_clamp_cursor(char *text, int *cursor)
 {
     int len;
 
-    if(app == NULL)
+    if(text == NULL || cursor == NULL)
         return;
 
-    len = (int)strlen(app->habit_edit.text);
-    if(app->habit_edit.cursor < 0)
-        app->habit_edit.cursor = 0;
-    if(app->habit_edit.cursor > len)
-        app->habit_edit.cursor = len;
+    len = (int)strlen(text);
+    if(*cursor < 0)
+        *cursor = 0;
+    if(*cursor > len)
+        *cursor = len;
 }
 
 static void
@@ -239,7 +248,8 @@ habit_edit_handle_keyboard(InbeApp *app)
 }
 
 static FlintUITextField
-habit_edit_text_field(InbeApp *app, int font)
+habit_edit_text_field(char *text, size_t text_size, int *cursor, int *focused,
+                      int max_codepoints, int font)
 {
     FlintUITextInputStyle style = {
         .background = flint_darken(flint_theme_get_bg(), 4),
@@ -253,11 +263,11 @@ habit_edit_text_field(InbeApp *app, int font)
 
     return (FlintUITextField){
         .bounds = {0},
-        .text = app->habit_edit.text,
-        .text_size = sizeof(app->habit_edit.text),
-        .cursor_position = &app->habit_edit.cursor,
-        .focused = &app->habit_edit.focused,
-        .max_codepoints = INBE_HABIT_NAME_SIZE - 1,
+        .text = text,
+        .text_size = text_size,
+        .cursor_position = cursor,
+        .focused = focused,
+        .max_codepoints = max_codepoints,
         .font = font,
         .style = style
     };
@@ -300,6 +310,10 @@ habit_edit_scroll_content_height(int content_w, void *user_data)
     (void)content_w;
     height += ui_label_text_field_height((FlintUILabelTextField){
         .label = locale_get("habit_name_label"),
+        .field_h = flint_px(40)
+    });
+    height += ui_label_text_field_height((FlintUILabelTextField){
+        .label = locale_get("habit_description_label"),
         .field_h = flint_px(40)
     });
     height += flint_px(32) + flint_px(34);
@@ -438,12 +452,31 @@ draw_habit_edit_screen(InbeApp *app)
     }
     (void)ui_draw_label_text_field((FlintUILabelTextField){
         .label = locale_get("habit_name_label"),
-        .field = habit_edit_text_field(app, font),
+        .field = habit_edit_text_field(app->habit_edit.text,
+                                       sizeof(app->habit_edit.text),
+                                       &app->habit_edit.cursor,
+                                       &app->habit_edit.focused,
+                                       INBE_HABIT_NAME_SIZE - 1, font),
         .field_h = field_h,
         .label_font = label_font,
         .label_color = flint_darken(flint_theme_get_text(), 34)
     }, content_x, y, content_w);
-    habit_edit_clamp_cursor(app);
+    habit_edit_clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor);
+    y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
+
+    (void)ui_draw_label_text_field((FlintUILabelTextField){
+        .label = locale_get("habit_description_label"),
+        .field = habit_edit_text_field(app->habit_edit.description,
+                                       sizeof(app->habit_edit.description),
+                                       &app->habit_edit.description_cursor,
+                                       &app->habit_edit.description_focused,
+                                       INBE_HABIT_DESCRIPTION_SIZE - 1, font),
+        .field_h = field_h,
+        .label_font = label_font,
+        .label_color = flint_darken(flint_theme_get_text(), 34)
+    }, content_x, y, content_w);
+    habit_edit_clamp_cursor(app->habit_edit.description,
+                            &app->habit_edit.description_cursor);
     y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
 
     flint_text_draw(locale_get("habit_underline_label"), content_x, y,

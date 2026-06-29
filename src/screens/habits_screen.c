@@ -1137,6 +1137,7 @@ habits_screen_practice_list_anchor(InbeApp *app)
     flint_centered_column(flint_px(CONTENT_MAX_W), flint_page_side_padding(),
                           &content_x, &content_w);
     y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
+    y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
     y += flint_px(32);
     y += flint_px(34);
 

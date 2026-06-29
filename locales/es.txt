@@ -5,7 +5,7 @@ Inner Breeze
 Historial
 ---
 [tab_profile]
-Profile
+Perfil
 ---
 [tab_habits]
 Hábitos
@@ -29,19 +29,88 @@ Manual
 Pet
 ---
 [profile_data_title]
-Data
+Datos
 ---
 [profile_data_button]
-Configure Data
+Configurar datos
 ---
 [profile_habits_label]
-Habits
+Habitos
 ---
 [profile_sessions_label]
-Sessions
+Sesiones
 ---
 [profile_storage_label]
-Storage
+Almacenamiento
+---
+[profile_friends_title]
+Amigos
+---
+[profile_leaderboard_title]
+Clasificacion
+---
+[profile_metric_streak]
+Racha
+---
+[profile_metric_avg_time]
+Tiempo medio
+---
+[profile_metric_avg_hold]
+Retencion media
+---
+[profile_none_label]
+Ninguno
+---
+[profile_friend_accept_button]
+Aceptar
+---
+[profile_friend_decline_button]
+Rechazar
+---
+[profile_updating_status]
+Actualizando
+---
+[profile_no_account]
+Sin cuenta
+---
+[profile_account_section]
+Cuenta
+---
+[profile_configure_button]
+Configurar
+---
+[profile_data_section]
+Datos
+---
+[profile_sync_section]
+Sincronizacion
+---
+[profile_friends_count_format]
+%d amigos
+---
+[profile_pending_count_format]
+%d pendientes
+---
+[profile_social_section]
+Social
+---
+[profile_add_friend_button]
+Anadir amigo
+---
+[profile_refresh_button]
+Actualizar
+---
+[profile_incoming_title]
+Entrantes
+---
+[profile_outgoing_title]
+Salientes
+---
+[profile_no_leaderboard_data]
+Sin datos de clasificacion
+---
+[profile_practice_label]
+Practica
 ---
 [tab_settings]
 Configuración
@@ -287,10 +356,10 @@ Apariencia
 Idioma
 ---
 [settings_tab_about]
-About
+Acerca de
 ---
 [about_text]
-A quiet breathing companion for practice, habits, and sync.
+Un companero tranquilo para respiracion, habitos y sincronizacion.
 ---
 [theme_label]
 Tema
@@ -776,6 +845,9 @@ Editar hábito
 [habit_name_label]
 Nombre
 ---
+[habit_description_label]
+Description
+---
 [habit_underline_label]
 Subrayado
 ---
@@ -873,6 +945,18 @@ Elige Semanal o Calendario para revisar tu habito.
 ---
 [habits_guide_statistics]
 Consulta tus estadisticas de habitos aqui.
+---
+[profile_guide_account]
+Configura tu cuenta de sincronizacion aqui.
+---
+[profile_guide_data]
+Revisa los datos locales y abre las copias aqui.
+---
+[profile_guide_social]
+Abre amigos y clasificacion desde aqui.
+---
+[profile_guide_social_no_account]
+Crea una cuenta de sincronizacion para desbloquear amigos y clasificacion.
 ---
 [nav_mode_label]
 Navegación
