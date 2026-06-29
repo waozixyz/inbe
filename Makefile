@@ -172,6 +172,7 @@ FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
 APP_SRCS := \
 	src/main.c \
+	src/app/app_sync.c \
 	src/core/breath_engine.c \
 	src/app/app.c \
 	src/app/app_nav.c \
@@ -193,6 +194,7 @@ APP_SRCS := \
 	src/screens/habits/edit.c \
 	src/screens/habits/session.c \
 	src/screens/profile_screen.c \
+	src/screens/profile_social.c \
 	src/screens/pet_screen.c \
 	src/practices/meditation/meditation_music.c \
 	src/storage/data.c \
