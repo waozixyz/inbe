@@ -23,8 +23,7 @@ android_import_set_result(int result, const char *path)
     pthread_mutex_lock(&import_mutex);
     pending_result = result;
     if(path != NULL) {
-        strncpy(pending_path, path, sizeof(pending_path) - 1);
-        pending_path[sizeof(pending_path) - 1] = '\0';
+        snprintf(pending_path, sizeof(pending_path), "%s", path);
     } else {
         pending_path[0] = '\0';
     }
@@ -122,8 +121,7 @@ android_import_poll_result(char *path, size_t path_size)
     pthread_mutex_lock(&import_mutex);
     result = pending_result;
     if(path != NULL && path_size > 0) {
-        strncpy(path, pending_path, path_size - 1);
-        path[path_size - 1] = '\0';
+        snprintf(path, path_size, "%s", pending_path);
     }
     pending_result = ANDROID_IMPORT_RESULT_NONE;
     pending_path[0] = '\0';
