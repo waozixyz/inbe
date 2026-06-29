@@ -571,7 +571,7 @@ jobs:
           butler push "$linux_appimage" waozi/inbe:linux --userversion "$VERSION"
 
   publish-google-play:
-    name: Publish Google Play Open Testing
+    name: Publish Google Play Production
     runs-on: ubuntu-latest
     needs:
       - build-android
@@ -595,13 +595,13 @@ jobs:
           name: release-android
           path: build/release/android
 
-      - name: Publish AAB to Play Games on PC Open Testing
+      - name: Publish AAB to Play Games on PC Production
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: xyz.waozi.inbe
           releaseFiles: build/release/android/*.aab
-          tracks: google_play_games_pc:beta
+          tracks: google_play_games_pc:production
           status: completed
 
   publish-chrome-web-store:

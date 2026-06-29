@@ -45,6 +45,9 @@ if [ ! -x "$EMULATOR_CMD" ]; then
   EMULATOR_CMD="$(command -v emulator)"
 fi
 
+EMULATOR_DIR="$(cd "$(dirname "$EMULATOR_CMD")" && pwd)"
+EMULATOR_LD_LIBRARY_PATH="${ANDROID_EMULATOR_LD_LIBRARY_PATH:-$EMULATOR_DIR/lib64:$EMULATOR_DIR/lib64/qt/lib}"
+
 # Check if emulator is already running
 if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   echo "✅ Emulator already running"
@@ -52,14 +55,21 @@ if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   exit 0
 fi
 
-echo "🚀 Launching Pixel 8 Pro emulator (Android 14 API 34)..."
+if LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$EMULATOR_CMD" 2>/dev/null | grep -q "not found"; then
+  echo "❌ Emulator runtime libraries are missing."
+  echo "   Re-enter the repo flake shell so the updated emulator LD_LIBRARY_PATH is active:"
+  echo "   nix develop --impure"
+  exit 1
+fi
+
+echo "🚀 Launching Pixel 8 Pro emulator (Android 15 API 35)..."
 
 # Set environment for emulator
 unset ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 
 # Launch emulator in background with KVM acceleration
-"$EMULATOR_CMD" @"$AVD_NAME" \
+LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
   -gpu host \
   -skin 1440x2960 \
   -no-snapshot-load \
