@@ -97,6 +97,7 @@ typedef enum {
     UIModalSyncReview,
     UIModalSyncAlias,
     UIModalSyncPublicId,
+    UIModalConfirmRemoveFriend,
 } UIModalType;
 
 typedef struct {
@@ -284,6 +285,8 @@ struct InbeApp {
     int profile_friend_input_focused;
     int profile_friends_loaded;
     char profile_friend_input[80];
+    char profile_pending_friend_remove_id[80];
+    char profile_pending_friend_remove_name[96];
     char profile_friends_json[8192];
     char profile_friend_requests_json[8192];
     char profile_leaderboard_json[8192];
@@ -373,6 +376,7 @@ void app_request_social_refresh(InbeApp *app);
 void app_request_friend_send(InbeApp *app, const char *target);
 void app_request_friend_accept(InbeApp *app, const char *request_id);
 void app_request_friend_decline(InbeApp *app, const char *request_id);
+void app_request_friend_remove(InbeApp *app, const char *friend_user_id);
 int app_should_use_tab_bar(const InbeApp *app);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);

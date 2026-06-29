@@ -1,9 +1,12 @@
 # Changelog
+## [1.7.4] - 2026-06-29
+### Fixed
+- Clean up practice stats, friend removal, sync review, and Android inset handling.
+
 ## [1.7.3] - 2026-06-29
 ### Fixed
 - bottom inset in practice
 
-## [1.7.3] - 2026-06-29
 ### Changed
 - Improve habit management
 

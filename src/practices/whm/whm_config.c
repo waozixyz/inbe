@@ -383,7 +383,8 @@ whm_config_screen_draw(InbeApp *app)
         app->settings_scroll = 0;
     }
     scroll_y = title_h + config_tab_h + config_tab_gap;
-    scroll_h = view_height - scroll_y - bottom_reserved - flint_px(8);
+    scroll_h = view_height - scroll_y - bottom_reserved -
+               (integrated ? flint_px(8) : 0);
     if(scroll_h < 0)
         scroll_h = 0;
 

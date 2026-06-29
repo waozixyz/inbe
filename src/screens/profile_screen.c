@@ -295,6 +295,20 @@ profile_json_number_value(const char *object, const char *key)
 static void profile_refresh_friends(InbeApp *app);
 
 static void
+profile_prompt_remove_friend(InbeApp *app, const char *friend_user_id,
+                             const char *friend_name)
+{
+    if(app == NULL || friend_user_id == NULL || friend_user_id[0] == '\0')
+        return;
+    snprintf(app->profile_pending_friend_remove_id,
+             sizeof(app->profile_pending_friend_remove_id), "%s", friend_user_id);
+    snprintf(app->profile_pending_friend_remove_name,
+             sizeof(app->profile_pending_friend_remove_name), "%s",
+             friend_name != NULL && friend_name[0] != '\0' ? friend_name : friend_user_id);
+    app_open_modal(app, UIModalConfirmRemoveFriend);
+}
+
+static void
 profile_draw_json_people(const char *json, const char *array_key,
                          int x, int w, int *y, int with_actions, InbeApp *app)
 {
@@ -304,6 +318,7 @@ profile_draw_json_people(const char *json, const char *array_key,
     int rows = 0;
     int font = flint_ui_font();
     int small = flint_ui_font_small();
+    int with_remove = !with_actions && strcmp(array_key, "friends") == 0;
 
     snprintf(key_pattern, sizeof(key_pattern), "\"%s\"", array_key);
     p = strstr(json != NULL ? json : "", key_pattern);
@@ -329,6 +344,7 @@ profile_draw_json_people(const char *json, const char *array_key,
         int row_h = with_actions ? flint_px(42) : flint_px(30);
         int hover_accept = 0;
         int hover_decline = 0;
+        int hover_remove = 0;
         char url[256];
 
         id[0] = '\0';
@@ -356,6 +372,17 @@ profile_draw_json_people(const char *json, const char *array_key,
         snprintf(title, sizeof(title), "%s%s", alias[0] != '\0' ? "@" : "",
                  alias[0] != '\0' ? alias : display_id);
         flint_text_draw(title, x, *y, font, flint_theme_get_text());
+        if(with_remove) {
+            int icon_size = flint_px(18);
+            int icon_padding = flint_px(6);
+            int button_w = icon_size + icon_padding * 2;
+            if(ui_draw_icon_btn_padded(x + w - button_w, *y - flint_px(6),
+                                       icon_size, icon_padding,
+                                       app->icons[UI_ICON_TYPE_TRASH],
+                                       &hover_remove)) {
+                profile_prompt_remove_friend(app, display_id, title);
+            }
+        }
         if(with_actions) {
             int btn_w = (w - flint_px(8)) / 2;
             if(ui_draw_generic_button(x, *y + flint_px(22), btn_w, flint_px(30),
@@ -383,6 +410,44 @@ profile_draw_json_people(const char *json, const char *array_key,
         flint_text_draw(locale_get("profile_none_label"), x, *y, small,
                         flint_darken(flint_theme_get_text(), 35));
         *y += flint_px(24);
+    }
+}
+
+void
+profile_screen_draw_remove_friend_modal(InbeApp *app)
+{
+    char message[384];
+    int modal_result;
+
+    if(app == NULL || !app->modal.active ||
+       app->modal.type != UIModalConfirmRemoveFriend)
+        return;
+
+    snprintf(message, sizeof(message),
+             "Remove %s from your friends? You will both disappear from each other's leaderboards. To reconnect, one of you will need to send a new friend request.",
+             app->profile_pending_friend_remove_name[0] != '\0'
+                 ? app->profile_pending_friend_remove_name
+                 : "this friend");
+    modal_result = ui_draw_modal("Remove friend?", message,
+                                 locale_get("cancel_button"),
+                                 locale_get("delete_button"));
+    if(modal_result == 1) {
+        app->profile_pending_friend_remove_id[0] = '\0';
+        app->profile_pending_friend_remove_name[0] = '\0';
+        app_close_modal(app);
+    } else if(modal_result == 2) {
+        char url[256];
+
+        if(profile_sync_url(url, sizeof(url))) {
+            app_request_friend_remove(app, app->profile_pending_friend_remove_id);
+            settings_screen_set_status_success(locale_get("profile_updating_status"),
+                                               NULL);
+        } else {
+            settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        }
+        app->profile_pending_friend_remove_id[0] = '\0';
+        app->profile_pending_friend_remove_name[0] = '\0';
+        app_close_modal(app);
     }
 }
 

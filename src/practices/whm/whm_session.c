@@ -425,7 +425,7 @@ finish_round(InbeApp *app)
         if(session_ensure_results_saved(app)) {
 #if ANDROID_BUILD
             android_allow_screen_off();
-            android_timer_stop();
+            stop_android_background_session(app);
 #endif
             app_switch_screen(app, InbeScreenResults);
 #if ANDROID_BUILD

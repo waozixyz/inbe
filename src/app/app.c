@@ -206,6 +206,10 @@ app_social_worker(void *userdata)
             result = sync_client_decline_friend_request(args->url, args->action_value);
             if(result != FLINT_LYRA_SYNC_OK)
                 goto done;
+        } else if(strcmp(args->action, "remove") == 0) {
+            result = sync_client_remove_friend(args->url, args->action_value);
+            if(result != FLINT_LYRA_SYNC_OK)
+                goto done;
         }
         result = sync_client_get_friend_requests(args->url, requests_json,
                                                  sizeof(requests_json));
@@ -432,6 +436,7 @@ app_modal_type_name(UIModalType type)
     case UIModalSyncReview: return "sync_review";
     case UIModalSyncAlias: return "sync_alias";
     case UIModalSyncPublicId: return "sync_public_id";
+    case UIModalConfirmRemoveFriend: return "confirm_remove_friend";
     default: break;
     }
     return "unknown";
@@ -687,6 +692,13 @@ app_request_friend_decline(InbeApp *app, const char *request_id)
 {
     (void)app;
     app_request_social_action("decline", request_id);
+}
+
+void
+app_request_friend_remove(InbeApp *app, const char *friend_user_id)
+{
+    (void)app;
+    app_request_social_action("remove", friend_user_id);
 }
 
 static int
@@ -1715,6 +1727,10 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalThemePicker)
         settings_screen_draw_theme_picker_modal(app);
+    if(app->modal.type == UIModalConfirmRemoveFriend) {
+        profile_screen_draw_remove_friend_modal(app);
+        return;
+    }
     if(app->modal.type == UIModalPracticeManual ||
        app->modal.type == UIModalPracticeConfig ||
        app->modal.type == UIModalEditProgressiveStartSpeed) {
@@ -1752,7 +1768,6 @@ updateapp(InbeApp *app)
 {
     int center_x = view_width / 2;
     int frame_view_height = view_height;
-    int safe_bottom_reserved = 0;
     int center_y;
     int play_center_y;
     int hover = 0;
@@ -1789,9 +1804,7 @@ updateapp(InbeApp *app)
         ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
-    safe_bottom_reserved = app_fullscreen_bottom_reserved(app);
-    if(safe_bottom_reserved > 0 && safe_bottom_reserved < view_height)
-        view_height -= safe_bottom_reserved;
+    view_height = app_page_height(app, view_height);
     center_y = view_height / 2;
 
     if(IsKeyPressed(KEY_BACK)) {
@@ -1929,7 +1942,8 @@ finish_frame:
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
     if(app->transition_mode == APP_TRANSITION_FADE) {
-        flint_transition_draw_fade(&app->screen_transition, view_width, view_height,
+        flint_transition_draw_fade(&app->screen_transition, view_width,
+                                   app_page_height(app, view_height),
                                    flint_theme_get_bg());
     }
     app_advance_screen_transition(app);

@@ -92,7 +92,20 @@ app_content_bottom_reserved(const InbeApp *app)
         return 0;
     if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
         return 0;
-    return ui_bottom_nav_height() + app_android_bottom_nav_height();
+    return ui_bottom_nav_height();
+}
+
+int
+app_page_height(const InbeApp *app, int full_height)
+{
+    int bottom_reserved;
+
+    if(full_height <= 0)
+        return 0;
+    bottom_reserved = app_fullscreen_bottom_reserved(app);
+    if(bottom_reserved > 0 && bottom_reserved < full_height)
+        return full_height - bottom_reserved;
+    return full_height;
 }
 
 static int
@@ -190,7 +203,7 @@ app_should_draw_bottom_nav(const InbeApp *app)
 int
 app_fullscreen_bottom_reserved(const InbeApp *app)
 {
-    if(app == NULL || app_should_draw_bottom_nav(app))
+    if(app == NULL)
         return 0;
     return app_android_bottom_nav_height();
 }

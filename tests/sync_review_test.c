@@ -262,6 +262,28 @@ mark_empty_local_pending(const char *root)
 }
 
 static void
+seed_local_session_only(const char *root)
+{
+    check_true("seed local session only",
+               exec_db_sql(root, "INSERT INTO "
+                                 "sessions(id,user_id,started_at,local_date,topic,activity,source,"
+                                 "imported_at,rounds_hash,deleted_at,updated_at)"
+                                 "VALUES('tiny-local-session',(SELECT id FROM users LIMIT "
+                                 "1),1782300000,20260624,1,1,'test',1782300000,101,0,1782300000);"
+                                 "INSERT INTO session_rounds(session_id,round_index,seconds)"
+                                 "VALUES('tiny-local-session',0,40);"));
+}
+
+static void
+mark_local_session_only_pending(const char *root)
+{
+    check_true("mark local session only pending",
+               exec_db_sql(root, "INSERT OR REPLACE INTO "
+                                 "sync_outbox(entity_type,entity_id,local_date,queued_at)"
+                                 "VALUES('session','tiny-local-session',0,1782300000);"));
+}
+
+static void
 seed_local_yoga_data(const char *root)
 {
     check_true("seed local yoga data",
@@ -356,6 +378,29 @@ remote_additive_yoga_response(void)
            "}";
 }
 
+static const char *
+remote_tiny_session_snapshot_response(void)
+{
+    return "{"
+           "\"server_version\":15,"
+           "\"server_state_hash\":\"remote-hash-tiny-session\","
+           "\"full_snapshot_required\":true,"
+           "\"changes_complete\":false,"
+           "\"changes\":{"
+           "\"habits\":[],"
+           "\"habit_days\":[],"
+           "\"sessions\":[{\"id\":\"tiny-remote-session\",\"started_at\":\"2026-06-24T10:"
+           "05:00Z\","
+           "\"local_date\":20260624,\"topic\":1,\"activity\":1,\"source\":\"lyra-"
+           "test\","
+           "\"rounds_hash\":404,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:"
+           "05:00Z\","
+           "\"rounds\":[{\"round_index\":0,\"hold_seconds\":55}]}],"
+           "\"meditation_logs\":[]"
+           "}"
+           "}";
+}
+
 static void
 test_full_snapshot_waits_for_review(void)
 {
@@ -407,6 +452,34 @@ test_full_snapshot_waits_for_review(void)
 }
 
 static void
+test_tiny_pending_snapshot_applies_remote_without_review(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "tiny-pending");
+    check_true("init tiny pending db", storage_init(root));
+    seed_local_session_only(root);
+    mark_local_session_only_pending(root);
+
+    check_true("apply tiny review response",
+               storage_apply_sync_response_json(remote_tiny_session_snapshot_response()));
+    check_false("tiny review not pending", storage_sync_review_pending());
+    check_int("tiny local session replaced",
+              read_db_count(root,
+                            "SELECT COUNT(*) FROM sessions WHERE id='tiny-local-session'"),
+              0);
+    check_int("tiny remote session applied",
+              read_db_count(root,
+                            "SELECT COUNT(*) FROM sessions WHERE id='tiny-remote-session'"),
+              1);
+    check_int("tiny outbox cleared",
+              read_db_count(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_empty_local_pending_snapshot_applies_remote(void)
 {
     char root[1024];
@@ -417,8 +490,7 @@ test_empty_local_pending_snapshot_applies_remote(void)
 
     check_true("apply empty local review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
-    check_true("empty local review pending before policy", storage_sync_review_pending());
-    check_true("empty local applies remote", storage_sync_review_apply_remote_if_local_empty());
+    check_false("empty local review not pending", storage_sync_review_pending());
     check_false("empty local review cleared", storage_sync_review_pending());
     check_int("empty local remote session applied",
               read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 1);
@@ -696,6 +768,7 @@ main(void)
     tzset();
 
     test_full_snapshot_waits_for_review();
+    test_tiny_pending_snapshot_applies_remote_without_review();
     test_empty_local_pending_snapshot_applies_remote();
     test_review_ignores_deleted_remote_rows();
     test_remote_additions_apply_without_review();

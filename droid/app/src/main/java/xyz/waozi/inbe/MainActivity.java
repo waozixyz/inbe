@@ -447,7 +447,6 @@ public class MainActivity extends NativeActivity {
 
         // Notify native code that activity is ready for wake lock
         nativeWakeLockReady();
-        requestNotificationPermissionIfNeeded();
     }
 
     @Override

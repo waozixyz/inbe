@@ -29,6 +29,8 @@ storage_has_orphan_habit_days(void);
 static int
 storage_json_array_count(const char *json, const char *path);
 static int
+storage_apply_remote_full_snapshot(const char *response_json);
+static int
 storage_clear_local_sync_data(void);
 static int
 storage_json_valid(const char *json);
@@ -2112,20 +2114,9 @@ storage_apply_sync_response_json(const char *response_json)
         storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
-        if(!storage_sync_review_json_has_visible_diff(response_json)) {
-            char *copy = strdup(response_json);
-            int ok;
-            if(copy == NULL)
-                return 0;
-            if(!storage_clear_local_sync_data()) {
-                free(copy);
-                return 0;
-            }
-            set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
-            ok = storage_apply_sync_response_json(copy);
-            free(copy);
-            return ok;
-        }
+        if(!storage_has_any() ||
+           storage_sync_review_json_should_auto_apply_remote(response_json))
+            return storage_apply_remote_full_snapshot(response_json);
         if(!storage_sync_review_write_json(response_json))
             return 0;
         set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");
@@ -2183,6 +2174,27 @@ storage_apply_sync_response_json(const char *response_json)
     storage_mark_habits_initialized();
     storage_schedule_persist();
     return 1;
+}
+
+static int
+storage_apply_remote_full_snapshot(const char *response_json)
+{
+    char *copy;
+    int ok;
+
+    if(response_json == NULL)
+        return 0;
+    copy = strdup(response_json);
+    if(copy == NULL)
+        return 0;
+    if(!storage_clear_local_sync_data()) {
+        free(copy);
+        return 0;
+    }
+    set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 1);
+    ok = storage_apply_sync_response_json(copy);
+    free(copy);
+    return ok;
 }
 
 static int
@@ -2389,7 +2401,6 @@ storage_profile_activity_stats(int activity, int today_date,
     int seen[371] = {0};
     int streak = 0;
     long avg_value = 0;
-    int mask = 1 << activity;
 
     if(streak_out != NULL)
         *streak_out = 0;
@@ -2401,19 +2412,11 @@ storage_profile_activity_stats(int activity, int today_date,
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT local_date FROM sessions "
                           "WHERE user_id=?1 AND deleted_at=0 AND activity=?2 "
-                          "  AND local_date>0 "
-                          "UNION "
-                          "SELECT hd.local_date "
-                          "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
-                          "WHERE h.user_id=?1 AND h.deleted_at=0 "
-                          "  AND h.sync_mode=?3 AND (h.sync_activity & ?4)<>0 "
-                          "  AND (hd.completed!=0 OR hd.count>0)",
+                          "  AND local_date>0",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     bind_text(stmt, 1, g_storage.user_id);
     sqlite3_bind_int(stmt, 2, activity);
-    sqlite3_bind_int(stmt, 3, INBE_HABIT_SYNC_ACTIVITIES);
-    sqlite3_bind_int(stmt, 4, mask);
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0), today_date);
         if(offset >= 0 && offset <= 370)
