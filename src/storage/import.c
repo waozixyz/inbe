@@ -465,24 +465,6 @@ read_file_heap(const char *path, size_t *out_size)
     return buf;
 }
 
-static int
-make_temp_path(char *out, size_t out_size, const char *name)
-{
-    size_t root_len;
-    size_t name_len;
-
-    if(out == NULL || out_size == 0 || name == NULL || g_storage.root[0] == '\0')
-        return 0;
-    root_len = strlen(g_storage.root);
-    name_len = strlen(name);
-    if(root_len + 1 + name_len + 1 > out_size)
-        return 0;
-    memcpy(out, g_storage.root, root_len);
-    out[root_len] = '/';
-    memcpy(out + root_len + 1, name, name_len + 1);
-    return 1;
-}
-
 typedef struct {
     char **paths;
     int count;
@@ -1039,7 +1021,7 @@ storage_import_zip_ex(const char *path, InbeStorageImportMode mode)
         char temp_path[INBE_STORAGE_PATH_SIZE];
         FILE *fp;
         db_bytes = mz_zip_reader_extract_file_to_heap(&archive, "inbe-data/inbe.db", &db_size, 0);
-        if(!make_temp_path(temp_path, sizeof(temp_path), "import-inbe.db")) {
+        if(!storage_join_path(temp_path, sizeof(temp_path), g_storage.root, "import-inbe.db")) {
             TraceLog(LOG_ERROR, "DATA: import temp path is too long");
             free(db_bytes);
             mz_zip_reader_end(&archive);
@@ -1091,7 +1073,8 @@ storage_inspect_import(const char *path, InbeStorageImportInfo *info)
         char temp_path[INBE_STORAGE_PATH_SIZE];
         FILE *fp;
         db_bytes = mz_zip_reader_extract_file_to_heap(&archive, "inbe-data/inbe.db", &db_size, 0);
-        if(!make_temp_path(temp_path, sizeof(temp_path), "import-inspect-inbe.db")) {
+        if(!storage_join_path(temp_path, sizeof(temp_path), g_storage.root,
+                              "import-inspect-inbe.db")) {
             free(db_bytes);
             mz_zip_reader_end(&archive);
             return 0;

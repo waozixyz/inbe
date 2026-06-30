@@ -1,4 +1,8 @@
 # Changelog
+## [1.7.6] - 2026-06-30
+### Added
+- habit overview
+
 ## [1.7.5] - 2026-06-29
 ### Fixed
 - Fix Android 15 relaunch freeze.

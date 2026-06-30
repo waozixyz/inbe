@@ -7,6 +7,7 @@
 #include "data.h"
 #include "storage.h"
 #include "app.h"
+#include "text_utils.h"
 #include "flint_theme.h"
 #include "flint_runtime_assets.h"
 #include "flint_locale.h"
@@ -1313,23 +1314,7 @@ habit_weekly_draw_text_line(const char *text, int x, int y, int w, int h,
     while(font_size > FLINT_TEXT_8 && flint_text_measure(text, font_size) > w)
         font_size -= flint_px(1);
     if(flint_text_measure(text, font_size) > w) {
-        snprintf(fitted, sizeof(fitted), "%s", text);
-        while(fitted[0] != '\0' && flint_text_measure(fitted, font_size) > w) {
-            size_t len = strlen(fitted);
-            size_t cut = len;
-
-            if(len <= 3)
-                break;
-            if(len > 3 && strcmp(fitted + len - 3, "...") == 0)
-                len -= 3;
-            cut = len;
-            do {
-                cut--;
-            } while(cut > 0 && (((unsigned char)fitted[cut] & 0xC0) == 0x80));
-            fitted[cut] = '\0';
-            if(cut + 3 < sizeof(fitted))
-                strncat(fitted, "...", sizeof(fitted) - strlen(fitted) - 1);
-        }
+        inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size);
         draw_text = fitted;
     }
     flint_text_draw(draw_text, x + (w - flint_text_measure(draw_text, font_size)) / 2,

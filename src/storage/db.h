@@ -22,6 +22,7 @@ extern StorageState g_storage;
 
 long long now_seconds(void);
 int bind_text(sqlite3_stmt *stmt, int index, const char *text);
+int storage_join_path(char *out, size_t out_size, const char *root, const char *name);
 int path_exists(const char *path);
 int ensure_dir_local(const char *path);
 int exec_sql(const char *sql);
@@ -38,6 +39,10 @@ void set_meta_int64(const char *key, long long value);
 
 void storage_schedule_persist(void);
 void storage_enqueue_all_sync_state(void);
+int storage_enqueue_sync_habit(const char *habit_id);
+int storage_enqueue_sync_habit_day(const char *habit_id, int local_date);
+int storage_enqueue_sync_session(const char *session_id);
+int storage_has_sync_account(void);
 int storage_materialize_session_habit_days(void);
 int storage_sync_review_write_json(const char *json);
 void storage_sync_review_delete_json(void);

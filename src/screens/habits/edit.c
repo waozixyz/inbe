@@ -320,7 +320,7 @@ habit_edit_scroll_content_height(int content_w, void *user_data)
         .label = locale_get("habit_description_label"),
         .field_h = flint_px(40)
     });
-    height += flint_px(32) + flint_px(34);
+    height += flint_px(32) + flint_px(76);
     height += ui_section_label_height((FlintUISectionLabel){0});
     for(int i = 0; i < EXERCISE_COUNT; i++)
         height += ui_checkbox_row_height((FlintUICheckboxRow){0});
@@ -339,7 +339,7 @@ draw_habit_edit_screen(InbeApp *app)
 {
     const char *title;
     const char *activity_options[EXERCISE_COUNT];
-    Color color_options[6];
+    Color color_options[12];
     int top_h = flint_px(58);
     int bottom_reserved;
     int content_x;
@@ -486,21 +486,30 @@ draw_habit_edit_screen(InbeApp *app)
     flint_text_draw(locale_get("habit_underline_label"), content_x, y,
                     label_font, flint_darken(flint_theme_get_text(), 34));
     y += flint_px(32);
-    color_options[0] = (Color){94, 166, 232, 255};
-    color_options[1] = (Color){99, 196, 165, 255};
-    color_options[2] = (Color){210, 180, 72, 255};
-    color_options[3] = (Color){224, 124, 104, 255};
-    color_options[4] = (Color){180, 132, 220, 255};
-    color_options[5] = (Color){216, 116, 164, 255};
-    for(int i = 0; i < 6; i++) {
-        int cx = content_x + flint_px(18) + i * flint_px(42);
+    color_options[0] = (Color){224, 92, 92, 255};
+    color_options[1] = (Color){224, 124, 104, 255};
+    color_options[2] = (Color){232, 150, 74, 255};
+    color_options[3] = (Color){210, 180, 72, 255};
+    color_options[4] = (Color){160, 196, 82, 255};
+    color_options[5] = (Color){99, 196, 165, 255};
+    color_options[6] = (Color){74, 186, 198, 255};
+    color_options[7] = (Color){94, 166, 232, 255};
+    color_options[8] = (Color){116, 132, 224, 255};
+    color_options[9] = (Color){180, 132, 220, 255};
+    color_options[10] = (Color){216, 116, 164, 255};
+    color_options[11] = (Color){198, 96, 118, 255};
+    for(int i = 0; i < 12; i++) {
+        int row = i / 6;
+        int col = i % 6;
+        int cx = content_x + flint_px(18) + col * flint_px(42);
+        int cy = y + row * flint_px(42);
         int selected = app->habit_edit.color.r == color_options[i].r &&
                        app->habit_edit.color.g == color_options[i].g &&
                        app->habit_edit.color.b == color_options[i].b;
-        if(habit_color_button(app, cx, y, color_options[i], selected))
+        if(habit_color_button(app, cx, cy, color_options[i], selected))
             app->habit_edit.color = color_options[i];
     }
-    y += flint_px(34);
+    y += flint_px(76);
 
     if(ui_draw_section_label((FlintUISectionLabel){
         .label = locale_get("habit_practice_list_title"),

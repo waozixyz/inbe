@@ -1,6 +1,7 @@
 #include "profile_screen.h"
 
 #include "app.h"
+#include "text_utils.h"
 #include "flint_locale.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
@@ -15,6 +16,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <string.h>
+#include <time.h>
 
 extern int view_height;
 extern int view_width;
@@ -29,9 +31,10 @@ static void
 profile_format_size(char *out, size_t out_size, long long bytes)
 {
     if(bytes >= 1024LL * 1024LL)
-        snprintf(out, out_size, "%.1f MB", (double)bytes / (1024.0 * 1024.0));
+        snprintf(out, out_size, "%lld MB",
+                 (bytes + 1024LL * 1024LL / 2) / (1024LL * 1024LL));
     else if(bytes >= 1024)
-        snprintf(out, out_size, "%.1f KB", (double)bytes / 1024.0);
+        snprintf(out, out_size, "%lld KB", (bytes + 1024 / 2) / 1024);
     else
         snprintf(out, out_size, "%lld B", bytes);
 }
@@ -63,8 +66,59 @@ profile_sync_content_height(int content_w)
 static int
 profile_habits_content_height(int content_w)
 {
-    (void)content_w;
-    return flint_px(90) + flint_px(48) * INBE_HABIT_MAX;
+    int row_h = content_w < flint_px(260) ? flint_px(78) : flint_px(48);
+
+    return flint_px(90) + row_h * INBE_HABIT_MAX;
+}
+
+static int
+profile_habits_overview_label_width(int content_w)
+{
+    int min_label_w = flint_px(52);
+    int max_label_w = flint_px(128);
+    int gap = flint_px(4);
+    int cell = flint_px(26);
+    int label_w = content_w - gap * 7 - cell * 7;
+
+    if(label_w < min_label_w)
+        label_w = min_label_w;
+    if(label_w > max_label_w)
+        label_w = max_label_w;
+    return label_w;
+}
+
+static int
+profile_habits_overview_cell_size(int content_w)
+{
+    int label_w = profile_habits_overview_label_width(content_w);
+    int gap = flint_px(4);
+    int cell = (content_w - label_w - gap * 7) / 7;
+
+    if(cell > flint_px(26))
+        cell = flint_px(26);
+    if(cell < flint_px(16))
+        cell = flint_px(16);
+    return cell;
+}
+
+static int
+profile_habits_overview_stack_header(int content_w)
+{
+    return content_w < flint_px(300);
+}
+
+static int
+profile_habits_overview_height(const InbeApp *app, int content_w)
+{
+    int count = app != NULL ? app->habits.count : 0;
+    int rows = count > 0 ? count : 1;
+    int cell = profile_habits_overview_cell_size(content_w);
+    int header_h = flint_px(32) + flint_px(8);
+
+    if(profile_habits_overview_stack_header(content_w))
+        header_h += flint_px(38);
+    return header_h + flint_px(20) + rows * (cell + flint_px(6)) +
+           flint_px(18);
 }
 
 static int
@@ -93,7 +147,8 @@ profile_content_height(int content_w, void *user_data)
         return flint_px(660);
     if(app != NULL && app->profile_tab == PROFILE_TAB_DATA)
         return profile_data_content_height(content_w);
-    return profile_main_content_height(content_w);
+    return profile_main_content_height(content_w) +
+           profile_habits_overview_height(app, content_w);
 }
 
 static const char *
@@ -176,14 +231,15 @@ profile_guide_account_anchor(void)
 }
 
 static Rectangle
-profile_guide_data_anchor(void)
+profile_guide_data_anchor(InbeApp *app)
 {
     int x;
     int w;
-    int y = flint_px(82);
 
     profile_overview_column(&x, &w);
-    return (Rectangle){(float)(x - flint_px(6)), (float)(y - flint_px(6)),
+    return (Rectangle){(float)(x - flint_px(6)),
+                       (float)(flint_px(82) +
+                               profile_habits_overview_height(app, w) - flint_px(6)),
                        (float)(w + flint_px(12)), (float)flint_px(190)};
 }
 
@@ -192,11 +248,11 @@ profile_guide_social_anchor(InbeApp *app)
 {
     int x;
     int w;
-    int y = flint_px(278);
 
-    (void)app;
     profile_overview_column(&x, &w);
-    return (Rectangle){(float)(x - flint_px(6)), (float)(y - flint_px(6)),
+    return (Rectangle){(float)(x - flint_px(6)),
+                       (float)(flint_px(278) +
+                               profile_habits_overview_height(app, w) - flint_px(6)),
                        (float)(w + flint_px(12)), (float)flint_px(102)};
 }
 
@@ -242,7 +298,7 @@ profile_screen_draw_first_run_guide(InbeApp *app)
         .text = locale_get("profile_guide_account")
     };
     steps[1] = (FlintUIGuideStep){
-        .anchor = profile_guide_data_anchor(),
+        .anchor = profile_guide_data_anchor(app),
         .text = locale_get("profile_guide_data")
     };
     steps[2] = (FlintUIGuideStep){
@@ -306,6 +362,154 @@ profile_draw_summary_columns(int x, int w, int *y)
 }
 
 static void
+profile_draw_fitted_text(const char *text, int x, int y, int max_w, int font, Color color)
+{
+    char fitted[INBE_HABIT_NAME_SIZE + 4];
+
+    if(text == NULL || max_w <= 0)
+        return;
+    inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font);
+    flint_text_draw(fitted, x, y, font, color);
+}
+
+static int
+profile_week_day_index(int offset)
+{
+    time_t now = time(NULL);
+    struct tm week;
+    struct tm *local = localtime(&now);
+    int sunday_delta;
+
+    if(local == NULL)
+        return habits_today_index();
+    week = *local;
+    sunday_delta = week.tm_wday;
+    week.tm_hour = 12;
+    week.tm_min = 0;
+    week.tm_sec = 0;
+    week.tm_mday += offset - sunday_delta;
+    if(mktime(&week) == (time_t)-1)
+        return habits_today_index();
+    return (week.tm_year + 1900) * 10000 + (week.tm_mon + 1) * 100 +
+           week.tm_mday;
+}
+
+static void
+profile_draw_habits_overview(InbeApp *app, int x, int w, int *y)
+{
+    int font = flint_ui_font();
+    int small = flint_ui_font_small();
+    int btn_h = flint_px(32);
+    int btn_w = flint_px(132);
+    int label_w = profile_habits_overview_label_width(w);
+    int gap = flint_px(8);
+    int cell_gap = flint_px(4);
+    int cell = profile_habits_overview_cell_size(w);
+    int grid_total_w = label_w + cell_gap * 7 + cell * 7;
+    int overview_x = x + (w - grid_total_w) / 2;
+    int grid_x = overview_x + label_w;
+    int grid_y;
+    int today_index = habits_today_index();
+    int completed_count = 0;
+    int manage_hover = 0;
+    int stack_header = profile_habits_overview_stack_header(w);
+    char progress_text[64];
+    const char *day_labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
+
+    if(app == NULL)
+        return;
+
+    for(int i = 0; i < app->habits.count; i++) {
+        if(habit_completed_today(&app->habits.items[i]))
+            completed_count++;
+    }
+
+    locale_format(progress_text, sizeof(progress_text), "profile_habits_today_format",
+                  completed_count, app->habits.count);
+    if(stack_header) {
+        profile_draw_fitted_text(progress_text, x, *y + flint_px(2), w, font,
+                                 flint_theme_get_text());
+        *y += flint_px(28);
+        if(ui_draw_generic_button(x, *y, w, btn_h,
+                                  locale_get("profile_manage_habits_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &manage_hover)) {
+            app->profile_view = PROFILE_VIEW_HABITS;
+            app->profile_scroll = 0;
+            settings_screen_clear_status();
+        }
+    } else {
+        int progress_w = w - btn_w - gap;
+
+        profile_draw_fitted_text(progress_text, x, *y + flint_px(7), progress_w, font,
+                                 flint_theme_get_text());
+        if(ui_draw_generic_button(x + w - btn_w, *y, btn_w, btn_h,
+                                  locale_get("profile_manage_habits_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &manage_hover)) {
+            app->profile_view = PROFILE_VIEW_HABITS;
+            app->profile_scroll = 0;
+            settings_screen_clear_status();
+        }
+    }
+    *y += btn_h + flint_px(8);
+
+    if(app->habits.count <= 0) {
+        flint_text_draw(locale_get("habit_empty_title"), x, *y + flint_px(6), small,
+                        flint_darken(flint_theme_get_text(), 35));
+        *y += cell + flint_px(6);
+    } else {
+        grid_y = *y;
+        for(int day = 0; day < 7; day++) {
+            int day_x = grid_x + day * (cell + cell_gap);
+            int label_w_px = flint_text_measure(day_labels[day], small);
+
+            flint_text_draw(day_labels[day], day_x + (cell - label_w_px) / 2,
+                            grid_y, small, flint_darken(flint_theme_get_text(), 34));
+        }
+        *y += flint_px(20);
+        for(int i = 0; i < app->habits.count; i++) {
+            InbeHabit *habit = &app->habits.items[i];
+            int row_y = *y;
+            char short_name[8];
+            int swatch = flint_px(8);
+            const char *label = habit->name;
+            char fitted_label[INBE_HABIT_NAME_SIZE + 4];
+            int label_text_w = label_w - swatch - flint_px(7);
+
+            if(label_w <= flint_px(60)) {
+                inbe_text_short_label(habit->name, 3, 1, short_name, sizeof(short_name));
+                label = short_name;
+            } else if(flint_text_measure(label, small) > label_text_w) {
+                inbe_text_fit_ellipsis(habit->name, fitted_label, sizeof(fitted_label),
+                                       label_text_w, small);
+                label = fitted_label;
+            }
+            DrawRectangle(overview_x, row_y + (cell - swatch) / 2, swatch, swatch,
+                          habit->color);
+            flint_text_draw(label, overview_x + swatch + flint_px(5),
+                            flint_ui_text_y(label, row_y, cell, small),
+                            small,
+                                     flint_theme_get_text());
+            for(int day = 0; day < 7; day++) {
+                int day_index = profile_week_day_index(day);
+                int completed = habit_completed_day(habit, day_index);
+                int day_x = grid_x + day * (cell + cell_gap);
+                Color fill = completed ? habit->color : flint_darken(flint_theme_get_bg(), 7);
+                Color border = day_index == today_index
+                                   ? flint_theme_get_text()
+                                   : flint_darken(flint_theme_get_text(), 46);
+
+                DrawRectangle(day_x, row_y, cell, cell, fill);
+                DrawRectangleLines(day_x, row_y, cell, cell, border);
+            }
+            *y += cell + flint_px(6);
+        }
+    }
+
+    profile_draw_divider(x, w, *y);
+    *y += flint_px(18);
+}
+
+static void
 profile_draw_overview(InbeApp *app, int x, int w, int *y)
 {
     int font = flint_ui_font();
@@ -351,6 +555,8 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     *y += flint_px(38);
     profile_draw_divider(x, w, *y);
     *y += flint_px(18);
+
+    profile_draw_habits_overview(app, x, w, y);
 
     flint_text_draw(locale_get("profile_data_section"), x, *y, small,
                     flint_darken(flint_theme_get_text(), 35));
@@ -427,27 +633,31 @@ profile_draw_habits(InbeApp *app, int x, int w, int *y)
     int btn_h = flint_px(32);
     int btn_w = flint_px(74);
     int gap = flint_px(8);
+    int stack_rows = w < flint_px(260);
 
     *y += flint_px(16);
-    flint_text_draw(locale_get("profile_my_habits_title"), x, *y, font,
-                    flint_theme_get_text());
-    *y += flint_px(34);
 
     for(int i = 0; i < app->habits.count; i++) {
         int row_y = *y;
         int up_hover = 0;
         int down_hover = 0;
+        int controls_w = btn_w * 2 + gap;
+        int name_w = stack_rows ? w : w - controls_w - gap;
 
-        flint_text_draw(app->habits.items[i].name, x, row_y + flint_px(7),
-                        font, flint_theme_get_text());
-        if(ui_draw_generic_button(x + w - btn_w * 2 - gap, row_y, btn_w, btn_h,
+        profile_draw_fitted_text(app->habits.items[i].name, x, row_y + flint_px(7),
+                                 name_w, font, flint_theme_get_text());
+        if(stack_rows)
+            row_y += flint_px(36);
+        if(ui_draw_generic_button(stack_rows ? x : x + w - btn_w * 2 - gap,
+                                  row_y, btn_w, btn_h,
                                   locale_get("move_up_button"),
                                   UI_BUTTON_STYLE_SECONDARY, i == 0, &up_hover)) {
             if(habits_move(&app->habits, i, i - 1))
                 app_auto_sync(app);
             return;
         }
-        if(ui_draw_generic_button(x + w - btn_w, row_y, btn_w, btn_h,
+        if(ui_draw_generic_button(stack_rows ? x + btn_w + gap : x + w - btn_w,
+                                  row_y, btn_w, btn_h,
                                   locale_get("move_down_button"),
                                   UI_BUTTON_STYLE_SECONDARY,
                                   i == app->habits.count - 1, &down_hover)) {
@@ -455,7 +665,7 @@ profile_draw_habits(InbeApp *app, int x, int w, int *y)
                 app_auto_sync(app);
             return;
         }
-        *y += flint_px(46);
+        *y += stack_rows ? flint_px(78) : flint_px(46);
         profile_draw_divider(x, w, *y - flint_px(6));
     }
 
