@@ -97,21 +97,9 @@ review_appendf(ReviewText *text, const char *fmt, ...)
 static void
 storage_sync_review_path(char *out, size_t out_size)
 {
-    const char *name = "sync-review.json";
-    size_t root_len;
-    size_t name_len;
-
-    if(out == NULL || out_size == 0)
-        return;
-    root_len = strlen(g_storage.root);
-    name_len = strlen(name);
-    if(root_len + 1 + name_len + 1 > out_size) {
+    if(!storage_join_path(out, out_size, g_storage.root, "sync-review.json") &&
+       out != NULL && out_size > 0)
         out[0] = '\0';
-        return;
-    }
-    memcpy(out, g_storage.root, root_len);
-    out[root_len] = '/';
-    memcpy(out + root_len + 1, name, name_len + 1);
 }
 
 int

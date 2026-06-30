@@ -124,6 +124,21 @@ My practices
 [profile_my_habits_title]
 My habits
 ---
+[profile_habits_section]
+Habits
+---
+[profile_habits_today_format]
+%d / %d done today
+---
+[profile_habit_done_today]
+Done
+---
+[profile_habit_not_done_today]
+Not done
+---
+[profile_manage_habits_button]
+Manage habits
+---
 [profile_my_practices_title]
 My practices
 ---

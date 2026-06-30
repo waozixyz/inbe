@@ -25,7 +25,7 @@ make_user_id(char *out, size_t out_size)
     snprintf(out, out_size, "local-%lld-%u", now_seconds(), r);
 }
 
-static int
+int
 storage_join_path(char *out, size_t out_size, const char *root, const char *name)
 {
     size_t root_len;
