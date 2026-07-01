@@ -1,0 +1,4 @@
+Changed
+---
+- Redesign the Practice home screen around carousel-style practice cards with explicit start, manual, configure, and music actions.
+- Move meditation music configuration into a shared practice music panel with per-practice enablement and track selection.

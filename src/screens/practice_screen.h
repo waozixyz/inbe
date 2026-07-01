@@ -16,6 +16,7 @@ int practice_is_visible(const InbeApp *app, int exercise);
 void practice_set_visible(InbeApp *app, int exercise, int visible);
 void practice_clamp_activity_to_tab(InbeApp *app);
 void practice_screen_open_tab(InbeApp *app, int tab);
+void practice_screen_draw_home(InbeApp *app);
 void practice_screen_draw_top_bar(InbeApp *app, int draw_menu);
 void practice_screen_draw_floating_actions(InbeApp *app);
 void practice_screen_draw_modal(InbeApp *app);

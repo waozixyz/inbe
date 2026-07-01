@@ -44,6 +44,7 @@ int storage_enqueue_sync_habit_day(const char *habit_id, int local_date);
 int storage_enqueue_sync_session(const char *session_id);
 int storage_has_sync_account(void);
 int storage_materialize_session_habit_days(void);
+int storage_migrate_default_habit_ids(void);
 int storage_sync_review_write_json(const char *json);
 void storage_sync_review_delete_json(void);
 int insert_session_at_ex(long long started_at, int local_date, const int *round_times,

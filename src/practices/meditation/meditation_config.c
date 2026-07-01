@@ -1,7 +1,6 @@
 #include "meditation_practice.h"
 
 #include "app.h"
-#include "meditation_music.h"
 #include "flint_locale.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
@@ -31,7 +30,6 @@ meditation_config_content_height(InbeApp *app, int content_w)
     int integrated = app->inbe.screen == InbeScreenStart &&
                      app->modal.type != UIModalPracticeConfig;
     return meditation_config_duration_height(content_w) +
-           meditation_music_measure_settings(app, content_w, 1, 1) +
            (integrated ? app_content_bottom_reserved(app) : 0) + flint_px(24);
 }
 
@@ -152,15 +150,13 @@ meditation_config_screen_draw(InbeApp *app)
 {
     int integrated = app->inbe.screen == InbeScreenStart &&
                      app->modal.type != UIModalPracticeConfig;
-    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
+    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
     int scroll_y;
     int scroll_h;
     int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
 
     if(!integrated) {
-        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
-                                                    (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
-        if(header.right_clicked) {
+        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
             if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
                 app_close_modal(app);
             } else {
@@ -194,9 +190,6 @@ meditation_config_screen_draw(InbeApp *app)
         int y = page.content_y;
 
         meditation_config_draw_duration(app, page.content_x, page.content_w, &y);
-        meditation_music_draw_settings(app, page.content_x, page.content_w,
-                                       &y, 1, 1);
         ui_scroll_page_end(page);
     }
-    meditation_music_draw_dropdown_menu(app);
 }

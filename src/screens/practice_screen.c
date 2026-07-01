@@ -1,7 +1,9 @@
 #include "practice_screen.h"
 #include "app.h"
 #include "screens/manual_screen.h"
+#include "practices/meditation/meditation_music.h"
 #include "practices/practice_registry.h"
+#include "sync_account.h"
 #include "flint_locale.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
@@ -10,7 +12,7 @@ extern int view_width;
 extern int view_height;
 
 enum {
-    PRACTICE_GUIDE_STEPS = 3
+    PRACTICE_GUIDE_STEPS = 4
 };
 
 int
@@ -80,6 +82,216 @@ practice_activity_for_tab(int tab, int index)
     if(index >= practice_count())
         return practice_count() - 1;
     return index;
+}
+
+static Color
+practice_card_color_top(int exercise)
+{
+    switch(practice_clamp_id(exercise)) {
+    case EXERCISE_MEDITATION:
+        return (Color){78, 126, 164, 255};
+    case EXERCISE_SUN_SALUTATION:
+        return (Color){213, 134, 72, 255};
+    case EXERCISE_WIM_HOF:
+    default:
+        return (Color){72, 142, 128, 255};
+    }
+}
+
+static Color
+practice_card_color_bottom(int exercise)
+{
+    switch(practice_clamp_id(exercise)) {
+    case EXERCISE_MEDITATION:
+        return (Color){52, 74, 122, 255};
+    case EXERCISE_SUN_SALUTATION:
+        return (Color){177, 87, 85, 255};
+    case EXERCISE_WIM_HOF:
+    default:
+        return (Color){43, 93, 118, 255};
+    }
+}
+
+static int
+practice_next_visible(InbeApp *app, int dir)
+{
+    int current;
+
+    if(app == NULL)
+        return EXERCISE_WIM_HOF;
+    current = practice_clamp_id(app->exercise_type);
+    for(int step = 1; step <= EXERCISE_COUNT; step++) {
+        int id = (current + dir * step + EXERCISE_COUNT * 2) % EXERCISE_COUNT;
+        if(practice_is_visible(app, id))
+            return id;
+    }
+    return current;
+}
+
+static void
+practice_select_home_card(InbeApp *app, int exercise)
+{
+    if(app == NULL)
+        return;
+    if(app->practice_tab == PRACTICE_TAB_CONFIG)
+        app_leave_practice_config(app);
+    app->exercise_type = practice_clamp_id(exercise);
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    app->manual_scroll = 0;
+    app->settings_scroll = 0;
+    app->tutorial_step = 0;
+    app->practice_config_tab = 0;
+    save_settings(app);
+}
+
+static int
+practice_music_content_height(int content_w, void *user_data)
+{
+    InbeApp *app = user_data;
+
+    return meditation_music_measure_settings(app, content_w, 1, 1) + flint_px(24);
+}
+
+static void
+practice_screen_draw_music_modal(InbeApp *app)
+{
+    int title_h = flint_ui_title_bar_height();
+    int scroll_y = title_h + flint_px(16);
+    int scroll_h = view_height - scroll_y - flint_px(8);
+
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_music_title"), title_h))
+        app_close_modal(app);
+
+    if(scroll_h < 0)
+        scroll_h = 0;
+    {
+        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = scroll_y,
+            .height = scroll_h,
+            .max_content_width = flint_px(CONTENT_MAX_W),
+            .min_content_width = flint_px(320),
+            .scroll_offset = &app->settings_scroll,
+            .content_height = practice_music_content_height,
+            .user_data = app
+        });
+        int y = page.content_y;
+
+        meditation_music_draw_settings(app, page.content_x, page.content_w,
+                                       &y, 1, 1);
+        ui_scroll_page_end(page);
+    }
+    meditation_music_draw_dropdown_menu(app);
+}
+
+void
+practice_screen_draw_home(InbeApp *app)
+{
+    const PracticeDefinition *practice;
+    int top = app_content_top_reserved(app) + flint_px(14);
+    int bottom_reserved = app_content_bottom_reserved(app);
+    int content_w = view_width - flint_px(32);
+    int max_w = flint_px(480);
+    int x;
+    int y;
+    int card_w;
+    int card_h;
+    int gap = flint_px(12);
+    int btn_h = flint_px(42);
+    int hover = 0;
+    int text_w;
+    int arrow = flint_px(44);
+    Rectangle card;
+
+    if(app == NULL)
+        return;
+
+    practice_clamp_activity_to_tab(app);
+    flint_ui_title_bar(locale_get("practice_title"), app_content_top_reserved(app));
+    practice = practice_get(app->exercise_type);
+    if(content_w > max_w)
+        content_w = max_w;
+    if(content_w < flint_px(260))
+        content_w = view_width - flint_px(20);
+    x = (view_width - content_w) / 2;
+    y = top;
+
+    if(ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_music_title"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+        app->settings_scroll = 0;
+        app_open_modal(app, UIModalPracticeMusic);
+    }
+    y += btn_h + flint_px(18);
+
+    card_w = content_w;
+    card_h = view_height - y - bottom_reserved - flint_px(176);
+    if(card_h < flint_px(180))
+        card_h = flint_px(180);
+    if(card_h > flint_px(300))
+        card_h = flint_px(300);
+    card = (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h};
+    DrawRectangleGradientV(x, y, card_w, card_h,
+                           practice_card_color_top(app->exercise_type),
+                           practice_card_color_bottom(app->exercise_type));
+    DrawRectangleLinesEx(card, flint_px(2), flint_lighten(flint_theme_get_bg(), 55));
+
+    text_w = flint_text_measure(practice->label_key != NULL ? practice_label(app->exercise_type) : "",
+                                flint_ui_font());
+    flint_text_draw(practice_label(app->exercise_type),
+                    x + (card_w - text_w) / 2,
+                    y + card_h / 2 - flint_px(10),
+                    flint_ui_font(),
+                    WHITE);
+    if(app->exercise_type == EXERCISE_SUN_SALUTATION) {
+        const char *wip = locale_get("sun_salutation_work_in_progress");
+        int wip_w = flint_text_measure(wip, flint_ui_font_small());
+        flint_text_draw(wip, x + (card_w - wip_w) / 2,
+                        y + card_h / 2 + flint_px(18),
+                        flint_ui_font_small(), Fade(WHITE, 0.88f));
+    }
+
+    if(practice_count() > 1) {
+        int arrow_y = y + (card_h - arrow) / 2;
+        int left_x = x + flint_px(10);
+        int right_x = x + card_w - arrow - flint_px(10);
+        if(ui_draw_overlay_button((FlintUIOverlayButton){
+            .bounds = {(float)left_x, (float)arrow_y, (float)arrow, (float)arrow},
+            .label = "<",
+            .background = Fade(BLACK, 0.22f),
+            .hover_background = Fade(WHITE, 0.32f),
+            .border = Fade(WHITE, 0.42f),
+            .hover_border = Fade(WHITE, 0.74f),
+            .text = WHITE
+        }))
+            practice_select_home_card(app, practice_next_visible(app, -1));
+        if(ui_draw_overlay_button((FlintUIOverlayButton){
+            .bounds = {(float)right_x, (float)arrow_y, (float)arrow, (float)arrow},
+            .label = ">",
+            .background = Fade(BLACK, 0.22f),
+            .hover_background = Fade(WHITE, 0.32f),
+            .border = Fade(WHITE, 0.42f),
+            .hover_border = Fade(WHITE, 0.74f),
+            .text = WHITE
+        }))
+            practice_select_home_card(app, practice_next_visible(app, 1));
+    }
+
+    y += card_h + flint_px(18);
+
+    if(ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_start_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+        if(practice->start != NULL)
+            practice->start(app);
+    }
+    y += btn_h + gap;
+    if(practice->draw_manual != NULL &&
+       ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_manual_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+        practice_screen_open_tab(app, PRACTICE_TAB_MANUAL);
+    y += btn_h + gap;
+    if(practice->draw_config != NULL &&
+       ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_configure_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+        practice_screen_open_tab(app, PRACTICE_TAB_CONFIG);
 }
 
 const char *
@@ -175,13 +387,6 @@ practice_screen_draw_desktop_tab_bar(InbeApp *app, int y)
         .max_tab_width = flint_px(180)
     });
     return clicked >= 0 && clicked < tab_count ? values[clicked] : -1;
-}
-
-static int
-practice_screen_selector_height(InbeApp *app)
-{
-    (void)app;
-    return ui_tab_bar_height();
 }
 
 void
@@ -306,10 +511,15 @@ practice_screen_draw_modal(InbeApp *app)
         return;
     if(app->modal.type != UIModalPracticeManual &&
        app->modal.type != UIModalPracticeConfig &&
+       app->modal.type != UIModalPracticeMusic &&
        app->modal.type != UIModalEditProgressiveStartSpeed)
         return;
 
     DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
+    if(app->modal.type == UIModalPracticeMusic) {
+        practice_screen_draw_music_modal(app);
+        return;
+    }
     if(app->modal.type == UIModalEditProgressiveStartSpeed) {
         const PracticeDefinition *practice = practice_get(app->exercise_type);
         if(practice->draw_config != NULL)
@@ -328,75 +538,50 @@ practice_screen_draw_modal(InbeApp *app)
     }
 }
 
-static Rectangle
-practice_screen_dropdown_anchor(void)
+static void
+practice_home_layout(InbeApp *app, Rectangle *music, Rectangle *card, Rectangle *start,
+                     Rectangle *manual, Rectangle *config)
 {
-    int side_padding = 0;
-    int dropdown_h = flint_px(36);
-    int dropdown_w = view_width - side_padding * 2;
+    int top = app_content_top_reserved(app) + flint_px(14);
+    int bottom_reserved = ui_bottom_nav_height();
+    int content_w = view_width - flint_px(32);
+    int max_w = flint_px(480);
+    int x;
+    int y;
+    int card_h;
+    int btn_h = flint_px(42);
+    int gap = flint_px(12);
 
-    if(dropdown_w < flint_px(160))
-        dropdown_w = view_width - side_padding * 2;
-    if(dropdown_w < 1)
-        dropdown_w = 1;
+    if(content_w > max_w)
+        content_w = max_w;
+    if(content_w < flint_px(260))
+        content_w = view_width - flint_px(20);
+    x = (view_width - content_w) / 2;
+    y = top;
 
-    return (Rectangle){
-        (float)side_padding,
-        (float)((ui_tab_bar_height() - dropdown_h) / 2),
-        (float)dropdown_w,
-        (float)dropdown_h
-    };
-}
+    if(music != NULL)
+        *music = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+    y += btn_h + flint_px(18);
 
-static Rectangle
-practice_screen_floating_action_anchor(InbeApp *app, int tab)
-{
-    int icon_size = flint_px(22);
-    int icon_padding = flint_px(9);
-    int size = icon_size + icon_padding * 2;
-    int gap = flint_px(10);
-    int margin = flint_px(14);
-    int x = view_width - margin;
-    int y = app_content_top_reserved(app) + flint_px(10);
-    const PracticeDefinition *practice;
+    card_h = view_height - y - bottom_reserved - flint_px(176);
+    if(card_h < flint_px(180))
+        card_h = flint_px(180);
+    if(card_h > flint_px(300))
+        card_h = flint_px(300);
+    if(card != NULL)
+        *card = (Rectangle){(float)x, (float)y, (float)content_w, (float)card_h};
+    y += card_h + flint_px(18);
 
-    if(app == NULL)
-        return (Rectangle){0};
-    practice = practice_get(app->exercise_type);
-    if(practice->draw_config != NULL) {
-        x -= size;
-        if(tab == PRACTICE_TAB_CONFIG)
-            return (Rectangle){(float)x, (float)y, (float)size, (float)size};
-        x -= gap;
-    }
-    if(practice->draw_manual != NULL) {
-        x -= size;
-        if(tab == PRACTICE_TAB_MANUAL)
-            return (Rectangle){(float)x, (float)y, (float)size, (float)size};
-    }
+    if(start != NULL)
+        *start = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+    y += btn_h + gap;
 
-    return (Rectangle){(float)(view_width - margin - size), (float)y,
-                       (float)size, (float)size};
-}
+    if(manual != NULL)
+        *manual = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+    y += btn_h + gap;
 
-static Rectangle
-practice_screen_exercise_tabs_anchor(InbeApp *app)
-{
-    if(app == NULL)
-        return (Rectangle){0};
-
-    // Desktop mode: highlight all exercise tabs (top tab bar)
-    if(app_should_use_tab_bar(app)) {
-        return (Rectangle){
-            0,
-            0,
-            (float)view_width,
-            (float)ui_tab_bar_height()
-        };
-    }
-
-    // Mobile mode: highlight the dropdown
-    return practice_screen_dropdown_anchor();
+    if(config != NULL)
+        *config = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
 }
 
 static void
@@ -412,9 +597,12 @@ practice_screen_finish_first_run_guide(InbeApp *app)
 int
 practice_screen_first_run_guide_active(const InbeApp *app)
 {
+    InbeSyncAccount account;
+
     return app != NULL && !app->tutorial_seen && !app->modal.active &&
            app->exercise_type != EXERCISE_SUN_SALUTATION &&
-           app->inbe.screen == InbeScreenStart;
+           app->inbe.screen == InbeScreenStart &&
+           !sync_account_load(&account);
 }
 
 void
@@ -431,21 +619,36 @@ practice_screen_draw_first_run_guide(InbeApp *app)
 {
     FlintUIGuideStep steps[PRACTICE_GUIDE_STEPS];
     FlintUIGuideResult result;
+    Rectangle music;
+    Rectangle card;
+    Rectangle start;
+    Rectangle manual;
+    Rectangle config;
 
     if(!practice_screen_first_run_guide_active(app))
         return;
 
+    practice_home_layout(app, &music, &card, &start, &manual, &config);
     steps[0] = (FlintUIGuideStep){
-        practice_screen_exercise_tabs_anchor(app),
-        locale_get("practice_guide_dropdown")
+        music,
+        locale_get("practice_guide_music")
     };
     steps[1] = (FlintUIGuideStep){
-        practice_screen_floating_action_anchor(app, PRACTICE_TAB_MANUAL),
-        locale_get("practice_guide_manual")
+        card,
+        locale_get("practice_guide_carousel")
     };
     steps[2] = (FlintUIGuideStep){
-        practice_screen_floating_action_anchor(app, PRACTICE_TAB_CONFIG),
-        locale_get("practice_guide_config")
+        start,
+        locale_get("practice_guide_start")
+    };
+    steps[3] = (FlintUIGuideStep){
+        (Rectangle){
+            manual.x,
+            manual.y,
+            manual.width,
+            (config.y + config.height) - manual.y
+        },
+        locale_get("practice_guide_manual_config")
     };
 
     result = flint_ui_draw_guide_overlay((FlintUIGuideOverlay){
@@ -454,7 +657,7 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         .step = &app->tutorial_step,
         .view_width = view_width,
         .view_height = view_height,
-        .reserved_top = practice_screen_selector_height(app),
+        .reserved_top = app_content_top_reserved(app),
         .reserved_bottom = ui_bottom_nav_height(),
         .max_width = flint_px(300),
         .close_icon = app->icons[UI_ICON_TYPE_X],

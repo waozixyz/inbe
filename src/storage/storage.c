@@ -45,6 +45,8 @@ storage_json_valid(const char *json);
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
 #define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 #define STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY "sync_zero_habit_day_repair_v1_done"
+#define STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY "default_habit_id_migration_v1_done"
+#define STORAGE_ACTIVITY_SUN_SALUTATION_MASK (1 << 2)
 
 static long long
 storage_next_change_time(void)
@@ -1547,6 +1549,107 @@ storage_merge_habit_into(const char *keeper_id, const char *duplicate_id)
             return 0;
     }
     return ok;
+}
+
+static int
+storage_habit_exists(const char *habit_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int exists = 0;
+
+    if(habit_id == NULL || habit_id[0] == '\0')
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, "SELECT 1 FROM habits WHERE id=?1 LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, habit_id);
+    exists = sqlite3_step(stmt) == SQLITE_ROW;
+    sqlite3_finalize(stmt);
+    return exists;
+}
+
+static int
+storage_enqueue_habit_days_for_sync(const char *habit_id)
+{
+    sqlite3_stmt *stmt = NULL;
+    int ok = 1;
+
+    if(habit_id == NULL || habit_id[0] == '\0')
+        return 1;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT local_date FROM habit_days WHERE habit_id=?1 "
+                          "AND (completed!=0 OR count>0 OR session_count>0)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, habit_id);
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        if(!storage_enqueue_sync_habit_day(habit_id, sqlite3_column_int(stmt, 0)))
+            ok = 0;
+    }
+    sqlite3_finalize(stmt);
+    return ok;
+}
+
+int
+storage_migrate_default_habit_ids(void)
+{
+    sqlite3_stmt *stmt = NULL;
+    int sync_activity = 0;
+    int deleted_at = 0;
+    int should_migrate;
+    int has_canonical;
+    int ok = 1;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(get_meta_int64(STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY, 0))
+        return 1;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT sync_activity,deleted_at FROM habits WHERE id='yoga' LIMIT 1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    if(sqlite3_step(stmt) != SQLITE_ROW) {
+        sqlite3_finalize(stmt);
+        set_meta_int64(STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY, 1);
+        return 1;
+    }
+    sync_activity = sqlite3_column_int(stmt, 0);
+    deleted_at = sqlite3_column_int(stmt, 1);
+    sqlite3_finalize(stmt);
+
+    should_migrate = deleted_at == 0 &&
+                     (sync_activity & STORAGE_ACTIVITY_SUN_SALUTATION_MASK) != 0;
+    if(!should_migrate) {
+        set_meta_int64(STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY, 1);
+        return 1;
+    }
+
+    has_canonical = storage_habit_exists("sun-salutation");
+    if(!exec_sql("BEGIN IMMEDIATE"))
+        return 0;
+    if(has_canonical) {
+        ok = storage_merge_habit_into("sun-salutation", "yoga");
+    } else {
+        ok = exec_sql("UPDATE habits SET id='sun-salutation' WHERE id='yoga';"
+                      "UPDATE habit_days SET habit_id='sun-salutation' WHERE habit_id='yoga';");
+    }
+    if(ok) {
+        exec_sql("UPDATE OR IGNORE sync_outbox SET entity_id='sun-salutation' "
+                 "WHERE entity_id='yoga' AND entity_type IN ('habit','habit_day');"
+                 "DELETE FROM sync_outbox WHERE entity_id='yoga' "
+                 "AND entity_type IN ('habit','habit_day');");
+        set_meta_int64(STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY, 1);
+        ok = exec_sql("COMMIT");
+    } else {
+        exec_sql("ROLLBACK");
+        return 0;
+    }
+    if(!ok)
+        return 0;
+
+    storage_enqueue_sync_habit("sun-salutation");
+    storage_enqueue_habit_days_for_sync("sun-salutation");
+    return 1;
 }
 
 static int

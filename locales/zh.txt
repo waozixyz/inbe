@@ -1,9 +1,6 @@
 [app_title]
 内息清风
 ---
-[tab_history]
-历史
----
 [tab_profile]
 个人资料
 ---
@@ -12,18 +9,6 @@
 ---
 [tab_practice]
 练习
----
-[habit_add_button]
-添加习惯
----
-[habit_done_button]
-完成
----
-[habit_not_done_button]
-标记
----
-[tab_manual]
-教程
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Pet
 [profile_data_section]
 数据
 ---
-[profile_sync_section]
-同步
----
 [profile_friends_count_format]
 %d 位好友
 ---
@@ -115,32 +97,14 @@ Pet
 [profile_practice_label]
 练习
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
-My practices
+我的练习
 ---
 [profile_my_habits_title]
 My habits
 ---
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
----
 [profile_my_practices_title]
-My practices
+我的练习
 ---
 [move_up_button]
 Up
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 设置
----
-[tab_statistics]
-统计
 ---
 [play_button]
 开始
@@ -229,26 +190,8 @@ Sun Salutation
 [meditation_manual_intro_text]
 一个用于呼吸、平静与觉察的简单冥想练习。
 ---
-[meditation_manual_text]
-如果需要，可以选择音乐。锣声会提示开始和结束。
----
-[meditation_music_settings_title]
-冥想音乐
----
-[meditation_music_section_title]
-背景音乐
----
 [meditation_music_master_toggle]
 冥想音乐
----
-[meditation_music_enabled_label]
-播放背景音乐
----
-[meditation_music_shuffle_label]
-随机曲目
----
-[meditation_music_track_label]
-曲目
 ---
 [meditation_music_download_button]
 下载音乐
@@ -304,9 +247,6 @@ Finish
 [results_title]
 结果
 ---
-[home_button]
-主页
----
 [exit_session_title]
 退出本次练习？
 ---
@@ -343,24 +283,6 @@ Finish
 [round_times_title]
 轮次时间
 ---
-[results_rounds]
-%d 轮
----
-[results_best]
-最佳 %ds
----
-[results_avg]
-平均 %ds
----
-[round_result_label]
-第%d轮  %ds
----
-[starting_in]
-即将开始 %2d
----
-[session_round_label]
-第%d轮
----
 [settings_title]
 设置
 ---
@@ -373,23 +295,11 @@ Finish
 [settings_section_session]
 练习
 ---
-[settings_tab_app]
-应用
----
-[settings_tab_theme]
-主题
----
 [settings_tab_device]
 设备
 ---
-[settings_section_sound]
-音效
----
 [settings_section_appearance]
 外观
----
-[settings_section_language]
-语言
 ---
 [settings_tab_about]
 关于
@@ -448,12 +358,6 @@ Finish
 [double_tap_to_breathe_hint]
 双击屏幕开始呼吸
 ---
-[session_count_singular]
-%d次会话
----
-[session_count_plural]
-%d次会话
----
 [no_sessions]
 没有会话
 ---
@@ -487,18 +391,6 @@ Finish
 [next_button]
 下一步
 ---
-[coming_soon_label]
-即将推出...
----
-[total_sessions_label]
-总练习次数：%d
----
-[data_size_label]
-数据大小：%s
----
-[storage_label]
-存储：%s
----
 [export_data_button]
 导出数据
 ---
@@ -522,9 +414,6 @@ Finish
 ---
 [imported_data]
 数据已导入
----
-[imported_sessions]
-已导入 %d 个会话
 ---
 [import_invalid_file]
 无效的导出文件
@@ -556,9 +445,6 @@ Finish
 [delete_cancelled]
 删除已取消
 ---
-[deleted_sessions]
-已删除 %lld 个会话
----
 [toggle_off]
 关
 ---
@@ -577,9 +463,6 @@ Finish
 [tutorial_title]
 教程
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 方法
 ---
@@ -591,9 +474,6 @@ Finish
 ---
 [tutorial_step3_title]
 第 3 步：吸气与屏息
----
-[tutorial_progressive_speed_title]
-递进速度
 ---
 [tutorial_step_intro]
 这项呼吸练习基于 Wim Hof Method。
@@ -620,9 +500,6 @@ Finish
 
 找到自然的节奏：稳定且快速，同时保持充分呼吸。
 ---
-[tutorial_step_progressive_speed]
-递进速度会让第一轮更容易进入。
----
 [tutorial_step_exhale_hold]
 30 次呼吸后，呼气并尽可能长时间屏息。
 
@@ -633,44 +510,8 @@ Finish
 
 呼气后，下一轮将开始。
 ---
-[tutorial_skip_button]
-跳过
----
-[tutorial_back_button]
-返回
----
-[tutorial_next_button]
-下一步
----
-[tutorial_finish_button]
-完成
----
-[tutorial_start_button]
-立即开始
----
 [share_sheet_title]
 导出练习数据
----
-[export_metadata_header]
-Inner Breeze 数据导出
----
-[export_metadata_version]
-版本：%s
----
-[export_metadata_date]
-导出日期：%s
----
-[export_metadata_count]
-练习次数：%d
----
-[delete_history_title]
-删除？
----
-[delete_session_message]
-删除这次练习？此操作无法撤销。
----
-[delete_round_message]
-删除这一轮？此操作无法撤销。
 ---
 [delete_button]
 删除
@@ -683,42 +524,6 @@ Inner Breeze 数据导出
 ---
 [theme_system]
 系统
----
-[theme_sky]
-天空
----
-[theme_ocean]
-海洋
----
-[theme_forest]
-森林
----
-[theme_sunset]
-日落
----
-[theme_lavender]
-薰衣草
----
-[theme_cherry]
-樱桃
----
-[theme_dawn]
-黎明
----
-[theme_sage]
-鼠尾草
----
-[theme_sepia]
-棕褐
----
-[theme_mono]
-单色
----
-[theme_mint]
-薄荷
----
-[theme_cobalt]
-钴蓝
 ---
 [orientation_label]
 方向
@@ -734,9 +539,6 @@ Inner Breeze 数据导出
 ---
 [orientation_sensor]
 传感器
----
-[back_button]
-返回
 ---
 [close_button]
 关闭
@@ -770,9 +572,6 @@ Inner Breeze 数据导出
 ---
 [sync_private_key_import_cancelled]
 账户密钥导入已取消
----
-[sync_liboqs_unavailable]
-liboqs 未为此目标构建。
 ---
 [sync_public_id_label]
 公开 ID
@@ -816,17 +615,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-远程同步失败
----
-[sync_unavailable]
-此平台不支持远程同步
----
 [sync_no_account]
 连接前请先创建账户
----
-[sync_auth_failed]
-远程服务器拒绝了此账户
 ---
 [sync_backup_warning]
 请将此私钥保存到你可控制的位置。任何拥有它的人都可以认领此账户。
@@ -921,9 +711,6 @@ Description
 [habit_delete_button]
 删除习惯
 ---
-[habit_add_new_option]
-添加新习惯
----
 [habit_load_more_button]
 加载更多
 ---
@@ -963,35 +750,6 @@ Wim Hof 屏息轮次
 [habit_stats_best_streak]
 最佳连续记录
 ---
-[habit_stats_day_singular]
-%d天
----
-[habit_stats_day_plural]
-%d天
----[reset_button]
-重置
----
-[practice_guide_dropdown]
-在这里选择你的练习。
----
-[practice_guide_manual]
-开始练习前请先阅读教程，了解完整的练习流程。
----
-[practice_guide_config]
-根据你的需要调整练习配置。
----
-[habits_guide_dropdown]
-在这里选择习惯或创建新习惯。
----
-[habits_guide_practice_list]
-习惯可以包含你的练习会话数据。
----
-[habits_guide_views]
-选择每周或日历视图来查看习惯。
----
-[habits_guide_statistics]
-在这里查看习惯统计。
----
 [profile_guide_account]
 在这里配置同步账户。
 ---
@@ -1004,22 +762,16 @@ Manage data, habit order, and visible practices here.
 [profile_guide_social_no_account]
 创建同步账户以解锁好友和排行榜。
 ---
-[nav_mode_label]
-导航
----
-[nav_mode_dropdown]
-下拉
----
-[nav_mode_tabbar]
-标签页
----
 
 [transition_label]
 过渡
+---
 [transition_none]
 无
+---
 [transition_fade]
 淡入淡出
+---
 [theme_picker_title]
 选择主题
 [skip_button]
@@ -1046,9 +798,6 @@ Pick a short alias for this account on the current sync server.
 [sync_alias_register_button]
 Register Alias
 ---
-[sync_alias_registered]
-Alias registered.
----
 [sync_alias_failed]
 Could not register alias.
 ---
@@ -1063,6 +812,112 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+---
+[practice_title]
+练习
+---
+[practice_music_title]
+背景音乐
+---
+[practice_start_button]
+开始练习
+---
+[practice_manual_button]
+手册
+---
+[practice_configure_button]
+配置练习
+---
+[practice_music_practice_list_title]
+为练习使用音乐
+---
+[practice_guide_music]
+为每个练习选择音乐。
+---
+[practice_guide_carousel]
+用箭头选择练习。
+---
+[practice_guide_start]
+开始所选练习。
+---
+[practice_guide_manual_config]
+打开指南或设置。
+---
+[habits_done_count_label]
+%d / %d 个习惯已完成
+---
+[habit_new_button]
++ 新习惯
+---
+[habit_reorder_title]
+重新排序习惯
+---
+[habit_mixed_practice_label]
+混合练习
+---
+[habit_default_name_format]
+习惯 %d
+---
+[habit_default_meditation_name]
+冥想
+---
+[habit_default_meditation_description]
+呼吸和冥想课程。
+---
+[habit_default_sun_salutation_name]
+拜日式
+---
+[habit_default_sun_salutation_description]
+拜日式练习课程。
+---
+[pet_gamification_title]
+游戏化开发中...
+---
+[pet_gamification_subtitle]
+仅为预览。此标签页尚未实现。
+---
+[habits_guide_overview_progress]
+今天的习惯总数。
+---
+[habits_guide_overview_grid]
+点击方块标记完成日期。
+---
+[habits_guide_meditation_views]
+周视图和日历视图显示此习惯。
+---
+[habits_guide_meditation_statistics]
+统计显示关联进度。
+---
+[habits_guide_meditation_edit]
+编辑可更改名称、颜色和关联。
+---
+[habits_guide_meditation_session_data]
+会话数据来自已完成的练习。
+---
+[session_count_singular]
+%d次会话
+---
+[session_count_plural]
+%d次会话
+---
+[results_rounds]
+%d 轮
+---
+[results_best]
+最佳 %ds
+---
+[results_avg]
+平均 %ds
+---
+[round_result_label]
+第%d轮  %ds
+---
+[starting_in]
+即将开始 %2d
+---
+[session_round_label]
+第%d轮
 ---
 [notification_starting_seconds]
 开始: %d秒
@@ -1079,4 +934,12 @@ Alias saved
 [notification_results]
 Results
 ---
+[deleted_sessions]
+已删除 %lld 个会话
+---
+[habit_stats_day_singular]
+%d天
+---
+[habit_stats_day_plural]
+%d天
 ---

@@ -15,7 +15,7 @@ int
 settings_theme_content_height(int content_w)
 {
     (void)content_w;
-    return flint_px(304) + flint_px(60);
+    return flint_px(228) + flint_px(60);
 }
 
 void
@@ -34,22 +34,6 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
                             theme_mode_options, 3, &app->theme_mode);
     state->draw_theme_mode_menu = 1;
-    *y += flint_px(76);
-
-    {
-        const char *nav_mode_options[2];
-        nav_mode_options[NAV_MODE_TABBAR] = locale_get("nav_mode_tabbar");
-        nav_mode_options[NAV_MODE_DROPDOWN] = locale_get("nav_mode_dropdown");
-        if(app->navigation_mode != NAV_MODE_DROPDOWN)
-            app->navigation_mode = NAV_MODE_TABBAR;
-
-        flint_text_draw(locale_get("nav_mode_label"), x, *y, flint_ui_font(),
-                        flint_theme_get_text());
-        ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
-                                nav_mode_options, 2,
-                                &app->navigation_mode);
-    }
-    state->draw_nav_mode_menu = 1;
     *y += flint_px(76);
 
     {
@@ -92,7 +76,7 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     // Check for click to open modal (skip if modal is active or just closed)
     if(is_hovered && !app->modal.active &&
        !ui_input_captures_click(mouse_world) &&
-       app->inbe.frame - app->modal_open_frame > 1) {
+       app->inbe.frame - app->modal_input_block_frame > 1) {
         ui_mark_clickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             app_open_modal(app, UIModalThemePicker);
@@ -105,7 +89,6 @@ void
 settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
 {
     int theme_mode_changed = 0;
-    int nav_mode_changed = 0;
     int transition_changed = 0;
 
     if(app == NULL || state == NULL)
@@ -115,15 +98,6 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
     if(theme_mode_changed) {
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
         app_refresh_theme(app);
-        app->settings_dirty = 1;
-        save_settings(app);
-    }
-
-    if(state->draw_nav_mode_menu && ui_draw_dropdown_menu(103))
-        nav_mode_changed = 1;
-    if(nav_mode_changed) {
-        if(app->navigation_mode != NAV_MODE_DROPDOWN)
-            app->navigation_mode = NAV_MODE_TABBAR;
         app->settings_dirty = 1;
         save_settings(app);
     }

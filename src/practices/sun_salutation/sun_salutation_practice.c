@@ -218,12 +218,8 @@ sun_salutation_config_screen_draw(InbeApp *app)
         return;
     sun_salutation_normalize_settings(app);
     if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
-        FlintUIHeader header = ui_draw_title_header(ui_screen_header_height(),
-                                                    locale_get("practice_config_title"),
-                                                    (Texture2D){0},
-                                                    app->icons[UI_ICON_TYPE_X]);
-        title_h = ui_screen_header_height();
-        if(header.right_clicked) {
+        title_h = flint_ui_title_bar_height();
+        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
             app_close_modal(app);
             return;
         }

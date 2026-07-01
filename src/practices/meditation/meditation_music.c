@@ -8,6 +8,7 @@
 #include "flint_runtime_assets.h"
 #include "flint_text.h"
 #include "flint_ui.h"
+#include "practices/practice_registry.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +44,29 @@ static const char *g_track_options[MEDITATION_MUSIC_TRACK_COUNT] = {
 };
 
 static int load_track(InbeApp *app, int track);
+
+static int
+music_practice_mask_all(void)
+{
+    return (1 << EXERCISE_COUNT) - 1;
+}
+
+static void
+sanitize_practice_music(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    app->meditation.music_practice_mask &= music_practice_mask_all();
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        if(app->meditation.music_practice_tracks[i] < 0 ||
+           app->meditation.music_practice_tracks[i] >= MEDITATION_MUSIC_TRACK_COUNT)
+            app->meditation.music_practice_tracks[i] = 0;
+    }
+    if(app->meditation.music_track < 0 ||
+       app->meditation.music_track >= MEDITATION_MUSIC_TRACK_COUNT)
+        app->meditation.music_track = 0;
+}
 
 static int
 file_exists(const char *path)
@@ -528,17 +552,20 @@ void
 meditation_music_start_session(InbeApp *app)
 {
     int track;
+    int practice;
 
     if(app == NULL || !app->meditation.music_enabled)
+        return;
+    sanitize_practice_music(app);
+    practice = practice_clamp_id(app->exercise_type);
+    if((app->meditation.music_practice_mask & (1 << practice)) == 0)
         return;
     if(!meditation_music_available(app)) {
         set_status(app, missing_audio_message());
         return;
     }
 
-    track = app->meditation.music_track;
-    if(app->meditation.music_shuffle)
-        track = GetRandomValue(0, MEDITATION_MUSIC_TRACK_COUNT - 1);
+    track = app->meditation.music_practice_tracks[practice];
     if(!load_track(app, track))
         return;
     PlayMusicStream(app->meditation.music);
@@ -556,11 +583,11 @@ meditation_music_update(InbeApp *app)
     if(app == NULL)
         return;
     if(app->meditation.music_test_playing &&
-       (app->exercise_type != EXERCISE_MEDITATION ||
-        !((app->inbe.screen == InbeScreenStart &&
-           app->practice_tab == PRACTICE_TAB_CONFIG) ||
-          app->inbe.screen == InbeScreenPracticeConfig ||
-          app->inbe.screen == InbeScreenManual))) {
+       !((app->modal.active && app->modal.type == UIModalPracticeMusic) ||
+         (app->inbe.screen == InbeScreenStart &&
+          app->practice_tab == PRACTICE_TAB_CONFIG) ||
+         app->inbe.screen == InbeScreenPracticeConfig ||
+         app->inbe.screen == InbeScreenManual)) {
         meditation_music_stop(app);
         return;
     }
@@ -622,9 +649,7 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
     if(app == NULL || y == NULL)
         return;
 
-    if(app->meditation.music_track < 0 ||
-       app->meditation.music_track >= MEDITATION_MUSIC_TRACK_COUNT)
-        app->meditation.music_track = 0;
+    sanitize_practice_music(app);
 
     // Master music enable/disable toggle
     flint_text_draw(locale_get("meditation_music_master_toggle"), content_x, *y, flint_ui_font(), flint_theme_get_text());
@@ -638,25 +663,39 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
 
     // Only show music options if music is enabled
     if(app->meditation.music_enabled) {
-        flint_text_draw(locale_get("meditation_music_shuffle_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
-        if(ui_draw_toggle_switch(content_x, *y + flint_px(26), toggle_w, toggle_h,
-                                 &app->meditation.music_shuffle,
-                                 locale_get("toggle_off"), locale_get("toggle_on"))) {
-            app->settings_dirty = 1;
-            meditation_music_unload(app);
-        }
-        *y += flint_px(76);
-
-        if(!app->meditation.music_shuffle) {
-            flint_text_draw(locale_get("meditation_music_track_label"), content_x, *y, flint_ui_font(), flint_theme_get_text());
-            if(ui_draw_dropdown_button(401, content_x, *y + flint_px(24), content_w, flint_px(36),
-                                       g_track_options, MEDITATION_MUSIC_TRACK_COUNT,
-                                       &app->meditation.music_track)) {
+        ui_draw_section_label((FlintUISectionLabel){
+            .label = locale_get("practice_music_practice_list_title"),
+            .color = flint_darken(flint_theme_get_text(), 34)
+        }, content_x, *y);
+        *y += ui_section_label_height((FlintUISectionLabel){0});
+        for(int i = 0; i < EXERCISE_COUNT; i++) {
+            int enabled = (app->meditation.music_practice_mask & (1 << i)) != 0;
+            if(ui_draw_checkbox_row((FlintUICheckboxRow){
+                .label = practice_label(i),
+                .value = &enabled
+            }, content_x, *y)) {
+                if(enabled)
+                    app->meditation.music_practice_mask |= 1 << i;
+                else
+                    app->meditation.music_practice_mask &= ~(1 << i);
                 app->settings_dirty = 1;
                 meditation_music_unload(app);
             }
-            *y += flint_px(74);
+            *y += ui_checkbox_row_height((FlintUICheckboxRow){0});
+            if(enabled) {
+                if(ui_draw_dropdown_button(451 + i, content_x, *y, content_w,
+                                           flint_px(36), g_track_options,
+                                           MEDITATION_MUSIC_TRACK_COUNT,
+                                           &app->meditation.music_practice_tracks[i])) {
+                    app->settings_dirty = 1;
+                    app->meditation.music_track =
+                        app->meditation.music_practice_tracks[i];
+                    meditation_music_unload(app);
+                }
+                *y += flint_px(48);
+            }
         }
+        *y += flint_px(8);
 
         installed = meditation_music_available(app);
         if(installed) {
@@ -668,8 +707,12 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
                 button_w = content_w;
             if(ui_draw_generic_button(content_x, *y, button_w, button_h,
                                       test_label,
-                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                int practice = practice_clamp_id(app->exercise_type);
+                app->meditation.music_track =
+                    app->meditation.music_practice_tracks[practice];
                 meditation_music_test_track(app);
+            }
             *y += button_h + flint_px(12);
         }
 
@@ -718,8 +761,14 @@ meditation_music_measure_settings(InbeApp *app, int content_w,
 
     // Only measure music options if music is enabled
     if(app->meditation.music_enabled) {
-        if(!app->meditation.music_shuffle)
-            h += flint_px(74);
+        h += ui_section_label_height((FlintUISectionLabel){0});
+        for(int i = 0; i < EXERCISE_COUNT; i++) {
+            int enabled = (app->meditation.music_practice_mask & (1 << i)) != 0;
+            h += ui_checkbox_row_height((FlintUICheckboxRow){0});
+            if(enabled)
+                h += flint_px(48);
+        }
+        h += flint_px(8);
 
         installed = meditation_music_available(app);
         if(installed)
@@ -748,10 +797,14 @@ meditation_music_draw_dropdown_menu(InbeApp *app)
     if(app == NULL)
         return 0;
 
-    changed = ui_draw_dropdown_menu(401);
-    if(changed) {
-        app->settings_dirty = 1;
-        meditation_music_unload(app);
+    changed = 0;
+    for(int i = 0; i < EXERCISE_COUNT; i++) {
+        if(ui_draw_dropdown_menu(451 + i)) {
+            app->settings_dirty = 1;
+            app->meditation.music_track = app->meditation.music_practice_tracks[i];
+            meditation_music_unload(app);
+            changed = 1;
+        }
     }
     return changed;
 }

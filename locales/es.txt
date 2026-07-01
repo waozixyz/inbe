@@ -1,9 +1,6 @@
 [app_title]
 Inner Breeze
 ---
-[tab_history]
-Historial
----
 [tab_profile]
 Perfil
 ---
@@ -12,18 +9,6 @@ Hábitos
 ---
 [tab_practice]
 Práctica
----
-[habit_add_button]
-Añadir hábito
----
-[habit_done_button]
-Hecho
----
-[habit_not_done_button]
-Marcar
----
-[tab_manual]
-Manual
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Configurar
 [profile_data_section]
 Datos
 ---
-[profile_sync_section]
-Sincronizacion
----
 [profile_friends_count_format]
 %d amigos
 ---
@@ -115,32 +97,14 @@ Sin datos de clasificacion
 [profile_practice_label]
 Practica
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
-My practices
+Mis prácticas
 ---
 [profile_my_habits_title]
 My habits
 ---
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
----
 [profile_my_practices_title]
-My practices
+Mis prácticas
 ---
 [move_up_button]
 Up
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 Configuración
----
-[tab_statistics]
-Estadísticas
 ---
 [play_button]
 REPRODUCIR
@@ -229,26 +190,8 @@ Meditación
 [meditation_manual_intro_text]
 Una práctica de meditación simple para respirar, calmarte y estar presente.
 ---
-[meditation_manual_text]
-Elige musica si quieres. Un gong marca el inicio y el final.
----
-[meditation_music_settings_title]
-Música de meditación
----
-[meditation_music_section_title]
-Música de fondo
----
 [meditation_music_master_toggle]
 Música de meditación
----
-[meditation_music_enabled_label]
-Reproducir música de fondo
----
-[meditation_music_shuffle_label]
-Pista aleatoria
----
-[meditation_music_track_label]
-Pista
 ---
 [meditation_music_download_button]
 Descargar música
@@ -304,9 +247,6 @@ RESPIRACIÓN
 [results_title]
 RESULTADOS
 ---
-[home_button]
-INICIO
----
 [exit_session_title]
 ¿Salir de la sesión?
 ---
@@ -343,24 +283,6 @@ Salir
 [round_times_title]
 Tiempos de ronda
 ---
-[results_rounds]
-%d rondas
----
-[results_best]
-mejor %ds
----
-[results_avg]
-promedio %ds
----
-[round_result_label]
-Ronda %d  %ds
----
-[starting_in]
-COMENZANDO EN %2d
----
-[session_round_label]
-RONDA %d
----
 [settings_title]
 Configuración
 ---
@@ -373,23 +295,11 @@ Respiración
 [settings_section_session]
 Sesión
 ---
-[settings_tab_app]
-App
----
-[settings_tab_theme]
-Tema
----
 [settings_tab_device]
 Dispositivo
 ---
-[settings_section_sound]
-Sonido
----
 [settings_section_appearance]
 Apariencia
----
-[settings_section_language]
-Idioma
 ---
 [settings_tab_about]
 Acerca de
@@ -448,12 +358,6 @@ Doble toque para respirar
 [double_tap_to_breathe_hint]
 Toca dos veces la pantalla para respirar
 ---
-[session_count_singular]
-%d sesión
----
-[session_count_plural]
-%d sesiones
----
 [no_sessions]
 Sin sesiones
 ---
@@ -487,18 +391,6 @@ Elegir idioma
 [next_button]
 Más
 ---
-[coming_soon_label]
-Próximamente...
----
-[total_sessions_label]
-Sesiones totales: %d
----
-[data_size_label]
-Tamaño de datos: %s
----
-[storage_label]
-Almacenamiento: %s
----
 [export_data_button]
 Exportar datos
 ---
@@ -522,9 +414,6 @@ Error al importar
 ---
 [imported_data]
 Datos importados
----
-[imported_sessions]
-%d sesiones importadas
 ---
 [import_invalid_file]
 Archivo de exportación no válido
@@ -556,9 +445,6 @@ No hay datos para eliminar
 [delete_cancelled]
 Eliminación cancelada
 ---
-[deleted_sessions]
-%lld sesiones eliminadas
----
 [toggle_off]
 APAGADO
 ---
@@ -577,9 +463,6 @@ Teclado en pantalla
 [tutorial_title]
 Tutorial
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 Método
 ---
@@ -591,9 +474,6 @@ Paso 2: Exhalar y Retener
 ---
 [tutorial_step3_title]
 Paso 3: Inhalar y Retener
----
-[tutorial_progressive_speed_title]
-Velocidad progresiva
 ---
 [tutorial_step_intro]
 Esta práctica de respiración se basa en el Método Wim Hof.
@@ -620,11 +500,6 @@ Inhala y exhala 30 veces.
 
 Encuentra un ritmo que se sienta natural: estable y rápido, pero respirando completamente.
 ---
-[tutorial_step_progressive_speed]
-La velocidad progresiva hace que la primera ronda sea más fácil de empezar.
-
-Cuando está activada, la primera ronda comienza en velocidad 1 durante las primeras 5 respiraciones y luego aumenta gradualmente hasta la velocidad elegida.
----
 [tutorial_step_exhale_hold]
 Después de 30 respiraciones, exhala y mantén todo lo que puedas.
 
@@ -635,44 +510,8 @@ Inhala completamente y mantén durante 15 segundos.
 
 Exhala y comenzará la siguiente ronda.
 ---
-[tutorial_skip_button]
-OMITIR
----
-[tutorial_back_button]
-ATRÁS
----
-[tutorial_next_button]
-MÁS
----
-[tutorial_finish_button]
-FINALIZAR
----
-[tutorial_start_button]
-EMPEZAR AHORA
----
 [share_sheet_title]
 Exportar datos de sesión
----
-[export_metadata_header]
-Exportación de datos de Inner Breeze
----
-[export_metadata_version]
-Versión: %s
----
-[export_metadata_date]
-Fecha de exportación: %s
----
-[export_metadata_count]
-Recuento de sesiones: %d
----
-[delete_history_title]
-¿Eliminar?
----
-[delete_session_message]
-¿Eliminar esta sesión? No se puede deshacer.
----
-[delete_round_message]
-¿Eliminar esta ronda? No se puede deshacer.
 ---
 [delete_button]
 Eliminar
@@ -685,42 +524,6 @@ Música de Elijah_K.
 ---
 [theme_system]
 Sistema
----
-[theme_sky]
-Cielo
----
-[theme_ocean]
-Océano
----
-[theme_forest]
-Bosque
----
-[theme_sunset]
-Atardecer
----
-[theme_lavender]
-Lavanda
----
-[theme_cherry]
-Cereza
----
-[theme_dawn]
-Amanecer
----
-[theme_sage]
-Salvia
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Menta
----
-[theme_cobalt]
-Cobalto
 ---
 [orientation_label]
 Orientación
@@ -736,9 +539,6 @@ Horizontal
 ---
 [orientation_sensor]
 Sensor
----
-[back_button]
-Atrás
 ---
 [close_button]
 Cerrar
@@ -772,9 +572,6 @@ No se pudo importar la clave de cuenta
 ---
 [sync_private_key_import_cancelled]
 Importación de clave cancelada
----
-[sync_liboqs_unavailable]
-liboqs no está compilado para este destino.
 ---
 [sync_public_id_label]
 ID público
@@ -818,17 +615,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-Falló la sincronización remota
----
-[sync_unavailable]
-La sincronización remota no está disponible en esta plataforma
----
 [sync_no_account]
 Crea una cuenta antes de conectar
----
-[sync_auth_failed]
-El servidor remoto rechazó esta cuenta
 ---
 [sync_backup_warning]
 Guarda esta clave privada en un lugar que controles. Cualquiera con ella puede reclamar esta cuenta.
@@ -923,9 +711,6 @@ Múltiples conteos
 [habit_delete_button]
 Eliminar hábito
 ---
-[habit_add_new_option]
-Agregar nuevo hábito
----
 [habit_load_more_button]
 Cargar más
 ---
@@ -965,35 +750,6 @@ Retención total
 [habit_stats_best_streak]
 Mejor racha
 ---
-[habit_stats_day_singular]
-%d día
----
-[habit_stats_day_plural]
-%d días
----[reset_button]
-Restablecer
----
-[practice_guide_dropdown]
-Elige tu practica aqui.
----
-[practice_guide_manual]
-Lee el tutorial antes de iniciar una practica para entender todo el ejercicio.
----
-[practice_guide_config]
-Cambia la configuracion de la practica segun tus necesidades.
----
-[habits_guide_dropdown]
-Selecciona habitos aqui o crea uno nuevo.
----
-[habits_guide_practice_list]
-Un habito puede incluir datos de sesiones de tus practicas.
----
-[habits_guide_views]
-Elige Semanal o Calendario para revisar tu habito.
----
-[habits_guide_statistics]
-Consulta tus estadisticas de habitos aqui.
----
 [profile_guide_account]
 Configura tu cuenta de sincronizacion aqui.
 ---
@@ -1006,22 +762,16 @@ Abre amigos y clasificacion desde aqui.
 [profile_guide_social_no_account]
 Crea una cuenta de sincronizacion para desbloquear amigos y clasificacion.
 ---
-[nav_mode_label]
-Navegación
----
-[nav_mode_dropdown]
-Desplegable
----
-[nav_mode_tabbar]
-Pestañas
----
 
 [transition_label]
 Transición
+---
 [transition_none]
 Ninguna
+---
 [transition_fade]
 Fundido
+---
 [theme_picker_title]
 Elegir tema
 [skip_button]
@@ -1048,9 +798,6 @@ Pick a short alias for this account on the current sync server.
 [sync_alias_register_button]
 Register Alias
 ---
-[sync_alias_registered]
-Alias registered.
----
 [sync_alias_failed]
 Could not register alias.
 ---
@@ -1065,6 +812,112 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+---
+[practice_title]
+Práctica
+---
+[practice_music_title]
+Música de fondo
+---
+[practice_start_button]
+Iniciar práctica
+---
+[practice_manual_button]
+Manual
+---
+[practice_configure_button]
+Configurar práctica
+---
+[practice_music_practice_list_title]
+Usar música en prácticas
+---
+[practice_guide_music]
+Elige música para cada práctica.
+---
+[practice_guide_carousel]
+Usa las flechas para elegir una práctica.
+---
+[practice_guide_start]
+Inicia la práctica seleccionada.
+---
+[practice_guide_manual_config]
+Abre el manual o los ajustes.
+---
+[habits_done_count_label]
+%d / %d hábitos completados
+---
+[habit_new_button]
++ Nuevo hábito
+---
+[habit_reorder_title]
+Reordenar hábitos
+---
+[habit_mixed_practice_label]
+Práctica mixta
+---
+[habit_default_name_format]
+Hábito %d
+---
+[habit_default_meditation_name]
+Meditación
+---
+[habit_default_meditation_description]
+Sesiones de respiración y meditación.
+---
+[habit_default_sun_salutation_name]
+Saludo al sol
+---
+[habit_default_sun_salutation_description]
+Sesiones de práctica de saludo al sol.
+---
+[pet_gamification_title]
+Gamificación en curso...
+---
+[pet_gamification_subtitle]
+Solo vista previa. Esta pestaña aún no está implementada.
+---
+[habits_guide_overview_progress]
+Total de hábitos de hoy.
+---
+[habits_guide_overview_grid]
+Toca cuadros para marcar días.
+---
+[habits_guide_meditation_views]
+Las vistas semanal y calendario muestran este hábito.
+---
+[habits_guide_meditation_statistics]
+Estadísticas muestra el progreso vinculado.
+---
+[habits_guide_meditation_edit]
+Editar cambia nombre, color y vínculos.
+---
+[habits_guide_meditation_session_data]
+Los datos vienen de prácticas completadas.
+---
+[session_count_singular]
+%d sesión
+---
+[session_count_plural]
+%d sesiones
+---
+[results_rounds]
+%d rondas
+---
+[results_best]
+mejor %ds
+---
+[results_avg]
+promedio %ds
+---
+[round_result_label]
+Ronda %d  %ds
+---
+[starting_in]
+COMENZANDO EN %2d
+---
+[session_round_label]
+RONDA %d
 ---
 [notification_starting_seconds]
 Inicio: %ds
@@ -1081,4 +934,12 @@ Inhala: %ds
 [notification_results]
 Results
 ---
+[deleted_sessions]
+%lld sesiones eliminadas
+---
+[habit_stats_day_singular]
+%d día
+---
+[habit_stats_day_plural]
+%d días
 ---

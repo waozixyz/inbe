@@ -342,7 +342,7 @@ whm_config_screen_draw(InbeApp *app)
 {
     int integrated = app->inbe.screen == InbeScreenStart &&
                      app->modal.type != UIModalPracticeConfig;
-    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
+    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
     int config_tab_h = flint_px(40);
     int config_tab_gap = flint_px(14);
     int scroll_y;
@@ -361,9 +361,7 @@ whm_config_screen_draw(InbeApp *app)
         app->practice_config_tab = 0;
 
     if(!integrated) {
-        FlintUIHeader header = ui_draw_title_header(title_h, locale_get("practice_config_title"),
-                                                    (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
-        if(header.right_clicked) {
+        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
             if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
                 app_close_modal(app);
             } else {

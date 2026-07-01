@@ -390,6 +390,7 @@ app_modal_type_name(UIModalType type)
     case UIModalHabitCountingInfo: return "habit_counting_info";
     case UIModalPracticeManual: return "practice_manual";
     case UIModalPracticeConfig: return "practice_config";
+    case UIModalPracticeMusic: return "practice_music";
     case UIModalThemePicker: return "theme_picker";
     case UIModalSyncReview: return "sync_review";
     case UIModalSyncAlias: return "sync_alias";

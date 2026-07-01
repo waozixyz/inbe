@@ -1,4 +1,14 @@
 # Changelog
+## [1.7.8] - 2026-07-01
+### Changed
+- Redesign the Practice home screen around carousel-style practice cards with explicit start, manual, configure, and music actions.
+- Move meditation music configuration into a shared practice music panel with per-practice enablement and track selection.
+
+## [1.7.7] - 2026-07-01
+### Changed
+- Move habit tracking overview out of Profile and into the Habits tab with direct day toggles, reorder controls, and local view persistence.
+- Rework Settings into an overview page with section title bars and shared return/title bar UI.
+
 ## [1.7.6] - 2026-06-30
 ### Added
 - habit overview

@@ -186,7 +186,7 @@ app_open_modal(InbeApp *app, UIModalType type)
         return;
     app->modal.active = 1;
     app->modal.type = type;
-    app->modal_open_frame = app->inbe.frame;
+    app->modal_input_block_frame = app->inbe.frame;
 }
 
 void
@@ -201,11 +201,16 @@ app_close_modal(InbeApp *app)
        app->inbe.screen == InbeScreenStart &&
        app->practice_tab == PRACTICE_TAB_CONFIG) {
         app->modal.type = UIModalPracticeConfig;
-        app->modal_open_frame = app->inbe.frame;
+        app->modal_input_block_frame = app->inbe.frame;
         return;
     }
     if(type == UIModalPracticeConfig) {
         app_leave_practice_config(app);
+        app->settings_scroll = 0;
+        app->practice_tab = PRACTICE_TAB_PLAY;
+    } else if(type == UIModalPracticeMusic) {
+        if(app->settings_dirty)
+            save_settings(app);
         app->settings_scroll = 0;
         app->practice_tab = PRACTICE_TAB_PLAY;
     } else if(type == UIModalPracticeManual) {
@@ -215,6 +220,7 @@ app_close_modal(InbeApp *app)
     }
     app->modal.active = 0;
     app->modal.type = UIModalNone;
+    app->modal_input_block_frame = app->inbe.frame;
 }
 
 static int
@@ -462,6 +468,40 @@ int_from_count(const char src[CountSize])
     return a * 100 + b * 10 + c;
 }
 
+static void
+app_restore_habits_view_settings(InbeApp *app)
+{
+    const char *selected_id;
+    int screen_mode;
+    int habit_tab;
+    int view_mode;
+
+    if(app == NULL)
+        return;
+
+    screen_mode = storage_get_setting_int("habits_screen_mode", HABITS_SCREEN_OVERVIEW);
+    habit_tab = storage_get_setting_int("habits_tab", HABIT_TAB_WEEKLY);
+    view_mode = storage_get_setting_int("habits_view_mode", HABIT_VIEW_WEEKLY);
+    app->habits.screen_mode = clampi(screen_mode, HABITS_SCREEN_OVERVIEW,
+                                     HABITS_SCREEN_REORDER);
+    if(app->habits.screen_mode == HABITS_SCREEN_REORDER)
+        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+    app->habits.tab = clampi(habit_tab, HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1);
+    app->habits.view_mode = clampi(view_mode, HABIT_VIEW_CALENDAR, HABIT_VIEW_WEEKLY);
+
+    selected_id = storage_get_setting_text("habits_selected_id");
+    if(selected_id != NULL && selected_id[0] != '\0') {
+        for(int i = 0; i < app->habits.count; i++) {
+            if(strcmp(app->habits.items[i].id, selected_id) == 0) {
+                app->habits.selected = i;
+                break;
+            }
+        }
+    }
+    if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
+        app->habits.selected = app->habits.count > 0 ? 0 : -1;
+}
+
 void
 app_reload_after_import(InbeApp *app, int reload_settings)
 {
@@ -503,6 +543,8 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     }
 
     habits_init(&app->habits);
+    if(reload_settings)
+        app_restore_habits_view_settings(app);
     if(!reload_settings) {
         app->habits.selected = -1;
         for(int i = 0; i < app->habits.count; i++) {
@@ -717,6 +759,7 @@ app_init(void *vapp) {
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
     habits_init(&app->habits);
+    app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
     flint_transition_reset(&app->screen_transition);
@@ -736,7 +779,7 @@ app_init(void *vapp) {
     app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_tab = SETTINGS_TAB_SESSION;
+    app->settings_tab = SETTINGS_TAB_OVERVIEW;
     app->habit_edit = (HabitEditState){
         .index = -1,
         .color = {99, 196, 165, 255},
@@ -924,7 +967,7 @@ draw_global_modal(InbeApp *app)
 
     if(app == NULL || !app->modal.active)
         return;
-    if(app->modal_open_frame == app->inbe.frame)
+    if(app->modal_input_block_frame == app->inbe.frame)
         return;
 
     ui_clear_input_captures();
@@ -949,6 +992,7 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalPracticeManual ||
        app->modal.type == UIModalPracticeConfig ||
+       app->modal.type == UIModalPracticeMusic ||
        app->modal.type == UIModalEditProgressiveStartSpeed) {
         practice_screen_draw_modal(app);
         return;
@@ -985,7 +1029,6 @@ updateapp(InbeApp *app)
     int center_x = view_width / 2;
     int frame_view_height = view_height;
     int center_y;
-    int play_center_y;
     int hover = 0;
     int frame_screen = app->inbe.screen;
     int first_run_guide_active = 0;
@@ -1014,6 +1057,7 @@ updateapp(InbeApp *app)
         app->modal.active &&
         (app->modal.type == UIModalPracticeManual ||
          app->modal.type == UIModalPracticeConfig ||
+         app->modal.type == UIModalPracticeMusic ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
     if(app->modal.active || first_run_guide_active || habits_guide_active ||
        profile_guide_active) {
@@ -1079,14 +1123,10 @@ updateapp(InbeApp *app)
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
-        practice_update_circle_bounds(app, 0, 84);
+        practice_update_circle_bounds(app, flint_ui_title_bar_height(), 84);
     }
 
-    play_center_y = center_y - flint_px(12);
-    int play_circle_clicked = 0;
-    if(app->inbe.screen == InbeScreenStart && !practice_fullscreen_modal)
-        play_circle_clicked = practice_draw_start_preview(app, center_x, play_center_y);
-    else if(app->inbe.screen == InbeScreenSession)
+    if(app->inbe.screen == InbeScreenSession)
         practice_draw_active_breathing(app, center_x, center_y);
 
 
@@ -1094,23 +1134,12 @@ updateapp(InbeApp *app)
     case InbeScreenStart:
         {
             if(!practice_fullscreen_modal) {
-                practice_screen_draw_top_bar(app, 0);
-                practice_screen_draw_floating_actions(app);
+                practice_screen_draw_home(app);
             }
-
-            if(!practice_fullscreen_modal && !app->modal.active &&
-               app->tutorial_seen && play_circle_clicked) {
-                const PracticeDefinition *practice = practice_get(app->exercise_type);
-                if(practice->start != NULL)
-                    practice->start(app);
-            }
-
-            if(!practice_fullscreen_modal)
-                practice_screen_draw_top_bar(app, 1);
         }
         // Skip drawing on the same frame modal opens to prevent click propagation
         if(app->modal.active && app->modal.type == UIModalMeditationSetup &&
-           app->modal_open_frame != app->inbe.frame) {
+           app->modal_input_block_frame != app->inbe.frame) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_setup_modal != NULL)
                 practice->draw_setup_modal(app);
