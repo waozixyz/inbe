@@ -617,6 +617,9 @@ jobs:
       AMAZON_APP_ID: ${{ secrets.AMAZON_APP_ID }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check Amazon Appstore Secrets
         run: |
           set -euo pipefail
