@@ -162,7 +162,6 @@ draw_habit_session_edit_screen(InbeApp *app)
     int viewport_h;
     int max_w = flint_px(400);
     int y = top_h + flint_px(14);
-    FlintUIHeader header;
 
     if(app == NULL)
         return;
@@ -186,9 +185,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     if(viewport_h < flint_px(80))
         viewport_h = flint_px(80);
 
-    header = ui_draw_title_header(top_h, date_text,
-                                  app->icons[UI_ICON_TYPE_RETURN], (Texture2D){0});
-    if(header.left_clicked) {
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], date_text, top_h)) {
         habit_session_cancel_edit(app);
         app_switch_screen(app, InbeScreenHabits);
         return;

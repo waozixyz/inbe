@@ -28,6 +28,12 @@ enum {
 };
 
 enum {
+    HABITS_SCREEN_OVERVIEW = 0,
+    HABITS_SCREEN_DETAIL = 1,
+    HABITS_SCREEN_REORDER = 2
+};
+
+enum {
     HABIT_TAB_WEEKLY = 0,
     HABIT_TAB_MONTHLY,
     HABIT_TAB_STATISTICS,
@@ -72,6 +78,7 @@ typedef struct InbeHabits {
     int focus_selected_tab;
     int month_offset;
     int selector_open;
+    int screen_mode;
     int view_mode;
     int tab;
     int weekly_days;

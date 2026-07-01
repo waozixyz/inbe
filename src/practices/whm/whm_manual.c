@@ -175,7 +175,7 @@ whm_manual_draw(InbeApp *app)
 {
     int integrated = app->inbe.screen == InbeScreenStart &&
                      app->modal.type != UIModalPracticeManual;
-    int title_h = integrated ? app_content_top_reserved(app) : ui_screen_header_height();
+    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
     int nav_h = manual_screen_guide_nav_height();
     int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
     int nav_y = view_height - bottom_reserved - nav_h;
@@ -199,13 +199,9 @@ whm_manual_draw(InbeApp *app)
     default: break;
     }
 
-    if(!integrated) {
-        FlintUIHeader header = ui_draw_title_header(title_h, title,
-                                                    (Texture2D){0},
-                                                    app->icons[UI_ICON_TYPE_X]);
-        if(header.right_clicked)
-            whm_manual_close(app, 0);
-    }
+    if(!integrated &&
+       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h))
+        whm_manual_close(app, 0);
 
     {
         int top_padding = flint_px(16);

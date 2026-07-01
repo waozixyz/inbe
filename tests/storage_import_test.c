@@ -739,7 +739,7 @@ test_stale_habit_save_keeps_synced_remote_habits(void)
     check_int("stale save keeps remote habit rows", loaded_habits.count, 4);
     check_true("remote push ups survived", find_habit_ci(&loaded_habits, "Push ups") != NULL);
     check_true("remote cold shower survived", find_habit_ci(&loaded_habits, "Cold Shower") != NULL);
-    check_true("default yoga survived", find_habit_ci(&loaded_habits, "Yoga") != NULL);
+    check_true("default sun salutation survived", find_habit_ci(&loaded_habits, "Sun Salutation") != NULL);
 
     habits_free(&stale_habits);
     habits_free(&loaded_habits);
@@ -1220,7 +1220,7 @@ assert_imported_database(const char *root)
     meditation = find_habit_ci(&habits, "Meditation");
     check_true("imported meditation habit day",
                meditation != NULL && habit_completed_day(meditation, 20260613));
-    check_true("imported yoga habit", find_habit_ci(&habits, "Yoga") != NULL);
+    check_true("imported sun salutation habit", find_habit_ci(&habits, "Sun Salutation") != NULL);
     habits_free(&habits);
     storage_close();
 }
@@ -1406,7 +1406,7 @@ test_delete_all_resets_habits_to_empty_storage(void)
     check_true("load default habit after delete all", storage_habits_load(&habits));
     check_int("default habit count after delete all", habits.count, 2);
     check_true("default meditation after delete all", find_habit_ci(&habits, "Meditation") != NULL);
-    check_true("default yoga after delete all", find_habit_ci(&habits, "Yoga") != NULL);
+    check_true("default sun salutation after delete all", find_habit_ci(&habits, "Sun Salutation") != NULL);
     check_true("old workout day removed",
                !habit_completed_day(find_habit_ci(&habits, "Meditation"), 20260618));
     storage_close();
@@ -1537,7 +1537,7 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
     check_int("empty initialized startup seeds default habits", habits.count, 2);
     check_true("empty initialized startup seeds meditation",
                find_habit_ci(&habits, "Meditation") != NULL);
-    check_true("empty initialized startup seeds yoga", find_habit_ci(&habits, "Yoga") != NULL);
+    check_true("empty initialized startup seeds sun salutation", find_habit_ci(&habits, "Sun Salutation") != NULL);
     check_int("empty initialized meditation linked mode",
               find_habit_ci(&habits, "Meditation") != NULL
                   ? find_habit_ci(&habits, "Meditation")->sync_mode
@@ -1548,12 +1548,12 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
                   ? find_habit_ci(&habits, "Meditation")->sync_activity
                   : -1,
               (1 << 0) | (1 << 1));
-    check_int("empty initialized yoga linked mode",
-              find_habit_ci(&habits, "Yoga") != NULL ? find_habit_ci(&habits, "Yoga")->sync_mode
+    check_int("empty initialized sun salutation linked mode",
+              find_habit_ci(&habits, "Sun Salutation") != NULL ? find_habit_ci(&habits, "Sun Salutation")->sync_mode
                                                      : -1,
               INBE_HABIT_SYNC_ACTIVITIES);
-    check_int("empty initialized yoga linked activities",
-              find_habit_ci(&habits, "Yoga") != NULL ? find_habit_ci(&habits, "Yoga")->sync_activity
+    check_int("empty initialized sun salutation linked activities",
+              find_habit_ci(&habits, "Sun Salutation") != NULL ? find_habit_ci(&habits, "Sun Salutation")->sync_activity
                                                      : -1,
               (1 << 2));
     habits_free(&habits);
@@ -1562,7 +1562,7 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
     check_true("load seeded defaults from storage", storage_habits_load(&habits));
     check_int("seeded defaults persisted", habits.count, 2);
     check_true("persisted seeded meditation", find_habit_ci(&habits, "Meditation") != NULL);
-    check_true("persisted seeded yoga", find_habit_ci(&habits, "Yoga") != NULL);
+    check_true("persisted seeded sun salutation", find_habit_ci(&habits, "Sun Salutation") != NULL);
     check_int("persisted meditation linked mode",
               find_habit_ci(&habits, "Meditation") != NULL
                   ? find_habit_ci(&habits, "Meditation")->sync_mode

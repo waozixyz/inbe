@@ -170,6 +170,11 @@ save_settings(InbeApp *app)
         {"navigation_mode", app->navigation_mode},
         {"transition_mode", app->transition_mode},
         {"main_tab", app->main_tab},
+        {"habits_screen_mode", app->habits.screen_mode == HABITS_SCREEN_REORDER
+                                   ? HABITS_SCREEN_OVERVIEW
+                                   : app->habits.screen_mode},
+        {"habits_tab", app->habits.tab},
+        {"habits_view_mode", app->habits.view_mode},
         {"fullscreen", app->fullscreen_enabled ? 1 : 0},
         {"on_screen_keyboard", app->on_screen_keyboard_enabled ? 1 : 0},
         {"progressive_speed", app->inbe.progressive_speed},
@@ -187,8 +192,11 @@ save_settings(InbeApp *app)
         {"meditation_custom_minutes", app->meditation.custom_minutes},
         {"meditation_show_extend_controls", app->meditation.show_extend_controls ? 1 : 0},
         {"meditation_music_enabled", app->meditation.music_enabled ? 1 : 0},
-        {"meditation_music_shuffle", app->meditation.music_shuffle ? 1 : 0},
         {"meditation_music_track", app->meditation.music_track},
+        {"practice_music_mask", app->meditation.music_practice_mask},
+        {"practice_music_track_wim_hof", app->meditation.music_practice_tracks[EXERCISE_WIM_HOF]},
+        {"practice_music_track_meditation", app->meditation.music_practice_tracks[EXERCISE_MEDITATION]},
+        {"practice_music_track_sun_salutation", app->meditation.music_practice_tracks[EXERCISE_SUN_SALUTATION]},
         {"play_in_background", app->inbe.play_in_background},
         {"practice_category_tab", app->practice_category_tab},
     };
@@ -198,6 +206,11 @@ save_settings(InbeApp *app)
     storage_set_setting_text("language",
                                   (app->language_selected && app->language[0] != '\0') ?
                                       app->language : "");
+    storage_set_setting_text("habits_selected_id",
+                             (app->habits.selected >= 0 &&
+                              app->habits.selected < app->habits.count)
+                                 ? app->habits.items[app->habits.selected].id
+                                 : "");
     storage_settings_end_write();
 #if defined(PLATFORM_WEB)
     sync_web_storage();
@@ -274,7 +287,6 @@ app_load_settings(InbeApp *app)
             {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
             {&app->meditation.music_enabled, "meditation_music_enabled", 1},
-            {&app->meditation.music_shuffle, "meditation_music_shuffle", 0},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
@@ -290,6 +302,12 @@ app_load_settings(InbeApp *app)
              APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR},
             {&app->main_tab, "main_tab", APP_MAIN_TAB_PRACTICE,
              APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE},
+            {&app->habits.screen_mode, "habits_screen_mode", HABITS_SCREEN_OVERVIEW,
+             HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_DETAIL},
+            {&app->habits.tab, "habits_tab", HABIT_TAB_WEEKLY,
+             HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1},
+            {&app->habits.view_mode, "habits_view_mode", HABIT_VIEW_WEEKLY,
+             HABIT_VIEW_CALENDAR, HABIT_VIEW_WEEKLY},
             {&app->inbe.progressive_start_speed, "progressive_start_speed",
              DefaultProgressiveStartSpeed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX},
             {&app->inbe.breath_animation, "breath_animation", InbeBreathAnimationLinear,
@@ -310,6 +328,14 @@ app_load_settings(InbeApp *app)
              1, 240},
             {&app->meditation.music_track, "meditation_music_track", 0,
              0, MEDITATION_MUSIC_TRACK_COUNT - 1},
+            {&app->meditation.music_practice_mask, "practice_music_mask",
+             1 << EXERCISE_MEDITATION, 0, (1 << EXERCISE_COUNT) - 1},
+            {&app->meditation.music_practice_tracks[EXERCISE_WIM_HOF],
+             "practice_music_track_wim_hof", 0, 0, MEDITATION_MUSIC_TRACK_COUNT - 1},
+            {&app->meditation.music_practice_tracks[EXERCISE_MEDITATION],
+             "practice_music_track_meditation", 0, 0, MEDITATION_MUSIC_TRACK_COUNT - 1},
+            {&app->meditation.music_practice_tracks[EXERCISE_SUN_SALUTATION],
+             "practice_music_track_sun_salutation", 0, 0, MEDITATION_MUSIC_TRACK_COUNT - 1},
             {&app->practice_category_tab, "practice_category_tab", PRACTICE_CATEGORY_MIND,
              0, PRACTICE_CATEGORY_COUNT - 1},
             {&app->transition_mode, "transition_mode", APP_TRANSITION_FADE,

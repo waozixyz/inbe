@@ -498,6 +498,7 @@ storage_init(const char *root)
     sqlite3_busy_timeout(g_storage.db, 1000);
     if(!schema_create() || !migrate_schema() || !load_or_create_user())
         return 0;
+    storage_migrate_default_habit_ids();
     storage_materialize_session_habit_days();
     migrate_legacy_file_sessions_once();
     return 1;

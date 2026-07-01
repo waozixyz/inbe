@@ -1,9 +1,6 @@
 [app_title]
 インナーブリーズ
 ---
-[tab_history]
-履歴
----
 [tab_profile]
 プロフィール
 ---
@@ -12,18 +9,6 @@
 ---
 [tab_practice]
 練習
----
-[habit_add_button]
-習慣を追加
----
-[habit_done_button]
-完了
----
-[habit_not_done_button]
-記録
----
-[tab_manual]
-チュートリアル
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Pet
 [profile_data_section]
 データ
 ---
-[profile_sync_section]
-同期
----
 [profile_friends_count_format]
 %d人のフレンド
 ---
@@ -115,32 +97,14 @@ Pet
 [profile_practice_label]
 プラクティス
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
-My practices
+自分のプラクティス
 ---
 [profile_my_habits_title]
 My habits
 ---
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
----
 [profile_my_practices_title]
-My practices
+自分のプラクティス
 ---
 [move_up_button]
 Up
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 設定
----
-[tab_statistics]
-統計
 ---
 [play_button]
 開始
@@ -229,26 +190,8 @@ Sun Salutation
 [meditation_manual_intro_text]
 呼吸、落ち着き、気づきのためのシンプルな瞑想練習です。
 ---
-[meditation_manual_text]
-必要なら音楽を選んでください。ゴングが始まりと終わりを知らせます。
----
-[meditation_music_settings_title]
-瞑想音楽
----
-[meditation_music_section_title]
-背景音楽
----
 [meditation_music_master_toggle]
 メディテーション音楽
----
-[meditation_music_enabled_label]
-背景音楽を再生
----
-[meditation_music_shuffle_label]
-ランダムな曲
----
-[meditation_music_track_label]
-曲
 ---
 [meditation_music_download_button]
 音楽をダウンロード
@@ -304,9 +247,6 @@ Finish
 [results_title]
 結果
 ---
-[home_button]
-ホーム
----
 [exit_session_title]
 セッションを終了しますか？
 ---
@@ -343,24 +283,6 @@ OK
 [round_times_title]
 ラウンド時間
 ---
-[results_rounds]
-%d ラウンド
----
-[results_best]
-最速 %ds
----
-[results_avg]
-平均 %ds
----
-[round_result_label]
-ラウンド %d  %ds
----
-[starting_in]
-開始まで %2d
----
-[session_round_label]
-ラウンド %d
----
 [settings_title]
 設定
 ---
@@ -373,23 +295,11 @@ OK
 [settings_section_session]
 セッション
 ---
-[settings_tab_app]
-アプリ
----
-[settings_tab_theme]
-テーマ
----
 [settings_tab_device]
 デバイス
 ---
-[settings_section_sound]
-サウンド
----
 [settings_section_appearance]
 外観
----
-[settings_section_language]
-言語
 ---
 [settings_tab_about]
 アプリについて
@@ -448,12 +358,6 @@ OK
 [double_tap_to_breathe_hint]
 画面をダブルタップして呼吸
 ---
-[session_count_singular]
-%dセッション
----
-[session_count_plural]
-%dセッション
----
 [no_sessions]
 セッションなし
 ---
@@ -487,18 +391,6 @@ OK
 [next_button]
 次へ
 ---
-[coming_soon_label]
-近日公開...
----
-[total_sessions_label]
-総セッション数：%d
----
-[data_size_label]
-データサイズ：%s
----
-[storage_label]
-保存先：%s
----
 [export_data_button]
 データを書き出す
 ---
@@ -522,9 +414,6 @@ OK
 ---
 [imported_data]
 データをインポートしました
----
-[imported_sessions]
-%dセッションをインポートしました
 ---
 [import_invalid_file]
 無効なエクスポートファイル
@@ -556,9 +445,6 @@ OK
 [delete_cancelled]
 削除をキャンセルしました
 ---
-[deleted_sessions]
-%lld 件のセッションを削除しました
----
 [toggle_off]
 オフ
 ---
@@ -577,9 +463,6 @@ OK
 [tutorial_title]
 チュートリアル
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 方法
 ---
@@ -591,9 +474,6 @@ OK
 ---
 [tutorial_step3_title]
 ステップ 3: 吸って止める
----
-[tutorial_progressive_speed_title]
-段階的速度
 ---
 [tutorial_step_intro]
 この呼吸法は Wim Hof Method を
@@ -622,9 +502,6 @@ OK
 
 自然に感じるリズムを見つけてください。安定して速く、ただししっかり呼吸します。
 ---
-[tutorial_step_progressive_speed]
-段階的速度は、最初のラウンドに入りやすくします。
----
 [tutorial_step_exhale_hold]
 30回呼吸したら、吐いて、できるだけ長く息を止めます。
 
@@ -635,44 +512,8 @@ OK
 
 吐くと次のラウンドが始まります。
 ---
-[tutorial_skip_button]
-スキップ
----
-[tutorial_back_button]
-戻る
----
-[tutorial_next_button]
-次へ
----
-[tutorial_finish_button]
-完了
----
-[tutorial_start_button]
-今すぐ開始
----
 [share_sheet_title]
 セッションデータを書き出す
----
-[export_metadata_header]
-Inner Breeze データ書き出し
----
-[export_metadata_version]
-バージョン: %s
----
-[export_metadata_date]
-書き出し日: %s
----
-[export_metadata_count]
-セッション数: %d
----
-[delete_history_title]
-削除しますか？
----
-[delete_session_message]
-このセッションを削除しますか？元に戻せません。
----
-[delete_round_message]
-このラウンドを削除しますか？元に戻せません。
 ---
 [delete_button]
 削除
@@ -685,42 +526,6 @@ Inner Breeze データ書き出し
 ---
 [theme_system]
 システム
----
-[theme_sky]
-空
----
-[theme_ocean]
-海
----
-[theme_forest]
-森
----
-[theme_sunset]
-夕焼け
----
-[theme_lavender]
-ラベンダー
----
-[theme_cherry]
-チェリー
----
-[theme_dawn]
-夜明け
----
-[theme_sage]
-セージ
----
-[theme_sepia]
-セピア
----
-[theme_mono]
-モノ
----
-[theme_mint]
-ミント
----
-[theme_cobalt]
-コバルト
 ---
 [orientation_label]
 向き
@@ -736,9 +541,6 @@ Inner Breeze データ書き出し
 ---
 [orientation_sensor]
 センサー
----
-[back_button]
-戻る
 ---
 [close_button]
 閉じる
@@ -772,9 +574,6 @@ Inner Breeze データ書き出し
 ---
 [sync_private_key_import_cancelled]
 アカウントキーのインポートをキャンセルしました
----
-[sync_liboqs_unavailable]
-liboqs はこの対象向けにビルドされていません。
 ---
 [sync_public_id_label]
 公開ID
@@ -818,17 +617,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-リモート同期に失敗しました
----
-[sync_unavailable]
-このプラットフォームではリモート同期を利用できません
----
 [sync_no_account]
 接続する前にアカウントを作成してください
----
-[sync_auth_failed]
-リモートがこのアカウントを拒否しました
 ---
 [sync_backup_warning]
 この秘密キーは自分で管理できる場所に保存してください。これを持つ人は誰でもこのアカウントを取得できます。
@@ -923,9 +713,6 @@ Description
 [habit_delete_button]
 習慣を削除
 ---
-[habit_add_new_option]
-新しい習慣を追加
----
 [habit_load_more_button]
 さらに読み込む
 ---
@@ -965,35 +752,6 @@ Description
 [habit_stats_best_streak]
 最長連続記録
 ---
-[habit_stats_day_singular]
-%d日
----
-[habit_stats_day_plural]
-%d日
----[reset_button]
-リセット
----
-[practice_guide_dropdown]
-ここで練習を選びます。
----
-[practice_guide_manual]
-練習を始める前にチュートリアルを読んで、エクササイズ全体を理解してください。
----
-[practice_guide_config]
-自分に合うように練習の設定を変更できます。
----
-[habits_guide_dropdown]
-ここで習慣を選ぶか、新しく作成できます。
----
-[habits_guide_practice_list]
-習慣には練習セッションのデータを含められます。
----
-[habits_guide_views]
-週間またはカレンダー表示で習慣を確認できます。
----
-[habits_guide_statistics]
-ここで習慣の統計を確認できます。
----
 [profile_guide_account]
 ここで同期アカウントを設定します。
 ---
@@ -1006,22 +764,16 @@ Manage data, habit order, and visible practices here.
 [profile_guide_social_no_account]
 フレンドとランキングを使うには同期アカウントを作成してください。
 ---
-[nav_mode_label]
-ナビゲーション
----
-[nav_mode_dropdown]
-ドロップダウン
----
-[nav_mode_tabbar]
-タブ
----
 
 [transition_label]
 切り替え
+---
 [transition_none]
 なし
+---
 [transition_fade]
 フェード
+---
 [theme_picker_title]
 テーマ選択
 [skip_button]
@@ -1048,9 +800,6 @@ Pick a short alias for this account on the current sync server.
 [sync_alias_register_button]
 Register Alias
 ---
-[sync_alias_registered]
-Alias registered.
----
 [sync_alias_failed]
 Could not register alias.
 ---
@@ -1065,6 +814,112 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+---
+[practice_title]
+プラクティス
+---
+[practice_music_title]
+バックグラウンド音楽
+---
+[practice_start_button]
+プラクティスを開始
+---
+[practice_manual_button]
+マニュアル
+---
+[practice_configure_button]
+プラクティスを設定
+---
+[practice_music_practice_list_title]
+音楽を使うプラクティス
+---
+[practice_guide_music]
+練習ごとに音楽を選びます。
+---
+[practice_guide_carousel]
+矢印で練習を選びます。
+---
+[practice_guide_start]
+選んだ練習を開始します。
+---
+[practice_guide_manual_config]
+マニュアルまたは設定を開きます。
+---
+[habits_done_count_label]
+%d / %d 件の習慣が完了
+---
+[habit_new_button]
++ 新しい習慣
+---
+[habit_reorder_title]
+習慣を並べ替え
+---
+[habit_mixed_practice_label]
+混合練習
+---
+[habit_default_name_format]
+習慣 %d
+---
+[habit_default_meditation_name]
+瞑想
+---
+[habit_default_meditation_description]
+呼吸と瞑想のセッション。
+---
+[habit_default_sun_salutation_name]
+太陽礼拝
+---
+[habit_default_sun_salutation_description]
+太陽礼拝の練習セッション。
+---
+[pet_gamification_title]
+ゲーミフィケーションを準備中...
+---
+[pet_gamification_subtitle]
+プレビューのみです。このタブはまだ実装されていません。
+---
+[habits_guide_overview_progress]
+今日の習慣合計です。
+---
+[habits_guide_overview_grid]
+四角をタップして日を記録します。
+---
+[habits_guide_meditation_views]
+週表示とカレンダー表示でこの習慣を確認します。
+---
+[habits_guide_meditation_statistics]
+統計で関連する進捗を確認します。
+---
+[habits_guide_meditation_edit]
+編集で名前、色、リンクを変更します。
+---
+[habits_guide_meditation_session_data]
+セッションデータは完了した練習から作られます。
+---
+[session_count_singular]
+%dセッション
+---
+[session_count_plural]
+%dセッション
+---
+[results_rounds]
+%d ラウンド
+---
+[results_best]
+最速 %ds
+---
+[results_avg]
+平均 %ds
+---
+[round_result_label]
+ラウンド %d  %ds
+---
+[starting_in]
+開始まで %2d
+---
+[session_round_label]
+ラウンド %d
 ---
 [notification_starting_seconds]
 開始: %d秒
@@ -1081,4 +936,12 @@ Alias saved
 [notification_results]
 Results
 ---
+[deleted_sessions]
+%lld 件のセッションを削除しました
+---
+[habit_stats_day_singular]
+%d日
+---
+[habit_stats_day_plural]
+%d日
 ---

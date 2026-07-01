@@ -341,11 +341,13 @@ meditation_draw_setup_modal(InbeApp *app)
 static void
 draw_meditation_sound_controls(InbeApp *app)
 {
+    int title_h = flint_ui_title_bar_height();
+
     if(app->show_session_volume_control) {
         if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
                .id = 501,
                .x = view_width - flint_px(56),
-               .y = flint_px(12),
+               .y = (title_h - (flint_px(24) + flint_px(10) * 2)) / 2,
                .icon_size = flint_px(24),
                .icon_padding = flint_px(10),
                .icon = meditation_sound_icon_for_volume(app),
@@ -411,13 +413,12 @@ void
 meditation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
     char time_text[32];
-    int return_hover = 0;
     int font = FLINT_TEXT_24;
     int max_w;
     int text_w;
+    int title_h = flint_ui_title_bar_height();
 
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("meditation_title"), title_h)) {
         meditation_request_exit(app);
         return;
     }

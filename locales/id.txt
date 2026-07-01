@@ -1,9 +1,6 @@
 [app_title]
 Inner Breeze
 ---
-[tab_history]
-Riwayat
----
 [tab_profile]
 Profil
 ---
@@ -12,18 +9,6 @@ Kebiasaan
 ---
 [tab_practice]
 Latihan
----
-[habit_add_button]
-Tambah Kebiasaan
----
-[habit_done_button]
-Selesai
----
-[habit_not_done_button]
-Tandai
----
-[tab_manual]
-Manual
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Atur
 [profile_data_section]
 Data
 ---
-[profile_sync_section]
-Sinkronisasi
----
 [profile_friends_count_format]
 %d teman
 ---
@@ -115,32 +97,14 @@ Tidak ada data papan peringkat
 [profile_practice_label]
 Latihan
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
-My practices
+Praktik saya
 ---
 [profile_my_habits_title]
 My habits
 ---
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
----
 [profile_my_practices_title]
-My practices
+Praktik saya
 ---
 [move_up_button]
 Up
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 Pengaturan
----
-[tab_statistics]
-Statistik
 ---
 [play_button]
 MULAI
@@ -229,26 +190,8 @@ Meditasi
 [meditation_manual_intro_text]
 Latihan meditasi sederhana untuk napas, tenang, dan sadar.
 ---
-[meditation_manual_text]
-Pilih musik jika Anda mau. Gong menandai awal dan akhir.
----
-[meditation_music_settings_title]
-Musik meditasi
----
-[meditation_music_section_title]
-Musik latar
----
 [meditation_music_master_toggle]
 Musik meditasi
----
-[meditation_music_enabled_label]
-Putar musik latar
----
-[meditation_music_shuffle_label]
-Trek acak
----
-[meditation_music_track_label]
-Trek
 ---
 [meditation_music_download_button]
 Unduh musik
@@ -304,9 +247,6 @@ NAFAS
 [results_title]
 HASIL
 ---
-[home_button]
-BERANDA
----
 [exit_session_title]
 Keluar Sesi?
 ---
@@ -343,24 +283,6 @@ Keluar
 [round_times_title]
 Waktu ronde
 ---
-[results_rounds]
-%d ronde
----
-[results_best]
-terbaik %ds
----
-[results_avg]
-rata %ds
----
-[round_result_label]
-Ronde %d  %ds
----
-[starting_in]
-MULAI DALAM %2d
----
-[session_round_label]
-RONDE %d
----
 [settings_title]
 Pengaturan
 ---
@@ -373,23 +295,11 @@ Pernapasan
 [settings_section_session]
 Sesi
 ---
-[settings_tab_app]
-Aplikasi
----
-[settings_tab_theme]
-Tema
----
 [settings_tab_device]
 Perangkat
 ---
-[settings_section_sound]
-Suara
----
 [settings_section_appearance]
 Tampilan
----
-[settings_section_language]
-Bahasa
 ---
 [settings_tab_about]
 Tentang
@@ -448,12 +358,6 @@ Ketuk dua kali untuk bernapas
 [double_tap_to_breathe_hint]
 Ketuk layar dua kali untuk bernapas
 ---
-[session_count_singular]
-%d sesi
----
-[session_count_plural]
-%d sesi
----
 [no_sessions]
 Tidak ada sesi
 ---
@@ -487,18 +391,6 @@ Pilih Bahasa
 [next_button]
 Lanjut
 ---
-[coming_soon_label]
-Segera hadir...
----
-[total_sessions_label]
-Total Sesi: %d
----
-[data_size_label]
-Ukuran Data: %s
----
-[storage_label]
-Penyimpanan: %s
----
 [export_data_button]
 Ekspor Data
 ---
@@ -522,9 +414,6 @@ Impor gagal
 ---
 [imported_data]
 Data diimpor
----
-[imported_sessions]
-Mengimpor %d sesi
 ---
 [import_invalid_file]
 File ekspor tidak valid
@@ -556,9 +445,6 @@ Tidak ada data untuk dihapus
 [delete_cancelled]
 Penghapusan dibatalkan
 ---
-[deleted_sessions]
-%lld sesi dihapus
----
 [toggle_off]
 MATI
 ---
@@ -577,9 +463,6 @@ Keyboard di layar
 [tutorial_title]
 Tutorial
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 Metode
 ---
@@ -591,9 +474,6 @@ Langkah 2: Buang & Tahan
 ---
 [tutorial_step3_title]
 Langkah 3: Tarik & Tahan
----
-[tutorial_progressive_speed_title]
-Kecepatan Progresif
 ---
 [tutorial_step_intro]
 Latihan pernapasan ini didasarkan pada Metode Wim Hof.
@@ -620,11 +500,6 @@ Tarik dan hembuskan napas 30 kali.
 
 Temukan ritme yang terasa alami: stabil dan cepat, tetapi tetap bernapas penuh.
 ---
-[tutorial_step_progressive_speed]
-Kecepatan progresif membuat ronde pertama lebih mudah dimulai.
-
-Saat aktif, ronde pertama dimulai pada kecepatan 1 untuk 5 nafas pertama, lalu bertambah hingga kecepatan yang dipilih.
----
 [tutorial_step_exhale_hold]
 Setelah 30 napas, hembuskan dan tahan selama mungkin.
 
@@ -635,44 +510,8 @@ Tarik napas penuh dan tahan selama 15 detik.
 
 Hembuskan, lalu ronde berikutnya akan mulai.
 ---
-[tutorial_skip_button]
-LEWATI
----
-[tutorial_back_button]
-KEMBALI
----
-[tutorial_next_button]
-LANJUT
----
-[tutorial_finish_button]
-SELESAI
----
-[tutorial_start_button]
-MULAI SEKARANG
----
 [share_sheet_title]
 Ekspor Data Sesi
----
-[export_metadata_header]
-Ekspor Data Inner Breeze
----
-[export_metadata_version]
-Versi: %s
----
-[export_metadata_date]
-Tanggal Ekspor: %s
----
-[export_metadata_count]
-Jumlah Sesi: %d
----
-[delete_history_title]
-Hapus?
----
-[delete_session_message]
-Hapus sesi ini? Tidak dapat dibatalkan.
----
-[delete_round_message]
-Hapus ronde ini? Tidak dapat dibatalkan.
 ---
 [delete_button]
 Hapus
@@ -685,42 +524,6 @@ Musik oleh Elijah_K.
 ---
 [theme_system]
 Sistem
----
-[theme_sky]
-Langit
----
-[theme_ocean]
-Samudra
----
-[theme_forest]
-Hutan
----
-[theme_sunset]
-Senja
----
-[theme_lavender]
-Lavender
----
-[theme_cherry]
-Ceri
----
-[theme_dawn]
-Fajar
----
-[theme_sage]
-Sage
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Mint
----
-[theme_cobalt]
-Kobalt
 ---
 [orientation_label]
 Orientasi
@@ -736,9 +539,6 @@ Lanskap
 ---
 [orientation_sensor]
 Sensor
----
-[back_button]
-Kembali
 ---
 [close_button]
 Tutup
@@ -772,9 +572,6 @@ Tidak dapat mengimpor kunci akun
 ---
 [sync_private_key_import_cancelled]
 Impor kunci akun dibatalkan
----
-[sync_liboqs_unavailable]
-liboqs tidak dibangun untuk target ini.
 ---
 [sync_public_id_label]
 ID publik
@@ -818,17 +615,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-Sinkronisasi remote gagal
----
-[sync_unavailable]
-Sinkronisasi remote tidak tersedia di platform ini
----
 [sync_no_account]
 Buat akun sebelum menghubungkan
----
-[sync_auth_failed]
-Remote menolak akun ini
 ---
 [sync_backup_warning]
 Simpan kunci pribadi ini di tempat yang Anda kendalikan. Siapa pun yang memilikinya dapat mengambil akun ini.
@@ -923,9 +711,6 @@ Hapus kebiasaan ini? Tindakan ini tidak dapat dibatalkan.
 [habit_delete_button]
 Hapus kebiasaan
 ---
-[habit_add_new_option]
-Tambah kebiasaan baru
----
 [habit_load_more_button]
 Muat lagi
 ---
@@ -965,35 +750,6 @@ Total tahan
 [habit_stats_best_streak]
 Rangkaian terbaik
 ---
-[habit_stats_day_singular]
-%d hari
----
-[habit_stats_day_plural]
-%d hari
----[reset_button]
-Reset
----
-[practice_guide_dropdown]
-Pilih praktik Anda di sini.
----
-[practice_guide_manual]
-Baca tutorial sebelum memulai praktik agar Anda memahami seluruh latihan.
----
-[practice_guide_config]
-Ubah konfigurasi praktik agar sesuai dengan kebutuhan Anda.
----
-[habits_guide_dropdown]
-Pilih kebiasaan di sini atau buat yang baru.
----
-[habits_guide_practice_list]
-Kebiasaan dapat menyertakan data sesi dari praktik Anda.
----
-[habits_guide_views]
-Pilih Mingguan atau Kalender untuk meninjau kebiasaan.
----
-[habits_guide_statistics]
-Lihat statistik kebiasaan Anda di sini.
----
 [profile_guide_account]
 Atur akun sinkronisasi Anda di sini.
 ---
@@ -1006,22 +762,16 @@ Buka teman dan papan peringkat dari sini.
 [profile_guide_social_no_account]
 Buat akun sinkronisasi untuk membuka teman dan papan peringkat.
 ---
-[nav_mode_label]
-Navigasi
----
-[nav_mode_dropdown]
-Menu
----
-[nav_mode_tabbar]
-Tab
----
 
 [transition_label]
 Transisi
+---
 [transition_none]
 Tidak ada
+---
 [transition_fade]
 Pudar
+---
 [theme_picker_title]
 Pilih Tema
 [skip_button]
@@ -1048,9 +798,6 @@ Pick a short alias for this account on the current sync server.
 [sync_alias_register_button]
 Register Alias
 ---
-[sync_alias_registered]
-Alias registered.
----
 [sync_alias_failed]
 Could not register alias.
 ---
@@ -1065,6 +812,112 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+---
+[practice_title]
+Latihan
+---
+[practice_music_title]
+Musik latar
+---
+[practice_start_button]
+Mulai latihan
+---
+[practice_manual_button]
+Manual
+---
+[practice_configure_button]
+Konfigurasi latihan
+---
+[practice_music_practice_list_title]
+Gunakan musik untuk latihan
+---
+[practice_guide_music]
+Pilih musik untuk tiap latihan.
+---
+[practice_guide_carousel]
+Gunakan panah untuk memilih latihan.
+---
+[practice_guide_start]
+Mulai latihan yang dipilih.
+---
+[practice_guide_manual_config]
+Buka panduan atau pengaturan.
+---
+[habits_done_count_label]
+%d / %d kebiasaan selesai
+---
+[habit_new_button]
++ Kebiasaan Baru
+---
+[habit_reorder_title]
+Urutkan kebiasaan
+---
+[habit_mixed_practice_label]
+Latihan campuran
+---
+[habit_default_name_format]
+Kebiasaan %d
+---
+[habit_default_meditation_name]
+Meditasi
+---
+[habit_default_meditation_description]
+Sesi pernapasan dan meditasi.
+---
+[habit_default_sun_salutation_name]
+Salam Matahari
+---
+[habit_default_sun_salutation_description]
+Sesi latihan Salam Matahari.
+---
+[pet_gamification_title]
+Gamifikasi sedang dibuat...
+---
+[pet_gamification_subtitle]
+Pratinjau saja. Tab ini belum diterapkan.
+---
+[habits_guide_overview_progress]
+Total kebiasaan hari ini.
+---
+[habits_guide_overview_grid]
+Ketuk kotak untuk menandai hari.
+---
+[habits_guide_meditation_views]
+Tampilan mingguan dan kalender menunjukkan kebiasaan ini.
+---
+[habits_guide_meditation_statistics]
+Statistik menunjukkan progres terkait.
+---
+[habits_guide_meditation_edit]
+Edit mengubah nama, warna, dan tautan.
+---
+[habits_guide_meditation_session_data]
+Data sesi berasal dari latihan selesai.
+---
+[session_count_singular]
+%d sesi
+---
+[session_count_plural]
+%d sesi
+---
+[results_rounds]
+%d ronde
+---
+[results_best]
+terbaik %ds
+---
+[results_avg]
+rata %ds
+---
+[round_result_label]
+Ronde %d  %ds
+---
+[starting_in]
+MULAI DALAM %2d
+---
+[session_round_label]
+RONDE %d
 ---
 [notification_starting_seconds]
 Mulai: %ds
@@ -1081,4 +934,12 @@ Tarik napas: %ds
 [notification_results]
 Results
 ---
+[deleted_sessions]
+%lld sesi dihapus
+---
+[habit_stats_day_singular]
+%d hari
+---
+[habit_stats_day_plural]
+%d hari
 ---

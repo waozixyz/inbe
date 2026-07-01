@@ -6,6 +6,7 @@
 #include "flint_theme.h"
 #include "flint_dpi.h"
 #include "flint_ui.h"
+#include "practices/meditation/meditation_music.h"
 #include "practices/practice_registry.h"
 
 #include <stdio.h>
@@ -301,7 +302,7 @@ session_start(InbeApp *app)
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     app->saved_pause_seconds = app->inbe.pause_seconds;
     app->inbe.pause_seconds = 3;
-    session_update_circle_bounds_for_view(&app->inbe, 0, flint_px(56) + 80);
+    session_update_circle_bounds_for_view(&app->inbe, flint_ui_title_bar_height(), flint_px(56) + 80);
     app_switch_screen(app, InbeScreenSession);
     app->session_paused = 0;
     app->results_saved = 0;
@@ -312,6 +313,7 @@ session_start(InbeApp *app)
     android_keep_screen_on();
 #endif
     TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background);
+    meditation_music_start_session(app);
     practice_background_start(app, PRACTICE_WHM);
 #if ANDROID_BUILD
     whm_last_notification_text[0] = '\0';
@@ -423,6 +425,7 @@ finish_round(InbeApp *app)
         reset_round_start(&app->inbe);
     } else {
         if(session_ensure_results_saved(app)) {
+            meditation_music_stop(app);
 #if ANDROID_BUILD
             android_allow_screen_off();
             stop_android_background_session(app);
@@ -455,7 +458,7 @@ session_step_back(InbeApp *app)
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     app->saved_pause_seconds = pause_seconds;
     app->inbe.pause_seconds = 3;
-    session_update_circle_bounds_for_view(&app->inbe, 0, flint_px(56) + 80);
+    session_update_circle_bounds_for_view(&app->inbe, flint_ui_title_bar_height(), flint_px(56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
@@ -640,7 +643,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
     const char *play_text = locale_get("play_button");
     const char *practice_text = practice_label(app->exercise_type);
-    const char *warning_text = "Work in progress";
+    const char *warning_text = locale_get("sun_salutation_work_in_progress");
     int font = FLINT_TEXT_16;
     int practice_font = flint_ui_font();
     int warning_font = flint_ui_font_small();
@@ -743,27 +746,11 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
 }
 
 static void
-draw_session_round_label(InbeApp *app)
+session_round_label(InbeApp *app, char *text, size_t text_size)
 {
-    char text[32];
-    char max_text[32];
-    int max_text_w;
-    int top_bar_left;
-    int top_bar_right;
-    int text_x;
-    int text_y;
-    int font = FLINT_TEXT_16;
-
-    locale_format(max_text, sizeof(max_text), "session_round_label", MaxRounds);
-    max_text_w = flint_text_measure(max_text, font);
-    locale_format(text, sizeof(text), "session_round_label", app->inbe.round + 1);
-
-    top_bar_left = flint_px(12) + flint_px(24) + flint_px(10) * 2;
-    top_bar_right = view_width - flint_px(56);
-    text_x = top_bar_left + (top_bar_right - top_bar_left - max_text_w) / 2;
-    text_y = flint_ui_text_y(text, flint_px(12), flint_px(24) + flint_px(10) * 2, font);
-
-    flint_text_draw(text, text_x, text_y, font, flint_theme_get_text());
+    if(text == NULL || text_size == 0)
+        return;
+    locale_format(text, text_size, "session_round_label", app->inbe.round + 1);
 }
 
 void
@@ -788,18 +775,20 @@ sound_icon_for_volume(InbeApp *app)
 static void
 stop_android_background_session(InbeApp *app)
 {
+    meditation_music_stop(app);
     practice_active_background_stop(app);
 }
 
 void
 session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 {
-    int return_hover = 0;
     int modal_result = 0;
     int breath_max_y = view_height - flint_px(44);
+    int title_h = flint_ui_title_bar_height();
+    char title[32];
 
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
+    session_round_label(app, title, sizeof(title));
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             app_init(app);
@@ -812,7 +801,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
                .id = 500,
                .x = view_width - flint_px(56),
-               .y = flint_px(12),
+               .y = (title_h - (flint_px(24) + flint_px(10) * 2)) / 2,
                .icon_size = flint_px(24),
                .icon_padding = flint_px(10),
                .icon = sound_icon_for_volume(app),
@@ -900,7 +889,6 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     draw_session_status(app, center_x, center_y);
-    draw_session_round_label(app);
 
     if(!app->session_paused && (
 #if defined(PLATFORM_WEB)

@@ -426,6 +426,9 @@ draw_habit_edit_screen(InbeApp *app)
                 habits_delete(&app->habits, index);
                 app_auto_sync(app);
             }
+            app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+            app->habits.scroll = 0;
+            save_settings(app);
             app_switch_screen(app, InbeScreenHabits);
         }
         return;

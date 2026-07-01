@@ -2,6 +2,7 @@
 
 #include "app.h"
 #include "flint_color.h"
+#include "flint_locale.h"
 #include "flint_scaling.h"
 #include "flint_text.h"
 #include "flint_theme.h"
@@ -23,8 +24,8 @@ pet_screen_ensure_assets(InbeApp *app)
 void
 pet_screen_draw(InbeApp *app)
 {
-    const char *text = "Gamification in progress...";
-    const char *subtext = "Preview only. This tab is not implemented yet.";
+    const char *text = locale_get("pet_gamification_title");
+    const char *subtext = locale_get("pet_gamification_subtitle");
     FlintUIParagraph paragraph;
     int reserved_bottom;
     int content_h;

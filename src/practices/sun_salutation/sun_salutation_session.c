@@ -5,6 +5,7 @@
 #include "flint_locale.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
+#include "practices/meditation/meditation_music.h"
 
 #include <stdio.h>
 
@@ -20,6 +21,7 @@ sun_salutation_exit_to_start(InbeApp *app)
     app->sun_salutation.repetition = 0;
     app->sun_salutation.step_ticks = 0;
     app->session_paused = 0;
+    meditation_music_stop(app);
     app_close_modal(app);
     app_switch_screen(app, InbeScreenStart);
 }
@@ -61,6 +63,7 @@ sun_salutation_practice_start(InbeApp *app)
     app->session_paused = 0;
     app_close_modal(app);
     app_switch_screen(app, InbeScreenSunSalutation);
+    meditation_music_start_session(app);
 }
 
 void
@@ -193,10 +196,9 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     int repetition;
     int repetitions;
     int pose_index;
-    int title_font = flint_ui_font();
     int text_w;
-    int return_hover = 0;
-    int content_top = flint_px(72);
+    int title_h = flint_ui_title_bar_height();
+    int content_top = title_h + flint_px(42);
     const char *warning_text = locale_get("sun_salutation_work_in_progress");
     int warning_font = flint_ui_font_small();
     int warning_y;
@@ -205,12 +207,6 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
 
     if(app == NULL)
         return;
-
-    if(ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                               flint_px(10), app->icons[UI_ICON_TYPE_RETURN], &return_hover)) {
-        sun_salutation_request_exit(app);
-        return;
-    }
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
         int modal_result = ui_draw_modal(locale_get("exit_session_title"),
@@ -252,15 +248,12 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     pose = app->sun_salutation.poses[pose_index];
 
     step_label = sun_salutation_step_label(step);
-    text_w = flint_text_measure(step_label, title_font);
-    if(text_w > view_width - flint_px(64))
-        title_font = flint_ui_font_small();
-    text_w = flint_text_measure(step_label, title_font);
-    flint_text_draw(step_label, center_x - text_w / 2,
-                    flint_ui_text_y(step_label, flint_px(12), flint_px(44), title_font),
-                    title_font, flint_theme_get_text());
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], step_label, title_h)) {
+        sun_salutation_request_exit(app);
+        return;
+    }
     text_w = flint_text_measure(warning_text, warning_font);
-    warning_y = flint_px(50);
+    warning_y = title_h + flint_px(6);
     flint_text_draw(warning_text, center_x - text_w / 2,
                     flint_ui_text_y(warning_text, warning_y, flint_px(28), warning_font),
                     warning_font, flint_theme_get_text());

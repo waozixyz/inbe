@@ -30,6 +30,11 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
 
     if(app->practice_tab == PRACTICE_TAB_CONFIG)
         app_leave_practice_config(app);
+    if(app->inbe.screen == InbeScreenHabits &&
+       app->habits.screen_mode == HABITS_SCREEN_REORDER) {
+        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+        app->habits.scroll = 0;
+    }
 
     app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
     if(app->main_tab == APP_MAIN_TAB_PRACTICE)
@@ -47,6 +52,12 @@ app_apply_nav_route(InbeApp *app, int route)
     if(app == NULL)
         return;
 
+    if(app->inbe.screen == InbeScreenHabits &&
+       app->habits.screen_mode == HABITS_SCREEN_REORDER) {
+        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+        app->habits.scroll = 0;
+    }
+
     switch(route) {
     case APP_NAV_ROUTE_PROFILE:
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
@@ -62,16 +73,12 @@ app_apply_nav_route(InbeApp *app, int route)
         break;
     case APP_NAV_ROUTE_HABITS:
         app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
-        if(app->habits.tab == HABIT_TAB_STATISTICS || app->habits.tab == HABIT_TAB_EDIT)
-            app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
-                                  ? HABIT_TAB_WEEKLY
-                                  : HABIT_TAB_MONTHLY;
         break;
     case APP_NAV_ROUTE_SETTINGS:
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         reset_settings_preview(app);
-        app->settings_tab = SETTINGS_TAB_SESSION;
+        app->settings_tab = SETTINGS_TAB_OVERVIEW;
         app->settings_scroll = 0;
         app_switch_screen(app, InbeScreenSettings);
         break;
@@ -89,6 +96,9 @@ int
 app_content_bottom_reserved(const InbeApp *app)
 {
     if(app == NULL)
+        return 0;
+    if(app->inbe.screen == InbeScreenHabits &&
+       app->habits.screen_mode == HABITS_SCREEN_REORDER)
         return 0;
     if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
         return 0;
@@ -115,6 +125,7 @@ app_has_fullscreen_overlay(const InbeApp *app)
         return 0;
     return app->modal.type == UIModalPracticeManual ||
            app->modal.type == UIModalPracticeConfig ||
+           app->modal.type == UIModalPracticeMusic ||
            app->modal.type == UIModalEditProgressiveStartSpeed;
 }
 
@@ -197,6 +208,9 @@ app_should_draw_bottom_nav(const InbeApp *app)
         return 0;
     if(app_has_fullscreen_overlay(app))
         return 0;
+    if(app->inbe.screen == InbeScreenHabits &&
+       app->habits.screen_mode == HABITS_SCREEN_REORDER)
+        return 0;
     return app_current_nav_route(app) != APP_NAV_ROUTE_NONE;
 }
 
@@ -226,6 +240,9 @@ app_draw_bottom_nav(InbeApp *app)
         DrawRectangle(0, view_height - app_android_bottom_nav_height(),
                       view_width, app_android_bottom_nav_height(), BLACK);
     if(!app_should_draw_bottom_nav(app))
+        return;
+    if(app->modal_input_block_frame == app->inbe.frame &&
+       IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         return;
     for(int i = 0; i < BOTTOM_NAV_ROUTE_COUNT; i++) {
         int route = routes[i];

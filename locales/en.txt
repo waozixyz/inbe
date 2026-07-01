@@ -1,9 +1,6 @@
 [app_title]
 Inner Breeze
 ---
-[tab_history]
-History
----
 [tab_profile]
 Profile
 ---
@@ -12,18 +9,6 @@ Habits
 ---
 [tab_practice]
 Practice
----
-[habit_add_button]
-Add Habit
----
-[habit_done_button]
-Done
----
-[habit_not_done_button]
-Mark Done
----
-[tab_manual]
-Tutorial
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Configure
 [profile_data_section]
 Data
 ---
-[profile_sync_section]
-Sync
----
 [profile_friends_count_format]
 %d friends
 ---
@@ -115,29 +97,11 @@ No leaderboard data
 [profile_practice_label]
 Practice
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
 My practices
 ---
 [profile_my_habits_title]
 My habits
----
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
 ---
 [profile_my_practices_title]
 My practices
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 Settings
----
-[tab_statistics]
-Statistics
 ---
 [play_button]
 PLAY
@@ -229,26 +190,8 @@ Meditation
 [meditation_manual_intro_text]
 Settle into a quiet seat and let this session be simple: arrive, breathe, and begin.
 ---
-[meditation_manual_text]
-Choose music if you want it. A gong marks the beginning and end.
----
-[meditation_music_settings_title]
-Meditation Music
----
-[meditation_music_section_title]
-Background Music
----
 [meditation_music_master_toggle]
 Meditation music
----
-[meditation_music_enabled_label]
-Play background music
----
-[meditation_music_shuffle_label]
-Random track
----
-[meditation_music_track_label]
-Track
 ---
 [meditation_music_download_button]
 Download music
@@ -307,9 +250,6 @@ BREATH
 [results_title]
 RESULTS
 ---
-[home_button]
-HOME
----
 [exit_session_title]
 Exit Session?
 ---
@@ -349,24 +289,6 @@ Exit
 [round_times_title]
 Round times
 ---
-[results_rounds]
-%d rounds
----
-[results_best]
-best %ds
----
-[results_avg]
-avg %ds
----
-[round_result_label]
-Round %d  %ds
----
-[starting_in]
-STARTING IN %2d
----
-[session_round_label]
-ROUND %d
----
 [settings_title]
 Settings
 ---
@@ -379,23 +301,11 @@ Breathing
 [settings_section_session]
 Session
 ---
-[settings_tab_app]
-App
----
-[settings_tab_theme]
-Theme
----
 [settings_tab_device]
 Device
 ---
-[settings_section_sound]
-Sound
----
 [settings_section_appearance]
 Appearance
----
-[settings_section_language]
-Language
 ---
 [settings_tab_about]
 About
@@ -411,42 +321,6 @@ Theme mode
 ---
 [theme_system]
 System
----
-[theme_sky]
-Sky
----
-[theme_ocean]
-Ocean
----
-[theme_forest]
-Forest
----
-[theme_sunset]
-Sunset
----
-[theme_lavender]
-Lavender
----
-[theme_cherry]
-Cherry
----
-[theme_dawn]
-Dawn
----
-[theme_sage]
-Sage
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Mint
----
-[theme_cobalt]
-Cobalt
 ---
 [orientation_label]
 Orientation
@@ -508,12 +382,6 @@ Double tap to breathe
 [double_tap_to_breathe_hint]
 Double tap screen to breathe
 ---
-[session_count_singular]
-%d session
----
-[session_count_plural]
-%d sessions
----
 [no_sessions]
 No sessions
 ---
@@ -547,18 +415,6 @@ Choose Language
 [next_button]
 Next
 ---
-[coming_soon_label]
-Coming soon...
----
-[total_sessions_label]
-Total Sessions: %d
----
-[data_size_label]
-Data Size: %s
----
-[storage_label]
-Storage: %s
----
 [export_data_button]
 Export Data
 ---
@@ -582,9 +438,6 @@ Import failed
 ---
 [imported_data]
 Imported data
----
-[imported_sessions]
-Imported %d sessions
 ---
 [import_invalid_file]
 Invalid export file
@@ -616,9 +469,6 @@ No data to delete
 [delete_cancelled]
 Delete cancelled
 ---
-[deleted_sessions]
-Deleted %lld sessions
----
 [toggle_off]
 OFF
 ---
@@ -637,9 +487,6 @@ On-screen keyboard
 [tutorial_title]
 Tutorial
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 Method
 ---
@@ -651,9 +498,6 @@ Step 2: Exhale & Hold
 ---
 [tutorial_step3_title]
 Step 3: Inhale & Hold
----
-[tutorial_progressive_speed_title]
-Progressive Speed
 ---
 [tutorial_step_intro]
 This breathing practice is based on the Wim Hof Method.
@@ -680,11 +524,6 @@ Breathe in and out 30 times.
 
 Find a rhythm that feels natural to you: steady and quick, while still breathing fully.
 ---
-[tutorial_step_progressive_speed]
-Progressive speed makes the first round easier to enter.
-
-When it is on, the first round starts slower, then gradually increases to your selected speed.
----
 [tutorial_step_exhale_hold]
 After 30 breaths, exhale and hold as long as you can.
 
@@ -695,53 +534,14 @@ Inhale fully and hold for 15 seconds.
 
 Exhale, and the next round will begin.
 ---
-[tutorial_skip_button]
-SKIP
----
-[tutorial_back_button]
-BACK
----
-[tutorial_next_button]
-NEXT
----
-[tutorial_finish_button]
-FINISH
----
-[tutorial_start_button]
-START NOW
----
 [share_sheet_title]
 Export Session Data
----
-[export_metadata_header]
-Inner Breeze Data Export
----
-[export_metadata_version]
-Version: %s
----
-[export_metadata_date]
-Export Date: %s
----
-[export_metadata_count]
-Session Count: %d
----
-[delete_history_title]
-Delete?
----
-[delete_session_message]
-Delete this session? This cannot be undone.
----
-[delete_round_message]
-Delete this round? This cannot be undone.
 ---
 [delete_button]
 Delete
 ---
 [clear_button]
 Clear
----
-[back_button]
-Back
 ---
 [close_button]
 Close
@@ -775,9 +575,6 @@ Could not import account key
 ---
 [sync_private_key_import_cancelled]
 Account key import cancelled
----
-[sync_liboqs_unavailable]
-liboqs is not built for this target.
 ---
 [sync_public_id_label]
 Public ID
@@ -821,9 +618,6 @@ Save Alias
 [sync_alias_saved]
 Alias saved
 ---
-[sync_alias_registered]
-Alias registered
----
 [sync_alias_failed]
 Alias unavailable or remote failed
 ---
@@ -860,17 +654,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-Remote sync failed
----
-[sync_unavailable]
-Remote sync is not available on this platform
----
 [sync_no_account]
 Create an account before connecting
----
-[sync_auth_failed]
-Remote rejected this account
 ---
 [sync_backup_warning]
 Save this private key somewhere you control. Anyone with it can claim this account.
@@ -965,9 +750,6 @@ Delete this habit? This cannot be undone.
 [habit_delete_button]
 Delete Habit
 ---
-[habit_add_new_option]
-Add new habit
----
 [habit_load_more_button]
 Load more
 ---
@@ -1007,35 +789,6 @@ Total hold
 [habit_stats_best_streak]
 Best streak
 ---
-[habit_stats_day_singular]
-%d day
----
-[habit_stats_day_plural]
-%d days
----[reset_button]
-Reset
----
-[practice_guide_dropdown]
-Choose your practice here.
----
-[practice_guide_manual]
-Use this manual icon to open the tutorial before starting.
----
-[practice_guide_config]
-Use this wrench icon to adjust the practice configuration.
----
-[habits_guide_dropdown]
-Select habits here or create a new one.
----
-[habits_guide_practice_list]
-A habit can include session data from your practices.
----
-[habits_guide_views]
-Choose Weekly or Calendar to review your habit.
----
-[habits_guide_statistics]
-View habit statistics here.
----
 [profile_guide_account]
 Configure your sync account here.
 ---
@@ -1048,15 +801,6 @@ Open friends and leaderboard from here.
 [profile_guide_social_no_account]
 Create a sync account to unlock friends and leaderboard.
 ---
-[nav_mode_label]
-Navigation
----
-[nav_mode_dropdown]
-Dropdown
----
-[nav_mode_tabbar]
-Tabs
----
 [transition_label]
 Transition
 ---
@@ -1068,6 +812,111 @@ Fade
 ---
 [theme_picker_title]
 Choose Theme
+---
+[practice_title]
+Practice
+---
+[practice_music_title]
+Background music
+---
+[practice_start_button]
+Start Practice
+---
+[practice_manual_button]
+Manual
+---
+[practice_configure_button]
+Configure Practice
+---
+[practice_music_practice_list_title]
+Use music for practices
+---
+[practice_guide_music]
+Choose music for each practice.
+---
+[practice_guide_carousel]
+Use arrows to choose a practice.
+---
+[practice_guide_start]
+Start the selected practice.
+---
+[practice_guide_manual_config]
+Open the manual or settings.
+---
+[habits_done_count_label]
+%d / %d habits done
+---
+[habit_new_button]
++ New Habit
+---
+[habit_reorder_title]
+Reorder habits
+---
+[habit_mixed_practice_label]
+Mixed practice
+---
+[habit_default_name_format]
+Habit %d
+---
+[habit_default_meditation_name]
+Meditation
+---
+[habit_default_meditation_description]
+Breathing and meditation sessions.
+---
+[habit_default_sun_salutation_name]
+Sun Salutation
+---
+[habit_default_sun_salutation_description]
+Sun Salutation practice sessions.
+---
+[pet_gamification_title]
+Gamification in progress...
+---
+[pet_gamification_subtitle]
+Preview only. This tab is not implemented yet.
+---
+[habits_guide_overview_progress]
+Today habit total.
+---
+[habits_guide_overview_grid]
+Tap squares to mark days done.
+---
+[habits_guide_meditation_views]
+Weekly and calendar views show this habit.
+---
+[habits_guide_meditation_statistics]
+Statistics shows linked practice progress.
+---
+[habits_guide_meditation_edit]
+Edit changes the habit name, color, and links.
+---
+[habits_guide_meditation_session_data]
+Session data comes from completed practices.
+---
+[session_count_singular]
+%d session
+---
+[session_count_plural]
+%d sessions
+---
+[results_rounds]
+%d rounds
+---
+[results_best]
+best %ds
+---
+[results_avg]
+avg %ds
+---
+[round_result_label]
+Round %d  %ds
+---
+[starting_in]
+STARTING IN %2d
+---
+[session_round_label]
+ROUND %d
 ---
 [notification_starting_seconds]
 Starting: %ds
@@ -1083,4 +932,13 @@ Breath in: %ds
 ---
 [notification_results]
 Results
+---
+[deleted_sessions]
+Deleted %lld sessions
+---
+[habit_stats_day_singular]
+%d day
+---
+[habit_stats_day_plural]
+%d days
 ---

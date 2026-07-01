@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 
 enum {
-    MAX_KEYS = 1024,
+    MAX_KEYS = 2048,
     MAX_KEY_LEN = 128,
     MAX_PATH_LEN = 512
 };
@@ -145,7 +145,8 @@ check_locale_file(const LocaleKeys *english, const char *path)
 }
 
 static void
-scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
+scan_locale_literal_calls_in_file(const LocaleKeys *english, const char *path,
+                                  const char *pattern)
 {
     FILE *fp;
     char line[2048];
@@ -158,12 +159,21 @@ scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
     while(fgets(line, sizeof(line), fp) != NULL) {
         char *cursor = line;
         line_no++;
-        while((cursor = strstr(cursor, "locale_get(\"")) != NULL) {
+        while((cursor = strstr(cursor, pattern)) != NULL) {
             char key[MAX_KEY_LEN];
-            char *start = cursor + strlen("locale_get(\"");
-            char *end = strchr(start, '"');
+            char *start = cursor + strlen(pattern);
+            char *end;
             size_t len;
 
+            if(*start != '"') {
+                if(strcmp(pattern, "locale_format(") != 0 ||
+                   (start = strchr(start, '"')) == NULL) {
+                    cursor = start != NULL ? start : cursor + strlen(pattern);
+                    continue;
+                }
+            }
+            start++;
+            end = strchr(start, '"');
             if(end == NULL)
                 break;
             len = (size_t)(end - start);
@@ -172,7 +182,7 @@ scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
             memcpy(key, start, len);
             key[len] = '\0';
             if(!keys_contains(english, key)) {
-                fprintf(stderr, "FAIL %s:%d locale_get missing English key [%s]\n",
+                fprintf(stderr, "FAIL %s:%d locale call missing English key [%s]\n",
                         path, line_no, key);
                 failures++;
             }
@@ -180,6 +190,160 @@ scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
         }
     }
     fclose(fp);
+}
+
+static void
+scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
+{
+    scan_locale_literal_calls_in_file(english, path, "locale_get(");
+    scan_locale_literal_calls_in_file(english, path, "locale_format(");
+}
+
+static void
+scan_used_locale_literal_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
+                                       const char *path, const char *pattern)
+{
+    FILE *fp;
+    char line[2048];
+
+    fp = fopen(path, "rb");
+    if(fp == NULL)
+        return;
+
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        char *cursor = line;
+        while((cursor = strstr(cursor, pattern)) != NULL) {
+            char key[MAX_KEY_LEN];
+            char *start = cursor + strlen(pattern);
+            char *end;
+            size_t len;
+
+            if(*start != '"') {
+                if(strcmp(pattern, "locale_format(") != 0 ||
+                   (start = strchr(start, '"')) == NULL) {
+                    cursor = start != NULL ? start : cursor + strlen(pattern);
+                    continue;
+                }
+            }
+            start++;
+            end = strchr(start, '"');
+            if(end == NULL)
+                break;
+            len = (size_t)(end - start);
+            if(len >= sizeof(key))
+                len = sizeof(key) - 1;
+            memcpy(key, start, len);
+            key[len] = '\0';
+            if(keys_contains(english, key))
+                keys_add(used, key);
+            cursor = end + 1;
+        }
+    }
+    fclose(fp);
+}
+
+static void
+scan_used_locale_get_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
+                                   const char *path)
+{
+    scan_used_locale_literal_calls_in_file(english, used, path, "locale_get(");
+    scan_used_locale_literal_calls_in_file(english, used, path, "locale_format(");
+}
+
+static void
+scan_used_locale_get_calls_in_dir(const LocaleKeys *english, LocaleKeys *used,
+                                  const char *dir_path)
+{
+    DIR *dir;
+    struct dirent *entry;
+
+    dir = opendir(dir_path);
+    if(dir == NULL)
+        return;
+    while((entry = readdir(dir)) != NULL) {
+        char path[MAX_PATH_LEN];
+        struct stat st;
+        const char *name = entry->d_name;
+        size_t len = strlen(name);
+
+        if(strcmp(name, ".") == 0 || strcmp(name, "..") == 0)
+            continue;
+        snprintf(path, sizeof(path), "%s/%s", dir_path, name);
+        if(stat(path, &st) != 0)
+            continue;
+        if(S_ISDIR(st.st_mode)) {
+            scan_used_locale_get_calls_in_dir(english, used, path);
+        } else if(len > 2 && strcmp(name + len - 2, ".c") == 0) {
+            scan_used_locale_get_calls_in_file(english, used, path);
+        } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
+            scan_used_locale_get_calls_in_file(english, used, path);
+        }
+    }
+    closedir(dir);
+}
+
+static void
+add_dynamic_locale_keys(LocaleKeys *used)
+{
+    static const char *const keys[] = {
+        "exercise_wim_hof",
+        "exercise_meditation",
+        "exercise_sun_salutation",
+        "profile_guide_social",
+        "profile_guide_social_no_account",
+        "meditation_music_download_button",
+        "meditation_music_redownload_button",
+        "sync_alias_title",
+        "sync_alias_change_title",
+        "sync_alias_message",
+        "sync_alias_change_message",
+        "sync_alias_register_button",
+        "sync_alias_save_button",
+        "skip_button",
+        "close_button",
+        "sync_review_using_remote",
+        "sync_review_keeping_local",
+        "habit_stats_no_rounds_month",
+        "habit_stats_no_rounds_week",
+        "habit_stats_day_singular",
+        "habit_stats_day_plural",
+        "session_count_singular",
+        "session_count_plural",
+        "deleted_sessions",
+        "sync_pull_ok",
+        "sync_pull_conflict",
+        "sync_push_ok",
+        "sync_push_failed",
+        "sync_sign_failed",
+        "sync_invalid_account",
+        "sync_server_unreachable",
+        "sync_server_error"
+    };
+
+    for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+        keys_add(used, keys[i]);
+    for(int i = 1; i <= 12; i++) {
+        char key[MAX_KEY_LEN];
+        snprintf(key, sizeof(key), "sun_salutation_step_%d", i);
+        keys_add(used, key);
+    }
+    keys_add(used, "tutorial_step_intro");
+    keys_add(used, "tutorial_step_method");
+    keys_add(used, "tutorial_step_breathe");
+    keys_add(used, "tutorial_step_exhale_hold");
+    keys_add(used, "tutorial_step_inhale_hold");
+}
+
+static void
+check_unused_english_keys(const LocaleKeys *english, const LocaleKeys *used)
+{
+    for(int i = 0; i < english->count; i++) {
+        if(!keys_contains(used, english->keys[i])) {
+            fprintf(stderr, "FAIL locales/en.txt unused key [%s]\n",
+                    english->keys[i]);
+            failures++;
+        }
+    }
 }
 
 static void
@@ -217,13 +381,19 @@ int
 main(void)
 {
     LocaleKeys english;
+    LocaleKeys used;
     DIR *dir;
     struct dirent *entry;
 
     if(!load_locale_keys("locales/en.txt", &english))
         return 1;
+    memset(&used, 0, sizeof(used));
     scan_locale_get_calls_in_dir(&english, "src");
-    scan_locale_get_calls_in_dir(&english, "flint/src");
+    scan_locale_get_calls_in_dir(&english, "vendor/flint/src");
+    scan_used_locale_get_calls_in_dir(&english, &used, "src");
+    scan_used_locale_get_calls_in_dir(&english, &used, "vendor/flint/src");
+    add_dynamic_locale_keys(&used);
+    check_unused_english_keys(&english, &used);
 
     dir = opendir("locales");
     if(dir == NULL) {

@@ -41,6 +41,7 @@ enum {
 };
 
 enum {
+    SETTINGS_TAB_OVERVIEW = -1,
     SETTINGS_TAB_SESSION = 0,
     SETTINGS_TAB_DEVICE,
     SETTINGS_TAB_THEME,
@@ -93,6 +94,7 @@ typedef enum {
     UIModalHabitCountingInfo,
     UIModalPracticeManual,
     UIModalPracticeConfig,
+    UIModalPracticeMusic,
     UIModalThemePicker,
     UIModalSyncReview,
     UIModalSyncAlias,
@@ -186,8 +188,9 @@ typedef struct MeditationPracticeState {
     int custom_minutes;
     int show_extend_controls;
     int music_enabled;
-    int music_shuffle;
     int music_track;
+    int music_practice_mask;
+    int music_practice_tracks[EXERCISE_COUNT];
     int music_loaded;
     int music_playing;
     int music_test_playing;
@@ -354,7 +357,7 @@ struct InbeApp {
     int session_paused;
     int backgrounded;
     int results_saved;
-    int modal_open_frame;
+    int modal_input_block_frame;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;

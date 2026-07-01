@@ -1,9 +1,6 @@
 [app_title]
 Inner Breeze
 ---
-[tab_history]
-기록
----
 [tab_profile]
 프로필
 ---
@@ -12,18 +9,6 @@ Inner Breeze
 ---
 [tab_practice]
 연습
----
-[habit_add_button]
-습관 추가
----
-[habit_done_button]
-완료
----
-[habit_not_done_button]
-완료로 표시
----
-[tab_manual]
-튜토리얼
 ---
 [tab_pet]
 Pet
@@ -88,9 +73,6 @@ Pet
 [profile_data_section]
 데이터
 ---
-[profile_sync_section]
-동기화
----
 [profile_friends_count_format]
 친구 %d명
 ---
@@ -115,32 +97,14 @@ Pet
 [profile_practice_label]
 연습
 ---
-[profile_my_habits_button]
-My habits
----
 [profile_my_practices_button]
-My practices
+내 연습
 ---
 [profile_my_habits_title]
 My habits
 ---
-[profile_habits_section]
-Habits
----
-[profile_habits_today_format]
-%d / %d done today
----
-[profile_habit_done_today]
-Done
----
-[profile_habit_not_done_today]
-Not done
----
-[profile_manage_habits_button]
-Manage habits
----
 [profile_my_practices_title]
-My practices
+내 연습
 ---
 [move_up_button]
 Up
@@ -150,9 +114,6 @@ Down
 ---
 [tab_settings]
 설정
----
-[tab_statistics]
-통계
 ---
 [play_button]
 시작
@@ -229,26 +190,8 @@ Sun Salutation
 [meditation_manual_intro_text]
 호흡, 안정, 알아차림을 위한 간단한 명상 연습입니다.
 ---
-[meditation_manual_text]
-원하면 음악을 선택하세요. 징 소리가 시작과 끝을 알립니다.
----
-[meditation_music_settings_title]
-명상 음악
----
-[meditation_music_section_title]
-배경 음악
----
 [meditation_music_master_toggle]
 명상 음악
----
-[meditation_music_enabled_label]
-배경 음악 재생
----
-[meditation_music_shuffle_label]
-랜덤 트랙
----
-[meditation_music_track_label]
-트랙
 ---
 [meditation_music_download_button]
 음악 다운로드
@@ -304,9 +247,6 @@ Finish
 [results_title]
 결과
 ---
-[home_button]
-홈
----
 [exit_session_title]
 세션을 종료하시겠습니까?
 ---
@@ -343,24 +283,6 @@ Finish
 [round_times_title]
 라운드 시간
 ---
-[results_rounds]
-%d 라운드
----
-[results_best]
-최고 %ds
----
-[results_avg]
-평균 %ds
----
-[round_result_label]
-%d 라운드  %ds
----
-[starting_in]
-%2d초 후 시작
----
-[session_round_label]
-%d 라운드
----
 [settings_title]
 설정
 ---
@@ -373,23 +295,11 @@ Finish
 [settings_section_session]
 세션
 ---
-[settings_tab_app]
-앱
----
-[settings_tab_theme]
-테마
----
 [settings_tab_device]
 기기
 ---
-[settings_section_sound]
-사운드
----
 [settings_section_appearance]
 외관
----
-[settings_section_language]
-언어
 ---
 [settings_tab_about]
 정보
@@ -405,42 +315,6 @@ Finish
 ---
 [theme_system]
 시스템
----
-[theme_sky]
-하늘
----
-[theme_ocean]
-바다
----
-[theme_forest]
-숲
----
-[theme_sunset]
-일몰
----
-[theme_lavender]
-라벤더
----
-[theme_cherry]
-체리
----
-[theme_dawn]
-새벽
----
-[theme_sage]
-세이지
----
-[theme_sepia]
-세피아
----
-[theme_mono]
-모노
----
-[theme_mint]
-민트
----
-[theme_cobalt]
-코발트
 ---
 [orientation_label]
 화면 방향
@@ -502,12 +376,6 @@ Finish
 [double_tap_to_breathe_hint]
 화면을 두 번 탭해 호흡
 ---
-[session_count_singular]
-%d개 세션
----
-[session_count_plural]
-%d개 세션
----
 [no_sessions]
 세션 없음
 ---
@@ -541,18 +409,6 @@ Finish
 [next_button]
 다음
 ---
-[coming_soon_label]
-출시 예정
----
-[total_sessions_label]
-총 세션: %d
----
-[data_size_label]
-데이터 크기: %s
----
-[storage_label]
-저장소: %s
----
 [export_data_button]
 데이터 내보내기
 ---
@@ -576,9 +432,6 @@ Finish
 ---
 [imported_data]
 데이터를 가져왔습니다
----
-[imported_sessions]
-%d개 세션을 가져왔습니다
 ---
 [import_invalid_file]
 잘못된 내보내기 파일
@@ -610,9 +463,6 @@ Finish
 [delete_cancelled]
 삭제 취소됨
 ---
-[deleted_sessions]
-%lld개 세션 삭제됨
----
 [toggle_off]
 꺼짐
 ---
@@ -631,9 +481,6 @@ Finish
 [tutorial_title]
 튜토리얼
 ---
-[tutorial_page_label]
-%d/%d
----
 [tutorial_method_title]
 방법
 ---
@@ -645,9 +492,6 @@ Finish
 ---
 [tutorial_step3_title]
 3단계: 들이마시고 참기
----
-[tutorial_progressive_speed_title]
-점진적 속도
 ---
 [tutorial_step_intro]
 이 호흡법은 윔 호프 메서드를 기반으로 합니다.
@@ -673,11 +517,6 @@ Finish
 
 자연스럽게 느껴지는 리듬을 찾으세요. 안정적이고 빠르되, 충분히 호흡하세요.
 ---
-[tutorial_step_progressive_speed]
-점진적 속도는 첫 라운드를 쉽게 시작할 수 있게 해줍니다.
-
-켜면 첫 라운드가 느리게 시작된 후 점차 선택한 속도까지 증가합니다.
----
 [tutorial_step_exhale_hold]
 30번 호흡한 뒤 내쉬고 가능한 한 오래 멈춥니다.
 
@@ -688,44 +527,8 @@ Finish
 
 내쉬면 다음 라운드가 시작됩니다.
 ---
-[tutorial_skip_button]
-건너뛰기
----
-[tutorial_back_button]
-뒤로
----
-[tutorial_next_button]
-다음
----
-[tutorial_finish_button]
-완료
----
-[tutorial_start_button]
-지금 시작
----
 [share_sheet_title]
 세션 데이터 내보내기
----
-[export_metadata_header]
-Inner Breeze 데이터 내보내기
----
-[export_metadata_version]
-버전: %s
----
-[export_metadata_date]
-내보내기 날짜: %s
----
-[export_metadata_count]
-세션 수: %d
----
-[delete_history_title]
-삭제하시겠습니까?
----
-[delete_session_message]
-이 세션을 삭제하시겠습니까? 되돌릴 수 없습니다.
----
-[delete_round_message]
-이 라운드를 삭제하시겠습니까? 되돌릴 수 없습니다.
 ---
 [delete_button]
 삭제
@@ -735,9 +538,6 @@ Inner Breeze 데이터 내보내기
 ---
 [meditation_music_attribution]
 음악: Elijah_K.
----
-[back_button]
-뒤로
 ---
 [close_button]
 닫기
@@ -771,9 +571,6 @@ Inner Breeze 데이터 내보내기
 ---
 [sync_private_key_import_cancelled]
 계정 키 가져오기가 취소됨
----
-[sync_liboqs_unavailable]
-liboqs가 이 대상용으로 빌드되지 않았습니다.
 ---
 [sync_public_id_label]
 공개 ID
@@ -817,17 +614,8 @@ Keeping local data
 [sync_review_failed]
 Sync review failed
 ---
-[sync_failed]
-원격 동기화 실패
----
-[sync_unavailable]
-이 플랫폼에서는 원격 동기화를 사용할 수 없습니다
----
 [sync_no_account]
 연결하기 전에 계정을 만드세요
----
-[sync_auth_failed]
-원격에서 이 계정을 거부했습니다
 ---
 [sync_backup_warning]
 이 개인 키를 직접 관리하는 곳에 저장하세요. 이 키를 가진 사람은 누구나 이 계정을 가져갈 수 있습니다.
@@ -922,9 +710,6 @@ Description
 [habit_delete_button]
 습관 삭제
 ---
-[habit_add_new_option]
-새 습관 추가
----
 [habit_load_more_button]
 더 불러오기
 ---
@@ -964,35 +749,6 @@ Description
 [habit_stats_best_streak]
 최고 연속 기록
 ---
-[habit_stats_day_singular]
-%d일
----
-[habit_stats_day_plural]
-%d일
----[reset_button]
-초기화
----
-[practice_guide_dropdown]
-여기에서 연습을 선택하세요.
----
-[practice_guide_manual]
-연습을 시작하기 전에 튜토리얼을 읽고 전체 운동을 이해하세요.
----
-[practice_guide_config]
-필요에 맞게 연습 설정을 변경하세요.
----
-[habits_guide_dropdown]
-여기에서 습관을 선택하거나 새로 만들 수 있습니다.
----
-[habits_guide_practice_list]
-습관에는 연습 세션 데이터를 포함할 수 있습니다.
----
-[habits_guide_views]
-주간 또는 달력 보기로 습관을 확인하세요.
----
-[habits_guide_statistics]
-여기에서 습관 통계를 확인하세요.
----
 [profile_guide_account]
 여기에서 동기화 계정을 설정하세요.
 ---
@@ -1005,22 +761,16 @@ Manage data, habit order, and visible practices here.
 [profile_guide_social_no_account]
 친구와 순위표를 사용하려면 동기화 계정을 만드세요.
 ---
-[nav_mode_label]
-탐색
----
-[nav_mode_dropdown]
-드롭다운
----
-[nav_mode_tabbar]
-탭
----
 
 [transition_label]
 전환
+---
 [transition_none]
 없음
+---
 [transition_fade]
 페이드
+---
 [theme_picker_title]
 테마 선택
 [skip_button]
@@ -1047,9 +797,6 @@ Pick a short alias for this account on the current sync server.
 [sync_alias_register_button]
 Register Alias
 ---
-[sync_alias_registered]
-Alias registered.
----
 [sync_alias_failed]
 Could not register alias.
 ---
@@ -1064,6 +811,112 @@ Save Alias
 ---
 [sync_alias_saved]
 Alias saved
+---
+---
+[practice_title]
+연습
+---
+[practice_music_title]
+배경 음악
+---
+[practice_start_button]
+연습 시작
+---
+[practice_manual_button]
+설명서
+---
+[practice_configure_button]
+연습 설정
+---
+[practice_music_practice_list_title]
+연습에 음악 사용
+---
+[practice_guide_music]
+연습마다 음악을 선택합니다.
+---
+[practice_guide_carousel]
+화살표로 연습을 선택합니다.
+---
+[practice_guide_start]
+선택한 연습을 시작합니다.
+---
+[practice_guide_manual_config]
+안내서 또는 설정을 엽니다.
+---
+[habits_done_count_label]
+%d / %d개 습관 완료
+---
+[habit_new_button]
++ 새 습관
+---
+[habit_reorder_title]
+습관 순서 변경
+---
+[habit_mixed_practice_label]
+혼합 연습
+---
+[habit_default_name_format]
+습관 %d
+---
+[habit_default_meditation_name]
+명상
+---
+[habit_default_meditation_description]
+호흡과 명상 세션.
+---
+[habit_default_sun_salutation_name]
+태양 경배
+---
+[habit_default_sun_salutation_description]
+태양 경배 연습 세션.
+---
+[pet_gamification_title]
+게임화 준비 중...
+---
+[pet_gamification_subtitle]
+미리보기 전용입니다. 이 탭은 아직 구현되지 않았습니다.
+---
+[habits_guide_overview_progress]
+오늘의 습관 합계입니다.
+---
+[habits_guide_overview_grid]
+칸을 눌러 완료한 날을 표시합니다.
+---
+[habits_guide_meditation_views]
+주간 보기와 달력 보기에 이 습관이 표시됩니다.
+---
+[habits_guide_meditation_statistics]
+통계에서 연결된 진행 상황을 봅니다.
+---
+[habits_guide_meditation_edit]
+편집에서 이름, 색상, 연결을 바꿉니다.
+---
+[habits_guide_meditation_session_data]
+세션 데이터는 완료한 연습에서 옵니다.
+---
+[session_count_singular]
+%d개 세션
+---
+[session_count_plural]
+%d개 세션
+---
+[results_rounds]
+%d 라운드
+---
+[results_best]
+최고 %ds
+---
+[results_avg]
+평균 %ds
+---
+[round_result_label]
+%d 라운드  %ds
+---
+[starting_in]
+%2d초 후 시작
+---
+[session_round_label]
+%d 라운드
 ---
 [notification_starting_seconds]
 시작: %d초
@@ -1080,4 +933,12 @@ Alias saved
 [notification_results]
 Results
 ---
+[deleted_sessions]
+%lld개 세션 삭제됨
+---
+[habit_stats_day_singular]
+%d일
+---
+[habit_stats_day_plural]
+%d일
 ---

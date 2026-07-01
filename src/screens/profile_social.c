@@ -527,6 +527,34 @@ profile_social_draw_friends(InbeApp *app, int x, int w, int *y)
     }
 }
 
+int
+profile_social_friends_content_height(InbeApp *app, int content_w)
+{
+    int h = flint_px(16) + flint_px(30) + flint_px(46) +
+            flint_px(34) + flint_px(22);
+    int incoming_count;
+    int outgoing_count;
+    int friends_count;
+
+    (void)content_w;
+    if(app == NULL)
+        return h;
+    incoming_count = profile_json_array_count(app->profile_friend_requests_json, "incoming");
+    outgoing_count = profile_json_array_count(app->profile_friend_requests_json, "outgoing");
+    friends_count = profile_json_array_count(app->profile_friends_json, "friends");
+    if(incoming_count > 0)
+        h += flint_px(28) +
+             (incoming_count > 8 ? 8 : incoming_count) * flint_px(42) +
+             flint_px(16);
+    h += flint_px(28) +
+         (friends_count > 0 ? (friends_count > 8 ? 8 : friends_count) * flint_px(30)
+                            : flint_px(24));
+    if(outgoing_count > 0)
+        h += flint_px(16) + flint_px(28) +
+             (outgoing_count > 8 ? 8 : outgoing_count) * flint_px(30);
+    return h + flint_px(16);
+}
+
 static void
 profile_draw_leaderboard_value(int x, int w, int y, const char *value, int font)
 {
@@ -709,6 +737,68 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
                         flint_darken(flint_theme_get_text(), 35));
         *y += flint_px(24);
     }
+}
+
+static int
+profile_leaderboard_row_count(InbeApp *app, const char *json)
+{
+    const char *p = strstr(json != NULL ? json : "", "\"rows\"");
+    ProfileLeaderboardDrawRow draw_rows[24];
+    InbeSyncAccount account;
+    int has_account = sync_account_load(&account) && account.public_id[0] != '\0';
+    int self_seen = 0;
+    int rows = 0;
+
+    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+        char user_id[80];
+
+        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
+            break;
+        if(has_account && strcmp(user_id, account.public_id) == 0)
+            self_seen = 1;
+        snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s", user_id);
+        draw_rows[rows].alias[0] = '\0';
+        rows++;
+        p++;
+    }
+    if(has_account && !self_seen && rows < 24) {
+        snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s",
+                 account.public_id);
+        rows++;
+    }
+    p = strstr(app != NULL ? app->profile_friends_json : "", "\"friends\"");
+    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+        char user_id[80];
+
+        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
+            break;
+        if(!profile_leaderboard_row_seen(draw_rows, rows, user_id)) {
+            snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s",
+                     user_id);
+            rows++;
+        }
+        p++;
+    }
+    return rows > 12 ? 12 : rows;
+}
+
+int
+profile_social_leaderboard_content_height(InbeApp *app, int content_w)
+{
+    int metric_count;
+    int rows;
+
+    (void)content_w;
+    if(app == NULL)
+        return flint_px(160);
+    metric_count = profile_leaderboard_metric_count(app->profile_leaderboard_practice);
+    rows = profile_leaderboard_row_count(app, app->profile_leaderboard_json);
+    return flint_px(16) + flint_px(22) + flint_px(46) +
+           flint_px(34) + flint_px(10) +
+           (metric_count > 0 ? 0 : 0) +
+           flint_px(22) +
+           (rows > 0 ? rows * flint_px(30) : flint_px(24)) +
+           flint_px(16);
 }
 
 static void
