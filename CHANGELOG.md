@@ -1,4 +1,8 @@
 # Changelog
+## [1.7.10] - 2026-07-01
+#### Changed
+- updated whm banner
+
 ## [1.7.9] - 2026-07-01
 ### Fixed
 - improve sync review
