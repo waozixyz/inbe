@@ -1,4 +1,8 @@
 # Changelog
+## [1.7.9] - 2026-07-01
+### Fixed
+- improve sync review
+
 ## [1.7.8] - 2026-07-01
 ### Changed
 - Redesign the Practice home screen around carousel-style practice cards with explicit start, manual, configure, and music actions.

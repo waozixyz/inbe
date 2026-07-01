@@ -617,6 +617,9 @@ jobs:
       AMAZON_APP_ID: ${{ secrets.AMAZON_APP_ID }}
 
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Check Amazon Appstore Secrets
         run: |
           set -euo pipefail
@@ -633,13 +636,15 @@ jobs:
           name: release-android
           path: build/release/android
 
-      - name: Upload APK to Amazon Appstore
-        uses: galonga/upload-amazon-appstore@v1.0.4
+      - name: Set up Node
+        uses: actions/setup-node@v4
         with:
-          clientId: ${{ env.AMAZON_CLIENT_ID }}
-          clientSecret: ${{ env.AMAZON_CLIENT_SECRET }}
-          appId: ${{ env.AMAZON_APP_ID }}
-          releaseFile: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
+          node-version: '24'
+
+      - name: Upload APK to Amazon Appstore
+        env:
+          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
+        run: node scripts/upload-amazon-appstore.mjs
 
   publish-chrome-web-store:
     name: Publish Chrome Web Store

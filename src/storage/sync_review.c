@@ -822,9 +822,11 @@ storage_apply_pending_sync_review(int use_remote)
     if(!use_remote) {
         set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "");
         storage_sync_review_delete_json();
-        set_meta(STORAGE_SYNC_LAST_SERVER_HASH_KEY, "");
-        storage_reset_sync_state();
-        set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 1);
+        set_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0);
+        set_meta_int64(STORAGE_SYNC_FULL_REPLACE_KEY, 0);
+        exec_sql("DELETE FROM sync_outbox");
+        g_storage.pending_sync_outbox_seq = 0;
+        storage_schedule_persist();
         free(json);
         return 1;
     }
