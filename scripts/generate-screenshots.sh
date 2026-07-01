@@ -8,13 +8,17 @@ DATA_BASE="$OUT_DIR/screenshot-data"
 
 SCENES=(
   "home:01-home:0:0"
-  "calendar_meditation:02-calendar-meditation:1:0"
-  "habits_stats:03-habits-statistics:2:1"
-  "theme_selection:04-theme-selection:0:0"
-  "cobalt_dark:05-cobalt-dark:11:1"
-  "tutorial_whm_step0:06-wim-hof-step-0:3:0"
-  "tutorial_whm_step2:07-wim-hof-step-2:7:1"
-  "tutorial_meditation:08-meditation-step-0:4:0"
+  "background_music:02-background-music:1:0"
+  "practice_config_whm:03-wim-hof-config:2:0"
+  "practice_manual_whm:04-wim-hof-manual:3:0"
+  "wim_hof_session:05-wim-hof-session:11:1"
+  "calendar_meditation:06-calendar-meditation:1:0"
+  "habits_stats:07-habits-statistics:2:1"
+  "profile_data:08-profile-data:0:0"
+  "profile_practices:09-profile-practices:4:0"
+  "profile_sync_account:10-configure-account:7:1"
+  "settings_overview:11-settings-overview:0:0"
+  "theme_selection:12-theme-selection:0:0"
 )
 
 BUCKETS=(
@@ -152,10 +156,10 @@ EOF
       for day_offset in {0..27}; do
         local_date=$(date -d "$day_offset days ago" +%Y%m%d)
         completed=$((RANDOM % 2))  # Random 0 or 1
-        count=$((completed > 0 ? 1 + (RANDOM % 3) : 0))  # 1-3 if completed, 0 otherwise
+        habit_day_count=$((completed > 0 ? 1 + (RANDOM % 3) : 0))  # 1-3 if completed, 0 otherwise
         updated_at=$(date -d "$day_offset days ago" +%s)
 
-        sqlite3 "$data_root/inbe.db" "INSERT INTO habit_days(habit_id, local_date, completed, count, session_count, updated_at) VALUES ('$habit_id', $local_date, $completed, $count, 0, $updated_at);"
+        sqlite3 "$data_root/inbe.db" "INSERT INTO habit_days(habit_id, local_date, completed, count, session_count, updated_at) VALUES ('$habit_id', $local_date, $completed, $habit_day_count, 0, $updated_at);"
       done
     done
 
@@ -207,6 +211,7 @@ EOF
     done
   fi
 
+  set +e
   INBE_DATA_ROOT="$data_root" xvfb-run -a -s "-screen 0 ${width}x${height}x24" \
     "$BIN" \
     --screenshot "$output" \
@@ -215,6 +220,12 @@ EOF
     --screenshot-height "$height" \
     --screenshot-theme "$theme" \
     --screenshot-dark "$dark"
+  app_status=$?
+  set -e
+  if [[ "$app_status" -ne 0 && ! -s "$output" ]]; then
+    echo "Screenshot app failed for scene '$scene' with status $app_status" >&2
+    exit "$app_status"
+  fi
 }
 
 count=0

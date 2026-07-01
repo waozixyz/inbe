@@ -384,7 +384,7 @@ session_discard_saved_results(InbeApp *app)
         return;
 
     if(app->results_saved && app->results_path[0] != '\0') {
-        if(data_delete_session(app->results_path)) {
+        if(data_discard_session(app->results_path)) {
             app->results_saved = 0;
             app->results_path[0] = '\0';
         }

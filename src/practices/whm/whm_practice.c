@@ -12,6 +12,8 @@ whm_practice_init(InbeApp *app)
         app->whm.image_1 = app_load_asset_texture("practices/whm/1.jpg");
     if(app->whm.image_2.id == 0)
         app->whm.image_2 = app_load_asset_texture("practices/whm/2.jpg");
+    if(app->whm.banner.id == 0)
+        app->whm.banner = app_load_asset_texture("practices/whm/banner.png");
 }
 
 void
@@ -21,6 +23,7 @@ whm_practice_destroy(InbeApp *app)
         return;
     app_unload_texture(app->whm.image_1);
     app_unload_texture(app->whm.image_2);
+    app_unload_texture(app->whm.banner);
 }
 
 void
