@@ -161,6 +161,13 @@ data_delete_session(const char *path)
 }
 
 int
+data_discard_session(const char *path)
+{
+    data_init();
+    return storage_discard_session(path);
+}
+
+int
 data_has_any(void)
 {
     data_init();
