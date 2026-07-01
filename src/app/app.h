@@ -176,7 +176,6 @@ typedef enum AppNavRoute {
 typedef struct WhmPracticeState {
     Texture2D image_1;
     Texture2D image_2;
-    Texture2D banner;
 } WhmPracticeState;
 
 typedef struct MeditationPracticeState {

@@ -33,7 +33,6 @@ set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
     assets/practices/whm/1.jpg
     assets/practices/whm/2.jpg
-    assets/practices/whm/banner.png
     assets/practices/meditation/1.jpg
     assets/pet/egg1.png
     assets/practices/sunsalutation/pos_0001.png

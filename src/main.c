@@ -470,35 +470,10 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->settings_scroll = 0;
     app->manual_scroll = 0;
     app->tutorial_step = 0;
-    app->profile_guide_seen = 1;
-    app->habits_guide_seen = 1;
-    app->tutorial_seen = 1;
     screenshot_seed_habits(app);
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "background_music") == 0) {
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->exercise_type = EXERCISE_MEDITATION;
-        app->practice_tab = PRACTICE_TAB_PLAY;
-        app->inbe.screen = InbeScreenStart;
-        app_open_modal(app, UIModalPracticeMusic);
-    } else if(strcmp(request->scene, "practice_config_whm") == 0) {
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->exercise_type = EXERCISE_WIM_HOF;
-        app->practice_tab = PRACTICE_TAB_CONFIG;
-        app->inbe.screen = InbeScreenStart;
-        app_open_modal(app, UIModalPracticeConfig);
-    } else if(strcmp(request->scene, "practice_manual_whm") == 0) {
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->exercise_type = EXERCISE_WIM_HOF;
-        app->practice_tab = PRACTICE_TAB_MANUAL;
-        app->inbe.screen = InbeScreenStart;
-        app_open_modal(app, UIModalPracticeManual);
-    } else if(strcmp(request->scene, "wim_hof_session") == 0) {
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->exercise_type = EXERCISE_WIM_HOF;
-        app->inbe.screen = InbeScreenSession;
-    } else if(strcmp(request->scene, "calendar_meditation") == 0) {
+    if(strcmp(request->scene, "calendar_meditation") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->inbe.screen = InbeScreenHabits;
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
@@ -510,22 +485,6 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_THEME;
         app->inbe.screen = InbeScreenSettings;
-    } else if(strcmp(request->scene, "settings_overview") == 0) {
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->settings_tab = SETTINGS_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenSettings;
-    } else if(strcmp(request->scene, "profile_data") == 0) {
-        app->profile_view = PROFILE_VIEW_DATA;
-        app->profile_tab = PROFILE_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenProfile;
-    } else if(strcmp(request->scene, "profile_practices") == 0) {
-        app->profile_view = PROFILE_VIEW_PRACTICES;
-        app->profile_tab = PROFILE_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenProfile;
-    } else if(strcmp(request->scene, "profile_sync_account") == 0) {
-        app->profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
-        app->profile_tab = PROFILE_TAB_OVERVIEW;
-        app->inbe.screen = InbeScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, FLINT_THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;

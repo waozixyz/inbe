@@ -295,14 +295,6 @@ mark_local_session_only_pending(const char *root)
 }
 
 static void
-mark_pending_payload_in_flight(void)
-{
-    char *payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_true("pending payload builds", payload != NULL);
-    storage_free_sync_payload_json(payload);
-}
-
-static void
 seed_local_yoga_data(const char *root)
 {
     check_true("seed local yoga data",
@@ -421,36 +413,57 @@ remote_tiny_session_snapshot_response(void)
 }
 
 static void
-test_full_snapshot_with_pending_local_edits_syncs_without_review(void)
+test_full_snapshot_waits_for_review(void)
 {
     char root[1024];
+    char *local_detail = NULL;
+    char *remote_detail = NULL;
+    char *diff_detail = NULL;
 
     make_clean_root(root, sizeof(root), "pending");
     check_true("init pending db", storage_init(root));
     seed_local_data(root);
     mark_local_data_pending(root);
-    mark_pending_payload_in_flight();
 
     check_true("apply review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
-    check_false("review not pending for local edits", storage_sync_review_pending());
+    check_true("review pending", storage_sync_review_pending());
     check_int("local session preserved",
               read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='local-session'"), 1);
-    check_int("remote session merged",
-              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 1);
+    check_int("remote session not applied yet",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 0);
     check_int("local habit preserved",
               read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='local-habit'"), 1);
-    check_int("remote habit merged",
-              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 1);
-    check_int("pending local edits cleared after accepted sync",
-              read_db_count(root, "SELECT COUNT(*) FROM sync_outbox"), 0);
+    check_int("remote habit not applied yet",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 0);
+
+    check_true("review detail builds", storage_sync_review_details(&local_detail, &remote_detail));
+    check_contains("local detail session line", local_detail,
+                   "Meditation\n2026-06-24 11:20\nduration 40s");
+    check_contains("local detail habit day line", local_detail,
+                   "Habit days\nLocal Breath\n2026-06-24 count 4");
+    check_contains("remote detail session line", remote_detail,
+                   "Sun Salutation\n2026-06-24 10:00\nsession 1");
+    check_not_contains("remote detail hides unknown activity", remote_detail, "Unknown");
+    check_not_contains("remote detail hides numeric activity suffix", remote_detail,
+                       "Sun Salutation 2");
+    check_contains("remote detail habit day line", remote_detail,
+                   "Habit days\nRemote Breath\n2026-06-24 count 7");
+    check_true("review diff builds", storage_sync_review_diff(&diff_detail));
+    check_contains("diff local session", diff_detail, "- Meditation");
+    check_contains("diff remote session", diff_detail, "+ Sun Salutation");
+    check_contains("diff local habit day", diff_detail, "- Local Breath");
+    check_contains("diff remote habit day", diff_detail, "+ Remote Breath");
+    free(local_detail);
+    free(remote_detail);
+    free(diff_detail);
 
     storage_close();
     remove_tree(root);
 }
 
 static void
-test_tiny_pending_snapshot_syncs_without_review(void)
+test_tiny_pending_snapshot_applies_remote_without_review(void)
 {
     char root[1024];
 
@@ -458,16 +471,15 @@ test_tiny_pending_snapshot_syncs_without_review(void)
     check_true("init tiny pending db", storage_init(root));
     seed_local_session_only(root);
     mark_local_session_only_pending(root);
-    mark_pending_payload_in_flight();
 
     check_true("apply tiny review response",
                storage_apply_sync_response_json(remote_tiny_session_snapshot_response()));
     check_false("tiny review not pending", storage_sync_review_pending());
-    check_int("tiny local session preserved",
+    check_int("tiny local session replaced",
               read_db_count(root,
                             "SELECT COUNT(*) FROM sessions WHERE id='tiny-local-session'"),
-              1);
-    check_int("tiny remote session merged",
+              0);
+    check_int("tiny remote session applied",
               read_db_count(root,
                             "SELECT COUNT(*) FROM sessions WHERE id='tiny-remote-session'"),
               1);
@@ -486,7 +498,6 @@ test_empty_local_pending_snapshot_applies_remote(void)
     make_clean_root(root, sizeof(root), "empty-local-pending");
     check_true("init empty local pending db", storage_init(root));
     mark_empty_local_pending(root);
-    mark_pending_payload_in_flight();
 
     check_true("apply empty local review response",
                storage_apply_sync_response_json(remote_snapshot_response()));
@@ -512,7 +523,6 @@ test_local_habit_without_activity_does_not_force_review(void)
     check_true("init empty habit local db", storage_init(root));
     seed_local_habit_without_activity(root);
     mark_empty_local_pending(root);
-    mark_pending_payload_in_flight();
 
     check_true("apply empty habit local response",
                storage_apply_sync_response_json(remote_snapshot_response()));
@@ -607,11 +617,10 @@ test_remote_snapshot_keeps_review_for_pending_yoga_delete(void)
                exec_db_sql(root, "INSERT OR REPLACE INTO "
                                  "sync_outbox(entity_type,entity_id,local_date,queued_at)"
                                  "VALUES('habit','yoga',0,1782300000);"));
-    mark_pending_payload_in_flight();
     check_true("apply pending remote deleted yoga response",
                storage_apply_sync_response_json(deleted_only_remote_snapshot_response()));
-    check_false("pending yoga delete does not require review", storage_sync_review_pending());
-    check_int("pending yoga still local after merge",
+    check_true("pending yoga delete requires review", storage_sync_review_pending());
+    check_int("pending yoga still local until review",
               read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='yoga'"), 1);
 
     storage_close();
@@ -646,6 +655,71 @@ test_sync_payload_includes_v2_ops(void)
     check_contains("v2 payload session payload", payload, "\"payload\":{\"id\":\"local-session\"");
     check_contains("v2 payload keeps legacy habits", payload, "\"habits\":[");
     check_contains("v2 payload keeps legacy sessions", payload, "\"sessions\":[");
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_keep_local_requests_full_replace(void)
+{
+    char root[1024];
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "keep-local");
+    check_true("init keep local db", storage_init(root));
+    seed_local_data(root);
+    mark_local_data_pending(root);
+    check_true("apply keep local review response",
+               storage_apply_sync_response_json(remote_snapshot_response()));
+
+    check_true("keep local review choice", storage_apply_pending_sync_review(0));
+    check_false("review cleared after keep local", storage_sync_review_pending());
+    check_int("local session still present",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='local-session'"), 1);
+    check_int("remote session still absent",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 0);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_contains("keep local full replace flag", payload, "\"full_sync_requested\":true");
+    check_contains("keep local payload has local session", payload, "local-session");
+    check_contains("keep local payload has local habit", payload, "local-habit");
+    check_not_contains("keep local cleared stale server hash", payload, "last_server_state_hash");
+    storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_use_remote_replaces_local_data(void)
+{
+    char root[1024];
+    char *payload;
+
+    make_clean_root(root, sizeof(root), "use-remote");
+    check_true("init use remote db", storage_init(root));
+    seed_local_data(root);
+    mark_local_data_pending(root);
+    check_true("apply use remote review response",
+               storage_apply_sync_response_json(remote_snapshot_response()));
+
+    check_true("use remote review choice", storage_apply_pending_sync_review(1));
+    check_false("review cleared after use remote", storage_sync_review_pending());
+    check_int("local session removed",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='local-session'"), 0);
+    check_int("remote session applied",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='remote-session'"), 1);
+    check_int("local habit removed",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='local-habit'"), 0);
+    check_int("remote habit applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='remote-habit'"), 1);
+
+    payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
+    check_not_contains("use remote no full replace flag", payload, "full_sync_requested");
+    check_contains("use remote remembers server hash", payload,
+                   "\"last_server_state_hash\":\"remote-hash-001\"");
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -728,8 +802,8 @@ main(void)
     setenv("TZ", "UTC", 1);
     tzset();
 
-    test_full_snapshot_with_pending_local_edits_syncs_without_review();
-    test_tiny_pending_snapshot_syncs_without_review();
+    test_full_snapshot_waits_for_review();
+    test_tiny_pending_snapshot_applies_remote_without_review();
     test_empty_local_pending_snapshot_applies_remote();
     test_local_habit_without_activity_does_not_force_review();
     test_review_ignores_deleted_remote_rows();
@@ -737,6 +811,8 @@ main(void)
     test_remote_snapshot_removes_absent_local_yoga_without_pending_edits();
     test_remote_snapshot_keeps_review_for_pending_yoga_delete();
     test_sync_payload_includes_v2_ops();
+    test_keep_local_requests_full_replace();
+    test_use_remote_replaces_local_data();
     test_normal_response_records_server_hash();
     test_social_cache_is_server_authored_sync_state();
 

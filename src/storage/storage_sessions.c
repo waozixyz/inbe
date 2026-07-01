@@ -355,45 +355,6 @@ storage_delete_session(const char *path_or_id)
     return 1;
 }
 
-int
-storage_discard_session(const char *path_or_id)
-{
-    sqlite3_stmt *stmt = NULL;
-    char id[INBE_STORAGE_ID_SIZE];
-
-    if(!parse_db_id(path_or_id, id, sizeof(id)))
-        return 0;
-    if(!exec_sql("BEGIN IMMEDIATE"))
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1,
-                          &stmt, NULL) != SQLITE_OK) {
-        exec_sql("ROLLBACK");
-        return 0;
-    }
-    bind_text(stmt, 1, id);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    stmt = NULL;
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM sessions WHERE id=?1", -1, &stmt,
-                          NULL) != SQLITE_OK) {
-        exec_sql("ROLLBACK");
-        return 0;
-    }
-    bind_text(stmt, 1, id);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    stmt = NULL;
-    if(!exec_sql("COMMIT")) {
-        exec_sql("ROLLBACK");
-        return 0;
-    }
-    storage_materialize_session_habit_days();
-    exec_sql("DELETE FROM sync_outbox");
-    g_storage.pending_sync_outbox_seq = 0;
-    storage_schedule_persist();
-    return 1;
-}
-
 void
 storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user)
 {

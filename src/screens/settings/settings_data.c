@@ -952,6 +952,8 @@ settings_data_draw_modals(InbeApp *app)
                 app_close_modal(app);
                 if(use_remote)
                     app_reload_after_import(app, 0);
+                else
+                    app_auto_sync(app);
                 settings_screen_set_status_success(locale_get(use_remote ? "sync_review_using_remote" : "sync_review_keeping_local"), NULL);
             } else {
                 settings_screen_set_status_error(locale_get("sync_review_failed"));

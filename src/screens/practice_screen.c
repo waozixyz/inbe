@@ -112,89 +112,6 @@ practice_card_color_bottom(int exercise)
     }
 }
 
-static void
-practice_draw_card_banner(Texture2D texture, Rectangle dest)
-{
-    float src_w;
-    float src_h;
-    float scale;
-    Rectangle src;
-
-    if(texture.id == 0 || texture.width <= 0 || texture.height <= 0 ||
-       dest.width <= 0 || dest.height <= 0)
-        return;
-
-    src_w = (float)texture.width;
-    src_h = (float)texture.height;
-    scale = dest.width / src_w;
-    if(src_h * scale < dest.height)
-        scale = dest.height / src_h;
-    src.width = dest.width / scale;
-    src.height = dest.height / scale;
-    src.x = (src_w - src.width) / 2.0f;
-    src.y = (src_h - src.height) / 2.0f;
-
-    DrawTexturePro(texture, src, dest, (Vector2){0}, 0, WHITE);
-}
-
-static void
-practice_draw_card_label(Rectangle card, const char *title, const char *subtitle)
-{
-    int title_font = flint_ui_font();
-    int subtitle_font = flint_ui_font_small();
-    int pad_x = flint_px(12);
-    int pad_y = flint_px(6);
-    int gap = flint_px(4);
-    int title_w = flint_text_measure(title != NULL ? title : "", title_font);
-    int subtitle_w = subtitle != NULL ? flint_text_measure(subtitle, subtitle_font) : 0;
-    int content_w = title_w > subtitle_w ? title_w : subtitle_w;
-    int max_label_w = ((int)card.width * 58) / 100;
-    int label_w = content_w + pad_x * 2;
-    int label_h = flint_px(34) + pad_y * 2;
-    int inner_w;
-    int label_x;
-    int label_y;
-    Rectangle label;
-    Rectangle title_rect;
-
-    if(subtitle != NULL)
-        label_h += flint_px(18) + gap;
-    if(max_label_w < flint_px(136))
-        max_label_w = flint_px(136);
-    if(label_w > max_label_w)
-        label_w = max_label_w;
-    if(label_w < flint_px(104))
-        label_w = flint_px(104);
-    inner_w = label_w - pad_x * 2;
-    if(inner_w < flint_px(40))
-        inner_w = flint_px(40);
-
-    label_x = (int)card.x + ((int)card.width - label_w) / 2;
-    label_y = (int)card.y + ((int)card.height - label_h) / 2;
-    label = (Rectangle){(float)label_x, (float)label_y,
-                        (float)label_w, (float)label_h};
-
-    DrawRectangleRec(label, Fade(BLACK, 0.30f));
-    DrawRectangleLinesEx(label, flint_px(1), Fade(WHITE, 0.42f));
-    title_rect = (Rectangle){(float)(label_x + pad_x),
-                             (float)(label_y + pad_y),
-                             (float)inner_w,
-                             (float)flint_px(34)};
-    ui_draw_fitted_text_in_rect(title != NULL ? title : "", title_rect,
-                                title_font, FLINT_TEXT_8, WHITE);
-    if(subtitle != NULL) {
-        Rectangle subtitle_rect = {
-            (float)(label_x + pad_x),
-            (float)(label_y + pad_y + flint_px(39) + gap),
-            (float)inner_w,
-            (float)flint_px(18)
-        };
-        ui_draw_fitted_text_in_rect(subtitle, subtitle_rect,
-                                    subtitle_font, FLINT_TEXT_8,
-                                    Fade(WHITE, 0.88f));
-    }
-}
-
 static int
 practice_next_visible(InbeApp *app, int dir)
 {
@@ -281,6 +198,7 @@ practice_screen_draw_home(InbeApp *app)
     int gap = flint_px(12);
     int btn_h = flint_px(42);
     int hover = 0;
+    int text_w;
     int arrow = flint_px(44);
     Rectangle card;
 
@@ -311,21 +229,25 @@ practice_screen_draw_home(InbeApp *app)
     if(card_h > flint_px(300))
         card_h = flint_px(300);
     card = (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h};
-    if(app->exercise_type == EXERCISE_WIM_HOF && app->whm.banner.id != 0) {
-        practice_draw_card_banner(app->whm.banner, card);
-    } else {
-        DrawRectangleGradientV(x, y, card_w, card_h,
-                               practice_card_color_top(app->exercise_type),
-                               practice_card_color_bottom(app->exercise_type));
-    }
+    DrawRectangleGradientV(x, y, card_w, card_h,
+                           practice_card_color_top(app->exercise_type),
+                           practice_card_color_bottom(app->exercise_type));
     DrawRectangleLinesEx(card, flint_px(2), flint_lighten(flint_theme_get_bg(), 55));
 
-    practice_draw_card_label(
-        card,
-        practice->label_key != NULL ? practice_label(app->exercise_type) : "",
-        app->exercise_type == EXERCISE_SUN_SALUTATION
-            ? locale_get("sun_salutation_work_in_progress")
-            : NULL);
+    text_w = flint_text_measure(practice->label_key != NULL ? practice_label(app->exercise_type) : "",
+                                flint_ui_font());
+    flint_text_draw(practice_label(app->exercise_type),
+                    x + (card_w - text_w) / 2,
+                    y + card_h / 2 - flint_px(10),
+                    flint_ui_font(),
+                    WHITE);
+    if(app->exercise_type == EXERCISE_SUN_SALUTATION) {
+        const char *wip = locale_get("sun_salutation_work_in_progress");
+        int wip_w = flint_text_measure(wip, flint_ui_font_small());
+        flint_text_draw(wip, x + (card_w - wip_w) / 2,
+                        y + card_h / 2 + flint_px(18),
+                        flint_ui_font_small(), Fade(WHITE, 0.88f));
+    }
 
     if(practice_count() > 1) {
         int arrow_y = y + (card_h - arrow) / 2;

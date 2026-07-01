@@ -221,7 +221,7 @@ APP_SRCS := \
 	src/screens/settings/settings_sync_account.c
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/whm/banner.png assets/practices/meditation/1.jpg assets/pet/egg1.png $(wildcard assets/practices/sunsalutation/pos_*.png)
+IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg assets/pet/egg1.png $(wildcard assets/practices/sunsalutation/pos_*.png)
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
 OTFCHOP_DIR ?= $(FLINT_DIR)/tools/otfchop

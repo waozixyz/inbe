@@ -23,8 +23,6 @@
 static long long
 storage_max_sync_outbox_seq(void);
 static int
-storage_has_pending_sync_outbox(void);
-static int
 storage_has_orphan_habit_days(void);
 static int
 storage_json_array_count(const char *json, const char *path);
@@ -1375,23 +1373,6 @@ storage_max_sync_outbox_seq(void)
 }
 
 static int
-storage_has_pending_sync_outbox(void)
-{
-    sqlite3_stmt *stmt = NULL;
-    int result = 0;
-
-    if(g_storage.db == NULL)
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)", -1,
-                          &stmt, NULL) != SQLITE_OK)
-        return 0;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    return result;
-}
-
-static int
 storage_has_orphan_habit_days(void)
 {
     sqlite3_stmt *stmt = NULL;
@@ -1888,21 +1869,16 @@ storage_apply_sync_response_json(const char *response_json)
         storage_set_setting_text(STORAGE_SYNC_ACCOUNT_ALIAS_KEY, account_alias);
     if(storage_json_extract_int64(response_json, "$.full_snapshot_required", 0) != 0 &&
        get_meta_int64(STORAGE_SYNC_APPLY_REVIEW_KEY, 0) == 0) {
-        if(!storage_has_any())
+        if(!storage_has_any() ||
+           storage_sync_review_json_should_auto_apply_remote(response_json))
             return storage_apply_remote_full_snapshot(response_json);
-        if(storage_has_pending_sync_outbox()) {
-            TraceLog(LOG_INFO, "SYNC: merging full snapshot with pending local edits");
-        } else {
-            if(storage_sync_review_json_should_auto_apply_remote(response_json))
-                return storage_apply_remote_full_snapshot(response_json);
-            if(!storage_sync_review_write_json(response_json))
-                return 0;
-            set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");
-            g_storage.pending_sync_outbox_seq = 0;
-            storage_schedule_persist();
-            TraceLog(LOG_WARNING, "SYNC: full snapshot review required");
-            return 1;
-        }
+        if(!storage_sync_review_write_json(response_json))
+            return 0;
+        set_meta(STORAGE_SYNC_PENDING_REVIEW_KEY, "1");
+        g_storage.pending_sync_outbox_seq = 0;
+        storage_schedule_persist();
+        TraceLog(LOG_WARNING, "SYNC: full snapshot review required");
+        return 1;
     }
     old_server_version = get_meta_int64("sync_last_server_version", 0);
     if(!exec_sql("BEGIN IMMEDIATE"))

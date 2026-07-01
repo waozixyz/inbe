@@ -42,7 +42,6 @@ sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
     assets/practices/whm/1.jpg \
     assets/practices/whm/2.jpg \
-    assets/practices/whm/banner.png \
     assets/practices/meditation/1.jpg \
     assets/fonts/locales.png \
     assets/fonts/locales.dat \
