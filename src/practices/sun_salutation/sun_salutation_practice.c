@@ -82,6 +82,8 @@ sun_salutation_practice_init(InbeApp *app)
 
     if(app == NULL)
         return;
+    if(app->sun_salutation.banner.id == 0)
+        app->sun_salutation.banner = app_load_asset_texture("practices/sunsalutation/banner.png");
     if(app->sun_salutation.repetitions < 2 || app->sun_salutation.repetitions > 12)
         app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS;
     if(app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
@@ -104,6 +106,8 @@ sun_salutation_practice_destroy(InbeApp *app)
 {
     if(app == NULL)
         return;
+    app_unload_texture(app->sun_salutation.banner);
+    app->sun_salutation.banner = (Texture2D){0};
     for(int i = 0; i < SUN_SALUTATION_POSE_COUNT; i++) {
         app_unload_texture(app->sun_salutation.poses[i]);
         app->sun_salutation.poses[i] = (Texture2D){0};

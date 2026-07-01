@@ -6,16 +6,24 @@
 void
 meditation_practice_init(InbeApp *app)
 {
-    if(app != NULL && app->meditation.image_1.id == 0)
+    if(app == NULL)
+        return;
+    if(app->meditation.image_1.id == 0)
         app->meditation.image_1 = app_load_asset_texture("practices/meditation/1.jpg");
+    if(app->meditation.banner.id == 0)
+        app->meditation.banner = app_load_asset_texture("practices/meditation/banner.png");
     meditation_music_init(app);
 }
 
 void
 meditation_practice_destroy(InbeApp *app)
 {
-    if(app != NULL)
+    if(app != NULL) {
         app_unload_texture(app->meditation.image_1);
+        app->meditation.image_1 = (Texture2D){0};
+        app_unload_texture(app->meditation.banner);
+        app->meditation.banner = (Texture2D){0};
+    }
     meditation_music_unload(app);
 }
 

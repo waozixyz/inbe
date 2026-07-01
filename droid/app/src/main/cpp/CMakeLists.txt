@@ -29,13 +29,14 @@ file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c" "${FLINT_DIR}/s
 list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
+file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
     assets/practices/whm/1.jpg
     assets/practices/whm/2.jpg
-    assets/practices/whm/banner.png
     assets/practices/meditation/1.jpg
     assets/pet/egg1.png
+    ${INBE_PRACTICE_BANNER_ASSETS}
     assets/practices/sunsalutation/pos_0001.png
     assets/practices/sunsalutation/pos_0002.png
     assets/practices/sunsalutation/pos_0003.png
