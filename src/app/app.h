@@ -181,6 +181,7 @@ typedef struct WhmPracticeState {
 
 typedef struct MeditationPracticeState {
     Texture2D image_1;
+    Texture2D banner;
     int duration_seconds;
     int remaining_seconds;
     int frame_ticks;
@@ -204,6 +205,7 @@ typedef struct MeditationPracticeState {
 } MeditationPracticeState;
 
 typedef struct SunSalutationPracticeState {
+    Texture2D banner;
     Texture2D poses[8];
     int step;
     int repetition;

@@ -137,6 +137,24 @@ practice_draw_card_banner(Texture2D texture, Rectangle dest)
     DrawTexturePro(texture, src, dest, (Vector2){0}, 0, WHITE);
 }
 
+static Texture2D
+practice_card_banner(const InbeApp *app, int exercise)
+{
+    if(app == NULL)
+        return (Texture2D){0};
+
+    switch(practice_clamp_id(exercise)) {
+    case EXERCISE_WIM_HOF:
+        return app->whm.banner;
+    case EXERCISE_SUN_SALUTATION:
+        return app->sun_salutation.banner;
+    case EXERCISE_MEDITATION:
+        return app->meditation.banner;
+    default:
+        return (Texture2D){0};
+    }
+}
+
 static void
 practice_draw_card_label(Rectangle card, const char *title, const char *subtitle)
 {
@@ -283,6 +301,7 @@ practice_screen_draw_home(InbeApp *app)
     int hover = 0;
     int arrow = flint_px(44);
     Rectangle card;
+    Texture2D banner;
 
     if(app == NULL)
         return;
@@ -311,8 +330,9 @@ practice_screen_draw_home(InbeApp *app)
     if(card_h > flint_px(300))
         card_h = flint_px(300);
     card = (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h};
-    if(app->exercise_type == EXERCISE_WIM_HOF && app->whm.banner.id != 0) {
-        practice_draw_card_banner(app->whm.banner, card);
+    banner = practice_card_banner(app, app->exercise_type);
+    if(banner.id != 0) {
+        practice_draw_card_banner(banner, card);
     } else {
         DrawRectangleGradientV(x, y, card_w, card_h,
                                practice_card_color_top(app->exercise_type),

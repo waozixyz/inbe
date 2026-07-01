@@ -1,6 +1,10 @@
 # Changelog
+## [1.7.11] - 2026-07-01
+### Addded
+- add more banners
+
 ## [1.7.10] - 2026-07-01
-#### Changed
+### Changed
 - updated whm banner
 
 ## [1.7.9] - 2026-07-01
