@@ -182,6 +182,7 @@ save_settings(InbeApp *app)
         {"breath_animation", app->inbe.breath_animation},
         {"advanced_session_controls", app->advanced_session_controls ? 1 : 0},
         {"double_tap_to_breathe", app->double_tap_to_breathe ? 1 : 0},
+        {"show_session_return_button", app->show_session_return_button ? 1 : 0},
         {"show_session_volume_control", app->show_session_volume_control ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
@@ -276,7 +277,7 @@ app_load_settings(InbeApp *app)
             {&app->profile_guide_seen, "profile_guide_seen", 0},
             {&app->dark_mode, "dark_mode", 0},
             {&app->fullscreen_enabled, "fullscreen", 0},
-#if ANDROID_BUILD
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 1},
 #else
             {&app->on_screen_keyboard_enabled, "on_screen_keyboard", 0},
@@ -284,12 +285,16 @@ app_load_settings(InbeApp *app)
             {&app->inbe.progressive_speed, "progressive_speed", 1},
             {&app->advanced_session_controls, "advanced_session_controls", 0},
             {&app->double_tap_to_breathe, "double_tap_to_breathe", 0},
+            {&app->show_session_return_button, "show_session_return_button", 1},
             {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
             {&app->meditation.music_enabled, "meditation_music_enabled", 1},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
+    app->on_screen_keyboard_enabled = 1;
+#endif
 
     {
         LoadedClampedSetting settings[] = {
@@ -362,6 +367,9 @@ app_load_settings(InbeApp *app)
     if(getenv("INBE_FORCE_DARK_MODE") != NULL) {
         app->theme_mode = APP_THEME_DARK;
     }
+#if defined(PLATFORM_WEB)
+    app->transition_mode = APP_TRANSITION_NONE;
+#endif
 
     app->inbe.play_in_background =
         storage_get_setting_int("play_in_background", 1) != 0;

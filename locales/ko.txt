@@ -394,6 +394,9 @@ Finish
 [show_session_volume_control_label]
 볼륨 조절 표시
 ---
+[show_session_return_button_label]
+돌아가기 버튼 표시
+---
 [reset_to_defaults_label]
 기본값으로 재설정
 ---
@@ -826,7 +829,7 @@ Alias saved
 설명서
 ---
 [practice_configure_button]
-연습 설정
+설정
 ---
 [practice_music_practice_list_title]
 연습에 음악 사용

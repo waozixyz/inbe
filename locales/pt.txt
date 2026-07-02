@@ -376,6 +376,9 @@ Volume
 [show_session_volume_control_label]
 Mostrar controle de volume
 ---
+[show_session_return_button_label]
+Mostrar botão de voltar
+---
 [reset_to_defaults_label]
 Restaurar padrões
 ---
@@ -827,7 +830,7 @@ Iniciar prática
 Manual
 ---
 [practice_configure_button]
-Configurar prática
+Configurar
 ---
 [practice_music_practice_list_title]
 Usar música nas práticas

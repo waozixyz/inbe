@@ -376,6 +376,9 @@ Volume
 [show_session_volume_control_label]
 Tampilkan kontrol volume
 ---
+[show_session_return_button_label]
+Tampilkan tombol kembali
+---
 [reset_to_defaults_label]
 Reset ke default
 ---
@@ -827,7 +830,7 @@ Mulai latihan
 Manual
 ---
 [practice_configure_button]
-Konfigurasi latihan
+Atur
 ---
 [practice_music_practice_list_title]
 Gunakan musik untuk latihan

@@ -376,6 +376,9 @@ Hlasitost
 [show_session_volume_control_label]
 Zobrazit ovládání hlasitosti
 ---
+[show_session_return_button_label]
+Zobrazit tlačítko návratu
+---
 [reset_to_defaults_label]
 Obnovit výchozí
 ---
@@ -827,7 +830,7 @@ Spustit cvičení
 Manuál
 ---
 [practice_configure_button]
-Nastavit cvičení
+Nastavit
 ---
 [practice_music_practice_list_title]
 Používat hudbu pro cvičení

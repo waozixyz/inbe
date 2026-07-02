@@ -5,6 +5,7 @@
 #include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
+#include "screens/practice_screen.h"
 
 #include <stdio.h>
 
@@ -27,10 +28,11 @@ meditation_config_duration_height(int content_w)
 static int
 meditation_config_content_height(InbeApp *app, int content_w)
 {
-    int integrated = app->inbe.screen == InbeScreenStart &&
-                     app->modal.type != UIModalPracticeConfig;
     return meditation_config_duration_height(content_w) +
-           (integrated ? app_content_bottom_reserved(app) : 0) + flint_px(24);
+           (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
+                ? app_content_bottom_reserved(app)
+                : 0) +
+           flint_px(24);
 }
 
 static void
@@ -148,39 +150,18 @@ meditation_config_scroll_page_content_height(int content_w, void *user_data)
 void
 meditation_config_screen_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart &&
-                     app->modal.type != UIModalPracticeConfig;
-    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
-    int scroll_y;
-    int scroll_h;
-    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
+    PracticeSubscreenLayout layout;
 
-    if(!integrated) {
-        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
-            if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
-                app_close_modal(app);
-            } else {
-                if(app->settings_dirty)
-                    save_settings(app);
-                meditation_practice_leave_config(app);
-                app->settings_scroll = 0;
-                app->practice_tab = PRACTICE_TAB_PLAY;
-                app_switch_screen(app, InbeScreenStart);
-            }
-        }
-    }
-
-    scroll_y = title_h + flint_px(16);
-    scroll_h = view_height - scroll_y - bottom_reserved -
-               (integrated ? flint_px(8) : 0);
-    if(scroll_h < 0)
-        scroll_h = 0;
+    practice_screen_config_layout(app, UIModalPracticeConfig, flint_px(16), &layout);
+    practice_screen_handle_config_title(app, locale_get("practice_config_title"),
+                                        UIModalPracticeConfig,
+                                        meditation_practice_leave_config);
 
     {
         MeditationConfigScrollPageContext page_ctx = {app};
         FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
-            .y = scroll_y,
-            .height = scroll_h,
+            .y = layout.scroll_y,
+            .height = layout.scroll_h,
             .max_content_width = flint_px(CONTENT_MAX_W),
             .min_content_width = flint_px(320),
             .scroll_offset = &app->settings_scroll,

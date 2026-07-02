@@ -376,6 +376,9 @@ OK
 [show_session_volume_control_label]
 音量コントロールを表示
 ---
+[show_session_return_button_label]
+戻るボタンを表示
+---
 [reset_to_defaults_label]
 デフォルトに戻す
 ---
@@ -829,7 +832,7 @@ Alias saved
 マニュアル
 ---
 [practice_configure_button]
-プラクティスを設定
+設定
 ---
 [practice_music_practice_list_title]
 音楽を使うプラクティス

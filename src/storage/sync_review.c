@@ -32,6 +32,24 @@ static int review_small_session_only_change(const char *diff);
 static int review_visible_change_count(const char *diff);
 
 static int
+review_sql_bool(const char *sql, const char *text_arg, int fallback)
+{
+    sqlite3_stmt *stmt = NULL;
+    int result = fallback;
+
+    if(g_storage.db == NULL || sql == NULL)
+        return fallback;
+    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return fallback;
+    if(text_arg != NULL)
+        bind_text(stmt, 1, text_arg);
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        result = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    return result;
+}
+
+static int
 review_reserve(ReviewText *text, size_t extra)
 {
     char *next;
@@ -246,6 +264,41 @@ review_append_activity_heading(ReviewText *out, int activity)
 }
 
 static void
+review_append_date(ReviewText *out, int local_date)
+{
+    review_appendf(out, "%04d-%02d-%02d",
+                   local_date / 10000, (local_date / 100) % 100,
+                   local_date % 100);
+}
+
+static void
+review_append_date_time(ReviewText *out, int local_date, const char *time_text)
+{
+    review_append_date(out, local_date);
+    review_appendf(out, " %s\n", time_text != NULL ? time_text : "--:--");
+}
+
+static void
+review_append_habit_day(ReviewText *out, char *last_name, size_t last_name_size,
+                        int *rows, const char *name, int local_date, int count)
+{
+    const char *safe_name = name != NULL && name[0] != '\0' ? name : "(unnamed)";
+
+    if(strcmp(last_name, safe_name) != 0) {
+        if(*rows > 0)
+            review_append(out, "\n");
+        review_append(out, safe_name);
+        review_append(out, "\n");
+        snprintf(last_name, last_name_size, "%s", safe_name);
+    }
+    review_append_date(out, local_date);
+    if(count > 0)
+        review_appendf(out, " count %d", count);
+    review_append(out, "\n");
+    (*rows)++;
+}
+
+static void
 review_append_local_rounds(ReviewText *out, const char *session_id)
 {
     sqlite3_stmt *stmt = NULL;
@@ -315,9 +368,7 @@ review_append_local(ReviewText *out)
                 review_append_activity_heading(out, activity);
                 last_activity = activity;
             }
-            review_appendf(out, "%04d-%02d-%02d %s\n",
-                           local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100, time_text != NULL ? time_text : "--:--");
+            review_append_date_time(out, local_date, time_text);
             if(activity == 2) {
                 review_append(out, "session 1");
             } else if(review_activity_uses_duration(activity)) {
@@ -350,21 +401,8 @@ review_append_local(ReviewText *out)
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = sqlite3_column_int(stmt, 1);
             const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            const char *safe_name = name != NULL && name[0] != '\0' ? name : "(unnamed)";
-            if(strcmp(last_name, safe_name) != 0) {
-                if(rows > 0)
-                    review_append(out, "\n");
-                review_append(out, safe_name);
-                review_append(out, "\n");
-                snprintf(last_name, sizeof(last_name), "%s", safe_name);
-            }
-            review_appendf(out, "%04d-%02d-%02d",
-                           local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100);
-            if(sqlite3_column_int(stmt, 2) > 0)
-                review_appendf(out, " count %d", sqlite3_column_int(stmt, 2));
-            review_append(out, "\n");
-            rows++;
+            review_append_habit_day(out, last_name, sizeof(last_name), &rows,
+                                    name, local_date, sqlite3_column_int(stmt, 2));
         }
         sqlite3_finalize(stmt);
     }
@@ -407,9 +445,7 @@ review_append_remote(ReviewText *out, const char *json)
                 review_append_activity_heading(out, activity);
                 last_activity = activity;
             }
-            review_appendf(out, "%04d-%02d-%02d %s\n",
-                           local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100, time_text != NULL ? time_text : "--:--");
+            review_append_date_time(out, local_date, time_text);
             if(activity == 2)
                 review_append(out, "session 1");
             else if(review_activity_uses_duration(activity))
@@ -444,23 +480,10 @@ review_append_remote(ReviewText *out, const char *json)
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = sqlite3_column_int(stmt, 1);
             const char *name = (const char *)sqlite3_column_text(stmt, 0);
-            const char *safe_name = name != NULL ? name : "";
-            if(safe_name[0] == '\0')
+            if(name == NULL || name[0] == '\0')
                 continue;
-            if(strcmp(last_name, safe_name) != 0) {
-                if(rows > 0)
-                    review_append(out, "\n");
-                review_append(out, safe_name);
-                review_append(out, "\n");
-                snprintf(last_name, sizeof(last_name), "%s", safe_name);
-            }
-            review_appendf(out, "%04d-%02d-%02d",
-                           local_date / 10000, (local_date / 100) % 100,
-                           local_date % 100);
-            if(sqlite3_column_int(stmt, 2) > 0)
-                review_appendf(out, " count %d", sqlite3_column_int(stmt, 2));
-            review_append(out, "\n");
-            rows++;
+            review_append_habit_day(out, last_name, sizeof(last_name), &rows,
+                                    name, local_date, sqlite3_column_int(stmt, 2));
         }
         sqlite3_finalize(stmt);
     }
@@ -642,100 +665,49 @@ storage_sync_review_json_should_auto_apply_remote(const char *json)
 static int
 review_has_local_activity(void)
 {
-    sqlite3_stmt *stmt = NULL;
-    int result = 0;
-
-    if(g_storage.db == NULL)
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT EXISTS("
-                          " SELECT 1 FROM sessions WHERE deleted_at=0"
-                          " UNION ALL"
-                          " SELECT 1 FROM habit_days "
-                          " WHERE completed!=0 OR count>0 OR session_count>0"
-                          " LIMIT 1"
-                          ")",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return 1;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    return result;
+    return review_sql_bool("SELECT EXISTS("
+                           " SELECT 1 FROM sessions WHERE deleted_at=0"
+                           " UNION ALL"
+                           " SELECT 1 FROM habit_days "
+                           " WHERE completed!=0 OR count>0 OR session_count>0"
+                           " LIMIT 1"
+                           ")",
+                           NULL, 1);
 }
 
 static int
 review_has_pending_outbox(void)
 {
-    sqlite3_stmt *stmt = NULL;
-    int result = 0;
-
-    if(g_storage.db == NULL)
-        return 1;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return 1;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    return result;
+    return review_sql_bool("SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)",
+                           NULL, 1);
 }
 
 static int
 review_pending_outbox_sessions_only(void)
 {
-    sqlite3_stmt *stmt = NULL;
-    int result = 0;
-
-    if(g_storage.db == NULL)
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1) "
-                          "AND NOT EXISTS(SELECT 1 FROM sync_outbox WHERE entity_type<>'session')",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return 0;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    return result;
+    return review_sql_bool(
+        "SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1) "
+        "AND NOT EXISTS(SELECT 1 FROM sync_outbox WHERE entity_type<>'session')",
+        NULL, 0);
 }
 
 static int
 review_has_unknown_activity(const char *json)
 {
-    sqlite3_stmt *stmt = NULL;
-    int result = 0;
-
-    if(g_storage.db == NULL)
-        return 1;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT EXISTS(SELECT 1 FROM sessions "
-                          "WHERE deleted_at=0 AND activity NOT IN (0,1,2))",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return 1;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    if(result)
+    if(review_sql_bool("SELECT EXISTS(SELECT 1 FROM sessions "
+                       "WHERE deleted_at=0 AND activity NOT IN (0,1,2))",
+                       NULL, 1))
         return 1;
 
     if(json == NULL)
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT EXISTS("
-                          " SELECT 1 FROM json_each(?1,'$.changes.sessions') AS s "
-                          " WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
-                          " AND CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER) NOT IN (0,1,2)"
-                          ")",
-                          -1, &stmt, NULL) != SQLITE_OK)
-        return 1;
-    bind_text(stmt, 1, json);
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        result = sqlite3_column_int(stmt, 0) != 0;
-    sqlite3_finalize(stmt);
-    if(result)
-        return 1;
-    return 0;
+    return review_sql_bool(
+        "SELECT EXISTS("
+        " SELECT 1 FROM json_each(?1,'$.changes.sessions') AS s "
+        " WHERE CAST(COALESCE(json_extract(s.value,'$.deleted_at'),0) AS INTEGER)=0 "
+        " AND CAST(COALESCE(json_extract(s.value,'$.activity'),0) AS INTEGER) NOT IN (0,1,2)"
+        ")",
+        json, 1);
 }
 
 static int

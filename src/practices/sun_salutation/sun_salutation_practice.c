@@ -227,6 +227,15 @@ sun_salutation_config_screen_draw(InbeApp *app)
             app_close_modal(app);
             return;
         }
+    } else if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN],
+                                        locale_get("practice_config_title"),
+                                        title_h)) {
+        if(app->settings_dirty)
+            save_settings(app);
+        app->settings_scroll = 0;
+        app->practice_tab = PRACTICE_TAB_PLAY;
+        app_switch_screen(app, InbeScreenStart);
+        return;
     }
 
     flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);

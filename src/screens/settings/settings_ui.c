@@ -1,5 +1,6 @@
 #include "settings_ui.h"
 
+#include "app.h"
 #include "flint_locale.h"
 #include "flint_ui.h"
 
@@ -54,4 +55,38 @@ settings_ui_draw_toggle_row(int x, int w, int *y, const char *label, int *value)
 
     *y += row_h;
     return 0;
+}
+
+int
+settings_ui_commit_toggle_row(InbeApp *app, int x, int w, int *y,
+                              const char *label, int *value, int save_now)
+{
+    if(settings_ui_draw_toggle_row(x, w, y, label, value)) {
+        if(app != NULL) {
+            app->settings_dirty = 1;
+            if(save_now)
+                save_settings(app);
+        }
+        return 1;
+    }
+    return 0;
+}
+
+int
+settings_ui_commit_slider_row(InbeApp *app, int id, int x, int w, int *y,
+                              int row_h, const char *label, int min, int max,
+                              int *value, const char *suffix, int save_now)
+{
+    int changed;
+
+    if(y == NULL)
+        return 0;
+    changed = ui_draw_slider(id, x, *y, w, label, min, max, value, suffix);
+    if(changed && app != NULL) {
+        app->settings_dirty = 1;
+        if(save_now)
+            save_settings(app);
+    }
+    *y += row_h;
+    return changed;
 }

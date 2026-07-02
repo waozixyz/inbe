@@ -42,6 +42,65 @@ parse_db_id(const char *path_or_id, char *out, size_t out_size)
     return out[0] != '\0';
 }
 
+static int
+filter_positive_rounds(const int *round_times, int round_count, int *out, int out_max)
+{
+    int saved_count = 0;
+
+    if(round_times == NULL || out == NULL || round_count < 0 || out_max <= 0)
+        return 0;
+    for(int i = 0; i < round_count && i < out_max; i++) {
+        if(round_times[i] > 0)
+            out[saved_count++] = round_times[i];
+    }
+    return saved_count;
+}
+
+static int
+write_session_rounds(const char *session_id, const int *round_times, int round_count,
+                     int replace)
+{
+    sqlite3_stmt *stmt = NULL;
+
+    if(g_storage.db == NULL || session_id == NULL || round_times == NULL || round_count <= 0)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          replace
+                              ? "INSERT OR REPLACE INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)"
+                              : "INSERT INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    for(int i = 0; i < round_count; i++) {
+        sqlite3_reset(stmt);
+        sqlite3_clear_bindings(stmt);
+        bind_text(stmt, 1, session_id);
+        sqlite3_bind_int(stmt, 2, i);
+        sqlite3_bind_int(stmt, 3, round_times[i]);
+        if(sqlite3_step(stmt) != SQLITE_DONE) {
+            sqlite3_finalize(stmt);
+            return 0;
+        }
+    }
+    sqlite3_finalize(stmt);
+    return 1;
+}
+
+static int
+storage_count_sql(const char *sql)
+{
+    sqlite3_stmt *stmt = NULL;
+    int count = 0;
+
+    if(g_storage.db == NULL || sql == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        count = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    return count;
+}
+
 int
 insert_session_at_ex(long long started_at, int local_date, const int *round_times, int round_count,
                      int topic, int activity, const char *source, char *out_id, size_t out_id_size)
@@ -82,18 +141,8 @@ insert_session_at_ex(long long started_at, int local_date, const int *round_time
 
     inserted = sqlite3_changes(g_storage.db) > 0;
     if(inserted) {
-        for(int i = 0; i < round_count; i++) {
-            if(sqlite3_prepare_v2(g_storage.db,
-                                  "INSERT OR REPLACE INTO "
-                                  "session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
-                                  -1, &stmt, NULL) != SQLITE_OK)
-                return 0;
-            bind_text(stmt, 1, id);
-            sqlite3_bind_int(stmt, 2, i);
-            sqlite3_bind_int(stmt, 3, round_times[i]);
-            sqlite3_step(stmt);
-            sqlite3_finalize(stmt);
-        }
+        if(!write_session_rounds(id, round_times, round_count, 1))
+            return 0;
         storage_enqueue_sync_session(id);
     }
 
@@ -112,15 +161,12 @@ storage_save_session_for_activity(const int *round_times, int round_count, int t
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
     int saved[MaxRounds];
-    int saved_count = 0;
+    int saved_count;
     int local_date;
 
     if(tm == NULL)
         return 0;
-    for(int i = 0; i < round_count && i < MaxRounds; i++) {
-        if(round_times[i] > 0)
-            saved[saved_count++] = round_times[i];
-    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds);
     if(saved_count <= 0)
         return 0;
     local_date = (tm->tm_year + 1900) * 10000 + (tm->tm_mon + 1) * 100 + tm->tm_mday;
@@ -136,14 +182,11 @@ storage_save_session_at_for_activity(int local_date, int hour, int minute, int s
     struct tm tm;
     time_t started_at;
     int saved[MaxRounds];
-    int saved_count = 0;
+    int saved_count;
 
     if(local_date <= 0)
         return 0;
-    for(int i = 0; i < round_count && i < MaxRounds; i++) {
-        if(round_times[i] > 0)
-            saved[saved_count++] = round_times[i];
-    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds);
     if(saved_count <= 0)
         return 0;
 
@@ -233,15 +276,12 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
     sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
     int saved[MaxRounds];
-    int saved_count = 0;
+    int saved_count;
 
     if(!parse_db_id(path_or_id, id, sizeof(id)) || round_times == NULL || round_count < 0 ||
        round_count > MaxRounds)
         return 0;
-    for(int i = 0; i < round_count; i++) {
-        if(round_times[i] > 0)
-            saved[saved_count++] = round_times[i];
-    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds);
     if(saved_count <= 0)
         return storage_delete_session(path_or_id);
 
@@ -253,20 +293,8 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
     stmt = NULL;
-    for(int i = 0; i < saved_count; i++) {
-        if(sqlite3_prepare_v2(g_storage.db,
-                              "INSERT INTO session_rounds(session_id,round_index,seconds) "
-                              "VALUES(?1,?2,?3)",
-                              -1, &stmt, NULL) != SQLITE_OK)
-            goto fail;
-        bind_text(stmt, 1, id);
-        sqlite3_bind_int(stmt, 2, i);
-        sqlite3_bind_int(stmt, 3, saved[i]);
-        if(sqlite3_step(stmt) != SQLITE_DONE)
-            goto fail;
-        sqlite3_finalize(stmt);
-        stmt = NULL;
-    }
+    if(!write_session_rounds(id, saved, saved_count, 0))
+        goto fail;
     if(sqlite3_prepare_v2(g_storage.db,
                           "UPDATE sessions SET rounds_hash=?2,updated_at=?3 WHERE id=?1", -1, &stmt,
                           NULL) != SQLITE_OK)
@@ -436,7 +464,6 @@ storage_list_session_records(InbeStorageSessionRecordCallback callback, void *us
 int
 storage_has_any(void)
 {
-    sqlite3_stmt *stmt = NULL;
     int count = storage_session_count();
 
     if(count > 0)
@@ -446,30 +473,13 @@ storage_has_any(void)
     count = storage_habit_count();
     if(count > 0)
         return 1;
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", -1,
-                          &stmt, NULL) != SQLITE_OK)
-        return 0;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        count = sqlite3_column_int(stmt, 0);
-    sqlite3_finalize(stmt);
-    return count > 0;
+    return storage_count_sql("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0") > 0;
 }
 
 int
 storage_session_count(void)
 {
-    sqlite3_stmt *stmt = NULL;
-    int count = 0;
-    if(g_storage.db == NULL)
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "SELECT COUNT(*) FROM sessions WHERE deleted_at=0", -1,
-                          &stmt, NULL) != SQLITE_OK)
-        return 0;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        count = sqlite3_column_int(stmt, 0);
-    sqlite3_finalize(stmt);
-    return count;
+    return storage_count_sql("SELECT COUNT(*) FROM sessions WHERE deleted_at=0");
 }
 
 long long
@@ -496,13 +506,8 @@ storage_delete_all_sessions(void)
     if(g_storage.db == NULL)
         return 0;
 
-    if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", -1,
-                          &stmt, NULL) == SQLITE_OK) {
-        if(sqlite3_step(stmt) == SQLITE_ROW)
-            habit_day_count = sqlite3_column_int(stmt, 0);
-        sqlite3_finalize(stmt);
-    }
+    habit_day_count = storage_count_sql(
+        "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0");
     if(count <= 0 && habit_day_count <= 0 && habit_count <= 0)
         return 0;
 

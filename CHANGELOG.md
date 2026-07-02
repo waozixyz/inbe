@@ -1,4 +1,14 @@
 # Changelog
+## [1.8.0] - 2026-07-02
+### Changed
+- upgrade to sync protocol v3
+- ui fixes
+
+## [1.7.12] - 2026-07-01
+### Changed
+- fix web
+- deduplicate code
+
 ## [1.7.11] - 2026-07-01
 ### Addded
 - add more banners

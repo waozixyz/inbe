@@ -400,6 +400,9 @@ Volume
 [show_session_volume_control_label]
 Show volume control
 ---
+[show_session_return_button_label]
+Show return button
+---
 [reset_to_defaults_label]
 Reset to defaults
 ---
@@ -826,7 +829,7 @@ Start Practice
 Manual
 ---
 [practice_configure_button]
-Configure Practice
+Configure
 ---
 [practice_music_practice_list_title]
 Use music for practices

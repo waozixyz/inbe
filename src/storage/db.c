@@ -186,7 +186,7 @@ schema_create(void)
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(user_id,key)"
         ");"
-        "CREATE TABLE IF NOT EXISTS social_cache("
+        "CREATE TABLE IF NOT EXISTS social_snapshots("
         " user_id TEXT NOT NULL,"
         " kind TEXT NOT NULL,"
         " json TEXT NOT NULL,"
@@ -456,7 +456,7 @@ migrate_schema(void)
            " sent_at INTEGER NOT NULL DEFAULT 0,"
            " acked_at INTEGER NOT NULL DEFAULT 0"
            ");"
-           "CREATE TABLE IF NOT EXISTS social_cache("
+           "CREATE TABLE IF NOT EXISTS social_snapshots("
            " user_id TEXT NOT NULL,"
            " kind TEXT NOT NULL,"
            " json TEXT NOT NULL,"
@@ -464,6 +464,11 @@ migrate_schema(void)
            " PRIMARY KEY(user_id,kind)"
            ");"))
         return 0;
+    if(table_exists("social_cache")) {
+        exec_sql("INSERT OR REPLACE INTO social_snapshots(user_id,kind,json,updated_at) "
+                 "SELECT user_id,kind,json,updated_at FROM social_cache;"
+                 "DROP TABLE social_cache;");
+    }
     if(!had_outbox) {
         if(!exec_sql(
                "INSERT OR IGNORE INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
@@ -499,6 +504,7 @@ storage_init(const char *root)
     if(!schema_create() || !migrate_schema() || !load_or_create_user())
         return 0;
     storage_migrate_default_habit_ids();
+    storage_migrate_habit_ids_to_uuid();
     storage_materialize_session_habit_days();
     migrate_legacy_file_sessions_once();
     return 1;

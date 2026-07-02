@@ -84,6 +84,92 @@ practice_activity_for_tab(int tab, int index)
     return index;
 }
 
+int
+practice_screen_subscreen_integrated(const InbeApp *app, int modal_type)
+{
+    return app != NULL &&
+           app->inbe.screen == InbeScreenStart &&
+           (int)app->modal.type != modal_type;
+}
+
+void
+practice_screen_config_layout(InbeApp *app, int modal_type, int content_top_gap,
+                              PracticeSubscreenLayout *layout)
+{
+    int integrated = practice_screen_subscreen_integrated(app, modal_type);
+    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
+    int scroll_y = title_h + content_top_gap;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
+    int scroll_h = view_height - scroll_y - bottom_reserved -
+                   (integrated ? flint_px(8) : 0);
+
+    if(layout == NULL)
+        return;
+    if(scroll_h < 0)
+        scroll_h = 0;
+    *layout = (PracticeSubscreenLayout){
+        integrated,
+        title_h,
+        scroll_y,
+        scroll_h
+    };
+}
+
+void
+practice_screen_manual_layout(InbeApp *app, int modal_type, int page_count,
+                              int content_top_gap, int content_bottom_gap,
+                              int min_content_h, PracticeManualLayout *layout)
+{
+    int integrated = practice_screen_subscreen_integrated(app, modal_type);
+    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
+    int nav_h = page_count > 1 ? manual_screen_guide_nav_height() : 0;
+    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
+    int nav_y = view_height - bottom_reserved - nav_h;
+    int content_y = title_h + content_top_gap;
+    int content_h = nav_y - content_y - content_bottom_gap;
+
+    if(layout == NULL)
+        return;
+    if(content_h < min_content_h)
+        content_h = min_content_h;
+    *layout = (PracticeManualLayout){
+        integrated,
+        title_h,
+        nav_y,
+        nav_h,
+        content_y,
+        content_h
+    };
+}
+
+int
+practice_screen_handle_config_title(InbeApp *app, const char *title, int modal_type,
+                                    void (*leave_config)(InbeApp *app))
+{
+    int title_h;
+
+    if(app == NULL)
+        return 0;
+    title_h = practice_screen_subscreen_integrated(app, modal_type)
+                  ? app_content_top_reserved(app)
+                  : flint_ui_title_bar_height();
+    if(!flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h))
+        return 0;
+
+    if(app->modal.active && (int)app->modal.type == modal_type) {
+        app_close_modal(app);
+    } else {
+        if(app->settings_dirty)
+            save_settings(app);
+        if(leave_config != NULL)
+            leave_config(app);
+        app->settings_scroll = 0;
+        app->practice_tab = PRACTICE_TAB_PLAY;
+        app_switch_screen(app, InbeScreenStart);
+    }
+    return 1;
+}
+
 static Color
 practice_card_color_top(int exercise)
 {
@@ -240,6 +326,7 @@ practice_select_home_card(InbeApp *app, int exercise)
     app->practice_tab = PRACTICE_TAB_PLAY;
     app->manual_scroll = 0;
     app->settings_scroll = 0;
+    app->practice_home_scroll = 0;
     app->tutorial_step = 0;
     app->practice_config_tab = 0;
     save_settings(app);
@@ -284,14 +371,107 @@ practice_screen_draw_music_modal(InbeApp *app)
     meditation_music_draw_dropdown_menu(app);
 }
 
+static int
+practice_home_card_height(int y, int bottom_reserved)
+{
+    int card_h = view_height - y - bottom_reserved - flint_px(176);
+
+    if(card_h < flint_px(180))
+        card_h = flint_px(180);
+    if(card_h > flint_px(300))
+        card_h = flint_px(300);
+    return card_h;
+}
+
+static int
+practice_home_action_gap(int content_w)
+{
+    return content_w < flint_px(340) ? flint_px(6) : flint_px(8);
+}
+
+static int
+practice_home_action_row_widths(int content_w, int *manual_w, int *config_w)
+{
+    int font = flint_ui_font_small();
+    int pad = flint_px(8);
+    int gap = practice_home_action_gap(content_w);
+    int manual_min = flint_text_measure(locale_get("practice_manual_button"), font) + pad * 2;
+    int config_min = flint_text_measure(locale_get("practice_configure_button"), font) + pad * 2;
+    int half_w;
+    int available_w;
+
+    if(content_w < manual_min + config_min + gap)
+        return 0;
+
+    available_w = content_w - gap;
+    half_w = available_w / 2;
+    if(half_w >= manual_min && available_w - half_w >= config_min) {
+        *manual_w = half_w;
+        *config_w = available_w - half_w;
+        return 1;
+    }
+
+    *manual_w = manual_min;
+    *config_w = available_w - *manual_w;
+    if(*config_w < config_min) {
+        *config_w = config_min;
+        *manual_w = available_w - *config_w;
+    }
+    return *manual_w >= manual_min && *config_w >= config_min;
+}
+
+static int
+practice_home_actions_share_row(const PracticeDefinition *practice, int content_w)
+{
+    int manual_w;
+    int config_w;
+
+    return practice != NULL &&
+           practice->draw_manual != NULL &&
+           practice->draw_config != NULL &&
+           practice_home_action_row_widths(content_w, &manual_w, &config_w);
+}
+
+static int
+practice_home_content_height(int content_w, void *user_data)
+{
+    InbeApp *app = user_data;
+    const PracticeDefinition *practice;
+    int scroll_y = app_content_top_reserved(app);
+    int bottom_reserved = app_content_bottom_reserved(app);
+    int y = flint_px(14);
+    int btn_h = flint_px(42);
+    int gap = practice_home_action_gap(content_w);
+
+    (void)content_w;
+    if(app == NULL)
+        return 0;
+
+    practice = practice_get(app->exercise_type);
+    y += btn_h + flint_px(18);
+    y += practice_home_card_height(scroll_y + y, bottom_reserved) + flint_px(18);
+    y += btn_h;
+    if(practice_home_actions_share_row(practice, content_w)) {
+        y += gap + btn_h;
+    } else {
+        if(practice->draw_manual != NULL)
+            y += gap + btn_h;
+        if(practice->draw_config != NULL)
+            y += gap + btn_h;
+    }
+    return y + flint_px(14);
+}
+
 void
 practice_screen_draw_home(InbeApp *app)
 {
     const PracticeDefinition *practice;
-    int top = app_content_top_reserved(app) + flint_px(14);
+    int scroll_y;
+    int scroll_h;
     int bottom_reserved = app_content_bottom_reserved(app);
-    int content_w = view_width - flint_px(32);
-    int max_w = flint_px(480);
+    FlintUIScrollPage page = {0};
+    int use_scroll = 0;
+    int content_w;
     int x;
     int y;
     int card_w;
@@ -308,13 +488,36 @@ practice_screen_draw_home(InbeApp *app)
 
     practice_clamp_activity_to_tab(app);
     flint_ui_title_bar(locale_get("practice_title"), app_content_top_reserved(app));
+    scroll_y = app_content_top_reserved(app);
+    scroll_h = view_height - scroll_y - bottom_reserved;
+    if(scroll_h < 0)
+        scroll_h = 0;
     practice = practice_get(app->exercise_type);
-    if(content_w > max_w)
-        content_w = max_w;
+    content_w = view_width - flint_px(24);
+    if(content_w > flint_px(480))
+        content_w = flint_px(480);
     if(content_w < flint_px(260))
-        content_w = view_width - flint_px(20);
+        content_w = view_width - flint_px(16);
     x = (view_width - content_w) / 2;
-    y = top;
+    y = scroll_y + flint_px(14);
+
+    if(practice_home_content_height(content_w, app) > scroll_h) {
+        use_scroll = 1;
+        page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+            .y = scroll_y,
+            .height = scroll_h,
+            .max_content_width = flint_px(480),
+            .min_content_width = flint_px(260),
+            .scroll_offset = &app->practice_home_scroll,
+            .content_height = practice_home_content_height,
+            .user_data = app
+        });
+        content_w = page.content_w;
+        x = page.content_x;
+        y = page.content_y + flint_px(14);
+    } else {
+        app->practice_home_scroll = 0;
+    }
 
     if(ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_music_title"),
                               UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
@@ -324,11 +527,7 @@ practice_screen_draw_home(InbeApp *app)
     y += btn_h + flint_px(18);
 
     card_w = content_w;
-    card_h = view_height - y - bottom_reserved - flint_px(176);
-    if(card_h < flint_px(180))
-        card_h = flint_px(180);
-    if(card_h > flint_px(300))
-        card_h = flint_px(300);
+    card_h = practice_home_card_height(y, bottom_reserved);
     card = (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h};
     banner = practice_card_banner(app, app->exercise_type);
     if(banner.id != 0) {
@@ -381,15 +580,35 @@ practice_screen_draw_home(InbeApp *app)
             practice->start(app);
     }
     y += btn_h + gap;
-    if(practice->draw_manual != NULL &&
-       ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_manual_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover))
-        practice_screen_open_tab(app, PRACTICE_TAB_MANUAL);
-    y += btn_h + gap;
-    if(practice->draw_config != NULL &&
-       ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_configure_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover))
-        practice_screen_open_tab(app, PRACTICE_TAB_CONFIG);
+    if(practice_home_actions_share_row(practice, content_w)) {
+        int row_gap = practice_home_action_gap(content_w);
+        int manual_w;
+        int config_w;
+        practice_home_action_row_widths(content_w, &manual_w, &config_w);
+        if(ui_draw_generic_button(x, y, manual_w, btn_h, locale_get("practice_manual_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+            practice_screen_open_tab(app, PRACTICE_TAB_MANUAL);
+        if(ui_draw_generic_button(x + manual_w + row_gap, y, config_w,
+                                  btn_h, locale_get("practice_configure_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+            practice_screen_open_tab(app, PRACTICE_TAB_CONFIG);
+    } else {
+        if(practice->draw_manual != NULL &&
+           ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_manual_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+            practice_screen_open_tab(app, PRACTICE_TAB_MANUAL);
+        }
+        if(practice->draw_manual != NULL)
+            y += btn_h + gap;
+        if(practice->draw_config != NULL &&
+           ui_draw_generic_button(x, y, content_w, btn_h, locale_get("practice_configure_button"),
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+            practice_screen_open_tab(app, PRACTICE_TAB_CONFIG);
+        }
+    }
+
+    if(use_scroll)
+        ui_scroll_page_end(page);
 }
 
 const char *
@@ -432,7 +651,6 @@ practice_screen_open_tab(InbeApp *app, int tab)
         app->practice_tab = PRACTICE_TAB_MANUAL;
         app->tutorial_step = 0;
         app->manual_scroll = 0;
-        app_open_modal(app, UIModalPracticeManual);
         app_switch_screen(app, InbeScreenStart);
     } else if(tab == PRACTICE_TAB_CONFIG) {
         if(practice_get(app->exercise_type)->draw_config == NULL)
@@ -443,7 +661,6 @@ practice_screen_open_tab(InbeApp *app, int tab)
             app->practice_config_tab = 0;
         }
         app->practice_tab = PRACTICE_TAB_CONFIG;
-        app_open_modal(app, UIModalPracticeConfig);
         app_switch_screen(app, InbeScreenStart);
     }
 }
@@ -529,6 +746,7 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
             app->exercise_type = exercise_values[activity_index];
             app->manual_scroll = 0;
             app->settings_scroll = 0;
+            app->practice_home_scroll = 0;
             app->tutorial_step = 0;
             app->practice_config_tab = 0;
             save_settings(app);
@@ -545,6 +763,7 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
             app->exercise_type = clicked_exercise;
             app->manual_scroll = 0;
             app->settings_scroll = 0;
+            app->practice_home_scroll = 0;
             app->tutorial_step = 0;
             app->practice_config_tab = 0;
             save_settings(app);
@@ -642,18 +861,20 @@ practice_home_layout(InbeApp *app, Rectangle *music, Rectangle *card, Rectangle 
 {
     int top = app_content_top_reserved(app) + flint_px(14);
     int bottom_reserved = ui_bottom_nav_height();
-    int content_w = view_width - flint_px(32);
+    int content_w = view_width - flint_px(24);
     int max_w = flint_px(480);
+    const PracticeDefinition *practice = practice_get(app->exercise_type);
     int x;
     int y;
     int card_h;
     int btn_h = flint_px(42);
-    int gap = flint_px(12);
+    int gap;
 
     if(content_w > max_w)
         content_w = max_w;
     if(content_w < flint_px(260))
-        content_w = view_width - flint_px(20);
+        content_w = view_width - flint_px(16);
+    gap = practice_home_action_gap(content_w);
     x = (view_width - content_w) / 2;
     y = top;
 
@@ -674,12 +895,23 @@ practice_home_layout(InbeApp *app, Rectangle *music, Rectangle *card, Rectangle 
         *start = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
     y += btn_h + gap;
 
-    if(manual != NULL)
-        *manual = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
-    y += btn_h + gap;
-
-    if(config != NULL)
-        *config = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+    if(practice_home_actions_share_row(practice, content_w)) {
+        int row_gap = practice_home_action_gap(content_w);
+        int manual_w;
+        int config_w;
+        practice_home_action_row_widths(content_w, &manual_w, &config_w);
+        if(manual != NULL)
+            *manual = (Rectangle){(float)x, (float)y, (float)manual_w, (float)btn_h};
+        if(config != NULL)
+            *config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
+                                  (float)config_w, (float)btn_h};
+    } else {
+        if(manual != NULL)
+            *manual = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+        y += btn_h + gap;
+        if(config != NULL)
+            *config = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h};
+    }
 }
 
 static void

@@ -782,19 +782,21 @@ stop_android_background_session(InbeApp *app)
 void
 session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 {
-    int modal_result = 0;
     int breath_max_y = view_height - flint_px(44);
     int title_h = flint_ui_title_bar_height();
     char title[32];
 
     session_round_label(app, title, sizeof(title));
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
+    if(app->show_session_return_button &&
+       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             app_init(app);
         } else {
             app_open_modal(app, UIModalConfirmExitSession);
         }
+    } else if(!app->show_session_return_button) {
+        flint_ui_title_bar(title, title_h);
     }
 
     if(app->show_session_volume_control) {
@@ -821,36 +823,18 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        if(session_has_completed_rounds(app)) {
-            modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
-                                              locale_get("save_completed_rounds_message"),
-                                              locale_get("cancel_button"),
-                                              locale_get("save_button"),
-                                              locale_get("discard_button"));
-            if(modal_result == 1) {
-                app_close_modal(app);
-            } else if(modal_result == 2) {
+        SessionExitModalResult result =
+            app_draw_session_exit_modal(session_has_completed_rounds(app),
+                                        locale_get("save_completed_rounds_message"),
+                                        locale_get("all_progress_lost_message"));
+        if(result == SessionExitModalCancel) {
+            app_close_modal(app);
+        } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
+            if(result == SessionExitModalSave)
                 session_ensure_results_saved(app);
-                stop_android_background_session(app);
-                app_close_modal(app);
-                app_init(app);
-            } else if(modal_result == 3) {
-                stop_android_background_session(app);
-                app_close_modal(app);
-                app_init(app);
-            }
-        } else {
-            modal_result = ui_draw_modal(locale_get("exit_session_title"),
-                                         locale_get("all_progress_lost_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("exit_button"));
-            if(modal_result == 1) {
-                app_close_modal(app);
-            } else if(modal_result == 2) {
-                stop_android_background_session(app);
-                app_close_modal(app);
-                app_init(app);
-            }
+            stop_android_background_session(app);
+            app_close_modal(app);
+            app_init(app);
         }
         return;
     }

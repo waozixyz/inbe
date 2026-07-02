@@ -92,6 +92,15 @@ app_apply_nav_route(InbeApp *app, int route)
     }
 }
 
+static int
+app_is_practice_fullscreen_subview(const InbeApp *app)
+{
+    return app != NULL &&
+           app->inbe.screen == InbeScreenStart &&
+           (app->practice_tab == PRACTICE_TAB_MANUAL ||
+            app->practice_tab == PRACTICE_TAB_CONFIG);
+}
+
 int
 app_content_bottom_reserved(const InbeApp *app)
 {
@@ -99,6 +108,8 @@ app_content_bottom_reserved(const InbeApp *app)
         return 0;
     if(app->inbe.screen == InbeScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER)
+        return 0;
+    if(app_is_practice_fullscreen_subview(app))
         return 0;
     if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
         return 0;
@@ -123,9 +134,7 @@ app_has_fullscreen_overlay(const InbeApp *app)
 {
     if(app == NULL || !app->modal.active)
         return 0;
-    return app->modal.type == UIModalPracticeManual ||
-           app->modal.type == UIModalPracticeConfig ||
-           app->modal.type == UIModalPracticeMusic ||
+    return app->modal.type == UIModalPracticeMusic ||
            app->modal.type == UIModalEditProgressiveStartSpeed;
 }
 
@@ -168,6 +177,8 @@ app_current_nav_route(const InbeApp *app)
     case InbeScreenProfile:
         return APP_NAV_ROUTE_PROFILE;
     case InbeScreenStart:
+        if(app_is_practice_fullscreen_subview(app))
+            return APP_NAV_ROUTE_NONE;
         return APP_NAV_ROUTE_PRACTICE;
     case InbeScreenHabits:
         return APP_NAV_ROUTE_HABITS;

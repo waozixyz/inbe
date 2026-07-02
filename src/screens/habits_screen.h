@@ -15,7 +15,7 @@ enum {
 /* Habits-specific constants */
 enum {
     INBE_HABIT_MAX = 10,
-    INBE_HABIT_ID_SIZE = 32,
+    INBE_HABIT_ID_SIZE = 40,
     INBE_HABIT_NAME_SIZE = 40,
     INBE_HABIT_DESCRIPTION_SIZE = 256,
     HABIT_LINKED_ENTRY_MAX = 128,

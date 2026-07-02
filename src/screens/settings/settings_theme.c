@@ -15,7 +15,11 @@ int
 settings_theme_content_height(int content_w)
 {
     (void)content_w;
+#if defined(PLATFORM_WEB)
+    return flint_px(228);
+#else
     return flint_px(228) + flint_px(60);
+#endif
 }
 
 void
@@ -36,6 +40,10 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     state->draw_theme_mode_menu = 1;
     *y += flint_px(76);
 
+#if defined(PLATFORM_WEB)
+    app->transition_mode = APP_TRANSITION_NONE;
+    state->draw_transition_menu = 0;
+#else
     {
         const char *transition_options[2];
         transition_options[APP_TRANSITION_NONE] = locale_get("transition_none");
@@ -47,6 +55,7 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     }
     state->draw_transition_menu = 1;
     *y += flint_px(76);
+#endif
 
     // Draw single theme circle button
     flint_text_draw(locale_get("theme_label"), x, *y, flint_ui_font(), flint_theme_get_text());
@@ -102,6 +111,7 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         save_settings(app);
     }
 
+#if !defined(PLATFORM_WEB)
     if(state->draw_transition_menu && ui_draw_dropdown_menu(104))
         transition_changed = 1;
     if(transition_changed) {
@@ -109,6 +119,10 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->settings_dirty = 1;
         save_settings(app);
     }
+#else
+    (void)transition_changed;
+    app->transition_mode = APP_TRANSITION_NONE;
+#endif
 }
 
 void

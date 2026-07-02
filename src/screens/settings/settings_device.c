@@ -23,19 +23,25 @@ int
 settings_device_content_height(int content_w)
 {
     int height = flint_px(76) + flint_px(76) + flint_px(40);
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     int label_w = content_w > 0 ? content_w : flint_px(240);
+#endif
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += flint_px(50);
 #endif
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     height += settings_ui_toggle_row_height(locale_get("on_screen_keyboard_label"), label_w);
+#endif
     return height;
 }
 
 void
 settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *state)
 {
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     int keyboard_toggle;
+#endif
     const char *orientation_options[] = {
         locale_get("orientation_system"),
         locale_get("orientation_portrait"),
@@ -47,7 +53,11 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
     if(app == NULL || y == NULL || state == NULL)
         return;
 
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
+    app->on_screen_keyboard_enabled = 1;
+#else
     keyboard_toggle = app->on_screen_keyboard_enabled;
+#endif
 
     flint_text_draw(locale_get("language_label"), x, *y, flint_ui_font(), flint_theme_get_text());
     if(language_dropdown_button(app, 101, x, *y + flint_px(26), w, flint_px(36),
@@ -81,11 +91,12 @@ settings_device_draw(InbeApp *app, int x, int w, int *y, SettingsDeviceState *st
     *y += flint_px(50);
 #endif
 
-    if(settings_ui_draw_toggle_row(x, w, y, locale_get("on_screen_keyboard_label"),
-                                   &keyboard_toggle)) {
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+    if(settings_ui_commit_toggle_row(app, x, w, y, locale_get("on_screen_keyboard_label"),
+                                     &keyboard_toggle, 0)) {
         app->on_screen_keyboard_enabled = keyboard_toggle;
-        app->settings_dirty = 1;
     }
+#endif
 }
 
 void

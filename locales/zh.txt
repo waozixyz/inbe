@@ -376,6 +376,9 @@ Finish
 [show_session_volume_control_label]
 显示音量控制
 ---
+[show_session_return_button_label]
+显示返回按钮
+---
 [reset_to_defaults_label]
 恢复默认
 ---
@@ -827,7 +830,7 @@ Alias saved
 手册
 ---
 [practice_configure_button]
-配置练习
+配置
 ---
 [practice_music_practice_list_title]
 为练习使用音乐
