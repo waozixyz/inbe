@@ -252,13 +252,6 @@ typedef struct HabitEditState {
     int counter_enabled;
 } HabitEditState;
 
-typedef struct ProfileGuideAnchors {
-    Rectangle account;
-    Rectangle data;
-    Rectangle social;
-    int valid;
-} ProfileGuideAnchors;
-
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -336,7 +329,6 @@ struct InbeApp {
     int habits_guide_seen;
     int profile_guide_step;
     int profile_guide_seen;
-    ProfileGuideAnchors profile_guide_anchors;
     int exercise_manual_seen_mask;
     int practice_visible_mask;
     int practice_home_scroll;

@@ -1,5 +1,4 @@
 import { readFile } from "node:fs/promises";
-import { extname } from "node:path";
 
 const baseUrl = "https://developer.amazon.com/api/appstore";
 
@@ -16,16 +15,9 @@ async function readResponseText(response) {
   return text.length > 0 ? text : "(empty response)";
 }
 
-function isAllowedFailure(response, allowedStatuses) {
-  return Array.isArray(allowedStatuses) && allowedStatuses.includes(response.status);
-}
-
 async function requestJson(url, options = {}) {
   const response = await fetch(url, options);
   const text = await readResponseText(response);
-  if (isAllowedFailure(response, options.allowedStatuses)) {
-    return null;
-  }
   if (!response.ok) {
     throw new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${response.statusText}: ${text}`);
   }
@@ -47,61 +39,16 @@ async function requestJsonWithResponse(url, options = {}) {
 async function requestOk(url, options = {}) {
   const response = await fetch(url, options);
   const text = await readResponseText(response);
-  if (isAllowedFailure(response, options.allowedStatuses)) {
-    return null;
-  }
   if (!response.ok) {
     throw new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${response.statusText}: ${text}`);
   }
   return response;
 }
 
-function releaseKindForFile(file) {
-  const ext = extname(file).toLowerCase();
-  if (ext === ".apk") {
-    return {
-      label: "APK",
-      resourceCandidates: ["apks"],
-      contentType: "application/vnd.android.package-archive",
-    };
-  }
-  if (ext === ".aab") {
-    return {
-      label: "AAB",
-      resourceCandidates: ["appbundles", "appBundles", "aabs", "bundles", "apks"],
-      contentType: "application/octet-stream",
-    };
-  }
-  throw new Error(`Unsupported Amazon release file extension "${ext}". Expected .apk or .aab`);
-}
-
-function describeAsset(asset) {
-  return `id=${asset.id ?? "(missing)"} versionCode=${asset.versionCode ?? "(unknown)"} name=${asset.name ?? "(unknown)"}`;
-}
-
-async function findBinaryCollection(editId, releaseKind) {
-  for (const resource of releaseKind.resourceCandidates) {
-    const assets = await requestJson(`${baseUrl}/v1/applications/${appId}/edits/${editId}/${resource}`, {
-      headers: jsonHeaders,
-      allowedStatuses: [404],
-    });
-    if (assets === null) {
-      continue;
-    }
-    if (!Array.isArray(assets) || assets.length === 0) {
-      throw new Error(`Amazon edit has no ${releaseKind.label} asset to replace in ${resource}`);
-    }
-    return { resource, assets };
-  }
-
-  throw new Error(`Amazon edit does not expose a ${releaseKind.label} collection. Tried: ${releaseKind.resourceCandidates.join(", ")}`);
-}
-
 const clientId = requireEnv("AMAZON_CLIENT_ID");
 const clientSecret = requireEnv("AMAZON_CLIENT_SECRET");
 const appId = requireEnv("AMAZON_APP_ID");
 const releaseFile = requireEnv("AMAZON_RELEASE_FILE");
-const releaseKind = releaseKindForFile(releaseFile);
 
 console.log("Getting Amazon authentication token");
 const tokenParams = new URLSearchParams({
@@ -151,31 +98,33 @@ if (!edit.id) {
   throw new Error("Amazon did not return an edit id");
 }
 
-console.log(`Finding ${releaseKind.label} slot to replace`);
-const { resource, assets } = await findBinaryCollection(edit.id, releaseKind);
-const asset = assets[0];
-if (!asset.id) {
-  throw new Error(`Amazon ${releaseKind.label} asset did not include an id: ${JSON.stringify(asset)}`);
-}
-console.log(`Replacing ${releaseKind.label} ${describeAsset(asset)} via ${resource}`);
-
-const assetResponse = await requestOk(`${baseUrl}/v1/applications/${appId}/edits/${edit.id}/${resource}/${asset.id}`, {
+console.log("Finding APK slot to replace");
+const apks = await requestJson(`${baseUrl}/v1/applications/${appId}/edits/${edit.id}/apks`, {
   headers: jsonHeaders,
 });
-const etag = assetResponse.headers.get("etag");
+if (!Array.isArray(apks) || apks.length === 0) {
+  throw new Error("Amazon edit has no APK slot to replace");
+}
+const apk = apks[0];
+console.log(`Replacing APK ${apk.id} versionCode=${apk.versionCode} name=${apk.name}`);
+
+const apkResponse = await requestOk(`${baseUrl}/v1/applications/${appId}/edits/${edit.id}/apks/${apk.id}`, {
+  headers: jsonHeaders,
+});
+const etag = apkResponse.headers.get("etag");
 if (!etag) {
-  throw new Error(`Amazon did not return an ETag for ${releaseKind.label} ${asset.id}`);
+  throw new Error(`Amazon did not return an ETag for APK ${apk.id}`);
 }
 
-const releaseBytes = await readFile(releaseFile);
-await requestOk(`${baseUrl}/v1/applications/${appId}/edits/${edit.id}/${resource}/${asset.id}/replace`, {
+const apkBytes = await readFile(releaseFile);
+await requestOk(`${baseUrl}/v1/applications/${appId}/edits/${edit.id}/apks/${apk.id}/replace`, {
   method: "PUT",
   headers: {
     ...authHeaders,
-    "Content-Type": releaseKind.contentType,
+    "Content-Type": "application/vnd.android.package-archive",
     "If-Match": etag,
   },
-  body: releaseBytes,
+  body: apkBytes,
 });
 
-console.log(`Amazon ${releaseKind.label} upload completed`);
+console.log("Amazon APK upload completed");

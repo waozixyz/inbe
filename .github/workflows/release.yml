@@ -620,13 +620,13 @@ jobs:
           name: release-android
           path: build/release/android
 
-      - name: Publish AAB to Google Play Production
+      - name: Publish AAB to Play Games on PC Production
         uses: r0adkll/upload-google-play@v1
         with:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_STORE_JSON_KEY }}
           packageName: xyz.waozi.inbe
           releaseFiles: build/release/android/*.aab
-          track: production
+          tracks: google_play_games_pc:production
           status: completed
 
   publish-amazon:
@@ -666,9 +666,9 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Upload AAB to Amazon Appstore
+      - name: Upload APK to Amazon Appstore
         env:
-          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.aab
+          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
         run: node scripts/upload-amazon-appstore.mjs
 
   publish-chrome-web-store:
