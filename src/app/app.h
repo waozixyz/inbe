@@ -102,6 +102,13 @@ typedef enum {
     UIModalConfirmRemoveFriend,
 } UIModalType;
 
+typedef enum SessionExitModalResult {
+    SessionExitModalNone = 0,
+    SessionExitModalCancel,
+    SessionExitModalSave,
+    SessionExitModalDiscard,
+} SessionExitModalResult;
+
 typedef struct {
     int active;
     UIModalType type;
@@ -280,6 +287,7 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
+    int show_session_return_button;
     int profile_view;
     int profile_tab;
     int profile_tab_scroll;
@@ -323,6 +331,7 @@ struct InbeApp {
     int profile_guide_seen;
     int exercise_manual_seen_mask;
     int practice_visible_mask;
+    int practice_home_scroll;
 
     int theme_id;
     int dark_mode;
@@ -390,6 +399,9 @@ void app_unload_texture(Texture2D texture);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
+SessionExitModalResult app_draw_session_exit_modal(int can_save,
+                                                   const char *save_message,
+                                                   const char *discard_message);
 
 int clampi(int x, int min, int max);
 int int_from_count(const char src[4]);

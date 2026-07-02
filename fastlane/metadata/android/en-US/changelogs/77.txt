@@ -1,0 +1,4 @@
+Changed
+---
+- upgrade to sync protocol v3
+- ui fixes

@@ -6,6 +6,7 @@
 #include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
+#include "screens/practice_screen.h"
 
 extern int view_width;
 extern int view_height;
@@ -340,14 +341,9 @@ whm_config_scroll_page_content_height(int content_w, void *user_data)
 void
 whm_config_screen_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart &&
-                     app->modal.type != UIModalPracticeConfig;
-    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
+    PracticeSubscreenLayout layout;
     int config_tab_h = flint_px(40);
     int config_tab_gap = flint_px(14);
-    int scroll_y;
-    int scroll_h;
-    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
     int draw_breath_animation_menu = 0;
     int clicked_config_tab = -1;
     const char *config_tabs[] = {
@@ -360,37 +356,23 @@ whm_config_screen_draw(InbeApp *app)
     if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
         app->practice_config_tab = 0;
 
-    if(!integrated) {
-        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
-            if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
-                app_close_modal(app);
-            } else {
-                if(app->settings_dirty)
-                    save_settings(app);
-                app->settings_scroll = 0;
-                app->practice_tab = PRACTICE_TAB_PLAY;
-                app_switch_screen(app, InbeScreenStart);
-            }
-        }
-    }
+    practice_screen_config_layout(app, UIModalPracticeConfig,
+                                  config_tab_h + config_tab_gap, &layout);
+    practice_screen_handle_config_title(app, locale_get("practice_config_title"),
+                                        UIModalPracticeConfig, NULL);
 
-    clicked_config_tab = whm_draw_subtab_bar(title_h, config_tab_h, config_tabs, 2,
+    clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h, config_tabs, 2,
                                              app->practice_config_tab);
     if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
         app->practice_config_tab = clicked_config_tab;
         app->settings_scroll = 0;
     }
-    scroll_y = title_h + config_tab_h + config_tab_gap;
-    scroll_h = view_height - scroll_y - bottom_reserved -
-               (integrated ? flint_px(8) : 0);
-    if(scroll_h < 0)
-        scroll_h = 0;
 
     {
         WhmConfigScrollPageContext page_ctx = {app};
         FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
-            .y = scroll_y,
-            .height = scroll_h,
+            .y = layout.scroll_y,
+            .height = layout.scroll_h,
             .max_content_width = flint_px(CONTENT_MAX_W),
             .min_content_width = flint_px(320),
             .scroll_offset = &app->settings_scroll,

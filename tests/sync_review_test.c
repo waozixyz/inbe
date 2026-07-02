@@ -1,4 +1,6 @@
 #include "storage.h"
+#include "db.h"
+#include "screens/habits_screen.h"
 
 #include <dirent.h>
 #include <sqlite3.h>
@@ -398,6 +400,30 @@ remote_additive_yoga_response(void)
 }
 
 static const char *
+remote_clean_v3_response(void)
+{
+    return "{"
+           "\"server_version\":21,"
+           "\"server_clock\":22,"
+           "\"server_state_hash\":\"remote-clean-v3\","
+           "\"data\":{"
+           "\"habits\":[{\"id\":\"clean-habit\",\"name\":\"Clean Breath\","
+           "\"color_r\":12,\"color_g\":34,\"color_b\":56,\"sync_mode\":0,"
+           "\"sync_activity\":0,\"counter_enabled\":1,\"sort_order\":3,"
+           "\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
+           "\"habit_days\":[{\"habit_id\":\"clean-habit\",\"local_date\":20260624,"
+           "\"completed\":true,\"count\":5,\"updated_at\":\"2026-06-24T10:00:00Z\"}],"
+           "\"sessions\":[{\"id\":\"clean-session\",\"started_at\":\"2026-06-24T10:00:00Z\","
+           "\"local_date\":20260624,\"topic\":2,\"activity\":2,\"source\":\"lyra-test\","
+           "\"rounds_hash\":505,\"deleted_at\":0,\"updated_at\":\"2026-06-24T10:00:00Z\","
+           "\"rounds\":[{\"round_index\":0,\"hold_seconds\":44}]}],"
+           "\"meditation_logs\":[]"
+           "},"
+           "\"changes\":{\"habits\":[],\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}"
+           "}";
+}
+
+static const char *
 remote_tiny_session_snapshot_response(void)
 {
     return "{"
@@ -576,6 +602,101 @@ test_remote_additions_apply_without_review(void)
 }
 
 static void
+test_clean_v3_data_applies_inside_existing_transaction(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "clean-v3-nested");
+    check_true("init clean v3 db", storage_init(root));
+    check_true("begin outer transaction", exec_sql("BEGIN IMMEDIATE"));
+    check_true("apply clean v3 response", storage_apply_sync_response_json(remote_clean_v3_response()));
+    check_true("commit outer transaction", exec_sql("COMMIT"));
+    check_int("clean v3 habit applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='clean-habit'"), 1);
+    check_int("clean v3 day applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habit_days WHERE habit_id='clean-habit' "
+                                  "AND count=5"),
+              1);
+    check_int("clean v3 session applied",
+              read_db_count(root, "SELECT COUNT(*) FROM sessions WHERE id='clean-session'"), 1);
+    check_int("clean v3 rounds applied",
+              read_db_count(root, "SELECT COUNT(*) FROM session_rounds WHERE "
+                                  "session_id='clean-session' AND seconds=44"),
+              1);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_clean_v3_habit_ids_replace_local_uuid_by_name(void)
+{
+    char root[1024];
+
+    make_clean_root(root, sizeof(root), "clean-v3-id-repair");
+    check_true("init clean v3 repair db", storage_init(root));
+    check_true("seed local mismatched uuid",
+               exec_db_sql(root, "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                                 "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,"
+                                 "updated_at)"
+                                 "VALUES('local-clean-id',(SELECT id FROM users LIMIT 1),"
+                                 "'Clean Breath',9,9,9,0,0,1,3,0,1782200000);"
+                                 "INSERT INTO habit_days(habit_id,local_date,completed,count,"
+                                 "session_count,updated_at)"
+                                 "VALUES('local-clean-id',20260623,1,2,0,1782200000);"));
+    check_true("apply clean v3 repair response",
+               storage_apply_sync_response_json(remote_clean_v3_response()));
+    check_int("local duplicate id removed",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='local-clean-id'"), 0);
+    check_int("canonical remote id present",
+              read_db_count(root, "SELECT COUNT(*) FROM habits WHERE id='clean-habit'"), 1);
+    check_int("local day moved to canonical id",
+              read_db_count(root, "SELECT COUNT(*) FROM habit_days WHERE habit_id='clean-habit' "
+                                  "AND local_date=20260623 AND count=2"),
+              1);
+    check_int("remote day still applied",
+              read_db_count(root, "SELECT COUNT(*) FROM habit_days WHERE habit_id='clean-habit' "
+                                  "AND local_date=20260624 AND count=5"),
+              1);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_uuid_habit_ids_load_days_into_memory(void)
+{
+    char root[1024];
+    InbeHabits habits;
+    const char *uuid = "940dd8b7-0d60-48ce-9c8f-433b9170b6b1";
+
+    make_clean_root(root, sizeof(root), "uuid-habit-load");
+    memset(&habits, 0, sizeof(habits));
+    check_true("init uuid habit load db", storage_init(root));
+    check_true("seed uuid habit day",
+               exec_db_sql(root, "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                                 "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,"
+                                 "updated_at)"
+                                 "VALUES('940dd8b7-0d60-48ce-9c8f-433b9170b6b1',"
+                                 "(SELECT id FROM users LIMIT 1),'Meditation',1,2,3,0,0,1,0,0,"
+                                 "1782200000);"
+                                 "INSERT INTO habit_days(habit_id,local_date,completed,count,"
+                                 "session_count,updated_at)"
+                                 "VALUES('940dd8b7-0d60-48ce-9c8f-433b9170b6b1',20260629,1,1,0,"
+                                 "1782200000);"));
+    check_true("load uuid habits", storage_habits_load(&habits));
+    check_int("uuid habit count", habits.count, 1);
+    check_contains("uuid id not truncated", habits.items[0].id, uuid);
+    check_int("uuid habit day loaded", habits.items[0].day_count, 1);
+    if(habits.items[0].day_count > 0)
+        check_int("uuid habit day date", habits.items[0].days[0].day_index, 20260629);
+
+    habits_free(&habits);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_remote_snapshot_removes_absent_local_yoga_without_pending_edits(void)
 {
     char root[1024];
@@ -634,7 +755,7 @@ test_sync_payload_includes_v2_ops(void)
               1);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
-    check_contains("v2 payload protocol", payload, "\"protocol_version\":2");
+    check_contains("v3 payload protocol", payload, "\"protocol_version\":3");
     check_contains("v2 payload client clock", payload, "\"client_clock\":0");
     check_contains("v2 payload ops array", payload, "\"ops\":[");
     check_contains("v2 payload habit op", payload, "\"entity_type\":\"habit\"");
@@ -657,9 +778,11 @@ test_normal_response_records_server_hash(void)
 {
     char root[1024];
     char *payload;
+    InbeStorageSyncStatus status;
     const char *response = "{"
                            "\"server_version\":5,"
                            "\"server_clock\":77,"
+                           "\"latest_protocol\":3,"
                            "\"server_state_hash\":\"normal-hash-001\","
                            "\"account_alias\":\"waozi\","
                            "\"changes\":{\"habits\":[],\"habit_days\":[],"
@@ -672,6 +795,10 @@ test_normal_response_records_server_hash(void)
     check_false("normal response no review", storage_sync_review_pending());
     check_contains("normal response saves alias", storage_get_setting_text("sync_account_alias"),
                    "waozi");
+    check_true("normal response loads status", storage_sync_status(&status));
+    check_int("normal response latest protocol", status.latest_protocol,
+              INBE_SYNC_PROTOCOL_VERSION);
+    check_false("normal response no protocol upgrade", status.protocol_upgrade_available);
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_contains("normal response hash in next payload", payload,
@@ -679,6 +806,30 @@ test_normal_response_records_server_hash(void)
     check_contains("normal response clock in next payload", payload, "\"client_clock\":77");
     check_not_contains("normal response no full replace", payload, "full_sync_requested");
     storage_free_sync_payload_json(payload);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_latest_protocol_warning_targets_current_client_only(void)
+{
+    char root[1024];
+    InbeStorageSyncStatus status;
+    const char *response = "{"
+                           "\"server_version\":6,"
+                           "\"server_clock\":78,"
+                           "\"latest_protocol\":4,"
+                           "\"changes\":{\"habits\":[],\"habit_days\":[],"
+                           "\"sessions\":[],\"meditation_logs\":[]}"
+                           "}";
+
+    make_clean_root(root, sizeof(root), "latest-protocol");
+    check_true("init latest protocol db", storage_init(root));
+    check_true("apply newer protocol response", storage_apply_sync_response_json(response));
+    check_true("newer protocol loads status", storage_sync_status(&status));
+    check_int("newer protocol recorded", status.latest_protocol, 4);
+    check_true("newer protocol warns current client", status.protocol_upgrade_available);
 
     storage_close();
     remove_tree(root);
@@ -734,10 +885,14 @@ main(void)
     test_local_habit_without_activity_does_not_force_review();
     test_review_ignores_deleted_remote_rows();
     test_remote_additions_apply_without_review();
+    test_clean_v3_data_applies_inside_existing_transaction();
+    test_clean_v3_habit_ids_replace_local_uuid_by_name();
+    test_uuid_habit_ids_load_days_into_memory();
     test_remote_snapshot_removes_absent_local_yoga_without_pending_edits();
     test_remote_snapshot_keeps_review_for_pending_yoga_delete();
     test_sync_payload_includes_v2_ops();
     test_normal_response_records_server_hash();
+    test_latest_protocol_warning_targets_current_client_only();
     test_social_cache_is_server_authored_sync_state();
 
     if(g_failures != 0) {

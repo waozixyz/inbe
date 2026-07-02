@@ -69,8 +69,7 @@ profile_data_content_height(int content_w)
 static int
 profile_sync_content_height(int content_w)
 {
-    (void)content_w;
-    return flint_px(430);
+    return settings_sync_account_config_content_height(content_w);
 }
 
 static int

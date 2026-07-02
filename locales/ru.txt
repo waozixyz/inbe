@@ -397,6 +397,9 @@ OK
 [show_session_volume_control_label]
 Показывать регулятор громкости
 ---
+[show_session_return_button_label]
+Показывать кнопку возврата
+---
 [reset_to_defaults_label]
 Сбросить настройки
 ---
@@ -827,7 +830,7 @@ Alias saved
 Инструкция
 ---
 [practice_configure_button]
-Настроить практику
+Настроить
 ---
 [practice_music_practice_list_title]
 Использовать музыку для практик

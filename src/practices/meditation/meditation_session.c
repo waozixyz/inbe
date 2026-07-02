@@ -418,41 +418,29 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
     int text_w;
     int title_h = flint_ui_title_bar_height();
 
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("meditation_title"), title_h)) {
+    if(app->show_session_return_button &&
+       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("meditation_title"), title_h)) {
         meditation_request_exit(app);
         return;
+    } else if(!app->show_session_return_button) {
+        flint_ui_title_bar(locale_get("meditation_title"), title_h);
     }
 
     draw_meditation_sound_controls(app);
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
         int elapsed = meditation_elapsed_seconds(app);
-        int modal_result;
+        SessionExitModalResult result;
 
-        if(elapsed >= 60) {
-            modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
-                                              locale_get("meditation_save_elapsed_message"),
-                                              locale_get("cancel_button"),
-                                              locale_get("save_button"),
-                                              locale_get("discard_button"));
-            if(modal_result == 1) {
-                app_close_modal(app);
-            } else if(modal_result == 2) {
+        result = app_draw_session_exit_modal(elapsed >= 60,
+                                             locale_get("meditation_save_elapsed_message"),
+                                             locale_get("meditation_under_minute_exit_message"));
+        if(result == SessionExitModalCancel) {
+            app_close_modal(app);
+        } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
+            if(result == SessionExitModalSave)
                 meditation_save_elapsed(app);
-                meditation_exit_to_start(app);
-            } else if(modal_result == 3) {
-                meditation_exit_to_start(app);
-            }
-        } else {
-            modal_result = ui_draw_modal(locale_get("exit_session_title"),
-                                         locale_get("meditation_under_minute_exit_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("exit_button"));
-            if(modal_result == 1) {
-                app_close_modal(app);
-            } else if(modal_result == 2) {
-                meditation_exit_to_start(app);
-            }
+            meditation_exit_to_start(app);
         }
         return;
     }

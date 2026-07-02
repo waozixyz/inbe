@@ -394,6 +394,9 @@ Volume
 [show_session_volume_control_label]
 Mostra controllo volume
 ---
+[show_session_return_button_label]
+Mostra pulsante indietro
+---
 [reset_to_defaults_label]
 Ripristina predefiniti
 ---
@@ -827,7 +830,7 @@ Avvia pratica
 Manuale
 ---
 [practice_configure_button]
-Configura pratica
+Configura
 ---
 [practice_music_practice_list_title]
 Usa musica per le pratiche

@@ -251,11 +251,13 @@ settings_screen_draw(InbeApp *app)
     }
 
     ui_set_dropdown_clip_top(tab_content_start_y);
+    ui_set_dropdown_clip_bottom(view_height - app_content_bottom_reserved(app));
     if(app->settings_tab == SETTINGS_TAB_THEME)
         settings_theme_handle_overlays(app, &app->theme_state);
     else if(app->settings_tab == SETTINGS_TAB_DEVICE)
         settings_device_handle_overlays(app, &device_state);
     ui_set_dropdown_clip_top(0);
+    ui_set_dropdown_clip_bottom(0);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty)
         save_settings(app);

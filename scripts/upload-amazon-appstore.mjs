@@ -24,6 +24,18 @@ async function requestJson(url, options = {}) {
   return text === "(empty response)" ? {} : JSON.parse(text);
 }
 
+async function requestJsonWithResponse(url, options = {}) {
+  const response = await fetch(url, options);
+  const text = await readResponseText(response);
+  if (!response.ok) {
+    throw new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${response.statusText}: ${text}`);
+  }
+  return {
+    data: text === "(empty response)" ? {} : JSON.parse(text),
+    response,
+  };
+}
+
 async function requestOk(url, options = {}) {
   const response = await fetch(url, options);
   const text = await readResponseText(response);
@@ -59,14 +71,21 @@ const jsonHeaders = {
 };
 
 console.log("Checking for an open Amazon edit");
-const activeEdit = await requestJson(`${baseUrl}/v1/applications/${appId}/edits`, {
+const { data: activeEdit, response: activeEditResponse } = await requestJsonWithResponse(`${baseUrl}/v1/applications/${appId}/edits`, {
   headers: jsonHeaders,
 });
 if (activeEdit.id) {
+  const activeEditEtag = activeEditResponse.headers.get("etag");
+  if (!activeEditEtag) {
+    throw new Error(`Amazon did not return an ETag for open edit ${activeEdit.id}`);
+  }
   console.log(`Deleting stale open edit ${activeEdit.id}`);
   await requestOk(`${baseUrl}/v1/applications/${appId}/edits/${activeEdit.id}`, {
     method: "DELETE",
-    headers: jsonHeaders,
+    headers: {
+      ...jsonHeaders,
+      "If-Match": activeEditEtag,
+    },
   });
 }
 

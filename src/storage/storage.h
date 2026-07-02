@@ -6,7 +6,8 @@
 
 enum {
     INBE_STORAGE_PATH_SIZE = 512,
-    INBE_STORAGE_ID_SIZE = 64
+    INBE_STORAGE_ID_SIZE = 64,
+    INBE_SYNC_PROTOCOL_VERSION = 3
 };
 
 typedef void (*InbeStorageSessionRecordCallback)(const char *id,
@@ -35,6 +36,8 @@ typedef struct InbeStorageSyncStatus {
     int has_account;
     int review_pending;
     int repair_pending;
+    int protocol_upgrade_available;
+    int latest_protocol;
     int full_upload_done;
     long long server_version;
     long long server_clock;
@@ -96,6 +99,7 @@ int storage_sync_review_apply_remote_if_local_empty(void);
 int storage_apply_pending_sync_review(int use_remote);
 void storage_purge_synced_deleted_data(void);
 const char *storage_sync_client_id(void);
+void storage_make_uuid(char out[37]);
 void storage_reset_sync_state(void);
 
 int storage_habits_empty(void);

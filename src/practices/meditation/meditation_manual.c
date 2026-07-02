@@ -3,6 +3,7 @@
 #include "app.h"
 #include "flint_locale.h"
 #include "screens/manual_screen.h"
+#include "screens/practice_screen.h"
 #include "flint_theme.h"
 #include "flint_ui.h"
 #include "raylib.h"
@@ -81,14 +82,7 @@ meditation_manual_scroll_page_content_height(int content_w, void *user_data)
 void
 meditation_manual_draw(InbeApp *app)
 {
-    int integrated = app->inbe.screen == InbeScreenStart &&
-                     app->modal.type != UIModalPracticeManual;
-    int title_h = integrated ? app_content_top_reserved(app) : flint_ui_title_bar_height();
-    int nav_h = MEDITATION_MANUAL_PAGES > 1 ? manual_screen_guide_nav_height() : 0;
-    int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
-    int nav_y = view_height - bottom_reserved - nav_h;
-    int content_y = title_h + flint_px(16);
-    int content_h = nav_y - content_y - flint_px(16);
+    PracticeManualLayout layout;
     int responsive_max_w = (int)(view_width * 0.90f);
     int max_content_w = flint_px(520);
     int page = clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1);
@@ -101,17 +95,18 @@ meditation_manual_draw(InbeApp *app)
     page = manual_screen_guide_update_page(app, MEDITATION_MANUAL_PAGES,
                                            meditation_manual_start,
                                            meditation_manual_close);
-    if(!integrated &&
-       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("meditation_manual_title"), title_h))
+    practice_screen_manual_layout(app, UIModalPracticeManual, MEDITATION_MANUAL_PAGES,
+                                  flint_px(16), flint_px(16), flint_px(120),
+                                  &layout);
+    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN],
+                                 locale_get("meditation_manual_title"),
+                                 layout.title_h))
         meditation_manual_close(app, 0);
-
-    if(content_h < flint_px(120))
-        content_h = flint_px(120);
 
     {
         FlintUIScrollPage scroll_page = ui_scroll_page_begin((FlintUIScrollPageSpec){
-            .y = content_y,
-            .height = content_h,
+            .y = layout.content_y,
+            .height = layout.content_h,
             .max_content_width = responsive_max_w,
             .min_content_width = flint_px(280),
             .scroll_offset = &app->manual_scroll,
@@ -127,8 +122,8 @@ meditation_manual_draw(InbeApp *app)
     manual_screen_guide_draw_nav(app, (ManualGuideNav){
         .page = page,
         .page_count = MEDITATION_MANUAL_PAGES,
-        .y = nav_y,
-        .h = nav_h,
+        .y = layout.nav_y,
+        .h = layout.nav_h,
         .show_left_on_first = exercise_manual_seen(app, EXERCISE_MEDITATION),
         .start = meditation_manual_start,
         .close = meditation_manual_close

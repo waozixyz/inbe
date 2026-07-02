@@ -354,7 +354,9 @@ settings_data_draw_sync_status(int x, int w, int *y)
     flint_text_draw(line, x + left_w, row_y, font, text_color);
 
     row_y += flint_px(22);
-    if(status.review_pending)
+    if(status.protocol_upgrade_available)
+        snprintf(line, sizeof(line), "Upgrade Inner Breeze");
+    else if(status.review_pending)
         snprintf(line, sizeof(line), "Review pending");
     else if(status.repair_pending)
         snprintf(line, sizeof(line), "Repair sync pending");
@@ -365,7 +367,8 @@ settings_data_draw_sync_status(int x, int w, int *y)
     else
         snprintf(line, sizeof(line), "Ready");
     flint_text_draw(line, x, row_y, font,
-                    (status.review_pending || status.repair_pending) ? warn_color : text_color);
+                    (status.protocol_upgrade_available || status.review_pending ||
+                     status.repair_pending) ? warn_color : text_color);
 
     *y += flint_px(74);
 }

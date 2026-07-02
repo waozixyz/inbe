@@ -192,16 +192,17 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     FlintUIIconRowResult row;
     Texture2D pose;
     const char *step_label;
+    char step_title[32];
     int step;
     int repetition;
     int repetitions;
     int pose_index;
     int text_w;
     int title_h = flint_ui_title_bar_height();
-    int content_top = title_h + flint_px(42);
-    const char *warning_text = locale_get("sun_salutation_work_in_progress");
-    int warning_font = flint_ui_font_small();
-    int warning_y;
+    int subtitle_h = flint_px(34);
+    int content_top = title_h + subtitle_h + flint_px(8);
+    int subtitle_font = flint_ui_font_small();
+    int subtitle_y;
     int image_bottom;
     int min_view_dim = view_width < view_height ? view_width : view_height;
 
@@ -248,15 +249,20 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     pose = app->sun_salutation.poses[pose_index];
 
     step_label = sun_salutation_step_label(step);
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], step_label, title_h)) {
+    snprintf(step_title, sizeof(step_title), "Step %d / %d", step + 1,
+             SUN_SALUTATION_STEP_COUNT);
+    if(app->show_session_return_button &&
+       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], step_title, title_h)) {
         sun_salutation_request_exit(app);
         return;
+    } else if(!app->show_session_return_button) {
+        flint_ui_title_bar(step_title, title_h);
     }
-    text_w = flint_text_measure(warning_text, warning_font);
-    warning_y = title_h + flint_px(6);
-    flint_text_draw(warning_text, center_x - text_w / 2,
-                    flint_ui_text_y(warning_text, warning_y, flint_px(28), warning_font),
-                    warning_font, flint_theme_get_text());
+    text_w = flint_text_measure(step_label, subtitle_font);
+    subtitle_y = title_h;
+    flint_text_draw(step_label, center_x - text_w / 2,
+                    flint_ui_text_y(step_label, subtitle_y, subtitle_h, subtitle_font),
+                    subtitle_font, flint_theme_get_text());
 
     controls[0] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_BACKWARD],
                                        step <= 0 && repetition <= 0};

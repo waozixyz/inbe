@@ -414,7 +414,6 @@ habits_add_custom(InbeHabits *habits, const char *name, Color color,
                        int sync_mode, int sync_activity)
 {
     InbeHabit *habit;
-    int number;
     char unique_name[INBE_HABIT_NAME_SIZE];
 
     if(habits == NULL || habits->count >= INBE_HABIT_MAX)
@@ -427,10 +426,9 @@ habits_add_custom(InbeHabits *habits, const char *name, Color color,
         final_name = unique_name;
     }
 
-    number = habits->count + 1;
     habit = &habits->items[habits->count];
     memset(habit, 0, sizeof(*habit));
-    snprintf(habit->id, sizeof(habit->id), "habit-%d", number);
+    storage_make_uuid(habit->id);
     copy_text(habit->name, sizeof(habit->name), final_name);
     habit->color = color;
     habit->color.a = 255;
@@ -1085,6 +1083,37 @@ habits_overview_cell_size(int content_w)
 }
 
 static int
+habits_button_label_fits(const char *label, int button_w)
+{
+    int pad = flint_px(20);
+
+    return flint_text_measure(label != NULL ? label : "", flint_ui_font_small()) + pad <=
+           button_w;
+}
+
+static int
+habits_overview_actions_stack(int content_w)
+{
+    int btn_gap = flint_px(8);
+    int half_w = (content_w - btn_gap) / 2;
+
+    return !habits_button_label_fits(locale_get("habit_new_button"), half_w) ||
+           !habits_button_label_fits(locale_get("habit_reorder_title"), half_w);
+}
+
+static int
+habits_reorder_move_buttons_stack(int content_w)
+{
+    int btn_w = flint_px(74);
+    int gap = flint_px(8);
+
+    return content_w < flint_px(260) ||
+           content_w < btn_w * 2 + gap ||
+           !habits_button_label_fits(locale_get("move_up_button"), btn_w) ||
+           !habits_button_label_fits(locale_get("move_down_button"), btn_w);
+}
+
+static int
 habits_overview_week_day_index(int offset)
 {
     time_t now = time(NULL);
@@ -1112,18 +1141,26 @@ habits_overview_content_height(int content_w, void *user_data)
     InbeApp *app = user_data;
     int rows = app != NULL && app->habits.count > 0 ? app->habits.count : 1;
     int cell = habits_overview_cell_size(content_w);
+    int action_h = flint_px(34);
+
+    if(habits_overview_actions_stack(content_w))
+        action_h = action_h * 2 + flint_px(8);
 
     return flint_px(52) + flint_px(20) + rows * (cell + flint_px(8)) +
-           flint_px(58);
+           flint_px(24) + action_h;
 }
 
 static int
 habits_reorder_content_height(int content_w, void *user_data)
 {
     InbeApp *app = user_data;
-    int row_h = content_w < flint_px(260) ? flint_px(78) : flint_px(48);
+    int row_h;
     int count = app != NULL ? app->habits.count : 0;
 
+    if(habits_reorder_move_buttons_stack(content_w))
+        row_h = flint_px(36) + flint_px(32) * 2 + flint_px(8) * 2;
+    else
+        row_h = flint_px(48);
     return flint_px(70) + row_h * (count > 0 ? count : 1);
 }
 
@@ -1169,9 +1206,9 @@ draw_habits_reorder(InbeApp *app, int content_top)
         int font = flint_ui_font();
         int small = flint_ui_font_small();
         int btn_h = flint_px(32);
-        int btn_w = flint_px(74);
+        int fixed_btn_w = flint_px(74);
         int gap = flint_px(8);
-        int stack_rows = w < flint_px(260);
+        int stack_rows = habits_reorder_move_buttons_stack(w);
 
         y = page.content_y + flint_px(16);
 
@@ -1186,15 +1223,16 @@ draw_habits_reorder(InbeApp *app, int content_top)
             int row_y = y;
             int up_hover = 0;
             int down_hover = 0;
-            int controls_w = btn_w * 2 + gap;
+            int controls_w = fixed_btn_w * 2 + gap;
             int name_w = stack_rows ? w : w - controls_w - gap;
 
             habits_draw_fitted_text(app->habits.items[i].name, x, row_y + flint_px(7),
                                     name_w, font, flint_theme_get_text());
-            if(stack_rows)
+            if(stack_rows) {
                 row_y += flint_px(36);
-            if(ui_draw_generic_button(stack_rows ? x : x + w - btn_w * 2 - gap,
-                                      row_y, btn_w, btn_h,
+            }
+            if(ui_draw_generic_button(stack_rows ? x : x + w - fixed_btn_w * 2 - gap,
+                                      row_y, stack_rows ? w : fixed_btn_w, btn_h,
                                       locale_get("move_up_button"),
                                       UI_BUTTON_STYLE_SECONDARY, i == 0, &up_hover)) {
                 if(habits_move(&app->habits, i, i - 1)) {
@@ -1204,8 +1242,10 @@ draw_habits_reorder(InbeApp *app, int content_top)
                 ui_scroll_page_end(page);
                 return;
             }
-            if(ui_draw_generic_button(stack_rows ? x + btn_w + gap : x + w - btn_w,
-                                      row_y, btn_w, btn_h,
+            if(stack_rows)
+                row_y += btn_h + gap;
+            if(ui_draw_generic_button(stack_rows ? x : x + w - fixed_btn_w,
+                                      row_y, stack_rows ? w : fixed_btn_w, btn_h,
                                       locale_get("move_down_button"),
                                       UI_BUTTON_STYLE_SECONDARY,
                                       i == app->habits.count - 1, &down_hover)) {
@@ -1216,7 +1256,7 @@ draw_habits_reorder(InbeApp *app, int content_top)
                 ui_scroll_page_end(page);
                 return;
             }
-            y += stack_rows ? flint_px(78) : flint_px(46);
+            y += stack_rows ? flint_px(108) : flint_px(46);
             habits_draw_divider(x, w, y - flint_px(6));
         }
 
@@ -1316,8 +1356,8 @@ draw_habits_overview(InbeApp *app, int content_top)
         done_count = habits_overview_done_today(app);
         snprintf(progress, sizeof(progress), locale_get("habits_done_count_label"),
                  done_count, app->habits.count);
-        flint_text_draw(progress, content_x, y, FLINT_TEXT_24, flint_theme_get_text());
-        y += flint_px(34);
+        flint_text_draw(progress, content_x, y, font, flint_theme_get_text());
+        y += flint_px(28);
 
         if(app->habits.count <= 0) {
             flint_text_draw(locale_get("habit_empty_title"), content_x, y, font,
@@ -1464,22 +1504,42 @@ draw_habits_overview(InbeApp *app, int content_top)
         }
 
         y += flint_px(10);
-        half_w = (content_w - btn_gap) / 2;
-        if(ui_draw_generic_button(content_x, y, half_w, btn_h,
-                                  locale_get("habit_new_button"),
-                                  UI_BUTTON_STYLE_SECONDARY,
-                                  app->habits.count >= INBE_HABIT_MAX,
-                                  &add_hover)) {
-            habit_edit_begin_new(app);
-            app->habits.screen_mode = HABITS_SCREEN_DETAIL;
-            app->habits.tab = HABIT_TAB_EDIT;
-            habits_persist_view_state(app);
-        }
-        if(ui_draw_generic_button(content_x + half_w + btn_gap, y, half_w, btn_h,
-                                  locale_get("habit_reorder_title"),
-                                  UI_BUTTON_STYLE_SECONDARY,
-                                  app->habits.count <= 0, &reorder_hover)) {
-            habits_enter_reorder(app);
+        if(habits_overview_actions_stack(content_w)) {
+            if(ui_draw_generic_button(content_x, y, content_w, btn_h,
+                                      locale_get("habit_new_button"),
+                                      UI_BUTTON_STYLE_SECONDARY,
+                                      app->habits.count >= INBE_HABIT_MAX,
+                                      &add_hover)) {
+                habit_edit_begin_new(app);
+                app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+                app->habits.tab = HABIT_TAB_EDIT;
+                habits_persist_view_state(app);
+            }
+            y += btn_h + btn_gap;
+            if(ui_draw_generic_button(content_x, y, content_w, btn_h,
+                                      locale_get("habit_reorder_title"),
+                                      UI_BUTTON_STYLE_SECONDARY,
+                                      app->habits.count <= 0, &reorder_hover)) {
+                habits_enter_reorder(app);
+            }
+        } else {
+            half_w = (content_w - btn_gap) / 2;
+            if(ui_draw_generic_button(content_x, y, half_w, btn_h,
+                                      locale_get("habit_new_button"),
+                                      UI_BUTTON_STYLE_SECONDARY,
+                                      app->habits.count >= INBE_HABIT_MAX,
+                                      &add_hover)) {
+                habit_edit_begin_new(app);
+                app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+                app->habits.tab = HABIT_TAB_EDIT;
+                habits_persist_view_state(app);
+            }
+            if(ui_draw_generic_button(content_x + half_w + btn_gap, y, half_w, btn_h,
+                                      locale_get("habit_reorder_title"),
+                                      UI_BUTTON_STYLE_SECONDARY,
+                                      app->habits.count <= 0, &reorder_hover)) {
+                habits_enter_reorder(app);
+            }
         }
 
         ui_scroll_page_end(page);

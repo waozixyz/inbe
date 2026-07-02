@@ -376,6 +376,9 @@ Lautstärke
 [show_session_volume_control_label]
 Lautstärkeregler anzeigen
 ---
+[show_session_return_button_label]
+Zurück-Taste anzeigen
+---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
 ---
@@ -827,7 +830,7 @@ Praxis starten
 Anleitung
 ---
 [practice_configure_button]
-Praxis konfigurieren
+Konfigurieren
 ---
 [practice_music_practice_list_title]
 Musik für Praktiken verwenden

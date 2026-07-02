@@ -100,12 +100,19 @@ app_switch_screen(InbeApp *app, int screen)
     if(screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
 
+#if defined(PLATFORM_WEB)
+    flint_transition_reset(&app->screen_transition);
+    app->inbe.screen = screen;
+    app->screen_transition_target = screen;
+    return;
+#else
     if(app->transition_mode == APP_TRANSITION_NONE) {
         flint_transition_reset(&app->screen_transition);
         app->inbe.screen = screen;
         app->screen_transition_target = screen;
         return;
     }
+#endif
 
     app->screen_transition_target = screen;
     if(app->screen_transition.active) {
@@ -221,6 +228,33 @@ app_close_modal(InbeApp *app)
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal_input_block_frame = app->inbe.frame;
+}
+
+SessionExitModalResult
+app_draw_session_exit_modal(int can_save, const char *save_message,
+                            const char *discard_message)
+{
+    int modal_result;
+
+    if(can_save) {
+        modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
+                                          save_message,
+                                          locale_get("cancel_button"),
+                                          locale_get("save_button"),
+                                          locale_get("discard_button"));
+        if(modal_result == 2)
+            return SessionExitModalSave;
+        if(modal_result == 3)
+            return SessionExitModalDiscard;
+    } else {
+        modal_result = ui_draw_modal(locale_get("exit_session_title"),
+                                     discard_message,
+                                     locale_get("cancel_button"),
+                                     locale_get("exit_button"));
+        if(modal_result == 2)
+            return SessionExitModalDiscard;
+    }
+    return modal_result == 1 ? SessionExitModalCancel : SessionExitModalNone;
 }
 
 static int
@@ -434,7 +468,11 @@ load_config(void)
         config.title_custom = 0;
     }
 
-    refresh_theme_colors(FLINT_THEME_SKY, 0);  /* Default: Sky light mode */
+#if defined(PLATFORM_WEB)
+    refresh_theme_colors(FLINT_THEME_SKY, 1);
+#else
+    refresh_theme_colors(FLINT_THEME_SKY, 0);
+#endif
 
     config.loaded = 1;
 }
@@ -1036,6 +1074,8 @@ updateapp(InbeApp *app)
     int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
     int global_modal_drawn = 0;
+    int content_input_clip_active = 0;
+    int bottom_input_reserved = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
@@ -1055,9 +1095,7 @@ updateapp(InbeApp *app)
     profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
-        (app->modal.type == UIModalPracticeManual ||
-         app->modal.type == UIModalPracticeConfig ||
-         app->modal.type == UIModalPracticeMusic ||
+        (app->modal.type == UIModalPracticeMusic ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
     if(app->modal.active || first_run_guide_active || habits_guide_active ||
        profile_guide_active) {
@@ -1066,8 +1104,24 @@ updateapp(InbeApp *app)
 
     view_height = app_page_height(app, view_height);
     center_y = view_height / 2;
+    bottom_input_reserved = app_content_bottom_reserved(app);
+    if(bottom_input_reserved > 0 && bottom_input_reserved < view_height) {
+        ui_push_input_clip((Rectangle){0, 0, (float)view_width,
+                                       (float)(view_height - bottom_input_reserved)});
+        content_input_clip_active = 1;
+    }
 
-    if(IsKeyPressed(KEY_BACK)) {
+    if(IsKeyPressed(KEY_BACK)
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+       || (IsKeyPressed(KEY_BACKSPACE) &&
+           ((app->inbe.screen == InbeScreenStart &&
+             app->practice_tab != PRACTICE_TAB_PLAY) ||
+            (app->show_session_return_button &&
+             (app->inbe.screen == InbeScreenSession ||
+              app->inbe.screen == InbeScreenMeditation ||
+              app->inbe.screen == InbeScreenSunSalutation))))
+#endif
+       ) {
         if(first_run_guide_active || habits_guide_active || profile_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
@@ -1134,7 +1188,15 @@ updateapp(InbeApp *app)
     case InbeScreenStart:
         {
             if(!practice_fullscreen_modal) {
-                practice_screen_draw_home(app);
+                if(app->practice_tab == PRACTICE_TAB_MANUAL) {
+                    manual_screen_draw(app);
+                } else if(app->practice_tab == PRACTICE_TAB_CONFIG) {
+                    const PracticeDefinition *practice = practice_get(app->exercise_type);
+                    if(practice->draw_config != NULL)
+                        practice->draw_config(app);
+                } else {
+                    practice_screen_draw_home(app);
+                }
             }
         }
         // Skip drawing on the same frame modal opens to prevent click propagation
@@ -1173,6 +1235,8 @@ updateapp(InbeApp *app)
     }
 
 finish_frame:
+    if(content_input_clip_active)
+        ui_pop_input_clip();
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -1186,11 +1250,13 @@ finish_frame:
         draw_global_modal(app);
     app_flush_deferred_settings(app);
     app_observe_direct_screen_change(app, frame_screen);
+#if !defined(PLATFORM_WEB)
     if(app->transition_mode == APP_TRANSITION_FADE) {
         flint_transition_draw_fade(&app->screen_transition, view_width,
                                    app_page_height(app, view_height),
                                    flint_theme_get_bg());
     }
+#endif
     app_advance_screen_transition(app);
     app->inbe.frame++;
 }

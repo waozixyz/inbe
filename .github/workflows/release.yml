@@ -565,10 +565,35 @@ jobs:
           mkdir -p build/itch/inbe-web
           unzip -q "$web_zip" -d build/itch/inbe-web
 
-          butler push build/itch/inbe-web waozi/inbe:html5 --userversion "$VERSION"
-          butler push "$android_apk" waozi/inbe:android --userversion "$VERSION"
-          butler push "$windows_zip" waozi/inbe:windows --userversion "$VERSION"
-          butler push "$linux_appimage" waozi/inbe:linux --userversion "$VERSION"
+          butler_push() {
+            local target="$1"
+            local channel="$2"
+            local attempt
+            local log_file
+            log_file="$(mktemp)"
+
+            for attempt in 1 2 3 4 5 6; do
+              if butler push "$target" "waozi/inbe:$channel" --userversion "$VERSION" 2>&1 | tee "$log_file"; then
+                rm -f "$log_file"
+                return 0
+              fi
+              if ! grep -q "latest build is still processing" "$log_file"; then
+                rm -f "$log_file"
+                return 1
+              fi
+              echo "itch.io channel $channel is still processing; retrying in 60s ($attempt/6)"
+              sleep 60
+            done
+
+            rm -f "$log_file"
+            echo "itch.io channel $channel was still processing after retries"
+            return 1
+          }
+
+          butler_push build/itch/inbe-web html5
+          butler_push "$android_apk" android
+          butler_push "$windows_zip" windows
+          butler_push "$linux_appimage" linux
 
   publish-google-play:
     name: Publish Google Play Production
