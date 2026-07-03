@@ -1,0 +1,52 @@
+name: Publish OpenStore
+
+on:
+  workflow_dispatch:
+    inputs:
+      changelog:
+        description: Changelog text for the OpenStore revision
+        required: false
+        default: ""
+      channel:
+        description: OpenStore channel
+        required: false
+        default: focal
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      OPENSTORE_API_KEY: ${{ secrets.OPENSTORE_API_KEY }}
+      OPENSTORE_APP_ID: inbe
+      OPENSTORE_CHANNEL: ${{ github.event.inputs.channel || 'focal' }}
+      CHANGELOG: ${{ github.event.inputs.changelog || github.event.release.name || github.event.release.tag_name || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v31
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build Click package
+        run: nix develop --command make CLICK_ARCH=arm64 click
+
+      - name: Show package contents
+        run: |
+          click_file="$(ls -t build/dist/click/*.click | head -1)"
+          echo "Built $click_file"
+          dpkg-deb --contents "$click_file" | grep -E 'manifest.json|inbe.png|metainfo|inbe.desktop' || true
+
+      - name: Publish to OpenStore
+        run: |
+          click_file="$(ls -t build/dist/click/*.click | head -1)"
+          nix develop --command scripts/publish-openstore.sh "$click_file"
