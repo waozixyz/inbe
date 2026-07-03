@@ -757,7 +757,7 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
 	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
 		mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
-		sed -e 's/version="[^"]*"/version="$(APP_VERSION)"/' $(CLICK_DIR)/inbe.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
+		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/inbe.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
 	fi
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
