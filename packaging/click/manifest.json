@@ -1,7 +1,7 @@
 {
-  "name": "inbe.waozi",
+  "name": "inbe",
   "title": "Inner Breeze",
-  "version": "1.4.10",
+  "version": "1.8.1",
   "architecture": "arm64",
   "framework": "ubuntu-sdk-20.04",
   "description": "Syncable breathing, meditation, and habit practice app.",

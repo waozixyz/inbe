@@ -29,8 +29,9 @@ LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
 CLICK_PACKAGE ?= inbe
+CLICK_ID ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
-CLICK_MAINTAINER ?= Waozi Project <waozi@waozi.xyz>
+CLICK_MAINTAINER ?= Waozi <waozi@waozi.xyz>
 CLICK_ARCH ?= arm64
 CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
 CLICK_POLICY_VERSION ?= 20.04
@@ -712,13 +713,15 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 		patchelf --set-interpreter "$(CLICK_PATCHELF_INTERPRETER)" --set-rpath '$$ORIGIN/../lib' $@; \
 	fi
 
-$(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_TEMPLATE) $(CLICK_APPARMOR_TEMPLATE) $(CLICK_DESKTOP_TEMPLATE) $(CLICK_METAINFO_TEMPLATE) $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
-	@command -v zip >/dev/null || { \
-		echo "zip is missing. Re-enter the flake shell with: nix develop"; \
+$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_DIR)/inbe.desktop $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
+	@command -v click >/dev/null || { \
+		echo "click is missing. Re-enter the flake shell with: nix develop"; \
 		exit 1; \
 	}
 	rm -rf $(CLICK_ROOT)
 	rm -f $(CLICK_DIST_DIR)/$(CLICK_PACKAGE)_*_$(CLICK_ARCH).click
+	rm -f $(CLICK_DIST_DIR)/$(CLICK_ID)_*_$(CLICK_ARCH).click
+	rm -f $(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click
 	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
 	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
 	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-inbe.sh
@@ -733,16 +736,38 @@ $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_T
 			if [ -f "$$elf" ]; then patchelf --set-rpath '$$ORIGIN' "$$elf" >/dev/null 2>&1 || true; fi; \
 		done; \
 	fi
-		cp $(CLICK_DIR)/manifest.json $(CLICK_ROOT)/manifest.json
-		cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
-		cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
-		@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
-			mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
-			cp $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_PACKAGE).metainfo.xml; \
-		fi
+	printf '%s\n' \
+		'{' \
+		'  "name": "$(CLICK_ID)",' \
+		'  "title": "$(CLICK_TITLE)",' \
+		'  "version": "$(APP_VERSION)",' \
+		'  "architecture": "$(CLICK_ARCH)",' \
+		'  "framework": "$(CLICK_FRAMEWORK)",' \
+		'  "description": "Syncable breathing, meditation, and habit practice app.",' \
+		'  "maintainer": "$(CLICK_MAINTAINER)",' \
+		'  "hooks": {' \
+		'    "$(APP_NAME)": {' \
+		'      "apparmor": "$(APP_NAME).apparmor",' \
+		'      "desktop": "$(APP_NAME).desktop"' \
+		'    }' \
+		'  }' \
+		'}' \
+		> $(CLICK_ROOT)/manifest.json
+	cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
+	cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
+	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
+		mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
+		sed -e 's/version="[^"]*"/version="$(APP_VERSION)"/' $(CLICK_DIR)/inbe.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
+	fi
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
-	cd $(CLICK_ROOT) && zip -qr $(abspath $@) .
+	click build $(CLICK_ROOT) $(CLICK_DIST_DIR)
+	@if [ -f "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
+		mv "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
+	elif [ -f "$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
+		mv "$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
+	fi
+	test -f $@
 
 $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \

@@ -231,6 +231,7 @@ EOF
               gnumake
               gradle
               imagemagick
+              jq
               jdk17
               libxml2
               libdrm

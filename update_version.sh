@@ -8,6 +8,9 @@ CHANGELOG_FILE="CHANGELOG.md"
 GRADLE_FILE="droid/app/build.gradle"
 WINDOWS_RC_FILE="windows/inbe.rc"
 CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
+CLICK_MANIFEST_FILE="packaging/click/manifest.json"
+CLICK_CONTROL_FILE="packaging/click/control"
+CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
 
 # Extract all versions from CHANGELOG
 VERSIONS=$(grep '^## \[' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
@@ -69,6 +72,27 @@ if [ -f "$WINDOWS_RC_FILE" ]; then
     echo "✓ Updated $WINDOWS_RC_FILE"
 else
     echo "Warning: $WINDOWS_RC_FILE not found"
+fi
+
+if [ -f "$CLICK_MANIFEST_FILE" ]; then
+    sed -i "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$CLICK_MANIFEST_FILE"
+    echo "✓ Updated $CLICK_MANIFEST_FILE"
+else
+    echo "Warning: $CLICK_MANIFEST_FILE not found"
+fi
+
+if [ -f "$CLICK_CONTROL_FILE" ]; then
+    sed -i "s/^Version: .*/Version: $LATEST_VERSION/" "$CLICK_CONTROL_FILE"
+    echo "✓ Updated $CLICK_CONTROL_FILE"
+else
+    echo "Warning: $CLICK_CONTROL_FILE not found"
+fi
+
+if [ -f "$CLICK_METAINFO_FILE" ]; then
+    sed -i "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$(date +%F)\"/" "$CLICK_METAINFO_FILE"
+    echo "✓ Updated $CLICK_METAINFO_FILE"
+else
+    echo "Warning: $CLICK_METAINFO_FILE not found"
 fi
 
 # Create changelog directory
