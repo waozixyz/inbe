@@ -62,7 +62,7 @@ if LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PAT
   exit 1
 fi
 
-echo "🚀 Launching Pixel 8 Pro emulator (Android 15 API 35)..."
+echo "🚀 Launching Pixel 8 Pro emulator ($AVD_NAME)..."
 
 # Set environment for emulator
 unset ANDROID_HOME

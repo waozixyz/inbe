@@ -1,0 +1,3 @@
+Fixed
+---
+- storage settings for android 17+

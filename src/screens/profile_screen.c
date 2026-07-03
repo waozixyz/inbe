@@ -26,6 +26,23 @@ enum {
     PROFILE_GUIDE_STEPS = 3
 };
 
+static Rectangle
+profile_expanded_anchor(int x, int y, int w, int h)
+{
+    int pad = flint_px(6);
+
+    return (Rectangle){(float)(x - pad), (float)(y - pad),
+                       (float)(w + pad * 2), (float)(h + pad * 2)};
+}
+
+static void
+profile_set_guide_anchor(Rectangle *anchor, int x, int y, int w, int h)
+{
+    if(anchor == NULL)
+        return;
+    *anchor = profile_expanded_anchor(x, y, w, h);
+}
+
 static void
 profile_format_size(char *out, size_t out_size, long long bytes)
 {
@@ -175,49 +192,6 @@ profile_tab_title(int tab)
 }
 
 static void
-profile_overview_column(int *x, int *w)
-{
-    flint_centered_column(flint_px(CONTENT_MAX_W), flint_page_side_padding(), x, w);
-}
-
-static Rectangle
-profile_guide_account_anchor(void)
-{
-    int x;
-    int w;
-
-    profile_overview_column(&x, &w);
-    return (Rectangle){(float)(x - flint_px(6)), (float)flint_px(8),
-                       (float)(w + flint_px(12)), (float)flint_px(70)};
-}
-
-static Rectangle
-profile_guide_data_anchor(InbeApp *app)
-{
-    int x;
-    int w;
-
-    (void)app;
-    profile_overview_column(&x, &w);
-    return (Rectangle){(float)(x - flint_px(6)),
-                       (float)(flint_px(82) - flint_px(6)),
-                       (float)(w + flint_px(12)), (float)flint_px(190)};
-}
-
-static Rectangle
-profile_guide_social_anchor(InbeApp *app)
-{
-    int x;
-    int w;
-
-    (void)app;
-    profile_overview_column(&x, &w);
-    return (Rectangle){(float)(x - flint_px(6)),
-                       (float)(flint_px(278) - flint_px(6)),
-                       (float)(w + flint_px(12)), (float)flint_px(102)};
-}
-
-static void
 profile_screen_finish_first_run_guide(InbeApp *app)
 {
     if(app == NULL)
@@ -253,25 +227,23 @@ profile_screen_draw_first_run_guide(InbeApp *app)
 {
     FlintUIGuideStep steps[PROFILE_GUIDE_STEPS];
     FlintUIGuideResult result;
-    const char *social_guide_key;
 
     if(!profile_screen_first_run_guide_active(app))
         return;
+    if(!app->profile_guide_anchors.valid)
+        return;
 
-    social_guide_key = sync_account_load(&(InbeSyncAccount){0})
-                           ? "profile_guide_social"
-                           : "profile_guide_social_no_account";
     steps[0] = (FlintUIGuideStep){
-        .anchor = profile_guide_account_anchor(),
+        .anchor = app->profile_guide_anchors.account,
         .text = locale_get("profile_guide_account")
     };
     steps[1] = (FlintUIGuideStep){
-        .anchor = profile_guide_data_anchor(app),
+        .anchor = app->profile_guide_anchors.data,
         .text = locale_get("profile_guide_data")
     };
     steps[2] = (FlintUIGuideStep){
-        .anchor = profile_guide_social_anchor(app),
-        .text = locale_get(social_guide_key)
+        .anchor = app->profile_guide_anchors.social,
+        .text = locale_get("profile_guide_social_no_account")
     };
 
     result = flint_ui_draw_guide_overlay((FlintUIGuideOverlay){
@@ -344,6 +316,9 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     int font = flint_ui_font();
     int small = flint_ui_font_small();
     int btn_h = flint_px(34);
+    int account_y;
+    int data_y;
+    int social_y;
     int hover_account = 0;
     int hover_data = 0;
     int hover_practices = 0;
@@ -358,6 +333,7 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     char friend_text[64];
 
     *y += flint_px(14);
+    account_y = *y;
     has_account = sync_account_load(&account);
     alias = storage_get_setting_text("sync_account_alias");
     account_text[0] = '\0';
@@ -395,8 +371,11 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
         *y += flint_px(38);
     }
     profile_draw_divider(x, w, *y);
+    profile_set_guide_anchor(&app->profile_guide_anchors.account, x, account_y, w,
+                             *y - account_y);
     *y += flint_px(18);
 
+    data_y = *y;
     flint_text_draw(locale_get("profile_data_section"), x, *y, small,
                     flint_darken(flint_theme_get_text(), 35));
     *y += flint_px(24);
@@ -417,8 +396,11 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     }
     *y += btn_h + flint_px(20);
     profile_draw_divider(x, w, *y);
+    profile_set_guide_anchor(&app->profile_guide_anchors.data, x, data_y, w,
+                             *y - data_y);
     *y += flint_px(18);
 
+    social_y = *y;
     snprintf(friend_text, sizeof(friend_text), locale_get("profile_friends_count_format"),
              profile_social_friends_count(app));
     snprintf(pending_text, sizeof(pending_text), locale_get("profile_pending_count_format"),
@@ -442,6 +424,9 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
         app->profile_scroll = 0;
     }
     *y += btn_h + flint_px(16);
+    profile_set_guide_anchor(&app->profile_guide_anchors.social, x, social_y, w,
+                             *y - social_y);
+    app->profile_guide_anchors.valid = 1;
 }
 
 static void
@@ -532,6 +517,8 @@ profile_screen_draw(InbeApp *app)
     int content_h = view_height - content_y - app_content_bottom_reserved(app);
     FlintUIScrollPage page;
     int y;
+
+    app->profile_guide_anchors.valid = 0;
 
 #if ANDROID_BUILD
     settings_data_handle_android_import(app);

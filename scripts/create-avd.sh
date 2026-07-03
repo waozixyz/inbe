@@ -4,7 +4,7 @@ set -e
 
 AVD_NAME="${1:-inbe-test}"
 
-echo "📱 Creating AVD: $AVD_NAME (Pixel 8 Pro - Android 15, punch-hole test profile)"
+echo "📱 Creating AVD: $AVD_NAME (Pixel 8 Pro - Android API ${ANDROID_API:-35}, punch-hole test profile)"
 
 # Check for Android SDK location
 if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
@@ -44,8 +44,14 @@ image_dir_ready() {
 
 find_system_image() {
   for spec in \
+    "google_apis_playstore_ps16k x86_64" \
+    "google_apis_ps16k x86_64" \
+    "google_apis_playstore x86_64" \
     "google_apis x86_64" \
     "default x86_64" \
+    "google_apis_playstore_ps16k arm64-v8a" \
+    "google_apis_ps16k arm64-v8a" \
+    "google_apis_playstore arm64-v8a" \
     "google_apis arm64-v8a" \
     "default arm64-v8a"; do
     set -- $spec
@@ -78,8 +84,14 @@ install_system_image() {
   fi
 
   for spec in \
+    "google_apis_playstore_ps16k x86_64" \
+    "google_apis_ps16k x86_64" \
+    "google_apis_playstore x86_64" \
     "google_apis x86_64" \
     "default x86_64" \
+    "google_apis_playstore_ps16k arm64-v8a" \
+    "google_apis_ps16k arm64-v8a" \
+    "google_apis_playstore arm64-v8a" \
     "google_apis arm64-v8a" \
     "default arm64-v8a"; do
     set -- $spec
@@ -175,7 +187,7 @@ EOF
 
 echo "✅ Done!"
 echo "   Device: Pixel 8 Pro"
-echo "   Android: 15 (API $ANDROID_API)"
+echo "   Android API: $ANDROID_API"
 echo "   ABI: $ABI_DISPLAY"
 echo "   Cutout: punch-hole overlay enabled by scripts/emulator.sh after boot"
 echo ""
