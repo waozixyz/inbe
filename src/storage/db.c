@@ -490,7 +490,10 @@ storage_init(const char *root)
     g_storage.pending_sync_outbox_seq = 0;
     g_storage.last_sync_changed = 0;
     snprintf(g_storage.root, sizeof(g_storage.root), "%s", root);
-    ensure_dir_local(g_storage.root);
+    if(!ensure_dir_local(g_storage.root)) {
+        TraceLog(LOG_ERROR, "STORAGE: failed to create root directory: %s", g_storage.root);
+        return 0;
+    }
     if(!storage_join_path(g_storage.db_path, sizeof(g_storage.db_path),
                           g_storage.root, "inbe.db")) {
         TraceLog(LOG_ERROR, "STORAGE: database path is too long");
@@ -498,6 +501,8 @@ storage_init(const char *root)
     }
     if(sqlite3_open(g_storage.db_path, &g_storage.db) != SQLITE_OK) {
         TraceLog(LOG_ERROR, "STORAGE: failed to open %s", g_storage.db_path);
+        sqlite3_close(g_storage.db);
+        g_storage.db = NULL;
         return 0;
     }
     sqlite3_busy_timeout(g_storage.db, 1000);

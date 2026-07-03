@@ -5,6 +5,7 @@
 
 #if ANDROID_BUILD
 #include "android_share.h"
+#include <android_native_app_glue.h>
 #endif
 
 #include "raylib.h"
@@ -14,6 +15,10 @@
 #include <time.h>
 
 #define DATA_PATH_MAX 512
+
+#if ANDROID_BUILD
+extern struct android_app *GetAndroidApp(void);
+#endif
 
 static char g_data_root[DATA_PATH_MAX] = "";
 static char g_today_dir[DATA_PATH_MAX] = "";
@@ -59,7 +64,17 @@ data_root(void)
 #if defined(PLATFORM_WEB)
     snprintf(g_data_root, sizeof(g_data_root), "/home/inbe");
 #elif ANDROID_BUILD
-    snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory());
+    {
+        struct android_app *app = GetAndroidApp();
+        const char *internal_path = NULL;
+        if(app != NULL && app->activity != NULL)
+            internal_path = app->activity->internalDataPath;
+
+        if(internal_path != NULL && internal_path[0] != '\0')
+            snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", internal_path);
+        else
+            snprintf(g_data_root, sizeof(g_data_root), "%s/inbe", GetWorkingDirectory());
+    }
 #elif defined(_WIN32)
     {
         const char *local = getenv("LOCALAPPDATA");
@@ -87,7 +102,8 @@ data_root(void)
     }
 #endif
 
-    ensure_dir(g_data_root);
+    if(!ensure_dir(g_data_root))
+        TraceLog(LOG_ERROR, "DATA: failed to create root directory: %s", g_data_root);
     TraceLog(LOG_INFO, "DATA: root directory: %s", g_data_root);
     return g_data_root;
 }

@@ -1,4 +1,8 @@
 # Changelog
+## [1.8.1] - 2026-07-03
+### Fixed
+- storage settings for android 17+
+
 ## [1.8.0] - 2026-07-02
 ### Changed
 - upgrade to sync protocol v3
