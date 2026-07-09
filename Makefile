@@ -5,11 +5,14 @@ APP_TITLE := Inner Breeze
 ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
-CC ?= gcc
+CC ?= cc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
 GRADLE ?= gradle
 ADB ?= adb
-ARCH := $(shell uname -m)
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+NATIVE_PLATFORM := $(if $(filter FreeBSD,$(UNAME_S)),freebsd,$(if $(filter Linux,$(UNAME_S)),linux,$(shell printf '%s' "$(UNAME_S)" | tr '[:upper:]' '[:lower:]')))
+ARCH := $(if $(filter amd64,$(UNAME_M)),x86_64,$(UNAME_M))
 ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
 ANDROID_KEY_ALIAS ?= inbe-key
 
@@ -233,8 +236,18 @@ EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUT
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform/android -Isrc/third_party
+RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
+RAY_SDL_CFLAGS ?= $(shell pkg-config --cflags sdl2 2>/dev/null)
+RAY_SDL_LDLIBS ?= $(shell pkg-config --libs sdl2 2>/dev/null)
+RAY_GL_CFLAGS ?= $(shell pkg-config --cflags libdrm gbm egl glesv2 2>/dev/null)
+RAY_GL_LDLIBS ?= $(shell pkg-config --libs libdrm gbm egl glesv2 2>/dev/null)
+RAY_CFLAGS ?= $(strip $(RAY_SDL_CFLAGS) $(RAY_GL_CFLAGS))
+RAY_LDLIBS ?= $(strip $(RAY_SDL_LDLIBS) $(RAY_GL_LDLIBS))
+RAY_SDL_INCLUDE_DIR ?= $(shell pkg-config --variable=includedir sdl2 2>/dev/null | sed 's,/SDL2$$,,')
+RAY_RAYLIB_CONFIG ?= -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0
 CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
+NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(AARCH64_FLINT_CURL_CFLAGS)
@@ -252,7 +265,7 @@ else
 WIN32_THREAD_LDFLAGS :=
 endif
 
-BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
+BINARY_NAME := $(APP_NAME)-$(NATIVE_PLATFORM)-$(ARCH)
 TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
 WIN64_BINARY_NAME := $(APP_NAME)-windows-$(WIN64_ARCH).exe
 WIN64_TARGET := $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)
@@ -390,7 +403,7 @@ $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -I$(RAYLIB_DIR) $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
-		-Wl,--gc-sections -lm -lpthread -ldl
+		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -408,14 +421,14 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/s
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/flint_lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
-		$(LIBOQS_A) -Wl,--gc-sections -lm -lpthread -ldl
+		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
-		-Wl,--gc-sections -lm -lpthread -ldl
+		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -467,6 +480,8 @@ $(RAYLIB_A): $(RAYLIB_SOURCES)
 	mkdir -p $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src $(RAYLIB_BUILD_DIR)
 	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src/
 	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src \
+		CC="$(CC)" \
+		AR="ar" \
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
@@ -683,7 +698,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(LIBOQS_A) \
 		$(RAY_LDLIBS) \
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
-		-lm -lpthread -ldl -lrt \
+		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
 $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
