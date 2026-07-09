@@ -119,12 +119,14 @@ android_timer_stop(void) {
     pthread_mutex_lock(&timer_mutex);
 
     if (!timer_running) {
+        g_app = NULL;
         pthread_mutex_unlock(&timer_mutex);
         return;
     }
 
     timer_running = 0;
     timer_active = 0;
+    g_app = NULL;
     pthread_mutex_unlock(&timer_mutex);
 
     if(pthread_equal(pthread_self(), timer_thread))

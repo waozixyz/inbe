@@ -343,7 +343,7 @@ app_load_settings(InbeApp *app)
              "practice_music_track_sun_salutation", 0, 0, MEDITATION_MUSIC_TRACK_COUNT - 1},
             {&app->practice_category_tab, "practice_category_tab", PRACTICE_CATEGORY_MIND,
              0, PRACTICE_CATEGORY_COUNT - 1},
-            {&app->transition_mode, "transition_mode", APP_TRANSITION_FADE,
+            {&app->transition_mode, "transition_mode", APP_TRANSITION_NONE,
              APP_TRANSITION_NONE, APP_TRANSITION_FADE},
         };
         load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]));

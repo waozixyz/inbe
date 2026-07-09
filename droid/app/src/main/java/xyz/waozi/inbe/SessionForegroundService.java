@@ -23,6 +23,7 @@ public class SessionForegroundService extends Service {
     private static SessionForegroundService activeService = null;
 
     private PowerManager.WakeLock wakeLock = null;
+    private boolean foregroundActive = false;
 
     @Override
     public void onCreate() {
@@ -46,7 +47,7 @@ public class SessionForegroundService extends Service {
     @Override
     public void onDestroy() {
         releaseWakeLock();
-        stopForegroundCompat();
+        clearForeground();
         if (activeService == this) {
             activeService = null;
         }
@@ -70,6 +71,7 @@ public class SessionForegroundService extends Service {
         } else {
             startForeground(NOTIFICATION_ID, notification);
         }
+        foregroundActive = true;
         acquireWakeLock();
         Log.d(TAG, "Session foreground service started");
     }
@@ -77,7 +79,7 @@ public class SessionForegroundService extends Service {
     private void stopSession() {
         currentStatusText = "";
         releaseWakeLock();
-        stopForegroundCompat();
+        clearForeground();
         stopSelf();
         Log.d(TAG, "Session foreground service stopped");
     }
@@ -87,6 +89,9 @@ public class SessionForegroundService extends Service {
 
         SessionForegroundService service = activeService;
         if (service == null) {
+            return;
+        }
+        if (!service.foregroundActive) {
             return;
         }
 
@@ -102,6 +107,20 @@ public class SessionForegroundService extends Service {
             stopForeground(STOP_FOREGROUND_REMOVE);
         } else {
             stopForeground(true);
+        }
+    }
+
+    private void clearForeground() {
+        foregroundActive = false;
+        stopForegroundCompat();
+        cancelNotification();
+    }
+
+    private void cancelNotification() {
+        NotificationManager manager =
+            (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager != null) {
+            manager.cancel(NOTIFICATION_ID);
         }
     }
 

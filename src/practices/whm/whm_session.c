@@ -431,9 +431,6 @@ finish_round(InbeApp *app)
             stop_android_background_session(app);
 #endif
             app_switch_screen(app, InbeScreenResults);
-#if ANDROID_BUILD
-            session_update_notification(app);
-#endif
         } else {
             app_init(app);
         }
