@@ -31,6 +31,7 @@
 #include "practices/meditation/meditation_practice.h"
 
 #include <limits.h>
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,8 +57,13 @@ InbeApp *get_global_inbe_app(void);
 #endif
 
 enum {
-    APP_SCREEN_TRANSITION_TICKS = 8
+    APP_SCREEN_TRANSITION_TICKS = 8,
+    APP_CUE_SAMPLE_RATE = 24000
 };
+
+#ifndef INBE_PI
+#define INBE_PI 3.14159265358979323846f
+#endif
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -701,6 +707,184 @@ load_sound_asset(const char *name)
     return sound;
 }
 
+static float
+app_sound_volume_scale(InbeApp *app, float scale)
+{
+    float volume;
+
+    if(app == NULL || app->sound_volume <= 0)
+        return 0.0f;
+
+    volume = ((float)app->sound_volume / 100.0f) * scale;
+    if(volume < 0.0f)
+        volume = 0.0f;
+    if(volume > 1.0f)
+        volume = 1.0f;
+    return volume;
+}
+
+static float
+cue_smoothstep(float t)
+{
+    if(t < 0.0f)
+        t = 0.0f;
+    if(t > 1.0f)
+        t = 1.0f;
+    return t * t * (3.0f - 2.0f * t);
+}
+
+static float
+breath_cue_envelope(float t)
+{
+    float attack = cue_smoothstep(t / 0.22f);
+    float release = cue_smoothstep((1.0f - t) / 0.34f);
+    return attack < release ? attack : release;
+}
+
+static Sound
+load_generated_breath_cue(int dir, float duration_seconds)
+{
+    unsigned int frame_count;
+    float *samples;
+    Wave wave;
+    Sound sound = {0};
+    float phase = 0.0f;
+
+    if(duration_seconds < 0.75f)
+        duration_seconds = 0.75f;
+    if(duration_seconds > 3.4f)
+        duration_seconds = 3.4f;
+
+    frame_count = (unsigned int)(duration_seconds * (float)APP_CUE_SAMPLE_RATE + 0.5f);
+    samples = malloc(sizeof(float) * frame_count);
+    if(samples == NULL)
+        return sound;
+
+    for(unsigned int i = 0; i < frame_count; i++) {
+        float t = frame_count > 1 ? (float)i / (float)(frame_count - 1) : 0.0f;
+        float drift = dir == 0 ? t : 1.0f - t;
+        float freq = (dir == 0 ? 196.0f : 174.0f) + 42.0f * cue_smoothstep(drift);
+        float env = breath_cue_envelope(t);
+
+        phase += (2.0f * INBE_PI * freq) / (float)APP_CUE_SAMPLE_RATE;
+        samples[i] = sinf(phase) * env * 0.22f;
+    }
+
+    wave = (Wave){
+        .frameCount = frame_count,
+        .sampleRate = APP_CUE_SAMPLE_RATE,
+        .sampleSize = 32,
+        .channels = 1,
+        .data = samples
+    };
+    sound = LoadSoundFromWave(wave);
+    free(samples);
+    return sound;
+}
+
+static Sound
+load_generated_bell_cue(void)
+{
+    enum { BELL_SECONDS = 6 };
+    unsigned int frame_count = APP_CUE_SAMPLE_RATE * BELL_SECONDS;
+    float *samples = malloc(sizeof(float) * frame_count);
+    Wave wave;
+    Sound sound = {0};
+
+    if(samples == NULL)
+        return sound;
+
+    for(unsigned int i = 0; i < frame_count; i++) {
+        float t = (float)i / (float)APP_CUE_SAMPLE_RATE;
+        float strike = cue_smoothstep((0.045f - t) / 0.045f);
+        float body = expf(-t * 0.82f);
+        float high = expf(-t * 1.65f);
+        float sample =
+            sinf(2.0f * INBE_PI * 432.0f * t) * body * 0.38f +
+            sinf(2.0f * INBE_PI * 648.0f * t) * body * 0.22f +
+            sinf(2.0f * INBE_PI * 864.0f * t) * high * 0.14f +
+            sinf(2.0f * INBE_PI * 1296.0f * t) * high * 0.06f;
+
+        samples[i] = sample * (0.18f + 0.82f * (1.0f - strike));
+    }
+
+    wave = (Wave){
+        .frameCount = frame_count,
+        .sampleRate = APP_CUE_SAMPLE_RATE,
+        .sampleSize = 32,
+        .channels = 1,
+        .data = samples
+    };
+    sound = LoadSoundFromWave(wave);
+    free(samples);
+    return sound;
+}
+
+static int
+app_lerp_int(int a, int b, int num, int den)
+{
+    int delta = b - a;
+    int scaled = delta * num;
+
+    if(scaled >= 0)
+        scaled += den / 2;
+    else
+        scaled -= den / 2;
+
+    return a + scaled / den;
+}
+
+static int
+app_effective_breath_half_ticks(const Inbe *inbe)
+{
+    int target_ticks;
+    int start_speed;
+    int start_ticks;
+    int completed_breaths;
+
+    if(inbe == NULL)
+        return breath_half_ticks_for_speed(DefaultSpeedLevel);
+
+    target_ticks = breath_half_ticks_for_speed(inbe->speed_level);
+    start_speed = inbe->progressive_start_speed;
+
+    if(!inbe->progressive_speed || inbe->round != 0)
+        return target_ticks;
+
+    if(start_speed < SETTINGS_SPEED_MIN)
+        start_speed = SETTINGS_SPEED_MIN;
+    if(start_speed > inbe->speed_level)
+        start_speed = inbe->speed_level;
+
+    completed_breaths = int_from_count(inbe->count);
+    start_ticks = breath_half_ticks_for_speed(start_speed);
+    if(completed_breaths < 5)
+        return start_ticks;
+    if(completed_breaths >= 10)
+        return target_ticks;
+
+    return app_lerp_int(start_ticks, target_ticks, completed_breaths - 4, 5);
+}
+
+static int
+app_breath_cue_index(const Inbe *inbe)
+{
+    int half_ticks = app_effective_breath_half_ticks(inbe);
+    int best = 0;
+    int best_delta = 100000;
+
+    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
+        int delta = breath_half_ticks_for_speed(i + 1) - half_ticks;
+        if(delta < 0)
+            delta = -delta;
+        if(delta < best_delta) {
+            best = i;
+            best_delta = delta;
+        }
+    }
+    return best;
+}
+
 void
 app_play_sound(InbeApp *app, Sound sound, float scale)
 {
@@ -716,20 +900,46 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
         TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because sound is not loaded");
         return;
     }
-    if(app->sound_volume <= 0)
+    volume = app_sound_volume_scale(app, scale);
+    if(volume <= 0.0f)
         return;
-
-    volume = ((float)app->sound_volume / 100.0f) * scale;
-    if(volume < 0.0f)
-        volume = 0.0f;
-    if(volume > 1.0f)
-        volume = 1.0f;
 
     StopSound(sound);
     SetSoundVolume(sound, volume);
     PlaySound(sound);
     if(!IsSoundPlaying(sound))
         TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
+}
+
+void
+app_play_breath_cue(InbeApp *app, int dir)
+{
+    Sound sound;
+
+    if(app == NULL)
+        return;
+
+    sound = dir == 0
+                ? app->breath_in_cue_sounds[app_breath_cue_index(&app->inbe)]
+                : app->breath_out_cue_sounds[app_breath_cue_index(&app->inbe)];
+    if(sound.frameCount != 0) {
+        app_play_sound(app, sound, 0.72f);
+        return;
+    }
+
+    app_play_sound(app, dir == 0 ? app->breath_in_sound : app->breath_out_sound, 1.0f);
+}
+
+void
+app_play_bell_cue(InbeApp *app, float scale)
+{
+    if(app == NULL)
+        return;
+    if(app->bell_cue_sound.frameCount != 0) {
+        app_play_sound(app, app->bell_cue_sound, scale);
+        return;
+    }
+    app_play_sound(app, app->bell_sound, scale);
 }
 
 static void
@@ -749,6 +959,12 @@ init_audio(InbeApp *app)
     app->breath_in_sound = load_sound_asset("breath-in.ogg");
     app->breath_out_sound = load_sound_asset("breath-out.ogg");
     app->bell_sound = load_sound_asset("bell.ogg");
+    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
+        float seconds = (float)breath_half_ticks_for_speed(i + 1) / 60.0f;
+        app->breath_in_cue_sounds[i] = load_generated_breath_cue(0, seconds);
+        app->breath_out_cue_sounds[i] = load_generated_breath_cue(1, seconds);
+    }
+    app->bell_cue_sound = load_generated_bell_cue();
 }
 
 void
@@ -1382,6 +1598,11 @@ app_destroy(void *vapp)
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
+    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
+        SafeUnloadSound(app->breath_in_cue_sounds[i]);
+        SafeUnloadSound(app->breath_out_cue_sounds[i]);
+    }
+    SafeUnloadSound(app->bell_cue_sound);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->destroy != NULL)

@@ -285,6 +285,9 @@ struct InbeApp {
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
+    Sound breath_in_cue_sounds[SETTINGS_SPEED_MAX];
+    Sound breath_out_cue_sounds[SETTINGS_SPEED_MAX];
+    Sound bell_cue_sound;
     int audio_ready;
     int sound_volume;
     int sound_last_screen;
@@ -409,6 +412,8 @@ void app_request_friend_accept(InbeApp *app, const char *request_id);
 void app_request_friend_decline(InbeApp *app, const char *request_id);
 void app_request_friend_remove(InbeApp *app, const char *friend_user_id);
 int app_should_use_tab_bar(const InbeApp *app);
+void app_play_breath_cue(InbeApp *app, int dir);
+void app_play_bell_cue(InbeApp *app, float scale);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);

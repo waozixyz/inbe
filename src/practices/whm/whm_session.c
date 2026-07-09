@@ -228,18 +228,17 @@ update_session_sounds(InbeApp *app)
 
     if(app->inbe.phase == InbePhaseBreathe) {
         if(screen_changed || phase_changed || dir_changed) {
-            Sound breath_snd = app->inbe.dir == 0 ? app->breath_in_sound : app->breath_out_sound;
-            app_play_sound(app, breath_snd, 1.0f);
+            app_play_breath_cue(app, app->inbe.dir);
         }
         if(count_changed) {
             int count_value = int_from_count(app->inbe.count);
             int maxbreaths_value = int_from_count(app->inbe.maxbreaths);
             if(count_value == maxbreaths_value - 1)
-                app_play_sound(app, app->bell_sound, 0.8f);
+                app_play_bell_cue(app, 0.8f);
         }
     } else if(phase_changed) {
         if(app->inbe.phase == InbePhaseNext && app->sound_last_phase == InbePhaseRecover)
-            app_play_sound(app, app->breath_out_sound, 1.0f);
+            app_play_breath_cue(app, 1);
     }
 
     remember_sound_state(app);
@@ -408,7 +407,7 @@ finish_hold(InbeApp *app)
     app->inbe.breath_frame = 0;
     app->inbe.breathtick = 0;
     app->inbe.sectick = 0;
-    app_play_sound(app, app->breath_in_sound, 1.0f);
+    app_play_breath_cue(app, 0);
 }
 
 static void

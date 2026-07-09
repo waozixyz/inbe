@@ -57,7 +57,7 @@ meditation_start(InbeApp *app, int seconds)
     app->volume_popup_active = 0;
     app_close_modal(app);
     app_switch_screen(app, InbeScreenMeditation);
-    app_play_sound(app, app->bell_sound, 1.0f);
+    app_play_bell_cue(app, 1.0f);
     meditation_music_start_session(app);
     practice_background_start(app, PRACTICE_MEDITATION);
 }
@@ -102,7 +102,7 @@ meditation_finish(InbeApp *app)
         }
     }
     if(!app->meditation.complete_waiting)
-        app_play_sound(app, app->bell_sound, 1.0f);
+        app_play_bell_cue(app, 1.0f);
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
@@ -126,7 +126,7 @@ meditation_timer_complete(InbeApp *app)
         app->meditation.frame_ticks = 0;
         if(!app->meditation.complete_waiting) {
             app->meditation.complete_waiting = 1;
-            app_play_sound(app, app->bell_sound, 1.0f);
+            app_play_bell_cue(app, 1.0f);
         }
         return;
     }
