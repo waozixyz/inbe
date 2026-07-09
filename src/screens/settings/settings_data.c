@@ -8,9 +8,8 @@
 #include "storage.h"
 #include "sync_account.h"
 #include "theme.h"
-#include "theme_meta.h"
 #include "ui.h"
-#if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB)
+#if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB) && !defined(INBE_DISABLE_FLINT_FILE_DIALOG)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
 #include "file_dialog.h"
 #endif
@@ -41,10 +40,7 @@ enum {
 #define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "*/*"
 #define SETTINGS_DATA_TOP_PADDING 8
 
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-static FileDialog export_dlg;
-static FileDialog import_dlg;
-#endif
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
 static int data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
 
 typedef struct SettingsFileDialogOrigin {
@@ -57,6 +53,7 @@ typedef struct SettingsFileDialogOrigin {
 } SettingsFileDialogOrigin;
 
 static SettingsFileDialogOrigin file_dialog_origin;
+#endif
 static char pending_import_path[FS_PATH_MAX] = "";
 static DataImportInfo pending_import_info;
 
@@ -75,6 +72,7 @@ settings_clear_pending_import(void)
     memset(&pending_import_info, 0, sizeof(pending_import_info));
 }
 
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
 static void
 settings_file_dialog_begin(InbeApp *app, int action)
 {
@@ -107,6 +105,7 @@ settings_file_dialog_finish(InbeApp *app)
         app->file_dialog_active = 0;
     return action;
 }
+#endif
 
 static void
 settings_import_success(InbeApp *app, int imported_settings)
@@ -399,42 +398,44 @@ settings_data_open_sync_account_config(InbeApp *app)
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
     settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
     settings_sync_server_load(app);
-    app->profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
+    {
+        AppRoute route = app_current_route(app);
+        route.profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
+        route.profile_tab = PROFILE_TAB_OVERVIEW;
+        app_switch_route(app, route);
+    }
     app->profile_scroll = 0;
     app->sync_server_url_focused = 0;
     settings_screen_clear_status();
 }
 
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-static void
-settings_apply_file_dialog_theme(InbeApp *app)
-{
-    int theme_id = app != NULL ? app->theme_id : THEME_SKY;
-    int dark_mode = app != NULL && app->dark_mode != 0;
-
-    if(app != NULL && app->theme_source == APP_THEME_SOURCE_SYSTEM) {
-        SetFileDialogThemeScope(NULL);
-        return;
-    }
-
-    if(theme_id < 0 || theme_id >= THEME_COUNT)
-        theme_id = THEME_SKY;
-    SetFileDialogThemeScope(GetThemeScopeName((ThemeId)theme_id,
-                                                            dark_mode != 0));
-}
-#endif
-
 static int
 settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT);
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    BeginSaveFileDialog(&export_dlg, GetLocaleText("sync_save_key_dialog_title"), filename);
+    FileDialog dlg;
+    (void)app;
+    InitFileDialog(&dlg);
+    if(SaveFileDialog(&dlg, GetLocaleText("sync_save_key_dialog_title"), filename)) {
+        InbeSyncAccount account;
+        const char *path = GetFileDialogPath(&dlg);
+        if(path != NULL && path[0] != '\0' &&
+           sync_account_load(&account) &&
+           sync_account_export_private_key(&account, path)) {
+            settings_screen_set_status_success(GetLocaleText("sync_private_key_backup_saved"), GetFileName(path));
+            TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
+        } else {
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_failed"));
+            TraceLog(LOG_ERROR, "SYNC: Private key backup failed");
+        }
+    } else {
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_cancelled"));
+    }
+    CloseFileDialog(&dlg);
     return 4;
 #else
     (void)filename;
-    settings_file_dialog_finish(app);
+    (void)app;
     return 0;
 #endif
 }
@@ -442,8 +443,8 @@ settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 static int
 settings_start_sync_key_import_dialog(InbeApp *app)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
 #if defined(PLATFORM_WEB)
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
     (void)app;
     EM_ASM({
         const importPath = UTF8ToString($0);
@@ -486,6 +487,7 @@ settings_start_sync_key_import_dialog(InbeApp *app)
     settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), NULL);
     return 1;
 #elif ANDROID_BUILD
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
     (void)app;
     if(android_import_open_picker(SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES)) {
         settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), NULL);
@@ -494,12 +496,18 @@ settings_start_sync_key_import_dialog(InbeApp *app)
     settings_file_dialog_finish(app);
     return 0;
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    BeginLoadFilteredFileDialog(&import_dlg, GetLocaleText("sync_import_key_dialog_title"),
-                                          SETTINGS_SYNC_KEY_IMPORT_FILTER);
+    FileDialog dlg;
+    InitFileDialog(&dlg);
+    if(LoadFilteredFileDialog(&dlg, GetLocaleText("sync_import_key_dialog_title"),
+                              SETTINGS_SYNC_KEY_IMPORT_FILTER)) {
+        settings_import_sync_key_path(app, GetFileDialogPath(&dlg));
+    } else {
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
+    }
+    CloseFileDialog(&dlg);
     return 1;
 #else
-    settings_file_dialog_finish(app);
+    (void)app;
     return 0;
 #endif
 }
@@ -695,8 +703,8 @@ void settings_data_handle_web_import(InbeApp *app) { (void)app; }
 static void
 settings_import_data(InbeApp *app)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
 #if ANDROID_BUILD
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
     if(android_import_open_picker(SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES))
         settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), NULL);
     else {
@@ -704,15 +712,28 @@ settings_import_data(InbeApp *app)
         settings_screen_set_status_error(GetLocaleText("import_failed"));
     }
 #elif defined(PLATFORM_WEB)
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
     (void)app;
     settings_web_import_open_picker();
     settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), NULL);
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    BeginLoadFilteredFileDialog(&import_dlg, GetLocaleText("import_data_dialog_title"),
-                                          SETTINGS_DATA_IMPORT_FILTER);
+    FileDialog dlg;
+    InitFileDialog(&dlg);
+    if(LoadFilteredFileDialog(&dlg, GetLocaleText("import_data_dialog_title"),
+                              SETTINGS_DATA_IMPORT_FILTER)) {
+        const char *path = GetFileDialogPath(&dlg);
+        if(path != NULL && path[0] != '\0') {
+            settings_begin_import_for_path(app, path);
+        } else {
+            settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
+            TraceLog(LOG_WARNING, "DATA: No file selected for import");
+        }
+    } else {
+        settings_screen_set_status_error(GetLocaleText("import_cancelled"));
+    }
+    CloseFileDialog(&dlg);
 #else
-    settings_file_dialog_finish(app);
+    (void)app;
     settings_screen_set_status_error(GetLocaleText("import_failed"));
 #endif
 }
@@ -762,9 +783,25 @@ settings_export_data(InbeApp *app)
         TraceLog(LOG_ERROR, "DATA: Export failed");
     }
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT);
-    settings_apply_file_dialog_theme(app);
-    BeginSaveFileDialog(&export_dlg, GetLocaleText("export_data_dialog_title"), export_filename);
+    {
+        FileDialog dlg;
+        (void)app;
+        InitFileDialog(&dlg);
+        if(SaveFileDialog(&dlg, GetLocaleText("export_data_dialog_title"), export_filename)) {
+            const char *path = GetFileDialogPath(&dlg);
+            if(path != NULL && data_export(path)) {
+                const char *filename = GetFileName(path);
+                settings_screen_set_status_success(GetLocaleText("exported_label"), filename);
+                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+            } else {
+                settings_screen_set_status_error(GetLocaleText("export_failed"));
+                TraceLog(LOG_ERROR, "DATA: Export failed");
+            }
+        } else {
+            settings_screen_set_status_error(GetLocaleText("export_cancelled"));
+        }
+        CloseFileDialog(&dlg);
+    }
 #elif defined(PLATFORM_WEB)
     (void)app;
     if(data_export(SETTINGS_WEB_EXPORT_PATH) &&
@@ -790,83 +827,6 @@ settings_request_delete_all_data(InbeApp *app)
         settings_screen_set_status_error(GetLocaleText("no_data_to_delete"));
     }
 }
-
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-int
-settings_data_draw_pending_file_dialog(InbeApp *app)
-{
-    FileDialog *dlg;
-    int result;
-
-    if(data_file_dialog_action == SETTINGS_DATA_ACTION_NONE)
-        return 0;
-
-    settings_apply_file_dialog_theme(app);
-    dlg = (data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ||
-           data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
-              ? &import_dlg
-              : &export_dlg;
-    result = UpdateFileDialog(dlg);
-    if(result < 0)
-        return 1;
-
-    if(data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT) {
-        if(result == 1) {
-            const char *path = GetFileDialogPath(&import_dlg);
-            if(path != NULL && path[0] != '\0') {
-                settings_begin_import_for_path(app, path);
-            } else {
-                settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
-                TraceLog(LOG_WARNING, "DATA: No file selected for import");
-            }
-        } else {
-            settings_screen_set_status_error(GetLocaleText("import_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_EXPORT) {
-        if(result == 1) {
-            const char *path = GetFileDialogPath(&export_dlg);
-            if(path != NULL && data_export(path)) {
-                const char *filename = GetFileName(path);
-                settings_screen_set_status_success(GetLocaleText("exported_label"), filename);
-                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
-            } else {
-                settings_screen_set_status_error(GetLocaleText("export_failed"));
-                TraceLog(LOG_ERROR, "DATA: Export failed");
-            }
-        } else {
-            settings_screen_set_status_error(GetLocaleText("export_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT) {
-        if(result == 1) {
-            InbeSyncAccount account;
-            const char *path = GetFileDialogPath(&export_dlg);
-            if(path != NULL && path[0] != '\0' &&
-               sync_account_load(&account) &&
-               sync_account_export_private_key(&account, path)) {
-                settings_screen_set_status_success(GetLocaleText("sync_private_key_backup_saved"), GetFileName(path));
-                TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
-            } else {
-                settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_failed"));
-                TraceLog(LOG_ERROR, "SYNC: Private key backup failed");
-            }
-        } else {
-            settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT) {
-        if(result == 1) {
-            const char *path = GetFileDialogPath(&import_dlg);
-            settings_import_sync_key_path(app, path);
-        } else {
-            settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
-        }
-    }
-
-    settings_file_dialog_finish(app);
-    return 1;
-}
-#else
-int settings_data_draw_pending_file_dialog(InbeApp *app) { (void)app; return 0; }
-#endif
 
 int
 settings_data_draw_modals(InbeApp *app)

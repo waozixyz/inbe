@@ -558,6 +558,18 @@ Clear
 [close_button]
 Close
 ---
+[desktop_close_prompt_title]
+Keep Inner Breeze running?
+---
+[desktop_close_prompt_message]
+Closing the window can keep Inner Breeze running in the background.
+---
+[desktop_close_keep_running_button]
+Keep Running
+---
+[desktop_close_quit_button]
+Quit
+---
 [sync_account_title]
 Account
 ---
@@ -814,13 +826,7 @@ Open friends and leaderboard from here.
 Create a sync account to unlock friends and leaderboard.
 ---
 [transition_label]
-Transition
----
-[transition_none]
-None
----
-[transition_fade]
-Fade
+Animations
 ---
 [theme_picker_title]
 Choose Theme

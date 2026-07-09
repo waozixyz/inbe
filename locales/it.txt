@@ -555,6 +555,18 @@ Musica di Elijah_K.
 [close_button]
 Chiudi
 ---
+[desktop_close_prompt_title]
+Mantenere Inner Breeze in esecuzione?
+---
+[desktop_close_prompt_message]
+Chiudendo la finestra, Inner Breeze può continuare a funzionare in background.
+---
+[desktop_close_keep_running_button]
+Continua in background
+---
+[desktop_close_quit_button]
+Esci
+---
 [sync_account_title]
 Profilo
 ---
@@ -777,12 +789,6 @@ Crea un account di sincronizzazione per sbloccare amici e classifica.
 
 [transition_label]
 Transizione
----
-[transition_none]
-Nessuna
----
-[transition_fade]
-Dissolvenza
 ---
 [theme_picker_title]
 Scegli tema

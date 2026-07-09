@@ -698,21 +698,40 @@ int main(int argc, char **argv) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     while(!quit) {
         InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
+        AppClosePromptResult close_result;
         if(g_shutdown_requested)
             quit = 1;
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
         if(!quit)
             frame();
+        close_result = app_consume_close_prompt_result(&inbe_app);
+        if(close_result == AppClosePromptKeepRunning)
+            inbe_desktop_tray_keep_running();
+        else if(close_result == AppClosePromptQuit)
+            quit = 1;
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
         if(WindowShouldClose())
-            quit = 1;
+            app_request_desktop_close(&inbe_app);
     }
 #else
-    while(!g_shutdown_requested && !WindowShouldClose()) {
+    while(!g_shutdown_requested && !quit) {
+        AppClosePromptResult close_result;
         frame();
+        close_result = app_consume_close_prompt_result(&inbe_app);
+        if(close_result == AppClosePromptKeepRunning)
+            MinimizeWindow();
+        else if(close_result == AppClosePromptQuit)
+            quit = 1;
+        if(WindowShouldClose()) {
+#if ANDROID_BUILD
+            quit = 1;
+#else
+            app_request_desktop_close(&inbe_app);
+#endif
+        }
     }
 #endif
 

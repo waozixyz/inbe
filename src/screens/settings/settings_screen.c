@@ -155,11 +155,13 @@ settings_draw_section_header(InbeApp *app, int tab)
     const char *title = settings_tab_label(tab);
 
     if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, header_h)) {
-        app->settings_tab = SETTINGS_TAB_OVERVIEW;
+        AppRoute route = app_current_route(app);
+        route.settings_tab = SETTINGS_TAB_OVERVIEW;
         app->settings_scroll = 0;
         if(app->modal.type == UIModalThemePicker)
             app_close_modal(app);
         settings_screen_clear_status();
+        app_switch_route(app, route);
     }
 }
 
@@ -179,9 +181,11 @@ settings_draw_overview(InbeApp *app, int x, int w, int *y)
         if(DrawUIGenericButton(x, *y, w, btn_h, settings_tab_label(tabs[i]),
                                   UI_BUTTON_STYLE_SECONDARY, app->modal.active,
                                   &hover)) {
-            app->settings_tab = tabs[i];
+            AppRoute route = app_current_route(app);
+            route.settings_tab = tabs[i];
             app->settings_scroll = 0;
             settings_screen_clear_status();
+            app_switch_route(app, route);
         }
         *y += btn_h + gap;
     }
@@ -200,9 +204,6 @@ settings_screen_draw(InbeApp *app)
 
     if(app->settings_tab < SETTINGS_TAB_OVERVIEW || app->settings_tab >= SETTINGS_TAB_COUNT)
         app->settings_tab = SETTINGS_TAB_OVERVIEW;
-
-    if(settings_data_draw_pending_file_dialog(app))
-        return 1;
 
     detail_header_h = GetUITabBarHeight();
     tab_content_start_y = detail_header_h;

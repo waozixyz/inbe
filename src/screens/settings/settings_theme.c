@@ -4,6 +4,7 @@
 #include "app_settings.h"
 #include "device_preferences.h"
 #include "locale.h"
+#include "settings_ui.h"
 #include "theme.h"
 #include "theme_meta.h"
 #include "ui.h"
@@ -14,11 +15,12 @@ extern int view_height;
 int
 settings_theme_content_height(int content_w)
 {
-    (void)content_w;
 #if defined(PLATFORM_WEB)
+    (void)content_w;
     return ScaleUIPx(260);
 #else
-    return ScaleUIPx(320);
+    return ScaleUIPx(244) +
+           settings_ui_toggle_row_height(GetLocaleText("transition_label"), content_w);
 #endif
 }
 
@@ -80,19 +82,24 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
 
 #if defined(PLATFORM_WEB)
     app->transition_mode = APP_TRANSITION_NONE;
-    state->draw_transition_menu = 0;
 #else
     {
-        const char *transition_options[2];
-        transition_options[APP_TRANSITION_NONE] = GetLocaleText("transition_none");
-        transition_options[APP_TRANSITION_FADE] = GetLocaleText("transition_fade");
+        int transitions_enabled;
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
-        DrawUIText(GetLocaleText("transition_label"), x, *y, GetUIFontSize(), GetThemeText());
-        DrawUIDropdownButton(104, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
-                                transition_options, 2, &app->transition_mode);
+        transitions_enabled = app->transition_mode == APP_TRANSITION_FADE;
+        if(settings_ui_draw_toggle_row(x, w, y, GetLocaleText("transition_label"),
+                                       &transitions_enabled)) {
+            app->transition_mode = transitions_enabled ? APP_TRANSITION_FADE
+                                                       : APP_TRANSITION_NONE;
+            if(app->transition_mode == APP_TRANSITION_NONE) {
+                ResetUITransition(&app->screen_transition);
+                app->content_transition.active = 0;
+                app->route_transition_target = app_current_route(app);
+            }
+            app->settings_dirty = 1;
+            app->settings_save_delay_ticks = 18;
+        }
     }
-    state->draw_transition_menu = 1;
-    *y += ScaleUIPx(76);
 #endif
 }
 
@@ -102,7 +109,6 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
     int theme_source_changed = 0;
     int theme_mode_changed = 0;
     int theme_palette_changed = 0;
-    int transition_changed = 0;
 
     if(app == NULL || state == NULL)
         return;
@@ -125,20 +131,7 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->settings_save_delay_ticks = 18;
     }
 
-#if !defined(PLATFORM_WEB)
-    if(state->draw_transition_menu && DrawUIDropdownMenu(104))
-        transition_changed = 1;
-    if(transition_changed) {
-        app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
-        if(app->transition_mode == APP_TRANSITION_NONE) {
-            ResetUITransition(&app->screen_transition);
-            app->screen_transition_target = app->inbe.screen;
-        }
-        app->settings_dirty = 1;
-        app->settings_save_delay_ticks = 18;
-    }
-#else
-    (void)transition_changed;
+#if defined(PLATFORM_WEB)
     app->transition_mode = APP_TRANSITION_NONE;
 #endif
 }

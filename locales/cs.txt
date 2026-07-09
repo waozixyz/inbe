@@ -555,6 +555,18 @@ Senzor
 [close_button]
 Zavřít
 ---
+[desktop_close_prompt_title]
+Ponechat Inner Breeze spuštěný?
+---
+[desktop_close_prompt_message]
+Zavřením okna může Inner Breeze dál běžet na pozadí.
+---
+[desktop_close_keep_running_button]
+Ponechat spuštěné
+---
+[desktop_close_quit_button]
+Ukončit
+---
 [sync_account_title]
 Účet
 ---
@@ -777,12 +789,6 @@ Vytvorte synchronizacni ucet pro odemceni pratel a zebricku.
 
 [transition_label]
 Přechod
----
-[transition_none]
-Žádný
----
-[transition_fade]
-Prolnutí
 ---
 [theme_picker_title]
 Vybrat motiv

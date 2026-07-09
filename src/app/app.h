@@ -109,6 +109,12 @@ typedef enum SessionExitModalResult {
     SessionExitModalDiscard,
 } SessionExitModalResult;
 
+typedef enum AppClosePromptResult {
+    AppClosePromptNone = 0,
+    AppClosePromptKeepRunning,
+    AppClosePromptQuit,
+} AppClosePromptResult;
+
 typedef struct {
     int active;
     UIModalType type;
@@ -184,6 +190,25 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_SETTINGS = 4,
     APP_NAV_ROUTE_COUNT = 5,
 } AppNavRoute;
+
+typedef struct AppRoute {
+    int screen;
+    int exercise_type;
+    int practice_tab;
+    int practice_config_tab;
+    int settings_tab;
+    int profile_view;
+    int profile_tab;
+    int habits_screen_mode;
+    int habits_tab;
+} AppRoute;
+
+typedef struct AppContentTransition {
+    int active;
+    int direction;
+    float elapsed_seconds;
+    float duration_seconds;
+} AppContentTransition;
 
 typedef struct WhmPracticeState {
     Texture2D image_1;
@@ -285,9 +310,6 @@ struct InbeApp {
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
-    Sound breath_in_cue_sounds[SETTINGS_SPEED_MAX];
-    Sound breath_out_cue_sounds[SETTINGS_SPEED_MAX];
-    Sound bell_cue_sound;
     int audio_ready;
     int sound_volume;
     int sound_last_screen;
@@ -382,13 +404,17 @@ struct InbeApp {
     int practice_coming_soon_ticks;
     int previous_screen;
     UITransition screen_transition;
-    int screen_transition_target;
+    AppContentTransition content_transition;
+    AppRoute route_transition_target;
     int file_dialog_active;
     int session_paused;
     int backgrounded;
     double desktop_background_last_time;
     int results_saved;
     int modal_input_block_frame;
+    int close_prompt_open;
+    int close_prompt_input_block_frame;
+    AppClosePromptResult close_prompt_result;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;
@@ -402,6 +428,8 @@ void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
 void app_switch_screen(InbeApp *app, int screen);
+AppRoute app_current_route(const InbeApp *app);
+void app_switch_route(InbeApp *app, AppRoute route);
 void app_leave_practice_config(InbeApp *app);
 int app_content_top_reserved(const InbeApp *app);
 int app_toolbar_height(void);
@@ -420,6 +448,8 @@ void app_unload_texture(Texture2D texture);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
+void app_request_desktop_close(InbeApp *app);
+AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
                                                    const char *save_message,
                                                    const char *discard_message);

@@ -555,6 +555,18 @@ Sensor
 [close_button]
 Schließen
 ---
+[desktop_close_prompt_title]
+Inner Breeze weiterlaufen lassen?
+---
+[desktop_close_prompt_message]
+Wenn du das Fenster schließt, kann Inner Breeze im Hintergrund weiterlaufen.
+---
+[desktop_close_keep_running_button]
+Weiterlaufen lassen
+---
+[desktop_close_quit_button]
+Beenden
+---
 [sync_account_title]
 Konto
 ---
@@ -777,12 +789,6 @@ Erstelle ein Sync-Konto, um Freunde und Bestenliste freizuschalten.
 
 [transition_label]
 Übergang
----
-[transition_none]
-Keine
----
-[transition_fade]
-Blende
 ---
 [theme_picker_title]
 Thema wählen

@@ -558,6 +558,18 @@ Capteur
 [close_button]
 Fermer
 ---
+[desktop_close_prompt_title]
+Garder Inner Breeze en cours d'exécution ?
+---
+[desktop_close_prompt_message]
+Fermer la fenêtre peut laisser Inner Breeze s'exécuter en arrière-plan.
+---
+[desktop_close_keep_running_button]
+Continuer en arrière-plan
+---
+[desktop_close_quit_button]
+Quitter
+---
 [sync_account_title]
 Compte
 ---
@@ -816,12 +828,6 @@ Creez un compte de synchronisation pour debloquer les amis et le classement.
 
 [transition_label]
 Effet
----
-[transition_none]
-Aucune
----
-[transition_fade]
-Fondu
 ---
 [theme_picker_title]
 Choisir un thème

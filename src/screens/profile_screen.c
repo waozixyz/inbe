@@ -311,6 +311,38 @@ profile_draw_fitted_text(const char *text, int x, int y, int max_w, int font, Co
 }
 
 static void
+profile_switch_view(InbeApp *app, int view)
+{
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    route = app_current_route(app);
+    route.profile_view = view;
+    if(view != PROFILE_VIEW_MAIN)
+        route.profile_tab = PROFILE_TAB_OVERVIEW;
+    app->profile_scroll = 0;
+    app->sync_server_url_focused = 0;
+    settings_screen_clear_status();
+    app_switch_route(app, route);
+}
+
+static void
+profile_switch_tab(InbeApp *app, int tab)
+{
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    route = app_current_route(app);
+    route.profile_view = PROFILE_VIEW_MAIN;
+    route.profile_tab = tab;
+    app->profile_scroll = 0;
+    settings_screen_clear_status();
+    app_switch_route(app, route);
+}
+
+static void
 profile_draw_overview(InbeApp *app, int x, int w, int *y)
 {
     int font = GetUIFontSize();
@@ -381,19 +413,13 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
     *y += ScaleUIPx(24);
     profile_draw_summary_columns(x, w, y);
     if(DrawUIGenericButton(x, *y, w, btn_h, GetLocaleText("profile_data_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_data)) {
-        app->profile_tab = PROFILE_TAB_DATA;
-        app->profile_scroll = 0;
-        settings_screen_clear_status();
-    }
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_data))
+        profile_switch_tab(app, PROFILE_TAB_DATA);
     *y += btn_h + ScaleUIPx(8);
     if(DrawUIGenericButton(x, *y, w, btn_h,
                               GetLocaleText("profile_my_practices_button"),
-                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_practices)) {
-        app->profile_view = PROFILE_VIEW_PRACTICES;
-        app->profile_scroll = 0;
-        settings_screen_clear_status();
-    }
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover_practices))
+        profile_switch_view(app, PROFILE_VIEW_PRACTICES);
     *y += btn_h + ScaleUIPx(20);
     profile_draw_divider(x, w, *y);
     profile_set_guide_anchor(&app->profile_guide_anchors.data, x, data_y, w,
@@ -413,16 +439,12 @@ profile_draw_overview(InbeApp *app, int x, int w, int *y)
                     font, GetThemeText());
     *y += ScaleUIPx(34);
     if(DrawUIGenericButton(x, *y, half_w, btn_h, GetLocaleText("profile_friends_title"),
-                              UI_BUTTON_STYLE_PRIMARY, !has_account, &hover_friends)) {
-        app->profile_tab = PROFILE_TAB_FRIENDS;
-        app->profile_scroll = 0;
-    }
+                              UI_BUTTON_STYLE_PRIMARY, !has_account, &hover_friends))
+        profile_switch_tab(app, PROFILE_TAB_FRIENDS);
     if(DrawUIGenericButton(x + half_w + ScaleUIPx(8), *y, half_w, btn_h,
                               GetLocaleText("profile_leaderboard_title"), UI_BUTTON_STYLE_PRIMARY,
-                              !has_account, &hover_leaderboard)) {
-        app->profile_tab = PROFILE_TAB_LEADERBOARD;
-        app->profile_scroll = 0;
-    }
+                              !has_account, &hover_leaderboard))
+        profile_switch_tab(app, PROFILE_TAB_LEADERBOARD);
     *y += btn_h + ScaleUIPx(16);
     profile_set_guide_anchor(&app->profile_guide_anchors.social, x, social_y, w,
                              *y - social_y);
@@ -526,9 +548,6 @@ profile_screen_draw(InbeApp *app)
     settings_data_handle_web_import(app);
 #endif
 
-    if(settings_data_draw_pending_file_dialog(app))
-        return 1;
-
     if(app->profile_tab < 0 || app->profile_tab >= PROFILE_TAB_COUNT)
         app->profile_tab = PROFILE_TAB_OVERVIEW;
     if((app->profile_tab == PROFILE_TAB_FRIENDS ||
@@ -546,18 +565,11 @@ profile_screen_draw(InbeApp *app)
             title = GetLocaleText("profile_my_habits_title");
         else if(app->profile_view == PROFILE_VIEW_PRACTICES)
             title = GetLocaleText("profile_my_practices_title");
-        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, header_h)) {
-            app->profile_view = PROFILE_VIEW_MAIN;
-            app->profile_scroll = 0;
-            app->sync_server_url_focused = 0;
-            settings_screen_clear_status();
-        }
+        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, header_h))
+            profile_switch_view(app, PROFILE_VIEW_MAIN);
     } else if(is_profile_subpage) {
-        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], profile_tab_title(app->profile_tab), header_h)) {
-            app->profile_tab = PROFILE_TAB_OVERVIEW;
-            app->profile_scroll = 0;
-            settings_screen_clear_status();
-        }
+        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], profile_tab_title(app->profile_tab), header_h))
+            profile_switch_tab(app, PROFILE_TAB_OVERVIEW);
     }
 
     if(content_h < 0)

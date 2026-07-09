@@ -364,8 +364,10 @@ whm_config_screen_draw(InbeApp *app)
     clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h, config_tabs, 2,
                                              app->practice_config_tab);
     if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
-        app->practice_config_tab = clicked_config_tab;
+        AppRoute route = app_current_route(app);
+        route.practice_config_tab = clicked_config_tab;
         app->settings_scroll = 0;
+        app_switch_route(app, route);
     }
 
     {

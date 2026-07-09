@@ -31,7 +31,6 @@
 #include "practices/meditation/meditation_practice.h"
 
 #include <limits.h>
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -56,15 +55,7 @@ InbeApp *get_global_inbe_app(void);
 #define INBE_DEFAULT_HEIGHT 720
 #endif
 
-enum {
-    APP_CUE_SAMPLE_RATE = 24000
-};
-
 static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
-
-#ifndef INBE_PI
-#define INBE_PI 3.14159265358979323846f
-#endif
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -94,41 +85,224 @@ app_leave_practice_config(InbeApp *app)
     app->settings_scroll = 0;
 }
 
-void
-app_switch_screen(InbeApp *app, int screen)
+AppRoute
+app_current_route(const InbeApp *app)
+{
+    AppRoute route = {0};
+
+    if(app == NULL)
+        return route;
+    route.screen = app->inbe.screen;
+    route.exercise_type = app->exercise_type;
+    route.practice_tab = app->practice_tab;
+    route.practice_config_tab = app->practice_config_tab;
+    route.settings_tab = app->settings_tab;
+    route.profile_view = app->profile_view;
+    route.profile_tab = app->profile_tab;
+    route.habits_screen_mode = app->habits.screen_mode;
+    route.habits_tab = app->habits.tab;
+    return route;
+}
+
+static int
+app_route_equal(AppRoute a, AppRoute b)
+{
+    if(a.screen != b.screen)
+        return 0;
+    switch(a.screen) {
+    case InbeScreenStart:
+        return a.exercise_type == b.exercise_type &&
+               a.practice_tab == b.practice_tab &&
+               (a.practice_tab != PRACTICE_TAB_CONFIG ||
+                a.practice_config_tab == b.practice_config_tab);
+    case InbeScreenSettings:
+        return a.settings_tab == b.settings_tab;
+    case InbeScreenProfile:
+        return a.profile_view == b.profile_view &&
+               a.profile_tab == b.profile_tab;
+    case InbeScreenHabits:
+        return a.habits_screen_mode == b.habits_screen_mode &&
+               a.habits_tab == b.habits_tab;
+    default:
+        break;
+    }
+    return 1;
+}
+
+static int
+app_route_direction(AppRoute from, AppRoute to)
+{
+    if(from.screen != to.screen)
+        return to.screen > from.screen ? 1 : -1;
+    switch(from.screen) {
+    case InbeScreenStart:
+        if(from.exercise_type != to.exercise_type)
+            return to.exercise_type > from.exercise_type ? 1 : -1;
+        if(from.practice_tab != to.practice_tab)
+            return to.practice_tab > from.practice_tab ? 1 : -1;
+        if(from.practice_config_tab != to.practice_config_tab)
+            return to.practice_config_tab > from.practice_config_tab ? 1 : -1;
+        break;
+    case InbeScreenSettings:
+        if(from.settings_tab != to.settings_tab)
+            return to.settings_tab > from.settings_tab ? 1 : -1;
+        break;
+    case InbeScreenProfile:
+        if(from.profile_view != to.profile_view)
+            return to.profile_view > from.profile_view ? 1 : -1;
+        if(from.profile_tab != to.profile_tab)
+            return to.profile_tab > from.profile_tab ? 1 : -1;
+        break;
+    case InbeScreenHabits:
+        if(from.habits_screen_mode != to.habits_screen_mode)
+            return to.habits_screen_mode > from.habits_screen_mode ? 1 : -1;
+        if(from.habits_tab != to.habits_tab)
+            return to.habits_tab > from.habits_tab ? 1 : -1;
+        break;
+    default:
+        break;
+    }
+    return 1;
+}
+
+static float
+app_smooth_progress(float value)
+{
+    if(value < 0.0f)
+        value = 0.0f;
+    if(value > 1.0f)
+        value = 1.0f;
+    return value * value * (3.0f - 2.0f * value);
+}
+
+static void
+app_begin_content_transition(InbeApp *app, int direction)
 {
     if(app == NULL)
         return;
-    if(app->inbe.screen == screen &&
+    app->content_transition.active = 1;
+    app->content_transition.direction = direction < 0 ? -1 : 1;
+    app->content_transition.elapsed_seconds = 0.0f;
+    app->content_transition.duration_seconds = 0.16f;
+}
+
+static float
+app_content_transition_progress(const InbeApp *app)
+{
+    if(app == NULL || !app->content_transition.active ||
+       app->content_transition.duration_seconds <= 0.0f)
+        return 1.0f;
+    return app_smooth_progress(app->content_transition.elapsed_seconds /
+                               app->content_transition.duration_seconds);
+}
+
+static int
+app_content_transition_offset(const InbeApp *app)
+{
+    float progress;
+    int span;
+
+    if(app == NULL || !app->content_transition.active)
+        return 0;
+    progress = app_content_transition_progress(app);
+    span = ScaleUIPx(34);
+    if(span > view_width / 8)
+        span = view_width / 8;
+    if(span < ScaleUIPx(14))
+        span = ScaleUIPx(14);
+    return (int)((float)(app->content_transition.direction * span) * (1.0f - progress));
+}
+
+static void
+app_step_content_transition(InbeApp *app)
+{
+    if(app == NULL || !app->content_transition.active)
+        return;
+    app->content_transition.elapsed_seconds += GetFrameTime();
+    if(app->content_transition.elapsed_seconds >=
+       app->content_transition.duration_seconds) {
+        app->content_transition.active = 0;
+        app->content_transition.elapsed_seconds = 0.0f;
+    }
+}
+
+static void
+app_apply_route(InbeApp *app, AppRoute route)
+{
+    if(app == NULL)
+        return;
+    app->inbe.screen = route.screen;
+    app->exercise_type = route.exercise_type;
+    app->practice_tab = route.practice_tab;
+    app->practice_config_tab = route.practice_config_tab;
+    app->settings_tab = route.settings_tab;
+    app->profile_view = route.profile_view;
+    app->profile_tab = route.profile_tab;
+    app->habits.screen_mode = route.habits_screen_mode;
+    app->habits.tab = route.habits_tab;
+}
+
+void
+app_switch_route(InbeApp *app, AppRoute route)
+{
+    AppRoute current;
+
+    if(app == NULL)
+        return;
+    current = app_current_route(app);
+    if(app_route_equal(current, route) &&
        (!app->screen_transition.active ||
-        app->screen_transition_target == screen))
+        app_route_equal(app->route_transition_target, route)))
         return;
 
-    if(screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
+    if(route.screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
 
 #if defined(PLATFORM_WEB)
     ResetUITransition(&app->screen_transition);
-    app->inbe.screen = screen;
-    app->screen_transition_target = screen;
+    app->content_transition.active = 0;
+    app_apply_route(app, route);
+    app->route_transition_target = app_current_route(app);
     return;
 #else
     if(app->transition_mode == APP_TRANSITION_NONE) {
         ResetUITransition(&app->screen_transition);
-        app->inbe.screen = screen;
-        app->screen_transition_target = screen;
+        app->content_transition.active = 0;
+        app_apply_route(app, route);
+        app->route_transition_target = app_current_route(app);
         return;
     }
 #endif
 
-    app->screen_transition_target = screen;
+    if(current.screen == route.screen) {
+        ResetUITransition(&app->screen_transition);
+        app_apply_route(app, route);
+        app->route_transition_target = app_current_route(app);
+        app_begin_content_transition(app, app_route_direction(current, route));
+        return;
+    }
+
+    app->content_transition.active = 0;
+    app->route_transition_target = route;
     if(app->screen_transition.active) {
-        if(app->inbe.screen != screen)
+        if(!app_route_equal(current, route))
             ReverseUITransitionToOut(&app->screen_transition);
         return;
     }
 
     BeginUITransition(&app->screen_transition, APP_SCREEN_TRANSITION_SECONDS);
+}
+
+void
+app_switch_screen(InbeApp *app, int screen)
+{
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    route = app_current_route(app);
+    route.screen = screen;
+    app_switch_route(app, route);
 }
 
 static void
@@ -140,32 +314,62 @@ app_advance_screen_transition(InbeApp *app)
         return;
     completed_phase = StepUITransition(&app->screen_transition, GetFrameTime());
     if(completed_phase == UI_TRANSITION_OUT)
-        app->inbe.screen = app->screen_transition_target;
+        app_apply_route(app, app->route_transition_target);
     else if(completed_phase == UI_TRANSITION_IN)
-        app->screen_transition_target = app->inbe.screen;
+        app->route_transition_target = app_current_route(app);
 }
 
 static void
-app_observe_direct_screen_change(InbeApp *app, int before_screen)
+app_draw_content_transition_overlay(InbeApp *app)
+{
+    float progress;
+    int alpha;
+    int h;
+    Color wash;
+
+    if(app == NULL || !app->content_transition.active)
+        return;
+    progress = app_content_transition_progress(app);
+    alpha = (int)((1.0f - progress) * 54.0f);
+    if(alpha <= 0)
+        return;
+    h = app_page_height(app, view_height);
+    wash = GetThemeBackground();
+    wash.a = (unsigned char)alpha;
+    DrawRectangle(0, 0, view_width, h, wash);
+}
+
+static void
+app_observe_direct_route_change(InbeApp *app, AppRoute before_route)
 {
     if(app == NULL || app->screen_transition.active ||
-       before_screen == app->inbe.screen)
+       app_route_equal(before_route, app_current_route(app)))
         return;
 
     if(app->transition_mode == APP_TRANSITION_NONE) {
-        app->screen_transition_target = app->inbe.screen;
+        app->route_transition_target = app_current_route(app);
+        app->content_transition.active = 0;
         return;
     }
 
+    if(before_route.screen == app->inbe.screen) {
+        app_begin_content_transition(app,
+                                     app_route_direction(before_route,
+                                                         app_current_route(app)));
+        app->route_transition_target = app_current_route(app);
+        return;
+    }
+
+    app->content_transition.active = 0;
     app->screen_transition = (UITransition){
         .active = 1,
         .phase = UI_TRANSITION_IN,
         .elapsed_seconds = 0.0f,
         .duration_seconds = APP_SCREEN_TRANSITION_SECONDS
     };
-    if(app->inbe.screen == InbeScreenHabits && before_screen != InbeScreenHabits)
+    if(app->inbe.screen == InbeScreenHabits && before_route.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
 }
 
 static void
@@ -237,6 +441,28 @@ app_close_modal(InbeApp *app)
     app->modal_input_block_frame = app->inbe.frame;
 }
 
+void
+app_request_desktop_close(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->close_prompt_open = 1;
+    app->close_prompt_input_block_frame = app->inbe.frame;
+    app->close_prompt_result = AppClosePromptNone;
+}
+
+AppClosePromptResult
+app_consume_close_prompt_result(InbeApp *app)
+{
+    AppClosePromptResult result;
+
+    if(app == NULL)
+        return AppClosePromptNone;
+    result = app->close_prompt_result;
+    app->close_prompt_result = AppClosePromptNone;
+    return result;
+}
+
 SessionExitModalResult
 app_draw_session_exit_modal(int can_save, const char *save_message,
                             const char *discard_message)
@@ -262,6 +488,33 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
             return SessionExitModalDiscard;
     }
     return modal_result == 1 ? SessionExitModalCancel : SessionExitModalNone;
+}
+
+static void
+app_draw_close_prompt(InbeApp *app)
+{
+    int modal_result;
+
+    if(app == NULL || !app->close_prompt_open)
+        return;
+    if(app->close_prompt_input_block_frame == app->inbe.frame)
+        return;
+
+    ClearUIInputCaptures();
+    modal_result = DrawUIModal3Button(GetLocaleText("desktop_close_prompt_title"),
+                                      GetLocaleText("desktop_close_prompt_message"),
+                                      GetLocaleText("cancel_button"),
+                                      GetLocaleText("desktop_close_keep_running_button"),
+                                      GetLocaleText("desktop_close_quit_button"));
+    if(modal_result == 1) {
+        app->close_prompt_open = 0;
+    } else if(modal_result == 2) {
+        app->close_prompt_open = 0;
+        app->close_prompt_result = AppClosePromptKeepRunning;
+    } else if(modal_result == 3) {
+        app->close_prompt_open = 0;
+        app->close_prompt_result = AppClosePromptQuit;
+    }
 }
 
 static int
@@ -725,169 +978,26 @@ app_sound_volume_scale(InbeApp *app, float scale)
 }
 
 static float
-cue_smoothstep(float t)
+app_breath_cue_pitch(InbeApp *app)
 {
-    if(t < 0.0f)
-        t = 0.0f;
-    if(t > 1.0f)
-        t = 1.0f;
-    return t * t * (3.0f - 2.0f * t);
+    int default_ticks = breath_half_ticks_for_speed(DefaultSpeedLevel);
+    int half_ticks;
+
+    if(app == NULL)
+        return 1.0f;
+    half_ticks = app->inbe.breath_half_ticks;
+    if(half_ticks <= 0)
+        half_ticks = breath_half_ticks_for_speed(app->inbe.speed_level);
+    if(half_ticks <= 0)
+        half_ticks = default_ticks;
+    if(default_ticks <= 0)
+        return 1.0f;
+
+    return (float)default_ticks / (float)half_ticks;
 }
 
-static float
-breath_cue_envelope(float t)
-{
-    float attack = cue_smoothstep(t / 0.22f);
-    float release = cue_smoothstep((1.0f - t) / 0.34f);
-    return attack < release ? attack : release;
-}
-
-static Sound
-load_generated_breath_cue(int dir, float duration_seconds)
-{
-    unsigned int frame_count;
-    float *samples;
-    Wave wave;
-    Sound sound = {0};
-    float phase = 0.0f;
-
-    if(duration_seconds < 0.75f)
-        duration_seconds = 0.75f;
-    if(duration_seconds > 3.4f)
-        duration_seconds = 3.4f;
-
-    frame_count = (unsigned int)(duration_seconds * (float)APP_CUE_SAMPLE_RATE + 0.5f);
-    samples = malloc(sizeof(float) * frame_count);
-    if(samples == NULL)
-        return sound;
-
-    for(unsigned int i = 0; i < frame_count; i++) {
-        float t = frame_count > 1 ? (float)i / (float)(frame_count - 1) : 0.0f;
-        float drift = dir == 0 ? t : 1.0f - t;
-        float freq = (dir == 0 ? 196.0f : 174.0f) + 42.0f * cue_smoothstep(drift);
-        float env = breath_cue_envelope(t);
-
-        phase += (2.0f * INBE_PI * freq) / (float)APP_CUE_SAMPLE_RATE;
-        samples[i] = sinf(phase) * env * 0.22f;
-    }
-
-    wave = (Wave){
-        .frameCount = frame_count,
-        .sampleRate = APP_CUE_SAMPLE_RATE,
-        .sampleSize = 32,
-        .channels = 1,
-        .data = samples
-    };
-    sound = LoadSoundFromWave(wave);
-    free(samples);
-    return sound;
-}
-
-static Sound
-load_generated_bell_cue(void)
-{
-    enum { BELL_SECONDS = 6 };
-    unsigned int frame_count = APP_CUE_SAMPLE_RATE * BELL_SECONDS;
-    float *samples = malloc(sizeof(float) * frame_count);
-    Wave wave;
-    Sound sound = {0};
-
-    if(samples == NULL)
-        return sound;
-
-    for(unsigned int i = 0; i < frame_count; i++) {
-        float t = (float)i / (float)APP_CUE_SAMPLE_RATE;
-        float strike = cue_smoothstep((0.045f - t) / 0.045f);
-        float body = expf(-t * 0.82f);
-        float high = expf(-t * 1.65f);
-        float sample =
-            sinf(2.0f * INBE_PI * 432.0f * t) * body * 0.38f +
-            sinf(2.0f * INBE_PI * 648.0f * t) * body * 0.22f +
-            sinf(2.0f * INBE_PI * 864.0f * t) * high * 0.14f +
-            sinf(2.0f * INBE_PI * 1296.0f * t) * high * 0.06f;
-
-        samples[i] = sample * (0.18f + 0.82f * (1.0f - strike));
-    }
-
-    wave = (Wave){
-        .frameCount = frame_count,
-        .sampleRate = APP_CUE_SAMPLE_RATE,
-        .sampleSize = 32,
-        .channels = 1,
-        .data = samples
-    };
-    sound = LoadSoundFromWave(wave);
-    free(samples);
-    return sound;
-}
-
-static int
-app_lerp_int(int a, int b, int num, int den)
-{
-    int delta = b - a;
-    int scaled = delta * num;
-
-    if(scaled >= 0)
-        scaled += den / 2;
-    else
-        scaled -= den / 2;
-
-    return a + scaled / den;
-}
-
-static int
-app_effective_breath_half_ticks(const Inbe *inbe)
-{
-    int target_ticks;
-    int start_speed;
-    int start_ticks;
-    int completed_breaths;
-
-    if(inbe == NULL)
-        return breath_half_ticks_for_speed(DefaultSpeedLevel);
-
-    target_ticks = breath_half_ticks_for_speed(inbe->speed_level);
-    start_speed = inbe->progressive_start_speed;
-
-    if(!inbe->progressive_speed || inbe->round != 0)
-        return target_ticks;
-
-    if(start_speed < SETTINGS_SPEED_MIN)
-        start_speed = SETTINGS_SPEED_MIN;
-    if(start_speed > inbe->speed_level)
-        start_speed = inbe->speed_level;
-
-    completed_breaths = int_from_count(inbe->count);
-    start_ticks = breath_half_ticks_for_speed(start_speed);
-    if(completed_breaths < 5)
-        return start_ticks;
-    if(completed_breaths >= 10)
-        return target_ticks;
-
-    return app_lerp_int(start_ticks, target_ticks, completed_breaths - 4, 5);
-}
-
-static int
-app_breath_cue_index(const Inbe *inbe)
-{
-    int half_ticks = app_effective_breath_half_ticks(inbe);
-    int best = 0;
-    int best_delta = 100000;
-
-    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
-        int delta = breath_half_ticks_for_speed(i + 1) - half_ticks;
-        if(delta < 0)
-            delta = -delta;
-        if(delta < best_delta) {
-            best = i;
-            best_delta = delta;
-        }
-    }
-    return best;
-}
-
-void
-app_play_sound(InbeApp *app, Sound sound, float scale)
+static void
+app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
 {
     float volume;
 
@@ -904,12 +1014,23 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
     volume = app_sound_volume_scale(app, scale);
     if(volume <= 0.0f)
         return;
+    if(pitch < 0.75f)
+        pitch = 0.75f;
+    if(pitch > 1.45f)
+        pitch = 1.45f;
 
     StopSound(sound);
     SetSoundVolume(sound, volume);
+    SetSoundPitch(sound, pitch);
     PlaySound(sound);
     if(!IsSoundPlaying(sound))
         TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
+}
+
+void
+app_play_sound(InbeApp *app, Sound sound, float scale)
+{
+    app_play_sound_pitch(app, sound, scale, 1.0f);
 }
 
 void
@@ -920,15 +1041,8 @@ app_play_breath_cue(InbeApp *app, int dir)
     if(app == NULL)
         return;
 
-    sound = dir == 0
-                ? app->breath_in_cue_sounds[app_breath_cue_index(&app->inbe)]
-                : app->breath_out_cue_sounds[app_breath_cue_index(&app->inbe)];
-    if(sound.frameCount != 0) {
-        app_play_sound(app, sound, 0.72f);
-        return;
-    }
-
-    app_play_sound(app, dir == 0 ? app->breath_in_sound : app->breath_out_sound, 1.0f);
+    sound = dir == 0 ? app->breath_in_sound : app->breath_out_sound;
+    app_play_sound_pitch(app, sound, 1.0f, app_breath_cue_pitch(app));
 }
 
 void
@@ -936,10 +1050,6 @@ app_play_bell_cue(InbeApp *app, float scale)
 {
     if(app == NULL)
         return;
-    if(app->bell_cue_sound.frameCount != 0) {
-        app_play_sound(app, app->bell_cue_sound, scale);
-        return;
-    }
     app_play_sound(app, app->bell_sound, scale);
 }
 
@@ -960,12 +1070,6 @@ init_audio(InbeApp *app)
     app->breath_in_sound = load_sound_asset("breath-in.ogg");
     app->breath_out_sound = load_sound_asset("breath-out.ogg");
     app->bell_sound = load_sound_asset("bell.ogg");
-    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
-        float seconds = (float)breath_half_ticks_for_speed(i + 1) / 60.0f;
-        app->breath_in_cue_sounds[i] = load_generated_breath_cue(0, seconds);
-        app->breath_out_cue_sounds[i] = load_generated_breath_cue(1, seconds);
-    }
-    app->bell_cue_sound = load_generated_bell_cue();
 }
 
 void
@@ -1022,7 +1126,7 @@ app_init(void *vapp) {
                            ? InbeScreenHabits
                            : InbeScreenStart;
     app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
@@ -1053,7 +1157,7 @@ app_init(void *vapp) {
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
 
     app->modal = (UIModal){0};
     app->meditation.duration_seconds = 0;
@@ -1109,10 +1213,12 @@ handle_back_button(InbeApp *app)
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         if(app->practice_tab != PRACTICE_TAB_PLAY) {
-            app->practice_tab = PRACTICE_TAB_PLAY;
+            AppRoute route = app_current_route(app);
+            route.practice_tab = PRACTICE_TAB_PLAY;
             app->manual_scroll = 0;
             app->settings_scroll = 0;
             app->tutorial_step = 0;
+            app_switch_route(app, route);
             break;
         }
         break;
@@ -1129,16 +1235,20 @@ handle_back_button(InbeApp *app)
 
     case InbeScreenProfile:
         if(app->profile_view != PROFILE_VIEW_MAIN) {
-            app->profile_view = PROFILE_VIEW_MAIN;
+            AppRoute route = app_current_route(app);
+            route.profile_view = PROFILE_VIEW_MAIN;
             app->profile_scroll = 0;
             app->sync_server_url_focused = 0;
             settings_screen_clear_status();
+            app_switch_route(app, route);
             break;
         }
         if(app->profile_tab != PROFILE_TAB_OVERVIEW) {
-            app->profile_tab = PROFILE_TAB_OVERVIEW;
+            AppRoute route = app_current_route(app);
+            route.profile_tab = PROFILE_TAB_OVERVIEW;
             app->profile_scroll = 0;
             settings_screen_clear_status();
+            app_switch_route(app, route);
             break;
         }
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
@@ -1315,7 +1425,7 @@ updateapp(InbeApp *app)
     int frame_view_height = view_height;
     int center_y;
     int hover = 0;
-    int frame_screen = app->inbe.screen;
+    AppRoute frame_route = app_current_route(app);
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
     int profile_guide_active = 0;
@@ -1323,6 +1433,7 @@ updateapp(InbeApp *app)
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
     int bottom_input_reserved = 0;
+    int content_transition_offset = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app_update_desktop_background_state(app);
@@ -1344,8 +1455,8 @@ updateapp(InbeApp *app)
         app->modal.active &&
         (app->modal.type == UIModalPracticeMusic ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
-    if(app->modal.active || first_run_guide_active || habits_guide_active ||
-       profile_guide_active) {
+    if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
+       habits_guide_active || profile_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
@@ -1356,6 +1467,11 @@ updateapp(InbeApp *app)
         PushUIInputClip((Rectangle){0, 0, (float)view_width,
                                        (float)(view_height - bottom_input_reserved)});
         content_input_clip_active = 1;
+    }
+    content_transition_offset = app_content_transition_offset(app);
+    if(content_transition_offset != 0) {
+        app->camera.offset.x += (float)content_transition_offset;
+        SetUIFrame(app->camera);
     }
 
     if(IsKeyPressed(KEY_BACK)
@@ -1376,6 +1492,8 @@ updateapp(InbeApp *app)
             habits_screen_prepare_first_run_guide(app);
             app->profile_guide_step = 0;
             profile_screen_prepare_first_run_guide(app);
+        } else if(app->close_prompt_open) {
+            app->close_prompt_open = 0;
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {
@@ -1484,6 +1602,11 @@ updateapp(InbeApp *app)
 finish_frame:
     if(content_input_clip_active)
         PopUIInputClip();
+    if(content_transition_offset != 0) {
+        app->camera.offset.x -= (float)content_transition_offset;
+        SetUIFrame(app->camera);
+    }
+    app_draw_content_transition_overlay(app);
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -1495,16 +1618,19 @@ finish_frame:
     profile_screen_draw_first_run_guide(app);
     if(!global_modal_drawn)
         draw_global_modal(app);
+    app_draw_close_prompt(app);
     app_flush_deferred_settings(app);
-    app_observe_direct_screen_change(app, frame_screen);
+    app_observe_direct_route_change(app, frame_route);
 #if !defined(PLATFORM_WEB)
-    if(app->transition_mode == APP_TRANSITION_FADE) {
+    if(app->transition_mode == APP_TRANSITION_FADE &&
+       app->screen_transition.active) {
         DrawUITransitionFade(&app->screen_transition, view_width,
                                    app_page_height(app, view_height),
                                    GetThemeBackground());
     }
 #endif
     app_advance_screen_transition(app);
+    app_step_content_transition(app);
     app->inbe.frame++;
 }
 
@@ -1600,11 +1726,6 @@ app_destroy(void *vapp)
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
-    for(int i = 0; i < SETTINGS_SPEED_MAX; i++) {
-        SafeUnloadSound(app->breath_in_cue_sounds[i]);
-        SafeUnloadSound(app->breath_out_cue_sounds[i]);
-    }
-    SafeUnloadSound(app->bell_cue_sound);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->destroy != NULL)

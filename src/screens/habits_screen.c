@@ -888,12 +888,15 @@ habits_persist_view_state(InbeApp *app)
 static void
 habits_select_detail_tab(InbeApp *app, int tab)
 {
+    AppRoute route;
+
     if(app == NULL)
         return;
     tab = clampi(tab, HABIT_TAB_WEEKLY, HABIT_TAB_COUNT - 1);
     if(app->habit_edit.active && tab != HABIT_TAB_EDIT)
         habit_edit_commit(app);
-    app->habits.tab = tab;
+    route = app_current_route(app);
+    route.habits_tab = tab;
     app->habits.scroll = 0;
     if(tab == HABIT_TAB_WEEKLY) {
         app->habits.view_mode = HABIT_VIEW_WEEKLY;
@@ -907,6 +910,7 @@ habits_select_detail_tab(InbeApp *app, int tab)
         else
             habit_edit_begin_new(app);
     }
+    app_switch_route(app, route);
     habits_persist_view_state(app);
 }
 
@@ -931,36 +935,63 @@ habits_select_habit(InbeApp *app, int selected_habit)
 static void
 habits_enter_detail(InbeApp *app, int selected_habit)
 {
+    AppRoute route;
+
     if(app == NULL)
         return;
     if(selected_habit >= 0 && selected_habit < app->habits.count)
         habits_select_habit(app, selected_habit);
-    app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+    route = app_current_route(app);
+    route.habits_screen_mode = HABITS_SCREEN_DETAIL;
     app->habits.scroll = 0;
+    app_switch_route(app, route);
     habits_persist_view_state(app);
 }
 
 static void
 habits_return_to_overview(InbeApp *app)
 {
+    AppRoute route;
+
     if(app == NULL)
         return;
     if(app->habit_edit.active)
         habit_edit_commit(app);
-    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+    route = app_current_route(app);
+    route.habits_screen_mode = HABITS_SCREEN_OVERVIEW;
     app->habits.scroll = 0;
+    app_switch_route(app, route);
     habits_persist_view_state(app);
 }
 
 static void
 habits_enter_reorder(InbeApp *app)
 {
+    AppRoute route;
+
     if(app == NULL)
         return;
     if(app->habit_edit.active)
         habit_edit_commit(app);
-    app->habits.screen_mode = HABITS_SCREEN_REORDER;
+    route = app_current_route(app);
+    route.habits_screen_mode = HABITS_SCREEN_REORDER;
     app->habits.scroll = 0;
+    app_switch_route(app, route);
+}
+
+static void
+habits_begin_new_detail(InbeApp *app)
+{
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    habit_edit_begin_new(app);
+    route = app_current_route(app);
+    route.habits_screen_mode = HABITS_SCREEN_DETAIL;
+    route.habits_tab = HABIT_TAB_EDIT;
+    app_switch_route(app, route);
+    habits_persist_view_state(app);
 }
 
 static void
@@ -1405,10 +1436,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                                       UI_BUTTON_STYLE_SECONDARY,
                                       app->habits.count >= INBE_HABIT_MAX,
                                       &add_hover)) {
-                habit_edit_begin_new(app);
-                app->habits.screen_mode = HABITS_SCREEN_DETAIL;
-                app->habits.tab = HABIT_TAB_EDIT;
-                habits_persist_view_state(app);
+                habits_begin_new_detail(app);
             }
             EndUIScrollPage(page);
             return;
@@ -1593,10 +1621,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                                       UI_BUTTON_STYLE_SECONDARY,
                                       app->habits.count >= INBE_HABIT_MAX,
                                       &add_hover)) {
-                habit_edit_begin_new(app);
-                app->habits.screen_mode = HABITS_SCREEN_DETAIL;
-                app->habits.tab = HABIT_TAB_EDIT;
-                habits_persist_view_state(app);
+                habits_begin_new_detail(app);
             }
             y += btn_h + btn_gap;
             if(DrawUIGenericButton(content_x, y, content_w, btn_h,
@@ -1612,10 +1637,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                                       UI_BUTTON_STYLE_SECONDARY,
                                       app->habits.count >= INBE_HABIT_MAX,
                                       &add_hover)) {
-                habit_edit_begin_new(app);
-                app->habits.screen_mode = HABITS_SCREEN_DETAIL;
-                app->habits.tab = HABIT_TAB_EDIT;
-                habits_persist_view_state(app);
+                habits_begin_new_detail(app);
             }
             if(DrawUIGenericButton(content_x + half_w + btn_gap, y, half_w, btn_h,
                                       GetLocaleText("habit_reorder_title"),
@@ -1698,31 +1720,106 @@ habits_screen_prepare_first_run_guide(InbeApp *app)
 static Rectangle
 habits_screen_tab_anchor(InbeApp *app, int first_tab, int tab_count)
 {
+    int bar_x = 0;
+    int bar_y = habits_screen_selector_height(app);
+    int bar_w = view_width;
     int tab_h = ScaleUIPx(HABITS_TAB_H);
-    int tab_w = view_width / HABIT_TAB_COUNT;
-    int x = first_tab * tab_w;
+    int tab_w = bar_w / HABIT_TAB_COUNT;
+    int x;
     int w = tab_count * tab_w;
 
+    if(first_tab < 0)
+        first_tab = 0;
+    if(tab_count < 1)
+        tab_count = 1;
+    if(first_tab >= HABIT_TAB_COUNT)
+        first_tab = HABIT_TAB_COUNT - 1;
+    if(first_tab + tab_count > HABIT_TAB_COUNT)
+        tab_count = HABIT_TAB_COUNT - first_tab;
+
+    x = bar_x + first_tab * tab_w;
     if(first_tab + tab_count >= HABIT_TAB_COUNT)
-        w = view_width - x;
+        w = bar_x + bar_w - x;
     if(w < 1)
         w = 1;
 
-    return (Rectangle){(float)x, (float)habits_screen_selector_height(app),
-                       (float)w, (float)tab_h};
+    return (Rectangle){(float)x, (float)bar_y, (float)w, (float)tab_h};
+}
+
+static void
+habits_overview_scroll_metrics(InbeApp *app, int *content_x, int *content_y,
+                               int *content_w)
+{
+    int content_top = habits_screen_top_reserved(app);
+    int content_bottom = app_content_bottom_reserved(app);
+    int max_content_w = ScaleUIPx(CONTENT_MAX_W);
+    int side_padding = GetUIPageSidePadding();
+    int base_x = 0;
+    int base_w = 0;
+    int draw_w;
+    int area_h = view_height - content_top - content_bottom - ScaleUIPx(4);
+    UIScrollArea area;
+    UIScrollView measured;
+
+    if(max_content_w > view_width - side_padding * 2)
+        max_content_w = view_width - side_padding * 2;
+    if(max_content_w < 0)
+        max_content_w = 0;
+    if(area_h < 0)
+        area_h = 0;
+
+    GetUICenteredColumn(max_content_w, side_padding, &base_x, &base_w);
+    draw_w = base_w;
+    area = (UIScrollArea){
+        .bounds = {0.0f, (float)(content_top + ScaleUIPx(4)),
+                   (float)view_width, (float)area_h},
+        .content_x = base_x,
+        .content_width = base_w,
+        .scroll_offset = app != NULL ? &app->habits.scroll : NULL,
+        .wheel_step = ScaleUIPx(42),
+        .scrollbar_x = view_width - ScaleUIPx(8)
+    };
+
+    for(int i = 0; i < 3; i++) {
+        area.content_height = habits_overview_content_height(draw_w, app);
+        measured = MeasureUIScrollContainer(area);
+        if(measured.content_w == draw_w)
+            break;
+        draw_w = measured.content_w;
+    }
+    area.content_height = habits_overview_content_height(draw_w, app);
+    measured = MeasureUIScrollContainer(area);
+
+    if(content_x != NULL)
+        *content_x = measured.content_x;
+    if(content_y != NULL)
+        *content_y = measured.content_y;
+    if(content_w != NULL)
+        *content_w = measured.content_w;
 }
 
 static Rectangle
 habits_overview_progress_anchor(InbeApp *app)
 {
     int content_x;
-    int content_w;
-    int y = habits_screen_top_reserved(app) + ScaleUIPx(16);
+    int content_y;
+    int y;
+    int pad = ScaleUIPx(5);
+    int font = GetUIFontSize();
+    int done_count = habits_overview_done_today(app);
+    char progress[64];
+    int text_w;
+    int text_h = ScaleUIPx(22);
 
-    GetUICenteredColumn(ScaleUIPx(CONTENT_MAX_W), GetUIPageSidePadding(),
-                          &content_x, &content_w);
-    return (Rectangle){(float)content_x, (float)y,
-                       (float)content_w, (float)ScaleUIPx(34)};
+    habits_overview_scroll_metrics(app, &content_x, &content_y, NULL);
+    y = content_y + ScaleUIPx(12);
+    snprintf(progress, sizeof(progress), GetLocaleText("habits_done_count_label"),
+             done_count, app != NULL ? app->habits.count : 0);
+    text_w = MeasureUIText(progress, font);
+    if(text_h < font)
+        text_h = font;
+    return (Rectangle){(float)(content_x - pad), (float)(y - pad),
+                       (float)(text_w + pad * 2), (float)(text_h + pad * 2)};
 }
 
 static Rectangle
@@ -1730,15 +1827,16 @@ habits_overview_grid_anchor(InbeApp *app)
 {
     int content_x;
     int content_w;
+    int content_y;
     int label_w;
     int cell;
     int cell_gap = ScaleUIPx(4);
     int grid_total_w;
     int rows = app != NULL && app->habits.count > 0 ? app->habits.count : 1;
-    int y = habits_screen_top_reserved(app) + ScaleUIPx(16) + ScaleUIPx(34);
+    int y;
 
-    GetUICenteredColumn(ScaleUIPx(CONTENT_MAX_W), GetUIPageSidePadding(),
-                          &content_x, &content_w);
+    habits_overview_scroll_metrics(app, &content_x, &content_y, &content_w);
+    y = content_y + ScaleUIPx(12) + ScaleUIPx(28);
     label_w = habits_overview_label_width(content_w);
     cell = habits_overview_cell_size(content_w);
     grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
@@ -2304,7 +2402,7 @@ draw_habits_screen(InbeApp *app)
                                   empty_y + ScaleUIPx(38), button_w, button_h,
                                   create_text, UI_BUTTON_STYLE_PRIMARY,
                                   0, &hover_empty_create)) {
-            habit_edit_begin_new(app);
+            habits_begin_new_detail(app);
         }
         EndUIClip();
         draw_habits_top_bar(app, 0);

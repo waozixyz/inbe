@@ -555,6 +555,18 @@ Inner Breeze
 [close_button]
 Закрыть
 ---
+[desktop_close_prompt_title]
+Оставить Inner Breeze запущенным?
+---
+[desktop_close_prompt_message]
+При закрытии окна Inner Breeze может продолжить работу в фоновом режиме.
+---
+[desktop_close_keep_running_button]
+Продолжить работу
+---
+[desktop_close_quit_button]
+Выйти
+---
 [sync_account_title]
 Аккаунт
 ---
@@ -777,12 +789,6 @@ Manage data, habit order, and visible practices here.
 
 [transition_label]
 Переход
----
-[transition_none]
-Нет
----
-[transition_fade]
-Плавно
 ---
 [theme_picker_title]
 Выбор темы

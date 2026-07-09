@@ -555,6 +555,18 @@ Sensor
 [close_button]
 Fechar
 ---
+[desktop_close_prompt_title]
+Manter o Inner Breeze em execução?
+---
+[desktop_close_prompt_message]
+Ao fechar a janela, o Inner Breeze pode continuar em execução em segundo plano.
+---
+[desktop_close_keep_running_button]
+Continuar em execução
+---
+[desktop_close_quit_button]
+Sair
+---
 [sync_account_title]
 Conta
 ---
@@ -777,12 +789,6 @@ Crie uma conta de sincronizacao para liberar amigos e classificacao.
 
 [transition_label]
 Transição
----
-[transition_none]
-Nenhuma
----
-[transition_fade]
-Desvanecer
 ---
 [theme_picker_title]
 Escolher tema

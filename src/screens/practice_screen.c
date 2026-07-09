@@ -318,18 +318,24 @@ practice_next_visible(InbeApp *app, int dir)
 static void
 practice_select_home_card(InbeApp *app, int exercise)
 {
+    AppRoute route;
+
     if(app == NULL)
         return;
     if(app->practice_tab == PRACTICE_TAB_CONFIG)
         app_leave_practice_config(app);
-    app->exercise_type = practice_clamp_id(exercise);
-    app->practice_tab = PRACTICE_TAB_PLAY;
+    route = app_current_route(app);
+    route.screen = InbeScreenStart;
+    route.exercise_type = practice_clamp_id(exercise);
+    route.practice_tab = PRACTICE_TAB_PLAY;
+    route.practice_config_tab = 0;
     app->manual_scroll = 0;
     app->settings_scroll = 0;
     app->practice_home_scroll = 0;
     app->tutorial_step = 0;
-    app->practice_config_tab = 0;
-    save_settings(app);
+    app->settings_dirty = 1;
+    app->settings_save_delay_ticks = 18;
+    app_switch_route(app, route);
 }
 
 static int
@@ -636,23 +642,28 @@ practice_screen_open_tab(InbeApp *app, int tab)
         return;
 
     if(tab == PRACTICE_TAB_PLAY) {
+        AppRoute route = app_current_route(app);
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
-        app->practice_tab = PRACTICE_TAB_PLAY;
+        route.practice_tab = PRACTICE_TAB_PLAY;
+        route.screen = InbeScreenStart;
         if(app->modal.type == UIModalPracticeManual ||
            app->modal.type == UIModalPracticeConfig)
             app_close_modal(app);
-        app_switch_screen(app, InbeScreenStart);
+        app_switch_route(app, route);
     } else if(tab == PRACTICE_TAB_MANUAL) {
+        AppRoute route = app_current_route(app);
         if(practice_get(app->exercise_type)->draw_manual == NULL)
             return;
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
-        app->practice_tab = PRACTICE_TAB_MANUAL;
+        route.practice_tab = PRACTICE_TAB_MANUAL;
+        route.screen = InbeScreenStart;
         app->tutorial_step = 0;
         app->manual_scroll = 0;
-        app_switch_screen(app, InbeScreenStart);
+        app_switch_route(app, route);
     } else if(tab == PRACTICE_TAB_CONFIG) {
+        AppRoute route = app_current_route(app);
         if(practice_get(app->exercise_type)->draw_config == NULL)
             return;
         if(app->practice_tab != PRACTICE_TAB_CONFIG) {
@@ -660,8 +671,10 @@ practice_screen_open_tab(InbeApp *app, int tab)
             app->settings_scroll = 0;
             app->practice_config_tab = 0;
         }
-        app->practice_tab = PRACTICE_TAB_CONFIG;
-        app_switch_screen(app, InbeScreenStart);
+        route.practice_tab = PRACTICE_TAB_CONFIG;
+        route.practice_config_tab = 0;
+        route.screen = InbeScreenStart;
+        app_switch_route(app, route);
     }
 }
 
@@ -741,15 +754,21 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
             }
         }).toolbar;
         if(!app->modal.active && menu_result.selected_menu_item >= 0) {
+            AppRoute route = app_current_route(app);
             if(app->practice_tab == PRACTICE_TAB_CONFIG)
                 app_leave_practice_config(app);
-            app->exercise_type = exercise_values[activity_index];
+            route.exercise_type = exercise_values[activity_index];
+            route.practice_tab = PRACTICE_TAB_PLAY;
+            route.practice_config_tab = 0;
+            route.screen = InbeScreenStart;
             app->manual_scroll = 0;
             app->settings_scroll = 0;
             app->practice_home_scroll = 0;
             app->tutorial_step = 0;
             app->practice_config_tab = 0;
-            save_settings(app);
+            app->settings_dirty = 1;
+            app->settings_save_delay_ticks = 18;
+            app_switch_route(app, route);
         }
         return;
     }
@@ -758,15 +777,21 @@ practice_screen_draw_top_bar(InbeApp *app, int draw_menu)
     if(app_should_use_tab_bar(app)) {
         int clicked_exercise = practice_screen_draw_desktop_tab_bar(app, 0);
         if(clicked_exercise >= 0 && clicked_exercise != app->exercise_type) {
+            AppRoute route = app_current_route(app);
             if(app->practice_tab == PRACTICE_TAB_CONFIG)
                 app_leave_practice_config(app);
-            app->exercise_type = clicked_exercise;
+            route.exercise_type = clicked_exercise;
+            route.practice_tab = PRACTICE_TAB_PLAY;
+            route.practice_config_tab = 0;
+            route.screen = InbeScreenStart;
             app->manual_scroll = 0;
             app->settings_scroll = 0;
             app->practice_home_scroll = 0;
             app->tutorial_step = 0;
             app->practice_config_tab = 0;
-            save_settings(app);
+            app->settings_dirty = 1;
+            app->settings_save_delay_ticks = 18;
+            app_switch_route(app, route);
         }
     } else {
         // Mobile mode: keep existing dropdown

@@ -555,6 +555,18 @@ Inner Breeze
 [close_button]
 关闭
 ---
+[desktop_close_prompt_title]
+保持 Inner Breeze 运行？
+---
+[desktop_close_prompt_message]
+关闭窗口后，Inner Breeze 可以继续在后台运行。
+---
+[desktop_close_keep_running_button]
+保持运行
+---
+[desktop_close_quit_button]
+退出
+---
 [sync_account_title]
 账户
 ---
@@ -777,12 +789,6 @@ Manage data, habit order, and visible practices here.
 
 [transition_label]
 过渡
----
-[transition_none]
-无
----
-[transition_fade]
-淡入淡出
 ---
 [theme_picker_title]
 选择主题
