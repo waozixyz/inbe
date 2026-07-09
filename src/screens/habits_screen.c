@@ -34,7 +34,10 @@ static void draw_habit_link_dot(int x, int y, int w, Color color);
 enum {
     HABITS_GUIDE_STEPS = 6,
     HABITS_TOP_H = 36,
-    HABITS_TAB_H = 40
+    HABITS_TAB_H = 40,
+    HABITS_OVERVIEW_DAY_COLUMNS = 4,
+    HABITS_OVERVIEW_DETAIL_COLUMNS = 1,
+    HABITS_OVERVIEW_COLUMNS = HABITS_OVERVIEW_DAY_COLUMNS + HABITS_OVERVIEW_DETAIL_COLUMNS
 };
 
 static void
@@ -1059,7 +1062,8 @@ habits_overview_label_width(int content_w)
     int max_label_w = flint_px(136);
     int gap = flint_px(4);
     int cell = flint_px(28);
-    int label_w = content_w - gap * 7 - cell * 7;
+    int label_w = content_w - gap * HABITS_OVERVIEW_COLUMNS -
+                  cell * HABITS_OVERVIEW_COLUMNS;
 
     if(label_w < min_label_w)
         label_w = min_label_w;
@@ -1073,7 +1077,8 @@ habits_overview_cell_size(int content_w)
 {
     int label_w = habits_overview_label_width(content_w);
     int gap = flint_px(4);
-    int cell = (content_w - label_w - gap * 7) / 7;
+    int cell = (content_w - label_w - gap * HABITS_OVERVIEW_COLUMNS) /
+               HABITS_OVERVIEW_COLUMNS;
 
     if(cell > flint_px(28))
         cell = flint_px(28);
@@ -1114,25 +1119,36 @@ habits_reorder_move_buttons_stack(int content_w)
 }
 
 static int
-habits_overview_week_day_index(int offset)
+habits_overview_day_index(int days_ago)
 {
     time_t now = time(NULL);
-    struct tm week;
+    struct tm day;
     struct tm *local = localtime(&now);
-    int sunday_delta;
 
     if(local == NULL)
         return habits_today_index();
-    week = *local;
-    sunday_delta = week.tm_wday;
-    week.tm_hour = 12;
-    week.tm_min = 0;
-    week.tm_sec = 0;
-    week.tm_mday += offset - sunday_delta;
-    if(mktime(&week) == (time_t)-1)
+    day = *local;
+    day.tm_hour = 12;
+    day.tm_min = 0;
+    day.tm_sec = 0;
+    day.tm_mday -= days_ago;
+    if(mktime(&day) == (time_t)-1)
         return habits_today_index();
-    return (week.tm_year + 1900) * 10000 + (week.tm_mon + 1) * 100 +
-           week.tm_mday;
+    return (day.tm_year + 1900) * 10000 + (day.tm_mon + 1) * 100 +
+           day.tm_mday;
+}
+
+static void
+habits_overview_date_label(int day_index, char *out, size_t out_size)
+{
+    int month;
+    int day;
+
+    if(out == NULL || out_size == 0)
+        return;
+    month = (day_index / 100) % 100;
+    day = day_index % 100;
+    snprintf(out, out_size, "%d/%d", month, day);
 }
 
 static int
@@ -1312,7 +1328,6 @@ habits_overview_cell_clicked(InbeApp *app, int x, int y, int w, int h, int disab
 static void
 draw_habits_overview(InbeApp *app, int content_top)
 {
-    static const char *day_labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
     int content_bottom;
     int max_w = flint_px(CONTENT_MAX_W);
     int content_x;
@@ -1379,16 +1394,36 @@ draw_habits_overview(InbeApp *app, int content_top)
 
         label_w = habits_overview_label_width(content_w);
         cell = habits_overview_cell_size(content_w);
-        grid_total_w = label_w + cell_gap * 7 + cell * 7;
+        grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
+                       cell * HABITS_OVERVIEW_COLUMNS;
         overview_x = content_x + (content_w - grid_total_w) / 2;
         grid_x = overview_x + label_w;
         grid_y = y;
 
-        for(int day = 0; day < 7; day++) {
+        for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+            int day_index = habits_overview_day_index(day);
             int day_x = grid_x + day * (cell + cell_gap);
-            int text_w = flint_text_measure(day_labels[day], small);
-            flint_text_draw(day_labels[day], day_x + (cell - text_w) / 2,
+            char date_label[16];
+            int text_w;
+            habits_overview_date_label(day_index, date_label, sizeof(date_label));
+            text_w = flint_text_measure(date_label, small);
+            if(text_w > cell) {
+                snprintf(date_label, sizeof(date_label), "%d", day_index % 100);
+                text_w = flint_text_measure(date_label, small);
+            }
+            if(day == 0) {
+                DrawRectangleLines(day_x - flint_px(1), grid_y - flint_px(2),
+                                   cell + flint_px(2), flint_px(18),
+                                   flint_theme_get_text());
+            }
+            flint_text_draw(date_label, day_x + (cell - text_w) / 2,
                             grid_y, small, flint_darken(flint_theme_get_text(), 34));
+        }
+        {
+            int more_x = grid_x + HABITS_OVERVIEW_DAY_COLUMNS * (cell + cell_gap);
+            int text_w = flint_text_measure("...", small);
+            flint_text_draw("...", more_x + (cell - text_w) / 2, grid_y,
+                            small, flint_darken(flint_theme_get_text(), 34));
         }
         y += flint_px(20);
 
@@ -1442,8 +1477,8 @@ draw_habits_overview(InbeApp *app, int content_top)
                     habits_enter_detail(app, i);
             }
 
-            for(int day = 0; day < 7; day++) {
-                int day_index = habits_overview_week_day_index(day);
+            for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+                int day_index = habits_overview_day_index(day);
                 int day_x = grid_x + day * (cell + cell_gap);
                 int future_day = day_index > today_index;
                 int has_linked_day = linked_ctx != NULL &&
@@ -1467,6 +1502,14 @@ draw_habits_overview(InbeApp *app, int content_top)
 
                 DrawRectangle(day_x, row_y, cell, cell, fill);
                 DrawRectangleLines(day_x, row_y, cell, cell, border);
+                if(day == 0) {
+                    DrawRectangleLines(day_x - flint_px(2), row_y - flint_px(2),
+                                       cell + flint_px(4), cell + flint_px(4),
+                                       flint_theme_get_text());
+                    DrawRectangleLines(day_x - flint_px(1), row_y - flint_px(1),
+                                       cell + flint_px(2), cell + flint_px(2),
+                                       flint_theme_get_text());
+                }
 
                 if(counting_enabled) {
                     action = habit_counter_day_action(app, i, day_index, day_x, row_y,
@@ -1500,7 +1543,51 @@ draw_habits_overview(InbeApp *app, int content_top)
                 if(!future_day && has_linked_day)
                     draw_habit_link_dot(day_x, row_y, cell, habit->color);
             }
+            {
+                int detail_x = grid_x + HABITS_OVERVIEW_DAY_COLUMNS * (cell + cell_gap);
+                Rectangle detail_bounds = {(float)detail_x, (float)row_y,
+                                           (float)cell, (float)cell};
+                int detail_active = CheckCollisionPointRec(mouse, detail_bounds) &&
+                                    !ui_input_captures_click(mouse);
+                int detail_hover = detail_active && ui_hover_effects_enabled();
+                Color detail_fill = flint_darken(flint_theme_get_bg(), 7);
+                Color detail_border = flint_darken(flint_theme_get_text(), 46);
+
+                if(detail_hover) {
+                    detail_fill = flint_darken(flint_theme_get_button_hover(), 8);
+                    detail_border = flint_theme_get_text();
+                }
+                if(detail_active)
+                    app->cursor_clickable = 1;
+                DrawRectangle(detail_x, row_y, cell, cell, detail_fill);
+                ui_draw_bevel(detail_x, row_y, cell, cell,
+                              flint_lighten(detail_fill, detail_hover ? 34 : 24),
+                              flint_darken(detail_fill, detail_hover ? 38 : 28));
+                DrawRectangleLines(detail_x, row_y, cell, cell, detail_border);
+                {
+                    int dots_w = flint_text_measure("...", small);
+                    flint_text_draw("...", detail_x + (cell - dots_w) / 2,
+                                    flint_ui_text_y("...", row_y, cell, small),
+                                    small, flint_theme_get_text());
+                }
+                if(detail_active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    habits_enter_detail(app, i);
+                    ui_scroll_page_end(page);
+                    return;
+                }
+            }
             y += cell + flint_px(8);
+        }
+        {
+            int today_x = grid_x;
+            int outline_y = grid_y - flint_px(3);
+            int outline_h = y - outline_y - flint_px(5);
+            DrawRectangleLines(today_x - flint_px(3), outline_y,
+                               cell + flint_px(6), outline_h,
+                               flint_theme_get_text());
+            DrawRectangleLines(today_x - flint_px(2), outline_y + flint_px(1),
+                               cell + flint_px(4), outline_h - flint_px(2),
+                               flint_theme_get_text());
         }
 
         y += flint_px(10);
@@ -1658,7 +1745,8 @@ habits_overview_grid_anchor(InbeApp *app)
                           &content_x, &content_w);
     label_w = habits_overview_label_width(content_w);
     cell = habits_overview_cell_size(content_w);
-    grid_total_w = label_w + cell_gap * 7 + cell * 7;
+    grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
+                   cell * HABITS_OVERVIEW_COLUMNS;
 
     return (Rectangle){
         (float)(content_x + (content_w - grid_total_w) / 2 - flint_px(4)),
