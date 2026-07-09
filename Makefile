@@ -7,12 +7,16 @@ ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
 CC ?= cc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
-GRADLE ?= gradle
+GRADLE ?= droid/gradlew
 ADB ?= adb
 UNAME_S := $(shell uname -s)
 UNAME_M := $(shell uname -m)
 NATIVE_PLATFORM := $(if $(filter FreeBSD,$(UNAME_S)),freebsd,$(if $(filter Linux,$(UNAME_S)),linux,$(shell printf '%s' "$(UNAME_S)" | tr '[:upper:]' '[:lower:]')))
 ARCH := $(if $(filter amd64,$(UNAME_M)),x86_64,$(UNAME_M))
+ANDROID_SDK ?= $(if $(ANDROID_SDK_ROOT),$(ANDROID_SDK_ROOT),$(if $(ANDROID_HOME),$(ANDROID_HOME),$(shell sed -n 's/^sdk\.dir=//p' droid/local.properties 2>/dev/null | head -n 1)))
+ANDROID_CMAKE_DIR ?= $(ANDROID_SDK)/cmake/3.22.1
+ANDROID_AAPT2 ?= $(shell if [ -n "$(ANDROID_SDK)" ]; then find "$(ANDROID_SDK)/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt2 -perm -111 2>/dev/null | sort | tail -n 1; fi)
+ANDROID_GRADLE_ARGS := $(if $(ANDROID_AAPT2),-Pandroid.aapt2FromMavenOverride="$(ANDROID_AAPT2)",)
 ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
 ANDROID_KEY_ALIAS ?= inbe-key
 
@@ -224,6 +228,20 @@ APP_SRCS := \
 	src/screens/settings/settings_data.c \
 	src/screens/settings/settings_sync_account.c
 
+ifeq ($(NATIVE_PLATFORM),linux)
+DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; fi)
+DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR)
+endif
+ifeq ($(NATIVE_PLATFORM),freebsd)
+DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON
+endif
+ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
+APP_SRCS += src/platform/desktop_tray.c
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
+endif
+
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
@@ -235,7 +253,7 @@ EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
-APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform/android -Isrc/third_party
+APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
 RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
 RAY_SDL_CFLAGS ?= $(shell pkg-config --cflags sdl2 2>/dev/null)
 RAY_SDL_LDLIBS ?= $(shell pkg-config --libs sdl2 2>/dev/null)
@@ -246,7 +264,7 @@ RAY_LDLIBS ?= $(strip $(RAY_SDL_LDLIBS) $(RAY_GL_LDLIBS))
 RAY_SDL_INCLUDE_DIR ?= $(shell pkg-config --variable=includedir sdl2 2>/dev/null | sed 's,/SDL2$$,,')
 RAY_RAYLIB_CONFIG ?= -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0
-CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
+CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
@@ -308,6 +326,7 @@ install: $(TARGET)
 	bin_dir="$(HOME)/.local/bin"; \
 	mkdir -p "$$install_dir" "$$bin_dir"; \
 	cp "$(TARGET)" "$$install_dir/$(APP_NAME)"; \
+	cp "$(LINUX_APPIMAGE_ICON)" "$$install_dir/$(APP_NAME).png"; \
 	chmod 755 "$$install_dir/$(APP_NAME)"; \
 	ln -sf "$$install_dir/$(APP_NAME)" "$$bin_dir/$(APP_NAME)"; \
 	if [ -d "$(HOME)/bin" ]; then \
@@ -698,6 +717,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(LIBOQS_A) \
 		$(RAY_LDLIBS) \
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
+		$(DESKTOP_TRAY_LDLIBS) \
 		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
@@ -963,22 +983,23 @@ android-check-keystore:
 	fi
 
 android-local-properties:
-	@if [ -f droid/local.properties ]; then sed -i '/^ndk\.dir=/d' droid/local.properties; fi
-	@if [ -d /mnt/storage/Android/Sdk/ndk/28.2.13676358 ]; then \
-		if [ -f droid/local.properties ]; then \
-			sed -i 's#^sdk\.dir=.*#sdk.dir=/mnt/storage/Android/Sdk#' droid/local.properties; \
-			sed -i 's#^cmake\.dir=.*#cmake.dir=/mnt/storage/Android/Sdk/cmake/3.22.1#' droid/local.properties; \
-		else \
-			printf 'sdk.dir=/mnt/storage/Android/Sdk\ncmake.dir=/mnt/storage/Android/Sdk/cmake/3.22.1\n' > droid/local.properties; \
-		fi; \
+	@if [ -z "$(ANDROID_SDK)" ]; then \
+		echo "Set ANDROID_SDK_ROOT or ANDROID_HOME to your Android SDK path."; \
+		exit 1; \
 	fi
+	@if [ ! -d "$(ANDROID_SDK)" ]; then \
+		echo "Android SDK not found: $(ANDROID_SDK)"; \
+		echo "Set ANDROID_SDK_ROOT or ANDROID_HOME to your Android SDK path."; \
+		exit 1; \
+	fi
+	@printf 'sdk.dir=%s\ncmake.dir=%s\n' "$(ANDROID_SDK)" "$(ANDROID_CMAKE_DIR)" > droid/local.properties
 
 android-debug: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug
+	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
 android-debug-fast: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)"
+	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)" $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
 android-release:
@@ -986,7 +1007,7 @@ android-release:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for release builds"; \
 		exit 1; \
@@ -998,7 +1019,7 @@ android-bundle:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for bundle builds"; \
 		exit 1; \
@@ -1090,7 +1111,7 @@ android-avd:
 	$(MAKE) android-install-fast ADB="$$adb_cmd -e" ANDROID_DEBUG_ABIS="$$abi"
 
 android-clean:
-	$(GRADLE) -p droid clean
+	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)
 	rm -rf $(ANDROID_BUILD_DIR)
 
 $(MEDITATION_AUDIO_ZIP): $(UNPACKAGED_AUDIO_FILES)
