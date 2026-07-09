@@ -3,6 +3,7 @@
 #include "app.h"
 #include "flint_locale.h"
 #include "flint_ui.h"
+#include "screens/settings/settings_data.h"
 #include "screens/settings/settings_screen.h"
 
 extern int view_width;
@@ -216,6 +217,8 @@ static int
 app_should_draw_bottom_nav(const InbeApp *app)
 {
     if(app == NULL)
+        return 0;
+    if(settings_data_file_dialog_active())
         return 0;
     if(app_has_fullscreen_overlay(app))
         return 0;

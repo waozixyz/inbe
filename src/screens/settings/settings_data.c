@@ -409,12 +409,27 @@ settings_apply_file_dialog_theme(InbeApp *app)
     int theme_id = app != NULL ? app->theme_id : FLINT_THEME_SKY;
     int dark_mode = app != NULL && app->dark_mode != 0;
 
+    if(app != NULL && app->theme_source == APP_THEME_SOURCE_SYSTEM) {
+        flint_file_dialog_set_theme_scope(NULL);
+        return;
+    }
+
     if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
         theme_id = FLINT_THEME_SKY;
     flint_file_dialog_set_theme_scope(flint_theme_scope_for((FlintThemeId)theme_id,
                                                             dark_mode != 0));
 }
 #endif
+
+int
+settings_data_file_dialog_active(void)
+{
+#if defined(INBE_HAS_FLINT_FILE_DIALOG)
+    return data_file_dialog_action != SETTINGS_DATA_ACTION_NONE;
+#else
+    return 0;
+#endif
+}
 
 static int
 settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
