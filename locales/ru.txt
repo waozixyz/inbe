@@ -555,6 +555,18 @@ Inner Breeze
 [close_button]
 Закрыть
 ---
+[desktop_close_prompt_title]
+Оставить Inner Breeze запущенным?
+---
+[desktop_close_prompt_message]
+При закрытии окна Inner Breeze может продолжить работу в фоновом режиме.
+---
+[desktop_close_keep_running_button]
+Продолжить работу
+---
+[desktop_close_quit_button]
+Выйти
+---
 [sync_account_title]
 Аккаунт
 ---
@@ -663,8 +675,23 @@ Sync review failed
 [sync_logout_button]
 Выйти
 ---
-[sync_logged_out]
-Выполнен выход
+[sync_logged_out_local_data_kept]
+Выполнен выход. Локальные данные остаются на этом устройстве.
+---
+[sync_account_switch_title]
+Очистить локальные данные?
+---
+[sync_account_switch_message]
+На этом устройстве есть данные другого аккаунта синхронизации. Очистите локальные данные перед использованием этого аккаунта.
+---
+[sync_account_switch_clear_button]
+Очистить и использовать аккаунт
+---
+[sync_account_switch_cancelled]
+Смена аккаунта отменена
+---
+[sync_account_switch_failed]
+Не удалось сменить аккаунт
 ---
 [sync_clear_remote_data_button]
 Очистить удалённые данные
@@ -777,12 +804,6 @@ Manage data, habit order, and visible practices here.
 
 [transition_label]
 Переход
----
-[transition_none]
-Нет
----
-[transition_fade]
-Плавно
 ---
 [theme_picker_title]
 Выбор темы

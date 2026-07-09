@@ -555,6 +555,18 @@ Sensor
 [close_button]
 Tutup
 ---
+[desktop_close_prompt_title]
+Tetap jalankan Inner Breeze?
+---
+[desktop_close_prompt_message]
+Menutup jendela dapat membuat Inner Breeze tetap berjalan di latar belakang.
+---
+[desktop_close_keep_running_button]
+Tetap berjalan
+---
+[desktop_close_quit_button]
+Keluar
+---
 [sync_account_title]
 Akun
 ---
@@ -663,8 +675,23 @@ Hanya menghapus data yang tersimpan di perangkat ini. Data sinkronisasi jarak ja
 [sync_logout_button]
 Keluar
 ---
-[sync_logged_out]
-Sudah keluar
+[sync_logged_out_local_data_kept]
+Sudah keluar. Data lokal tetap ada di perangkat ini.
+---
+[sync_account_switch_title]
+Hapus data lokal?
+---
+[sync_account_switch_message]
+Perangkat ini memiliki data dari akun sinkronisasi lain. Hapus data lokal sebelum memakai akun ini.
+---
+[sync_account_switch_clear_button]
+Hapus dan pakai akun
+---
+[sync_account_switch_cancelled]
+Pergantian akun dibatalkan
+---
+[sync_account_switch_failed]
+Tidak dapat mengganti akun
 ---
 [sync_clear_remote_data_button]
 Hapus data jarak jauh
@@ -777,12 +804,6 @@ Buat akun sinkronisasi untuk membuka teman dan papan peringkat.
 
 [transition_label]
 Transisi
----
-[transition_none]
-Tidak ada
----
-[transition_fade]
-Pudar
 ---
 [theme_picker_title]
 Pilih Tema

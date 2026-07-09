@@ -1,6 +1,6 @@
 #include "android_device.h"
 #include "platform.h"
-#include "flint_ui.h"
+#include "ui.h"
 
 #if ANDROID_BUILD
 #include <android/log.h>
@@ -152,7 +152,7 @@ android_device_native_text_input_commit(JNIEnv *env, jobject thiz, jint codepoin
 {
     (void)env;
     (void)thiz;
-    flint_ui_text_input_queue_codepoint((int)codepoint);
+    QueueUITextInputCodepoint((int)codepoint);
 }
 
 void
@@ -160,7 +160,7 @@ android_device_native_text_input_backspace(JNIEnv *env, jobject thiz)
 {
     (void)env;
     (void)thiz;
-    flint_ui_text_input_queue_backspace();
+    QueueUITextInputBackspace();
 }
 
 void
@@ -168,7 +168,7 @@ android_device_native_text_input_enter(JNIEnv *env, jobject thiz)
 {
     (void)env;
     (void)thiz;
-    flint_ui_text_input_queue_enter();
+    QueueUITextInputEnter();
 }
 
 #else

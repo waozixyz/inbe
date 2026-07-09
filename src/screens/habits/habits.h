@@ -6,12 +6,12 @@
 #include "data.h"
 #include "storage.h"
 #include "app.h"
-#include "flint_theme.h"
-#include "flint_runtime_assets.h"
-#include "flint_locale.h"
+#include "theme.h"
+#include "runtime_assets.h"
+#include "locale.h"
 #include "breath_engine.h"
-#include "flint_clip.h"
-#include "flint_ui.h"
+#include "ui_clip.h"
+#include "ui.h"
 
 #include <stdio.h>
 #include <stdlib.h>

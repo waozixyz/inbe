@@ -101,6 +101,10 @@ void storage_purge_synced_deleted_data(void);
 const char *storage_sync_client_id(void);
 void storage_make_uuid(char out[37]);
 void storage_reset_sync_state(void);
+const char *storage_sync_data_owner_public_id(void);
+void storage_set_sync_data_owner_public_id(const char *public_id);
+int storage_has_local_syncable_data(void);
+int storage_clear_local_syncable_data(void);
 
 int storage_habits_empty(void);
 int storage_habits_load(void *habits);

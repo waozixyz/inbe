@@ -9,7 +9,7 @@
 #include "app.h"
 #include "app_sync.h"
 #include "data.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
@@ -22,12 +22,12 @@
 #include "practices/practice_registry.h"
 #include "device_preferences.h"
 #include "storage.h"
-#include "flint_theme.h"
-#include "flint_clip.h"
-#include "flint_ui.h"
-#include "flint_dpi.h"
-#include "flint_text.h"
-#include "flint_embedded_assets.h"
+#include "theme.h"
+#include "ui_clip.h"
+#include "ui.h"
+#include "ui_dpi.h"
+#include "ui_text.h"
+#include "embedded_assets.h"
 #include "practices/meditation/meditation_practice.h"
 
 #include <limits.h>
@@ -55,9 +55,7 @@ InbeApp *get_global_inbe_app(void);
 #define INBE_DEFAULT_HEIGHT 720
 #endif
 
-enum {
-    APP_SCREEN_TRANSITION_TICKS = 8
-};
+static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -87,41 +85,224 @@ app_leave_practice_config(InbeApp *app)
     app->settings_scroll = 0;
 }
 
-void
-app_switch_screen(InbeApp *app, int screen)
+AppRoute
+app_current_route(const InbeApp *app)
+{
+    AppRoute route = {0};
+
+    if(app == NULL)
+        return route;
+    route.screen = app->inbe.screen;
+    route.exercise_type = app->exercise_type;
+    route.practice_tab = app->practice_tab;
+    route.practice_config_tab = app->practice_config_tab;
+    route.settings_tab = app->settings_tab;
+    route.profile_view = app->profile_view;
+    route.profile_tab = app->profile_tab;
+    route.habits_screen_mode = app->habits.screen_mode;
+    route.habits_tab = app->habits.tab;
+    return route;
+}
+
+static int
+app_route_equal(AppRoute a, AppRoute b)
+{
+    if(a.screen != b.screen)
+        return 0;
+    switch(a.screen) {
+    case InbeScreenStart:
+        return a.exercise_type == b.exercise_type &&
+               a.practice_tab == b.practice_tab &&
+               (a.practice_tab != PRACTICE_TAB_CONFIG ||
+                a.practice_config_tab == b.practice_config_tab);
+    case InbeScreenSettings:
+        return a.settings_tab == b.settings_tab;
+    case InbeScreenProfile:
+        return a.profile_view == b.profile_view &&
+               a.profile_tab == b.profile_tab;
+    case InbeScreenHabits:
+        return a.habits_screen_mode == b.habits_screen_mode &&
+               a.habits_tab == b.habits_tab;
+    default:
+        break;
+    }
+    return 1;
+}
+
+static int
+app_route_direction(AppRoute from, AppRoute to)
+{
+    if(from.screen != to.screen)
+        return to.screen > from.screen ? 1 : -1;
+    switch(from.screen) {
+    case InbeScreenStart:
+        if(from.exercise_type != to.exercise_type)
+            return to.exercise_type > from.exercise_type ? 1 : -1;
+        if(from.practice_tab != to.practice_tab)
+            return to.practice_tab > from.practice_tab ? 1 : -1;
+        if(from.practice_config_tab != to.practice_config_tab)
+            return to.practice_config_tab > from.practice_config_tab ? 1 : -1;
+        break;
+    case InbeScreenSettings:
+        if(from.settings_tab != to.settings_tab)
+            return to.settings_tab > from.settings_tab ? 1 : -1;
+        break;
+    case InbeScreenProfile:
+        if(from.profile_view != to.profile_view)
+            return to.profile_view > from.profile_view ? 1 : -1;
+        if(from.profile_tab != to.profile_tab)
+            return to.profile_tab > from.profile_tab ? 1 : -1;
+        break;
+    case InbeScreenHabits:
+        if(from.habits_screen_mode != to.habits_screen_mode)
+            return to.habits_screen_mode > from.habits_screen_mode ? 1 : -1;
+        if(from.habits_tab != to.habits_tab)
+            return to.habits_tab > from.habits_tab ? 1 : -1;
+        break;
+    default:
+        break;
+    }
+    return 1;
+}
+
+static float
+app_smooth_progress(float value)
+{
+    if(value < 0.0f)
+        value = 0.0f;
+    if(value > 1.0f)
+        value = 1.0f;
+    return value * value * (3.0f - 2.0f * value);
+}
+
+static void
+app_begin_content_transition(InbeApp *app, int direction)
 {
     if(app == NULL)
         return;
-    if(app->inbe.screen == screen &&
+    app->content_transition.active = 1;
+    app->content_transition.direction = direction < 0 ? -1 : 1;
+    app->content_transition.elapsed_seconds = 0.0f;
+    app->content_transition.duration_seconds = 0.16f;
+}
+
+static float
+app_content_transition_progress(const InbeApp *app)
+{
+    if(app == NULL || !app->content_transition.active ||
+       app->content_transition.duration_seconds <= 0.0f)
+        return 1.0f;
+    return app_smooth_progress(app->content_transition.elapsed_seconds /
+                               app->content_transition.duration_seconds);
+}
+
+static int
+app_content_transition_offset(const InbeApp *app)
+{
+    float progress;
+    int span;
+
+    if(app == NULL || !app->content_transition.active)
+        return 0;
+    progress = app_content_transition_progress(app);
+    span = ScaleUIPx(34);
+    if(span > view_width / 8)
+        span = view_width / 8;
+    if(span < ScaleUIPx(14))
+        span = ScaleUIPx(14);
+    return (int)((float)(app->content_transition.direction * span) * (1.0f - progress));
+}
+
+static void
+app_step_content_transition(InbeApp *app)
+{
+    if(app == NULL || !app->content_transition.active)
+        return;
+    app->content_transition.elapsed_seconds += GetFrameTime();
+    if(app->content_transition.elapsed_seconds >=
+       app->content_transition.duration_seconds) {
+        app->content_transition.active = 0;
+        app->content_transition.elapsed_seconds = 0.0f;
+    }
+}
+
+static void
+app_apply_route(InbeApp *app, AppRoute route)
+{
+    if(app == NULL)
+        return;
+    app->inbe.screen = route.screen;
+    app->exercise_type = route.exercise_type;
+    app->practice_tab = route.practice_tab;
+    app->practice_config_tab = route.practice_config_tab;
+    app->settings_tab = route.settings_tab;
+    app->profile_view = route.profile_view;
+    app->profile_tab = route.profile_tab;
+    app->habits.screen_mode = route.habits_screen_mode;
+    app->habits.tab = route.habits_tab;
+}
+
+void
+app_switch_route(InbeApp *app, AppRoute route)
+{
+    AppRoute current;
+
+    if(app == NULL)
+        return;
+    current = app_current_route(app);
+    if(app_route_equal(current, route) &&
        (!app->screen_transition.active ||
-        app->screen_transition_target == screen))
+        app_route_equal(app->route_transition_target, route)))
         return;
 
-    if(screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
+    if(route.screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
 
 #if defined(PLATFORM_WEB)
-    flint_transition_reset(&app->screen_transition);
-    app->inbe.screen = screen;
-    app->screen_transition_target = screen;
+    ResetUITransition(&app->screen_transition);
+    app->content_transition.active = 0;
+    app_apply_route(app, route);
+    app->route_transition_target = app_current_route(app);
     return;
 #else
     if(app->transition_mode == APP_TRANSITION_NONE) {
-        flint_transition_reset(&app->screen_transition);
-        app->inbe.screen = screen;
-        app->screen_transition_target = screen;
+        ResetUITransition(&app->screen_transition);
+        app->content_transition.active = 0;
+        app_apply_route(app, route);
+        app->route_transition_target = app_current_route(app);
         return;
     }
 #endif
 
-    app->screen_transition_target = screen;
-    if(app->screen_transition.active) {
-        if(app->inbe.screen != screen)
-            flint_transition_reverse_to_out(&app->screen_transition);
+    if(current.screen == route.screen) {
+        ResetUITransition(&app->screen_transition);
+        app_apply_route(app, route);
+        app->route_transition_target = app_current_route(app);
+        app_begin_content_transition(app, app_route_direction(current, route));
         return;
     }
 
-    flint_transition_begin(&app->screen_transition, APP_SCREEN_TRANSITION_TICKS);
+    app->content_transition.active = 0;
+    app->route_transition_target = route;
+    if(app->screen_transition.active) {
+        if(!app_route_equal(current, route))
+            ReverseUITransitionToOut(&app->screen_transition);
+        return;
+    }
+
+    BeginUITransition(&app->screen_transition, APP_SCREEN_TRANSITION_SECONDS);
+}
+
+void
+app_switch_screen(InbeApp *app, int screen)
+{
+    AppRoute route;
+
+    if(app == NULL)
+        return;
+    route = app_current_route(app);
+    route.screen = screen;
+    app_switch_route(app, route);
 }
 
 static void
@@ -131,34 +312,64 @@ app_advance_screen_transition(InbeApp *app)
 
     if(app == NULL)
         return;
-    completed_phase = flint_transition_step(&app->screen_transition);
-    if(completed_phase == FLINT_TRANSITION_OUT)
-        app->inbe.screen = app->screen_transition_target;
-    else if(completed_phase == FLINT_TRANSITION_IN)
-        app->screen_transition_target = app->inbe.screen;
+    completed_phase = StepUITransition(&app->screen_transition, GetFrameTime());
+    if(completed_phase == UI_TRANSITION_OUT)
+        app_apply_route(app, app->route_transition_target);
+    else if(completed_phase == UI_TRANSITION_IN)
+        app->route_transition_target = app_current_route(app);
 }
 
 static void
-app_observe_direct_screen_change(InbeApp *app, int before_screen)
+app_draw_content_transition_overlay(InbeApp *app)
+{
+    float progress;
+    int alpha;
+    int h;
+    Color wash;
+
+    if(app == NULL || !app->content_transition.active)
+        return;
+    progress = app_content_transition_progress(app);
+    alpha = (int)((1.0f - progress) * 54.0f);
+    if(alpha <= 0)
+        return;
+    h = app_page_height(app, view_height);
+    wash = GetThemeBackground();
+    wash.a = (unsigned char)alpha;
+    DrawRectangle(0, 0, view_width, h, wash);
+}
+
+static void
+app_observe_direct_route_change(InbeApp *app, AppRoute before_route)
 {
     if(app == NULL || app->screen_transition.active ||
-       before_screen == app->inbe.screen)
+       app_route_equal(before_route, app_current_route(app)))
         return;
 
     if(app->transition_mode == APP_TRANSITION_NONE) {
-        app->screen_transition_target = app->inbe.screen;
+        app->route_transition_target = app_current_route(app);
+        app->content_transition.active = 0;
         return;
     }
 
-    app->screen_transition = (FlintTransition){
+    if(before_route.screen == app->inbe.screen) {
+        app_begin_content_transition(app,
+                                     app_route_direction(before_route,
+                                                         app_current_route(app)));
+        app->route_transition_target = app_current_route(app);
+        return;
+    }
+
+    app->content_transition.active = 0;
+    app->screen_transition = (UITransition){
         .active = 1,
-        .phase = FLINT_TRANSITION_IN,
-        .ticks = 0,
-        .duration = APP_SCREEN_TRANSITION_TICKS
+        .phase = UI_TRANSITION_IN,
+        .elapsed_seconds = 0.0f,
+        .duration_seconds = APP_SCREEN_TRANSITION_SECONDS
     };
-    if(app->inbe.screen == InbeScreenHabits && before_screen != InbeScreenHabits)
+    if(app->inbe.screen == InbeScreenHabits && before_route.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
 }
 
 static void
@@ -175,14 +386,14 @@ app_flush_deferred_settings(InbeApp *app)
 int
 app_toolbar_height(void)
 {
-    return flint_px(58);
+    return ScaleUIPx(58);
 }
 
 int
 app_content_top_reserved(const InbeApp *app)
 {
     if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return ui_tab_bar_height();
+        return GetUITabBarHeight();
     return app_toolbar_height();
 }
 
@@ -230,6 +441,28 @@ app_close_modal(InbeApp *app)
     app->modal_input_block_frame = app->inbe.frame;
 }
 
+void
+app_request_desktop_close(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->close_prompt_open = 1;
+    app->close_prompt_input_block_frame = app->inbe.frame;
+    app->close_prompt_result = AppClosePromptNone;
+}
+
+AppClosePromptResult
+app_consume_close_prompt_result(InbeApp *app)
+{
+    AppClosePromptResult result;
+
+    if(app == NULL)
+        return AppClosePromptNone;
+    result = app->close_prompt_result;
+    app->close_prompt_result = AppClosePromptNone;
+    return result;
+}
+
 SessionExitModalResult
 app_draw_session_exit_modal(int can_save, const char *save_message,
                             const char *discard_message)
@@ -237,24 +470,51 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
     int modal_result;
 
     if(can_save) {
-        modal_result = ui_draw_modal_3btn(locale_get("exit_session_title"),
+        modal_result = DrawUIModal3Button(GetLocaleText("exit_session_title"),
                                           save_message,
-                                          locale_get("cancel_button"),
-                                          locale_get("save_button"),
-                                          locale_get("discard_button"));
+                                          GetLocaleText("cancel_button"),
+                                          GetLocaleText("save_button"),
+                                          GetLocaleText("discard_button"));
         if(modal_result == 2)
             return SessionExitModalSave;
         if(modal_result == 3)
             return SessionExitModalDiscard;
     } else {
-        modal_result = ui_draw_modal(locale_get("exit_session_title"),
+        modal_result = DrawUIModal(GetLocaleText("exit_session_title"),
                                      discard_message,
-                                     locale_get("cancel_button"),
-                                     locale_get("exit_button"));
+                                     GetLocaleText("cancel_button"),
+                                     GetLocaleText("exit_button"));
         if(modal_result == 2)
             return SessionExitModalDiscard;
     }
     return modal_result == 1 ? SessionExitModalCancel : SessionExitModalNone;
+}
+
+static void
+app_draw_close_prompt(InbeApp *app)
+{
+    int modal_result;
+
+    if(app == NULL || !app->close_prompt_open)
+        return;
+    if(app->close_prompt_input_block_frame == app->inbe.frame)
+        return;
+
+    ClearUIInputCaptures();
+    modal_result = DrawUIModal3Button(GetLocaleText("desktop_close_prompt_title"),
+                                      GetLocaleText("desktop_close_prompt_message"),
+                                      GetLocaleText("cancel_button"),
+                                      GetLocaleText("desktop_close_keep_running_button"),
+                                      GetLocaleText("desktop_close_quit_button"));
+    if(modal_result == 1) {
+        app->close_prompt_open = 0;
+    } else if(modal_result == 2) {
+        app->close_prompt_open = 0;
+        app->close_prompt_result = AppClosePromptKeepRunning;
+    } else if(modal_result == 3) {
+        app->close_prompt_open = 0;
+        app->close_prompt_result = AppClosePromptQuit;
+    }
 }
 
 static int
@@ -291,20 +551,20 @@ load_locale_font(InbeApp *app)
 {
     Font font;
     Image white;
-    const FlintEmbeddedAsset *png;
-    const FlintEmbeddedAsset *dat;
+    const EmbeddedAsset *png;
+    const EmbeddedAsset *dat;
 
     if(app == NULL)
         return 0;
 
-    png = flint_embedded_asset("assets/fonts/locales.png");
-    dat = flint_embedded_asset("assets/fonts/locales.dat");
+    png = GetEmbeddedAsset("assets/fonts/locales.png");
+    dat = GetEmbeddedAsset("assets/fonts/locales.dat");
     if(png == NULL || dat == NULL)
         return 0;
 
-    font = flint_text_load_chopped_font_from_memory(png->data, png->size,
+    font = LoadUIChoppedFontFromMemory(png->data, png->size,
                                                     dat->data, dat->size,
-                                                    FLINT_TEXT_BASE_SIZE);
+                                                    UI_TEXT_BASE_SIZE);
     if(font.texture.id == 0)
         return 0;
 
@@ -312,15 +572,15 @@ load_locale_font(InbeApp *app)
     app->font_shapes_texture = LoadTextureFromImage(white);
     UnloadImage(white);
     if(app->font_shapes_texture.id == 0) {
-        flint_text_unload_font(&font);
+        UnloadUIFont(&font);
         goto fail;
     }
     SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
 
     app->locale_font = font;
     app->locale_font_8 = font;
-    flint_text_set_font(app->locale_font);
-    flint_text_set_small_font(app->locale_font);
+    SetUIFont(app->locale_font);
+    SetUISmallFont(app->locale_font);
     SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
     return 1;
 
@@ -336,9 +596,9 @@ unload_locale_font(InbeApp *app)
     if(app == NULL)
         return;
 
-    flint_text_set_font((Font){0});
-    flint_text_set_small_font((Font){0});
-    flint_text_unload_font(&app->locale_font);
+    SetUIFont((Font){0});
+    SetUISmallFont((Font){0});
+    UnloadUIFont(&app->locale_font);
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
 }
@@ -352,8 +612,8 @@ discard_locale_font_cpu(InbeApp *app)
     free(app->locale_font.recs);
     app->locale_font = (Font){0};
     app->locale_font_8 = (Font){0};
-    flint_text_set_font((Font){0});
-    flint_text_set_small_font((Font){0});
+    SetUIFont((Font){0});
+    SetUISmallFont((Font){0});
 }
 
 static void
@@ -367,8 +627,8 @@ app_reload_graphics_resources(InbeApp *app)
 
     for(int i = 0; i < UI_ICON_TYPE_COUNT; i++)
         app->icons[i] = (Texture2D){0};
-    flint_load_all_icons(app->icons);
-    ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
+    LoadAllUIIconTextures(app->icons);
+    SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
     app->font_shapes_texture = (Texture2D){0};
     discard_locale_font_cpu(app);
@@ -383,10 +643,10 @@ refresh_locale_dependent_text(InbeApp *app)
         return;
 
     if(!config.title_custom) {
-        snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
+        snprintf(config.title, sizeof(config.title), "%s", GetLocaleText("app_title"));
     }
     manual_screen_reset_layouts(app);
-    app->language_index = locale_current_index();
+    app->language_index = GetCurrentLocaleIndex();
     if(app->language_index < 0)
         app->language_index = 0;
 }
@@ -399,16 +659,16 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
     if(app == NULL)
         return;
 
-    if(language_index < 0 || language_index >= locale_count())
+    if(language_index < 0 || language_index >= GetLocaleCount())
         language_index = 0;
 
-    code = locale_code_at(language_index);
+    code = GetLocaleCode(language_index);
     if(code == NULL || code[0] == '\0')
         code = "en";
 
-    if(!locale_set(code)) {
+    if(!SetLocale(code)) {
         code = "en";
-        locale_set(code);
+        SetLocale(code);
     }
 
     snprintf(app->language, sizeof(app->language), "%s", code);
@@ -464,14 +724,14 @@ load_config(void)
         return;
 
     if(config.title[0] == '\0') {
-        snprintf(config.title, sizeof(config.title), "%s", locale_get("app_title"));
+        snprintf(config.title, sizeof(config.title), "%s", GetLocaleText("app_title"));
         config.title_custom = 0;
     }
 
 #if defined(PLATFORM_WEB)
-    refresh_theme_colors(FLINT_THEME_SKY, 1);
+    refresh_theme_colors(THEME_SKY, 1);
 #else
-    refresh_theme_colors(FLINT_THEME_SKY, 0);
+    refresh_theme_colors(THEME_SKY, 0);
 #endif
 
     config.loaded = 1;
@@ -631,14 +891,14 @@ app_request_graphics_reload(InbeApp *app)
 static Texture2D
 load_pixel_texture_from_asset(const char *path)
 {
-    const FlintEmbeddedAsset *asset = flint_embedded_asset(path);
+    const EmbeddedAsset *asset = GetEmbeddedAsset(path);
     Image image;
     Texture2D texture = {0};
 
     if(asset == NULL || asset->data == NULL || asset->size == 0)
         return texture;
 
-    image = LoadImageFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
+    image = LoadImageFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
     if(image.data == NULL)
         return texture;
 
@@ -675,18 +935,18 @@ static Sound
 load_sound_asset(const char *name)
 {
     char path[96];
-    const FlintEmbeddedAsset *asset;
+    const EmbeddedAsset *asset;
     Wave wave;
     Sound sound = {0};
 
     snprintf(path, sizeof(path), "assets/sounds/%s", name);
-    asset = flint_embedded_asset(path);
+    asset = GetEmbeddedAsset(path);
     if(asset == NULL || asset->data == NULL || asset->size == 0) {
         TraceLog(LOG_ERROR, "AUDIO: Missing embedded sound asset: %s", path);
         return sound;
     }
 
-    wave = LoadWaveFromMemory(flint_embedded_asset_extension(path), asset->data, (int)asset->size);
+    wave = LoadWaveFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
     if(wave.data == NULL) {
         TraceLog(LOG_ERROR, "AUDIO: Failed to decode embedded sound asset: %s", path);
         return sound;
@@ -701,8 +961,43 @@ load_sound_asset(const char *name)
     return sound;
 }
 
-void
-app_play_sound(InbeApp *app, Sound sound, float scale)
+static float
+app_sound_volume_scale(InbeApp *app, float scale)
+{
+    float volume;
+
+    if(app == NULL || app->sound_volume <= 0)
+        return 0.0f;
+
+    volume = ((float)app->sound_volume / 100.0f) * scale;
+    if(volume < 0.0f)
+        volume = 0.0f;
+    if(volume > 1.0f)
+        volume = 1.0f;
+    return volume;
+}
+
+static float
+app_breath_cue_pitch(InbeApp *app)
+{
+    int default_ticks = breath_half_ticks_for_speed(DefaultSpeedLevel);
+    int half_ticks;
+
+    if(app == NULL)
+        return 1.0f;
+    half_ticks = app->inbe.breath_half_ticks;
+    if(half_ticks <= 0)
+        half_ticks = breath_half_ticks_for_speed(app->inbe.speed_level);
+    if(half_ticks <= 0)
+        half_ticks = default_ticks;
+    if(default_ticks <= 0)
+        return 1.0f;
+
+    return (float)default_ticks / (float)half_ticks;
+}
+
+static void
+app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
 {
     float volume;
 
@@ -716,20 +1011,46 @@ app_play_sound(InbeApp *app, Sound sound, float scale)
         TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because sound is not loaded");
         return;
     }
-    if(app->sound_volume <= 0)
+    volume = app_sound_volume_scale(app, scale);
+    if(volume <= 0.0f)
         return;
-
-    volume = ((float)app->sound_volume / 100.0f) * scale;
-    if(volume < 0.0f)
-        volume = 0.0f;
-    if(volume > 1.0f)
-        volume = 1.0f;
+    if(pitch < 0.75f)
+        pitch = 0.75f;
+    if(pitch > 1.45f)
+        pitch = 1.45f;
 
     StopSound(sound);
     SetSoundVolume(sound, volume);
+    SetSoundPitch(sound, pitch);
     PlaySound(sound);
     if(!IsSoundPlaying(sound))
         TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
+}
+
+void
+app_play_sound(InbeApp *app, Sound sound, float scale)
+{
+    app_play_sound_pitch(app, sound, scale, 1.0f);
+}
+
+void
+app_play_breath_cue(InbeApp *app, int dir)
+{
+    Sound sound;
+
+    if(app == NULL)
+        return;
+
+    sound = dir == 0 ? app->breath_in_sound : app->breath_out_sound;
+    app_play_sound_pitch(app, sound, 1.0f, app_breath_cue_pitch(app));
+}
+
+void
+app_play_bell_cue(InbeApp *app, float scale)
+{
+    if(app == NULL)
+        return;
+    app_play_sound(app, app->bell_sound, scale);
 }
 
 static void
@@ -770,7 +1091,7 @@ app_init(void *vapp) {
 #if defined(PLATFORM_WEB)
     init_web_storage();
 #endif
-    locale_init();
+    InitLocale();
     if(!load_locale_font(app)) {
         TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
     }
@@ -778,10 +1099,10 @@ app_init(void *vapp) {
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
-    flint_dpi_update(view_width, view_height);
-    ui_init(view_width, view_height, flint_dpi_scale());
+    UpdateUIDPI(view_width, view_height);
+    InitUI(view_width, view_height, GetUIDPIScale());
 #if ANDROID_BUILD
-    flint_ui_set_text_input_platform_callback(android_device_set_soft_keyboard_visible);
+    SetUITextInputPlatformCallback(android_device_set_soft_keyboard_visible);
 #endif
 
     inbeinit(&app->inbe);
@@ -800,12 +1121,12 @@ app_init(void *vapp) {
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
-    flint_transition_reset(&app->screen_transition);
+    ResetUITransition(&app->screen_transition);
     app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
                            ? InbeScreenHabits
                            : InbeScreenStart;
     app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
@@ -828,15 +1149,15 @@ app_init(void *vapp) {
     inbeinit(&app->start_speed_preview);
 
     // Load all icons
-    flint_load_all_icons(app->icons);
+    LoadAllUIIconTextures(app->icons);
 
-    ui_set_icons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
+    SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
     if(!app->language_selected)
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-    app->screen_transition_target = app->inbe.screen;
+    app->route_transition_target = app_current_route(app);
 
     app->modal = (UIModal){0};
     app->meditation.duration_seconds = 0;
@@ -892,10 +1213,12 @@ handle_back_button(InbeApp *app)
         if(app->practice_tab == PRACTICE_TAB_CONFIG)
             app_leave_practice_config(app);
         if(app->practice_tab != PRACTICE_TAB_PLAY) {
-            app->practice_tab = PRACTICE_TAB_PLAY;
+            AppRoute route = app_current_route(app);
+            route.practice_tab = PRACTICE_TAB_PLAY;
             app->manual_scroll = 0;
             app->settings_scroll = 0;
             app->tutorial_step = 0;
+            app_switch_route(app, route);
             break;
         }
         break;
@@ -912,16 +1235,20 @@ handle_back_button(InbeApp *app)
 
     case InbeScreenProfile:
         if(app->profile_view != PROFILE_VIEW_MAIN) {
-            app->profile_view = PROFILE_VIEW_MAIN;
+            AppRoute route = app_current_route(app);
+            route.profile_view = PROFILE_VIEW_MAIN;
             app->profile_scroll = 0;
             app->sync_server_url_focused = 0;
             settings_screen_clear_status();
+            app_switch_route(app, route);
             break;
         }
         if(app->profile_tab != PROFILE_TAB_OVERVIEW) {
-            app->profile_tab = PROFILE_TAB_OVERVIEW;
+            AppRoute route = app_current_route(app);
+            route.profile_tab = PROFILE_TAB_OVERVIEW;
             app->profile_scroll = 0;
             settings_screen_clear_status();
+            app_switch_route(app, route);
             break;
         }
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
@@ -1008,16 +1335,16 @@ draw_global_modal(InbeApp *app)
     if(app->modal_input_block_frame == app->inbe.frame)
         return;
 
-    ui_clear_input_captures();
+    ClearUIInputCaptures();
 
     if(settings_data_draw_modals(app))
         return;
 
     if(app->modal.type == UIModalMeditationNetworkError) {
-        modal_result = ui_draw_modal(locale_get("meditation_music_network_error_title"),
-                                     locale_get("meditation_music_network_error_message"),
-                                     locale_get("ok_button"),
-                                     locale_get("ok_button"));
+        modal_result = DrawUIModal(GetLocaleText("meditation_music_network_error_title"),
+                                     GetLocaleText("meditation_music_network_error_message"),
+                                     GetLocaleText("ok_button"),
+                                     GetLocaleText("ok_button"));
         if(modal_result != 0) {
             app_close_modal(app);
         }
@@ -1041,11 +1368,11 @@ draw_global_modal(InbeApp *app)
             int then_backup = app->sync_alias_then_backup;
             app->sync_alias_then_backup = 0;
             app_close_modal(app);
-            settings_screen_set_status_success(locale_get("sync_alias_saved"), NULL);
+            settings_screen_set_status_success(GetLocaleText("sync_alias_saved"), NULL);
             if(then_backup)
                 app_open_modal(app, UIModalSyncAccountBackup);
         } else if(modal_result == 2) {
-            settings_screen_set_status_error(locale_get("sync_alias_failed"));
+            settings_screen_set_status_error(GetLocaleText("sync_alias_failed"));
         } else if(modal_result == 3) {
             int then_backup = app->sync_alias_then_backup;
             app->sync_alias_then_backup = 0;
@@ -1061,6 +1388,36 @@ draw_global_modal(InbeApp *app)
     }
 }
 
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+static void
+app_update_desktop_background_state(InbeApp *app)
+{
+    int backgrounded;
+    double now;
+    int elapsed_ms;
+
+    if(app == NULL)
+        return;
+
+    backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
+    now = GetTime();
+    if(!backgrounded) {
+        app->backgrounded = 0;
+        app->desktop_background_last_time = 0.0;
+        return;
+    }
+
+    if(!app->backgrounded || app->desktop_background_last_time <= 0.0)
+        app->desktop_background_last_time = now;
+    elapsed_ms = (int)((now - app->desktop_background_last_time) * 1000.0);
+    app->backgrounded = 1;
+    app->desktop_background_last_time = now;
+
+    if(elapsed_ms > 0)
+        practice_active_advance_elapsed(app, elapsed_ms);
+}
+#endif
+
 static void
 updateapp(InbeApp *app)
 {
@@ -1068,7 +1425,7 @@ updateapp(InbeApp *app)
     int frame_view_height = view_height;
     int center_y;
     int hover = 0;
-    int frame_screen = app->inbe.screen;
+    AppRoute frame_route = app_current_route(app);
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
     int profile_guide_active = 0;
@@ -1076,9 +1433,10 @@ updateapp(InbeApp *app)
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
     int bottom_input_reserved = 0;
+    int content_transition_offset = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-    app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
+    app_update_desktop_background_state(app);
 #endif
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
@@ -1097,18 +1455,23 @@ updateapp(InbeApp *app)
         app->modal.active &&
         (app->modal.type == UIModalPracticeMusic ||
          app->modal.type == UIModalEditProgressiveStartSpeed);
-    if(app->modal.active || first_run_guide_active || habits_guide_active ||
-       profile_guide_active) {
-        ui_push_input_capture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
+    if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
+       habits_guide_active || profile_guide_active) {
+        PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
     view_height = app_page_height(app, view_height);
     center_y = view_height / 2;
     bottom_input_reserved = app_content_bottom_reserved(app);
     if(bottom_input_reserved > 0 && bottom_input_reserved < view_height) {
-        ui_push_input_clip((Rectangle){0, 0, (float)view_width,
+        PushUIInputClip((Rectangle){0, 0, (float)view_width,
                                        (float)(view_height - bottom_input_reserved)});
         content_input_clip_active = 1;
+    }
+    content_transition_offset = app_content_transition_offset(app);
+    if(content_transition_offset != 0) {
+        app->camera.offset.x += (float)content_transition_offset;
+        SetUIFrame(app->camera);
     }
 
     if(IsKeyPressed(KEY_BACK)
@@ -1122,7 +1485,9 @@ updateapp(InbeApp *app)
               app->inbe.screen == InbeScreenSunSalutation))))
 #endif
        ) {
-        if(first_run_guide_active || habits_guide_active || profile_guide_active) {
+        if(app->close_prompt_open) {
+            app->close_prompt_open = 0;
+        } else if(first_run_guide_active || habits_guide_active || profile_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
             app->habits_guide_step = 0;
@@ -1177,7 +1542,7 @@ updateapp(InbeApp *app)
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
-        practice_update_circle_bounds(app, flint_ui_title_bar_height(), 84);
+        practice_update_circle_bounds(app, GetUITitleBarHeight(), 84);
     }
 
     if(app->inbe.screen == InbeScreenSession)
@@ -1236,7 +1601,12 @@ updateapp(InbeApp *app)
 
 finish_frame:
     if(content_input_clip_active)
-        ui_pop_input_clip();
+        PopUIInputClip();
+    if(content_transition_offset != 0) {
+        app->camera.offset.x -= (float)content_transition_offset;
+        SetUIFrame(app->camera);
+    }
+    app_draw_content_transition_overlay(app);
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -1248,16 +1618,19 @@ finish_frame:
     profile_screen_draw_first_run_guide(app);
     if(!global_modal_drawn)
         draw_global_modal(app);
+    app_draw_close_prompt(app);
     app_flush_deferred_settings(app);
-    app_observe_direct_screen_change(app, frame_screen);
+    app_observe_direct_route_change(app, frame_route);
 #if !defined(PLATFORM_WEB)
-    if(app->transition_mode == APP_TRANSITION_FADE) {
-        flint_transition_draw_fade(&app->screen_transition, view_width,
+    if(app->transition_mode == APP_TRANSITION_FADE &&
+       app->screen_transition.active) {
+        DrawUITransitionFade(&app->screen_transition, view_width,
                                    app_page_height(app, view_height),
-                                   flint_theme_get_bg());
+                                   GetThemeBackground());
     }
 #endif
     app_advance_screen_transition(app);
+    app_step_content_transition(app);
     app->inbe.frame++;
 }
 
@@ -1281,41 +1654,42 @@ app_update_draw(void *vapp, Rectangle viewport) {
     view_height = full_height;
 
     /* Update DPI cache */
-    flint_dpi_update(view_width, view_height);
-    flint_set_view_size(view_width, view_height);
+    UpdateUIDPI(view_width, view_height);
+    SetUIViewSize(view_width, view_height);
 
-    ui_init(view_width, view_height, flint_dpi_scale());
+    InitUI(view_width, view_height, GetUIDPIScale());
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
 
     app->cursor_clickable = 0;
     app->cursor_disabled = 0;
-    ui_set_cursor_clickable(&app->cursor_clickable);
-    ui_set_cursor_disabled(&app->cursor_disabled);
+    SetUICursorClickable(&app->cursor_clickable);
+    SetUICursorDisabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
+    SetUITransitionCuesEnabled(app->transition_mode == APP_TRANSITION_FADE);
 
-    DrawRectangleRec(viewport, flint_theme_get_bg());
+    DrawRectangleRec(viewport, GetThemeBackground());
 
     content_w = full_width - content_x;
     if(content_w < 1)
         content_w = 1;
     view_width = content_w;
     view_height = full_height;
-    flint_set_view_size(view_width, view_height);
-    ui_init(view_width, view_height, flint_dpi_scale());
+    SetUIViewSize(view_width, view_height);
+    InitUI(view_width, view_height, GetUIDPIScale());
     app->camera = (Camera2D){0};
     app->camera.zoom = 1.0f;
     app->camera.offset.x = viewport.x + content_x;
     app->camera.offset.y = viewport.y;
-    ui_set_frame(app->camera);
+    SetUIFrame(app->camera);
 
-    flint_clip_begin((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
+    BeginUIClip((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
-            DrawRectangle(0, 0, view_width, view_height, flint_theme_get_bg());
+            DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
             updateapp(app);
         EndMode2D();
-    flint_clip_end();
+    EndUIClip();
     habits_flush_save(app);
     app_sync_pump(app);
 }
@@ -1344,7 +1718,7 @@ app_destroy(void *vapp)
     habits_flush_save(app);
 
     // Unload all icons
-    flint_unload_all_icons(app->icons);
+    UnloadAllUIIconTextures(app->icons);
     app_unload_texture(app->pet.egg);
     app_unload_texture(app->font_shapes_texture);
     unload_locale_font(app);

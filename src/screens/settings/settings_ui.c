@@ -1,13 +1,13 @@
 #include "settings_ui.h"
 
 #include "app.h"
-#include "flint_locale.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui.h"
 
-static FlintUIParagraph
+static UIParagraph
 settings_ui_label_paragraph(const char *label, int w)
 {
-    return (FlintUIParagraph){
+    return (UIParagraph){
         .text = label,
         .width = w
     };
@@ -20,12 +20,12 @@ settings_ui_toggle_row_height(const char *label, int w)
     int row_h;
 
     if(w <= 0)
-        w = flint_px(160);
+        w = ScaleUIPx(160);
 
-    label_h = flint_ui_paragraph_height(settings_ui_label_paragraph(label, w));
-    row_h = label_h + flint_px(8) + flint_px(30) + flint_px(22);
-    if(row_h < flint_px(76))
-        row_h = flint_px(76);
+    label_h = GetUIParagraphHeight(settings_ui_label_paragraph(label, w));
+    row_h = label_h + ScaleUIPx(8) + ScaleUIPx(30) + ScaleUIPx(22);
+    if(row_h < ScaleUIPx(76))
+        row_h = ScaleUIPx(76);
     return row_h;
 }
 
@@ -35,20 +35,20 @@ settings_ui_draw_toggle_row(int x, int w, int *y, const char *label, int *value)
     int label_y;
     int label_h;
     int row_h;
-    int toggle_w = flint_px(56);
-    int toggle_h = flint_px(30);
+    int toggle_w = ScaleUIPx(56);
+    int toggle_h = ScaleUIPx(30);
 
     if(y == NULL)
         return 0;
 
     row_h = settings_ui_toggle_row_height(label, w);
     label_y = *y;
-    flint_ui_paragraph_draw(settings_ui_label_paragraph(label, w), x, &label_y);
+    DrawUIParagraph(settings_ui_label_paragraph(label, w), x, &label_y);
     label_h = label_y - *y;
 
-    if(ui_draw_toggle_switch(x, *y + label_h + flint_px(8), toggle_w, toggle_h,
-                             value, locale_get("toggle_off"),
-                             locale_get("toggle_on"))) {
+    if(DrawUIToggleSwitch(x, *y + label_h + ScaleUIPx(8), toggle_w, toggle_h,
+                             value, GetLocaleText("toggle_off"),
+                             GetLocaleText("toggle_on"))) {
         *y += row_h;
         return 1;
     }
@@ -81,7 +81,7 @@ settings_ui_commit_slider_row(InbeApp *app, int id, int x, int w, int *y,
 
     if(y == NULL)
         return 0;
-    changed = ui_draw_slider(id, x, *y, w, label, min, max, value, suffix);
+    changed = DrawUISlider(id, x, *y, w, label, min, max, value, suffix);
     if(changed && app != NULL) {
         app->settings_dirty = 1;
         if(save_now)

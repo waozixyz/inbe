@@ -10,7 +10,7 @@ habit_edit_begin_new(InbeApp *app)
     if(app == NULL)
         return;
 
-    default_name = locale_get("habit_new_default_name");
+    default_name = GetLocaleText("habit_new_default_name");
     app->habit_edit = (HabitEditState){
         .active = 1,
         .is_new = 1,
@@ -60,7 +60,7 @@ habit_edit_cancel(InbeApp *app)
         .color = {99, 196, 165, 255},
         .sync_mode = INBE_HABIT_SYNC_NONE
     };
-    ui_focus_set_text_input_active(0);
+    SetUIFocusTextInputActive(0);
 }
 
 static const char *
@@ -86,55 +86,55 @@ static int
 habit_edit_info_modal(const char *title, const char *message)
 {
     static int info_scroll = 0;
-    FlintUIPanelFrame frame;
-    FlintUIParagraph paragraph;
-    FlintUIScrollView scroll_view;
-    FlintUIScrollArea scroll_area;
+    UIPanelFrame frame;
+    UIParagraph paragraph;
+    UIScrollView scroll_view;
+    UIScrollArea scroll_area;
     int y;
     int modal_h;
     int modal_w;
     int paragraph_h;
-    int button_w = flint_px(112);
-    int button_h = flint_px(36);
+    int button_w = ScaleUIPx(112);
+    int button_h = ScaleUIPx(36);
     int button_y;
     int text_h;
     int hover = 0;
     int result = 0;
 
-    modal_w = view_width - flint_px(36);
-    if(modal_w > flint_px(420))
-        modal_w = flint_px(420);
-    if(modal_w < flint_px(320))
-        modal_w = flint_px(320);
-    if(modal_w > view_width - flint_px(24))
-        modal_w = view_width - flint_px(24);
-    if(modal_w < flint_px(240))
-        modal_w = flint_px(240);
+    modal_w = view_width - ScaleUIPx(36);
+    if(modal_w > ScaleUIPx(420))
+        modal_w = ScaleUIPx(420);
+    if(modal_w < ScaleUIPx(320))
+        modal_w = ScaleUIPx(320);
+    if(modal_w > view_width - ScaleUIPx(24))
+        modal_w = view_width - ScaleUIPx(24);
+    if(modal_w < ScaleUIPx(240))
+        modal_w = ScaleUIPx(240);
 
-    paragraph = (FlintUIParagraph){
+    paragraph = (UIParagraph){
         .text = message,
-        .width = modal_w - flint_px(36),
-        .font = flint_ui_font(),
-        .line_gap = flint_px(4)
+        .width = modal_w - ScaleUIPx(36),
+        .font = GetUIFontSize(),
+        .line_gap = ScaleUIPx(4)
     };
-    modal_h = ui_paragraph_modal_height((FlintUIParagraphModalMeasure){
+    modal_h = GetUIParagraphModalHeight((UIParagraphModalMeasure){
         .message = message,
         .width = modal_w,
         .button_h = button_h,
         .extra_lines = 2,
-        .min_height = flint_px(196)
+        .min_height = ScaleUIPx(196)
     });
 
-    frame = ui_draw_modal_frame(modal_w, modal_h, title,
+    frame = DrawUIModalFrame(modal_w, modal_h, title,
                                 (Texture2D){0}, (Texture2D){0});
     paragraph.width = frame.content_w;
-    paragraph_h = flint_ui_paragraph_height(paragraph);
-    button_y = frame.y + frame.h - button_h - flint_px(16);
-    text_h = button_y - frame.content_y - flint_px(16);
-    if(text_h < flint_px(32))
-        text_h = flint_px(32);
+    paragraph_h = GetUIParagraphHeight(paragraph);
+    button_y = frame.y + frame.h - button_h - ScaleUIPx(16);
+    text_h = button_y - frame.content_y - ScaleUIPx(16);
+    if(text_h < ScaleUIPx(32))
+        text_h = ScaleUIPx(32);
 
-    scroll_area = (FlintUIScrollArea){
+    scroll_area = (UIScrollArea){
         .bounds = {
             (float)frame.content_x,
             (float)frame.content_y,
@@ -146,14 +146,14 @@ habit_edit_info_modal(const char *title, const char *message)
         .content_width = frame.content_w,
         .scroll_offset = &info_scroll
     };
-    scroll_view = ui_scroll_container_begin(scroll_area);
+    scroll_view = BeginUIScrollContainer(scroll_area);
     y = scroll_view.content_y;
-    flint_ui_paragraph_draw(paragraph, scroll_view.content_x, &y);
-    ui_scroll_container_end(scroll_area, scroll_view);
+    DrawUIParagraph(paragraph, scroll_view.content_x, &y);
+    EndUIScrollContainer(scroll_area, scroll_view);
 
-    if(ui_draw_generic_button(frame.x + (frame.w - button_w) / 2,
+    if(DrawUIGenericButton(frame.x + (frame.w - button_w) / 2,
                               button_y,
-                              button_w, button_h, locale_get("ok_button"),
+                              button_w, button_h, GetLocaleText("ok_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         result = 1;
     if(frame.right_clicked)
@@ -251,21 +251,21 @@ habit_edit_handle_keyboard(InbeApp *app)
     }
 }
 
-static FlintUITextField
+static UITextField
 habit_edit_text_field(char *text, size_t text_size, int *cursor, int *focused,
                       int max_codepoints, int font)
 {
-    FlintUITextInputStyle style = {
-        .background = flint_darken(flint_theme_get_bg(), 4),
-        .border = flint_theme_get_button(),
-        .focus_border = flint_theme_get_button_hover(),
-        .text = flint_theme_get_text(),
-        .cursor = flint_theme_get_text(),
+    UITextInputStyle style = {
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
         .radius = 0.08f,
-        .padding_x = flint_px(10)
+        .padding_x = ScaleUIPx(10)
     };
 
-    return (FlintUITextField){
+    return (UITextField){
         .bounds = {0},
         .text = text,
         .text_size = text_size,
@@ -282,23 +282,23 @@ static int
 habit_color_button(InbeApp *app, int x, int y, Color color, int selected)
 {
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int radius = flint_px(13);
+    int radius = ScaleUIPx(13);
     Rectangle bounds = {
-        (float)(x - radius - flint_px(6)),
-        (float)(y - radius - flint_px(6)),
-        (float)(radius * 2 + flint_px(12)),
-        (float)(radius * 2 + flint_px(12))
+        (float)(x - radius - ScaleUIPx(6)),
+        (float)(y - radius - ScaleUIPx(6)),
+        (float)(radius * 2 + ScaleUIPx(12)),
+        (float)(radius * 2 + ScaleUIPx(12))
     };
     int active = CheckCollisionPointRec(mouse_world, bounds);
-    int hovered = active && ui_hover_effects_enabled();
+    int hovered = active && UIHoverEffectsEnabled();
 
     DrawCircle(x, y, radius, color);
-    DrawCircleLines(x, y, radius + flint_px(2),
-                    selected ? flint_theme_get_text() : flint_darken(flint_theme_get_bg(), 42));
+    DrawCircleLines(x, y, radius + ScaleUIPx(2),
+                    selected ? GetThemeText() : DarkenUIColor(GetThemeBackground(), 42));
     if(active) {
         app->cursor_clickable = 1;
         if(hovered)
-            DrawCircleLines(x, y, radius + flint_px(5), flint_theme_get_button_hover());
+            DrawCircleLines(x, y, radius + ScaleUIPx(5), GetThemeButtonHover());
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             return 1;
     }
@@ -309,27 +309,27 @@ static int
 habit_edit_scroll_content_height(int content_w, void *user_data)
 {
     InbeApp *app = user_data;
-    int height = flint_px(18);
+    int height = ScaleUIPx(18);
 
     (void)content_w;
-    height += ui_label_text_field_height((FlintUILabelTextField){
-        .label = locale_get("habit_name_label"),
-        .field_h = flint_px(40)
+    height += GetUILabelTextFieldHeight((UILabelTextField){
+        .label = GetLocaleText("habit_name_label"),
+        .field_h = ScaleUIPx(40)
     });
-    height += ui_label_text_field_height((FlintUILabelTextField){
-        .label = locale_get("habit_description_label"),
-        .field_h = flint_px(40)
+    height += GetUILabelTextFieldHeight((UILabelTextField){
+        .label = GetLocaleText("habit_description_label"),
+        .field_h = ScaleUIPx(40)
     });
-    height += flint_px(32) + flint_px(76);
-    height += ui_section_label_height((FlintUISectionLabel){0});
+    height += ScaleUIPx(32) + ScaleUIPx(76);
+    height += GetUISectionLabelHeight((UISectionLabel){0});
     for(int i = 0; i < EXERCISE_COUNT; i++)
-        height += ui_checkbox_row_height((FlintUICheckboxRow){0});
-    height += flint_px(4);
-    height += ui_section_label_height((FlintUISectionLabel){0});
-    height += ui_checkbox_row_height((FlintUICheckboxRow){0});
-    height += flint_px(10);
-    height += ui_button_row_height((FlintUIButtonRow){.height = flint_px(40)});
-    height += flint_px(24);
+        height += GetUICheckboxRowHeight((UICheckboxRow){0});
+    height += ScaleUIPx(4);
+    height += GetUISectionLabelHeight((UISectionLabel){0});
+    height += GetUICheckboxRowHeight((UICheckboxRow){0});
+    height += ScaleUIPx(10);
+    height += GetUIButtonRowHeight((UIButtonRow){.height = ScaleUIPx(40)});
+    height += ScaleUIPx(24);
     (void)app;
     return height;
 }
@@ -340,15 +340,15 @@ draw_habit_edit_screen(InbeApp *app)
     const char *title;
     const char *activity_options[EXERCISE_COUNT];
     Color color_options[12];
-    int top_h = flint_px(58);
+    int top_h = ScaleUIPx(58);
     int bottom_reserved;
     int content_x;
     int content_w;
-    int max_w = flint_px(CONTENT_MAX_W);
-    int y = top_h + flint_px(18);
-    int font = flint_ui_font();
-    int label_font = flint_ui_font_small();
-    int field_h = flint_px(40);
+    int max_w = ScaleUIPx(CONTENT_MAX_W);
+    int y = top_h + ScaleUIPx(18);
+    int font = GetUIFontSize();
+    int label_font = GetUISmallFontSize();
+    int field_h = ScaleUIPx(40);
     int hover = 0;
     int title_font;
     int title_w;
@@ -367,55 +367,55 @@ draw_habit_edit_screen(InbeApp *app)
         return;
     }
 
-    title = app->habit_edit.is_new ? locale_get("habit_new_title") : locale_get("habit_edit_title");
+    title = app->habit_edit.is_new ? GetLocaleText("habit_new_title") : GetLocaleText("habit_edit_title");
 
     if(app->inbe.screen == InbeScreenHabitEdit) {
-        DrawRectangle(0, 0, view_width, top_h, flint_theme_get_bg());
-        DrawLine(0, top_h - 1, view_width, top_h - 1, flint_darken(flint_theme_get_button(), 18));
+        DrawRectangle(0, 0, view_width, top_h, GetThemeBackground());
+        DrawLine(0, top_h - 1, view_width, top_h - 1, DarkenUIColor(GetThemeButton(), 18));
         if(!app->modal.active &&
-           ui_draw_icon_btn_padded(flint_px(12), flint_px(12), flint_px(24),
-                                   flint_px(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
+           DrawUIPaddedIconBtn(ScaleUIPx(12), ScaleUIPx(12), ScaleUIPx(24),
+                                   ScaleUIPx(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
             habit_edit_cancel(app);
             app_switch_screen(app, InbeScreenHabits);
             return;
         }
-        title_font = flint_ui_title_font(title, view_width - flint_px(120));
-        title_w = flint_text_measure(title, title_font);
-        flint_text_draw(title, (view_width - title_w) / 2,
-                        flint_ui_text_y(title, 0, top_h, title_font),
-                        title_font, flint_theme_get_text());
+        title_font = GetUITitleFontSize(title, view_width - ScaleUIPx(120));
+        title_w = MeasureUIText(title, title_font);
+        DrawUIText(title, (view_width - title_w) / 2,
+                        GetUIControlTextY(title, 0, top_h, title_font),
+                        title_font, GetThemeText());
         if(!app->modal.active &&
-           ui_draw_icon_btn_padded(view_width - flint_px(52), flint_px(12),
-                                   flint_px(24), flint_px(8), app->icons[UI_ICON_TYPE_CHECK], &hover)) {
+           DrawUIPaddedIconBtn(view_width - ScaleUIPx(52), ScaleUIPx(12),
+                                   ScaleUIPx(24), ScaleUIPx(8), app->icons[UI_ICON_TYPE_CHECK], &hover)) {
             habit_edit_commit(app);
             return;
         }
     } else {
         top_h = habits_screen_top_reserved(app);
-        y = top_h + flint_px(18);
+        y = top_h + ScaleUIPx(18);
     }
 
     if(app->modal.active && app->modal.type == UIModalHabitPracticeListInfo) {
-        if(habit_edit_info_modal(locale_get("habit_practice_list_title"),
-                                 locale_get("habit_practice_list_info"))) {
+        if(habit_edit_info_modal(GetLocaleText("habit_practice_list_title"),
+                                 GetLocaleText("habit_practice_list_info"))) {
             app_close_modal(app);
         }
         return;
     }
 
     if(app->modal.active && app->modal.type == UIModalHabitCountingInfo) {
-        if(habit_edit_info_modal(locale_get("habit_counting_title"),
-                                 locale_get("habit_counting_info"))) {
+        if(habit_edit_info_modal(GetLocaleText("habit_counting_title"),
+                                 GetLocaleText("habit_counting_info"))) {
             app_close_modal(app);
         }
         return;
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmDeleteHabit) {
-        int modal_result = ui_draw_modal(locale_get("habit_delete_title"),
-                                         locale_get("habit_delete_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("delete_button"));
+        int modal_result = DrawUIModal(GetLocaleText("habit_delete_title"),
+                                         GetLocaleText("habit_delete_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("delete_button"));
         if(modal_result == 1) {
             app_close_modal(app);
         } else if(modal_result == 2) {
@@ -436,11 +436,11 @@ draw_habit_edit_screen(InbeApp *app)
 
     {
     int viewport_h = view_height - top_h - bottom_reserved;
-    FlintUIScrollPage page;
+    UIScrollPage page;
 
     if(viewport_h < 0)
         viewport_h = 0;
-    page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+    page = BeginUIScrollPage((UIScrollPageSpec){
         .y = top_h,
         .height = viewport_h,
         .max_content_width = max_w,
@@ -450,15 +450,15 @@ draw_habit_edit_screen(InbeApp *app)
     });
     content_x = page.content_x;
     content_w = page.content_w;
-    y = page.content_y + flint_px(18);
+    y = page.content_y + ScaleUIPx(18);
 
     habit_edit_handle_keyboard(app);
     if(!app->habit_edit.active) {
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
         return;
     }
-    (void)ui_draw_label_text_field((FlintUILabelTextField){
-        .label = locale_get("habit_name_label"),
+    (void)DrawUILabelTextField((UILabelTextField){
+        .label = GetLocaleText("habit_name_label"),
         .field = habit_edit_text_field(app->habit_edit.text,
                                        sizeof(app->habit_edit.text),
                                        &app->habit_edit.cursor,
@@ -466,13 +466,13 @@ draw_habit_edit_screen(InbeApp *app)
                                        INBE_HABIT_NAME_SIZE - 1, font),
         .field_h = field_h,
         .label_font = label_font,
-        .label_color = flint_darken(flint_theme_get_text(), 34)
+        .label_color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y, content_w);
     habit_edit_clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor);
-    y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
+    y += GetUILabelTextFieldHeight((UILabelTextField){.field_h = field_h});
 
-    (void)ui_draw_label_text_field((FlintUILabelTextField){
-        .label = locale_get("habit_description_label"),
+    (void)DrawUILabelTextField((UILabelTextField){
+        .label = GetLocaleText("habit_description_label"),
         .field = habit_edit_text_field(app->habit_edit.description,
                                        sizeof(app->habit_edit.description),
                                        &app->habit_edit.description_cursor,
@@ -480,15 +480,15 @@ draw_habit_edit_screen(InbeApp *app)
                                        INBE_HABIT_DESCRIPTION_SIZE - 1, font),
         .field_h = field_h,
         .label_font = label_font,
-        .label_color = flint_darken(flint_theme_get_text(), 34)
+        .label_color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y, content_w);
     habit_edit_clamp_cursor(app->habit_edit.description,
                             &app->habit_edit.description_cursor);
-    y += ui_label_text_field_height((FlintUILabelTextField){.field_h = field_h});
+    y += GetUILabelTextFieldHeight((UILabelTextField){.field_h = field_h});
 
-    flint_text_draw(locale_get("habit_underline_label"), content_x, y,
-                    label_font, flint_darken(flint_theme_get_text(), 34));
-    y += flint_px(32);
+    DrawUIText(GetLocaleText("habit_underline_label"), content_x, y,
+                    label_font, DarkenUIColor(GetThemeText(), 34));
+    y += ScaleUIPx(32);
     color_options[0] = (Color){224, 92, 92, 255};
     color_options[1] = (Color){224, 124, 104, 255};
     color_options[2] = (Color){232, 150, 74, 255};
@@ -504,27 +504,27 @@ draw_habit_edit_screen(InbeApp *app)
     for(int i = 0; i < 12; i++) {
         int row = i / 6;
         int col = i % 6;
-        int cx = content_x + flint_px(18) + col * flint_px(42);
-        int cy = y + row * flint_px(42);
+        int cx = content_x + ScaleUIPx(18) + col * ScaleUIPx(42);
+        int cy = y + row * ScaleUIPx(42);
         int selected = app->habit_edit.color.r == color_options[i].r &&
                        app->habit_edit.color.g == color_options[i].g &&
                        app->habit_edit.color.b == color_options[i].b;
         if(habit_color_button(app, cx, cy, color_options[i], selected))
             app->habit_edit.color = color_options[i];
     }
-    y += flint_px(76);
+    y += ScaleUIPx(76);
 
-    if(ui_draw_section_label((FlintUISectionLabel){
-        .label = locale_get("habit_practice_list_title"),
+    if(DrawUISectionLabel((UISectionLabel){
+        .label = GetLocaleText("habit_practice_list_title"),
         .info_button = 1,
-        .color = flint_darken(flint_theme_get_text(), 34)
+        .color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y)) {
         app_open_modal(app, UIModalHabitPracticeListInfo);
     }
-    y += ui_section_label_height((FlintUISectionLabel){0});
+    y += GetUISectionLabelHeight((UISectionLabel){0});
     for(int i = 0; i < EXERCISE_COUNT; i++) {
         int enabled = (app->habit_edit.sync_activity & habit_activity_mask_for(i)) != 0;
-        if(ui_draw_checkbox_row((FlintUICheckboxRow){
+        if(DrawUICheckboxRow((UICheckboxRow){
             .label = activity_options[i],
             .value = &enabled
         }, content_x, y)) {
@@ -536,52 +536,52 @@ draw_habit_edit_screen(InbeApp *app)
                                             ? INBE_HABIT_SYNC_ACTIVITIES
                                             : INBE_HABIT_SYNC_NONE;
         }
-        y += ui_checkbox_row_height((FlintUICheckboxRow){0});
+        y += GetUICheckboxRowHeight((UICheckboxRow){0});
     }
 
-    y += flint_px(4);
-    if(ui_draw_section_label((FlintUISectionLabel){
-        .label = locale_get("habit_counting_title"),
+    y += ScaleUIPx(4);
+    if(DrawUISectionLabel((UISectionLabel){
+        .label = GetLocaleText("habit_counting_title"),
         .info_button = 1,
-        .color = flint_darken(flint_theme_get_text(), 34)
+        .color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y)) {
         app_open_modal(app, UIModalHabitCountingInfo);
     }
-    y += ui_section_label_height((FlintUISectionLabel){0});
-    if(ui_draw_checkbox_row((FlintUICheckboxRow){
-        .label = locale_get("habit_multiple_counts_label"),
+    y += GetUISectionLabelHeight((UISectionLabel){0});
+    if(DrawUICheckboxRow((UICheckboxRow){
+        .label = GetLocaleText("habit_multiple_counts_label"),
         .value = &app->habit_edit.counter_enabled
     }, content_x, y)) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0;
     }
-    y += ui_checkbox_row_height((FlintUICheckboxRow){0});
+    y += GetUICheckboxRowHeight((UICheckboxRow){0});
 
-    y += flint_px(10);
+    y += ScaleUIPx(10);
     {
-        FlintUIButtonRowItem actions[2];
+        UIButtonRowItem actions[2];
         int action_count = app->habit_edit.is_new ? 1 : 2;
         int clicked_action;
 
         if(app->habit_edit.is_new) {
-            actions[0] = (FlintUIButtonRowItem){
-                .label = locale_get("save_button"),
+            actions[0] = (UIButtonRowItem){
+                .label = GetLocaleText("save_button"),
                 .style = UI_BUTTON_STYLE_PRIMARY
             };
         } else {
-            actions[0] = (FlintUIButtonRowItem){
-                .label = locale_get("habit_delete_button"),
+            actions[0] = (UIButtonRowItem){
+                .label = GetLocaleText("habit_delete_button"),
                 .style = UI_BUTTON_STYLE_DANGER
             };
-            actions[1] = (FlintUIButtonRowItem){
-                .label = locale_get("save_button"),
+            actions[1] = (UIButtonRowItem){
+                .label = GetLocaleText("save_button"),
                 .style = UI_BUTTON_STYLE_PRIMARY
             };
         }
-        clicked_action = ui_draw_button_row((FlintUIButtonRow){
+        clicked_action = DrawUIButtonRow((UIButtonRow){
             .x = content_x,
             .y = y,
             .width = content_w,
-            .height = flint_px(40),
+            .height = ScaleUIPx(40),
             .items = actions,
             .count = action_count
         });
@@ -589,12 +589,12 @@ draw_habit_edit_screen(InbeApp *app)
             app_open_modal(app, UIModalConfirmDeleteHabit);
         } else if((app->habit_edit.is_new && clicked_action == 0) ||
                   (!app->habit_edit.is_new && clicked_action == 1)) {
-            ui_scroll_page_end(page);
+            EndUIScrollPage(page);
             habit_edit_commit(app);
             return;
         }
     }
 
-    ui_scroll_page_end(page);
+    EndUIScrollPage(page);
     }
 }

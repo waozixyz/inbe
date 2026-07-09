@@ -2,9 +2,9 @@
 
 #include "app.h"
 #include "data.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui.h"
 #include "practices/meditation/meditation_music.h"
 
 #include <stdio.h>
@@ -168,7 +168,7 @@ draw_pose_image(Texture2D texture, int top_y, int bottom_y)
     if(texture.id == 0 || bottom_y <= top_y)
         return;
 
-    max_w = (float)(view_width - flint_px(48));
+    max_w = (float)(view_width - ScaleUIPx(48));
     max_h = (float)(bottom_y - top_y);
     scale = max_w / (float)texture.width;
     if((float)texture.height * scale > max_h)
@@ -188,8 +188,8 @@ draw_pose_image(Texture2D texture, int top_y, int bottom_y)
 void
 sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
-    FlintUIIconRowItem controls[3];
-    FlintUIIconRowResult row;
+    UIIconRowItem controls[3];
+    UIIconRowResult row;
     Texture2D pose;
     const char *step_label;
     char step_title[32];
@@ -198,10 +198,10 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     int repetitions;
     int pose_index;
     int text_w;
-    int title_h = flint_ui_title_bar_height();
-    int subtitle_h = flint_px(34);
-    int content_top = title_h + subtitle_h + flint_px(8);
-    int subtitle_font = flint_ui_font_small();
+    int title_h = GetUITitleBarHeight();
+    int subtitle_h = ScaleUIPx(34);
+    int content_top = title_h + subtitle_h + ScaleUIPx(8);
+    int subtitle_font = GetUISmallFontSize();
     int subtitle_y;
     int image_bottom;
     int min_view_dim = view_width < view_height ? view_width : view_height;
@@ -210,10 +210,10 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
         return;
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        int modal_result = ui_draw_modal(locale_get("exit_session_title"),
-                                         locale_get("all_progress_lost_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("exit_button"));
+        int modal_result = DrawUIModal(GetLocaleText("exit_session_title"),
+                                         GetLocaleText("all_progress_lost_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("exit_button"));
         if(modal_result == 1)
             app_close_modal(app);
         else if(modal_result == 2)
@@ -252,42 +252,42 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     snprintf(step_title, sizeof(step_title), "Step %d / %d", step + 1,
              SUN_SALUTATION_STEP_COUNT);
     if(app->show_session_return_button &&
-       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], step_title, title_h)) {
+       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], step_title, title_h)) {
         sun_salutation_request_exit(app);
         return;
     } else if(!app->show_session_return_button) {
-        flint_ui_title_bar(step_title, title_h);
+        DrawUITitleBar(step_title, title_h);
     }
-    text_w = flint_text_measure(step_label, subtitle_font);
+    text_w = MeasureUIText(step_label, subtitle_font);
     subtitle_y = title_h;
-    flint_text_draw(step_label, center_x - text_w / 2,
-                    flint_ui_text_y(step_label, subtitle_y, subtitle_h, subtitle_font),
-                    subtitle_font, flint_theme_get_text());
+    DrawUIText(step_label, center_x - text_w / 2,
+                    GetUIControlTextY(step_label, subtitle_y, subtitle_h, subtitle_font),
+                    subtitle_font, GetThemeText());
 
-    controls[0] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_BACKWARD],
+    controls[0] = (UIIconRowItem){app->icons[UI_ICON_TYPE_BACKWARD],
                                        step <= 0 && repetition <= 0};
-    controls[1] = (FlintUIIconRowItem){app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] :
+    controls[1] = (UIIconRowItem){app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] :
                                                             app->icons[UI_ICON_TYPE_PAUSE],
                                        0};
-    controls[2] = (FlintUIIconRowItem){app->icons[UI_ICON_TYPE_FORWARD], 0};
-    row = ui_draw_bottom_icon_row((FlintUIBottomIconRow){
+    controls[2] = (UIIconRowItem){app->icons[UI_ICON_TYPE_FORWARD], 0};
+    row = DrawUIBottomIconRow((UIBottomIconRow){
         .center_x = center_x,
         .view_width = view_width,
         .view_height = view_height,
         .count = 3,
         .items = controls,
-        .icon_size = flint_px(24),
-        .icon_padding = flint_px(10),
-        .gap = flint_px(12),
-        .side_margin = flint_px(24),
-        .bottom_margin = flint_px(6),
+        .icon_size = ScaleUIPx(24),
+        .icon_padding = ScaleUIPx(10),
+        .gap = ScaleUIPx(12),
+        .side_margin = ScaleUIPx(24),
+        .bottom_margin = ScaleUIPx(6),
         .max_button_width = min_view_dim / 6,
-        .min_icon_size = flint_px(16),
-        .min_icon_padding = flint_px(6),
-        .min_gap = flint_px(8)
+        .min_icon_size = ScaleUIPx(16),
+        .min_icon_padding = ScaleUIPx(6),
+        .min_gap = ScaleUIPx(8)
     });
 
-    image_bottom = row.y - flint_px(18);
+    image_bottom = row.y - ScaleUIPx(18);
     draw_pose_image(pose, content_top, image_bottom);
 
     if(row.clicked_index == 0)

@@ -49,6 +49,7 @@ storage_migrate_habit_ids_to_uuid(void);
 #define STORAGE_SYNC_APPLY_REVIEW_KEY "sync_apply_pending_review"
 #define STORAGE_SYNC_FULL_REPLACE_KEY "sync_full_replace_requested"
 #define STORAGE_SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
+#define STORAGE_SYNC_DATA_OWNER_PUBLIC_ID_KEY "sync_data_owner_public_id"
 #define STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY "sync_zero_habit_day_repair_v1_done"
 #define STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY "default_habit_id_migration_v1_done"
 #define STORAGE_HABIT_UUID_MIGRATION_KEY "habit_uuid_migration_v1_done"
@@ -377,6 +378,58 @@ storage_reset_sync_state(void)
     exec_sql("DELETE FROM sync_outbox");
     storage_enqueue_all_sync_state();
     storage_schedule_persist();
+}
+
+const char *
+storage_sync_data_owner_public_id(void)
+{
+    const char *owner = get_meta_text(STORAGE_SYNC_DATA_OWNER_PUBLIC_ID_KEY);
+    return owner != NULL && owner[0] != '\0' ? owner : NULL;
+}
+
+void
+storage_set_sync_data_owner_public_id(const char *public_id)
+{
+    if(g_storage.db == NULL)
+        return;
+    set_meta(STORAGE_SYNC_DATA_OWNER_PUBLIC_ID_KEY,
+             public_id != NULL ? public_id : "");
+    storage_schedule_persist();
+}
+
+int
+storage_has_local_syncable_data(void)
+{
+    if(g_storage.db == NULL)
+        return 0;
+    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM sessions "
+                            "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+                            "AND deleted_at=0 LIMIT 1)",
+                            0) != 0)
+        return 1;
+    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM habits "
+                            "WHERE user_id=(SELECT id FROM users LIMIT 1) "
+                            "AND deleted_at=0 LIMIT 1)",
+                            0) != 0)
+        return 1;
+    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM habit_days hd "
+                            "JOIN habits h ON h.id=hd.habit_id "
+                            "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
+                            "AND (hd.completed!=0 OR hd.count>0) LIMIT 1)",
+                            0) != 0)
+        return 1;
+    return storage_select_int64("SELECT EXISTS(SELECT 1 FROM social_snapshots "
+                                "WHERE user_id=(SELECT id FROM users LIMIT 1) LIMIT 1)",
+                                0) != 0;
+}
+
+int
+storage_clear_local_syncable_data(void)
+{
+    int ok = storage_clear_local_sync_data();
+    if(ok)
+        storage_schedule_persist();
+    return ok;
 }
 
 const char *

@@ -1,8 +1,8 @@
-#include "flint_ui.h"
-#include "flint_theme.h"
-#include "flint_color.h"
-#include "flint_dpi.h"
-#include "flint_text.h"
+#include "ui.h"
+#include "theme.h"
+#include "ui_color.h"
+#include "ui_dpi.h"
+#include "ui_text.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -25,13 +25,13 @@ ui_set_input_blocked(int blocked)
 }
 
 void
-ui_set_modal_capture(Rectangle bounds)
+SetUIModalCapture(Rectangle bounds)
 {
     (void)bounds;
 }
 
 int
-flint_ui_icon_button(FlintUIIconButton button)
+DrawUIIconButton(UIIconButton button)
 {
     (void)button;
     icon_call_count++;
@@ -41,32 +41,32 @@ flint_ui_icon_button(FlintUIIconButton button)
 }
 
 int
-ui_hover_effects_enabled(void)
+UIHoverEffectsEnabled(void)
 {
     return !g_ui_input_blocked;
 }
 
 int
-flint_px(int value)
+ScaleUIPx(int value)
 {
     return value;
 }
 
 int
-flint_ui_font(void)
+GetUIFontSize(void)
 {
-    return FLINT_TEXT_16;
+    return UI_TEXT_16;
 }
 
 int
-flint_ui_paragraph_height(FlintUIParagraph paragraph)
+GetUIParagraphHeight(UIParagraph paragraph)
 {
     (void)paragraph;
     return 34;
 }
 
 void
-flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y)
+DrawUIParagraph(UIParagraph paragraph, int x, int *y)
 {
     (void)paragraph;
     (void)x;
@@ -75,26 +75,26 @@ flint_ui_paragraph_draw(FlintUIParagraph paragraph, int x, int *y)
 }
 
 Color
-flint_theme_get_button(void)
+GetThemeButton(void)
 {
     return (Color){80, 90, 100, 255};
 }
 
 Color
-flint_theme_get_text(void)
+GetThemeText(void)
 {
     return (Color){240, 240, 240, 255};
 }
 
 Color
-flint_darken(Color color, int amount)
+DarkenUIColor(Color color, int amount)
 {
     (void)amount;
     return color;
 }
 
 void
-flint_text_draw(const char *text, int x, int y, int font_size, Color color)
+DrawUIText(const char *text, int x, int y, int font_size, Color color)
 {
     (void)text;
     (void)x;
@@ -141,16 +141,16 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
 
 #include "../vendor/flint/src/ui/guide.c"
 
-static FlintUIGuideOverlay
+static UIGuideOverlay
 test_guide(int *step)
 {
-    static FlintUIGuideStep steps[3] = {
+    static UIGuideStep steps[3] = {
         {{20, 20, 80, 30}, "First"},
         {{20, 70, 80, 30}, "Second"},
         {{20, 120, 80, 30}, "Third"}
     };
 
-    return (FlintUIGuideOverlay){
+    return (UIGuideOverlay){
         .steps = steps,
         .count = 3,
         .step = step,
@@ -185,18 +185,18 @@ static void
 test_blocks_passthrough(void)
 {
     int step = 0;
-    FlintUIGuideResult result;
+    UIGuideResult result;
 
     reset_input();
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(!result.closed && !result.finished && !result.changed,
            "plain draw should not change guide state");
     expect(!g_ui_input_blocked, "guide must restore unblocked input after draw");
     expect(!icon_saw_blocked, "guide buttons should be evaluated while temporarily unblocked");
-    expect(ui_hover_effects_enabled(), "guide must restore hover effects after draw");
+    expect(UIHoverEffectsEnabled(), "guide must restore hover effects after draw");
 
     g_ui_input_blocked = 1;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(!result.closed && !result.finished && !result.changed,
            "plain draw with preblocked input should not change guide state");
     expect(g_ui_input_blocked, "guide must restore preblocked input after draw");
@@ -206,30 +206,30 @@ static void
 test_next_back_close_finish(void)
 {
     int step = 0;
-    FlintUIGuideResult result;
+    UIGuideResult result;
 
     reset_input();
     icon_click_call = 2;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 1, "next button should advance step");
     expect(!g_ui_input_blocked, "next button should restore unblocked input");
 
     reset_input();
     icon_click_call = 2;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 0, "back button should return to previous step");
     expect(!g_ui_input_blocked, "back button should restore unblocked input");
 
     reset_input();
     icon_click_call = 1;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.closed, "close button should close guide");
     expect(!g_ui_input_blocked, "close button should restore unblocked input");
 
     step = 2;
     reset_input();
     icon_click_call = 3;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.finished, "check button should finish guide on last step");
     expect(!g_ui_input_blocked, "finish button should restore unblocked input");
 }
@@ -238,21 +238,21 @@ static void
 test_keyboard_navigation(void)
 {
     int step = 0;
-    FlintUIGuideResult result;
+    UIGuideResult result;
 
     reset_input();
     pressed_key = KEY_RIGHT;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 1, "right key should advance guide");
 
     reset_input();
     pressed_key = KEY_LEFT;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 0, "left key should go back");
 
     reset_input();
     pressed_key = KEY_ESCAPE;
-    result = flint_ui_draw_guide_overlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.closed, "escape key should close guide");
 }
 

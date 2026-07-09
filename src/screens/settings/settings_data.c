@@ -4,15 +4,14 @@
 #include "settings_sync_account.h"
 #include "app.h"
 #include "data.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "storage.h"
 #include "sync_account.h"
-#include "flint_theme.h"
-#include "flint_theme_meta.h"
-#include "flint_ui.h"
-#if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB)
+#include "theme.h"
+#include "ui.h"
+#if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB) && !defined(INBE_DISABLE_FLINT_FILE_DIALOG)
 #define INBE_HAS_FLINT_FILE_DIALOG 1
-#include "flint_file_dialog.h"
+#include "file_dialog.h"
 #endif
 #if ANDROID_BUILD
 #include "android_import.h"
@@ -41,10 +40,7 @@ enum {
 #define SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES "*/*"
 #define SETTINGS_DATA_TOP_PADDING 8
 
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-static FlintFileDialog export_dlg;
-static FlintFileDialog import_dlg;
-#endif
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
 static int data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
 
 typedef struct SettingsFileDialogOrigin {
@@ -57,6 +53,7 @@ typedef struct SettingsFileDialogOrigin {
 } SettingsFileDialogOrigin;
 
 static SettingsFileDialogOrigin file_dialog_origin;
+#endif
 static char pending_import_path[FS_PATH_MAX] = "";
 static DataImportInfo pending_import_info;
 
@@ -75,12 +72,14 @@ settings_clear_pending_import(void)
     memset(&pending_import_info, 0, sizeof(pending_import_info));
 }
 
+#if ANDROID_BUILD || defined(PLATFORM_WEB)
 static void
 settings_file_dialog_begin(InbeApp *app, int action)
 {
     if(app == NULL)
         return;
     data_file_dialog_action = action;
+    app->file_dialog_active = 1;
     file_dialog_origin.active = 1;
     file_dialog_origin.screen = app->inbe.screen;
     file_dialog_origin.settings_tab = app->settings_tab;
@@ -102,14 +101,17 @@ settings_file_dialog_finish(InbeApp *app)
     }
     file_dialog_origin.active = 0;
     data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
+    if(app != NULL)
+        app->file_dialog_active = 0;
     return action;
 }
+#endif
 
 static void
 settings_import_success(InbeApp *app, int imported_settings)
 {
     app_reload_after_import(app, imported_settings);
-    settings_screen_set_status_success(locale_get("imported_data"), NULL);
+    settings_screen_set_status_success(GetLocaleText("imported_data"), NULL);
     TraceLog(LOG_INFO, "DATA: Import successful");
 }
 
@@ -117,7 +119,7 @@ static int
 settings_perform_import(InbeApp *app, const char *path, DataImportMode mode)
 {
     if(app == NULL || path == NULL || path[0] == '\0') {
-        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
         return 0;
     }
 
@@ -126,7 +128,7 @@ settings_perform_import(InbeApp *app, const char *path, DataImportMode mode)
         return 1;
     }
 
-    settings_screen_set_status_error(locale_get("import_failed"));
+    settings_screen_set_status_error(GetLocaleText("import_failed"));
     TraceLog(LOG_ERROR, "DATA: Import failed");
     return 0;
 }
@@ -137,13 +139,13 @@ settings_begin_import_for_path(InbeApp *app, const char *path)
     DataImportInfo info;
 
     if(app == NULL || path == NULL || path[0] == '\0') {
-        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
         return;
     }
 
     memset(&info, 0, sizeof(info));
     if(!data_inspect_import(path, &info) || !info.valid) {
-        settings_screen_set_status_error(locale_get("import_invalid_file"));
+        settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
         TraceLog(LOG_WARNING, "DATA: Invalid import file selected");
         return;
     }
@@ -162,38 +164,38 @@ settings_begin_import_for_path(InbeApp *app, const char *path)
 static int
 settings_draw_import_choice_modal(InbeApp *app)
 {
-    FlintUIPanelFrame frame;
-    int font = flint_ui_font();
+    UIPanelFrame frame;
+    int font = GetUIFontSize();
     int msg_y;
     int msg_x;
-    const char *message = locale_get("import_choice_message");
-    int row_gap = flint_px(10);
-    int btn_h = flint_px(36);
+    const char *message = GetLocaleText("import_choice_message");
+    int row_gap = ScaleUIPx(10);
+    int btn_h = ScaleUIPx(36);
     int btn_y;
     int btn_w;
     int hover = 0;
 
     (void)app;
-    frame = ui_draw_modal_frame(flint_px(320), flint_px(232),
-                                locale_get("import_choice_title"),
+    frame = DrawUIModalFrame(ScaleUIPx(320), ScaleUIPx(232),
+                                GetLocaleText("import_choice_title"),
                                 (Texture2D){0}, (Texture2D){0});
     msg_x = frame.content_x;
     msg_y = frame.content_y;
-    flint_text_draw(message, msg_x, msg_y, font, flint_theme_get_text());
+    DrawUIText(message, msg_x, msg_y, font, GetThemeText());
 
-    btn_y = frame.y + frame.h - flint_px(24) - btn_h * 2 - row_gap;
+    btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h * 2 - row_gap;
     btn_w = (frame.content_w - row_gap) / 2;
-    if(ui_draw_generic_button(frame.content_x, btn_y, btn_w, btn_h,
-                              locale_get("cancel_button"),
+    if(DrawUIGenericButton(frame.content_x, btn_y, btn_w, btn_h,
+                              GetLocaleText("cancel_button"),
                               UI_BUTTON_STYLE_SECONDARY, 0, &hover))
         return 1;
-    if(ui_draw_generic_button(frame.content_x + btn_w + row_gap, btn_y, btn_w, btn_h,
-                              locale_get("import_data_only_button"),
+    if(DrawUIGenericButton(frame.content_x + btn_w + row_gap, btn_y, btn_w, btn_h,
+                              GetLocaleText("import_data_only_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         return 2;
-    if(ui_draw_generic_button(frame.content_x, btn_y + btn_h + row_gap,
+    if(DrawUIGenericButton(frame.content_x, btn_y + btn_h + row_gap,
                               frame.content_w, btn_h,
-                              locale_get("import_data_settings_button"),
+                              GetLocaleText("import_data_settings_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         return 3;
     return 0;
@@ -202,100 +204,100 @@ settings_draw_import_choice_modal(InbeApp *app)
 static int
 settings_draw_sync_review_modal(InbeApp *app)
 {
-    FlintUIPanelFrame frame;
+    UIPanelFrame frame;
     char *diff_detail = NULL;
-    FlintUIParagraph intro;
+    UIParagraph intro;
     int intro_h;
-    int modal_w = ui_view_width >= flint_px(620) ? flint_px(560) : flint_px(336);
-    int modal_h = ui_view_height >= flint_px(520) ? flint_px(440) : ui_view_height - flint_px(32);
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    int modal_w = ui_view_width >= ScaleUIPx(620) ? ScaleUIPx(560) : ScaleUIPx(336);
+    int modal_h = ui_view_height >= ScaleUIPx(520) ? ScaleUIPx(440) : ui_view_height - ScaleUIPx(32);
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int btn_y;
     int diff_y;
     int diff_h;
     int legend_y;
     int hover = 0;
     static int diff_scroll = 0;
-    int diff_content_h = flint_px(40);
+    int diff_content_h = ScaleUIPx(40);
 
     (void)app;
-    if(modal_h < flint_px(320))
-        modal_h = flint_px(320);
+    if(modal_h < ScaleUIPx(320))
+        modal_h = ScaleUIPx(320);
     if(!storage_sync_review_diff(&diff_detail)) {
         free(diff_detail);
         return 0;
     }
-    frame = ui_draw_modal_frame(modal_w, modal_h, locale_get("sync_review_needed"),
+    frame = DrawUIModalFrame(modal_w, modal_h, GetLocaleText("sync_review_needed"),
                                 (Texture2D){0}, (Texture2D){0});
-    intro = (FlintUIParagraph){
-        .text = locale_get("sync_review_message"),
+    intro = (UIParagraph){
+        .text = GetLocaleText("sync_review_message"),
         .width = frame.content_w,
-        .font = flint_ui_font_small(),
-        .line_gap = flint_px(2),
-        .color = flint_theme_get_text()
+        .font = GetUISmallFontSize(),
+        .line_gap = ScaleUIPx(2),
+        .color = GetThemeText()
     };
-    intro_h = flint_ui_paragraph_height(intro);
+    intro_h = GetUIParagraphHeight(intro);
     {
         int intro_y = frame.content_y;
-        flint_ui_paragraph_draw(intro, frame.content_x, &intro_y);
+        DrawUIParagraph(intro, frame.content_x, &intro_y);
     }
-    diff_y = frame.content_y + intro_h + flint_px(12);
-    btn_y = frame.y + frame.h - flint_px(24) - btn_h;
-    legend_y = btn_y - flint_px(24);
-    diff_h = legend_y - diff_y - flint_px(8);
-    if(diff_h < flint_px(150))
-        diff_h = flint_px(150);
+    diff_y = frame.content_y + intro_h + ScaleUIPx(12);
+    btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h;
+    legend_y = btn_y - ScaleUIPx(24);
+    diff_h = legend_y - diff_y - ScaleUIPx(8);
+    if(diff_h < ScaleUIPx(150))
+        diff_h = ScaleUIPx(150);
     {
         const char *p = diff_detail;
-        diff_content_h = flint_px(20);
+        diff_content_h = ScaleUIPx(20);
         while(p != NULL && *p != '\0') {
-            diff_content_h += flint_px(20);
+            diff_content_h += ScaleUIPx(20);
             p = strchr(p, '\n');
             if(p != NULL)
                 p++;
         }
     }
 
-    FlintUIScrollView diff_view = ui_scroll_container_begin((FlintUIScrollArea){
+    UIScrollView diff_view = BeginUIScrollContainer((UIScrollArea){
         .bounds = {(float)frame.content_x, (float)diff_y, (float)frame.content_w, (float)diff_h},
         .content_height = diff_content_h,
-        .content_x = frame.content_x + flint_px(10),
-        .content_width = frame.content_w - flint_px(20),
+        .content_x = frame.content_x + ScaleUIPx(10),
+        .content_width = frame.content_w - ScaleUIPx(20),
         .scroll_offset = &diff_scroll,
-        .wheel_step = flint_px(24)
+        .wheel_step = ScaleUIPx(24)
     });
     {
         char *line = strtok(diff_detail, "\n");
         int line_y = diff_view.content_y;
         while(line != NULL) {
-            Color color = flint_theme_get_text();
+            Color color = GetThemeText();
             if(line[0] == '-')
                 color = (Color){215, 88, 88, 255};
             else if(line[0] == '+')
                 color = (Color){74, 170, 112, 255};
-            flint_text_draw(line, diff_view.content_x, line_y,
-                            flint_ui_font_small(), color);
-            line_y += flint_px(20);
+            DrawUIText(line, diff_view.content_x, line_y,
+                            GetUISmallFontSize(), color);
+            line_y += ScaleUIPx(20);
             line = strtok(NULL, "\n");
         }
     }
-    ui_scroll_container_end((FlintUIScrollArea){
+    EndUIScrollContainer((UIScrollArea){
         .bounds = {(float)frame.content_x, (float)diff_y, (float)frame.content_w, (float)diff_h},
         .scroll_offset = &diff_scroll
     }, diff_view);
 
-    flint_text_draw("- Local only", frame.content_x, legend_y,
-                    flint_ui_font_small(), (Color){215, 88, 88, 255});
-    flint_text_draw("+ Remote only", frame.content_x + flint_px(112), legend_y,
-                    flint_ui_font_small(), (Color){74, 170, 112, 255});
+    DrawUIText("- Local only", frame.content_x, legend_y,
+                    GetUISmallFontSize(), (Color){215, 88, 88, 255});
+    DrawUIText("+ Remote only", frame.content_x + ScaleUIPx(112), legend_y,
+                    GetUISmallFontSize(), (Color){74, 170, 112, 255});
 
-    if(ui_draw_generic_button(frame.content_x, btn_y,
+    if(DrawUIGenericButton(frame.content_x, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
                               "Keep local", UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         free(diff_detail);
         return 1;
     }
-    if(ui_draw_generic_button(frame.content_x + (frame.content_w + gap) / 2, btn_y,
+    if(DrawUIGenericButton(frame.content_x + (frame.content_w + gap) / 2, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
                               "Use remote", UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
         free(diff_detail);
@@ -308,15 +310,15 @@ settings_draw_sync_review_modal(InbeApp *app)
 int
 settings_data_content_height(int content_w)
 {
-    int data_button_h = flint_px(36);
+    int data_button_h = ScaleUIPx(36);
     (void)content_w;
 
-    return flint_px(SETTINGS_DATA_TOP_PADDING) +
-           data_button_h + flint_px(12) +
-           data_button_h + flint_px(12) +
-           data_button_h + flint_px(12) +
-           flint_px(42) +
-           flint_px(40);
+    return ScaleUIPx(SETTINGS_DATA_TOP_PADDING) +
+           data_button_h + ScaleUIPx(12) +
+           data_button_h + ScaleUIPx(12) +
+           data_button_h + ScaleUIPx(12) +
+           ScaleUIPx(42) +
+           ScaleUIPx(40);
 }
 
 void
@@ -324,10 +326,10 @@ settings_data_draw_sync_status(int x, int w, int *y)
 {
     InbeStorageSyncStatus status;
     char line[160];
-    int font = flint_ui_font_small();
-    int label_font = flint_ui_font();
-    Color label_color = flint_theme_get_text();
-    Color text_color = flint_darken(flint_theme_get_text(), 25);
+    int font = GetUISmallFontSize();
+    int label_font = GetUIFontSize();
+    Color label_color = GetThemeText();
+    Color text_color = DarkenUIColor(GetThemeText(), 25);
     Color warn_color = (Color){196, 126, 45, 255};
     Color ok_color = (Color){70, 150, 96, 255};
     int row_y;
@@ -336,24 +338,24 @@ settings_data_draw_sync_status(int x, int w, int *y)
     if(!storage_sync_status(&status) || !status.has_account)
         return;
 
-    flint_text_draw("Sync status", x, *y, label_font, label_color);
-    *y += flint_px(24);
+    DrawUIText("Sync status", x, *y, label_font, label_color);
+    *y += ScaleUIPx(24);
 
     left_w = w / 2;
     row_y = *y;
     snprintf(line, sizeof(line), "Account: %s", status.has_account ? "connected" : "not set");
-    flint_text_draw(line, x, row_y, font, status.has_account ? ok_color : text_color);
+    DrawUIText(line, x, row_y, font, status.has_account ? ok_color : text_color);
     snprintf(line, sizeof(line), "Queued: %lld", status.queued_changes);
-    flint_text_draw(line, x + left_w, row_y, font,
+    DrawUIText(line, x + left_w, row_y, font,
                     status.queued_changes > 0 ? warn_color : text_color);
 
-    row_y += flint_px(22);
+    row_y += ScaleUIPx(22);
     snprintf(line, sizeof(line), "Server: %lld", status.server_version);
-    flint_text_draw(line, x, row_y, font, text_color);
+    DrawUIText(line, x, row_y, font, text_color);
     snprintf(line, sizeof(line), "Clock: %lld", status.server_clock);
-    flint_text_draw(line, x + left_w, row_y, font, text_color);
+    DrawUIText(line, x + left_w, row_y, font, text_color);
 
-    row_y += flint_px(22);
+    row_y += ScaleUIPx(22);
     if(status.protocol_upgrade_available)
         snprintf(line, sizeof(line), "Upgrade Inner Breeze");
     else if(status.review_pending)
@@ -366,11 +368,11 @@ settings_data_draw_sync_status(int x, int w, int *y)
         snprintf(line, sizeof(line), "Initial upload pending");
     else
         snprintf(line, sizeof(line), "Ready");
-    flint_text_draw(line, x, row_y, font,
+    DrawUIText(line, x, row_y, font,
                     (status.protocol_upgrade_available || status.review_pending ||
                      status.repair_pending) ? warn_color : text_color);
 
-    *y += flint_px(74);
+    *y += ScaleUIPx(74);
 }
 
 static void
@@ -396,37 +398,44 @@ settings_data_open_sync_account_config(InbeApp *app)
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
     settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
     settings_sync_server_load(app);
-    app->profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
+    {
+        AppRoute route = app_current_route(app);
+        route.profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
+        route.profile_tab = PROFILE_TAB_OVERVIEW;
+        app_switch_route(app, route);
+    }
     app->profile_scroll = 0;
     app->sync_server_url_focused = 0;
     settings_screen_clear_status();
 }
 
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-static void
-settings_apply_file_dialog_theme(InbeApp *app)
-{
-    int theme_id = app != NULL ? app->theme_id : FLINT_THEME_SKY;
-    int dark_mode = app != NULL && app->dark_mode != 0;
-
-    if(theme_id < 0 || theme_id >= FLINT_THEME_COUNT)
-        theme_id = FLINT_THEME_SKY;
-    flint_file_dialog_set_theme_scope(flint_theme_scope_for((FlintThemeId)theme_id,
-                                                            dark_mode != 0));
-}
-#endif
-
 static int
 settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT);
 #if defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_save(&export_dlg, locale_get("sync_save_key_dialog_title"), filename);
+    FileDialog dlg;
+    (void)app;
+    InitFileDialog(&dlg);
+    if(SaveFileDialog(&dlg, GetLocaleText("sync_save_key_dialog_title"), filename)) {
+        InbeSyncAccount account;
+        const char *path = GetFileDialogPath(&dlg);
+        if(path != NULL && path[0] != '\0' &&
+           sync_account_load(&account) &&
+           sync_account_export_private_key(&account, path)) {
+            settings_screen_set_status_success(GetLocaleText("sync_private_key_backup_saved"), GetFileName(path));
+            TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
+        } else {
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_failed"));
+            TraceLog(LOG_ERROR, "SYNC: Private key backup failed");
+        }
+    } else {
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_cancelled"));
+    }
+    CloseFileDialog(&dlg);
     return 4;
 #else
     (void)filename;
-    settings_file_dialog_finish(app);
+    (void)app;
     return 0;
 #endif
 }
@@ -434,8 +443,8 @@ settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 static int
 settings_start_sync_key_import_dialog(InbeApp *app)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
 #if defined(PLATFORM_WEB)
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
     (void)app;
     EM_ASM({
         const importPath = UTF8ToString($0);
@@ -475,23 +484,30 @@ settings_start_sync_key_import_dialog(InbeApp *app)
         document.body.appendChild(input);
         input.click();
     }, "/tmp/inbe-sync-key-import.key", SETTINGS_SYNC_KEY_IMPORT_FILTER);
-    settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
+    settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), NULL);
     return 1;
 #elif ANDROID_BUILD
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
     (void)app;
     if(android_import_open_picker(SETTINGS_ANDROID_SYNC_KEY_IMPORT_MIME_TYPES)) {
-        settings_screen_set_status_success(locale_get("sync_import_key_dialog_title"), NULL);
+        settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), NULL);
         return 1;
     }
     settings_file_dialog_finish(app);
     return 0;
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_load_filtered(&import_dlg, locale_get("sync_import_key_dialog_title"),
-                                          SETTINGS_SYNC_KEY_IMPORT_FILTER);
+    FileDialog dlg;
+    InitFileDialog(&dlg);
+    if(LoadFilteredFileDialog(&dlg, GetLocaleText("sync_import_key_dialog_title"),
+                              SETTINGS_SYNC_KEY_IMPORT_FILTER)) {
+        settings_import_sync_key_path(app, GetFileDialogPath(&dlg));
+    } else {
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
+    }
+    CloseFileDialog(&dlg);
     return 1;
 #else
-    settings_file_dialog_finish(app);
+    (void)app;
     return 0;
 #endif
 }
@@ -500,7 +516,7 @@ void
 settings_data_draw_actions(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
-    int data_button_h = flint_px(36);
+    int data_button_h = ScaleUIPx(36);
     int hover_import = 0;
     int hover_export = 0;
     int hover_delete = 0;
@@ -509,27 +525,27 @@ settings_data_draw_actions(InbeApp *app, int x, int w, int *y)
     settings_sync_account_set_save_dialog(settings_start_sync_key_export_dialog);
     settings_sync_account_set_import_dialog(settings_start_sync_key_import_dialog);
 
-    *y += flint_px(SETTINGS_DATA_TOP_PADDING);
-    if(ui_draw_generic_button(x, *y, w, data_button_h,
-                              locale_get("import_data_button"),
+    *y += ScaleUIPx(SETTINGS_DATA_TOP_PADDING);
+    if(DrawUIGenericButton(x, *y, w, data_button_h,
+                              GetLocaleText("import_data_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover_import))
         settings_import_data(app);
-    *y += data_button_h + flint_px(12);
+    *y += data_button_h + ScaleUIPx(12);
 
-    if(ui_draw_generic_button(x, *y, w, data_button_h,
-                              locale_get("export_data_button"),
+    if(DrawUIGenericButton(x, *y, w, data_button_h,
+                              GetLocaleText("export_data_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover_export))
         settings_export_data(app);
-    *y += data_button_h + flint_px(12);
+    *y += data_button_h + ScaleUIPx(12);
 
     if(!has_account) {
-        if(ui_draw_generic_button(x, *y, w, data_button_h,
-                                  locale_get("clear_local_data_button"),
+        if(DrawUIGenericButton(x, *y, w, data_button_h,
+                                  GetLocaleText("clear_local_data_button"),
                                   UI_BUTTON_STYLE_DANGER, 0, &hover_delete))
             settings_request_delete_all_data(app);
-        *y += data_button_h + flint_px(12);
+        *y += data_button_h + ScaleUIPx(12);
     }
-    settings_screen_draw_status_reserved(x, y, flint_px(42));
+    settings_screen_draw_status_reserved(x, y, ScaleUIPx(42));
 }
 
 #if ANDROID_BUILD
@@ -545,16 +561,16 @@ settings_data_handle_android_import(InbeApp *app)
     action = settings_file_dialog_finish(app);
     if(import_result == ANDROID_IMPORT_RESULT_CANCELLED) {
         if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
-            settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
         else
-            settings_screen_set_status_error(locale_get("import_cancelled"));
+            settings_screen_set_status_error(GetLocaleText("import_cancelled"));
         return;
     }
     if(import_path[0] == '\0') {
         if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
-            settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
         else
-            settings_screen_set_status_error(locale_get("import_invalid_file"));
+            settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
         return;
     }
     if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
@@ -653,9 +669,9 @@ settings_data_handle_web_import(InbeApp *app)
     if(import_result != 0)
         settings_file_dialog_finish(app);
     if(import_result == 2) {
-        settings_screen_set_status_error(locale_get("import_cancelled"));
+        settings_screen_set_status_error(GetLocaleText("import_cancelled"));
     } else if(import_result != 0 && import_result != 1) {
-        settings_screen_set_status_error(locale_get("import_failed"));
+        settings_screen_set_status_error(GetLocaleText("import_failed"));
     } else if(import_result == 1) {
         settings_begin_import_for_path(app, SETTINGS_WEB_IMPORT_PATH);
     }
@@ -671,11 +687,11 @@ settings_data_handle_web_import(InbeApp *app)
         return;
     settings_file_dialog_finish(app);
     if(import_result == 2) {
-        settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
         return;
     }
     if(import_result != 1) {
-        settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
         return;
     }
     settings_import_sync_key_path(app, SETTINGS_WEB_SYNC_KEY_IMPORT_PATH);
@@ -687,25 +703,38 @@ void settings_data_handle_web_import(InbeApp *app) { (void)app; }
 static void
 settings_import_data(InbeApp *app)
 {
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
 #if ANDROID_BUILD
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
     if(android_import_open_picker(SETTINGS_ANDROID_DATA_IMPORT_MIME_TYPES))
-        settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
+        settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), NULL);
     else {
         settings_file_dialog_finish(app);
-        settings_screen_set_status_error(locale_get("import_failed"));
+        settings_screen_set_status_error(GetLocaleText("import_failed"));
     }
 #elif defined(PLATFORM_WEB)
+    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
     (void)app;
     settings_web_import_open_picker();
-    settings_screen_set_status_success(locale_get("import_data_dialog_title"), NULL);
+    settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), NULL);
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_load_filtered(&import_dlg, locale_get("import_data_dialog_title"),
-                                          SETTINGS_DATA_IMPORT_FILTER);
+    FileDialog dlg;
+    InitFileDialog(&dlg);
+    if(LoadFilteredFileDialog(&dlg, GetLocaleText("import_data_dialog_title"),
+                              SETTINGS_DATA_IMPORT_FILTER)) {
+        const char *path = GetFileDialogPath(&dlg);
+        if(path != NULL && path[0] != '\0') {
+            settings_begin_import_for_path(app, path);
+        } else {
+            settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
+            TraceLog(LOG_WARNING, "DATA: No file selected for import");
+        }
+    } else {
+        settings_screen_set_status_error(GetLocaleText("import_cancelled"));
+    }
+    CloseFileDialog(&dlg);
 #else
-    settings_file_dialog_finish(app);
-    settings_screen_set_status_error(locale_get("import_failed"));
+    (void)app;
+    settings_screen_set_status_error(GetLocaleText("import_failed"));
 #endif
 }
 
@@ -715,17 +744,14 @@ settings_import_sync_key_path(InbeApp *app, const char *path)
     InbeSyncAccount account;
 
     if(path != NULL && path[0] != '\0' &&
-       sync_account_import_private_key(&account, path)) {
-        const char *saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
-        if(saved == NULL || saved[0] == '\0')
-            storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, INBE_SYNC_SERVER_URL_DEFAULT);
-        settings_screen_set_status_success(locale_get("sync_private_key_imported"), NULL);
-        TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
-        app_auto_sync(app);
+       sync_account_import_private_key_preview(&account, path)) {
+        if(settings_sync_account_save_prepared(app, &account,
+                                               InbePendingSyncAccountImport, 0))
+            TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
         return 1;
     }
 
-    settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+    settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
     TraceLog(LOG_ERROR, "SYNC: Private key import failed");
     (void)app;
     return 0;
@@ -738,7 +764,7 @@ settings_export_data(InbeApp *app)
     data_default_export_filename(export_filename, sizeof(export_filename));
 
     if(!data_has_any()) {
-        settings_screen_set_status_error(locale_get("no_data_to_export"));
+        settings_screen_set_status_error(GetLocaleText("no_data_to_export"));
         return;
     }
 
@@ -746,30 +772,46 @@ settings_export_data(InbeApp *app)
     settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT);
     if(data_export(export_filename)) {
         settings_file_dialog_finish(app);
-        settings_screen_set_status_success(locale_get("exported_label"), NULL);
+        settings_screen_set_status_success(GetLocaleText("exported_label"), NULL);
         TraceLog(LOG_INFO, "DATA: Export successful (share sheet shown)");
     } else {
         settings_file_dialog_finish(app);
-        settings_screen_set_status_error(locale_get("export_failed"));
+        settings_screen_set_status_error(GetLocaleText("export_failed"));
         TraceLog(LOG_ERROR, "DATA: Export failed");
     }
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT);
-    settings_apply_file_dialog_theme(app);
-    flint_file_dialog_begin_save(&export_dlg, locale_get("export_data_dialog_title"), export_filename);
+    {
+        FileDialog dlg;
+        (void)app;
+        InitFileDialog(&dlg);
+        if(SaveFileDialog(&dlg, GetLocaleText("export_data_dialog_title"), export_filename)) {
+            const char *path = GetFileDialogPath(&dlg);
+            if(path != NULL && data_export(path)) {
+                const char *filename = GetFileName(path);
+                settings_screen_set_status_success(GetLocaleText("exported_label"), filename);
+                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
+            } else {
+                settings_screen_set_status_error(GetLocaleText("export_failed"));
+                TraceLog(LOG_ERROR, "DATA: Export failed");
+            }
+        } else {
+            settings_screen_set_status_error(GetLocaleText("export_cancelled"));
+        }
+        CloseFileDialog(&dlg);
+    }
 #elif defined(PLATFORM_WEB)
     (void)app;
     if(data_export(SETTINGS_WEB_EXPORT_PATH) &&
        settings_web_download_file(SETTINGS_WEB_EXPORT_PATH, export_filename, "application/zip")) {
-        settings_screen_set_status_success(locale_get("exported_label"), NULL);
+        settings_screen_set_status_success(GetLocaleText("exported_label"), NULL);
         TraceLog(LOG_INFO, "DATA: Web export download started");
     } else {
-        settings_screen_set_status_error(locale_get("export_failed"));
+        settings_screen_set_status_error(GetLocaleText("export_failed"));
         TraceLog(LOG_ERROR, "DATA: Web export failed");
     }
 #else
     (void)app;
-    settings_screen_set_status_error(locale_get("export_failed"));
+    settings_screen_set_status_error(GetLocaleText("export_failed"));
 #endif
 }
 
@@ -779,86 +821,9 @@ settings_request_delete_all_data(InbeApp *app)
     if(data_has_any()) {
         app_open_modal(app, UIModalConfirmDeleteData);
     } else {
-        settings_screen_set_status_error(locale_get("no_data_to_delete"));
+        settings_screen_set_status_error(GetLocaleText("no_data_to_delete"));
     }
 }
-
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-int
-settings_data_draw_pending_file_dialog(InbeApp *app)
-{
-    FlintFileDialog *dlg;
-    int result;
-
-    if(data_file_dialog_action == SETTINGS_DATA_ACTION_NONE)
-        return 0;
-
-    settings_apply_file_dialog_theme(app);
-    dlg = (data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT ||
-           data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
-              ? &import_dlg
-              : &export_dlg;
-    result = flint_file_dialog_update(dlg);
-    if(result < 0)
-        return 1;
-
-    if(data_file_dialog_action == SETTINGS_DATA_ACTION_IMPORT) {
-        if(result == 1) {
-            const char *path = flint_file_dialog_get_path(&import_dlg);
-            if(path != NULL && path[0] != '\0') {
-                settings_begin_import_for_path(app, path);
-            } else {
-                settings_screen_set_status_error(locale_get("import_invalid_file"));
-                TraceLog(LOG_WARNING, "DATA: No file selected for import");
-            }
-        } else {
-            settings_screen_set_status_error(locale_get("import_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_EXPORT) {
-        if(result == 1) {
-            const char *path = flint_file_dialog_get_path(&export_dlg);
-            if(path != NULL && data_export(path)) {
-                const char *filename = GetFileName(path);
-                settings_screen_set_status_success(locale_get("exported_label"), filename);
-                TraceLog(LOG_INFO, "DATA: Export successful to %s", path);
-            } else {
-                settings_screen_set_status_error(locale_get("export_failed"));
-                TraceLog(LOG_ERROR, "DATA: Export failed");
-            }
-        } else {
-            settings_screen_set_status_error(locale_get("export_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_EXPORT) {
-        if(result == 1) {
-            InbeSyncAccount account;
-            const char *path = flint_file_dialog_get_path(&export_dlg);
-            if(path != NULL && path[0] != '\0' &&
-               sync_account_load(&account) &&
-               sync_account_export_private_key(&account, path)) {
-                settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), GetFileName(path));
-                TraceLog(LOG_INFO, "SYNC: Private key backup saved to %s", path);
-            } else {
-                settings_screen_set_status_error(locale_get("sync_private_key_backup_failed"));
-                TraceLog(LOG_ERROR, "SYNC: Private key backup failed");
-            }
-        } else {
-            settings_screen_set_status_error(locale_get("sync_private_key_backup_cancelled"));
-        }
-    } else if(data_file_dialog_action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT) {
-        if(result == 1) {
-            const char *path = flint_file_dialog_get_path(&import_dlg);
-            settings_import_sync_key_path(app, path);
-        } else {
-            settings_screen_set_status_error(locale_get("sync_private_key_import_cancelled"));
-        }
-    }
-
-    settings_file_dialog_finish(app);
-    return 1;
-}
-#else
-int settings_data_draw_pending_file_dialog(InbeApp *app) { (void)app; return 0; }
-#endif
 
 int
 settings_data_draw_modals(InbeApp *app)
@@ -871,7 +836,7 @@ settings_data_draw_modals(InbeApp *app)
         if(modal_result == 1) {
             app_close_modal(app);
             settings_clear_pending_import();
-            settings_screen_set_status_error(locale_get("import_cancelled"));
+            settings_screen_set_status_error(GetLocaleText("import_cancelled"));
         } else if(modal_result == 2 || modal_result == 3) {
             char import_path[FS_PATH_MAX];
             DataImportMode mode = modal_result == 3
@@ -886,13 +851,13 @@ settings_data_draw_modals(InbeApp *app)
     }
 
     if(app->modal.type == UIModalConfirmDeleteData) {
-        int modal_result = ui_draw_modal(locale_get("clear_local_data_title"),
-                                         locale_get("clear_local_data_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("clear_button"));
+        int modal_result = DrawUIModal(GetLocaleText("clear_local_data_title"),
+                                         GetLocaleText("clear_local_data_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("clear_button"));
         if(modal_result == 1) {
             app_close_modal(app);
-            settings_screen_set_status_error(locale_get("delete_cancelled"));
+            settings_screen_set_status_error(GetLocaleText("delete_cancelled"));
         } else if(modal_result == 2) {
             long long deleted = data_delete_all();
             app_close_modal(app);
@@ -901,7 +866,7 @@ settings_data_draw_modals(InbeApp *app)
                 habits_free(&app->habits);
                 memset(&app->habits, 0, sizeof(app->habits));
                 app->habits.loaded = 1;
-                locale_format(deleted_message, sizeof(deleted_message),
+                FormatLocaleText(deleted_message, sizeof(deleted_message),
                               "deleted_sessions", deleted);
                 settings_screen_set_status_success(deleted_message, NULL);
             } else {
@@ -909,11 +874,11 @@ settings_data_draw_modals(InbeApp *app)
                 if(cleared > 0) {
                     char deleted_message[128];
                     habits_save(&app->habits);
-                    locale_format(deleted_message, sizeof(deleted_message),
+                    FormatLocaleText(deleted_message, sizeof(deleted_message),
                                   "deleted_sessions", cleared);
                     settings_screen_set_status_success(deleted_message, NULL);
                 } else {
-                    settings_screen_set_status_error(locale_get("no_data_to_delete"));
+                    settings_screen_set_status_error(GetLocaleText("no_data_to_delete"));
                 }
             }
         }
@@ -921,16 +886,39 @@ settings_data_draw_modals(InbeApp *app)
     }
 
     if(app->modal.type == UIModalConfirmDeleteSyncAccount) {
-        int modal_result = ui_draw_modal(locale_get("sync_clear_remote_data_title"),
-                                         locale_get("sync_clear_remote_data_message"),
-                                         locale_get("cancel_button"),
-                                         locale_get("clear_button"));
+        int modal_result = DrawUIModal(GetLocaleText("sync_clear_remote_data_title"),
+                                         GetLocaleText("sync_clear_remote_data_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("clear_button"));
         if(modal_result == 1) {
             app_close_modal(app);
-            settings_screen_set_status_error(locale_get("sync_clear_remote_data_cancelled"));
+            settings_screen_set_status_error(GetLocaleText("sync_clear_remote_data_cancelled"));
         } else if(modal_result == 2) {
             app_close_modal(app);
             settings_sync_account_clear_remote_confirmed(app);
+        }
+        return 1;
+    }
+
+    if(app->modal.type == UIModalConfirmSyncAccountSwitch) {
+        int modal_result = DrawUIModal(GetLocaleText("sync_account_switch_title"),
+                                         GetLocaleText("sync_account_switch_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("sync_account_switch_clear_button"));
+        if(modal_result == 1) {
+            app_close_modal(app);
+            memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account));
+            app->pending_sync_account_action = InbePendingSyncAccountNone;
+            settings_screen_set_status_error(GetLocaleText("sync_account_switch_cancelled"));
+        } else if(modal_result == 2) {
+            InbeSyncAccount account = app->pending_sync_account;
+            int action = app->pending_sync_account_action;
+            app_close_modal(app);
+            if(settings_sync_account_save_prepared(app, &account, action, 1)) {
+                app_reload_after_import(app, 0);
+            } else {
+                settings_screen_set_status_error(GetLocaleText("sync_account_switch_failed"));
+            }
         }
         return 1;
     }
@@ -940,9 +928,9 @@ settings_data_draw_modals(InbeApp *app)
         if(modal_result == 1 || modal_result == 2 || modal_result == 3 || modal_result == 4) {
             app_close_modal(app);
             if(modal_result == 2)
-                settings_screen_set_status_success(locale_get("sync_private_key_backup_saved"), NULL);
+                settings_screen_set_status_success(GetLocaleText("sync_private_key_backup_saved"), NULL);
             else if(modal_result == 3)
-                settings_screen_set_status_error(locale_get("sync_private_key_backup_failed"));
+                settings_screen_set_status_error(GetLocaleText("sync_private_key_backup_failed"));
         }
         return 1;
     }
@@ -955,9 +943,9 @@ settings_data_draw_modals(InbeApp *app)
                 app_close_modal(app);
                 if(use_remote)
                     app_reload_after_import(app, 0);
-                settings_screen_set_status_success(locale_get(use_remote ? "sync_review_using_remote" : "sync_review_keeping_local"), NULL);
+                settings_screen_set_status_success(GetLocaleText(use_remote ? "sync_review_using_remote" : "sync_review_keeping_local"), NULL);
             } else {
-                settings_screen_set_status_error(locale_get("sync_review_failed"));
+                settings_screen_set_status_error(GetLocaleText("sync_review_failed"));
             }
         }
         return 1;

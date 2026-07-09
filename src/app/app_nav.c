@@ -1,8 +1,8 @@
 #include "app_nav.h"
 
 #include "app.h"
-#include "flint_locale.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui.h"
 #include "screens/settings/settings_screen.h"
 
 extern int view_width;
@@ -113,7 +113,7 @@ app_content_bottom_reserved(const InbeApp *app)
         return 0;
     if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
         return 0;
-    return ui_bottom_nav_height();
+    return GetUIBottomNavHeight();
 }
 
 int
@@ -142,11 +142,11 @@ static const char *
 app_nav_route_label(int route)
 {
     switch(route) {
-    case APP_NAV_ROUTE_PROFILE: return locale_get("tab_profile");
-    case APP_NAV_ROUTE_HABITS: return locale_get("tab_habits");
-    case APP_NAV_ROUTE_PRACTICE: return locale_get("tab_practice");
-    case APP_NAV_ROUTE_PET: return locale_get("tab_pet");
-    case APP_NAV_ROUTE_SETTINGS: return locale_get("tab_settings");
+    case APP_NAV_ROUTE_PROFILE: return GetLocaleText("tab_profile");
+    case APP_NAV_ROUTE_HABITS: return GetLocaleText("tab_habits");
+    case APP_NAV_ROUTE_PRACTICE: return GetLocaleText("tab_practice");
+    case APP_NAV_ROUTE_PET: return GetLocaleText("tab_pet");
+    case APP_NAV_ROUTE_SETTINGS: return GetLocaleText("tab_settings");
     default: break;
     }
     return "";
@@ -217,6 +217,8 @@ app_should_draw_bottom_nav(const InbeApp *app)
 {
     if(app == NULL)
         return 0;
+    if(app->file_dialog_active)
+        return 0;
     if(app_has_fullscreen_overlay(app))
         return 0;
     if(app->inbe.screen == InbeScreenHabits &&
@@ -244,8 +246,8 @@ app_draw_bottom_nav(InbeApp *app)
         APP_NAV_ROUTE_PET,
         APP_NAV_ROUTE_SETTINGS
     };
-    FlintUIBottomNavItem items[BOTTOM_NAV_ROUTE_COUNT];
-    FlintUIBottomNavResult result;
+    UIBottomNavItem items[BOTTOM_NAV_ROUTE_COUNT];
+    UIBottomNavResult result;
 
     if(app_android_bottom_nav_height() > 0)
         DrawRectangle(0, view_height - app_android_bottom_nav_height(),
@@ -257,7 +259,7 @@ app_draw_bottom_nav(InbeApp *app)
         return;
     for(int i = 0; i < BOTTOM_NAV_ROUTE_COUNT; i++) {
         int route = routes[i];
-        items[i] = (FlintUIBottomNavItem){
+        items[i] = (UIBottomNavItem){
             route,
             app_nav_route_label(route),
             app_nav_route_icon(app, route),
@@ -265,7 +267,7 @@ app_draw_bottom_nav(InbeApp *app)
             app->modal.active
         };
     }
-    result = ui_draw_bottom_nav((FlintUIBottomNav){
+    result = DrawUIBottomNav((UIBottomNav){
         .view_width = view_width,
         .view_height = view_height,
         .bottom_margin = app_android_bottom_nav_height(),

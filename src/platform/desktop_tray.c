@@ -61,7 +61,7 @@ linux_tray_sdl_event_filter(void *userdata, SDL_Event *event)
     (void)userdata;
 
     if(event != NULL && event->type == SDL_QUIT) {
-        linux_tray_set_action(INBE_DESKTOP_TRAY_ACTION_MINIMIZE);
+        linux_tray_set_action(INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST);
         return 0;
     }
 
@@ -320,6 +320,21 @@ linux_tray_restore_window(void)
     RestoreWindow();
 }
 
+void
+inbe_desktop_tray_keep_running(void)
+{
+    int ready;
+
+    pthread_mutex_lock(&tray_state_lock);
+    ready = tray_state == LINUX_TRAY_STATE_READY;
+    pthread_mutex_unlock(&tray_state_lock);
+
+    if(ready)
+        SetWindowState(FLAG_WINDOW_HIDDEN);
+    else
+        MinimizeWindow();
+}
+
 static void
 linux_tray_start_practice(InbeApp *app, int practice_id)
 {
@@ -349,6 +364,9 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
         break;
     case INBE_DESKTOP_TRAY_ACTION_MINIMIZE:
         MinimizeWindow();
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST:
+        app_request_desktop_close(app);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_WHM:
         linux_tray_start_practice(app, PRACTICE_WHM);
@@ -394,6 +412,11 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
     (void)app;
     (void)action;
     (void)quit;
+}
+
+void
+inbe_desktop_tray_keep_running(void)
+{
 }
 
 #endif

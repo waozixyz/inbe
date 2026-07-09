@@ -1,9 +1,9 @@
 #include "profile_social.h"
 
 #include "app.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui.h"
 #include "settings/settings_screen.h"
 #include "storage.h"
 #include "sync_account.h"
@@ -22,17 +22,17 @@ enum {
     PROFILE_LEADERBOARD_METRIC_COUNT
 };
 
-static FlintUITextInputStyle
+static UITextInputStyle
 profile_text_style(void)
 {
-    return (FlintUITextInputStyle){
-        .background = flint_darken(flint_theme_get_bg(), 6),
-        .border = flint_darken(flint_theme_get_bg(), 34),
-        .focus_border = flint_theme_get_button(),
-        .text = flint_theme_get_text(),
-        .cursor = flint_theme_get_text(),
+    return (UITextInputStyle){
+        .background = DarkenUIColor(GetThemeBackground(), 6),
+        .border = DarkenUIColor(GetThemeBackground(), 34),
+        .focus_border = GetThemeButton(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
         .radius = 0.0f,
-        .padding_x = flint_px(10)
+        .padding_x = ScaleUIPx(10)
     };
 }
 
@@ -72,12 +72,12 @@ profile_practice_label(int index)
 {
     switch(index) {
         case EXERCISE_MEDITATION:
-            return locale_get("exercise_meditation");
+            return GetLocaleText("exercise_meditation");
         case EXERCISE_SUN_SALUTATION:
-            return locale_get("exercise_sun_salutation");
+            return GetLocaleText("exercise_sun_salutation");
         case EXERCISE_WIM_HOF:
         default:
-            return locale_get("exercise_wim_hof");
+            return GetLocaleText("exercise_wim_hof");
     }
 }
 
@@ -111,10 +111,10 @@ static const char *
 profile_leaderboard_metric_label(int practice, int metric)
 {
     if(metric != PROFILE_LEADERBOARD_AVG_HOLD)
-        return locale_get("profile_metric_streak");
+        return GetLocaleText("profile_metric_streak");
     return practice == EXERCISE_MEDITATION
-               ? locale_get("profile_metric_avg_time")
-               : locale_get("profile_metric_avg_hold");
+               ? GetLocaleText("profile_metric_avg_time")
+               : GetLocaleText("profile_metric_avg_hold");
 }
 
 static void
@@ -305,25 +305,25 @@ profile_draw_json_people(const char *json, const char *array_key,
     const char *p;
     const char *end;
     int rows = 0;
-    int font = flint_ui_font();
-    int small = flint_ui_font_small();
+    int font = GetUIFontSize();
+    int small = GetUISmallFontSize();
     int with_remove = !with_actions && strcmp(array_key, "friends") == 0;
     int with_cancel = !with_actions && strcmp(array_key, "outgoing") == 0;
 
     snprintf(key_pattern, sizeof(key_pattern), "\"%s\"", array_key);
     p = strstr(json != NULL ? json : "", key_pattern);
     if(p == NULL) {
-        flint_text_draw(locale_get("profile_none_label"), x, *y, small,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(24);
+        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
+                        DarkenUIColor(GetThemeText(), 35));
+        *y += ScaleUIPx(24);
         return;
     }
     p = strchr(p, '[');
     end = p != NULL ? strchr(p, ']') : NULL;
     if(p == NULL || end == NULL) {
-        flint_text_draw(locale_get("profile_none_label"), x, *y, small,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(24);
+        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
+                        DarkenUIColor(GetThemeText(), 35));
+        *y += ScaleUIPx(24);
         return;
     }
     while((p = strchr(p, '{')) != NULL && p < end && rows < 8) {
@@ -331,7 +331,7 @@ profile_draw_json_people(const char *json, const char *array_key,
         char alias[48];
         char display_id[80];
         char title[96];
-        int row_h = with_actions ? flint_px(42) : flint_px(30);
+        int row_h = with_actions ? ScaleUIPx(42) : ScaleUIPx(30);
         int hover_accept = 0;
         int hover_decline = 0;
         int hover_remove = 0;
@@ -361,48 +361,48 @@ profile_draw_json_people(const char *json, const char *array_key,
         if(display_id[0] == '\0')
             snprintf(display_id, sizeof(display_id), "%s", id);
         profile_display_name(title, sizeof(title), alias, display_id);
-        flint_text_draw(title, x, *y, font, flint_theme_get_text());
+        DrawUIText(title, x, *y, font, GetThemeText());
         if(with_remove) {
-            int icon_size = flint_px(18);
-            int icon_padding = flint_px(6);
+            int icon_size = ScaleUIPx(18);
+            int icon_padding = ScaleUIPx(6);
             int button_w = icon_size + icon_padding * 2;
-            if(ui_draw_icon_btn_padded(x + w - button_w, *y - flint_px(6),
+            if(DrawUIPaddedIconBtn(x + w - button_w, *y - ScaleUIPx(6),
                                        icon_size, icon_padding,
                                        app->icons[UI_ICON_TYPE_TRASH],
                                        &hover_remove)) {
                 profile_prompt_remove_friend(app, display_id, title);
             }
         } else if(with_cancel) {
-            int icon_size = flint_px(18);
-            int icon_padding = flint_px(6);
+            int icon_size = ScaleUIPx(18);
+            int icon_padding = ScaleUIPx(6);
             int button_w = icon_size + icon_padding * 2;
-            if(ui_draw_icon_btn_padded(x + w - button_w, *y - flint_px(6),
+            if(DrawUIPaddedIconBtn(x + w - button_w, *y - ScaleUIPx(6),
                                        icon_size, icon_padding,
                                        app->icons[UI_ICON_TYPE_TRASH],
                                        &hover_cancel) &&
                profile_sync_url(url, sizeof(url))) {
                 app_request_friend_decline(app, id);
-                settings_screen_set_status_success(locale_get("profile_updating_status"),
+                settings_screen_set_status_success(GetLocaleText("profile_updating_status"),
                                                    NULL);
             }
         }
         if(with_actions) {
-            int btn_w = (w - flint_px(8)) / 2;
-            if(ui_draw_generic_button(x, *y + flint_px(22), btn_w, flint_px(30),
-                                      locale_get("profile_friend_accept_button"),
+            int btn_w = (w - ScaleUIPx(8)) / 2;
+            if(DrawUIGenericButton(x, *y + ScaleUIPx(22), btn_w, ScaleUIPx(30),
+                                      GetLocaleText("profile_friend_accept_button"),
                                       UI_BUTTON_STYLE_PRIMARY, 0, &hover_accept) &&
                profile_sync_url(url, sizeof(url))) {
                 app_request_friend_accept(app, id);
-                settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
+                settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
             }
-            if(ui_draw_generic_button(x + btn_w + flint_px(8), *y + flint_px(22), btn_w,
-                                      flint_px(30),
-                                      locale_get("profile_friend_decline_button"),
+            if(DrawUIGenericButton(x + btn_w + ScaleUIPx(8), *y + ScaleUIPx(22), btn_w,
+                                      ScaleUIPx(30),
+                                      GetLocaleText("profile_friend_decline_button"),
                                       UI_BUTTON_STYLE_SECONDARY,
                                       0, &hover_decline) &&
                profile_sync_url(url, sizeof(url))) {
                 app_request_friend_decline(app, id);
-                settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
+                settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
             }
         }
         *y += row_h;
@@ -410,9 +410,9 @@ profile_draw_json_people(const char *json, const char *array_key,
         p++;
     }
     if(rows == 0) {
-        flint_text_draw(locale_get("profile_none_label"), x, *y, small,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(24);
+        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
+                        DarkenUIColor(GetThemeText(), 35));
+        *y += ScaleUIPx(24);
     }
 }
 
@@ -427,13 +427,13 @@ profile_screen_draw_remove_friend_modal(InbeApp *app)
         return;
 
     snprintf(message, sizeof(message),
-             locale_get("profile_friend_remove_message"),
+             GetLocaleText("profile_friend_remove_message"),
              app->profile_pending_friend_remove_name[0] != '\0'
                  ? app->profile_pending_friend_remove_name
                  : "this friend");
-    modal_result = ui_draw_modal(locale_get("profile_friend_remove_title"), message,
-                                 locale_get("cancel_button"),
-                                 locale_get("delete_button"));
+    modal_result = DrawUIModal(GetLocaleText("profile_friend_remove_title"), message,
+                                 GetLocaleText("cancel_button"),
+                                 GetLocaleText("delete_button"));
     if(modal_result == 1) {
         app->profile_pending_friend_remove_id[0] = '\0';
         app->profile_pending_friend_remove_name[0] = '\0';
@@ -443,10 +443,10 @@ profile_screen_draw_remove_friend_modal(InbeApp *app)
 
         if(profile_sync_url(url, sizeof(url))) {
             app_request_friend_remove(app, app->profile_pending_friend_remove_id);
-            settings_screen_set_status_success(locale_get("profile_updating_status"),
+            settings_screen_set_status_success(GetLocaleText("profile_updating_status"),
                                                NULL);
         } else {
-            settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+            settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"));
         }
         app->profile_pending_friend_remove_id[0] = '\0';
         app->profile_pending_friend_remove_name[0] = '\0';
@@ -457,8 +457,8 @@ profile_screen_draw_remove_friend_modal(InbeApp *app)
 void
 profile_social_draw_friends(InbeApp *app, int x, int w, int *y)
 {
-    int font = flint_ui_font();
-    int btn_h = flint_px(34);
+    int font = GetUIFontSize();
+    int btn_h = ScaleUIPx(34);
     int hover_add = 0;
     int commit = 0;
     char url[256];
@@ -472,57 +472,57 @@ profile_social_draw_friends(InbeApp *app, int x, int w, int *y)
     incoming_count = profile_json_array_count(app->profile_friend_requests_json, "incoming");
     outgoing_count = profile_json_array_count(app->profile_friend_requests_json, "outgoing");
 
-    *y += flint_px(16);
-    flint_text_draw(locale_get("profile_friends_title"), x, *y, font,
-                    flint_theme_get_text());
-    *y += flint_px(30);
-    (void)flint_ui_text_field((FlintUITextField){
-        .bounds = {x, *y, w, flint_px(38)},
+    *y += ScaleUIPx(16);
+    DrawUIText(GetLocaleText("profile_friends_title"), x, *y, font,
+                    GetThemeText());
+    *y += ScaleUIPx(30);
+    (void)DrawUITextField((UITextField){
+        .bounds = {x, *y, w, ScaleUIPx(38)},
         .text = app->profile_friend_input,
         .text_size = sizeof(app->profile_friend_input),
         .cursor_position = &app->profile_friend_input_cursor,
         .focused = &app->profile_friend_input_focused,
         .max_codepoints = 79,
-        .font = flint_ui_font(),
+        .font = GetUIFontSize(),
         .focus_id = 810,
         .style = profile_text_style(),
         .filter = profile_friend_filter,
         .commit_pressed = &commit
     });
-    *y += flint_px(46);
-    if((ui_draw_generic_button(x, *y, w, btn_h,
-                               locale_get("profile_add_friend_button"),
+    *y += ScaleUIPx(46);
+    if((DrawUIGenericButton(x, *y, w, btn_h,
+                               GetLocaleText("profile_add_friend_button"),
                                UI_BUTTON_STYLE_PRIMARY,
                                app->profile_friend_input[0] == '\0', &hover_add) || commit) &&
        app->profile_friend_input[0] != '\0') {
         if(profile_sync_url(url, sizeof(url))) {
             app_request_friend_send(app, app->profile_friend_input);
-            settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
+            settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
             profile_social_load_friends_cache(app);
             app->profile_friend_input[0] = '\0';
             app->profile_friend_input_cursor = 0;
         } else {
-            settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+            settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"));
         }
     }
-    *y += btn_h + flint_px(22);
+    *y += btn_h + ScaleUIPx(22);
 
     if(incoming_count > 0) {
-        flint_text_draw(locale_get("profile_incoming_title"), x, *y, font,
-                        flint_theme_get_text());
-        *y += flint_px(28);
+        DrawUIText(GetLocaleText("profile_incoming_title"), x, *y, font,
+                        GetThemeText());
+        *y += ScaleUIPx(28);
         profile_draw_json_people(app->profile_friend_requests_json, "incoming", x, w, y, 1, app);
-        *y += flint_px(16);
+        *y += ScaleUIPx(16);
     }
-    flint_text_draw(locale_get("profile_friends_title"), x, *y, font,
-                    flint_theme_get_text());
-    *y += flint_px(28);
+    DrawUIText(GetLocaleText("profile_friends_title"), x, *y, font,
+                    GetThemeText());
+    *y += ScaleUIPx(28);
     profile_draw_json_people(app->profile_friends_json, "friends", x, w, y, 0, app);
     if(outgoing_count > 0) {
-        *y += flint_px(16);
-        flint_text_draw(locale_get("profile_outgoing_title"), x, *y, font,
-                        flint_theme_get_text());
-        *y += flint_px(28);
+        *y += ScaleUIPx(16);
+        DrawUIText(GetLocaleText("profile_outgoing_title"), x, *y, font,
+                        GetThemeText());
+        *y += ScaleUIPx(28);
         profile_draw_json_people(app->profile_friend_requests_json, "outgoing", x, w, y, 0, app);
     }
 }
@@ -530,8 +530,8 @@ profile_social_draw_friends(InbeApp *app, int x, int w, int *y)
 int
 profile_social_friends_content_height(InbeApp *app, int content_w)
 {
-    int h = flint_px(16) + flint_px(30) + flint_px(46) +
-            flint_px(34) + flint_px(22);
+    int h = ScaleUIPx(16) + ScaleUIPx(30) + ScaleUIPx(46) +
+            ScaleUIPx(34) + ScaleUIPx(22);
     int incoming_count;
     int outgoing_count;
     int friends_count;
@@ -543,23 +543,23 @@ profile_social_friends_content_height(InbeApp *app, int content_w)
     outgoing_count = profile_json_array_count(app->profile_friend_requests_json, "outgoing");
     friends_count = profile_json_array_count(app->profile_friends_json, "friends");
     if(incoming_count > 0)
-        h += flint_px(28) +
-             (incoming_count > 8 ? 8 : incoming_count) * flint_px(42) +
-             flint_px(16);
-    h += flint_px(28) +
-         (friends_count > 0 ? (friends_count > 8 ? 8 : friends_count) * flint_px(30)
-                            : flint_px(24));
+        h += ScaleUIPx(28) +
+             (incoming_count > 8 ? 8 : incoming_count) * ScaleUIPx(42) +
+             ScaleUIPx(16);
+    h += ScaleUIPx(28) +
+         (friends_count > 0 ? (friends_count > 8 ? 8 : friends_count) * ScaleUIPx(30)
+                            : ScaleUIPx(24));
     if(outgoing_count > 0)
-        h += flint_px(16) + flint_px(28) +
-             (outgoing_count > 8 ? 8 : outgoing_count) * flint_px(30);
-    return h + flint_px(16);
+        h += ScaleUIPx(16) + ScaleUIPx(28) +
+             (outgoing_count > 8 ? 8 : outgoing_count) * ScaleUIPx(30);
+    return h + ScaleUIPx(16);
 }
 
 static void
 profile_draw_leaderboard_value(int x, int w, int y, const char *value, int font)
 {
-    int rank_w = flint_text_measure(value, font);
-    flint_text_draw(value, x + w - rank_w, y, font, flint_theme_get_text());
+    int rank_w = MeasureUIText(value, font);
+    DrawUIText(value, x + w - rank_w, y, font, GetThemeText());
 }
 
 static int
@@ -639,8 +639,8 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
 {
     const char *p = strstr(json != NULL ? json : "", "\"rows\"");
     int rows = 0;
-    int font = flint_ui_font();
-    int small = flint_ui_font_small();
+    int font = GetUIFontSize();
+    int small = GetUISmallFontSize();
     ProfileLeaderboardDrawRow draw_rows[24];
     InbeSyncAccount account;
     int has_account = sync_account_load(&account) && account.public_id[0] != '\0';
@@ -727,15 +727,15 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
         profile_display_name(display, sizeof(display),
                              draw_rows[i].alias, draw_rows[i].user_id);
         snprintf(name, sizeof(name), "%d. %s", i + 1, display);
-        flint_text_draw(name, x, *y, font, flint_theme_get_text());
+        DrawUIText(name, x, *y, font, GetThemeText());
         profile_draw_leaderboard_value(x, w, *y, draw_rows[i].value, font);
-        *y += flint_px(30);
+        *y += ScaleUIPx(30);
     }
 
     if(rows == 0) {
-        flint_text_draw(locale_get("profile_no_leaderboard_data"), x, *y, small,
-                        flint_darken(flint_theme_get_text(), 35));
-        *y += flint_px(24);
+        DrawUIText(GetLocaleText("profile_no_leaderboard_data"), x, *y, small,
+                        DarkenUIColor(GetThemeText(), 35));
+        *y += ScaleUIPx(24);
     }
 }
 
@@ -790,15 +790,15 @@ profile_social_leaderboard_content_height(InbeApp *app, int content_w)
 
     (void)content_w;
     if(app == NULL)
-        return flint_px(160);
+        return ScaleUIPx(160);
     metric_count = profile_leaderboard_metric_count(app->profile_leaderboard_practice);
     rows = profile_leaderboard_row_count(app, app->profile_leaderboard_json);
-    return flint_px(16) + flint_px(22) + flint_px(46) +
-           flint_px(34) + flint_px(10) +
+    return ScaleUIPx(16) + ScaleUIPx(22) + ScaleUIPx(46) +
+           ScaleUIPx(34) + ScaleUIPx(10) +
            (metric_count > 0 ? 0 : 0) +
-           flint_px(22) +
-           (rows > 0 ? rows * flint_px(30) : flint_px(24)) +
-           flint_px(16);
+           ScaleUIPx(22) +
+           (rows > 0 ? rows * ScaleUIPx(30) : ScaleUIPx(24)) +
+           ScaleUIPx(16);
 }
 
 static void
@@ -808,7 +808,7 @@ profile_refresh_leaderboard(InbeApp *app)
         return;
     profile_social_load_leaderboard_cache(app);
     app_request_social_refresh(app);
-    settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
+    settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
 }
 
 void
@@ -819,15 +819,15 @@ profile_social_refresh_cache(InbeApp *app)
     profile_social_load_friends_cache(app);
     profile_social_load_leaderboard_cache(app);
     app_request_social_refresh(app);
-    settings_screen_set_status_success(locale_get("profile_updating_status"), NULL);
+    settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
 }
 
 static void
 profile_draw_choice_row(InbeApp *app, int x, int w, int *y, int *value,
                         const char *const *labels, int count)
 {
-    int gap = flint_px(8);
-    int btn_h = flint_px(34);
+    int gap = ScaleUIPx(8);
+    int btn_h = ScaleUIPx(34);
     int btn_w;
 
     if(count <= 0)
@@ -838,7 +838,7 @@ profile_draw_choice_row(InbeApp *app, int x, int w, int *y, int *value,
         int bx = x + i * (btn_w + gap);
         int bw = i == count - 1 ? x + w - bx : btn_w;
         int selected = *value == i;
-        if(ui_draw_generic_button(bx, *y, bw, btn_h, labels[i],
+        if(DrawUIGenericButton(bx, *y, bw, btn_h, labels[i],
                                   selected ? UI_BUTTON_STYLE_TAB_SELECTED
                                            : UI_BUTTON_STYLE_TAB,
                                   0, &hover) && !selected) {
@@ -846,7 +846,7 @@ profile_draw_choice_row(InbeApp *app, int x, int w, int *y, int *value,
             profile_social_load_leaderboard_cache(app);
         }
     }
-    *y += btn_h + flint_px(10);
+    *y += btn_h + ScaleUIPx(10);
 }
 
 void
@@ -880,12 +880,12 @@ profile_social_draw_leaderboard(InbeApp *app, int x, int w, int *y)
         profile_leaderboard_metric_label(app->profile_leaderboard_practice,
                                          PROFILE_LEADERBOARD_AVG_HOLD);
 
-    *y += flint_px(16);
-    flint_text_draw(locale_get("profile_practice_label"), x, *y, flint_ui_font_small(),
-                    flint_darken(flint_theme_get_text(), 35));
-    *y += flint_px(22);
+    *y += ScaleUIPx(16);
+    DrawUIText(GetLocaleText("profile_practice_label"), x, *y, GetUISmallFontSize(),
+                    DarkenUIColor(GetThemeText(), 35));
+    *y += ScaleUIPx(22);
     before_practice = app->profile_leaderboard_practice;
-    ui_draw_dropdown_button(811, x, *y, w, flint_px(36), practice_options,
+    DrawUIDropdownButton(811, x, *y, w, ScaleUIPx(36), practice_options,
                             EXERCISE_COUNT, &app->profile_leaderboard_practice);
     if(app->profile_leaderboard_practice != before_practice) {
         metric_count = profile_leaderboard_metric_count(app->profile_leaderboard_practice);
@@ -899,13 +899,13 @@ profile_social_draw_leaderboard(InbeApp *app, int x, int w, int *y)
                                              PROFILE_LEADERBOARD_AVG_HOLD);
         profile_refresh_leaderboard(app);
     }
-    *y += flint_px(46);
+    *y += ScaleUIPx(46);
     before_metric = app->profile_leaderboard_metric;
     profile_draw_choice_row(app, x, w, y, &app->profile_leaderboard_metric,
                             metric_options, metric_count);
     if(app->profile_leaderboard_metric != before_metric)
         profile_refresh_leaderboard(app);
-    *y += flint_px(22);
+    *y += ScaleUIPx(22);
     if(!app->profile_friends_loaded)
         profile_social_load_friends_cache(app);
     profile_draw_leaderboard_rows(app, app->profile_leaderboard_json, x, w, y);

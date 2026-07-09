@@ -1,7 +1,7 @@
 #include "app/app.h"
 #include "app/app_nav.h"
-#include "flint_locale.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui.h"
 #include "screens/settings/settings_screen.h"
 
 #include <stdbool.h>
@@ -15,6 +15,7 @@ static int failures = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
+static UIBottomNav bottom_nav_last;
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
@@ -34,6 +35,7 @@ reset_state(void)
     mouse_released = 0;
     bottom_nav_draw_count = 0;
     bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
+    memset(&bottom_nav_last, 0, sizeof(bottom_nav_last));
     save_settings_count = 0;
     reset_settings_preview_count = 0;
     settings_status_clear_count = 0;
@@ -59,26 +61,26 @@ DrawRectangle(int posX, int posY, int width, int height, Color color)
 }
 
 int
-ui_bottom_nav_height(void)
+GetUIBottomNavHeight(void)
 {
-    return 40;
+    return 52;
 }
 
-FlintUIBottomNavResult
-ui_draw_bottom_nav(FlintUIBottomNav nav)
+UIBottomNavResult
+DrawUIBottomNav(UIBottomNav nav)
 {
-    (void)nav;
+    bottom_nav_last = nav;
     bottom_nav_draw_count++;
-    return (FlintUIBottomNavResult){
+    return (UIBottomNavResult){
         .clicked_route = bottom_nav_clicked_route,
         .clicked_index = bottom_nav_clicked_route == APP_NAV_ROUTE_NONE ? -1 : 0,
-        .y = 520,
-        .height = 40
+        .y = 508,
+        .height = 52
     };
 }
 
 const char *
-locale_get(const char *key)
+GetLocaleText(const char *key)
 {
     return key != NULL ? key : "";
 }
@@ -180,6 +182,40 @@ test_unblocked_bottom_nav_click_still_routes(void)
            "unblocked bottom nav click should route to settings");
     expect(reset_settings_preview_count == 1,
            "settings route should reset preview");
+    expect(app_content_bottom_reserved(&app) == 52,
+           "bottom nav should reserve larger touch height");
+    expect(bottom_nav_last.bottom_margin == 0,
+           "bottom nav should preserve zero Android margin");
+}
+
+static void
+test_edge_bottom_nav_routes_are_applied(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    bottom_nav_clicked_route = APP_NAV_ROUTE_PROFILE;
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 1,
+           "profile edge route should draw bottom nav");
+    expect(app.inbe.screen == InbeScreenProfile,
+           "profile edge route should switch to profile");
+    expect(settings_status_clear_count == 1,
+           "profile route should clear settings status");
+
+    app = test_app();
+    reset_state();
+    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    app_set_android_bottom_nav_height(24);
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 1,
+           "settings edge route should draw bottom nav");
+    expect(app.inbe.screen == InbeScreenSettings,
+           "settings edge route should switch to settings");
+    expect(bottom_nav_last.bottom_margin == 24,
+           "bottom nav should preserve Android system nav margin");
 }
 
 static void
@@ -224,13 +260,32 @@ test_practice_config_hides_bottom_nav(void)
            "practice config hidden nav should not route clicks");
 }
 
+static void
+test_file_dialog_hides_bottom_nav(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.file_dialog_active = 1;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 0,
+           "active file dialog should not draw bottom nav");
+    expect(app.inbe.screen == InbeScreenStart,
+           "active file dialog should not route bottom nav clicks");
+}
+
 int
 main(void)
 {
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
+    test_edge_bottom_nav_routes_are_applied();
     test_practice_manual_hides_bottom_nav();
     test_practice_config_hides_bottom_nav();
+    test_file_dialog_hides_bottom_nav();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

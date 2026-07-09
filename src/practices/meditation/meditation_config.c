@@ -1,9 +1,9 @@
 #include "meditation_practice.h"
 
 #include "app.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 #include "screens/practice_screen.h"
 
@@ -17,12 +17,12 @@ static const int meditation_config_preset_count = 5;
 static int
 meditation_config_duration_height(int content_w)
 {
-    int columns = content_w >= flint_px(520) ? 3 : 2;
+    int columns = content_w >= ScaleUIPx(520) ? 3 : 2;
     int count = meditation_config_preset_count + 1;
     int rows = (count + columns - 1) / columns;
 
-    return flint_px(30) + rows * flint_px(42) + (rows - 1) * flint_px(8) +
-           flint_px(96) + flint_px(78) + flint_px(18);
+    return ScaleUIPx(30) + rows * ScaleUIPx(42) + (rows - 1) * ScaleUIPx(8) +
+           ScaleUIPx(96) + ScaleUIPx(78) + ScaleUIPx(18);
 }
 
 static int
@@ -32,7 +32,7 @@ meditation_config_content_height(InbeApp *app, int content_w)
            (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
                 ? app_content_bottom_reserved(app)
                 : 0) +
-           flint_px(24);
+           ScaleUIPx(24);
 }
 
 static void
@@ -48,17 +48,17 @@ static void
 meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
 {
     const char *labels[] = {
-        locale_get("duration_5m"),
-        locale_get("duration_15m"),
-        locale_get("duration_30m"),
-        locale_get("duration_1h"),
-        locale_get("duration_2h"),
-        locale_get("meditation_duration_custom")
+        GetLocaleText("duration_5m"),
+        GetLocaleText("duration_15m"),
+        GetLocaleText("duration_30m"),
+        GetLocaleText("duration_1h"),
+        GetLocaleText("duration_2h"),
+        GetLocaleText("meditation_duration_custom")
     };
     int mode;
     int columns;
-    int gap = flint_px(8);
-    int btn_h = flint_px(36);
+    int gap = ScaleUIPx(8);
+    int btn_h = ScaleUIPx(36);
     int btn_w;
     int row_y;
     int custom_row_y;
@@ -73,11 +73,11 @@ meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
     app->meditation.duration_mode = mode;
     app->meditation.custom_minutes = clampi(app->meditation.custom_minutes, 1, 240);
 
-    flint_text_draw(locale_get("meditation_duration_setting"), x, *y,
-                    flint_ui_font(), flint_theme_get_text());
-    *y += flint_px(30);
+    DrawUIText(GetLocaleText("meditation_duration_setting"), x, *y,
+                    GetUIFontSize(), GetThemeText());
+    *y += ScaleUIPx(30);
 
-    columns = w >= flint_px(520) ? 3 : 2;
+    columns = w >= ScaleUIPx(520) ? 3 : 2;
     btn_w = (w - gap * (columns - 1)) / columns;
     for(int i = 0; i < meditation_config_preset_count + 1; i++) {
         int col = i % columns;
@@ -86,7 +86,7 @@ meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
         int by = *y + row * (btn_h + gap);
         int style = i == mode ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY;
 
-        if(ui_draw_generic_button(bx, by, btn_w, btn_h, labels[i], style, 0, &hover)) {
+        if(DrawUIGenericButton(bx, by, btn_w, btn_h, labels[i], style, 0, &hover)) {
             app->meditation.duration_mode = i;
             meditation_config_save(app);
         }
@@ -94,24 +94,24 @@ meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
 
     row_y = *y + ((meditation_config_preset_count + 1 + columns - 1) / columns) *
                   (btn_h + gap);
-    *y = row_y + flint_px(8);
+    *y = row_y + ScaleUIPx(8);
 
     custom_row_y = *y;
     snprintf(custom_text, sizeof(custom_text), "%s: %d min",
-             locale_get("meditation_custom_minutes"), app->meditation.custom_minutes);
-    flint_text_draw(custom_text, x, custom_row_y,
-                    flint_ui_font(), flint_theme_get_text());
+             GetLocaleText("meditation_custom_minutes"), app->meditation.custom_minutes);
+    DrawUIText(custom_text, x, custom_row_y,
+                    GetUIFontSize(), GetThemeText());
 
     {
         const char *adjust_labels[] = {"-5", "-1", "+1", "+5"};
         const int adjust_values[] = {-5, -1, 1, 5};
-        int adjust_w = flint_px(50);
+        int adjust_w = ScaleUIPx(50);
         int adjust_total = adjust_w * 4 + gap * 3;
         int adjust_x = x + (w - adjust_total) / 2;
-        int adjust_y = custom_row_y + flint_px(34);
+        int adjust_y = custom_row_y + ScaleUIPx(34);
 
         for(int i = 0; i < 4; i++) {
-            if(ui_draw_generic_button(adjust_x + i * (adjust_w + gap), adjust_y,
+            if(DrawUIGenericButton(adjust_x + i * (adjust_w + gap), adjust_y,
                                       adjust_w, btn_h, adjust_labels[i],
                                       UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
                 app->meditation.custom_minutes =
@@ -121,18 +121,18 @@ meditation_config_draw_duration(InbeApp *app, int x, int w, int *y)
             }
         }
     }
-    *y += flint_px(96);
+    *y += ScaleUIPx(96);
 
-    flint_text_draw(locale_get("meditation_extend_controls_label"), x, *y,
-                    flint_ui_font(), flint_theme_get_text());
+    DrawUIText(GetLocaleText("meditation_extend_controls_label"), x, *y,
+                    GetUIFontSize(), GetThemeText());
     toggle_value = app->meditation.show_extend_controls;
-    if(ui_draw_toggle_switch(x, *y + flint_px(26), flint_px(56), flint_px(30),
-                             &toggle_value, locale_get("toggle_off"),
-                             locale_get("toggle_on"))) {
+    if(DrawUIToggleSwitch(x, *y + ScaleUIPx(26), ScaleUIPx(56), ScaleUIPx(30),
+                             &toggle_value, GetLocaleText("toggle_off"),
+                             GetLocaleText("toggle_on"))) {
         app->meditation.show_extend_controls = toggle_value;
         meditation_config_save(app);
     }
-    *y += flint_px(78);
+    *y += ScaleUIPx(78);
 }
 
 typedef struct MeditationConfigScrollPageContext {
@@ -152,18 +152,18 @@ meditation_config_screen_draw(InbeApp *app)
 {
     PracticeSubscreenLayout layout;
 
-    practice_screen_config_layout(app, UIModalPracticeConfig, flint_px(16), &layout);
-    practice_screen_handle_config_title(app, locale_get("practice_config_title"),
+    practice_screen_config_layout(app, UIModalPracticeConfig, ScaleUIPx(16), &layout);
+    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
                                         UIModalPracticeConfig,
                                         meditation_practice_leave_config);
 
     {
         MeditationConfigScrollPageContext page_ctx = {app};
-        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
             .y = layout.scroll_y,
             .height = layout.scroll_h,
-            .max_content_width = flint_px(CONTENT_MAX_W),
-            .min_content_width = flint_px(320),
+            .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+            .min_content_width = ScaleUIPx(320),
             .scroll_offset = &app->settings_scroll,
             .content_height = meditation_config_scroll_page_content_height,
             .user_data = &page_ctx
@@ -171,6 +171,6 @@ meditation_config_screen_draw(InbeApp *app)
         int y = page.content_y;
 
         meditation_config_draw_duration(app, page.content_x, page.content_w, &y);
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
     }
 }

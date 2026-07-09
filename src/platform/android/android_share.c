@@ -1,7 +1,7 @@
 #include "android_share.h"
 #include "platform.h"
 #include "data.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "storage.h"
 #include "version.h"
 #include "raylib.h"
@@ -93,7 +93,7 @@ android_share_bytes(const unsigned char *data, size_t data_size, const char *fil
     (*env)->SetByteArrayRegion(env, jarr, 0, data_size, (const jbyte *)data);
     jname = (*env)->NewStringUTF(env, filename);
     jmime = (*env)->NewStringUTF(env, mime_type != NULL ? mime_type : "application/octet-stream");
-    jtitle = (*env)->NewStringUTF(env, locale_get("share_sheet_title"));
+    jtitle = (*env)->NewStringUTF(env, GetLocaleText("share_sheet_title"));
     (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz,
                                  jarr, jname, jmime, jtitle);
 
@@ -232,7 +232,7 @@ int android_share_export(const char *filename)
     (*env)->SetByteArrayRegion(env, jarr, 0, zip_size, (jbyte*)zip_data);
 
     jstring jname = (*env)->NewStringUTF(env, filename);
-    jstring jtitle = (*env)->NewStringUTF(env, locale_get("share_sheet_title"));
+    jstring jtitle = (*env)->NewStringUTF(env, GetLocaleText("share_sheet_title"));
     (*env)->CallStaticVoidMethod(env, share_helper_class, method, native_activity->clazz, jarr, jname, jtitle);
 
     (*env)->DeleteLocalRef(env, jarr);

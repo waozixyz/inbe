@@ -3,11 +3,11 @@
 #include "screens/manual_screen.h"
 #include "screens/practice_screen.h"
 #include "whm_session.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_clip.h"
-#include "flint_ui.h"
-#include "flint_theme_meta.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui_clip.h"
+#include "ui.h"
+#include "theme_meta.h"
 #include "raylib.h"
 #include <stdio.h>
 
@@ -26,7 +26,7 @@ static const char *const TUTORIAL_KEYS[] = {
 };
 
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
-#define TUTORIAL_LINE_SPACING flint_px(8)  /* Normal readable line spacing */
+#define TUTORIAL_LINE_SPACING ScaleUIPx(8)  /* Normal readable line spacing */
 
 static Color
 manual_text_color_for_background(Color background)
@@ -41,9 +41,9 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
 {
     int seconds = (app->inbe.frame / 60) % 60;
     char text[CountSize];
-    int font = FLINT_TEXT_16;
-    int thickness = flint_px(5);
-    Color text_color = flint_theme_get_text();
+    int font = UI_TEXT_16;
+    int thickness = ScaleUIPx(5);
+    Color text_color = GetThemeText();
 
     count_from_int(text, seconds);
     if(thickness < 3)
@@ -53,28 +53,28 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
         float sweep = 360.0f * (float)((app->inbe.frame % (60 * 60))) / (float)(60 * 60);
 
         DrawRing((Vector2){center_x, center_y},
-                 (float)(radius + flint_px(8) - thickness / 2),
-                 (float)(radius + flint_px(8) + thickness / 2),
-                 -90.0f, -90.0f + sweep, 96, flint_theme_get_text());
-        text_color = manual_text_color_for_background(flint_theme_get_bg());
+                 (float)(radius + ScaleUIPx(8) - thickness / 2),
+                 (float)(radius + ScaleUIPx(8) + thickness / 2),
+                 -90.0f, -90.0f + sweep, 96, GetThemeText());
+        text_color = manual_text_color_for_background(GetThemeBackground());
     } else {
-        DrawCircle(center_x, center_y, radius, flint_theme_get_circle());
-        DrawCircleLines(center_x, center_y, radius, flint_theme_get_text());
-        text_color = manual_text_color_for_background(flint_theme_get_circle());
+        DrawCircle(center_x, center_y, radius, GetThemeCircle());
+        DrawCircleLines(center_x, center_y, radius, GetThemeText());
+        text_color = manual_text_color_for_background(GetThemeCircle());
     }
 
-    flint_ui_draw_text_centered(text, center_x, center_y, font, text_color);
+    DrawCenteredUIControlText(text, center_x, center_y, font, text_color);
 }
 
-static FlintUIParagraph
+static UIParagraph
 tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
 {
     int has_icon = step == 1;
-    return (FlintUIParagraph){
-        .text = locale_get(TUTORIAL_KEYS[step]),
+    return (UIParagraph){
+        .text = GetLocaleText(TUTORIAL_KEYS[step]),
         .icon = has_icon ? app->icons[UI_ICON_TYPE_WRENCH] : (Texture2D){0},
         .icon_type = has_icon ? UI_ICON_TYPE_WRENCH : UI_ICON_TYPE_NONE,
-        .icon_size = has_icon ? flint_px(14) : 0,
+        .icon_size = has_icon ? ScaleUIPx(14) : 0,
         .width = content_w,
         .font = body_font,
         .line_gap = TUTORIAL_LINE_SPACING,
@@ -84,13 +84,13 @@ tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
 static int
 tutorial_paragraph_height(InbeApp *app, int step, int content_w, int body_font)
 {
-    return flint_ui_paragraph_height(tutorial_paragraph(app, step, content_w, body_font));
+    return GetUIParagraphHeight(tutorial_paragraph(app, step, content_w, body_font));
 }
 
 static void
 draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int content_w, int body_font)
 {
-    flint_ui_paragraph_draw(tutorial_paragraph(app, step, content_w, body_font), content_x, y);
+    DrawUIParagraph(tutorial_paragraph(app, step, content_w, body_font), content_x, y);
 }
 
 static int
@@ -99,31 +99,31 @@ manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_f
     int actual_content_h = 0;
 
     if(step == 0) {
-        actual_content_h += flint_px(170) + flint_px(22) +
+        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
                             tutorial_paragraph_height(app, 0, content_w, body_font);
     } else if(step == 1) {
         actual_content_h += tutorial_paragraph_height(app, 1, content_w, body_font);
     } else if(step == 2) {
         int preview_span;
         int preview_rmax;
-        int slider_h = flint_px(40);
+        int slider_h = ScaleUIPx(40);
 
-        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + flint_px(20);
-        preview_span = (content_w < flint_px(132)) ? content_w : flint_px(132);
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + ScaleUIPx(20);
+        preview_span = (content_w < ScaleUIPx(132)) ? content_w : ScaleUIPx(132);
         preview_rmax = preview_span / 2;
-        if(preview_rmax < flint_px(60)) preview_rmax = flint_px(60);
-        if(preview_rmax > flint_px(120)) preview_rmax = flint_px(120);
-        actual_content_h += flint_px(40) + (int)((float)preview_rmax * 0.72f) + flint_px(14);
-        actual_content_h += slider_h + flint_px(8);
+        if(preview_rmax < ScaleUIPx(60)) preview_rmax = ScaleUIPx(60);
+        if(preview_rmax > ScaleUIPx(120)) preview_rmax = ScaleUIPx(120);
+        actual_content_h += ScaleUIPx(40) + (int)((float)preview_rmax * 0.72f) + ScaleUIPx(14);
+        actual_content_h += slider_h + ScaleUIPx(8);
     } else if(step == 3) {
-        int hold_preview_radius = flint_px(54);
-        int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
+        int hold_preview_radius = ScaleUIPx(54);
+        int hold_preview_extent = hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5);
 
-        actual_content_h += hold_preview_extent * 2 + flint_px(24) +
-                            flint_px(42) + flint_px(18);
+        actual_content_h += hold_preview_extent * 2 + ScaleUIPx(24) +
+                            ScaleUIPx(42) + ScaleUIPx(18);
         actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font);
     } else {
-        actual_content_h += flint_px(80) +
+        actual_content_h += ScaleUIPx(80) +
                             tutorial_paragraph_height(app, 4, content_w, body_font);
     }
 
@@ -175,9 +175,9 @@ void
 whm_manual_draw(InbeApp *app)
 {
     PracticeManualLayout layout;
-    int body_font = flint_ui_font();
-    int footer_content_pad = flint_ui_font() / 2;
-    const char *title = locale_get("tutorial_title");
+    int body_font = GetUIFontSize();
+    int footer_content_pad = GetUIFontSize() / 2;
+    const char *title = GetLocaleText("tutorial_title");
     int step = app->tutorial_step;
 
     step = manual_screen_guide_update_page(app, (int)TUTORIAL_STEPS_COUNT,
@@ -185,36 +185,36 @@ whm_manual_draw(InbeApp *app)
                                            whm_manual_close);
 
     switch(step) {
-    case 1: title = locale_get("tutorial_method_title"); break;
-    case 2: title = locale_get("tutorial_step1_title"); break;
-    case 3: title = locale_get("tutorial_step2_title"); break;
-    case 4: title = locale_get("tutorial_step3_title"); break;
+    case 1: title = GetLocaleText("tutorial_method_title"); break;
+    case 2: title = GetLocaleText("tutorial_step1_title"); break;
+    case 3: title = GetLocaleText("tutorial_step2_title"); break;
+    case 4: title = GetLocaleText("tutorial_step3_title"); break;
     default: break;
     }
 
     practice_screen_manual_layout(app, UIModalPracticeManual, (int)TUTORIAL_STEPS_COUNT,
                                   0, footer_content_pad, 0, &layout);
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, layout.title_h))
+    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, layout.title_h))
         whm_manual_close(app, 0);
 
     {
-        int top_padding = flint_px(16);
+        int top_padding = ScaleUIPx(16);
         int responsive_max_w = (int)(view_width * 0.96f);
-        int max_content_w = flint_px(CONTENT_MAX_W);
+        int max_content_w = ScaleUIPx(CONTENT_MAX_W);
         WhmManualScrollPageContext page_ctx;
-        FlintUIScrollPage page;
+        UIScrollPage page;
 
         if(responsive_max_w > max_content_w)
             responsive_max_w = max_content_w;
-        if(responsive_max_w < flint_px(280))
-            responsive_max_w = flint_px(280);
+        if(responsive_max_w < ScaleUIPx(280))
+            responsive_max_w = ScaleUIPx(280);
 
         page_ctx = (WhmManualScrollPageContext){app, step, body_font, top_padding};
-        page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        page = BeginUIScrollPage((UIScrollPageSpec){
             .y = layout.content_y,
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
-            .min_content_width = flint_px(280),
+            .min_content_width = ScaleUIPx(280),
             .scroll_offset = &app->manual_scroll,
             .content_height = whm_manual_scroll_page_content_height,
             .user_data = &page_ctx
@@ -222,10 +222,10 @@ whm_manual_draw(InbeApp *app)
 
         int y = page.content_y + top_padding;
         if(step == 0) {
-            int img_h = flint_px(170);
-            ui_draw_tutorial_image(app->whm.image_1, "practices/whm/1.jpg",
+            int img_h = ScaleUIPx(170);
+            DrawUITutorialImage(app->whm.image_1, "practices/whm/1.jpg",
                                    page.content_x, y, page.content_w, img_h);
-            y += img_h + flint_px(22);
+            y += img_h + ScaleUIPx(22);
 
             draw_tutorial_paragraph(app, 0, page.content_x, &y, page.content_w, body_font);
         } else if(step == 1) {
@@ -233,25 +233,25 @@ whm_manual_draw(InbeApp *app)
         } else if(step == 2) {
             int speed = app->inbe.speed_level;
             draw_tutorial_paragraph(app, 2, page.content_x, &y, page.content_w, body_font);
-            y += flint_px(20);  /* Increased spacing between text and circle */
+            y += ScaleUIPx(20);  /* Increased spacing between text and circle */
 
-            update_preview_bounds(&app->settings_preview, page.content_w, flint_px(132));
+            update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132));
             apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                            int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
             app->settings_preview.progressive_speed = 0;
             inbestep(&app->settings_preview);
             if(app->settings_preview.phase != InbePhaseBreathe) {
                 reset_settings_preview(app);
-                update_preview_bounds(&app->settings_preview, page.content_w, flint_px(132));
+                update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132));
                 apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
                 app->settings_preview.progressive_speed = 0;
             }
             draw_preview_inbe(&app->settings_preview,
-                              page.content_x + page.content_w / 2, y + flint_px(40));
-            y += (int)(app->settings_preview.rmax * 0.72f) + flint_px(54);
+                              page.content_x + page.content_w / 2, y + ScaleUIPx(40));
+            y += (int)(app->settings_preview.rmax * 0.72f) + ScaleUIPx(54);
 
-            if(ui_draw_slider(10, page.content_x, y, page.content_w, locale_get("speed_label"), SETTINGS_SPEED_MIN,
+            if(DrawUISlider(10, page.content_x, y, page.content_w, GetLocaleText("speed_label"), SETTINGS_SPEED_MIN,
                            SETTINGS_SPEED_MAX, &speed, "")) {
                 apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                                int_from_count(app->inbe.maxbreaths), app->inbe.pause_seconds);
@@ -261,20 +261,20 @@ whm_manual_draw(InbeApp *app)
                 app->settings_dirty = 1;
             }
         } else if(step == 3) {
-            int hold_preview_radius = flint_px(54);
-            int hold_preview_extent = hold_preview_radius + flint_px(8) + flint_px(5);
+            int hold_preview_radius = ScaleUIPx(54);
+            int hold_preview_extent = hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5);
             int breath_button_hover = 0;
             int center_x = page.content_x + page.content_w / 2;
             y += hold_preview_extent;
             draw_tutorial_hold_preview(app, center_x, y, hold_preview_radius);
-            y += hold_preview_extent + flint_px(24);
-            ui_draw_text_btn(center_x, y, locale_get("breath_button"), &breath_button_hover);
-            y += flint_px(42) + flint_px(18);
+            y += hold_preview_extent + ScaleUIPx(24);
+            DrawUITextButton(center_x, y, GetLocaleText("breath_button"), &breath_button_hover);
+            y += ScaleUIPx(42) + ScaleUIPx(18);
             draw_tutorial_paragraph(app, 3, page.content_x, &y, page.content_w, body_font);
         } else {
             draw_tutorial_paragraph(app, 4, page.content_x, &y, page.content_w, body_font);
         }
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
     }
 
     manual_screen_guide_draw_nav(app, (ManualGuideNav){

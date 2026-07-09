@@ -555,6 +555,18 @@ Sensor
 [close_button]
 Fechar
 ---
+[desktop_close_prompt_title]
+Manter o Inner Breeze em execução?
+---
+[desktop_close_prompt_message]
+Ao fechar a janela, o Inner Breeze pode continuar em execução em segundo plano.
+---
+[desktop_close_keep_running_button]
+Continuar em execução
+---
+[desktop_close_quit_button]
+Sair
+---
 [sync_account_title]
 Conta
 ---
@@ -663,8 +675,23 @@ Limpa apenas os dados armazenados neste dispositivo. Os dados remotos de sincron
 [sync_logout_button]
 Sair
 ---
-[sync_logged_out]
-Sessão encerrada
+[sync_logged_out_local_data_kept]
+Sessão encerrada. Os dados locais permanecem neste dispositivo.
+---
+[sync_account_switch_title]
+Limpar dados locais?
+---
+[sync_account_switch_message]
+Este dispositivo tem dados de outra conta de sincronização. Limpe os dados locais antes de usar esta conta.
+---
+[sync_account_switch_clear_button]
+Limpar e usar conta
+---
+[sync_account_switch_cancelled]
+Troca de conta cancelada
+---
+[sync_account_switch_failed]
+Não foi possível trocar de conta
 ---
 [sync_clear_remote_data_button]
 Limpar dados remotos
@@ -777,12 +804,6 @@ Crie uma conta de sincronizacao para liberar amigos e classificacao.
 
 [transition_label]
 Transição
----
-[transition_none]
-Nenhuma
----
-[transition_fade]
-Desvanecer
 ---
 [theme_picker_title]
 Escolher tema

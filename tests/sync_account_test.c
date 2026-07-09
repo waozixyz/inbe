@@ -222,6 +222,32 @@ make_account_values(char public_id[65], char public_key_hex[2625],
 }
 
 static void
+make_account_values_variant(int variant, char public_id[65],
+                            char public_key_hex[2625],
+                            char private_key_hex[5121])
+{
+    unsigned char public_key[1312];
+    unsigned char private_key[2560];
+
+    for(size_t i = 0; i < sizeof(public_key); i++)
+        public_key[i] = (unsigned char)(i * 31U + 7U + (unsigned)variant);
+    for(size_t i = 0; i < sizeof(private_key); i++)
+        private_key[i] = (unsigned char)(i * 17U + 3U + (unsigned)(variant * 3));
+
+    sync_sha256_hex(public_key, sizeof(public_key), public_id);
+    bytes_to_hex_local(public_key, sizeof(public_key), public_key_hex, 2625);
+    bytes_to_hex_local(private_key, sizeof(private_key), private_key_hex, 5121);
+}
+
+static InbeSyncAccountSaveResult
+import_key_and_save(InbeSyncAccount *account, const char *path, int clear_local_data)
+{
+    if(!sync_account_import_private_key_preview(account, path))
+        return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+    return sync_account_save(account, clear_local_data);
+}
+
+static void
 test_import_export_clear(void)
 {
     char root[512];
@@ -241,8 +267,12 @@ test_import_export_clear(void)
     write_key_file(key_path, public_id, public_key, private_key);
 
     check_true("init storage", storage_init(root));
-    check_true("import key", sync_account_import_private_key(&account, key_path));
+    storage_set_setting_text("sync_account_alias", "old-alias");
+    check_true("import key",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
     check_str("import public id", account.public_id, public_id);
+    check_true("import clears stale alias",
+               storage_get_setting_text("sync_account_alias") == NULL);
     check_true("load imported key", sync_account_load(&account));
     check_str("load public key", account.public_key_hex, public_key);
     check_str("load private key", account.private_key_hex, private_key);
@@ -259,7 +289,8 @@ test_import_export_clear(void)
 
     check_true("clear key", sync_account_clear());
     check_false("load after clear", sync_account_load(&account));
-    check_true("import exported key", sync_account_import_private_key(&account, export_path));
+    check_true("import exported key",
+               import_key_and_save(&account, export_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
     check_str("reimport public id", account.public_id, public_id);
 
     file = fopen(key_path, "wb");
@@ -270,7 +301,8 @@ test_import_export_clear(void)
                 public_key, private_key);
         fclose(file);
     }
-    check_true("import secret key alias", sync_account_import_private_key(&account, key_path));
+    check_true("import secret key alias",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
     check_str("derive public id", account.public_id, public_id);
 
     file = fopen(key_path, "wb");
@@ -281,7 +313,8 @@ test_import_export_clear(void)
                 public_id, public_key, private_key);
         fclose(file);
     }
-    check_true("import exported key json", sync_account_import_private_key(&account, key_path));
+    check_true("import exported key json",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
     check_str("json public key", account.public_key_hex, public_key);
 
     storage_close();
@@ -308,7 +341,7 @@ test_reject_invalid_keys(void)
     public_id[0] = public_id[0] == '0' ? '1' : '0';
     write_key_file(key_path, public_id, public_key, private_key);
     check_false("reject mismatched public id",
-                sync_account_import_private_key(&account, key_path));
+                sync_account_import_private_key_preview(&account, key_path));
 
     file = fopen(key_path, "wb");
     check_true("open missing public key file", file != NULL);
@@ -319,7 +352,7 @@ test_reject_invalid_keys(void)
         fclose(file);
     }
     check_false("reject missing public key",
-                sync_account_import_private_key(&account, key_path));
+                sync_account_import_private_key_preview(&account, key_path));
     check_false("no account after rejected imports", sync_account_load(&account));
 
     storage_close();
@@ -360,8 +393,9 @@ test_imported_account_backfills_existing_local_data(void)
                 "DELETE FROM sync_outbox;");
 
     check_true("import account resets sync state",
-               sync_account_import_private_key(&account, key_path));
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
     check_str("imported deterministic account", account.public_id, public_id);
+    check_str("account owner marker", storage_sync_data_owner_public_id(), public_id);
 
     payload = storage_build_sync_payload_json(account.public_id, account.public_key_hex);
     check_true("account bootstrap payload built", payload != NULL);
@@ -385,12 +419,99 @@ test_imported_account_backfills_existing_local_data(void)
     remove_tree(root);
 }
 
+static void
+test_logout_preserves_data_owner(void)
+{
+    char root[512];
+    char key_path[1024];
+    char public_id[65];
+    char public_key[2625];
+    char private_key[5121];
+    InbeSyncAccount account;
+
+    make_clean_root(root, sizeof(root), "logout-owner");
+    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    make_account_values(public_id, public_key, private_key);
+    write_key_file(key_path, public_id, public_key, private_key);
+
+    check_true("init logout owner storage", storage_init(root));
+    check_true("import logout owner account",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    check_str("owner before logout", storage_sync_data_owner_public_id(), public_id);
+    check_true("logout account", sync_account_clear());
+    check_false("credentials removed", sync_account_load(&account));
+    check_str("owner after logout", storage_sync_data_owner_public_id(), public_id);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_different_account_requires_clear_local_data(void)
+{
+    char root[512];
+    char key_path_one[1024];
+    char key_path_two[1024];
+    char public_id_one[65];
+    char public_key_one[2625];
+    char private_key_one[5121];
+    char public_id_two[65];
+    char public_key_two[2625];
+    char private_key_two[5121];
+    InbeSyncAccount account;
+    InbeSyncAccount loaded;
+
+    make_clean_root(root, sizeof(root), "account-switch");
+    snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);
+    snprintf(key_path_two, sizeof(key_path_two), "%s/two.key", root);
+    make_account_values_variant(0, public_id_one, public_key_one, private_key_one);
+    make_account_values_variant(9, public_id_two, public_key_two, private_key_two);
+    write_key_file(key_path_one, public_id_one, public_key_one, private_key_one);
+    write_key_file(key_path_two, public_id_two, public_key_two, private_key_two);
+
+    check_true("init account switch storage", storage_init(root));
+    exec_db_sql("insert switch local habit",
+                "INSERT INTO habits(id,user_id,name,color_r,color_g,color_b,"
+                "sync_mode,sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                "VALUES('habit-switch',(SELECT id FROM users LIMIT 1),'Switch Habit',"
+                "64,128,192,1,1,1,0,0,strftime('%s','now'));"
+                "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
+                "VALUES('habit-switch',20260622,1,3,strftime('%s','now'));");
+
+    check_true("first account binds data",
+               import_key_and_save(&account, key_path_one, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    check_true("logout before account switch", sync_account_clear());
+    check_true("local syncable data remains", storage_has_local_syncable_data());
+
+    check_true("second account blocked before clear",
+               import_key_and_save(&account, key_path_two, 0) ==
+                   INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR);
+    check_false("blocked switch leaves no credentials", sync_account_load(&loaded));
+    check_str("blocked switch keeps old owner", storage_sync_data_owner_public_id(),
+              public_id_one);
+    check_true("blocked switch keeps local data", storage_has_local_syncable_data());
+
+    check_true("second account can clear local data",
+               import_key_and_save(&account, key_path_two, 1) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    check_true("new account stored", sync_account_load(&loaded));
+    check_str("new account public id", loaded.public_id, public_id_two);
+    check_true("new account clears alias",
+               storage_get_setting_text("sync_account_alias") == NULL);
+    check_str("new owner after clear", storage_sync_data_owner_public_id(), public_id_two);
+    check_false("local syncable data cleared", storage_has_local_syncable_data());
+
+    storage_close();
+    remove_tree(root);
+}
+
 int
 main(void)
 {
     test_import_export_clear();
     test_reject_invalid_keys();
     test_imported_account_backfills_existing_local_data();
+    test_logout_preserves_data_owner();
+    test_different_account_requires_clear_local_data();
 
     if(g_failures != 0) {
         fprintf(stderr, "%d sync account test failure(s)\n", g_failures);

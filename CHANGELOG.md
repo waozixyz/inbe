@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.2] - 2026-07-03
+### Changed
+- improved desktop experience
+- add system themes
+
 ## [1.8.1] - 2026-07-03
 ### Fixed
 - storage settings for android 17+

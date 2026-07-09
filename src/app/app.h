@@ -5,11 +5,12 @@
 #include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
-#include "flint_runtime_assets.h"
-#include "flint_transition.h"
+#include "runtime_assets.h"
+#include "ui_transition.h"
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 #include "screens/settings/settings_theme.h"
+#include "storage/sync_account.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -100,7 +101,14 @@ typedef enum {
     UIModalSyncAlias,
     UIModalSyncPublicId,
     UIModalConfirmRemoveFriend,
+    UIModalConfirmSyncAccountSwitch,
 } UIModalType;
+
+typedef enum InbePendingSyncAccountAction {
+    InbePendingSyncAccountNone = 0,
+    InbePendingSyncAccountCreate,
+    InbePendingSyncAccountImport
+} InbePendingSyncAccountAction;
 
 typedef enum SessionExitModalResult {
     SessionExitModalNone = 0,
@@ -108,6 +116,12 @@ typedef enum SessionExitModalResult {
     SessionExitModalSave,
     SessionExitModalDiscard,
 } SessionExitModalResult;
+
+typedef enum AppClosePromptResult {
+    AppClosePromptNone = 0,
+    AppClosePromptKeepRunning,
+    AppClosePromptQuit,
+} AppClosePromptResult;
 
 typedef struct {
     int active;
@@ -185,6 +199,25 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_COUNT = 5,
 } AppNavRoute;
 
+typedef struct AppRoute {
+    int screen;
+    int exercise_type;
+    int practice_tab;
+    int practice_config_tab;
+    int settings_tab;
+    int profile_view;
+    int profile_tab;
+    int habits_screen_mode;
+    int habits_tab;
+} AppRoute;
+
+typedef struct AppContentTransition {
+    int active;
+    int direction;
+    float elapsed_seconds;
+    float duration_seconds;
+} AppContentTransition;
+
 typedef struct WhmPracticeState {
     Texture2D image_1;
     Texture2D image_2;
@@ -211,7 +244,7 @@ typedef struct MeditationPracticeState {
     int music_archive_extracted;
     int music_network_error_notified;
     Music music;
-    FlintRuntimeAssetDownload music_download;
+    RuntimeAssetDownload music_download;
     char music_cache_dir[FS_PATH_MAX];
     char music_status[128];
 } MeditationPracticeState;
@@ -323,6 +356,8 @@ struct InbeApp {
     int sync_alias_focused;
     int sync_alias_then_backup;
     char sync_alias_input[40];
+    InbeSyncAccount pending_sync_account;
+    int pending_sync_account_action;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
@@ -378,12 +413,18 @@ struct InbeApp {
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;
-    FlintTransition screen_transition;
-    int screen_transition_target;
+    UITransition screen_transition;
+    AppContentTransition content_transition;
+    AppRoute route_transition_target;
+    int file_dialog_active;
     int session_paused;
     int backgrounded;
+    double desktop_background_last_time;
     int results_saved;
     int modal_input_block_frame;
+    int close_prompt_open;
+    int close_prompt_input_block_frame;
+    AppClosePromptResult close_prompt_result;
     char results_path[FS_PATH_MAX];
     int saved_pause_seconds;
     int volume_popup_active;
@@ -397,6 +438,8 @@ void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
 void app_switch_screen(InbeApp *app, int screen);
+AppRoute app_current_route(const InbeApp *app);
+void app_switch_route(InbeApp *app, AppRoute route);
 void app_leave_practice_config(InbeApp *app);
 int app_content_top_reserved(const InbeApp *app);
 int app_toolbar_height(void);
@@ -407,12 +450,16 @@ void app_request_friend_accept(InbeApp *app, const char *request_id);
 void app_request_friend_decline(InbeApp *app, const char *request_id);
 void app_request_friend_remove(InbeApp *app, const char *friend_user_id);
 int app_should_use_tab_bar(const InbeApp *app);
+void app_play_breath_cue(InbeApp *app, int dir);
+void app_play_bell_cue(InbeApp *app, float scale);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
+void app_request_desktop_close(InbeApp *app);
+AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
                                                    const char *save_message,
                                                    const char *discard_message);

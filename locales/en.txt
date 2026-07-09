@@ -558,6 +558,18 @@ Clear
 [close_button]
 Close
 ---
+[desktop_close_prompt_title]
+Keep Inner Breeze running?
+---
+[desktop_close_prompt_message]
+Closing the window can keep Inner Breeze running in the background.
+---
+[desktop_close_keep_running_button]
+Keep Running
+---
+[desktop_close_quit_button]
+Quit
+---
 [sync_account_title]
 Account
 ---
@@ -702,8 +714,23 @@ Clear only the data stored on this device. Remote sync data is not changed.
 [sync_logout_button]
 Log out
 ---
-[sync_logged_out]
-Logged out
+[sync_logged_out_local_data_kept]
+Logged out. Local data stays on this device.
+---
+[sync_account_switch_title]
+Clear local data?
+---
+[sync_account_switch_message]
+This device has data from another sync account. Clear local data before using this account.
+---
+[sync_account_switch_clear_button]
+Clear and Use Account
+---
+[sync_account_switch_cancelled]
+Account switch cancelled
+---
+[sync_account_switch_failed]
+Could not switch account
 ---
 [sync_clear_remote_data_button]
 Clear Remote Data
@@ -814,13 +841,7 @@ Open friends and leaderboard from here.
 Create a sync account to unlock friends and leaderboard.
 ---
 [transition_label]
-Transition
----
-[transition_none]
-None
----
-[transition_fade]
-Fade
+Animations
 ---
 [theme_picker_title]
 Choose Theme

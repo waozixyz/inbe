@@ -3,10 +3,11 @@
 #include "app.h"
 #include "app_settings.h"
 #include "device_preferences.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_theme_meta.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "settings_ui.h"
+#include "theme.h"
+#include "theme_meta.h"
+#include "ui.h"
 
 extern int view_width;
 extern int view_height;
@@ -14,11 +15,12 @@ extern int view_height;
 int
 settings_theme_content_height(int content_w)
 {
-    (void)content_w;
 #if defined(PLATFORM_WEB)
-    return flint_px(260);
+    (void)content_w;
+    return ScaleUIPx(260);
 #else
-    return flint_px(320);
+    return ScaleUIPx(244) +
+           settings_ui_toggle_row_height(GetLocaleText("transition_label"), content_w);
 #endif
 }
 
@@ -27,72 +29,77 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
 {
     const char *theme_source_options[2];
     const char *theme_mode_options[3];
-    const char *theme_options[FLINT_THEME_COUNT];
+    const char *theme_options[THEME_COUNT];
 
     if(app == NULL || y == NULL || state == NULL)
         return;
 
-    theme_source_options[APP_THEME_SOURCE_APP] = locale_get("theme_inner_breeze");
-    theme_source_options[APP_THEME_SOURCE_SYSTEM] = locale_get("theme_system");
+    theme_source_options[APP_THEME_SOURCE_APP] = GetLocaleText("theme_inner_breeze");
+    theme_source_options[APP_THEME_SOURCE_SYSTEM] = GetLocaleText("theme_system");
     app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
-    flint_text_draw(locale_get("theme_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-    ui_draw_dropdown_button(101, x, *y + flint_px(26), w, flint_px(36),
+    DrawUIText(GetLocaleText("theme_label"), x, *y, GetUIFontSize(), GetThemeText());
+    DrawUIDropdownButton(101, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
                             theme_source_options, 2, &app->theme_source);
     state->draw_theme_source_menu = 1;
-    *y += flint_px(76);
+    *y += ScaleUIPx(76);
 
-    theme_mode_options[0] = locale_get("theme_follow_device");
-    theme_mode_options[1] = locale_get("theme_light");
-    theme_mode_options[2] = locale_get("theme_dark");
+    theme_mode_options[0] = GetLocaleText("theme_follow_device");
+    theme_mode_options[1] = GetLocaleText("theme_light");
+    theme_mode_options[2] = GetLocaleText("theme_dark");
     if(app->theme_source == APP_THEME_SOURCE_APP || ANDROID_BUILD) {
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-        flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-        ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
+        DrawUIText(GetLocaleText("theme_mode_label"), x, *y, GetUIFontSize(), GetThemeText());
+        DrawUIDropdownButton(102, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
                                 theme_mode_options, 3, &app->theme_mode);
         state->draw_theme_mode_menu = 1;
-        *y += flint_px(76);
+        *y += ScaleUIPx(76);
     } else {
         app->theme_mode = APP_THEME_SYSTEM;
         state->draw_theme_mode_menu = 0;
     }
 
     if(app->theme_source == APP_THEME_SOURCE_APP) {
-        for(int i = 0; i < FLINT_THEME_COUNT; i++)
-            theme_options[i] = flint_theme_label((FlintThemeId)i);
-        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
-        flint_text_draw(locale_get("theme_palette_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-        ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
-                                theme_options, FLINT_THEME_COUNT, &app->theme_id);
+        for(int i = 0; i < THEME_COUNT; i++)
+            theme_options[i] = GetThemeLabel((ThemeId)i);
+        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1);
+        DrawUIText(GetLocaleText("theme_palette_label"), x, *y, GetUIFontSize(), GetThemeText());
+        DrawUIDropdownButton(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+                                theme_options, THEME_COUNT, &app->theme_id);
         state->draw_theme_palette_menu = 1;
-        *y += flint_px(76);
+        *y += ScaleUIPx(76);
     } else {
 #if !ANDROID_BUILD
-        Color muted = flint_darken(flint_theme_get_text(), 28);
-        const char *system_name = flint_theme_system_name_cached();
-        flint_text_draw(system_name != NULL && system_name[0] != '\0'
+        Color muted = DarkenUIColor(GetThemeText(), 28);
+        const char *system_name = GetSystemThemeNameCached();
+        DrawUIText(system_name != NULL && system_name[0] != '\0'
                             ? system_name
-                            : locale_get("theme_system"),
-                        x, *y, flint_ui_font_small(), muted);
-        *y += flint_px(38);
+                            : GetLocaleText("theme_system"),
+                        x, *y, GetUISmallFontSize(), muted);
+        *y += ScaleUIPx(38);
 #endif
         state->draw_theme_palette_menu = 0;
     }
 
 #if defined(PLATFORM_WEB)
     app->transition_mode = APP_TRANSITION_NONE;
-    state->draw_transition_menu = 0;
 #else
     {
-        const char *transition_options[2];
-        transition_options[APP_TRANSITION_NONE] = locale_get("transition_none");
-        transition_options[APP_TRANSITION_FADE] = locale_get("transition_fade");
+        int transitions_enabled;
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
-        flint_text_draw(locale_get("transition_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-        ui_draw_dropdown_button(104, x, *y + flint_px(26), w, flint_px(36),
-                                transition_options, 2, &app->transition_mode);
+        transitions_enabled = app->transition_mode == APP_TRANSITION_FADE;
+        if(settings_ui_draw_toggle_row(x, w, y, GetLocaleText("transition_label"),
+                                       &transitions_enabled)) {
+            app->transition_mode = transitions_enabled ? APP_TRANSITION_FADE
+                                                       : APP_TRANSITION_NONE;
+            if(app->transition_mode == APP_TRANSITION_NONE) {
+                ResetUITransition(&app->screen_transition);
+                app->content_transition.active = 0;
+                app->route_transition_target = app_current_route(app);
+            }
+            app->settings_dirty = 1;
+            app->settings_save_delay_ticks = 18;
+        }
     }
-    state->draw_transition_menu = 1;
-    *y += flint_px(76);
 #endif
 }
 
@@ -102,20 +109,19 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
     int theme_source_changed = 0;
     int theme_mode_changed = 0;
     int theme_palette_changed = 0;
-    int transition_changed = 0;
 
     if(app == NULL || state == NULL)
         return;
-    if(state->draw_theme_source_menu && ui_draw_dropdown_menu(101))
+    if(state->draw_theme_source_menu && DrawUIDropdownMenu(101))
         theme_source_changed = 1;
-    if(state->draw_theme_mode_menu && ui_draw_dropdown_menu(102))
+    if(state->draw_theme_mode_menu && DrawUIDropdownMenu(102))
         theme_mode_changed = 1;
-    if(state->draw_theme_palette_menu && ui_draw_dropdown_menu(103))
+    if(state->draw_theme_palette_menu && DrawUIDropdownMenu(103))
         theme_palette_changed = 1;
     if(theme_source_changed || theme_mode_changed || theme_palette_changed) {
         app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1);
 #if !ANDROID_BUILD
         if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
             app->theme_mode = APP_THEME_SYSTEM;
@@ -125,16 +131,7 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->settings_save_delay_ticks = 18;
     }
 
-#if !defined(PLATFORM_WEB)
-    if(state->draw_transition_menu && ui_draw_dropdown_menu(104))
-        transition_changed = 1;
-    if(transition_changed) {
-        app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
-        app->settings_dirty = 1;
-        app->settings_save_delay_ticks = 18;
-    }
-#else
-    (void)transition_changed;
+#if defined(PLATFORM_WEB)
     app->transition_mode = APP_TRANSITION_NONE;
 #endif
 }
@@ -142,16 +139,16 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
 void
 settings_screen_draw_theme_picker_modal(InbeApp *app)
 {
-    int modal_w = flint_px(320);
-    int modal_h = flint_px(360);
-    const char *title = locale_get("theme_picker_title");
-    FlintUIPanelFrame frame;
-    FlintUIScrollArea scroll_area;
-    FlintUIScrollView scroll_view;
+    int modal_w = ScaleUIPx(320);
+    int modal_h = ScaleUIPx(360);
+    const char *title = GetLocaleText("theme_picker_title");
+    UIPanelFrame frame;
+    UIScrollArea scroll_area;
+    UIScrollView scroll_view;
     int picker_h;
     int draw_w;
 
-    frame = ui_draw_modal_frame(modal_w, modal_h, title,
+    frame = DrawUIModalFrame(modal_w, modal_h, title,
                                (Texture2D){0},
                                app->icons[UI_ICON_TYPE_X]);
 
@@ -161,8 +158,8 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
     }
 
     draw_w = frame.content_w;
-    picker_h = ui_theme_picker_height(draw_w);
-    scroll_area = (FlintUIScrollArea){
+    picker_h = GetUIThemePickerHeight(draw_w);
+    scroll_area = (UIScrollArea){
         .bounds = {
             (float)frame.content_x,
             (float)frame.content_y,
@@ -173,27 +170,27 @@ settings_screen_draw_theme_picker_modal(InbeApp *app)
         .content_x = frame.content_x,
         .content_width = frame.content_w,
         .scroll_offset = &app->theme_state.theme_picker_scroll,
-        .wheel_step = flint_px(42),
-        .scrollbar_x = frame.content_x + frame.content_w - flint_px(8)
+        .wheel_step = ScaleUIPx(42),
+        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
     };
     for(int i = 0; i < 3; i++) {
-        FlintUIScrollView measured = ui_scroll_container_measure(scroll_area);
+        UIScrollView measured = MeasureUIScrollContainer(scroll_area);
         if(measured.content_w == draw_w)
             break;
         draw_w = measured.content_w;
-        scroll_area.content_height = ui_theme_picker_height(draw_w);
+        scroll_area.content_height = GetUIThemePickerHeight(draw_w);
     }
-    picker_h = ui_theme_picker_height(draw_w);
+    picker_h = GetUIThemePickerHeight(draw_w);
     scroll_area.content_height = picker_h;
-    scroll_view = ui_scroll_container_begin(scroll_area);
+    scroll_view = BeginUIScrollContainer(scroll_area);
 
-    if(ui_draw_theme_picker(scroll_view.content_x, scroll_view.content_y,
+    if(DrawUIThemePicker(scroll_view.content_x, scroll_view.content_y,
                             scroll_view.content_w, app->dark_mode, &app->theme_id)) {
-        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1);
         app_refresh_theme(app);
         app->settings_dirty = 1;
         save_settings(app);
         app_close_modal(app);
     }
-    ui_scroll_container_end(scroll_area, scroll_view);
+    EndUIScrollContainer(scroll_area, scroll_view);
 }

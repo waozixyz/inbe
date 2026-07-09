@@ -2,11 +2,11 @@
 #include "app.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
-#include "flint_clip.h"
-#include "flint_dpi.h"
-#include "flint_theme_meta.h"
-#include "flint_web.h"
-#include "flint_theme.h"
+#include "ui_clip.h"
+#include "ui_dpi.h"
+#include "theme_meta.h"
+#include "web.h"
+#include "theme.h"
 #include "device_preferences.h"
 #include <stdarg.h>
 #include <stddef.h>
@@ -278,7 +278,7 @@ static void
 draw_full_frame(int width, int height)
 {
     BeginDrawing();
-    ClearBackground(flint_theme_get_bg());
+    ClearBackground(GetThemeBackground());
     app_update_draw(&inbe_app, (Rectangle){
         0,
         0,
@@ -297,7 +297,7 @@ static void
 frame(void)
 {
 #if defined(PLATFORM_WEB)
-    flint_web_sync_window_size();
+    SyncWebWindowSize();
 #endif
 
     int width = GetScreenWidth();
@@ -327,20 +327,20 @@ frame(void)
        viewport.width != previous_viewport.width || viewport.height != previous_viewport.height ||
        viewport.top != previous_viewport.top || viewport.bottom != previous_viewport.bottom ||
        viewport.left != previous_viewport.left || viewport.right != previous_viewport.right) {
-        flint_dpi_invalidate();
+        InvalidateUIDPI();
         previous_viewport = viewport;
     }
 
     BeginDrawing();
     ClearBackground(BLACK);
-    flint_clip_begin(viewport.x, viewport.y, viewport.width, viewport.height);
+    BeginUIClip(viewport.x, viewport.y, viewport.width, viewport.height);
     app_update_draw(&inbe_app, (Rectangle){
         (float)viewport.x,
         (float)viewport.y,
         (float)viewport.width,
         (float)viewport.height
     });
-    flint_clip_end();
+    EndUIClip();
 #elif defined(PLATFORM_WEB)
     draw_full_frame(width, height);
 #else
@@ -371,7 +371,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     *request = (ScreenshotRequest){
         .width = config.width,
         .height = config.height,
-        .theme_id = FLINT_THEME_SKY,
+        .theme_id = THEME_SKY,
         .dark_mode = 0
     };
 
@@ -406,8 +406,8 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         request->width = 320;
     if(request->height < 320)
         request->height = 320;
-    if(request->theme_id < 0 || request->theme_id >= FLINT_THEME_COUNT)
-        request->theme_id = FLINT_THEME_SKY;
+    if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
+        request->theme_id = THEME_SKY;
 }
 
 static int
@@ -542,7 +542,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->profile_tab = PROFILE_TAB_OVERVIEW;
         app->inbe.screen = InbeScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
-        screenshot_apply_theme(app, FLINT_THEME_COBALT, 1);
+        screenshot_apply_theme(app, THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->inbe.screen = InbeScreenStart;
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
@@ -622,7 +622,7 @@ int main(int argc, char **argv) {
     int window_h = ANDROID_BUILD ? 0 : config.height;
 
 #if defined(PLATFORM_WEB)
-    flint_web_viewport_size(config.width, config.height, &window_w, &window_h);
+    GetWebViewportSize(config.width, config.height, &window_w, &window_h);
     config.width = window_w;
     config.height = window_h;
 #endif
@@ -632,7 +632,7 @@ int main(int argc, char **argv) {
 #endif
 
 #if defined(PLATFORM_WEB)
-    SetConfigFlags(flint_web_window_flags());
+    SetConfigFlags(GetWebWindowFlags());
 #elif !ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
 #endif
@@ -661,7 +661,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    flint_dpi_init();
+    InitUIDPI();
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
@@ -698,21 +698,40 @@ int main(int argc, char **argv) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     while(!quit) {
         InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
+        AppClosePromptResult close_result;
         if(g_shutdown_requested)
             quit = 1;
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
         if(!quit)
             frame();
+        close_result = app_consume_close_prompt_result(&inbe_app);
+        if(close_result == AppClosePromptKeepRunning)
+            inbe_desktop_tray_keep_running();
+        else if(close_result == AppClosePromptQuit)
+            quit = 1;
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
         if(WindowShouldClose())
-            quit = 1;
+            app_request_desktop_close(&inbe_app);
     }
 #else
-    while(!g_shutdown_requested && !WindowShouldClose()) {
+    while(!g_shutdown_requested && !quit) {
+        AppClosePromptResult close_result;
         frame();
+        close_result = app_consume_close_prompt_result(&inbe_app);
+        if(close_result == AppClosePromptKeepRunning)
+            MinimizeWindow();
+        else if(close_result == AppClosePromptQuit)
+            quit = 1;
+        if(WindowShouldClose()) {
+#if ANDROID_BUILD
+            quit = 1;
+#else
+            app_request_desktop_close(&inbe_app);
+#endif
+        }
     }
 #endif
 

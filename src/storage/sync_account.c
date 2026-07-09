@@ -16,42 +16,51 @@
 #include <stdio.h>
 #include <string.h>
 
-#if !defined(FLINT_HAS_LIBOQS)
-#error "Inbe sync account builds require FLINT_HAS_LIBOQS; build liboqs for this target instead of disabling sync crypto."
+#if !defined(HAS_LIBOQS)
+#error "Inbe sync account builds require HAS_LIBOQS; build liboqs for this target instead of disabling sync crypto."
 #endif
 
 #define SYNC_PUBLIC_ID_KEY "sync_public_id"
 #define SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define SYNC_PRIVATE_KEY_KEY "sync_private_key"
+#define SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 
 static int
 account_has_values(const InbeSyncAccount *account)
 {
-    return flint_lyra_account_has_values(account);
+    return HasLyraAccountValues(account);
 }
 
 static void
-sync_account_save_and_reset(const InbeSyncAccount *account)
+sync_account_write_and_reset(const InbeSyncAccount *account)
 {
     storage_settings_begin_write();
     storage_set_setting_text(SYNC_PUBLIC_ID_KEY, account != NULL ? account->public_id : "");
     storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, account != NULL ? account->public_key_hex : "");
     storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, account != NULL ? account->private_key_hex : "");
+    storage_set_setting_text(SYNC_ACCOUNT_ALIAS_KEY, "");
     sync_client_clear_auth_token();
     storage_reset_sync_state();
     storage_settings_end_write();
 }
 
+static int
+sync_account_same_owner(const char *owner, const InbeSyncAccount *account)
+{
+    return owner != NULL && account != NULL &&
+           strcmp(owner, account->public_id) == 0;
+}
+
 void
 sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
 {
-    flint_lyra_sha256_hex(data, len, out_hex);
+    LyraSha256Hex(data, len, out_hex);
 }
 
 int
 sync_account_available(void)
 {
-    return flint_lyra_account_available();
+    return IsLyraAccountAvailable();
 }
 
 int
@@ -79,54 +88,69 @@ sync_account_load(InbeSyncAccount *account)
 }
 
 int
-sync_account_create(InbeSyncAccount *account)
+sync_account_generate(InbeSyncAccount *account)
 {
-    InbeSyncAccount generated;
-
     data_init();
     if(account == NULL)
         return 0;
-    if(!flint_lyra_account_create(&generated))
-        return 0;
-    sync_account_save_and_reset(&generated);
-    *account = generated;
-    return 1;
+    memset(account, 0, sizeof(*account));
+    return CreateLyraAccount(account);
 }
 
 int
-sync_account_import_private_key(InbeSyncAccount *account, const char *filename)
+sync_account_import_private_key_preview(InbeSyncAccount *account, const char *filename)
 {
-    InbeSyncAccount imported;
-
     data_init();
     if(account == NULL || filename == NULL || filename[0] == '\0')
         return 0;
-    if(!flint_lyra_account_import_file(filename, &imported)) {
+    memset(account, 0, sizeof(*account));
+    if(!ImportLyraAccountFile(filename, account)) {
         TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file");
         return 0;
     }
-    sync_account_save_and_reset(&imported);
-    *account = imported;
     return 1;
+}
+
+InbeSyncAccountSaveResult
+sync_account_save(InbeSyncAccount *account, int clear_local_data)
+{
+    const char *owner;
+
+    data_init();
+    if(!account_has_values(account))
+        return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+
+    owner = storage_sync_data_owner_public_id();
+    if(owner != NULL && !sync_account_same_owner(owner, account) &&
+       storage_has_local_syncable_data()) {
+        if(!clear_local_data)
+            return INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR;
+        if(!storage_clear_local_syncable_data())
+            return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+    }
+
+    storage_set_sync_data_owner_public_id(account->public_id);
+    sync_account_write_and_reset(account);
+    return INBE_SYNC_ACCOUNT_SAVE_OK;
 }
 
 int
 sync_account_clear(void)
 {
     data_init();
-    sync_account_save_and_reset(NULL);
+    sync_account_write_and_reset(NULL);
     return 1;
 }
 
 int
 sync_account_export_private_key(const InbeSyncAccount *account, const char *filename)
 {
-    char body[FLINT_LYRA_ACCOUNT_EXPORT_TEXT_SIZE];
+    char body[LYRA_ACCOUNT_EXPORT_TEXT_SIZE];
     int len;
 
     if(!account_has_values(account) || filename == NULL || filename[0] == '\0')
         return 0;
-    if(!flint_lyra_account_export_text(account, body, sizeof(body)))
+    if(!ExportLyraAccountText(account, body, sizeof(body)))
         return 0;
     len = (int)strlen(body);
 
@@ -170,6 +194,6 @@ sync_account_sign_hex(const uint8_t *message, size_t message_len,
 
     if(!sync_account_load(&account))
         return 0;
-    return flint_lyra_account_sign_hex(&account, message, message_len, out_signature_hex,
+    return SignLyraAccountHex(&account, message, message_len, out_signature_hex,
                                        out_size);
 }

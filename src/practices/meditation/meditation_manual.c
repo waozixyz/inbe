@@ -1,11 +1,11 @@
 #include "meditation_practice.h"
 
 #include "app.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "screens/manual_screen.h"
 #include "screens/practice_screen.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 
 extern int view_width;
@@ -44,32 +44,32 @@ meditation_manual_close(InbeApp *app, int mark_seen)
 static void
 draw_intro_page(InbeApp *app, int content_x, int content_w, int *y)
 {
-    int img_h = flint_px(190);
-    FlintUIParagraph paragraph;
+    int img_h = ScaleUIPx(190);
+    UIParagraph paragraph;
 
-    ui_draw_tutorial_image(app->meditation.image_1, "practices/meditation/1.jpg",
+    DrawUITutorialImage(app->meditation.image_1, "practices/meditation/1.jpg",
                            content_x, *y, content_w, img_h);
-    *y += img_h + flint_px(22);
+    *y += img_h + ScaleUIPx(22);
 
-    paragraph = (FlintUIParagraph){
-        .text = locale_get("meditation_manual_intro_text"),
+    paragraph = (UIParagraph){
+        .text = GetLocaleText("meditation_manual_intro_text"),
         .width = content_w,
-        .line_gap = flint_px(8),
+        .line_gap = ScaleUIPx(8),
     };
-    flint_ui_paragraph_draw(paragraph, content_x, y);
+    DrawUIParagraph(paragraph, content_x, y);
 }
 
 static int
 intro_page_height(int content_w)
 {
-    FlintUIParagraph paragraph = {
-        .text = locale_get("meditation_manual_intro_text"),
+    UIParagraph paragraph = {
+        .text = GetLocaleText("meditation_manual_intro_text"),
         .width = content_w,
-        .line_gap = flint_px(8),
+        .line_gap = ScaleUIPx(8),
     };
 
-    return flint_px(190) + flint_px(22) + flint_ui_paragraph_height(paragraph) +
-           flint_px(20);
+    return ScaleUIPx(190) + ScaleUIPx(22) + GetUIParagraphHeight(paragraph) +
+           ScaleUIPx(20);
 }
 
 static int
@@ -84,31 +84,31 @@ meditation_manual_draw(InbeApp *app)
 {
     PracticeManualLayout layout;
     int responsive_max_w = (int)(view_width * 0.90f);
-    int max_content_w = flint_px(520);
+    int max_content_w = ScaleUIPx(520);
     int page = clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1);
 
     if(responsive_max_w > max_content_w)
         responsive_max_w = max_content_w;
-    if(responsive_max_w < flint_px(280))
-        responsive_max_w = flint_px(280);
+    if(responsive_max_w < ScaleUIPx(280))
+        responsive_max_w = ScaleUIPx(280);
 
     page = manual_screen_guide_update_page(app, MEDITATION_MANUAL_PAGES,
                                            meditation_manual_start,
                                            meditation_manual_close);
     practice_screen_manual_layout(app, UIModalPracticeManual, MEDITATION_MANUAL_PAGES,
-                                  flint_px(16), flint_px(16), flint_px(120),
+                                  ScaleUIPx(16), ScaleUIPx(16), ScaleUIPx(120),
                                   &layout);
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN],
-                                 locale_get("meditation_manual_title"),
+    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+                                 GetLocaleText("meditation_manual_title"),
                                  layout.title_h))
         meditation_manual_close(app, 0);
 
     {
-        FlintUIScrollPage scroll_page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage scroll_page = BeginUIScrollPage((UIScrollPageSpec){
             .y = layout.content_y,
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
-            .min_content_width = flint_px(280),
+            .min_content_width = ScaleUIPx(280),
             .scroll_offset = &app->manual_scroll,
             .content_height = meditation_manual_scroll_page_content_height,
             .user_data = NULL
@@ -116,7 +116,7 @@ meditation_manual_draw(InbeApp *app)
         int y = scroll_page.content_y;
 
         draw_intro_page(app, scroll_page.content_x, scroll_page.content_w, &y);
-        ui_scroll_page_end(scroll_page);
+        EndUIScrollPage(scroll_page);
     }
 
     manual_screen_guide_draw_nav(app, (ManualGuideNav){

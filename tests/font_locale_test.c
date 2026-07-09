@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-typedef struct FlintChoppedGlyph {
+typedef struct UIChoppedGlyph {
     int32_t value;
     int32_t x;
     int32_t y;
@@ -12,7 +12,7 @@ typedef struct FlintChoppedGlyph {
     int32_t offsetX;
     int32_t offsetY;
     int32_t advanceX;
-} FlintChoppedGlyph;
+} UIChoppedGlyph;
 
 typedef struct RequiredGlyph {
     int32_t codepoint;
@@ -66,7 +66,7 @@ read_file(const char *path, unsigned char **out_data, size_t *out_size)
 }
 
 static int
-has_glyph(const FlintChoppedGlyph *glyphs, int32_t glyph_count, int32_t codepoint)
+has_glyph(const UIChoppedGlyph *glyphs, int32_t glyph_count, int32_t codepoint)
 {
     for(int32_t i = 0; i < glyph_count; i++) {
         if(glyphs[i].value == codepoint)
@@ -94,7 +94,7 @@ main(void)
     size_t size = 0;
     int32_t glyph_count;
     size_t glyph_bytes;
-    const FlintChoppedGlyph *glyphs;
+    const UIChoppedGlyph *glyphs;
     int failures = 0;
 
     if(!read_file("assets/fonts/locales.dat", &data, &size))
@@ -110,13 +110,13 @@ main(void)
         fprintf(stderr, "FAIL locales.dat has no glyphs\n");
         return 1;
     }
-    glyph_bytes = (size_t)glyph_count * sizeof(FlintChoppedGlyph);
+    glyph_bytes = (size_t)glyph_count * sizeof(UIChoppedGlyph);
     if(size - sizeof(glyph_count) < glyph_bytes) {
         free(data);
         fprintf(stderr, "FAIL locales.dat truncated glyph table\n");
         return 1;
     }
-    glyphs = (const FlintChoppedGlyph *)(const void *)(data + sizeof(glyph_count));
+    glyphs = (const UIChoppedGlyph *)(const void *)(data + sizeof(glyph_count));
 
     for(size_t i = 0; i < sizeof(required) / sizeof(required[0]); i++) {
         if(!has_glyph(glyphs, glyph_count, required[i].codepoint)) {

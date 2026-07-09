@@ -60,6 +60,9 @@ CLICK_LIBOQS_A := $(CLICK_LIBOQS_BUILD_DIR)/lib/liboqs.a
 CLICK_LIBOQS_INCLUDE := -I$(CLICK_LIBOQS_BUILD_DIR)/include
 CLICK_PATCHELF_INTERPRETER ?= /lib/ld-linux-aarch64.so.1
 CLICK_RUNTIME_LIBS ?= $(AARCH64_CLICK_RUNTIME_LIBS)
+AARCH64_CC ?= $(shell command -v aarch64-linux-gnu-gcc 2>/dev/null || command -v aarch64-linux-musl-gcc 2>/dev/null)
+AARCH64_AR ?= $(shell command -v aarch64-linux-gnu-ar 2>/dev/null || command -v aarch64-linux-musl-ar 2>/dev/null)
+AARCH64_RANLIB ?= $(shell command -v aarch64-linux-gnu-ranlib 2>/dev/null || command -v aarch64-linux-musl-ranlib 2>/dev/null)
 WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
@@ -115,11 +118,12 @@ WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
-FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/flint_icon_assets.c
+FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
 FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c) $(wildcard $(FLINT_DIR)/src/ui/*.c)) $(FLINT_ICON_ASSETS_C)
-FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
-FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/flint_file_dialog.c,$(FLINT_SRCS))
+FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
+FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
+FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
 FLINT_VENDOR_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)
 FLINT_LIBOQS_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/liboqs
@@ -145,6 +149,24 @@ FLINT_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
 include $(FLINT_DIR)/mk/vendor.mk
+FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
+	-DOQS_USE_ADX_INSTRUCTIONS=OFF \
+	-DOQS_USE_AES_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX2_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512BW_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512DQ_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512F_INSTRUCTIONS=OFF \
+	-DOQS_USE_BMI1_INSTRUCTIONS=OFF \
+	-DOQS_USE_BMI2_INSTRUCTIONS=OFF \
+	-DOQS_USE_FMA_INSTRUCTIONS=OFF \
+	-DOQS_USE_PCLMULQDQ_INSTRUCTIONS=OFF \
+	-DOQS_USE_POPCNT_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE2_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE3_INSTRUCTIONS=OFF \
+	-DOQS_USE_VPCLMULQDQ_INSTRUCTIONS=OFF
 CURL_DIR := $(FLINT_CURL_DIR)
 CURL_BUILD_DIR := $(FLINT_CURL_BUILD_DIR)
 CURL_INCLUDE_DIR := $(FLINT_CURL_INCLUDE_DIR)
@@ -176,8 +198,8 @@ FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST)
-FLINT_RUNTIME_ASSET_CFLAGS := $(FLINT_CURL_CFLAGS)
-FLINT_RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
+RUNTIME_ASSET_CFLAGS := $(FLINT_CURL_CFLAGS)
+RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
 
 APP_SRCS := \
 	src/main.c \
@@ -244,9 +266,15 @@ endif
 
 ifneq ($(filter linux freebsd,$(NATIVE_PLATFORM)),)
 SYSTEM_THEME_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
+FILE_DIALOG_PKG := gtk+-3.0
+endif
+ifneq ($(filter all native install run run-fresh screenshot dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS))$(if $(MAKECMDGOALS),,default),)
+ifeq ($(strip $(SYSTEM_THEME_PKG)),)
+$(error gtk+-3.0 is required for native desktop file dialogs)
+endif
 endif
 ifneq ($(strip $(SYSTEM_THEME_PKG)),)
-SYSTEM_THEME_CFLAGS := $(shell pkg-config --cflags $(SYSTEM_THEME_PKG)) -DFLINT_SYSTEM_THEME_GTK
+SYSTEM_THEME_CFLAGS := $(shell pkg-config --cflags $(SYSTEM_THEME_PKG)) -DSYSTEM_THEME_GTK
 SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
 endif
 
@@ -271,12 +299,18 @@ RAY_CFLAGS ?= $(strip $(RAY_SDL_CFLAGS) $(RAY_GL_CFLAGS))
 RAY_LDLIBS ?= $(strip $(RAY_SDL_LDLIBS) $(RAY_GL_LDLIBS))
 RAY_SDL_INCLUDE_DIR ?= $(shell pkg-config --variable=includedir sdl2 2>/dev/null | sed 's,/SDL2$$,,')
 RAY_RAYLIB_CONFIG ?= -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
-APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0
-CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
+ifeq ($(NATIVE_PLATFORM),freebsd)
+FLINT_RAYLIB_AUDIO_PERIOD_FRAMES ?= 128
+FLINT_RAYLIB_AUDIO_PERIODS ?= 2
+endif
+FLINT_RAYLIB_AUDIO_PERIOD_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES)),-DAUDIO_DEVICE_PERIOD_SIZE_IN_FRAMES=$(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES),)
+FLINT_RAYLIB_AUDIO_PERIODS_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIODS)),-DAUDIO_DEVICE_PERIODS=$(FLINT_RAYLIB_AUDIO_PERIODS),)
+APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0 $(FLINT_RAYLIB_AUDIO_PERIOD_CONFIG) $(FLINT_RAYLIB_AUDIO_PERIODS_CONFIG)
+CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
-WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
+WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
-CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(AARCH64_FLINT_CURL_CFLAGS)
+CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_FLINT_FILE_DIALOG $(AARCH64_FLINT_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
 WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lws2_32 -liphlpapi -lcrypt32 -lsecur32 -lbcrypt -ladvapi32 -lm
@@ -373,7 +407,7 @@ click: $(CLICK_TARGET)
 
 click-verify: $(CLICK_TARGET)
 	@command -v clickable >/dev/null || { \
-		echo "clickable is missing. Re-enter the flake shell with: nix develop"; \
+		echo "clickable is missing. Install clickable or put it on PATH."; \
 		exit 1; \
 	}
 	clickable review $(CLICK_TARGET)
@@ -437,17 +471,17 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/flint_lyra_sync.c $(FLINT_DIR)/src/flint_lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
 		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(FLINT_CURL_CFLAGS) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/flint_lyra_sync.c $(FLINT_DIR)/src/flint_lyra_account.c \
+		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/flint_lyra_account.c $(FLINT_DIR)/include/flint_lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_HAS_LIBOQS=1 -ffunction-sections -fdata-sections \
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/flint_lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
@@ -462,13 +496,13 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/font_locale_test.c
 
-$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
+$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		$(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
 		-o $@ \
 		tests/guide_overlay_test.c
 
-$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h vendor/flint/include/flint_ui.h | $(TEST_BIN_DIR)
+$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings $(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
 		-o $@ \
@@ -500,9 +534,9 @@ $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
-	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/flint_icon_assets.c
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/ui_icon_assets.c
 
-$(RAYLIB_A): $(RAYLIB_SOURCES)
+$(RAYLIB_A): $(RAYLIB_SOURCES) Makefile
 	rm -rf $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src
 	mkdir -p $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src $(RAYLIB_BUILD_DIR)
 	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src/
@@ -565,6 +599,7 @@ $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
 
@@ -653,6 +688,7 @@ $(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN64_LIBOQS_BUILD_DIR) --target oqs
 
@@ -702,6 +738,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
@@ -713,7 +750,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
 		$(RAY_CFLAGS) \
-		-DFLINT_HAS_LIBOQS=1 \
+		-DHAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=0 \
@@ -724,12 +761,12 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(RAYLIB_A) \
 		$(LIBOQS_A) \
 		$(RAY_LDLIBS) \
-		$(FLINT_RUNTIME_ASSET_LDLIBS) \
+		$(RUNTIME_ASSET_LDLIBS) \
 		$(DESKTOP_TRAY_LDLIBS) \
 		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
+$(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -737,14 +774,14 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 		$(CLICK_LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
 		$(AARCH64_RAY_CFLAGS) \
-		-DFLINT_HAS_LIBOQS=1 \
+		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_SRCS) \
+		$(FLINT_CLICK_SRCS) \
 		$(SQLITE_SRC) \
 		$(CLICK_RAYLIB_A) \
 		$(CLICK_LIBOQS_A) \
@@ -758,7 +795,7 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 
 $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_DIR)/inbe.desktop $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
 	@command -v click >/dev/null || { \
-		echo "click is missing. Re-enter the flake shell with: nix develop"; \
+		echo "click is missing. Install click or put it on PATH."; \
 		exit 1; \
 	}
 	rm -rf $(CLICK_ROOT)
@@ -820,7 +857,7 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(WIN64_LIBOQS_INCLUDE) \
 		-I$(WIN64_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
-		-DFLINT_HAS_LIBOQS=1 \
+		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
@@ -843,7 +880,7 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(WIN32_LIBOQS_INCLUDE) \
 		-I$(WIN32_CURL_INCLUDE_DIR) \
 		-I$(RAYLIB_DIR) \
-		-DFLINT_HAS_LIBOQS=1 \
+		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
@@ -860,15 +897,15 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 
 $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)
 	@command -v linuxdeploy-plugin-appimage >/dev/null || { \
-		echo "linuxdeploy-plugin-appimage is missing. Re-enter the flake shell with: nix develop"; \
+		echo "linuxdeploy-plugin-appimage is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	@command -v appimagetool >/dev/null || { \
-		echo "appimagetool is missing. Re-enter the flake shell with: nix develop"; \
+		echo "appimagetool is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	@command -v patchelf >/dev/null || { \
-		echo "patchelf is missing. Re-enter the flake shell with: nix develop"; \
+		echo "patchelf is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	rm -rf $(LINUX_APPDIR)
@@ -934,7 +971,7 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SR
 		$(SQLITE_INCLUDE) \
 		$(WEB_LIBOQS_INCLUDE) \
 		-I$(RAYLIB_DIR) \
-		-DFLINT_HAS_LIBOQS=1 \
+		-DHAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -1179,22 +1216,22 @@ clean-vendor-builds:
 NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
-$(error RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)
 endif
 ifeq ($(strip $(RAY_LDLIBS)),)
-$(error RAY_LDLIBS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_LDLIBS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_LDLIBS explicitly)
 endif
 ifeq ($(strip $(RAY_SDL_LDLIBS)),)
-$(error RAY_SDL_LDLIBS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_SDL_LDLIBS is not set. Install SDL2 development files or set RAY_SDL_LDLIBS explicitly)
 endif
 ifeq ($(strip $(RAY_SDL_INCLUDE_DIR)),)
-$(error RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_SDL_INCLUDE_DIR is not set. Install SDL2 development files or set RAY_SDL_INCLUDE_DIR explicitly)
 endif
 ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
-$(error RAY_RAYLIB_CONFIG is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_RAYLIB_CONFIG is not set. Set RAY_RAYLIB_CONFIG explicitly)
 endif
 ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
-$(error libcurl metadata is missing. Sync is required; enter the flake shell with 'nix develop' or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
+$(error libcurl metadata is missing. Install libcurl pkg-config metadata or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
 endif
 ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
 $(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
@@ -1205,25 +1242,25 @@ NEEDS_CLICK_ENV := $(filter click click-verify,$(MAKECMDGOALS))
 ifneq ($(strip $(NEEDS_CLICK_ENV)),)
 ifeq ($(strip $(CLICK_BIN_SOURCE)),)
 ifeq ($(strip $(AARCH64_CC)),)
-$(error AARCH64_CC is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_CC is not set. Install an AArch64 cross compiler, set AARCH64_CC, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_AR)),)
-$(error AARCH64_AR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_AR is not set. Install AArch64 binutils, set AARCH64_AR, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RANLIB)),)
-$(error AARCH64_RANLIB is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RANLIB is not set. Install AArch64 binutils, set AARCH64_RANLIB, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_CFLAGS)),)
-$(error AARCH64_RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_CFLAGS is not set. Set AARCH64_RAY_CFLAGS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_LDLIBS)),)
-$(error AARCH64_RAY_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_LDLIBS is not set. Set AARCH64_RAY_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_SDL_INCLUDE_DIR)),)
-$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Set AARCH64_RAY_SDL_INCLUDE_DIR for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_FLINT_CURL_LDLIBS)),)
-$(error AARCH64_FLINT_CURL_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_FLINT_CURL_LDLIBS is not set. Set AARCH64_FLINT_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 endif
 endif

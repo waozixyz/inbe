@@ -555,6 +555,18 @@ Sensor
 [close_button]
 Schließen
 ---
+[desktop_close_prompt_title]
+Inner Breeze weiterlaufen lassen?
+---
+[desktop_close_prompt_message]
+Wenn du das Fenster schließt, kann Inner Breeze im Hintergrund weiterlaufen.
+---
+[desktop_close_keep_running_button]
+Weiterlaufen lassen
+---
+[desktop_close_quit_button]
+Beenden
+---
 [sync_account_title]
 Konto
 ---
@@ -663,8 +675,23 @@ Löscht nur die auf diesem Gerät gespeicherten Daten. Remote-Sync-Daten bleiben
 [sync_logout_button]
 Abmelden
 ---
-[sync_logged_out]
-Abgemeldet
+[sync_logged_out_local_data_kept]
+Abgemeldet. Lokale Daten bleiben auf diesem Gerät.
+---
+[sync_account_switch_title]
+Lokale Daten löschen?
+---
+[sync_account_switch_message]
+Dieses Gerät enthält Daten eines anderen Sync-Kontos. Lösche lokale Daten, bevor du dieses Konto verwendest.
+---
+[sync_account_switch_clear_button]
+Löschen und Konto verwenden
+---
+[sync_account_switch_cancelled]
+Kontowechsel abgebrochen
+---
+[sync_account_switch_failed]
+Konto konnte nicht gewechselt werden
 ---
 [sync_clear_remote_data_button]
 Remote-Daten löschen
@@ -777,12 +804,6 @@ Erstelle ein Sync-Konto, um Freunde und Bestenliste freizuschalten.
 
 [transition_label]
 Übergang
----
-[transition_none]
-Keine
----
-[transition_fade]
-Blende
 ---
 [theme_picker_title]
 Thema wählen
