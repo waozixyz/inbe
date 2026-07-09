@@ -871,13 +871,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 
     draw_session_status(app, center_x, center_y);
 
-    if(!app->session_paused && (
-#if defined(PLATFORM_WEB)
-        !app->backgrounded
-#else
-        !app->backgrounded || app->inbe.play_in_background
-#endif
-    )) {
+    if(!app->session_paused && !app->backgrounded) {
 #if ANDROID_BUILD
         pthread_mutex_t *timer_mutex = android_timer_get_mutex();
         if(timer_mutex) {

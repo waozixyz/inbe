@@ -458,13 +458,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
     if(app->meditation.complete_waiting)
         return;
 
-    if((
-#if defined(PLATFORM_WEB)
-        !app->backgrounded
-#else
-        !app->backgrounded || app->inbe.play_in_background
-#endif
-    )) {
+    if(!app->backgrounded) {
         app->meditation.frame_ticks++;
         if(app->meditation.frame_ticks >= 60) {
             app->meditation.frame_ticks = 0;

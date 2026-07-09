@@ -1061,6 +1061,36 @@ draw_global_modal(InbeApp *app)
     }
 }
 
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+static void
+app_update_desktop_background_state(InbeApp *app)
+{
+    int backgrounded;
+    double now;
+    int elapsed_ms;
+
+    if(app == NULL)
+        return;
+
+    backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
+    now = GetTime();
+    if(!backgrounded) {
+        app->backgrounded = 0;
+        app->desktop_background_last_time = 0.0;
+        return;
+    }
+
+    if(!app->backgrounded || app->desktop_background_last_time <= 0.0)
+        app->desktop_background_last_time = now;
+    elapsed_ms = (int)((now - app->desktop_background_last_time) * 1000.0);
+    app->backgrounded = 1;
+    app->desktop_background_last_time = now;
+
+    if(elapsed_ms > 0)
+        practice_active_advance_elapsed(app, elapsed_ms);
+}
+#endif
+
 static void
 updateapp(InbeApp *app)
 {
@@ -1078,7 +1108,7 @@ updateapp(InbeApp *app)
     int bottom_input_reserved = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-    app->backgrounded = (!IsWindowFocused() || IsWindowMinimized()) ? 1 : 0;
+    app_update_desktop_background_state(app);
 #endif
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);

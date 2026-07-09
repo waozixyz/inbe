@@ -383,6 +383,7 @@ struct InbeApp {
     int file_dialog_active;
     int session_paused;
     int backgrounded;
+    double desktop_background_last_time;
     int results_saved;
     int modal_input_block_frame;
     char results_path[FS_PATH_MAX];
