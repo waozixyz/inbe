@@ -1541,6 +1541,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     SetUICursorDisabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
+    SetUITransitionCuesEnabled(app->transition_mode == APP_TRANSITION_FADE);
 
     DrawRectangleRec(viewport, GetThemeBackground());
 
