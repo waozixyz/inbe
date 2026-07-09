@@ -319,9 +319,9 @@ habits_add_default_set(InbeHabits *habits)
                     (Color){126, 183, 230, 255},
                     habit_activity_mask_for(EXERCISE_WIM_HOF) |
                     habit_activity_mask_for(EXERCISE_MEDITATION));
-    habits_add_seed(habits, "sun-salutation",
-                    locale_get("habit_default_sun_salutation_name"),
-                    locale_get("habit_default_sun_salutation_description"),
+    habits_add_seed(habits, "yoga",
+                    locale_get("habit_default_yoga_name"),
+                    locale_get("habit_default_yoga_description"),
                     (Color){239, 178, 102, 255},
                     habit_activity_mask_for(EXERCISE_SUN_SALUTATION));
     habits->selected = 0;
@@ -1495,7 +1495,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                 int completed = habit_completed_day(habit, day_index);
                 int action = 0;
                 Color fill;
-                Color border;
+                Color border = flint_darken(flint_theme_get_text(), 46);
                 Rectangle cell_bounds = {(float)day_x, (float)row_y,
                                          (float)cell, (float)cell};
                 int cell_active = CheckCollisionPointRec(mouse, cell_bounds) &&
@@ -1505,16 +1505,13 @@ draw_habits_overview(InbeApp *app, int content_top)
                 if(!completed && !future_day && (has_linked_day || count > 0))
                     completed = 1;
                 fill = completed ? habit->color : flint_darken(flint_theme_get_bg(), 7);
-                border = day_index == today_index
-                             ? flint_theme_get_text()
-                             : flint_darken(flint_theme_get_text(), 46);
+                if(day_index == today_index)
+                    fill = completed ? flint_lighten(fill, 12) : flint_darken(flint_theme_get_bg(), 14);
                 if(cell_hover)
                     fill = completed ? flint_lighten(fill, 22) : flint_theme_get_button_hover();
 
                 DrawRectangle(day_x, row_y, cell, cell, fill);
-                DrawRectangleLinesEx(cell_bounds,
-                                     day_index == today_index ? (float)flint_px(2) : 1.0f,
-                                     border);
+                DrawRectangleLinesEx(cell_bounds, 1.0f, border);
                 if(day == 0) {
                     DrawRectangle(day_x, row_y, cell, flint_px(3),
                                   flint_theme_get_text());
@@ -1578,19 +1575,15 @@ draw_habits_overview(InbeApp *app, int content_top)
                     ui_scroll_page_end(page);
                     return;
                 }
+                {
+                    const char *more = "...";
+                    int more_w = flint_text_measure(more, FLINT_TEXT_16);
+                    flint_text_draw(more, detail_x + (cell - more_w) / 2,
+                                    flint_ui_text_y(more, row_y, cell, FLINT_TEXT_16),
+                                    FLINT_TEXT_16, flint_theme_get_text());
+                }
             }
             y += cell + flint_px(8);
-        }
-        {
-            int today_x = grid_x;
-            int outline_y = grid_y - flint_px(3);
-            int outline_h = y - outline_y - flint_px(5);
-            DrawRectangleLines(today_x - flint_px(3), outline_y,
-                               cell + flint_px(6), outline_h,
-                               flint_theme_get_text());
-            DrawRectangleLines(today_x - flint_px(2), outline_y + flint_px(1),
-                               cell + flint_px(4), outline_h - flint_px(2),
-                               flint_theme_get_text());
         }
 
         y += flint_px(10);
@@ -1828,7 +1821,7 @@ draw_habit_link_dot(int x, int y, int w, Color color)
 
 static int
 habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
-                        const char *label, int completed, int disabled)
+                        const char *label, int completed, int disabled, int current_day)
 {
     Vector2 mouse_world = app != NULL
                               ? GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -1844,6 +1837,8 @@ habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
 
     if(hovered)
         fill = flint_theme_get_button_hover();
+    else if(current_day)
+        fill = completed ? flint_lighten(fill, 12) : flint_darken(flint_theme_get_bg(), 14);
     if(!disabled && completed)
         text = habit_text_color_for_background(fill);
 
@@ -2472,7 +2467,8 @@ draw_habits_screen(InbeApp *app)
                 completed = 1;
             if(counting_enabled) {
                 (void)habit_calendar_day_cell(app, cell_x, cell_y, cell_w, cell_h,
-                                              day_label, completed, future_day);
+                                              day_label, completed, future_day,
+                                              day_index == today_index);
                 action = habit_counter_day_action(app, selected, day_index,
                                                   cell_x, cell_y, cell_w, cell_h,
                                                   future_day, !has_linked_day);
@@ -2486,7 +2482,8 @@ draw_habits_screen(InbeApp *app)
                         habit_open_linked_edit_page(app, selected, day_index);
                 }
             } else if(habit_calendar_day_cell(app, cell_x, cell_y, cell_w, cell_h,
-                                              day_label, completed, future_day)) {
+                                              day_label, completed, future_day,
+                                              day_index == today_index)) {
                 if(has_linked_day) {
                     habit_open_linked_edit_page(app, selected, day_index);
                 } else {
@@ -2518,11 +2515,6 @@ draw_habits_screen(InbeApp *app)
             }
             if(!future_day && has_linked_day) {
                 draw_habit_link_dot(cell_x, cell_y, cell_w, active->color);
-            }
-            if(day_index == today_index) {
-                DrawRectangleLinesEx((Rectangle){(float)cell_x, (float)cell_y,
-                                                 (float)cell_w, (float)cell_h},
-                                     (float)flint_px(2), flint_theme_get_text());
             }
         }
     }

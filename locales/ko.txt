@@ -876,11 +876,11 @@ Alias saved
 [habit_default_meditation_description]
 호흡과 명상 세션.
 ---
-[habit_default_sun_salutation_name]
-태양 경배
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-태양 경배 연습 세션.
+[habit_default_yoga_description]
+요가 연습 세션.
 ---
 [pet_gamification_title]
 게임화 준비 중...

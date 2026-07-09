@@ -11,10 +11,10 @@ locale_get(const char *key)
         return "Meditation";
     if(strcmp(key, "habit_default_meditation_description") == 0)
         return "Breathing and meditation sessions.";
-    if(strcmp(key, "habit_default_sun_salutation_name") == 0)
-        return "Sun Salutation";
-    if(strcmp(key, "habit_default_sun_salutation_description") == 0)
-        return "Sun Salutation practice sessions.";
+    if(strcmp(key, "habit_default_yoga_name") == 0)
+        return "Yoga";
+    if(strcmp(key, "habit_default_yoga_description") == 0)
+        return "Yoga practice sessions.";
     if(strcmp(key, "habit_new_default_name") == 0)
         return "New Habit";
     return key;

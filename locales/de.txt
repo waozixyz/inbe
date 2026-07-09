@@ -877,11 +877,11 @@ Meditation
 [habit_default_meditation_description]
 Atem- und Meditationssitzungen.
 ---
-[habit_default_sun_salutation_name]
-Sonnengruß
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sonnengruß-Übungssitzungen.
+[habit_default_yoga_description]
+Yoga-Übungssitzungen.
 ---
 [pet_gamification_title]
 Gamification in Arbeit...

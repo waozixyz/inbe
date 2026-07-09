@@ -259,7 +259,8 @@ settings_screen_draw(InbeApp *app)
     ui_set_dropdown_clip_top(0);
     ui_set_dropdown_clip_bottom(0);
 
-    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty)
+    if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty &&
+       app->settings_save_delay_ticks <= 0)
         save_settings(app);
 
     return 0;

@@ -44,14 +44,19 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     theme_mode_options[0] = locale_get("theme_follow_device");
     theme_mode_options[1] = locale_get("theme_light");
     theme_mode_options[2] = locale_get("theme_dark");
-    if(app->theme_source == APP_THEME_SOURCE_APP) {
+    if(app->theme_source == APP_THEME_SOURCE_APP || ANDROID_BUILD) {
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
         flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
         ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
                                 theme_mode_options, 3, &app->theme_mode);
         state->draw_theme_mode_menu = 1;
         *y += flint_px(76);
+    } else {
+        app->theme_mode = APP_THEME_SYSTEM;
+        state->draw_theme_mode_menu = 0;
+    }
 
+    if(app->theme_source == APP_THEME_SOURCE_APP) {
         for(int i = 0; i < FLINT_THEME_COUNT; i++)
             theme_options[i] = flint_theme_label((FlintThemeId)i);
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
@@ -61,15 +66,16 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
         state->draw_theme_palette_menu = 1;
         *y += flint_px(76);
     } else {
-        const char *system_name = flint_theme_system_available()
-                                      ? flint_theme_system_name()
-                                      : locale_get("theme_system");
+#if !ANDROID_BUILD
         Color muted = flint_darken(flint_theme_get_text(), 28);
-        app->theme_mode = APP_THEME_SYSTEM;
-        flint_text_draw(system_name, x, *y, flint_ui_font_small(), muted);
-        state->draw_theme_mode_menu = 0;
-        state->draw_theme_palette_menu = 0;
+        const char *system_name = flint_theme_system_name_cached();
+        flint_text_draw(system_name != NULL && system_name[0] != '\0'
+                            ? system_name
+                            : locale_get("theme_system"),
+                        x, *y, flint_ui_font_small(), muted);
         *y += flint_px(38);
+#endif
+        state->draw_theme_palette_menu = 0;
     }
 
 #if defined(PLATFORM_WEB)
@@ -110,11 +116,13 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+#if !ANDROID_BUILD
         if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
             app->theme_mode = APP_THEME_SYSTEM;
+#endif
         app_refresh_theme(app);
         app->settings_dirty = 1;
-        save_settings(app);
+        app->settings_save_delay_ticks = 18;
     }
 
 #if !defined(PLATFORM_WEB)
@@ -123,7 +131,7 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
     if(transition_changed) {
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
         app->settings_dirty = 1;
-        save_settings(app);
+        app->settings_save_delay_ticks = 18;
     }
 #else
     (void)transition_changed;

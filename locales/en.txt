@@ -876,11 +876,11 @@ Meditation
 [habit_default_meditation_description]
 Breathing and meditation sessions.
 ---
-[habit_default_sun_salutation_name]
-Sun Salutation
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sun Salutation practice sessions.
+[habit_default_yoga_description]
+Yoga practice sessions.
 ---
 [pet_gamification_title]
 Gamification in progress...

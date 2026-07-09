@@ -877,11 +877,11 @@ Meditace
 [habit_default_meditation_description]
 Dýchací a meditační sezení.
 ---
-[habit_default_sun_salutation_name]
-Pozdrav slunci
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Cvičení pozdravu slunci.
+[habit_default_yoga_description]
+Jógová cvičení.
 ---
 [pet_gamification_title]
 Gamifikace se připravuje...

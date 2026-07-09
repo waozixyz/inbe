@@ -877,11 +877,11 @@ Alias saved
 [habit_default_meditation_description]
 呼吸和冥想课程。
 ---
-[habit_default_sun_salutation_name]
-拜日式
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-拜日式练习课程。
+[habit_default_yoga_description]
+瑜伽练习课程。
 ---
 [pet_gamification_title]
 游戏化开发中...

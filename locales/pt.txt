@@ -877,11 +877,11 @@ Meditação
 [habit_default_meditation_description]
 Sessões de respiração e meditação.
 ---
-[habit_default_sun_salutation_name]
-Saudação ao sol
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sessões de saudação ao sol.
+[habit_default_yoga_description]
+Sessões de yoga.
 ---
 [pet_gamification_title]
 Gamificação em andamento...

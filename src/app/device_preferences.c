@@ -46,13 +46,19 @@ app_refresh_theme(InbeApp *app)
     flint_theme_set_source(app->theme_source == APP_THEME_SOURCE_SYSTEM
                                ? FLINT_THEME_SOURCE_SYSTEM
                                : FLINT_THEME_SOURCE_APP);
+#if !ANDROID_BUILD
     if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
         app->theme_mode = APP_THEME_SYSTEM;
+#endif
     flint_theme_set_mode((FlintThemeMode)app->theme_mode);
 #if ANDROID_BUILD
     flint_theme_set_system_dark_mode(android_device_system_dark() != 0);
 #endif
     app->dark_mode = app_effective_dark_mode(app);
+#if ANDROID_BUILD
+    if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
+        flint_theme_set_system_dark_mode(app->dark_mode != 0);
+#endif
     flint_theme_set_current(app->theme_id, app->dark_mode);
     ui_set_colors(flint_theme_get_text(), flint_theme_get_bg(), flint_theme_get_surface(),
                   flint_theme_get_circle(), flint_theme_get_button(), flint_theme_get_button_hover(),
@@ -89,6 +95,9 @@ app_device_preferences_init(InbeApp *app)
     app->android_orientation = android_device_orientation();
 #else
     app->android_orientation = APP_DEVICE_ORIENTATION_UNKNOWN;
+#if !defined(PLATFORM_WEB)
+    flint_theme_refresh_system();
+#endif
 #endif
     app_refresh_theme(app);
     app_apply_orientation_preference(app);
