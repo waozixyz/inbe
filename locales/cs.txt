@@ -528,6 +528,12 @@ Hudba od Elijah_K.
 [theme_system]
 Systém
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Paleta
+---
 [orientation_label]
 Orientace
 ---

@@ -528,6 +528,12 @@ Musik oleh Elijah_K.
 [theme_system]
 Sistem
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palet
+---
 [orientation_label]
 Orientasi
 ---

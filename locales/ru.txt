@@ -319,6 +319,12 @@ OK
 [theme_system]
 Системная
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Палитра
+---
 [orientation_label]
 Ориентация
 ---

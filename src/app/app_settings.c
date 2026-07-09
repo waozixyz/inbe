@@ -108,6 +108,16 @@ load_navigation_mode(void)
     return NAV_MODE_TABBAR;
 }
 
+static int
+default_theme_source(void)
+{
+#if defined(PLATFORM_DESKTOP)
+    return APP_THEME_SOURCE_SYSTEM;
+#else
+    return APP_THEME_SOURCE_APP;
+#endif
+}
+
 void
 apply_settings(Inbe *inbe, int speed, int max_rounds, int max_breaths, int pause_seconds)
 {
@@ -164,6 +174,7 @@ save_settings(InbeApp *app)
         {"exercise_manual_seen_mask", app->exercise_manual_seen_mask},
         {"practice_visible_mask", app->practice_visible_mask},
         {"theme", app->theme_id},
+        {"theme_source", app->theme_source},
         {"dark_mode", app->dark_mode},
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
@@ -301,6 +312,8 @@ app_load_settings(InbeApp *app)
             {&app->sound_volume, "sound_volume", 100,
              SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX},
             {&app->theme_id, "theme", 0, 0, FLINT_THEME_COUNT - 1},
+            {&app->theme_source, "theme_source", default_theme_source(),
+             APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM},
             {&app->theme_mode, "theme_mode", APP_THEME_SYSTEM,
              APP_THEME_SYSTEM, APP_THEME_DARK},
             {&app->orientation_mode, "orientation_mode", APP_ORIENTATION_SYSTEM,

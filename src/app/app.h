@@ -142,6 +142,11 @@ typedef enum AppThemeMode {
     APP_THEME_DARK = 2,
 } AppThemeMode;
 
+typedef enum AppThemeSource {
+    APP_THEME_SOURCE_APP = 0,
+    APP_THEME_SOURCE_SYSTEM = 1,
+} AppThemeSource;
+
 typedef enum AppOrientationMode {
     APP_ORIENTATION_SYSTEM = 0,
     APP_ORIENTATION_PORTRAIT = 1,
@@ -342,6 +347,7 @@ struct InbeApp {
     int practice_home_scroll;
 
     int theme_id;
+    int theme_source;
     int dark_mode;
     int theme_mode;
     int orientation_mode;

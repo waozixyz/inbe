@@ -316,6 +316,12 @@ Finish
 [theme_system]
 시스템
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+팔레트
+---
 [orientation_label]
 화면 방향
 ---

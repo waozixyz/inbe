@@ -316,6 +316,12 @@ Modalità tema
 [theme_system]
 Sistema
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palette
+---
 [orientation_label]
 Orientamento
 ---

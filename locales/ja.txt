@@ -530,6 +530,12 @@ OK
 [theme_system]
 システム
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+パレット
+---
 [orientation_label]
 向き
 ---

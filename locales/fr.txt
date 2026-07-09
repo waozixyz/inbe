@@ -531,6 +531,12 @@ Musique par Elijah_K.
 [theme_system]
 Système
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palette
+---
 [orientation_label]
 Orientation
 ---

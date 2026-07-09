@@ -81,6 +81,7 @@ static const char *const importable_setting_keys[] = {
     "tutorial_seen",
     "exercise_manual_seen_mask",
     "theme",
+    "theme_source",
     "dark_mode",
     "theme_mode",
     "orientation_mode",

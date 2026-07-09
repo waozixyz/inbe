@@ -322,6 +322,12 @@ Theme mode
 [theme_system]
 System
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palette
+---
 [orientation_label]
 Orientation
 ---

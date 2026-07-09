@@ -8,7 +8,6 @@
 #include "flint_web.h"
 #include "flint_theme.h"
 #include "device_preferences.h"
-#include "desktop_tray.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -16,6 +15,10 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+#include "desktop_tray.h"
+#endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,

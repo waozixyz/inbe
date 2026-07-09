@@ -528,6 +528,12 @@ Finish
 [theme_system]
 系统
 ---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+调色板
+---
 [orientation_label]
 方向
 ---
