@@ -311,7 +311,10 @@ Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 Tema
 ---
 [theme_mode_label]
-Mode tema
+Mode warna
+---
+[theme_follow_device]
+Ikuti perangkat
 ---
 [speed_label]
 Kecepatan

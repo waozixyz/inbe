@@ -311,7 +311,10 @@ Klidny pruvodce pro dychani, navyky a synchronizaci.
 Motiv
 ---
 [theme_mode_label]
-Režim motivu
+Režim barev
+---
+[theme_follow_device]
+Podle zařízení
 ---
 [speed_label]
 Rychlost

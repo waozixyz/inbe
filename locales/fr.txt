@@ -314,7 +314,10 @@ Un compagnon discret pour la respiration, les habitudes et la synchronisation.
 Thème
 ---
 [theme_mode_label]
-Mode du thème
+Mode couleur
+---
+[theme_follow_device]
+Suivre l'appareil
 ---
 [speed_label]
 Vitesse

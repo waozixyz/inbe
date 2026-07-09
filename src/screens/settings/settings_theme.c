@@ -41,17 +41,17 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     state->draw_theme_source_menu = 1;
     *y += flint_px(76);
 
-    theme_mode_options[0] = locale_get("theme_system");
+    theme_mode_options[0] = locale_get("theme_follow_device");
     theme_mode_options[1] = locale_get("theme_light");
     theme_mode_options[2] = locale_get("theme_dark");
-    app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-    flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-    ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
-                            theme_mode_options, 3, &app->theme_mode);
-    state->draw_theme_mode_menu = 1;
-    *y += flint_px(76);
-
     if(app->theme_source == APP_THEME_SOURCE_APP) {
+        app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+        flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+        ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
+                                theme_mode_options, 3, &app->theme_mode);
+        state->draw_theme_mode_menu = 1;
+        *y += flint_px(76);
+
         for(int i = 0; i < FLINT_THEME_COUNT; i++)
             theme_options[i] = flint_theme_label((FlintThemeId)i);
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
@@ -65,7 +65,9 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
                                       ? flint_theme_system_name()
                                       : locale_get("theme_system");
         Color muted = flint_darken(flint_theme_get_text(), 28);
+        app->theme_mode = APP_THEME_SYSTEM;
         flint_text_draw(system_name, x, *y, flint_ui_font_small(), muted);
+        state->draw_theme_mode_menu = 0;
         state->draw_theme_palette_menu = 0;
         *y += flint_px(38);
     }
@@ -108,6 +110,8 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
         app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+        if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
+            app->theme_mode = APP_THEME_SYSTEM;
         app_refresh_theme(app);
         app->settings_dirty = 1;
         save_settings(app);

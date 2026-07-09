@@ -311,7 +311,10 @@ Un compagno discreto per respirazione, abitudini e sincronizzazione.
 Tema
 ---
 [theme_mode_label]
-Modalità tema
+Modalità colore
+---
+[theme_follow_device]
+Segui dispositivo
 ---
 [theme_system]
 Sistema

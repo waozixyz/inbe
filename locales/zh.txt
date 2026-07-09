@@ -311,7 +311,10 @@ Finish
 主题
 ---
 [theme_mode_label]
-主题模式
+颜色模式
+---
+[theme_follow_device]
+跟随设备
 ---
 [speed_label]
 速度

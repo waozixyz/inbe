@@ -311,7 +311,10 @@ Ein ruhiger Begleiter fuer Atemuebungen, Gewohnheiten und Synchronisierung.
 Thema
 ---
 [theme_mode_label]
-Themenmodus
+Farbmodus
+---
+[theme_follow_device]
+Gerät folgen
 ---
 [speed_label]
 Geschwindigkeit

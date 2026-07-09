@@ -46,6 +46,8 @@ app_refresh_theme(InbeApp *app)
     flint_theme_set_source(app->theme_source == APP_THEME_SOURCE_SYSTEM
                                ? FLINT_THEME_SOURCE_SYSTEM
                                : FLINT_THEME_SOURCE_APP);
+    if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
+        app->theme_mode = APP_THEME_SYSTEM;
     flint_theme_set_mode((FlintThemeMode)app->theme_mode);
 #if ANDROID_BUILD
     flint_theme_set_system_dark_mode(android_device_system_dark() != 0);

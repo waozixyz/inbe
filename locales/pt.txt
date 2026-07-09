@@ -311,7 +311,10 @@ Um companheiro tranquilo para respiracao, habitos e sincronizacao.
 Tema
 ---
 [theme_mode_label]
-Modo do tema
+Modo de cor
+---
+[theme_follow_device]
+Seguir dispositivo
 ---
 [speed_label]
 Velocidade

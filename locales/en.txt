@@ -317,7 +317,10 @@ A quiet breathing companion for practice, habits, and sync.
 Theme
 ---
 [theme_mode_label]
-Theme mode
+Color mode
+---
+[theme_follow_device]
+Follow device
 ---
 [theme_system]
 System

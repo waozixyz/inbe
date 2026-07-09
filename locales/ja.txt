@@ -311,7 +311,10 @@ OK
 テーマ
 ---
 [theme_mode_label]
-テーマモード
+カラーモード
+---
+[theme_follow_device]
+デバイスに合わせる
 ---
 [speed_label]
 速度
