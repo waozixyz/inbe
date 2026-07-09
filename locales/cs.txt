@@ -675,8 +675,23 @@ Vymaže pouze data uložená v tomto zařízení. Vzdálená synchronizační da
 [sync_logout_button]
 Odhlásit se
 ---
-[sync_logged_out]
-Odhlášeno
+[sync_logged_out_local_data_kept]
+Odhlášeno. Místní data zůstávají na tomto zařízení.
+---
+[sync_account_switch_title]
+Vymazat místní data?
+---
+[sync_account_switch_message]
+Toto zařízení obsahuje data z jiného synchronizačního účtu. Před použitím tohoto účtu vymažte místní data.
+---
+[sync_account_switch_clear_button]
+Vymazat a použít účet
+---
+[sync_account_switch_cancelled]
+Změna účtu zrušena
+---
+[sync_account_switch_failed]
+Účet se nepodařilo změnit
 ---
 [sync_clear_remote_data_button]
 Vymazat vzdálená data

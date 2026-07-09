@@ -714,8 +714,23 @@ Clear only the data stored on this device. Remote sync data is not changed.
 [sync_logout_button]
 Log out
 ---
-[sync_logged_out]
-Logged out
+[sync_logged_out_local_data_kept]
+Logged out. Local data stays on this device.
+---
+[sync_account_switch_title]
+Clear local data?
+---
+[sync_account_switch_message]
+This device has data from another sync account. Clear local data before using this account.
+---
+[sync_account_switch_clear_button]
+Clear and Use Account
+---
+[sync_account_switch_cancelled]
+Account switch cancelled
+---
+[sync_account_switch_failed]
+Could not switch account
 ---
 [sync_clear_remote_data_button]
 Clear Remote Data

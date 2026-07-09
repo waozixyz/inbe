@@ -10,6 +10,7 @@
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 #include "screens/settings/settings_theme.h"
+#include "storage/sync_account.h"
 
 enum {
     SETTINGS_SPEED_MIN = 1,
@@ -100,7 +101,14 @@ typedef enum {
     UIModalSyncAlias,
     UIModalSyncPublicId,
     UIModalConfirmRemoveFriend,
+    UIModalConfirmSyncAccountSwitch,
 } UIModalType;
+
+typedef enum InbePendingSyncAccountAction {
+    InbePendingSyncAccountNone = 0,
+    InbePendingSyncAccountCreate,
+    InbePendingSyncAccountImport
+} InbePendingSyncAccountAction;
 
 typedef enum SessionExitModalResult {
     SessionExitModalNone = 0,
@@ -348,6 +356,8 @@ struct InbeApp {
     int sync_alias_focused;
     int sync_alias_then_backup;
     char sync_alias_input[40];
+    InbeSyncAccount pending_sync_account;
+    int pending_sync_account_action;
     int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;

@@ -675,8 +675,23 @@ Löscht nur die auf diesem Gerät gespeicherten Daten. Remote-Sync-Daten bleiben
 [sync_logout_button]
 Abmelden
 ---
-[sync_logged_out]
-Abgemeldet
+[sync_logged_out_local_data_kept]
+Abgemeldet. Lokale Daten bleiben auf diesem Gerät.
+---
+[sync_account_switch_title]
+Lokale Daten löschen?
+---
+[sync_account_switch_message]
+Dieses Gerät enthält Daten eines anderen Sync-Kontos. Lösche lokale Daten, bevor du dieses Konto verwendest.
+---
+[sync_account_switch_clear_button]
+Löschen und Konto verwenden
+---
+[sync_account_switch_cancelled]
+Kontowechsel abgebrochen
+---
+[sync_account_switch_failed]
+Konto konnte nicht gewechselt werden
 ---
 [sync_clear_remote_data_button]
 Remote-Daten löschen

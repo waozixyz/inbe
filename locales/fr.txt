@@ -714,8 +714,23 @@ Efface uniquement les données stockées sur cet appareil. Les données de synch
 [sync_logout_button]
 Se déconnecter
 ---
-[sync_logged_out]
-Déconnecté
+[sync_logged_out_local_data_kept]
+Déconnecté. Les données locales restent sur cet appareil.
+---
+[sync_account_switch_title]
+Effacer les données locales ?
+---
+[sync_account_switch_message]
+Cet appareil contient des données d’un autre compte de synchronisation. Effacez les données locales avant d’utiliser ce compte.
+---
+[sync_account_switch_clear_button]
+Effacer et utiliser le compte
+---
+[sync_account_switch_cancelled]
+Changement de compte annulé
+---
+[sync_account_switch_failed]
+Impossible de changer de compte
 ---
 [sync_clear_remote_data_button]
 Effacer les données distantes

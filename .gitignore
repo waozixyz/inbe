@@ -51,6 +51,7 @@ Captures/
 Thumbs.db
 *.bak
 *.swp
+*.core
 
 local.properties
 *.o

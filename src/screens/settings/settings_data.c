@@ -744,13 +744,10 @@ settings_import_sync_key_path(InbeApp *app, const char *path)
     InbeSyncAccount account;
 
     if(path != NULL && path[0] != '\0' &&
-       sync_account_import_private_key(&account, path)) {
-        const char *saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
-        if(saved == NULL || saved[0] == '\0')
-            storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, INBE_SYNC_SERVER_URL_DEFAULT);
-        settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), NULL);
-        TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
-        app_auto_sync(app);
+       sync_account_import_private_key_preview(&account, path)) {
+        if(settings_sync_account_save_prepared(app, &account,
+                                               InbePendingSyncAccountImport, 0))
+            TraceLog(LOG_INFO, "SYNC: Private key imported from %s", path);
         return 1;
     }
 
@@ -899,6 +896,29 @@ settings_data_draw_modals(InbeApp *app)
         } else if(modal_result == 2) {
             app_close_modal(app);
             settings_sync_account_clear_remote_confirmed(app);
+        }
+        return 1;
+    }
+
+    if(app->modal.type == UIModalConfirmSyncAccountSwitch) {
+        int modal_result = DrawUIModal(GetLocaleText("sync_account_switch_title"),
+                                         GetLocaleText("sync_account_switch_message"),
+                                         GetLocaleText("cancel_button"),
+                                         GetLocaleText("sync_account_switch_clear_button"));
+        if(modal_result == 1) {
+            app_close_modal(app);
+            memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account));
+            app->pending_sync_account_action = InbePendingSyncAccountNone;
+            settings_screen_set_status_error(GetLocaleText("sync_account_switch_cancelled"));
+        } else if(modal_result == 2) {
+            InbeSyncAccount account = app->pending_sync_account;
+            int action = app->pending_sync_account_action;
+            app_close_modal(app);
+            if(settings_sync_account_save_prepared(app, &account, action, 1)) {
+                app_reload_after_import(app, 0);
+            } else {
+                settings_screen_set_status_error(GetLocaleText("sync_account_switch_failed"));
+            }
         }
         return 1;
     }

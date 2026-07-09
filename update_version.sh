@@ -12,6 +12,16 @@ CLICK_MANIFEST_FILE="packaging/click/manifest.json"
 CLICK_CONTROL_FILE="packaging/click/control"
 CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
 
+replace_in_file() {
+    local expr="$1"
+    local file="$2"
+    local tmp
+
+    tmp=$(mktemp "${file}.XXXXXX")
+    sed "$expr" "$file" > "$tmp"
+    mv "$tmp" "$file"
+}
+
 # Extract all versions from CHANGELOG
 VERSIONS=$(grep '^## \[' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
 
@@ -40,8 +50,8 @@ echo "Updating to: $LATEST_VERSION (code $VERSION_CODE)"
 echo "Current: $CURRENT_NAME (code $CURRENT_CODE)"
 
 # Update gradle file with latest version
-sed -i "s/versionCode $CURRENT_CODE/versionCode $VERSION_CODE/" "$GRADLE_FILE"
-sed -i "s/versionName \"$CURRENT_NAME\"/versionName \"$LATEST_VERSION\"/" "$GRADLE_FILE"
+replace_in_file "s/versionCode $CURRENT_CODE/versionCode $VERSION_CODE/" "$GRADLE_FILE"
+replace_in_file "s/versionName \"$CURRENT_NAME\"/versionName \"$LATEST_VERSION\"/" "$GRADLE_FILE"
 
 echo "✓ Updated $GRADLE_FILE"
 
@@ -56,40 +66,40 @@ if [ ! -f "$VERSION_H_FILE" ]; then
     exit 1
 fi
 
-sed -i "s/^#define INBE_VERSION_MAJOR .*/#define INBE_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
-sed -i "s/^#define INBE_VERSION_MINOR .*/#define INBE_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"
-sed -i "s/^#define INBE_VERSION_PATCH .*/#define INBE_VERSION_PATCH $PATCH/" "$VERSION_H_FILE"
-sed -i "s/^#define INBE_VERSION_STRING .*/#define INBE_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
+replace_in_file "s/^#define INBE_VERSION_MAJOR .*/#define INBE_VERSION_MAJOR $MAJOR/" "$VERSION_H_FILE"
+replace_in_file "s/^#define INBE_VERSION_MINOR .*/#define INBE_VERSION_MINOR $MINOR/" "$VERSION_H_FILE"
+replace_in_file "s/^#define INBE_VERSION_PATCH .*/#define INBE_VERSION_PATCH $PATCH/" "$VERSION_H_FILE"
+replace_in_file "s/^#define INBE_VERSION_STRING .*/#define INBE_VERSION_STRING \"$LATEST_VERSION\"/" "$VERSION_H_FILE"
 
 echo "✓ Updated $VERSION_H_FILE"
 
 if [ -f "$WINDOWS_RC_FILE" ]; then
     WINDOWS_VERSION="$MAJOR,$MINOR,$PATCH,0"
-    sed -i "s/^ FILEVERSION .*/ FILEVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
-    sed -i "s/^ PRODUCTVERSION .*/ PRODUCTVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
-    sed -i "s/^\([[:space:]]*VALUE \"FileVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
-    sed -i "s/^\([[:space:]]*VALUE \"ProductVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
+    replace_in_file "s/^ FILEVERSION .*/ FILEVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
+    replace_in_file "s/^ PRODUCTVERSION .*/ PRODUCTVERSION $WINDOWS_VERSION/" "$WINDOWS_RC_FILE"
+    replace_in_file "s/^\([[:space:]]*VALUE \"FileVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
+    replace_in_file "s/^\([[:space:]]*VALUE \"ProductVersion\", \).*/\1\"$LATEST_VERSION\"/" "$WINDOWS_RC_FILE"
     echo "✓ Updated $WINDOWS_RC_FILE"
 else
     echo "Warning: $WINDOWS_RC_FILE not found"
 fi
 
 if [ -f "$CLICK_MANIFEST_FILE" ]; then
-    sed -i "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$CLICK_MANIFEST_FILE"
+    replace_in_file "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$CLICK_MANIFEST_FILE"
     echo "✓ Updated $CLICK_MANIFEST_FILE"
 else
     echo "Warning: $CLICK_MANIFEST_FILE not found"
 fi
 
 if [ -f "$CLICK_CONTROL_FILE" ]; then
-    sed -i "s/^Version: .*/Version: $LATEST_VERSION/" "$CLICK_CONTROL_FILE"
+    replace_in_file "s/^Version: .*/Version: $LATEST_VERSION/" "$CLICK_CONTROL_FILE"
     echo "✓ Updated $CLICK_CONTROL_FILE"
 else
     echo "Warning: $CLICK_CONTROL_FILE not found"
 fi
 
 if [ -f "$CLICK_METAINFO_FILE" ]; then
-    sed -i "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$(date +%F)\"/" "$CLICK_METAINFO_FILE"
+    replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$(date +%F)\"/" "$CLICK_METAINFO_FILE"
     echo "✓ Updated $CLICK_METAINFO_FILE"
 else
     echo "Warning: $CLICK_METAINFO_FILE not found"
@@ -98,46 +108,31 @@ fi
 # Create changelog directory
 mkdir -p "$CHANGELOG_DIR"
 
-# Generate changelog files (position-based: oldest = 1, newest = N)
-# Reverse versions so oldest is processed first
-TOTAL_VERSIONS=$(echo "$VERSIONS" | wc -l)
-POSITION=0
-while IFS= read -r VERSION; do
-    POSITION=$((POSITION + 1))
-    # Calculate position from end (newest gets highest number)
-    CODE=$((TOTAL_VERSIONS - POSITION + 1))
-    OUTPUT_FILE="$CHANGELOG_DIR/$CODE.txt"
-
-    # Skip if file already exists
-    if [ -f "$OUTPUT_FILE" ]; then
-        continue
-    fi
-
-    # Extract Fastlane-friendly changelog content for this version. F-Droid
-    # displays changelogs as text, so avoid literal Markdown heading markers.
-    CHANGELOG_CONTENT=$(awk -v ver="$VERSION" '
-        BEGIN { in_section=0 }
-        /^## \[/ {
-            if (in_section) exit
-            if (index($0, ver) > 0) {
-                in_section=1
-                next
-            }
+# Generate the Fastlane changelog for the Android versionCode being built.
+# Fastlane file names are versionCode values, not changelog positions.
+OUTPUT_FILE="$CHANGELOG_DIR/$VERSION_CODE.txt"
+CHANGELOG_CONTENT=$(awk -v ver="$LATEST_VERSION" '
+    BEGIN { in_section=0 }
+    /^## \[/ {
+        if (in_section) exit
+        if (index($0, ver) > 0) {
+            in_section=1
+            next
         }
-        in_section {
-            if (/^### /) {
-                sub(/^### /, "")
-                print
-                print "---"
-            } else if (/^- /) {
-                print
-            }
+    }
+    in_section {
+        if (/^### /) {
+            sub(/^### /, "")
+            print
+            print "---"
+        } else if (/^- /) {
+            print
         }
-    ' "$CHANGELOG_FILE")
+    }
+' "$CHANGELOG_FILE")
 
-    echo "$CHANGELOG_CONTENT" > "$OUTPUT_FILE"
-    echo "✓ Created $OUTPUT_FILE"
-done <<< "$VERSIONS"
+echo "$CHANGELOG_CONTENT" > "$OUTPUT_FILE"
+echo "✓ Updated $OUTPUT_FILE"
 
 echo ""
 echo "Done! Build and test the app before committing."

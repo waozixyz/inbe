@@ -1485,15 +1485,15 @@ updateapp(InbeApp *app)
               app->inbe.screen == InbeScreenSunSalutation))))
 #endif
        ) {
-        if(first_run_guide_active || habits_guide_active || profile_guide_active) {
+        if(app->close_prompt_open) {
+            app->close_prompt_open = 0;
+        } else if(first_run_guide_active || habits_guide_active || profile_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
             app->profile_guide_step = 0;
             profile_screen_prepare_first_run_guide(app);
-        } else if(app->close_prompt_open) {
-            app->close_prompt_open = 0;
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {

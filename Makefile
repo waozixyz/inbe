@@ -60,6 +60,9 @@ CLICK_LIBOQS_A := $(CLICK_LIBOQS_BUILD_DIR)/lib/liboqs.a
 CLICK_LIBOQS_INCLUDE := -I$(CLICK_LIBOQS_BUILD_DIR)/include
 CLICK_PATCHELF_INTERPRETER ?= /lib/ld-linux-aarch64.so.1
 CLICK_RUNTIME_LIBS ?= $(AARCH64_CLICK_RUNTIME_LIBS)
+AARCH64_CC ?= $(shell command -v aarch64-linux-gnu-gcc 2>/dev/null || command -v aarch64-linux-musl-gcc 2>/dev/null)
+AARCH64_AR ?= $(shell command -v aarch64-linux-gnu-ar 2>/dev/null || command -v aarch64-linux-musl-ar 2>/dev/null)
+AARCH64_RANLIB ?= $(shell command -v aarch64-linux-gnu-ranlib 2>/dev/null || command -v aarch64-linux-musl-ranlib 2>/dev/null)
 WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
@@ -146,6 +149,24 @@ FLINT_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
 include $(FLINT_DIR)/mk/vendor.mk
+FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
+	-DOQS_USE_ADX_INSTRUCTIONS=OFF \
+	-DOQS_USE_AES_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX2_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512BW_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512DQ_INSTRUCTIONS=OFF \
+	-DOQS_USE_AVX512F_INSTRUCTIONS=OFF \
+	-DOQS_USE_BMI1_INSTRUCTIONS=OFF \
+	-DOQS_USE_BMI2_INSTRUCTIONS=OFF \
+	-DOQS_USE_FMA_INSTRUCTIONS=OFF \
+	-DOQS_USE_PCLMULQDQ_INSTRUCTIONS=OFF \
+	-DOQS_USE_POPCNT_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE2_INSTRUCTIONS=OFF \
+	-DOQS_USE_SSE3_INSTRUCTIONS=OFF \
+	-DOQS_USE_VPCLMULQDQ_INSTRUCTIONS=OFF
 CURL_DIR := $(FLINT_CURL_DIR)
 CURL_BUILD_DIR := $(FLINT_CURL_BUILD_DIR)
 CURL_INCLUDE_DIR := $(FLINT_CURL_INCLUDE_DIR)
@@ -386,7 +407,7 @@ click: $(CLICK_TARGET)
 
 click-verify: $(CLICK_TARGET)
 	@command -v clickable >/dev/null || { \
-		echo "clickable is missing. Re-enter the flake shell with: nix develop"; \
+		echo "clickable is missing. Install clickable or put it on PATH."; \
 		exit 1; \
 	}
 	clickable review $(CLICK_TARGET)
@@ -578,6 +599,7 @@ $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
 
@@ -666,6 +688,7 @@ $(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN64_LIBOQS_BUILD_DIR) --target oqs
 
@@ -715,6 +738,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
+		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
@@ -771,7 +795,7 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_S
 
 $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_DIR)/inbe.desktop $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
 	@command -v click >/dev/null || { \
-		echo "click is missing. Re-enter the flake shell with: nix develop"; \
+		echo "click is missing. Install click or put it on PATH."; \
 		exit 1; \
 	}
 	rm -rf $(CLICK_ROOT)
@@ -873,15 +897,15 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 
 $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)
 	@command -v linuxdeploy-plugin-appimage >/dev/null || { \
-		echo "linuxdeploy-plugin-appimage is missing. Re-enter the flake shell with: nix develop"; \
+		echo "linuxdeploy-plugin-appimage is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	@command -v appimagetool >/dev/null || { \
-		echo "appimagetool is missing. Re-enter the flake shell with: nix develop"; \
+		echo "appimagetool is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	@command -v patchelf >/dev/null || { \
-		echo "patchelf is missing. Re-enter the flake shell with: nix develop"; \
+		echo "patchelf is missing. Install it or put it on PATH."; \
 		exit 1; \
 	}
 	rm -rf $(LINUX_APPDIR)
@@ -1192,22 +1216,22 @@ clean-vendor-builds:
 NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
-$(error RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)
 endif
 ifeq ($(strip $(RAY_LDLIBS)),)
-$(error RAY_LDLIBS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_LDLIBS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_LDLIBS explicitly)
 endif
 ifeq ($(strip $(RAY_SDL_LDLIBS)),)
-$(error RAY_SDL_LDLIBS is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_SDL_LDLIBS is not set. Install SDL2 development files or set RAY_SDL_LDLIBS explicitly)
 endif
 ifeq ($(strip $(RAY_SDL_INCLUDE_DIR)),)
-$(error RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_SDL_INCLUDE_DIR is not set. Install SDL2 development files or set RAY_SDL_INCLUDE_DIR explicitly)
 endif
 ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
-$(error RAY_RAYLIB_CONFIG is not set. Enter the ray flake shell with 'nix develop')
+$(error RAY_RAYLIB_CONFIG is not set. Set RAY_RAYLIB_CONFIG explicitly)
 endif
 ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
-$(error libcurl metadata is missing. Sync is required; enter the flake shell with 'nix develop' or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
+$(error libcurl metadata is missing. Install libcurl pkg-config metadata or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
 endif
 ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
 $(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
@@ -1218,25 +1242,25 @@ NEEDS_CLICK_ENV := $(filter click click-verify,$(MAKECMDGOALS))
 ifneq ($(strip $(NEEDS_CLICK_ENV)),)
 ifeq ($(strip $(CLICK_BIN_SOURCE)),)
 ifeq ($(strip $(AARCH64_CC)),)
-$(error AARCH64_CC is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_CC is not set. Install an AArch64 cross compiler, set AARCH64_CC, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_AR)),)
-$(error AARCH64_AR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_AR is not set. Install AArch64 binutils, set AARCH64_AR, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RANLIB)),)
-$(error AARCH64_RANLIB is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RANLIB is not set. Install AArch64 binutils, set AARCH64_RANLIB, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_CFLAGS)),)
-$(error AARCH64_RAY_CFLAGS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_CFLAGS is not set. Set AARCH64_RAY_CFLAGS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_LDLIBS)),)
-$(error AARCH64_RAY_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_LDLIBS is not set. Set AARCH64_RAY_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_RAY_SDL_INCLUDE_DIR)),)
-$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Set AARCH64_RAY_SDL_INCLUDE_DIR for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 ifeq ($(strip $(AARCH64_FLINT_CURL_LDLIBS)),)
-$(error AARCH64_FLINT_CURL_LDLIBS is not set. Enter the ray flake shell with 'nix develop' or pass CLICK_BIN_SOURCE=/path/to/inbe)
+$(error AARCH64_FLINT_CURL_LDLIBS is not set. Set AARCH64_FLINT_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 endif
 endif

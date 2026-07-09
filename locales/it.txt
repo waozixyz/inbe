@@ -675,8 +675,23 @@ Cancella solo i dati salvati su questo dispositivo. I dati di sincronizzazione r
 [sync_logout_button]
 Esci
 ---
-[sync_logged_out]
-Disconnesso
+[sync_logged_out_local_data_kept]
+Disconnesso. I dati locali restano su questo dispositivo.
+---
+[sync_account_switch_title]
+Cancellare i dati locali?
+---
+[sync_account_switch_message]
+Questo dispositivo contiene dati di un altro account di sincronizzazione. Cancella i dati locali prima di usare questo account.
+---
+[sync_account_switch_clear_button]
+Cancella e usa account
+---
+[sync_account_switch_cancelled]
+Cambio account annullato
+---
+[sync_account_switch_failed]
+Impossibile cambiare account
 ---
 [sync_clear_remote_data_button]
 Cancella dati remoti

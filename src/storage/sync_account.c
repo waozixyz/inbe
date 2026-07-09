@@ -23,6 +23,7 @@
 #define SYNC_PUBLIC_ID_KEY "sync_public_id"
 #define SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define SYNC_PRIVATE_KEY_KEY "sync_private_key"
+#define SYNC_ACCOUNT_ALIAS_KEY "sync_account_alias"
 
 static int
 account_has_values(const InbeSyncAccount *account)
@@ -31,15 +32,23 @@ account_has_values(const InbeSyncAccount *account)
 }
 
 static void
-sync_account_save_and_reset(const InbeSyncAccount *account)
+sync_account_write_and_reset(const InbeSyncAccount *account)
 {
     storage_settings_begin_write();
     storage_set_setting_text(SYNC_PUBLIC_ID_KEY, account != NULL ? account->public_id : "");
     storage_set_setting_text(SYNC_PUBLIC_KEY_KEY, account != NULL ? account->public_key_hex : "");
     storage_set_setting_text(SYNC_PRIVATE_KEY_KEY, account != NULL ? account->private_key_hex : "");
+    storage_set_setting_text(SYNC_ACCOUNT_ALIAS_KEY, "");
     sync_client_clear_auth_token();
     storage_reset_sync_state();
     storage_settings_end_write();
+}
+
+static int
+sync_account_same_owner(const char *owner, const InbeSyncAccount *account)
+{
+    return owner != NULL && account != NULL &&
+           strcmp(owner, account->public_id) == 0;
 }
 
 void
@@ -79,42 +88,57 @@ sync_account_load(InbeSyncAccount *account)
 }
 
 int
-sync_account_create(InbeSyncAccount *account)
+sync_account_generate(InbeSyncAccount *account)
 {
-    InbeSyncAccount generated;
-
     data_init();
     if(account == NULL)
         return 0;
-    if(!CreateLyraAccount(&generated))
-        return 0;
-    sync_account_save_and_reset(&generated);
-    *account = generated;
-    return 1;
+    memset(account, 0, sizeof(*account));
+    return CreateLyraAccount(account);
 }
 
 int
-sync_account_import_private_key(InbeSyncAccount *account, const char *filename)
+sync_account_import_private_key_preview(InbeSyncAccount *account, const char *filename)
 {
-    InbeSyncAccount imported;
-
     data_init();
     if(account == NULL || filename == NULL || filename[0] == '\0')
         return 0;
-    if(!ImportLyraAccountFile(filename, &imported)) {
+    memset(account, 0, sizeof(*account));
+    if(!ImportLyraAccountFile(filename, account)) {
         TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file");
         return 0;
     }
-    sync_account_save_and_reset(&imported);
-    *account = imported;
     return 1;
+}
+
+InbeSyncAccountSaveResult
+sync_account_save(InbeSyncAccount *account, int clear_local_data)
+{
+    const char *owner;
+
+    data_init();
+    if(!account_has_values(account))
+        return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+
+    owner = storage_sync_data_owner_public_id();
+    if(owner != NULL && !sync_account_same_owner(owner, account) &&
+       storage_has_local_syncable_data()) {
+        if(!clear_local_data)
+            return INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR;
+        if(!storage_clear_local_syncable_data())
+            return INBE_SYNC_ACCOUNT_SAVE_FAILED;
+    }
+
+    storage_set_sync_data_owner_public_id(account->public_id);
+    sync_account_write_and_reset(account);
+    return INBE_SYNC_ACCOUNT_SAVE_OK;
 }
 
 int
 sync_account_clear(void)
 {
     data_init();
-    sync_account_save_and_reset(NULL);
+    sync_account_write_and_reset(NULL);
     return 1;
 }
 

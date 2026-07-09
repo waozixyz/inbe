@@ -675,8 +675,23 @@ Borra solo los datos guardados en este dispositivo. Los datos remotos de sincron
 [sync_logout_button]
 Cerrar sesión
 ---
-[sync_logged_out]
-Sesión cerrada
+[sync_logged_out_local_data_kept]
+Sesión cerrada. Los datos locales permanecen en este dispositivo.
+---
+[sync_account_switch_title]
+¿Borrar datos locales?
+---
+[sync_account_switch_message]
+Este dispositivo tiene datos de otra cuenta de sincronización. Borra los datos locales antes de usar esta cuenta.
+---
+[sync_account_switch_clear_button]
+Borrar y usar cuenta
+---
+[sync_account_switch_cancelled]
+Cambio de cuenta cancelado
+---
+[sync_account_switch_failed]
+No se pudo cambiar de cuenta
 ---
 [sync_clear_remote_data_button]
 Borrar datos remotos

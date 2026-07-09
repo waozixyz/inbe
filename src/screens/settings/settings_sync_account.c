@@ -20,6 +20,14 @@
 static SettingsSyncKeySaveDialog save_dialog_callback = NULL;
 static SettingsSyncKeyImportDialog import_dialog_callback = NULL;
 
+static void
+settings_sync_ensure_default_server(void)
+{
+    const char *saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(saved == NULL || saved[0] == '\0')
+        storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, INBE_SYNC_SERVER_URL_DEFAULT);
+}
+
 void
 settings_sync_account_set_save_dialog(SettingsSyncKeySaveDialog callback)
 {
@@ -204,6 +212,41 @@ settings_sync_open_alias_modal(InbeApp *app, int then_backup)
     app_open_modal(app, UIModalSyncAlias);
 }
 
+int
+settings_sync_account_save_prepared(InbeApp *app, InbeSyncAccount *account,
+                                    int action, int clear_local_data)
+{
+    InbeSyncAccountSaveResult result;
+
+    if(app == NULL || account == NULL)
+        return 0;
+
+    result = sync_account_save(account, clear_local_data);
+    if(result == INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR) {
+        app->pending_sync_account = *account;
+        app->pending_sync_account_action = action;
+        app_open_modal(app, UIModalConfirmSyncAccountSwitch);
+        return 0;
+    }
+    if(result != INBE_SYNC_ACCOUNT_SAVE_OK)
+        return 0;
+
+    app->pending_sync_account_action = InbePendingSyncAccountNone;
+    memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account));
+    settings_sync_ensure_default_server();
+
+    if(action == InbePendingSyncAccountCreate) {
+        settings_screen_set_status_success(GetLocaleText("sync_account_created"), NULL);
+        app_auto_sync(app);
+        settings_sync_open_alias_modal(app, 1);
+    } else {
+        settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), NULL);
+        TraceLog(LOG_INFO, "SYNC: Private key imported");
+        app_auto_sync(app);
+    }
+    return 1;
+}
+
 static void
 settings_sync_draw_account_id(InbeApp *app, const InbeSyncAccount *account,
                               int x, int w, int *y, int small_font,
@@ -266,14 +309,15 @@ settings_sync_create_account(InbeApp *app, InbeSyncAccount *account)
 {
     if(account == NULL)
         return 0;
-    if(!sync_account_create(account)) {
+    if(!sync_account_generate(account)) {
         settings_screen_set_status_error(GetLocaleText("sync_account_create_failed"));
         return 0;
     }
-    settings_screen_set_status_success(GetLocaleText("sync_account_created"), NULL);
-    app_auto_sync(app);
-    settings_sync_open_alias_modal(app, 1);
-    return 1;
+    if(settings_sync_account_save_prepared(app, account, InbePendingSyncAccountCreate, 0))
+        return 1;
+    if(app == NULL || app->modal.type != UIModalConfirmSyncAccountSwitch)
+        settings_screen_set_status_error(GetLocaleText("sync_account_create_failed"));
+    return 0;
 }
 
 static void
@@ -316,7 +360,7 @@ settings_sync_account_logout(InbeApp *app)
     if(app == NULL)
         return;
     sync_account_clear();
-    settings_screen_set_status_success(GetLocaleText("sync_logged_out"), NULL);
+    settings_screen_set_status_success(GetLocaleText("sync_logged_out_local_data_kept"), NULL);
 }
 
 void
