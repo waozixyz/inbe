@@ -31,7 +31,7 @@ if(NOT TARGET oqs)
     message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
 endif()
 file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c" "${FLINT_DIR}/src/ui/*.c")
-list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/flint_file_dialog.c")
+list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
@@ -203,8 +203,8 @@ target_compile_definitions(main PRIVATE
     MG_ENABLE_POSIX_FS=0
     SUPPORT_MODULE_RAUDIO=1
     SUPPORT_FILEFORMAT_OGG=1
-    FLINT_EMBEDDED_ONLY=1
-    FLINT_HAS_LIBOQS=1
+    UI_EMBEDDED_ONLY=1
+    HAS_LIBOQS=1
 )
 
 target_compile_options(main PRIVATE

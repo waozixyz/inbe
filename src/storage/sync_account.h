@@ -4,15 +4,15 @@
 #include <stddef.h>
 #include <stdint.h>
 
-#include "flint_lyra_account.h"
+#include "lyra_account.h"
 
 enum {
-    INBE_SYNC_PUBLIC_ID_HEX_SIZE = FLINT_LYRA_PUBLIC_ID_HEX_SIZE,
-    INBE_SYNC_PUBLIC_KEY_HEX_SIZE = FLINT_LYRA_PUBLIC_KEY_HEX_SIZE,
-    INBE_SYNC_PRIVATE_KEY_HEX_SIZE = FLINT_LYRA_PRIVATE_KEY_HEX_SIZE
+    INBE_SYNC_PUBLIC_ID_HEX_SIZE = LYRA_PUBLIC_ID_HEX_SIZE,
+    INBE_SYNC_PUBLIC_KEY_HEX_SIZE = LYRA_PUBLIC_KEY_HEX_SIZE,
+    INBE_SYNC_PRIVATE_KEY_HEX_SIZE = LYRA_PRIVATE_KEY_HEX_SIZE
 };
 
-typedef FlintLyraAccount InbeSyncAccount;
+typedef LyraAccount InbeSyncAccount;
 
 int sync_account_available(void);
 int sync_account_load(InbeSyncAccount *account);

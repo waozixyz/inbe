@@ -1,7 +1,7 @@
 #include "app/app.h"
 #include "app/app_nav.h"
-#include "flint_locale.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui.h"
 #include "screens/settings/settings_screen.h"
 
 #include <stdbool.h>
@@ -15,7 +15,7 @@ static int failures = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
-static FlintUIBottomNav bottom_nav_last;
+static UIBottomNav bottom_nav_last;
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
@@ -61,17 +61,17 @@ DrawRectangle(int posX, int posY, int width, int height, Color color)
 }
 
 int
-ui_bottom_nav_height(void)
+GetUIBottomNavHeight(void)
 {
     return 52;
 }
 
-FlintUIBottomNavResult
-ui_draw_bottom_nav(FlintUIBottomNav nav)
+UIBottomNavResult
+DrawUIBottomNav(UIBottomNav nav)
 {
     bottom_nav_last = nav;
     bottom_nav_draw_count++;
-    return (FlintUIBottomNavResult){
+    return (UIBottomNavResult){
         .clicked_route = bottom_nav_clicked_route,
         .clicked_index = bottom_nav_clicked_route == APP_NAV_ROUTE_NONE ? -1 : 0,
         .y = 508,
@@ -80,7 +80,7 @@ ui_draw_bottom_nav(FlintUIBottomNav nav)
 }
 
 const char *
-locale_get(const char *key)
+GetLocaleText(const char *key)
 {
     return key != NULL ? key : "";
 }

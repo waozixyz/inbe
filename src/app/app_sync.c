@@ -99,10 +99,10 @@ sync_thread_detach(SyncThread thread)
 #endif
 
 static int g_sync_finished = 0;
-static int g_sync_finished_result = FLINT_LYRA_SYNC_OK;
+static int g_sync_finished_result = LYRA_SYNC_OK;
 static int g_sync_finished_changed = 0;
 static int g_social_finished = 0;
-static int g_social_finished_result = FLINT_LYRA_SYNC_OK;
+static int g_social_finished_result = LYRA_SYNC_OK;
 static char g_social_friend_requests_json[8192];
 static char g_social_friends_json[8192];
 static char g_social_leaderboard_json[8192];
@@ -135,12 +135,12 @@ static sync_thread_return
 app_sync_worker(void *userdata)
 {
     InbeSyncWorkerArgs *args = userdata;
-    FlintLyraSyncResult result = FLINT_LYRA_SYNC_INVALID_URL;
+    LyraSyncResult result = LYRA_SYNC_INVALID_URL;
     int changed = 0;
 
     if(args != NULL) {
         result = sync_client_sync(args->url);
-        changed = result == FLINT_LYRA_SYNC_OK && storage_last_sync_changed();
+        changed = result == LYRA_SYNC_OK && storage_last_sync_changed();
         free(args);
     }
 
@@ -157,9 +157,9 @@ static sync_thread_return
 app_social_worker(void *userdata)
 {
     InbeSocialWorkerArgs *args = userdata;
-    FlintLyraSyncResult result = FLINT_LYRA_SYNC_INVALID_URL;
-    FlintLyraSyncResult friends_result = FLINT_LYRA_SYNC_REQUEST_FAILED;
-    FlintLyraSyncResult leaderboard_result = FLINT_LYRA_SYNC_REQUEST_FAILED;
+    LyraSyncResult result = LYRA_SYNC_INVALID_URL;
+    LyraSyncResult friends_result = LYRA_SYNC_REQUEST_FAILED;
+    LyraSyncResult leaderboard_result = LYRA_SYNC_REQUEST_FAILED;
     char requests_json[8192] = "{\"incoming\":[],\"outgoing\":[]}";
     char friends_json[8192] = "{\"friends\":[]}";
     char leaderboard_json[8192] = "{\"rows\":[]}";
@@ -167,34 +167,34 @@ app_social_worker(void *userdata)
     if(args != NULL) {
         if(strcmp(args->action, "send") == 0) {
             result = sync_client_send_friend_request(args->url, args->action_value);
-            if(result != FLINT_LYRA_SYNC_OK)
+            if(result != LYRA_SYNC_OK)
                 goto done;
         } else if(strcmp(args->action, "accept") == 0) {
             result = sync_client_accept_friend_request(args->url, args->action_value);
-            if(result != FLINT_LYRA_SYNC_OK)
+            if(result != LYRA_SYNC_OK)
                 goto done;
         } else if(strcmp(args->action, "decline") == 0) {
             result = sync_client_decline_friend_request(args->url, args->action_value);
-            if(result != FLINT_LYRA_SYNC_OK)
+            if(result != LYRA_SYNC_OK)
                 goto done;
         } else if(strcmp(args->action, "remove") == 0) {
             result = sync_client_remove_friend(args->url, args->action_value);
-            if(result != FLINT_LYRA_SYNC_OK)
+            if(result != LYRA_SYNC_OK)
                 goto done;
         }
 
         result = sync_client_get_friend_requests(args->url, requests_json,
                                                  sizeof(requests_json));
-        if(result == FLINT_LYRA_SYNC_OK) {
+        if(result == LYRA_SYNC_OK) {
             friends_result = sync_client_get_friends(args->url, friends_json,
                                                      sizeof(friends_json));
             leaderboard_result =
                 sync_client_get_friend_stats(args->url, "inbe", args->practice,
                                              args->metric, leaderboard_json,
                                              sizeof(leaderboard_json));
-            if(friends_result != FLINT_LYRA_SYNC_OK)
+            if(friends_result != LYRA_SYNC_OK)
                 result = friends_result;
-            else if(leaderboard_result != FLINT_LYRA_SYNC_OK)
+            else if(leaderboard_result != LYRA_SYNC_OK)
                 result = leaderboard_result;
         }
     }
@@ -225,7 +225,7 @@ app_sync_events_worker(void *userdata)
     if(args == NULL)
         return sync_thread_done;
     for(;;) {
-        FlintLyraSyncResult result;
+        LyraSyncResult result;
 
         sync_lock();
         if(g_sync.sync_running) {
@@ -237,10 +237,10 @@ app_sync_events_worker(void *userdata)
 
         result = sync_client_wait_for_remote_event(args->url);
         sync_lock();
-        if(result == FLINT_LYRA_SYNC_OK)
+        if(result == LYRA_SYNC_OK)
             g_sync.remote_sync_due = 1;
         sync_unlock();
-        if(result != FLINT_LYRA_SYNC_OK)
+        if(result != LYRA_SYNC_OK)
             sync_sleep(2);
     }
     return sync_thread_done;
@@ -265,7 +265,7 @@ app_collect_finished_sync(void)
     if(!finished)
         return;
 #else
-    FlintLyraSyncResult result;
+    LyraSyncResult result;
     int changed = 0;
 
     if(sync_client_web_poll_remote_event())
@@ -277,14 +277,14 @@ app_collect_finished_sync(void)
     g_sync.sync_running = 0;
 #endif
 
-    if(result == FLINT_LYRA_SYNC_OK) {
+    if(result == LYRA_SYNC_OK) {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed);
         app_queue_social_refresh();
         if(changed)
             g_sync.data_refresh_pending = 1;
     } else {
         TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
-                 result, flint_lyra_sync_result_name(result));
+                 result, GetLyraSyncResultName(result));
     }
 }
 
@@ -572,9 +572,9 @@ app_collect_finished_social_refresh(InbeApp *app)
 
     if(!finished)
         return;
-    if(result != FLINT_LYRA_SYNC_OK) {
+    if(result != LYRA_SYNC_OK) {
         TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
-                 result, flint_lyra_sync_result_name(result));
+                 result, GetLyraSyncResultName(result));
         return;
     }
     storage_set_social_cache_json("friends.requests", requests_json);

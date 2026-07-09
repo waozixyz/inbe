@@ -1,10 +1,10 @@
 #include "whm_practice.h"
 
 #include "app.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "whm_session.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 #include "screens/practice_screen.h"
 
@@ -41,14 +41,14 @@ whm_draw_exact_speed_preview(Inbe *preview, int *preview_speed,
 static void
 whm_draw_progressive_start_speed_editor(InbeApp *app)
 {
-    int modal_w = flint_px(340);
-    int modal_h = flint_px(360);
+    int modal_w = ScaleUIPx(340);
+    int modal_h = ScaleUIPx(360);
     int modal_x;
     int modal_y;
-    int title_font = flint_ui_font();
+    int title_font = GetUIFontSize();
     int title_y;
-    int close_size = flint_px(22);
-    int close_padding = flint_px(8);
+    int close_size = ScaleUIPx(22);
+    int close_padding = ScaleUIPx(8);
     int close_w = close_size + close_padding * 2;
     int close_hover = 0;
     int max_speed = app->inbe.speed_level;
@@ -57,32 +57,32 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
     int title_w;
     int title_max_w;
 
-    if(modal_w > view_width - flint_px(24))
-        modal_w = view_width - flint_px(24);
-    if(modal_h > view_height - flint_px(24))
-        modal_h = view_height - flint_px(24);
+    if(modal_w > view_width - ScaleUIPx(24))
+        modal_w = view_width - ScaleUIPx(24);
+    if(modal_h > view_height - ScaleUIPx(24))
+        modal_h = view_height - ScaleUIPx(24);
     modal_x = (view_width - modal_w) / 2;
     modal_y = (view_height - modal_h) / 2;
-    title_y = modal_y + flint_px(14);
+    title_y = modal_y + ScaleUIPx(14);
 
-    ui_set_modal_capture((Rectangle){
+    SetUIModalCapture((Rectangle){
         (float)modal_x, (float)modal_y, (float)modal_w, (float)modal_h
     });
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(flint_theme_get_surface(), 40), flint_darken(flint_theme_get_surface(), 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface());
+    DrawUIBevel(modal_x, modal_y, modal_w, modal_h,
+                  LightenUIColor(GetThemeSurface(), 40), DarkenUIColor(GetThemeSurface(), 40));
 
-    title = locale_get("progressive_start_speed_editor_title");
-    title_w = flint_text_measure(title, title_font);
-    title_max_w = modal_w - close_w * 2 - flint_px(24);
-    while(title_font > flint_px(12) && title_w > title_max_w) {
+    title = GetLocaleText("progressive_start_speed_editor_title");
+    title_w = MeasureUIText(title, title_font);
+    title_max_w = modal_w - close_w * 2 - ScaleUIPx(24);
+    while(title_font > ScaleUIPx(12) && title_w > title_max_w) {
         title_font--;
-        title_w = flint_text_measure(title, title_font);
+        title_w = MeasureUIText(title, title_font);
     }
-    flint_text_draw(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, flint_theme_get_text());
+    DrawUIText(title, modal_x + (modal_w - title_w) / 2, title_y, title_font, GetThemeText());
 
-    if(ui_draw_icon_btn_padded(modal_x + modal_w - close_w - flint_px(6), modal_y + flint_px(6),
+    if(DrawUIPaddedIconBtn(modal_x + modal_w - close_w - ScaleUIPx(6), modal_y + ScaleUIPx(6),
                                close_size, close_padding, app->icons[UI_ICON_TYPE_X], &close_hover)) {
         app_close_modal(app);
         return;
@@ -94,13 +94,13 @@ whm_draw_progressive_start_speed_editor(InbeApp *app)
                                  app->inbe.max_rounds,
                                  int_from_count(app->inbe.maxbreaths),
                                  app->inbe.pause_seconds,
-                                 modal_w - flint_px(48),
-                                 flint_px(210),
+                                 modal_w - ScaleUIPx(48),
+                                 ScaleUIPx(210),
                                  modal_x + modal_w / 2,
-                                 modal_y + flint_px(150));
+                                 modal_y + ScaleUIPx(150));
 
-    if(ui_draw_slider(12, modal_x + flint_px(24), modal_y + flint_px(250),
-                      modal_w - flint_px(48), locale_get("progressive_start_speed_label"),
+    if(DrawUISlider(12, modal_x + ScaleUIPx(24), modal_y + ScaleUIPx(250),
+                      modal_w - ScaleUIPx(48), GetLocaleText("progressive_start_speed_label"),
                       SETTINGS_SPEED_MIN, max_speed, &start_speed, "")) {
         app->inbe.progressive_start_speed = start_speed;
         app->settings_dirty = 1;
@@ -112,16 +112,16 @@ whm_draw_subtab_bar(int y, int h, const char **tab_names, int tab_count,
                     int selected_tab)
 {
     enum { WHM_SUBTAB_RENDER_MAX = 8 };
-    FlintUISubtab tabs[WHM_SUBTAB_RENDER_MAX];
+    UISubtab tabs[WHM_SUBTAB_RENDER_MAX];
 
     if(tab_count <= 0 || tab_count > WHM_SUBTAB_RENDER_MAX)
         return -1;
     for(int i = 0; i < tab_count; i++) {
-        tabs[i] = (FlintUISubtab){0};
+        tabs[i] = (UISubtab){0};
         tabs[i].label = tab_names[i];
         tabs[i].disabled = 0;
     }
-    return ui_draw_subtab_bar((FlintUISubtabBar){
+    return DrawUISubtabBar((UISubtabBar){
         .bounds = {0, (float)y, (float)view_width, (float)h},
         .tabs = tabs,
         .count = tab_count,
@@ -134,31 +134,31 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
                               int *draw_breath_animation_menu)
 {
     static const char *animation_options[InbeBreathAnimationCount];
-    int preview_h = flint_px(240);
+    int preview_h = ScaleUIPx(240);
     int preview_radius;
-    int preview_padding = flint_px(12);
+    int preview_padding = ScaleUIPx(12);
     int speed = app->inbe.speed_level;
     int max_rounds = app->inbe.max_rounds;
     int max_breaths = int_from_count(app->inbe.maxbreaths);
     int pause_seconds = app->inbe.pause_seconds;
     int progressive_start_speed = app->inbe.progressive_start_speed;
     int progressive_speed = app->inbe.progressive_speed;
-    int toggle_w = flint_px(56);
-    int toggle_h = flint_px(30);
+    int toggle_w = ScaleUIPx(56);
+    int toggle_h = ScaleUIPx(30);
 
-    animation_options[InbeBreathAnimationLinear] = locale_get("breath_animation_linear");
-    animation_options[InbeBreathAnimationInOut] = locale_get("breath_animation_in_out");
+    animation_options[InbeBreathAnimationLinear] = GetLocaleText("breath_animation_linear");
+    animation_options[InbeBreathAnimationInOut] = GetLocaleText("breath_animation_in_out");
     app->inbe.breath_animation = clampi(app->inbe.breath_animation,
                                         InbeBreathAnimationLinear,
                                         InbeBreathAnimationCount - 1);
 
-    flint_text_draw(locale_get("breath_animation_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
-    ui_draw_dropdown_button(104, content_x, y + flint_px(26), content_w, flint_px(36),
+    DrawUIText(GetLocaleText("breath_animation_label"), content_x, y, GetUIFontSize(), GetThemeText());
+    DrawUIDropdownButton(104, content_x, y + ScaleUIPx(26), content_w, ScaleUIPx(36),
                             animation_options, InbeBreathAnimationCount,
                             &app->inbe.breath_animation);
     if(draw_breath_animation_menu != NULL)
         *draw_breath_animation_menu = 1;
-    y += flint_px(76);
+    y += ScaleUIPx(76);
 
     update_preview_bounds(&app->settings_preview, content_w, preview_h);
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
@@ -174,27 +174,27 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
     preview_radius = (int)((float)app->settings_preview.rmax * 0.72f + 1.0f);
     draw_preview_inbe(&app->settings_preview, content_x + content_w / 2,
                       y + preview_padding + preview_radius);
-    if(ui_draw_slider(1, content_x, y + preview_padding + preview_radius * 2 + flint_px(28),
-                      content_w, locale_get("speed_label"),
+    if(DrawUISlider(1, content_x, y + preview_padding + preview_radius * 2 + ScaleUIPx(28),
+                      content_w, GetLocaleText("speed_label"),
                       SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_preview.progressive_speed = 0;
         app->settings_dirty = 1;
     }
-    y += preview_padding + preview_radius * 2 + flint_px(102);
+    y += preview_padding + preview_radius * 2 + ScaleUIPx(102);
 
-    flint_text_draw(locale_get("progressive_speed_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
-    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &progressive_speed,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+    DrawUIText(GetLocaleText("progressive_speed_label"), content_x, y, GetUIFontSize(), GetThemeText());
+    if(DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h, &progressive_speed,
+                             GetLocaleText("toggle_off"), GetLocaleText("toggle_on"))) {
         app->inbe.progressive_speed = progressive_speed;
         app->settings_preview.progressive_speed = 0;
         app->settings_dirty = 1;
     }
-    y += flint_px(66);
+    y += ScaleUIPx(66);
 
     if(app->inbe.progressive_speed) {
-        int modify_w = flint_text_measure(locale_get("modify_start_speed_button"), flint_ui_font()) + flint_px(24);
+        int modify_w = MeasureUIText(GetLocaleText("modify_start_speed_button"), GetUIFontSize()) + ScaleUIPx(24);
         int modify_hover = 0;
         if(modify_w > content_w)
             modify_w = content_w;
@@ -203,12 +203,12 @@ whm_config_draw_breathing_tab(InbeApp *app, int content_x, int content_w, int y,
             app->settings_preview.progressive_start_speed = app->inbe.progressive_start_speed;
             app->settings_dirty = 1;
         }
-        if(ui_draw_generic_button(content_x, y, modify_w, flint_px(36),
-                                  locale_get("modify_start_speed_button"),
+        if(DrawUIGenericButton(content_x, y, modify_w, ScaleUIPx(36),
+                                  GetLocaleText("modify_start_speed_button"),
                                   UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover)) {
             app_open_modal(app, UIModalEditProgressiveStartSpeed);
         }
-        y += flint_px(58);
+        y += ScaleUIPx(58);
     }
 
     return y;
@@ -223,55 +223,55 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
     int pause_seconds = app->inbe.pause_seconds;
     int double_tap_to_breathe = app->double_tap_to_breathe;
     int advanced_session_controls = app->advanced_session_controls;
-    int toggle_w = flint_px(56);
-    int toggle_h = flint_px(30);
-    int reset_w = flint_text_measure(locale_get("reset_to_defaults_label"), flint_ui_font()) + flint_px(24);
-    int reset_h = flint_px(36);
+    int toggle_w = ScaleUIPx(56);
+    int toggle_h = ScaleUIPx(30);
+    int reset_w = MeasureUIText(GetLocaleText("reset_to_defaults_label"), GetUIFontSize()) + ScaleUIPx(24);
+    int reset_h = ScaleUIPx(36);
     int reset_hover = 0;
 
-    if(ui_draw_slider(2, content_x, y, content_w, locale_get("max_rounds_label"),
+    if(DrawUISlider(2, content_x, y, content_w, GetLocaleText("max_rounds_label"),
                       1, MaxRounds, &max_rounds, "")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_dirty = 1;
     }
-    y += flint_px(66);
-    if(ui_draw_slider(3, content_x, y, content_w, locale_get("max_breaths_label"),
+    y += ScaleUIPx(66);
+    if(DrawUISlider(3, content_x, y, content_w, GetLocaleText("max_breaths_label"),
                       SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX, &max_breaths, "")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_dirty = 1;
     }
-    y += flint_px(66);
-    if(ui_draw_slider(4, content_x, y, content_w, locale_get("pause_after_round_label"),
+    y += ScaleUIPx(66);
+    if(DrawUISlider(4, content_x, y, content_w, GetLocaleText("pause_after_round_label"),
                       SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX, &pause_seconds, "s")) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_dirty = 1;
     }
-    y += flint_px(66);
-    flint_text_draw(locale_get("hold_display_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
-    y += flint_px(26);
+    y += ScaleUIPx(66);
+    DrawUIText(GetLocaleText("hold_display_label"), content_x, y, GetUIFontSize(), GetThemeText());
+    y += ScaleUIPx(26);
     draw_hold_display_mode_selector(app, content_x, y, content_w);
-    y += flint_px(52);
-    flint_text_draw(locale_get("double_tap_to_breathe_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
-    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &double_tap_to_breathe,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+    y += ScaleUIPx(52);
+    DrawUIText(GetLocaleText("double_tap_to_breathe_label"), content_x, y, GetUIFontSize(), GetThemeText());
+    if(DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h, &double_tap_to_breathe,
+                             GetLocaleText("toggle_off"), GetLocaleText("toggle_on"))) {
         app->double_tap_to_breathe = double_tap_to_breathe;
         app->settings_dirty = 1;
     }
-    y += flint_px(76);
-    flint_text_draw(locale_get("advanced_session_controls_label"), content_x, y, flint_ui_font(), flint_theme_get_text());
-    if(ui_draw_toggle_switch(content_x, y + flint_px(26), toggle_w, toggle_h, &advanced_session_controls,
-                             locale_get("toggle_off"), locale_get("toggle_on"))) {
+    y += ScaleUIPx(76);
+    DrawUIText(GetLocaleText("advanced_session_controls_label"), content_x, y, GetUIFontSize(), GetThemeText());
+    if(DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h, &advanced_session_controls,
+                             GetLocaleText("toggle_off"), GetLocaleText("toggle_on"))) {
         app->advanced_session_controls = advanced_session_controls;
         app->settings_dirty = 1;
     }
-    y += flint_px(76);
+    y += ScaleUIPx(76);
     if(reset_w > content_w)
         reset_w = content_w;
-    if(ui_draw_generic_button(content_x + content_w - reset_w, y, reset_w, reset_h,
-                              locale_get("reset_to_defaults_label"),
+    if(DrawUIGenericButton(content_x + content_w - reset_w, y, reset_w, reset_h,
+                              GetLocaleText("reset_to_defaults_label"),
                               UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover)) {
         speed = DefaultSpeedLevel;
         max_rounds = DefaultMaxRounds;
@@ -288,7 +288,7 @@ whm_config_draw_session_tab(InbeApp *app, int content_x, int content_w, int y)
         apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
         app->settings_dirty = 1;
     }
-    y += reset_h + flint_px(28);
+    y += reset_h + ScaleUIPx(28);
 
     return y;
 }
@@ -299,30 +299,30 @@ whm_config_content_height(InbeApp *app, int content_w)
     int integrated = app->inbe.screen == InbeScreenStart &&
                      app->modal.type != UIModalPracticeConfig;
     int bottom_padding = (integrated ? app_content_bottom_reserved(app) : 0) +
-                         flint_px(24);
+                         ScaleUIPx(24);
 
     if(app->practice_config_tab == 0) {
-        int span = content_w < flint_px(240) ? content_w : flint_px(240);
+        int span = content_w < ScaleUIPx(240) ? content_w : ScaleUIPx(240);
         int preview_radius = span / 2;
         int h;
-        if(preview_radius < flint_px(60))
-            preview_radius = flint_px(60);
-        if(preview_radius > flint_px(120))
-            preview_radius = flint_px(120);
+        if(preview_radius < ScaleUIPx(60))
+            preview_radius = ScaleUIPx(60);
+        if(preview_radius > ScaleUIPx(120))
+            preview_radius = ScaleUIPx(120);
         preview_radius = (int)((float)preview_radius * 0.72f + 1.0f);
-        h = flint_px(12) + preview_radius * 2 + flint_px(102);
-        h += flint_px(66);
+        h = ScaleUIPx(12) + preview_radius * 2 + ScaleUIPx(102);
+        h += ScaleUIPx(66);
         if(app->inbe.progressive_speed)
-            h += flint_px(58);
-        h += flint_px(76);
+            h += ScaleUIPx(58);
+        h += ScaleUIPx(76);
         return h + bottom_padding;
     }
 
-    return flint_px(66) * 3 +
-           flint_px(26) + flint_px(52) +
-           flint_px(76) +
-           flint_px(76) +
-           flint_px(36) + flint_px(28) +
+    return ScaleUIPx(66) * 3 +
+           ScaleUIPx(26) + ScaleUIPx(52) +
+           ScaleUIPx(76) +
+           ScaleUIPx(76) +
+           ScaleUIPx(36) + ScaleUIPx(28) +
            bottom_padding;
 }
 
@@ -342,13 +342,13 @@ void
 whm_config_screen_draw(InbeApp *app)
 {
     PracticeSubscreenLayout layout;
-    int config_tab_h = flint_px(40);
-    int config_tab_gap = flint_px(14);
+    int config_tab_h = ScaleUIPx(40);
+    int config_tab_gap = ScaleUIPx(14);
     int draw_breath_animation_menu = 0;
     int clicked_config_tab = -1;
     const char *config_tabs[] = {
-        locale_get("settings_section_breathing"),
-        locale_get("settings_section_session"),
+        GetLocaleText("settings_section_breathing"),
+        GetLocaleText("settings_section_session"),
     };
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
@@ -358,7 +358,7 @@ whm_config_screen_draw(InbeApp *app)
 
     practice_screen_config_layout(app, UIModalPracticeConfig,
                                   config_tab_h + config_tab_gap, &layout);
-    practice_screen_handle_config_title(app, locale_get("practice_config_title"),
+    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
                                         UIModalPracticeConfig, NULL);
 
     clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h, config_tabs, 2,
@@ -370,11 +370,11 @@ whm_config_screen_draw(InbeApp *app)
 
     {
         WhmConfigScrollPageContext page_ctx = {app};
-        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
             .y = layout.scroll_y,
             .height = layout.scroll_h,
-            .max_content_width = flint_px(CONTENT_MAX_W),
-            .min_content_width = flint_px(320),
+            .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+            .min_content_width = ScaleUIPx(320),
             .scroll_offset = &app->settings_scroll,
             .content_height = whm_config_scroll_page_content_height,
             .user_data = &page_ctx
@@ -387,10 +387,10 @@ whm_config_screen_draw(InbeApp *app)
             whm_config_draw_session_tab(app, page.content_x, page.content_w,
                                         page.content_y);
         }
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
     }
 
-    if(draw_breath_animation_menu && ui_draw_dropdown_menu(104)) {
+    if(draw_breath_animation_menu && DrawUIDropdownMenu(104)) {
         app->inbe.breath_animation = clampi(app->inbe.breath_animation,
                                             InbeBreathAnimationLinear,
                                             InbeBreathAnimationCount - 1);

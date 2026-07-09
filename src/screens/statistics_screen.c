@@ -2,9 +2,9 @@
 
 #include "app.h"
 #include "habits/habits.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui.h"
 
 extern int view_width;
 extern int view_height;
@@ -12,7 +12,7 @@ extern int view_height;
 static int
 statistics_content_height(int linked_count)
 {
-    return flint_px(linked_count > 0 ? 710 : 420);
+    return ScaleUIPx(linked_count > 0 ? 710 : 420);
 }
 
 static int
@@ -47,43 +47,43 @@ static void
 statistics_draw_metric(int x, int y, int w, int h, const char *label,
                        const char *value, Color accent)
 {
-    int label_font = FLINT_TEXT_12;
-    int value_font = FLINT_TEXT_24;
+    int label_font = UI_TEXT_12;
+    int value_font = UI_TEXT_24;
     int value_w;
 
-    DrawRectangle(x, y, w, h, flint_darken(flint_theme_get_bg(), 8));
-    DrawRectangle(x, y, flint_px(4), h, accent);
-    DrawLine(x, y + h - 1, x + w, y + h - 1, flint_darken(flint_theme_get_bg(), 30));
-    flint_text_draw(label, x + flint_px(12), y + flint_px(8),
-                    label_font, flint_darken(flint_theme_get_text(), 20));
-    value_w = flint_text_measure(value, value_font);
-    if(value_w > w - flint_px(24))
-        value_font = FLINT_TEXT_16;
-    flint_text_draw(value, x + flint_px(12), y + flint_px(30),
-                    value_font, flint_theme_get_text());
+    DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 8));
+    DrawRectangle(x, y, ScaleUIPx(4), h, accent);
+    DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenUIColor(GetThemeBackground(), 30));
+    DrawUIText(label, x + ScaleUIPx(12), y + ScaleUIPx(8),
+                    label_font, DarkenUIColor(GetThemeText(), 20));
+    value_w = MeasureUIText(value, value_font);
+    if(value_w > w - ScaleUIPx(24))
+        value_font = UI_TEXT_16;
+    DrawUIText(value, x + ScaleUIPx(12), y + ScaleUIPx(30),
+                    value_font, GetThemeText());
 }
 
 static int
 statistics_draw_section_title(const char *title, int x, int y, int w)
 {
-    FlintUIParagraph paragraph = {
+    UIParagraph paragraph = {
         .text = title,
         .width = w,
-        .font = FLINT_TEXT_16,
-        .line_gap = flint_px(3),
-        .color = flint_theme_get_text()
+        .font = UI_TEXT_16,
+        .line_gap = ScaleUIPx(3),
+        .color = GetThemeText()
     };
     int title_y = y;
-    int height = flint_ui_paragraph_height(paragraph);
+    int height = GetUIParagraphHeight(paragraph);
 
-    flint_ui_paragraph_draw(paragraph, x, &title_y);
+    DrawUIParagraph(paragraph, x, &title_y);
     return height;
 }
 
 static void
 statistics_format_day_count(char *out, size_t out_size, int count)
 {
-    locale_format(out, out_size,
+    FormatLocaleText(out, out_size,
                   count == 1 ? "habit_stats_day_singular"
                              : "habit_stats_day_plural",
                   count);
@@ -143,7 +143,7 @@ statistics_draw_hold_range_selector(InbeApp *app, int x, int y, int w)
     const char *labels[2] = {"1W", "1M"};
     const int values[2] = {7, 31};
     int selected = app->habits.hold_stats_range_days == 31 ? 1 : 0;
-    int h = flint_px(34);
+    int h = ScaleUIPx(34);
     int segment_w = w / 2;
     int clicked = 0;
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -153,33 +153,33 @@ statistics_draw_hold_range_selector(InbeApp *app, int x, int y, int w)
         int current_w = i == 1 ? x + w - segment_x : segment_w;
         Rectangle rect = {segment_x, y, current_w, h};
         int active_hit = CheckCollisionPointRec(mouse_world, rect) &&
-                         !ui_input_captures_click(mouse_world);
-        int hovered = active_hit && ui_hover_effects_enabled();
+                         !UIInputCapturesClick(mouse_world);
+        int hovered = active_hit && UIHoverEffectsEnabled();
         int active = i == selected;
-        Color fill = active ? flint_theme_get_button() : flint_darken(flint_theme_get_bg(), 10);
-        Color top = flint_lighten(fill, 35);
-        Color bottom = flint_darken(fill, 45);
-        int font = flint_ui_font();
+        Color fill = active ? GetThemeButton() : DarkenUIColor(GetThemeBackground(), 10);
+        Color top = LightenUIColor(fill, 35);
+        Color bottom = DarkenUIColor(fill, 45);
+        int font = GetUIFontSize();
         int text_w;
 
         if(active_hit) {
             app->cursor_clickable = 1;
             if(hovered && !active) {
-                fill = flint_theme_get_button_hover();
-                top = flint_darken(flint_theme_get_button_hover(), 40);
-                bottom = flint_lighten(flint_theme_get_button_hover(), 40);
+                fill = GetThemeButtonHover();
+                top = DarkenUIColor(GetThemeButtonHover(), 40);
+                bottom = LightenUIColor(GetThemeButtonHover(), 40);
             }
         }
 
         DrawRectangle(segment_x, y, current_w, h, fill);
-        ui_draw_bevel(segment_x, y, current_w, h, top, bottom);
-        text_w = flint_text_measure(labels[i], font);
-        flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
-                        flint_ui_text_y(labels[i], y, h, font), font,
-                        flint_theme_get_text());
+        DrawUIBevel(segment_x, y, current_w, h, top, bottom);
+        text_w = MeasureUIText(labels[i], font);
+        DrawUIText(labels[i], segment_x + (current_w - text_w) / 2,
+                        GetUIControlTextY(labels[i], y, h, font), font,
+                        GetThemeText());
 
         if(active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !ui_input_captures_click(mouse_world) && selected != i) {
+           !UIInputCapturesClick(mouse_world) && selected != i) {
             app->habits.hold_stats_range_days = values[i];
             clicked = 1;
         }
@@ -208,15 +208,15 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     int day_points[MAX_GRAPH_DAYS] = {0};
     int day_totals[MAX_GRAPH_DAYS] = {0};
     int max_hold = 1;
-    int graph_h = flint_px(170);
-    int axis_w = flint_px(48);
+    int graph_h = ScaleUIPx(170);
+    int axis_w = ScaleUIPx(48);
     int plot_x = content_x + axis_w;
-    int plot_y = y + flint_px(8);
-    int plot_w = content_w - axis_w - flint_px(10);
-    int plot_h = graph_h - flint_px(36);
+    int plot_y = y + ScaleUIPx(8);
+    int plot_w = content_w - axis_w - ScaleUIPx(10);
+    int plot_h = graph_h - ScaleUIPx(36);
     char axis_label[32];
 
-    DrawRectangle(content_x, y, content_w, graph_h, flint_darken(flint_theme_get_bg(), 7));
+    DrawRectangle(content_x, y, content_w, graph_h, DarkenUIColor(GetThemeBackground(), 7));
     for(int i = 0; linked_ctx != NULL && i < linked_ctx->count; i++) {
         const HabitLinkedEntry *entry = &linked_ctx->entries[i];
         int day_index;
@@ -261,7 +261,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
     for(int i = 1; i < graph_days; i++) {
         if(graph_days == 7 || i % 5 == 0) {
             int x = plot_x + (plot_w * i) / graph_days;
-            DrawLine(x, plot_y, x, plot_y + plot_h, flint_darken(flint_theme_get_bg(), 22));
+            DrawLine(x, plot_y, x, plot_y + plot_h, DarkenUIColor(GetThemeBackground(), 22));
         }
     }
     for(int i = 0; i <= 2; i++) {
@@ -269,13 +269,13 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         int seconds = max_hold - (max_hold * i) / 2;
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds);
         DrawLine(plot_x, line_y, plot_x + plot_w, line_y,
-                 flint_darken(flint_theme_get_bg(), 20));
-        flint_text_draw(axis_label, content_x + flint_px(4),
-                        line_y - flint_px(8), FLINT_TEXT_12,
-                        flint_darken(flint_theme_get_text(), 24));
+                 DarkenUIColor(GetThemeBackground(), 20));
+        DrawUIText(axis_label, content_x + ScaleUIPx(4),
+                        line_y - ScaleUIPx(8), UI_TEXT_12,
+                        DarkenUIColor(GetThemeText(), 24));
     }
     DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h,
-             flint_darken(flint_theme_get_text(), 42));
+             DarkenUIColor(GetThemeText(), 42));
 
     {
         int day_seen[MAX_GRAPH_DAYS] = {0};
@@ -294,7 +294,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
             int x1 = plot_x + (plot_w * (day_slot + 1)) / graph_days;
             points[i].x = x0 + ((ordinal + 1) * (x1 - x0)) / (count + 1);
             points[i].y = plot_y + plot_h -
-                          (points[i].hold_seconds * (plot_h - flint_px(10))) / max_hold;
+                          (points[i].hold_seconds * (plot_h - ScaleUIPx(10))) / max_hold;
             if(day_first_x[day_slot] < 0 || points[i].x < day_first_x[day_slot])
                 day_first_x[day_slot] = points[i].x;
             if(day_last_x[day_slot] < 0 || points[i].x > day_last_x[day_slot])
@@ -314,7 +314,7 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
                 continue;
             avg_seconds = day_totals[i] / day_points[i];
             avg_y = plot_y + plot_h -
-                    (avg_seconds * (plot_h - flint_px(10))) / max_hold;
+                    (avg_seconds * (plot_h - ScaleUIPx(10))) / max_hold;
             if(has_prev)
                 DrawLine(prev_x, prev_y, day_first_x[i], avg_y, accent);
             DrawLine(day_first_x[i], avg_y, day_last_x[i], avg_y, accent);
@@ -325,14 +325,14 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         }
     }
     for(int i = 0; i < point_count; i++)
-        DrawCircle(points[i].x, points[i].y, flint_px(3), accent);
+        DrawCircle(points[i].x, points[i].y, ScaleUIPx(3), accent);
     if(point_count <= 0) {
-        const char *empty = locale_get(graph_days == 31 ? "habit_stats_no_rounds_month"
+        const char *empty = GetLocaleText(graph_days == 31 ? "habit_stats_no_rounds_month"
                                                         : "habit_stats_no_rounds_week");
-        int text_w = flint_text_measure(empty, FLINT_TEXT_12);
-        flint_text_draw(empty, content_x + (content_w - text_w) / 2,
-                        y + graph_h / 2 - flint_px(8), FLINT_TEXT_12,
-                        flint_darken(flint_theme_get_text(), 24));
+        int text_w = MeasureUIText(empty, UI_TEXT_12);
+        DrawUIText(empty, content_x + (content_w - text_w) / 2,
+                        y + graph_h / 2 - ScaleUIPx(8), UI_TEXT_12,
+                        DarkenUIColor(GetThemeText(), 24));
     }
     for(int i = 0; i < graph_days; i++) {
         int day_offset = graph_days - 1 - i;
@@ -347,9 +347,9 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         else
             snprintf(label, sizeof(label), "%dd", day_offset);
         day_x = plot_x + (plot_w * i) / graph_days;
-        flint_text_draw(label, day_x + flint_px(2),
-                        y + graph_h - flint_px(20), FLINT_TEXT_12,
-                        flint_darken(flint_theme_get_text(), 24));
+        DrawUIText(label, day_x + ScaleUIPx(2),
+                        y + graph_h - ScaleUIPx(20), UI_TEXT_12,
+                        DarkenUIColor(GetThemeText(), 24));
     }
 }
 
@@ -367,9 +367,9 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     int last_30_total = 30;
     int weekday_counts[7] = {0};
     int max_weekday = 1;
-    int chart_h = flint_px(128);
-    int metrics_gap = flint_px(8);
-    int metric_h = flint_px(66);
+    int chart_h = ScaleUIPx(128);
+    int metrics_gap = ScaleUIPx(8);
+    int metric_h = ScaleUIPx(66);
     int metric_w;
     char value[64];
     int has_wim_hof_rounds = statistics_has_wim_hof_rounds(linked_ctx);
@@ -416,66 +416,66 @@ statistics_draw_view(InbeApp *app, InbeHabit *active,
     metric_w = (content_w - metrics_gap) / 2;
     statistics_format_day_count(value, sizeof(value), current_streak);
     statistics_draw_metric(content_x, y, metric_w, metric_h,
-                           locale_get("habit_stats_current_streak"), value, active->color);
+                           GetLocaleText("habit_stats_current_streak"), value, active->color);
     snprintf(value, sizeof(value), "%d/%d", last_30_done, last_30_total);
     statistics_draw_metric(content_x + metric_w + metrics_gap, y,
                            content_w - metric_w - metrics_gap, metric_h,
-                           locale_get("habit_stats_last_30_days"), value, flint_lighten(active->color, 24));
-    y += metric_h + flint_px(22);
+                           GetLocaleText("habit_stats_last_30_days"), value, LightenUIColor(active->color, 24));
+    y += metric_h + ScaleUIPx(22);
 
     if(has_wim_hof_rounds) {
-        y += statistics_draw_section_title(locale_get("habit_stats_wim_hof_hold_rounds"),
-                                           content_x, y, content_w) + flint_px(10);
-        statistics_draw_hold_range_selector(app, content_x, y, flint_px(118));
-        y += flint_px(42);
+        y += statistics_draw_section_title(GetLocaleText("habit_stats_wim_hof_hold_rounds"),
+                                           content_x, y, content_w) + ScaleUIPx(10);
+        statistics_draw_hold_range_selector(app, content_x, y, ScaleUIPx(118));
+        y += ScaleUIPx(42);
         statistics_draw_hold_graph(app, linked_ctx, content_x, y, content_w,
                                    &today_tm, EXERCISE_WIM_HOF,
                                    active->color);
-        y += flint_px(194);
+        y += ScaleUIPx(194);
     }
 
-    y += statistics_draw_section_title(locale_get("habit_stats_weekday_pattern"),
-                                       content_x, y, content_w) + flint_px(10);
-    DrawRectangle(content_x, y, content_w, chart_h, flint_darken(flint_theme_get_bg(), 7));
+    y += statistics_draw_section_title(GetLocaleText("habit_stats_weekday_pattern"),
+                                       content_x, y, content_w) + ScaleUIPx(10);
+    DrawRectangle(content_x, y, content_w, chart_h, DarkenUIColor(GetThemeBackground(), 7));
     {
         const char *labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
         int slot_w = content_w / 7;
         for(int i = 0; i < 7; i++) {
             int h = weekday_counts[i] > 0
-                        ? (weekday_counts[i] * (chart_h - flint_px(34))) / max_weekday
-                        : flint_px(3);
-            int x = content_x + i * slot_w + flint_px(5);
-            int w = slot_w - flint_px(10);
-            int bar_y = y + chart_h - h - flint_px(22);
+                        ? (weekday_counts[i] * (chart_h - ScaleUIPx(34))) / max_weekday
+                        : ScaleUIPx(3);
+            int x = content_x + i * slot_w + ScaleUIPx(5);
+            int w = slot_w - ScaleUIPx(10);
+            int bar_y = y + chart_h - h - ScaleUIPx(22);
 
-            if(w < flint_px(4))
-                w = flint_px(4);
+            if(w < ScaleUIPx(4))
+                w = ScaleUIPx(4);
             DrawRectangle(x, bar_y, w, h,
-                          weekday_counts[i] > 0 ? flint_lighten(active->color, 12)
-                                                 : flint_darken(flint_theme_get_bg(), 24));
-            flint_text_draw(labels[i], x + (w - flint_text_measure(labels[i], FLINT_TEXT_12)) / 2,
-                            y + chart_h - flint_px(18), FLINT_TEXT_12,
-                            flint_darken(flint_theme_get_text(), 18));
+                          weekday_counts[i] > 0 ? LightenUIColor(active->color, 12)
+                                                 : DarkenUIColor(GetThemeBackground(), 24));
+            DrawUIText(labels[i], x + (w - MeasureUIText(labels[i], UI_TEXT_12)) / 2,
+                            y + chart_h - ScaleUIPx(18), UI_TEXT_12,
+                            DarkenUIColor(GetThemeText(), 18));
         }
     }
-    y += chart_h + flint_px(24);
+    y += chart_h + ScaleUIPx(24);
 
     if(linked_ctx != NULL && linked_ctx->count > 0) {
         char best[32];
         char total[32];
-        y += statistics_draw_section_title(locale_get("habit_stats_practice_time"),
-                                           content_x, y, content_w) + flint_px(10);
+        y += statistics_draw_section_title(GetLocaleText("habit_stats_practice_time"),
+                                           content_x, y, content_w) + ScaleUIPx(10);
         habit_format_duration(linked_ctx->best_seconds, best, sizeof(best));
         habit_format_duration(linked_ctx->total_seconds, total, sizeof(total));
         statistics_draw_metric(content_x, y, metric_w, metric_h,
-                               locale_get("habit_stats_best_hold"), best, active->color);
+                               GetLocaleText("habit_stats_best_hold"), best, active->color);
         statistics_draw_metric(content_x + metric_w + metrics_gap, y,
                                content_w - metric_w - metrics_gap, metric_h,
-                               locale_get("habit_stats_total_hold"), total, flint_lighten(active->color, 20));
+                               GetLocaleText("habit_stats_total_hold"), total, LightenUIColor(active->color, 20));
     } else {
         statistics_format_day_count(value, sizeof(value), best_streak);
         statistics_draw_metric(content_x, y, content_w, metric_h,
-                               locale_get("habit_stats_best_streak"), value, active->color);
+                               GetLocaleText("habit_stats_best_streak"), value, active->color);
     }
 }
 
@@ -498,7 +498,7 @@ draw_statistics_content(InbeApp *app, int content_top)
     int viewport_h;
     int scroll_y;
     int scroll_h;
-    int max_w = flint_px(CONTENT_MAX_W);
+    int max_w = ScaleUIPx(CONTENT_MAX_W);
     InbeHabit *active;
     HabitLinkedContext *linked_ctx = NULL;
 
@@ -506,8 +506,8 @@ draw_statistics_content(InbeApp *app, int content_top)
         return;
     content_bottom = app_content_bottom_reserved(app);
     viewport_h = view_height - content_top - content_bottom;
-    scroll_y = content_top + flint_px(4);
-    scroll_h = viewport_h - flint_px(4);
+    scroll_y = content_top + ScaleUIPx(4);
+    scroll_h = viewport_h - ScaleUIPx(4);
     if(app->habits.count <= 0)
         return;
     if(app->habits.selected < 0 || app->habits.selected >= app->habits.count)
@@ -526,7 +526,7 @@ draw_statistics_content(InbeApp *app, int content_top)
         StatisticsScrollPageContext page_ctx = {
             linked_ctx != NULL ? linked_ctx->count : 0
         };
-        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
             .y = scroll_y,
             .height = scroll_h,
             .max_content_width = max_w,
@@ -535,8 +535,8 @@ draw_statistics_content(InbeApp *app, int content_top)
             .user_data = &page_ctx
         });
         statistics_draw_view(app, active, linked_ctx, page.content_x,
-                             page.content_w, page.content_y + flint_px(8));
-        ui_scroll_page_end(page);
+                             page.content_w, page.content_y + ScaleUIPx(8));
+        EndUIScrollPage(page);
     }
     free(linked_ctx);
 }

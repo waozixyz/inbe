@@ -5,8 +5,8 @@
 #include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
-#include "flint_runtime_assets.h"
-#include "flint_transition.h"
+#include "runtime_assets.h"
+#include "ui_transition.h"
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 #include "screens/settings/settings_theme.h"
@@ -211,7 +211,7 @@ typedef struct MeditationPracticeState {
     int music_archive_extracted;
     int music_network_error_notified;
     Music music;
-    FlintRuntimeAssetDownload music_download;
+    RuntimeAssetDownload music_download;
     char music_cache_dir[FS_PATH_MAX];
     char music_status[128];
 } MeditationPracticeState;
@@ -381,7 +381,7 @@ struct InbeApp {
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;
-    FlintTransition screen_transition;
+    UITransition screen_transition;
     int screen_transition_target;
     int file_dialog_active;
     int session_paused;

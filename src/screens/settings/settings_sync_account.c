@@ -2,12 +2,12 @@
 
 #include "settings_screen.h"
 #include "app.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "storage.h"
 #include "sync_account.h"
 #include "sync_client.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 #include <ctype.h>
 #include <stdio.h>
@@ -34,7 +34,7 @@ settings_sync_account_set_import_dialog(SettingsSyncKeyImportDialog callback)
 
 static int
 settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
-                              FlintUITextInputStyle style)
+                              UITextInputStyle style)
 {
     int field_h;
     int clicked = 0;
@@ -42,8 +42,8 @@ settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
     if(text == NULL || y == NULL)
         return 0;
 
-    field_h = flint_ui_readonly_text_box_height(text, font, w, style, 0);
-    clicked = flint_ui_readonly_text_box((FlintUIReadonlyTextBox){
+    field_h = GetUIReadonlyTextBoxHeight(text, font, w, style, 0);
+    clicked = DrawUIReadonlyTextBox((UIReadonlyTextBox){
         .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
         .text = text,
         .font = font,
@@ -180,11 +180,11 @@ settings_sync_server_save(InbeApp *app)
     if(app == NULL)
         return;
     if(!settings_sync_server_normalize(app, url, sizeof(url))) {
-        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"));
         return;
     }
     storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
-    settings_screen_set_status_success(locale_get("sync_server_saved"), url);
+    settings_screen_set_status_success(GetLocaleText("sync_server_saved"), url);
 }
 
 static void
@@ -207,7 +207,7 @@ settings_sync_open_alias_modal(InbeApp *app, int then_backup)
 static void
 settings_sync_draw_account_id(InbeApp *app, const InbeSyncAccount *account,
                               int x, int w, int *y, int small_font,
-                              FlintUITextInputStyle style)
+                              UITextInputStyle style)
 {
     const char *alias = storage_get_setting_text(INBE_SYNC_ACCOUNT_ALIAS_KEY);
     char display[96];
@@ -241,21 +241,21 @@ settings_sync_server_connected(InbeApp *app)
 }
 
 static const char *
-settings_sync_result_key(FlintLyraSyncResult result)
+settings_sync_result_key(LyraSyncResult result)
 {
     switch(result) {
-        case FLINT_LYRA_SYNC_OK:
+        case LYRA_SYNC_OK:
             return "sync_connected";
-        case FLINT_LYRA_SYNC_INVALID_URL:
+        case LYRA_SYNC_INVALID_URL:
             return "sync_server_url_invalid";
-        case FLINT_LYRA_SYNC_NO_ACCOUNT:
+        case LYRA_SYNC_NO_ACCOUNT:
             return "sync_no_account";
-        case FLINT_LYRA_SYNC_AUTH_FAILED:
+        case LYRA_SYNC_AUTH_FAILED:
             return "sync_auth_failed";
-        case FLINT_LYRA_SYNC_PAYLOAD_FAILED:
-        case FLINT_LYRA_SYNC_CHALLENGE_FAILED:
-        case FLINT_LYRA_SYNC_SIGN_FAILED:
-        case FLINT_LYRA_SYNC_REQUEST_FAILED:
+        case LYRA_SYNC_PAYLOAD_FAILED:
+        case LYRA_SYNC_CHALLENGE_FAILED:
+        case LYRA_SYNC_SIGN_FAILED:
+        case LYRA_SYNC_REQUEST_FAILED:
         default:
             return "sync_failed";
     }
@@ -267,10 +267,10 @@ settings_sync_create_account(InbeApp *app, InbeSyncAccount *account)
     if(account == NULL)
         return 0;
     if(!sync_account_create(account)) {
-        settings_screen_set_status_error(locale_get("sync_account_create_failed"));
+        settings_screen_set_status_error(GetLocaleText("sync_account_create_failed"));
         return 0;
     }
-    settings_screen_set_status_success(locale_get("sync_account_created"), NULL);
+    settings_screen_set_status_success(GetLocaleText("sync_account_created"), NULL);
     app_auto_sync(app);
     settings_sync_open_alias_modal(app, 1);
     return 1;
@@ -279,34 +279,34 @@ settings_sync_create_account(InbeApp *app, InbeSyncAccount *account)
 static void
 settings_sync_run_connect(InbeApp *app)
 {
-    FlintLyraSyncResult result;
+    LyraSyncResult result;
     char url[sizeof(app->sync_server_url)];
 
     if(app == NULL)
         return;
     if(!settings_sync_server_normalize(app, url, sizeof(url))) {
-        settings_screen_set_status_error(locale_get("sync_server_url_invalid"));
+        settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"));
         return;
     }
     storage_set_setting_text(INBE_SYNC_SERVER_URL_KEY, url);
     result = sync_client_sync(url);
-    if(result == FLINT_LYRA_SYNC_OK) {
+    if(result == LYRA_SYNC_OK) {
         app_request_social_refresh(app);
         if(storage_sync_review_clear_if_no_visible_diff()) {
             app_reload_after_import(app, 0);
-            settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+            settings_screen_set_status_success(GetLocaleText(settings_sync_result_key(result)), NULL);
         } else if(storage_sync_review_apply_remote_if_local_empty()) {
             app_reload_after_import(app, 0);
-            settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+            settings_screen_set_status_success(GetLocaleText(settings_sync_result_key(result)), NULL);
         } else if(storage_sync_review_pending()) {
             app_open_modal(app, UIModalSyncReview);
-            settings_screen_set_status_error(locale_get("sync_review_needed"));
+            settings_screen_set_status_error(GetLocaleText("sync_review_needed"));
         } else {
             app_reload_after_import(app, 0);
-            settings_screen_set_status_success(locale_get(settings_sync_result_key(result)), NULL);
+            settings_screen_set_status_success(GetLocaleText(settings_sync_result_key(result)), NULL);
         }
     } else {
-        settings_screen_set_status_error(locale_get(settings_sync_result_key(result)));
+        settings_screen_set_status_error(GetLocaleText(settings_sync_result_key(result)));
     }
 }
 
@@ -316,58 +316,58 @@ settings_sync_account_logout(InbeApp *app)
     if(app == NULL)
         return;
     sync_account_clear();
-    settings_screen_set_status_success(locale_get("sync_logged_out"), NULL);
+    settings_screen_set_status_success(GetLocaleText("sync_logged_out"), NULL);
 }
 
 void
 settings_sync_account_clear_remote_confirmed(InbeApp *app)
 {
     InbeSyncAccount account;
-    FlintLyraSyncResult result;
+    LyraSyncResult result;
     char url[sizeof(app->sync_server_url)];
 
     if(app == NULL)
         return;
     if(!sync_account_load(&account)) {
-        settings_screen_set_status_error(locale_get("sync_no_account"));
+        settings_screen_set_status_error(GetLocaleText("sync_no_account"));
         return;
     }
 
     if(settings_sync_server_normalize(app, url, sizeof(url))) {
         result = sync_client_delete_account(url);
-        if(result != FLINT_LYRA_SYNC_OK)
+        if(result != LYRA_SYNC_OK)
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result);
     } else {
         TraceLog(LOG_WARNING, "SYNC: remote account delete skipped due to invalid URL");
     }
 
     sync_account_clear();
-    settings_screen_set_status_success(locale_get("sync_remote_data_cleared"), NULL);
+    settings_screen_set_status_success(GetLocaleText("sync_remote_data_cleared"), NULL);
 }
 
-static FlintUITextInputStyle
+static UITextInputStyle
 settings_sync_text_style(void)
 {
-    return (FlintUITextInputStyle){
-        .background = flint_darken(flint_theme_get_bg(), 4),
-        .border = flint_theme_get_button(),
-        .focus_border = flint_theme_get_button_hover(),
-        .text = flint_theme_get_text(),
-        .cursor = flint_theme_get_text(),
+    return (UITextInputStyle){
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
         .radius = 0.08f,
-        .padding_x = flint_px(10)
+        .padding_x = ScaleUIPx(10)
     };
 }
 
 static int
 settings_sync_button_min_width(const char *label)
 {
-    return flint_text_measure(label != NULL ? label : "", flint_ui_font_small()) +
-           flint_px(20);
+    return MeasureUIText(label != NULL ? label : "", GetUISmallFontSize()) +
+           ScaleUIPx(20);
 }
 
 static int
-settings_sync_button_group_fits(const FlintUIButtonRowItem *items, int start, int count,
+settings_sync_button_group_fits(const UIButtonRowItem *items, int start, int count,
                                 int width, int gap)
 {
     int button_w;
@@ -385,7 +385,7 @@ settings_sync_button_group_fits(const FlintUIButtonRowItem *items, int start, in
 }
 
 static int
-settings_sync_button_group_count(const FlintUIButtonRowItem *items, int start, int count,
+settings_sync_button_group_count(const UIButtonRowItem *items, int start, int count,
                                  int width, int gap)
 {
     for(int row_count = count; row_count > 1; row_count--) {
@@ -396,10 +396,10 @@ settings_sync_button_group_count(const FlintUIButtonRowItem *items, int start, i
 }
 
 static int
-settings_sync_draw_adaptive_button_row(FlintUIButtonRow row, int *height_out)
+settings_sync_draw_adaptive_button_row(UIButtonRow row, int *height_out)
 {
     int clicked = -1;
-    int gap = row.gap > 0 ? row.gap : flint_px(10);
+    int gap = row.gap > 0 ? row.gap : ScaleUIPx(10);
     int draw_y = row.y;
     int index = 0;
 
@@ -420,7 +420,7 @@ settings_sync_draw_adaptive_button_row(FlintUIButtonRow row, int *height_out)
             int button_x = row.x + i * (button_w + gap);
             int draw_w = i == count - 1 ? row.x + row.width - button_x : button_w;
 
-            if(ui_draw_generic_button(button_x, draw_y, draw_w, row.height,
+            if(DrawUIGenericButton(button_x, draw_y, draw_w, row.height,
                                       row.items[item_index].label,
                                       row.items[item_index].style,
                                       row.items[item_index].disabled,
@@ -439,7 +439,7 @@ settings_sync_draw_adaptive_button_row(FlintUIButtonRow row, int *height_out)
 }
 
 static int
-settings_sync_adaptive_button_row_height(const FlintUIButtonRowItem *items, int count,
+settings_sync_adaptive_button_row_height(const UIButtonRowItem *items, int count,
                                          int width, int button_h, int gap)
 {
     int height = 0;
@@ -463,24 +463,24 @@ settings_sync_account_config_content_height(int content_w)
 {
     InbeSyncAccount account;
     int has_account = sync_account_load(&account);
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int h = 0;
     char display[96];
     const char *alias;
 
     if(content_w <= 0)
-        content_w = flint_px(320);
+        content_w = ScaleUIPx(320);
 
     if(!has_account) {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-            {locale_get("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
         };
-        h += flint_px(12);
+        h += ScaleUIPx(12);
         h += settings_sync_adaptive_button_row_height(buttons, 2, content_w, btn_h, gap);
-        h += flint_px(18);
-        h += flint_px(42);
+        h += ScaleUIPx(18);
+        h += ScaleUIPx(42);
         return h;
     }
 
@@ -490,30 +490,30 @@ settings_sync_account_config_content_height(int content_w)
     else
         settings_compact_public_id(account.public_id, display, sizeof(display));
 
-    h += flint_px(18);
-    h += flint_ui_readonly_text_box_height(display, flint_ui_font_small(),
+    h += ScaleUIPx(18);
+    h += GetUIReadonlyTextBoxHeight(display, GetUISmallFontSize(),
                                            content_w, settings_sync_text_style(), 0);
-    h += flint_px(8);
-    h += flint_px(18) + btn_h + flint_px(12);
-    h += btn_h + flint_px(12);
+    h += ScaleUIPx(8);
+    h += ScaleUIPx(18) + btn_h + ScaleUIPx(12);
+    h += btn_h + ScaleUIPx(12);
     {
-        FlintUIButtonRowItem buttons[3] = {
-            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        UIButtonRowItem buttons[3] = {
+            {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0}
         };
         h += settings_sync_adaptive_button_row_height(buttons, 3, content_w, btn_h, gap);
-        h += flint_px(12);
+        h += ScaleUIPx(12);
     }
     {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0}
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0}
         };
         h += settings_sync_adaptive_button_row_height(buttons, 2, content_w, btn_h, gap);
-        h += flint_px(12);
+        h += ScaleUIPx(12);
     }
-    h += flint_px(42);
+    h += ScaleUIPx(42);
     return h;
 }
 
@@ -522,39 +522,39 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
     int has_account = sync_account_load(&account);
-    int font = flint_ui_font();
-    int small_font = flint_ui_font_small();
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    int font = GetUIFontSize();
+    int small_font = GetUISmallFontSize();
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int hover = 0;
 
-    flint_text_draw(locale_get("sync_account_title"), x, *y, font, flint_theme_get_text());
-    *y += flint_px(26);
+    DrawUIText(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText());
+    *y += ScaleUIPx(26);
 
     if(!has_account) {
-        if(ui_draw_generic_button(x, *y, w, btn_h, locale_get("sync_create_account_button"),
+        if(DrawUIGenericButton(x, *y, w, btn_h, GetLocaleText("sync_create_account_button"),
                                   UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
             settings_sync_create_account(app, &account);
         }
-        *y += btn_h + flint_px(18);
+        *y += btn_h + ScaleUIPx(18);
         return;
     }
 
-    flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
-                    flint_darken(flint_theme_get_text(), 30));
-    *y += flint_px(18);
+    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+                    DarkenUIColor(GetThemeText(), 30));
+    *y += ScaleUIPx(18);
     settings_sync_draw_account_id(app, &account, x, w, y, small_font,
                                   settings_sync_text_style());
-    *y += flint_px(4);
+    *y += ScaleUIPx(4);
 
     {
-        FlintUIButtonRowItem buttons[3] = {
-            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
+        UIButtonRowItem buttons[3] = {
+            {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
         };
         int row_h = 0;
-        int clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        int clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = x,
             .y = *y,
             .width = w,
@@ -566,7 +566,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
 
         if(clicked == 0) {
             SetClipboardText(account.public_id);
-            settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+            settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), NULL);
         } else if(clicked == 1) {
             settings_sync_open_alias_modal(app, 0);
         } else if(clicked == 2) {
@@ -574,7 +574,7 @@ settings_sync_account_draw(InbeApp *app, int x, int w, int *y)
         }
         *y += row_h;
     }
-    *y += flint_px(16);
+    *y += ScaleUIPx(16);
 }
 
 void
@@ -582,24 +582,24 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
 {
     InbeSyncAccount account;
     int has_account = sync_account_load(&account);
-    int font = flint_ui_font();
-    int small_font = flint_ui_font_small();
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    int font = GetUIFontSize();
+    int small_font = GetUISmallFontSize();
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int hover = 0;
     int commit = 0;
-    FlintUITextInputStyle input_style = settings_sync_text_style();
+    UITextInputStyle input_style = settings_sync_text_style();
 
     if(!has_account) {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-            {locale_get("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0}
         };
         int clicked;
         int row_h = 0;
 
-        *y += flint_px(12);
-        clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        *y += ScaleUIPx(12);
+        clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = x,
             .y = *y,
             .width = w,
@@ -612,27 +612,27 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
             has_account = settings_sync_create_account(app, &account);
         } else if(clicked == 1) {
             if(!settings_start_sync_key_import(app))
-                settings_screen_set_status_error(locale_get("sync_private_key_import_failed"));
+                settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
         }
-        *y += row_h + flint_px(18);
+        *y += row_h + ScaleUIPx(18);
     }
 
     if(!has_account) {
-        settings_screen_draw_status_reserved(x, y, flint_px(42));
+        settings_screen_draw_status_reserved(x, y, ScaleUIPx(42));
         (void)font;
         return;
     }
 
-    flint_text_draw(locale_get("sync_public_id_label"), x, *y, small_font,
-                    flint_darken(flint_theme_get_text(), 30));
-    *y += flint_px(18);
+    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+                    DarkenUIColor(GetThemeText(), 30));
+    *y += ScaleUIPx(18);
     settings_sync_draw_account_id(app, &account, x, w, y, small_font, input_style);
-    *y += flint_px(8);
+    *y += ScaleUIPx(8);
 
-    flint_text_draw(locale_get("sync_remote_label"), x, *y, small_font,
-                    flint_darken(flint_theme_get_text(), 30));
-    *y += flint_px(18);
-    flint_ui_text_field((FlintUITextField){
+    DrawUIText(GetLocaleText("sync_remote_label"), x, *y, small_font,
+                    DarkenUIColor(GetThemeText(), 30));
+    *y += ScaleUIPx(18);
+    DrawUITextField((UITextField){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
         .text = app->sync_server_url,
         .text_size = sizeof(app->sync_server_url),
@@ -646,24 +646,24 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     });
     if(commit)
         settings_sync_server_save(app);
-    *y += btn_h + flint_px(12);
+    *y += btn_h + ScaleUIPx(12);
 
-    if(ui_draw_generic_button(x, *y, w, btn_h,
+    if(DrawUIGenericButton(x, *y, w, btn_h,
                               settings_sync_server_connected(app)
-                                  ? locale_get("sync_connected_button")
-                                  : locale_get("sync_connect_button"),
+                                  ? GetLocaleText("sync_connected_button")
+                                  : GetLocaleText("sync_connect_button"),
                               UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         settings_sync_run_connect(app);
-    *y += btn_h + flint_px(12);
+    *y += btn_h + ScaleUIPx(12);
 
     {
-        FlintUIButtonRowItem buttons[3] = {
-            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        UIButtonRowItem buttons[3] = {
+            {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0}
         };
         int row_h = 0;
-        int clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        int clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = x,
             .y = *y,
             .width = w,
@@ -675,7 +675,7 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
 
         if(clicked == 0) {
             SetClipboardText(account.public_id);
-            settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+            settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), NULL);
         } else if(clicked == 1) {
             settings_sync_open_alias_modal(app, 0);
         } else if(clicked == 2) {
@@ -683,15 +683,15 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         }
         *y += row_h;
     }
-    *y += flint_px(12);
+    *y += ScaleUIPx(12);
 
     {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0}
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+            {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0}
         };
         int row_h = 0;
-        int clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        int clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = x,
             .y = *y,
             .width = w,
@@ -707,56 +707,56 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
         }
         *y += row_h;
     }
-    *y += flint_px(12);
+    *y += ScaleUIPx(12);
 
-    settings_screen_draw_status_reserved(x, y, flint_px(42));
+    settings_screen_draw_status_reserved(x, y, ScaleUIPx(42));
     (void)font;
 }
 
 int
 settings_sync_account_draw_backup_modal(InbeApp *app)
 {
-    FlintUIPanelFrame frame;
+    UIPanelFrame frame;
     InbeSyncAccount account;
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
-    int pad_bottom = flint_px(24);
-    int text_button_gap = flint_px(40);
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
+    int pad_bottom = ScaleUIPx(24);
+    int text_button_gap = ScaleUIPx(40);
     int hover = 0;
     int y;
     int modal_h;
     int button_y;
-    FlintUIParagraph warning;
+    UIParagraph warning;
 
     memset(&account, 0, sizeof(account));
     sync_account_load(&account);
 
-    warning = (FlintUIParagraph){
-        .text = locale_get("sync_backup_warning"),
-        .width = flint_px(336) - flint_px(36)
+    warning = (UIParagraph){
+        .text = GetLocaleText("sync_backup_warning"),
+        .width = ScaleUIPx(336) - ScaleUIPx(36)
     };
-    modal_h = flint_px(58) +
-              flint_ui_paragraph_height(warning) +
+    modal_h = ScaleUIPx(58) +
+              GetUIParagraphHeight(warning) +
               text_button_gap +
               btn_h * 2 + gap +
               pad_bottom;
-    if(modal_h < flint_px(224))
-        modal_h = flint_px(224);
+    if(modal_h < ScaleUIPx(224))
+        modal_h = ScaleUIPx(224);
 
-    frame = ui_draw_modal_frame(flint_px(336), modal_h, locale_get("sync_backup_title"),
+    frame = DrawUIModalFrame(ScaleUIPx(336), modal_h, GetLocaleText("sync_backup_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
     warning.width = frame.content_w;
-    flint_ui_paragraph_draw(warning, frame.content_x, &y);
+    DrawUIParagraph(warning, frame.content_x, &y);
 
     button_y = y + text_button_gap;
     if(button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h)
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap;
-    if(ui_draw_generic_button(frame.content_x, button_y, frame.content_w, btn_h,
-                              locale_get("sync_save_key_file_button"), UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+    if(DrawUIGenericButton(frame.content_x, button_y, frame.content_w, btn_h,
+                              GetLocaleText("sync_save_key_file_button"), UI_BUTTON_STYLE_PRIMARY, 0, &hover))
         return settings_start_sync_key_export(app, &account);
-    if(ui_draw_generic_button(frame.content_x, button_y + btn_h + gap, frame.content_w,
-                              btn_h, locale_get("close_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover))
+    if(DrawUIGenericButton(frame.content_x, button_y + btn_h + gap, frame.content_w,
+                              btn_h, GetLocaleText("close_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover))
         return 1;
     return 0;
 }
@@ -764,10 +764,10 @@ settings_sync_account_draw_backup_modal(InbeApp *app)
 int
 settings_sync_account_draw_alias_modal(InbeApp *app)
 {
-    FlintUIPanelFrame frame;
-    FlintUITextInputStyle input_style = settings_sync_text_style();
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    UIPanelFrame frame;
+    UITextInputStyle input_style = settings_sync_text_style();
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int y;
     int at_w;
     int commit = 0;
@@ -785,20 +785,20 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
     settings_sync_alias_normalize(current_alias);
     has_alias = current_alias[0] != '\0';
 
-    frame = ui_draw_modal_frame(flint_px(336), flint_px(238),
-                                locale_get(has_alias ? "sync_alias_change_title" : "sync_alias_title"),
+    frame = DrawUIModalFrame(ScaleUIPx(336), ScaleUIPx(238),
+                                GetLocaleText(has_alias ? "sync_alias_change_title" : "sync_alias_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
 
-    flint_text_draw(locale_get(has_alias ? "sync_alias_change_message" : "sync_alias_message"),
+    DrawUIText(GetLocaleText(has_alias ? "sync_alias_change_message" : "sync_alias_message"),
                     frame.content_x, y,
-                    flint_ui_font_small(), flint_darken(flint_theme_get_text(), 20));
-    y += flint_px(40);
+                    GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 20));
+    y += ScaleUIPx(40);
 
-    at_w = flint_text_measure("@", flint_ui_font()) + flint_px(12);
-    flint_text_draw("@", frame.content_x, flint_ui_text_y("@", y, btn_h, flint_ui_font()),
-                    flint_ui_font(), flint_theme_get_text());
-    flint_ui_text_field((FlintUITextField){
+    at_w = MeasureUIText("@", GetUIFontSize()) + ScaleUIPx(12);
+    DrawUIText("@", frame.content_x, GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
+                    GetUIFontSize(), GetThemeText());
+    DrawUITextField((UITextField){
         .bounds = {(float)(frame.content_x + at_w), (float)y,
                    (float)(frame.content_w - at_w), (float)btn_h},
         .text = app->sync_alias_input,
@@ -806,28 +806,28 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
         .cursor_position = &app->sync_alias_cursor,
         .focused = &app->sync_alias_focused,
         .max_codepoints = 32,
-        .font = flint_ui_font_small(),
+        .font = GetUISmallFontSize(),
         .style = input_style,
         .filter = settings_sync_alias_filter,
         .commit_pressed = &commit
     });
     settings_sync_alias_normalize(app->sync_alias_input);
-    y += btn_h + flint_px(12);
+    y += btn_h + ScaleUIPx(12);
 
-    flint_text_draw(locale_get("sync_alias_rule"), frame.content_x, y,
-                    flint_ui_font_small(), flint_darken(flint_theme_get_text(), 35));
-    y += flint_px(34);
+    DrawUIText(GetLocaleText("sync_alias_rule"), frame.content_x, y,
+                    GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35));
+    y += ScaleUIPx(34);
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0;
 
     {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get(app->sync_alias_then_backup ? "skip_button" : "close_button"),
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
              UI_BUTTON_STYLE_SECONDARY, 0},
-            {locale_get(has_alias ? "sync_alias_save_button" : "sync_alias_register_button"),
+            {GetLocaleText(has_alias ? "sync_alias_save_button" : "sync_alias_register_button"),
              UI_BUTTON_STYLE_PRIMARY,
              !settings_sync_alias_valid(app->sync_alias_input) || unchanged_alias}
         };
-        int clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        int clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = frame.content_x,
             .y = y,
             .width = frame.content_w,
@@ -840,11 +840,11 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
             return 3;
         if(clicked == 1 || (commit && settings_sync_alias_valid(app->sync_alias_input) && !unchanged_alias)) {
             if(settings_sync_server_normalize(app, url, sizeof(url))) {
-                FlintLyraSyncResult alias_result;
+                LyraSyncResult alias_result;
                 TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
                          app->sync_alias_input, url);
                 alias_result = sync_client_register_alias(url, app->sync_alias_input);
-                if(alias_result == FLINT_LYRA_SYNC_OK) {
+                if(alias_result == LYRA_SYNC_OK) {
                     TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input);
                     result = 1;
                 } else {
@@ -864,11 +864,11 @@ settings_sync_account_draw_alias_modal(InbeApp *app)
 int
 settings_sync_account_draw_public_id_modal(InbeApp *app)
 {
-    FlintUIPanelFrame frame;
+    UIPanelFrame frame;
     InbeSyncAccount account;
-    FlintUITextInputStyle input_style = settings_sync_text_style();
-    int btn_h = flint_px(36);
-    int gap = flint_px(10);
+    UITextInputStyle input_style = settings_sync_text_style();
+    int btn_h = ScaleUIPx(36);
+    int gap = ScaleUIPx(10);
     int y;
     int result = 0;
 
@@ -877,25 +877,25 @@ settings_sync_account_draw_public_id_modal(InbeApp *app)
     if(!sync_account_load(&account))
         return 1;
 
-    frame = ui_draw_modal_frame(flint_px(356), flint_px(218),
-                                locale_get("sync_public_id_full_title"),
+    frame = DrawUIModalFrame(ScaleUIPx(356), ScaleUIPx(218),
+                                GetLocaleText("sync_public_id_full_title"),
                                 (Texture2D){0}, (Texture2D){0});
     y = frame.content_y;
 
-    flint_text_draw(locale_get("sync_public_id_full_message"), frame.content_x, y,
-                    flint_ui_font_small(), flint_darken(flint_theme_get_text(), 25));
-    y += flint_px(34);
+    DrawUIText(GetLocaleText("sync_public_id_full_message"), frame.content_x, y,
+                    GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 25));
+    y += ScaleUIPx(34);
 
     settings_draw_public_id_field(account.public_id, frame.content_x, frame.content_w,
-                                  &y, flint_ui_font_small(), input_style);
-    y += flint_px(18);
+                                  &y, GetUISmallFontSize(), input_style);
+    y += ScaleUIPx(18);
 
     {
-        FlintUIButtonRowItem buttons[2] = {
-            {locale_get("sync_copy_id_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-            {locale_get("close_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        UIButtonRowItem buttons[2] = {
+            {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("close_button"), UI_BUTTON_STYLE_SECONDARY, 0}
         };
-        int clicked = settings_sync_draw_adaptive_button_row((FlintUIButtonRow){
+        int clicked = settings_sync_draw_adaptive_button_row((UIButtonRow){
             .x = frame.content_x,
             .y = y,
             .width = frame.content_w,
@@ -906,7 +906,7 @@ settings_sync_account_draw_public_id_modal(InbeApp *app)
         }, NULL);
         if(clicked == 0) {
             SetClipboardText(account.public_id);
-            settings_screen_set_status_success(locale_get("sync_public_id_copied"), NULL);
+            settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), NULL);
         } else if(clicked == 1) {
             result = 1;
         }

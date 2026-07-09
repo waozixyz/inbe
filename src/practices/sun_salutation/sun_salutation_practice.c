@@ -2,10 +2,10 @@
 
 #include "app.h"
 #include "app_settings.h"
-#include "flint_locale.h"
-#include "flint_text.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui_text.h"
+#include "theme.h"
+#include "ui.h"
 
 #include <stdio.h>
 
@@ -52,7 +52,7 @@ const char *
 sun_salutation_step_label(int step)
 {
     step = sun_salutation_clampi(step, 0, SUN_SALUTATION_STEP_COUNT - 1);
-    return locale_get(g_sun_salutation_step_label_keys[step]);
+    return GetLocaleText(g_sun_salutation_step_label_keys[step]);
 }
 
 static void
@@ -140,39 +140,39 @@ draw_preview_pose(Texture2D texture, int x, int y, int w, int h, Color tint)
 static int
 sun_salutation_preview_height(int content_w)
 {
-    int thumb_w = (content_w - flint_px(22)) / 6;
+    int thumb_w = (content_w - ScaleUIPx(22)) / 6;
 
-    if(thumb_w < flint_px(34))
-        thumb_w = flint_px(34);
-    if(thumb_w > flint_px(56))
-        thumb_w = flint_px(56);
-    return thumb_w * 2 + flint_px(56);
+    if(thumb_w < ScaleUIPx(34))
+        thumb_w = ScaleUIPx(34);
+    if(thumb_w > ScaleUIPx(56))
+        thumb_w = ScaleUIPx(56);
+    return thumb_w * 2 + ScaleUIPx(56);
 }
 
 static void
 draw_sun_salutation_preview(InbeApp *app, int x, int y, int w)
 {
-    int label_font = flint_ui_font();
-    int small_font = flint_ui_font_small();
+    int label_font = GetUIFontSize();
+    int small_font = GetUISmallFontSize();
     int label_w;
-    int thumb_w = (w - flint_px(22)) / 6;
+    int thumb_w = (w - ScaleUIPx(22)) / 6;
     int thumb_h;
-    int gap = flint_px(4);
+    int gap = ScaleUIPx(4);
     int active_step;
     int preview_step_ticks;
     int row_y;
-    Color muted = flint_darken(flint_theme_get_text(), 40);
+    Color muted = DarkenUIColor(GetThemeText(), 40);
 
-    if(thumb_w < flint_px(34))
-        thumb_w = flint_px(34);
-    if(thumb_w > flint_px(56))
-        thumb_w = flint_px(56);
+    if(thumb_w < ScaleUIPx(34))
+        thumb_w = ScaleUIPx(34);
+    if(thumb_w > ScaleUIPx(56))
+        thumb_w = ScaleUIPx(56);
     thumb_h = thumb_w;
 
-    label_w = flint_text_measure(locale_get("sun_salutation_tempo_preview_label"), label_font);
-    flint_text_draw(locale_get("sun_salutation_tempo_preview_label"),
-                    x + (w - label_w) / 2, y, label_font, flint_theme_get_text());
-    y += flint_px(28);
+    label_w = MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_label"), label_font);
+    DrawUIText(GetLocaleText("sun_salutation_tempo_preview_label"),
+                    x + (w - label_w) / 2, y, label_font, GetThemeText());
+    y += ScaleUIPx(28);
 
     preview_step_ticks = app->sun_salutation.start_seconds * 60;
     if(preview_step_ticks <= 0)
@@ -183,27 +183,27 @@ draw_sun_salutation_preview(InbeApp *app, int x, int y, int w)
         int col = i % 6;
         int row = i / 6;
         int px = x + col * (thumb_w + gap) + (w - (thumb_w * 6 + gap * 5)) / 2;
-        int py = y + row * (thumb_h + flint_px(18));
+        int py = y + row * (thumb_h + ScaleUIPx(18));
         int pose_index = sun_salutation_step_pose_index(i);
         Color tint = i == active_step ? WHITE : Fade(WHITE, 0.62f);
 
-        DrawRectangle(px, py, thumb_w, thumb_h, flint_darken(flint_theme_get_bg(), 6));
+        DrawRectangle(px, py, thumb_w, thumb_h, DarkenUIColor(GetThemeBackground(), 6));
         if(i == active_step)
-            DrawRectangleLines(px, py, thumb_w, thumb_h, flint_theme_get_button_hover());
+            DrawRectangleLines(px, py, thumb_w, thumb_h, GetThemeButtonHover());
         draw_preview_pose(app->sun_salutation.poses[pose_index], px, py, thumb_w, thumb_h, tint);
         if(i < SUN_SALUTATION_STEP_COUNT - 1) {
             int next_col = (i + 1) % 6;
             if(next_col != 0)
-                DrawLine(px + thumb_w + flint_px(1), py + thumb_h / 2,
-                         px + thumb_w + gap - flint_px(1), py + thumb_h / 2,
+                DrawLine(px + thumb_w + ScaleUIPx(1), py + thumb_h / 2,
+                         px + thumb_w + gap - ScaleUIPx(1), py + thumb_h / 2,
                          muted);
         }
     }
 
-    row_y = y + thumb_h * 2 + flint_px(26);
-    if(flint_text_measure(locale_get("sun_salutation_tempo_preview_hint"),
+    row_y = y + thumb_h * 2 + ScaleUIPx(26);
+    if(MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_hint"),
                           small_font) <= w)
-        flint_text_draw(locale_get("sun_salutation_tempo_preview_hint"), x, row_y,
+        DrawUIText(GetLocaleText("sun_salutation_tempo_preview_hint"), x, row_y,
                         small_font, muted);
 }
 
@@ -222,13 +222,13 @@ sun_salutation_config_screen_draw(InbeApp *app)
         return;
     sun_salutation_normalize_settings(app);
     if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
-        title_h = flint_ui_title_bar_height();
-        if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("practice_config_title"), title_h)) {
+        title_h = GetUITitleBarHeight();
+        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("practice_config_title"), title_h)) {
             app_close_modal(app);
             return;
         }
-    } else if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN],
-                                        locale_get("practice_config_title"),
+    } else if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+                                        GetLocaleText("practice_config_title"),
                                         title_h)) {
         if(app->settings_dirty)
             save_settings(app);
@@ -238,35 +238,35 @@ sun_salutation_config_screen_draw(InbeApp *app)
         return;
     }
 
-    flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
-    y = title_h + flint_px(20);
+    GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
+    y = title_h + ScaleUIPx(20);
 
     draw_sun_salutation_preview(app, content_x, y, content_w);
-    y += sun_salutation_preview_height(content_w) + flint_px(16);
+    y += sun_salutation_preview_height(content_w) + ScaleUIPx(16);
 
     repetitions = app->sun_salutation.repetitions;
-    if(ui_draw_slider(610, content_x, y, content_w,
-                      locale_get("sun_salutation_repetitions_label"),
+    if(DrawUISlider(610, content_x, y, content_w,
+                      GetLocaleText("sun_salutation_repetitions_label"),
                       2, 12, &repetitions, "x")) {
         app->sun_salutation.repetitions = repetitions;
         save_settings(app);
     }
-    y += flint_px(74);
+    y += ScaleUIPx(74);
 
     start_seconds = app->sun_salutation.start_seconds;
-    if(ui_draw_slider(611, content_x, y, content_w,
-                      locale_get("sun_salutation_start_speed_label"),
+    if(DrawUISlider(611, content_x, y, content_w,
+                      GetLocaleText("sun_salutation_start_speed_label"),
                       SUN_SALUTATION_SECONDS_MIN, SUN_SALUTATION_SECONDS_MAX,
                       &start_seconds, "s")) {
         app->sun_salutation.start_seconds = start_seconds;
         sun_salutation_normalize_settings(app);
         save_settings(app);
     }
-    y += flint_px(74);
+    y += ScaleUIPx(74);
 
     end_seconds = app->sun_salutation.end_seconds;
-    if(ui_draw_slider(612, content_x, y, content_w,
-                      locale_get("sun_salutation_end_speed_label"),
+    if(DrawUISlider(612, content_x, y, content_w,
+                      GetLocaleText("sun_salutation_end_speed_label"),
                       SUN_SALUTATION_SECONDS_MIN, app->sun_salutation.start_seconds,
                       &end_seconds, "s")) {
         app->sun_salutation.end_seconds = end_seconds;

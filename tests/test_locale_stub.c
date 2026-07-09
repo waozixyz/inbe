@@ -1,7 +1,7 @@
 #include <string.h>
 
 const char *
-locale_get(const char *key)
+GetLocaleText(const char *key)
 {
     if(key == NULL)
         return "";

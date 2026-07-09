@@ -1,10 +1,10 @@
 #include "manual_screen.h"
 
 #include "app.h"
-#include "flint_locale.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "ui.h"
 #include "practices/practice_registry.h"
-#include "flint_theme.h"
+#include "theme.h"
 #include <stdio.h>
 
 extern int view_width;
@@ -54,7 +54,7 @@ manual_screen_guide_update_page(InbeApp *app, int page_count,
 int
 manual_screen_guide_nav_height(void)
 {
-    return flint_px(42);
+    return ScaleUIPx(42);
 }
 
 void
@@ -69,7 +69,7 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     int inner_x;
     int button_y;
     char page_text[32];
-    int font = flint_ui_font();
+    int font = GetUIFontSize();
     int text_w;
 
     if(app == NULL || nav.page_count <= 1 || nav.start == NULL)
@@ -77,29 +77,29 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
 
     page = clampi(nav.page, 0, nav.page_count - 1);
     h = nav.h > 0 ? nav.h : manual_screen_guide_nav_height();
-    button_size = view_width < flint_px(360) ? flint_px(32) : flint_px(36);
-    button_pad = flint_px(8);
-    max_inner_w = flint_px(260);
-    inner_w = view_width - flint_px(24);
+    button_size = view_width < ScaleUIPx(360) ? ScaleUIPx(32) : ScaleUIPx(36);
+    button_pad = ScaleUIPx(8);
+    max_inner_w = ScaleUIPx(260);
+    inner_w = view_width - ScaleUIPx(24);
     if(inner_w > max_inner_w)
         inner_w = max_inner_w;
-    if(inner_w < button_size * 2 + flint_px(72))
-        inner_w = button_size * 2 + flint_px(72);
+    if(inner_w < button_size * 2 + ScaleUIPx(72))
+        inner_w = button_size * 2 + ScaleUIPx(72);
     if(inner_w > view_width)
         inner_w = view_width;
     inner_x = (view_width - inner_w) / 2;
     button_y = nav.y + (h - button_size) / 2;
 
-    DrawRectangle(0, nav.y, view_width, h, flint_darken(flint_theme_get_bg(), 5));
+    DrawRectangle(0, nav.y, view_width, h, DarkenUIColor(GetThemeBackground(), 5));
     DrawLine(0, nav.y + h - 1, view_width, nav.y + h - 1,
-             flint_darken(flint_theme_get_bg(), 28));
+             DarkenUIColor(GetThemeBackground(), 28));
 
     if(page > 0) {
-        if(flint_ui_icon_button((FlintUIIconButton){
+        if(DrawUIIconButton((UIIconButton){
                .bounds = {(float)inner_x, (float)button_y,
                           (float)button_size, (float)button_size},
                .icon = app->icons[UI_ICON_TYPE_BACKWARD],
-               .icon_size = flint_px(20),
+               .icon_size = ScaleUIPx(20),
                .icon_padding = button_pad,
            })) {
             app->tutorial_step = page - 1;
@@ -108,17 +108,17 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     }
 
     snprintf(page_text, sizeof(page_text), "%d/%d", page + 1, nav.page_count);
-    text_w = flint_text_measure(page_text, font);
-    flint_text_draw(page_text, inner_x + (inner_w - text_w) / 2,
-                    flint_text_y(page_text, nav.y, h, font), font,
-                    flint_theme_get_text());
+    text_w = MeasureUIText(page_text, font);
+    DrawUIText(page_text, inner_x + (inner_w - text_w) / 2,
+                    GetUITextY(page_text, nav.y, h, font), font,
+                    GetThemeText());
 
-    if(flint_ui_icon_button((FlintUIIconButton){
+    if(DrawUIIconButton((UIIconButton){
            .bounds = {(float)(inner_x + inner_w - button_size), (float)button_y,
                       (float)button_size, (float)button_size},
            .icon = app->icons[page >= nav.page_count - 1 ? UI_ICON_TYPE_CHECK
                                                           : UI_ICON_TYPE_FORWARD],
-           .icon_size = flint_px(20),
+           .icon_size = ScaleUIPx(20),
            .icon_padding = button_pad,
        })) {
         if(page == nav.page_count - 1) {

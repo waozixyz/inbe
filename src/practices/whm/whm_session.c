@@ -2,10 +2,10 @@
 #include "platform.h"
 
 #include "data.h"
-#include "flint_locale.h"
-#include "flint_theme.h"
-#include "flint_dpi.h"
-#include "flint_ui.h"
+#include "locale.h"
+#include "theme.h"
+#include "ui_dpi.h"
+#include "ui.h"
 #include "practices/meditation/meditation_music.h"
 #include "practices/practice_registry.h"
 
@@ -114,15 +114,15 @@ update_preview_bounds(Inbe *inbe, int content_w, int content_h)
         span = content_h;
 
     rmax = span / 2;
-    if(rmax < flint_px(60))
-        rmax = flint_px(60);
-    if(rmax > flint_px(120))
-        rmax = flint_px(120);
+    if(rmax < ScaleUIPx(60))
+        rmax = ScaleUIPx(60);
+    if(rmax > ScaleUIPx(120))
+        rmax = ScaleUIPx(120);
     rmin = rmax / 2;
-    if(rmin < flint_px(24))
-        rmin = flint_px(24);
-    if(rmin > rmax - flint_px(10))
-        rmin = rmax - flint_px(10);
+    if(rmin < ScaleUIPx(24))
+        rmin = ScaleUIPx(24);
+    if(rmin > rmax - ScaleUIPx(10))
+        rmin = rmax - ScaleUIPx(10);
     set_circle_bounds(inbe, rmin, rmax);
 }
 
@@ -170,7 +170,7 @@ session_update_notification(InbeApp *app)
         return;
 
     if(app->inbe.screen == InbeScreenResults) {
-        locale_format(text, sizeof(text), "notification_results");
+        FormatLocaleText(text, sizeof(text), "notification_results");
         goto update;
     }
     if(app->inbe.screen != InbeScreenSession)
@@ -179,16 +179,16 @@ session_update_notification(InbeApp *app)
     count = int_from_count(app->inbe.count);
     switch(app->inbe.phase) {
     case InbePhaseBreathe:
-        locale_format(text, sizeof(text), "notification_breathing_count", count);
+        FormatLocaleText(text, sizeof(text), "notification_breathing_count", count);
         break;
     case InbePhaseHold:
-        locale_format(text, sizeof(text), "notification_hold_seconds", count);
+        FormatLocaleText(text, sizeof(text), "notification_hold_seconds", count);
         break;
     case InbePhaseRecover:
-        locale_format(text, sizeof(text), "notification_breath_in_seconds", count);
+        FormatLocaleText(text, sizeof(text), "notification_breath_in_seconds", count);
         break;
     case InbePhaseStarting:
-        locale_format(text, sizeof(text), "notification_starting_seconds",
+        FormatLocaleText(text, sizeof(text), "notification_starting_seconds",
                       app->inbe.pause_seconds > 0
                           ? app->inbe.pause_seconds - app->inbe.sectick / 60
                           : 0);
@@ -301,7 +301,7 @@ session_start(InbeApp *app)
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     app->saved_pause_seconds = app->inbe.pause_seconds;
     app->inbe.pause_seconds = 3;
-    session_update_circle_bounds_for_view(&app->inbe, flint_ui_title_bar_height(), flint_px(56) + 80);
+    session_update_circle_bounds_for_view(&app->inbe, GetUITitleBarHeight(), ScaleUIPx(56) + 80);
     app_switch_screen(app, InbeScreenSession);
     app->session_paused = 0;
     app->results_saved = 0;
@@ -454,7 +454,7 @@ session_step_back(InbeApp *app)
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
     app->saved_pause_seconds = pause_seconds;
     app->inbe.pause_seconds = 3;
-    session_update_circle_bounds_for_view(&app->inbe, flint_ui_title_bar_height(), flint_px(56) + 80);
+    session_update_circle_bounds_for_view(&app->inbe, GetUITitleBarHeight(), ScaleUIPx(56) + 80);
     app->inbe.screen = InbeScreenSession;
     app->session_paused = 0;
     app->results_saved = 0;
@@ -497,42 +497,42 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 {
     char text[CountSize];
     int count;
-    int font = FLINT_TEXT_16;
+    int font = UI_TEXT_16;
     Color text_color = app->inbe.phase == InbePhaseHold &&
                        app->hold_display_mode == HOLD_DISPLAY_CIRCLE
-                           ? text_color_for_background(flint_theme_get_bg())
-                           :  text_color_for_background(flint_theme_get_circle());
+                           ? text_color_for_background(GetThemeBackground())
+                           :  text_color_for_background(GetThemeCircle());
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
-            flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
+            DrawCenteredUIControlText("000", center_x, center_y, font, text_color);
             return;
         }
 
         count = int_from_count(app->inbe.count);
         if(count < 15) {
             count_from_int(text, 15 - count);
-            flint_ui_draw_text_centered(text, center_x, center_y, font, text_color);
+            DrawCenteredUIControlText(text, center_x, center_y, font, text_color);
             return;
         }
-        flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
+        DrawCenteredUIControlText("000", center_x, center_y, font, text_color);
         return;
     }
 
     if(app->inbe.phase == InbePhaseNext) {
-        flint_ui_draw_text_centered("000", center_x, center_y, font, text_color);
+        DrawCenteredUIControlText("000", center_x, center_y, font, text_color);
         return;
     }
 
-    flint_ui_draw_text_centered(app->inbe.count, center_x, center_y, font, text_color);
+    DrawCenteredUIControlText(app->inbe.count, center_x, center_y, font, text_color);
 }
 
 int
 draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
 {
-    const char *labels[2] = {locale_get("hold_display_circle"), locale_get("hold_display_stopwatch")};
+    const char *labels[2] = {GetLocaleText("hold_display_circle"), GetLocaleText("hold_display_stopwatch")};
     int selected = clampi(app->hold_display_mode, HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH);
-    int h = flint_px(36);
+    int h = ScaleUIPx(36);
     int segment_w = w / 2;
     int clicked = 0;
     Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
@@ -542,35 +542,35 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int current_w = i == 1 ? x + w - segment_x : segment_w;
         Rectangle rect = {segment_x, y, current_w, h};
         int active_hit = CheckCollisionPointRec(mouse_world, rect) &&
-                         !ui_input_captures_click(mouse_world);
-        int hovered = active_hit && ui_hover_effects_enabled();
+                         !UIInputCapturesClick(mouse_world);
+        int hovered = active_hit && UIHoverEffectsEnabled();
         int active = i == selected;
-        Color fill = active ? flint_theme_get_button() : flint_darken(flint_theme_get_bg(), 10);
-        Color top = flint_lighten(fill, 35);
-        Color bottom = flint_darken(fill, 45);
-        int font = flint_ui_font();
+        Color fill = active ? GetThemeButton() : DarkenUIColor(GetThemeBackground(), 10);
+        Color top = LightenUIColor(fill, 35);
+        Color bottom = DarkenUIColor(fill, 45);
+        int font = GetUIFontSize();
         int text_w;
 
         if(active_hit) {
             app->cursor_clickable = 1;
             if(hovered && !active) {
-                fill = flint_theme_get_button_hover();
-                top = flint_darken(flint_theme_get_button_hover(), 40);
-                bottom = flint_lighten(flint_theme_get_button_hover(), 40);
+                fill = GetThemeButtonHover();
+                top = DarkenUIColor(GetThemeButtonHover(), 40);
+                bottom = LightenUIColor(GetThemeButtonHover(), 40);
             }
         }
 
         DrawRectangle(segment_x, y, current_w, h, fill);
-        ui_draw_bevel(segment_x, y, current_w, h, top, bottom);
+        DrawUIBevel(segment_x, y, current_w, h, top, bottom);
 
-        if(flint_text_measure(labels[i], font) > current_w - flint_px(12))
-            font = FLINT_TEXT_12;
-        text_w = flint_text_measure(labels[i], font);
-        flint_text_draw(labels[i], segment_x + (current_w - text_w) / 2,
-                        flint_ui_text_y(labels[i], y, h, font), font, flint_theme_get_text());
+        if(MeasureUIText(labels[i], font) > current_w - ScaleUIPx(12))
+            font = UI_TEXT_12;
+        text_w = MeasureUIText(labels[i], font);
+        DrawUIText(labels[i], segment_x + (current_w - text_w) / 2,
+                        GetUIControlTextY(labels[i], y, h, font), font, GetThemeText());
 
         if(active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !ui_input_captures_click(mouse_world) && selected != i) {
+           !UIInputCapturesClick(mouse_world) && selected != i) {
             app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH;
             app->settings_dirty = 1;
             clicked = 1;
@@ -589,15 +589,15 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
     int completed_minutes = total_frames / minute_frames;
     int frame_in_minute = total_frames % minute_frames;
     float sweep = 360.0f * (float)frame_in_minute / (float)minute_frames;
-    int thickness = flint_px(5);
-    int gap = flint_px(18);
-    int radius = app->inbe.r + flint_px(12);
+    int thickness = ScaleUIPx(5);
+    int gap = ScaleUIPx(18);
+    int radius = app->inbe.r + ScaleUIPx(12);
     int min_radius = app->inbe.r / 2;
 
     if(thickness < 3)
         thickness = 3;
-    if(min_radius < flint_px(16))
-        min_radius = flint_px(16);
+    if(min_radius < ScaleUIPx(16))
+        min_radius = ScaleUIPx(16);
 
     for(int i = 0; i <= completed_minutes; i++) {
         int ring_radius = radius - i * gap;
@@ -606,10 +606,10 @@ draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
 
         if(i < completed_minutes) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, flint_theme_get_text());
+                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, GetThemeText());
         } else if(sweep > 0.0f) {
             DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, flint_theme_get_text());
+                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, GetThemeText());
         }
     }
 }
@@ -622,9 +622,9 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
     if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
         draw_hold_progress_outline(app, center_x, center_y);
     } else {
-        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, flint_theme_get_circle());
+        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, GetThemeCircle());
         DrawRing((Vector2){(float)center_x, (float)center_y}, radius - 0.75f,
-                 radius + 0.75f, 0.0f, 360.0f, 96, flint_theme_get_text());
+                 radius + 0.75f, 0.0f, 360.0f, 96, GetThemeText());
     }
     draw_session_counter(app, center_x, center_y);
 }
@@ -637,28 +637,28 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     int hovered = 0;
     int clicked = 0;
     int released = IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    const char *play_text = locale_get("play_button");
+    const char *play_text = GetLocaleText("play_button");
     const char *practice_text = practice_label(app->exercise_type);
-    const char *warning_text = locale_get("sun_salutation_work_in_progress");
-    int font = FLINT_TEXT_16;
-    int practice_font = flint_ui_font();
-    int warning_font = flint_ui_font_small();
+    const char *warning_text = GetLocaleText("sun_salutation_work_in_progress");
+    int font = UI_TEXT_16;
+    int practice_font = GetUIFontSize();
+    int warning_font = GetUISmallFontSize();
     int practice_w;
     int practice_y;
     int warning_w;
     int warning_y;
     float scale = 1.0f;
 
-    int radius = flint_px(44);
+    int radius = ScaleUIPx(44);
 
     // Circular hover detection for all exercises
     float dx = mouse_world.x - center_x;
     float dy = mouse_world.y - center_y;
     float dist_sq = dx * dx + dy * dy;
 
-    if(dist_sq <= radius * radius && !ui_input_captures_click(mouse_world)) {
+    if(dist_sq <= radius * radius && !UIInputCapturesClick(mouse_world)) {
         active = 1;
-        hovered = ui_hover_effects_enabled();
+        hovered = UIHoverEffectsEnabled();
         app->play_circle_hover = hovered;
     } else {
         app->play_circle_hover = 0;
@@ -678,29 +678,29 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     }
 
     int scaled_radius = (int)(radius * scale);
-    practice_w = flint_text_measure(practice_text, practice_font);
-    if(practice_w > view_width - flint_px(48))
-        practice_font = flint_ui_font_small();
-    practice_w = flint_text_measure(practice_text, practice_font);
-    practice_y = center_y - scaled_radius - flint_px(42);
-    if(practice_y < flint_px(8))
-        practice_y = flint_px(8);
-    flint_text_draw(practice_text, center_x - practice_w / 2,
-                    flint_ui_text_y(practice_text, practice_y, flint_px(32), practice_font),
-                    practice_font, flint_theme_get_text());
+    practice_w = MeasureUIText(practice_text, practice_font);
+    if(practice_w > view_width - ScaleUIPx(48))
+        practice_font = GetUISmallFontSize();
+    practice_w = MeasureUIText(practice_text, practice_font);
+    practice_y = center_y - scaled_radius - ScaleUIPx(42);
+    if(practice_y < ScaleUIPx(8))
+        practice_y = ScaleUIPx(8);
+    DrawUIText(practice_text, center_x - practice_w / 2,
+                    GetUIControlTextY(practice_text, practice_y, ScaleUIPx(32), practice_font),
+                    practice_font, GetThemeText());
 
-    DrawCircle(center_x, center_y, scaled_radius, flint_theme_get_circle());
-    DrawCircleLines(center_x, center_y, scaled_radius, flint_theme_get_text());
+    DrawCircle(center_x, center_y, scaled_radius, GetThemeCircle());
+    DrawCircleLines(center_x, center_y, scaled_radius, GetThemeText());
 
     // Draw PLAY text in center
-    flint_ui_draw_text_centered(play_text, center_x, center_y, font,  text_color_for_background(flint_theme_get_circle()));
+    DrawCenteredUIControlText(play_text, center_x, center_y, font,  text_color_for_background(GetThemeCircle()));
 
     if(app->exercise_type == EXERCISE_SUN_SALUTATION) {
-        warning_w = flint_text_measure(warning_text, warning_font);
-        warning_y = center_y + scaled_radius + flint_px(14);
-        flint_text_draw(warning_text, center_x - warning_w / 2,
-                        flint_ui_text_y(warning_text, warning_y, flint_px(28), warning_font),
-                        warning_font, flint_theme_get_text());
+        warning_w = MeasureUIText(warning_text, warning_font);
+        warning_y = center_y + scaled_radius + ScaleUIPx(14);
+        DrawUIText(warning_text, center_x - warning_w / 2,
+                        GetUIControlTextY(warning_text, warning_y, ScaleUIPx(28), warning_font),
+                        warning_font, GetThemeText());
     }
 
     if(active) {
@@ -719,7 +719,7 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     int remaining;
     int max_text_w;
     int text_y;
-    int font = FLINT_TEXT_16;
+    int font = UI_TEXT_16;
 
     if(app->inbe.phase != InbePhaseStarting)
         return;
@@ -732,13 +732,13 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     if(remaining < 1)
         remaining = 1;
 
-    locale_format(max_text, sizeof(max_text), "starting_in", 30);
-    max_text_w = flint_text_measure(max_text, font);
-    locale_format(text, sizeof(text), "starting_in", remaining);
-    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - flint_px(40);
-    if(text_y < flint_px(20))
-        text_y = flint_px(20);
-    flint_text_draw(text, center_x - max_text_w / 2, text_y, font, flint_theme_get_text());
+    FormatLocaleText(max_text, sizeof(max_text), "starting_in", 30);
+    max_text_w = MeasureUIText(max_text, font);
+    FormatLocaleText(text, sizeof(text), "starting_in", remaining);
+    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ScaleUIPx(40);
+    if(text_y < ScaleUIPx(20))
+        text_y = ScaleUIPx(20);
+    DrawUIText(text, center_x - max_text_w / 2, text_y, font, GetThemeText());
 }
 
 static void
@@ -746,16 +746,16 @@ session_round_label(InbeApp *app, char *text, size_t text_size)
 {
     if(text == NULL || text_size == 0)
         return;
-    locale_format(text, text_size, "session_round_label", app->inbe.round + 1);
+    FormatLocaleText(text, text_size, "session_round_label", app->inbe.round + 1);
 }
 
 void
 draw_preview_inbe(Inbe *inbe, int center_x, int center_y)
 {
     float r = draw_radius(inbe) * 0.72f;
-    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, flint_theme_get_circle());
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, GetThemeCircle());
     DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
-             0.0f, 360.0f, 96, flint_theme_get_text());
+             0.0f, 360.0f, 96, GetThemeText());
 }
 
 static Texture2D
@@ -778,13 +778,13 @@ stop_android_background_session(InbeApp *app)
 void
 session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 {
-    int breath_max_y = view_height - flint_px(44);
-    int title_h = flint_ui_title_bar_height();
+    int breath_max_y = view_height - ScaleUIPx(44);
+    int title_h = GetUITitleBarHeight();
     char title[32];
 
     session_round_label(app, title, sizeof(title));
     if(app->show_session_return_button &&
-       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
+       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             app_init(app);
@@ -792,23 +792,23 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             app_open_modal(app, UIModalConfirmExitSession);
         }
     } else if(!app->show_session_return_button) {
-        flint_ui_title_bar(title, title_h);
+        DrawUITitleBar(title, title_h);
     }
 
     if(app->show_session_volume_control) {
-        if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
+        if(DrawUIIconSliderPopup((UIIconSliderPopup){
                .id = 500,
-               .x = view_width - flint_px(56),
-               .y = (title_h - (flint_px(24) + flint_px(10) * 2)) / 2,
-               .icon_size = flint_px(24),
-               .icon_padding = flint_px(10),
+               .x = view_width - ScaleUIPx(56),
+               .y = (title_h - (ScaleUIPx(24) + ScaleUIPx(10) * 2)) / 2,
+               .icon_size = ScaleUIPx(24),
+               .icon_padding = ScaleUIPx(10),
                .icon = sound_icon_for_volume(app),
                .open = &app->volume_popup_active,
                .value = &app->sound_volume,
                .min = SETTINGS_VOLUME_MIN,
                .max = SETTINGS_VOLUME_MAX,
-               .popup_width = flint_px(44),
-               .popup_height = flint_px(200)
+               .popup_width = ScaleUIPx(44),
+               .popup_height = ScaleUIPx(200)
            })) {
             app->settings_dirty = 1;
             update_session_sounds(app);
@@ -821,8 +821,8 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
         SessionExitModalResult result =
             app_draw_session_exit_modal(session_has_completed_rounds(app),
-                                        locale_get("save_completed_rounds_message"),
-                                        locale_get("all_progress_lost_message"));
+                                        GetLocaleText("save_completed_rounds_message"),
+                                        GetLocaleText("all_progress_lost_message"));
         if(result == SessionExitModalCancel) {
             app_close_modal(app);
         } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
@@ -837,29 +837,29 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 
     if(app->advanced_session_controls) {
         int min_view_dim = view_width < view_height ? view_width : view_height;
-        FlintUIIconRowItem controls[] = {
+        UIIconRowItem controls[] = {
             {app->icons[UI_ICON_TYPE_BACKWARD], 0},
             {app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE], 0},
             {app->icons[UI_ICON_TYPE_FORWARD], 0}
         };
-        FlintUIIconRowResult row = ui_draw_bottom_icon_row((FlintUIBottomIconRow){
+        UIIconRowResult row = DrawUIBottomIconRow((UIBottomIconRow){
             .center_x = center_x,
             .view_width = view_width,
             .view_height = view_height,
             .count = 3,
             .items = controls,
-            .icon_size = flint_px(24),
-            .icon_padding = flint_px(10),
-            .gap = flint_px(12),
-            .side_margin = flint_px(24),
-            .bottom_margin = flint_px(6),
+            .icon_size = ScaleUIPx(24),
+            .icon_padding = ScaleUIPx(10),
+            .gap = ScaleUIPx(12),
+            .side_margin = ScaleUIPx(24),
+            .bottom_margin = ScaleUIPx(6),
             .max_button_width = min_view_dim / 6,
-            .min_icon_size = flint_px(16),
-            .min_icon_padding = flint_px(6),
-            .min_gap = flint_px(8)
+            .min_icon_size = ScaleUIPx(16),
+            .min_icon_padding = ScaleUIPx(6),
+            .min_gap = ScaleUIPx(8)
         });
 
-        breath_max_y = row.y - flint_px(44);
+        breath_max_y = row.y - ScaleUIPx(44);
         if(row.clicked_index == 0)
             session_step_back(app);
         else if(row.clicked_index == 1)
@@ -893,24 +893,24 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         app->breath_tap_last_time = 0.0;
 
     if(app->inbe.phase == InbePhaseHold) {
-        const char *breath_label = locale_get("breath_button");
-        int breath_font = FLINT_TEXT_16;
-        int breath_w = flint_text_measure(breath_label, breath_font) + flint_px(72);
-        int breath_h = flint_text_line_height(breath_font) + flint_px(28);
-        int breath_y = center_y + app->inbe.rmax - flint_px(2);
+        const char *breath_label = GetLocaleText("breath_button");
+        int breath_font = UI_TEXT_16;
+        int breath_w = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72);
+        int breath_h = GetUITextLineHeight(breath_font) + ScaleUIPx(28);
+        int breath_y = center_y + app->inbe.rmax - ScaleUIPx(2);
         int breath_x;
         int breath_hover = 0;
 
         if(app->double_tap_to_breathe) {
-            const char *hint = locale_get("double_tap_to_breathe_hint");
-            int hint_font = flint_ui_font();
-            int hint_w = flint_text_measure(hint, hint_font);
-            int hint_y = center_y + app->inbe.rmax + flint_px(12);
+            const char *hint = GetLocaleText("double_tap_to_breathe_hint");
+            int hint_font = GetUIFontSize();
+            int hint_w = MeasureUIText(hint, hint_font);
+            int hint_y = center_y + app->inbe.rmax + ScaleUIPx(12);
 
             if(hint_y > breath_max_y)
                 hint_y = breath_max_y;
-            flint_text_draw(hint, center_x - hint_w / 2, hint_y, hint_font,
-                            flint_theme_get_text());
+            DrawUIText(hint, center_x - hint_w / 2, hint_y, hint_font,
+                            GetThemeText());
             if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
                 double now = GetTime();
                 if(app->breath_tap_last_time > 0.0 &&
@@ -924,14 +924,14 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
             return;
         }
 
-        if(breath_w < flint_px(184))
-            breath_w = flint_px(184);
-        if(breath_w > view_width - flint_px(24))
-            breath_w = view_width - flint_px(24);
+        if(breath_w < ScaleUIPx(184))
+            breath_w = ScaleUIPx(184);
+        if(breath_w > view_width - ScaleUIPx(24))
+            breath_w = view_width - ScaleUIPx(24);
         if(breath_y > breath_max_y)
             breath_y = breath_max_y;
         breath_x = center_x - breath_w / 2;
-        if(ui_draw_generic_button(breath_x, breath_y, breath_w, breath_h,
+        if(DrawUIGenericButton(breath_x, breath_y, breath_w, breath_h,
                                   breath_label, UI_BUTTON_STYLE_PRIMARY, 0,
                                   &breath_hover))
             finish_hold(app);
@@ -944,17 +944,17 @@ void
 session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover)
 {
     int box_x;
-    int box_y = flint_px(78);
+    int box_y = ScaleUIPx(78);
     int box_w;
-    int row_y = flint_px(215);
-    int row_h = flint_px(32);
+    int row_y = ScaleUIPx(215);
+    int row_h = ScaleUIPx(32);
     int total = 0;
     int best = -1;
     int round_times[MaxRounds];
     int rounds = collect_result_rounds(app, round_times, MaxRounds);
     int discard_hover = 0;
     int save_hover = 0;
-    int action_y = view_height - flint_px(40);
+    int action_y = view_height - ScaleUIPx(40);
     int title_font;
     int title_w;
 
@@ -966,14 +966,14 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
     }
 
     int responsive_max_w = (int)(view_width * 0.96f);
-    int min_content_w = flint_px(320);
+    int min_content_w = ScaleUIPx(320);
     if(responsive_max_w < min_content_w)
         responsive_max_w = min_content_w;
-    flint_centered_column(responsive_max_w, flint_page_side_padding(), &box_x, &box_w);
+    GetUICenteredColumn(responsive_max_w, GetUIPageSidePadding(), &box_x, &box_w);
 
-    title_font = flint_ui_title_font(locale_get("results_title"), view_width - flint_px(48));
-    title_w = flint_text_measure(locale_get("results_title"), title_font);
-    flint_text_draw(locale_get("results_title"), center_x - title_w / 2, flint_px(34), title_font, flint_theme_get_text());
+    title_font = GetUITitleFontSize(GetLocaleText("results_title"), view_width - ScaleUIPx(48));
+    title_w = MeasureUIText(GetLocaleText("results_title"), title_font);
+    DrawUIText(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText());
 
     for(int i = 0; i < rounds; i++) {
         int seconds = round_times[i];
@@ -986,59 +986,59 @@ session_draw_results_screen(InbeApp *app, int center_x, int center_y, int *hover
 
     {
         char lines[3][64];
-        FlintUIInfoRow rows[3];
-        int summary_font = FLINT_TEXT_16;
+        UIInfoRow rows[3];
+        int summary_font = UI_TEXT_16;
 
-        locale_format(lines[0], sizeof(lines[0]), "results_rounds", rounds);
-        locale_format(lines[1], sizeof(lines[1]), "results_best", best);
-        locale_format(lines[2], sizeof(lines[2]), "results_avg",
+        FormatLocaleText(lines[0], sizeof(lines[0]), "results_rounds", rounds);
+        FormatLocaleText(lines[1], sizeof(lines[1]), "results_best", best);
+        FormatLocaleText(lines[2], sizeof(lines[2]), "results_avg",
                       rounds > 0 ? total / rounds : 0);
-        if(view_width < 420 && flint_text_measure(lines[2], summary_font) > box_w - flint_px(20))
+        if(view_width < 420 && MeasureUIText(lines[2], summary_font) > box_w - ScaleUIPx(20))
             snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0);
         for(int i = 0; i < 3; i++)
-            rows[i] = (FlintUIInfoRow){lines[i], summary_font, flint_theme_get_text()};
-        ui_draw_info_rows((FlintUIInfoRows){
+            rows[i] = (UIInfoRow){lines[i], summary_font, GetThemeText()};
+        DrawUIInfoRows((UIInfoRows){
             .x = box_x,
             .y = box_y,
             .width = box_w,
-            .row_height = flint_px(29),
+            .row_height = ScaleUIPx(29),
             .rows = rows,
             .row_count = 3,
-            .background = flint_darken(flint_theme_get_bg(), 6),
-            .separator = flint_darken(flint_theme_get_bg(), 30),
-            .default_text = flint_theme_get_text()
+            .background = DarkenUIColor(GetThemeBackground(), 6),
+            .separator = DarkenUIColor(GetThemeBackground(), 30),
+            .default_text = GetThemeText()
         });
     }
 
-    flint_ui_draw_text_left_in_rect(locale_get("round_times_title"),
-                                    (Rectangle){(float)box_x, (float)flint_px(181),
-                                                (float)box_w, (float)flint_px(28)},
-                                    flint_ui_font(), flint_darken(flint_theme_get_text(), 20));
+    DrawLeftUIControlTextInRect(GetLocaleText("round_times_title"),
+                                    (Rectangle){(float)box_x, (float)ScaleUIPx(181),
+                                                (float)box_w, (float)ScaleUIPx(28)},
+                                    GetUIFontSize(), DarkenUIColor(GetThemeText(), 20));
     for(int i = 0; i < rounds; i++) {
         char row[48];
-        FlintUIInfoRow info_row;
-        int row_font = flint_ui_font();
-        locale_format(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
-        info_row = (FlintUIInfoRow){row, row_font, flint_theme_get_text()};
-        ui_draw_info_rows((FlintUIInfoRows){
+        UIInfoRow info_row;
+        int row_font = GetUIFontSize();
+        FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i]);
+        info_row = (UIInfoRow){row, row_font, GetThemeText()};
+        DrawUIInfoRows((UIInfoRows){
             .x = box_x,
             .y = row_y - 1,
             .width = box_w,
             .row_height = row_h,
             .rows = &info_row,
             .row_count = 1,
-            .background = flint_darken(flint_theme_get_bg(), 4),
-            .separator = flint_darken(flint_theme_get_bg(), 26),
-            .default_text = flint_theme_get_text()
+            .background = DarkenUIColor(GetThemeBackground(), 4),
+            .separator = DarkenUIColor(GetThemeBackground(), 26),
+            .default_text = GetThemeText()
         });
         row_y += row_h;
     }
 
-    if(ui_draw_text_btn(center_x - box_w / 4, action_y, locale_get("discard_button"), &discard_hover)) {
+    if(DrawUITextButton(center_x - box_w / 4, action_y, GetLocaleText("discard_button"), &discard_hover)) {
         session_discard_saved_results(app);
         app_init(app);
     }
-    if(ui_draw_text_btn(center_x + box_w / 4, action_y, locale_get("save_results_button"), &save_hover)) {
+    if(DrawUITextButton(center_x + box_w / 4, action_y, GetLocaleText("save_results_button"), &save_hover)) {
         if(session_ensure_results_saved(app))
             app_init(app);
     }

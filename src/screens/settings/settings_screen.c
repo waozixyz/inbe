@@ -2,14 +2,14 @@
 
 #include "app.h"
 #include "app_settings.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "settings_about.h"
 #include "settings_data.h"
 #include "settings_device.h"
 #include "settings_session.h"
 #include "settings_theme.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 #include <stdio.h>
 #include <string.h>
@@ -71,16 +71,16 @@ settings_draw_status(int x, int *y)
     if(unified_status[0] == '\0')
         return;
 
-    status_font = flint_ui_font_small();
-    status_color = (unified_status_type == 2) ? RED : flint_theme_get_text();
+    status_font = GetUISmallFontSize();
+    status_color = (unified_status_type == 2) ? RED : GetThemeText();
 
-    flint_text_draw(unified_status, x, *y, status_font, status_color);
-    *y += flint_px(18);
+    DrawUIText(unified_status, x, *y, status_font, status_color);
+    *y += ScaleUIPx(18);
 
     if(unified_detail[0] != '\0') {
-        flint_text_draw(unified_detail, x, *y, status_font,
-                        flint_darken(flint_theme_get_text(), 40));
-        *y += flint_px(18);
+        DrawUIText(unified_detail, x, *y, status_font,
+                        DarkenUIColor(GetThemeText(), 40));
+        *y += ScaleUIPx(18);
     }
 }
 
@@ -110,7 +110,7 @@ static int
 settings_overview_content_height(int content_w)
 {
     (void)content_w;
-    return flint_px(250);
+    return ScaleUIPx(250);
 }
 
 typedef struct SettingsScrollPageContext {
@@ -122,9 +122,9 @@ static int
 settings_scroll_page_content_height(int content_w, void *user_data)
 {
     SettingsScrollPageContext *ctx = user_data;
-    int planned_content_w = content_w - flint_px(16);
+    int planned_content_w = content_w - ScaleUIPx(16);
 
-    if(planned_content_w < flint_px(160))
+    if(planned_content_w < ScaleUIPx(160))
         planned_content_w = content_w;
     if(ctx->tab == SETTINGS_TAB_OVERVIEW)
         return settings_overview_content_height(planned_content_w);
@@ -136,25 +136,25 @@ settings_tab_label(int tab)
 {
     switch(tab) {
     case SETTINGS_TAB_SESSION:
-        return locale_get("settings_section_session");
+        return GetLocaleText("settings_section_session");
     case SETTINGS_TAB_DEVICE:
-        return locale_get("settings_tab_device");
+        return GetLocaleText("settings_tab_device");
     case SETTINGS_TAB_THEME:
-        return locale_get("settings_section_appearance");
+        return GetLocaleText("settings_section_appearance");
     case SETTINGS_TAB_ABOUT:
-        return locale_get("settings_tab_about");
+        return GetLocaleText("settings_tab_about");
     default:
-        return locale_get("settings_title");
+        return GetLocaleText("settings_title");
     }
 }
 
 static void
 settings_draw_section_header(InbeApp *app, int tab)
 {
-    int header_h = ui_tab_bar_height();
+    int header_h = GetUITabBarHeight();
     const char *title = settings_tab_label(tab);
 
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], title, header_h)) {
+    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, header_h)) {
         app->settings_tab = SETTINGS_TAB_OVERVIEW;
         app->settings_scroll = 0;
         if(app->modal.type == UIModalThemePicker)
@@ -172,11 +172,11 @@ settings_draw_overview(InbeApp *app, int x, int w, int *y)
         SETTINGS_TAB_THEME,
         SETTINGS_TAB_ABOUT
     };
-    int btn_h = flint_px(40);
-    int gap = flint_px(10);
+    int btn_h = ScaleUIPx(40);
+    int gap = ScaleUIPx(10);
     int hover = 0;
     for(int i = 0; i < 4; i++) {
-        if(ui_draw_generic_button(x, *y, w, btn_h, settings_tab_label(tabs[i]),
+        if(DrawUIGenericButton(x, *y, w, btn_h, settings_tab_label(tabs[i]),
                                   UI_BUTTON_STYLE_SECONDARY, app->modal.active,
                                   &hover)) {
             app->settings_tab = tabs[i];
@@ -204,9 +204,9 @@ settings_screen_draw(InbeApp *app)
     if(settings_data_draw_pending_file_dialog(app))
         return 1;
 
-    detail_header_h = ui_tab_bar_height();
+    detail_header_h = GetUITabBarHeight();
     tab_content_start_y = detail_header_h;
-    tab_content_start_y += flint_px(SETTINGS_CONTENT_TOP_PADDING);
+    tab_content_start_y += ScaleUIPx(SETTINGS_CONTENT_TOP_PADDING);
     content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app);
 
 #if ANDROID_BUILD
@@ -219,17 +219,17 @@ settings_screen_draw(InbeApp *app)
         content_viewport_h = 0;
 
     if(app->settings_tab == SETTINGS_TAB_OVERVIEW)
-        flint_ui_title_bar(locale_get("settings_title"), detail_header_h);
+        DrawUITitleBar(GetLocaleText("settings_title"), detail_header_h);
     else
         settings_draw_section_header(app, app->settings_tab);
 
     {
         SettingsScrollPageContext page_ctx = {app, app->settings_tab};
-        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
             .y = tab_content_start_y,
             .height = content_viewport_h,
-            .max_content_width = flint_px(CONTENT_MAX_W),
-            .min_content_width = flint_px(320),
+            .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+            .min_content_width = ScaleUIPx(320),
             .scroll_offset = &app->settings_scroll,
             .content_height = settings_scroll_page_content_height,
             .user_data = &page_ctx
@@ -247,17 +247,17 @@ settings_screen_draw(InbeApp *app)
         else
             settings_about_draw(app, page.content_x, page.content_w, &y);
 
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
     }
 
-    ui_set_dropdown_clip_top(tab_content_start_y);
-    ui_set_dropdown_clip_bottom(view_height - app_content_bottom_reserved(app));
+    SetUIDropdownClipTop(tab_content_start_y);
+    SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app));
     if(app->settings_tab == SETTINGS_TAB_THEME)
         settings_theme_handle_overlays(app, &app->theme_state);
     else if(app->settings_tab == SETTINGS_TAB_DEVICE)
         settings_device_handle_overlays(app, &device_state);
-    ui_set_dropdown_clip_top(0);
-    ui_set_dropdown_clip_bottom(0);
+    SetUIDropdownClipTop(0);
+    SetUIDropdownClipBottom(0);
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && app->settings_dirty &&
        app->settings_save_delay_ticks <= 0)

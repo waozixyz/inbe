@@ -1,7 +1,7 @@
 #include "practice_registry.h"
 
 #include "app.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "practices/whm/whm_practice.h"
 #include "practices/whm/whm_session.h"
 #include "practices/meditation/meditation_practice.h"
@@ -116,7 +116,7 @@ practice_clamp_id(int id)
 const char *
 practice_label(int id)
 {
-    return locale_get(practice_get(id)->label_key);
+    return GetLocaleText(practice_get(id)->label_key);
 }
 
 const PracticeDefinition *

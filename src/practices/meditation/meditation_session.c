@@ -2,10 +2,10 @@
 
 #include "app.h"
 #include "data.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "meditation_music.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui.h"
 #include "practices/practice_registry.h"
 #include "raylib.h"
 
@@ -248,7 +248,7 @@ static int
 draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
 {
     int hover = 0;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
+    return DrawUIGenericButton(x, y, w, h, label, UI_BUTTON_STYLE_PRIMARY, 0, &hover);
 }
 
 static void
@@ -268,53 +268,53 @@ meditation_draw_setup_modal(InbeApp *app)
 {
     static const int durations[] = {5 * 60, 15 * 60, 30 * 60, 60 * 60, 2 * 60 * 60};
     const char *labels[] = {
-        locale_get("duration_5m"),
-        locale_get("duration_15m"),
-        locale_get("duration_30m"),
-        locale_get("duration_1h"),
-        locale_get("duration_2h")
+        GetLocaleText("duration_5m"),
+        GetLocaleText("duration_15m"),
+        GetLocaleText("duration_30m"),
+        GetLocaleText("duration_1h"),
+        GetLocaleText("duration_2h")
     };
-    int modal_w = flint_px(320);
-    int modal_h = flint_px(236);
+    int modal_w = ScaleUIPx(320);
+    int modal_h = ScaleUIPx(236);
     int modal_x;
     int modal_y;
     int title_font;
     int title_w;
-    int btn_h = flint_px(38);
-    int gap = flint_px(10);
-    int side = flint_px(18);
+    int btn_h = ScaleUIPx(38);
+    int gap = ScaleUIPx(10);
+    int side = ScaleUIPx(18);
     int row_y;
     int btn_w;
-    int cancel_w = flint_px(120);
+    int cancel_w = ScaleUIPx(120);
     int cancel_x;
     int cancel_y;
     int cancel_hover = 0;
 
-    if(modal_w > view_width - flint_px(24))
-        modal_w = view_width - flint_px(24);
-    if(modal_h > view_height - flint_px(24))
-        modal_h = view_height - flint_px(24);
+    if(modal_w > view_width - ScaleUIPx(24))
+        modal_w = view_width - ScaleUIPx(24);
+    if(modal_h > view_height - ScaleUIPx(24))
+        modal_h = view_height - ScaleUIPx(24);
 
     modal_x = (view_width - modal_w) / 2;
     modal_y = (view_height - modal_h) / 2;
     btn_w = (modal_w - side * 2 - gap * 2) / 3;
-    if(btn_w < flint_px(64))
-        btn_w = flint_px(64);
+    if(btn_w < ScaleUIPx(64))
+        btn_w = ScaleUIPx(64);
 
-    ui_set_modal_capture((Rectangle){
+    SetUIModalCapture((Rectangle){
         (float)modal_x, (float)modal_y, (float)modal_w, (float)modal_h
     });
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180});
-    DrawRectangle(modal_x, modal_y, modal_w, modal_h, flint_theme_get_surface());
-    ui_draw_bevel(modal_x, modal_y, modal_w, modal_h,
-                  flint_lighten(flint_theme_get_surface(), 40), flint_darken(flint_theme_get_surface(), 40));
+    DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface());
+    DrawUIBevel(modal_x, modal_y, modal_w, modal_h,
+                  LightenUIColor(GetThemeSurface(), 40), DarkenUIColor(GetThemeSurface(), 40));
 
-    title_font = flint_ui_title_font(locale_get("meditation_title"), modal_w - side * 2);
-    title_w = flint_text_measure(locale_get("meditation_title"), title_font);
-    flint_text_draw(locale_get("meditation_title"), modal_x + (modal_w - title_w) / 2,
-                    modal_y + flint_px(16), title_font, flint_theme_get_text());
+    title_font = GetUITitleFontSize(GetLocaleText("meditation_title"), modal_w - side * 2);
+    title_w = MeasureUIText(GetLocaleText("meditation_title"), title_font);
+    DrawUIText(GetLocaleText("meditation_title"), modal_x + (modal_w - title_w) / 2,
+                    modal_y + ScaleUIPx(16), title_font, GetThemeText());
 
-    row_y = modal_y + flint_px(62);
+    row_y = modal_y + ScaleUIPx(62);
     for(int i = 0; i < 3; i++) {
         int x = modal_x + side + i * (btn_w + gap);
         if(draw_meditation_duration_button(x, row_y, btn_w, btn_h, labels[i]))
@@ -329,10 +329,10 @@ meditation_draw_setup_modal(InbeApp *app)
             meditation_start(app, durations[i]);
     }
 
-    cancel_y = modal_y + modal_h - btn_h - flint_px(16);
+    cancel_y = modal_y + modal_h - btn_h - ScaleUIPx(16);
     cancel_x = modal_x + (modal_w - cancel_w) / 2;
-    if(ui_draw_generic_button(cancel_x, cancel_y, cancel_w, btn_h,
-                              locale_get("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
+    if(DrawUIGenericButton(cancel_x, cancel_y, cancel_w, btn_h,
+                              GetLocaleText("cancel_button"), UI_BUTTON_STYLE_SECONDARY,
                               0, &cancel_hover)) {
         app_close_modal(app);
     }
@@ -341,22 +341,22 @@ meditation_draw_setup_modal(InbeApp *app)
 static void
 draw_meditation_sound_controls(InbeApp *app)
 {
-    int title_h = flint_ui_title_bar_height();
+    int title_h = GetUITitleBarHeight();
 
     if(app->show_session_volume_control) {
-        if(ui_draw_icon_slider_popup((FlintUIIconSliderPopup){
+        if(DrawUIIconSliderPopup((UIIconSliderPopup){
                .id = 501,
-               .x = view_width - flint_px(56),
-               .y = (title_h - (flint_px(24) + flint_px(10) * 2)) / 2,
-               .icon_size = flint_px(24),
-               .icon_padding = flint_px(10),
+               .x = view_width - ScaleUIPx(56),
+               .y = (title_h - (ScaleUIPx(24) + ScaleUIPx(10) * 2)) / 2,
+               .icon_size = ScaleUIPx(24),
+               .icon_padding = ScaleUIPx(10),
                .icon = meditation_sound_icon_for_volume(app),
                .open = &app->volume_popup_active,
                .value = &app->sound_volume,
                .min = SETTINGS_VOLUME_MIN,
                .max = SETTINGS_VOLUME_MAX,
-               .popup_width = flint_px(44),
-               .popup_height = flint_px(200)
+               .popup_width = ScaleUIPx(44),
+               .popup_height = ScaleUIPx(200)
            })) {
             app->settings_dirty = 1;
             save_settings(app);
@@ -371,10 +371,10 @@ draw_meditation_extend_controls(InbeApp *app, int center_x, int y)
 {
     static const int add_seconds[] = {60, 5 * 60, 10 * 60};
     const char *labels[] = {"+1", "+5", "+10"};
-    int gap = flint_px(8);
-    int btn_h = flint_px(34);
-    int btn_w = flint_px(58);
-    int finish_w = flint_px(96);
+    int gap = ScaleUIPx(8);
+    int btn_h = ScaleUIPx(34);
+    int btn_w = ScaleUIPx(58);
+    int finish_w = ScaleUIPx(96);
     int total_w = btn_w * 3 + gap * 2;
     int x = center_x - total_w / 2;
     int hover = 0;
@@ -382,28 +382,28 @@ draw_meditation_extend_controls(InbeApp *app, int center_x, int y)
     if(app == NULL || !app->meditation.show_extend_controls)
         return;
 
-    if(x < flint_px(12))
-        x = flint_px(12);
-    if(x + total_w > view_width - flint_px(12))
-        x = view_width - flint_px(12) - total_w;
+    if(x < ScaleUIPx(12))
+        x = ScaleUIPx(12);
+    if(x + total_w > view_width - ScaleUIPx(12))
+        x = view_width - ScaleUIPx(12) - total_w;
 
     for(int i = 0; i < 3; i++) {
-        if(ui_draw_generic_button(x + i * (btn_w + gap), y, btn_w, btn_h, labels[i],
+        if(DrawUIGenericButton(x + i * (btn_w + gap), y, btn_w, btn_h, labels[i],
                                   UI_BUTTON_STYLE_SECONDARY, 0, &hover))
             meditation_extend_session(app, add_seconds[i]);
     }
 
     if(app->meditation.complete_waiting) {
         int finish_x = center_x - finish_w / 2;
-        int finish_y = y + btn_h + flint_px(10);
+        int finish_y = y + btn_h + ScaleUIPx(10);
 
-        if(finish_x < flint_px(12))
-            finish_x = flint_px(12);
-        if(finish_x + finish_w > view_width - flint_px(12))
-            finish_x = view_width - flint_px(12) - finish_w;
+        if(finish_x < ScaleUIPx(12))
+            finish_x = ScaleUIPx(12);
+        if(finish_x + finish_w > view_width - ScaleUIPx(12))
+            finish_x = view_width - ScaleUIPx(12) - finish_w;
 
-        if(ui_draw_generic_button(finish_x, finish_y, finish_w, btn_h,
-                                  locale_get("finish_button"), UI_BUTTON_STYLE_PRIMARY,
+        if(DrawUIGenericButton(finish_x, finish_y, finish_w, btn_h,
+                                  GetLocaleText("finish_button"), UI_BUTTON_STYLE_PRIMARY,
                                   0, &hover))
             meditation_finish(app);
     }
@@ -413,17 +413,17 @@ void
 meditation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
     char time_text[32];
-    int font = FLINT_TEXT_24;
+    int font = UI_TEXT_24;
     int max_w;
     int text_w;
-    int title_h = flint_ui_title_bar_height();
+    int title_h = GetUITitleBarHeight();
 
     if(app->show_session_return_button &&
-       flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], locale_get("meditation_title"), title_h)) {
+       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("meditation_title"), title_h)) {
         meditation_request_exit(app);
         return;
     } else if(!app->show_session_return_button) {
-        flint_ui_title_bar(locale_get("meditation_title"), title_h);
+        DrawUITitleBar(GetLocaleText("meditation_title"), title_h);
     }
 
     draw_meditation_sound_controls(app);
@@ -433,8 +433,8 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
         SessionExitModalResult result;
 
         result = app_draw_session_exit_modal(elapsed >= 60,
-                                             locale_get("meditation_save_elapsed_message"),
-                                             locale_get("meditation_under_minute_exit_message"));
+                                             GetLocaleText("meditation_save_elapsed_message"),
+                                             GetLocaleText("meditation_under_minute_exit_message"));
         if(result == SessionExitModalCancel) {
             app_close_modal(app);
         } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
@@ -446,15 +446,15 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
     }
 
     format_meditation_time(time_text, sizeof(time_text), app->meditation.remaining_seconds);
-    max_w = view_width - flint_px(48);
-    if(flint_text_measure(time_text, font) > max_w)
-        font = FLINT_TEXT_16;
-    text_w = flint_text_measure(time_text, font);
-    flint_text_draw(time_text, center_x - text_w / 2,
-                    flint_ui_text_y(time_text, center_y - font, font * 2, font),
-                    font, flint_theme_get_text());
+    max_w = view_width - ScaleUIPx(48);
+    if(MeasureUIText(time_text, font) > max_w)
+        font = UI_TEXT_16;
+    text_w = MeasureUIText(time_text, font);
+    DrawUIText(time_text, center_x - text_w / 2,
+                    GetUIControlTextY(time_text, center_y - font, font * 2, font),
+                    font, GetThemeText());
 
-    draw_meditation_extend_controls(app, center_x, center_y + flint_px(42));
+    draw_meditation_extend_controls(app, center_x, center_y + ScaleUIPx(42));
     if(app->meditation.complete_waiting)
         return;
 

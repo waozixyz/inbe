@@ -16,8 +16,8 @@
 #include <stdio.h>
 #include <string.h>
 
-#if !defined(FLINT_HAS_LIBOQS)
-#error "Inbe sync account builds require FLINT_HAS_LIBOQS; build liboqs for this target instead of disabling sync crypto."
+#if !defined(HAS_LIBOQS)
+#error "Inbe sync account builds require HAS_LIBOQS; build liboqs for this target instead of disabling sync crypto."
 #endif
 
 #define SYNC_PUBLIC_ID_KEY "sync_public_id"
@@ -27,7 +27,7 @@
 static int
 account_has_values(const InbeSyncAccount *account)
 {
-    return flint_lyra_account_has_values(account);
+    return HasLyraAccountValues(account);
 }
 
 static void
@@ -45,13 +45,13 @@ sync_account_save_and_reset(const InbeSyncAccount *account)
 void
 sync_sha256_hex(const uint8_t *data, size_t len, char out_hex[65])
 {
-    flint_lyra_sha256_hex(data, len, out_hex);
+    LyraSha256Hex(data, len, out_hex);
 }
 
 int
 sync_account_available(void)
 {
-    return flint_lyra_account_available();
+    return IsLyraAccountAvailable();
 }
 
 int
@@ -86,7 +86,7 @@ sync_account_create(InbeSyncAccount *account)
     data_init();
     if(account == NULL)
         return 0;
-    if(!flint_lyra_account_create(&generated))
+    if(!CreateLyraAccount(&generated))
         return 0;
     sync_account_save_and_reset(&generated);
     *account = generated;
@@ -101,7 +101,7 @@ sync_account_import_private_key(InbeSyncAccount *account, const char *filename)
     data_init();
     if(account == NULL || filename == NULL || filename[0] == '\0')
         return 0;
-    if(!flint_lyra_account_import_file(filename, &imported)) {
+    if(!ImportLyraAccountFile(filename, &imported)) {
         TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file");
         return 0;
     }
@@ -121,12 +121,12 @@ sync_account_clear(void)
 int
 sync_account_export_private_key(const InbeSyncAccount *account, const char *filename)
 {
-    char body[FLINT_LYRA_ACCOUNT_EXPORT_TEXT_SIZE];
+    char body[LYRA_ACCOUNT_EXPORT_TEXT_SIZE];
     int len;
 
     if(!account_has_values(account) || filename == NULL || filename[0] == '\0')
         return 0;
-    if(!flint_lyra_account_export_text(account, body, sizeof(body)))
+    if(!ExportLyraAccountText(account, body, sizeof(body)))
         return 0;
     len = (int)strlen(body);
 
@@ -170,6 +170,6 @@ sync_account_sign_hex(const uint8_t *message, size_t message_len,
 
     if(!sync_account_load(&account))
         return 0;
-    return flint_lyra_account_sign_hex(&account, message, message_len, out_signature_hex,
+    return SignLyraAccountHex(&account, message, message_len, out_signature_hex,
                                        out_size);
 }

@@ -1,12 +1,12 @@
 #include "pet_screen.h"
 
 #include "app.h"
-#include "flint_color.h"
-#include "flint_locale.h"
-#include "flint_scaling.h"
-#include "flint_text.h"
-#include "flint_theme.h"
-#include "flint_ui.h"
+#include "ui_color.h"
+#include "locale.h"
+#include "ui_scaling.h"
+#include "ui_text.h"
+#include "theme.h"
+#include "ui.h"
 #include "raylib.h"
 
 #include <math.h>
@@ -24,9 +24,9 @@ pet_screen_ensure_assets(InbeApp *app)
 void
 pet_screen_draw(InbeApp *app)
 {
-    const char *text = locale_get("pet_gamification_title");
-    const char *subtext = locale_get("pet_gamification_subtitle");
-    FlintUIParagraph paragraph;
+    const char *text = GetLocaleText("pet_gamification_title");
+    const char *subtext = GetLocaleText("pet_gamification_subtitle");
+    UIParagraph paragraph;
     int reserved_bottom;
     int content_h;
     int center_x = view_width / 2;
@@ -37,23 +37,23 @@ pet_screen_draw(InbeApp *app)
     int text_y;
     float t;
     float scale;
-    Color muted = flint_darken(flint_theme_get_text(), 34);
+    Color muted = DarkenUIColor(GetThemeText(), 34);
 
     if(app == NULL)
         return;
     reserved_bottom = app_content_bottom_reserved(app);
     content_h = view_height - reserved_bottom;
-    if(content_h < flint_px(120))
-        content_h = flint_px(120);
-    center_y = content_h / 2 - flint_px(18);
+    if(content_h < ScaleUIPx(120))
+        content_h = ScaleUIPx(120);
+    center_y = content_h / 2 - ScaleUIPx(18);
     pet_screen_ensure_assets(app);
 
     egg_size = view_width < view_height ? view_width : view_height;
     egg_size = egg_size * 42 / 100;
-    if(egg_size < flint_px(120))
-        egg_size = flint_px(120);
-    if(egg_size > flint_px(240))
-        egg_size = flint_px(240);
+    if(egg_size < ScaleUIPx(120))
+        egg_size = ScaleUIPx(120);
+    if(egg_size > ScaleUIPx(240))
+        egg_size = ScaleUIPx(240);
 
     t = (float)app->inbe.frame / 60.0f;
     scale = 1.0f + 0.035f * sinf(t * 2.0f);
@@ -66,29 +66,29 @@ pet_screen_draw(InbeApp *app)
         DrawTexturePro(app->pet.egg, src, dst, origin, 0.0f, WHITE);
     }
 
-    text_w = view_width - flint_px(48);
-    if(text_w > flint_px(360))
-        text_w = flint_px(360);
-    if(text_w < flint_px(160))
-        text_w = flint_px(160);
+    text_w = view_width - ScaleUIPx(48);
+    if(text_w > ScaleUIPx(360))
+        text_w = ScaleUIPx(360);
+    if(text_w < ScaleUIPx(160))
+        text_w = ScaleUIPx(160);
     text_x = center_x - text_w / 2;
-    text_y = center_y + egg_size / 2 + flint_px(28);
+    text_y = center_y + egg_size / 2 + ScaleUIPx(28);
 
-    paragraph = (FlintUIParagraph){
+    paragraph = (UIParagraph){
         .text = text,
         .width = text_w,
-        .font = FLINT_TEXT_16,
-        .line_gap = flint_px(3),
-        .color = flint_theme_get_text()
+        .font = UI_TEXT_16,
+        .line_gap = ScaleUIPx(3),
+        .color = GetThemeText()
     };
-    flint_ui_paragraph_draw(paragraph, text_x, &text_y);
-    text_y += flint_px(6);
-    paragraph = (FlintUIParagraph){
+    DrawUIParagraph(paragraph, text_x, &text_y);
+    text_y += ScaleUIPx(6);
+    paragraph = (UIParagraph){
         .text = subtext,
         .width = text_w,
-        .font = FLINT_TEXT_12,
-        .line_gap = flint_px(3),
+        .font = UI_TEXT_12,
+        .line_gap = ScaleUIPx(3),
         .color = muted
     };
-    flint_ui_paragraph_draw(paragraph, text_x, &text_y);
+    DrawUIParagraph(paragraph, text_x, &text_y);
 }

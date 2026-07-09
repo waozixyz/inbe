@@ -2,13 +2,13 @@
 
 #include "app.h"
 #include "device_preferences.h"
-#include "flint_locale.h"
+#include "locale.h"
 #include "practices/meditation/meditation_music.h"
 #include "practices/whm/whm_session.h"
 #include "storage.h"
-#include "flint_theme.h"
-#include "flint_dpi.h"
-#include "flint_ui.h"
+#include "theme.h"
+#include "ui_dpi.h"
+#include "ui.h"
 
 #include <stddef.h>
 #include <stdio.h>
@@ -150,8 +150,8 @@ reset_settings_preview(InbeApp *app)
     app->settings_preview.progressive_speed = 0;
     app->settings_preview.play_in_background = play_in_background;
     app->settings_preview.breath_animation = breath_animation;
-    flint_centered_column(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
-    update_preview_bounds(&app->settings_preview, content_w, flint_px(132));
+    GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, NULL, &content_w);
+    update_preview_bounds(&app->settings_preview, content_w, ScaleUIPx(132));
     apply_settings(&app->settings_preview, speed, max_rounds, max_breaths, pause_seconds);
     session_reset_round_breathe(&app->settings_preview);
 }
@@ -240,18 +240,18 @@ load_language_setting(InbeApp *app, int settings_missing)
     if(language != NULL && language[0] != '\0') {
         snprintf(app->language, sizeof(app->language), "%s", language);
         app->language_selected = 1;
-        if(!locale_set(app->language)) {
+        if(!SetLocale(app->language)) {
             snprintf(app->language, sizeof(app->language), "%s", "en");
-            locale_set(app->language);
+            SetLocale(app->language);
         }
     } else {
         snprintf(app->language, sizeof(app->language), "%s", "en");
         app->language_selected = settings_missing ? 0 : 1;
         app->language_needs_save = app->language_selected;
-        locale_set(app->language);
+        SetLocale(app->language);
     }
 
-    app->language_index = locale_current_index();
+    app->language_index = GetCurrentLocaleIndex();
     if(app->language_index < 0)
         app->language_index = 0;
 }
@@ -311,7 +311,7 @@ app_load_settings(InbeApp *app)
         LoadedClampedSetting settings[] = {
             {&app->sound_volume, "sound_volume", 100,
              SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX},
-            {&app->theme_id, "theme", 0, 0, FLINT_THEME_COUNT - 1},
+            {&app->theme_id, "theme", 0, 0, THEME_COUNT - 1},
             {&app->theme_source, "theme_source", default_theme_source(),
              APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM},
             {&app->theme_mode, "theme_mode", APP_THEME_SYSTEM,

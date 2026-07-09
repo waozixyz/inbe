@@ -166,7 +166,7 @@ scan_locale_literal_calls_in_file(const LocaleKeys *english, const char *path,
             size_t len;
 
             if(*start != '"') {
-                if(strcmp(pattern, "locale_format(") != 0 ||
+                if(strcmp(pattern, "FormatLocaleText(") != 0 ||
                    (start = strchr(start, '"')) == NULL) {
                     cursor = start != NULL ? start : cursor + strlen(pattern);
                     continue;
@@ -195,8 +195,8 @@ scan_locale_literal_calls_in_file(const LocaleKeys *english, const char *path,
 static void
 scan_locale_get_calls_in_file(const LocaleKeys *english, const char *path)
 {
-    scan_locale_literal_calls_in_file(english, path, "locale_get(");
-    scan_locale_literal_calls_in_file(english, path, "locale_format(");
+    scan_locale_literal_calls_in_file(english, path, "GetLocaleText(");
+    scan_locale_literal_calls_in_file(english, path, "FormatLocaleText(");
 }
 
 static void
@@ -219,7 +219,7 @@ scan_used_locale_literal_calls_in_file(const LocaleKeys *english, LocaleKeys *us
             size_t len;
 
             if(*start != '"') {
-                if(strcmp(pattern, "locale_format(") != 0 ||
+                if(strcmp(pattern, "FormatLocaleText(") != 0 ||
                    (start = strchr(start, '"')) == NULL) {
                     cursor = start != NULL ? start : cursor + strlen(pattern);
                     continue;
@@ -246,8 +246,8 @@ static void
 scan_used_locale_get_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
                                    const char *path)
 {
-    scan_used_locale_literal_calls_in_file(english, used, path, "locale_get(");
-    scan_used_locale_literal_calls_in_file(english, used, path, "locale_format(");
+    scan_used_locale_literal_calls_in_file(english, used, path, "GetLocaleText(");
+    scan_used_locale_literal_calls_in_file(english, used, path, "FormatLocaleText(");
 }
 
 static void

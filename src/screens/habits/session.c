@@ -55,17 +55,17 @@ habit_session_draw_round_line(const char *line, const char *seconds_text,
     int draw_x;
 
     if(!editing) {
-        flint_ui_draw_text_left_in_rect(line,
+        DrawLeftUIControlTextInRect(line,
                                         (Rectangle){(float)x, (float)y, (float)w, (float)h},
-                                        font, flint_theme_get_text());
+                                        font, GetThemeText());
         return;
     }
 
     value_at = habit_session_last_substring(line, seconds_text);
     if(value_at == NULL) {
-        flint_ui_draw_text_left_in_rect(line,
+        DrawLeftUIControlTextInRect(line,
                                         (Rectangle){(float)x, (float)y, (float)w, (float)h},
-                                        font, flint_theme_get_text());
+                                        font, GetThemeText());
         return;
     }
 
@@ -75,14 +75,14 @@ habit_session_draw_round_line(const char *line, const char *seconds_text,
     memcpy(prefix, line, prefix_len);
     prefix[prefix_len] = '\0';
     suffix = value_at + strlen(seconds_text);
-    text_y = flint_ui_text_y(line, y, h, font);
+    text_y = GetUIControlTextY(line, y, h, font);
     draw_x = x;
 
-    flint_text_draw(prefix, draw_x, text_y, font, flint_theme_get_text());
-    draw_x += flint_text_measure(prefix, font);
-    flint_text_draw(seconds_text, draw_x, text_y, font, flint_theme_get_button_hover());
-    draw_x += flint_text_measure(seconds_text, font);
-    flint_text_draw(suffix, draw_x, text_y, font, flint_theme_get_text());
+    DrawUIText(prefix, draw_x, text_y, font, GetThemeText());
+    draw_x += MeasureUIText(prefix, font);
+    DrawUIText(seconds_text, draw_x, text_y, font, GetThemeButtonHover());
+    draw_x += MeasureUIText(seconds_text, font);
+    DrawUIText(suffix, draw_x, text_y, font, GetThemeText());
 }
 
 static int
@@ -116,7 +116,7 @@ habit_session_handle_physical_keyboard(InbeApp *app, const HabitLinkedEntry *ent
         return 1;
     }
 
-    flint_ui_text_edit((FlintUITextEdit){
+    EditUIText((UITextEdit){
         .text = app->habit_session_edit.text,
         .text_size = sizeof(app->habit_session_edit.text),
         .cursor_position = &app->habit_session_edit.cursor,
@@ -156,12 +156,12 @@ draw_habit_session_edit_screen(InbeApp *app)
     HabitLinkedContext ctx;
     InbeHabit *habit;
     char date_text[32];
-    int top_h = flint_px(58);
+    int top_h = ScaleUIPx(58);
     int bottom_reserved;
     int keyboard_h;
     int viewport_h;
-    int max_w = flint_px(400);
-    int y = top_h + flint_px(14);
+    int max_w = ScaleUIPx(400);
+    int y = top_h + ScaleUIPx(14);
 
     if(app == NULL)
         return;
@@ -182,10 +182,10 @@ draw_habit_session_edit_screen(InbeApp *app)
 
     keyboard_h = habit_session_keyboard_height(app);
     viewport_h = view_height - top_h - bottom_reserved - keyboard_h;
-    if(viewport_h < flint_px(80))
-        viewport_h = flint_px(80);
+    if(viewport_h < ScaleUIPx(80))
+        viewport_h = ScaleUIPx(80);
 
-    if(flint_ui_return_title_bar(app->icons[UI_ICON_TYPE_RETURN], date_text, top_h)) {
+    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], date_text, top_h)) {
         habit_session_cancel_edit(app);
         app_switch_screen(app, InbeScreenHabits);
         return;
@@ -193,7 +193,7 @@ draw_habit_session_edit_screen(InbeApp *app)
 
     {
         HabitSessionScrollPageContext page_ctx = {app, &ctx, y};
-        FlintUIScrollPage page = ui_scroll_page_begin((FlintUIScrollPageSpec){
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
             .y = y,
             .height = viewport_h,
             .max_content_width = max_w,
@@ -203,7 +203,7 @@ draw_habit_session_edit_screen(InbeApp *app)
         });
         draw_habit_session_edit_content(app, &ctx, page.content_x, page.content_w,
                                         page.content_y, 1);
-        ui_scroll_page_end(page);
+        EndUIScrollPage(page);
     }
 
     if(app->habit_session_edit.active) {
@@ -226,18 +226,18 @@ draw_habit_session_edit_screen(InbeApp *app)
 int
 draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw)
 {
-    int row_h = flint_px(34);
-    int section_gap = flint_px(10);
-    int section_h = flint_px(28);
-    int section_font = flint_ui_font();
+    int row_h = ScaleUIPx(34);
+    int section_gap = ScaleUIPx(10);
+    int section_h = ScaleUIPx(28);
+    int section_font = GetUIFontSize();
 
     if(app == NULL || ctx == NULL)
         return y;
 
     if(ctx->count <= 0) {
         if(draw)
-            flint_text_draw(locale_get("no_sessions"), content_x, y,
-                            flint_ui_font(), flint_theme_get_text());
+            DrawUIText(GetLocaleText("no_sessions"), content_x, y,
+                            GetUIFontSize(), GetThemeText());
         return y + row_h;
     }
 
@@ -253,19 +253,19 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             continue;
 
         if(draw) {
-            flint_text_draw(practice_activity_label(activity), content_x, y,
-                            section_font, flint_darken(flint_theme_get_text(), 12));
+            DrawUIText(practice_activity_label(activity), content_x, y,
+                            section_font, DarkenUIColor(GetThemeText(), 12));
         }
         y += section_h;
 
         for(int i = 0; i < ctx->count; i++) {
             char time_text[16];
             char summary_text[32];
-            int icon_size = flint_px(18);
-            int icon_padding = flint_px(6);
+            int icon_size = ScaleUIPx(18);
+            int icon_padding = ScaleUIPx(6);
             int icon_w = icon_size + icon_padding * 2;
             int trash_x = content_x + content_w - icon_w;
-            int row_font = flint_ui_font_small();
+            int row_font = GetUISmallFontSize();
             int summary_x;
             int hover_trash = 0;
 
@@ -275,26 +275,26 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             snprintf(time_text, sizeof(time_text), "%02d:%02d",
                      ctx->entries[i].hour, ctx->entries[i].minute);
             if(activity == EXERCISE_SUN_SALUTATION)
-                locale_format(summary_text, sizeof(summary_text),
+                FormatLocaleText(summary_text, sizeof(summary_text),
                               "session_count_singular", 1);
             else if(activity == EXERCISE_MEDITATION)
                 habit_format_duration(ctx->entries[i].total_seconds,
                                       summary_text, sizeof(summary_text));
             else
-                locale_format(summary_text, sizeof(summary_text), "results_rounds",
+                FormatLocaleText(summary_text, sizeof(summary_text), "results_rounds",
                               ctx->entries[i].round_count);
-            summary_x = content_x + flint_px(76);
-            if(summary_x + flint_text_measure(summary_text, row_font) > trash_x - flint_px(8))
-                summary_x = content_x + flint_px(62);
+            summary_x = content_x + ScaleUIPx(76);
+            if(summary_x + MeasureUIText(summary_text, row_font) > trash_x - ScaleUIPx(8))
+                summary_x = content_x + ScaleUIPx(62);
 
             if(draw) {
-                flint_text_draw(time_text, content_x,
-                                flint_ui_text_y(time_text, y, row_h, row_font),
-                                row_font, flint_theme_get_text());
-                flint_text_draw(summary_text, summary_x,
-                                flint_ui_text_y(summary_text, y, row_h, row_font),
-                                row_font, flint_darken(flint_theme_get_text(), 12));
-                if(ui_draw_icon_btn_padded(trash_x, y - flint_px(4), icon_size, icon_padding,
+                DrawUIText(time_text, content_x,
+                                GetUIControlTextY(time_text, y, row_h, row_font),
+                                row_font, GetThemeText());
+                DrawUIText(summary_text, summary_x,
+                                GetUIControlTextY(summary_text, y, row_h, row_font),
+                                row_font, DarkenUIColor(GetThemeText(), 12));
+                if(DrawUIPaddedIconBtn(trash_x, y - ScaleUIPx(4), icon_size, icon_padding,
                                            app->icons[UI_ICON_TYPE_TRASH], &hover_trash)) {
                     if(data_delete_session(ctx->entries[i].path))
                         habit_session_changed(app, ctx->count);
@@ -306,7 +306,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
             if(activity == EXERCISE_MEDITATION ||
                activity == EXERCISE_SUN_SALUTATION) {
-                y += flint_px(4);
+                y += ScaleUIPx(4);
                 continue;
             }
 
@@ -314,31 +314,31 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                 char round_line[64];
                 char round_seconds[16];
                 int round_trash_x = content_x + content_w - icon_w;
-                int round_edit_x = round_trash_x - icon_w - flint_px(4);
-                int round_text_x = content_x + flint_px(16);
-                int round_text_w = round_edit_x - round_text_x - flint_px(8);
+                int round_edit_x = round_trash_x - icon_w - ScaleUIPx(4);
+                int round_text_x = content_x + ScaleUIPx(16);
+                int round_text_w = round_edit_x - round_text_x - ScaleUIPx(8);
                 int editing_round = app->habit_session_edit.active &&
                                     app->habit_session_edit.kind == HABIT_SESSION_EDIT_ROUND &&
                                     app->habit_session_edit.round == r &&
                                     strcmp(app->habit_session_edit.path, ctx->entries[i].path) == 0;
                 int hover_round_edit = 0;
                 int hover_round_trash = 0;
-                locale_format(round_line, sizeof(round_line), "round_result_label",
+                FormatLocaleText(round_line, sizeof(round_line), "round_result_label",
                               r + 1, ctx->entries[i].rounds[r]);
                 if(draw) {
                     if(editing_round)
-                        locale_format(round_line, sizeof(round_line), "round_result_label",
+                        FormatLocaleText(round_line, sizeof(round_line), "round_result_label",
                                       r + 1, atoi(app->habit_session_edit.text));
                     snprintf(round_seconds, sizeof(round_seconds), "%d",
                              editing_round ? atoi(app->habit_session_edit.text)
                                            : ctx->entries[i].rounds[r]);
-                    if(round_text_w < flint_px(80))
-                        round_text_w = flint_px(80);
+                    if(round_text_w < ScaleUIPx(80))
+                        round_text_w = ScaleUIPx(80);
                     habit_session_draw_round_line(round_line, round_seconds,
                                                   round_text_x, y, round_text_w,
-                                                  flint_px(24), row_font,
+                                                  ScaleUIPx(24), row_font,
                                                   editing_round);
-                    if(ui_draw_icon_btn_padded(round_edit_x, y - flint_px(6),
+                    if(DrawUIPaddedIconBtn(round_edit_x, y - ScaleUIPx(6),
                                                icon_size, icon_padding,
                                                app->icons[editing_round ? UI_ICON_TYPE_SAVE
                                                                         : UI_ICON_TYPE_EDIT],
@@ -351,7 +351,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                         }
                         return y;
                     }
-                    if(ui_draw_icon_btn_padded(round_trash_x, y - flint_px(6),
+                    if(DrawUIPaddedIconBtn(round_trash_x, y - ScaleUIPx(6),
                                                icon_size, icon_padding,
                                                app->icons[UI_ICON_TYPE_TRASH], &hover_round_trash)) {
                         if(habit_session_delete_round(&ctx->entries[i], r))
@@ -360,9 +360,9 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                         return y;
                     }
                 }
-                y += flint_px(28);
+                y += ScaleUIPx(28);
             }
-            y += flint_px(4);
+            y += ScaleUIPx(4);
         }
         y += section_gap;
     }
@@ -375,9 +375,9 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
         if(habit_counting_enabled(habit)) {
             int minimum_count = ctx->count;
             int total_count = habit_effective_day_count(habit, ctx->day_filter, ctx);
-            int button_h = flint_px(34);
-            int step_w = flint_px(42);
-            int gap = flint_px(8);
+            int button_h = ScaleUIPx(34);
+            int step_w = ScaleUIPx(42);
+            int gap = ScaleUIPx(8);
             int minus_x = content_x;
             int plus_x = content_x + content_w - step_w;
             int label_x = minus_x + step_w + gap;
@@ -385,10 +385,10 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
             int hover = 0;
             char total_text[64];
 
-            y += flint_px(6);
+            y += ScaleUIPx(6);
             if(draw) {
                 snprintf(total_text, sizeof(total_text), "Total count %d", total_count);
-                if(ui_draw_generic_button(minus_x, y, step_w, button_h, "-",
+                if(DrawUIGenericButton(minus_x, y, step_w, button_h, "-",
                                           UI_BUTTON_STYLE_SECONDARY,
                                           total_count <= minimum_count, &hover)) {
                     habit_apply_count_action(app, app->habit_detail_index,
@@ -396,11 +396,11 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     app_auto_sync(app);
                     return y;
                 }
-                DrawRectangle(label_x, y, label_w, button_h, flint_darken(flint_theme_get_bg(), 5));
-                flint_text_draw(total_text, label_x + flint_px(8),
-                                flint_ui_text_y(total_text, y, button_h, flint_ui_font_small()),
-                                flint_ui_font_small(), flint_theme_get_text());
-                if(ui_draw_generic_button(plus_x, y, step_w, button_h, "+",
+                DrawRectangle(label_x, y, label_w, button_h, DarkenUIColor(GetThemeBackground(), 5));
+                DrawUIText(total_text, label_x + ScaleUIPx(8),
+                                GetUIControlTextY(total_text, y, button_h, GetUISmallFontSize()),
+                                GetUISmallFontSize(), GetThemeText());
+                if(DrawUIGenericButton(plus_x, y, step_w, button_h, "+",
                                           UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                              ctx->day_filter, 1, minimum_count);
@@ -408,7 +408,7 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                     return y;
                 }
             }
-            y += button_h + flint_px(8);
+            y += button_h + ScaleUIPx(8);
         }
     }
 
@@ -419,9 +419,9 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 int
 habit_session_keyboard_height(InbeApp *app)
 {
-    int key_h = flint_px(48);
-    int gap = flint_px(6);
-    int pad = flint_px(10);
+    int key_h = ScaleUIPx(48);
+    int gap = ScaleUIPx(6);
+    int pad = ScaleUIPx(10);
 
 #if !ANDROID_BUILD
     if(app == NULL || !app->on_screen_keyboard_enabled)
@@ -441,11 +441,11 @@ habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
         "7", "8", "9",
         "DEL", "0", "OK"
     };
-    int key_h = flint_px(48);
-    int gap = flint_px(6);
-    int pad = flint_px(10);
+    int key_h = ScaleUIPx(48);
+    int gap = ScaleUIPx(6);
+    int pad = ScaleUIPx(10);
     int keyboard_h = habit_session_keyboard_height(app);
-    int x = flint_page_side_padding();
+    int x = GetUIPageSidePadding();
     int y = view_height - keyboard_h;
     int w = view_width - x * 2;
     int key_w = (w - gap * 2) / 3;
@@ -457,8 +457,8 @@ habit_session_draw_keyboard(InbeApp *app, const HabitLinkedEntry *entry)
     if(app == NULL || !app->habit_session_edit.active || keyboard_h <= 0)
         return 0;
 
-    DrawRectangle(0, y, view_width, keyboard_h, flint_darken(flint_theme_get_bg(), 10));
-    DrawLine(0, y, view_width, y, flint_darken(flint_theme_get_bg(), 42));
+    DrawRectangle(0, y, view_width, keyboard_h, DarkenUIColor(GetThemeBackground(), 10));
+    DrawLine(0, y, view_width, y, DarkenUIColor(GetThemeBackground(), 42));
 
     for(int i = 0; i < 12; i++) {
         int col = i % 3;
@@ -485,7 +485,7 @@ int
 habit_session_keyboard_key(int x, int y, int w, int h, const char *label)
 {
     int hover = 0;
-    return ui_draw_generic_button(x, y, w, h, label, UI_BUTTON_STYLE_SECONDARY, 0, &hover);
+    return DrawUIGenericButton(x, y, w, h, label, UI_BUTTON_STYLE_SECONDARY, 0, &hover);
 }
 
 void
