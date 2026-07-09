@@ -1,0 +1,96 @@
+name: Publish OpenStore
+
+on:
+  workflow_dispatch:
+    inputs:
+      changelog:
+        description: Changelog text for the OpenStore revision
+        required: false
+        default: ""
+      channel:
+        description: OpenStore channel
+        required: false
+        default: focal
+  release:
+    types: [published]
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    env:
+      OPENSTORE_API_KEY: ${{ secrets.OPENSTORE_API_KEY }}
+      OPENSTORE_APP_ID: inbe
+      OPENSTORE_CHANNEL: ${{ github.event.inputs.channel || 'focal' }}
+      CHANGELOG: ${{ github.event.inputs.changelog || github.event.release.name || github.event.release.tag_name || '' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          sudo dpkg --add-architecture arm64
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential \
+            binutils-aarch64-linux-gnu \
+            ccache \
+            click \
+            cmake \
+            curl \
+            gcc-aarch64-linux-gnu \
+            jq \
+            make \
+            patchelf \
+            pkg-config \
+            tcl \
+            zlib1g-dev \
+            libcurl4-openssl-dev:arm64 \
+            libdrm-dev:arm64 \
+            libegl-dev:arm64 \
+            libgbm-dev:arm64 \
+            libgles-dev:arm64 \
+            libsdl2-dev:arm64 \
+            libssl-dev:arm64 \
+            zlib1g-dev:arm64
+
+      - name: Build Click package
+        run: |
+          set -euo pipefail
+          export AARCH64_CC=aarch64-linux-gnu-gcc
+          export AARCH64_AR=aarch64-linux-gnu-ar
+          export AARCH64_RANLIB=aarch64-linux-gnu-ranlib
+          export AARCH64_PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
+          export PKG_CONFIG_LIBDIR="$AARCH64_PKG_CONFIG_PATH"
+          export AARCH64_RAY_SDL_CFLAGS="$(pkg-config --cflags sdl2)"
+          export AARCH64_RAY_SDL_LDLIBS="$(pkg-config --libs sdl2)"
+          export AARCH64_RAY_GL_CFLAGS="$(pkg-config --cflags libdrm gbm egl glesv2)"
+          export AARCH64_RAY_GL_LDLIBS="$(pkg-config --libs libdrm gbm egl glesv2)"
+          export AARCH64_RAY_CFLAGS="$AARCH64_RAY_SDL_CFLAGS $AARCH64_RAY_GL_CFLAGS"
+          export AARCH64_RAY_LDLIBS="$AARCH64_RAY_SDL_LDLIBS $AARCH64_RAY_GL_LDLIBS"
+          export AARCH64_RAY_SDL_INCLUDE_DIR=/usr/include/SDL2
+          export AARCH64_FLINT_CURL_CFLAGS="$(pkg-config --cflags libcurl)"
+          export AARCH64_FLINT_CURL_LDLIBS="$(pkg-config --libs libcurl)"
+          export AARCH64_CLICK_RUNTIME_LIBS="/usr/lib/aarch64-linux-gnu/libSDL2-2.0.so.0 /usr/lib/aarch64-linux-gnu/libcurl.so.4 /usr/lib/aarch64-linux-gnu/libssl.so.3 /usr/lib/aarch64-linux-gnu/libcrypto.so.3 /usr/lib/aarch64-linux-gnu/libdrm.so.2 /usr/lib/aarch64-linux-gnu/libgbm.so.1 /usr/lib/aarch64-linux-gnu/libEGL.so.1 /usr/lib/aarch64-linux-gnu/libGLESv2.so.2 /usr/lib/aarch64-linux-gnu/libz.so.1"
+          make CLICK_ARCH=arm64 click
+
+      - name: Show package contents
+        run: |
+          set -euo pipefail
+          click_file="$(ls -t build/dist/click/*.click | head -1)"
+          echo "Built $click_file"
+          dpkg-deb --contents "$click_file" | grep -E 'manifest.json|inbe.png|metainfo|inbe.desktop'
+
+      - name: Publish to OpenStore
+        run: |
+          set -euo pipefail
+          click_file="$(ls -t build/dist/click/*.click | head -1)"
+          scripts/publish-openstore.sh "$click_file"

@@ -5,11 +5,18 @@ APP_TITLE := Inner Breeze
 ANDROID_APP_ID := xyz.waozi.inbe
 ANDROID_ACTIVITY := xyz.waozi.inbe.MainActivity
 
-CC ?= gcc
+CC ?= cc
 CMAKE ?= $(shell if [ -x /usr/bin/cmake ]; then echo /usr/bin/cmake; else command -v cmake; fi)
-GRADLE ?= gradle
+GRADLE ?= droid/gradlew
 ADB ?= adb
-ARCH := $(shell uname -m)
+UNAME_S := $(shell uname -s)
+UNAME_M := $(shell uname -m)
+NATIVE_PLATFORM := $(if $(filter FreeBSD,$(UNAME_S)),freebsd,$(if $(filter Linux,$(UNAME_S)),linux,$(shell printf '%s' "$(UNAME_S)" | tr '[:upper:]' '[:lower:]')))
+ARCH := $(if $(filter amd64,$(UNAME_M)),x86_64,$(UNAME_M))
+ANDROID_SDK ?= $(if $(ANDROID_SDK_ROOT),$(ANDROID_SDK_ROOT),$(if $(ANDROID_HOME),$(ANDROID_HOME),$(shell sed -n 's/^sdk\.dir=//p' droid/local.properties 2>/dev/null | head -n 1)))
+ANDROID_CMAKE_DIR ?= $(ANDROID_SDK)/cmake/3.22.1
+ANDROID_AAPT2 ?= $(shell if [ -n "$(ANDROID_SDK)" ]; then find "$(ANDROID_SDK)/build-tools" -mindepth 2 -maxdepth 2 -type f -name aapt2 -perm -111 2>/dev/null | sort | tail -n 1; fi)
+ANDROID_GRADLE_ARGS := $(if $(ANDROID_AAPT2),-Pandroid.aapt2FromMavenOverride="$(ANDROID_AAPT2)",)
 ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
 ANDROID_KEY_ALIAS ?= inbe-key
 
@@ -29,12 +36,13 @@ LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
 CLICK_PACKAGE ?= inbe
+CLICK_ID ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
-CLICK_MAINTAINER ?= Waozi Project <waozi@waozi.xyz>
+CLICK_MAINTAINER ?= Waozi <waozi@waozi.xyz>
 CLICK_ARCH ?= arm64
 CLICK_FRAMEWORK ?= ubuntu-sdk-20.04
 CLICK_POLICY_VERSION ?= 20.04
-CLICK_INCLUDE_METAINFO ?= 0
+CLICK_INCLUDE_METAINFO ?= 1
 CLICK_DIR := packaging/click
 CLICK_RUNNER := $(CLICK_DIR)/run-inbe.sh
 CLICK_BUILD_DIR := $(BUILD_OBJ_DIR)/click/$(CLICK_ARCH)
@@ -220,6 +228,28 @@ APP_SRCS := \
 	src/screens/settings/settings_data.c \
 	src/screens/settings/settings_sync_account.c
 
+ifeq ($(NATIVE_PLATFORM),linux)
+DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; fi)
+DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR)
+endif
+ifeq ($(NATIVE_PLATFORM),freebsd)
+DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON
+endif
+ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
+APP_SRCS += src/platform/desktop_tray.c
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
+endif
+
+ifneq ($(filter linux freebsd,$(NATIVE_PLATFORM)),)
+SYSTEM_THEME_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
+endif
+ifneq ($(strip $(SYSTEM_THEME_PKG)),)
+SYSTEM_THEME_CFLAGS := $(shell pkg-config --cflags $(SYSTEM_THEME_PKG)) -DFLINT_SYSTEM_THEME_GTK
+SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
+endif
+
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
@@ -231,9 +261,19 @@ EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 
-APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform/android -Isrc/third_party
+APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
+RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
+RAY_SDL_CFLAGS ?= $(shell pkg-config --cflags sdl2 2>/dev/null)
+RAY_SDL_LDLIBS ?= $(shell pkg-config --libs sdl2 2>/dev/null)
+RAY_GL_CFLAGS ?= $(shell pkg-config --cflags libdrm gbm egl glesv2 2>/dev/null)
+RAY_GL_LDLIBS ?= $(shell pkg-config --libs libdrm gbm egl glesv2 2>/dev/null)
+RAY_CFLAGS ?= $(strip $(RAY_SDL_CFLAGS) $(RAY_GL_CFLAGS))
+RAY_LDLIBS ?= $(strip $(RAY_SDL_LDLIBS) $(RAY_GL_LDLIBS))
+RAY_SDL_INCLUDE_DIR ?= $(shell pkg-config --variable=includedir sdl2 2>/dev/null | sed 's,/SDL2$$,,')
+RAY_RAYLIB_CONFIG ?= -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=0
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0
-CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS)
+CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(FLINT_RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
+NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DFLINT_EMBEDDED_ONLY=1 $(AARCH64_FLINT_CURL_CFLAGS)
@@ -251,7 +291,7 @@ else
 WIN32_THREAD_LDFLAGS :=
 endif
 
-BINARY_NAME := $(APP_NAME)-linux-$(ARCH)
+BINARY_NAME := $(APP_NAME)-$(NATIVE_PLATFORM)-$(ARCH)
 TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
 WIN64_BINARY_NAME := $(APP_NAME)-windows-$(WIN64_ARCH).exe
 WIN64_TARGET := $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)
@@ -294,6 +334,7 @@ install: $(TARGET)
 	bin_dir="$(HOME)/.local/bin"; \
 	mkdir -p "$$install_dir" "$$bin_dir"; \
 	cp "$(TARGET)" "$$install_dir/$(APP_NAME)"; \
+	cp "$(LINUX_APPIMAGE_ICON)" "$$install_dir/$(APP_NAME).png"; \
 	chmod 755 "$$install_dir/$(APP_NAME)"; \
 	ln -sf "$$install_dir/$(APP_NAME)" "$$bin_dir/$(APP_NAME)"; \
 	if [ -d "$(HOME)/bin" ]; then \
@@ -389,7 +430,7 @@ $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -I$(RAYLIB_DIR) $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
-		-Wl,--gc-sections -lm -lpthread -ldl
+		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -407,14 +448,14 @@ $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/s
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/flint_lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
-		$(LIBOQS_A) -Wl,--gc-sections -lm -lpthread -ldl
+		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
-		-Wl,--gc-sections -lm -lpthread -ldl
+		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -466,6 +507,8 @@ $(RAYLIB_A): $(RAYLIB_SOURCES)
 	mkdir -p $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src $(RAYLIB_BUILD_DIR)
 	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src/
 	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src \
+		CC="$(CC)" \
+		AR="ar" \
 		PLATFORM=PLATFORM_DESKTOP_SDL \
 		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
 		RAYLIB_LIBTYPE=STATIC \
@@ -682,7 +725,8 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(LIBOQS_A) \
 		$(RAY_LDLIBS) \
 		$(FLINT_RUNTIME_ASSET_LDLIBS) \
-		-lm -lpthread -ldl -lrt \
+		$(DESKTOP_TRAY_LDLIBS) \
+		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
 $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
@@ -712,13 +756,15 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(
 		patchelf --set-interpreter "$(CLICK_PATCHELF_INTERPRETER)" --set-rpath '$$ORIGIN/../lib' $@; \
 	fi
 
-$(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_TEMPLATE) $(CLICK_APPARMOR_TEMPLATE) $(CLICK_DESKTOP_TEMPLATE) $(CLICK_METAINFO_TEMPLATE) $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
-	@command -v zip >/dev/null || { \
-		echo "zip is missing. Re-enter the flake shell with: nix develop"; \
+$(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_DIR)/inbe.desktop $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_RUNNER) $(LINUX_APPIMAGE_ICON) $(VERSION_FILE) | $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR)
+	@command -v click >/dev/null || { \
+		echo "click is missing. Re-enter the flake shell with: nix develop"; \
 		exit 1; \
 	}
 	rm -rf $(CLICK_ROOT)
 	rm -f $(CLICK_DIST_DIR)/$(CLICK_PACKAGE)_*_$(CLICK_ARCH).click
+	rm -f $(CLICK_DIST_DIR)/$(CLICK_ID)_*_$(CLICK_ARCH).click
+	rm -f $(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click
 	mkdir -p $(CLICK_ROOT)/usr/bin $(CLICK_ROOT)/usr/lib $(CLICK_ROOT)/usr/share/applications $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps $(CLICK_ROOT)/usr/share/metainfo
 	cp $(CLICK_BIN_INPUT) $(CLICK_ROOT)/usr/bin/$(APP_NAME)
 	cp $(CLICK_RUNNER) $(CLICK_ROOT)/run-inbe.sh
@@ -733,16 +779,38 @@ $(CLICK_TARGET): $(CLICK_BIN_INPUT) $(CLICK_MANIFEST_TEMPLATE) $(CLICK_CONTROL_T
 			if [ -f "$$elf" ]; then patchelf --set-rpath '$$ORIGIN' "$$elf" >/dev/null 2>&1 || true; fi; \
 		done; \
 	fi
-		cp $(CLICK_DIR)/manifest.json $(CLICK_ROOT)/manifest.json
-		cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
-		cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
-		@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
-			mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
-			cp $(CLICK_DIR)/inbe.metainfo.xml $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_PACKAGE).metainfo.xml; \
-		fi
+	printf '%s\n' \
+		'{' \
+		'  "name": "$(CLICK_ID)",' \
+		'  "title": "$(CLICK_TITLE)",' \
+		'  "version": "$(APP_VERSION)",' \
+		'  "architecture": "$(CLICK_ARCH)",' \
+		'  "framework": "$(CLICK_FRAMEWORK)",' \
+		'  "description": "Syncable breathing, meditation, and habit practice app.",' \
+		'  "maintainer": "$(CLICK_MAINTAINER)",' \
+		'  "hooks": {' \
+		'    "$(APP_NAME)": {' \
+		'      "apparmor": "$(APP_NAME).apparmor",' \
+		'      "desktop": "$(APP_NAME).desktop"' \
+		'    }' \
+		'  }' \
+		'}' \
+		> $(CLICK_ROOT)/manifest.json
+	cp $(CLICK_DIR)/inbe.apparmor $(CLICK_ROOT)/inbe.apparmor
+	cp $(CLICK_DIR)/inbe.desktop $(CLICK_ROOT)/inbe.desktop
+	@if [ "$(CLICK_INCLUDE_METAINFO)" = "1" ]; then \
+		mkdir -p $(CLICK_ROOT)/usr/share/metainfo; \
+		sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' $(CLICK_DIR)/inbe.metainfo.xml > $(CLICK_ROOT)/usr/share/metainfo/$(CLICK_ID).metainfo.xml; \
+	fi
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/inbe.png
 	cp $(LINUX_APPIMAGE_ICON) $(CLICK_ROOT)/usr/share/icons/hicolor/512x512/apps/inbe.png
-	cd $(CLICK_ROOT) && zip -qr $(abspath $@) .
+	click build $(CLICK_ROOT) $(CLICK_DIST_DIR)
+	@if [ -f "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
+		mv "$(CLICK_DIST_DIR)/$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
+	elif [ -f "$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" ]; then \
+		mv "$(CLICK_ID)_$(APP_VERSION)_$(CLICK_ARCH).click" "$(CLICK_TARGET)"; \
+	fi
+	test -f $@
 
 $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
@@ -923,22 +991,23 @@ android-check-keystore:
 	fi
 
 android-local-properties:
-	@if [ -f droid/local.properties ]; then sed -i '/^ndk\.dir=/d' droid/local.properties; fi
-	@if [ -d /mnt/storage/Android/Sdk/ndk/28.2.13676358 ]; then \
-		if [ -f droid/local.properties ]; then \
-			sed -i 's#^sdk\.dir=.*#sdk.dir=/mnt/storage/Android/Sdk#' droid/local.properties; \
-			sed -i 's#^cmake\.dir=.*#cmake.dir=/mnt/storage/Android/Sdk/cmake/3.22.1#' droid/local.properties; \
-		else \
-			printf 'sdk.dir=/mnt/storage/Android/Sdk\ncmake.dir=/mnt/storage/Android/Sdk/cmake/3.22.1\n' > droid/local.properties; \
-		fi; \
+	@if [ -z "$(ANDROID_SDK)" ]; then \
+		echo "Set ANDROID_SDK_ROOT or ANDROID_HOME to your Android SDK path."; \
+		exit 1; \
 	fi
+	@if [ ! -d "$(ANDROID_SDK)" ]; then \
+		echo "Android SDK not found: $(ANDROID_SDK)"; \
+		echo "Set ANDROID_SDK_ROOT or ANDROID_HOME to your Android SDK path."; \
+		exit 1; \
+	fi
+	@printf 'sdk.dir=%s\ncmake.dir=%s\n' "$(ANDROID_SDK)" "$(ANDROID_CMAKE_DIR)" > droid/local.properties
 
 android-debug: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug
+	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
 android-debug-fast: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)"
+	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)" $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
 android-release:
@@ -946,7 +1015,7 @@ android-release:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid assembleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for release builds"; \
 		exit 1; \
@@ -958,7 +1027,7 @@ android-bundle:
 	$(MAKE) android-copy-assets
 	$(MAKE) android-local-properties
 	@if [ -n "$(PASSWORD)" ]; then \
-		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" || exit $$?; \
+		unset ANDROID_HOME; $(GRADLE) -p droid bundleRelease -Pkeystore.path="$(ANDROID_KEYSTORE)" -Pkeystore.alias="$(ANDROID_KEY_ALIAS)" -Pkeystore.password="$(PASSWORD)" $(ANDROID_GRADLE_ARGS) || exit $$?; \
 	else \
 		echo "Set PASSWORD=your-keystore-password for bundle builds"; \
 		exit 1; \
@@ -1050,7 +1119,7 @@ android-avd:
 	$(MAKE) android-install-fast ADB="$$adb_cmd -e" ANDROID_DEBUG_ABIS="$$abi"
 
 android-clean:
-	$(GRADLE) -p droid clean
+	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)
 	rm -rf $(ANDROID_BUILD_DIR)
 
 $(MEDITATION_AUDIO_ZIP): $(UNPACKAGED_AUDIO_FILES)

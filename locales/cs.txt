@@ -311,7 +311,10 @@ Klidny pruvodce pro dychani, navyky a synchronizaci.
 Motiv
 ---
 [theme_mode_label]
-Režim motivu
+Režim barev
+---
+[theme_follow_device]
+Podle zařízení
 ---
 [speed_label]
 Rychlost
@@ -527,6 +530,12 @@ Hudba od Elijah_K.
 ---
 [theme_system]
 Systém
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Paleta
 ---
 [orientation_label]
 Orientace
@@ -868,11 +877,11 @@ Meditace
 [habit_default_meditation_description]
 Dýchací a meditační sezení.
 ---
-[habit_default_sun_salutation_name]
-Pozdrav slunci
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Cvičení pozdravu slunci.
+[habit_default_yoga_description]
+Jógová cvičení.
 ---
 [pet_gamification_title]
 Gamifikace se připravuje...

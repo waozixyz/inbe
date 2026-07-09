@@ -104,6 +104,8 @@
           pkgConfigPath = pkgs.lib.makeSearchPath "lib/pkgconfig" [
             sdl2Pkgs.SDL2.dev
             pkgs.curl.dev
+            pkgs.gtk3.dev
+            pkgs.libayatana-appindicator.dev
             pkgs.openssl.dev
             pkgs.libdrm.dev
             pkgs.libgbm
@@ -230,7 +232,10 @@ EOF
               git-lfs
               gnumake
               gradle
+              gtk3
+              libayatana-appindicator
               imagemagick
+              jq
               jdk17
               libxml2
               libdrm

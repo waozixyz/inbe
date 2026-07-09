@@ -12,8 +12,13 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <signal.h>
 #include <string.h>
 #include <time.h>
+
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+#include "desktop_tray.h"
+#endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
@@ -40,6 +45,16 @@ extern struct android_app *GetAndroidApp(void);
 
 static InbeApp inbe_app;
 static InbeApp *g_inbe_app_ptr = NULL;
+#if !defined(PLATFORM_WEB)
+static volatile sig_atomic_t g_shutdown_requested;
+
+static void
+handle_shutdown_signal(int signum)
+{
+    (void)signum;
+    g_shutdown_requested = 1;
+}
+#endif
 
 typedef struct ScreenshotRequest {
     int active;
@@ -662,7 +677,17 @@ int main(int argc, char **argv) {
 #if defined(PLATFORM_WEB)
     emscripten_set_main_loop(frame, 0, 1);
 #else
+    int quit = 0;
+    signal(SIGINT, handle_shutdown_signal);
+    signal(SIGTERM, handle_shutdown_signal);
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+    inbe_desktop_tray_init();
+#endif
+
     if(run_screenshot_mode(&screenshot)) {
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+        inbe_desktop_tray_shutdown();
+#endif
         CloseWindow();
 #if defined(_WIN32) && !ANDROID_BUILD
         windows_close_logger();
@@ -670,10 +695,30 @@ int main(int argc, char **argv) {
         return 0;
     }
 
-    while(!WindowShouldClose()) {
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+    while(!quit) {
+        InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
+        if(g_shutdown_requested)
+            quit = 1;
+        if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
+            inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
+        if(!quit)
+            frame();
+        tray_action = inbe_desktop_tray_poll_action();
+        if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
+            inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
+        if(WindowShouldClose())
+            quit = 1;
+    }
+#else
+    while(!g_shutdown_requested && !WindowShouldClose()) {
         frame();
     }
+#endif
 
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+    inbe_desktop_tray_shutdown();
+#endif
     CloseWindow();
 #if defined(_WIN32) && !ANDROID_BUILD
     windows_close_logger();

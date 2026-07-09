@@ -16,16 +16,9 @@ async function readResponseText(response) {
   return text.length > 0 ? text : "(empty response)";
 }
 
-function isAllowedFailure(response, allowedStatuses) {
-  return Array.isArray(allowedStatuses) && allowedStatuses.includes(response.status);
-}
-
 async function requestJson(url, options = {}) {
   const response = await fetch(url, options);
   const text = await readResponseText(response);
-  if (isAllowedFailure(response, options.allowedStatuses)) {
-    return null;
-  }
   if (!response.ok) {
     throw new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${response.statusText}: ${text}`);
   }
@@ -47,9 +40,6 @@ async function requestJsonWithResponse(url, options = {}) {
 async function requestOk(url, options = {}) {
   const response = await fetch(url, options);
   const text = await readResponseText(response);
-  if (isAllowedFailure(response, options.allowedStatuses)) {
-    return null;
-  }
   if (!response.ok) {
     throw new Error(`${options.method || "GET"} ${url} failed: ${response.status} ${response.statusText}: ${text}`);
   }
@@ -61,14 +51,12 @@ function releaseKindForFile(file) {
   if (ext === ".apk") {
     return {
       label: "APK",
-      resourceCandidates: ["apks"],
       contentType: "application/vnd.android.package-archive",
     };
   }
   if (ext === ".aab") {
     return {
       label: "AAB",
-      resourceCandidates: ["appbundles", "appBundles", "aabs", "bundles", "apks"],
       contentType: "application/octet-stream",
     };
   }
@@ -80,21 +68,14 @@ function describeAsset(asset) {
 }
 
 async function findBinaryCollection(editId, releaseKind) {
-  for (const resource of releaseKind.resourceCandidates) {
-    const assets = await requestJson(`${baseUrl}/v1/applications/${appId}/edits/${editId}/${resource}`, {
-      headers: jsonHeaders,
-      allowedStatuses: [404],
-    });
-    if (assets === null) {
-      continue;
-    }
-    if (!Array.isArray(assets) || assets.length === 0) {
-      throw new Error(`Amazon edit has no ${releaseKind.label} asset to replace in ${resource}`);
-    }
-    return { resource, assets };
+  const resource = "apks";
+  const assets = await requestJson(`${baseUrl}/v1/applications/${appId}/edits/${editId}/${resource}`, {
+    headers: jsonHeaders,
+  });
+  if (!Array.isArray(assets) || assets.length === 0) {
+    throw new Error(`Amazon edit has no ${releaseKind.label} asset to replace in ${resource}`);
   }
-
-  throw new Error(`Amazon edit does not expose a ${releaseKind.label} collection. Tried: ${releaseKind.resourceCandidates.join(", ")}`);
+  return { resource, assets };
 }
 
 const clientId = requireEnv("AMAZON_CLIENT_ID");

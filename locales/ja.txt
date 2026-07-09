@@ -311,7 +311,10 @@ OK
 テーマ
 ---
 [theme_mode_label]
-テーマモード
+カラーモード
+---
+[theme_follow_device]
+デバイスに合わせる
 ---
 [speed_label]
 速度
@@ -529,6 +532,12 @@ OK
 ---
 [theme_system]
 システム
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+パレット
 ---
 [orientation_label]
 向き
@@ -870,11 +879,11 @@ Alias saved
 [habit_default_meditation_description]
 呼吸と瞑想のセッション。
 ---
-[habit_default_sun_salutation_name]
-太陽礼拝
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-太陽礼拝の練習セッション。
+[habit_default_yoga_description]
+ヨガの練習セッション。
 ---
 [pet_gamification_title]
 ゲーミフィケーションを準備中...

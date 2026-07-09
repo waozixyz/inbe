@@ -4,7 +4,9 @@
 #include "app_fwd.h"
 
 typedef struct SettingsThemeState {
+    int draw_theme_source_menu;
     int draw_theme_mode_menu;
+    int draw_theme_palette_menu;
     int draw_transition_menu;
     int theme_picker_modal_open;
     int theme_picker_scroll;

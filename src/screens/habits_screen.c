@@ -30,11 +30,15 @@ static void habits_add_seed(InbeHabits *habits, const char *id, const char *name
                             const char *description, Color color,
                             int activity_mask);
 static void draw_habit_link_dot(int x, int y, int w, Color color);
+static Color habit_text_color_for_background(Color background);
 
 enum {
     HABITS_GUIDE_STEPS = 6,
     HABITS_TOP_H = 36,
-    HABITS_TAB_H = 40
+    HABITS_TAB_H = 40,
+    HABITS_OVERVIEW_DAY_COLUMNS = 4,
+    HABITS_OVERVIEW_DETAIL_COLUMNS = 1,
+    HABITS_OVERVIEW_COLUMNS = HABITS_OVERVIEW_DAY_COLUMNS + HABITS_OVERVIEW_DETAIL_COLUMNS
 };
 
 static void
@@ -227,6 +231,16 @@ habit_day_count(const InbeHabit *habit, int day_index)
     return habit->days[index].completed ? 1 : 0;
 }
 
+static int
+habit_day_session_count(const InbeHabit *habit, int day_index)
+{
+    int index = habit_find_day(habit, day_index);
+
+    if(index < 0)
+        return 0;
+    return habit->days[index].session_count;
+}
+
 int
 habit_completed_today(const InbeHabit *habit)
 {
@@ -305,9 +319,9 @@ habits_add_default_set(InbeHabits *habits)
                     (Color){126, 183, 230, 255},
                     habit_activity_mask_for(EXERCISE_WIM_HOF) |
                     habit_activity_mask_for(EXERCISE_MEDITATION));
-    habits_add_seed(habits, "sun-salutation",
-                    locale_get("habit_default_sun_salutation_name"),
-                    locale_get("habit_default_sun_salutation_description"),
+    habits_add_seed(habits, "yoga",
+                    locale_get("habit_default_yoga_name"),
+                    locale_get("habit_default_yoga_description"),
                     (Color){239, 178, 102, 255},
                     habit_activity_mask_for(EXERCISE_SUN_SALUTATION));
     habits->selected = 0;
@@ -498,23 +512,25 @@ habit_set_day(InbeHabits *habits, int index, int day_index, int completed)
 {
     InbeHabit *habit;
     int existing_index;
+    int count;
 
     if(habits == NULL || index < 0 || index >= habits->count || day_index <= 0)
         return;
 
     habit = &habits->items[index];
+    count = completed ? 1 : 0;
     existing_index = habit_find_day(habit, day_index);
     if(existing_index >= 0) {
         habit->days[existing_index].completed = completed != 0;
-        habit->days[existing_index].count = completed ? 1 : 0;
+        habit->days[existing_index].count = count;
     } else if(completed && habit_reserve_days(habit, habit->day_count + 1)) {
         habit->days[habit->day_count].day_index = day_index;
         habit->days[habit->day_count].completed = 1;
-        habit->days[habit->day_count].count = 1;
+        habit->days[habit->day_count].count = count;
         habit->day_count++;
     }
     habits->selected = index;
-    habits->dirty = 1;
+    habits->dirty = !storage_habit_day_save(habit->id, day_index, completed != 0, count);
 }
 
 void
@@ -540,7 +556,7 @@ habit_set_day_count(InbeHabits *habits, int index, int day_index, int count)
         habit->day_count++;
     }
     habits->selected = index;
-    habits->dirty = 1;
+    habits->dirty = !storage_habit_day_save(habit->id, day_index, count > 0, count);
 }
 
 void
@@ -566,7 +582,9 @@ habit_toggle_day(InbeHabits *habits, int index, int day_index)
         habit->day_count++;
     }
     habits->selected = index;
-    habits->dirty = 1;
+    habits->dirty = !storage_habit_day_save(habit->id, day_index,
+                                            habit_completed_day(habit, day_index),
+                                            habit_day_count(habit, day_index));
 }
 
 void
@@ -1059,7 +1077,8 @@ habits_overview_label_width(int content_w)
     int max_label_w = flint_px(136);
     int gap = flint_px(4);
     int cell = flint_px(28);
-    int label_w = content_w - gap * 7 - cell * 7;
+    int label_w = content_w - gap * HABITS_OVERVIEW_COLUMNS -
+                  cell * HABITS_OVERVIEW_COLUMNS;
 
     if(label_w < min_label_w)
         label_w = min_label_w;
@@ -1073,7 +1092,8 @@ habits_overview_cell_size(int content_w)
 {
     int label_w = habits_overview_label_width(content_w);
     int gap = flint_px(4);
-    int cell = (content_w - label_w - gap * 7) / 7;
+    int cell = (content_w - label_w - gap * HABITS_OVERVIEW_COLUMNS) /
+               HABITS_OVERVIEW_COLUMNS;
 
     if(cell > flint_px(28))
         cell = flint_px(28);
@@ -1114,25 +1134,36 @@ habits_reorder_move_buttons_stack(int content_w)
 }
 
 static int
-habits_overview_week_day_index(int offset)
+habits_overview_day_index(int days_ago)
 {
     time_t now = time(NULL);
-    struct tm week;
+    struct tm day;
     struct tm *local = localtime(&now);
-    int sunday_delta;
 
     if(local == NULL)
         return habits_today_index();
-    week = *local;
-    sunday_delta = week.tm_wday;
-    week.tm_hour = 12;
-    week.tm_min = 0;
-    week.tm_sec = 0;
-    week.tm_mday += offset - sunday_delta;
-    if(mktime(&week) == (time_t)-1)
+    day = *local;
+    day.tm_hour = 12;
+    day.tm_min = 0;
+    day.tm_sec = 0;
+    day.tm_mday -= days_ago;
+    if(mktime(&day) == (time_t)-1)
         return habits_today_index();
-    return (week.tm_year + 1900) * 10000 + (week.tm_mon + 1) * 100 +
-           week.tm_mday;
+    return (day.tm_year + 1900) * 10000 + (day.tm_mon + 1) * 100 +
+           day.tm_mday;
+}
+
+static void
+habits_overview_date_label(int day_index, char *out, size_t out_size)
+{
+    int month;
+    int day;
+
+    if(out == NULL || out_size == 0)
+        return;
+    month = (day_index / 100) % 100;
+    day = day_index % 100;
+    snprintf(out, out_size, "%d/%d", month, day);
 }
 
 static int
@@ -1299,20 +1330,26 @@ static int
 habits_overview_cell_clicked(InbeApp *app, int x, int y, int w, int h, int disabled)
 {
     Vector2 mouse;
+    int inside;
 
-    if(app == NULL || disabled)
+    if(app == NULL)
         return 0;
     mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    if(!CheckCollisionPointRec(mouse, (Rectangle){(float)x, (float)y, (float)w, (float)h}) ||
-       ui_input_captures_click(mouse))
+    inside = CheckCollisionPointRec(mouse, (Rectangle){(float)x, (float)y, (float)w, (float)h}) &&
+             !ui_input_captures_click(mouse);
+    if(!inside)
         return 0;
+    if(disabled) {
+        app->cursor_disabled = 1;
+        return 0;
+    }
+    app->cursor_clickable = 1;
     return IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
 static void
 draw_habits_overview(InbeApp *app, int content_top)
 {
-    static const char *day_labels[7] = {"S", "M", "T", "W", "T", "F", "S"};
     int content_bottom;
     int max_w = flint_px(CONTENT_MAX_W);
     int content_x;
@@ -1379,23 +1416,30 @@ draw_habits_overview(InbeApp *app, int content_top)
 
         label_w = habits_overview_label_width(content_w);
         cell = habits_overview_cell_size(content_w);
-        grid_total_w = label_w + cell_gap * 7 + cell * 7;
+        grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
+                       cell * HABITS_OVERVIEW_COLUMNS;
         overview_x = content_x + (content_w - grid_total_w) / 2;
         grid_x = overview_x + label_w;
         grid_y = y;
 
-        for(int day = 0; day < 7; day++) {
+        for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+            int day_index = habits_overview_day_index(day);
             int day_x = grid_x + day * (cell + cell_gap);
-            int text_w = flint_text_measure(day_labels[day], small);
-            flint_text_draw(day_labels[day], day_x + (cell - text_w) / 2,
+            char date_label[16];
+            int text_w;
+            habits_overview_date_label(day_index, date_label, sizeof(date_label));
+            text_w = flint_text_measure(date_label, small);
+            if(text_w > cell) {
+                snprintf(date_label, sizeof(date_label), "%d", day_index % 100);
+                text_w = flint_text_measure(date_label, small);
+            }
+            flint_text_draw(date_label, day_x + (cell - text_w) / 2,
                             grid_y, small, flint_darken(flint_theme_get_text(), 34));
         }
         y += flint_px(20);
 
         for(int i = 0; i < app->habits.count; i++) {
             InbeHabit *habit = &app->habits.items[i];
-            HabitLinkedContext ctx;
-            HabitLinkedContext *linked_ctx = NULL;
             int row_y = y;
             int swatch = flint_px(8);
             int label_text_w = label_w - swatch - flint_px(8);
@@ -1413,12 +1457,6 @@ draw_habits_overview(InbeApp *app, int content_top)
                             !ui_input_captures_click(mouse);
             int label_hover = CheckCollisionPointRec(mouse, label_bounds) &&
                               !ui_input_captures_click(mouse);
-
-            if(habit_is_linked(habit)) {
-                memset(&ctx, 0, sizeof(ctx));
-                habit_collect_linked_entries(habit, 0, &ctx);
-                linked_ctx = &ctx;
-            }
 
             if(label_w <= flint_px(62)) {
                 inbe_text_short_label(habit->name, 3, 1, short_name, sizeof(short_name));
@@ -1442,31 +1480,42 @@ draw_habits_overview(InbeApp *app, int content_top)
                     habits_enter_detail(app, i);
             }
 
-            for(int day = 0; day < 7; day++) {
-                int day_index = habits_overview_week_day_index(day);
+            for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+                int day_index = habits_overview_day_index(day);
                 int day_x = grid_x + day * (cell + cell_gap);
                 int future_day = day_index > today_index;
-                int has_linked_day = linked_ctx != NULL &&
-                                     habit_linked_has_day(linked_ctx, day_index);
+                int session_count = habit_day_session_count(habit, day_index);
+                int has_linked_day = session_count > 0;
                 int counting_enabled = habit_counting_enabled(habit);
-                int minimum_count = habit_linked_session_count_for_day(linked_ctx, day_index);
+                int minimum_count = session_count;
+                int manual_count = habit_day_count(habit, day_index);
                 int count = counting_enabled
-                                ? habit_effective_day_count(habit, day_index, linked_ctx)
+                                ? (manual_count > session_count ? manual_count : session_count)
                                 : 0;
                 int completed = habit_completed_day(habit, day_index);
                 int action = 0;
                 Color fill;
-                Color border;
+                Color border = flint_darken(flint_theme_get_text(), 46);
+                Rectangle cell_bounds = {(float)day_x, (float)row_y,
+                                         (float)cell, (float)cell};
+                int cell_active = CheckCollisionPointRec(mouse, cell_bounds) &&
+                                  !ui_input_captures_click(mouse);
+                int cell_hover = cell_active && !future_day && ui_hover_effects_enabled();
 
                 if(!completed && !future_day && (has_linked_day || count > 0))
                     completed = 1;
                 fill = completed ? habit->color : flint_darken(flint_theme_get_bg(), 7);
-                border = day_index == today_index
-                             ? flint_theme_get_text()
-                             : flint_darken(flint_theme_get_text(), 46);
+                if(day_index == today_index)
+                    fill = completed ? flint_lighten(fill, 12) : flint_darken(flint_theme_get_bg(), 14);
+                if(cell_hover)
+                    fill = completed ? flint_lighten(fill, 22) : flint_theme_get_button_hover();
 
                 DrawRectangle(day_x, row_y, cell, cell, fill);
-                DrawRectangleLines(day_x, row_y, cell, cell, border);
+                DrawRectangleLinesEx(cell_bounds, 1.0f, border);
+                if(day == 0) {
+                    DrawRectangle(day_x, row_y, cell, flint_px(3),
+                                  flint_theme_get_text());
+                }
 
                 if(counting_enabled) {
                     action = habit_counter_day_action(app, i, day_index, day_x, row_y,
@@ -1499,6 +1548,40 @@ draw_habits_overview(InbeApp *app, int content_top)
                 }
                 if(!future_day && has_linked_day)
                     draw_habit_link_dot(day_x, row_y, cell, habit->color);
+            }
+            {
+                int detail_x = grid_x + HABITS_OVERVIEW_DAY_COLUMNS * (cell + cell_gap);
+                Rectangle detail_bounds = {(float)detail_x, (float)row_y,
+                                           (float)cell, (float)cell};
+                int detail_active = CheckCollisionPointRec(mouse, detail_bounds) &&
+                                    !ui_input_captures_click(mouse);
+                int detail_hover = detail_active && ui_hover_effects_enabled();
+                Color detail_fill = flint_darken(flint_theme_get_bg(), 7);
+                Color detail_border = flint_darken(flint_theme_get_text(), 46);
+
+                if(detail_hover) {
+                    detail_fill = flint_darken(flint_theme_get_button_hover(), 8);
+                    detail_border = flint_theme_get_text();
+                }
+                if(detail_active)
+                    app->cursor_clickable = 1;
+                DrawRectangle(detail_x, row_y, cell, cell, detail_fill);
+                ui_draw_bevel(detail_x, row_y, cell, cell,
+                              flint_lighten(detail_fill, detail_hover ? 34 : 24),
+                              flint_darken(detail_fill, detail_hover ? 38 : 28));
+                DrawRectangleLines(detail_x, row_y, cell, cell, detail_border);
+                if(detail_active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+                    habits_enter_detail(app, i);
+                    ui_scroll_page_end(page);
+                    return;
+                }
+                {
+                    const char *more = "...";
+                    int more_w = flint_text_measure(more, FLINT_TEXT_16);
+                    flint_text_draw(more, detail_x + (cell - more_w) / 2,
+                                    flint_ui_text_y(more, row_y, cell, FLINT_TEXT_16),
+                                    FLINT_TEXT_16, flint_theme_get_text());
+                }
             }
             y += cell + flint_px(8);
         }
@@ -1658,7 +1741,8 @@ habits_overview_grid_anchor(InbeApp *app)
                           &content_x, &content_w);
     label_w = habits_overview_label_width(content_w);
     cell = habits_overview_cell_size(content_w);
-    grid_total_w = label_w + cell_gap * 7 + cell * 7;
+    grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
+                   cell * HABITS_OVERVIEW_COLUMNS;
 
     return (Rectangle){
         (float)(content_x + (content_w - grid_total_w) / 2 - flint_px(4)),
@@ -1737,7 +1821,7 @@ draw_habit_link_dot(int x, int y, int w, Color color)
 
 static int
 habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
-                        const char *label, int completed, int disabled)
+                        const char *label, int completed, int disabled, int current_day)
 {
     Vector2 mouse_world = app != NULL
                               ? GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -1745,13 +1829,23 @@ habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
     Rectangle bounds = {(float)x, (float)y, (float)w, (float)h};
     int inside = !disabled && CheckCollisionPointRec(mouse_world, bounds) &&
                  !ui_input_captures_click(mouse_world);
+    int hovered = inside && ui_hover_effects_enabled();
     Color fill = completed ? flint_theme_get_button() : flint_darken(flint_theme_get_bg(), 10);
     Color text = disabled ? flint_darken(flint_theme_get_text(), 35) : flint_theme_get_text();
     int font = FLINT_TEXT_16;
     int text_w;
 
+    if(hovered)
+        fill = flint_theme_get_button_hover();
+    else if(current_day)
+        fill = completed ? flint_lighten(fill, 12) : flint_darken(flint_theme_get_bg(), 14);
+    if(!disabled && completed)
+        text = habit_text_color_for_background(fill);
+
     DrawRectangle(x, y, w, h, fill);
-    ui_draw_bevel(x, y, w, h, flint_lighten(fill, 28), flint_darken(fill, 34));
+    ui_draw_bevel(x, y, w, h,
+                  flint_lighten(fill, hovered ? 36 : 28),
+                  flint_darken(fill, hovered ? 42 : 34));
     text_w = flint_text_measure(label, font);
     flint_text_draw(label, x + (w - text_w) / 2,
                     flint_ui_text_y(label, y, h, font), font, text);
@@ -2373,7 +2467,8 @@ draw_habits_screen(InbeApp *app)
                 completed = 1;
             if(counting_enabled) {
                 (void)habit_calendar_day_cell(app, cell_x, cell_y, cell_w, cell_h,
-                                              day_label, completed, future_day);
+                                              day_label, completed, future_day,
+                                              day_index == today_index);
                 action = habit_counter_day_action(app, selected, day_index,
                                                   cell_x, cell_y, cell_w, cell_h,
                                                   future_day, !has_linked_day);
@@ -2387,7 +2482,8 @@ draw_habits_screen(InbeApp *app)
                         habit_open_linked_edit_page(app, selected, day_index);
                 }
             } else if(habit_calendar_day_cell(app, cell_x, cell_y, cell_w, cell_h,
-                                              day_label, completed, future_day)) {
+                                              day_label, completed, future_day,
+                                              day_index == today_index)) {
                 if(has_linked_day) {
                     habit_open_linked_edit_page(app, selected, day_index);
                 } else {
@@ -2419,11 +2515,6 @@ draw_habits_screen(InbeApp *app)
             }
             if(!future_day && has_linked_day) {
                 draw_habit_link_dot(cell_x, cell_y, cell_w, active->color);
-            }
-            if(day_index == today_index) {
-                DrawRectangleLinesEx((Rectangle){(float)cell_x, (float)cell_y,
-                                                 (float)cell_w, (float)cell_h},
-                                     (float)flint_px(2), flint_theme_get_text());
             }
         }
     }

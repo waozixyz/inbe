@@ -402,7 +402,7 @@ public class MainActivity extends NativeActivity {
         Log.d(TAG, "Stopping session foreground service");
         Intent intent = new Intent(this, SessionForegroundService.class);
         intent.setAction(SessionForegroundService.ACTION_STOP);
-        stopService(intent);
+        startService(intent);
     }
 
     public void updateSessionNotification(final String statusText) {

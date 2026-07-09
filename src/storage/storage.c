@@ -2370,7 +2370,7 @@ storage_habits_load(void *habits_ptr)
     habits->loaded_count = index;
 
     if(sqlite3_prepare_v2(g_storage.db,
-                          "SELECT local_date,completed,count FROM habit_days "
+                          "SELECT local_date,completed,count,session_count FROM habit_days "
                           "WHERE habit_id=?1 ORDER BY local_date",
                           -1, &stmt, NULL) == SQLITE_OK) {
         for(int i = 0; i < habits->count; i++) {
@@ -2386,6 +2386,7 @@ storage_habits_load(void *habits_ptr)
                 habits->items[i].days[d].day_index = sqlite3_column_int(stmt, 0);
                 habits->items[i].days[d].completed = sqlite3_column_int(stmt, 1) != 0;
                 habits->items[i].days[d].count = sqlite3_column_int(stmt, 2);
+                habits->items[i].days[d].session_count = sqlite3_column_int(stmt, 3);
                 if(habits->items[i].days[d].count <= 0 && habits->items[i].days[d].completed)
                     habits->items[i].days[d].count = 1;
             }
@@ -2590,6 +2591,52 @@ storage_habits_save(const void *habits_ptr)
     exec_sql("COMMIT");
     storage_materialize_session_habit_days();
     storage_schedule_persist();
+}
+
+int
+storage_habit_day_save(const char *habit_id, int local_date, int completed, int count)
+{
+    sqlite3_stmt *stmt = NULL;
+    long long changed_at;
+    int rc;
+    int changed;
+
+    if(g_storage.db == NULL || habit_id == NULL || habit_id[0] == '\0' || local_date <= 0)
+        return 0;
+    if(count < 0)
+        count = 0;
+    completed = completed || count > 0;
+    changed_at = storage_next_change_time();
+    storage_mark_habits_initialized();
+
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "INSERT INTO "
+                          "habit_days(habit_id,local_date,completed,count,session_count,updated_at) "
+                          "VALUES(?1,?2,?3,?4,0,?5) "
+                          "ON CONFLICT(habit_id,local_date) DO UPDATE SET "
+                          "completed=excluded.completed,"
+                          "count=excluded.count,"
+                          "updated_at=CASE WHEN habit_days.completed<>excluded.completed "
+                          "OR habit_days.count<>excluded.count "
+                          "THEN excluded.updated_at ELSE habit_days.updated_at END",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+
+    bind_text(stmt, 1, habit_id);
+    sqlite3_bind_int(stmt, 2, local_date);
+    sqlite3_bind_int(stmt, 3, completed ? 1 : 0);
+    sqlite3_bind_int(stmt, 4, count);
+    sqlite3_bind_int64(stmt, 5, changed_at);
+    rc = sqlite3_step(stmt);
+    changed = sqlite3_changes(g_storage.db) > 0;
+    sqlite3_finalize(stmt);
+
+    if(rc != SQLITE_DONE)
+        return 0;
+    if(changed)
+        storage_enqueue_sync_habit_day(habit_id, local_date);
+    storage_schedule_persist();
+    return 1;
 }
 
 #if defined(__GNUC__) && !defined(__clang__)

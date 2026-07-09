@@ -314,10 +314,19 @@ OK
 Тема
 ---
 [theme_mode_label]
-Режим темы
+Режим цвета
+---
+[theme_follow_device]
+Как на устройстве
 ---
 [theme_system]
 Системная
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Палитра
 ---
 [orientation_label]
 Ориентация
@@ -868,11 +877,11 @@ Alias saved
 [habit_default_meditation_description]
 Сеансы дыхания и медитации.
 ---
-[habit_default_sun_salutation_name]
-Приветствие солнцу
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Сеансы практики приветствия солнцу.
+[habit_default_yoga_description]
+Сеансы практики йоги.
 ---
 [pet_gamification_title]
 Геймификация в разработке...

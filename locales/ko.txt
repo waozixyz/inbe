@@ -311,10 +311,19 @@ Finish
 테마
 ---
 [theme_mode_label]
-테마 모드
+색상 모드
+---
+[theme_follow_device]
+기기 설정 따르기
 ---
 [theme_system]
 시스템
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+팔레트
 ---
 [orientation_label]
 화면 방향
@@ -867,11 +876,11 @@ Alias saved
 [habit_default_meditation_description]
 호흡과 명상 세션.
 ---
-[habit_default_sun_salutation_name]
-태양 경배
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-태양 경배 연습 세션.
+[habit_default_yoga_description]
+요가 연습 세션.
 ---
 [pet_gamification_title]
 게임화 준비 중...

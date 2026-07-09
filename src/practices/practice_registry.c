@@ -11,6 +11,7 @@
 #include "android_timer.h"
 #include "android_wakelock.h"
 void set_global_inbe_app(InbeApp *app);
+static int android_background_session_started = 0;
 #endif
 
 static int
@@ -161,6 +162,7 @@ practice_background_start(InbeApp *app, int id)
         android_wakelock_acquire();
         android_timer_set_app(app);
         android_timer_start();
+        android_background_session_started = 1;
     }
 #endif
 }
@@ -186,10 +188,12 @@ practice_active_background_stop(InbeApp *app)
         practice->background_stop(app);
 
 #if ANDROID_BUILD
-    if(app->inbe.play_in_background && practice != NULL &&
-       practice->advance_elapsed != NULL) {
-        android_wakelock_release();
+    if(android_background_session_started) {
+        android_background_session_started = 0;
+        android_timer_deactivate();
         android_timer_stop();
+        android_timer_set_app(NULL);
+        android_wakelock_release();
     }
 #endif
 }

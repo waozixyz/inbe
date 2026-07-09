@@ -311,7 +311,10 @@ Finish
 主题
 ---
 [theme_mode_label]
-主题模式
+颜色模式
+---
+[theme_follow_device]
+跟随设备
 ---
 [speed_label]
 速度
@@ -527,6 +530,12 @@ Finish
 ---
 [theme_system]
 系统
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+调色板
 ---
 [orientation_label]
 方向
@@ -868,11 +877,11 @@ Alias saved
 [habit_default_meditation_description]
 呼吸和冥想课程。
 ---
-[habit_default_sun_salutation_name]
-拜日式
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-拜日式练习课程。
+[habit_default_yoga_description]
+瑜伽练习课程。
 ---
 [pet_gamification_title]
 游戏化开发中...

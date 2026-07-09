@@ -311,10 +311,19 @@ Un compagno discreto per respirazione, abitudini e sincronizzazione.
 Tema
 ---
 [theme_mode_label]
-Modalità tema
+Modalità colore
+---
+[theme_follow_device]
+Segui dispositivo
 ---
 [theme_system]
 Sistema
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palette
 ---
 [orientation_label]
 Orientamento
@@ -868,11 +877,11 @@ Meditazione
 [habit_default_meditation_description]
 Sessioni di respirazione e meditazione.
 ---
-[habit_default_sun_salutation_name]
-Saluto al sole
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sessioni di saluto al sole.
+[habit_default_yoga_description]
+Sessioni di yoga.
 ---
 [pet_gamification_title]
 Gamification in corso...

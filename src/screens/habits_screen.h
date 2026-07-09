@@ -52,6 +52,7 @@ typedef struct InbeHabitDay {
     int day_index;
     int completed;
     int count;
+    int session_count;
 } InbeHabitDay;
 
 typedef struct InbeHabit {

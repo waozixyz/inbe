@@ -16,29 +16,67 @@ settings_theme_content_height(int content_w)
 {
     (void)content_w;
 #if defined(PLATFORM_WEB)
-    return flint_px(228);
+    return flint_px(260);
 #else
-    return flint_px(228) + flint_px(60);
+    return flint_px(320);
 #endif
 }
 
 void
 settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *state)
 {
+    const char *theme_source_options[2];
     const char *theme_mode_options[3];
+    const char *theme_options[FLINT_THEME_COUNT];
 
     if(app == NULL || y == NULL || state == NULL)
         return;
 
-    theme_mode_options[0] = locale_get("theme_system");
+    theme_source_options[APP_THEME_SOURCE_APP] = locale_get("theme_inner_breeze");
+    theme_source_options[APP_THEME_SOURCE_SYSTEM] = locale_get("theme_system");
+    app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
+    flint_text_draw(locale_get("theme_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+    ui_draw_dropdown_button(101, x, *y + flint_px(26), w, flint_px(36),
+                            theme_source_options, 2, &app->theme_source);
+    state->draw_theme_source_menu = 1;
+    *y += flint_px(76);
+
+    theme_mode_options[0] = locale_get("theme_follow_device");
     theme_mode_options[1] = locale_get("theme_light");
     theme_mode_options[2] = locale_get("theme_dark");
-    app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
-    flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-    ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
-                            theme_mode_options, 3, &app->theme_mode);
-    state->draw_theme_mode_menu = 1;
-    *y += flint_px(76);
+    if(app->theme_source == APP_THEME_SOURCE_APP || ANDROID_BUILD) {
+        app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+        flint_text_draw(locale_get("theme_mode_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+        ui_draw_dropdown_button(102, x, *y + flint_px(26), w, flint_px(36),
+                                theme_mode_options, 3, &app->theme_mode);
+        state->draw_theme_mode_menu = 1;
+        *y += flint_px(76);
+    } else {
+        app->theme_mode = APP_THEME_SYSTEM;
+        state->draw_theme_mode_menu = 0;
+    }
+
+    if(app->theme_source == APP_THEME_SOURCE_APP) {
+        for(int i = 0; i < FLINT_THEME_COUNT; i++)
+            theme_options[i] = flint_theme_label((FlintThemeId)i);
+        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+        flint_text_draw(locale_get("theme_palette_label"), x, *y, flint_ui_font(), flint_theme_get_text());
+        ui_draw_dropdown_button(103, x, *y + flint_px(26), w, flint_px(36),
+                                theme_options, FLINT_THEME_COUNT, &app->theme_id);
+        state->draw_theme_palette_menu = 1;
+        *y += flint_px(76);
+    } else {
+#if !ANDROID_BUILD
+        Color muted = flint_darken(flint_theme_get_text(), 28);
+        const char *system_name = flint_theme_system_name_cached();
+        flint_text_draw(system_name != NULL && system_name[0] != '\0'
+                            ? system_name
+                            : locale_get("theme_system"),
+                        x, *y, flint_ui_font_small(), muted);
+        *y += flint_px(38);
+#endif
+        state->draw_theme_palette_menu = 0;
+    }
 
 #if defined(PLATFORM_WEB)
     app->transition_mode = APP_TRANSITION_NONE;
@@ -56,59 +94,35 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
     state->draw_transition_menu = 1;
     *y += flint_px(76);
 #endif
-
-    // Draw single theme circle button
-    flint_text_draw(locale_get("theme_label"), x, *y, flint_ui_font(), flint_theme_get_text());
-    *y += flint_px(26);
-
-    int circle_size = flint_px(32);
-    Color theme_color = flint_theme_get_circle();
-    int circle_x = x + w / 2;
-    int circle_y = *y + circle_size / 2;
-
-    // Check for hover
-    Rectangle circle_bounds = {
-        (float)(circle_x - circle_size),
-        (float)(circle_y - circle_size),
-        (float)(circle_size * 2),
-        (float)(circle_size * 2)
-    };
-    Vector2 mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera);
-    int is_hovered = CheckCollisionPointRec(mouse_world, circle_bounds);
-
-    // Draw circle with hover effect
-    int draw_size = is_hovered ? circle_size + flint_px(4) : circle_size;
-    DrawCircle(circle_x, circle_y, draw_size / 2, theme_color);
-    DrawCircleLines(circle_x, circle_y, draw_size / 2 + flint_px(2),
-                    flint_theme_get_text());
-
-    // Check for click to open modal (skip if modal is active or just closed)
-    if(is_hovered && !app->modal.active &&
-       !ui_input_captures_click(mouse_world) &&
-       app->inbe.frame - app->modal_input_block_frame > 1) {
-        ui_mark_clickable();
-        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-            app_open_modal(app, UIModalThemePicker);
-        }
-    }
-    *y += circle_size + flint_px(20);
 }
 
 void
 settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
 {
+    int theme_source_changed = 0;
     int theme_mode_changed = 0;
+    int theme_palette_changed = 0;
     int transition_changed = 0;
 
     if(app == NULL || state == NULL)
         return;
+    if(state->draw_theme_source_menu && ui_draw_dropdown_menu(101))
+        theme_source_changed = 1;
     if(state->draw_theme_mode_menu && ui_draw_dropdown_menu(102))
         theme_mode_changed = 1;
-    if(theme_mode_changed) {
+    if(state->draw_theme_palette_menu && ui_draw_dropdown_menu(103))
+        theme_palette_changed = 1;
+    if(theme_source_changed || theme_mode_changed || theme_palette_changed) {
+        app->theme_source = clampi(app->theme_source, APP_THEME_SOURCE_APP, APP_THEME_SOURCE_SYSTEM);
         app->theme_mode = clampi(app->theme_mode, APP_THEME_SYSTEM, APP_THEME_DARK);
+        app->theme_id = clampi(app->theme_id, 0, FLINT_THEME_COUNT - 1);
+#if !ANDROID_BUILD
+        if(app->theme_source == APP_THEME_SOURCE_SYSTEM)
+            app->theme_mode = APP_THEME_SYSTEM;
+#endif
         app_refresh_theme(app);
         app->settings_dirty = 1;
-        save_settings(app);
+        app->settings_save_delay_ticks = 18;
     }
 
 #if !defined(PLATFORM_WEB)
@@ -117,7 +131,7 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
     if(transition_changed) {
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
         app->settings_dirty = 1;
-        save_settings(app);
+        app->settings_save_delay_ticks = 18;
     }
 #else
     (void)transition_changed;

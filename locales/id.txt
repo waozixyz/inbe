@@ -311,7 +311,10 @@ Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 Tema
 ---
 [theme_mode_label]
-Mode tema
+Mode warna
+---
+[theme_follow_device]
+Ikuti perangkat
 ---
 [speed_label]
 Kecepatan
@@ -527,6 +530,12 @@ Musik oleh Elijah_K.
 ---
 [theme_system]
 Sistem
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palet
 ---
 [orientation_label]
 Orientasi
@@ -868,11 +877,11 @@ Meditasi
 [habit_default_meditation_description]
 Sesi pernapasan dan meditasi.
 ---
-[habit_default_sun_salutation_name]
-Salam Matahari
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sesi latihan Salam Matahari.
+[habit_default_yoga_description]
+Sesi latihan yoga.
 ---
 [pet_gamification_title]
 Gamifikasi sedang dibuat...

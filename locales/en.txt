@@ -317,10 +317,19 @@ A quiet breathing companion for practice, habits, and sync.
 Theme
 ---
 [theme_mode_label]
-Theme mode
+Color mode
+---
+[theme_follow_device]
+Follow device
 ---
 [theme_system]
 System
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Palette
 ---
 [orientation_label]
 Orientation
@@ -867,11 +876,11 @@ Meditation
 [habit_default_meditation_description]
 Breathing and meditation sessions.
 ---
-[habit_default_sun_salutation_name]
-Sun Salutation
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sun Salutation practice sessions.
+[habit_default_yoga_description]
+Yoga practice sessions.
 ---
 [pet_gamification_title]
 Gamification in progress...

@@ -311,7 +311,10 @@ Um companheiro tranquilo para respiracao, habitos e sincronizacao.
 Tema
 ---
 [theme_mode_label]
-Modo do tema
+Modo de cor
+---
+[theme_follow_device]
+Seguir dispositivo
 ---
 [speed_label]
 Velocidade
@@ -527,6 +530,12 @@ Música por Elijah_K.
 ---
 [theme_system]
 Sistema
+---
+[theme_inner_breeze]
+Inner Breeze
+---
+[theme_palette_label]
+Paleta
 ---
 [orientation_label]
 Orientação
@@ -868,11 +877,11 @@ Meditação
 [habit_default_meditation_description]
 Sessões de respiração e meditação.
 ---
-[habit_default_sun_salutation_name]
-Saudação ao sol
+[habit_default_yoga_name]
+Yoga
 ---
-[habit_default_sun_salutation_description]
-Sessões de saudação ao sol.
+[habit_default_yoga_description]
+Sessões de yoga.
 ---
 [pet_gamification_title]
 Gamificação em andamento...
