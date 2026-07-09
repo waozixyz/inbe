@@ -57,9 +57,10 @@ InbeApp *get_global_inbe_app(void);
 #endif
 
 enum {
-    APP_SCREEN_TRANSITION_TICKS = 8,
     APP_CUE_SAMPLE_RATE = 24000
 };
+
+static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
 
 #ifndef INBE_PI
 #define INBE_PI 3.14159265358979323846f
@@ -127,7 +128,7 @@ app_switch_screen(InbeApp *app, int screen)
         return;
     }
 
-    BeginUITransition(&app->screen_transition, APP_SCREEN_TRANSITION_TICKS);
+    BeginUITransition(&app->screen_transition, APP_SCREEN_TRANSITION_SECONDS);
 }
 
 static void
@@ -137,7 +138,7 @@ app_advance_screen_transition(InbeApp *app)
 
     if(app == NULL)
         return;
-    completed_phase = StepUITransition(&app->screen_transition);
+    completed_phase = StepUITransition(&app->screen_transition, GetFrameTime());
     if(completed_phase == UI_TRANSITION_OUT)
         app->inbe.screen = app->screen_transition_target;
     else if(completed_phase == UI_TRANSITION_IN)
@@ -159,8 +160,8 @@ app_observe_direct_screen_change(InbeApp *app, int before_screen)
     app->screen_transition = (UITransition){
         .active = 1,
         .phase = UI_TRANSITION_IN,
-        .ticks = 0,
-        .duration = APP_SCREEN_TRANSITION_TICKS
+        .elapsed_seconds = 0.0f,
+        .duration_seconds = APP_SCREEN_TRANSITION_SECONDS
     };
     if(app->inbe.screen == InbeScreenHabits && before_screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;

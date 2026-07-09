@@ -130,6 +130,10 @@ settings_theme_handle_overlays(InbeApp *app, SettingsThemeState *state)
         transition_changed = 1;
     if(transition_changed) {
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE);
+        if(app->transition_mode == APP_TRANSITION_NONE) {
+            ResetUITransition(&app->screen_transition);
+            app->screen_transition_target = app->inbe.screen;
+        }
         app->settings_dirty = 1;
         app->settings_save_delay_ticks = 18;
     }
