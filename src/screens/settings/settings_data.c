@@ -81,6 +81,7 @@ settings_file_dialog_begin(InbeApp *app, int action)
     if(app == NULL)
         return;
     data_file_dialog_action = action;
+    app->file_dialog_active = 1;
     file_dialog_origin.active = 1;
     file_dialog_origin.screen = app->inbe.screen;
     file_dialog_origin.settings_tab = app->settings_tab;
@@ -102,6 +103,8 @@ settings_file_dialog_finish(InbeApp *app)
     }
     file_dialog_origin.active = 0;
     data_file_dialog_action = SETTINGS_DATA_ACTION_NONE;
+    if(app != NULL)
+        app->file_dialog_active = 0;
     return action;
 }
 
@@ -420,16 +423,6 @@ settings_apply_file_dialog_theme(InbeApp *app)
                                                             dark_mode != 0));
 }
 #endif
-
-int
-settings_data_file_dialog_active(void)
-{
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
-    return data_file_dialog_action != SETTINGS_DATA_ACTION_NONE;
-#else
-    return 0;
-#endif
-}
 
 static int
 settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)

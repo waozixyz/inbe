@@ -224,6 +224,23 @@ test_practice_config_hides_bottom_nav(void)
            "practice config hidden nav should not route clicks");
 }
 
+static void
+test_file_dialog_hides_bottom_nav(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.file_dialog_active = 1;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 0,
+           "active file dialog should not draw bottom nav");
+    expect(app.inbe.screen == InbeScreenStart,
+           "active file dialog should not route bottom nav clicks");
+}
+
 int
 main(void)
 {
@@ -231,6 +248,7 @@ main(void)
     test_unblocked_bottom_nav_click_still_routes();
     test_practice_manual_hides_bottom_nav();
     test_practice_config_hides_bottom_nav();
+    test_file_dialog_hides_bottom_nav();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

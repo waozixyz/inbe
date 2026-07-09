@@ -380,6 +380,7 @@ struct InbeApp {
     int previous_screen;
     FlintTransition screen_transition;
     int screen_transition_target;
+    int file_dialog_active;
     int session_paused;
     int backgrounded;
     int results_saved;
