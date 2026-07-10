@@ -487,21 +487,6 @@ Inner Breeze
 [on_screen_keyboard_label]
 화면 키보드
 ---
-[tutorial_title]
-튜토리얼
----
-[tutorial_method_title]
-방법
----
-[tutorial_step1_title]
-1단계: 들이마시기와 내뱉기
----
-[tutorial_step2_title]
-2단계: 내뱉고 참기
----
-[tutorial_step3_title]
-3단계: 들이마시고 참기
----
 [tutorial_step_intro]
 이 호흡법은 윔 호프 메서드를 기반으로 합니다.
 
@@ -937,109 +922,109 @@ Yoga
 %d 라운드 | %d 호흡
 ---
 [sun_salutation_session_step_title]
-Step %d / %d
+단계 %d / %d
 ---
 [meditation_music_downloading_progress]
-Downloading audio... %d%%
+오디오 다운로드 중... %d%%
 ---
 [meditation_music_downloading]
-Downloading audio...
+오디오 다운로드 중...
 ---
 [statistics_now_label]
-Now
+지금
 ---
 [statistics_day_offset_label]
-%dd
+%d일
 ---
 [habit_session_total_count]
-Total count %d
+총 %d
 ---
 [habit_day_total_count_suffix]
- / total %d
+ / 총 %d
 ---
 [habit_day_completed]
-Completed
+완료됨
 ---
 [sync_review_local_only]
-- Local only
+- 로컬만
 ---
 [sync_review_remote_only]
-+ Remote only
++ 원격만
 ---
 [sync_review_keep_local_button]
-Keep local
+로컬 유지
 ---
 [sync_review_use_remote_button]
-Use remote
+원격 사용
 ---
 [sync_status_title]
-Sync status
+동기화 상태
 ---
 [sync_status_account]
-Account: %s
+계정: %s
 ---
 [sync_status_connected]
-connected
+연결됨
 ---
 [sync_status_not_set]
-not set
+설정 안 됨
 ---
 [sync_status_queued]
-Queued: %lld
+대기: %lld
 ---
 [sync_status_server]
-Server: %lld
+서버: %lld
 ---
 [sync_status_clock]
-Clock: %lld
+시계: %lld
 ---
 [sync_status_upgrade]
-Upgrade Inner Breeze
+Inner Breeze 업데이트
 ---
 [sync_status_review_pending]
-Review pending
+검토 대기 중
 ---
 [sync_status_repair_pending]
-Repair sync pending
+동기화 복구 대기 중
 ---
 [sync_status_local_queued]
-Local changes queued
+로컬 변경 대기 중
 ---
 [sync_status_initial_upload_pending]
-Initial upload pending
+초기 업로드 대기 중
 ---
 [sync_status_ready]
-Ready
+준비됨
 ---
 [tray_wim_hof_paused]
-Wim Hof - Paused
+Wim Hof - 일시정지
 ---
 [tray_wim_hof_breath]
-Wim Hof - Breath %d/%d
+Wim Hof - 호흡 %d/%d
 ---
 [tray_wim_hof_hold]
-Wim Hof - Hold %ds
+Wim Hof - 참기 %d초
 ---
 [tray_wim_hof_breathe_in]
-Wim Hof - Breathe in %ds
+Wim Hof - 들이마시기 %d초
 ---
 [tray_wim_hof_next_round]
-Wim Hof - Next round
+Wim Hof - 다음 라운드
 ---
 [tray_wim_hof_starting]
-Wim Hof - Starting
+Wim Hof - 시작 중
 ---
 [tray_meditation_paused]
-Meditation - %d:%02d paused
+명상 - %d:%02d 일시정지
 ---
 [tray_meditation_left]
-Meditation - %d:%02d left
+명상 - %d:%02d 남음
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+태양 경배 - 단계 %d, 반복 %d/%d
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+태양 경배 - 단계 %d, 반복 %d/%d 일시정지
 ---
 [results_best]
 최고 %ds

@@ -125,9 +125,9 @@ practice_screen_manual_layout(InbeApp *app, int modal_type, int page_count,
     int title_h = integrated ? app_content_top_reserved(app) : GetUITitleBarHeight();
     int nav_h = page_count > 1 ? manual_screen_guide_nav_height() : 0;
     int bottom_reserved = integrated ? app_content_bottom_reserved(app) : 0;
-    int nav_y = view_height - bottom_reserved - nav_h;
-    int content_y = title_h + content_top_gap;
-    int content_h = nav_y - content_y - content_bottom_gap;
+    int nav_y = title_h;
+    int content_y = title_h + nav_h + content_top_gap;
+    int content_h = view_height - bottom_reserved - content_y - content_bottom_gap;
 
     if(layout == NULL)
         return;

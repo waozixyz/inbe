@@ -11,8 +11,6 @@
 #include "raylib.h"
 #include <stdio.h>
 
-#define CONTENT_MAX_W 480
-
 extern int view_width;
 extern int view_height;
 
@@ -26,7 +24,6 @@ static const char *const TUTORIAL_KEYS[] = {
 };
 
 #define TUTORIAL_STEPS_COUNT (sizeof(TUTORIAL_KEYS) / sizeof(TUTORIAL_KEYS[0]))
-#define TUTORIAL_LINE_SPACING ScaleUIPx(8)  /* Normal readable line spacing */
 
 static Color
 manual_text_color_for_background(Color background)
@@ -67,48 +64,46 @@ draw_tutorial_hold_preview(InbeApp *app, int center_x, int center_y, int radius)
 }
 
 static UIParagraph
-tutorial_paragraph(InbeApp *app, int step, int content_w, int body_font)
+tutorial_paragraph(InbeApp *app, int step, int content_w)
 {
     int has_icon = step == 1;
-    return (UIParagraph){
-        .text = GetLocaleText(TUTORIAL_KEYS[step]),
-        .icon = has_icon ? app->icons[UI_ICON_TYPE_WRENCH] : (Texture2D){0},
-        .icon_type = has_icon ? UI_ICON_TYPE_WRENCH : UI_ICON_TYPE_NONE,
-        .icon_size = has_icon ? ScaleUIPx(14) : 0,
-        .width = content_w,
-        .font = body_font,
-        .line_gap = TUTORIAL_LINE_SPACING,
-    };
+    UIParagraph paragraph = manual_screen_tutorial_paragraph(
+        GetLocaleText(TUTORIAL_KEYS[step]), content_w);
+
+    paragraph.icon = has_icon ? app->icons[UI_ICON_TYPE_WRENCH] : (Texture2D){0};
+    paragraph.icon_type = has_icon ? UI_ICON_TYPE_WRENCH : UI_ICON_TYPE_NONE;
+    paragraph.icon_size = has_icon ? ScaleUIPx(14) : 0;
+    return paragraph;
 }
 
 static int
-tutorial_paragraph_height(InbeApp *app, int step, int content_w, int body_font)
+tutorial_paragraph_height(InbeApp *app, int step, int content_w)
 {
-    return GetUIParagraphHeight(tutorial_paragraph(app, step, content_w, body_font));
+    return GetUIParagraphHeight(tutorial_paragraph(app, step, content_w));
 }
 
 static void
-draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int content_w, int body_font)
+draw_tutorial_paragraph(InbeApp *app, int step, int content_x, int *y, int content_w)
 {
-    DrawUIParagraph(tutorial_paragraph(app, step, content_w, body_font), content_x, y);
+    DrawUIParagraph(tutorial_paragraph(app, step, content_w), content_x, y);
 }
 
 static int
-manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_font)
+manual_tutorial_content_height(InbeApp *app, int step, int content_w)
 {
     int actual_content_h = 0;
 
     if(step == 0) {
         actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
-                            tutorial_paragraph_height(app, 0, content_w, body_font);
+                            tutorial_paragraph_height(app, 0, content_w);
     } else if(step == 1) {
-        actual_content_h += tutorial_paragraph_height(app, 1, content_w, body_font);
+        actual_content_h += tutorial_paragraph_height(app, 1, content_w);
     } else if(step == 2) {
         int preview_span;
         int preview_rmax;
         int slider_h = ScaleUIPx(40);
 
-        actual_content_h += tutorial_paragraph_height(app, 2, content_w, body_font) + ScaleUIPx(20);
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w) + ScaleUIPx(20);
         preview_span = (content_w < ScaleUIPx(132)) ? content_w : ScaleUIPx(132);
         preview_rmax = preview_span / 2;
         if(preview_rmax < ScaleUIPx(60)) preview_rmax = ScaleUIPx(60);
@@ -121,10 +116,10 @@ manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_f
 
         actual_content_h += hold_preview_extent * 2 + ScaleUIPx(24) +
                             ScaleUIPx(42) + ScaleUIPx(18);
-        actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font);
+        actual_content_h += tutorial_paragraph_height(app, 3, content_w);
     } else {
         actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
-                            tutorial_paragraph_height(app, 4, content_w, body_font);
+                            tutorial_paragraph_height(app, 4, content_w);
     }
 
     return actual_content_h;
@@ -133,8 +128,6 @@ manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_f
 typedef struct WhmManualScrollPageContext {
     InbeApp *app;
     int step;
-    int body_font;
-    int top_padding;
 } WhmManualScrollPageContext;
 
 static int
@@ -142,9 +135,7 @@ whm_manual_scroll_page_content_height(int content_w, void *user_data)
 {
     WhmManualScrollPageContext *ctx = user_data;
 
-    return manual_tutorial_content_height(ctx->app, ctx->step,
-                                          content_w, ctx->body_font) +
-           ctx->top_padding;
+    return manual_tutorial_content_height(ctx->app, ctx->step, content_w);
 }
 
 void
@@ -175,32 +166,24 @@ void
 whm_manual_draw(InbeApp *app)
 {
     PracticeManualLayout layout;
-    int body_font = GetUIFontSize();
     int footer_content_pad = GetUIFontSize() / 2;
-    const char *title = GetLocaleText("tutorial_title");
     int step = app->tutorial_step;
 
     step = manual_screen_guide_update_page(app, (int)TUTORIAL_STEPS_COUNT,
                                            manual_screen_start_exercise,
                                            whm_manual_close);
 
-    switch(step) {
-    case 1: title = GetLocaleText("tutorial_method_title"); break;
-    case 2: title = GetLocaleText("tutorial_step1_title"); break;
-    case 3: title = GetLocaleText("tutorial_step2_title"); break;
-    case 4: title = GetLocaleText("tutorial_step3_title"); break;
-    default: break;
-    }
-
     practice_screen_manual_layout(app, UIModalPracticeManual, (int)TUTORIAL_STEPS_COUNT,
-                                  0, footer_content_pad, 0, &layout);
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, layout.title_h))
+                                  manual_screen_tutorial_top_gap(), footer_content_pad,
+                                  0, &layout);
+    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+                            GetLocaleText("practice_manual_button"),
+                            layout.title_h))
         whm_manual_close(app, 0);
 
     {
-        int top_padding = ScaleUIPx(16);
         int responsive_max_w = (int)(view_width * 0.96f);
-        int max_content_w = ScaleUIPx(CONTENT_MAX_W);
+        int max_content_w = manual_screen_tutorial_max_width();
         WhmManualScrollPageContext page_ctx;
         UIScrollPage page;
 
@@ -209,31 +192,31 @@ whm_manual_draw(InbeApp *app)
         if(responsive_max_w < ScaleUIPx(280))
             responsive_max_w = ScaleUIPx(280);
 
-        page_ctx = (WhmManualScrollPageContext){app, step, body_font, top_padding};
+        page_ctx = (WhmManualScrollPageContext){app, step};
         page = BeginUIScrollPage((UIScrollPageSpec){
             .y = layout.content_y,
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
             .min_content_width = ScaleUIPx(200),
-            .side_padding = ScaleUIPx(54),
+            .side_padding = manual_screen_tutorial_side_padding(),
             .scroll_offset = &app->manual_scroll,
             .content_height = whm_manual_scroll_page_content_height,
             .user_data = &page_ctx
         });
 
-        int y = page.content_y + top_padding;
+        int y = page.content_y;
         if(step == 0) {
             int img_h = ScaleUIPx(170);
             DrawUITutorialImage(app->whm.image_1, "practices/whm/1.png",
                                    page.content_x, y, page.content_w, img_h);
             y += img_h + ScaleUIPx(22);
 
-            draw_tutorial_paragraph(app, 0, page.content_x, &y, page.content_w, body_font);
+            draw_tutorial_paragraph(app, 0, page.content_x, &y, page.content_w);
         } else if(step == 1) {
-            draw_tutorial_paragraph(app, 1, page.content_x, &y, page.content_w, body_font);
+            draw_tutorial_paragraph(app, 1, page.content_x, &y, page.content_w);
         } else if(step == 2) {
             int speed = app->inbe.speed_level;
-            draw_tutorial_paragraph(app, 2, page.content_x, &y, page.content_w, body_font);
+            draw_tutorial_paragraph(app, 2, page.content_x, &y, page.content_w);
             y += ScaleUIPx(20);  /* Increased spacing between text and circle */
 
             update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132));
@@ -271,13 +254,13 @@ whm_manual_draw(InbeApp *app)
             y += hold_preview_extent + ScaleUIPx(24);
             DrawUITextButton(center_x, y, GetLocaleText("breath_button"), &breath_button_hover);
             y += ScaleUIPx(42) + ScaleUIPx(18);
-            draw_tutorial_paragraph(app, 3, page.content_x, &y, page.content_w, body_font);
+            draw_tutorial_paragraph(app, 3, page.content_x, &y, page.content_w);
         } else {
             int img_h = ScaleUIPx(170);
             DrawUITutorialImage(app->whm.image_2, "practices/whm/2.png",
                                    page.content_x, y, page.content_w, img_h);
             y += img_h + ScaleUIPx(22);
-            draw_tutorial_paragraph(app, 4, page.content_x, &y, page.content_w, body_font);
+            draw_tutorial_paragraph(app, 4, page.content_x, &y, page.content_w);
         }
         EndUIScrollPage(page);
     }

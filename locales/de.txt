@@ -463,21 +463,6 @@ Dunkel
 [on_screen_keyboard_label]
 Bildschirmtastatur
 ---
-[tutorial_title]
-Anleitung
----
-[tutorial_method_title]
-Methode
----
-[tutorial_step1_title]
-Schritt 1: Ein & Aus
----
-[tutorial_step2_title]
-Schritt 2: Ausatmen & Halten
----
-[tutorial_step3_title]
-Schritt 3: Einatmen & Halten
----
 [tutorial_step_intro]
 Diese Atemübung basiert auf der Wim Hof-Methode.
 
@@ -938,109 +923,109 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 %d Runden | %d Atemzüge
 ---
 [sun_salutation_session_step_title]
-Step %d / %d
+Schritt %d / %d
 ---
 [meditation_music_downloading_progress]
-Downloading audio... %d%%
+Audio wird geladen... %d%%
 ---
 [meditation_music_downloading]
-Downloading audio...
+Audio wird geladen...
 ---
 [statistics_now_label]
-Now
+Jetzt
 ---
 [statistics_day_offset_label]
-%dd
+%d T
 ---
 [habit_session_total_count]
-Total count %d
+Gesamt %d
 ---
 [habit_day_total_count_suffix]
- / total %d
+ / gesamt %d
 ---
 [habit_day_completed]
-Completed
+Abgeschlossen
 ---
 [sync_review_local_only]
-- Local only
+- Nur lokal
 ---
 [sync_review_remote_only]
-+ Remote only
++ Nur remote
 ---
 [sync_review_keep_local_button]
-Keep local
+Lokal behalten
 ---
 [sync_review_use_remote_button]
-Use remote
+Remote verwenden
 ---
 [sync_status_title]
-Sync status
+Sync-Status
 ---
 [sync_status_account]
-Account: %s
+Konto: %s
 ---
 [sync_status_connected]
-connected
+verbunden
 ---
 [sync_status_not_set]
-not set
+nicht gesetzt
 ---
 [sync_status_queued]
-Queued: %lld
+Wartend: %lld
 ---
 [sync_status_server]
 Server: %lld
 ---
 [sync_status_clock]
-Clock: %lld
+Uhr: %lld
 ---
 [sync_status_upgrade]
-Upgrade Inner Breeze
+Inner Breeze aktualisieren
 ---
 [sync_status_review_pending]
-Review pending
+Prüfung ausstehend
 ---
 [sync_status_repair_pending]
-Repair sync pending
+Sync-Reparatur ausstehend
 ---
 [sync_status_local_queued]
-Local changes queued
+Lokale Änderungen warten
 ---
 [sync_status_initial_upload_pending]
-Initial upload pending
+Erst-Upload ausstehend
 ---
 [sync_status_ready]
-Ready
+Bereit
 ---
 [tray_wim_hof_paused]
-Wim Hof - Paused
+Wim Hof - Pausiert
 ---
 [tray_wim_hof_breath]
-Wim Hof - Breath %d/%d
+Wim Hof - Atemzug %d/%d
 ---
 [tray_wim_hof_hold]
-Wim Hof - Hold %ds
+Wim Hof - Halten %ds
 ---
 [tray_wim_hof_breathe_in]
-Wim Hof - Breathe in %ds
+Wim Hof - Einatmen %ds
 ---
 [tray_wim_hof_next_round]
-Wim Hof - Next round
+Wim Hof - Nächste Runde
 ---
 [tray_wim_hof_starting]
-Wim Hof - Starting
+Wim Hof - Startet
 ---
 [tray_meditation_paused]
-Meditation - %d:%02d paused
+Meditation - %d:%02d pausiert
 ---
 [tray_meditation_left]
-Meditation - %d:%02d left
+Meditation - %d:%02d übrig
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+Sonnengruß - Schritt %d, Wdh. %d/%d
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+Sonnengruß - Schritt %d, Wdh. %d/%d pausiert
 ---
 [results_best]
 beste %ds

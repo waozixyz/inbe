@@ -463,21 +463,6 @@ OK
 [on_screen_keyboard_label]
 オンスクリーンキーボード
 ---
-[tutorial_title]
-チュートリアル
----
-[tutorial_method_title]
-方法
----
-[tutorial_step1_title]
-ステップ 1: 吸って吐く
----
-[tutorial_step2_title]
-ステップ 2: 吐いて止める
----
-[tutorial_step3_title]
-ステップ 3: 吸って止める
----
 [tutorial_step_intro]
 この呼吸法は Wim Hof Method を
 ベースにしています。
@@ -940,109 +925,109 @@ Yoga
 %d ラウンド | %d 呼吸
 ---
 [sun_salutation_session_step_title]
-Step %d / %d
+ステップ %d / %d
 ---
 [meditation_music_downloading_progress]
-Downloading audio... %d%%
+音声をダウンロード中... %d%%
 ---
 [meditation_music_downloading]
-Downloading audio...
+音声をダウンロード中...
 ---
 [statistics_now_label]
-Now
+今
 ---
 [statistics_day_offset_label]
-%dd
+%d日
 ---
 [habit_session_total_count]
-Total count %d
+合計 %d
 ---
 [habit_day_total_count_suffix]
- / total %d
+ / 合計 %d
 ---
 [habit_day_completed]
-Completed
+完了
 ---
 [sync_review_local_only]
-- Local only
+- ローカルのみ
 ---
 [sync_review_remote_only]
-+ Remote only
++ リモートのみ
 ---
 [sync_review_keep_local_button]
-Keep local
+ローカルを保持
 ---
 [sync_review_use_remote_button]
-Use remote
+リモートを使用
 ---
 [sync_status_title]
-Sync status
+同期状態
 ---
 [sync_status_account]
-Account: %s
+アカウント: %s
 ---
 [sync_status_connected]
-connected
+接続済み
 ---
 [sync_status_not_set]
-not set
+未設定
 ---
 [sync_status_queued]
-Queued: %lld
+キュー: %lld
 ---
 [sync_status_server]
-Server: %lld
+サーバー: %lld
 ---
 [sync_status_clock]
-Clock: %lld
+時計: %lld
 ---
 [sync_status_upgrade]
-Upgrade Inner Breeze
+Inner Breezeを更新してください
 ---
 [sync_status_review_pending]
-Review pending
+確認待ち
 ---
 [sync_status_repair_pending]
-Repair sync pending
+同期修復待ち
 ---
 [sync_status_local_queued]
-Local changes queued
+ローカル変更が待機中
 ---
 [sync_status_initial_upload_pending]
-Initial upload pending
+初回アップロード待ち
 ---
 [sync_status_ready]
-Ready
+準備完了
 ---
 [tray_wim_hof_paused]
-Wim Hof - Paused
+Wim Hof - 一時停止
 ---
 [tray_wim_hof_breath]
-Wim Hof - Breath %d/%d
+Wim Hof - 呼吸 %d/%d
 ---
 [tray_wim_hof_hold]
-Wim Hof - Hold %ds
+Wim Hof - ホールド %d秒
 ---
 [tray_wim_hof_breathe_in]
-Wim Hof - Breathe in %ds
+Wim Hof - 吸って %d秒
 ---
 [tray_wim_hof_next_round]
-Wim Hof - Next round
+Wim Hof - 次のラウンド
 ---
 [tray_wim_hof_starting]
-Wim Hof - Starting
+Wim Hof - 開始中
 ---
 [tray_meditation_paused]
-Meditation - %d:%02d paused
+瞑想 - %d:%02d 一時停止
 ---
 [tray_meditation_left]
-Meditation - %d:%02d left
+瞑想 - 残り %d:%02d
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+太陽礼拝 - ステップ %d、回数 %d/%d
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+太陽礼拝 - ステップ %d、回数 %d/%d 一時停止
 ---
 [results_best]
 最速 %ds

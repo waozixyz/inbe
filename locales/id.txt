@@ -463,21 +463,6 @@ Gelap
 [on_screen_keyboard_label]
 Keyboard di layar
 ---
-[tutorial_title]
-Tutorial
----
-[tutorial_method_title]
-Metode
----
-[tutorial_step1_title]
-Langkah 1: Masuk & Keluar
----
-[tutorial_step2_title]
-Langkah 2: Buang & Tahan
----
-[tutorial_step3_title]
-Langkah 3: Tarik & Tahan
----
 [tutorial_step_intro]
 Latihan pernapasan ini didasarkan pada Metode Wim Hof.
 
@@ -938,109 +923,109 @@ Data sesi berasal dari latihan selesai.
 %d ronde | %d napas
 ---
 [sun_salutation_session_step_title]
-Step %d / %d
+Langkah %d / %d
 ---
 [meditation_music_downloading_progress]
-Downloading audio... %d%%
+Mengunduh audio... %d%%
 ---
 [meditation_music_downloading]
-Downloading audio...
+Mengunduh audio...
 ---
 [statistics_now_label]
-Now
+Sekarang
 ---
 [statistics_day_offset_label]
-%dd
+%d h
 ---
 [habit_session_total_count]
-Total count %d
+Total %d
 ---
 [habit_day_total_count_suffix]
  / total %d
 ---
 [habit_day_completed]
-Completed
+Selesai
 ---
 [sync_review_local_only]
-- Local only
+- Lokal saja
 ---
 [sync_review_remote_only]
-+ Remote only
++ Remote saja
 ---
 [sync_review_keep_local_button]
-Keep local
+Simpan lokal
 ---
 [sync_review_use_remote_button]
-Use remote
+Pakai remote
 ---
 [sync_status_title]
-Sync status
+Status sinkronisasi
 ---
 [sync_status_account]
-Account: %s
+Akun: %s
 ---
 [sync_status_connected]
-connected
+terhubung
 ---
 [sync_status_not_set]
-not set
+belum diatur
 ---
 [sync_status_queued]
-Queued: %lld
+Antrean: %lld
 ---
 [sync_status_server]
 Server: %lld
 ---
 [sync_status_clock]
-Clock: %lld
+Jam: %lld
 ---
 [sync_status_upgrade]
-Upgrade Inner Breeze
+Perbarui Inner Breeze
 ---
 [sync_status_review_pending]
-Review pending
+Tinjauan tertunda
 ---
 [sync_status_repair_pending]
-Repair sync pending
+Perbaikan sinkronisasi tertunda
 ---
 [sync_status_local_queued]
-Local changes queued
+Perubahan lokal dalam antrean
 ---
 [sync_status_initial_upload_pending]
-Initial upload pending
+Unggahan awal tertunda
 ---
 [sync_status_ready]
-Ready
+Siap
 ---
 [tray_wim_hof_paused]
-Wim Hof - Paused
+Wim Hof - Dijeda
 ---
 [tray_wim_hof_breath]
-Wim Hof - Breath %d/%d
+Wim Hof - Napas %d/%d
 ---
 [tray_wim_hof_hold]
-Wim Hof - Hold %ds
+Wim Hof - Tahan %ds
 ---
 [tray_wim_hof_breathe_in]
-Wim Hof - Breathe in %ds
+Wim Hof - Tarik napas %ds
 ---
 [tray_wim_hof_next_round]
-Wim Hof - Next round
+Wim Hof - Ronde berikutnya
 ---
 [tray_wim_hof_starting]
-Wim Hof - Starting
+Wim Hof - Mulai
 ---
 [tray_meditation_paused]
-Meditation - %d:%02d paused
+Meditasi - %d:%02d dijeda
 ---
 [tray_meditation_left]
-Meditation - %d:%02d left
+Meditasi - sisa %d:%02d
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+Salam matahari - Langkah %d, Rep %d/%d
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+Salam matahari - Langkah %d, Rep %d/%d dijeda
 ---
 [results_best]
 terbaik %ds

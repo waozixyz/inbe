@@ -3,6 +3,7 @@
 
 #include "breath_engine.h"
 #include "app_fwd.h"
+#include "ui.h"
 
 typedef void (*ManualGuideStartFn)(InbeApp *app);
 typedef void (*ManualGuideCloseFn)(InbeApp *app, int mark_seen);
@@ -25,5 +26,11 @@ int manual_screen_guide_update_page(InbeApp *app, int page_count,
                                     ManualGuideCloseFn close);
 void manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav);
 int manual_screen_guide_nav_height(void);
+int manual_screen_tutorial_body_font(void);
+int manual_screen_tutorial_line_gap(void);
+int manual_screen_tutorial_side_padding(void);
+int manual_screen_tutorial_top_gap(void);
+int manual_screen_tutorial_max_width(void);
+UIParagraph manual_screen_tutorial_paragraph(const char *text, int content_w);
 
 #endif

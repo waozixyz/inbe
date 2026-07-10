@@ -10,12 +10,56 @@
 extern int view_width;
 extern int view_height;
 
+#define MANUAL_TUTORIAL_BODY_FONT 14
+#define MANUAL_TUTORIAL_MAX_WIDTH 480
+
 void
 manual_screen_reset_layouts(InbeApp *app)
 {
     if(app == NULL)
         return;
     app->manual_scroll = 0;
+}
+
+int
+manual_screen_tutorial_body_font(void)
+{
+    return MANUAL_TUTORIAL_BODY_FONT;
+}
+
+int
+manual_screen_tutorial_line_gap(void)
+{
+    return ScaleUIPx(6);
+}
+
+int
+manual_screen_tutorial_side_padding(void)
+{
+    return ScaleUIPx(24);
+}
+
+int
+manual_screen_tutorial_top_gap(void)
+{
+    return ScaleUIPx(4);
+}
+
+int
+manual_screen_tutorial_max_width(void)
+{
+    return ScaleUIPx(MANUAL_TUTORIAL_MAX_WIDTH);
+}
+
+UIParagraph
+manual_screen_tutorial_paragraph(const char *text, int content_w)
+{
+    return (UIParagraph){
+        .text = text,
+        .width = content_w,
+        .font = manual_screen_tutorial_body_font(),
+        .line_gap = manual_screen_tutorial_line_gap(),
+    };
 }
 
 int
@@ -55,7 +99,7 @@ manual_screen_guide_update_page(InbeApp *app, int page_count,
 int
 manual_screen_guide_nav_height(void)
 {
-    return 0;
+    return ScaleUIPx(34);
 }
 
 void
@@ -66,15 +110,25 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
     int button_pad;
     int button_y;
     int side_pad;
+    int page_font;
+    char page_label[32];
 
     if(app == NULL || nav.page_count <= 1 || nav.start == NULL)
         return;
 
     page = clampi(nav.page, 0, nav.page_count - 1);
-    button_size = view_width < ScaleUIPx(360) ? ScaleUIPx(32) : ScaleUIPx(36);
-    button_pad = ScaleUIPx(8);
-    side_pad = ScaleUIPx(8);
-    button_y = (view_height - button_size) / 2;
+    button_size = view_width < ScaleUIPx(360) ? ScaleUIPx(28) : ScaleUIPx(30);
+    button_pad = ScaleUIPx(7);
+    side_pad = ScaleUIPx(10);
+    button_y = nav.y + (nav.h - button_size) / 2;
+    page_font = UI_TEXT_16;
+
+    if(nav.h <= 0)
+        return;
+
+    snprintf(page_label, sizeof(page_label), "%d / %d", page + 1, nav.page_count);
+    DrawCenteredUIControlText(page_label, view_width / 2, nav.y + nav.h / 2,
+                              page_font, GetThemeText());
 
     if(page > 0 || nav.show_left_on_first) {
         if(DrawUIIconButton((UIIconButton){

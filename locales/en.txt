@@ -493,21 +493,6 @@ Dark
 [on_screen_keyboard_label]
 On-screen keyboard
 ---
-[tutorial_title]
-Tutorial
----
-[tutorial_method_title]
-Method
----
-[tutorial_step1_title]
-Step 1: In & Out
----
-[tutorial_step2_title]
-Step 2: Exhale & Hold
----
-[tutorial_step3_title]
-Step 3: Inhale & Hold
----
 [tutorial_step_intro]
 This breathing practice is based on the Wim Hof Method.
 

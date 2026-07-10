@@ -466,21 +466,6 @@ Sombre
 [on_screen_keyboard_label]
 Clavier à l'écran
 ---
-[tutorial_title]
-Tutoriel
----
-[tutorial_method_title]
-Méthode
----
-[tutorial_step1_title]
-Étape 1 : Inspirer et expirer
----
-[tutorial_step2_title]
-Étape 2 : Expirer et retenir
----
-[tutorial_step3_title]
-Étape 3 : Inspirer et retenir
----
 [tutorial_step_intro]
 Cette pratique respiratoire est basée sur la méthode Wim Hof.
 
@@ -938,109 +923,109 @@ Les données viennent des pratiques terminées.
 %d cycles | %d respirations
 ---
 [sun_salutation_session_step_title]
-Step %d / %d
+Étape %d / %d
 ---
 [meditation_music_downloading_progress]
-Downloading audio... %d%%
+Téléchargement audio... %d%%
 ---
 [meditation_music_downloading]
-Downloading audio...
+Téléchargement audio...
 ---
 [statistics_now_label]
-Now
+Maintenant
 ---
 [statistics_day_offset_label]
-%dd
+%d j
 ---
 [habit_session_total_count]
-Total count %d
+Total %d
 ---
 [habit_day_total_count_suffix]
  / total %d
 ---
 [habit_day_completed]
-Completed
+Terminé
 ---
 [sync_review_local_only]
-- Local only
+- Local seulement
 ---
 [sync_review_remote_only]
-+ Remote only
++ Distant seulement
 ---
 [sync_review_keep_local_button]
-Keep local
+Garder local
 ---
 [sync_review_use_remote_button]
-Use remote
+Utiliser distant
 ---
 [sync_status_title]
-Sync status
+État de synchro
 ---
 [sync_status_account]
-Account: %s
+Compte : %s
 ---
 [sync_status_connected]
-connected
+connecté
 ---
 [sync_status_not_set]
-not set
+non défini
 ---
 [sync_status_queued]
-Queued: %lld
+En attente : %lld
 ---
 [sync_status_server]
-Server: %lld
+Serveur : %lld
 ---
 [sync_status_clock]
-Clock: %lld
+Horloge : %lld
 ---
 [sync_status_upgrade]
-Upgrade Inner Breeze
+Mettez Inner Breeze à jour
 ---
 [sync_status_review_pending]
-Review pending
+Révision en attente
 ---
 [sync_status_repair_pending]
-Repair sync pending
+Réparation synchro en attente
 ---
 [sync_status_local_queued]
-Local changes queued
+Changements locaux en attente
 ---
 [sync_status_initial_upload_pending]
-Initial upload pending
+Envoi initial en attente
 ---
 [sync_status_ready]
-Ready
+Prêt
 ---
 [tray_wim_hof_paused]
-Wim Hof - Paused
+Wim Hof - En pause
 ---
 [tray_wim_hof_breath]
-Wim Hof - Breath %d/%d
+Wim Hof - Respiration %d/%d
 ---
 [tray_wim_hof_hold]
-Wim Hof - Hold %ds
+Wim Hof - Rétention %ds
 ---
 [tray_wim_hof_breathe_in]
-Wim Hof - Breathe in %ds
+Wim Hof - Inspirez %ds
 ---
 [tray_wim_hof_next_round]
-Wim Hof - Next round
+Wim Hof - Cycle suivant
 ---
 [tray_wim_hof_starting]
-Wim Hof - Starting
+Wim Hof - Démarrage
 ---
 [tray_meditation_paused]
-Meditation - %d:%02d paused
+Méditation - %d:%02d en pause
 ---
 [tray_meditation_left]
-Meditation - %d:%02d left
+Méditation - %d:%02d restantes
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+Salutation au soleil - Étape %d, Rép %d/%d
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+Salutation au soleil - Étape %d, Rép %d/%d en pause
 ---
 [results_best]
 meilleur %ds

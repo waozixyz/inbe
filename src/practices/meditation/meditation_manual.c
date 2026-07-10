@@ -51,22 +51,16 @@ draw_intro_page(InbeApp *app, int content_x, int content_w, int *y)
                            content_x, *y, content_w, img_h);
     *y += img_h + ScaleUIPx(22);
 
-    paragraph = (UIParagraph){
-        .text = GetLocaleText("meditation_manual_intro_text"),
-        .width = content_w,
-        .line_gap = ScaleUIPx(8),
-    };
+    paragraph = manual_screen_tutorial_paragraph(
+        GetLocaleText("meditation_manual_intro_text"), content_w);
     DrawUIParagraph(paragraph, content_x, y);
 }
 
 static int
 intro_page_height(int content_w)
 {
-    UIParagraph paragraph = {
-        .text = GetLocaleText("meditation_manual_intro_text"),
-        .width = content_w,
-        .line_gap = ScaleUIPx(8),
-    };
+    UIParagraph paragraph = manual_screen_tutorial_paragraph(
+        GetLocaleText("meditation_manual_intro_text"), content_w);
 
     return ScaleUIPx(190) + ScaleUIPx(22) + GetUIParagraphHeight(paragraph) +
            ScaleUIPx(20);
@@ -83,8 +77,8 @@ void
 meditation_manual_draw(InbeApp *app)
 {
     PracticeManualLayout layout;
-    int responsive_max_w = (int)(view_width * 0.90f);
-    int max_content_w = ScaleUIPx(480);
+    int responsive_max_w = (int)(view_width * 0.96f);
+    int max_content_w = manual_screen_tutorial_max_width();
     int page = clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1);
 
     if(responsive_max_w > max_content_w)
@@ -96,8 +90,8 @@ meditation_manual_draw(InbeApp *app)
                                            meditation_manual_start,
                                            meditation_manual_close);
     practice_screen_manual_layout(app, UIModalPracticeManual, MEDITATION_MANUAL_PAGES,
-                                  ScaleUIPx(16), ScaleUIPx(16), ScaleUIPx(120),
-                                  &layout);
+                                  manual_screen_tutorial_top_gap(),
+                                  ScaleUIPx(8), ScaleUIPx(120), &layout);
     if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
                                  GetLocaleText("meditation_manual_title"),
                                  layout.title_h))
@@ -109,7 +103,7 @@ meditation_manual_draw(InbeApp *app)
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
             .min_content_width = ScaleUIPx(200),
-            .side_padding = ScaleUIPx(54),
+            .side_padding = manual_screen_tutorial_side_padding(),
             .scroll_offset = &app->manual_scroll,
             .content_height = meditation_manual_scroll_page_content_height,
             .user_data = NULL
