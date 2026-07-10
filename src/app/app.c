@@ -489,6 +489,7 @@ static void
 app_draw_close_prompt(InbeApp *app)
 {
     int modal_result;
+    UIModalAction actions[2];
 
     if(app == NULL || !app->close_prompt_open)
         return;
@@ -496,17 +497,28 @@ app_draw_close_prompt(InbeApp *app)
         return;
 
     ClearUIInputCaptures();
-    modal_result = DrawUIModal3Button(GetLocaleText("desktop_close_prompt_title"),
-                                      GetLocaleText("desktop_close_prompt_message"),
-                                      GetLocaleText("cancel_button"),
-                                      GetLocaleText("desktop_close_keep_running_button"),
-                                      GetLocaleText("desktop_close_quit_button"));
-    if(modal_result == 1) {
+    actions[0] = (UIModalAction){
+        .label = GetLocaleText("desktop_close_keep_running_button"),
+        .style = UI_BUTTON_STYLE_PRIMARY
+    };
+    actions[1] = (UIModalAction){
+        .label = GetLocaleText("desktop_close_quit_button"),
+        .style = UI_BUTTON_STYLE_DANGER
+    };
+    modal_result = DrawUIActionModal((UIModalSpec){
+        .title = GetLocaleText("desktop_close_prompt_title"),
+        .message = GetLocaleText("desktop_close_prompt_message"),
+        .actions = actions,
+        .action_count = 2,
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .max_width = 420
+    });
+    if(modal_result == -1) {
         app->close_prompt_open = 0;
-    } else if(modal_result == 2) {
+    } else if(modal_result == 1) {
         app->close_prompt_open = 0;
         app->close_prompt_result = AppClosePromptKeepRunning;
-    } else if(modal_result == 3) {
+    } else if(modal_result == 2) {
         app->close_prompt_open = 0;
         app->close_prompt_result = AppClosePromptQuit;
     }
