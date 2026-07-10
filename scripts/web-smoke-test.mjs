@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 
 import { createServer } from 'node:http';
-import { createReadStream, mkdtempSync, rmSync, existsSync, readFileSync } from 'node:fs';
+import { createReadStream, mkdtempSync, rmSync, existsSync, readFileSync, accessSync, constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 
 const root = resolve(process.argv[2] || 'build/dist/web');
-const browser = process.env.WEB_SMOKE_BROWSER || process.env.CHROME || 'chrome';
+const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 30000);
 const userDataDir = mkdtempSync(join(tmpdir(), 'inbe-web-smoke-'));
@@ -27,6 +27,56 @@ const mime = new Map([
 if (!existsSync(join(root, 'index.html')) || !existsSync(join(root, 'index.js')) || !existsSync(join(root, 'index.wasm'))) {
   console.error(`web smoke: missing web build outputs in ${root}`);
   process.exit(1);
+}
+
+function canExecute(path) {
+  try {
+    accessSync(path, constants.X_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function findOnPath(command) {
+  if (command.includes('/') || command.includes('\\'))
+    return canExecute(command) ? command : '';
+
+  for (const dir of (process.env.PATH || '').split(':')) {
+    if (!dir) continue;
+    const path = join(dir, command);
+    if (canExecute(path))
+      return path;
+  }
+  return '';
+}
+
+function browserCandidates() {
+  const candidates = [];
+  if (process.env.CHROME) candidates.push(process.env.CHROME);
+  candidates.push(
+    'google-chrome',
+    'google-chrome-stable',
+    'chromium',
+    'chromium-browser',
+    'chrome'
+  );
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function resolveBrowser() {
+  if (browserSetting && browserSetting !== 'auto') {
+    const resolved = findOnPath(browserSetting);
+    if (resolved) return resolved;
+    throw new Error(`browser not found: ${browserSetting}`);
+  }
+
+  const tried = browserCandidates();
+  for (const candidate of tried) {
+    const resolved = findOnPath(candidate);
+    if (resolved) return resolved;
+  }
+  throw new Error(`no Chrome/Chromium browser found; tried ${tried.join(', ')}`);
 }
 
 function contentType(path) {
@@ -270,6 +320,7 @@ let failure;
 
 try {
   const port = await listen();
+  const browser = resolveBrowser();
   const args = [
     '--headless=new',
     '--remote-debugging-port=0',
@@ -286,6 +337,10 @@ try {
     'about:blank'
   ];
   chrome = spawn(browser, args, { stdio: 'ignore', detached: true });
+  chrome.once('error', error => {
+    if (!failure)
+      failure = error;
+  });
 
   const devtoolsPort = await waitForDevtoolsPort(join(userDataDir, 'DevToolsActivePort'));
   const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
