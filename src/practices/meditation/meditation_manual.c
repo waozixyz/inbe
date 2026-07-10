@@ -84,7 +84,7 @@ meditation_manual_draw(InbeApp *app)
 {
     PracticeManualLayout layout;
     int responsive_max_w = (int)(view_width * 0.90f);
-    int max_content_w = ScaleUIPx(520);
+    int max_content_w = ScaleUIPx(480);
     int page = clampi(app->tutorial_step, 0, MEDITATION_MANUAL_PAGES - 1);
 
     if(responsive_max_w > max_content_w)

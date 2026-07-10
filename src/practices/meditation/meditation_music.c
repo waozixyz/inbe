@@ -228,11 +228,11 @@ format_download_status(char *out, size_t out_size,
             percent = 0;
         if(percent > 100)
             percent = 100;
-        snprintf(out, out_size, "Downloading audio... %d%%", percent);
+        FormatLocaleText(out, out_size, "meditation_music_downloading_progress", percent);
         return;
     }
 
-    snprintf(out, out_size, "Downloading audio...");
+    snprintf(out, out_size, "%s", GetLocaleText("meditation_music_downloading"));
 }
 
 static void

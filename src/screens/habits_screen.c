@@ -2206,11 +2206,11 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
         if(counting_enabled && count > 0 && session_count > 0 &&
            secondary[0] != '\0') {
             size_t len = strlen(secondary);
-            snprintf(secondary + len, sizeof(secondary) - len,
-                     " / total %d", count);
+            FormatLocaleText(secondary + len, sizeof(secondary) - len,
+                             "habit_day_total_count_suffix", count);
         }
         if(session_count <= 0 && completed) {
-            snprintf(primary, sizeof(primary), "Completed");
+            snprintf(primary, sizeof(primary), "%s", GetLocaleText("habit_day_completed"));
             secondary[0] = '\0';
         }
 

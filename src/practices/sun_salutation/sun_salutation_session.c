@@ -249,8 +249,8 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     pose = app->sun_salutation.poses[pose_index];
 
     step_label = sun_salutation_step_label(step);
-    snprintf(step_title, sizeof(step_title), "Step %d / %d", step + 1,
-             SUN_SALUTATION_STEP_COUNT);
+    FormatLocaleText(step_title, sizeof(step_title), "sun_salutation_session_step_title",
+                     step + 1, SUN_SALUTATION_STEP_COUNT);
     if(app->show_session_return_button &&
        DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], step_title, title_h)) {
         sun_salutation_request_exit(app);

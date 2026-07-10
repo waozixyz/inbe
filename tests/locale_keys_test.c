@@ -312,6 +312,8 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "practice_home_minutes",
         "practice_home_repetitions",
         "practice_home_wim_hof_metadata",
+        "habit_session_total_count",
+        "habit_day_total_count_suffix",
         "deleted_sessions",
         "sync_pull_ok",
         "sync_pull_conflict",
@@ -320,7 +322,13 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "sync_sign_failed",
         "sync_invalid_account",
         "sync_server_unreachable",
-        "sync_server_error"
+        "sync_server_error",
+        "sync_status_connected",
+        "sync_status_not_set",
+        "tray_meditation_paused",
+        "tray_meditation_left",
+        "tray_sun_salutation",
+        "tray_sun_salutation_paused"
     };
 
     for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)

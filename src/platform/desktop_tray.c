@@ -3,6 +3,7 @@
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
+#include "locale.h"
 #include "practices/practice_registry.h"
 #include "raylib.h"
 
@@ -433,26 +434,26 @@ inbe_desktop_tray_update_status(InbeApp *app)
         int max_breaths = int_from_count(app->inbe.maxbreaths);
 
         if(app->session_paused) {
-            snprintf(text, sizeof(text), "Wim Hof - Paused");
+            snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_paused"));
         } else {
             switch(app->inbe.phase) {
             case InbePhaseBreathe:
-                snprintf(text, sizeof(text), "Wim Hof - Breath %d/%d",
-                         count, max_breaths);
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breath",
+                                 count, max_breaths);
                 break;
             case InbePhaseHold:
-                snprintf(text, sizeof(text), "Wim Hof - Hold %ds", count);
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_hold", count);
                 break;
             case InbePhaseRecover:
-                snprintf(text, sizeof(text), "Wim Hof - Breathe in %ds",
-                         count);
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breathe_in",
+                                 count);
                 break;
             case InbePhaseNext:
-                snprintf(text, sizeof(text), "Wim Hof - Next round");
+                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_next_round"));
                 break;
             case InbePhaseStarting:
             default:
-                snprintf(text, sizeof(text), "Wim Hof - Starting");
+                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_starting"));
                 break;
             }
         }
@@ -460,15 +461,17 @@ inbe_desktop_tray_update_status(InbeApp *app)
         int remaining = app->meditation.remaining_seconds;
         if(remaining < 0)
             remaining = 0;
-        snprintf(text, sizeof(text), "Meditation - %d:%02d%s",
-                 remaining / 60, remaining % 60,
-                 app->session_paused ? " paused" : " left");
+        FormatLocaleText(text, sizeof(text),
+                         app->session_paused ? "tray_meditation_paused"
+                                             : "tray_meditation_left",
+                         remaining / 60, remaining % 60);
     } else if(app->inbe.screen == InbeScreenSunSalutation) {
-        snprintf(text, sizeof(text), "Sun Salutation - Step %d, Rep %d/%d%s",
-                 app->sun_salutation.step + 1,
-                 app->sun_salutation.repetition + 1,
-                 app->sun_salutation.repetitions,
-                 app->session_paused ? " paused" : "");
+        FormatLocaleText(text, sizeof(text),
+                         app->session_paused ? "tray_sun_salutation_paused"
+                                             : "tray_sun_salutation",
+                         app->sun_salutation.step + 1,
+                         app->sun_salutation.repetition + 1,
+                         app->sun_salutation.repetitions);
     }
 
     pthread_mutex_lock(&tray_status_lock);

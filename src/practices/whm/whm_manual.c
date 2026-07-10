@@ -11,7 +11,7 @@
 #include "raylib.h"
 #include <stdio.h>
 
-#define CONTENT_MAX_W 800  /* Responsive width for tutorial text reflow */
+#define CONTENT_MAX_W 480
 
 extern int view_width;
 extern int view_height;

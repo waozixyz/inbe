@@ -387,7 +387,8 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
 
             y += ScaleUIPx(6);
             if(draw) {
-                snprintf(total_text, sizeof(total_text), "Total count %d", total_count);
+                FormatLocaleText(total_text, sizeof(total_text),
+                                 "habit_session_total_count", total_count);
                 if(DrawUIGenericButton(minus_x, y, step_w, button_h, "-",
                                           UI_BUTTON_STYLE_SECONDARY,
                                           total_count <= minimum_count, &hover)) {

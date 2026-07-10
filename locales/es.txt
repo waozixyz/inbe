@@ -937,6 +937,111 @@ Los datos vienen de prácticas completadas.
 [practice_home_wim_hof_metadata]
 %d rondas | %d respiraciones
 ---
+[sun_salutation_session_step_title]
+Step %d / %d
+---
+[meditation_music_downloading_progress]
+Downloading audio... %d%%
+---
+[meditation_music_downloading]
+Downloading audio...
+---
+[statistics_now_label]
+Now
+---
+[statistics_day_offset_label]
+%dd
+---
+[habit_session_total_count]
+Total count %d
+---
+[habit_day_total_count_suffix]
+ / total %d
+---
+[habit_day_completed]
+Completed
+---
+[sync_review_local_only]
+- Local only
+---
+[sync_review_remote_only]
++ Remote only
+---
+[sync_review_keep_local_button]
+Keep local
+---
+[sync_review_use_remote_button]
+Use remote
+---
+[sync_status_title]
+Sync status
+---
+[sync_status_account]
+Account: %s
+---
+[sync_status_connected]
+connected
+---
+[sync_status_not_set]
+not set
+---
+[sync_status_queued]
+Queued: %lld
+---
+[sync_status_server]
+Server: %lld
+---
+[sync_status_clock]
+Clock: %lld
+---
+[sync_status_upgrade]
+Upgrade Inner Breeze
+---
+[sync_status_review_pending]
+Review pending
+---
+[sync_status_repair_pending]
+Repair sync pending
+---
+[sync_status_local_queued]
+Local changes queued
+---
+[sync_status_initial_upload_pending]
+Initial upload pending
+---
+[sync_status_ready]
+Ready
+---
+[tray_wim_hof_paused]
+Wim Hof - Paused
+---
+[tray_wim_hof_breath]
+Wim Hof - Breath %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - Hold %ds
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - Breathe in %ds
+---
+[tray_wim_hof_next_round]
+Wim Hof - Next round
+---
+[tray_wim_hof_starting]
+Wim Hof - Starting
+---
+[tray_meditation_paused]
+Meditation - %d:%02d paused
+---
+[tray_meditation_left]
+Meditation - %d:%02d left
+---
+[tray_sun_salutation]
+Sun Salutation - Step %d, Rep %d/%d
+---
+[tray_sun_salutation_paused]
+Sun Salutation - Step %d, Rep %d/%d paused
+---
 [results_best]
 mejor %ds
 ---
