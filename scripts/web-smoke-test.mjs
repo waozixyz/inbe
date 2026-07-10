@@ -10,6 +10,9 @@ const root = resolve(process.argv[2] || 'build/dist/web');
 const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 30000);
+const useNoSandbox = process.env.WEB_SMOKE_NO_SANDBOX
+  ? !/^(0|false|no)$/i.test(process.env.WEB_SMOKE_NO_SANDBOX)
+  : !!process.env.CI || (typeof process.getuid === 'function' && process.getuid() === 0);
 const userDataDir = mkdtempSync(join(tmpdir(), 'inbe-web-smoke-'));
 const mime = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -55,6 +58,13 @@ function browserCandidates() {
   const candidates = [];
   if (process.env.CHROME) candidates.push(process.env.CHROME);
   candidates.push(
+    '/usr/bin/chromium',
+    '/usr/bin/chromium-browser',
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/snap/bin/chromium',
+    '/opt/google/chrome/chrome',
+    '/opt/chromium/chrome',
     'google-chrome',
     'google-chrome-stable',
     'chromium',
@@ -114,21 +124,41 @@ function listen() {
   });
 }
 
-function waitForDevtoolsPort(file) {
+function formatChromeLaunchError(stderrLines) {
+  const stderr = stderrLines.join('').trim();
+  const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
+  return new Error(`Chrome exited before DevToolsActivePort was ready${suffix}`);
+}
+
+function waitForDevtoolsPort(file, chrome, stderrLines) {
   const start = Date.now();
   return new Promise((resolveWait, reject) => {
+    let settled = false;
+    const finish = callback => {
+      if (settled) return;
+      settled = true;
+      clearInterval(timer);
+      chrome.off('exit', onExit);
+      callback();
+    };
+    const onExit = () => {
+      finish(() => reject(formatChromeLaunchError(stderrLines)));
+    };
     const timer = setInterval(() => {
       if (existsSync(file)) {
-        clearInterval(timer);
-        const [port] = readFileSync(file, 'utf8').trim().split('\n');
-        resolveWait(port);
+        finish(() => {
+          const [port] = readFileSync(file, 'utf8').trim().split('\n');
+          resolveWait(port);
+        });
         return;
       }
       if (Date.now() - start > 10000) {
-        clearInterval(timer);
-        reject(new Error('timed out waiting for Chrome DevToolsActivePort'));
+        const stderr = stderrLines.join('').trim();
+        const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
+        finish(() => reject(new Error(`timed out waiting for Chrome DevToolsActivePort${suffix}`)));
       }
     }, 50);
+    chrome.once('exit', onExit);
   });
 }
 
@@ -324,10 +354,12 @@ try {
   const args = [
     '--headless=new',
     '--remote-debugging-port=0',
+    '--remote-debugging-address=127.0.0.1',
     `--user-data-dir=${userDataDir}`,
     '--no-first-run',
     '--no-default-browser-check',
     '--disable-background-networking',
+    '--disable-dev-shm-usage',
     '--enable-unsafe-swiftshader',
     '--ignore-gpu-blocklist',
     '--enable-webgl',
@@ -336,13 +368,23 @@ try {
     ...browserArgs,
     'about:blank'
   ];
-  chrome = spawn(browser, args, { stdio: 'ignore', detached: true });
+  if (useNoSandbox)
+    args.splice(1, 0, '--no-sandbox');
+
+  const chromeStderr = [];
+  chrome = spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+  chrome.stderr.setEncoding('utf8');
+  chrome.stderr.on('data', chunk => {
+    chromeStderr.push(chunk);
+    while (chromeStderr.join('').length > 8000)
+      chromeStderr.shift();
+  });
   chrome.once('error', error => {
     if (!failure)
       failure = error;
   });
 
-  const devtoolsPort = await waitForDevtoolsPort(join(userDataDir, 'DevToolsActivePort'));
+  const devtoolsPort = await waitForDevtoolsPort(join(userDataDir, 'DevToolsActivePort'), chrome, chromeStderr);
   const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
     method: 'PUT'
   });
