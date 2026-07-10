@@ -1,5 +1,9 @@
 # Changelog
-## [1.8.2] - 2026-07-03
+## [1.8.3] - 2026-07-10
+### Changed
+- Improved ui in practice screen
+
+## [1.8.2] - 2026-07-09
 ### Changed
 - improved desktop experience
 - add system themes

@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 호흡, 안정, 알아차림을 위한 간단한 명상 연습입니다.
 ---
-[meditation_music_master_toggle]
-명상 음악
----
 [meditation_music_download_button]
 음악 다운로드
 ---
@@ -489,21 +486,6 @@ Inner Breeze
 ---
 [on_screen_keyboard_label]
 화면 키보드
----
-[tutorial_title]
-튜토리얼
----
-[tutorial_method_title]
-방법
----
-[tutorial_step1_title]
-1단계: 들이마시기와 내뱉기
----
-[tutorial_step2_title]
-2단계: 내뱉고 참기
----
-[tutorial_step3_title]
-3단계: 들이마시고 참기
 ---
 [tutorial_step_intro]
 이 호흡법은 윔 호프 메서드를 기반으로 합니다.
@@ -846,26 +828,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-연습
----
 [practice_music_title]
 배경 음악
+---
+[practice_music_enabled_label]
+이 연습 중 재생
 ---
 [practice_start_button]
 연습 시작
 ---
 [practice_manual_button]
-설명서
+사용 방법
 ---
 [practice_configure_button]
-설정
----
-[practice_music_practice_list_title]
-연습에 음악 사용
----
-[practice_guide_music]
-연습마다 음악을 선택합니다.
+맞춤 설정
 ---
 [practice_guide_carousel]
 화살표로 연습을 선택합니다.
@@ -935,6 +911,120 @@ Yoga
 ---
 [results_rounds]
 %d 라운드
+---
+[practice_home_minutes]
+%d분
+---
+[practice_home_repetitions]
+%d회
+---
+[practice_home_wim_hof_metadata]
+%d 라운드 | %d 호흡
+---
+[sun_salutation_session_step_title]
+단계 %d / %d
+---
+[meditation_music_downloading_progress]
+오디오 다운로드 중... %d%%
+---
+[meditation_music_downloading]
+오디오 다운로드 중...
+---
+[statistics_now_label]
+지금
+---
+[statistics_day_offset_label]
+%d일
+---
+[habit_session_total_count]
+총 %d
+---
+[habit_day_total_count_suffix]
+ / 총 %d
+---
+[habit_day_completed]
+완료됨
+---
+[sync_review_local_only]
+- 로컬만
+---
+[sync_review_remote_only]
++ 원격만
+---
+[sync_review_keep_local_button]
+로컬 유지
+---
+[sync_review_use_remote_button]
+원격 사용
+---
+[sync_status_title]
+동기화 상태
+---
+[sync_status_account]
+계정: %s
+---
+[sync_status_connected]
+연결됨
+---
+[sync_status_not_set]
+설정 안 됨
+---
+[sync_status_queued]
+대기: %lld
+---
+[sync_status_server]
+서버: %lld
+---
+[sync_status_clock]
+시계: %lld
+---
+[sync_status_upgrade]
+Inner Breeze 업데이트
+---
+[sync_status_review_pending]
+검토 대기 중
+---
+[sync_status_repair_pending]
+동기화 복구 대기 중
+---
+[sync_status_local_queued]
+로컬 변경 대기 중
+---
+[sync_status_initial_upload_pending]
+초기 업로드 대기 중
+---
+[sync_status_ready]
+준비됨
+---
+[tray_wim_hof_paused]
+Wim Hof - 일시정지
+---
+[tray_wim_hof_breath]
+Wim Hof - 호흡 %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - 참기 %d초
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - 들이마시기 %d초
+---
+[tray_wim_hof_next_round]
+Wim Hof - 다음 라운드
+---
+[tray_wim_hof_starting]
+Wim Hof - 시작 중
+---
+[tray_meditation_paused]
+명상 - %d:%02d 일시정지
+---
+[tray_meditation_left]
+명상 - %d:%02d 남음
+---
+[tray_sun_salutation]
+태양 경배 - 단계 %d, 반복 %d/%d
+---
+[tray_sun_salutation_paused]
+태양 경배 - 단계 %d, 반복 %d/%d 일시정지
 ---
 [results_best]
 최고 %ds

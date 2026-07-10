@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 呼吸、落ち着き、気づきのためのシンプルな瞑想練習です。
 ---
-[meditation_music_master_toggle]
-メディテーション音楽
----
 [meditation_music_download_button]
 音楽をダウンロード
 ---
@@ -465,21 +462,6 @@ OK
 ---
 [on_screen_keyboard_label]
 オンスクリーンキーボード
----
-[tutorial_title]
-チュートリアル
----
-[tutorial_method_title]
-方法
----
-[tutorial_step1_title]
-ステップ 1: 吸って吐く
----
-[tutorial_step2_title]
-ステップ 2: 吐いて止める
----
-[tutorial_step3_title]
-ステップ 3: 吸って止める
 ---
 [tutorial_step_intro]
 この呼吸法は Wim Hof Method を
@@ -849,26 +831,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-プラクティス
----
 [practice_music_title]
 バックグラウンド音楽
+---
+[practice_music_enabled_label]
+この練習中に再生
 ---
 [practice_start_button]
 プラクティスを開始
 ---
 [practice_manual_button]
-マニュアル
+使い方
 ---
 [practice_configure_button]
-設定
----
-[practice_music_practice_list_title]
-音楽を使うプラクティス
----
-[practice_guide_music]
-練習ごとに音楽を選びます。
+カスタマイズ
 ---
 [practice_guide_carousel]
 矢印で練習を選びます。
@@ -938,6 +914,120 @@ Yoga
 ---
 [results_rounds]
 %d ラウンド
+---
+[practice_home_minutes]
+%d分
+---
+[practice_home_repetitions]
+%d回
+---
+[practice_home_wim_hof_metadata]
+%d ラウンド | %d 呼吸
+---
+[sun_salutation_session_step_title]
+ステップ %d / %d
+---
+[meditation_music_downloading_progress]
+音声をダウンロード中... %d%%
+---
+[meditation_music_downloading]
+音声をダウンロード中...
+---
+[statistics_now_label]
+今
+---
+[statistics_day_offset_label]
+%d日
+---
+[habit_session_total_count]
+合計 %d
+---
+[habit_day_total_count_suffix]
+ / 合計 %d
+---
+[habit_day_completed]
+完了
+---
+[sync_review_local_only]
+- ローカルのみ
+---
+[sync_review_remote_only]
++ リモートのみ
+---
+[sync_review_keep_local_button]
+ローカルを保持
+---
+[sync_review_use_remote_button]
+リモートを使用
+---
+[sync_status_title]
+同期状態
+---
+[sync_status_account]
+アカウント: %s
+---
+[sync_status_connected]
+接続済み
+---
+[sync_status_not_set]
+未設定
+---
+[sync_status_queued]
+キュー: %lld
+---
+[sync_status_server]
+サーバー: %lld
+---
+[sync_status_clock]
+時計: %lld
+---
+[sync_status_upgrade]
+Inner Breezeを更新してください
+---
+[sync_status_review_pending]
+確認待ち
+---
+[sync_status_repair_pending]
+同期修復待ち
+---
+[sync_status_local_queued]
+ローカル変更が待機中
+---
+[sync_status_initial_upload_pending]
+初回アップロード待ち
+---
+[sync_status_ready]
+準備完了
+---
+[tray_wim_hof_paused]
+Wim Hof - 一時停止
+---
+[tray_wim_hof_breath]
+Wim Hof - 呼吸 %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - ホールド %d秒
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - 吸って %d秒
+---
+[tray_wim_hof_next_round]
+Wim Hof - 次のラウンド
+---
+[tray_wim_hof_starting]
+Wim Hof - 開始中
+---
+[tray_meditation_paused]
+瞑想 - %d:%02d 一時停止
+---
+[tray_meditation_left]
+瞑想 - 残り %d:%02d
+---
+[tray_sun_salutation]
+太陽礼拝 - ステップ %d、回数 %d/%d
+---
+[tray_sun_salutation_paused]
+太陽礼拝 - ステップ %d、回数 %d/%d 一時停止
 ---
 [results_best]
 最速 %ds

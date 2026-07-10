@@ -12,6 +12,7 @@ libgles2-mesa-dev
 libgl1
 libgl1-mesa-dri
 libglvnd0
+libgtk-3-dev
 libx11-6
 libx11-dev
 libxext6

@@ -629,7 +629,7 @@ public class MainActivity extends NativeActivity {
 
     private void syncLifecycleState(String reason) {
         int playInBackground = nativeGetPlayInBackground();
-        boolean shouldRunInBackground = playInBackground != 0 && (activityPaused || !windowFocused);
+        boolean shouldRunInBackground = playInBackground != 0 && activityPaused;
 
         Log.d(TAG, reason + ": play_in_background=" + playInBackground
             + " activityPaused=" + activityPaused

@@ -9,7 +9,7 @@ echo "📱 Creating AVD: $AVD_NAME (Pixel 8 Pro - Android API ${ANDROID_API:-35}
 # Check for Android SDK location
 if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
   echo "❌ Error: Neither ANDROID_SDK_ROOT nor ANDROID_HOME is set"
-  echo "   Make sure to run this script within 'nix develop'"
+  echo "   Install the Android SDK and export ANDROID_SDK_ROOT or ANDROID_HOME"
   exit 1
 fi
 

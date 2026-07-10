@@ -190,9 +190,6 @@ Meditazione
 [meditation_manual_intro_text]
 Una pratica di meditazione semplice per respiro, calma e presenza.
 ---
-[meditation_music_master_toggle]
-Musica di meditazione
----
 [meditation_music_download_button]
 Scarica musica
 ---
@@ -489,21 +486,6 @@ Scuro
 ---
 [on_screen_keyboard_label]
 Tastiera su schermo
----
-[tutorial_title]
-Tutorial
----
-[tutorial_method_title]
-Metodo
----
-[tutorial_step1_title]
-Passo 1: Inspirazione ed Espirazione
----
-[tutorial_step2_title]
-Passo 2: Espira e Trattieni
----
-[tutorial_step3_title]
-Passo 3: Inspira e Trattieni
 ---
 [tutorial_step_intro]
 Questa pratica respiratoria si basa sul Metodo Wim Hof.
@@ -847,26 +829,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Pratica
----
 [practice_music_title]
 Musica di sottofondo
+---
+[practice_music_enabled_label]
+Riproduci durante questa pratica
 ---
 [practice_start_button]
 Avvia pratica
 ---
 [practice_manual_button]
-Manuale
+Come fare
 ---
 [practice_configure_button]
-Configura
----
-[practice_music_practice_list_title]
-Usa musica per le pratiche
----
-[practice_guide_music]
-Scegli la musica per ogni pratica.
+Personalizza
 ---
 [practice_guide_carousel]
 Usa le frecce per scegliere una pratica.
@@ -936,6 +912,120 @@ I dati arrivano dalle pratiche completate.
 ---
 [results_rounds]
 %d round
+---
+[practice_home_minutes]
+%d min
+---
+[practice_home_repetitions]
+%d ripetizioni
+---
+[practice_home_wim_hof_metadata]
+%d round | %d respiri
+---
+[sun_salutation_session_step_title]
+Passo %d / %d
+---
+[meditation_music_downloading_progress]
+Download audio... %d%%
+---
+[meditation_music_downloading]
+Download audio...
+---
+[statistics_now_label]
+Ora
+---
+[statistics_day_offset_label]
+%d g
+---
+[habit_session_total_count]
+Totale %d
+---
+[habit_day_total_count_suffix]
+ / totale %d
+---
+[habit_day_completed]
+Completato
+---
+[sync_review_local_only]
+- Solo locale
+---
+[sync_review_remote_only]
++ Solo remoto
+---
+[sync_review_keep_local_button]
+Mantieni locale
+---
+[sync_review_use_remote_button]
+Usa remoto
+---
+[sync_status_title]
+Stato sync
+---
+[sync_status_account]
+Account: %s
+---
+[sync_status_connected]
+connesso
+---
+[sync_status_not_set]
+non impostato
+---
+[sync_status_queued]
+In coda: %lld
+---
+[sync_status_server]
+Server: %lld
+---
+[sync_status_clock]
+Orologio: %lld
+---
+[sync_status_upgrade]
+Aggiorna Inner Breeze
+---
+[sync_status_review_pending]
+Revisione in sospeso
+---
+[sync_status_repair_pending]
+Riparazione sync in sospeso
+---
+[sync_status_local_queued]
+Modifiche locali in coda
+---
+[sync_status_initial_upload_pending]
+Caricamento iniziale in sospeso
+---
+[sync_status_ready]
+Pronto
+---
+[tray_wim_hof_paused]
+Wim Hof - In pausa
+---
+[tray_wim_hof_breath]
+Wim Hof - Respiro %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - Trattieni %ds
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - Inspira %ds
+---
+[tray_wim_hof_next_round]
+Wim Hof - Prossimo round
+---
+[tray_wim_hof_starting]
+Wim Hof - Avvio
+---
+[tray_meditation_paused]
+Meditazione - %d:%02d in pausa
+---
+[tray_meditation_left]
+Meditazione - %d:%02d rimanenti
+---
+[tray_sun_salutation]
+Saluto al sole - Passo %d, Rep %d/%d
+---
+[tray_sun_salutation_paused]
+Saluto al sole - Passo %d, Rep %d/%d in pausa
 ---
 [results_best]
 migliore %ds

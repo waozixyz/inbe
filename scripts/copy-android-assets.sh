@@ -40,9 +40,9 @@ fi
 mkdir -p build
 sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
-    assets/practices/whm/1.jpg \
-    assets/practices/whm/2.jpg \
-    assets/practices/meditation/1.jpg \
+    assets/practices/whm/1.png \
+    assets/practices/whm/2.png \
+    assets/practices/meditation/1.png \
     assets/practices/*/banner.png \
     assets/fonts/locales.png \
     assets/fonts/locales.dat \

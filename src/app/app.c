@@ -426,11 +426,6 @@ app_close_modal(InbeApp *app)
         app_leave_practice_config(app);
         app->settings_scroll = 0;
         app->practice_tab = PRACTICE_TAB_PLAY;
-    } else if(type == UIModalPracticeMusic) {
-        if(app->settings_dirty)
-            save_settings(app);
-        app->settings_scroll = 0;
-        app->practice_tab = PRACTICE_TAB_PLAY;
     } else if(type == UIModalPracticeManual) {
         app->manual_scroll = 0;
         app->tutorial_step = 0;
@@ -494,6 +489,7 @@ static void
 app_draw_close_prompt(InbeApp *app)
 {
     int modal_result;
+    UIModalAction actions[2];
 
     if(app == NULL || !app->close_prompt_open)
         return;
@@ -501,17 +497,28 @@ app_draw_close_prompt(InbeApp *app)
         return;
 
     ClearUIInputCaptures();
-    modal_result = DrawUIModal3Button(GetLocaleText("desktop_close_prompt_title"),
-                                      GetLocaleText("desktop_close_prompt_message"),
-                                      GetLocaleText("cancel_button"),
-                                      GetLocaleText("desktop_close_keep_running_button"),
-                                      GetLocaleText("desktop_close_quit_button"));
-    if(modal_result == 1) {
+    actions[0] = (UIModalAction){
+        .label = GetLocaleText("desktop_close_keep_running_button"),
+        .style = UI_BUTTON_STYLE_PRIMARY
+    };
+    actions[1] = (UIModalAction){
+        .label = GetLocaleText("desktop_close_quit_button"),
+        .style = UI_BUTTON_STYLE_DANGER
+    };
+    modal_result = DrawUIActionModal((UIModalSpec){
+        .title = GetLocaleText("desktop_close_prompt_title"),
+        .message = GetLocaleText("desktop_close_prompt_message"),
+        .actions = actions,
+        .action_count = 2,
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .max_width = 420
+    });
+    if(modal_result == -1) {
         app->close_prompt_open = 0;
-    } else if(modal_result == 2) {
+    } else if(modal_result == 1) {
         app->close_prompt_open = 0;
         app->close_prompt_result = AppClosePromptKeepRunning;
-    } else if(modal_result == 3) {
+    } else if(modal_result == 2) {
         app->close_prompt_open = 0;
         app->close_prompt_result = AppClosePromptQuit;
     }
@@ -1357,7 +1364,6 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalPracticeManual ||
        app->modal.type == UIModalPracticeConfig ||
-       app->modal.type == UIModalPracticeMusic ||
        app->modal.type == UIModalEditProgressiveStartSpeed) {
         practice_screen_draw_modal(app);
         return;
@@ -1453,8 +1459,7 @@ updateapp(InbeApp *app)
     profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
-        (app->modal.type == UIModalPracticeMusic ||
-         app->modal.type == UIModalEditProgressiveStartSpeed);
+        app->modal.type == UIModalEditProgressiveStartSpeed;
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
        habits_guide_active || profile_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);

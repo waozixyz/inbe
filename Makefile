@@ -25,6 +25,10 @@ BUILD_OBJ_DIR := $(BUILD_DIR)/obj
 BUILD_BIN_DIR := $(BUILD_DIR)/bin
 BUILD_DIST_DIR := $(BUILD_DIR)/dist
 VENDOR_BUILD_DIR := vendor-builds
+NATIVE_OBJ_DIR := $(BUILD_OBJ_DIR)/$(NATIVE_PLATFORM)
+NATIVE_BIN_DIR := $(BUILD_BIN_DIR)/$(NATIVE_PLATFORM)
+NATIVE_DIST_DIR := $(BUILD_DIST_DIR)/$(NATIVE_PLATFORM)
+NATIVE_VENDOR_BUILD_DIR := $(VENDOR_BUILD_DIR)/$(NATIVE_PLATFORM)/$(ARCH)
 LINUX_OBJ_DIR := $(BUILD_OBJ_DIR)/linux
 LINUX_BIN_DIR := $(BUILD_BIN_DIR)/linux
 LINUX_DIST_DIR := $(BUILD_DIST_DIR)/linux
@@ -77,7 +81,7 @@ APP_VERSION := $(shell sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p
 
 FLINT_DIR := vendor/flint
 RAYLIB_DIR = $(FLINT_DIR)/vendor/raylib/src
-RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib
+RAYLIB_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
 WIN64_ARCH := x86_64
 WIN64_CC ?= $(or $(WIN_CC),x86_64-w64-mingw32-gcc)
@@ -125,7 +129,7 @@ FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
 FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
 FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
-FLINT_VENDOR_BUILD_DIR := $(VENDOR_BUILD_DIR)/linux/$(ARCH)
+FLINT_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
 FLINT_LIBOQS_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/liboqs
 FLINT_WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/liboqs
 FLINT_CURL_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/curl
@@ -176,7 +180,7 @@ CURL_PROTOCOL_CHECK := $(FLINT_CURL_PROTOCOL_CHECK)
 FLINT_CURL_VERSION_NUM ?= $(shell printf '%s\n' '#include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(FLINT_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
 FLINT_CURL_VERSION_HEX := $(patsubst 0x%,%,$(FLINT_CURL_VERSION_NUM))
 SQLITE_DIR := vendor/sqlite
-SQLITE_BUILD_DIR := $(VENDOR_BUILD_DIR)/sqlite
+SQLITE_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)/sqlite
 SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
@@ -279,7 +283,7 @@ SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
 endif
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/practices/whm/1.jpg assets/practices/whm/2.jpg assets/practices/meditation/1.jpg assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
+IMAGE_FILES := assets/app/icon.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
 OTFCHOP_DIR ?= $(FLINT_DIR)/tools/otfchop
@@ -288,6 +292,8 @@ FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
+WEB_APP_SRCS := $(filter-out src/platform/desktop_tray.c,$(APP_SRCS))
+WEB_SRC := $(WEB_APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
 RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
@@ -306,10 +312,11 @@ endif
 FLINT_RAYLIB_AUDIO_PERIOD_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES)),-DAUDIO_DEVICE_PERIOD_SIZE_IN_FRAMES=$(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES),)
 FLINT_RAYLIB_AUDIO_PERIODS_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIODS)),-DAUDIO_DEVICE_PERIODS=$(FLINT_RAYLIB_AUDIO_PERIODS),)
 APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0 $(FLINT_RAYLIB_AUDIO_PERIOD_CONFIG) $(FLINT_RAYLIB_AUDIO_PERIODS_CONFIG)
-CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
+COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
+CFLAGS := $(COMMON_CFLAGS) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
-WEB_CFLAGS := $(filter-out -std=c99,$(CFLAGS)) -std=gnu99
+WEB_CFLAGS := $(filter-out -Os,$(COMMON_CFLAGS)) -O1 -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_FLINT_FILE_DIALOG $(AARCH64_FLINT_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
@@ -326,7 +333,7 @@ WIN32_THREAD_LDFLAGS :=
 endif
 
 BINARY_NAME := $(APP_NAME)-$(NATIVE_PLATFORM)-$(ARCH)
-TARGET := $(LINUX_BIN_DIR)/$(BINARY_NAME)
+TARGET := $(NATIVE_BIN_DIR)/$(BINARY_NAME)
 WIN64_BINARY_NAME := $(APP_NAME)-windows-$(WIN64_ARCH).exe
 WIN64_TARGET := $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)
 WIN32_BINARY_NAME := $(APP_NAME)-windows-$(WIN32_ARCH).exe
@@ -337,8 +344,10 @@ APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
 LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
+WEB_RANLIB ?= emranlib
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
+WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_APP_URL ?= https://inbe.waozi.xyz/
@@ -356,7 +365,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web site chrome-web-store
+.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -412,11 +421,27 @@ click-verify: $(CLICK_TARGET)
 	}
 	clickable review $(CLICK_TARGET)
 
+web-tools-check:
+	@missing=0; \
+	for tool in "$(WEB_CC)" "$(WEB_AR)" "$(WEB_RANLIB)" emcmake; do \
+		if ! command -v "$$tool" >/dev/null 2>&1; then \
+			echo "Missing web build tool: $$tool"; \
+			missing=1; \
+		fi; \
+	done; \
+	if [ "$$missing" -ne 0 ]; then \
+		echo ""; \
+		echo "Install Emscripten for this host or run the web build from an environment where Emscripten is on PATH."; \
+		echo ""; \
+		echo "Required tools: WEB_CC=$(WEB_CC), WEB_AR=$(WEB_AR), WEB_RANLIB=$(WEB_RANLIB), emcmake."; \
+		exit 1; \
+	fi
+
 vendor-prebuilds: vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows
 
 vendor-prebuilds-native: $(RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK)
 
-vendor-prebuilds-web: $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
+vendor-prebuilds-web: web-tools-check $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
 
 vendor-prebuilds-windows: $(WIN64_RAYLIB_A) $(WIN32_RAYLIB_A) $(WIN64_CURL_A) $(WIN32_CURL_A) $(WIN64_LIBOQS_A) $(WIN32_LIBOQS_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H)
 
@@ -508,7 +533,7 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/ap
 		-o $@ \
 		tests/app_bottom_nav_test.c
 
-$(BUILD_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
+$(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
@@ -537,10 +562,10 @@ $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
 	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/ui_icon_assets.c
 
 $(RAYLIB_A): $(RAYLIB_SOURCES) Makefile
-	rm -rf $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src $(RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/linux/$(ARCH)/raylib-src \
+	rm -rf $(NATIVE_VENDOR_BUILD_DIR)/raylib-src
+	mkdir -p $(NATIVE_VENDOR_BUILD_DIR)/raylib-src $(RAYLIB_BUILD_DIR)
+	cp -R $(RAYLIB_DIR)/. $(NATIVE_VENDOR_BUILD_DIR)/raylib-src/
+	$(MAKE) -j1 -C $(NATIVE_VENDOR_BUILD_DIR)/raylib-src \
 		CC="$(CC)" \
 		AR="ar" \
 		PLATFORM=PLATFORM_DESKTOP_SDL \
@@ -566,6 +591,9 @@ $(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
 		CC="$(WEB_CC)" \
 		AR="$(WEB_AR)" \
 		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+
+$(WEB_RAYLIB_A): web-tools-check
+$(WEB_LIBOQS_A): web-tools-check
 
 $(CLICK_RAYLIB_A): $(RAYLIB_SOURCES)
 	rm -rf $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src
@@ -742,7 +770,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
-$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(LINUX_BIN_DIR)
+$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -963,7 +991,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -976,8 +1004,8 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SR
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=0 \
-		-o $@ \
-		$(SRC) \
+		-o $(WEB_JS_TARGET) \
+		$(WEB_SRC) \
 		$(FLINT_WEB_SRCS) \
 		$(SQLITE_SRC) \
 		$(WEB_RAYLIB_A) \
@@ -989,11 +1017,13 @@ $(WEB_TARGET): Makefile $(SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SR
 		-sALLOW_MEMORY_GROWTH=0 \
 		-sINITIAL_MEMORY=268435456 \
 		-sSTACK_SIZE=8388608 \
+		-sGLOBAL_BASE=16777216 \
 		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick \
-		--shell-file src/web_shell.html \
 		-lidbfs.js \
 		-lm
-	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index.html
+
+$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
+	perl -0pe 's#\{\{\{ SCRIPT \}\}\}#<script async src="index.js?v=$(WEB_CACHE_BUSTER)"></script>#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
@@ -1209,6 +1239,9 @@ clean:
 
 clean-linux:
 	rm -rf $(LINUX_OBJ_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR)
+
+clean-native:
+	rm -rf $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(NATIVE_VENDOR_BUILD_DIR)
 
 clean-vendor-builds:
 	rm -rf $(VENDOR_BUILD_DIR)

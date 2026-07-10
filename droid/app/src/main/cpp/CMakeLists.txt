@@ -39,9 +39,9 @@ file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_RO
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
-    assets/practices/whm/1.jpg
-    assets/practices/whm/2.jpg
-    assets/practices/meditation/1.jpg
+    assets/practices/whm/1.png
+    assets/practices/whm/2.png
+    assets/practices/meditation/1.png
     assets/pet/egg1.png
     ${INBE_PRACTICE_BANNER_ASSETS}
     assets/practices/sunsalutation/pos_0001.png

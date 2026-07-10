@@ -77,14 +77,17 @@ static void nativeSetBackgroundActive(JNIEnv *env, jobject thiz, jboolean active
 
 	void *app = get_global_inbe_app();
 	InbeApp *inbe_app = (InbeApp*)app;
-	if (inbe_app != NULL) {
-		inbe_app->backgrounded = active ? 1 : 0;
-	}
 
 	if (active) {
+		if (inbe_app != NULL) {
+			inbe_app->backgrounded = 1;
+		}
 		android_timer_activate();
 	} else {
 		android_timer_deactivate();
+		if (inbe_app != NULL) {
+			inbe_app->backgrounded = 0;
+		}
 	}
 }
 

@@ -7,6 +7,7 @@
 #include "ui.h"
 #include "raylib.h"
 #include "screens/practice_screen.h"
+#include "practices/meditation/meditation_music.h"
 
 extern int view_width;
 extern int view_height;
@@ -318,6 +319,11 @@ whm_config_content_height(InbeApp *app, int content_w)
         return h + bottom_padding;
     }
 
+    if(app->practice_config_tab == 2)
+        return meditation_music_measure_practice_settings(app, EXERCISE_WIM_HOF,
+                                                          content_w, 1, 1) +
+               bottom_padding;
+
     return ScaleUIPx(66) * 3 +
            ScaleUIPx(26) + ScaleUIPx(52) +
            ScaleUIPx(76) +
@@ -349,11 +355,12 @@ whm_config_screen_draw(InbeApp *app)
     const char *config_tabs[] = {
         GetLocaleText("settings_section_breathing"),
         GetLocaleText("settings_section_session"),
+        GetLocaleText("practice_music_title"),
     };
 
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
-    if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
+    if(app->practice_config_tab < 0 || app->practice_config_tab > 2)
         app->practice_config_tab = 0;
 
     practice_screen_config_layout(app, UIModalPracticeConfig,
@@ -361,7 +368,7 @@ whm_config_screen_draw(InbeApp *app)
     practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
                                         UIModalPracticeConfig, NULL);
 
-    clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h, config_tabs, 2,
+    clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h, config_tabs, 3,
                                              app->practice_config_tab);
     if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
         AppRoute route = app_current_route(app);
@@ -385,12 +392,19 @@ whm_config_screen_draw(InbeApp *app)
         if(app->practice_config_tab == 0) {
             whm_config_draw_breathing_tab(app, page.content_x, page.content_w,
                                           page.content_y, &draw_breath_animation_menu);
-        } else {
+        } else if(app->practice_config_tab == 1) {
             whm_config_draw_session_tab(app, page.content_x, page.content_w,
                                         page.content_y);
+        } else {
+            int y = page.content_y;
+            meditation_music_draw_practice_settings(app, EXERCISE_WIM_HOF,
+                                                    page.content_x, page.content_w,
+                                                    &y, 1, 1);
         }
         EndUIScrollPage(page);
     }
+    if(app->practice_config_tab == 2)
+        meditation_music_draw_dropdown_menu(app);
 
     if(draw_breath_animation_menu && DrawUIDropdownMenu(104)) {
         app->inbe.breath_animation = clampi(app->inbe.breath_animation,

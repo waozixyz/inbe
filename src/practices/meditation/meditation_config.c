@@ -6,6 +6,7 @@
 #include "ui.h"
 #include "raylib.h"
 #include "screens/practice_screen.h"
+#include "meditation_music.h"
 
 #include <stdio.h>
 
@@ -28,11 +29,16 @@ meditation_config_duration_height(int content_w)
 static int
 meditation_config_content_height(InbeApp *app, int content_w)
 {
-    return meditation_config_duration_height(content_w) +
-           (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
-                ? app_content_bottom_reserved(app)
-                : 0) +
-           ScaleUIPx(24);
+    int bottom_padding = (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
+                              ? app_content_bottom_reserved(app)
+                              : 0) +
+                         ScaleUIPx(24);
+
+    if(app != NULL && app->practice_config_tab == 1)
+        return meditation_music_measure_practice_settings(app, EXERCISE_MEDITATION,
+                                                          content_w, 1, 1) +
+               bottom_padding;
+    return meditation_config_duration_height(content_w) + bottom_padding;
 }
 
 static void
@@ -151,11 +157,42 @@ void
 meditation_config_screen_draw(InbeApp *app)
 {
     PracticeSubscreenLayout layout;
+    int config_tab_h = ScaleUIPx(40);
+    int config_tab_gap = ScaleUIPx(14);
+    int clicked_config_tab = -1;
+    const char *config_tabs[] = {
+        GetLocaleText("meditation_duration_setting"),
+        GetLocaleText("practice_music_title"),
+    };
 
-    practice_screen_config_layout(app, UIModalPracticeConfig, ScaleUIPx(16), &layout);
+    if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
+        app->practice_config_tab = 0;
+
+    practice_screen_config_layout(app, UIModalPracticeConfig,
+                                  config_tab_h + config_tab_gap, &layout);
     practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
                                         UIModalPracticeConfig,
                                         meditation_practice_leave_config);
+
+    {
+        UISubtab tabs[2] = {
+            {.label = config_tabs[0], .disabled = 0},
+            {.label = config_tabs[1], .disabled = 0},
+        };
+        clicked_config_tab = DrawUISubtabBar((UISubtabBar){
+            .bounds = {0, (float)layout.title_h, (float)view_width, (float)config_tab_h},
+            .tabs = tabs,
+            .count = 2,
+            .selected_index = app->practice_config_tab
+        });
+    }
+    if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
+        AppRoute route = app_current_route(app);
+        route.practice_config_tab = clicked_config_tab;
+        app->settings_scroll = 0;
+        meditation_music_unload(app);
+        app_switch_route(app, route);
+    }
 
     {
         MeditationConfigScrollPageContext page_ctx = {app};
@@ -170,7 +207,15 @@ meditation_config_screen_draw(InbeApp *app)
         });
         int y = page.content_y;
 
-        meditation_config_draw_duration(app, page.content_x, page.content_w, &y);
+        if(app->practice_config_tab == 0) {
+            meditation_config_draw_duration(app, page.content_x, page.content_w, &y);
+        } else {
+            meditation_music_draw_practice_settings(app, EXERCISE_MEDITATION,
+                                                    page.content_x, page.content_w,
+                                                    &y, 1, 1);
+        }
         EndUIScrollPage(page);
     }
+    if(app->practice_config_tab == 1)
+        meditation_music_draw_dropdown_menu(app);
 }

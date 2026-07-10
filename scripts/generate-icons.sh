@@ -42,6 +42,7 @@ mkdir -p "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxhdpi"
 mkdir -p "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxxhdpi"
 mkdir -p "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26"
 mkdir -p "$PROJECT_ROOT/windows"
+mkdir -p "$PROJECT_ROOT/assets/app"
 mkdir -p "$PROJECT_ROOT/packaging/linux/appimage"
 mkdir -p "$PROJECT_ROOT/packaging/chrome-web-store/icons"
 mkdir -p "$PROJECT_ROOT/web-assets/icons"
@@ -121,6 +122,13 @@ magick \
 
 echo "✅ Windows icon generated"
 
+echo "🖥️ Generating app runtime icon..."
+
+# Runtime desktop window icon embedded into the native app binary.
+generate_transparent 64 "$PROJECT_ROOT/assets/app/icon.png"
+
+echo "✅ App runtime icon generated"
+
 echo "🐧 Generating Linux AppImage icon..."
 
 # AppImage desktop icons are PNGs and support transparency.
@@ -165,6 +173,7 @@ echo
 echo "Generated icons:"
 echo "  📱 Android: mipmap PNGs + adaptive drawable foreground/background"
 echo "  🪟 Windows: windows/inbe.ico (256, 192, 32 resolutions)"
+echo "  🖥️ App:     assets/app/icon.png (64x64 transparent runtime icon)"
 echo "  🐧 Linux:   packaging/linux/appimage/inbe.png (256x256 transparent)"
 echo "  🏪 Store:   fastlane/metadata/android/en-US/images/icon.png (512x512)"
 echo "  🌐 Chrome:  packaging/chrome-web-store/icons/ (16, 32, 48, 128)"

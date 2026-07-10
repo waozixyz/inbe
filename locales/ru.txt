@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 Сядьте спокойно и сделайте эту сессию простой: остановитесь, подышите и начните.
 ---
-[meditation_music_master_toggle]
-Музыка для медитации
----
 [meditation_music_download_button]
 Скачать музыку
 ---
@@ -492,21 +489,6 @@ Inner Breeze
 ---
 [on_screen_keyboard_label]
 Экранная клавиатура
----
-[tutorial_title]
-Обучение
----
-[tutorial_method_title]
-Метод
----
-[tutorial_step1_title]
-Шаг 1: вдох и выдох
----
-[tutorial_step2_title]
-Шаг 2: выдох и задержка
----
-[tutorial_step3_title]
-Шаг 3: вдох и задержка
 ---
 [tutorial_step_intro]
 Эта дыхательная практика основана на методе Вима Хофа.
@@ -847,26 +829,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Практика
----
 [practice_music_title]
 Фоновая музыка
+---
+[practice_music_enabled_label]
+Включать во время этой практики
 ---
 [practice_start_button]
 Начать практику
 ---
 [practice_manual_button]
-Инструкция
+Как делать
 ---
 [practice_configure_button]
 Настроить
----
-[practice_music_practice_list_title]
-Использовать музыку для практик
----
-[practice_guide_music]
-Выберите музыку для каждой практики.
 ---
 [practice_guide_carousel]
 Используйте стрелки для выбора практики.
@@ -936,6 +912,120 @@ Yoga
 ---
 [results_rounds]
 %d раундов
+---
+[practice_home_minutes]
+%d мин
+---
+[practice_home_repetitions]
+%d повторов
+---
+[practice_home_wim_hof_metadata]
+%d раундов | %d дыханий
+---
+[sun_salutation_session_step_title]
+Шаг %d / %d
+---
+[meditation_music_downloading_progress]
+Загрузка аудио... %d%%
+---
+[meditation_music_downloading]
+Загрузка аудио...
+---
+[statistics_now_label]
+Сейчас
+---
+[statistics_day_offset_label]
+%d д
+---
+[habit_session_total_count]
+Всего %d
+---
+[habit_day_total_count_suffix]
+ / всего %d
+---
+[habit_day_completed]
+Завершено
+---
+[sync_review_local_only]
+- Только локально
+---
+[sync_review_remote_only]
++ Только удалённо
+---
+[sync_review_keep_local_button]
+Оставить локальное
+---
+[sync_review_use_remote_button]
+Использовать удалённое
+---
+[sync_status_title]
+Статус синхронизации
+---
+[sync_status_account]
+Аккаунт: %s
+---
+[sync_status_connected]
+подключён
+---
+[sync_status_not_set]
+не настроен
+---
+[sync_status_queued]
+В очереди: %lld
+---
+[sync_status_server]
+Сервер: %lld
+---
+[sync_status_clock]
+Часы: %lld
+---
+[sync_status_upgrade]
+Обновите Inner Breeze
+---
+[sync_status_review_pending]
+Ожидает проверки
+---
+[sync_status_repair_pending]
+Ожидает восстановления синхронизации
+---
+[sync_status_local_queued]
+Локальные изменения в очереди
+---
+[sync_status_initial_upload_pending]
+Ожидает первая загрузка
+---
+[sync_status_ready]
+Готово
+---
+[tray_wim_hof_paused]
+Wim Hof - Пауза
+---
+[tray_wim_hof_breath]
+Wim Hof - Дыхание %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - Задержка %dс
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - Вдох %dс
+---
+[tray_wim_hof_next_round]
+Wim Hof - Следующий раунд
+---
+[tray_wim_hof_starting]
+Wim Hof - Запуск
+---
+[tray_meditation_paused]
+Медитация - %d:%02d пауза
+---
+[tray_meditation_left]
+Медитация - осталось %d:%02d
+---
+[tray_sun_salutation]
+Приветствие солнцу - Шаг %d, Повт. %d/%d
+---
+[tray_sun_salutation_paused]
+Приветствие солнцу - Шаг %d, Повт. %d/%d пауза
 ---
 [results_best]
 лучшее %dс

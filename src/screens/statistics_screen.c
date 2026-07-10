@@ -343,9 +343,10 @@ statistics_draw_hold_graph(InbeApp *app, const HabitLinkedContext *linked_ctx,
         if(!show_label)
             continue;
         if(day_offset == 0)
-            snprintf(label, sizeof(label), "%s", "Now");
+            snprintf(label, sizeof(label), "%s", GetLocaleText("statistics_now_label"));
         else
-            snprintf(label, sizeof(label), "%dd", day_offset);
+            FormatLocaleText(label, sizeof(label), "statistics_day_offset_label",
+                             day_offset);
         day_x = plot_x + (plot_w * i) / graph_days;
         DrawUIText(label, day_x + ScaleUIPx(2),
                         y + graph_h - ScaleUIPx(20), UI_TEXT_12,

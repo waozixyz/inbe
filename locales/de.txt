@@ -190,9 +190,6 @@ Meditation
 [meditation_manual_intro_text]
 Eine einfache Meditationspraxis für Atem, Ruhe und Achtsamkeit.
 ---
-[meditation_music_master_toggle]
-Meditationsmusik
----
 [meditation_music_download_button]
 Musik herunterladen
 ---
@@ -465,21 +462,6 @@ Dunkel
 ---
 [on_screen_keyboard_label]
 Bildschirmtastatur
----
-[tutorial_title]
-Anleitung
----
-[tutorial_method_title]
-Methode
----
-[tutorial_step1_title]
-Schritt 1: Ein & Aus
----
-[tutorial_step2_title]
-Schritt 2: Ausatmen & Halten
----
-[tutorial_step3_title]
-Schritt 3: Einatmen & Halten
 ---
 [tutorial_step_intro]
 Diese Atemübung basiert auf der Wim Hof-Methode.
@@ -847,11 +829,11 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Praxis
----
 [practice_music_title]
 Hintergrundmusik
+---
+[practice_music_enabled_label]
+Während dieser Übung abspielen
 ---
 [practice_start_button]
 Praxis starten
@@ -860,13 +842,7 @@ Praxis starten
 Anleitung
 ---
 [practice_configure_button]
-Konfigurieren
----
-[practice_music_practice_list_title]
-Musik für Praktiken verwenden
----
-[practice_guide_music]
-Wähle Musik für jede Übung.
+Anpassen
 ---
 [practice_guide_carousel]
 Wähle mit den Pfeilen eine Übung.
@@ -936,6 +912,120 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 ---
 [results_rounds]
 %d Runden
+---
+[practice_home_minutes]
+%d Min.
+---
+[practice_home_repetitions]
+%d Wdh.
+---
+[practice_home_wim_hof_metadata]
+%d Runden | %d Atemzüge
+---
+[sun_salutation_session_step_title]
+Schritt %d / %d
+---
+[meditation_music_downloading_progress]
+Audio wird geladen... %d%%
+---
+[meditation_music_downloading]
+Audio wird geladen...
+---
+[statistics_now_label]
+Jetzt
+---
+[statistics_day_offset_label]
+%d T
+---
+[habit_session_total_count]
+Gesamt %d
+---
+[habit_day_total_count_suffix]
+ / gesamt %d
+---
+[habit_day_completed]
+Abgeschlossen
+---
+[sync_review_local_only]
+- Nur lokal
+---
+[sync_review_remote_only]
++ Nur remote
+---
+[sync_review_keep_local_button]
+Lokal behalten
+---
+[sync_review_use_remote_button]
+Remote verwenden
+---
+[sync_status_title]
+Sync-Status
+---
+[sync_status_account]
+Konto: %s
+---
+[sync_status_connected]
+verbunden
+---
+[sync_status_not_set]
+nicht gesetzt
+---
+[sync_status_queued]
+Wartend: %lld
+---
+[sync_status_server]
+Server: %lld
+---
+[sync_status_clock]
+Uhr: %lld
+---
+[sync_status_upgrade]
+Inner Breeze aktualisieren
+---
+[sync_status_review_pending]
+Prüfung ausstehend
+---
+[sync_status_repair_pending]
+Sync-Reparatur ausstehend
+---
+[sync_status_local_queued]
+Lokale Änderungen warten
+---
+[sync_status_initial_upload_pending]
+Erst-Upload ausstehend
+---
+[sync_status_ready]
+Bereit
+---
+[tray_wim_hof_paused]
+Wim Hof - Pausiert
+---
+[tray_wim_hof_breath]
+Wim Hof - Atemzug %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - Halten %ds
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - Einatmen %ds
+---
+[tray_wim_hof_next_round]
+Wim Hof - Nächste Runde
+---
+[tray_wim_hof_starting]
+Wim Hof - Startet
+---
+[tray_meditation_paused]
+Meditation - %d:%02d pausiert
+---
+[tray_meditation_left]
+Meditation - %d:%02d übrig
+---
+[tray_sun_salutation]
+Sonnengruß - Schritt %d, Wdh. %d/%d
+---
+[tray_sun_salutation_paused]
+Sonnengruß - Schritt %d, Wdh. %d/%d pausiert
 ---
 [results_best]
 beste %ds

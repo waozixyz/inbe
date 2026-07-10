@@ -3,6 +3,7 @@
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
+#include "locale.h"
 #include "practices/practice_registry.h"
 #include "raylib.h"
 
@@ -16,26 +17,33 @@
 #include <gtk/gtk.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <string.h>
 #include <unistd.h>
 
 static pthread_t tray_thread;
 static pthread_mutex_t tray_action_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_mutex_t tray_state_lock = PTHREAD_MUTEX_INITIALIZER;
+static pthread_mutex_t tray_status_lock = PTHREAD_MUTEX_INITIALIZER;
 static pthread_cond_t tray_state_cond = PTHREAD_COND_INITIALIZER;
 static InbeDesktopTrayAction pending_action = INBE_DESKTOP_TRAY_ACTION_NONE;
 static int tray_started;
 static int tray_state;
+static char tray_status_text[128] = "Inner Breeze";
+static int tray_status_update_pending;
+#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
+static GtkStatusIcon *tray_status_icon;
+#endif
 
 enum {
-    LINUX_TRAY_STATE_STARTING = 0,
-    LINUX_TRAY_STATE_READY,
-    LINUX_TRAY_STATE_FAILED,
-    LINUX_TRAY_STATE_STOPPED
+    DESKTOP_TRAY_STATE_STARTING = 0,
+    DESKTOP_TRAY_STATE_READY,
+    DESKTOP_TRAY_STATE_FAILED,
+    DESKTOP_TRAY_STATE_STOPPED
 };
 
 static void
-linux_tray_set_action(InbeDesktopTrayAction action)
+desktop_tray_set_action(InbeDesktopTrayAction action)
 {
     pthread_mutex_lock(&tray_action_lock);
     pending_action = action;
@@ -56,12 +64,12 @@ inbe_desktop_tray_poll_action(void)
 }
 
 static int
-linux_tray_sdl_event_filter(void *userdata, SDL_Event *event)
+desktop_tray_sdl_event_filter(void *userdata, SDL_Event *event)
 {
     (void)userdata;
 
     if(event != NULL && event->type == SDL_QUIT) {
-        linux_tray_set_action(INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST);
+        desktop_tray_set_action(INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST);
         return 0;
     }
 
@@ -69,23 +77,23 @@ linux_tray_sdl_event_filter(void *userdata, SDL_Event *event)
 }
 
 static void
-linux_tray_menu_action(GtkMenuItem *item, gpointer user_data)
+desktop_tray_menu_action(GtkMenuItem *item, gpointer user_data)
 {
     (void)item;
-    linux_tray_set_action((InbeDesktopTrayAction)(intptr_t)user_data);
+    desktop_tray_set_action((InbeDesktopTrayAction)(intptr_t)user_data);
 }
 
 static GtkWidget *
-linux_tray_menu_item(const char *label, InbeDesktopTrayAction action)
+desktop_tray_menu_item(const char *label, InbeDesktopTrayAction action)
 {
     GtkWidget *item = gtk_menu_item_new_with_label(label);
-    g_signal_connect(item, "activate", G_CALLBACK(linux_tray_menu_action),
+    g_signal_connect(item, "activate", G_CALLBACK(desktop_tray_menu_action),
                      (gpointer)(intptr_t)action);
     return item;
 }
 
 static void
-linux_tray_set_state(int state)
+desktop_tray_set_state(int state)
 {
     pthread_mutex_lock(&tray_state_lock);
     tray_state = state;
@@ -94,7 +102,29 @@ linux_tray_set_state(int state)
 }
 
 static gboolean
-linux_tray_quit_main(gpointer user_data)
+desktop_tray_apply_status(gpointer user_data)
+{
+    char text[sizeof(tray_status_text)];
+
+    (void)user_data;
+
+    pthread_mutex_lock(&tray_status_lock);
+    snprintf(text, sizeof(text), "%s", tray_status_text);
+    tray_status_update_pending = 0;
+    pthread_mutex_unlock(&tray_status_lock);
+
+#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
+    if(tray_status_icon != NULL) {
+        gtk_status_icon_set_title(tray_status_icon, text);
+        gtk_status_icon_set_tooltip_text(tray_status_icon, text);
+    }
+#endif
+
+    return G_SOURCE_REMOVE;
+}
+
+static gboolean
+desktop_tray_quit_main(gpointer user_data)
 {
     (void)user_data;
     gtk_main_quit();
@@ -102,7 +132,7 @@ linux_tray_quit_main(gpointer user_data)
 }
 
 static const char *
-linux_tray_icon_path(void)
+desktop_tray_icon_path(void)
 {
     static char path[512];
     static const char *const fallback_paths[] = {
@@ -146,33 +176,33 @@ linux_tray_icon_path(void)
 }
 
 static GtkWidget *
-linux_tray_create_menu(void)
+desktop_tray_create_menu(void)
 {
     GtkWidget *menu = gtk_menu_new();
     GtkWidget *start_item;
     GtkWidget *start_menu;
 
     gtk_menu_shell_append(GTK_MENU_SHELL(menu),
-                          linux_tray_menu_item("Show Inner Breeze",
+                          desktop_tray_menu_item("Show Inner Breeze",
                                                INBE_DESKTOP_TRAY_ACTION_SHOW));
 
     start_item = gtk_menu_item_new_with_label("Start Practice");
     start_menu = gtk_menu_new();
     gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          linux_tray_menu_item("Wim Hof",
+                          desktop_tray_menu_item("Wim Hof",
                                                INBE_DESKTOP_TRAY_ACTION_START_WHM));
     gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          linux_tray_menu_item("Meditation",
+                          desktop_tray_menu_item("Meditation",
                                                INBE_DESKTOP_TRAY_ACTION_START_MEDITATION));
     gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          linux_tray_menu_item("Sun Salutation",
+                          desktop_tray_menu_item("Sun Salutation",
                                                INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION));
     gtk_menu_item_set_submenu(GTK_MENU_ITEM(start_item), start_menu);
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), start_item);
 
     gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
     gtk_menu_shell_append(GTK_MENU_SHELL(menu),
-                          linux_tray_menu_item("Quit Inner Breeze",
+                          desktop_tray_menu_item("Quit Inner Breeze",
                                                INBE_DESKTOP_TRAY_ACTION_QUIT));
 
     gtk_widget_show_all(menu);
@@ -181,15 +211,15 @@ linux_tray_create_menu(void)
 
 #if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
 static void
-linux_tray_status_icon_activate(GtkStatusIcon *status_icon, gpointer user_data)
+desktop_tray_status_icon_activate(GtkStatusIcon *status_icon, gpointer user_data)
 {
     (void)status_icon;
     (void)user_data;
-    linux_tray_set_action(INBE_DESKTOP_TRAY_ACTION_SHOW);
+    desktop_tray_set_action(INBE_DESKTOP_TRAY_ACTION_SHOW);
 }
 
 static void
-linux_tray_status_icon_popup(GtkStatusIcon *status_icon, guint button,
+desktop_tray_status_icon_popup(GtkStatusIcon *status_icon, guint button,
                              guint activate_time, gpointer user_data)
 {
     GtkWidget *menu = user_data;
@@ -200,20 +230,16 @@ linux_tray_status_icon_popup(GtkStatusIcon *status_icon, guint button,
 #endif
 
 static void *
-linux_tray_thread_main(void *arg)
+desktop_tray_thread_main(void *arg)
 {
 #if defined(INBE_DESKTOP_TRAY_AYATANA) || defined(INBE_DESKTOP_TRAY_APPINDICATOR)
     AppIndicator *indicator;
 #endif
     GtkWidget *menu;
-#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-    GtkStatusIcon *status_icon;
-#endif
-
     (void)arg;
 
     if(!gtk_init_check(NULL, NULL)) {
-        linux_tray_set_state(LINUX_TRAY_STATE_FAILED);
+        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
         return NULL;
     }
 
@@ -221,48 +247,48 @@ linux_tray_thread_main(void *arg)
     indicator = app_indicator_new("inbe", "inbe",
                                   APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
     if(indicator == NULL) {
-        linux_tray_set_state(LINUX_TRAY_STATE_FAILED);
+        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
         return NULL;
     }
 
     app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
     {
-        const char *icon_path = linux_tray_icon_path();
+        const char *icon_path = desktop_tray_icon_path();
         if(icon_path != NULL)
             app_indicator_set_icon_full(indicator, icon_path, "Inner Breeze");
         else
             app_indicator_set_icon_full(indicator, "inbe", "Inner Breeze");
     }
 
-    menu = linux_tray_create_menu();
+    menu = desktop_tray_create_menu();
     app_indicator_set_menu(indicator, GTK_MENU(menu));
 #elif defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-    menu = linux_tray_create_menu();
+    menu = desktop_tray_create_menu();
     {
-        const char *icon_path = linux_tray_icon_path();
-        status_icon = icon_path != NULL
+        const char *icon_path = desktop_tray_icon_path();
+        tray_status_icon = icon_path != NULL
                           ? gtk_status_icon_new_from_file(icon_path)
                           : gtk_status_icon_new_from_icon_name("inbe");
     }
-    if(status_icon == NULL) {
-        linux_tray_set_state(LINUX_TRAY_STATE_FAILED);
+    if(tray_status_icon == NULL) {
+        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
         return NULL;
     }
-    gtk_status_icon_set_title(status_icon, "Inner Breeze");
-    gtk_status_icon_set_tooltip_text(status_icon, "Inner Breeze");
-    gtk_status_icon_set_visible(status_icon, TRUE);
-    g_signal_connect(status_icon, "activate",
-                     G_CALLBACK(linux_tray_status_icon_activate), NULL);
-    g_signal_connect(status_icon, "popup-menu",
-                     G_CALLBACK(linux_tray_status_icon_popup), menu);
+    gtk_status_icon_set_title(tray_status_icon, "Inner Breeze");
+    gtk_status_icon_set_tooltip_text(tray_status_icon, "Inner Breeze");
+    gtk_status_icon_set_visible(tray_status_icon, TRUE);
+    g_signal_connect(tray_status_icon, "activate",
+                     G_CALLBACK(desktop_tray_status_icon_activate), NULL);
+    g_signal_connect(tray_status_icon, "popup-menu",
+                     G_CALLBACK(desktop_tray_status_icon_popup), menu);
 #else
-    linux_tray_set_state(LINUX_TRAY_STATE_FAILED);
+    desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
     return NULL;
 #endif
 
-    linux_tray_set_state(LINUX_TRAY_STATE_READY);
+    desktop_tray_set_state(DESKTOP_TRAY_STATE_READY);
     gtk_main();
-    linux_tray_set_state(LINUX_TRAY_STATE_STOPPED);
+    desktop_tray_set_state(DESKTOP_TRAY_STATE_STOPPED);
 
     return NULL;
 }
@@ -273,16 +299,16 @@ inbe_desktop_tray_init(void)
     int ready;
 
     pthread_mutex_lock(&tray_state_lock);
-    tray_state = LINUX_TRAY_STATE_STARTING;
+    tray_state = DESKTOP_TRAY_STATE_STARTING;
     pthread_mutex_unlock(&tray_state_lock);
-    if(pthread_create(&tray_thread, NULL, linux_tray_thread_main, NULL) != 0)
+    if(pthread_create(&tray_thread, NULL, desktop_tray_thread_main, NULL) != 0)
         return 0;
 
     tray_started = 1;
     pthread_mutex_lock(&tray_state_lock);
-    while(tray_state == LINUX_TRAY_STATE_STARTING)
+    while(tray_state == DESKTOP_TRAY_STATE_STARTING)
         pthread_cond_wait(&tray_state_cond, &tray_state_lock);
-    ready = tray_state == LINUX_TRAY_STATE_READY;
+    ready = tray_state == DESKTOP_TRAY_STATE_READY;
     pthread_mutex_unlock(&tray_state_lock);
 
     if(!ready) {
@@ -291,7 +317,7 @@ inbe_desktop_tray_init(void)
         return 0;
     }
 
-    SDL_SetEventFilter(linux_tray_sdl_event_filter, NULL);
+    SDL_SetEventFilter(desktop_tray_sdl_event_filter, NULL);
     return ready;
 }
 
@@ -301,11 +327,11 @@ inbe_desktop_tray_shutdown(void)
     int ready;
 
     pthread_mutex_lock(&tray_state_lock);
-    ready = tray_state == LINUX_TRAY_STATE_READY;
+    ready = tray_state == DESKTOP_TRAY_STATE_READY;
     pthread_mutex_unlock(&tray_state_lock);
 
     if(tray_started && ready)
-        g_idle_add(linux_tray_quit_main, NULL);
+        g_idle_add(desktop_tray_quit_main, NULL);
 
     if(tray_started)
         pthread_join(tray_thread, NULL);
@@ -314,7 +340,7 @@ inbe_desktop_tray_shutdown(void)
 }
 
 static void
-linux_tray_restore_window(void)
+desktop_tray_restore_window(void)
 {
     ClearWindowState(FLAG_WINDOW_HIDDEN);
     RestoreWindow();
@@ -326,7 +352,7 @@ inbe_desktop_tray_keep_running(void)
     int ready;
 
     pthread_mutex_lock(&tray_state_lock);
-    ready = tray_state == LINUX_TRAY_STATE_READY;
+    ready = tray_state == DESKTOP_TRAY_STATE_READY;
     pthread_mutex_unlock(&tray_state_lock);
 
     if(ready)
@@ -336,7 +362,7 @@ inbe_desktop_tray_keep_running(void)
 }
 
 static void
-linux_tray_start_practice(InbeApp *app, int practice_id)
+desktop_tray_start_practice(InbeApp *app, int practice_id)
 {
     const PracticeDefinition *practice;
 
@@ -348,7 +374,7 @@ linux_tray_start_practice(InbeApp *app, int practice_id)
     app->practice_tab = PRACTICE_TAB_PLAY;
     if(app->modal.active)
         app_close_modal(app);
-    linux_tray_restore_window();
+    desktop_tray_restore_window();
 
     practice = practice_get(app->exercise_type);
     if(practice->start != NULL)
@@ -360,7 +386,7 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
 {
     switch(action) {
     case INBE_DESKTOP_TRAY_ACTION_SHOW:
-        linux_tray_restore_window();
+        desktop_tray_restore_window();
         break;
     case INBE_DESKTOP_TRAY_ACTION_MINIMIZE:
         MinimizeWindow();
@@ -369,13 +395,13 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
         app_request_desktop_close(app);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_WHM:
-        linux_tray_start_practice(app, PRACTICE_WHM);
+        desktop_tray_start_practice(app, PRACTICE_WHM);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_MEDITATION:
-        linux_tray_start_practice(app, PRACTICE_MEDITATION);
+        desktop_tray_start_practice(app, PRACTICE_MEDITATION);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION:
-        linux_tray_start_practice(app, PRACTICE_SUN_SALUTATION);
+        desktop_tray_start_practice(app, PRACTICE_SUN_SALUTATION);
         break;
     case INBE_DESKTOP_TRAY_ACTION_QUIT:
         if(quit != NULL)
@@ -385,6 +411,78 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
     default:
         break;
     }
+}
+
+void
+inbe_desktop_tray_update_status(InbeApp *app)
+{
+    char text[sizeof(tray_status_text)];
+    int ready;
+
+    if(app == NULL)
+        return;
+
+    pthread_mutex_lock(&tray_state_lock);
+    ready = tray_state == DESKTOP_TRAY_STATE_READY;
+    pthread_mutex_unlock(&tray_state_lock);
+    if(!ready)
+        return;
+
+    snprintf(text, sizeof(text), "Inner Breeze");
+    if(app->inbe.screen == InbeScreenSession) {
+        int count = int_from_count(app->inbe.count);
+        int max_breaths = int_from_count(app->inbe.maxbreaths);
+
+        if(app->session_paused) {
+            snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_paused"));
+        } else {
+            switch(app->inbe.phase) {
+            case InbePhaseBreathe:
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breath",
+                                 count, max_breaths);
+                break;
+            case InbePhaseHold:
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_hold", count);
+                break;
+            case InbePhaseRecover:
+                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breathe_in",
+                                 count);
+                break;
+            case InbePhaseNext:
+                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_next_round"));
+                break;
+            case InbePhaseStarting:
+            default:
+                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_starting"));
+                break;
+            }
+        }
+    } else if(app->inbe.screen == InbeScreenMeditation) {
+        int remaining = app->meditation.remaining_seconds;
+        if(remaining < 0)
+            remaining = 0;
+        FormatLocaleText(text, sizeof(text),
+                         app->session_paused ? "tray_meditation_paused"
+                                             : "tray_meditation_left",
+                         remaining / 60, remaining % 60);
+    } else if(app->inbe.screen == InbeScreenSunSalutation) {
+        FormatLocaleText(text, sizeof(text),
+                         app->session_paused ? "tray_sun_salutation_paused"
+                                             : "tray_sun_salutation",
+                         app->sun_salutation.step + 1,
+                         app->sun_salutation.repetition + 1,
+                         app->sun_salutation.repetitions);
+    }
+
+    pthread_mutex_lock(&tray_status_lock);
+    if(strcmp(tray_status_text, text) != 0) {
+        snprintf(tray_status_text, sizeof(tray_status_text), "%s", text);
+        if(!tray_status_update_pending) {
+            tray_status_update_pending = 1;
+            g_idle_add(desktop_tray_apply_status, NULL);
+        }
+    }
+    pthread_mutex_unlock(&tray_status_lock);
 }
 
 #else
@@ -412,6 +510,12 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
     (void)app;
     (void)action;
     (void)quit;
+}
+
+void
+inbe_desktop_tray_update_status(InbeApp *app)
+{
+    (void)app;
 }
 
 void

@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 一个用于呼吸、平静与觉察的简单冥想练习。
 ---
-[meditation_music_master_toggle]
-冥想音乐
----
 [meditation_music_download_button]
 下载音乐
 ---
@@ -465,21 +462,6 @@ Finish
 ---
 [on_screen_keyboard_label]
 屏幕键盘
----
-[tutorial_title]
-教程
----
-[tutorial_method_title]
-方法
----
-[tutorial_step1_title]
-第 1 步：吸气与呼气
----
-[tutorial_step2_title]
-第 2 步：呼气与屏息
----
-[tutorial_step3_title]
-第 3 步：吸气与屏息
 ---
 [tutorial_step_intro]
 这项呼吸练习基于 Wim Hof Method。
@@ -847,26 +829,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-练习
----
 [practice_music_title]
 背景音乐
+---
+[practice_music_enabled_label]
+在本练习中播放
 ---
 [practice_start_button]
 开始练习
 ---
 [practice_manual_button]
-手册
+使用方法
 ---
 [practice_configure_button]
-配置
----
-[practice_music_practice_list_title]
-为练习使用音乐
----
-[practice_guide_music]
-为每个练习选择音乐。
+自定义
 ---
 [practice_guide_carousel]
 用箭头选择练习。
@@ -936,6 +912,120 @@ Yoga
 ---
 [results_rounds]
 %d 轮
+---
+[practice_home_minutes]
+%d 分钟
+---
+[practice_home_repetitions]
+%d 次
+---
+[practice_home_wim_hof_metadata]
+%d 轮 | %d 次呼吸
+---
+[sun_salutation_session_step_title]
+步骤 %d / %d
+---
+[meditation_music_downloading_progress]
+正在下载音频... %d%%
+---
+[meditation_music_downloading]
+正在下载音频...
+---
+[statistics_now_label]
+现在
+---
+[statistics_day_offset_label]
+%d天
+---
+[habit_session_total_count]
+总计 %d
+---
+[habit_day_total_count_suffix]
+ / 总计 %d
+---
+[habit_day_completed]
+已完成
+---
+[sync_review_local_only]
+- 仅本地
+---
+[sync_review_remote_only]
++ 仅远程
+---
+[sync_review_keep_local_button]
+保留本地
+---
+[sync_review_use_remote_button]
+使用远程
+---
+[sync_status_title]
+同步状态
+---
+[sync_status_account]
+账户：%s
+---
+[sync_status_connected]
+已连接
+---
+[sync_status_not_set]
+未设置
+---
+[sync_status_queued]
+队列：%lld
+---
+[sync_status_server]
+服务器：%lld
+---
+[sync_status_clock]
+时钟：%lld
+---
+[sync_status_upgrade]
+请更新 Inner Breeze
+---
+[sync_status_review_pending]
+等待审核
+---
+[sync_status_repair_pending]
+等待修复同步
+---
+[sync_status_local_queued]
+本地更改已排队
+---
+[sync_status_initial_upload_pending]
+等待初次上传
+---
+[sync_status_ready]
+就绪
+---
+[tray_wim_hof_paused]
+Wim Hof - 已暂停
+---
+[tray_wim_hof_breath]
+Wim Hof - 呼吸 %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - 屏息 %d秒
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - 吸气 %d秒
+---
+[tray_wim_hof_next_round]
+Wim Hof - 下一轮
+---
+[tray_wim_hof_starting]
+Wim Hof - 正在开始
+---
+[tray_meditation_paused]
+冥想 - %d:%02d 已暂停
+---
+[tray_meditation_left]
+冥想 - 剩余 %d:%02d
+---
+[tray_sun_salutation]
+拜日式 - 步骤 %d，次数 %d/%d
+---
+[tray_sun_salutation_paused]
+拜日式 - 步骤 %d，次数 %d/%d 已暂停
 ---
 [results_best]
 最佳 %ds

@@ -9,9 +9,9 @@ whm_practice_init(InbeApp *app)
     if(app == NULL)
         return;
     if(app->whm.image_1.id == 0)
-        app->whm.image_1 = app_load_asset_texture("practices/whm/1.jpg");
+        app->whm.image_1 = app_load_asset_texture("practices/whm/1.png");
     if(app->whm.image_2.id == 0)
-        app->whm.image_2 = app_load_asset_texture("practices/whm/2.jpg");
+        app->whm.image_2 = app_load_asset_texture("practices/whm/2.png");
     if(app->whm.banner.id == 0)
         app->whm.banner = app_load_asset_texture("practices/whm/banner.png");
 }

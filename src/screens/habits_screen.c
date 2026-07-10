@@ -1565,10 +1565,11 @@ draw_habits_overview(InbeApp *app, int content_top)
                     habit_apply_count_action(app, i, day_index, action, minimum_count);
                     app_auto_sync(app);
                 }
-                if(counting_enabled && count > 0 && !future_day && !has_linked_day) {
+                if(!future_day && (has_linked_day || (counting_enabled && count > 0))) {
                     char count_label[16];
                     int count_w;
-                    snprintf(count_label, sizeof(count_label), "%d", count);
+                    snprintf(count_label, sizeof(count_label), "%d",
+                             has_linked_day ? session_count : count);
                     count_w = MeasureUIText(count_label, UI_TEXT_12);
                     DrawUIText(count_label, day_x + cell - count_w - ScaleUIPx(3),
                                     row_y + ScaleUIPx(3), UI_TEXT_12,
@@ -1913,8 +1914,11 @@ draw_habit_completion_underline(int x, int y, int w, int h, Color color)
 static void
 draw_habit_link_dot(int x, int y, int w, Color color)
 {
+    (void)color;
     DrawCircle(x + w - ScaleUIPx(8), y + ScaleUIPx(8),
-               ScaleUIPx(3), color);
+               ScaleUIPx(5), DarkenUIColor(GetThemeBackground(), 35));
+    DrawCircle(x + w - ScaleUIPx(8), y + ScaleUIPx(8),
+               ScaleUIPx(3), GetThemeText());
 }
 
 static int
@@ -2202,11 +2206,11 @@ draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
         if(counting_enabled && count > 0 && session_count > 0 &&
            secondary[0] != '\0') {
             size_t len = strlen(secondary);
-            snprintf(secondary + len, sizeof(secondary) - len,
-                     " / total %d", count);
+            FormatLocaleText(secondary + len, sizeof(secondary) - len,
+                             "habit_day_total_count_suffix", count);
         }
         if(session_count <= 0 && completed) {
-            snprintf(primary, sizeof(primary), "Completed");
+            snprintf(primary, sizeof(primary), "%s", GetLocaleText("habit_day_completed"));
             secondary[0] = '\0';
         }
 

@@ -190,9 +190,6 @@ Meditasi
 [meditation_manual_intro_text]
 Latihan meditasi sederhana untuk napas, tenang, dan sadar.
 ---
-[meditation_music_master_toggle]
-Musik meditasi
----
 [meditation_music_download_button]
 Unduh musik
 ---
@@ -465,21 +462,6 @@ Gelap
 ---
 [on_screen_keyboard_label]
 Keyboard di layar
----
-[tutorial_title]
-Tutorial
----
-[tutorial_method_title]
-Metode
----
-[tutorial_step1_title]
-Langkah 1: Masuk & Keluar
----
-[tutorial_step2_title]
-Langkah 2: Buang & Tahan
----
-[tutorial_step3_title]
-Langkah 3: Tarik & Tahan
 ---
 [tutorial_step_intro]
 Latihan pernapasan ini didasarkan pada Metode Wim Hof.
@@ -847,26 +829,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Latihan
----
 [practice_music_title]
 Musik latar
+---
+[practice_music_enabled_label]
+Putar selama latihan ini
 ---
 [practice_start_button]
 Mulai latihan
 ---
 [practice_manual_button]
-Manual
+Cara pakai
 ---
 [practice_configure_button]
-Atur
----
-[practice_music_practice_list_title]
-Gunakan musik untuk latihan
----
-[practice_guide_music]
-Pilih musik untuk tiap latihan.
+Sesuaikan
 ---
 [practice_guide_carousel]
 Gunakan panah untuk memilih latihan.
@@ -936,6 +912,120 @@ Data sesi berasal dari latihan selesai.
 ---
 [results_rounds]
 %d ronde
+---
+[practice_home_minutes]
+%d mnt
+---
+[practice_home_repetitions]
+%d repetisi
+---
+[practice_home_wim_hof_metadata]
+%d ronde | %d napas
+---
+[sun_salutation_session_step_title]
+Langkah %d / %d
+---
+[meditation_music_downloading_progress]
+Mengunduh audio... %d%%
+---
+[meditation_music_downloading]
+Mengunduh audio...
+---
+[statistics_now_label]
+Sekarang
+---
+[statistics_day_offset_label]
+%d h
+---
+[habit_session_total_count]
+Total %d
+---
+[habit_day_total_count_suffix]
+ / total %d
+---
+[habit_day_completed]
+Selesai
+---
+[sync_review_local_only]
+- Lokal saja
+---
+[sync_review_remote_only]
++ Remote saja
+---
+[sync_review_keep_local_button]
+Simpan lokal
+---
+[sync_review_use_remote_button]
+Pakai remote
+---
+[sync_status_title]
+Status sinkronisasi
+---
+[sync_status_account]
+Akun: %s
+---
+[sync_status_connected]
+terhubung
+---
+[sync_status_not_set]
+belum diatur
+---
+[sync_status_queued]
+Antrean: %lld
+---
+[sync_status_server]
+Server: %lld
+---
+[sync_status_clock]
+Jam: %lld
+---
+[sync_status_upgrade]
+Perbarui Inner Breeze
+---
+[sync_status_review_pending]
+Tinjauan tertunda
+---
+[sync_status_repair_pending]
+Perbaikan sinkronisasi tertunda
+---
+[sync_status_local_queued]
+Perubahan lokal dalam antrean
+---
+[sync_status_initial_upload_pending]
+Unggahan awal tertunda
+---
+[sync_status_ready]
+Siap
+---
+[tray_wim_hof_paused]
+Wim Hof - Dijeda
+---
+[tray_wim_hof_breath]
+Wim Hof - Napas %d/%d
+---
+[tray_wim_hof_hold]
+Wim Hof - Tahan %ds
+---
+[tray_wim_hof_breathe_in]
+Wim Hof - Tarik napas %ds
+---
+[tray_wim_hof_next_round]
+Wim Hof - Ronde berikutnya
+---
+[tray_wim_hof_starting]
+Wim Hof - Mulai
+---
+[tray_meditation_paused]
+Meditasi - %d:%02d dijeda
+---
+[tray_meditation_left]
+Meditasi - sisa %d:%02d
+---
+[tray_sun_salutation]
+Salam matahari - Langkah %d, Rep %d/%d
+---
+[tray_sun_salutation_paused]
+Salam matahari - Langkah %d, Rep %d/%d dijeda
 ---
 [results_best]
 terbaik %ds

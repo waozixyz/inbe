@@ -286,20 +286,22 @@ settings_draw_sync_review_modal(InbeApp *app)
         .scroll_offset = &diff_scroll
     }, diff_view);
 
-    DrawUIText("- Local only", frame.content_x, legend_y,
+    DrawUIText(GetLocaleText("sync_review_local_only"), frame.content_x, legend_y,
                     GetUISmallFontSize(), (Color){215, 88, 88, 255});
-    DrawUIText("+ Remote only", frame.content_x + ScaleUIPx(112), legend_y,
+    DrawUIText(GetLocaleText("sync_review_remote_only"), frame.content_x + ScaleUIPx(112), legend_y,
                     GetUISmallFontSize(), (Color){74, 170, 112, 255});
 
     if(DrawUIGenericButton(frame.content_x, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
-                              "Keep local", UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                              GetLocaleText("sync_review_keep_local_button"),
+                              UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
         free(diff_detail);
         return 1;
     }
     if(DrawUIGenericButton(frame.content_x + (frame.content_w + gap) / 2, btn_y,
                               (frame.content_w - gap) / 2, btn_h,
-                              "Use remote", UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+                              GetLocaleText("sync_review_use_remote_button"),
+                              UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
         free(diff_detail);
         return 2;
     }
@@ -338,36 +340,38 @@ settings_data_draw_sync_status(int x, int w, int *y)
     if(!storage_sync_status(&status) || !status.has_account)
         return;
 
-    DrawUIText("Sync status", x, *y, label_font, label_color);
+    DrawUIText(GetLocaleText("sync_status_title"), x, *y, label_font, label_color);
     *y += ScaleUIPx(24);
 
     left_w = w / 2;
     row_y = *y;
-    snprintf(line, sizeof(line), "Account: %s", status.has_account ? "connected" : "not set");
+    FormatLocaleText(line, sizeof(line), "sync_status_account",
+                     GetLocaleText(status.has_account ? "sync_status_connected"
+                                                      : "sync_status_not_set"));
     DrawUIText(line, x, row_y, font, status.has_account ? ok_color : text_color);
-    snprintf(line, sizeof(line), "Queued: %lld", status.queued_changes);
+    FormatLocaleText(line, sizeof(line), "sync_status_queued", status.queued_changes);
     DrawUIText(line, x + left_w, row_y, font,
                     status.queued_changes > 0 ? warn_color : text_color);
 
     row_y += ScaleUIPx(22);
-    snprintf(line, sizeof(line), "Server: %lld", status.server_version);
+    FormatLocaleText(line, sizeof(line), "sync_status_server", status.server_version);
     DrawUIText(line, x, row_y, font, text_color);
-    snprintf(line, sizeof(line), "Clock: %lld", status.server_clock);
+    FormatLocaleText(line, sizeof(line), "sync_status_clock", status.server_clock);
     DrawUIText(line, x + left_w, row_y, font, text_color);
 
     row_y += ScaleUIPx(22);
     if(status.protocol_upgrade_available)
-        snprintf(line, sizeof(line), "Upgrade Inner Breeze");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_upgrade"));
     else if(status.review_pending)
-        snprintf(line, sizeof(line), "Review pending");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_review_pending"));
     else if(status.repair_pending)
-        snprintf(line, sizeof(line), "Repair sync pending");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_repair_pending"));
     else if(status.queued_changes > 0)
-        snprintf(line, sizeof(line), "Local changes queued");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_local_queued"));
     else if(!status.full_upload_done)
-        snprintf(line, sizeof(line), "Initial upload pending");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_initial_upload_pending"));
     else
-        snprintf(line, sizeof(line), "Ready");
+        snprintf(line, sizeof(line), "%s", GetLocaleText("sync_status_ready"));
     DrawUIText(line, x, row_y, font,
                     (status.protocol_upgrade_available || status.review_pending ||
                      status.repair_pending) ? warn_color : text_color);
