@@ -2,7 +2,18 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-BIN="${1:-"$ROOT_DIR/build/bin/linux/inbe-linux-$(uname -m)"}"
+UNAME_S="$(uname -s)"
+UNAME_M="$(uname -m)"
+case "$UNAME_S" in
+  FreeBSD) PLATFORM="freebsd" ;;
+  Linux) PLATFORM="linux" ;;
+  *) PLATFORM="$(printf '%s' "$UNAME_S" | tr '[:upper:]' '[:lower:]')" ;;
+esac
+case "$UNAME_M" in
+  amd64) ARCH="x86_64" ;;
+  *) ARCH="$UNAME_M" ;;
+esac
+BIN="${1:-"$ROOT_DIR/build/bin/$PLATFORM/inbe-$PLATFORM-$ARCH"}"
 OUT_DIR="${SCREENSHOT_OUT_DIR:-"$ROOT_DIR/tmp"}"
 DATA_BASE="$OUT_DIR/screenshot-data"
 

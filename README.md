@@ -11,6 +11,9 @@ make native
 make run
 ```
 
+Native binaries are written to `build/bin/<platform>/`, for example
+`build/bin/freebsd/inbe-freebsd-x86_64` on FreeBSD.
+
 Install locally:
 
 ```bash
