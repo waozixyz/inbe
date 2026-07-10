@@ -39,6 +39,19 @@ LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
+APP_ID := $(ANDROID_APP_ID)
+APP_COMMENT := Syncable breathing, meditation, and habit practice app
+APP_DESC := Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
+APP_CATEGORIES := Utility;Education;
+APP_MAINTAINER := Waozi <waozi@waozi.xyz>
+APP_WWW := https://inbe.waozi.xyz/
+APP_ORIGIN := games/inbe
+APP_LICENSE := GPLv3
+APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
+APP_ICON := $(LINUX_APPIMAGE_ICON)
+APP_ICON_SIZE := 512x512
+APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
+FREEBSD_PKG_DEPS := curl:ftp/curl gtk3:x11-toolkits/gtk30 hicolor-icon-theme:misc/hicolor-icon-theme libdrm:graphics/libdrm mesa-libs:graphics/mesa-libs sdl2:devel/sdl20 sqlite3:databases/sqlite3
 CLICK_PACKAGE ?= inbe
 CLICK_ID ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
@@ -367,27 +380,14 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
+include $(FLINT_DIR)/mk/package-freebsd.mk
+
+.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
 
 native: $(TARGET)
-
-install: $(TARGET)
-	@install_dir="$(HOME)/.local/lib/$(APP_NAME)"; \
-	bin_dir="$(HOME)/.local/bin"; \
-	mkdir -p "$$install_dir" "$$bin_dir"; \
-	cp "$(TARGET)" "$$install_dir/$(APP_NAME)"; \
-	cp "$(LINUX_APPIMAGE_ICON)" "$$install_dir/$(APP_NAME).png"; \
-	chmod 755 "$$install_dir/$(APP_NAME)"; \
-	ln -sf "$$install_dir/$(APP_NAME)" "$$bin_dir/$(APP_NAME)"; \
-	if [ -d "$(HOME)/bin" ]; then \
-		ln -sf "$$install_dir/$(APP_NAME)" "$(HOME)/bin/$(APP_NAME)"; \
-		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME), $(HOME)/bin/$(APP_NAME)"; \
-	else \
-		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME)"; \
-	fi
 
 dist:
 	@password="$(PASSWORD)"; \
@@ -1253,7 +1253,7 @@ clean-native:
 clean-vendor-builds:
 	rm -rf $(VENDOR_BUILD_DIR)
 
-NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
+NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native install install-user stage package-freebsd run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)

@@ -267,6 +267,39 @@ jobs:
           path: build/release/linux/*
           if-no-files-found: error
 
+  build-freebsd:
+    name: Build FreeBSD Package
+    runs-on: ubuntu-latest
+    needs: test
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Build FreeBSD .pkg
+        uses: vmactions/freebsd-vm@v1
+        with:
+          release: "14.3"
+          usesh: true
+          prepare: |
+            pkg install -y gmake cmake pkgconf sdl2 gtk3 curl sqlite3 mesa-libs libdrm hicolor-icon-theme desktop-file-utils
+          run: |
+            set -eu
+            gmake package-freebsd
+            mkdir -p build/release/freebsd
+            find build/dist/freebsd -maxdepth 1 -type f -name '*.pkg' -exec cp {} build/release/freebsd/ \;
+            test -n "$(find build/release/freebsd -type f -print -quit)"
+
+      - name: Upload FreeBSD Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-freebsd
+          path: build/release/freebsd/*
+          if-no-files-found: error
+
   build-windows:
     name: Build Windows
     runs-on: ubuntu-latest
@@ -444,6 +477,7 @@ jobs:
       - build-web
       - build-chrome-extension
       - build-linux
+      - build-freebsd
       - build-windows
       - build-android
     outputs:
