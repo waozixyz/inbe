@@ -56,8 +56,10 @@ static void
 sync_web_storage(void)
 {
     EM_ASM({
-        if(typeof Module.__inbeScheduleStorageSync === 'function')
-            Module.__inbeScheduleStorageSync(250, true);
+        if(typeof Module.__inbeFlushStorageSync === 'function')
+            Module.__inbeFlushStorageSync(true);
+        else if(typeof Module.__inbeScheduleStorageSync === 'function')
+            Module.__inbeScheduleStorageSync(0, true);
     });
 }
 #endif

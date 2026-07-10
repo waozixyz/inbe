@@ -37,6 +37,10 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
+
 #if ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_device.h"
@@ -686,44 +690,6 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
         save_settings(app);
 }
 
-#if defined(PLATFORM_WEB)
-#include <emscripten.h>
-
-static int web_storage_ready = 0;
-
-static void
-init_web_storage(void)
-{
-    int ok;
-
-    if(web_storage_ready)
-        return;
-
-    ok = EM_ASM_INT({
-        if(typeof FS === 'undefined' || typeof IDBFS === 'undefined')
-            return 0;
-
-        try {
-            FS.mkdir('/home');
-        } catch(e) {}
-
-        try {
-            if(!FS.analyzePath('/home').object.isFolder) return 0;
-            FS.mount(IDBFS, {root: '/'}, '/home');
-        } catch(e) {
-            if(e.errno !== 10 && String(e).indexOf('already mounted') === -1) {
-                console.error('IDBFS mount failed:', e);
-                return 0;
-            }
-        }
-
-        return 1;
-    });
-    web_storage_ready = ok != 0;
-}
-
-#endif
-
 static void
 load_config(void)
 {
@@ -1095,9 +1061,6 @@ app_init(void *vapp) {
     practice_active_background_stop(app);
 #endif
 
-#if defined(PLATFORM_WEB)
-    init_web_storage();
-#endif
     InitLocale();
     if(!load_locale_font(app)) {
         TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");

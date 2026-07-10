@@ -164,35 +164,50 @@ bind_text(sqlite3_stmt *stmt, int index, const char *text)
     return sqlite3_bind_text(stmt, index, text != NULL ? text : "", -1, SQLITE_TRANSIENT) == SQLITE_OK;
 }
 
+static int
+schema_exec(const char *sql)
+{
+    return exec_sql(sql);
+}
+
 int
 schema_create(void)
 {
-    return exec_sql(
+    return
+#if defined(__EMSCRIPTEN__)
+        schema_exec("PRAGMA synchronous=OFF;") &&
+#endif
+        schema_exec(
         "PRAGMA journal_mode=DELETE;"
-        "PRAGMA foreign_keys=ON;"
+        "PRAGMA foreign_keys=ON;") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS meta("
         " key TEXT PRIMARY KEY,"
         " value TEXT NOT NULL"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS users("
         " id TEXT PRIMARY KEY,"
         " created_at INTEGER NOT NULL,"
         " kind TEXT NOT NULL"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS settings("
         " user_id TEXT NOT NULL,"
         " key TEXT NOT NULL,"
         " value TEXT NOT NULL,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(user_id,key)"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS social_snapshots("
         " user_id TEXT NOT NULL,"
         " kind TEXT NOT NULL,"
         " json TEXT NOT NULL,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(user_id,kind)"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS sessions("
         " id TEXT PRIMARY KEY,"
         " user_id TEXT NOT NULL,"
@@ -212,7 +227,8 @@ schema_create(void)
         " round_index INTEGER NOT NULL,"
         " seconds INTEGER NOT NULL,"
         " PRIMARY KEY(session_id,round_index)"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS habits("
         " id TEXT PRIMARY KEY,"
         " user_id TEXT NOT NULL,"
@@ -236,7 +252,8 @@ schema_create(void)
         " session_count INTEGER NOT NULL DEFAULT 0,"
         " updated_at INTEGER NOT NULL,"
         " PRIMARY KEY(habit_id,local_date)"
-        ");"
+        ");") &&
+        schema_exec(
         "CREATE TABLE IF NOT EXISTS imports("
         " id TEXT PRIMARY KEY,"
         " imported_at INTEGER NOT NULL,"
@@ -506,8 +523,11 @@ storage_init(const char *root)
         return 0;
     }
     sqlite3_busy_timeout(g_storage.db, 1000);
-    if(!schema_create() || !migrate_schema() || !load_or_create_user())
+    if(!schema_create() || !migrate_schema() || !load_or_create_user()) {
+        sqlite3_close(g_storage.db);
+        g_storage.db = NULL;
         return 0;
+    }
     storage_migrate_default_habit_ids();
     storage_migrate_habit_ids_to_uuid();
     storage_materialize_session_habit_days();

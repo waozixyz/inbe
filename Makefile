@@ -350,6 +350,8 @@ WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
+WEB_SMOKE_BROWSER ?= chrome
+WEB_SMOKE_TEST := scripts/web-smoke-test.mjs
 WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
@@ -365,7 +367,7 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check site chrome-web-store
+.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -1016,8 +1018,9 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-sFETCH=1 \
 		-sALLOW_MEMORY_GROWTH=0 \
 		-sINITIAL_MEMORY=268435456 \
-		-sSTACK_SIZE=8388608 \
-		-sGLOBAL_BASE=16777216 \
+		-sSTACK_SIZE=33554432 \
+		-sGLOBAL_BASE=67108864 \
+		-sASYNCIFY_STACK_SIZE=1048576 \
 		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick \
 		-lidbfs.js \
 		-lm
@@ -1215,8 +1218,12 @@ windows:
 
 web:
 	$(MAKE) $(WEB_TARGET)
+	$(MAKE) web-smoke-test
 	rm -f $(WEB_DIST_ZIP)
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
+
+web-smoke-test: $(WEB_SMOKE_TEST)
+	WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
 	tclsh site/build.tcl
