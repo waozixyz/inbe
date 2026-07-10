@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createServer } from 'node:http';
-import { createReadStream, mkdtempSync, rmSync, existsSync, readFileSync, accessSync, constants } from 'node:fs';
+import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constants } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -124,42 +124,60 @@ function listen() {
   });
 }
 
+function delay(ms) {
+  return new Promise(resolveDelay => setTimeout(resolveDelay, ms));
+}
+
+function reserveLocalPort() {
+  const portServer = createServer();
+  return new Promise((resolveReserve, reject) => {
+    portServer.once('error', reject);
+    portServer.listen(0, '127.0.0.1', () => {
+      const { port } = portServer.address();
+      portServer.close(error => {
+        if (error)
+          reject(error);
+        else
+          resolveReserve(port);
+      });
+    });
+  });
+}
+
 function formatChromeLaunchError(stderrLines) {
   const stderr = stderrLines.join('').trim();
   const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
-  return new Error(`Chrome exited before DevToolsActivePort was ready${suffix}`);
+  return new Error(`Chrome exited before DevTools was ready${suffix}`);
 }
 
-function waitForDevtoolsPort(file, chrome, stderrLines) {
+async function waitForDevtools(port, chrome, stderrLines) {
   const start = Date.now();
-  return new Promise((resolveWait, reject) => {
-    let settled = false;
-    const finish = callback => {
-      if (settled) return;
-      settled = true;
-      clearInterval(timer);
-      chrome.off('exit', onExit);
-      callback();
-    };
-    const onExit = () => {
-      finish(() => reject(formatChromeLaunchError(stderrLines)));
-    };
-    const timer = setInterval(() => {
-      if (existsSync(file)) {
-        finish(() => {
-          const [port] = readFileSync(file, 'utf8').trim().split('\n');
-          resolveWait(port);
-        });
-        return;
-      }
-      if (Date.now() - start > 10000) {
-        const stderr = stderrLines.join('').trim();
-        const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
-        finish(() => reject(new Error(`timed out waiting for Chrome DevToolsActivePort${suffix}`)));
-      }
-    }, 50);
-    chrome.once('exit', onExit);
-  });
+  let exited = false;
+  const onExit = () => {
+    exited = true;
+  };
+  chrome.once('exit', onExit);
+
+  try {
+    while (Date.now() - start < timeoutMs) {
+      if (exited)
+        throw formatChromeLaunchError(stderrLines);
+
+      try {
+        const response = await fetch(`http://127.0.0.1:${port}/json/version`);
+        if (response.ok)
+          return;
+      } catch {}
+
+      await delay(50);
+    }
+  } finally {
+    chrome.off('exit', onExit);
+  }
+
+  const stderr = stderrLines.join('').trim();
+  const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
+  throw new Error(`timed out waiting for Chrome DevTools on port ${port}${suffix}`);
 }
 
 async function jsonRequest(url, options = {}) {
@@ -350,10 +368,11 @@ let failure;
 
 try {
   const port = await listen();
+  const devtoolsPort = await reserveLocalPort();
   const browser = resolveBrowser();
   const args = [
     '--headless=new',
-    '--remote-debugging-port=0',
+    `--remote-debugging-port=${devtoolsPort}`,
     '--remote-debugging-address=127.0.0.1',
     `--user-data-dir=${userDataDir}`,
     '--no-first-run',
@@ -384,7 +403,7 @@ try {
       failure = error;
   });
 
-  const devtoolsPort = await waitForDevtoolsPort(join(userDataDir, 'DevToolsActivePort'), chrome, chromeStderr);
+  await waitForDevtools(devtoolsPort, chrome, chromeStderr);
   const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
     method: 'PUT'
   });
