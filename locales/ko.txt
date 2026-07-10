@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 호흡, 안정, 알아차림을 위한 간단한 명상 연습입니다.
 ---
-[meditation_music_master_toggle]
-명상 음악
----
 [meditation_music_download_button]
 음악 다운로드
 ---
@@ -846,26 +843,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-연습
----
 [practice_music_title]
 배경 음악
+---
+[practice_music_enabled_label]
+이 연습 중 재생
 ---
 [practice_start_button]
 연습 시작
 ---
 [practice_manual_button]
-설명서
+사용 방법
 ---
 [practice_configure_button]
-설정
----
-[practice_music_practice_list_title]
-연습에 음악 사용
----
-[practice_guide_music]
-연습마다 음악을 선택합니다.
+맞춤 설정
 ---
 [practice_guide_carousel]
 화살표로 연습을 선택합니다.
@@ -935,6 +926,15 @@ Yoga
 ---
 [results_rounds]
 %d 라운드
+---
+[practice_home_minutes]
+%d분
+---
+[practice_home_repetitions]
+%d회
+---
+[practice_home_wim_hof_metadata]
+%d 라운드 | %d 호흡
 ---
 [results_best]
 최고 %ds

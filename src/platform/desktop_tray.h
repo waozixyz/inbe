@@ -18,6 +18,7 @@ int inbe_desktop_tray_init(void);
 void inbe_desktop_tray_shutdown(void);
 InbeDesktopTrayAction inbe_desktop_tray_poll_action(void);
 void inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit);
+void inbe_desktop_tray_update_status(InbeApp *app);
 void inbe_desktop_tray_keep_running(void);
 
 #endif

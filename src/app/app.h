@@ -95,7 +95,6 @@ typedef enum {
     UIModalHabitCountingInfo,
     UIModalPracticeManual,
     UIModalPracticeConfig,
-    UIModalPracticeMusic,
     UIModalThemePicker,
     UIModalSyncReview,
     UIModalSyncAlias,
@@ -234,7 +233,6 @@ typedef struct MeditationPracticeState {
     int duration_mode;
     int custom_minutes;
     int show_extend_controls;
-    int music_enabled;
     int music_track;
     int music_practice_mask;
     int music_practice_tracks[EXERCISE_COUNT];

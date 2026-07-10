@@ -8,6 +8,7 @@
 #include <stdio.h>
 
 extern int view_width;
+extern int view_height;
 
 void
 manual_screen_reset_layouts(InbeApp *app)
@@ -54,67 +55,47 @@ manual_screen_guide_update_page(InbeApp *app, int page_count,
 int
 manual_screen_guide_nav_height(void)
 {
-    return ScaleUIPx(42);
+    return 0;
 }
 
 void
 manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
 {
     int page;
-    int h;
     int button_size;
     int button_pad;
-    int max_inner_w;
-    int inner_w;
-    int inner_x;
     int button_y;
-    char page_text[32];
-    int font = GetUIFontSize();
-    int text_w;
+    int side_pad;
 
     if(app == NULL || nav.page_count <= 1 || nav.start == NULL)
         return;
 
     page = clampi(nav.page, 0, nav.page_count - 1);
-    h = nav.h > 0 ? nav.h : manual_screen_guide_nav_height();
     button_size = view_width < ScaleUIPx(360) ? ScaleUIPx(32) : ScaleUIPx(36);
     button_pad = ScaleUIPx(8);
-    max_inner_w = ScaleUIPx(260);
-    inner_w = view_width - ScaleUIPx(24);
-    if(inner_w > max_inner_w)
-        inner_w = max_inner_w;
-    if(inner_w < button_size * 2 + ScaleUIPx(72))
-        inner_w = button_size * 2 + ScaleUIPx(72);
-    if(inner_w > view_width)
-        inner_w = view_width;
-    inner_x = (view_width - inner_w) / 2;
-    button_y = nav.y + (h - button_size) / 2;
+    side_pad = ScaleUIPx(8);
+    button_y = (view_height - button_size) / 2;
 
-    DrawRectangle(0, nav.y, view_width, h, DarkenUIColor(GetThemeBackground(), 5));
-    DrawLine(0, nav.y + h - 1, view_width, nav.y + h - 1,
-             DarkenUIColor(GetThemeBackground(), 28));
-
-    if(page > 0) {
+    if(page > 0 || nav.show_left_on_first) {
         if(DrawUIIconButton((UIIconButton){
-               .bounds = {(float)inner_x, (float)button_y,
+               .bounds = {(float)side_pad, (float)button_y,
                           (float)button_size, (float)button_size},
                .icon = app->icons[UI_ICON_TYPE_BACKWARD],
                .icon_size = ScaleUIPx(20),
                .icon_padding = button_pad,
            })) {
-            app->tutorial_step = page - 1;
-            app->manual_scroll = 0;
+            if(page > 0) {
+                app->tutorial_step = page - 1;
+                app->manual_scroll = 0;
+            } else if(nav.close != NULL) {
+                app->modal_input_block_frame = app->inbe.frame;
+                nav.close(app, 0);
+            }
         }
     }
 
-    snprintf(page_text, sizeof(page_text), "%d/%d", page + 1, nav.page_count);
-    text_w = MeasureUIText(page_text, font);
-    DrawUIText(page_text, inner_x + (inner_w - text_w) / 2,
-                    GetUITextY(page_text, nav.y, h, font), font,
-                    GetThemeText());
-
     if(DrawUIIconButton((UIIconButton){
-           .bounds = {(float)(inner_x + inner_w - button_size), (float)button_y,
+           .bounds = {(float)(view_width - side_pad - button_size), (float)button_y,
                       (float)button_size, (float)button_size},
            .icon = app->icons[page >= nav.page_count - 1 ? UI_ICON_TYPE_CHECK
                                                           : UI_ICON_TYPE_FORWARD],
@@ -122,6 +103,7 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
            .icon_padding = button_pad,
        })) {
         if(page == nav.page_count - 1) {
+            app->modal_input_block_frame = app->inbe.frame;
             if(nav.close != NULL)
                 nav.close(app, 1);
             else

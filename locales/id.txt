@@ -190,9 +190,6 @@ Meditasi
 [meditation_manual_intro_text]
 Latihan meditasi sederhana untuk napas, tenang, dan sadar.
 ---
-[meditation_music_master_toggle]
-Musik meditasi
----
 [meditation_music_download_button]
 Unduh musik
 ---
@@ -847,26 +844,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Latihan
----
 [practice_music_title]
 Musik latar
+---
+[practice_music_enabled_label]
+Putar selama latihan ini
 ---
 [practice_start_button]
 Mulai latihan
 ---
 [practice_manual_button]
-Manual
+Cara pakai
 ---
 [practice_configure_button]
-Atur
----
-[practice_music_practice_list_title]
-Gunakan musik untuk latihan
----
-[practice_guide_music]
-Pilih musik untuk tiap latihan.
+Sesuaikan
 ---
 [practice_guide_carousel]
 Gunakan panah untuk memilih latihan.
@@ -936,6 +927,15 @@ Data sesi berasal dari latihan selesai.
 ---
 [results_rounds]
 %d ronde
+---
+[practice_home_minutes]
+%d mnt
+---
+[practice_home_repetitions]
+%d repetisi
+---
+[practice_home_wim_hof_metadata]
+%d ronde | %d napas
 ---
 [results_best]
 terbaik %ds

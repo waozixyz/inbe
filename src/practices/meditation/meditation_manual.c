@@ -47,7 +47,7 @@ draw_intro_page(InbeApp *app, int content_x, int content_w, int *y)
     int img_h = ScaleUIPx(190);
     UIParagraph paragraph;
 
-    DrawUITutorialImage(app->meditation.image_1, "practices/meditation/1.jpg",
+    DrawUITutorialImage(app->meditation.image_1, "practices/meditation/1.png",
                            content_x, *y, content_w, img_h);
     *y += img_h + ScaleUIPx(22);
 
@@ -108,7 +108,8 @@ meditation_manual_draw(InbeApp *app)
             .y = layout.content_y,
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
-            .min_content_width = ScaleUIPx(280),
+            .min_content_width = ScaleUIPx(200),
+            .side_padding = ScaleUIPx(54),
             .scroll_offset = &app->manual_scroll,
             .content_height = meditation_manual_scroll_page_content_height,
             .user_data = NULL

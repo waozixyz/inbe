@@ -98,7 +98,6 @@ static const char *const importable_setting_keys[] = {
     "meditation_duration_mode",
     "meditation_custom_minutes",
     "meditation_show_extend_controls",
-    "meditation_music_enabled",
     "meditation_music_track",
     "practice_music_mask",
     "practice_music_track_wim_hof",

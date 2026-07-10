@@ -426,11 +426,6 @@ app_close_modal(InbeApp *app)
         app_leave_practice_config(app);
         app->settings_scroll = 0;
         app->practice_tab = PRACTICE_TAB_PLAY;
-    } else if(type == UIModalPracticeMusic) {
-        if(app->settings_dirty)
-            save_settings(app);
-        app->settings_scroll = 0;
-        app->practice_tab = PRACTICE_TAB_PLAY;
     } else if(type == UIModalPracticeManual) {
         app->manual_scroll = 0;
         app->tutorial_step = 0;
@@ -1357,7 +1352,6 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalPracticeManual ||
        app->modal.type == UIModalPracticeConfig ||
-       app->modal.type == UIModalPracticeMusic ||
        app->modal.type == UIModalEditProgressiveStartSpeed) {
         practice_screen_draw_modal(app);
         return;
@@ -1453,8 +1447,7 @@ updateapp(InbeApp *app)
     profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
-        (app->modal.type == UIModalPracticeMusic ||
-         app->modal.type == UIModalEditProgressiveStartSpeed);
+        app->modal.type == UIModalEditProgressiveStartSpeed;
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
        habits_guide_active || profile_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);

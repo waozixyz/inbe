@@ -4,10 +4,9 @@ Inner Breeze is a free, open-source app for breathing, meditation, and habit tra
 
 ## Build
 
-Use the Nix development shell:
+Build with the system toolchain and project Makefile:
 
 ```bash
-nix develop
 make native
 make run
 ```
@@ -32,12 +31,6 @@ make windows
 ```
 
 ## Android
-
-Run Android build and emulator commands from the Nix development shell:
-
-```bash
-nix develop
-```
 
 Build a debug APK:
 

@@ -9,7 +9,7 @@ meditation_practice_init(InbeApp *app)
     if(app == NULL)
         return;
     if(app->meditation.image_1.id == 0)
-        app->meditation.image_1 = app_load_asset_texture("practices/meditation/1.jpg");
+        app->meditation.image_1 = app_load_asset_texture("practices/meditation/1.png");
     if(app->meditation.banner.id == 0)
         app->meditation.banner = app_load_asset_texture("practices/meditation/banner.png");
     meditation_music_init(app);

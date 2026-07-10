@@ -190,9 +190,6 @@ Meditation
 [meditation_manual_intro_text]
 Eine einfache Meditationspraxis für Atem, Ruhe und Achtsamkeit.
 ---
-[meditation_music_master_toggle]
-Meditationsmusik
----
 [meditation_music_download_button]
 Musik herunterladen
 ---
@@ -847,11 +844,11 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Praxis
----
 [practice_music_title]
 Hintergrundmusik
+---
+[practice_music_enabled_label]
+Während dieser Übung abspielen
 ---
 [practice_start_button]
 Praxis starten
@@ -860,13 +857,7 @@ Praxis starten
 Anleitung
 ---
 [practice_configure_button]
-Konfigurieren
----
-[practice_music_practice_list_title]
-Musik für Praktiken verwenden
----
-[practice_guide_music]
-Wähle Musik für jede Übung.
+Anpassen
 ---
 [practice_guide_carousel]
 Wähle mit den Pfeilen eine Übung.
@@ -936,6 +927,15 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 ---
 [results_rounds]
 %d Runden
+---
+[practice_home_minutes]
+%d Min.
+---
+[practice_home_repetitions]
+%d Wdh.
+---
+[practice_home_wim_hof_metadata]
+%d Runden | %d Atemzüge
 ---
 [results_best]
 beste %ds

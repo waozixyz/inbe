@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 呼吸、落ち着き、気づきのためのシンプルな瞑想練習です。
 ---
-[meditation_music_master_toggle]
-メディテーション音楽
----
 [meditation_music_download_button]
 音楽をダウンロード
 ---
@@ -849,26 +846,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-プラクティス
----
 [practice_music_title]
 バックグラウンド音楽
+---
+[practice_music_enabled_label]
+この練習中に再生
 ---
 [practice_start_button]
 プラクティスを開始
 ---
 [practice_manual_button]
-マニュアル
+使い方
 ---
 [practice_configure_button]
-設定
----
-[practice_music_practice_list_title]
-音楽を使うプラクティス
----
-[practice_guide_music]
-練習ごとに音楽を選びます。
+カスタマイズ
 ---
 [practice_guide_carousel]
 矢印で練習を選びます。
@@ -938,6 +929,15 @@ Yoga
 ---
 [results_rounds]
 %d ラウンド
+---
+[practice_home_minutes]
+%d分
+---
+[practice_home_repetitions]
+%d回
+---
+[practice_home_wim_hof_metadata]
+%d ラウンド | %d 呼吸
 ---
 [results_best]
 最速 %ds

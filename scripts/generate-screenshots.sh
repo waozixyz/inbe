@@ -35,7 +35,7 @@ if [[ ! -x "$BIN" ]]; then
 fi
 if ! command -v xvfb-run >/dev/null 2>&1; then
   echo "xvfb-run is required so screenshots are not clamped by your monitor size." >&2
-  echo "Enter the flake shell with: nix develop" >&2
+  echo "Install xvfb-run and ensure it is on PATH." >&2
   exit 1
 fi
 

@@ -57,8 +57,7 @@ fi
 
 if LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$EMULATOR_CMD" 2>/dev/null | grep -q "not found"; then
   echo "❌ Emulator runtime libraries are missing."
-  echo "   Re-enter the repo flake shell so the updated emulator LD_LIBRARY_PATH is active:"
-  echo "   nix develop --impure"
+  echo "   Install the emulator runtime libraries or set ANDROID_EMULATOR_LD_LIBRARY_PATH."
   exit 1
 fi
 

@@ -8,6 +8,7 @@
 #include "web.h"
 #include "theme.h"
 #include "device_preferences.h"
+#include "embedded_assets.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -42,6 +43,31 @@ extern struct android_app *GetAndroidApp(void);
 #if defined(PLATFORM_WEB)
 #include <emscripten/emscripten.h>
 #endif
+
+static void
+set_desktop_window_icon(void)
+{
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+    const char *path = "assets/app/icon.png";
+    const EmbeddedAsset *asset = GetEmbeddedAsset(path);
+    Image icon;
+
+    if(asset == NULL || asset->data == NULL || asset->size == 0) {
+        TraceLog(LOG_WARNING, "INBE: Missing window icon asset: %s", path);
+        return;
+    }
+
+    icon = LoadImageFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
+    if(icon.data == NULL) {
+        TraceLog(LOG_WARNING, "INBE: Failed to decode window icon asset: %s", path);
+        return;
+    }
+
+    ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
+    SetWindowIcon(icon);
+    UnloadImage(icon);
+#endif
+}
 
 static InbeApp inbe_app;
 static InbeApp *g_inbe_app_ptr = NULL;
@@ -494,9 +520,10 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     if(strcmp(request->scene, "background_music") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_MEDITATION;
-        app->practice_tab = PRACTICE_TAB_PLAY;
+        app->practice_tab = PRACTICE_TAB_CONFIG;
+        app->practice_config_tab = 1;
         app->inbe.screen = InbeScreenStart;
-        app_open_modal(app, UIModalPracticeMusic);
+        app_open_modal(app, UIModalPracticeConfig);
     } else if(strcmp(request->scene, "practice_config_whm") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
@@ -661,6 +688,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
+    set_desktop_window_icon();
     InitUIDPI();
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
@@ -703,8 +731,10 @@ int main(int argc, char **argv) {
             quit = 1;
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
-        if(!quit)
+        if(!quit) {
             frame();
+            inbe_desktop_tray_update_status(&inbe_app);
+        }
         close_result = app_consume_close_prompt_result(&inbe_app);
         if(close_result == AppClosePromptKeepRunning)
             inbe_desktop_tray_keep_running();

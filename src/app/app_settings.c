@@ -203,7 +203,6 @@ save_settings(InbeApp *app)
         {"meditation_duration_mode", app->meditation.duration_mode},
         {"meditation_custom_minutes", app->meditation.custom_minutes},
         {"meditation_show_extend_controls", app->meditation.show_extend_controls ? 1 : 0},
-        {"meditation_music_enabled", app->meditation.music_enabled ? 1 : 0},
         {"meditation_music_track", app->meditation.music_track},
         {"practice_music_mask", app->meditation.music_practice_mask},
         {"practice_music_track_wim_hof", app->meditation.music_practice_tracks[EXERCISE_WIM_HOF]},
@@ -299,7 +298,6 @@ app_load_settings(InbeApp *app)
             {&app->show_session_return_button, "show_session_return_button", 1},
             {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
-            {&app->meditation.music_enabled, "meditation_music_enabled", 1},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
     }

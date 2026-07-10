@@ -190,9 +190,6 @@ Meditace
 [meditation_manual_intro_text]
 Jednoduchá meditační praxe pro dech, klid a uvědomění.
 ---
-[meditation_music_master_toggle]
-Meditační hudba
----
 [meditation_music_download_button]
 Stáhnout hudbu
 ---
@@ -847,26 +844,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Cvičení
----
 [practice_music_title]
 Hudba na pozadí
+---
+[practice_music_enabled_label]
+Přehrávat během tohoto cvičení
 ---
 [practice_start_button]
 Spustit cvičení
 ---
 [practice_manual_button]
-Manuál
+Jak na to
 ---
 [practice_configure_button]
-Nastavit
----
-[practice_music_practice_list_title]
-Používat hudbu pro cvičení
----
-[practice_guide_music]
-Vyber hudbu pro každé cvičení.
+Přizpůsobit
 ---
 [practice_guide_carousel]
 Šipkami vyber cvičení.
@@ -936,6 +927,15 @@ Data pocházejí z dokončených cvičení.
 ---
 [results_rounds]
 %d kol
+---
+[practice_home_minutes]
+%d min
+---
+[practice_home_repetitions]
+%d opakování
+---
+[practice_home_wim_hof_metadata]
+%d kol | %d dechů
 ---
 [results_best]
 nejlépe %ds

@@ -190,9 +190,6 @@ Sun Salutation
 [meditation_manual_intro_text]
 一个用于呼吸、平静与觉察的简单冥想练习。
 ---
-[meditation_music_master_toggle]
-冥想音乐
----
 [meditation_music_download_button]
 下载音乐
 ---
@@ -847,26 +844,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-练习
----
 [practice_music_title]
 背景音乐
+---
+[practice_music_enabled_label]
+在本练习中播放
 ---
 [practice_start_button]
 开始练习
 ---
 [practice_manual_button]
-手册
+使用方法
 ---
 [practice_configure_button]
-配置
----
-[practice_music_practice_list_title]
-为练习使用音乐
----
-[practice_guide_music]
-为每个练习选择音乐。
+自定义
 ---
 [practice_guide_carousel]
 用箭头选择练习。
@@ -936,6 +927,15 @@ Yoga
 ---
 [results_rounds]
 %d 轮
+---
+[practice_home_minutes]
+%d 分钟
+---
+[practice_home_repetitions]
+%d 次
+---
+[practice_home_wim_hof_metadata]
+%d 轮 | %d 次呼吸
 ---
 [results_best]
 最佳 %ds

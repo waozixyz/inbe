@@ -3,6 +3,7 @@
 #include "app.h"
 #include "app_settings.h"
 #include "locale.h"
+#include "practices/meditation/meditation_music.h"
 #include "ui_text.h"
 #include "theme.h"
 #include "ui.h"
@@ -207,20 +208,51 @@ draw_sun_salutation_preview(InbeApp *app, int x, int y, int w)
                         small_font, muted);
 }
 
+typedef struct SunSalutationConfigScrollPageContext {
+    InbeApp *app;
+} SunSalutationConfigScrollPageContext;
+
+static int
+sun_salutation_config_content_height(int content_w, void *user_data)
+{
+    SunSalutationConfigScrollPageContext *ctx = user_data;
+    int bottom_padding;
+
+    if(ctx == NULL || ctx->app == NULL)
+        return 0;
+
+    bottom_padding = app_content_bottom_reserved(ctx->app) + ScaleUIPx(24);
+    if(ctx->app->practice_config_tab == 1)
+        return meditation_music_measure_practice_settings(ctx->app,
+                                                          EXERCISE_SUN_SALUTATION,
+                                                          content_w, 1, 1) +
+               bottom_padding;
+    return sun_salutation_preview_height(content_w) + ScaleUIPx(16) +
+           ScaleUIPx(74) * 3 + bottom_padding;
+}
+
 void
 sun_salutation_config_screen_draw(InbeApp *app)
 {
-    int content_x;
-    int content_w;
-    int y;
     int title_h = app_content_top_reserved(app);
+    int config_tab_h = ScaleUIPx(40);
+    int config_tab_gap = ScaleUIPx(14);
+    int scroll_y;
+    int scroll_h;
     int repetitions;
     int start_seconds;
     int end_seconds;
+    int clicked_config_tab;
+    const char *config_tabs[] = {
+        GetLocaleText("practice_config_title"),
+        GetLocaleText("practice_music_title"),
+    };
 
     if(app == NULL)
         return;
     sun_salutation_normalize_settings(app);
+    if(app->practice_config_tab < 0 || app->practice_config_tab > 1)
+        app->practice_config_tab = 0;
     if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
         title_h = GetUITitleBarHeight();
         if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("practice_config_title"), title_h)) {
@@ -238,39 +270,84 @@ sun_salutation_config_screen_draw(InbeApp *app)
         return;
     }
 
-    GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, &content_x, &content_w);
-    y = title_h + ScaleUIPx(20);
-
-    draw_sun_salutation_preview(app, content_x, y, content_w);
-    y += sun_salutation_preview_height(content_w) + ScaleUIPx(16);
-
-    repetitions = app->sun_salutation.repetitions;
-    if(DrawUISlider(610, content_x, y, content_w,
-                      GetLocaleText("sun_salutation_repetitions_label"),
-                      2, 12, &repetitions, "x")) {
-        app->sun_salutation.repetitions = repetitions;
-        save_settings(app);
+    {
+        UISubtab tabs[2] = {
+            {.label = config_tabs[0], .disabled = 0},
+            {.label = config_tabs[1], .disabled = 0},
+        };
+        clicked_config_tab = DrawUISubtabBar((UISubtabBar){
+            .bounds = {0, (float)title_h, (float)view_width, (float)config_tab_h},
+            .tabs = tabs,
+            .count = 2,
+            .selected_index = app->practice_config_tab
+        });
     }
-    y += ScaleUIPx(74);
-
-    start_seconds = app->sun_salutation.start_seconds;
-    if(DrawUISlider(611, content_x, y, content_w,
-                      GetLocaleText("sun_salutation_start_speed_label"),
-                      SUN_SALUTATION_SECONDS_MIN, SUN_SALUTATION_SECONDS_MAX,
-                      &start_seconds, "s")) {
-        app->sun_salutation.start_seconds = start_seconds;
-        sun_salutation_normalize_settings(app);
-        save_settings(app);
+    if(clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab) {
+        AppRoute route = app_current_route(app);
+        route.practice_config_tab = clicked_config_tab;
+        app->settings_scroll = 0;
+        meditation_music_unload(app);
+        app_switch_route(app, route);
     }
-    y += ScaleUIPx(74);
 
-    end_seconds = app->sun_salutation.end_seconds;
-    if(DrawUISlider(612, content_x, y, content_w,
-                      GetLocaleText("sun_salutation_end_speed_label"),
-                      SUN_SALUTATION_SECONDS_MIN, app->sun_salutation.start_seconds,
-                      &end_seconds, "s")) {
-        app->sun_salutation.end_seconds = end_seconds;
-        sun_salutation_normalize_settings(app);
-        save_settings(app);
+    scroll_y = title_h + config_tab_h + config_tab_gap;
+    scroll_h = view_height - scroll_y - app_content_bottom_reserved(app);
+    if(scroll_h < 0)
+        scroll_h = 0;
+
+    {
+        SunSalutationConfigScrollPageContext page_ctx = {app};
+        UIScrollPage page = BeginUIScrollPage((UIScrollPageSpec){
+            .y = scroll_y,
+            .height = scroll_h,
+            .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+            .min_content_width = ScaleUIPx(320),
+            .scroll_offset = &app->settings_scroll,
+            .content_height = sun_salutation_config_content_height,
+            .user_data = &page_ctx
+        });
+        int y = page.content_y;
+
+        if(app->practice_config_tab == 0) {
+            draw_sun_salutation_preview(app, page.content_x, y, page.content_w);
+            y += sun_salutation_preview_height(page.content_w) + ScaleUIPx(16);
+
+            repetitions = app->sun_salutation.repetitions;
+            if(DrawUISlider(610, page.content_x, y, page.content_w,
+                              GetLocaleText("sun_salutation_repetitions_label"),
+                              2, 12, &repetitions, "x")) {
+                app->sun_salutation.repetitions = repetitions;
+                save_settings(app);
+            }
+            y += ScaleUIPx(74);
+
+            start_seconds = app->sun_salutation.start_seconds;
+            if(DrawUISlider(611, page.content_x, y, page.content_w,
+                              GetLocaleText("sun_salutation_start_speed_label"),
+                              SUN_SALUTATION_SECONDS_MIN, SUN_SALUTATION_SECONDS_MAX,
+                              &start_seconds, "s")) {
+                app->sun_salutation.start_seconds = start_seconds;
+                sun_salutation_normalize_settings(app);
+                save_settings(app);
+            }
+            y += ScaleUIPx(74);
+
+            end_seconds = app->sun_salutation.end_seconds;
+            if(DrawUISlider(612, page.content_x, y, page.content_w,
+                              GetLocaleText("sun_salutation_end_speed_label"),
+                              SUN_SALUTATION_SECONDS_MIN, app->sun_salutation.start_seconds,
+                              &end_seconds, "s")) {
+                app->sun_salutation.end_seconds = end_seconds;
+                sun_salutation_normalize_settings(app);
+                save_settings(app);
+            }
+        } else {
+            meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
+                                                    page.content_x, page.content_w,
+                                                    &y, 1, 1);
+        }
+        EndUIScrollPage(page);
     }
+    if(app->practice_config_tab == 1)
+        meditation_music_draw_dropdown_menu(app);
 }

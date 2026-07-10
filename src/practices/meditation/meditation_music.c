@@ -554,7 +554,7 @@ meditation_music_start_session(InbeApp *app)
     int track;
     int practice;
 
-    if(app == NULL || !app->meditation.music_enabled)
+    if(app == NULL)
         return;
     sanitize_practice_music(app);
     practice = practice_clamp_id(app->exercise_type);
@@ -583,8 +583,7 @@ meditation_music_update(InbeApp *app)
     if(app == NULL)
         return;
     if(app->meditation.music_test_playing &&
-       !((app->modal.active && app->modal.type == UIModalPracticeMusic) ||
-         (app->inbe.screen == InbeScreenStart &&
+       !((app->inbe.screen == InbeScreenStart &&
           app->practice_tab == PRACTICE_TAB_CONFIG) ||
          app->inbe.screen == InbeScreenPracticeConfig ||
          app->inbe.screen == InbeScreenManual)) {
@@ -634,8 +633,9 @@ start_download(InbeApp *app)
 }
 
 void
-meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *y,
-                               int show_installed_download, int show_status)
+meditation_music_draw_practice_settings(InbeApp *app, int practice,
+                                        int content_x, int content_w, int *y,
+                                        int show_installed_download, int show_status)
 {
     int toggle_w = ScaleUIPx(56);
     int toggle_h = ScaleUIPx(30);
@@ -643,6 +643,7 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
     int button_w;
     int hover = 0;
     int installed;
+    int enabled;
     const char *test_label;
     char download_status[96];
 
@@ -650,142 +651,117 @@ meditation_music_draw_settings(InbeApp *app, int content_x, int content_w, int *
         return;
 
     sanitize_practice_music(app);
+    practice = practice_clamp_id(practice);
+    enabled = (app->meditation.music_practice_mask & (1 << practice)) != 0;
 
-    // Master music enable/disable toggle
-    DrawUIText(GetLocaleText("meditation_music_master_toggle"), content_x, *y, GetUIFontSize(), GetThemeText());
+    DrawUIText(GetLocaleText("practice_music_enabled_label"), content_x, *y,
+               GetUIFontSize(), GetThemeText());
     if(DrawUIToggleSwitch(content_x, *y + ScaleUIPx(26), toggle_w, toggle_h,
-                             &app->meditation.music_enabled,
-                             GetLocaleText("toggle_off"), GetLocaleText("toggle_on"))) {
+                          &enabled, GetLocaleText("toggle_off"),
+                          GetLocaleText("toggle_on"))) {
+        if(enabled)
+            app->meditation.music_practice_mask |= 1 << practice;
+        else
+            app->meditation.music_practice_mask &= ~(1 << practice);
         app->settings_dirty = 1;
         meditation_music_unload(app);
     }
     *y += ScaleUIPx(76);
 
-    // Only show music options if music is enabled
-    if(app->meditation.music_enabled) {
-        DrawUISectionLabel((UISectionLabel){
-            .label = GetLocaleText("practice_music_practice_list_title"),
-            .color = DarkenUIColor(GetThemeText(), 34)
-        }, content_x, *y);
-        *y += GetUISectionLabelHeight((UISectionLabel){0});
-        for(int i = 0; i < EXERCISE_COUNT; i++) {
-            int enabled = (app->meditation.music_practice_mask & (1 << i)) != 0;
-            if(DrawUICheckboxRow((UICheckboxRow){
-                .label = practice_label(i),
-                .value = &enabled
-            }, content_x, *y)) {
-                if(enabled)
-                    app->meditation.music_practice_mask |= 1 << i;
-                else
-                    app->meditation.music_practice_mask &= ~(1 << i);
-                app->settings_dirty = 1;
-                meditation_music_unload(app);
-            }
-            *y += GetUICheckboxRowHeight((UICheckboxRow){0});
-            if(enabled) {
-                if(DrawUIDropdownButton(451 + i, content_x, *y, content_w,
-                                           ScaleUIPx(36), g_track_options,
-                                           MEDITATION_MUSIC_TRACK_COUNT,
-                                           &app->meditation.music_practice_tracks[i])) {
-                    app->settings_dirty = 1;
-                    app->meditation.music_track =
-                        app->meditation.music_practice_tracks[i];
-                    meditation_music_unload(app);
-                }
-                *y += ScaleUIPx(48);
-            }
-        }
-        *y += ScaleUIPx(8);
+    if(!enabled)
+        return;
 
-        installed = meditation_music_available(app);
-        if(installed) {
-            test_label = app->meditation.music_playing ?
-                             GetLocaleText("meditation_music_stop_test_button") :
-                             GetLocaleText("meditation_music_test_button");
-            button_w = MeasureUIText(test_label, GetUIFontSize()) + ScaleUIPx(24);
-            if(button_w > content_w)
-                button_w = content_w;
-            if(DrawUIGenericButton(content_x, *y, button_w, button_h,
-                                      test_label,
-                                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-                int practice = practice_clamp_id(app->exercise_type);
-                app->meditation.music_track =
-                    app->meditation.music_practice_tracks[practice];
-                meditation_music_test_track(app);
-            }
-            *y += button_h + ScaleUIPx(12);
-        }
-
-        if(download_supported() && (!installed || show_installed_download)) {
-            button_w = MeasureUIText(GetLocaleText(installed ? "meditation_music_redownload_button"
-                                                               : "meditation_music_download_button"),
-                                          GetUIFontSize()) + ScaleUIPx(24);
-            if(button_w > content_w)
-                button_w = content_w;
-            if(DrawUIGenericButton(content_x, *y, button_w, button_h,
-                                      GetLocaleText(installed ? "meditation_music_redownload_button"
-                                                           : "meditation_music_download_button"),
-                                      UI_BUTTON_STYLE_PRIMARY, 0, &hover))
-                start_download(app);
-            *y += button_h + ScaleUIPx(12);
-        }
-
-        if(show_status && (!installed || app->meditation.music_download.status != RUNTIME_ASSET_IDLE)) {
-            if(app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING) {
-                format_download_status(download_status, sizeof(download_status),
-                                       &app->meditation.music_download);
-                DrawUIText(download_status, content_x, *y, GetUIFontSize(), GetThemeText());
-                *y += ScaleUIPx(28);
-                draw_download_progress(app, content_x, *y, content_w);
-                *y += ScaleUIPx(22);
-            } else {
-                DrawUIText(app->meditation.music_status, content_x, *y, GetUIFontSize(), GetThemeText());
-                *y += ScaleUIPx(34);
-            }
-        }
-
-        draw_music_attribution(content_x, content_w, y);
-        *y += ScaleUIPx(10);
+    if(DrawUIDropdownButton(451 + practice, content_x, *y, content_w,
+                            ScaleUIPx(36), g_track_options,
+                            MEDITATION_MUSIC_TRACK_COUNT,
+                            &app->meditation.music_practice_tracks[practice])) {
+        app->settings_dirty = 1;
+        app->meditation.music_track =
+            app->meditation.music_practice_tracks[practice];
+        meditation_music_unload(app);
     }
+    *y += ScaleUIPx(48);
+
+    installed = meditation_music_available(app);
+    if(installed) {
+        test_label = app->meditation.music_playing ?
+                         GetLocaleText("meditation_music_stop_test_button") :
+                         GetLocaleText("meditation_music_test_button");
+        button_w = MeasureUIText(test_label, GetUIFontSize()) + ScaleUIPx(24);
+        if(button_w > content_w)
+            button_w = content_w;
+        if(DrawUIGenericButton(content_x, *y, button_w, button_h,
+                               test_label, UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+            app->meditation.music_track =
+                app->meditation.music_practice_tracks[practice];
+            meditation_music_test_track(app);
+        }
+        *y += button_h + ScaleUIPx(12);
+    }
+
+    if(download_supported() && (!installed || show_installed_download)) {
+        const char *download_label = GetLocaleText(installed ? "meditation_music_redownload_button"
+                                                             : "meditation_music_download_button");
+        button_w = MeasureUIText(download_label, GetUIFontSize()) + ScaleUIPx(24);
+        if(button_w > content_w)
+            button_w = content_w;
+        if(DrawUIGenericButton(content_x, *y, button_w, button_h,
+                               download_label, UI_BUTTON_STYLE_PRIMARY, 0, &hover))
+            start_download(app);
+        *y += button_h + ScaleUIPx(12);
+    }
+
+    if(show_status && (!installed || app->meditation.music_download.status != RUNTIME_ASSET_IDLE)) {
+        if(app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING) {
+            format_download_status(download_status, sizeof(download_status),
+                                   &app->meditation.music_download);
+            DrawUIText(download_status, content_x, *y, GetUIFontSize(), GetThemeText());
+            *y += ScaleUIPx(28);
+            draw_download_progress(app, content_x, *y, content_w);
+            *y += ScaleUIPx(22);
+        } else {
+            DrawUIText(app->meditation.music_status, content_x, *y,
+                       GetUIFontSize(), GetThemeText());
+            *y += ScaleUIPx(34);
+        }
+    }
+
+    draw_music_attribution(content_x, content_w, y);
+    *y += ScaleUIPx(10);
 }
 
 int
-meditation_music_measure_settings(InbeApp *app, int content_w,
-                                  int show_installed_download, int show_status)
+meditation_music_measure_practice_settings(InbeApp *app, int practice, int content_w,
+                                           int show_installed_download, int show_status)
 {
     int installed;
-    int h = ScaleUIPx(76);  // Master toggle
+    int h = ScaleUIPx(76);
+    int enabled;
 
     if(app == NULL)
         return 0;
 
-    // Only measure music options if music is enabled
-    if(app->meditation.music_enabled) {
-        h += GetUISectionLabelHeight((UISectionLabel){0});
-        for(int i = 0; i < EXERCISE_COUNT; i++) {
-            int enabled = (app->meditation.music_practice_mask & (1 << i)) != 0;
-            h += GetUICheckboxRowHeight((UICheckboxRow){0});
-            if(enabled)
-                h += ScaleUIPx(48);
-        }
-        h += ScaleUIPx(8);
+    sanitize_practice_music(app);
+    practice = practice_clamp_id(practice);
+    enabled = (app->meditation.music_practice_mask & (1 << practice)) != 0;
+    if(!enabled)
+        return h;
 
-        installed = meditation_music_available(app);
-        if(installed)
-            h += ScaleUIPx(48);
-        if(download_supported() && (!installed || show_installed_download))
-            h += ScaleUIPx(48);
+    h += ScaleUIPx(48);
+    installed = meditation_music_available(app);
+    if(installed)
+        h += ScaleUIPx(48);
+    if(download_supported() && (!installed || show_installed_download))
+        h += ScaleUIPx(48);
 
-        if(show_status && (!installed || app->meditation.music_download.status != RUNTIME_ASSET_IDLE)) {
-            if(app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING)
-                h += ScaleUIPx(50);
-            else
-                h += ScaleUIPx(34);
-        }
-
-        h += music_attribution_height(content_w) + ScaleUIPx(10);
+    if(show_status && (!installed || app->meditation.music_download.status != RUNTIME_ASSET_IDLE)) {
+        if(app->meditation.music_download.status == RUNTIME_ASSET_DOWNLOADING)
+            h += ScaleUIPx(50);
+        else
+            h += ScaleUIPx(34);
     }
 
+    h += music_attribution_height(content_w) + ScaleUIPx(10);
     return h;
 }
 

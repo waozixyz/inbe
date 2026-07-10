@@ -123,7 +123,7 @@ manual_tutorial_content_height(InbeApp *app, int step, int content_w, int body_f
                             ScaleUIPx(42) + ScaleUIPx(18);
         actual_content_h += tutorial_paragraph_height(app, 3, content_w, body_font);
     } else {
-        actual_content_h += ScaleUIPx(80) +
+        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
                             tutorial_paragraph_height(app, 4, content_w, body_font);
     }
 
@@ -214,7 +214,8 @@ whm_manual_draw(InbeApp *app)
             .y = layout.content_y,
             .height = layout.content_h,
             .max_content_width = responsive_max_w,
-            .min_content_width = ScaleUIPx(280),
+            .min_content_width = ScaleUIPx(200),
+            .side_padding = ScaleUIPx(54),
             .scroll_offset = &app->manual_scroll,
             .content_height = whm_manual_scroll_page_content_height,
             .user_data = &page_ctx
@@ -223,7 +224,7 @@ whm_manual_draw(InbeApp *app)
         int y = page.content_y + top_padding;
         if(step == 0) {
             int img_h = ScaleUIPx(170);
-            DrawUITutorialImage(app->whm.image_1, "practices/whm/1.jpg",
+            DrawUITutorialImage(app->whm.image_1, "practices/whm/1.png",
                                    page.content_x, y, page.content_w, img_h);
             y += img_h + ScaleUIPx(22);
 
@@ -272,6 +273,10 @@ whm_manual_draw(InbeApp *app)
             y += ScaleUIPx(42) + ScaleUIPx(18);
             draw_tutorial_paragraph(app, 3, page.content_x, &y, page.content_w, body_font);
         } else {
+            int img_h = ScaleUIPx(170);
+            DrawUITutorialImage(app->whm.image_2, "practices/whm/2.png",
+                                   page.content_x, y, page.content_w, img_h);
+            y += img_h + ScaleUIPx(22);
             draw_tutorial_paragraph(app, 4, page.content_x, &y, page.content_w, body_font);
         }
         EndUIScrollPage(page);

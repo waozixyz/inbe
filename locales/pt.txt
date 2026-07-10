@@ -190,9 +190,6 @@ Meditação
 [meditation_manual_intro_text]
 Uma prática de meditação simples para respirar, acalmar e estar presente.
 ---
-[meditation_music_master_toggle]
-Música de meditação
----
 [meditation_music_download_button]
 Baixar música
 ---
@@ -847,26 +844,20 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_title]
-Prática
----
 [practice_music_title]
 Música de fundo
+---
+[practice_music_enabled_label]
+Tocar durante esta prática
 ---
 [practice_start_button]
 Iniciar prática
 ---
 [practice_manual_button]
-Manual
+Como fazer
 ---
 [practice_configure_button]
-Configurar
----
-[practice_music_practice_list_title]
-Usar música nas práticas
----
-[practice_guide_music]
-Escolha música para cada prática.
+Personalizar
 ---
 [practice_guide_carousel]
 Use as setas para escolher uma prática.
@@ -936,6 +927,15 @@ Os dados vêm de práticas concluídas.
 ---
 [results_rounds]
 %d rodadas
+---
+[practice_home_minutes]
+%d min
+---
+[practice_home_repetitions]
+%d reps
+---
+[practice_home_wim_hof_metadata]
+%d rodadas | %d respirações
 ---
 [results_best]
 melhor %ds

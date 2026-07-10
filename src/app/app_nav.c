@@ -134,8 +134,7 @@ app_has_fullscreen_overlay(const InbeApp *app)
 {
     if(app == NULL || !app->modal.active)
         return 0;
-    return app->modal.type == UIModalPracticeMusic ||
-           app->modal.type == UIModalEditProgressiveStartSpeed;
+    return app->modal.type == UIModalEditProgressiveStartSpeed;
 }
 
 static const char *
