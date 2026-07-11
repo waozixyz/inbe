@@ -861,10 +861,10 @@ Yoga
 Sessioni di yoga.
 ---
 [pet_gamification_title]
-Gamification in corso...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Solo anteprima. Questa scheda non è ancora implementata.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Totale abitudini di oggi.

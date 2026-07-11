@@ -861,10 +861,10 @@ Yoga
 Yoga-Übungssitzungen.
 ---
 [pet_gamification_title]
-Gamification in Arbeit...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Nur Vorschau. Dieser Tab ist noch nicht implementiert.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Heutige Gewohnheiten gesamt.

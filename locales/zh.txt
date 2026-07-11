@@ -861,10 +861,10 @@ Yoga
 瑜伽练习课程。
 ---
 [pet_gamification_title]
-游戏化开发中...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-仅为预览。此标签页尚未实现。
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 今天的习惯总数。

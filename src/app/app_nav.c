@@ -441,8 +441,9 @@ app_draw_sidebar_profile_header(InbeApp *app, int x, int *y, int w,
     int released = app != NULL &&
                    app->nav_sidebar_open_frame != app->inbe.frame &&
                    IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    Rectangle name_bounds = {(float)x, (float)(*y + banner_h),
-                             (float)w, (float)ScaleUIPx(64)};
+    Rectangle name_bounds = {(float)x,
+                             (float)(*y + banner_h - ScaleUIPx(8)),
+                             (float)w, (float)ScaleUIPx(80)};
     Rectangle friends_bounds = {(float)x, (float)count_y, (float)half_w,
                                 (float)ScaleUIPx(42)};
     Rectangle pending_bounds = {(float)(x + half_w + ScaleUIPx(8)),
@@ -544,6 +545,8 @@ app_draw_nav_sidebar(InbeApp *app)
     if(app == NULL || !app->nav_sidebar_open)
         return;
 
+    ClearUIInputCaptures();
+
     sidebar_w = app_nav_sidebar_width();
     sidebar_x = view_width - sidebar_w;
     pad = ScaleUIPx(16);
@@ -591,11 +594,6 @@ app_draw_nav_sidebar(InbeApp *app)
     if(app_sidebar_button(app, area.content_x, &y, area.content_width,
                           GetLocaleText("sync_configure_account_button"),
                           APP_NAV_ROUTE_ACCOUNT)) {
-        EndUIScrollContainer(area, view);
-        return;
-    }
-    if(app_sidebar_button(app, area.content_x, &y, area.content_width,
-                          GetLocaleText("profile_data_title"), APP_NAV_ROUTE_DATA)) {
         EndUIScrollContainer(area, view);
         return;
     }

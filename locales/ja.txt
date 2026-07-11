@@ -863,10 +863,10 @@ Yoga
 ヨガの練習セッション。
 ---
 [pet_gamification_title]
-ゲーミフィケーションを準備中...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-プレビューのみです。このタブはまだ実装されていません。
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 今日の習慣合計です。

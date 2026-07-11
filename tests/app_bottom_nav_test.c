@@ -400,6 +400,11 @@ DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
     (void)tint;
 }
 
+void
+ClearUIInputCaptures(void)
+{
+}
+
 const char *
 GetLocaleText(const char *key)
 {

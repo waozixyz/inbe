@@ -9,6 +9,7 @@
 #include "practices/meditation/meditation_music.h"
 #include "practices/practice_registry.h"
 
+#include <math.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -497,11 +498,24 @@ draw_session_counter(InbeApp *app, int center_x, int center_y)
 {
     char text[CountSize];
     int count;
-    int font = UI_TEXT_16;
-    Color text_color = app->inbe.phase == InbePhaseHold &&
-                       app->hold_display_mode == HOLD_DISPLAY_CIRCLE
-                           ? text_color_for_background(GetThemeBackground())
-                           :  text_color_for_background(GetThemeCircle());
+    int font = UI_TEXT_24;
+    Color text_color = text_color_for_background(GetThemeCircle());
+
+    if(app->inbe.phase == InbePhaseStarting) {
+        int total_seconds = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
+        int remaining;
+
+        if(total_seconds <= 0)
+            remaining = 0;
+        else {
+            remaining = total_seconds - app->inbe.sectick / 60;
+            if(remaining < 1)
+                remaining = 1;
+        }
+        snprintf(text, sizeof(text), "%d", remaining);
+        DrawCenteredUIControlText(text, center_x, center_y, font, text_color);
+        return;
+    }
 
     if(app->inbe.phase == InbePhaseRecover) {
         if(app->inbe.r < app->inbe.rmax) {
@@ -580,37 +594,151 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
     return clicked;
 }
 
-static void
-draw_hold_progress_outline(InbeApp *app, int center_x, int center_y)
+static Color
+color_with_alpha(Color color, unsigned char alpha)
 {
-    int seconds = int_from_count(app->inbe.count);
-    int total_frames = seconds * 60 + app->inbe.sectick;
-    int minute_frames = 60 * 60;
-    int completed_minutes = total_frames / minute_frames;
-    int frame_in_minute = total_frames % minute_frames;
-    float sweep = 360.0f * (float)frame_in_minute / (float)minute_frames;
-    int thickness = ScaleUIPx(5);
-    int gap = ScaleUIPx(18);
-    int radius = app->inbe.r + ScaleUIPx(12);
-    int min_radius = app->inbe.r / 2;
+    color.a = alpha;
+    return color;
+}
 
-    if(thickness < 3)
-        thickness = 3;
-    if(min_radius < ScaleUIPx(16))
-        min_radius = ScaleUIPx(16);
+static void
+session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks, float *progress)
+{
+    int total = int_from_count(app->inbe.maxbreaths);
+    int completed = 0;
+    float amount = 0.0f;
 
-    for(int i = 0; i <= completed_minutes; i++) {
-        int ring_radius = radius - i * gap;
-        if(ring_radius <= min_radius)
-            break;
+    if(total < 1)
+        total = 1;
 
-        if(i < completed_minutes) {
-            DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, 270.0f, 96, GetThemeText());
-        } else if(sweep > 0.0f) {
-            DrawRing((Vector2){center_x, center_y}, (float)(ring_radius - thickness / 2),
-                     (float)(ring_radius + thickness / 2), -90.0f, -90.0f + sweep, 96, GetThemeText());
-        }
+    if(total_ticks == NULL || completed_ticks == NULL || progress == NULL)
+        return;
+
+    switch(app->inbe.phase) {
+    case InbePhaseStarting: {
+        int total_seconds = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
+        int total_frames = total_seconds * 60;
+
+        if(total_frames > 0)
+            amount = (float)app->inbe.sectick / (float)total_frames;
+        break;
+    }
+    case InbePhaseBreathe:
+        completed = clampi(int_from_count(app->inbe.count), 0, total);
+        amount = (float)completed / (float)total;
+        break;
+    case InbePhaseHold: {
+        int total_frames = 60 * 60;
+        int frame_in_minute = (int_from_count(app->inbe.count) * 60 + app->inbe.sectick) %
+                              total_frames;
+
+        total = 60;
+        amount = (float)frame_in_minute / (float)total_frames;
+        completed = clampi(frame_in_minute / 60, 0, total);
+        break;
+    }
+    case InbePhaseRecover: {
+        int count = int_from_count(app->inbe.count);
+
+        total = 15;
+        completed = clampi(count, 0, total);
+        amount = (float)completed / (float)total;
+        break;
+    }
+    case InbePhaseNext:
+    default:
+        completed = 0;
+        amount = 0.0f;
+        break;
+    }
+
+    if(amount < 0.0f)
+        amount = 0.0f;
+    if(amount > 1.0f)
+        amount = 1.0f;
+
+    *total_ticks = total;
+    *completed_ticks = clampi(completed, 0, total);
+    *progress = amount;
+}
+
+static void
+draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float radius)
+{
+    int total_ticks = 1;
+    int completed_ticks = 0;
+    float progress = 0.0f;
+    int gap = ScaleUIPx(5);
+    int band_width;
+    int thickness;
+    float inner_radius;
+    float outer_radius;
+    Color circle = GetThemeCircle();
+    Color contrast = text_color_for_background(circle);
+    Color band_bg;
+    Color band_fill;
+    Color tick_done;
+    Color tick_pending;
+    Color ring;
+
+    if(app == NULL)
+        return;
+
+    session_circle_progress(app, &total_ticks, &completed_ticks, &progress);
+
+    if(total_ticks <= 20)
+        band_width = ScaleUIPx(14);
+    else if(total_ticks <= 40)
+        band_width = ScaleUIPx(11);
+    else
+        band_width = ScaleUIPx(8);
+    if(band_width < 5)
+        band_width = 5;
+
+    thickness = total_ticks <= 40 ? ScaleUIPx(3) : ScaleUIPx(2);
+    if(thickness < 1)
+        thickness = 1;
+
+    outer_radius = radius - (float)gap;
+    inner_radius = outer_radius - (float)band_width;
+    if(inner_radius < radius * 0.66f)
+        inner_radius = radius * 0.66f;
+    if(outer_radius <= inner_radius)
+        return;
+
+    band_bg = color_with_alpha(contrast, 30);
+    band_fill = color_with_alpha(contrast, 72);
+    tick_pending = color_with_alpha(contrast, 96);
+    tick_done = color_with_alpha(contrast, 235);
+    ring = color_with_alpha(contrast, 175);
+
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, circle);
+    DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
+             0.0f, 360.0f, 128, band_bg);
+    if(progress > 0.0f) {
+        DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
+                 -90.0f, -90.0f + 360.0f * progress, 128, band_fill);
+    }
+    DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius - 0.75f,
+             inner_radius + 0.75f, 0.0f, 360.0f, 128, ring);
+    DrawRing((Vector2){(float)center_x, (float)center_y}, outer_radius - 0.75f,
+             outer_radius + 0.75f, 0.0f, 360.0f, 128, ring);
+
+    for(int i = 0; i < total_ticks; i++) {
+        float angle = -PI * 0.5f + ((float)i * 2.0f * PI) / (float)total_ticks;
+        float s = sinf(angle);
+        float c = cosf(angle);
+        Vector2 start = {
+            (float)center_x + c * inner_radius,
+            (float)center_y + s * inner_radius
+        };
+        Vector2 end = {
+            (float)center_x + c * outer_radius,
+            (float)center_y + s * outer_radius
+        };
+
+        DrawLineEx(start, end, (float)thickness,
+                   i < completed_ticks ? tick_done : tick_pending);
     }
 }
 
@@ -619,13 +747,7 @@ session_draw_inbe(InbeApp *app, int center_x, int center_y)
 {
     float radius = draw_radius(&app->inbe);
 
-    if(app->inbe.phase == InbePhaseHold && app->hold_display_mode == HOLD_DISPLAY_CIRCLE) {
-        draw_hold_progress_outline(app, center_x, center_y);
-    } else {
-        DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, GetThemeCircle());
-        DrawRing((Vector2){(float)center_x, (float)center_y}, radius - 0.75f,
-                 radius + 0.75f, 0.0f, 360.0f, 96, GetThemeText());
-    }
+    draw_session_progress_circle(app, center_x, center_y, radius);
     draw_session_counter(app, center_x, center_y);
 }
 

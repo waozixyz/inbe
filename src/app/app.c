@@ -387,21 +387,6 @@ app_flush_deferred_settings(InbeApp *app)
         save_settings(app);
 }
 
-static Rectangle
-app_nav_sidebar_bounds(void)
-{
-    int sidebar_w = ScaleUIPx(292);
-
-    if(view_width <= ScaleUIPx(480))
-        return (Rectangle){0.0f, 0.0f, (float)view_width, (float)view_height};
-    if(sidebar_w > view_width - ScaleUIPx(36))
-        sidebar_w = view_width - ScaleUIPx(36);
-    if(sidebar_w < ScaleUIPx(220))
-        sidebar_w = view_width;
-    return (Rectangle){(float)(view_width - sidebar_w), 0.0f,
-                       (float)sidebar_w, (float)view_height};
-}
-
 int
 app_toolbar_height(void)
 {
@@ -1428,7 +1413,8 @@ updateapp(InbeApp *app)
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
     if(app->nav_sidebar_open)
-        PushUIInputCapture(app_nav_sidebar_bounds(), 1);
+        PushUIInputCapture((Rectangle){0, 0, (float)view_width,
+                                       (float)view_height}, 0);
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
        habits_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);

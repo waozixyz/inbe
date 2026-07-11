@@ -44,7 +44,9 @@ profile_data_content_height(int content_w)
 static int
 profile_sync_content_height(int content_w)
 {
-    return settings_sync_account_config_content_height(content_w);
+    return settings_sync_account_config_content_height(content_w) +
+           ScaleUIPx(34) +
+           profile_data_content_height(content_w);
 }
 
 static int
@@ -62,20 +64,21 @@ profile_content_height(int content_w, void *user_data)
     InbeApp *app = user_data;
 
     if(app != NULL && app->profile_view == PROFILE_VIEW_DATA)
-        return profile_data_content_height(content_w);
+        return ScaleUIPx(12) + profile_data_content_height(content_w);
     if(app != NULL && app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT)
-        return profile_sync_content_height(content_w);
+        return ScaleUIPx(12) + profile_sync_content_height(content_w);
     if(app != NULL && app->profile_view == PROFILE_VIEW_HABITS)
-        return profile_habits_content_height(app, content_w);
+        return ScaleUIPx(12) + profile_habits_content_height(app, content_w);
     if(app != NULL && app->profile_tab == PROFILE_TAB_FRIENDS)
-        return profile_social_friends_content_height(app, content_w) +
+        return ScaleUIPx(12) + profile_social_friends_content_height(app, content_w) +
                ScaleUIPx(54) +
                profile_social_leaderboard_content_height(app, content_w);
     if(app != NULL && app->profile_tab == PROFILE_TAB_LEADERBOARD)
-        return profile_social_leaderboard_content_height(app, content_w);
+        return ScaleUIPx(12) +
+               profile_social_leaderboard_content_height(app, content_w);
     if(app != NULL && app->profile_tab == PROFILE_TAB_DATA)
-        return profile_data_content_height(content_w);
-    return profile_sync_content_height(content_w);
+        return ScaleUIPx(12) + profile_data_content_height(content_w);
+    return ScaleUIPx(12) + profile_sync_content_height(content_w);
 }
 
 static void
@@ -238,10 +241,18 @@ profile_screen_draw(InbeApp *app)
         .content_height = profile_content_height,
         .user_data = app
     });
-    y = page.content_y;
+    y = page.content_y + ScaleUIPx(12);
 
-    if(app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT)
+    if(app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT) {
         settings_sync_account_draw_config(app, page.content_x, page.content_w, &y);
+        y += ScaleUIPx(18);
+        profile_draw_divider(page.content_x, page.content_w, y);
+        y += ScaleUIPx(16);
+        DrawUIText(GetLocaleText("profile_data_title"), page.content_x, y,
+                   GetUIFontSize(), GetThemeText());
+        y += ScaleUIPx(28);
+        profile_draw_data(app, page.content_x, page.content_w, &y);
+    }
     else if(app->profile_view == PROFILE_VIEW_DATA)
         profile_draw_data(app, page.content_x, page.content_w, &y);
     else if(app->profile_view == PROFILE_VIEW_HABITS)

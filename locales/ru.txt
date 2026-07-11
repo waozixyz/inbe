@@ -861,10 +861,10 @@ Yoga
 Сеансы практики йоги.
 ---
 [pet_gamification_title]
-Геймификация в разработке...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Только предпросмотр. Эта вкладка еще не реализована.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Итог привычек за сегодня.

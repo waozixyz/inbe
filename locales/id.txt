@@ -861,10 +861,10 @@ Yoga
 Sesi latihan yoga.
 ---
 [pet_gamification_title]
-Gamifikasi sedang dibuat...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Pratinjau saja. Tab ini belum diterapkan.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Total kebiasaan hari ini.

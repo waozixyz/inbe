@@ -861,10 +861,10 @@ Yoga
 Jógová cvičení.
 ---
 [pet_gamification_title]
-Gamifikace se připravuje...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Pouze náhled. Tato karta ještě není implementována.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Dnešní počet návyků.
