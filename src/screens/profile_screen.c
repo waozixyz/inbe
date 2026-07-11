@@ -128,34 +128,33 @@ profile_tab_title(int tab)
 }
 
 static int
-profile_draw_tab_bar(InbeApp *app, int y)
+profile_draw_tab_dropdown(InbeApp *app, int y, int w)
 {
-    UITab tabs[PROFILE_TAB_COUNT];
+    const char *options[PROFILE_TAB_COUNT];
     int selected;
+    int dropdown_w;
+    int dropdown_x;
+    int dropdown_h = ScaleUIPx(36);
+    int dropdown_y = y + (GetUITabBarHeight() - dropdown_h) / 2;
 
     if(app == NULL)
         return -1;
-    tabs[PROFILE_TAB_SYNC] = (UITab){.label = profile_tab_title(PROFILE_TAB_SYNC)};
-    tabs[PROFILE_TAB_DATA] = (UITab){.label = profile_tab_title(PROFILE_TAB_DATA)};
-    tabs[PROFILE_TAB_FRIENDS] = (UITab){.label = profile_tab_title(PROFILE_TAB_FRIENDS)};
-    tabs[PROFILE_TAB_LEADERBOARD] =
-        (UITab){.label = profile_tab_title(PROFILE_TAB_LEADERBOARD)};
-    selected = DrawUITabBar((UITabBar){
-        .bounds = {0, (float)y, (float)view_width, (float)GetUITabBarHeight()},
-        .tabs = tabs,
-        .count = PROFILE_TAB_COUNT,
-        .selected_index = app->profile_tab,
-        .font = GetUISmallFontSize(),
-        .min_tab_width = ScaleUIPx(96),
-        .max_tab_width = ScaleUIPx(132),
-        .scroll_offset = &app->profile_tab_scroll,
-        .focus_selected = 1
-    });
-    if(selected >= 0 && selected != app->profile_tab) {
-        app->profile_view = PROFILE_VIEW_MAIN;
-        app->profile_tab = selected;
-        app->profile_scroll = 0;
-    }
+
+    options[PROFILE_TAB_SYNC] = profile_tab_title(PROFILE_TAB_SYNC);
+    options[PROFILE_TAB_DATA] = profile_tab_title(PROFILE_TAB_DATA);
+    options[PROFILE_TAB_FRIENDS] = profile_tab_title(PROFILE_TAB_FRIENDS);
+    options[PROFILE_TAB_LEADERBOARD] = profile_tab_title(PROFILE_TAB_LEADERBOARD);
+
+    selected = app->profile_tab;
+    dropdown_w = w - ScaleUIPx(32);
+    if(dropdown_w > ScaleUIPx(360))
+        dropdown_w = ScaleUIPx(360);
+    if(dropdown_w < ScaleUIPx(180))
+        dropdown_w = w - ScaleUIPx(16);
+    dropdown_x = (w - dropdown_w) / 2;
+
+    DrawUIDropdownButton(812, dropdown_x, dropdown_y, dropdown_w, dropdown_h,
+                         options, PROFILE_TAB_COUNT, &app->profile_tab);
     return selected;
 }
 
@@ -232,7 +231,7 @@ int
 profile_screen_draw(InbeApp *app)
 {
     int header_h = GetUITitleBarHeight();
-    int tab_bar_y = header_h;
+    int selector_y = header_h;
     int content_y = header_h + GetUITabBarHeight();
     int content_h = view_height - content_y - app_content_bottom_reserved(app);
     UIScrollPage page;
@@ -264,7 +263,7 @@ profile_screen_draw(InbeApp *app)
                                   : InbeScreenStart);
         return 1;
     }
-    profile_draw_tab_bar(app, tab_bar_y);
+    profile_draw_tab_dropdown(app, selector_y, view_width);
 
     if(content_h < 0)
         content_h = 0;
@@ -296,6 +295,16 @@ profile_screen_draw(InbeApp *app)
         settings_sync_account_draw_config(app, page.content_x, page.content_w, &y);
 
     EndUIScrollPage(page);
+
+    SetUIDropdownClipTop(content_y);
+    SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app));
+    if(DrawUIDropdownMenu(812)) {
+        app->profile_view = PROFILE_VIEW_MAIN;
+        app->profile_scroll = 0;
+    }
+    SetUIDropdownClipTop(0);
+    SetUIDropdownClipBottom(0);
+
     if(app->profile_view == PROFILE_VIEW_MAIN &&
        (app->profile_tab == PROFILE_TAB_LEADERBOARD ||
         app->profile_tab == PROFILE_TAB_FRIENDS)) {

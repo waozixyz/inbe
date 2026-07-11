@@ -1364,7 +1364,8 @@ draw_profile_picture_picker_modal(InbeApp *app)
         .icons = app->icons,
         .selected_icon_type = &app->profile_picture_icon,
         .close_icon = app->icons[UI_ICON_TYPE_X],
-        .max_width = 360
+        .max_width = 360,
+        .scroll_offset = &app->profile_picture_picker_scroll
     });
     if(result.changed)
         save_settings(app);

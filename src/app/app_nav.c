@@ -642,6 +642,7 @@ app_draw_sidebar_profile_header(InbeApp *app, int x, int *y, int w,
 
     if(header.pfp_clicked) {
         app->nav_sidebar_open = 0;
+        app->profile_picture_picker_scroll = 0;
         app_open_modal(app, UIModalProfilePicturePicker);
         *y += header.height + ScaleUIPx(12);
         return 1;

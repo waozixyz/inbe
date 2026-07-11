@@ -18,7 +18,7 @@
 #include <time.h>
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
-#include "desktop_tray.h"
+#include "platform/inbe_desktop_tray.h"
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD

@@ -133,12 +133,12 @@ WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
 FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png) $(wildcard $(FLINT_DIR)/pfp/*.png)
-FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui_icon_assets.c
+FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui/ui_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
-FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c) $(wildcard $(FLINT_DIR)/src/ui/*.c)) $(FLINT_ICON_ASSETS_C)
-FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
-FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
-FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
+FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(shell find $(FLINT_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(FLINT_ICON_ASSETS_C)
+FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
+FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
+FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
 FLINT_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
 FLINT_LIBOQS_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/liboqs
@@ -274,7 +274,7 @@ DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gt
 DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DFLINT_DESKTOP_TRAY_GTK_STATUS_ICON
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
-APP_SRCS += src/platform/desktop_tray.c
+APP_SRCS += src/platform/inbe_desktop_tray.c
 DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DFLINT_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
 endif
@@ -303,7 +303,7 @@ FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
-WEB_APP_SRCS := $(filter-out src/platform/desktop_tray.c,$(APP_SRCS))
+WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
 WEB_SRC := $(WEB_APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
@@ -501,17 +501,17 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
 		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) $(FLINT_CURL_CFLAGS) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c \
+		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
@@ -564,7 +564,7 @@ $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
-	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "icons pfp" src/ui_icon_assets.c
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "icons pfp" src/ui/ui_icon_assets.c
 
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check

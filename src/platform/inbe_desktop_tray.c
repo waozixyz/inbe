@@ -1,4 +1,4 @@
-#include "desktop_tray.h"
+#include "inbe_desktop_tray.h"
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 

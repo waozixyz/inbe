@@ -32,8 +32,8 @@ add_subdirectory("${FLINT_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
 if(NOT TARGET oqs)
     message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
 endif()
-file(GLOB FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c" "${FLINT_DIR}/src/ui/*.c")
-list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/file_dialog.c")
+file(GLOB_RECURSE FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
+list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/file_dialog/file_dialog.c")
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
@@ -177,6 +177,8 @@ add_library(main SHARED
 )
 
 target_include_directories(main PRIVATE
+    "${FLINT_DIR}/include"
+    "${FLINT_DIR}/src"
     "${SRC_DIR}"
     "${SRC_DIR}/app"
     "${SRC_DIR}/core"
@@ -190,7 +192,6 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"
     "${NATIVE_APP_GLUE_DIR}"
-    "${FLINT_DIR}/include"
     "${SQLITE_BUILD_DIR}"
 )
 

@@ -401,6 +401,7 @@ struct InbeApp {
     int nav_sidebar_scroll;
     int nav_sidebar_return_on_back;
     UIIconType profile_picture_icon;
+    int profile_picture_picker_scroll;
     int transition_mode;
     int android_orientation;
     int main_tab;
