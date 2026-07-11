@@ -1013,9 +1013,6 @@ průměr %ds
 [round_result_label]
 Kolo %d  %ds
 ---
-[starting_in]
-ZAČÍNÁ ZA %2d
----
 [session_round_label]
 KOLO %d
 ---

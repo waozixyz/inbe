@@ -1013,9 +1013,6 @@ Wim Hof - 正在开始
 [round_result_label]
 第%d轮  %ds
 ---
-[starting_in]
-即将开始 %2d
----
 [session_round_label]
 第%d轮
 ---

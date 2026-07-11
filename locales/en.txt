@@ -1012,9 +1012,6 @@ avg %ds
 [round_result_label]
 Round %d  %ds
 ---
-[starting_in]
-STARTING IN %2d
----
 [session_round_label]
 ROUND %d
 ---

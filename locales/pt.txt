@@ -1013,9 +1013,6 @@ média %ds
 [round_result_label]
 Rodada %d  %ds
 ---
-[starting_in]
-COMEÇA EM %2d
----
 [session_round_label]
 RODADA %d
 ---

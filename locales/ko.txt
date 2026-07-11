@@ -1012,9 +1012,6 @@ Wim Hof - 시작 중
 [round_result_label]
 %d 라운드  %ds
 ---
-[starting_in]
-%2d초 후 시작
----
 [session_round_label]
 %d 라운드
 ---

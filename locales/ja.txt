@@ -1015,9 +1015,6 @@ Wim Hof - 開始中
 [round_result_label]
 ラウンド %d  %ds
 ---
-[starting_in]
-開始まで %2d
----
 [session_round_label]
 ラウンド %d
 ---

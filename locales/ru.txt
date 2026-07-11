@@ -1013,9 +1013,6 @@ Wim Hof - Запуск
 [round_result_label]
 Раунд %d  %dс
 ---
-[starting_in]
-НАЧАЛО ЧЕРЕЗ %2d
----
 [session_round_label]
 РАУНД %d
 ---

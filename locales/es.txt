@@ -1013,9 +1013,6 @@ promedio %ds
 [round_result_label]
 Ronda %d  %ds
 ---
-[starting_in]
-COMENZANDO EN %2d
----
 [session_round_label]
 RONDA %d
 ---
