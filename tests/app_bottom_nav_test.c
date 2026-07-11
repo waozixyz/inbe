@@ -20,6 +20,7 @@ static UIBottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
+static const char *generic_button_clicked_label = NULL;
 
 static void
 expect(int condition, const char *message)
@@ -41,6 +42,7 @@ reset_state(void)
     save_settings_count = 0;
     reset_settings_preview_count = 0;
     settings_status_clear_count = 0;
+    generic_button_clicked_label = NULL;
     view_width = 320;
     view_height = 560;
     app_set_android_bottom_nav_height(0);
@@ -179,6 +181,35 @@ DrawUIText(const char *text, int x, int y, int fontSize, Color color)
     (void)color;
 }
 
+int
+MeasureUIText(const char *text, int font_size)
+{
+    (void)font_size;
+    return text != NULL ? (int)strlen(text) * 8 : 0;
+}
+
+int
+GetUITextHeight(const char *text, int font_size)
+{
+    (void)text;
+    return font_size > 0 ? font_size : 16;
+}
+
+void
+FormatLocaleText(char *out, size_t out_size, const char *key, ...)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    snprintf(out, out_size, "%s", key != NULL ? key : "");
+}
+
+int
+DrawUIHref(UIHref link)
+{
+    (void)link;
+    return 0;
+}
+
 bool
 CheckCollisionPointRec(Vector2 point, Rectangle rec)
 {
@@ -230,6 +261,22 @@ DrawUIBottomNav(UIBottomNav nav)
     };
 }
 
+UISidebarAccountHeaderResult
+DrawUISidebarAccountHeader(UISidebarAccountHeader header)
+{
+    (void)header;
+    return (UISidebarAccountHeaderResult){
+        .height = 138
+    };
+}
+
+UIProfilePicturePickerResult
+DrawUIProfilePicturePickerModal(UIProfilePicturePickerModal modal)
+{
+    (void)modal;
+    return (UIProfilePicturePickerResult){0};
+}
+
 UIScrollView
 BeginUIScrollContainer(UIScrollArea area)
 {
@@ -266,11 +313,14 @@ DrawUIGenericButton(int x, int y, int w, int h, const char *label,
     (void)y;
     (void)w;
     (void)h;
-    (void)label;
     (void)style;
-    (void)disabled;
     if(hover != NULL)
         *hover = 0;
+    if(!disabled && generic_button_clicked_label != NULL &&
+       label != NULL && strcmp(label, generic_button_clicked_label) == 0) {
+        generic_button_clicked_label = NULL;
+        return 1;
+    }
     return 0;
 }
 
@@ -333,6 +383,32 @@ DrawUIReturnTitleBar(Texture2D return_icon, const char *title, int height)
     (void)title;
     (void)height;
     return 0;
+}
+
+int
+app_draw_close_title_bar(InbeApp *app, const char *title, int height)
+{
+    (void)app;
+    (void)title;
+    (void)height;
+    return 0;
+}
+
+const char *
+settings_screen_tab_label(int tab)
+{
+    switch(tab) {
+    case SETTINGS_TAB_SESSION:
+        return "Session";
+    case SETTINGS_TAB_DEVICE:
+        return "Device";
+    case SETTINGS_TAB_THEME:
+        return "Appearance";
+    case SETTINGS_TAB_ABOUT:
+        return "About";
+    default:
+        return "Settings";
+    }
 }
 
 int
@@ -581,6 +657,7 @@ test_stack_opens_sidebar_without_routing(void)
     InbeApp app = test_app();
 
     reset_state();
+    view_width = 720;
     bottom_nav_clicked_route = APP_NAV_ROUTE_STACK;
 
     app_draw_bottom_nav(&app);
@@ -593,6 +670,23 @@ test_stack_opens_sidebar_without_routing(void)
            "stack route should not change screens");
     expect(reset_settings_preview_count == 0,
            "stack route should not run settings route side effects");
+}
+
+static void
+test_compact_stack_opens_sidebar_screen(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 320;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_STACK;
+
+    app_draw_bottom_nav(&app);
+
+    expect(app.nav_sidebar_open == 1,
+           "compact stack route should open sidebar");
+    expect(app.inbe.screen == InbeScreenNavSidebar,
+           "compact stack route should switch to sidebar screen");
 }
 
 static void
@@ -726,17 +820,159 @@ test_file_dialog_hides_bottom_nav(void)
            "active file dialog should not route bottom nav clicks");
 }
 
+static void
+test_empty_bottom_nav_draws_stack_only_bar(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 720;
+    app.main_tab = APP_MAIN_TAB_NONE;
+    app.bottom_nav_route_count = 0;
+    for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
+        app.bottom_nav_routes[i] = APP_NAV_ROUTE_NONE;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_STACK;
+
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 1,
+           "empty bottom nav should draw stack-only nav bar");
+    expect(bottom_nav_last.count == 1,
+           "empty bottom nav should contain only stack");
+    expect(bottom_nav_last.items[0].route == APP_NAV_ROUTE_STACK,
+           "empty bottom nav only item should be stack");
+    expect(app.nav_sidebar_open == 1,
+           "empty bottom nav stack should open sidebar");
+    expect(app.inbe.screen == InbeScreenStart &&
+           app.main_tab == APP_MAIN_TAB_NONE,
+           "empty bottom nav should stay on blank start screen");
+    expect(app_content_bottom_reserved(&app) == 52,
+           "empty bottom nav should reserve stack bar space");
+}
+
+static void
+test_bottom_nav_config_save_stays_on_customize_screen(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.main_tab = APP_MAIN_TAB_NONE;
+    app.bottom_nav_route_count = 0;
+    for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
+        app.bottom_nav_routes[i] = APP_NAV_ROUTE_NONE;
+    app.bottom_nav_config_route_count = 1;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
+
+    app_save_bottom_nav_config(&app);
+
+    expect(app.inbe.screen == InbeScreenCustomizeNav,
+           "adding first nav item should stay on customize nav screen");
+    expect(app.main_tab == APP_MAIN_TAB_HABITS,
+           "adding first nav item should select a valid main tab");
+    expect(app.bottom_nav_route_count == 1 &&
+           app.bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS,
+           "adding first nav item should save configured route");
+    expect(save_settings_count == 1,
+           "adding first nav item should save settings once");
+}
+
+static void
+test_open_main_tab_none_returns_blank_start(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.main_tab = APP_MAIN_TAB_NONE;
+
+    app_open_main_tab(&app, app.main_tab, 0);
+
+    expect(app.inbe.screen == InbeScreenStart &&
+           app.main_tab == APP_MAIN_TAB_NONE,
+           "closing customize nav with no routes should return to blank start");
+}
+
+static void
+test_compact_sidebar_close_footer_closes_to_home(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 320;
+    app.inbe.screen = InbeScreenNavSidebar;
+    app.nav_sidebar_open = 1;
+    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    generic_button_clicked_label = "close_button";
+
+    app_draw_bottom_nav(&app);
+
+    expect(app.nav_sidebar_open == 0,
+           "sidebar footer close should close sidebar");
+    expect(app.inbe.screen == InbeScreenStart,
+           "sidebar footer close should return to current home screen");
+}
+
+static void
+test_sidebar_child_back_returns_to_compact_sidebar(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 320;
+    app.inbe.screen = InbeScreenNavSidebar;
+    app.nav_sidebar_open = 1;
+
+    app_apply_nav_route(&app, APP_NAV_ROUTE_ACCOUNT);
+    expect(app.inbe.screen == InbeScreenProfile,
+           "sidebar account route should open profile");
+    expect(app.nav_sidebar_return_on_back == 1,
+           "sidebar child route should remember compact sidebar return");
+
+    expect(app_return_to_nav_sidebar_if_needed(&app) == 1,
+           "profile back should return to compact sidebar");
+    expect(app.inbe.screen == InbeScreenNavSidebar &&
+           app.nav_sidebar_open == 1,
+           "profile back should reopen sidebar screen");
+}
+
+static void
+test_sidebar_screen_becomes_overlay_when_width_expands(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 320;
+    app.inbe.screen = InbeScreenNavSidebar;
+    app.nav_sidebar_open = 1;
+
+    view_width = 720;
+    app_update_nav_sidebar_mode(&app);
+
+    expect(app.nav_sidebar_open == 1,
+           "expanded sidebar should remain open as overlay");
+    expect(app.inbe.screen == InbeScreenStart,
+           "expanded sidebar should return to home screen behind overlay");
+}
+
 int
 main(void)
 {
     test_default_bottom_nav_routes_are_habits_practice_stack();
     test_stack_opens_sidebar_without_routing();
+    test_compact_stack_opens_sidebar_screen();
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();
     test_practice_manual_hides_bottom_nav();
     test_practice_config_hides_bottom_nav();
     test_file_dialog_hides_bottom_nav();
+    test_empty_bottom_nav_draws_stack_only_bar();
+    test_bottom_nav_config_save_stays_on_customize_screen();
+    test_open_main_tab_none_returns_blank_start();
+    test_compact_sidebar_close_footer_closes_to_home();
+    test_sidebar_child_back_returns_to_compact_sidebar();
+    test_sidebar_screen_becomes_overlay_when_width_expands();
 
     if(failures > 0) {
         fprintf(stderr, "%d app bottom nav test failure(s)\n", failures);

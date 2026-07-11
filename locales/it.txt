@@ -10,9 +10,12 @@ Abitudini
 [tab_practice]
 Pratica
 ---
-[profile_data_title]
-Profile data
-------
+[profile_data]
+Data
+---
+[profile_sync_tab]
+Sync
+---
 [profile_habits_label]
 Abitudini
 ---
@@ -57,13 +60,13 @@ Aggiornamento
 ---
 [profile_no_account]
 Nessun account
-------------
-[profile_friends_count_format]
+---
+[profile_friends_summary]
 %d amici
 ---
-[profile_pending_count_format]
-Pending: %d
-------
+[profile_friends_pending_summary]
+%d amici +%d
+---
 [profile_add_friend_button]
 Aggiungi amico
 ---
@@ -78,7 +81,7 @@ Nessun dato classifica
 ---
 [profile_practice_label]
 Pratica
-------
+---
 [profile_my_habits_title]
 My habits
 ---
@@ -101,9 +104,6 @@ Customize Nav
 ---
 [customize_nav_add]
 Add item
----
-[customize_nav_slot]
-Bottom nav item
 ---
 [play_button]
 AVVIA
@@ -298,10 +298,10 @@ Un compagno discreto per respirazione, abitudini e sincronizzazione.
 Tema
 ---
 [theme_mode_label]
-Modalità colore
+Theme mode
 ---
 [theme_follow_device]
-Segui dispositivo
+System
 ---
 [theme_system]
 Sistema
@@ -386,9 +386,6 @@ Cerchio
 ---
 [volume_label]
 Volume
----
-[show_session_volume_control_label]
-Mostra controllo volume
 ---
 [show_session_return_button_label]
 Mostra pulsante indietro

@@ -10,9 +10,12 @@
 [tab_practice]
 练习
 ---
-[profile_data_title]
-Profile data
-------
+[profile_data]
+Data
+---
+[profile_sync_tab]
+Sync
+---
 [profile_habits_label]
 习惯
 ---
@@ -57,13 +60,13 @@ Profile data
 ---
 [profile_no_account]
 没有账户
-------------
-[profile_friends_count_format]
+---
+[profile_friends_summary]
 %d 位好友
 ---
-[profile_pending_count_format]
-Pending: %d
-------
+[profile_friends_pending_summary]
+%d 位好友 +%d
+---
 [profile_add_friend_button]
 添加好友
 ---
@@ -78,7 +81,7 @@ Pending: %d
 ---
 [profile_practice_label]
 练习
-------
+---
 [profile_my_habits_title]
 My habits
 ---
@@ -101,9 +104,6 @@ Customize Nav
 ---
 [customize_nav_add]
 Add item
----
-[customize_nav_slot]
-Bottom nav item
 ---
 [play_button]
 开始
@@ -298,10 +298,10 @@ Finish
 主题
 ---
 [theme_mode_label]
-颜色模式
+Theme mode
 ---
 [theme_follow_device]
-跟随设备
+System
 ---
 [speed_label]
 速度
@@ -362,9 +362,6 @@ Finish
 ---
 [volume_label]
 音量
----
-[show_session_volume_control_label]
-显示音量控制
 ---
 [show_session_return_button_label]
 显示返回按钮

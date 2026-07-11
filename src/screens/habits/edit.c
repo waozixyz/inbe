@@ -373,8 +373,9 @@ draw_habit_edit_screen(InbeApp *app)
         DrawRectangle(0, 0, view_width, top_h, GetThemeBackground());
         DrawLine(0, top_h - 1, view_width, top_h - 1, DarkenUIColor(GetThemeButton(), 18));
         if(!app->modal.active &&
-           DrawUIPaddedIconBtn(ScaleUIPx(12), ScaleUIPx(12), ScaleUIPx(24),
-                                   ScaleUIPx(8), app->icons[UI_ICON_TYPE_RETURN], &hover)) {
+           DrawUIPaddedIconBtn(view_width - ScaleUIPx(52), ScaleUIPx(12),
+                                   ScaleUIPx(24), ScaleUIPx(8),
+                                   app->icons[UI_ICON_TYPE_X], &hover)) {
             habit_edit_cancel(app);
             app_switch_screen(app, InbeScreenHabits);
             return;
@@ -385,7 +386,7 @@ draw_habit_edit_screen(InbeApp *app)
                         GetUIControlTextY(title, 0, top_h, title_font),
                         title_font, GetThemeText());
         if(!app->modal.active &&
-           DrawUIPaddedIconBtn(view_width - ScaleUIPx(52), ScaleUIPx(12),
+           DrawUIPaddedIconBtn(view_width - ScaleUIPx(100), ScaleUIPx(12),
                                    ScaleUIPx(24), ScaleUIPx(8), app->icons[UI_ICON_TYPE_CHECK], &hover)) {
             habit_edit_commit(app);
             return;

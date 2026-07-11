@@ -1027,7 +1027,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
     if(app->habits.screen_mode == HABITS_SCREEN_REORDER) {
         if(draw_menu)
             return;
-        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("habit_reorder_title"), top_h))
+        if(app_draw_close_title_bar(app, GetLocaleText("habit_reorder_title"), top_h))
             habits_return_to_overview(app);
         return;
     }
@@ -1043,7 +1043,7 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
         int dropdown_h = ScaleUIPx(32);
 
         dropdown_selected = selected;
-        if(DrawUIReturnDropdownTitleBar(app->icons[UI_ICON_TYPE_RETURN], (UITitleBarDropdown){
+        if(app_draw_close_dropdown_title_bar(app, (UITitleBarDropdown){
                                                 .id = 301,
                                                 .options = options,
                                                 .option_count = option_count,

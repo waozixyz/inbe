@@ -602,16 +602,19 @@ color_with_alpha(Color color, unsigned char alpha)
 }
 
 static void
-session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks, float *progress)
+session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
+                        float *progress, int *countdown)
 {
     int total = int_from_count(app->inbe.maxbreaths);
     int completed = 0;
     float amount = 0.0f;
+    int is_countdown = 0;
 
     if(total < 1)
         total = 1;
 
-    if(total_ticks == NULL || completed_ticks == NULL || progress == NULL)
+    if(total_ticks == NULL || completed_ticks == NULL || progress == NULL ||
+       countdown == NULL)
         return;
 
     switch(app->inbe.phase) {
@@ -619,8 +622,11 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks, fl
         int total_seconds = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
         int total_frames = total_seconds * 60;
 
+        total = total_seconds > 0 ? total_seconds : 1;
         if(total_frames > 0)
             amount = (float)app->inbe.sectick / (float)total_frames;
+        completed = (int)(amount * (float)total);
+        is_countdown = 1;
         break;
     }
     case InbePhaseBreathe:
@@ -643,6 +649,7 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks, fl
         total = 15;
         completed = clampi(count, 0, total);
         amount = (float)completed / (float)total;
+        is_countdown = 1;
         break;
     }
     case InbePhaseNext:
@@ -660,6 +667,7 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks, fl
     *total_ticks = total;
     *completed_ticks = clampi(completed, 0, total);
     *progress = amount;
+    *countdown = is_countdown;
 }
 
 static void
@@ -667,6 +675,7 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
 {
     int total_ticks = 1;
     int completed_ticks = 0;
+    int countdown = 0;
     float progress = 0.0f;
     int gap = ScaleUIPx(5);
     int band_width;
@@ -684,7 +693,8 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
     if(app == NULL)
         return;
 
-    session_circle_progress(app, &total_ticks, &completed_ticks, &progress);
+    session_circle_progress(app, &total_ticks, &completed_ticks, &progress,
+                            &countdown);
 
     if(total_ticks <= 20)
         band_width = ScaleUIPx(14);
@@ -715,7 +725,15 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
     DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, circle);
     DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
              0.0f, 360.0f, 128, band_bg);
-    if(progress > 0.0f) {
+    if(countdown) {
+        DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius,
+                 outer_radius, 0.0f, 360.0f, 128, band_fill);
+        if(progress > 0.0f) {
+            DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius,
+                     outer_radius, -90.0f - 360.0f * progress, -90.0f,
+                     128, band_bg);
+        }
+    } else if(progress > 0.0f) {
         DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
                  -90.0f, -90.0f + 360.0f * progress, 128, band_fill);
     }
@@ -725,9 +743,13 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
              outer_radius + 0.75f, 0.0f, 360.0f, 128, ring);
 
     for(int i = 0; i < total_ticks; i++) {
-        float angle = -PI * 0.5f + ((float)i * 2.0f * PI) / (float)total_ticks;
+        float direction = countdown ? -1.0f : 1.0f;
+        float angle = -PI * 0.5f +
+                      direction * ((float)i * 2.0f * PI) / (float)total_ticks;
         float s = sinf(angle);
         float c = cosf(angle);
+        int tick_colored = countdown ? i >= completed_ticks
+                                     : i < completed_ticks;
         Vector2 start = {
             (float)center_x + c * inner_radius,
             (float)center_y + s * inner_radius
@@ -738,7 +760,7 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
         };
 
         DrawLineEx(start, end, (float)thickness,
-                   i < completed_ticks ? tick_done : tick_pending);
+                   tick_colored ? tick_done : tick_pending);
     }
 }
 
@@ -839,9 +861,10 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
     char max_text[32];
     int total_seconds;
     int remaining;
+    int max_w;
     int max_text_w;
     int text_y;
-    int font = UI_TEXT_16;
+    int font = UI_TEXT_24;
 
     if(app->inbe.phase != InbePhaseStarting)
         return;
@@ -855,6 +878,15 @@ draw_session_status(InbeApp *app, int center_x, int center_y)
         remaining = 1;
 
     FormatLocaleText(max_text, sizeof(max_text), "starting_in", 30);
+    max_w = (int)(app->inbe.rmax * 2.0f);
+    if(max_w > view_width - ScaleUIPx(32))
+        max_w = view_width - ScaleUIPx(32);
+    if(max_w < ScaleUIPx(120))
+        max_w = ScaleUIPx(120);
+    if(MeasureUIText(max_text, font) > max_w)
+        font = UI_TEXT_16;
+    if(MeasureUIText(max_text, font) > max_w)
+        font = UI_TEXT_12;
     max_text_w = MeasureUIText(max_text, font);
     FormatLocaleText(text, sizeof(text), "starting_in", remaining);
     text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ScaleUIPx(40);
@@ -869,6 +901,43 @@ session_round_label(InbeApp *app, char *text, size_t text_size)
     if(text == NULL || text_size == 0)
         return;
     FormatLocaleText(text, text_size, "session_round_label", app->inbe.round + 1);
+}
+
+static int
+session_draw_round_title_bar(InbeApp *app, const char *title, int height,
+                             int show_close)
+{
+    int hover = 0;
+    int close_icon = ScaleUIPx(18);
+    int close_padding = ScaleUIPx(6);
+    int close_total = close_icon + close_padding * 2;
+    int close_x = view_width - close_total - ScaleUIPx(12);
+    int close_y = (height - close_total) / 2;
+    int side_reserved = view_width - close_x + ScaleUIPx(8);
+    int font = UI_TEXT_24;
+    int max_w = view_width - side_reserved * 2;
+    int title_w;
+
+    if(title == NULL)
+        title = "";
+    if(close_y < 0)
+        close_y = 0;
+    if(max_w < ScaleUIPx(48))
+        max_w = view_width - ScaleUIPx(16);
+    title_w = MeasureUIText(title, font);
+    while(font > GetUIFontSize() && title_w > max_w) {
+        font--;
+        title_w = MeasureUIText(title, font);
+    }
+
+    DrawUITitleBar("", height);
+    DrawUIText(title, (view_width - title_w) / 2,
+               GetUIControlTextY(title, 0, height, font), font, GetThemeText());
+    if(show_close && app != NULL && !app->modal.active &&
+       DrawUIPaddedIconBtn(close_x, close_y, close_icon, close_padding,
+                           app->icons[UI_ICON_TYPE_X], &hover))
+        return 1;
+    return 0;
 }
 
 void
@@ -905,39 +974,33 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     char title[32];
 
     session_round_label(app, title, sizeof(title));
-    if(app->show_session_return_button &&
-       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, title_h)) {
+    if(session_draw_round_title_bar(app, title, title_h,
+                                    app->show_session_return_button)) {
         if(app->session_paused) {
             stop_android_background_session(app);
             app_init(app);
         } else {
             app_open_modal(app, UIModalConfirmExitSession);
         }
-    } else if(!app->show_session_return_button) {
-        DrawUITitleBar(title, title_h);
     }
 
-    if(app->show_session_volume_control) {
-        if(DrawUIIconSliderPopup((UIIconSliderPopup){
-               .id = 500,
-               .x = view_width - ScaleUIPx(56),
-               .y = (title_h - (ScaleUIPx(24) + ScaleUIPx(10) * 2)) / 2,
-               .icon_size = ScaleUIPx(24),
-               .icon_padding = ScaleUIPx(10),
-               .icon = sound_icon_for_volume(app),
-               .open = &app->volume_popup_active,
-               .value = &app->sound_volume,
-               .min = SETTINGS_VOLUME_MIN,
-               .max = SETTINGS_VOLUME_MAX,
-               .popup_width = ScaleUIPx(44),
-               .popup_height = ScaleUIPx(200)
-           })) {
-            app->settings_dirty = 1;
-            update_session_sounds(app);
-            save_settings(app);
-        }
-    } else {
-        app->volume_popup_active = 0;
+    if(DrawUIIconSliderPopup((UIIconSliderPopup){
+           .id = 500,
+           .x = view_width - ScaleUIPx(76),
+           .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
+           .icon_size = ScaleUIPx(18),
+           .icon_padding = ScaleUIPx(5),
+           .icon = sound_icon_for_volume(app),
+           .open = &app->volume_popup_active,
+           .value = &app->sound_volume,
+           .min = SETTINGS_VOLUME_MIN,
+           .max = SETTINGS_VOLUME_MAX,
+           .popup_width = ScaleUIPx(40),
+           .popup_height = ScaleUIPx(176)
+       })) {
+        app->settings_dirty = 1;
+        update_session_sounds(app);
+        save_settings(app);
     }
 
     if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {

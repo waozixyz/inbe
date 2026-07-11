@@ -10,9 +10,12 @@ Návyky
 [tab_practice]
 Cvičení
 ---
-[profile_data_title]
-Profile data
-------
+[profile_data]
+Data
+---
+[profile_sync_tab]
+Sync
+---
 [profile_habits_label]
 Navyky
 ---
@@ -57,13 +60,13 @@ Aktualizace
 ---
 [profile_no_account]
 Zadny ucet
-------------
-[profile_friends_count_format]
+---
+[profile_friends_summary]
 %d pratel
 ---
-[profile_pending_count_format]
-Pending: %d
-------
+[profile_friends_pending_summary]
+%d pratel +%d
+---
 [profile_add_friend_button]
 Pridat pritele
 ---
@@ -78,7 +81,7 @@ Zadna data zebricku
 ---
 [profile_practice_label]
 Cviceni
-------
+---
 [profile_my_habits_title]
 My habits
 ---
@@ -101,9 +104,6 @@ Customize Nav
 ---
 [customize_nav_add]
 Add item
----
-[customize_nav_slot]
-Bottom nav item
 ---
 [play_button]
 SPUSTIT
@@ -298,10 +298,10 @@ Klidny pruvodce pro dychani, navyky a synchronizaci.
 Motiv
 ---
 [theme_mode_label]
-Režim barev
+Theme mode
 ---
 [theme_follow_device]
-Podle zařízení
+System
 ---
 [speed_label]
 Rychlost
@@ -362,9 +362,6 @@ Kruh
 ---
 [volume_label]
 Hlasitost
----
-[show_session_volume_control_label]
-Zobrazit ovládání hlasitosti
 ---
 [show_session_return_button_label]
 Zobrazit tlačítko návratu

@@ -41,24 +41,43 @@ settings_sync_account_set_import_dialog(SettingsSyncKeyImportDialog callback)
 }
 
 static int
-settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
-                              UITextInputStyle style)
+settings_draw_public_id_link(const char *text, int x, int w, int *y, int font)
 {
-    int field_h;
+    int link_h;
     int clicked = 0;
 
     if(text == NULL || y == NULL)
         return 0;
 
+    link_h = GetUITextHeight(text, font) + ScaleUIPx(8);
+    if(link_h < ScaleUIPx(28))
+        link_h = ScaleUIPx(28);
+    clicked = DrawUIHref((UIHref){
+        .bounds = {(float)x, (float)*y, (float)w, (float)link_h},
+        .text = text,
+        .font = font
+    });
+    *y += link_h;
+    return clicked;
+}
+
+static void
+settings_draw_public_id_field(const char *text, int x, int w, int *y, int font,
+                              UITextInputStyle style)
+{
+    int field_h;
+
+    if(text == NULL || y == NULL)
+        return;
+
     field_h = GetUIReadonlyTextBoxHeight(text, font, w, style, 0);
-    clicked = DrawUIReadonlyTextBox((UIReadonlyTextBox){
+    DrawUIReadonlyTextBox((UIReadonlyTextBox){
         .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
         .text = text,
         .font = font,
         .style = style
     });
     *y += field_h;
-    return clicked;
 }
 
 static void
@@ -261,7 +280,8 @@ settings_sync_draw_account_id(InbeApp *app, const InbeSyncAccount *account,
         snprintf(display, sizeof(display), "@%s", alias);
     else
         settings_compact_public_id(account->public_id, display, sizeof(display));
-    if(settings_draw_public_id_field(display, x, w, y, small_font, style) && app != NULL)
+    (void)style;
+    if(settings_draw_public_id_link(display, x, w, y, small_font) && app != NULL)
         app_open_modal(app, UIModalSyncPublicId);
 }
 
@@ -633,6 +653,18 @@ settings_sync_account_draw_config(InbeApp *app, int x, int w, int *y)
     int hover = 0;
     int commit = 0;
     UITextInputStyle input_style = settings_sync_text_style();
+
+    if(app != NULL && app->sync_server_url[0] == '\0') {
+        const char *saved;
+
+        settings_sync_ensure_default_server();
+        saved = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+        snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
+                 saved != NULL && saved[0] != '\0'
+                     ? saved
+                     : INBE_SYNC_SERVER_URL_DEFAULT);
+        app->sync_server_url_cursor = (int)strlen(app->sync_server_url);
+    }
 
     if(!has_account) {
         UIButtonRowItem buttons[2] = {

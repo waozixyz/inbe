@@ -12,6 +12,9 @@ int app_android_bottom_nav_height(void);
 void app_draw_bottom_nav(InbeApp *app);
 int app_draw_customize_nav_page(InbeApp *app);
 void app_apply_nav_route(InbeApp *app, int route);
+void app_update_nav_sidebar_mode(InbeApp *app);
+void app_close_nav_sidebar(InbeApp *app);
+int app_return_to_nav_sidebar_if_needed(InbeApp *app);
 void app_reset_bottom_nav_routes(InbeApp *app);
 void app_sanitize_bottom_nav_routes(InbeApp *app);
 

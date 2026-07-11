@@ -106,13 +106,6 @@ settings_tab_content_height(InbeApp *app, int tab, int content_w)
     return settings_about_content_height(content_w);
 }
 
-static int
-settings_overview_content_height(int content_w)
-{
-    (void)content_w;
-    return ScaleUIPx(250);
-}
-
 typedef struct SettingsScrollPageContext {
     InbeApp *app;
     int tab;
@@ -126,13 +119,11 @@ settings_scroll_page_content_height(int content_w, void *user_data)
 
     if(planned_content_w < ScaleUIPx(160))
         planned_content_w = content_w;
-    if(ctx->tab == SETTINGS_TAB_OVERVIEW)
-        return settings_overview_content_height(planned_content_w);
     return settings_tab_content_height(ctx->app, ctx->tab, planned_content_w);
 }
 
-static const char *
-settings_tab_label(int tab)
+const char *
+settings_screen_tab_label(int tab)
 {
     switch(tab) {
     case SETTINGS_TAB_SESSION:
@@ -152,42 +143,16 @@ static void
 settings_draw_section_header(InbeApp *app, int tab)
 {
     int header_h = GetUITabBarHeight();
-    const char *title = settings_tab_label(tab);
+    const char *title = settings_screen_tab_label(tab);
 
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, header_h)) {
-        AppRoute route = app_current_route(app);
-        route.settings_tab = SETTINGS_TAB_OVERVIEW;
+    if(app_draw_close_title_bar(app, title, header_h)) {
         app->settings_scroll = 0;
         if(app->modal.type == UIModalThemePicker)
             app_close_modal(app);
         settings_screen_clear_status();
-        app_switch_route(app, route);
-    }
-}
-
-static void
-settings_draw_overview(InbeApp *app, int x, int w, int *y)
-{
-    const int tabs[] = {
-        SETTINGS_TAB_SESSION,
-        SETTINGS_TAB_DEVICE,
-        SETTINGS_TAB_THEME,
-        SETTINGS_TAB_ABOUT
-    };
-    int btn_h = ScaleUIPx(40);
-    int gap = ScaleUIPx(10);
-    int hover = 0;
-    for(int i = 0; i < 4; i++) {
-        if(DrawUIGenericButton(x, *y, w, btn_h, settings_tab_label(tabs[i]),
-                                  UI_BUTTON_STYLE_SECONDARY, app->modal.active,
-                                  &hover)) {
-            AppRoute route = app_current_route(app);
-            route.settings_tab = tabs[i];
-            app->settings_scroll = 0;
-            settings_screen_clear_status();
-            app_switch_route(app, route);
-        }
-        *y += btn_h + gap;
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
     }
 }
 
@@ -202,8 +167,8 @@ settings_screen_draw(InbeApp *app)
     if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
         app->settings_drag_slider = 0;
 
-    if(app->settings_tab < SETTINGS_TAB_OVERVIEW || app->settings_tab >= SETTINGS_TAB_COUNT)
-        app->settings_tab = SETTINGS_TAB_OVERVIEW;
+    if(app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT)
+        app->settings_tab = SETTINGS_TAB_SESSION;
 
     detail_header_h = GetUITabBarHeight();
     tab_content_start_y = detail_header_h;
@@ -219,10 +184,7 @@ settings_screen_draw(InbeApp *app)
     if(content_viewport_h < 0)
         content_viewport_h = 0;
 
-    if(app->settings_tab == SETTINGS_TAB_OVERVIEW)
-        DrawUITitleBar(GetLocaleText("settings_title"), detail_header_h);
-    else
-        settings_draw_section_header(app, app->settings_tab);
+    settings_draw_section_header(app, app->settings_tab);
 
     {
         SettingsScrollPageContext page_ctx = {app, app->settings_tab};
@@ -237,9 +199,7 @@ settings_screen_draw(InbeApp *app)
         });
         int y = page.content_y;
 
-        if(app->settings_tab == SETTINGS_TAB_OVERVIEW)
-            settings_draw_overview(app, page.content_x, page.content_w, &y);
-        else if(app->settings_tab == SETTINGS_TAB_THEME)
+        if(app->settings_tab == SETTINGS_TAB_THEME)
             settings_theme_draw(app, page.content_x, page.content_w, &y, &app->theme_state);
         else if(app->settings_tab == SETTINGS_TAB_SESSION)
             settings_session_draw(app, page.content_x, page.content_w, &y);

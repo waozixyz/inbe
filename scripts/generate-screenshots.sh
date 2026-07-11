@@ -28,7 +28,7 @@ SCENES=(
   "data:08-data:0:0"
   "my_practices:09-my-practices:4:0"
   "configure_account:10-configure-account:7:1"
-  "settings_overview:11-settings-overview:0:0"
+  "settings_session:11-settings-session:0:0"
   "theme_selection:12-theme-selection:0:0"
 )
 

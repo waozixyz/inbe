@@ -252,7 +252,7 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     FormatLocaleText(step_title, sizeof(step_title), "sun_salutation_session_step_title",
                      step + 1, SUN_SALUTATION_STEP_COUNT);
     if(app->show_session_return_button &&
-       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], step_title, title_h)) {
+       app_draw_close_title_bar(app, step_title, title_h)) {
         sun_salutation_request_exit(app);
         return;
     } else if(!app->show_session_return_button) {

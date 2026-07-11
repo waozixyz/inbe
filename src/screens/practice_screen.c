@@ -154,7 +154,7 @@ practice_screen_handle_config_title(InbeApp *app, const char *title, int modal_t
     title_h = practice_screen_subscreen_integrated(app, modal_type)
                   ? app_content_top_reserved(app)
                   : GetUITitleBarHeight();
-    if(!DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], title, title_h))
+    if(!app_draw_close_title_bar(app, title, title_h))
         return 0;
 
     if(app->modal.active && (int)app->modal.type == modal_type) {

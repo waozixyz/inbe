@@ -10,9 +10,12 @@ Hábitos
 [tab_practice]
 Práctica
 ---
-[profile_data_title]
-Profile data
-------
+[profile_data]
+Data
+---
+[profile_sync_tab]
+Sync
+---
 [profile_habits_label]
 Habitos
 ---
@@ -57,13 +60,13 @@ Actualizando
 ---
 [profile_no_account]
 Sin cuenta
-------------
-[profile_friends_count_format]
+---
+[profile_friends_summary]
 %d amigos
 ---
-[profile_pending_count_format]
-Pending: %d
-------
+[profile_friends_pending_summary]
+%d amigos +%d
+---
 [profile_add_friend_button]
 Anadir amigo
 ---
@@ -78,7 +81,7 @@ Sin datos de clasificacion
 ---
 [profile_practice_label]
 Practica
-------
+---
 [profile_my_habits_title]
 My habits
 ---
@@ -101,9 +104,6 @@ Customize Nav
 ---
 [customize_nav_add]
 Add item
----
-[customize_nav_slot]
-Bottom nav item
 ---
 [play_button]
 REPRODUCIR
@@ -298,10 +298,10 @@ Un companero tranquilo para respiracion, habitos y sincronizacion.
 Tema
 ---
 [theme_mode_label]
-Modo de color
+Theme mode
 ---
 [theme_follow_device]
-Seguir dispositivo
+System
 ---
 [speed_label]
 Velocidad
@@ -362,9 +362,6 @@ Circulo
 ---
 [volume_label]
 Volumen
----
-[show_session_volume_control_label]
-Mostrar control de volumen
 ---
 [show_session_return_button_label]
 Mostrar botón de volver

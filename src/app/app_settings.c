@@ -111,6 +111,33 @@ load_navigation_mode(void)
     return NAV_MODE_TABBAR;
 }
 
+static UIIconType
+default_profile_picture_icon(void)
+{
+    UIIconType fallback = GetUIProfilePictureIconType(0);
+    return fallback != UI_ICON_TYPE_NONE ? fallback : UI_ICON_TYPE_PROFILE;
+}
+
+static int
+is_profile_picture_icon(UIIconType type)
+{
+    for(int i = 0; i < GetUIProfilePictureIconCount(); i++) {
+        if(GetUIProfilePictureIconType(i) == type)
+            return 1;
+    }
+    return 0;
+}
+
+static UIIconType
+load_profile_picture_icon(void)
+{
+    UIIconType fallback = default_profile_picture_icon();
+    UIIconType type =
+        (UIIconType)storage_get_setting_int("profile_picture_icon", fallback);
+
+    return is_profile_picture_icon(type) ? type : fallback;
+}
+
 static void
 load_bottom_nav_routes(InbeApp *app)
 {
@@ -199,6 +226,7 @@ save_settings(InbeApp *app)
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
         {"navigation_mode", app->navigation_mode},
+        {"profile_picture_icon", app->profile_picture_icon},
         {"bottom_nav_route_count", app->bottom_nav_route_count},
         {"bottom_nav_route_0", app->bottom_nav_routes[0]},
         {"bottom_nav_route_1", app->bottom_nav_routes[1]},
@@ -219,7 +247,6 @@ save_settings(InbeApp *app)
         {"advanced_session_controls", app->advanced_session_controls ? 1 : 0},
         {"double_tap_to_breathe", app->double_tap_to_breathe ? 1 : 0},
         {"show_session_return_button", app->show_session_return_button ? 1 : 0},
-        {"show_session_volume_control", app->show_session_volume_control ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
         {"sun_salutation_repetitions", app->sun_salutation.repetitions},
@@ -320,7 +347,6 @@ app_load_settings(InbeApp *app)
             {&app->advanced_session_controls, "advanced_session_controls", 0},
             {&app->double_tap_to_breathe, "double_tap_to_breathe", 0},
             {&app->show_session_return_button, "show_session_return_button", 1},
-            {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
@@ -341,7 +367,7 @@ app_load_settings(InbeApp *app)
             {&app->orientation_mode, "orientation_mode", APP_ORIENTATION_SYSTEM,
              APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR},
             {&app->main_tab, "main_tab", APP_MAIN_TAB_PRACTICE,
-             APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE},
+             APP_MAIN_TAB_NONE, APP_MAIN_TAB_PRACTICE},
             {&app->habits.screen_mode, "habits_screen_mode", HABITS_SCREEN_OVERVIEW,
              HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_DETAIL},
             {&app->habits.tab, "habits_tab", HABIT_TAB_WEEKLY,
@@ -385,7 +411,15 @@ app_load_settings(InbeApp *app)
     }
 
     app->navigation_mode = load_navigation_mode();
+    app->profile_picture_icon = load_profile_picture_icon();
     load_bottom_nav_routes(app);
+    if(app->bottom_nav_route_count <= 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+    } else if(app->main_tab == APP_MAIN_TAB_NONE) {
+        app->main_tab = app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS
+                            ? APP_MAIN_TAB_HABITS
+                            : APP_MAIN_TAB_PRACTICE;
+    }
 
     manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)

@@ -44,6 +44,7 @@ enum {
 	InbeScreenHabits,
     InbeScreenPet,
     InbeScreenCustomizeNav,
+    InbeScreenNavSidebar,
 	InbeScreenHabitEdit,
 	InbeScreenHabitSessionEdit,
 };

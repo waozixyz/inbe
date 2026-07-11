@@ -42,7 +42,6 @@ enum {
 };
 
 enum {
-    SETTINGS_TAB_OVERVIEW = -1,
     SETTINGS_TAB_SESSION = 0,
     SETTINGS_TAB_DEVICE,
     SETTINGS_TAB_THEME,
@@ -59,10 +58,11 @@ enum {
 };
 
 enum {
-    PROFILE_TAB_OVERVIEW = 0,
+    PROFILE_TAB_SYNC = 0,
+    PROFILE_TAB_OVERVIEW = PROFILE_TAB_SYNC,
+    PROFILE_TAB_DATA,
     PROFILE_TAB_FRIENDS,
     PROFILE_TAB_LEADERBOARD,
-    PROFILE_TAB_DATA,
     PROFILE_TAB_COUNT
 };
 
@@ -102,6 +102,7 @@ typedef enum {
     UIModalConfirmRemoveFriend,
     UIModalConfirmSyncAccountSwitch,
     UIModalBottomNavConfig,
+    UIModalProfilePicturePicker,
 } UIModalType;
 
 typedef enum InbePendingSyncAccountAction {
@@ -185,6 +186,7 @@ typedef enum AppDeviceOrientation {
 } AppDeviceOrientation;
 
 typedef enum AppMainTab {
+    APP_MAIN_TAB_NONE = -1,
     APP_MAIN_TAB_HABITS = 0,
     APP_MAIN_TAB_PRACTICE = 1,
 } AppMainTab;
@@ -227,6 +229,10 @@ typedef struct AppContentTransition {
     float elapsed_seconds;
     float duration_seconds;
 } AppContentTransition;
+
+int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
+int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
+                                      int height);
 
 typedef struct WhmPracticeState {
     Texture2D image_1;
@@ -393,6 +399,8 @@ struct InbeApp {
     int nav_sidebar_open;
     int nav_sidebar_open_frame;
     int nav_sidebar_scroll;
+    int nav_sidebar_return_on_back;
+    UIIconType profile_picture_icon;
     int transition_mode;
     int android_orientation;
     int main_tab;
@@ -409,7 +417,6 @@ struct InbeApp {
     int habit_counter_press_start_x;
     int habit_counter_press_start_y;
     int advanced_session_controls;
-    int show_session_volume_control;
     int double_tap_to_breathe;
     double breath_tap_last_time;
     int hold_display_mode;

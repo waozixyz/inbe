@@ -6,6 +6,7 @@
 
 /* Draw the settings screen. Returns non-zero when it consumed the whole frame. */
 int settings_screen_draw(InbeApp *app);
+const char *settings_screen_tab_label(int tab);
 void settings_screen_clear_status(void);
 void settings_screen_set_status_success(const char *message, const char *detail);
 void settings_screen_set_status_error(const char *message);

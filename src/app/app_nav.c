@@ -20,6 +20,15 @@ enum {
     APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 2,
 };
 
+typedef struct AppSidebarRouteItem {
+    const char *label_key;
+    int route;
+} AppSidebarRouteItem;
+
+typedef struct AppSidebarSettingsItem {
+    int tab;
+} AppSidebarSettingsItem;
+
 static void
 app_block_nav_click_frame(InbeApp *app)
 {
@@ -43,10 +52,107 @@ app_nav_sidebar_width(void)
 }
 
 static int
+app_nav_sidebar_compact(void)
+{
+    return view_width <= ScaleUIPx(480);
+}
+
+static int
+app_nav_sidebar_screen_active(const InbeApp *app)
+{
+    return app != NULL && app->inbe.screen == InbeScreenNavSidebar;
+}
+
+static int
 app_bottom_nav_configurable_route(int route)
 {
     return route == APP_NAV_ROUTE_HABITS ||
            route == APP_NAV_ROUTE_PRACTICE;
+}
+
+static int
+app_main_tab_route(int main_tab)
+{
+    switch(main_tab) {
+    case APP_MAIN_TAB_HABITS: return APP_NAV_ROUTE_HABITS;
+    case APP_MAIN_TAB_PRACTICE: return APP_NAV_ROUTE_PRACTICE;
+    default: break;
+    }
+    return APP_NAV_ROUTE_NONE;
+}
+
+static int
+app_main_tab_for_route(int route)
+{
+    switch(route) {
+    case APP_NAV_ROUTE_HABITS: return APP_MAIN_TAB_HABITS;
+    case APP_NAV_ROUTE_PRACTICE: return APP_MAIN_TAB_PRACTICE;
+    default: break;
+    }
+    return APP_MAIN_TAB_NONE;
+}
+
+static int
+app_bottom_nav_has_route(const InbeApp *app, int route)
+{
+    if(app == NULL || route == APP_NAV_ROUTE_NONE)
+        return 0;
+    for(int i = 0; i < app->bottom_nav_route_count; i++) {
+        if(app->bottom_nav_routes[i] == route)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+app_screen_for_main_tab(int main_tab)
+{
+    return main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits
+                                           : InbeScreenStart;
+}
+
+static void
+app_open_nav_sidebar(InbeApp *app)
+{
+    if(app == NULL || app->modal.active)
+        return;
+    app->nav_sidebar_open = 1;
+    app->nav_sidebar_open_frame = app->inbe.frame;
+    if(app_nav_sidebar_compact())
+        app_switch_screen(app, InbeScreenNavSidebar);
+}
+
+void
+app_close_nav_sidebar(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->nav_sidebar_open = 0;
+    app->nav_sidebar_return_on_back = 0;
+    if(app_nav_sidebar_screen_active(app))
+        app_switch_screen(app, app_screen_for_main_tab(app->main_tab));
+}
+
+void
+app_update_nav_sidebar_mode(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    if(app_nav_sidebar_screen_active(app) && !app_nav_sidebar_compact()) {
+        app->nav_sidebar_open = 1;
+        app_switch_screen(app, app_screen_for_main_tab(app->main_tab));
+    }
+}
+
+int
+app_return_to_nav_sidebar_if_needed(InbeApp *app)
+{
+    if(app == NULL || !app->nav_sidebar_return_on_back ||
+       !app_nav_sidebar_compact())
+        return 0;
+    app->nav_sidebar_return_on_back = 0;
+    app_open_nav_sidebar(app);
+    return 1;
 }
 
 void
@@ -95,6 +201,24 @@ app_sanitize_bottom_nav_routes(InbeApp *app)
     app->bottom_nav_route_count = clean_count;
 }
 
+static void
+app_reconcile_bottom_nav_selection(InbeApp *app)
+{
+    int selected_route;
+
+    if(app == NULL)
+        return;
+    app_sanitize_bottom_nav_routes(app);
+    if(app->bottom_nav_route_count <= 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        return;
+    }
+
+    selected_route = app_main_tab_route(app->main_tab);
+    if(!app_bottom_nav_has_route(app, selected_route))
+        app->main_tab = app_main_tab_for_route(app->bottom_nav_routes[0]);
+}
+
 void
 app_set_android_bottom_nav_height(int height)
 {
@@ -121,23 +245,55 @@ app_open_main_tab(InbeApp *app, int main_tab, int persist)
         app->habits.scroll = 0;
     }
 
+    if(main_tab == APP_MAIN_TAB_NONE) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app_switch_screen(app, InbeScreenStart);
+        if(persist)
+            save_settings(app);
+        return;
+    }
+
     app->main_tab = clampi(main_tab, APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE);
     if(app->main_tab == APP_MAIN_TAB_PRACTICE)
         app->practice_tab = PRACTICE_TAB_PLAY;
-    app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-                               ? InbeScreenHabits
-                               : InbeScreenStart);
+    app_switch_screen(app, app_screen_for_main_tab(app->main_tab));
     if(persist)
         save_settings(app);
+}
+
+static void
+app_open_profile_tab(InbeApp *app, int tab)
+{
+    AppRoute route;
+    int return_to_sidebar;
+
+    if(app == NULL)
+        return;
+    return_to_sidebar = app_nav_sidebar_screen_active(app);
+    app->nav_sidebar_open = 0;
+    if(app->practice_tab == PRACTICE_TAB_CONFIG)
+        app_leave_practice_config(app);
+    app->profile_view = PROFILE_VIEW_MAIN;
+    app->profile_scroll = 0;
+    app->sync_server_url_focused = 0;
+    settings_screen_clear_status();
+    app_block_nav_click_frame(app);
+    route = app_current_route(app);
+    route.screen = InbeScreenProfile;
+    route.profile_view = PROFILE_VIEW_MAIN;
+    route.profile_tab = clampi(tab, PROFILE_TAB_SYNC, PROFILE_TAB_COUNT - 1);
+    app->nav_sidebar_return_on_back = return_to_sidebar;
+    app_switch_route(app, route);
 }
 
 void
 app_apply_nav_route(InbeApp *app, int route)
 {
-    AppRoute app_route;
+    int return_to_sidebar;
 
     if(app == NULL)
         return;
+    return_to_sidebar = app_nav_sidebar_screen_active(app);
 
     if(app->inbe.screen == InbeScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER) {
@@ -148,73 +304,32 @@ app_apply_nav_route(InbeApp *app, int route)
     switch(route) {
     case APP_NAV_ROUTE_PROFILE:
     case APP_NAV_ROUTE_ACCOUNT:
-        app->nav_sidebar_open = 0;
-        if(app->practice_tab == PRACTICE_TAB_CONFIG)
-            app_leave_practice_config(app);
-        app->profile_scroll = 0;
-        app->sync_server_url_focused = 0;
-        settings_screen_clear_status();
-        app_block_nav_click_frame(app);
-        app_route = app_current_route(app);
-        app_route.screen = InbeScreenProfile;
-        app_route.profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
-        app_route.profile_tab = PROFILE_TAB_OVERVIEW;
-        app_switch_route(app, app_route);
+        app_open_profile_tab(app, PROFILE_TAB_SYNC);
         break;
     case APP_NAV_ROUTE_DATA:
-        app->nav_sidebar_open = 0;
-        if(app->practice_tab == PRACTICE_TAB_CONFIG)
-            app_leave_practice_config(app);
-        app->profile_scroll = 0;
-        app->sync_server_url_focused = 0;
-        settings_screen_clear_status();
-        app_block_nav_click_frame(app);
-        app_route = app_current_route(app);
-        app_route.screen = InbeScreenProfile;
-        app_route.profile_view = PROFILE_VIEW_DATA;
-        app_route.profile_tab = PROFILE_TAB_OVERVIEW;
-        app_switch_route(app, app_route);
+        app_open_profile_tab(app, PROFILE_TAB_DATA);
         break;
     case APP_NAV_ROUTE_FRIENDS:
-        app->nav_sidebar_open = 0;
-        if(app->practice_tab == PRACTICE_TAB_CONFIG)
-            app_leave_practice_config(app);
-        app->profile_scroll = 0;
-        settings_screen_clear_status();
-        app_block_nav_click_frame(app);
-        app_route = app_current_route(app);
-        app_route.screen = InbeScreenProfile;
-        app_route.profile_view = PROFILE_VIEW_MAIN;
-        app_route.profile_tab = PROFILE_TAB_FRIENDS;
-        app_switch_route(app, app_route);
+        app_open_profile_tab(app, PROFILE_TAB_FRIENDS);
         break;
     case APP_NAV_ROUTE_LEADERBOARD:
-        app->nav_sidebar_open = 0;
-        if(app->practice_tab == PRACTICE_TAB_CONFIG)
-            app_leave_practice_config(app);
-        app->profile_scroll = 0;
-        settings_screen_clear_status();
-        app_block_nav_click_frame(app);
-        app_route = app_current_route(app);
-        app_route.screen = InbeScreenProfile;
-        app_route.profile_view = PROFILE_VIEW_MAIN;
-        app_route.profile_tab = PROFILE_TAB_LEADERBOARD;
-        app_switch_route(app, app_route);
+        app_open_profile_tab(app, PROFILE_TAB_LEADERBOARD);
         break;
     case APP_NAV_ROUTE_PRACTICE:
         app->nav_sidebar_open = 0;
+        app->nav_sidebar_return_on_back = return_to_sidebar;
         app_open_main_tab(app, APP_MAIN_TAB_PRACTICE, 1);
         break;
     case APP_NAV_ROUTE_HABITS:
         app->nav_sidebar_open = 0;
+        app->nav_sidebar_return_on_back = return_to_sidebar;
         app_open_main_tab(app, APP_MAIN_TAB_HABITS, 1);
         break;
     case APP_NAV_ROUTE_STACK:
-        if(!app->modal.active) {
-            app->nav_sidebar_open = !app->nav_sidebar_open;
-            if(app->nav_sidebar_open)
-                app->nav_sidebar_open_frame = app->inbe.frame;
-        }
+        if(app_nav_sidebar_screen_active(app) || app->nav_sidebar_open)
+            app_close_nav_sidebar(app);
+        else
+            app_open_nav_sidebar(app);
         break;
     default:
         break;
@@ -230,6 +345,14 @@ app_is_practice_fullscreen_subview(const InbeApp *app)
             app->practice_tab == PRACTICE_TAB_CONFIG);
 }
 
+static int
+app_is_blank_home(const InbeApp *app)
+{
+    return app != NULL &&
+           app->inbe.screen == InbeScreenStart &&
+           app->main_tab == APP_MAIN_TAB_NONE;
+}
+
 int
 app_content_bottom_reserved(const InbeApp *app)
 {
@@ -240,7 +363,8 @@ app_content_bottom_reserved(const InbeApp *app)
         return 0;
     if(app_is_practice_fullscreen_subview(app))
         return 0;
-    if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE)
+    if(app_current_nav_route(app) == APP_NAV_ROUTE_NONE &&
+       !app_is_blank_home(app))
         return 0;
     return GetUIBottomNavHeight();
 }
@@ -272,7 +396,7 @@ app_nav_route_label(int route)
     switch(route) {
     case APP_NAV_ROUTE_PROFILE:
     case APP_NAV_ROUTE_ACCOUNT: return GetLocaleText("sync_configure_account_button");
-    case APP_NAV_ROUTE_DATA: return GetLocaleText("profile_data_title");
+    case APP_NAV_ROUTE_DATA: return GetLocaleText("profile_data");
     case APP_NAV_ROUTE_FRIENDS: return GetLocaleText("profile_friends_title");
     case APP_NAV_ROUTE_LEADERBOARD: return GetLocaleText("profile_leaderboard_title");
     case APP_NAV_ROUTE_HABITS: return GetLocaleText("tab_habits");
@@ -309,18 +433,11 @@ app_current_nav_route(const InbeApp *app)
         return APP_NAV_ROUTE_NONE;
     switch(app->inbe.screen) {
     case InbeScreenProfile:
-        if(app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT)
-            return APP_NAV_ROUTE_ACCOUNT;
-        if(app->profile_view == PROFILE_VIEW_DATA ||
-           app->profile_tab == PROFILE_TAB_DATA)
-            return APP_NAV_ROUTE_DATA;
-        if(app->profile_tab == PROFILE_TAB_FRIENDS)
-            return APP_NAV_ROUTE_FRIENDS;
-        if(app->profile_tab == PROFILE_TAB_LEADERBOARD)
-            return APP_NAV_ROUTE_LEADERBOARD;
-        return APP_NAV_ROUTE_ACCOUNT;
+        return APP_NAV_ROUTE_PROFILE;
     case InbeScreenStart:
         if(app_is_practice_fullscreen_subview(app))
+            return APP_NAV_ROUTE_NONE;
+        if(app->main_tab == APP_MAIN_TAB_NONE)
             return APP_NAV_ROUTE_NONE;
         return APP_NAV_ROUTE_PRACTICE;
     case InbeScreenHabits:
@@ -336,9 +453,12 @@ app_nav_route_active(const InbeApp *app, int route)
 {
     if(app == NULL)
         return 0;
+    if(route == APP_NAV_ROUTE_PROFILE)
+        return app->inbe.screen == InbeScreenProfile;
     if(route == APP_NAV_ROUTE_ACCOUNT)
         return app->inbe.screen == InbeScreenProfile &&
-               app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT;
+               app->profile_view == PROFILE_VIEW_MAIN &&
+               app->profile_tab == PROFILE_TAB_SYNC;
     if(route == APP_NAV_ROUTE_DATA)
         return app->inbe.screen == InbeScreenProfile &&
                (app->profile_view == PROFILE_VIEW_DATA ||
@@ -350,13 +470,15 @@ app_nav_route_active(const InbeApp *app, int route)
         return app->inbe.screen == InbeScreenProfile &&
                app->profile_tab == PROFILE_TAB_LEADERBOARD;
     if(route == APP_NAV_ROUTE_PRACTICE)
-        return app->inbe.screen == InbeScreenStart;
+        return app->inbe.screen == InbeScreenStart &&
+               app->main_tab == APP_MAIN_TAB_PRACTICE;
     if(route == APP_NAV_ROUTE_HABITS)
         return app->inbe.screen == InbeScreenHabits ||
                app->inbe.screen == InbeScreenHabitEdit ||
                app->inbe.screen == InbeScreenHabitSessionEdit;
     if(route == APP_NAV_ROUTE_STACK)
-        return app->nav_sidebar_open ||
+        return app_nav_sidebar_screen_active(app) ||
+               app->nav_sidebar_open ||
                (app->modal.active && app->modal.type == UIModalBottomNavConfig);
     return 0;
 }
@@ -373,7 +495,8 @@ app_should_draw_bottom_nav(const InbeApp *app)
     if(app->inbe.screen == InbeScreenHabits &&
        app->habits.screen_mode == HABITS_SCREEN_REORDER)
         return 0;
-    return app_current_nav_route(app) != APP_NAV_ROUTE_NONE;
+    return app_current_nav_route(app) != APP_NAV_ROUTE_NONE ||
+           app_is_blank_home(app);
 }
 
 int
@@ -404,6 +527,68 @@ app_sidebar_button(InbeApp *app, int x, int *y, int w, const char *label,
 }
 
 static void
+app_open_settings_tab(InbeApp *app, int tab)
+{
+    AppRoute route;
+    int return_to_sidebar;
+
+    if(app == NULL)
+        return;
+    return_to_sidebar = app_nav_sidebar_screen_active(app);
+    app->nav_sidebar_open = 0;
+    if(app->practice_tab == PRACTICE_TAB_CONFIG)
+        app_leave_practice_config(app);
+    app->settings_scroll = 0;
+    settings_screen_clear_status();
+    app_block_nav_click_frame(app);
+    route = app_current_route(app);
+    route.screen = InbeScreenSettings;
+    route.settings_tab = tab;
+    app->nav_sidebar_return_on_back = return_to_sidebar;
+    app_switch_route(app, route);
+}
+
+static int
+app_sidebar_settings_button(InbeApp *app, int x, int *y, int w, int tab)
+{
+    int hover = 0;
+    int h = ScaleUIPx(38);
+    int disabled = app != NULL && app->modal.active;
+
+    if(DrawUIGenericButton(x, *y, w, h, settings_screen_tab_label(tab),
+                              UI_BUTTON_STYLE_SECONDARY, disabled, &hover)) {
+        app_open_settings_tab(app, tab);
+        return 1;
+    }
+    *y += h + ScaleUIPx(8);
+    return 0;
+}
+
+static int
+app_draw_sidebar_route_items(InbeApp *app, int x, int *y, int w,
+                             const AppSidebarRouteItem *items, int count)
+{
+    for(int i = 0; i < count; i++) {
+        if(app_sidebar_button(app, x, y, w, GetLocaleText(items[i].label_key),
+                              items[i].route))
+            return 1;
+    }
+    return 0;
+}
+
+static int
+app_draw_sidebar_settings_items(InbeApp *app, int x, int *y, int w,
+                                const AppSidebarSettingsItem *items,
+                                int count)
+{
+    for(int i = 0; i < count; i++) {
+        if(app_sidebar_settings_button(app, x, y, w, items[i].tab))
+            return 1;
+    }
+    return 0;
+}
+
+static void
 app_sidebar_account_label(char *out, size_t out_size)
 {
     InbeSyncAccount account;
@@ -424,104 +609,73 @@ app_sidebar_account_label(char *out, size_t out_size)
 
 static int
 app_draw_sidebar_profile_header(InbeApp *app, int x, int *y, int w,
-                                Vector2 mouse, int has_account,
-                                const char *account_label)
+                                int has_account, const char *account_label)
 {
     int header_h = ScaleUIPx(138);
-    int banner_h = ScaleUIPx(48);
-    int avatar_r = ScaleUIPx(28);
-    int avatar_x = x + ScaleUIPx(16) + avatar_r;
-    int avatar_y = *y + banner_h + ScaleUIPx(24);
-    int name_x = avatar_x + avatar_r + ScaleUIPx(14);
-    int name_y = avatar_y - ScaleUIPx(14);
-    int name_font = GetUIFontSize();
-    int small = GetUISmallFontSize();
-    int count_y = avatar_y + avatar_r + ScaleUIPx(8);
-    int half_w = (w - ScaleUIPx(8)) / 2;
-    int released = app != NULL &&
-                   app->nav_sidebar_open_frame != app->inbe.frame &&
-                   IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
-    Rectangle name_bounds = {(float)x,
-                             (float)(*y + banner_h - ScaleUIPx(8)),
-                             (float)w, (float)ScaleUIPx(80)};
-    Rectangle friends_bounds = {(float)x, (float)count_y, (float)half_w,
-                                (float)ScaleUIPx(42)};
-    Rectangle pending_bounds = {(float)(x + half_w + ScaleUIPx(8)),
-                                (float)count_y, (float)half_w,
-                                (float)ScaleUIPx(42)};
+    int friends_count = has_account ? profile_social_friends_count(app) : 0;
+    int pending_count = has_account ? profile_social_pending_count(app) : 0;
     char friends_text[64];
-    char pending_text[64];
+    UISidebarAccountHeaderResult header;
 
-    snprintf(friends_text, sizeof(friends_text),
-             GetLocaleText("profile_friends_count_format"),
-             has_account ? profile_social_friends_count(app) : 0);
-    snprintf(pending_text, sizeof(pending_text),
-             GetLocaleText("profile_pending_count_format"),
-             has_account ? profile_social_pending_count(app) : 0);
+    if(pending_count > 0)
+        FormatLocaleText(friends_text, sizeof(friends_text), "profile_friends_pending_summary",
+                         friends_count, pending_count);
+    else
+        snprintf(friends_text, sizeof(friends_text),
+                 GetLocaleText("profile_friends_summary"), friends_count);
 
-    DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w,
-                                     (float)header_h},
-                         0.06f, 8, DarkenUIColor(GetThemeSurface(), 6));
-    DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w,
-                                     (float)banner_h},
-                         0.06f, 8, DarkenUIColor(GetThemeButton(), 12));
-    DrawRectangle(x, *y + banner_h - ScaleUIPx(12), w, ScaleUIPx(12),
-                  DarkenUIColor(GetThemeButton(), 12));
-    DrawCircle(avatar_x, avatar_y, (float)(avatar_r + ScaleUIPx(3)),
-               GetThemeSurface());
-    DrawCircle(avatar_x, avatar_y, (float)avatar_r,
-               LightenUIColor(GetThemeSurface(), 12));
-    DrawCircleLines(avatar_x, avatar_y, (float)avatar_r,
-                    DarkenUIColor(GetThemeText(), 38));
-    if(app != NULL && app->icons[UI_ICON_TYPE_PROFILE].id != 0) {
-        int icon_size = avatar_r + ScaleUIPx(10);
+    header = DrawUISidebarAccountHeader((UISidebarAccountHeader){
+        .x = x,
+        .y = *y,
+        .width = w,
+        .height = header_h,
+        .username = account_label,
+        .subtitle = has_account ? NULL : GetLocaleText("profile_no_account"),
+        .friends_text = friends_text,
+        .icons = app != NULL ? app->icons : NULL,
+        .pfp_icon_type = app != NULL ? app->profile_picture_icon
+                                     : UI_ICON_TYPE_NONE,
+        .content_padding_x = ScaleUIPx(16),
+        .current_frame = app != NULL ? app->inbe.frame : 0,
+        .block_click_frame = app != NULL ? app->nav_sidebar_open_frame : -1
+    });
 
-        DrawUIIconTexture(avatar_x - icon_size / 2, avatar_y - icon_size / 2,
-                          icon_size, app->icons[UI_ICON_TYPE_PROFILE],
-                          GetThemeIcon());
+    if(header.pfp_clicked) {
+        app->nav_sidebar_open = 0;
+        app_open_modal(app, UIModalProfilePicturePicker);
+        *y += header.height + ScaleUIPx(12);
+        return 1;
     }
-
-    DrawUIText(account_label, name_x, name_y, name_font, GetThemeText());
-    if(!has_account)
-        DrawUIText(GetLocaleText("profile_no_account"), name_x,
-                   name_y + ScaleUIPx(22), small,
-                   DarkenUIColor(GetThemeText(), 34));
-
-    DrawUIText(friends_text, x + ScaleUIPx(12), count_y + ScaleUIPx(8),
-               small, GetThemeText());
-    DrawUIText(pending_text, x + half_w + ScaleUIPx(20),
-               count_y + ScaleUIPx(8), small, GetThemeText());
-    DrawLine(x + half_w + ScaleUIPx(4), count_y + ScaleUIPx(6),
-             x + half_w + ScaleUIPx(4), count_y + ScaleUIPx(30),
-             DarkenUIColor(GetThemeText(), 48));
-
-    if(released &&
-       (CheckCollisionPointRec(mouse, friends_bounds) ||
-        CheckCollisionPointRec(mouse, pending_bounds))) {
+    if(header.friends_clicked) {
         app_apply_nav_route(app, has_account ? APP_NAV_ROUTE_FRIENDS
                                              : APP_NAV_ROUTE_ACCOUNT);
-        *y += header_h + ScaleUIPx(12);
+        *y += header.height + ScaleUIPx(12);
         return 1;
-    } else if(released && CheckCollisionPointRec(mouse, name_bounds)) {
+    }
+    if(header.username_clicked) {
         app_apply_nav_route(app, APP_NAV_ROUTE_ACCOUNT);
-        *y += header_h + ScaleUIPx(12);
+        *y += header.height + ScaleUIPx(12);
         return 1;
     }
 
-    *y += header_h + ScaleUIPx(12);
+    *y += header.height + ScaleUIPx(12);
     return 0;
 }
 
 static void
 app_open_bottom_nav_config(InbeApp *app)
 {
+    int return_to_sidebar;
+
     if(app == NULL)
         return;
+    return_to_sidebar = app_nav_sidebar_screen_active(app);
     app_sanitize_bottom_nav_routes(app);
     for(int i = 0; i < app->bottom_nav_route_count; i++)
         app->bottom_nav_config_routes[i] = app->bottom_nav_routes[i];
     app->bottom_nav_config_route_count = app->bottom_nav_route_count;
     app->nav_sidebar_open = 0;
+    app->nav_sidebar_return_on_back = return_to_sidebar;
     app_block_nav_click_frame(app);
     app_switch_screen(app, InbeScreenCustomizeNav);
 }
@@ -532,8 +686,17 @@ app_draw_nav_sidebar(InbeApp *app)
     int sidebar_w;
     int sidebar_x;
     int pad;
+    int footer_h;
+    int footer_gap;
+    int close_h;
+    int close_y;
+    int header_y;
+    int header_h;
+    int scroll_y;
+    int scroll_h;
     int y;
     int hover = 0;
+    int close_hover = 0;
     Vector2 mouse;
     Color scrim = BLACK;
     UIScrollArea area;
@@ -541,8 +704,17 @@ app_draw_nav_sidebar(InbeApp *app)
     InbeSyncAccount account;
     int has_account;
     char account_label[96];
+    static const AppSidebarRouteItem profile_items[] = {
+        {"tab_profile", APP_NAV_ROUTE_PROFILE}
+    };
+    static const AppSidebarSettingsItem settings_items[] = {
+        {SETTINGS_TAB_SESSION},
+        {SETTINGS_TAB_DEVICE},
+        {SETTINGS_TAB_THEME},
+        {SETTINGS_TAB_ABOUT}
+    };
 
-    if(app == NULL || !app->nav_sidebar_open)
+    if(app == NULL || (!app->nav_sidebar_open && !app_nav_sidebar_screen_active(app)))
         return;
 
     ClearUIInputCaptures();
@@ -550,6 +722,16 @@ app_draw_nav_sidebar(InbeApp *app)
     sidebar_w = app_nav_sidebar_width();
     sidebar_x = view_width - sidebar_w;
     pad = ScaleUIPx(16);
+    close_h = ScaleUIPx(40);
+    footer_gap = ScaleUIPx(14);
+    footer_h = close_h + footer_gap * 2 + app_fullscreen_bottom_reserved(app);
+    close_y = view_height - app_fullscreen_bottom_reserved(app) -
+              footer_gap - close_h;
+    if(close_y < footer_gap)
+        close_y = footer_gap;
+    if(footer_h > view_height - ScaleUIPx(80))
+        footer_h = view_height > ScaleUIPx(80) ? view_height - ScaleUIPx(80)
+                                               : view_height;
 
     scrim.a = 92;
     DrawRectangle(0, 0, view_width, view_height, scrim);
@@ -567,14 +749,27 @@ app_draw_nav_sidebar(InbeApp *app)
        !CheckCollisionPointRec(mouse, (Rectangle){(float)sidebar_x, 0.0f,
                                                   (float)sidebar_w,
                                                   (float)view_height})) {
-        app->nav_sidebar_open = 0;
+        app_close_nav_sidebar(app);
         return;
     }
 
+    has_account = sync_account_load(&account);
+    app_sidebar_account_label(account_label, sizeof(account_label));
+    header_y = 0;
+    if(app_draw_sidebar_profile_header(app, sidebar_x, &header_y, sidebar_w,
+                                       has_account, account_label))
+        return;
+
+    header_h = header_y;
+    scroll_y = header_h;
+    scroll_h = view_height - footer_h - scroll_y;
+    if(scroll_h < 0)
+        scroll_h = 0;
+
     area = (UIScrollArea){
-        .bounds = {(float)sidebar_x, 0.0f, (float)sidebar_w,
-                   (float)(view_height - app_fullscreen_bottom_reserved(app))},
-        .content_height = ScaleUIPx(540),
+        .bounds = {(float)sidebar_x, (float)scroll_y, (float)sidebar_w,
+                   (float)scroll_h},
+        .content_height = ScaleUIPx(300),
         .content_x = sidebar_x + pad,
         .content_width = sidebar_w - pad * 2,
         .scroll_offset = &app->nav_sidebar_scroll,
@@ -583,29 +778,17 @@ app_draw_nav_sidebar(InbeApp *app)
     };
     view = BeginUIScrollContainer(area);
     y = view.content_y;
-
-    has_account = sync_account_load(&account);
-    app_sidebar_account_label(account_label, sizeof(account_label));
-    if(app_draw_sidebar_profile_header(app, area.content_x, &y, area.content_width,
-                                       mouse, has_account, account_label)) {
+    if(app_draw_sidebar_route_items(app, area.content_x, &y, area.content_width,
+                                    profile_items,
+                                    (int)(sizeof(profile_items) /
+                                          sizeof(profile_items[0])))) {
         EndUIScrollContainer(area, view);
         return;
     }
-    if(app_sidebar_button(app, area.content_x, &y, area.content_width,
-                          GetLocaleText("sync_configure_account_button"),
-                          APP_NAV_ROUTE_ACCOUNT)) {
-        EndUIScrollContainer(area, view);
-        return;
-    }
-    if(app_sidebar_button(app, area.content_x, &y, area.content_width,
-                          GetLocaleText("profile_friends_title"),
-                          APP_NAV_ROUTE_FRIENDS)) {
-        EndUIScrollContainer(area, view);
-        return;
-    }
-    if(app_sidebar_button(app, area.content_x, &y, area.content_width,
-                          GetLocaleText("profile_leaderboard_title"),
-                          APP_NAV_ROUTE_LEADERBOARD)) {
+    if(app_draw_sidebar_settings_items(app, area.content_x, &y,
+                                       area.content_width, settings_items,
+                                       (int)(sizeof(settings_items) /
+                                             sizeof(settings_items[0])))) {
         EndUIScrollContainer(area, view);
         return;
     }
@@ -619,6 +802,16 @@ app_draw_nav_sidebar(InbeApp *app)
     }
 
     EndUIScrollContainer(area, view);
+
+    DrawLine(sidebar_x, view_height - footer_h, sidebar_x + sidebar_w,
+             view_height - footer_h, DarkenUIColor(GetThemeSurface(), 28));
+    if(DrawUIGenericButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
+                              close_h, GetLocaleText("close_button"),
+                              UI_BUTTON_STYLE_SECONDARY, app->modal.active,
+                              &close_hover)) {
+        app_close_nav_sidebar(app);
+        app_block_nav_click_frame(app);
+    }
 }
 
 static int
@@ -655,7 +848,7 @@ app_save_bottom_nav_config(InbeApp *app)
         app->bottom_nav_routes[i] = i < app->bottom_nav_route_count
                                         ? app->bottom_nav_config_routes[i]
                                         : APP_NAV_ROUTE_NONE;
-    app_sanitize_bottom_nav_routes(app);
+    app_reconcile_bottom_nav_selection(app);
     save_settings(app);
 }
 
@@ -735,7 +928,7 @@ app_draw_customize_nav_page(InbeApp *app)
         app->bottom_nav_config_route_count = app->bottom_nav_route_count;
     }
 
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+    if(app_draw_close_title_bar(app,
                             GetLocaleText("customize_nav_title"),
                             GetUITabBarHeight())) {
         app_block_nav_click_frame(app);
@@ -795,7 +988,7 @@ app_draw_customize_nav_page(InbeApp *app)
         int icon_w = ScaleUIPx(36);
         int dropdown_x = page.content_x + handle_w;
         int dropdown_w = page.content_w - handle_w - icon_w - ScaleUIPx(8);
-        int dropdown_y = row_y[i] + ScaleUIPx(18);
+        int dropdown_y = row_y[i] + (row_h - button_h) / 2;
 
         if(reorder.dragging && i == reorder.active_index)
             continue;
@@ -804,8 +997,6 @@ app_draw_customize_nav_page(InbeApp *app)
             dropdown_w = page.content_w - handle_w;
         DrawUIReorderHandle(page.content_x, row_y[i], handle_w, row_h,
                             reorder.active && i == reorder.active_index);
-        DrawUIText(GetLocaleText("customize_nav_slot"), dropdown_x, row_y[i],
-                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 34));
         DrawUIDropdownButton(740 + i, dropdown_x, dropdown_y,
                              dropdown_w, button_h, options,
                              APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]);
@@ -836,15 +1027,13 @@ app_draw_customize_nav_page(InbeApp *app)
         int dropdown_x = page.content_x + handle_w;
         int dropdown_w = page.content_w - handle_w - icon_w - ScaleUIPx(8);
         int overlay_y = row_y[i] + reorder.drag_delta_y;
-        int dropdown_y = overlay_y + ScaleUIPx(18);
+        int dropdown_y = overlay_y + (row_h - button_h) / 2;
 
         if(dropdown_w < ScaleUIPx(140))
             dropdown_w = page.content_w - handle_w;
         DrawRectangle(page.content_x, overlay_y, page.content_w, row_h,
                       LightenUIColor(GetThemeBackground(), 8));
         DrawUIReorderHandle(page.content_x, overlay_y, handle_w, row_h, 1);
-        DrawUIText(GetLocaleText("customize_nav_slot"), dropdown_x, overlay_y,
-                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 34));
         DrawUIDropdownButton(740 + i, dropdown_x, dropdown_y,
                              dropdown_w, button_h, options,
                              APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]);
@@ -911,7 +1100,8 @@ app_draw_bottom_nav(InbeApp *app)
     if(app_android_bottom_nav_height() > 0)
         DrawRectangle(0, view_height - app_android_bottom_nav_height(),
                       view_width, app_android_bottom_nav_height(), BLACK);
-    if(app != NULL && app->nav_sidebar_open) {
+    if(app != NULL && (app->nav_sidebar_open ||
+                       app_nav_sidebar_screen_active(app))) {
         app_draw_nav_sidebar(app);
         return;
     }

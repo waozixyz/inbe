@@ -404,8 +404,8 @@ settings_data_open_sync_account_config(InbeApp *app)
     settings_sync_server_load(app);
     {
         AppRoute route = app_current_route(app);
-        route.profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
-        route.profile_tab = PROFILE_TAB_OVERVIEW;
+        route.profile_view = PROFILE_VIEW_MAIN;
+        route.profile_tab = PROFILE_TAB_SYNC;
         app_switch_route(app, route);
     }
     app->profile_scroll = 0;

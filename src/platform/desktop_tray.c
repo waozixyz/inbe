@@ -3,7 +3,7 @@
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
-#include "DesktopTray.h"
+#include "desktop_tray.h"
 #include "habits_screen.h"
 #include "locale.h"
 #include "practices/practice_registry.h"

@@ -343,26 +343,22 @@ draw_meditation_sound_controls(InbeApp *app)
 {
     int title_h = GetUITitleBarHeight();
 
-    if(app->show_session_volume_control) {
-        if(DrawUIIconSliderPopup((UIIconSliderPopup){
-               .id = 501,
-               .x = view_width - ScaleUIPx(56),
-               .y = (title_h - (ScaleUIPx(24) + ScaleUIPx(10) * 2)) / 2,
-               .icon_size = ScaleUIPx(24),
-               .icon_padding = ScaleUIPx(10),
-               .icon = meditation_sound_icon_for_volume(app),
-               .open = &app->volume_popup_active,
-               .value = &app->sound_volume,
-               .min = SETTINGS_VOLUME_MIN,
-               .max = SETTINGS_VOLUME_MAX,
-               .popup_width = ScaleUIPx(44),
-               .popup_height = ScaleUIPx(200)
-           })) {
-            app->settings_dirty = 1;
-            save_settings(app);
-        }
-    } else {
-        app->volume_popup_active = 0;
+    if(DrawUIIconSliderPopup((UIIconSliderPopup){
+           .id = 501,
+           .x = view_width - ScaleUIPx(76),
+           .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
+           .icon_size = ScaleUIPx(18),
+           .icon_padding = ScaleUIPx(5),
+           .icon = meditation_sound_icon_for_volume(app),
+           .open = &app->volume_popup_active,
+           .value = &app->sound_volume,
+           .min = SETTINGS_VOLUME_MIN,
+           .max = SETTINGS_VOLUME_MAX,
+           .popup_width = ScaleUIPx(40),
+           .popup_height = ScaleUIPx(176)
+       })) {
+        app->settings_dirty = 1;
+        save_settings(app);
     }
 }
 
@@ -419,7 +415,7 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
     int title_h = GetUITitleBarHeight();
 
     if(app->show_session_return_button &&
-       DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("meditation_title"), title_h)) {
+       app_draw_close_title_bar(app, GetLocaleText("meditation_title"), title_h)) {
         meditation_request_exit(app);
         return;
     } else if(!app->show_session_return_button) {
