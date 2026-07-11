@@ -1,7 +1,7 @@
 #include "android_import.h"
 #include "platform.h"
 
-#include "raylib.h"
+#include "flint.h"
 #include <string.h>
 
 #if ANDROID_BUILD

@@ -8,7 +8,7 @@
 #include "ui_clip.h"
 #include "ui.h"
 #include "theme_meta.h"
-#include "raylib.h"
+#include "flint.h"
 #include <stdio.h>
 
 extern int view_width;

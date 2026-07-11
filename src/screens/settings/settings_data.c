@@ -19,7 +19,7 @@
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
 #endif
-#include "raylib.h"
+#include "flint.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

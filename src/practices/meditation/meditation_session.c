@@ -7,7 +7,7 @@
 #include "theme.h"
 #include "ui.h"
 #include "practices/practice_registry.h"
-#include "raylib.h"
+#include "flint.h"
 
 #include <stdio.h>
 

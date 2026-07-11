@@ -1,7 +1,7 @@
 #ifndef PRACTICE_SCREEN_H
 #define PRACTICE_SCREEN_H
 
-#include "raylib.h"
+#include "flint.h"
 #include "app_fwd.h"
 
 #define PRACTICE_CATEGORY_TAB_H 40

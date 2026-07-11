@@ -8,7 +8,7 @@
 #include "sync_client.h"
 #include "theme.h"
 #include "ui.h"
-#include "raylib.h"
+#include "flint.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <string.h>

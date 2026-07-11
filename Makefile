@@ -487,7 +487,7 @@ test: $(TESTS)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -I$(RAYLIB_DIR) $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
@@ -499,20 +499,20 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(FLINT_CURL_CFLAGS) -o $@ \
+		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) $(FLINT_CURL_CFLAGS) -o $@ \
 		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
 $(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
@@ -524,13 +524,13 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		$(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
+		$(FLINT_INCLUDE) \
 		-o $@ \
 		tests/guide_overlay_test.c
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings $(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings $(FLINT_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c
 
@@ -694,7 +694,6 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		$(RAY_CFLAGS) \
 		-DHAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
@@ -718,7 +717,6 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_S
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(CLICK_LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		$(AARCH64_RAY_CFLAGS) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
@@ -802,7 +800,6 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_INCLUDE) \
 		$(WIN64_LIBOQS_INCLUDE) \
 		-I$(WIN64_CURL_INCLUDE_DIR) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
@@ -825,7 +822,6 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_INCLUDE) \
 		$(WIN32_LIBOQS_INCLUDE) \
 		-I$(WIN32_CURL_INCLUDE_DIR) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
@@ -916,7 +912,6 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(WEB_LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \

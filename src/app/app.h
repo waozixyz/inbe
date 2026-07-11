@@ -1,7 +1,7 @@
 #ifndef INBE_APP_H
 #define INBE_APP_H
 
-#include "raylib.h"
+#include "flint.h"
 #include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"

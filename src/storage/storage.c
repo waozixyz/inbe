@@ -3,7 +3,7 @@
 #include "db.h"
 #include "screens/habits_screen.h"
 
-#include "raylib.h"
+#include "flint.h"
 #include <sqlite3.h>
 #include <stdarg.h>
 #include <stdio.h>

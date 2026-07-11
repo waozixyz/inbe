@@ -5,7 +5,7 @@
 #include "theme.h"
 #include "ui.h"
 #include "version.h"
-#include "raylib.h"
+#include "flint.h"
 
 #include <stdio.h>
 

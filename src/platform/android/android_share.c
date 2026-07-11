@@ -4,7 +4,7 @@
 #include "locale.h"
 #include "storage.h"
 #include "version.h"
-#include "raylib.h"
+#include "flint.h"
 #include "miniz.h"
 #include <time.h>
 #include <stdlib.h>

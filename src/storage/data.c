@@ -8,7 +8,7 @@
 #include <android_native_app_glue.h>
 #endif
 
-#include "raylib.h"
+#include "flint.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

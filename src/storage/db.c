@@ -2,7 +2,7 @@
 
 #include "import.h"
 
-#include "raylib.h"
+#include "flint.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

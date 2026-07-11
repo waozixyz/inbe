@@ -1,7 +1,7 @@
 #include "android_runtime_assets.h"
 
 #include "runtime_assets.h"
-#include "raylib.h"
+#include "flint.h"
 
 #include <android/native_activity.h>
 #include <android_native_app_glue.h>
