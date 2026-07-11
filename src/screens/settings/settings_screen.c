@@ -1,6 +1,7 @@
 #include "settings_screen.h"
 
 #include "app.h"
+#include "app_nav.h"
 #include "app_settings.h"
 #include "locale.h"
 #include "settings_about.h"
@@ -150,6 +151,8 @@ settings_draw_section_header(InbeApp *app, int tab)
         if(app->modal.type == UIModalThemePicker)
             app_close_modal(app);
         settings_screen_clear_status();
+        if(app_return_to_nav_sidebar_if_needed(app))
+            return;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);
