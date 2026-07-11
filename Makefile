@@ -84,8 +84,6 @@ WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
-ANDROID_FAST_ABI ?= $(shell $(ADB) shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1)
-ANDROID_DEBUG_ABIS ?= $(if $(strip $(ANDROID_FAST_ABI)),$(ANDROID_FAST_ABI),arm64-v8a)
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
@@ -269,15 +267,15 @@ APP_SRCS := \
 
 ifeq ($(NATIVE_PLATFORM),linux)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; fi)
-DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR)
+DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA -DFLINT_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR -DFLINT_DESKTOP_TRAY_APPINDICATOR)
 endif
 ifeq ($(NATIVE_PLATFORM),freebsd)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DFLINT_DESKTOP_TRAY_GTK_STATUS_ICON
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
 APP_SRCS += src/platform/desktop_tray.c
-DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DFLINT_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
 endif
 
@@ -358,6 +356,7 @@ LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_RANLIB ?= emranlib
+include $(FLINT_DIR)/mk/raylib.mk
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
@@ -382,7 +381,7 @@ MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
 include $(FLINT_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
+.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -563,57 +562,8 @@ $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
 	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/ui_icon_assets.c
 
-$(RAYLIB_A): $(RAYLIB_SOURCES) Makefile
-	rm -rf $(NATIVE_VENDOR_BUILD_DIR)/raylib-src
-	mkdir -p $(NATIVE_VENDOR_BUILD_DIR)/raylib-src $(RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(NATIVE_VENDOR_BUILD_DIR)/raylib-src/
-	$(MAKE) -j1 -C $(NATIVE_VENDOR_BUILD_DIR)/raylib-src \
-		CC="$(CC)" \
-		AR="ar" \
-		PLATFORM=PLATFORM_DESKTOP_SDL \
-		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
-		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
-$(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
-	rm -rf $(VENDOR_BUILD_DIR)/web/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/web/raylib-src $(WEB_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/web/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/web/raylib-src \
-		PLATFORM=PLATFORM_WEB \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WEB_CC)" \
-		AR="$(WEB_AR)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check
-
-$(CLICK_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src $(CLICK_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src \
-		PLATFORM=PLATFORM_DESKTOP_SDL \
-		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(AARCH64_CC)" \
-		AR="$(AARCH64_AR)" \
-		RANLIB="$(AARCH64_RANLIB)" \
-		SDL_INCLUDE_PATH="$(AARCH64_RAY_SDL_INCLUDE_DIR)" \
-		SDL_LIBRARIES="$(AARCH64_RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(AARCH64_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 	rm -rf $(CLICK_LIBOQS_BUILD_DIR)
@@ -632,40 +582,6 @@ $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
-
-$(WIN64_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src $(WIN64_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src \
-		OS=Windows_NT \
-		PLATFORM=PLATFORM_DESKTOP_RGFW \
-		GRAPHICS=GRAPHICS_API_OPENGL_11 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WIN64_CC)" \
-		AR="$(WIN64_AR)" \
-		RANLIB="$(WIN64_RANLIB)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
-$(WIN32_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src $(WIN32_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src \
-		OS=Windows_NT \
-		PLATFORM=PLATFORM_DESKTOP_RGFW \
-		GRAPHICS=GRAPHICS_API_OPENGL_11 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WIN32_CC)" \
-		AR="$(WIN32_AR)" \
-		RANLIB="$(WIN32_RANLIB)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H): $(SQLITE_DIR)/configure $(SQLITE_DIR)/manifest | $(BUILD_OBJ_DIR)
 	mkdir -p $(SQLITE_BUILD_DIR)
@@ -1076,10 +992,6 @@ android-debug: android-copy-assets android-local-properties
 	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
-android-debug-fast: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)" $(ANDROID_GRADLE_ARGS)
-	$(MAKE) android-copy-debug-apks
-
 android-release:
 	$(MAKE) android-check-keystore PASSWORD="$(PASSWORD)"
 	$(MAKE) android-copy-assets
@@ -1162,13 +1074,6 @@ android-install: android-debug
 	$(ADB) install -r "$$APK"; \
 	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
 
-android-install-fast: android-debug-fast
-	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
-	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
-	$(ADB) install -r "$$APK"; \
-	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
-
 android-install-release: android-release
 	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/release/app-$${ABI}-release.apk; \
@@ -1181,12 +1086,7 @@ android-avd:
 	@adb_cmd="$$HOME/.android-sdk-writable/platform-tools/adb"; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd="$${ANDROID_SDK_ROOT:-$${ANDROID_HOME}}/platform-tools/adb"; fi; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd=adb; fi; \
-	abi=$$("$$adb_cmd" -e shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	if [ -z "$$abi" ]; then \
-		echo "No emulator ABI detected. Is the AVD running?"; \
-		exit 1; \
-	fi; \
-	$(MAKE) android-install-fast ADB="$$adb_cmd -e" ANDROID_DEBUG_ABIS="$$abi"
+	$(MAKE) android-install ADB="$$adb_cmd -e"
 
 android-clean:
 	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)

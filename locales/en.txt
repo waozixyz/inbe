@@ -1065,3 +1065,18 @@ Deleted %lld sessions
 [habit_stats_day_plural]
 %d days
 ---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
+---

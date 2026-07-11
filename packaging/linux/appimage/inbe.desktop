@@ -1,7 +1,9 @@
 [Desktop Entry]
 Type=Application
 Name=Inner Breeze
+Comment=Syncable breathing, meditation, and habit practice app
 Exec=inbe
 Icon=inbe
 Categories=Utility;
 Terminal=false
+StartupNotify=true

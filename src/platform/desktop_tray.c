@@ -3,366 +3,287 @@
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
+#include "DesktopTray.h"
+#include "habits_screen.h"
 #include "locale.h"
 #include "practices/practice_registry.h"
+#include "practices/sun_salutation/sun_salutation_practice.h"
 #include "raylib.h"
 
-#if defined(INBE_DESKTOP_TRAY_AYATANA)
-#include <libayatana-appindicator/app-indicator.h>
-#elif defined(INBE_DESKTOP_TRAY_APPINDICATOR)
-#include <libappindicator/app-indicator.h>
-#endif
-
-#include <SDL.h>
-#include <gtk/gtk.h>
-#include <pthread.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
-#include <unistd.h>
 
-static pthread_t tray_thread;
-static pthread_mutex_t tray_action_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t tray_state_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_mutex_t tray_status_lock = PTHREAD_MUTEX_INITIALIZER;
-static pthread_cond_t tray_state_cond = PTHREAD_COND_INITIALIZER;
-static InbeDesktopTrayAction pending_action = INBE_DESKTOP_TRAY_ACTION_NONE;
-static int tray_started;
-static int tray_state;
-static char tray_status_text[128] = "Inner Breeze";
-static int tray_status_update_pending;
-#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-static GtkStatusIcon *tray_status_icon;
-#endif
+typedef struct InbeTraySnapshot {
+    int window_visible;
+    int count;
+    char show_hide_label[96];
+    char start_practice_label[96];
+    char habits_label[96];
+    char quit_label[96];
+    char whm_label[96];
+    char meditation_label[96];
+    char sun_salutation_label[96];
+    char habit_labels[INBE_HABIT_MAX][128];
+    int habit_indices[INBE_HABIT_MAX];
+    int habit_enabled[INBE_HABIT_MAX];
+} InbeTraySnapshot;
 
-enum {
-    DESKTOP_TRAY_STATE_STARTING = 0,
-    DESKTOP_TRAY_STATE_READY,
-    DESKTOP_TRAY_STATE_FAILED,
-    DESKTOP_TRAY_STATE_STOPPED
+static InbeTraySnapshot TraySnapshot;
+static int TrayReady;
+
+static const char *const TrayIconPaths[] = {
+    "inbe.png",
+    "packaging/linux/appimage/inbe.png",
+    "packaging/snap/snap/gui/inbe.png",
+    "web-assets/icons/inbe.png",
+    NULL
 };
 
-static void
-desktop_tray_set_action(InbeDesktopTrayAction action)
+static InbeDesktopTrayAction
+GetTrayHabitAction(int index)
 {
-    pthread_mutex_lock(&tray_action_lock);
-    pending_action = action;
-    pthread_mutex_unlock(&tray_action_lock);
-}
-
-InbeDesktopTrayAction
-inbe_desktop_tray_poll_action(void)
-{
-    InbeDesktopTrayAction action;
-
-    pthread_mutex_lock(&tray_action_lock);
-    action = pending_action;
-    pending_action = INBE_DESKTOP_TRAY_ACTION_NONE;
-    pthread_mutex_unlock(&tray_action_lock);
-
-    return action;
+    if(index < 0 || index >= INBE_HABIT_MAX)
+        return INBE_DESKTOP_TRAY_ACTION_NONE;
+    return (InbeDesktopTrayAction)(INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0 + index);
 }
 
 static int
-desktop_tray_sdl_event_filter(void *userdata, SDL_Event *event)
+GetTrayHabitIndex(InbeDesktopTrayAction action)
 {
-    (void)userdata;
-
-    if(event != NULL && event->type == SDL_QUIT) {
-        desktop_tray_set_action(INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST);
-        return 0;
-    }
-
-    return 1;
-}
-
-static void
-desktop_tray_menu_action(GtkMenuItem *item, gpointer user_data)
-{
-    (void)item;
-    desktop_tray_set_action((InbeDesktopTrayAction)(intptr_t)user_data);
-}
-
-static GtkWidget *
-desktop_tray_menu_item(const char *label, InbeDesktopTrayAction action)
-{
-    GtkWidget *item = gtk_menu_item_new_with_label(label);
-    g_signal_connect(item, "activate", G_CALLBACK(desktop_tray_menu_action),
-                     (gpointer)(intptr_t)action);
-    return item;
-}
-
-static void
-desktop_tray_set_state(int state)
-{
-    pthread_mutex_lock(&tray_state_lock);
-    tray_state = state;
-    pthread_cond_signal(&tray_state_cond);
-    pthread_mutex_unlock(&tray_state_lock);
-}
-
-static gboolean
-desktop_tray_apply_status(gpointer user_data)
-{
-    char text[sizeof(tray_status_text)];
-
-    (void)user_data;
-
-    pthread_mutex_lock(&tray_status_lock);
-    snprintf(text, sizeof(text), "%s", tray_status_text);
-    tray_status_update_pending = 0;
-    pthread_mutex_unlock(&tray_status_lock);
-
-#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-    if(tray_status_icon != NULL) {
-        gtk_status_icon_set_title(tray_status_icon, text);
-        gtk_status_icon_set_tooltip_text(tray_status_icon, text);
-    }
-#endif
-
-    return G_SOURCE_REMOVE;
-}
-
-static gboolean
-desktop_tray_quit_main(gpointer user_data)
-{
-    (void)user_data;
-    gtk_main_quit();
-    return G_SOURCE_REMOVE;
+    if(action < INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0 ||
+       action > INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_9)
+        return -1;
+    return (int)(action - INBE_DESKTOP_TRAY_ACTION_MARK_HABIT_0);
 }
 
 static const char *
-desktop_tray_icon_path(void)
+GetTrayWindowLabelKey(int visible)
 {
-    static char path[512];
-    static const char *const fallback_paths[] = {
-        "inbe.png",
-        "packaging/linux/appimage/inbe.png",
-        "packaging/snap/snap/gui/inbe.png",
-        "web-assets/icons/inbe.png",
-        NULL
-    };
-    static const char *const exe_links[] = {
-#if defined(__FreeBSD__)
-        "/proc/curproc/file",
-#endif
-#if defined(__linux__)
-        "/proc/self/exe",
-#endif
-        NULL
-    };
-
-    for(int i = 0; exe_links[i] != NULL; i++) {
-        ssize_t len = readlink(exe_links[i], path, sizeof(path) - 16);
-        if(len > 0 && (size_t)len < sizeof(path) - 16) {
-            char *slash;
-            path[len] = '\0';
-            slash = strrchr(path, '/');
-            if(slash != NULL) {
-                slash[1] = '\0';
-                strncat(path, "inbe.png", sizeof(path) - strlen(path) - 1);
-                if(g_file_test(path, G_FILE_TEST_IS_REGULAR))
-                    return path;
-            }
-        }
-    }
-
-    for(int i = 0; fallback_paths[i] != NULL; i++) {
-        if(g_file_test(fallback_paths[i], G_FILE_TEST_IS_REGULAR))
-            return fallback_paths[i];
-    }
-
-    return NULL;
+    return visible ? "tray_hide_inner_breeze" : "tray_show_inner_breeze";
 }
 
-static GtkWidget *
-desktop_tray_create_menu(void)
+static InbeDesktopTrayAction
+GetTrayWindowAction(int visible)
 {
-    GtkWidget *menu = gtk_menu_new();
-    GtkWidget *start_item;
-    GtkWidget *start_menu;
-
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu),
-                          desktop_tray_menu_item("Show Inner Breeze",
-                                               INBE_DESKTOP_TRAY_ACTION_SHOW));
-
-    start_item = gtk_menu_item_new_with_label("Start Practice");
-    start_menu = gtk_menu_new();
-    gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          desktop_tray_menu_item("Wim Hof",
-                                               INBE_DESKTOP_TRAY_ACTION_START_WHM));
-    gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          desktop_tray_menu_item("Meditation",
-                                               INBE_DESKTOP_TRAY_ACTION_START_MEDITATION));
-    gtk_menu_shell_append(GTK_MENU_SHELL(start_menu),
-                          desktop_tray_menu_item("Sun Salutation",
-                                               INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION));
-    gtk_menu_item_set_submenu(GTK_MENU_ITEM(start_item), start_menu);
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), start_item);
-
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu), gtk_separator_menu_item_new());
-    gtk_menu_shell_append(GTK_MENU_SHELL(menu),
-                          desktop_tray_menu_item("Quit Inner Breeze",
-                                               INBE_DESKTOP_TRAY_ACTION_QUIT));
-
-    gtk_widget_show_all(menu);
-    return menu;
-}
-
-#if defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-static void
-desktop_tray_status_icon_activate(GtkStatusIcon *status_icon, gpointer user_data)
-{
-    (void)status_icon;
-    (void)user_data;
-    desktop_tray_set_action(INBE_DESKTOP_TRAY_ACTION_SHOW);
+    return visible ? INBE_DESKTOP_TRAY_ACTION_HIDE : INBE_DESKTOP_TRAY_ACTION_SHOW;
 }
 
 static void
-desktop_tray_status_icon_popup(GtkStatusIcon *status_icon, guint button,
-                             guint activate_time, gpointer user_data)
+InitTraySnapshotLabels(InbeTraySnapshot *snapshot)
 {
-    GtkWidget *menu = user_data;
-
-    gtk_menu_popup(GTK_MENU(menu), NULL, NULL, gtk_status_icon_position_menu,
-                   status_icon, button, activate_time);
+    if(snapshot == NULL)
+        return;
+    snprintf(snapshot->show_hide_label, sizeof(snapshot->show_hide_label),
+             "Show Inner Breeze");
+    snprintf(snapshot->start_practice_label, sizeof(snapshot->start_practice_label),
+             "Start Practice");
+    snprintf(snapshot->habits_label, sizeof(snapshot->habits_label), "Mark Complete");
+    snprintf(snapshot->quit_label, sizeof(snapshot->quit_label), "Quit Inner Breeze");
+    snprintf(snapshot->whm_label, sizeof(snapshot->whm_label), "Wim Hof");
+    snprintf(snapshot->meditation_label, sizeof(snapshot->meditation_label), "Meditation");
+    snprintf(snapshot->sun_salutation_label, sizeof(snapshot->sun_salutation_label),
+             "Sun Salutation");
 }
-#endif
 
-static void *
-desktop_tray_thread_main(void *arg)
+static void
+FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
 {
-#if defined(INBE_DESKTOP_TRAY_AYATANA) || defined(INBE_DESKTOP_TRAY_APPINDICATOR)
-    AppIndicator *indicator;
-#endif
-    GtkWidget *menu;
-    (void)arg;
+    if(snapshot == NULL)
+        return;
+    snprintf(snapshot->show_hide_label, sizeof(snapshot->show_hide_label), "%s",
+             GetLocaleText(GetTrayWindowLabelKey(snapshot->window_visible)));
+    snprintf(snapshot->start_practice_label, sizeof(snapshot->start_practice_label), "%s",
+             GetLocaleText("tray_start_practice"));
+    snprintf(snapshot->habits_label, sizeof(snapshot->habits_label), "%s",
+             GetLocaleText("tray_mark_complete"));
+    snprintf(snapshot->quit_label, sizeof(snapshot->quit_label), "%s",
+             GetLocaleText("tray_quit_inner_breeze"));
+    snprintf(snapshot->whm_label, sizeof(snapshot->whm_label), "%s",
+             GetLocaleText("exercise_wim_hof"));
+    snprintf(snapshot->meditation_label, sizeof(snapshot->meditation_label), "%s",
+             GetLocaleText("exercise_meditation"));
+    snprintf(snapshot->sun_salutation_label, sizeof(snapshot->sun_salutation_label), "%s",
+             GetLocaleText("exercise_sun_salutation"));
+}
 
-    if(!gtk_init_check(NULL, NULL)) {
-        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
-        return NULL;
+static void
+SeedTraySnapshot(void)
+{
+    InbeTraySnapshot next;
+
+    memset(&next, 0, sizeof(next));
+    next.window_visible = !IsWindowHidden();
+    FillTraySnapshotLabels(&next);
+    TraySnapshot = next;
+}
+
+static int
+BuildTrayMenu(const InbeTraySnapshot *snapshot,
+              DesktopTrayMenuItem *items, int item_count,
+              DesktopTrayMenuItem *start_items, int start_item_count,
+              DesktopTrayMenuItem *habit_items, int habit_item_count)
+{
+    InbeTraySnapshot local_snapshot;
+    int item_index = 0;
+
+    if(items == NULL || item_count < 5 ||
+       start_items == NULL || start_item_count < 3 ||
+       habit_items == NULL || habit_item_count < INBE_HABIT_MAX)
+        return 0;
+
+    memset(&local_snapshot, 0, sizeof(local_snapshot));
+    InitTraySnapshotLabels(&local_snapshot);
+    if(snapshot != NULL)
+        local_snapshot = *snapshot;
+
+    start_items[0] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.whm_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_START_WHM,
+        .enabled = 1
+    };
+    start_items[1] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.meditation_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_START_MEDITATION,
+        .enabled = 1
+    };
+    start_items[2] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.sun_salutation_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION,
+        .enabled = 1
+    };
+
+    for(int i = 0; i < local_snapshot.count && i < INBE_HABIT_MAX; i++) {
+        habit_items[i] = (DesktopTrayMenuItem){
+            .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+            .label = local_snapshot.habit_labels[i],
+            .action = GetTrayHabitAction(i),
+            .enabled = local_snapshot.habit_enabled[i]
+        };
     }
 
-#if defined(INBE_DESKTOP_TRAY_AYATANA) || defined(INBE_DESKTOP_TRAY_APPINDICATOR)
-    indicator = app_indicator_new("inbe", "inbe",
-                                  APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
-    if(indicator == NULL) {
-        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
-        return NULL;
-    }
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.show_hide_label,
+        .action = GetTrayWindowAction(local_snapshot.window_visible),
+        .enabled = 1
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
+        .label = local_snapshot.start_practice_label,
+        .enabled = 1,
+        .children = start_items,
+        .child_count = 3
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
+        .label = local_snapshot.habits_label,
+        .enabled = local_snapshot.count > 0,
+        .children = habit_items,
+        .child_count = local_snapshot.count
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SEPARATOR
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.quit_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_QUIT,
+        .enabled = 1
+    };
 
-    app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
-    {
-        const char *icon_path = desktop_tray_icon_path();
-        if(icon_path != NULL)
-            app_indicator_set_icon_full(indicator, icon_path, "Inner Breeze");
-        else
-            app_indicator_set_icon_full(indicator, "inbe", "Inner Breeze");
-    }
+    return item_index;
+}
 
-    menu = desktop_tray_create_menu();
-    app_indicator_set_menu(indicator, GTK_MENU(menu));
-#elif defined(INBE_DESKTOP_TRAY_GTK_STATUS_ICON)
-    menu = desktop_tray_create_menu();
-    {
-        const char *icon_path = desktop_tray_icon_path();
-        tray_status_icon = icon_path != NULL
-                          ? gtk_status_icon_new_from_file(icon_path)
-                          : gtk_status_icon_new_from_icon_name("inbe");
-    }
-    if(tray_status_icon == NULL) {
-        desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
-        return NULL;
-    }
-    gtk_status_icon_set_title(tray_status_icon, "Inner Breeze");
-    gtk_status_icon_set_tooltip_text(tray_status_icon, "Inner Breeze");
-    gtk_status_icon_set_visible(tray_status_icon, TRUE);
-    g_signal_connect(tray_status_icon, "activate",
-                     G_CALLBACK(desktop_tray_status_icon_activate), NULL);
-    g_signal_connect(tray_status_icon, "popup-menu",
-                     G_CALLBACK(desktop_tray_status_icon_popup), menu);
-#else
-    desktop_tray_set_state(DESKTOP_TRAY_STATE_FAILED);
-    return NULL;
-#endif
+static void
+ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
+{
+    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem start_items[3];
+    DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    int count;
 
-    desktop_tray_set_state(DESKTOP_TRAY_STATE_READY);
-    gtk_main();
-    desktop_tray_set_state(DESKTOP_TRAY_STATE_STOPPED);
+    memset(items, 0, sizeof(items));
+    memset(start_items, 0, sizeof(start_items));
+    memset(habit_items, 0, sizeof(habit_items));
 
-    return NULL;
+    count = BuildTrayMenu(snapshot, items, 5, start_items, 3,
+                          habit_items, INBE_HABIT_MAX);
+    SetDesktopTrayMenu(items, count);
+    SetDesktopTrayActivateAction(GetTrayWindowAction(snapshot != NULL
+                                                         ? snapshot->window_visible
+                                                         : !IsWindowHidden()));
 }
 
 int
 inbe_desktop_tray_init(void)
 {
-    int ready;
+    DesktopTraySpec spec;
+    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem start_items[3];
+    DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    int item_count;
 
-    pthread_mutex_lock(&tray_state_lock);
-    tray_state = DESKTOP_TRAY_STATE_STARTING;
-    pthread_mutex_unlock(&tray_state_lock);
-    if(pthread_create(&tray_thread, NULL, desktop_tray_thread_main, NULL) != 0)
-        return 0;
+    SeedTraySnapshot();
+    memset(items, 0, sizeof(items));
+    memset(start_items, 0, sizeof(start_items));
+    memset(habit_items, 0, sizeof(habit_items));
+    item_count = BuildTrayMenu(&TraySnapshot, items, 5, start_items, 3,
+                               habit_items, INBE_HABIT_MAX);
 
-    tray_started = 1;
-    pthread_mutex_lock(&tray_state_lock);
-    while(tray_state == DESKTOP_TRAY_STATE_STARTING)
-        pthread_cond_wait(&tray_state_cond, &tray_state_lock);
-    ready = tray_state == DESKTOP_TRAY_STATE_READY;
-    pthread_mutex_unlock(&tray_state_lock);
+    memset(&spec, 0, sizeof(spec));
+    spec.id = "inbe";
+    spec.title = "Inner Breeze";
+    spec.icon_name = "inbe";
+    spec.icon_paths = TrayIconPaths;
+    spec.close_action = INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST;
+    spec.activate_action = GetTrayWindowAction(TraySnapshot.window_visible);
+    spec.menu_items = items;
+    spec.menu_item_count = item_count;
 
-    if(!ready) {
-        pthread_join(tray_thread, NULL);
-        tray_started = 0;
-        return 0;
-    }
-
-    SDL_SetEventFilter(desktop_tray_sdl_event_filter, NULL);
-    return ready;
+    TrayReady = InitDesktopTray(&spec);
+    return TrayReady;
 }
 
 void
 inbe_desktop_tray_shutdown(void)
 {
-    int ready;
+    ShutdownDesktopTray();
+    TrayReady = 0;
+}
 
-    pthread_mutex_lock(&tray_state_lock);
-    ready = tray_state == DESKTOP_TRAY_STATE_READY;
-    pthread_mutex_unlock(&tray_state_lock);
-
-    if(tray_started && ready)
-        g_idle_add(desktop_tray_quit_main, NULL);
-
-    if(tray_started)
-        pthread_join(tray_thread, NULL);
-
-    tray_started = 0;
+InbeDesktopTrayAction
+inbe_desktop_tray_poll_action(void)
+{
+    return (InbeDesktopTrayAction)PollDesktopTrayAction();
 }
 
 static void
-desktop_tray_restore_window(void)
+RestoreTrayWindow(void)
 {
     ClearWindowState(FLAG_WINDOW_HIDDEN);
     RestoreWindow();
 }
 
+static void
+HideTrayWindow(void)
+{
+    SetWindowState(FLAG_WINDOW_HIDDEN);
+}
+
 void
 inbe_desktop_tray_keep_running(void)
 {
-    int ready;
-
-    pthread_mutex_lock(&tray_state_lock);
-    ready = tray_state == DESKTOP_TRAY_STATE_READY;
-    pthread_mutex_unlock(&tray_state_lock);
-
-    if(ready)
+    if(TrayReady)
         SetWindowState(FLAG_WINDOW_HIDDEN);
     else
         MinimizeWindow();
 }
 
 static void
-desktop_tray_start_practice(InbeApp *app, int practice_id)
+StartTrayPractice(InbeApp *app, int practice_id)
 {
     const PracticeDefinition *practice;
 
@@ -374,19 +295,83 @@ desktop_tray_start_practice(InbeApp *app, int practice_id)
     app->practice_tab = PRACTICE_TAB_PLAY;
     if(app->modal.active)
         app_close_modal(app);
-    desktop_tray_restore_window();
+    RestoreTrayWindow();
 
     practice = practice_get(app->exercise_type);
     if(practice->start != NULL)
         practice->start(app);
 }
 
+static void
+MarkTrayHabit(InbeApp *app, int index)
+{
+    int today;
+    InbeHabit *habit;
+
+    if(app == NULL || index < 0 || index >= app->habits.count)
+        return;
+
+    today = habits_today_index();
+    habit = &app->habits.items[index];
+    if(habit->counter_enabled)
+        habit_set_day_count(&app->habits, index, today,
+                            habit_day_count(habit, today) + 1);
+    else
+        habit_set_day(&app->habits, index, today, 1);
+}
+
+static void
+UpdateTrayMenuSnapshot(InbeApp *app)
+{
+    InbeTraySnapshot next;
+    int today;
+
+    if(app == NULL)
+        return;
+
+    memset(&next, 0, sizeof(next));
+    next.window_visible = !IsWindowHidden();
+    FillTraySnapshotLabels(&next);
+
+    today = habits_today_index();
+    for(int i = 0; i < app->habits.count && next.count < INBE_HABIT_MAX; i++) {
+        InbeHabit *habit = &app->habits.items[i];
+        int count = habit_day_count(habit, today);
+        int completed = habit_completed_day(habit, today) || count > 0;
+
+        if(completed)
+            continue;
+
+        snprintf(next.habit_labels[next.count], sizeof(next.habit_labels[next.count]),
+                 "%s", habit->name);
+        next.habit_indices[next.count] = i;
+        next.habit_enabled[next.count] = 1;
+        next.count++;
+    }
+
+    if(memcmp(&TraySnapshot, &next, sizeof(next)) != 0) {
+        TraySnapshot = next;
+        ApplyTrayMenuSnapshot(&TraySnapshot);
+    }
+}
+
 void
 inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit)
 {
+    int habit_index = GetTrayHabitIndex(action);
+
+    if(habit_index >= 0) {
+        if(habit_index < TraySnapshot.count)
+            MarkTrayHabit(app, TraySnapshot.habit_indices[habit_index]);
+        return;
+    }
+
     switch(action) {
     case INBE_DESKTOP_TRAY_ACTION_SHOW:
-        desktop_tray_restore_window();
+        RestoreTrayWindow();
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_HIDE:
+        HideTrayWindow();
         break;
     case INBE_DESKTOP_TRAY_ACTION_MINIMIZE:
         MinimizeWindow();
@@ -395,13 +380,13 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
         app_request_desktop_close(app);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_WHM:
-        desktop_tray_start_practice(app, PRACTICE_WHM);
+        StartTrayPractice(app, PRACTICE_WHM);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_MEDITATION:
-        desktop_tray_start_practice(app, PRACTICE_MEDITATION);
+        StartTrayPractice(app, PRACTICE_MEDITATION);
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION:
-        desktop_tray_start_practice(app, PRACTICE_SUN_SALUTATION);
+        StartTrayPractice(app, PRACTICE_SUN_SALUTATION);
         break;
     case INBE_DESKTOP_TRAY_ACTION_QUIT:
         if(quit != NULL)
@@ -416,17 +401,12 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
 void
 inbe_desktop_tray_update_status(InbeApp *app)
 {
-    char text[sizeof(tray_status_text)];
-    int ready;
+    char text[128];
 
     if(app == NULL)
         return;
 
-    pthread_mutex_lock(&tray_state_lock);
-    ready = tray_state == DESKTOP_TRAY_STATE_READY;
-    pthread_mutex_unlock(&tray_state_lock);
-    if(!ready)
-        return;
+    UpdateTrayMenuSnapshot(app);
 
     snprintf(text, sizeof(text), "Inner Breeze");
     if(app->inbe.screen == InbeScreenSession) {
@@ -474,53 +454,24 @@ inbe_desktop_tray_update_status(InbeApp *app)
                          app->sun_salutation.repetitions);
     }
 
-    pthread_mutex_lock(&tray_status_lock);
-    if(strcmp(tray_status_text, text) != 0) {
-        snprintf(tray_status_text, sizeof(tray_status_text), "%s", text);
-        if(!tray_status_update_pending) {
-            tray_status_update_pending = 1;
-            g_idle_add(desktop_tray_apply_status, NULL);
-        }
-    }
-    pthread_mutex_unlock(&tray_status_lock);
+    SetDesktopTrayStatus(text);
 }
 
 #else
 
-int
-inbe_desktop_tray_init(void)
-{
-    return 0;
-}
-
-void
-inbe_desktop_tray_shutdown(void)
-{
-}
-
-InbeDesktopTrayAction
-inbe_desktop_tray_poll_action(void)
+int inbe_desktop_tray_init(void) { return 0; }
+void inbe_desktop_tray_shutdown(void) {}
+InbeDesktopTrayAction inbe_desktop_tray_poll_action(void)
 {
     return INBE_DESKTOP_TRAY_ACTION_NONE;
 }
-
-void
-inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit)
+void inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit)
 {
     (void)app;
     (void)action;
     (void)quit;
 }
-
-void
-inbe_desktop_tray_update_status(InbeApp *app)
-{
-    (void)app;
-}
-
-void
-inbe_desktop_tray_keep_running(void)
-{
-}
+void inbe_desktop_tray_update_status(InbeApp *app) { (void)app; }
+void inbe_desktop_tray_keep_running(void) { MinimizeWindow(); }
 
 #endif
