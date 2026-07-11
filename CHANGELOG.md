@@ -1,4 +1,8 @@
 # Changelog
+## [1.8.4] - 2026-07-11
+### Changed
+- Use the full profile content width for the configure profile dropdown.
+
 ## [1.8.3] - 2026-07-10
 ### Changed
 - Improved ui in practice screen
