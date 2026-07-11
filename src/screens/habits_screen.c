@@ -30,6 +30,7 @@ static void habits_add_seed(InbeHabits *habits, const char *id, const char *name
                             const char *description, Color color,
                             int activity_mask);
 static void draw_habit_link_dot(int x, int y, int w, Color color);
+static void draw_habit_day_count_label(int x, int y, int w, int h, int count);
 static Color habit_text_color_for_background(Color background);
 
 enum {
@@ -1565,16 +1566,8 @@ draw_habits_overview(InbeApp *app, int content_top)
                     habit_apply_count_action(app, i, day_index, action, minimum_count);
                     app_auto_sync(app);
                 }
-                if(!future_day && (has_linked_day || (counting_enabled && count > 0))) {
-                    char count_label[16];
-                    int count_w;
-                    snprintf(count_label, sizeof(count_label), "%d",
-                             has_linked_day ? session_count : count);
-                    count_w = MeasureUIText(count_label, UI_TEXT_12);
-                    DrawUIText(count_label, day_x + cell - count_w - ScaleUIPx(3),
-                                    row_y + ScaleUIPx(3), UI_TEXT_12,
-                                    GetThemeText());
-                }
+                if(counting_enabled && count > 0 && !future_day)
+                    draw_habit_day_count_label(day_x, row_y, cell, cell, count);
                 if(!future_day && has_linked_day)
                     draw_habit_link_dot(day_x, row_y, cell, habit->color);
             }
@@ -1919,6 +1912,23 @@ draw_habit_link_dot(int x, int y, int w, Color color)
                ScaleUIPx(5), DarkenUIColor(GetThemeBackground(), 35));
     DrawCircle(x + w - ScaleUIPx(8), y + ScaleUIPx(8),
                ScaleUIPx(3), GetThemeText());
+}
+
+static void
+draw_habit_day_count_label(int x, int y, int w, int h, int count)
+{
+    char count_label[16];
+    int count_font = UI_TEXT_12;
+    int count_w;
+    int padding = ScaleUIPx(3);
+
+    if(count <= 0)
+        return;
+    snprintf(count_label, sizeof(count_label), "%d", count);
+    count_w = MeasureUIText(count_label, count_font);
+    DrawUIText(count_label, x + (w - count_w) / 2,
+                    y + h - count_font - padding,
+                    count_font, GetThemeText());
 }
 
 static int
@@ -2604,17 +2614,8 @@ draw_habits_screen(InbeApp *app)
             if(completed && !future_day) {
                 draw_habit_completion_underline(cell_x, cell_y, cell_w, cell_h, active->color);
             }
-            if(counting_enabled && count > 0 && !future_day && !has_linked_day) {
-                char count_label[16];
-                int count_font = UI_TEXT_12;
-                int count_w;
-                snprintf(count_label, sizeof(count_label), "%d", count);
-                count_w = MeasureUIText(count_label, count_font);
-                DrawUIText(count_label,
-                                cell_x + cell_w - count_w - ScaleUIPx(4),
-                                cell_y + ScaleUIPx(4),
-                                count_font, GetThemeText());
-            }
+            if(counting_enabled && count > 0 && !future_day)
+                draw_habit_day_count_label(cell_x, cell_y, cell_w, cell_h, count);
             if(!future_day && has_linked_day) {
                 draw_habit_link_dot(cell_x, cell_y, cell_w, active->color);
             }
