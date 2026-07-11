@@ -979,6 +979,7 @@ load_sound_asset(const char *name)
         return sound;
     }
 
+    WaveFormat(&wave, 44100, 16, 2);
     sound = LoadSoundFromWave(wave);
     UnloadWave(wave);
     if(sound.frameCount == 0)

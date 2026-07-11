@@ -640,7 +640,8 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
 
         total = 60;
         amount = (float)frame_in_minute / (float)total_frames;
-        completed = clampi(frame_in_minute / 60, 0, total);
+        completed = frame_in_minute > 0 ? (frame_in_minute + 59) / 60 : 0;
+        completed = clampi(completed, 0, total);
         break;
     }
     case InbePhaseRecover: {
@@ -857,42 +858,9 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
 static void
 draw_session_status(InbeApp *app, int center_x, int center_y)
 {
-    char text[32];
-    char max_text[32];
-    int total_seconds;
-    int remaining;
-    int max_w;
-    int max_text_w;
-    int text_y;
-    int font = UI_TEXT_24;
-
-    if(app->inbe.phase != InbePhaseStarting)
-        return;
-
-    total_seconds = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
-    if(total_seconds <= 0)
-        return;
-
-    remaining = total_seconds - app->inbe.sectick / 60;
-    if(remaining < 1)
-        remaining = 1;
-
-    FormatLocaleText(max_text, sizeof(max_text), "starting_in", 30);
-    max_w = (int)(app->inbe.rmax * 2.0f);
-    if(max_w > view_width - ScaleUIPx(32))
-        max_w = view_width - ScaleUIPx(32);
-    if(max_w < ScaleUIPx(120))
-        max_w = ScaleUIPx(120);
-    if(MeasureUIText(max_text, font) > max_w)
-        font = UI_TEXT_16;
-    if(MeasureUIText(max_text, font) > max_w)
-        font = UI_TEXT_12;
-    max_text_w = MeasureUIText(max_text, font);
-    FormatLocaleText(text, sizeof(text), "starting_in", remaining);
-    text_y = center_y - (int)(app->inbe.rmax * 0.72f) - ScaleUIPx(40);
-    if(text_y < ScaleUIPx(20))
-        text_y = ScaleUIPx(20);
-    DrawUIText(text, center_x - max_text_w / 2, text_y, font, GetThemeText());
+    (void)app;
+    (void)center_x;
+    (void)center_y;
 }
 
 static void
@@ -1082,7 +1050,7 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         int breath_font = UI_TEXT_16;
         int breath_w = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72);
         int breath_h = GetUITextLineHeight(breath_font) + ScaleUIPx(28);
-        int breath_y = center_y + app->inbe.rmax - ScaleUIPx(2);
+        int breath_y = center_y + app->inbe.rmax - ScaleUIPx(22);
         int breath_x;
         int breath_hover = 0;
 

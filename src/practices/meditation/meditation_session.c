@@ -126,6 +126,7 @@ meditation_timer_complete(InbeApp *app)
         app->meditation.frame_ticks = 0;
         if(!app->meditation.complete_waiting) {
             app->meditation.complete_waiting = 1;
+            meditation_music_fade_out(app);
             app_play_bell_cue(app, 1.0f);
         }
         return;
@@ -254,13 +255,18 @@ draw_meditation_duration_button(int x, int y, int w, int h, const char *label)
 static void
 meditation_extend_session(InbeApp *app, int seconds)
 {
+    int was_complete;
+
     if(app == NULL || seconds <= 0)
         return;
 
+    was_complete = app->meditation.complete_waiting;
     app->meditation.duration_seconds += seconds;
     app->meditation.remaining_seconds += seconds;
     app->meditation.complete_waiting = 0;
     app->meditation.frame_ticks = 0;
+    if(was_complete)
+        meditation_music_start_session(app);
 }
 
 void

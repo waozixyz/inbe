@@ -466,6 +466,8 @@ meditation_music_unload(InbeApp *app)
     }
     app->meditation.music_playing = 0;
     app->meditation.music_test_playing = 0;
+    app->meditation.music_fade_out_ticks = 0;
+    app->meditation.music_fade_out_total_ticks = 0;
 }
 
 void
@@ -477,6 +479,23 @@ meditation_music_stop(InbeApp *app)
         StopMusicStream(app->meditation.music);
     app->meditation.music_playing = 0;
     app->meditation.music_test_playing = 0;
+    app->meditation.music_fade_out_ticks = 0;
+    app->meditation.music_fade_out_total_ticks = 0;
+}
+
+void
+meditation_music_fade_out(InbeApp *app)
+{
+    int fade_ticks = 180;
+
+    if(app == NULL || !app->meditation.music_loaded ||
+       !app->meditation.music_playing)
+        return;
+    if(app->meditation.music_fade_out_ticks > 0)
+        return;
+
+    app->meditation.music_fade_out_ticks = fade_ticks;
+    app->meditation.music_fade_out_total_ticks = fade_ticks;
 }
 
 static void
@@ -543,6 +562,8 @@ load_track(InbeApp *app, int track)
 
     app->meditation.music_loaded = 1;
     app->meditation.music_track = track;
+    app->meditation.music_fade_out_ticks = 0;
+    app->meditation.music_fade_out_total_ticks = 0;
     SetMusicVolume(app->meditation.music, (float)app->sound_volume / 100.0f);
     TraceLog(LOG_INFO, "AUDIO: Loaded meditation track: %s", path);
     return 1;
@@ -610,7 +631,19 @@ meditation_music_update(InbeApp *app)
     }
 
     if(app->meditation.music_loaded) {
-        SetMusicVolume(app->meditation.music, (float)app->sound_volume / 100.0f);
+        float volume = (float)app->sound_volume / 100.0f;
+
+        if(app->meditation.music_fade_out_ticks > 0 &&
+           app->meditation.music_fade_out_total_ticks > 0) {
+            volume *= (float)app->meditation.music_fade_out_ticks /
+                      (float)app->meditation.music_fade_out_total_ticks;
+            app->meditation.music_fade_out_ticks--;
+            if(app->meditation.music_fade_out_ticks <= 0) {
+                meditation_music_stop(app);
+                return;
+            }
+        }
+        SetMusicVolume(app->meditation.music, volume);
         UpdateMusicStream(app->meditation.music);
     }
 }
