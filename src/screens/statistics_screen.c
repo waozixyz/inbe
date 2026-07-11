@@ -163,7 +163,7 @@ statistics_draw_hold_range_selector(InbeApp *app, int x, int y, int w)
         int text_w;
 
         if(active_hit) {
-            app->cursor_clickable = 1;
+            MarkUIClickable();
             if(hovered && !active) {
                 fill = GetThemeButtonHover();
                 top = DarkenUIColor(GetThemeButtonHover(), 40);

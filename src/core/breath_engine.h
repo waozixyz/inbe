@@ -101,6 +101,8 @@ float draw_radius(const Inbe *l);
 void inccount(char v[CountSize]);
 void cpcount(char dst[CountSize], const char src[CountSize]);
 int breath_half_ticks_for_speed(int speed);
+int current_breath_half_ticks(const Inbe *l);
+float current_breath_progress(const Inbe *l);
 int get_play_in_background(Inbe *inbe);
 
 #endif

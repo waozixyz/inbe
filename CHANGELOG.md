@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.5] - 2026-07-11
+### Changed
+- Updated Flint to improve file dialogs, cursor behavior, focus reset, icon slider popups, and shared raylib build locking.
+- Smoothed WHM breath and recovery countdown progress so the ring advances steadily during each breath and countdown.
+- Improved session controls, release-store publishing files, and build packaging metadata.
+
 ## [1.8.4] - 2026-07-11
 ### Changed
 - Reworked Profile configuration navigation to use a full-width dropdown instead of the tab bar.

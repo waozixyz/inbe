@@ -1065,12 +1065,13 @@ void
 app_play_breath_cue(InbeApp *app, int dir)
 {
     Sound sound;
+    float scale = 1.25f;
 
     if(app == NULL)
         return;
 
     sound = dir == 0 ? app->breath_in_sound : app->breath_out_sound;
-    app_play_sound_pitch(app, sound, 1.0f, app_breath_cue_pitch(app));
+    app_play_sound_pitch(app, sound, scale, app_breath_cue_pitch(app));
 }
 
 void
@@ -1159,8 +1160,6 @@ app_init(void *vapp) {
             practice->init(app);
     }
     app->camera = (Camera2D){0};
-    app->cursor_clickable = 0;
-    app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
     app->settings_tab = SETTINGS_TAB_SESSION;
@@ -1723,10 +1722,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
 
-    app->cursor_clickable = 0;
-    app->cursor_disabled = 0;
-    SetUICursorClickable(&app->cursor_clickable);
-    SetUICursorDisabled(&app->cursor_disabled);
     app_device_preferences_update(app);
     app_refresh_theme(app);
     SetUITransitionCuesEnabled(app->transition_mode == APP_TRANSITION_FADE);

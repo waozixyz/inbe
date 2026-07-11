@@ -176,12 +176,6 @@ set_status(InbeApp *app, const char *message)
                       message);
 }
 
-static int
-download_supported(void)
-{
-    return 1;
-}
-
 static const char *
 missing_audio_message(void)
 {
@@ -617,8 +611,7 @@ meditation_music_update(InbeApp *app)
         music_archive_path(app, archive_path, sizeof(archive_path));
         app->meditation.music_archive_extracted = 1;
         extract_audio_archive(app, archive_path);
-    } else if(app->meditation.music_download.status == RUNTIME_ASSET_ERROR ||
-              app->meditation.music_download.status == RUNTIME_ASSET_UNSUPPORTED) {
+    } else if(app->meditation.music_download.status == RUNTIME_ASSET_ERROR) {
         if(is_network_download_error(&app->meditation.music_download)) {
             set_status(app, GetLocaleText("meditation_music_network_error_title"));
             if(!app->meditation.music_network_error_notified && !app->modal.active) {
@@ -732,7 +725,7 @@ meditation_music_draw_practice_settings(InbeApp *app, int practice,
         *y += button_h + ScaleUIPx(12);
     }
 
-    if(download_supported() && (!installed || show_installed_download)) {
+    if(!installed || show_installed_download) {
         const char *download_label = GetLocaleText(installed ? "meditation_music_redownload_button"
                                                              : "meditation_music_download_button");
         button_w = MeasureUIText(download_label, GetUIFontSize()) + ScaleUIPx(24);
@@ -784,7 +777,7 @@ meditation_music_measure_practice_settings(InbeApp *app, int practice, int conte
     installed = meditation_music_available(app);
     if(installed)
         h += ScaleUIPx(48);
-    if(download_supported() && (!installed || show_installed_download))
+    if(!installed || show_installed_download)
         h += ScaleUIPx(48);
 
     if(show_status && (!installed || app->meditation.music_download.status != RUNTIME_ASSET_IDLE)) {

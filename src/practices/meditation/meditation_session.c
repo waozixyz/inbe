@@ -223,6 +223,30 @@ meditation_request_exit(InbeApp *app)
     app_open_modal(app, UIModalConfirmExitSession);
 }
 
+static int
+meditation_handle_exit_modal(InbeApp *app)
+{
+    int elapsed;
+    SessionExitModalResult result;
+
+    if(app == NULL || !app->modal.active ||
+       app->modal.type != UIModalConfirmExitSession)
+        return 0;
+
+    elapsed = meditation_elapsed_seconds(app);
+    result = app_draw_session_exit_modal(elapsed >= 60,
+                                         GetLocaleText("meditation_save_elapsed_message"),
+                                         GetLocaleText("meditation_under_minute_exit_message"));
+    if(result == SessionExitModalCancel) {
+        app_close_modal(app);
+    } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
+        if(result == SessionExitModalSave)
+            meditation_save_elapsed(app);
+        meditation_exit_to_start(app);
+    }
+    return 1;
+}
+
 static void
 format_meditation_time(char *dst, size_t dst_size, int seconds)
 {
@@ -428,24 +452,10 @@ meditation_draw_screen(InbeApp *app, int center_x, int center_y)
         DrawUITitleBar(GetLocaleText("meditation_title"), title_h);
     }
 
-    draw_meditation_sound_controls(app);
-
-    if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        int elapsed = meditation_elapsed_seconds(app);
-        SessionExitModalResult result;
-
-        result = app_draw_session_exit_modal(elapsed >= 60,
-                                             GetLocaleText("meditation_save_elapsed_message"),
-                                             GetLocaleText("meditation_under_minute_exit_message"));
-        if(result == SessionExitModalCancel) {
-            app_close_modal(app);
-        } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
-            if(result == SessionExitModalSave)
-                meditation_save_elapsed(app);
-            meditation_exit_to_start(app);
-        }
+    if(meditation_handle_exit_modal(app))
         return;
-    }
+
+    draw_meditation_sound_controls(app);
 
     format_meditation_time(time_text, sizeof(time_text), app->meditation.remaining_seconds);
     max_w = view_width - ScaleUIPx(48);

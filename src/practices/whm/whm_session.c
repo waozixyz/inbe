@@ -566,7 +566,7 @@ draw_hold_display_mode_selector(InbeApp *app, int x, int y, int w)
         int text_w;
 
         if(active_hit) {
-            app->cursor_clickable = 1;
+            MarkUIClickable();
             if(hovered && !active) {
                 fill = GetThemeButtonHover();
                 top = DarkenUIColor(GetThemeButtonHover(), 40);
@@ -602,19 +602,17 @@ color_with_alpha(Color color, unsigned char alpha)
 }
 
 static void
-session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
-                        float *progress, int *countdown)
+session_circle_progress(InbeApp *app, int *total_ticks, float *progress,
+                        int *countdown)
 {
     int total = int_from_count(app->inbe.maxbreaths);
-    int completed = 0;
     float amount = 0.0f;
     int is_countdown = 0;
 
     if(total < 1)
         total = 1;
 
-    if(total_ticks == NULL || completed_ticks == NULL || progress == NULL ||
-       countdown == NULL)
+    if(total_ticks == NULL || progress == NULL || countdown == NULL)
         return;
 
     switch(app->inbe.phase) {
@@ -625,13 +623,12 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
         total = total_seconds > 0 ? total_seconds : 1;
         if(total_frames > 0)
             amount = (float)app->inbe.sectick / (float)total_frames;
-        completed = (int)(amount * (float)total);
         is_countdown = 1;
         break;
     }
     case InbePhaseBreathe:
-        completed = clampi(int_from_count(app->inbe.count), 0, total);
-        amount = (float)completed / (float)total;
+        amount = ((float)clampi(int_from_count(app->inbe.count), 0, total) +
+                  current_breath_progress(&app->inbe)) / (float)total;
         break;
     case InbePhaseHold: {
         int total_frames = 60 * 60;
@@ -640,22 +637,22 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
 
         total = 60;
         amount = (float)frame_in_minute / (float)total_frames;
-        completed = frame_in_minute > 0 ? (frame_in_minute + 59) / 60 : 0;
-        completed = clampi(completed, 0, total);
         break;
     }
     case InbePhaseRecover: {
         int count = int_from_count(app->inbe.count);
 
         total = 15;
-        completed = clampi(count, 0, total);
-        amount = (float)completed / (float)total;
+        if(app->inbe.r >= app->inbe.rmax) {
+            amount = ((float)clampi(count, 0, total) +
+                      (float)clampi(app->inbe.sectick, 0, 59) / 60.0f) /
+                     (float)total;
+        }
         is_countdown = 1;
         break;
     }
     case InbePhaseNext:
     default:
-        completed = 0;
         amount = 0.0f;
         break;
     }
@@ -666,7 +663,6 @@ session_circle_progress(InbeApp *app, int *total_ticks, int *completed_ticks,
         amount = 1.0f;
 
     *total_ticks = total;
-    *completed_ticks = clampi(completed, 0, total);
     *progress = amount;
     *countdown = is_countdown;
 }
@@ -675,7 +671,6 @@ static void
 draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float radius)
 {
     int total_ticks = 1;
-    int completed_ticks = 0;
     int countdown = 0;
     float progress = 0.0f;
     int gap = ScaleUIPx(5);
@@ -694,8 +689,7 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
     if(app == NULL)
         return;
 
-    session_circle_progress(app, &total_ticks, &completed_ticks, &progress,
-                            &countdown);
+    session_circle_progress(app, &total_ticks, &progress, &countdown);
 
     if(total_ticks <= 20)
         band_width = ScaleUIPx(14);
@@ -727,12 +721,10 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
     DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
              0.0f, 360.0f, 128, band_bg);
     if(countdown) {
-        DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius,
-                 outer_radius, 0.0f, 360.0f, 128, band_fill);
-        if(progress > 0.0f) {
+        if(progress < 1.0f) {
             DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius,
-                     outer_radius, -90.0f - 360.0f * progress, -90.0f,
-                     128, band_bg);
+                     outer_radius, -450.0f, -90.0f - 360.0f * progress,
+                     128, band_fill);
         }
     } else if(progress > 0.0f) {
         DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
@@ -744,13 +736,16 @@ draw_session_progress_circle(InbeApp *app, int center_x, int center_y, float rad
              outer_radius + 0.75f, 0.0f, 360.0f, 128, ring);
 
     for(int i = 0; i < total_ticks; i++) {
+        float tick_progress = (float)i / (float)total_ticks;
         float direction = countdown ? -1.0f : 1.0f;
         float angle = -PI * 0.5f +
                       direction * ((float)i * 2.0f * PI) / (float)total_ticks;
         float s = sinf(angle);
         float c = cosf(angle);
-        int tick_colored = countdown ? i >= completed_ticks
-                                     : i < completed_ticks;
+        if(countdown && i == 0)
+            tick_progress = 1.0f;
+        int tick_colored = countdown ? tick_progress > progress + 0.0001f
+                                     : tick_progress <= progress + 0.0001f;
         Vector2 start = {
             (float)center_x + c * inner_radius,
             (float)center_y + s * inner_radius
@@ -849,7 +844,7 @@ session_draw_start_preview(InbeApp *app, int center_x, int center_y)
     }
 
     if(active) {
-        app->cursor_clickable = 1;
+        MarkUIClickable();
     }
 
     return clicked;
@@ -934,6 +929,44 @@ stop_android_background_session(InbeApp *app)
     practice_active_background_stop(app);
 }
 
+static void
+session_request_exit(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    if(app->session_paused) {
+        stop_android_background_session(app);
+        app_init(app);
+        return;
+    }
+    app_open_modal(app, UIModalConfirmExitSession);
+}
+
+static int
+session_handle_exit_modal(InbeApp *app)
+{
+    SessionExitModalResult result;
+
+    if(app == NULL || !app->modal.active ||
+       app->modal.type != UIModalConfirmExitSession)
+        return 0;
+
+    result = app_draw_session_exit_modal(
+        session_has_completed_rounds(app),
+        GetLocaleText("save_completed_rounds_message"),
+        GetLocaleText("all_progress_lost_message"));
+    if(result == SessionExitModalCancel) {
+        app_close_modal(app);
+    } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
+        if(result == SessionExitModalSave)
+            session_ensure_results_saved(app);
+        stop_android_background_session(app);
+        app_close_modal(app);
+        app_init(app);
+    }
+    return 1;
+}
+
 void
 session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
 {
@@ -944,13 +977,12 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
     session_round_label(app, title, sizeof(title));
     if(session_draw_round_title_bar(app, title, title_h,
                                     app->show_session_return_button)) {
-        if(app->session_paused) {
-            stop_android_background_session(app);
-            app_init(app);
-        } else {
-            app_open_modal(app, UIModalConfirmExitSession);
-        }
+        session_request_exit(app);
+        return;
     }
+
+    if(session_handle_exit_modal(app))
+        return;
 
     if(DrawUIIconSliderPopup((UIIconSliderPopup){
            .id = 500,
@@ -969,23 +1001,6 @@ session_update_screen(InbeApp *app, int center_x, int center_y, int *hover)
         app->settings_dirty = 1;
         update_session_sounds(app);
         save_settings(app);
-    }
-
-    if(app->modal.active && app->modal.type == UIModalConfirmExitSession) {
-        SessionExitModalResult result =
-            app_draw_session_exit_modal(session_has_completed_rounds(app),
-                                        GetLocaleText("save_completed_rounds_message"),
-                                        GetLocaleText("all_progress_lost_message"));
-        if(result == SessionExitModalCancel) {
-            app_close_modal(app);
-        } else if(result == SessionExitModalSave || result == SessionExitModalDiscard) {
-            if(result == SessionExitModalSave)
-                session_ensure_results_saved(app);
-            stop_android_background_session(app);
-            app_close_modal(app);
-            app_init(app);
-        }
-        return;
     }
 
     if(app->advanced_session_controls) {

@@ -71,6 +71,56 @@ set_desktop_window_icon(void)
 
 static InbeApp inbe_app;
 static InbeApp *g_inbe_app_ptr = NULL;
+
+static const char *
+trace_level_name(int log_level)
+{
+    switch(log_level) {
+    case LOG_TRACE: return "TRACE";
+    case LOG_DEBUG: return "DEBUG";
+    case LOG_INFO: return "INFO";
+    case LOG_WARNING: return "WARNING";
+    case LOG_ERROR: return "ERROR";
+    case LOG_FATAL: return "FATAL";
+    default: return "INFO";
+    }
+}
+
+static int
+trace_has_prefix(const char *text, const char *prefix)
+{
+    size_t len;
+
+    if(text == NULL || prefix == NULL)
+        return 0;
+    len = strlen(prefix);
+    return strncmp(text, prefix, len) == 0;
+}
+
+static int
+trace_is_quiet_text(const char *text)
+{
+    return trace_has_prefix(text, "IMAGE:") ||
+           trace_has_prefix(text, "TEXTURE:");
+}
+
+static void
+filtered_trace_log(int log_level, const char *text, va_list args)
+{
+    if(log_level < LOG_WARNING && trace_is_quiet_text(text))
+        return;
+
+    fprintf(stderr, "%s: ", trace_level_name(log_level));
+    vfprintf(stderr, text, args);
+    fputc('\n', stderr);
+}
+
+static void
+install_trace_log_filter(void)
+{
+    SetTraceLogCallback(filtered_trace_log);
+}
+
 #if !defined(PLATFORM_WEB)
 static volatile sig_atomic_t g_shutdown_requested;
 
@@ -311,12 +361,6 @@ draw_full_frame(int width, int height)
         (float)width,
         (float)height
     });
-    if(inbe_app.cursor_disabled)
-        SetMouseCursor(MOUSE_CURSOR_NOT_ALLOWED);
-    else if(inbe_app.cursor_clickable)
-        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-    else
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 }
 
 static void
@@ -642,6 +686,7 @@ run_screenshot_mode(const ScreenshotRequest *request)
 int main(int argc, char **argv) {
     ScreenshotRequest screenshot;
     parse_screenshot_args(argc, argv, &screenshot);
+    install_trace_log_filter();
     if(screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);
         config.width = screenshot.width;

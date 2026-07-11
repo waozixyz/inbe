@@ -296,7 +296,7 @@ habit_color_button(InbeApp *app, int x, int y, Color color, int selected)
     DrawCircleLines(x, y, radius + ScaleUIPx(2),
                     selected ? GetThemeText() : DarkenUIColor(GetThemeBackground(), 42));
     if(active) {
-        app->cursor_clickable = 1;
+        MarkUIClickable();
         if(hovered)
             DrawCircleLines(x, y, radius + ScaleUIPx(5), GetThemeButtonHover());
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))

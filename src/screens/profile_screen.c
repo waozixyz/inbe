@@ -231,8 +231,8 @@ int
 profile_screen_draw(InbeApp *app)
 {
     int header_h = GetUITitleBarHeight();
-    int selector_y = header_h;
-    int content_y = header_h + GetUITabBarHeight();
+    int selector_y = header_h + ScaleUIPx(8);
+    int content_y = selector_y + GetUITabBarHeight();
     int content_h = view_height - content_y - app_content_bottom_reserved(app);
     UIScrollPage page;
     int y;

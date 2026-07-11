@@ -313,8 +313,6 @@ struct InbeApp {
     Inbe start_speed_preview;
     int start_speed_preview_speed;
     Camera2D camera;
-    int cursor_clickable;
-    int cursor_disabled;
     Texture2D icons[UI_ICON_TYPE_COUNT];
     int graphics_reload_requested;
 

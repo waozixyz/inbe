@@ -148,6 +148,38 @@ effective_breath_half_ticks(const Inbe *l)
     );
 }
 
+int
+current_breath_half_ticks(const Inbe *l)
+{
+    if(l == NULL)
+        return 0;
+    return effective_breath_half_ticks(l);
+}
+
+float
+current_breath_progress(const Inbe *l)
+{
+    int half_ticks;
+    float amount;
+
+    if(l == NULL || l->phase != InbePhaseBreathe)
+        return 0.0f;
+
+    half_ticks = effective_breath_half_ticks(l);
+    if(half_ticks <= 0)
+        return 0.0f;
+
+    amount = (float)l->breath_frame / (float)half_ticks;
+    if(amount < 0.0f)
+        amount = 0.0f;
+    if(amount > 1.0f)
+        amount = 1.0f;
+
+    if(l->dir == 0)
+        return amount * 0.5f;
+    return 0.5f + amount * 0.5f;
+}
+
 static float
 smoothstepf(float t)
 {

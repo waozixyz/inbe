@@ -2,6 +2,26 @@
 
 Inner Breeze is a free, open-source app for breathing, meditation, and habit tracking.
 
+## Support
+
+Monero:
+
+```text
+48ms5LfFrPJ2LUvqP9Mm5BhDSnZnqu14jB8XpAukw3jDBKxRAxYvq3k4fEwXY7kCY3LrtycMUayJZR1YJuyvJHCDCcyw6pA
+```
+
+Bitcoin:
+
+```text
+bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5
+```
+
+Lightning:
+
+```text
+waozi@cake.cash
+```
+
 ## Build
 
 Build with the system toolchain and project Makefile:
@@ -17,6 +37,23 @@ On FreeBSD, use GNU Make:
 gmake native
 gmake run
 ```
+
+To debug Inbe against the root Flint checkout instead of the vendored
+submodule, override `FLINT_DIR`:
+
+```bash
+make run FLINT_DIR=../flint
+```
+
+On FreeBSD:
+
+```bash
+gmake run FLINT_DIR=../flint
+```
+
+Use this only for local debugging; permanent Flint fixes should be committed in
+the root Flint repository and then brought into Inbe by updating
+`vendor/flint`.
 
 Native binaries are written to `build/bin/<platform>/`, for example
 `build/bin/freebsd/inbe-freebsd-x86_64` on FreeBSD.

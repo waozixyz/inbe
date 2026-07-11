@@ -1396,10 +1396,10 @@ habits_overview_cell_clicked(InbeApp *app, int x, int y, int w, int h, int disab
     if(!inside)
         return 0;
     if(disabled) {
-        app->cursor_disabled = 1;
+        MarkUIDisabled();
         return 0;
     }
-    app->cursor_clickable = 1;
+    MarkUIClickable();
     return IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -1614,7 +1614,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                     detail_border = GetThemeText();
                 }
                 if(detail_active)
-                    app->cursor_clickable = 1;
+                    MarkUIClickable();
                 DrawRectangle(detail_x, row_y, cell, cell, detail_fill);
                 DrawUIBevel(detail_x, row_y, cell, cell,
                               LightenUIColor(detail_fill, detail_hover ? 34 : 24),
@@ -1993,7 +1993,7 @@ habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
                     GetUIControlTextY(label, y, h, font), font, text);
 
     if(inside && app != NULL)
-        app->cursor_clickable = 1;
+        MarkUIClickable();
     return inside && IsMouseButtonReleased(MOUSE_BUTTON_LEFT);
 }
 
@@ -2101,9 +2101,9 @@ habit_weekly_summary_button(InbeApp *app, int x, int y, int w, int h, int comple
     hovered = active && UIHoverEffectsEnabled();
     if(active) {
         if(disabled)
-            app->cursor_disabled = 1;
+            MarkUIDisabled();
         else
-            app->cursor_clickable = 1;
+            MarkUIClickable();
     }
     active = active && !disabled;
     hovered = hovered && !disabled;
