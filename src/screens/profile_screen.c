@@ -147,8 +147,8 @@ profile_draw_tab_dropdown(InbeApp *app, int y, int w)
 
     selected = app->profile_tab;
     dropdown_w = w - ScaleUIPx(32);
-    if(dropdown_w > ScaleUIPx(360))
-        dropdown_w = ScaleUIPx(360);
+    if(dropdown_w > ScaleUIPx(CONTENT_MAX_W))
+        dropdown_w = ScaleUIPx(CONTENT_MAX_W);
     if(dropdown_w < ScaleUIPx(180))
         dropdown_w = w - ScaleUIPx(16);
     dropdown_x = (w - dropdown_w) / 2;

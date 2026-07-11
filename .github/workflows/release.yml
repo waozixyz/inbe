@@ -328,7 +328,7 @@ jobs:
           path: |
             vendor-builds/windows
             vendor-builds/sqlite
-          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/vendor/raylib/src/**', 'vendor/curl/**', 'vendor/sqlite/**') }}
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/mk/**', 'vendor/flint/scripts/prepare-raylib-source.sh', 'vendor/flint/tools/generate-flint-compat.sh', 'vendor/flint/vendor/raylib/src/**', 'vendor/flint/vendor/curl/**', 'vendor/sqlite/**') }}
           restore-keys: |
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
@@ -700,9 +700,9 @@ jobs:
         with:
           node-version: '24'
 
-      - name: Upload AAB to Amazon Appstore
+      - name: Upload APK to Amazon Appstore
         env:
-          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.aab
+          AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
         run: node scripts/upload-amazon-appstore.mjs
 
   publish-chrome-web-store:
@@ -750,7 +750,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          token_response="$(curl --fail --silent --show-error \
+          token_response="$(curl --fail-with-body --silent --show-error \
             --request POST \
             --data-urlencode "client_id=${CHROME_CLIENT_ID}" \
             --data-urlencode "client_secret=${CHROME_CLIENT_SECRET}" \
@@ -760,7 +760,7 @@ jobs:
 
           access_token="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' <<< "$token_response")"
 
-          upload_response="$(curl --fail --silent --show-error \
+          upload_response="$(curl --fail-with-body --silent --show-error \
             --request PUT \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \
@@ -777,7 +777,7 @@ jobs:
               raise SystemExit("Chrome Web Store upload failed")
           PY
 
-          publish_response="$(curl --fail --silent --show-error \
+          publish_response="$(curl --fail-with-body --silent --show-error \
             --request POST \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \

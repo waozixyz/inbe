@@ -1013,9 +1013,6 @@ moy. %ds
 [round_result_label]
 Cycle %d  %ds
 ---
-[starting_in]
-DÉBUT DANS %2d
----
 [session_round_label]
 CYCLE %d
 ---

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createServer } from 'node:http';
-import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constants } from 'node:fs';
+import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constants, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -128,29 +128,23 @@ function delay(ms) {
   return new Promise(resolveDelay => setTimeout(resolveDelay, ms));
 }
 
-function reserveLocalPort() {
-  const portServer = createServer();
-  return new Promise((resolveReserve, reject) => {
-    portServer.once('error', reject);
-    portServer.listen(0, '127.0.0.1', () => {
-      const { port } = portServer.address();
-      portServer.close(error => {
-        if (error)
-          reject(error);
-        else
-          resolveReserve(port);
-      });
-    });
-  });
-}
-
 function formatChromeLaunchError(stderrLines) {
   const stderr = stderrLines.join('').trim();
   const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
   return new Error(`Chrome exited before DevTools was ready${suffix}`);
 }
 
-async function waitForDevtools(port, chrome, stderrLines) {
+function readDevtoolsPort() {
+  const path = join(userDataDir, 'DevToolsActivePort');
+
+  if (!existsSync(path))
+    return 0;
+
+  const port = Number(readFileSync(path, 'utf8').split('\n', 1)[0]);
+  return Number.isFinite(port) && port > 0 ? port : 0;
+}
+
+async function waitForDevtools(chrome, stderrLines) {
   const start = Date.now();
   let exited = false;
   const onExit = () => {
@@ -163,11 +157,14 @@ async function waitForDevtools(port, chrome, stderrLines) {
       if (exited)
         throw formatChromeLaunchError(stderrLines);
 
-      try {
-        const response = await fetch(`http://127.0.0.1:${port}/json/version`);
-        if (response.ok)
-          return;
-      } catch {}
+      const port = readDevtoolsPort();
+      if (port > 0) {
+        try {
+          const response = await fetch(`http://127.0.0.1:${port}/json/version`);
+          if (response.ok)
+            return port;
+        } catch {}
+      }
 
       await delay(50);
     }
@@ -177,7 +174,7 @@ async function waitForDevtools(port, chrome, stderrLines) {
 
   const stderr = stderrLines.join('').trim();
   const suffix = stderr ? `; chrome stderr: ${stderr.slice(-4000)}` : '';
-  throw new Error(`timed out waiting for Chrome DevTools on port ${port}${suffix}`);
+  throw new Error(`timed out waiting for Chrome DevToolsActivePort${suffix}`);
 }
 
 async function jsonRequest(url, options = {}) {
@@ -368,11 +365,10 @@ let failure;
 
 try {
   const port = await listen();
-  const devtoolsPort = await reserveLocalPort();
   const browser = resolveBrowser();
   const args = [
     '--headless=new',
-    `--remote-debugging-port=${devtoolsPort}`,
+    '--remote-debugging-port=0',
     '--remote-debugging-address=127.0.0.1',
     `--user-data-dir=${userDataDir}`,
     '--no-first-run',
@@ -403,7 +399,7 @@ try {
       failure = error;
   });
 
-  await waitForDevtools(devtoolsPort, chrome, chromeStderr);
+  const devtoolsPort = await waitForDevtools(chrome, chromeStderr);
   const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
     method: 'PUT'
   });

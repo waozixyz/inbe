@@ -256,6 +256,8 @@ typedef struct MeditationPracticeState {
     int music_loaded;
     int music_playing;
     int music_test_playing;
+    int music_fade_out_ticks;
+    int music_fade_out_total_ticks;
     int music_archive_extracted;
     int music_network_error_notified;
     Music music;
