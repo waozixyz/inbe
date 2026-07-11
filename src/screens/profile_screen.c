@@ -1,6 +1,7 @@
 #include "profile_screen.h"
 
 #include "app.h"
+#include "app_nav.h"
 #include "text_utils.h"
 #include "locale.h"
 #include "theme.h"
@@ -256,6 +257,8 @@ profile_screen_draw(InbeApp *app)
     if(app_draw_close_title_bar(app, title, header_h)) {
         app->profile_scroll = 0;
         app->sync_server_url_focused = 0;
+        if(app_return_to_nav_sidebar_if_needed(app))
+            return 1;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);

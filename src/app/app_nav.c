@@ -433,7 +433,7 @@ app_current_nav_route(const InbeApp *app)
         return APP_NAV_ROUTE_NONE;
     switch(app->inbe.screen) {
     case InbeScreenProfile:
-        return APP_NAV_ROUTE_PROFILE;
+        return APP_NAV_ROUTE_NONE;
     case InbeScreenStart:
         if(app_is_practice_fullscreen_subview(app))
             return APP_NAV_ROUTE_NONE;

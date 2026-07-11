@@ -762,6 +762,27 @@ test_edge_bottom_nav_routes_are_applied(void)
 }
 
 static void
+test_profile_hides_bottom_nav(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenProfile;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
+
+    app_draw_bottom_nav(&app);
+
+    expect(bottom_nav_draw_count == 0,
+           "profile should not draw bottom nav");
+    expect(app_current_nav_route(&app) == APP_NAV_ROUTE_NONE,
+           "profile should not expose a bottom nav route");
+    expect(app_content_bottom_reserved(&app) == 0,
+           "profile should not reserve bottom nav height");
+    expect(app.inbe.screen == InbeScreenProfile,
+           "profile hidden nav should not route clicks");
+}
+
+static void
 test_practice_manual_hides_bottom_nav(void)
 {
     InbeApp app = test_app();
@@ -964,6 +985,7 @@ main(void)
     test_same_frame_modal_close_consumes_bottom_nav_click();
     test_unblocked_bottom_nav_click_still_routes();
     test_edge_bottom_nav_routes_are_applied();
+    test_profile_hides_bottom_nav();
     test_practice_manual_hides_bottom_nav();
     test_practice_config_hides_bottom_nav();
     test_file_dialog_hides_bottom_nav();
