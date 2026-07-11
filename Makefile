@@ -357,6 +357,10 @@ WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_RANLIB ?= emranlib
 include $(FLINT_DIR)/mk/raylib.mk
+FLINT_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_WEB_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_WINDOWS_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_CLICK_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
