@@ -1,7 +1,9 @@
 # Changelog
 ## [1.8.4] - 2026-07-11
 ### Changed
-- Use the full profile content width for the configure profile dropdown.
+- Reworked Profile configuration navigation to use a full-width dropdown instead of the tab bar.
+- Updated sidebar return behavior for Profile and Settings flows.
+- Updated Flint profile widgets and profile picture assets, including sidebar profile image sizing and picker scrolling.
 
 ## [1.8.3] - 2026-07-10
 ### Changed
