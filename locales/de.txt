@@ -10,14 +10,11 @@ Gewohnheiten
 [tab_practice]
 Praxis
 ---
-[tab_pet]
-Pet
+[profile_data]
+Data
 ---
-[profile_data_title]
-Daten
----
-[profile_data_button]
-Daten konfigurieren
+[profile_sync_tab]
+Sync
 ---
 [profile_habits_label]
 Gewohnheiten
@@ -64,23 +61,11 @@ Aktualisieren
 [profile_no_account]
 Kein Konto
 ---
-[profile_account_section]
-Konto
----
-[profile_configure_button]
-Konfigurieren
----
-[profile_data_section]
-Daten
----
-[profile_friends_count_format]
+[profile_friends_summary]
 %d Freunde
 ---
-[profile_pending_count_format]
-%d ausstehend
----
-[profile_social_section]
-Sozial
+[profile_friends_pending_summary]
+%d Freunde +%d
 ---
 [profile_add_friend_button]
 Freund hinzufuegen
@@ -97,14 +82,9 @@ Keine Bestenlistendaten
 [profile_practice_label]
 Praxis
 ---
-[profile_my_practices_button]
-Meine Praktiken
----
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Meine Praktiken
 ---
 [move_up_button]
 Up
@@ -112,8 +92,18 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Einstellungen
+---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
 ---
 [play_button]
 START
@@ -308,10 +298,10 @@ Ein ruhiger Begleiter fuer Atemuebungen, Gewohnheiten und Synchronisierung.
 Thema
 ---
 [theme_mode_label]
-Farbmodus
+Theme mode
 ---
 [theme_follow_device]
-Gerät folgen
+System
 ---
 [speed_label]
 Geschwindigkeit
@@ -372,9 +362,6 @@ Kreis
 ---
 [volume_label]
 Lautstärke
----
-[show_session_volume_control_label]
-Lautstärkeregler anzeigen
 ---
 [show_session_return_button_label]
 Zurück-Taste anzeigen
@@ -771,17 +758,7 @@ Gesamte Atemhaltezeit
 [habit_stats_best_streak]
 Beste Serie
 ---
-[profile_guide_account]
-Richte hier dein Sync-Konto ein.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Oeffne Freunde und Bestenliste von hier.
----
-[profile_guide_social_no_account]
-Erstelle ein Sync-Konto, um Freunde und Bestenliste freizuschalten.
 ---
 
 [transition_label]
@@ -881,10 +858,10 @@ Yoga
 Yoga-Übungssitzungen.
 ---
 [pet_gamification_title]
-Gamification in Arbeit...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Nur Vorschau. Dieser Tab ist noch nicht implementiert.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Heutige Gewohnheiten gesamt.
@@ -1065,4 +1042,19 @@ Results
 ---
 [habit_stats_day_plural]
 %d Tage
+---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
 ---

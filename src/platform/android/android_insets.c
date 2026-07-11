@@ -9,7 +9,7 @@
 #include <string.h>
 #include <stdio.h>
 
-#include <raylib.h>
+#include "flint.h"
 #include <pthread.h>
 #include <jni.h>
 #include <android/log.h>

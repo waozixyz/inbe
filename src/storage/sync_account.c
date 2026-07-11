@@ -4,7 +4,7 @@
 #include "data.h"
 #include "storage.h"
 #include "sync_client.h"
-#include "raylib.h"
+#include "flint.h"
 
 #if ANDROID_BUILD
 #include "android_share.h"

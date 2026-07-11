@@ -61,12 +61,8 @@ android {
         abi {
             enable true
             reset()
-            def selectedAbis = (project.findProperty('inbe.abis') ?: 'arm64-v8a,armeabi-v7a,x86,x86_64')
-                .split(',')
-                .collect { it.trim() }
-                .findAll { it.length() > 0 }
-            include(*selectedAbis)
-            universalApk !project.hasProperty('inbe.abis')
+            include 'arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'
+            universalApk true
         }
     }
 

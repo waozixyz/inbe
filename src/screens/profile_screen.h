@@ -5,8 +5,5 @@
 
 int profile_screen_draw(InbeApp *app);
 void profile_screen_draw_remove_friend_modal(InbeApp *app);
-int profile_screen_first_run_guide_active(const InbeApp *app);
-void profile_screen_prepare_first_run_guide(InbeApp *app);
-void profile_screen_draw_first_run_guide(InbeApp *app);
 
 #endif

@@ -255,11 +255,11 @@ sun_salutation_config_screen_draw(InbeApp *app)
         app->practice_config_tab = 0;
     if(app->modal.active && app->modal.type == UIModalPracticeConfig) {
         title_h = GetUITitleBarHeight();
-        if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], GetLocaleText("practice_config_title"), title_h)) {
+        if(app_draw_close_title_bar(app, GetLocaleText("practice_config_title"), title_h)) {
             app_close_modal(app);
             return;
         }
-    } else if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+    } else if(app_draw_close_title_bar(app,
                                         GetLocaleText("practice_config_title"),
                                         title_h)) {
         if(app->settings_dirty)

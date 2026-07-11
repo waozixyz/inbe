@@ -5,7 +5,7 @@
 #include "whm_session.h"
 #include "theme.h"
 #include "ui.h"
-#include "raylib.h"
+#include "flint.h"
 #include "screens/practice_screen.h"
 #include "practices/meditation/meditation_music.h"
 

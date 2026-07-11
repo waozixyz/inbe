@@ -1,6 +1,6 @@
 #include "android_wakelock.h"
 
-#include <raylib.h>
+#include "flint.h"
 #include <pthread.h>
 #include <android/log.h>
 #include <jni.h>

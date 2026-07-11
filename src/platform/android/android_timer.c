@@ -3,7 +3,7 @@
 #include "practices/practice_registry.h"
 #include <time.h>
 
-#include <raylib.h>
+#include "flint.h"
 #include <pthread.h>
 #include <android/log.h>
 #include <unistd.h>

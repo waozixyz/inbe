@@ -8,7 +8,7 @@
 #include "ui_clip.h"
 #include "ui.h"
 #include "theme_meta.h"
-#include "raylib.h"
+#include "flint.h"
 #include <stdio.h>
 
 extern int view_width;
@@ -176,7 +176,7 @@ whm_manual_draw(InbeApp *app)
     practice_screen_manual_layout(app, UIModalPracticeManual, (int)TUTORIAL_STEPS_COUNT,
                                   manual_screen_tutorial_top_gap(), footer_content_pad,
                                   0, &layout);
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+    if(app_draw_close_title_bar(app,
                             GetLocaleText("practice_manual_button"),
                             layout.title_h))
         whm_manual_close(app, 0);

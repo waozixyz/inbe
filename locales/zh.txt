@@ -10,14 +10,11 @@
 [tab_practice]
 练习
 ---
-[tab_pet]
-Pet
+[profile_data]
+Data
 ---
-[profile_data_title]
-数据
----
-[profile_data_button]
-配置数据
+[profile_sync_tab]
+Sync
 ---
 [profile_habits_label]
 习惯
@@ -64,23 +61,11 @@ Pet
 [profile_no_account]
 没有账户
 ---
-[profile_account_section]
-账户
----
-[profile_configure_button]
-配置
----
-[profile_data_section]
-数据
----
-[profile_friends_count_format]
+[profile_friends_summary]
 %d 位好友
 ---
-[profile_pending_count_format]
-%d 个待处理
----
-[profile_social_section]
-社交
+[profile_friends_pending_summary]
+%d 位好友 +%d
 ---
 [profile_add_friend_button]
 添加好友
@@ -97,14 +82,9 @@ Pet
 [profile_practice_label]
 练习
 ---
-[profile_my_practices_button]
-我的练习
----
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-我的练习
 ---
 [move_up_button]
 Up
@@ -112,8 +92,18 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-设置
+---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
 ---
 [play_button]
 开始
@@ -308,10 +298,10 @@ Finish
 主题
 ---
 [theme_mode_label]
-颜色模式
+Theme mode
 ---
 [theme_follow_device]
-跟随设备
+System
 ---
 [speed_label]
 速度
@@ -372,9 +362,6 @@ Finish
 ---
 [volume_label]
 音量
----
-[show_session_volume_control_label]
-显示音量控制
 ---
 [show_session_return_button_label]
 显示返回按钮
@@ -771,17 +758,7 @@ Wim Hof 屏息轮次
 [habit_stats_best_streak]
 最佳连续记录
 ---
-[profile_guide_account]
-在这里配置同步账户。
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-从这里打开好友和排行榜。
----
-[profile_guide_social_no_account]
-创建同步账户以解锁好友和排行榜。
 ---
 
 [transition_label]
@@ -881,10 +858,10 @@ Yoga
 瑜伽练习课程。
 ---
 [pet_gamification_title]
-游戏化开发中...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-仅为预览。此标签页尚未实现。
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 今天的习惯总数。
@@ -1065,4 +1042,19 @@ Results
 ---
 [habit_stats_day_plural]
 %d天
+---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
 ---

@@ -1,4 +1,4 @@
-#include "raylib.h"
+#include "flint.h"
 #include "app.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
@@ -18,7 +18,7 @@
 #include <time.h>
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
-#include "desktop_tray.h"
+#include "platform/inbe_desktop_tray.h"
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
@@ -511,7 +511,6 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->settings_scroll = 0;
     app->manual_scroll = 0;
     app->tutorial_step = 0;
-    app->profile_guide_seen = 1;
     app->habits_guide_seen = 1;
     app->tutorial_seen = 1;
     screenshot_seed_habits(app);
@@ -552,21 +551,24 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_THEME;
         app->inbe.screen = InbeScreenSettings;
-    } else if(strcmp(request->scene, "settings_overview") == 0) {
+    } else if(strcmp(request->scene, "settings_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->settings_tab = SETTINGS_TAB_OVERVIEW;
+        app->settings_tab = SETTINGS_TAB_SESSION;
         app->inbe.screen = InbeScreenSettings;
-    } else if(strcmp(request->scene, "profile_data") == 0) {
-        app->profile_view = PROFILE_VIEW_DATA;
-        app->profile_tab = PROFILE_TAB_OVERVIEW;
+    } else if(strcmp(request->scene, "data") == 0 ||
+              strcmp(request->scene, "profile_data") == 0) {
+        app->profile_view = PROFILE_VIEW_MAIN;
+        app->profile_tab = PROFILE_TAB_DATA;
         app->inbe.screen = InbeScreenProfile;
-    } else if(strcmp(request->scene, "profile_practices") == 0) {
+    } else if(strcmp(request->scene, "my_practices") == 0 ||
+              strcmp(request->scene, "profile_practices") == 0) {
         app->profile_view = PROFILE_VIEW_PRACTICES;
         app->profile_tab = PROFILE_TAB_OVERVIEW;
         app->inbe.screen = InbeScreenProfile;
-    } else if(strcmp(request->scene, "profile_sync_account") == 0) {
-        app->profile_view = PROFILE_VIEW_SYNC_ACCOUNT;
-        app->profile_tab = PROFILE_TAB_OVERVIEW;
+    } else if(strcmp(request->scene, "configure_account") == 0 ||
+              strcmp(request->scene, "profile_sync_account") == 0) {
+        app->profile_view = PROFILE_VIEW_MAIN;
+        app->profile_tab = PROFILE_TAB_SYNC;
         app->inbe.screen = InbeScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, THEME_COBALT, 1);

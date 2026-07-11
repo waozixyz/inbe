@@ -6,7 +6,7 @@
 #include "screens/practice_screen.h"
 #include "theme.h"
 #include "ui.h"
-#include "raylib.h"
+#include "flint.h"
 
 extern int view_width;
 extern int view_height;
@@ -92,7 +92,7 @@ meditation_manual_draw(InbeApp *app)
     practice_screen_manual_layout(app, UIModalPracticeManual, MEDITATION_MANUAL_PAGES,
                                   manual_screen_tutorial_top_gap(),
                                   ScaleUIPx(8), ScaleUIPx(120), &layout);
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN],
+    if(app_draw_close_title_bar(app,
                                  GetLocaleText("meditation_manual_title"),
                                  layout.title_h))
         meditation_manual_close(app, 0);

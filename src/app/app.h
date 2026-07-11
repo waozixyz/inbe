@@ -1,7 +1,7 @@
 #ifndef INBE_APP_H
 #define INBE_APP_H
 
-#include "raylib.h"
+#include "flint.h"
 #include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
@@ -42,7 +42,6 @@ enum {
 };
 
 enum {
-    SETTINGS_TAB_OVERVIEW = -1,
     SETTINGS_TAB_SESSION = 0,
     SETTINGS_TAB_DEVICE,
     SETTINGS_TAB_THEME,
@@ -59,10 +58,11 @@ enum {
 };
 
 enum {
-    PROFILE_TAB_OVERVIEW = 0,
+    PROFILE_TAB_SYNC = 0,
+    PROFILE_TAB_OVERVIEW = PROFILE_TAB_SYNC,
+    PROFILE_TAB_DATA,
     PROFILE_TAB_FRIENDS,
     PROFILE_TAB_LEADERBOARD,
-    PROFILE_TAB_DATA,
     PROFILE_TAB_COUNT
 };
 
@@ -101,6 +101,8 @@ typedef enum {
     UIModalSyncPublicId,
     UIModalConfirmRemoveFriend,
     UIModalConfirmSyncAccountSwitch,
+    UIModalBottomNavConfig,
+    UIModalProfilePicturePicker,
 } UIModalType;
 
 typedef enum InbePendingSyncAccountAction {
@@ -184,6 +186,7 @@ typedef enum AppDeviceOrientation {
 } AppDeviceOrientation;
 
 typedef enum AppMainTab {
+    APP_MAIN_TAB_NONE = -1,
     APP_MAIN_TAB_HABITS = 0,
     APP_MAIN_TAB_PRACTICE = 1,
 } AppMainTab;
@@ -195,8 +198,18 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_PRACTICE = 2,
     APP_NAV_ROUTE_PET = 3,
     APP_NAV_ROUTE_SETTINGS = 4,
-    APP_NAV_ROUTE_COUNT = 5,
+    APP_NAV_ROUTE_STACK = 5,
+    APP_NAV_ROUTE_ACCOUNT = 6,
+    APP_NAV_ROUTE_DATA = 7,
+    APP_NAV_ROUTE_FRIENDS = 8,
+    APP_NAV_ROUTE_LEADERBOARD = 9,
+    APP_NAV_ROUTE_PRACTICES = 10,
+    APP_NAV_ROUTE_COUNT = 11,
 } AppNavRoute;
+
+enum {
+    APP_BOTTOM_NAV_CONTENT_MAX = 4,
+};
 
 typedef struct AppRoute {
     int screen;
@@ -216,6 +229,10 @@ typedef struct AppContentTransition {
     float elapsed_seconds;
     float duration_seconds;
 } AppContentTransition;
+
+int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
+int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
+                                      int height);
 
 typedef struct WhmPracticeState {
     Texture2D image_1;
@@ -287,13 +304,6 @@ typedef struct HabitEditState {
     int sync_activity;
     int counter_enabled;
 } HabitEditState;
-
-typedef struct ProfileGuideAnchors {
-    Rectangle account;
-    Rectangle data;
-    Rectangle social;
-    int valid;
-} ProfileGuideAnchors;
 
 struct InbeApp {
     Inbe inbe;
@@ -372,9 +382,6 @@ struct InbeApp {
     int tutorial_seen;
     int habits_guide_step;
     int habits_guide_seen;
-    int profile_guide_step;
-    int profile_guide_seen;
-    ProfileGuideAnchors profile_guide_anchors;
     int exercise_manual_seen_mask;
     int practice_visible_mask;
     int practice_home_scroll;
@@ -385,6 +392,16 @@ struct InbeApp {
     int theme_mode;
     int orientation_mode;
     int navigation_mode;
+    int bottom_nav_routes[APP_BOTTOM_NAV_CONTENT_MAX];
+    int bottom_nav_route_count;
+    int bottom_nav_config_routes[APP_BOTTOM_NAV_CONTENT_MAX];
+    int bottom_nav_config_route_count;
+    int nav_sidebar_open;
+    int nav_sidebar_open_frame;
+    int nav_sidebar_scroll;
+    int nav_sidebar_return_on_back;
+    UIIconType profile_picture_icon;
+    int profile_picture_picker_scroll;
     int transition_mode;
     int android_orientation;
     int main_tab;
@@ -401,7 +418,6 @@ struct InbeApp {
     int habit_counter_press_start_x;
     int habit_counter_press_start_y;
     int advanced_session_controls;
-    int show_session_volume_control;
     int double_tap_to_breathe;
     double breath_tap_last_time;
     int hold_display_mode;

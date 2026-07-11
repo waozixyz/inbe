@@ -14,8 +14,6 @@ settings_session_content_height(int content_w)
     int label_w = content_w > 0 ? content_w : ScaleUIPx(240);
     int height = ScaleUIPx(SETTINGS_SESSION_SLIDER_ROW_H) + ScaleUIPx(40);
 
-    height += settings_ui_toggle_row_height(GetLocaleText("show_session_volume_control_label"),
-                                            label_w);
     height += settings_ui_toggle_row_height(GetLocaleText("show_session_return_button_label"),
                                             label_w);
     height += settings_ui_toggle_row_height(GetLocaleText("play_in_background_label"),
@@ -27,7 +25,6 @@ void
 settings_session_draw(InbeApp *app, int x, int w, int *y)
 {
     int sound_volume;
-    int show_session_volume;
     int show_session_return;
     int play_in_background;
 
@@ -41,14 +38,6 @@ settings_session_draw(InbeApp *app, int x, int w, int *y)
                                      SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
                                      &sound_volume, "", 0)) {
         app->sound_volume = sound_volume;
-        save_settings(app);
-    }
-
-    show_session_volume = app->show_session_volume_control;
-    if(settings_ui_commit_toggle_row(app, x, w, y,
-                                     GetLocaleText("show_session_volume_control_label"),
-                                     &show_session_volume, 0)) {
-        app->show_session_volume_control = show_session_volume;
         save_settings(app);
     }
 

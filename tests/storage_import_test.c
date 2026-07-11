@@ -1,6 +1,6 @@
 #include "breath_engine.h"
 #include "miniz.h"
-#include "raylib.h"
+#include "flint.h"
 #include "screens/habits_screen.h"
 #include "storage.h"
 #include <sqlite3.h>

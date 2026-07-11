@@ -396,6 +396,8 @@ app_modal_type_name(UIModalType type)
     case UIModalSyncPublicId: return "sync_public_id";
     case UIModalConfirmRemoveFriend: return "confirm_remove_friend";
     case UIModalConfirmSyncAccountSwitch: return "confirm_sync_account_switch";
+    case UIModalBottomNavConfig: return "bottom_nav_config";
+    case UIModalProfilePicturePicker: return "profile_picture_picker";
     default: break;
     }
     return "unknown";

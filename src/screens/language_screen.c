@@ -4,7 +4,7 @@
 #include "locale.h"
 #include "theme.h"
 #include "ui.h"
-#include "raylib.h"
+#include "flint.h"
 
 extern int view_width;
 extern int view_height;

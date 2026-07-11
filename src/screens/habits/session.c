@@ -185,7 +185,7 @@ draw_habit_session_edit_screen(InbeApp *app)
     if(viewport_h < ScaleUIPx(80))
         viewport_h = ScaleUIPx(80);
 
-    if(DrawUIReturnTitleBar(app->icons[UI_ICON_TYPE_RETURN], date_text, top_h)) {
+    if(app_draw_close_title_bar(app, date_text, top_h)) {
         habit_session_cancel_edit(app);
         app_switch_screen(app, InbeScreenHabits);
         return;

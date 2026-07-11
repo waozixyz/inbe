@@ -37,6 +37,10 @@
 #include <sys/stat.h>
 #include <time.h>
 
+#if defined(PLATFORM_WEB)
+#include <emscripten.h>
+#endif
+
 #if ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_device.h"
@@ -69,6 +73,60 @@ int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
 static int app_full_view_width = INBE_DEFAULT_WIDTH;
 /* Theme colors are now accessed via theme accessor functions */
+
+int
+app_draw_close_title_bar(InbeApp *app, const char *title, int height)
+{
+    int hover = 0;
+    int button_size = ScaleUIPx(18);
+    int padding = ScaleUIPx(6);
+    int button_total = button_size + padding * 2;
+    int x = view_width - button_total - ScaleUIPx(12);
+    int y = (height - button_total) / 2;
+
+    if(y < 0)
+        y = 0;
+    DrawUITitleBar(title, height);
+    if(app != NULL && !app->modal.active &&
+       DrawUIPaddedIconBtn(x, y, button_size, padding,
+                           app->icons[UI_ICON_TYPE_X], &hover))
+        return 1;
+    return 0;
+}
+
+int
+app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
+                                  int height)
+{
+    int hover = 0;
+    int button_size = ScaleUIPx(18);
+    int padding = ScaleUIPx(6);
+    int button_total = button_size + padding * 2;
+    int close_x = view_width - button_total - ScaleUIPx(12);
+    int close_y = (height - button_total) / 2;
+    int dropdown_x = ScaleUIPx(8);
+    int dropdown_h = dropdown.height > 0 ? dropdown.height : ScaleUIPx(32);
+    int dropdown_y = (height - dropdown_h) / 2;
+    int dropdown_w = close_x - dropdown_x - ScaleUIPx(8);
+
+    if(close_y < 0)
+        close_y = 0;
+    if(dropdown_y < 0)
+        dropdown_y = 0;
+    if(dropdown_w < 1)
+        dropdown_w = 1;
+    DrawRectangle(0, 0, view_width, height, GetThemeBackground());
+    DrawLine(0, height - 1, view_width, height - 1,
+             DarkenUIColor(GetThemeButton(), 18));
+    DrawUIDropdownButton(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
+                         dropdown_h, dropdown.options, dropdown.option_count,
+                         dropdown.selected_index);
+    if(app != NULL && !app->modal.active &&
+       DrawUIPaddedIconBtn(close_x, close_y, button_size, padding,
+                           app->icons[UI_ICON_TYPE_X], &hover))
+        return 1;
+    return 0;
+}
 
 void
 app_leave_practice_config(InbeApp *app)
@@ -686,44 +744,6 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
         save_settings(app);
 }
 
-#if defined(PLATFORM_WEB)
-#include <emscripten.h>
-
-static int web_storage_ready = 0;
-
-static void
-init_web_storage(void)
-{
-    int ok;
-
-    if(web_storage_ready)
-        return;
-
-    ok = EM_ASM_INT({
-        if(typeof FS === 'undefined' || typeof IDBFS === 'undefined')
-            return 0;
-
-        try {
-            FS.mkdir('/home');
-        } catch(e) {}
-
-        try {
-            if(!FS.analyzePath('/home').object.isFolder) return 0;
-            FS.mount(IDBFS, {root: '/'}, '/home');
-        } catch(e) {
-            if(e.errno !== 10 && String(e).indexOf('already mounted') === -1) {
-                console.error('IDBFS mount failed:', e);
-                return 0;
-            }
-        }
-
-        return 1;
-    });
-    web_storage_ready = ok != 0;
-}
-
-#endif
-
 static void
 load_config(void)
 {
@@ -1095,9 +1115,6 @@ app_init(void *vapp) {
     practice_active_background_stop(app);
 #endif
 
-#if defined(PLATFORM_WEB)
-    init_web_storage();
-#endif
     InitLocale();
     if(!load_locale_font(app)) {
         TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
@@ -1145,7 +1162,7 @@ app_init(void *vapp) {
     app->cursor_disabled = 0;
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_tab = SETTINGS_TAB_OVERVIEW;
+    app->settings_tab = SETTINGS_TAB_SESSION;
     app->habit_edit = (HabitEditState){
         .index = -1,
         .color = {99, 196, 165, 255},
@@ -1234,6 +1251,8 @@ handle_back_button(InbeApp *app)
         if(app->settings_dirty)
             save_settings(app);
         settings_screen_clear_status();
+        if(app_return_to_nav_sidebar_if_needed(app))
+            break;
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);
@@ -1241,23 +1260,11 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenProfile:
-        if(app->profile_view != PROFILE_VIEW_MAIN) {
-            AppRoute route = app_current_route(app);
-            route.profile_view = PROFILE_VIEW_MAIN;
-            app->profile_scroll = 0;
-            app->sync_server_url_focused = 0;
-            settings_screen_clear_status();
-            app_switch_route(app, route);
+        app->profile_scroll = 0;
+        app->sync_server_url_focused = 0;
+        settings_screen_clear_status();
+        if(app_return_to_nav_sidebar_if_needed(app))
             break;
-        }
-        if(app->profile_tab != PROFILE_TAB_OVERVIEW) {
-            AppRoute route = app_current_route(app);
-            route.profile_tab = PROFILE_TAB_OVERVIEW;
-            app->profile_scroll = 0;
-            settings_screen_clear_status();
-            app_switch_route(app, route);
-            break;
-        }
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);
@@ -1267,6 +1274,18 @@ handle_back_button(InbeApp *app)
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);
+        break;
+
+    case InbeScreenCustomizeNav:
+        if(app_return_to_nav_sidebar_if_needed(app))
+            break;
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
+        break;
+
+    case InbeScreenNavSidebar:
+        app_close_nav_sidebar(app);
         break;
 
     case InbeScreenPracticeConfig:
@@ -1333,6 +1352,28 @@ handle_back_button(InbeApp *app)
 }
 
 static void
+draw_profile_picture_picker_modal(InbeApp *app)
+{
+    UIProfilePicturePickerResult result;
+
+    if(app == NULL)
+        return;
+
+    result = DrawUIProfilePicturePickerModal((UIProfilePicturePickerModal){
+        .title = "Profile picture",
+        .icons = app->icons,
+        .selected_icon_type = &app->profile_picture_icon,
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .max_width = 360,
+        .scroll_offset = &app->profile_picture_picker_scroll
+    });
+    if(result.changed)
+        save_settings(app);
+    if(result.closed)
+        app_close_modal(app);
+}
+
+static void
 draw_global_modal(InbeApp *app)
 {
     int modal_result;
@@ -1358,6 +1399,10 @@ draw_global_modal(InbeApp *app)
     }
     if(app->modal.type == UIModalThemePicker)
         settings_screen_draw_theme_picker_modal(app);
+    if(app->modal.type == UIModalProfilePicturePicker) {
+        draw_profile_picture_picker_modal(app);
+        return;
+    }
     if(app->modal.type == UIModalConfirmRemoveFriend) {
         profile_screen_draw_remove_friend_modal(app);
         return;
@@ -1434,7 +1479,6 @@ updateapp(InbeApp *app)
     AppRoute frame_route = app_current_route(app);
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
-    int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
@@ -1444,6 +1488,7 @@ updateapp(InbeApp *app)
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app_update_desktop_background_state(app);
 #endif
+    app_update_nav_sidebar_mode(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
@@ -1453,15 +1498,16 @@ updateapp(InbeApp *app)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
     habits_screen_prepare_first_run_guide(app);
-    profile_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
-    profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
+    if(app->nav_sidebar_open)
+        PushUIInputCapture((Rectangle){0, 0, (float)view_width,
+                                       (float)view_height}, 0);
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
-       habits_guide_active || profile_guide_active) {
+       habits_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
@@ -1490,15 +1536,15 @@ updateapp(InbeApp *app)
               app->inbe.screen == InbeScreenSunSalutation))))
 #endif
        ) {
-        if(app->close_prompt_open) {
+        if(app->nav_sidebar_open || app->inbe.screen == InbeScreenNavSidebar) {
+            app_close_nav_sidebar(app);
+        } else if(app->close_prompt_open) {
             app->close_prompt_open = 0;
-        } else if(first_run_guide_active || habits_guide_active || profile_guide_active) {
+        } else if(first_run_guide_active || habits_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
-            app->profile_guide_step = 0;
-            profile_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {
@@ -1520,6 +1566,16 @@ updateapp(InbeApp *app)
 
     if(app->inbe.screen == InbeScreenPet) {
         pet_screen_draw(app);
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenCustomizeNav) {
+        if(app_draw_customize_nav_page(app))
+            goto finish_frame;
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenNavSidebar) {
         goto finish_frame;
     }
 
@@ -1557,7 +1613,8 @@ updateapp(InbeApp *app)
     switch (app->inbe.screen) {
     case InbeScreenStart:
         {
-            if(!practice_fullscreen_modal) {
+            if(!practice_fullscreen_modal &&
+               app->main_tab != APP_MAIN_TAB_NONE) {
                 if(app->practice_tab == PRACTICE_TAB_MANUAL) {
                     manual_screen_draw(app);
                 } else if(app->practice_tab == PRACTICE_TAB_CONFIG) {
@@ -1620,7 +1677,6 @@ finish_frame:
     app_draw_bottom_nav(app);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
-    profile_screen_draw_first_run_guide(app);
     if(!global_modal_drawn)
         draw_global_modal(app);
     app_draw_close_prompt(app);

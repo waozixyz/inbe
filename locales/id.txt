@@ -10,14 +10,11 @@ Kebiasaan
 [tab_practice]
 Latihan
 ---
-[tab_pet]
-Pet
----
-[profile_data_title]
+[profile_data]
 Data
 ---
-[profile_data_button]
-Atur data
+[profile_sync_tab]
+Sync
 ---
 [profile_habits_label]
 Kebiasaan
@@ -64,23 +61,11 @@ Memperbarui
 [profile_no_account]
 Tidak ada akun
 ---
-[profile_account_section]
-Akun
----
-[profile_configure_button]
-Atur
----
-[profile_data_section]
-Data
----
-[profile_friends_count_format]
+[profile_friends_summary]
 %d teman
 ---
-[profile_pending_count_format]
-%d tertunda
----
-[profile_social_section]
-Sosial
+[profile_friends_pending_summary]
+%d teman +%d
 ---
 [profile_add_friend_button]
 Tambah teman
@@ -97,14 +82,9 @@ Tidak ada data papan peringkat
 [profile_practice_label]
 Latihan
 ---
-[profile_my_practices_button]
-Praktik saya
----
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Praktik saya
 ---
 [move_up_button]
 Up
@@ -112,8 +92,18 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Pengaturan
+---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
 ---
 [play_button]
 MULAI
@@ -308,10 +298,10 @@ Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 Tema
 ---
 [theme_mode_label]
-Mode warna
+Theme mode
 ---
 [theme_follow_device]
-Ikuti perangkat
+System
 ---
 [speed_label]
 Kecepatan
@@ -372,9 +362,6 @@ Lingkaran
 ---
 [volume_label]
 Volume
----
-[show_session_volume_control_label]
-Tampilkan kontrol volume
 ---
 [show_session_return_button_label]
 Tampilkan tombol kembali
@@ -771,17 +758,7 @@ Total tahan
 [habit_stats_best_streak]
 Rangkaian terbaik
 ---
-[profile_guide_account]
-Atur akun sinkronisasi Anda di sini.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Buka teman dan papan peringkat dari sini.
----
-[profile_guide_social_no_account]
-Buat akun sinkronisasi untuk membuka teman dan papan peringkat.
 ---
 
 [transition_label]
@@ -881,10 +858,10 @@ Yoga
 Sesi latihan yoga.
 ---
 [pet_gamification_title]
-Gamifikasi sedang dibuat...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-Pratinjau saja. Tab ini belum diterapkan.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 Total kebiasaan hari ini.
@@ -1065,4 +1042,19 @@ Results
 ---
 [habit_stats_day_plural]
 %d hari
+---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
 ---

@@ -9,45 +9,68 @@ function hideLoadingScreen() {
   });
 }
 
+function runStorageSync(retryDelay) {
+  if (Module.__inbeStorageSyncing) return;
+
+  Module.__inbeStorageSyncing = true;
+  Module.__inbeStorageSyncPending = false;
+  var shouldLog = !!Module.__inbeStorageSyncLogSuccess;
+  Module.__inbeStorageSyncLogSuccess = false;
+
+  try {
+    FS.syncfs(false, function(err) {
+      Module.__inbeStorageSyncing = false;
+      if (err) console.error('IDBFS save failed:', err);
+      else if (shouldLog) console.log('IDBFS synced');
+
+      if (Module.__inbeStorageSyncPending) {
+        if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+        Module.__inbeStorageSyncTimer = setTimeout(function() {
+          Module.__inbeStorageSyncTimer = 0;
+          runStorageSync(retryDelay);
+        }, retryDelay);
+      }
+    });
+  } catch (e) {
+    Module.__inbeStorageSyncing = false;
+    console.error('IDBFS sync error:', e);
+    if (Module.__inbeStorageSyncPending) {
+      if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+      Module.__inbeStorageSyncTimer = setTimeout(function() {
+        Module.__inbeStorageSyncTimer = 0;
+        runStorageSync(retryDelay);
+      }, retryDelay);
+    }
+  }
+}
+
 function scheduleStorageSync(delay, logSuccess) {
   if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
   Module.__inbeStorageSyncPending = true;
   Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
   if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
 
-  Module.__inbeStorageSyncTimer = setTimeout(function runStorageSync() {
+  Module.__inbeStorageSyncTimer = setTimeout(function() {
     Module.__inbeStorageSyncTimer = 0;
-    if (Module.__inbeStorageSyncing) return;
-
-    Module.__inbeStorageSyncing = true;
-    Module.__inbeStorageSyncPending = false;
-    var shouldLog = !!Module.__inbeStorageSyncLogSuccess;
-    Module.__inbeStorageSyncLogSuccess = false;
-
-    try {
-      FS.syncfs(false, function(err) {
-        Module.__inbeStorageSyncing = false;
-        if (err) console.error('IDBFS save failed:', err);
-        else if (shouldLog) console.log('IDBFS synced');
-
-        if (Module.__inbeStorageSyncPending) {
-          if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-          Module.__inbeStorageSyncTimer = setTimeout(runStorageSync, delay);
-        }
-      });
-    } catch (e) {
-      Module.__inbeStorageSyncing = false;
-      console.error('IDBFS sync error:', e);
-      if (Module.__inbeStorageSyncPending) {
-        if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-        Module.__inbeStorageSyncTimer = setTimeout(runStorageSync, delay);
-      }
-    }
+    runStorageSync(delay);
   }, delay);
 }
 
+function flushStorageSync(logSuccess) {
+  if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
+  Module.__inbeStorageSyncPending = true;
+  Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
+  if (Module.__inbeStorageSyncTimer) {
+    clearTimeout(Module.__inbeStorageSyncTimer);
+    Module.__inbeStorageSyncTimer = 0;
+  }
+  runStorageSync(0);
+}
+
 var Module = {
+  __inbeRuntimeReady: false,
   __inbeScheduleStorageSync: scheduleStorageSync,
+  __inbeFlushStorageSync: flushStorageSync,
   preRun: [function() {
     if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
       console.error('IDBFS unavailable');
@@ -74,7 +97,10 @@ var Module = {
       removeRunDependency('inbe-idbfs');
     });
   }],
-  postRun: [hideLoadingScreen],
+  postRun: [function() {
+    Module.__inbeRuntimeReady = true;
+    hideLoadingScreen();
+  }],
   locateFile: function(path, prefix) {
     if (path === 'index.wasm' || path === 'index.data') {
       return prefix + path + '?v=WEB_CACHE_BUSTER';
@@ -162,6 +188,7 @@ window.onerror = function() {
   var lastBackgroundTick = 0;
 
   function callExport(name, args) {
+    if (!Module || !Module.__inbeRuntimeReady) return 0;
     var fn = Module && Module['_' + name];
     if (typeof fn !== 'function') return 0;
     try {

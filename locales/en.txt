@@ -10,14 +10,11 @@ Habits
 [tab_practice]
 Practice
 ---
-[tab_pet]
-Pet
----
-[profile_data_title]
+[profile_data]
 Data
 ---
-[profile_data_button]
-Configure Data
+[profile_sync_tab]
+Sync
 ---
 [profile_habits_label]
 Habits
@@ -64,23 +61,11 @@ Updating
 [profile_no_account]
 No account
 ---
-[profile_account_section]
-Account
----
-[profile_configure_button]
-Configure
----
-[profile_data_section]
-Data
----
-[profile_friends_count_format]
+[profile_friends_summary]
 %d friends
 ---
-[profile_pending_count_format]
-%d pending
----
-[profile_social_section]
-Social
+[profile_friends_pending_summary]
+%d friends +%d
 ---
 [profile_add_friend_button]
 Add friend
@@ -97,14 +82,9 @@ No leaderboard data
 [profile_practice_label]
 Practice
 ---
-[profile_my_practices_button]
-My practices
----
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-My practices
 ---
 [move_up_button]
 Up
@@ -112,8 +92,18 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Settings
+---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
 ---
 [play_button]
 PLAY
@@ -314,10 +304,10 @@ A quiet breathing companion for practice, habits, and sync.
 Theme
 ---
 [theme_mode_label]
-Color mode
+Theme mode
 ---
 [theme_follow_device]
-Follow device
+System
 ---
 [theme_system]
 System
@@ -402,9 +392,6 @@ Circle
 ---
 [volume_label]
 Volume
----
-[show_session_volume_control_label]
-Show volume control
 ---
 [show_session_return_button_label]
 Show return button
@@ -556,7 +543,7 @@ Quit
 Account
 ---
 [sync_configure_account_button]
-Configure Account
+Configure profile
 ---
 [sync_create_account_button]
 Create Account
@@ -810,17 +797,7 @@ Total hold
 [habit_stats_best_streak]
 Best streak
 ---
-[profile_guide_account]
-Configure your sync account here.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Open friends and leaderboard from here.
----
-[profile_guide_social_no_account]
-Create a sync account to unlock friends and leaderboard.
 ---
 [transition_label]
 Animations
@@ -1064,4 +1041,19 @@ Deleted %lld sessions
 ---
 [habit_stats_day_plural]
 %d days
+---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
 ---

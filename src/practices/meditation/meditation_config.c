@@ -4,7 +4,7 @@
 #include "locale.h"
 #include "theme.h"
 #include "ui.h"
-#include "raylib.h"
+#include "flint.h"
 #include "screens/practice_screen.h"
 #include "meditation_music.h"
 

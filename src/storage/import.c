@@ -6,7 +6,7 @@
 #include "miniz.h"
 #include "version.h"
 
-#include "raylib.h"
+#include "flint.h"
 #include <sqlite3.h>
 #include <dirent.h>
 #include <stdio.h>

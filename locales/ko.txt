@@ -10,14 +10,11 @@ Inner Breeze
 [tab_practice]
 연습
 ---
-[tab_pet]
-Pet
+[profile_data]
+Data
 ---
-[profile_data_title]
-데이터
----
-[profile_data_button]
-데이터 설정
+[profile_sync_tab]
+Sync
 ---
 [profile_habits_label]
 습관
@@ -64,23 +61,11 @@ Pet
 [profile_no_account]
 계정 없음
 ---
-[profile_account_section]
-계정
----
-[profile_configure_button]
-설정
----
-[profile_data_section]
-데이터
----
-[profile_friends_count_format]
+[profile_friends_summary]
 친구 %d명
 ---
-[profile_pending_count_format]
-대기 %d개
----
-[profile_social_section]
-소셜
+[profile_friends_pending_summary]
+친구 %d명 +%d
 ---
 [profile_add_friend_button]
 친구 추가
@@ -97,14 +82,9 @@ Pet
 [profile_practice_label]
 연습
 ---
-[profile_my_practices_button]
-내 연습
----
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-내 연습
 ---
 [move_up_button]
 Up
@@ -112,8 +92,18 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-설정
+---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
 ---
 [play_button]
 시작
@@ -308,10 +298,10 @@ Finish
 테마
 ---
 [theme_mode_label]
-색상 모드
+Theme mode
 ---
 [theme_follow_device]
-기기 설정 따르기
+System
 ---
 [theme_system]
 시스템
@@ -396,9 +386,6 @@ Inner Breeze
 ---
 [volume_label]
 음량
----
-[show_session_volume_control_label]
-볼륨 조절 표시
 ---
 [show_session_return_button_label]
 돌아가기 버튼 표시
@@ -770,17 +757,7 @@ Description
 [habit_stats_best_streak]
 최고 연속 기록
 ---
-[profile_guide_account]
-여기에서 동기화 계정을 설정하세요.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-여기에서 친구와 순위표를 엽니다.
----
-[profile_guide_social_no_account]
-친구와 순위표를 사용하려면 동기화 계정을 만드세요.
 ---
 
 [transition_label]
@@ -880,10 +857,10 @@ Yoga
 요가 연습 세션.
 ---
 [pet_gamification_title]
-게임화 준비 중...
+Gamification in progress...
 ---
 [pet_gamification_subtitle]
-미리보기 전용입니다. 이 탭은 아직 구현되지 않았습니다.
+Preview only. This tab is not implemented yet.
 ---
 [habits_guide_overview_progress]
 오늘의 습관 합계입니다.
@@ -1064,4 +1041,19 @@ Results
 ---
 [habit_stats_day_plural]
 %d일
+---
+[tray_show_inner_breeze]
+Show Inner Breeze
+---
+[tray_hide_inner_breeze]
+Hide Inner Breeze
+---
+[tray_start_practice]
+Start Practice
+---
+[tray_quit_inner_breeze]
+Quit Inner Breeze
+---
+[tray_mark_complete]
+Mark Complete
 ---

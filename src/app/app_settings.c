@@ -1,6 +1,7 @@
 #include "app_settings.h"
 
 #include "app.h"
+#include "app_nav.h"
 #include "device_preferences.h"
 #include "locale.h"
 #include "practices/meditation/meditation_music.h"
@@ -56,8 +57,10 @@ static void
 sync_web_storage(void)
 {
     EM_ASM({
-        if(typeof Module.__inbeScheduleStorageSync === 'function')
-            Module.__inbeScheduleStorageSync(250, true);
+        if(typeof Module.__inbeFlushStorageSync === 'function')
+            Module.__inbeFlushStorageSync(true);
+        else if(typeof Module.__inbeScheduleStorageSync === 'function')
+            Module.__inbeScheduleStorageSync(0, true);
     });
 }
 #endif
@@ -106,6 +109,51 @@ load_navigation_mode(void)
     if(value == NAV_MODE_DROPDOWN)
         return NAV_MODE_DROPDOWN;
     return NAV_MODE_TABBAR;
+}
+
+static UIIconType
+default_profile_picture_icon(void)
+{
+    UIIconType fallback = GetUIProfilePictureIconType(0);
+    return fallback != UI_ICON_TYPE_NONE ? fallback : UI_ICON_TYPE_PROFILE;
+}
+
+static int
+is_profile_picture_icon(UIIconType type)
+{
+    for(int i = 0; i < GetUIProfilePictureIconCount(); i++) {
+        if(GetUIProfilePictureIconType(i) == type)
+            return 1;
+    }
+    return 0;
+}
+
+static UIIconType
+load_profile_picture_icon(void)
+{
+    UIIconType fallback = default_profile_picture_icon();
+    UIIconType type =
+        (UIIconType)storage_get_setting_int("profile_picture_icon", fallback);
+
+    return is_profile_picture_icon(type) ? type : fallback;
+}
+
+static void
+load_bottom_nav_routes(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->bottom_nav_route_count =
+        storage_get_setting_int("bottom_nav_route_count", 2);
+    app->bottom_nav_routes[0] =
+        storage_get_setting_int("bottom_nav_route_0", APP_NAV_ROUTE_HABITS);
+    app->bottom_nav_routes[1] =
+        storage_get_setting_int("bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE);
+    app->bottom_nav_routes[2] =
+        storage_get_setting_int("bottom_nav_route_2", APP_NAV_ROUTE_NONE);
+    app->bottom_nav_routes[3] =
+        storage_get_setting_int("bottom_nav_route_3", APP_NAV_ROUTE_NONE);
+    app_sanitize_bottom_nav_routes(app);
 }
 
 static int
@@ -170,7 +218,6 @@ save_settings(InbeApp *app)
         {"sound_volume", app->sound_volume},
         {"tutorial_seen", app->tutorial_seen ? 1 : 0},
         {"habits_guide_seen", app->habits_guide_seen ? 1 : 0},
-        {"profile_guide_seen", app->profile_guide_seen ? 1 : 0},
         {"exercise_manual_seen_mask", app->exercise_manual_seen_mask},
         {"practice_visible_mask", app->practice_visible_mask},
         {"theme", app->theme_id},
@@ -179,6 +226,12 @@ save_settings(InbeApp *app)
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
         {"navigation_mode", app->navigation_mode},
+        {"profile_picture_icon", app->profile_picture_icon},
+        {"bottom_nav_route_count", app->bottom_nav_route_count},
+        {"bottom_nav_route_0", app->bottom_nav_routes[0]},
+        {"bottom_nav_route_1", app->bottom_nav_routes[1]},
+        {"bottom_nav_route_2", app->bottom_nav_routes[2]},
+        {"bottom_nav_route_3", app->bottom_nav_routes[3]},
         {"transition_mode", app->transition_mode},
         {"main_tab", app->main_tab},
         {"habits_screen_mode", app->habits.screen_mode == HABITS_SCREEN_REORDER
@@ -194,7 +247,6 @@ save_settings(InbeApp *app)
         {"advanced_session_controls", app->advanced_session_controls ? 1 : 0},
         {"double_tap_to_breathe", app->double_tap_to_breathe ? 1 : 0},
         {"show_session_return_button", app->show_session_return_button ? 1 : 0},
-        {"show_session_volume_control", app->show_session_volume_control ? 1 : 0},
         {"hold_display_mode", app->hold_display_mode},
         {"exercise_type", app->exercise_type},
         {"sun_salutation_repetitions", app->sun_salutation.repetitions},
@@ -284,7 +336,6 @@ app_load_settings(InbeApp *app)
         LoadedBoolSetting settings[] = {
             {&app->tutorial_seen, "tutorial_seen", 0},
             {&app->habits_guide_seen, "habits_guide_seen", 0},
-            {&app->profile_guide_seen, "profile_guide_seen", 0},
             {&app->dark_mode, "dark_mode", 0},
             {&app->fullscreen_enabled, "fullscreen", 0},
 #if ANDROID_BUILD || defined(PLATFORM_WEB)
@@ -296,7 +347,6 @@ app_load_settings(InbeApp *app)
             {&app->advanced_session_controls, "advanced_session_controls", 0},
             {&app->double_tap_to_breathe, "double_tap_to_breathe", 0},
             {&app->show_session_return_button, "show_session_return_button", 1},
-            {&app->show_session_volume_control, "show_session_volume_control", 0},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
         };
         load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
@@ -317,7 +367,7 @@ app_load_settings(InbeApp *app)
             {&app->orientation_mode, "orientation_mode", APP_ORIENTATION_SYSTEM,
              APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR},
             {&app->main_tab, "main_tab", APP_MAIN_TAB_PRACTICE,
-             APP_MAIN_TAB_HABITS, APP_MAIN_TAB_PRACTICE},
+             APP_MAIN_TAB_NONE, APP_MAIN_TAB_PRACTICE},
             {&app->habits.screen_mode, "habits_screen_mode", HABITS_SCREEN_OVERVIEW,
              HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_DETAIL},
             {&app->habits.tab, "habits_tab", HABIT_TAB_WEEKLY,
@@ -361,6 +411,15 @@ app_load_settings(InbeApp *app)
     }
 
     app->navigation_mode = load_navigation_mode();
+    app->profile_picture_icon = load_profile_picture_icon();
+    load_bottom_nav_routes(app);
+    if(app->bottom_nav_route_count <= 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+    } else if(app->main_tab == APP_MAIN_TAB_NONE) {
+        app->main_tab = app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS
+                            ? APP_MAIN_TAB_HABITS
+                            : APP_MAIN_TAB_PRACTICE;
+    }
 
     manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)

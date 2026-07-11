@@ -39,6 +39,19 @@ LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
+APP_ID := $(ANDROID_APP_ID)
+APP_COMMENT := Syncable breathing, meditation, and habit practice app
+APP_DESC := Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
+APP_CATEGORIES := Utility;Education;
+APP_MAINTAINER := Waozi <waozi@waozi.xyz>
+APP_WWW := https://inbe.waozi.xyz/
+APP_ORIGIN := games/inbe
+APP_LICENSE := GPLv3
+APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
+APP_ICON := $(LINUX_APPIMAGE_ICON)
+APP_ICON_SIZE := 512x512
+APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
+FREEBSD_PKG_DEPS := curl:ftp/curl gtk3:x11-toolkits/gtk30 hicolor-icon-theme:misc/hicolor-icon-theme libdrm:graphics/libdrm mesa-libs:graphics/mesa-libs sdl2:devel/sdl20 sqlite3:databases/sqlite3
 CLICK_PACKAGE ?= inbe
 CLICK_ID ?= inbe
 CLICK_TITLE ?= $(APP_TITLE)
@@ -71,8 +84,6 @@ WINDOWS_OBJ_DIR := $(BUILD_OBJ_DIR)/windows
 WINDOWS_BIN_DIR := $(BUILD_BIN_DIR)/windows
 WINDOWS_DIST_DIR := $(BUILD_DIST_DIR)/windows
 ANDROID_BUILD_DIR := $(BUILD_DIR)/android
-ANDROID_FAST_ABI ?= $(shell $(ADB) shell getprop ro.product.cpu.abi 2>/dev/null | tr -d '\r' | head -n 1)
-ANDROID_DEBUG_ABIS ?= $(if $(strip $(ANDROID_FAST_ABI)),$(ANDROID_FAST_ABI),arm64-v8a)
 WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
@@ -121,13 +132,13 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png)
-FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui_icon_assets.c
+FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png) $(wildcard $(FLINT_DIR)/pfp/*.png)
+FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui/ui_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
-FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(wildcard $(FLINT_DIR)/src/*.c) $(wildcard $(FLINT_DIR)/src/ui/*.c)) $(FLINT_ICON_ASSETS_C)
-FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
-FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
-FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog.c,$(FLINT_SRCS))
+FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(shell find $(FLINT_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(FLINT_ICON_ASSETS_C)
+FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
+FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
+FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include
 FLINT_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
 FLINT_LIBOQS_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/liboqs
@@ -256,15 +267,15 @@ APP_SRCS := \
 
 ifeq ($(NATIVE_PLATFORM),linux)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; fi)
-DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR)
+DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA -DFLINT_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR -DFLINT_DESKTOP_TRAY_APPINDICATOR)
 endif
 ifeq ($(NATIVE_PLATFORM),freebsd)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DFLINT_DESKTOP_TRAY_GTK_STATUS_ICON
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
-APP_SRCS += src/platform/desktop_tray.c
-DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+APP_SRCS += src/platform/inbe_desktop_tray.c
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DFLINT_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
 endif
 
@@ -292,7 +303,7 @@ FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
-WEB_APP_SRCS := $(filter-out src/platform/desktop_tray.c,$(APP_SRCS))
+WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
 WEB_SRC := $(WEB_APP_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
@@ -345,11 +356,18 @@ LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_RANLIB ?= emranlib
+include $(FLINT_DIR)/mk/raylib.mk
+FLINT_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_WEB_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_WINDOWS_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+FLINT_CLICK_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
+WEB_SMOKE_BROWSER ?= auto
+WEB_SMOKE_TEST := scripts/web-smoke-test.mjs
 WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
@@ -365,27 +383,14 @@ UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
 
-.PHONY: all native install run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-debug-fast android-release android-bundle android-install android-install-fast android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check site chrome-web-store
+include $(FLINT_DIR)/mk/package-freebsd.mk
+
+.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
 
 native: $(TARGET)
-
-install: $(TARGET)
-	@install_dir="$(HOME)/.local/lib/$(APP_NAME)"; \
-	bin_dir="$(HOME)/.local/bin"; \
-	mkdir -p "$$install_dir" "$$bin_dir"; \
-	cp "$(TARGET)" "$$install_dir/$(APP_NAME)"; \
-	cp "$(LINUX_APPIMAGE_ICON)" "$$install_dir/$(APP_NAME).png"; \
-	chmod 755 "$$install_dir/$(APP_NAME)"; \
-	ln -sf "$$install_dir/$(APP_NAME)" "$$bin_dir/$(APP_NAME)"; \
-	if [ -d "$(HOME)/bin" ]; then \
-		ln -sf "$$install_dir/$(APP_NAME)" "$(HOME)/bin/$(APP_NAME)"; \
-		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME), $(HOME)/bin/$(APP_NAME)"; \
-	else \
-		echo "Installed $(APP_NAME) to $$install_dir and linked $$bin_dir/$(APP_NAME)"; \
-	fi
 
 dist:
 	@password="$(PASSWORD)"; \
@@ -486,7 +491,7 @@ test: $(TESTS)
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party -I$(RAYLIB_DIR) $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
@@ -496,22 +501,22 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c $(CURL_PROTOCOL_CHECK) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(FLINT_CURL_CFLAGS) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra_sync.c $(FLINT_DIR)/src/lyra_account.c \
+		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) $(FLINT_CURL_CFLAGS) -o $@ \
+		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c \
 		-Wl,--gc-sections $(FLINT_CURL_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) -I$(RAYLIB_DIR) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
@@ -523,17 +528,17 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		$(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
+		$(FLINT_INCLUDE) \
 		-o $@ \
 		tests/guide_overlay_test.c
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings $(FLINT_INCLUDE) -I$(RAYLIB_DIR) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage $(FLINT_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c
 
-$(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR):
+$(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR)):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
@@ -555,63 +560,14 @@ $(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.
 
 $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	@tmp="$@.tmp"; \
-	find $(FLINT_DIR)/icons -maxdepth 1 -type f -name '*.png' | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
+	for dir in $(FLINT_DIR)/icons $(FLINT_DIR)/pfp; do find "$$dir" -maxdepth 1 -type f -name '*.png'; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh
-	cd $(FLINT_DIR) && sh scripts/embed-icons.sh icons src/ui_icon_assets.c
-
-$(RAYLIB_A): $(RAYLIB_SOURCES) Makefile
-	rm -rf $(NATIVE_VENDOR_BUILD_DIR)/raylib-src
-	mkdir -p $(NATIVE_VENDOR_BUILD_DIR)/raylib-src $(RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(NATIVE_VENDOR_BUILD_DIR)/raylib-src/
-	$(MAKE) -j1 -C $(NATIVE_VENDOR_BUILD_DIR)/raylib-src \
-		CC="$(CC)" \
-		AR="ar" \
-		PLATFORM=PLATFORM_DESKTOP_SDL \
-		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		SDL_INCLUDE_PATH="$(RAY_SDL_INCLUDE_DIR)" \
-		SDL_LIBRARIES="$(RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
-$(WEB_RAYLIB_A): $(RAYLIB_SOURCES) | $(WEB_OBJ_DIR)
-	rm -rf $(VENDOR_BUILD_DIR)/web/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/web/raylib-src $(WEB_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/web/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/web/raylib-src \
-		PLATFORM=PLATFORM_WEB \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WEB_CC)" \
-		AR="$(WEB_AR)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "icons pfp" src/ui/ui_icon_assets.c
 
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check
-
-$(CLICK_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src $(CLICK_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/click/$(CLICK_ARCH)/raylib-src \
-		PLATFORM=PLATFORM_DESKTOP_SDL \
-		GRAPHICS=GRAPHICS_API_OPENGL_ES2 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(AARCH64_CC)" \
-		AR="$(AARCH64_AR)" \
-		RANLIB="$(AARCH64_RANLIB)" \
-		SDL_INCLUDE_PATH="$(AARCH64_RAY_SDL_INCLUDE_DIR)" \
-		SDL_LIBRARIES="$(AARCH64_RAY_SDL_LDLIBS)" \
-		CUSTOM_CFLAGS="-DUSING_SDL2_PROJECT $(AARCH64_RAY_CFLAGS) $(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 	rm -rf $(CLICK_LIBOQS_BUILD_DIR)
@@ -630,40 +586,6 @@ $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
-
-$(WIN64_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src $(WIN64_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/windows/$(WIN64_ARCH)/raylib-src \
-		OS=Windows_NT \
-		PLATFORM=PLATFORM_DESKTOP_RGFW \
-		GRAPHICS=GRAPHICS_API_OPENGL_11 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WIN64_CC)" \
-		AR="$(WIN64_AR)" \
-		RANLIB="$(WIN64_RANLIB)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
-
-$(WIN32_RAYLIB_A): $(RAYLIB_SOURCES)
-	rm -rf $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src
-	mkdir -p $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src $(WIN32_RAYLIB_BUILD_DIR)
-	cp -R $(RAYLIB_DIR)/. $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src/
-	$(MAKE) -j1 -C $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/raylib-src \
-		OS=Windows_NT \
-		PLATFORM=PLATFORM_DESKTOP_RGFW \
-		GRAPHICS=GRAPHICS_API_OPENGL_11 \
-		RAYLIB_LIBTYPE=STATIC \
-		RAYLIB_RELEASE_PATH=../raylib \
-		RAYLIB_MODULE_AUDIO=TRUE \
-		RAYLIB_MODULE_MODELS=FALSE \
-		CC="$(WIN32_CC)" \
-		AR="$(WIN32_AR)" \
-		RANLIB="$(WIN32_RANLIB)" \
-		CUSTOM_CFLAGS="$(APP_RAYLIB_CONFIG) -Os -ffunction-sections -fdata-sections"
 
 $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H): $(SQLITE_DIR)/configure $(SQLITE_DIR)/manifest | $(BUILD_OBJ_DIR)
 	mkdir -p $(SQLITE_BUILD_DIR)
@@ -776,7 +698,6 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		$(RAY_CFLAGS) \
 		-DHAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
@@ -800,7 +721,6 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_S
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(CLICK_LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		$(AARCH64_RAY_CFLAGS) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
@@ -884,7 +804,6 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_INCLUDE) \
 		$(WIN64_LIBOQS_INCLUDE) \
 		-I$(WIN64_CURL_INCLUDE_DIR) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
@@ -907,7 +826,6 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(SQLITE_INCLUDE) \
 		$(WIN32_LIBOQS_INCLUDE) \
 		-I$(WIN32_CURL_INCLUDE_DIR) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
@@ -998,7 +916,6 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		$(FLINT_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(WEB_LIBOQS_INCLUDE) \
-		-I$(RAYLIB_DIR) \
 		-DHAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-DSUPPORT_MODULE_RAUDIO=1 \
@@ -1016,8 +933,9 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-sFETCH=1 \
 		-sALLOW_MEMORY_GROWTH=0 \
 		-sINITIAL_MEMORY=268435456 \
-		-sSTACK_SIZE=8388608 \
-		-sGLOBAL_BASE=16777216 \
+		-sSTACK_SIZE=33554432 \
+		-sGLOBAL_BASE=67108864 \
+		-sASYNCIFY_STACK_SIZE=1048576 \
 		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick \
 		-lidbfs.js \
 		-lm
@@ -1071,10 +989,6 @@ android-local-properties:
 
 android-debug: android-copy-assets android-local-properties
 	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug $(ANDROID_GRADLE_ARGS)
-	$(MAKE) android-copy-debug-apks
-
-android-debug-fast: android-copy-assets android-local-properties
-	unset ANDROID_HOME; $(GRADLE) -p droid assembleDebug -Pinbe.abis="$(ANDROID_DEBUG_ABIS)" $(ANDROID_GRADLE_ARGS)
 	$(MAKE) android-copy-debug-apks
 
 android-release:
@@ -1159,13 +1073,6 @@ android-install: android-debug
 	$(ADB) install -r "$$APK"; \
 	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
 
-android-install-fast: android-debug-fast
-	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
-	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
-	$(ADB) install -r "$$APK"; \
-	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
-
 android-install-release: android-release
 	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
 	APK=droid/app/build/outputs/apk/release/app-$${ABI}-release.apk; \
@@ -1178,12 +1085,7 @@ android-avd:
 	@adb_cmd="$$HOME/.android-sdk-writable/platform-tools/adb"; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd="$${ANDROID_SDK_ROOT:-$${ANDROID_HOME}}/platform-tools/adb"; fi; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd=adb; fi; \
-	abi=$$("$$adb_cmd" -e shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	if [ -z "$$abi" ]; then \
-		echo "No emulator ABI detected. Is the AVD running?"; \
-		exit 1; \
-	fi; \
-	$(MAKE) android-install-fast ADB="$$adb_cmd -e" ANDROID_DEBUG_ABIS="$$abi"
+	$(MAKE) android-install ADB="$$adb_cmd -e"
 
 android-clean:
 	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)
@@ -1215,8 +1117,12 @@ windows:
 
 web:
 	$(MAKE) $(WEB_TARGET)
+	$(MAKE) web-smoke-test
 	rm -f $(WEB_DIST_ZIP)
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
+
+web-smoke-test: $(WEB_SMOKE_TEST)
+	WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
 	tclsh site/build.tcl
@@ -1246,7 +1152,7 @@ clean-native:
 clean-vendor-builds:
 	rm -rf $(VENDOR_BUILD_DIR)
 
-NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
+NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native install install-user stage package-freebsd run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)

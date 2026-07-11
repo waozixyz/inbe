@@ -1,7 +1,7 @@
 #ifndef HABITS_SCREEN_H
 #define HABITS_SCREEN_H
 
-#include "raylib.h"
+#include "flint.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
 #include <stddef.h>
