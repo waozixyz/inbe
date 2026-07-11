@@ -387,6 +387,21 @@ app_flush_deferred_settings(InbeApp *app)
         save_settings(app);
 }
 
+static Rectangle
+app_nav_sidebar_bounds(void)
+{
+    int sidebar_w = ScaleUIPx(292);
+
+    if(view_width <= ScaleUIPx(480))
+        return (Rectangle){0.0f, 0.0f, (float)view_width, (float)view_height};
+    if(sidebar_w > view_width - ScaleUIPx(36))
+        sidebar_w = view_width - ScaleUIPx(36);
+    if(sidebar_w < ScaleUIPx(220))
+        sidebar_w = view_width;
+    return (Rectangle){(float)(view_width - sidebar_w), 0.0f,
+                       (float)sidebar_w, (float)view_height};
+}
+
 int
 app_toolbar_height(void)
 {
@@ -1232,6 +1247,12 @@ handle_back_button(InbeApp *app)
                                   : InbeScreenStart);
         break;
 
+    case InbeScreenCustomizeNav:
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
+                                  ? InbeScreenHabits
+                                  : InbeScreenStart);
+        break;
+
     case InbeScreenPracticeConfig:
         app_leave_practice_config(app);
         app_switch_screen(app, InbeScreenStart);
@@ -1423,6 +1444,8 @@ updateapp(InbeApp *app)
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
+    if(app->nav_sidebar_open)
+        PushUIInputCapture(app_nav_sidebar_bounds(), 1);
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
        habits_guide_active || profile_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
@@ -1453,7 +1476,9 @@ updateapp(InbeApp *app)
               app->inbe.screen == InbeScreenSunSalutation))))
 #endif
        ) {
-        if(app->close_prompt_open) {
+        if(app->nav_sidebar_open) {
+            app->nav_sidebar_open = 0;
+        } else if(app->close_prompt_open) {
             app->close_prompt_open = 0;
         } else if(first_run_guide_active || habits_guide_active || profile_guide_active) {
             app->tutorial_step = 0;
@@ -1483,6 +1508,12 @@ updateapp(InbeApp *app)
 
     if(app->inbe.screen == InbeScreenPet) {
         pet_screen_draw(app);
+        goto finish_frame;
+    }
+
+    if(app->inbe.screen == InbeScreenCustomizeNav) {
+        if(app_draw_customize_nav_page(app))
+            goto finish_frame;
         goto finish_frame;
     }
 

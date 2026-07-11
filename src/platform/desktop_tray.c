@@ -308,7 +308,8 @@ MarkTrayHabit(InbeApp *app, int index)
     int today;
     InbeHabit *habit;
 
-    if(app == NULL || index < 0 || index >= app->habits.count)
+    if(app == NULL || index < 0 || index >= app->habits.count ||
+       index >= INBE_HABIT_MAX)
         return;
 
     today = habits_today_index();
@@ -334,7 +335,8 @@ UpdateTrayMenuSnapshot(InbeApp *app)
     FillTraySnapshotLabels(&next);
 
     today = habits_today_index();
-    for(int i = 0; i < app->habits.count && next.count < INBE_HABIT_MAX; i++) {
+    for(int i = 0; i < app->habits.count && i < INBE_HABIT_MAX &&
+                   next.count < INBE_HABIT_MAX; i++) {
         InbeHabit *habit = &app->habits.items[i];
         int count = habit_day_count(habit, today);
         int completed = habit_completed_day(habit, today) || count > 0;

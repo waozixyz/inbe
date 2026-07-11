@@ -115,6 +115,21 @@ Down
 [tab_settings]
 Pengaturan
 ---
+[tab_stack]
+Stack
+---
+[customize_nav_title]
+Customize Nav
+---
+[customize_nav_button]
+Customize Nav
+---
+[customize_nav_add]
+Add item
+---
+[customize_nav_slot]
+Bottom nav item
+---
 [play_button]
 MULAI
 ---

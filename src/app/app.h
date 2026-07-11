@@ -101,6 +101,7 @@ typedef enum {
     UIModalSyncPublicId,
     UIModalConfirmRemoveFriend,
     UIModalConfirmSyncAccountSwitch,
+    UIModalBottomNavConfig,
 } UIModalType;
 
 typedef enum InbePendingSyncAccountAction {
@@ -195,8 +196,13 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_PRACTICE = 2,
     APP_NAV_ROUTE_PET = 3,
     APP_NAV_ROUTE_SETTINGS = 4,
-    APP_NAV_ROUTE_COUNT = 5,
+    APP_NAV_ROUTE_STACK = 5,
+    APP_NAV_ROUTE_COUNT = 6,
 } AppNavRoute;
+
+enum {
+    APP_BOTTOM_NAV_CONTENT_MAX = 4,
+};
 
 typedef struct AppRoute {
     int screen;
@@ -385,6 +391,12 @@ struct InbeApp {
     int theme_mode;
     int orientation_mode;
     int navigation_mode;
+    int bottom_nav_routes[APP_BOTTOM_NAV_CONTENT_MAX];
+    int bottom_nav_route_count;
+    int bottom_nav_config_routes[APP_BOTTOM_NAV_CONTENT_MAX];
+    int bottom_nav_config_route_count;
+    int nav_sidebar_open;
+    int nav_sidebar_scroll;
     int transition_mode;
     int android_orientation;
     int main_tab;

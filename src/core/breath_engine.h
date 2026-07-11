@@ -43,6 +43,7 @@ enum {
     InbeScreenProfile,
 	InbeScreenHabits,
     InbeScreenPet,
+    InbeScreenCustomizeNav,
 	InbeScreenHabitEdit,
 	InbeScreenHabitSessionEdit,
 };

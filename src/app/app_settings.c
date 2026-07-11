@@ -1,6 +1,7 @@
 #include "app_settings.h"
 
 #include "app.h"
+#include "app_nav.h"
 #include "device_preferences.h"
 #include "locale.h"
 #include "practices/meditation/meditation_music.h"
@@ -110,6 +111,24 @@ load_navigation_mode(void)
     return NAV_MODE_TABBAR;
 }
 
+static void
+load_bottom_nav_routes(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->bottom_nav_route_count =
+        storage_get_setting_int("bottom_nav_route_count", 2);
+    app->bottom_nav_routes[0] =
+        storage_get_setting_int("bottom_nav_route_0", APP_NAV_ROUTE_HABITS);
+    app->bottom_nav_routes[1] =
+        storage_get_setting_int("bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE);
+    app->bottom_nav_routes[2] =
+        storage_get_setting_int("bottom_nav_route_2", APP_NAV_ROUTE_NONE);
+    app->bottom_nav_routes[3] =
+        storage_get_setting_int("bottom_nav_route_3", APP_NAV_ROUTE_NONE);
+    app_sanitize_bottom_nav_routes(app);
+}
+
 static int
 default_theme_source(void)
 {
@@ -181,6 +200,11 @@ save_settings(InbeApp *app)
         {"theme_mode", app->theme_mode},
         {"orientation_mode", app->orientation_mode},
         {"navigation_mode", app->navigation_mode},
+        {"bottom_nav_route_count", app->bottom_nav_route_count},
+        {"bottom_nav_route_0", app->bottom_nav_routes[0]},
+        {"bottom_nav_route_1", app->bottom_nav_routes[1]},
+        {"bottom_nav_route_2", app->bottom_nav_routes[2]},
+        {"bottom_nav_route_3", app->bottom_nav_routes[3]},
         {"transition_mode", app->transition_mode},
         {"main_tab", app->main_tab},
         {"habits_screen_mode", app->habits.screen_mode == HABITS_SCREEN_REORDER
@@ -363,6 +387,7 @@ app_load_settings(InbeApp *app)
     }
 
     app->navigation_mode = load_navigation_mode();
+    load_bottom_nav_routes(app);
 
     manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)
