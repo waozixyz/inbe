@@ -37,9 +37,8 @@ enum {
     HABITS_GUIDE_STEPS = 6,
     HABITS_TOP_H = 36,
     HABITS_TAB_H = 40,
-    HABITS_OVERVIEW_DAY_COLUMNS = 4,
-    HABITS_OVERVIEW_DETAIL_COLUMNS = 1,
-    HABITS_OVERVIEW_COLUMNS = HABITS_OVERVIEW_DAY_COLUMNS + HABITS_OVERVIEW_DETAIL_COLUMNS
+    HABITS_OVERVIEW_MIN_DAY_COLUMNS = 2,
+    HABITS_OVERVIEW_DETAIL_COLUMNS = 1
 };
 
 static void
@@ -1103,14 +1102,38 @@ draw_habits_top_bar(InbeApp *app, int draw_menu)
 }
 
 static int
+habits_overview_day_columns(int content_w)
+{
+    int max_label_w = ScaleUIPx(136);
+    int gap = ScaleUIPx(4);
+    int preferred_cell = ScaleUIPx(28);
+    int columns;
+
+    if(content_w <= 0)
+        return HABITS_OVERVIEW_MIN_DAY_COLUMNS;
+    columns = (content_w - max_label_w + gap) / (preferred_cell + gap) -
+              HABITS_OVERVIEW_DETAIL_COLUMNS;
+    if(columns < HABITS_OVERVIEW_MIN_DAY_COLUMNS)
+        columns = HABITS_OVERVIEW_MIN_DAY_COLUMNS;
+    return columns;
+}
+
+static int
+habits_overview_total_columns(int content_w)
+{
+    return habits_overview_day_columns(content_w) +
+           HABITS_OVERVIEW_DETAIL_COLUMNS;
+}
+
+static int
 habits_overview_label_width(int content_w)
 {
     int min_label_w = ScaleUIPx(56);
     int max_label_w = ScaleUIPx(136);
     int gap = ScaleUIPx(4);
     int cell = ScaleUIPx(28);
-    int label_w = content_w - gap * HABITS_OVERVIEW_COLUMNS -
-                  cell * HABITS_OVERVIEW_COLUMNS;
+    int columns = habits_overview_total_columns(content_w);
+    int label_w = content_w - gap * columns - cell * columns;
 
     if(label_w < min_label_w)
         label_w = min_label_w;
@@ -1124,8 +1147,8 @@ habits_overview_cell_size(int content_w)
 {
     int label_w = habits_overview_label_width(content_w);
     int gap = ScaleUIPx(4);
-    int cell = (content_w - label_w - gap * HABITS_OVERVIEW_COLUMNS) /
-               HABITS_OVERVIEW_COLUMNS;
+    int columns = habits_overview_total_columns(content_w);
+    int cell = (content_w - label_w - gap * columns) / columns;
 
     if(cell > ScaleUIPx(28))
         cell = ScaleUIPx(28);
@@ -1405,6 +1428,8 @@ draw_habits_overview(InbeApp *app, int content_top)
     int grid_x;
     int grid_y;
     int today_index = habits_today_index();
+    int day_columns;
+    int total_columns;
 
     if(app == NULL)
         return;
@@ -1446,13 +1471,15 @@ draw_habits_overview(InbeApp *app, int content_top)
 
         label_w = habits_overview_label_width(content_w);
         cell = habits_overview_cell_size(content_w);
-        grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
-                       cell * HABITS_OVERVIEW_COLUMNS;
+        day_columns = habits_overview_day_columns(content_w);
+        total_columns = day_columns + HABITS_OVERVIEW_DETAIL_COLUMNS;
+        grid_total_w = label_w + cell_gap * total_columns +
+                       cell * total_columns;
         overview_x = content_x + (content_w - grid_total_w) / 2;
         grid_x = overview_x + label_w;
         grid_y = y;
 
-        for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+        for(int day = 0; day < day_columns; day++) {
             int day_index = habits_overview_day_index(day);
             int day_x = grid_x + day * (cell + cell_gap);
             char date_label[16];
@@ -1510,7 +1537,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                     habits_enter_detail(app, i);
             }
 
-            for(int day = 0; day < HABITS_OVERVIEW_DAY_COLUMNS; day++) {
+            for(int day = 0; day < day_columns; day++) {
                 int day_index = habits_overview_day_index(day);
                 int day_x = grid_x + day * (cell + cell_gap);
                 int future_day = day_index > today_index;
@@ -1573,7 +1600,7 @@ draw_habits_overview(InbeApp *app, int content_top)
                     draw_habit_link_dot(day_x, row_y, cell, habit->color);
             }
             {
-                int detail_x = grid_x + HABITS_OVERVIEW_DAY_COLUMNS * (cell + cell_gap);
+                int detail_x = grid_x + day_columns * (cell + cell_gap);
                 Rectangle detail_bounds = {(float)detail_x, (float)row_y,
                                            (float)cell, (float)cell};
                 int detail_active = CheckCollisionPointRec(mouse, detail_bounds) &&
@@ -1827,6 +1854,7 @@ habits_overview_grid_anchor(InbeApp *app)
     int cell;
     int cell_gap = ScaleUIPx(4);
     int grid_total_w;
+    int total_columns;
     int rows = app != NULL && app->habits.count > 0 ? app->habits.count : 1;
     int y;
 
@@ -1834,8 +1862,9 @@ habits_overview_grid_anchor(InbeApp *app)
     y = content_y + ScaleUIPx(12) + ScaleUIPx(28);
     label_w = habits_overview_label_width(content_w);
     cell = habits_overview_cell_size(content_w);
-    grid_total_w = label_w + cell_gap * HABITS_OVERVIEW_COLUMNS +
-                   cell * HABITS_OVERVIEW_COLUMNS;
+    total_columns = habits_overview_total_columns(content_w);
+    grid_total_w = label_w + cell_gap * total_columns +
+                   cell * total_columns;
 
     return (Rectangle){
         (float)(content_x + (content_w - grid_total_w) / 2 - ScaleUIPx(4)),
