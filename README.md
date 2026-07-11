@@ -208,4 +208,4 @@ data through a Lyra-compatible sync server.
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+BSD 3-Clause. See [LICENSE](LICENSE).

@@ -7,7 +7,7 @@ description: |
   timers, habit counters, session history, and optional sync.
 
 version: '1.5.0'
-license: MIT
+license: BSD-3-Clause
 base: core22
 confinement: strict
 grade: stable
