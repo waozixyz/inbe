@@ -72,8 +72,53 @@ DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color)
     (void)color;
 }
 
+void
+DrawRectangleRounded(Rectangle rec, float roundness, int segments, Color color)
+{
+    (void)rec;
+    (void)roundness;
+    (void)segments;
+    (void)color;
+}
+
+void
+DrawCircle(int centerX, int centerY, float radius, Color color)
+{
+    (void)centerX;
+    (void)centerY;
+    (void)radius;
+    (void)color;
+}
+
+void
+DrawCircleLines(int centerX, int centerY, float radius, Color color)
+{
+    (void)centerX;
+    (void)centerY;
+    (void)radius;
+    (void)color;
+}
+
 Color
 GetThemeSurface(void)
+{
+    return (Color){0};
+}
+
+Color
+GetThemeBackground(void)
+{
+    return (Color){0};
+}
+
+Color
+GetThemeButton(void)
+{
+    return (Color){0};
+}
+
+Color
+GetThemeIcon(void)
 {
     return (Color){0};
 }
@@ -86,6 +131,13 @@ GetThemeText(void)
 
 Color
 DarkenUIColor(Color color, int amount)
+{
+    (void)amount;
+    return color;
+}
+
+Color
+LightenUIColor(Color color, int amount)
 {
     (void)amount;
     return color;
@@ -229,6 +281,34 @@ DrawUIBottomNavConfigModal(UIBottomNavConfigModal modal)
     return (UIBottomNavConfigResult){0};
 }
 
+UIReorderListResult
+UpdateUIReorderList(UIReorderList list)
+{
+    (void)list;
+    return (UIReorderListResult){
+        .from_index = -1,
+        .to_index = -1,
+        .active_index = -1,
+        .target_index = -1
+    };
+}
+
+void
+DrawUIReorderHandle(int x, int y, int w, int h, int active)
+{
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+    (void)active;
+}
+
+void
+DrawUIReorderPlaceholder(Rectangle bounds)
+{
+    (void)bounds;
+}
+
 UIScrollPage
 BeginUIScrollPage(UIScrollPageSpec spec)
 {
@@ -310,6 +390,16 @@ DrawUIPaddedIconBtn(int x, int y, int size, int padding,
     return 0;
 }
 
+void
+DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
+{
+    (void)x;
+    (void)y;
+    (void)size;
+    (void)icon;
+    (void)tint;
+}
+
 const char *
 GetLocaleText(const char *key)
 {
@@ -331,6 +421,42 @@ app_switch_screen(InbeApp *app, int screen)
 {
     if(app != NULL)
         app->inbe.screen = screen;
+}
+
+AppRoute
+app_current_route(const InbeApp *app)
+{
+    AppRoute route;
+
+    memset(&route, 0, sizeof(route));
+    if(app == NULL)
+        return route;
+    route.screen = app->inbe.screen;
+    route.exercise_type = app->exercise_type;
+    route.practice_tab = app->practice_tab;
+    route.practice_config_tab = app->practice_config_tab;
+    route.settings_tab = app->settings_tab;
+    route.profile_view = app->profile_view;
+    route.profile_tab = app->profile_tab;
+    route.habits_screen_mode = app->habits.screen_mode;
+    route.habits_tab = app->habits.tab;
+    return route;
+}
+
+void
+app_switch_route(InbeApp *app, AppRoute route)
+{
+    if(app == NULL)
+        return;
+    app->inbe.screen = route.screen;
+    app->exercise_type = route.exercise_type;
+    app->practice_tab = route.practice_tab;
+    app->practice_config_tab = route.practice_config_tab;
+    app->settings_tab = route.settings_tab;
+    app->profile_view = route.profile_view;
+    app->profile_tab = route.profile_tab;
+    app->habits.screen_mode = route.habits_screen_mode;
+    app->habits.tab = route.habits_tab;
 }
 
 void
@@ -360,6 +486,20 @@ settings_screen_clear_status(void)
     settings_status_clear_count++;
 }
 
+int
+sync_account_load(InbeSyncAccount *account)
+{
+    (void)account;
+    return 0;
+}
+
+const char *
+storage_get_setting_text(const char *key)
+{
+    (void)key;
+    return "";
+}
+
 void
 app_open_modal(InbeApp *app, UIModalType type)
 {
@@ -378,6 +518,20 @@ app_close_modal(InbeApp *app)
     app->modal.active = 0;
     app->modal.type = UIModalNone;
     app->modal_input_block_frame = app->inbe.frame;
+}
+
+int
+profile_social_friends_count(InbeApp *app)
+{
+    (void)app;
+    return 0;
+}
+
+int
+profile_social_pending_count(InbeApp *app)
+{
+    (void)app;
+    return 0;
 }
 
 #include "../src/app/app_nav.c"
@@ -444,14 +598,14 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
     reset_state();
     app.modal_input_block_frame = app.inbe.frame;
     mouse_released = 1;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 0,
            "same-frame modal close must skip bottom nav draw");
     expect(app.inbe.screen == InbeScreenStart,
-           "same-frame modal close must not route to settings");
+           "same-frame modal close must not route");
     expect(reset_settings_preview_count == 0,
            "same-frame modal close must not run settings route side effects");
 }
@@ -464,16 +618,16 @@ test_unblocked_bottom_nav_click_still_routes(void)
     reset_state();
     app.modal_input_block_frame = app.inbe.frame - 1;
     mouse_released = 1;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
            "unblocked frame should draw bottom nav");
-    expect(app.inbe.screen == InbeScreenSettings,
-           "unblocked bottom nav click should route to settings");
-    expect(reset_settings_preview_count == 1,
-           "settings route should reset preview");
+    expect(app.inbe.screen == InbeScreenHabits,
+           "unblocked bottom nav click should route to habits");
+    expect(reset_settings_preview_count == 0,
+           "habits route should not reset settings preview");
     expect(app_content_bottom_reserved(&app) == 52,
            "bottom nav should reserve larger touch height");
     expect(bottom_nav_last.bottom_margin == 0,
@@ -486,26 +640,24 @@ test_edge_bottom_nav_routes_are_applied(void)
     InbeApp app = test_app();
 
     reset_state();
-    bottom_nav_clicked_route = APP_NAV_ROUTE_PROFILE;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
-           "profile edge route should draw bottom nav");
-    expect(app.inbe.screen == InbeScreenProfile,
-           "profile edge route should switch to profile");
-    expect(settings_status_clear_count == 1,
-           "profile route should clear settings status");
+           "habits edge route should draw bottom nav");
+    expect(app.inbe.screen == InbeScreenHabits,
+           "habits edge route should switch to habits");
 
     app = test_app();
     reset_state();
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
     app_set_android_bottom_nav_height(24);
     app_draw_bottom_nav(&app);
 
     expect(bottom_nav_draw_count == 1,
-           "settings edge route should draw bottom nav");
-    expect(app.inbe.screen == InbeScreenSettings,
-           "settings edge route should switch to settings");
+           "habits edge route should draw bottom nav with system margin");
+    expect(app.inbe.screen == InbeScreenHabits,
+           "habits edge route should switch to habits with system margin");
     expect(bottom_nav_last.bottom_margin == 24,
            "bottom nav should preserve Android system nav margin");
 }
@@ -517,7 +669,7 @@ test_practice_manual_hides_bottom_nav(void)
 
     reset_state();
     app.practice_tab = PRACTICE_TAB_MANUAL;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 
@@ -538,7 +690,7 @@ test_practice_config_hides_bottom_nav(void)
 
     reset_state();
     app.practice_tab = PRACTICE_TAB_CONFIG;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 
@@ -559,7 +711,7 @@ test_file_dialog_hides_bottom_nav(void)
 
     reset_state();
     app.file_dialog_active = 1;
-    bottom_nav_clicked_route = APP_NAV_ROUTE_SETTINGS;
+    bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
     app_draw_bottom_nav(&app);
 

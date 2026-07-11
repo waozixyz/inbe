@@ -534,7 +534,7 @@ $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c vendor/flint/src/ui/guide.c ve
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h vendor/flint/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings $(FLINT_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage $(FLINT_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c
 

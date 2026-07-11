@@ -289,8 +289,6 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "exercise_wim_hof",
         "exercise_meditation",
         "exercise_sun_salutation",
-        "profile_guide_social",
-        "profile_guide_social_no_account",
         "meditation_music_download_button",
         "meditation_music_redownload_button",
         "sync_alias_title",

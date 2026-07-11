@@ -10,15 +10,9 @@ Habitudes
 [tab_practice]
 Pratique
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Donnees
----
-[profile_data_button]
-Configurer les donnees
----
+Profile data
+------
 [profile_habits_label]
 Habitudes
 ---
@@ -63,25 +57,13 @@ Mise a jour
 ---
 [profile_no_account]
 Aucun compte
----
-[profile_account_section]
-Compte
----
-[profile_configure_button]
-Configurer
----
-[profile_data_section]
-Donnees
----
+------------
 [profile_friends_count_format]
 %d amis
 ---
 [profile_pending_count_format]
-%d en attente
----
-[profile_social_section]
-Social
----
+Pending: %d
+------
 [profile_add_friend_button]
 Ajouter un ami
 ---
@@ -96,15 +78,10 @@ Aucune donnee de classement
 ---
 [profile_practice_label]
 Pratique
----
-[profile_my_practices_button]
-Mes pratiques
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Mes pratiques
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Réglages
 ---
 [tab_stack]
 Stack
@@ -825,17 +800,7 @@ Rétention totale
 [habit_stats_best_streak]
 Meilleure série
 ---
-[profile_guide_account]
-Configurez votre compte de synchronisation ici.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Ouvrez les amis et le classement ici.
----
-[profile_guide_social_no_account]
-Creez un compte de synchronisation pour debloquer les amis et le classement.
 ---
 
 [transition_label]

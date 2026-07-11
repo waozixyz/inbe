@@ -10,15 +10,9 @@ Gewohnheiten
 [tab_practice]
 Praxis
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Daten
----
-[profile_data_button]
-Daten konfigurieren
----
+Profile data
+------
 [profile_habits_label]
 Gewohnheiten
 ---
@@ -63,25 +57,13 @@ Aktualisieren
 ---
 [profile_no_account]
 Kein Konto
----
-[profile_account_section]
-Konto
----
-[profile_configure_button]
-Konfigurieren
----
-[profile_data_section]
-Daten
----
+------------
 [profile_friends_count_format]
 %d Freunde
 ---
 [profile_pending_count_format]
-%d ausstehend
----
-[profile_social_section]
-Sozial
----
+Pending: %d
+------
 [profile_add_friend_button]
 Freund hinzufuegen
 ---
@@ -96,15 +78,10 @@ Keine Bestenlistendaten
 ---
 [profile_practice_label]
 Praxis
----
-[profile_my_practices_button]
-Meine Praktiken
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Meine Praktiken
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Einstellungen
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Gesamte Atemhaltezeit
 [habit_stats_best_streak]
 Beste Serie
 ---
-[profile_guide_account]
-Richte hier dein Sync-Konto ein.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Oeffne Freunde und Bestenliste von hier.
----
-[profile_guide_social_no_account]
-Erstelle ein Sync-Konto, um Freunde und Bestenliste freizuschalten.
 ---
 
 [transition_label]

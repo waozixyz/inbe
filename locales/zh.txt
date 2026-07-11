@@ -10,15 +10,9 @@
 [tab_practice]
 练习
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-数据
----
-[profile_data_button]
-配置数据
----
+Profile data
+------
 [profile_habits_label]
 习惯
 ---
@@ -63,25 +57,13 @@ Pet
 ---
 [profile_no_account]
 没有账户
----
-[profile_account_section]
-账户
----
-[profile_configure_button]
-配置
----
-[profile_data_section]
-数据
----
+------------
 [profile_friends_count_format]
 %d 位好友
 ---
 [profile_pending_count_format]
-%d 个待处理
----
-[profile_social_section]
-社交
----
+Pending: %d
+------
 [profile_add_friend_button]
 添加好友
 ---
@@ -96,15 +78,10 @@ Pet
 ---
 [profile_practice_label]
 练习
----
-[profile_my_practices_button]
-我的练习
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-我的练习
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-设置
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Wim Hof 屏息轮次
 [habit_stats_best_streak]
 最佳连续记录
 ---
-[profile_guide_account]
-在这里配置同步账户。
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-从这里打开好友和排行榜。
----
-[profile_guide_social_no_account]
-创建同步账户以解锁好友和排行榜。
 ---
 
 [transition_label]

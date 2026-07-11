@@ -10,15 +10,9 @@ Habits
 [tab_practice]
 Practice
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Data
----
-[profile_data_button]
-Configure Data
----
+Profile data
+------
 [profile_habits_label]
 Habits
 ---
@@ -63,25 +57,13 @@ Updating
 ---
 [profile_no_account]
 No account
----
-[profile_account_section]
-Account
----
-[profile_configure_button]
-Configure
----
-[profile_data_section]
-Data
----
+------------
 [profile_friends_count_format]
 %d friends
 ---
 [profile_pending_count_format]
-%d pending
----
-[profile_social_section]
-Social
----
+Pending: %d
+------
 [profile_add_friend_button]
 Add friend
 ---
@@ -96,15 +78,10 @@ No leaderboard data
 ---
 [profile_practice_label]
 Practice
----
-[profile_my_practices_button]
-My practices
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-My practices
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Settings
 ---
 [tab_stack]
 Stack
@@ -825,17 +800,7 @@ Total hold
 [habit_stats_best_streak]
 Best streak
 ---
-[profile_guide_account]
-Configure your sync account here.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Open friends and leaderboard from here.
----
-[profile_guide_social_no_account]
-Create a sync account to unlock friends and leaderboard.
 ---
 [transition_label]
 Animations

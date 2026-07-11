@@ -1219,23 +1219,9 @@ handle_back_button(InbeApp *app)
         break;
 
     case InbeScreenProfile:
-        if(app->profile_view != PROFILE_VIEW_MAIN) {
-            AppRoute route = app_current_route(app);
-            route.profile_view = PROFILE_VIEW_MAIN;
-            app->profile_scroll = 0;
-            app->sync_server_url_focused = 0;
-            settings_screen_clear_status();
-            app_switch_route(app, route);
-            break;
-        }
-        if(app->profile_tab != PROFILE_TAB_OVERVIEW) {
-            AppRoute route = app_current_route(app);
-            route.profile_tab = PROFILE_TAB_OVERVIEW;
-            app->profile_scroll = 0;
-            settings_screen_clear_status();
-            app_switch_route(app, route);
-            break;
-        }
+        app->profile_scroll = 0;
+        app->sync_server_url_focused = 0;
+        settings_screen_clear_status();
         app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
                                   ? InbeScreenHabits
                                   : InbeScreenStart);
@@ -1418,7 +1404,6 @@ updateapp(InbeApp *app)
     AppRoute frame_route = app_current_route(app);
     int first_run_guide_active = 0;
     int habits_guide_active = 0;
-    int profile_guide_active = 0;
     int practice_fullscreen_modal = 0;
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
@@ -1437,17 +1422,15 @@ updateapp(InbeApp *app)
         app->practice_coming_soon_ticks--;
     practice_screen_prepare_first_run_guide(app);
     habits_screen_prepare_first_run_guide(app);
-    profile_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
-    profile_guide_active = profile_screen_first_run_guide_active(app);
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
     if(app->nav_sidebar_open)
         PushUIInputCapture(app_nav_sidebar_bounds(), 1);
     if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
-       habits_guide_active || profile_guide_active) {
+       habits_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
@@ -1480,13 +1463,11 @@ updateapp(InbeApp *app)
             app->nav_sidebar_open = 0;
         } else if(app->close_prompt_open) {
             app->close_prompt_open = 0;
-        } else if(first_run_guide_active || habits_guide_active || profile_guide_active) {
+        } else if(first_run_guide_active || habits_guide_active) {
             app->tutorial_step = 0;
             practice_screen_prepare_first_run_guide(app);
             app->habits_guide_step = 0;
             habits_screen_prepare_first_run_guide(app);
-            app->profile_guide_step = 0;
-            profile_screen_prepare_first_run_guide(app);
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {
@@ -1614,7 +1595,6 @@ finish_frame:
     app_draw_bottom_nav(app);
     practice_screen_draw_first_run_guide(app);
     habits_screen_draw_first_run_guide(app);
-    profile_screen_draw_first_run_guide(app);
     if(!global_modal_drawn)
         draw_global_modal(app);
     app_draw_close_prompt(app);

@@ -10,15 +10,9 @@ Kebiasaan
 [tab_practice]
 Latihan
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Data
----
-[profile_data_button]
-Atur data
----
+Profile data
+------
 [profile_habits_label]
 Kebiasaan
 ---
@@ -63,25 +57,13 @@ Memperbarui
 ---
 [profile_no_account]
 Tidak ada akun
----
-[profile_account_section]
-Akun
----
-[profile_configure_button]
-Atur
----
-[profile_data_section]
-Data
----
+------------
 [profile_friends_count_format]
 %d teman
 ---
 [profile_pending_count_format]
-%d tertunda
----
-[profile_social_section]
-Sosial
----
+Pending: %d
+------
 [profile_add_friend_button]
 Tambah teman
 ---
@@ -96,15 +78,10 @@ Tidak ada data papan peringkat
 ---
 [profile_practice_label]
 Latihan
----
-[profile_my_practices_button]
-Praktik saya
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Praktik saya
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Pengaturan
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Total tahan
 [habit_stats_best_streak]
 Rangkaian terbaik
 ---
-[profile_guide_account]
-Atur akun sinkronisasi Anda di sini.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Buka teman dan papan peringkat dari sini.
----
-[profile_guide_social_no_account]
-Buat akun sinkronisasi untuk membuka teman dan papan peringkat.
 ---
 
 [transition_label]

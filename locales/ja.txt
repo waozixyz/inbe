@@ -10,15 +10,9 @@
 [tab_practice]
 練習
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-データ
----
-[profile_data_button]
-データを設定
----
+Profile data
+------
 [profile_habits_label]
 習慣
 ---
@@ -63,25 +57,13 @@ Pet
 ---
 [profile_no_account]
 アカウントなし
----
-[profile_account_section]
-アカウント
----
-[profile_configure_button]
-設定
----
-[profile_data_section]
-データ
----
+------------
 [profile_friends_count_format]
 %d人のフレンド
 ---
 [profile_pending_count_format]
-%d件保留中
----
-[profile_social_section]
-ソーシャル
----
+Pending: %d
+------
 [profile_add_friend_button]
 フレンドを追加
 ---
@@ -96,15 +78,10 @@ Pet
 ---
 [profile_practice_label]
 プラクティス
----
-[profile_my_practices_button]
-自分のプラクティス
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-自分のプラクティス
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-設定
 ---
 [tab_stack]
 Stack
@@ -788,17 +763,7 @@ Description
 [habit_stats_best_streak]
 最長連続記録
 ---
-[profile_guide_account]
-ここで同期アカウントを設定します。
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-ここからフレンドとランキングを開きます。
----
-[profile_guide_social_no_account]
-フレンドとランキングを使うには同期アカウントを作成してください。
 ---
 
 [transition_label]

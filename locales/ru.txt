@@ -10,15 +10,9 @@ Inner Breeze
 [tab_practice]
 Практика
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Данные
----
-[profile_data_button]
-Настроить данные
----
+Profile data
+------
 [profile_habits_label]
 Привычки
 ---
@@ -63,25 +57,13 @@ Pet
 ---
 [profile_no_account]
 Нет аккаунта
----
-[profile_account_section]
-Аккаунт
----
-[profile_configure_button]
-Настроить
----
-[profile_data_section]
-Данные
----
+------------
 [profile_friends_count_format]
 %d друзей
 ---
 [profile_pending_count_format]
-%d ожидают
----
-[profile_social_section]
-Социальное
----
+Pending: %d
+------
 [profile_add_friend_button]
 Добавить друга
 ---
@@ -96,15 +78,10 @@ Pet
 ---
 [profile_practice_label]
 Практика
----
-[profile_my_practices_button]
-Мои практики
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Мои практики
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Настройки
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Description
 [habit_stats_best_streak]
 Лучшая серия
 ---
-[profile_guide_account]
-Настройте аккаунт синхронизации здесь.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Откройте друзей и рейтинг здесь.
----
-[profile_guide_social_no_account]
-Создайте аккаунт синхронизации, чтобы открыть друзей и рейтинг.
 ---
 
 [transition_label]

@@ -10,15 +10,9 @@ Abitudini
 [tab_practice]
 Pratica
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Dati
----
-[profile_data_button]
-Configura dati
----
+Profile data
+------
 [profile_habits_label]
 Abitudini
 ---
@@ -63,25 +57,13 @@ Aggiornamento
 ---
 [profile_no_account]
 Nessun account
----
-[profile_account_section]
-Account
----
-[profile_configure_button]
-Configura
----
-[profile_data_section]
-Dati
----
+------------
 [profile_friends_count_format]
 %d amici
 ---
 [profile_pending_count_format]
-%d in attesa
----
-[profile_social_section]
-Social
----
+Pending: %d
+------
 [profile_add_friend_button]
 Aggiungi amico
 ---
@@ -96,15 +78,10 @@ Nessun dato classifica
 ---
 [profile_practice_label]
 Pratica
----
-[profile_my_practices_button]
-Le mie pratiche
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Le mie pratiche
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Impostazioni
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Apnea totale
 [habit_stats_best_streak]
 Migliore serie
 ---
-[profile_guide_account]
-Configura qui il tuo account di sincronizzazione.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Apri amici e classifica da qui.
----
-[profile_guide_social_no_account]
-Crea un account di sincronizzazione per sbloccare amici e classifica.
 ---
 
 [transition_label]

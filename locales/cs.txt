@@ -10,15 +10,9 @@ Návyky
 [tab_practice]
 Cvičení
 ---
-[tab_pet]
-Pet
----
 [profile_data_title]
-Data
----
-[profile_data_button]
-Nastavit data
----
+Profile data
+------
 [profile_habits_label]
 Navyky
 ---
@@ -63,25 +57,13 @@ Aktualizace
 ---
 [profile_no_account]
 Zadny ucet
----
-[profile_account_section]
-Ucet
----
-[profile_configure_button]
-Nastavit
----
-[profile_data_section]
-Data
----
+------------
 [profile_friends_count_format]
 %d pratel
 ---
 [profile_pending_count_format]
-%d cekajici
----
-[profile_social_section]
-Socialni
----
+Pending: %d
+------
 [profile_add_friend_button]
 Pridat pritele
 ---
@@ -96,15 +78,10 @@ Zadna data zebricku
 ---
 [profile_practice_label]
 Cviceni
----
-[profile_my_practices_button]
-Moje cvičení
----
+------
 [profile_my_habits_title]
 My habits
 ---
-[profile_my_practices_title]
-Moje cvičení
 ---
 [move_up_button]
 Up
@@ -112,8 +89,6 @@ Up
 [move_down_button]
 Down
 ---
-[tab_settings]
-Nastavení
 ---
 [tab_stack]
 Stack
@@ -786,17 +761,7 @@ Celková zádrž
 [habit_stats_best_streak]
 Nejlepší série
 ---
-[profile_guide_account]
-Zde nastavite synchronizacni ucet.
 ---
-[profile_guide_data]
-Manage data, habit order, and visible practices here.
----
-[profile_guide_social]
-Odtud otevete pratele a zebricek.
----
-[profile_guide_social_no_account]
-Vytvorte synchronizacni ucet pro odemceni pratel a zebricku.
 ---
 
 [transition_label]

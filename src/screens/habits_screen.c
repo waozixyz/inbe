@@ -1154,18 +1154,6 @@ habits_overview_actions_stack(int content_w)
 }
 
 static int
-habits_reorder_move_buttons_stack(int content_w)
-{
-    int btn_w = ScaleUIPx(74);
-    int gap = ScaleUIPx(8);
-
-    return content_w < ScaleUIPx(260) ||
-           content_w < btn_w * 2 + gap ||
-           !habits_button_label_fits(GetLocaleText("move_up_button"), btn_w) ||
-           !habits_button_label_fits(GetLocaleText("move_down_button"), btn_w);
-}
-
-static int
 habits_overview_day_index(int days_ago)
 {
     time_t now = time(NULL);
@@ -1217,14 +1205,10 @@ static int
 habits_reorder_content_height(int content_w, void *user_data)
 {
     InbeApp *app = user_data;
-    int row_h;
     int count = app != NULL ? app->habits.count : 0;
 
-    if(habits_reorder_move_buttons_stack(content_w))
-        row_h = ScaleUIPx(36) + ScaleUIPx(32) * 2 + ScaleUIPx(8) * 2;
-    else
-        row_h = ScaleUIPx(48);
-    return ScaleUIPx(70) + row_h * (count > 0 ? count : 1);
+    (void)content_w;
+    return ScaleUIPx(70) + ScaleUIPx(48) * (count > 0 ? count : 1);
 }
 
 static void
@@ -1268,10 +1252,12 @@ draw_habits_reorder(InbeApp *app, int content_top)
         int w = page.content_w;
         int font = GetUIFontSize();
         int small = GetUISmallFontSize();
-        int btn_h = ScaleUIPx(32);
-        int fixed_btn_w = ScaleUIPx(74);
-        int gap = ScaleUIPx(8);
-        int stack_rows = habits_reorder_move_buttons_stack(w);
+        int row_h = ScaleUIPx(48);
+        int handle_w = ScaleUIPx(34);
+        UIReorderItem reorder_items[INBE_HABIT_MAX];
+        UIReorderListResult reorder;
+        int row_y[INBE_HABIT_MAX];
+        int count = app->habits.count;
 
         y = page.content_y + ScaleUIPx(16);
 
@@ -1282,45 +1268,60 @@ draw_habits_reorder(InbeApp *app, int content_top)
             return;
         }
 
-        for(int i = 0; i < app->habits.count; i++) {
-            int row_y = y;
-            int up_hover = 0;
-            int down_hover = 0;
-            int controls_w = fixed_btn_w * 2 + gap;
-            int name_w = stack_rows ? w : w - controls_w - gap;
+        if(count > INBE_HABIT_MAX)
+            count = INBE_HABIT_MAX;
+        for(int i = 0; i < count; i++) {
+            row_y[i] = y + i * row_h;
+            reorder_items[i] = (UIReorderItem){
+                .id = i + 1,
+                .bounds = {(float)x, (float)row_y[i],
+                           (float)w, (float)row_h},
+                .disabled = 0
+            };
+        }
+        reorder = UpdateUIReorderList((UIReorderList){
+            .id = 801,
+            .bounds = {(float)x, (float)y, (float)w, (float)(row_h * count)},
+            .items = reorder_items,
+            .item_count = count,
+            .handle_width = handle_w,
+            .scroll_offset = &app->habits.scroll,
+            .max_scroll = page.view.max_scroll,
+            .viewport_top = (int)page.area.bounds.y,
+            .viewport_bottom = (int)(page.area.bounds.y + page.area.bounds.height)
+        });
+        if(reorder.committed &&
+           habits_move(&app->habits, reorder.from_index, reorder.to_index)) {
+            habits_persist_view_state(app);
+            app_auto_sync(app);
+            EndUIScrollPage(page);
+            return;
+        }
 
-            habits_draw_fitted_text(app->habits.items[i].name, x, row_y + ScaleUIPx(7),
-                                    name_w, font, GetThemeText());
-            if(stack_rows) {
-                row_y += ScaleUIPx(36);
-            }
-            if(DrawUIGenericButton(stack_rows ? x : x + w - fixed_btn_w * 2 - gap,
-                                      row_y, stack_rows ? w : fixed_btn_w, btn_h,
-                                      GetLocaleText("move_up_button"),
-                                      UI_BUTTON_STYLE_SECONDARY, i == 0, &up_hover)) {
-                if(habits_move(&app->habits, i, i - 1)) {
-                    habits_persist_view_state(app);
-                    app_auto_sync(app);
-                }
-                EndUIScrollPage(page);
-                return;
-            }
-            if(stack_rows)
-                row_y += btn_h + gap;
-            if(DrawUIGenericButton(stack_rows ? x : x + w - fixed_btn_w,
-                                      row_y, stack_rows ? w : fixed_btn_w, btn_h,
-                                      GetLocaleText("move_down_button"),
-                                      UI_BUTTON_STYLE_SECONDARY,
-                                      i == app->habits.count - 1, &down_hover)) {
-                if(habits_move(&app->habits, i, i + 1)) {
-                    habits_persist_view_state(app);
-                    app_auto_sync(app);
-                }
-                EndUIScrollPage(page);
-                return;
-            }
-            y += stack_rows ? ScaleUIPx(108) : ScaleUIPx(46);
-            habits_draw_divider(x, w, y - ScaleUIPx(6));
+        for(int i = 0; i < count; i++) {
+            if(reorder.dragging && i == reorder.active_index)
+                continue;
+            DrawUIReorderHandle(x, row_y[i], handle_w, row_h,
+                                reorder.active && i == reorder.active_index);
+            habits_draw_fitted_text(app->habits.items[i].name,
+                                    x + handle_w, row_y[i] + ScaleUIPx(13),
+                                    w - handle_w, font, GetThemeText());
+            habits_draw_divider(x, w, row_y[i] + row_h - ScaleUIPx(4));
+        }
+        if(reorder.dragging && reorder.target_index >= 0 &&
+           reorder.target_index < count)
+            DrawUIReorderPlaceholder(reorder_items[reorder.target_index].bounds);
+        if(reorder.dragging && reorder.active_index >= 0 &&
+           reorder.active_index < count) {
+            int i = reorder.active_index;
+            int overlay_y = row_y[i] + reorder.drag_delta_y;
+
+            DrawRectangle(x, overlay_y, w, row_h,
+                          LightenUIColor(GetThemeBackground(), 8));
+            DrawUIReorderHandle(x, overlay_y, handle_w, row_h, 1);
+            habits_draw_fitted_text(app->habits.items[i].name,
+                                    x + handle_w, overlay_y + ScaleUIPx(13),
+                                    w - handle_w, font, GetThemeText());
         }
 
         EndUIScrollPage(page);

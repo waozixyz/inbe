@@ -197,7 +197,12 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_PET = 3,
     APP_NAV_ROUTE_SETTINGS = 4,
     APP_NAV_ROUTE_STACK = 5,
-    APP_NAV_ROUTE_COUNT = 6,
+    APP_NAV_ROUTE_ACCOUNT = 6,
+    APP_NAV_ROUTE_DATA = 7,
+    APP_NAV_ROUTE_FRIENDS = 8,
+    APP_NAV_ROUTE_LEADERBOARD = 9,
+    APP_NAV_ROUTE_PRACTICES = 10,
+    APP_NAV_ROUTE_COUNT = 11,
 } AppNavRoute;
 
 enum {
@@ -294,13 +299,6 @@ typedef struct HabitEditState {
     int counter_enabled;
 } HabitEditState;
 
-typedef struct ProfileGuideAnchors {
-    Rectangle account;
-    Rectangle data;
-    Rectangle social;
-    int valid;
-} ProfileGuideAnchors;
-
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -378,9 +376,6 @@ struct InbeApp {
     int tutorial_seen;
     int habits_guide_step;
     int habits_guide_seen;
-    int profile_guide_step;
-    int profile_guide_seen;
-    ProfileGuideAnchors profile_guide_anchors;
     int exercise_manual_seen_mask;
     int practice_visible_mask;
     int practice_home_scroll;
@@ -396,6 +391,7 @@ struct InbeApp {
     int bottom_nav_config_routes[APP_BOTTOM_NAV_CONTENT_MAX];
     int bottom_nav_config_route_count;
     int nav_sidebar_open;
+    int nav_sidebar_open_frame;
     int nav_sidebar_scroll;
     int transition_mode;
     int android_orientation;
