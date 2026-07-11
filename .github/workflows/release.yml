@@ -328,7 +328,7 @@ jobs:
           path: |
             vendor-builds/windows
             vendor-builds/sqlite
-          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/vendor/raylib/src/**', 'vendor/curl/**', 'vendor/sqlite/**') }}
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/mk/**', 'vendor/flint/scripts/prepare-raylib-source.sh', 'vendor/flint/tools/generate-flint-compat.sh', 'vendor/flint/vendor/raylib/src/**', 'vendor/flint/vendor/curl/**', 'vendor/sqlite/**') }}
           restore-keys: |
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
