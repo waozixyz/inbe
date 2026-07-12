@@ -169,6 +169,11 @@ typedef enum AppOrientationMode {
     APP_ORIENTATION_SENSOR = 3,
 } AppOrientationMode;
 
+typedef struct InbeHostApi {
+    void *userdata;
+    void (*request_size)(void *userdata, int width, int height);
+} InbeHostApi;
+
 typedef enum NavigationMode {
     NAV_MODE_TABBAR = 0,
     NAV_MODE_DROPDOWN = 1,
@@ -315,6 +320,7 @@ struct InbeApp {
     Camera2D camera;
     Texture2D icons[UI_ICON_TYPE_COUNT];
     int graphics_reload_requested;
+    InbeHostApi host;
 
     WhmPracticeState whm;
     MeditationPracticeState meditation;
@@ -450,6 +456,7 @@ struct InbeApp {
     SettingsThemeState theme_state;
 };
 
+void app_set_host_api(InbeApp *app, InbeHostApi host);
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);

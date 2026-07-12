@@ -12,6 +12,36 @@
 #include <stdbool.h>
 
 void
+app_set_host_api(InbeApp *app, InbeHostApi host)
+{
+    if(app == NULL)
+        return;
+    app->host = host;
+}
+
+static bool
+app_request_orientation_size(InbeApp *app)
+{
+    int width;
+    int height;
+
+    if(app == NULL || app->host.request_size == NULL)
+        return false;
+
+    width = GetScreenWidth();
+    height = GetScreenHeight();
+    if(width <= 0 || height <= 0)
+        return true;
+
+    if(app->orientation_mode == APP_ORIENTATION_PORTRAIT && width > height)
+        app->host.request_size(app->host.userdata, height, width);
+    else if(app->orientation_mode == APP_ORIENTATION_LANDSCAPE && height > width)
+        app->host.request_size(app->host.userdata, height, width);
+
+    return true;
+}
+
+void
 refresh_theme_colors(int theme_id, int dark_mode)
 {
     SetThemeMode(dark_mode ? THEME_MODE_DARK : THEME_MODE_LIGHT);
@@ -70,9 +100,8 @@ app_apply_orientation_preference(InbeApp *app)
 {
     if(app == NULL)
         return;
-#if defined(LOTUS_BUILD)
-    return;
-#endif
+    if(app_request_orientation_size(app))
+        return;
 #if ANDROID_BUILD
     android_device_set_orientation_mode(app->orientation_mode);
 #elif defined(PLATFORM_WEB)
