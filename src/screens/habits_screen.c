@@ -1673,8 +1673,8 @@ draw_habits_overview(InbeApp *app, int content_top)
     }
 }
 
-static void
-habits_screen_finish_first_run_guide(InbeApp *app)
+void
+habits_screen_dismiss_first_run_guide(InbeApp *app)
 {
     if(app == NULL)
         return;
@@ -1924,7 +1924,7 @@ habits_screen_draw_first_run_guide(InbeApp *app)
         .done_icon = app->icons[UI_ICON_TYPE_CHECK]
     });
     if(result.closed || result.finished)
-        habits_screen_finish_first_run_guide(app);
+        habits_screen_dismiss_first_run_guide(app);
 }
 
 static void

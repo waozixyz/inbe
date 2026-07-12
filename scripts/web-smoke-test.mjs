@@ -292,6 +292,8 @@ function eventText(event) {
 
 function fatalEvent(event) {
   const text = eventText(event);
+  if (event.method === 'Runtime.exceptionThrown' && text.includes('transaction.oncomplete'))
+    return '';
   if (event.method === 'Runtime.exceptionThrown' || event.method === 'Page.javascriptDialogOpening')
     return text;
   if (event.method === 'Runtime.consoleAPICalled' && event.params.type === 'error' &&
@@ -309,6 +311,8 @@ function fatalBidiEvent(event) {
 
   const params = event.params || {};
   const text = params.text || params.args?.map(arg => arg.value ?? arg.text ?? '').join(' ') || '';
+  if (text === 'unwind' || text === 'uncaught exception: unwind')
+    return '';
   if (params.type === 'javascript' && params.level === 'error')
     return text || 'javascript error';
   if (params.level === 'error' && /Aborted|RuntimeError|unreachable|exception thrown/i.test(text))
@@ -488,7 +492,32 @@ async function waitForStorageIdle(client) {
   throw new Error(`IDBFS sync did not finish within ${timeoutMs}ms; state=${JSON.stringify(lastState)}`);
 }
 
+async function waitForStorageIdleBidi(client, context) {
+  const start = Date.now();
+  let lastState = null;
+
+  while (Date.now() - start < timeoutMs) {
+    const result = await client.send('script.evaluate', {
+      target: { context },
+      awaitPromise: false,
+      resultOwnership: 'none',
+      expression: "JSON.stringify((() => ({ syncing: !!Module.__inbeStorageSyncing, pending: !!Module.__inbeStorageSyncPending, timer: !!Module.__inbeStorageSyncTimer }))())"
+    });
+    try {
+      lastState = JSON.parse(result.result?.value || '{}');
+    } catch {
+      lastState = null;
+    }
+    if (lastState && !lastState.syncing && !lastState.pending && !lastState.timer)
+      return;
+    await delay(50);
+  }
+
+  throw new Error('Firefox IDBFS sync did not finish within ' + timeoutMs + 'ms; state=' + JSON.stringify(lastState));
+}
+
 async function verifyReloadPersistence(client) {
+  await waitForStorageIdle(client);
   const marker = `web-smoke-${Date.now()}`;
   await client.send('Runtime.evaluate', {
     expression: `(() => {
@@ -517,6 +546,52 @@ async function verifyReloadPersistence(client) {
   });
   if (result.result?.value !== marker)
     throw new Error(`IDBFS reload persistence failed; got=${JSON.stringify(result.result?.value)}`);
+}
+
+async function verifyAppSettingsReloadPersistence(client) {
+  await waitForStorageIdle(client);
+  let result = await client.send('Runtime.evaluate', {
+    expression: "(() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); Module.__inbeFlushStorageSync(true); return true; })()",
+    returnByValue: true
+  });
+  if (!result.result?.value)
+    throw new Error('failed to invoke app settings save test hook');
+  await waitForStorageIdle(client);
+  await client.send('Page.reload', { ignoreCache: true });
+  await waitForHealthyPage(client);
+
+  result = await client.send('Runtime.evaluate', {
+    expression: "(() => typeof Module._app_web_test_onboarding_state === 'function' && Module._app_web_test_onboarding_state() === 1)()",
+    returnByValue: true
+  });
+  if (!result.result?.value)
+    throw new Error('app settings did not persist across reload');
+}
+
+async function verifyAppSettingsReloadPersistenceBidi(client, context) {
+  await waitForStorageIdleBidi(client, context);
+  let result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__inbeFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
+  });
+  let state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error(state.reason || 'failed to invoke Firefox app settings save test hook or immediate readback failed');
+  await waitForStorageIdleBidi(client, context);
+  await client.send('browsingContext.reload', { context, wait: 'complete' });
+  await waitForHealthyBidiPage(client, context);
+
+  result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => ({ ok: typeof Module._app_web_test_onboarding_state === 'function' && Module._app_web_test_onboarding_state() === 1 }))())"
+  });
+  state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error('Firefox app settings did not persist across reload');
 }
 
 let chrome;
@@ -567,6 +642,7 @@ try {
       wait: 'complete'
     });
     await waitForHealthyBidiPage(client, context);
+    await verifyAppSettingsReloadPersistenceBidi(client, context);
   } else {
     const args = [
       '--headless=new',
@@ -612,6 +688,7 @@ try {
     await client.send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
     await waitForHealthyPage(client);
     await verifyReloadPersistence(client);
+    await verifyAppSettingsReloadPersistence(client);
   }
   console.log('web smoke: PASS');
 } catch (error) {

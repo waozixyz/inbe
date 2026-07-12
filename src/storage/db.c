@@ -174,9 +174,6 @@ int
 schema_create(void)
 {
     return
-#if defined(__EMSCRIPTEN__)
-        schema_exec("PRAGMA synchronous=OFF;") &&
-#endif
         schema_exec(
         "PRAGMA journal_mode=DELETE;"
         "PRAGMA foreign_keys=ON;") &&

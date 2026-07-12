@@ -282,6 +282,8 @@ void
 storage_schedule_persist(void)
 {
 #if defined(__EMSCRIPTEN__)
+    if(g_storage.db != NULL)
+        sqlite3_db_cacheflush(g_storage.db);
     EM_ASM({
         if(typeof Module.__inbeScheduleStorageSync === 'function')
             Module.__inbeScheduleStorageSync(120, false);

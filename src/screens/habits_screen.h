@@ -156,6 +156,7 @@ void draw_habit_session_edit_screen(InbeApp *app);
 int habits_screen_top_reserved(InbeApp *app);
 int habits_screen_first_run_guide_active(const InbeApp *app);
 void habits_screen_prepare_first_run_guide(InbeApp *app);
+void habits_screen_dismiss_first_run_guide(InbeApp *app);
 void habits_screen_draw_first_run_guide(InbeApp *app);
 int draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
 int habit_is_linked(const InbeHabit *habit);

@@ -1058,8 +1058,8 @@ practice_home_layout(InbeApp *app, Rectangle *card, Rectangle *start,
     }
 }
 
-static void
-practice_screen_finish_first_run_guide(InbeApp *app)
+void
+practice_screen_dismiss_first_run_guide(InbeApp *app)
 {
     if(app == NULL)
         return;
@@ -1135,5 +1135,5 @@ practice_screen_draw_first_run_guide(InbeApp *app)
         .done_icon = app->icons[UI_ICON_TYPE_CHECK]
     });
     if(result.closed || result.finished)
-        practice_screen_finish_first_run_guide(app);
+        practice_screen_dismiss_first_run_guide(app);
 }

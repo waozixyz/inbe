@@ -21,6 +21,9 @@ static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
 static const char *generic_button_clicked_label = NULL;
+static int padded_icon_click_index = -1;
+static int padded_icon_draw_count = 0;
+static int scroll_page_content_w_override = 0;
 
 static void
 expect(int condition, const char *message)
@@ -43,6 +46,9 @@ reset_state(void)
     reset_settings_preview_count = 0;
     settings_status_clear_count = 0;
     generic_button_clicked_label = NULL;
+    padded_icon_click_index = -1;
+    padded_icon_draw_count = 0;
+    scroll_page_content_w_override = 0;
     view_width = 320;
     view_height = 560;
     app_set_android_bottom_nav_height(0);
@@ -365,7 +371,9 @@ BeginUIScrollPage(UIScrollPageSpec spec)
     return (UIScrollPage){
         .content_x = 16,
         .content_y = spec.y,
-        .content_w = 288,
+        .content_w = scroll_page_content_w_override > 0
+                         ? scroll_page_content_w_override
+                         : 288,
         .content_h = spec.height
     };
 }
@@ -463,6 +471,10 @@ DrawUIPaddedIconBtn(int x, int y, int size, int padding,
     (void)icon;
     if(hover != NULL)
         *hover = 0;
+    if(padded_icon_draw_count++ == padded_icon_click_index) {
+        padded_icon_click_index = -1;
+        return 1;
+    }
     return 0;
 }
 
@@ -871,6 +883,52 @@ test_empty_bottom_nav_draws_stack_only_bar(void)
            "empty bottom nav should reserve stack bar space");
 }
 
+
+static void
+test_customize_nav_delete_last_does_not_add_same_frame(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.main_tab = APP_MAIN_TAB_HABITS;
+    app.bottom_nav_route_count = 1;
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_config_route_count = 1;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
+    padded_icon_click_index = 0;
+    generic_button_clicked_label = "customize_nav_add";
+
+    app_draw_customize_nav_page(&app);
+
+    expect(app.bottom_nav_config_route_count == 0,
+           "deleting last customize nav row should not also add a row");
+    expect(app.bottom_nav_route_count == 0,
+           "deleting last customize nav row should save an empty config");
+    expect(save_settings_count == 1,
+           "deleting last customize nav row should save exactly once");
+    expect(generic_button_clicked_label == NULL,
+           "add button click simulation should have been exercised");
+}
+
+
+static void
+test_customize_nav_delete_icon_draws_on_narrow_rows(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.bottom_nav_config_route_count = 1;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
+    scroll_page_content_w_override = 180;
+
+    app_draw_customize_nav_page(&app);
+
+    expect(padded_icon_draw_count == 1,
+           "customize nav should draw delete icon on narrow rows");
+}
+
 static void
 test_bottom_nav_config_save_stays_on_customize_screen(void)
 {
@@ -991,6 +1049,8 @@ main(void)
     test_file_dialog_hides_bottom_nav();
     test_empty_bottom_nav_draws_stack_only_bar();
     test_bottom_nav_config_save_stays_on_customize_screen();
+    test_customize_nav_delete_last_does_not_add_same_frame();
+    test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
     test_compact_sidebar_close_footer_closes_to_home();
     test_sidebar_child_back_returns_to_compact_sidebar();

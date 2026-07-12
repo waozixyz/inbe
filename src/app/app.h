@@ -320,6 +320,8 @@ struct InbeApp {
     MeditationPracticeState meditation;
     SunSalutationPracticeState sun_salutation;
     PetPreviewState pet;
+    Texture2D easteregg_art;
+    Texture2D easteregg_waozi;
     Texture2D font_shapes_texture;
     Font locale_font;
     Font locale_font_8;

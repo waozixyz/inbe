@@ -309,9 +309,9 @@ static int
 habit_edit_scroll_content_height(int content_w, void *user_data)
 {
     InbeApp *app = user_data;
+    UIButtonRowItem actions[2];
+    int action_count = 1;
     int height = ScaleUIPx(18);
-
-    (void)content_w;
     height += GetUILabelTextFieldHeight((UILabelTextField){
         .label = GetLocaleText("habit_name_label"),
         .field_h = ScaleUIPx(40)
@@ -328,9 +328,29 @@ habit_edit_scroll_content_height(int content_w, void *user_data)
     height += GetUISectionLabelHeight((UISectionLabel){0});
     height += GetUICheckboxRowHeight((UICheckboxRow){0});
     height += ScaleUIPx(10);
-    height += GetUIButtonRowHeight((UIButtonRow){.height = ScaleUIPx(40)});
+
+    actions[0] = (UIButtonRowItem){
+        .label = GetLocaleText("save_button"),
+        .style = UI_BUTTON_STYLE_PRIMARY
+    };
+    if(app != NULL && !app->habit_edit.is_new) {
+        actions[0] = (UIButtonRowItem){
+            .label = GetLocaleText("habit_delete_button"),
+            .style = UI_BUTTON_STYLE_DANGER
+        };
+        actions[1] = (UIButtonRowItem){
+            .label = GetLocaleText("save_button"),
+            .style = UI_BUTTON_STYLE_PRIMARY
+        };
+        action_count = 2;
+    }
+    height += GetUIButtonRowHeight((UIButtonRow){
+        .width = content_w,
+        .height = ScaleUIPx(40),
+        .items = actions,
+        .count = action_count
+    });
     height += ScaleUIPx(24);
-    (void)app;
     return height;
 }
 
@@ -428,6 +448,9 @@ draw_habit_edit_screen(InbeApp *app)
                 app_auto_sync(app);
             }
             app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+            app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY
+                                  ? HABIT_TAB_WEEKLY
+                                  : HABIT_TAB_MONTHLY;
             app->habits.scroll = 0;
             save_settings(app);
             app_switch_screen(app, InbeScreenHabits);

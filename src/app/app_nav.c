@@ -907,6 +907,14 @@ app_first_unused_bottom_nav_route(const InbeApp *app)
 int
 app_draw_customize_nav_page(InbeApp *app)
 {
+    enum {
+        APP_NAV_CONFIG_ACTION_NONE,
+        APP_NAV_CONFIG_ACTION_MOVE,
+        APP_NAV_CONFIG_ACTION_REMOVE,
+        APP_NAV_CONFIG_ACTION_ADD,
+        APP_NAV_CONFIG_ACTION_SET
+    };
+
     const char *options[APP_BOTTOM_NAV_CONFIGURABLE_COUNT];
     UIScrollPage page;
     UIReorderItem reorder_items[APP_BOTTOM_NAV_CONTENT_MAX];
@@ -918,6 +926,11 @@ app_draw_customize_nav_page(InbeApp *app)
     int button_h = ScaleUIPx(36);
     int row_h = ScaleUIPx(58);
     int handle_w = ScaleUIPx(34);
+    int draw_count;
+    int action = APP_NAV_CONFIG_ACTION_NONE;
+    int action_index = -1;
+    int action_to_index = -1;
+    int action_route = APP_NAV_ROUTE_NONE;
 
     if(app == NULL)
         return 0;
@@ -928,6 +941,7 @@ app_draw_customize_nav_page(InbeApp *app)
             app->bottom_nav_config_routes[i] = app->bottom_nav_routes[i];
         app->bottom_nav_config_route_count = app->bottom_nav_route_count;
     }
+    draw_count = app->bottom_nav_config_route_count;
 
     if(app_draw_close_title_bar(app,
                             GetLocaleText("customize_nav_title"),
@@ -952,7 +966,7 @@ app_draw_customize_nav_page(InbeApp *app)
     for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
         selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i]);
 
-    for(int i = 0; i < app->bottom_nav_config_route_count; i++) {
+    for(int i = 0; i < draw_count; i++) {
         row_y[i] = y + i * row_h;
         reorder_items[i] = (UIReorderItem){
             .id = app->bottom_nav_config_routes[i] * 100 + i + 1,
@@ -966,72 +980,67 @@ app_draw_customize_nav_page(InbeApp *app)
         .id = 701,
         .bounds = {(float)page.content_x, (float)page.content_y,
                    (float)page.content_w,
-                   (float)(row_h * app->bottom_nav_config_route_count)},
+                   (float)(row_h * draw_count)},
         .items = reorder_items,
-        .item_count = app->bottom_nav_config_route_count,
+        .item_count = draw_count,
         .handle_width = handle_w,
         .scroll_offset = &app->nav_sidebar_scroll,
         .max_scroll = page.view.max_scroll,
         .viewport_top = (int)page.area.bounds.y,
         .viewport_bottom = (int)(page.area.bounds.y + page.area.bounds.height)
     });
-    if(reorder.committed &&
-       app_move_bottom_nav_config_route(app, reorder.from_index,
-                                        reorder.to_index)) {
-        changed = 1;
-        app_save_bottom_nav_config(app);
-        for(int i = 0; i < APP_BOTTOM_NAV_CONTENT_MAX; i++)
-            selected[i] = app_nav_option_index(app->bottom_nav_config_routes[i]);
+    if(reorder.committed) {
+        action = APP_NAV_CONFIG_ACTION_MOVE;
+        action_index = reorder.from_index;
+        action_to_index = reorder.to_index;
     }
 
-    for(int i = 0; i < app->bottom_nav_config_route_count; i++) {
+    for(int i = 0; i < draw_count; i++) {
         int trash_hover = 0;
         int icon_w = ScaleUIPx(36);
+        int icon_gap = ScaleUIPx(8);
         int dropdown_x = page.content_x + handle_w;
-        int dropdown_w = page.content_w - handle_w - icon_w - ScaleUIPx(8);
+        int trash_x = page.content_x + page.content_w - icon_w;
+        int dropdown_w = trash_x - icon_gap - dropdown_x;
         int dropdown_y = row_y[i] + (row_h - button_h) / 2;
+
+        if(dropdown_w < ScaleUIPx(48))
+            dropdown_w = ScaleUIPx(48);
 
         if(reorder.dragging && i == reorder.active_index)
             continue;
 
-        if(dropdown_w < ScaleUIPx(140))
-            dropdown_w = page.content_w - handle_w;
         DrawUIReorderHandle(page.content_x, row_y[i], handle_w, row_h,
                             reorder.active && i == reorder.active_index);
         DrawUIDropdownButton(740 + i, dropdown_x, dropdown_y,
                              dropdown_w, button_h, options,
                              APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]);
-        if(dropdown_x + dropdown_w + ScaleUIPx(8) + icon_w <=
-           page.content_x + page.content_w) {
-            if(DrawUIPaddedIconBtn(page.content_x + page.content_w - icon_w,
-                                   dropdown_y - ScaleUIPx(2), ScaleUIPx(20),
-                                   ScaleUIPx(8), app->icons[UI_ICON_TYPE_TRASH],
-                                   &trash_hover)) {
-                for(int j = i; j < app->bottom_nav_config_route_count - 1; j++)
-                    app->bottom_nav_config_routes[j] =
-                        app->bottom_nav_config_routes[j + 1];
-                app->bottom_nav_config_route_count--;
-                changed = 1;
-                app_save_bottom_nav_config(app);
-                break;
-            }
+        if(DrawUIPaddedIconBtn(trash_x, dropdown_y - ScaleUIPx(2),
+                               ScaleUIPx(20), ScaleUIPx(8),
+                               app->icons[UI_ICON_TYPE_TRASH],
+                               &trash_hover) &&
+           action == APP_NAV_CONFIG_ACTION_NONE) {
+            action = APP_NAV_CONFIG_ACTION_REMOVE;
+            action_index = i;
         }
     }
     if(reorder.dragging && reorder.target_index >= 0 &&
-       reorder.target_index < app->bottom_nav_config_route_count)
+       reorder.target_index < draw_count)
         DrawUIReorderPlaceholder(reorder_items[reorder.target_index].bounds);
     if(reorder.dragging && reorder.active_index >= 0 &&
-       reorder.active_index < app->bottom_nav_config_route_count) {
+       reorder.active_index < draw_count) {
         int i = reorder.active_index;
         int trash_hover = 0;
         int icon_w = ScaleUIPx(36);
+        int icon_gap = ScaleUIPx(8);
         int dropdown_x = page.content_x + handle_w;
-        int dropdown_w = page.content_w - handle_w - icon_w - ScaleUIPx(8);
+        int trash_x = page.content_x + page.content_w - icon_w;
+        int dropdown_w = trash_x - icon_gap - dropdown_x;
         int overlay_y = row_y[i] + reorder.drag_delta_y;
         int dropdown_y = overlay_y + (row_h - button_h) / 2;
 
-        if(dropdown_w < ScaleUIPx(140))
-            dropdown_w = page.content_w - handle_w;
+        if(dropdown_w < ScaleUIPx(48))
+            dropdown_w = ScaleUIPx(48);
         DrawRectangle(page.content_x, overlay_y, page.content_w, row_h,
                       LightenUIColor(GetThemeBackground(), 8));
         DrawUIReorderHandle(page.content_x, overlay_y, handle_w, row_h, 1);
@@ -1039,54 +1048,88 @@ app_draw_customize_nav_page(InbeApp *app)
                              dropdown_w, button_h, options,
                              APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]);
         (void)trash_hover;
-        if(dropdown_x + dropdown_w + ScaleUIPx(8) + icon_w <=
-           page.content_x + page.content_w)
-            DrawUIIconTexture(page.content_x + page.content_w - icon_w +
-                              ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
-                              ScaleUIPx(20), app->icons[UI_ICON_TYPE_TRASH],
-                              GetThemeIcon());
+        DrawUIIconTexture(trash_x + ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
+                          ScaleUIPx(20), app->icons[UI_ICON_TYPE_TRASH],
+                          GetThemeIcon());
     }
 
-    y += row_h * app->bottom_nav_config_route_count;
+    y += row_h * draw_count;
 
-    if(app->bottom_nav_config_route_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT) {
+    if(draw_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT) {
         int add_hover = 0;
         if(DrawUIGenericButton(page.content_x, y, page.content_w, button_h,
                                   GetLocaleText("customize_nav_add"),
-                                  UI_BUTTON_STYLE_SECONDARY, 0, &add_hover)) {
-            int route = app_first_unused_bottom_nav_route(app);
-            app->bottom_nav_config_routes[app->bottom_nav_config_route_count++] = route;
-            changed = 1;
-            app_save_bottom_nav_config(app);
+                                  UI_BUTTON_STYLE_SECONDARY, 0, &add_hover) &&
+           action == APP_NAV_CONFIG_ACTION_NONE) {
+            action = APP_NAV_CONFIG_ACTION_ADD;
         }
         y += button_h + ScaleUIPx(14);
     }
 
     SetUIDropdownClipTop(GetUITabBarHeight() + ScaleUIPx(8));
     SetUIDropdownClipBottom(view_height);
-    for(int i = 0; i < app->bottom_nav_config_route_count; i++) {
-        if(DrawUIDropdownMenu(740 + i)) {
-            int old_route = app->bottom_nav_config_routes[i];
-            int new_route = app_nav_route_for_option(selected[i]);
-
-            if(new_route != old_route) {
-                for(int j = 0; j < app->bottom_nav_config_route_count; j++) {
-                    if(j != i && app->bottom_nav_config_routes[j] == new_route) {
-                        app->bottom_nav_config_routes[j] = old_route;
-                        break;
-                    }
-                }
-            }
-            app->bottom_nav_config_routes[i] = new_route;
-            changed = 1;
-            app_save_bottom_nav_config(app);
+    for(int i = 0; i < draw_count; i++) {
+        if(DrawUIDropdownMenu(740 + i) &&
+           action == APP_NAV_CONFIG_ACTION_NONE) {
+            action = APP_NAV_CONFIG_ACTION_SET;
+            action_index = i;
+            action_route = app_nav_route_for_option(selected[i]);
         }
     }
     SetUIDropdownClipTop(0);
     SetUIDropdownClipBottom(0);
 
     EndUIScrollPage(page);
-    (void)changed;
+
+    switch(action) {
+    case APP_NAV_CONFIG_ACTION_MOVE:
+        changed = app_move_bottom_nav_config_route(app, action_index,
+                                                   action_to_index);
+        break;
+    case APP_NAV_CONFIG_ACTION_REMOVE:
+        if(action_index >= 0 &&
+           action_index < app->bottom_nav_config_route_count) {
+            for(int j = action_index;
+                j < app->bottom_nav_config_route_count - 1;
+                j++)
+                app->bottom_nav_config_routes[j] =
+                    app->bottom_nav_config_routes[j + 1];
+            app->bottom_nav_config_route_count--;
+            changed = 1;
+        }
+        break;
+    case APP_NAV_CONFIG_ACTION_ADD:
+        if(app->bottom_nav_config_route_count <
+           APP_BOTTOM_NAV_CONFIGURABLE_COUNT) {
+            app->bottom_nav_config_routes[app->bottom_nav_config_route_count++] =
+                app_first_unused_bottom_nav_route(app);
+            changed = 1;
+        }
+        break;
+    case APP_NAV_CONFIG_ACTION_SET:
+        if(action_index >= 0 &&
+           action_index < app->bottom_nav_config_route_count) {
+            int old_route = app->bottom_nav_config_routes[action_index];
+            if(action_route != old_route) {
+                for(int j = 0; j < app->bottom_nav_config_route_count; j++) {
+                    if(j != action_index &&
+                       app->bottom_nav_config_routes[j] == action_route) {
+                        app->bottom_nav_config_routes[j] = old_route;
+                        break;
+                    }
+                }
+            }
+            app->bottom_nav_config_routes[action_index] = action_route;
+            changed = 1;
+        }
+        break;
+    default:
+        break;
+    }
+
+    if(changed)
+        app_save_bottom_nav_config(app);
+
     return 0;
 }
 

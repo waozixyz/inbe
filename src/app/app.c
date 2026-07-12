@@ -8,6 +8,7 @@
 
 #include "app.h"
 #include "app_sync.h"
+#include "app_settings.h"
 #include "data.h"
 #include "locale.h"
 #include "screens/language_screen.h"
@@ -518,7 +519,9 @@ app_screen_local_modal_valid(const InbeApp *app, UIModalType type)
     case UIModalConfirmDeleteHabit:
     case UIModalHabitPracticeListInfo:
     case UIModalHabitCountingInfo:
-        return app->inbe.screen == InbeScreenHabitEdit;
+        return app->inbe.screen == InbeScreenHabitEdit ||
+               (app->inbe.screen == InbeScreenHabits &&
+                app->habits.tab == HABIT_TAB_EDIT);
     case UIModalBottomNavConfig:
         return app->inbe.screen == InbeScreenCustomizeNav;
     default:
@@ -737,6 +740,8 @@ app_reload_graphics_resources(InbeApp *app)
     LoadAllUIIconTextures(app->icons);
     SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
+    app->easteregg_art = (Texture2D){0};
+    app->easteregg_waozi = (Texture2D){0};
     app->font_shapes_texture = (Texture2D){0};
     discard_locale_font_cpu(app);
     if(!load_locale_font(app))
@@ -998,6 +1003,75 @@ app_load_asset_texture(const char *name)
 
     snprintf(path, sizeof(path), "assets/%s", name);
     return load_pixel_texture_from_asset(path);
+}
+
+static void
+app_draw_blank_home_easteregg(InbeApp *app)
+{
+    Texture2D texture;
+    Texture2D logo;
+    Rectangle src;
+    Rectangle dst;
+    float scale;
+    float logo_size;
+    float logo_scale;
+    int bottom_reserved;
+    int available_h;
+
+    if(app == NULL)
+        return;
+    if(app->easteregg_art.id == 0)
+        app->easteregg_art = app_load_asset_texture("easteregg/art.png");
+    texture = app->easteregg_art;
+    if(texture.id == 0 || texture.width <= 0 || texture.height <= 0)
+        return;
+
+    bottom_reserved = app_content_bottom_reserved(app);
+    available_h = view_height - bottom_reserved;
+    if(available_h < ScaleUIPx(120))
+        available_h = view_height;
+
+    scale = (float)view_width / (float)texture.width;
+    if((float)available_h / (float)texture.height > scale)
+        scale = (float)available_h / (float)texture.height;
+
+    src = (Rectangle){0, 0, (float)texture.width, (float)texture.height};
+    dst = (Rectangle){
+        ((float)view_width - (float)texture.width * scale) * 0.5f,
+        ((float)available_h - (float)texture.height * scale) * 0.5f,
+        (float)texture.width * scale,
+        (float)texture.height * scale
+    };
+    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE);
+
+    if(app->easteregg_waozi.id == 0)
+        app->easteregg_waozi = app_load_asset_texture("easteregg/waozi.png");
+    logo = app->easteregg_waozi;
+    if(logo.id == 0 || logo.width <= 0 || logo.height <= 0)
+        return;
+
+    logo_size = (float)view_width * 0.58f;
+    if(logo_size > (float)available_h * 0.58f)
+        logo_size = (float)available_h * 0.58f;
+    if(logo_size > (float)ScaleUIPx(320))
+        logo_size = (float)ScaleUIPx(320);
+    if(logo_size < (float)logo.width)
+        logo_size = (float)logo.width;
+    if(logo_size > (float)view_width)
+        logo_size = (float)view_width;
+    if(logo_size > (float)available_h)
+        logo_size = (float)available_h;
+    logo_scale = logo_size / (float)logo.width;
+
+    src = (Rectangle){0, 0, (float)logo.width, (float)logo.height};
+    dst = (Rectangle){
+        ((float)view_width - (float)logo.width * logo_scale) * 0.5f,
+        ((float)available_h - (float)logo.height * logo_scale) * 0.5f,
+        (float)logo.width * logo_scale,
+        (float)logo.height * logo_scale
+    };
+    DrawTexturePro(logo, src, dst, (Vector2){0}, 0.0f,
+                   (Color){150, 150, 150, 255});
 }
 
 static Sound
@@ -1284,6 +1358,35 @@ app_web_launch_practice(int practice_id)
     practice = practice_get(app->exercise_type);
     if(practice->start != NULL)
         practice->start(app);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_test_save_onboarding_state(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return;
+
+    snprintf(app->language, sizeof(app->language), "%s", "es");
+    app->language_selected = 1;
+    app->tutorial_seen = 1;
+    app->habits_guide_seen = 1;
+    save_settings(app);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_onboarding_state(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return 0;
+
+    return app->language_selected && strcmp(app->language, "es") == 0 &&
+           app->tutorial_seen && app->habits_guide_seen;
 }
 #endif
 
@@ -1605,10 +1708,10 @@ updateapp(InbeApp *app)
         } else if(app->close_prompt_open) {
             app->close_prompt_open = 0;
         } else if(first_run_guide_active || habits_guide_active) {
-            app->tutorial_step = 0;
-            practice_screen_prepare_first_run_guide(app);
-            app->habits_guide_step = 0;
-            habits_screen_prepare_first_run_guide(app);
+            if(first_run_guide_active)
+                practice_screen_dismiss_first_run_guide(app);
+            if(habits_guide_active)
+                habits_screen_dismiss_first_run_guide(app);
         } else if(app->modal.active) {
             app_close_modal(app);
         } else {
@@ -1678,7 +1781,10 @@ updateapp(InbeApp *app)
     case InbeScreenStart:
         {
             if(!practice_fullscreen_modal &&
-               app->main_tab != APP_MAIN_TAB_NONE) {
+               app->main_tab == APP_MAIN_TAB_NONE) {
+                app_draw_blank_home_easteregg(app);
+            } else if(!practice_fullscreen_modal &&
+                      app->main_tab != APP_MAIN_TAB_NONE) {
                 if(app->practice_tab == PRACTICE_TAB_MANUAL) {
                     manual_screen_draw(app);
                 } else if(app->practice_tab == PRACTICE_TAB_CONFIG) {
@@ -1795,6 +1901,22 @@ app_update_draw(void *vapp, Rectangle viewport) {
     content_w = full_width - content_x;
     if(content_w < 1)
         content_w = 1;
+    {
+        static int last_full_w = -1;
+        static int last_full_h = -1;
+        static int last_content_x = -1;
+        static int last_content_w = -1;
+        if(full_width != last_full_w || full_height != last_full_h ||
+           content_x != last_content_x || content_w != last_content_w) {
+            TraceLog(LOG_INFO, "INBE_EMBED: viewport=%dx%d content_x=%d content=%dx%d dpi=%.2f",
+                     full_width, full_height, content_x, content_w, full_height,
+                     GetUIDPIScale());
+            last_full_w = full_width;
+            last_full_h = full_height;
+            last_content_x = content_x;
+            last_content_w = content_w;
+        }
+    }
     view_width = content_w;
     view_height = full_height;
     SetUIViewSize(view_width, view_height);
@@ -1841,6 +1963,8 @@ app_destroy(void *vapp)
     // Unload all icons
     UnloadAllUIIconTextures(app->icons);
     app_unload_texture(app->pet.egg);
+    app_unload_texture(app->easteregg_art);
+    app_unload_texture(app->easteregg_waozi);
     app_unload_texture(app->font_shapes_texture);
     unload_locale_font(app);
 

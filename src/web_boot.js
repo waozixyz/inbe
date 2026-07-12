@@ -2,6 +2,20 @@ var statusElement = document.querySelector('#status');
 var progressElement = document.querySelector('#progress');
 var loadingScreen = document.querySelector('#loading-screen');
 
+function storageOriginLooksPersistent() {
+  var protocol = window.location && window.location.protocol;
+
+  return protocol === 'http:' || protocol === 'https:';
+}
+
+function reportStorageOriginProblem() {
+  if (storageOriginLooksPersistent()) return;
+  console.error(
+    'INBE: persistent storage needs an http://localhost or https:// origin. ' +
+    'Opening the web build directly as a file can prevent Firefox IndexedDB/IDBFS saves.'
+  );
+}
+
 function webglAvailable() {
   var canvas;
   var gl;
@@ -98,11 +112,23 @@ function flushStorageSync(logSuccess) {
   runStorageSync(0);
 }
 
+function flushStorageBeforePageSuspends() {
+  flushStorageSync(false);
+}
+
+window.addEventListener('pagehide', flushStorageBeforePageSuspends);
+window.addEventListener('beforeunload', flushStorageBeforePageSuspends);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushStorageBeforePageSuspends();
+});
+
 var Module = {
   __inbeRuntimeReady: false,
   __inbeScheduleStorageSync: scheduleStorageSync,
   __inbeFlushStorageSync: flushStorageSync,
   preRun: [function() {
+    reportStorageOriginProblem();
+
     if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
       console.error('IDBFS unavailable');
       return;
@@ -160,6 +186,7 @@ var Module = {
       frame.appendChild(canvas);
     }
     canvas.addEventListener('webglcontextlost', function(e) {
+      flushStorageBeforePageSuspends();
       alert('WebGL context lost. Reload the page to continue.');
       e.preventDefault();
     }, false);

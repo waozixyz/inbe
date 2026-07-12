@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.7] - 2026-07-12
+### Changed
+- Fixed Firefox web persistence, mobile habit deletion, and customizable nav tap handling.
+- Added a blank-home easter egg screen and updated embedded asset lists.
+- Updated release and store packaging automation.
+
 ## [1.8.6] - 2026-07-11
 ### Changed
 - Added Firefox add-on packaging, release metadata updates, and CI/release automation.

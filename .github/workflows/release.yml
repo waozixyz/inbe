@@ -744,30 +744,40 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Amazon Appstore Secrets
+        id: amazon_secrets
         run: |
           set -euo pipefail
           for name in AMAZON_CLIENT_ID AMAZON_CLIENT_SECRET AMAZON_APP_ID; do
             if [ -z "${!name:-}" ]; then
-              echo "$name secret is required to publish Amazon Appstore"
-              exit 1
+              echo "::warning::$name secret is not configured; skipping Amazon Appstore publish"
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
           done
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Download Android Release Artifact
+        if: steps.amazon_secrets.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: release-android
           path: build/release/android
 
       - name: Set up Node
+        if: steps.amazon_secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Upload APK to Amazon Appstore
+        if: steps.amazon_secrets.outputs.configured == 'true'
         env:
           AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
-        run: node scripts/upload-amazon-appstore.mjs
+        run: |
+          set -euo pipefail
+          if ! node scripts/upload-amazon-appstore.mjs; then
+            echo "::warning::Amazon Appstore publish failed; release artifacts were still created"
+          fi
 
   publish-chrome-web-store:
     name: Publish Chrome Web Store
@@ -779,6 +789,7 @@ jobs:
 
     steps:
       - name: Check Chrome Web Store Secrets
+        id: chrome_secrets
         env:
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
@@ -786,25 +797,31 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${CHROME_CLIENT_ID:-}" ]; then
-            echo "CHROME_CLIENT_ID secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_CLIENT_ID secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if [ -z "${CHROME_CLIENT_SECRET:-}" ]; then
-            echo "CHROME_CLIENT_SECRET secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_CLIENT_SECRET secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if [ -z "${CHROME_REFRESH_TOKEN:-}" ]; then
-            echo "CHROME_REFRESH_TOKEN secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_REFRESH_TOKEN secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Download Chrome Extension Artifact
+        if: steps.chrome_secrets.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: release-chrome-web-store
           path: build/release/chrome-web-store
 
       - name: Publish Chrome Extension
+        if: steps.chrome_secrets.outputs.configured == 'true'
         env:
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
@@ -814,22 +831,40 @@ jobs:
         run: |
           set -euo pipefail
 
-          token_response="$(curl --fail-with-body --silent --show-error \
+          token_response_file="$(mktemp)"
+          token_status="$(curl --silent --show-error \
             --request POST \
             --data-urlencode "client_id=${CHROME_CLIENT_ID}" \
             --data-urlencode "client_secret=${CHROME_CLIENT_SECRET}" \
             --data-urlencode "refresh_token=${CHROME_REFRESH_TOKEN}" \
             --data-urlencode "grant_type=refresh_token" \
+            --output "$token_response_file" \
+            --write-out "%{http_code}" \
             https://oauth2.googleapis.com/token)"
+          token_response="$(cat "$token_response_file")"
+          rm -f "$token_response_file"
+          if [ "$token_status" -lt 200 ] || [ "$token_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store token request failed with HTTP $token_status: $token_response"
+            exit 0
+          fi
 
           access_token="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' <<< "$token_response")"
 
-          upload_response="$(curl --fail-with-body --silent --show-error \
+          upload_response_file="$(mktemp)"
+          upload_status="$(curl --silent --show-error \
             --request PUT \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \
             --upload-file "${CHROME_EXTENSION_ZIP}" \
+            --output "$upload_response_file" \
+            --write-out "%{http_code}" \
             "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}")"
+          upload_response="$(cat "$upload_response_file")"
+          rm -f "$upload_response_file"
+          if [ "$upload_status" -lt 200 ] || [ "$upload_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store upload failed with HTTP $upload_status: $upload_response"
+            exit 0
+          fi
 
           python3 - "$upload_response" <<'PY'
           import json
@@ -838,14 +873,24 @@ jobs:
           response = json.loads(sys.argv[1])
           if response.get("uploadState") != "SUCCESS":
               print(json.dumps(response, indent=2), file=sys.stderr)
-              raise SystemExit("Chrome Web Store upload failed")
+              print("::warning::Chrome Web Store upload was not accepted")
+              raise SystemExit(0)
           PY
 
-          publish_response="$(curl --fail-with-body --silent --show-error \
+          publish_response_file="$(mktemp)"
+          publish_status="$(curl --silent --show-error \
             --request POST \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \
+            --output "$publish_response_file" \
+            --write-out "%{http_code}" \
             "https://www.googleapis.com/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}/publish")"
+          publish_response="$(cat "$publish_response_file")"
+          rm -f "$publish_response_file"
+          if [ "$publish_status" -lt 200 ] || [ "$publish_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store publish failed with HTTP $publish_status: $publish_response"
+            exit 0
+          fi
 
           python3 - "$publish_response" <<'PY'
           import json
@@ -854,7 +899,8 @@ jobs:
           response = json.loads(sys.argv[1])
           if "OK" not in response.get("status", []):
               print(json.dumps(response, indent=2), file=sys.stderr)
-              raise SystemExit("Chrome Web Store publish failed")
+              print("::warning::Chrome Web Store publish was not accepted")
+              raise SystemExit(0)
           PY
 
   publish-firefox-addons:
@@ -867,32 +913,39 @@ jobs:
 
     steps:
       - name: Check Firefox Add-ons Secrets
+        id: firefox_secrets
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
         run: |
           set -euo pipefail
           if [ -z "${AMO_JWT_ISSUER:-}" ]; then
-            echo "AMO_JWT_ISSUER secret is required to publish Firefox Add-ons"
-            exit 1
+            echo "::warning::AMO_JWT_ISSUER secret is not configured; skipping Firefox Add-ons publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if [ -z "${AMO_JWT_SECRET:-}" ]; then
-            echo "AMO_JWT_SECRET secret is required to publish Firefox Add-ons"
-            exit 1
+            echo "::warning::AMO_JWT_SECRET secret is not configured; skipping Firefox Add-ons publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Download Firefox Add-on Artifact
+        if: steps.firefox_secrets.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: release-firefox-addons
           path: build/release/firefox-addons
 
       - name: Set up Node
+        if: steps.firefox_secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Publish Firefox Add-on
+        if: steps.firefox_secrets.outputs.configured == 'true'
         env:
           AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
           AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
@@ -902,9 +955,11 @@ jobs:
           test -f "$FIREFOX_ADDON_ZIP"
           mkdir -p build/firefox-addons/source build/firefox-addons/signed
           unzip -q "$FIREFOX_ADDON_ZIP" -d build/firefox-addons/source
-          npx --yes web-ext sign \
+          if ! npx --yes web-ext sign \
             --source-dir build/firefox-addons/source \
             --artifacts-dir build/firefox-addons/signed \
             --channel listed \
             --api-key "$AMO_JWT_ISSUER" \
-            --api-secret "$AMO_JWT_SECRET"
+            --api-secret "$AMO_JWT_SECRET"; then
+            echo "::warning::Firefox Add-ons publish failed; release artifacts were still created"
+          fi

@@ -51,12 +51,14 @@ function releaseKindForFile(file) {
   if (ext === ".apk") {
     return {
       label: "APK",
+      resource: "apks",
       contentType: "application/vnd.android.package-archive",
     };
   }
   if (ext === ".aab") {
     return {
       label: "AAB",
+      resource: "bundles",
       contentType: "application/octet-stream",
     };
   }
@@ -67,15 +69,40 @@ function describeAsset(asset) {
   return `id=${asset.id ?? "(missing)"} versionCode=${asset.versionCode ?? "(unknown)"} name=${asset.name ?? "(unknown)"}`;
 }
 
+function assetMatchesReleaseKind(asset, releaseKind) {
+  const searchableValues = [
+    asset.name,
+    asset.fileName,
+    asset.filename,
+    asset.fileExtension,
+    asset.extension,
+    asset.type,
+    asset.assetType,
+  ]
+    .filter((value) => typeof value === "string")
+    .map((value) => value.toLowerCase());
+
+  if (releaseKind.label === "APK") {
+    return !searchableValues.some((value) => value.includes("aab") || value.includes("bundle"));
+  }
+
+  return !searchableValues.some((value) => value.includes("apk"));
+}
+
 async function findBinaryCollection(editId, releaseKind) {
-  const resource = "apks";
+  const resource = releaseKind.resource;
   const assets = await requestJson(`${baseUrl}/v1/applications/${appId}/edits/${editId}/${resource}`, {
     headers: jsonHeaders,
   });
-  if (!Array.isArray(assets) || assets.length === 0) {
-    throw new Error(`Amazon edit has no ${releaseKind.label} asset to replace in ${resource}`);
+  if (!Array.isArray(assets)) {
+    throw new Error(`Amazon edit returned an unexpected ${resource} response: ${JSON.stringify(assets)}`);
   }
-  return { resource, assets };
+  const matchingAssets = assets.filter((asset) => assetMatchesReleaseKind(asset, releaseKind));
+  if (matchingAssets.length === 0) {
+    const assetDescriptions = assets.map(describeAsset).join(", ") || "(none)";
+    throw new Error(`Amazon edit has no ${releaseKind.label} asset to replace in ${resource}. Found: ${assetDescriptions}`);
+  }
+  return { resource, assets: matchingAssets };
 }
 
 const clientId = requireEnv("AMAZON_CLIENT_ID");

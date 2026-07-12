@@ -40,6 +40,8 @@ fi
 mkdir -p build
 sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
+    assets/easteregg/art.png \
+    assets/easteregg/waozi.png \
     assets/practices/whm/1.png \
     assets/practices/whm/2.png \
     assets/practices/meditation/1.png \

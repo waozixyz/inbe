@@ -296,7 +296,7 @@ SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
 endif
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/app/icon.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
+IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
 OTFCHOP_DIR ?= $(FLINT_DIR)/tools/otfchop
@@ -568,7 +568,7 @@ $(FONT_TOOL): $(OTFCHOP_DIR)/otfchop.c $(OTFCHOP_DIR)/stb_truetype.h $(OTFCHOP_D
 assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
 	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
 
-$(EMBEDDED_ASSETS_C): $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
+$(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
 $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
@@ -957,7 +957,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state \
 		-lidbfs.js \
 		-lm
 

@@ -46,6 +46,7 @@ void practice_screen_draw_floating_actions(InbeApp *app);
 void practice_screen_draw_modal(InbeApp *app);
 int practice_screen_first_run_guide_active(const InbeApp *app);
 void practice_screen_prepare_first_run_guide(InbeApp *app);
+void practice_screen_dismiss_first_run_guide(InbeApp *app);
 void practice_screen_draw_first_run_guide(InbeApp *app);
 
 #endif
