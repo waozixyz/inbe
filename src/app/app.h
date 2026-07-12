@@ -172,6 +172,7 @@ typedef enum AppOrientationMode {
 typedef struct InbeHostApi {
     void *userdata;
     void (*request_size)(void *userdata, int width, int height);
+    void (*get_size)(void *userdata, int *width, int *height);
 } InbeHostApi;
 
 typedef enum NavigationMode {
