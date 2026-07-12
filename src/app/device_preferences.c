@@ -70,6 +70,9 @@ app_apply_orientation_preference(InbeApp *app)
 {
     if(app == NULL)
         return;
+#if defined(LOTUS_BUILD)
+    return;
+#endif
 #if ANDROID_BUILD
     android_device_set_orientation_mode(app->orientation_mode);
 #elif defined(PLATFORM_WEB)
