@@ -49,6 +49,7 @@ void storage_close(void);
 const char *storage_db_path(void);
 
 int storage_get_setting_int(const char *key, int fallback);
+int storage_list_settings(void (*callback)(const char *key, const char *value, void *user), void *user);
 const char *storage_get_setting_text(const char *key);
 void storage_set_setting_int(const char *key, int value);
 void storage_set_setting_text(const char *key, const char *value);

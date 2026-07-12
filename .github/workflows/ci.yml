@@ -87,6 +87,11 @@ jobs:
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
 
+      - name: Set up Node.js
+        uses: actions/setup-node
+        with:
+          node-version: 22
+
       - name: Set up Emscripten
         run: |
           set -euo pipefail
@@ -139,6 +144,11 @@ jobs:
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
       - name: Set up Emscripten
         run: |
           set -euo pipefail
@@ -156,3 +166,4 @@ jobs:
           make package-unpackaged-assets
           make firefox-addons
           test -f build/dist/inbe-firefox-addons.zip
+          make firefox-addons-lint

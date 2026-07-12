@@ -15,6 +15,7 @@
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
 #include "screens/profile_screen.h"
+#include "screens/profile_social.h"
 #include "screens/settings/settings_screen.h"
 #include "screens/settings/settings_data.h"
 #include "screens/settings/settings_sync_account.h"
@@ -61,6 +62,81 @@ InbeApp *get_global_inbe_app(void);
 #endif
 
 static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
+
+typedef struct AppProfileStats {
+    int initialized;
+    int enabled;
+    int frames;
+    double frame_total;
+    double frame_max;
+    double update_total;
+    double update_max;
+    double habits_total;
+    double habits_max;
+    double sync_total;
+    double sync_max;
+} AppProfileStats;
+
+static AppProfileStats g_app_profile;
+
+static int
+app_profile_enabled(void)
+{
+    if(!g_app_profile.initialized) {
+        const char *env = getenv("INBE_PROFILE");
+        g_app_profile.enabled = env != NULL && env[0] != '\0' && env[0] != '0';
+        g_app_profile.initialized = 1;
+    }
+    return g_app_profile.enabled;
+}
+
+static double
+app_profile_now(void)
+{
+    return app_profile_enabled() ? GetTime() : 0.0;
+}
+
+static void
+app_profile_accum(double *total, double *max_value, double start)
+{
+    double elapsed;
+
+    if(!app_profile_enabled() || start <= 0.0)
+        return;
+    elapsed = (GetTime() - start) * 1000.0;
+    *total += elapsed;
+    if(elapsed > *max_value)
+        *max_value = elapsed;
+}
+
+static void
+app_profile_frame_end(double frame_start)
+{
+    double elapsed;
+
+    if(!app_profile_enabled() || frame_start <= 0.0)
+        return;
+    elapsed = (GetTime() - frame_start) * 1000.0;
+    g_app_profile.frame_total += elapsed;
+    if(elapsed > g_app_profile.frame_max)
+        g_app_profile.frame_max = elapsed;
+    g_app_profile.frames++;
+    if(g_app_profile.frames >= 120) {
+        TraceLog(LOG_INFO,
+                 "PROFILE: frame avg=%.2f max=%.2f update avg=%.2f max=%.2f habits avg=%.2f max=%.2f sync avg=%.2f max=%.2f",
+                 g_app_profile.frame_total / g_app_profile.frames,
+                 g_app_profile.frame_max,
+                 g_app_profile.update_total / g_app_profile.frames,
+                 g_app_profile.update_max,
+                 g_app_profile.habits_total / g_app_profile.frames,
+                 g_app_profile.habits_max,
+                 g_app_profile.sync_total / g_app_profile.frames,
+                 g_app_profile.sync_max);
+        memset(&g_app_profile, 0, sizeof(g_app_profile));
+        g_app_profile.initialized = 1;
+        g_app_profile.enabled = 1;
+    }
+}
 
 InbeConfig config = {
     .title = "Inner Breeze",
@@ -285,6 +361,20 @@ app_step_content_transition(InbeApp *app)
     }
 }
 
+
+static void
+app_enter_route(InbeApp *app, AppRoute route)
+{
+    if(app == NULL)
+        return;
+    if(route.screen == InbeScreenProfile) {
+        if(route.profile_tab == PROFILE_TAB_FRIENDS)
+            profile_social_load_friends_cache(app);
+        else if(route.profile_tab == PROFILE_TAB_LEADERBOARD)
+            profile_social_load_leaderboard_cache(app);
+    }
+}
+
 static void
 app_apply_route(InbeApp *app, AppRoute route)
 {
@@ -321,6 +411,7 @@ app_switch_route(InbeApp *app, AppRoute route)
     ResetUITransition(&app->screen_transition);
     app->content_transition.active = 0;
     app_apply_route(app, route);
+    app_enter_route(app, app_current_route(app));
     app->route_transition_target = app_current_route(app);
     return;
 #else
@@ -328,6 +419,7 @@ app_switch_route(InbeApp *app, AppRoute route)
         ResetUITransition(&app->screen_transition);
         app->content_transition.active = 0;
         app_apply_route(app, route);
+        app_enter_route(app, app_current_route(app));
         app->route_transition_target = app_current_route(app);
         return;
     }
@@ -336,6 +428,7 @@ app_switch_route(InbeApp *app, AppRoute route)
     if(current.screen == route.screen) {
         ResetUITransition(&app->screen_transition);
         app_apply_route(app, route);
+        app_enter_route(app, app_current_route(app));
         app->route_transition_target = app_current_route(app);
         app_begin_content_transition(app, app_route_direction(current, route));
         return;
@@ -372,8 +465,10 @@ app_advance_screen_transition(InbeApp *app)
     if(app == NULL)
         return;
     completed_phase = StepUITransition(&app->screen_transition, GetFrameTime());
-    if(completed_phase == UI_TRANSITION_OUT)
+    if(completed_phase == UI_TRANSITION_OUT) {
         app_apply_route(app, app->route_transition_target);
+        app_enter_route(app, app_current_route(app));
+    }
     else if(completed_phase == UI_TRANSITION_IN)
         app->route_transition_target = app_current_route(app);
 }
@@ -1868,6 +1963,10 @@ finish_frame:
 void
 app_update_draw(void *vapp, Rectangle viewport) {
     InbeApp *app = vapp;
+    double profile_frame_start = app_profile_now();
+    double profile_update_start;
+    double profile_habits_start;
+    double profile_sync_start;
     int full_width;
     int full_height;
     int content_x = 0;
@@ -1930,11 +2029,24 @@ app_update_draw(void *vapp, Rectangle viewport) {
     BeginUIClip((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
+            profile_update_start = app_profile_now();
             updateapp(app);
+            app_profile_accum(&g_app_profile.update_total,
+                              &g_app_profile.update_max,
+                              profile_update_start);
         EndMode2D();
     EndUIClip();
+    profile_habits_start = app_profile_now();
     habits_flush_save(app);
+    app_profile_accum(&g_app_profile.habits_total,
+                      &g_app_profile.habits_max,
+                      profile_habits_start);
+    profile_sync_start = app_profile_now();
     app_sync_pump(app);
+    app_profile_accum(&g_app_profile.sync_total,
+                      &g_app_profile.sync_max,
+                      profile_sync_start);
+    app_profile_frame_end(profile_frame_start);
 }
 
 void

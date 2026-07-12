@@ -15,6 +15,7 @@ typedef struct StorageState {
     int last_sync_changed;
     int materialize_defer;
     int materialize_needed;
+    int settings_write_depth;
     long long pending_sync_outbox_seq;
 } StorageState;
 

@@ -2,26 +2,6 @@
 
 Inner Breeze is a free, open-source app for breathing, meditation, and habit tracking.
 
-## Support
-
-Monero:
-
-```text
-48ms5LfFrPJ2LUvqP9Mm5BhDSnZnqu14jB8XpAukw3jDBKxRAxYvq3k4fEwXY7kCY3LrtycMUayJZR1YJuyvJHCDCcyw6pA
-```
-
-Bitcoin:
-
-```text
-bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5
-```
-
-Lightning:
-
-```text
-waozi@cake.cash
-```
-
 ## Build
 
 Build with the system toolchain and project Makefile:
@@ -142,6 +122,24 @@ make chrome-web-store
 make firefox-addons
 ```
 
+Firefox add-on source-review build:
+
+```bash
+sh scripts/build-firefox-addons-source.sh
+```
+
+The Firefox reviewer build script creates `build/dist/inbe-firefox-addons.zip`
+and runs Mozilla `addons-linter`. Environment requirements and step-by-step
+reviewer notes are documented in `packaging/firefox-addons/README.md`.
+
+Firefox source upload zip:
+
+```bash
+make firefox-addons-source-zip
+```
+
+This creates `build/dist/inbe-firefox-addons-source.zip`.
+
 Linux:
 
 ```bash
@@ -206,6 +204,26 @@ uninstalled.
 
 Inbe stores app data locally in SQLite. Optional sync can mirror user-owned
 data through a Lyra-compatible sync server.
+
+## Support
+
+Monero:
+
+```text
+48ms5LfFrPJ2LUvqP9Mm5BhDSnZnqu14jB8XpAukw3jDBKxRAxYvq3k4fEwXY7kCY3LrtycMUayJZR1YJuyvJHCDCcyw6pA
+```
+
+Bitcoin:
+
+```text
+bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5
+```
+
+Lightning:
+
+```text
+waozi@cake.cash
+```
 
 ## License
 

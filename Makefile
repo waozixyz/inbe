@@ -193,7 +193,7 @@ CURL_PROTOCOL_CHECK := $(FLINT_CURL_PROTOCOL_CHECK)
 FLINT_CURL_VERSION_NUM ?= $(shell printf '%s\n' '#include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(FLINT_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
 FLINT_CURL_VERSION_HEX := $(patsubst 0x%,%,$(FLINT_CURL_VERSION_NUM))
 SQLITE_DIR := vendor/sqlite
-SQLITE_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)/sqlite
+SQLITE_BUILD_DIR := $(VENDOR_BUILD_DIR)/sqlite
 SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
@@ -365,6 +365,7 @@ FLINT_WINDOWS_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
 FLINT_CLICK_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
+WEB_APP_SCRIPT := <script>window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
@@ -382,10 +383,15 @@ CHROME_WEB_STORE_ICONS := \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-128.png
 FIREFOX_ADDONS_DIR := $(BUILD_DIST_DIR)/firefox-addons
 FIREFOX_ADDONS_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-firefox-addons.zip
+FIREFOX_ADDONS_SOURCE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-firefox-addons-source.zip
 FIREFOX_ADDONS_MANIFEST := packaging/firefox-addons/manifest.json
 FIREFOX_ADDONS_BACKGROUND := packaging/firefox-addons/background.js
+FIREFOX_ADDONS_LOADER := packaging/firefox-addons/extension_loader.js
+FIREFOX_ADDONS_INDEX := $(FIREFOX_ADDONS_DIR)/index.html
+FIREFOX_ADDONS_APP_SCRIPT := <script src="extension_loader.js"></script>
 FIREFOX_ADDONS_ICON_DIR := $(CHROME_WEB_STORE_ICON_DIR)
 FIREFOX_ADDONS_ICONS := $(CHROME_WEB_STORE_ICONS)
+ADDONS_LINTER ?= npx --yes addons-linter
 WEB_ASSET_FILES := $(shell find web-assets site-icons -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
@@ -397,7 +403,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(FLINT_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons
+.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -962,7 +968,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-lm
 
 $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
-	perl -0pe 's#\{\{\{ SCRIPT \}\}\}#<script>window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
+	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
@@ -1188,16 +1194,26 @@ $(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB
 
 firefox-addons: $(FIREFOX_ADDONS_ZIP)
 
-$(FIREFOX_ADDONS_ZIP): $(WEB_TARGET) $(FIREFOX_ADDONS_MANIFEST) $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_ICONS) | $(FIREFOX_ADDONS_DIR)
+$(FIREFOX_ADDONS_ZIP): $(WEB_TARGET) src/web_shell.html $(FIREFOX_ADDONS_MANIFEST) $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_LOADER) $(FIREFOX_ADDONS_ICONS) | $(FIREFOX_ADDONS_DIR)
 	rm -rf $(FIREFOX_ADDONS_DIR)
 	mkdir -p $(FIREFOX_ADDONS_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(FIREFOX_ADDONS_DIR)/
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(FIREFOX_ADDONS_MANIFEST) > $(FIREFOX_ADDONS_DIR)/manifest.json
 	cp $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_DIR)/background.js
+	cp $(FIREFOX_ADDONS_LOADER) $(FIREFOX_ADDONS_DIR)/extension_loader.js
+	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(FIREFOX_ADDONS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $(FIREFOX_ADDONS_INDEX)
 	cp $(FIREFOX_ADDONS_ICONS) $(FIREFOX_ADDONS_DIR)/icons/
 	rm -f $(FIREFOX_ADDONS_ZIP)
 	cd $(FIREFOX_ADDONS_DIR) && zip -9 -r $(abspath $(FIREFOX_ADDONS_ZIP)) .
+
+firefox-addons-lint: $(FIREFOX_ADDONS_ZIP)
+	$(ADDONS_LINTER) $(FIREFOX_ADDONS_ZIP)
+
+firefox-addons-source-zip:
+	sh scripts/build-firefox-addons-source-zip.sh $(FIREFOX_ADDONS_SOURCE_ZIP)
+
+verify-firefox-addons: firefox-addons-lint firefox-addons-source-zip
 
 clean:
 	rm -rf build

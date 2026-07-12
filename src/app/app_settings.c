@@ -14,6 +14,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #if defined(PLATFORM_WEB)
 #include <emscripten.h>
@@ -44,6 +45,54 @@ typedef struct LoadedClampedSetting {
     int max_value;
 } LoadedClampedSetting;
 
+#define APP_SETTINGS_CACHE_MAX 96
+
+typedef struct SettingsCacheEntry {
+    char key[64];
+    char value[256];
+} SettingsCacheEntry;
+
+typedef struct SettingsLoadCache {
+    SettingsCacheEntry entries[APP_SETTINGS_CACHE_MAX];
+    int count;
+} SettingsLoadCache;
+
+static void
+settings_cache_add(const char *key, const char *value, void *user)
+{
+    SettingsLoadCache *cache = user;
+
+    if(cache == NULL || key == NULL || key[0] == '\0' ||
+       cache->count >= APP_SETTINGS_CACHE_MAX)
+        return;
+    snprintf(cache->entries[cache->count].key,
+             sizeof(cache->entries[cache->count].key), "%s", key);
+    snprintf(cache->entries[cache->count].value,
+             sizeof(cache->entries[cache->count].value), "%s",
+             value != NULL ? value : "");
+    cache->count++;
+}
+
+static const char *
+settings_cache_get(const SettingsLoadCache *cache, const char *key)
+{
+    if(cache == NULL || key == NULL)
+        return NULL;
+    for(int i = 0; i < cache->count; i++) {
+        if(strcmp(cache->entries[i].key, key) == 0)
+            return cache->entries[i].value;
+    }
+    return NULL;
+}
+
+static int
+settings_cache_get_int(const SettingsLoadCache *cache, const char *key,
+                       int fallback)
+{
+    const char *text = settings_cache_get(cache, key);
+    return text != NULL && text[0] != '\0' ? atoi(text) : fallback;
+}
+
 static int
 exercise_manual_bit(int exercise_type)
 {
@@ -73,39 +122,44 @@ save_int_settings(const IntSetting *settings, size_t count)
 }
 
 static void
-load_int_settings(const LoadedIntSetting *settings, size_t count)
+load_int_settings(const LoadedIntSetting *settings, size_t count,
+                  const SettingsLoadCache *cache)
 {
     for(size_t i = 0; i < count; i++)
-        *settings[i].dst = storage_get_setting_int(settings[i].key,
-                                                        settings[i].fallback);
+        *settings[i].dst = settings_cache_get_int(cache, settings[i].key,
+                                                  settings[i].fallback);
 }
 
 static void
-load_bool_settings(const LoadedBoolSetting *settings, size_t count)
+load_bool_settings(const LoadedBoolSetting *settings, size_t count,
+                   const SettingsLoadCache *cache)
 {
     for(size_t i = 0; i < count; i++)
-        *settings[i].dst = storage_get_setting_int(settings[i].key,
-                                                        settings[i].fallback) != 0;
+        *settings[i].dst = settings_cache_get_int(cache, settings[i].key,
+                                                  settings[i].fallback) != 0;
 }
 
 static void
-load_clamped_settings(const LoadedClampedSetting *settings, size_t count)
+load_clamped_settings(const LoadedClampedSetting *settings, size_t count,
+                      const SettingsLoadCache *cache)
 {
     for(size_t i = 0; i < count; i++) {
-        int value = storage_get_setting_int(settings[i].key, settings[i].fallback);
-        *settings[i].dst = clampi(value, settings[i].min_value, settings[i].max_value);
+        int value = settings_cache_get_int(cache, settings[i].key,
+                                           settings[i].fallback);
+        *settings[i].dst = clampi(value, settings[i].min_value,
+                                  settings[i].max_value);
     }
 }
 
 static int
-load_navigation_mode(void)
+load_navigation_mode(const SettingsLoadCache *cache)
 {
 #if ANDROID_BUILD
     int default_nav = NAV_MODE_DROPDOWN;
 #else
     int default_nav = NAV_MODE_TABBAR;
 #endif
-    int value = storage_get_setting_int("navigation_mode", default_nav);
+    int value = settings_cache_get_int(cache, "navigation_mode", default_nav);
     if(value == NAV_MODE_DROPDOWN)
         return NAV_MODE_DROPDOWN;
     return NAV_MODE_TABBAR;
@@ -129,30 +183,30 @@ is_profile_picture_icon(UIIconType type)
 }
 
 static UIIconType
-load_profile_picture_icon(void)
+load_profile_picture_icon(const SettingsLoadCache *cache)
 {
     UIIconType fallback = default_profile_picture_icon();
     UIIconType type =
-        (UIIconType)storage_get_setting_int("profile_picture_icon", fallback);
+        (UIIconType)settings_cache_get_int(cache, "profile_picture_icon", fallback);
 
     return is_profile_picture_icon(type) ? type : fallback;
 }
 
 static void
-load_bottom_nav_routes(InbeApp *app)
+load_bottom_nav_routes(InbeApp *app, const SettingsLoadCache *cache)
 {
     if(app == NULL)
         return;
     app->bottom_nav_route_count =
-        storage_get_setting_int("bottom_nav_route_count", 2);
+        settings_cache_get_int(cache, "bottom_nav_route_count", 2);
     app->bottom_nav_routes[0] =
-        storage_get_setting_int("bottom_nav_route_0", APP_NAV_ROUTE_HABITS);
+        settings_cache_get_int(cache, "bottom_nav_route_0", APP_NAV_ROUTE_HABITS);
     app->bottom_nav_routes[1] =
-        storage_get_setting_int("bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE);
+        settings_cache_get_int(cache, "bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE);
     app->bottom_nav_routes[2] =
-        storage_get_setting_int("bottom_nav_route_2", APP_NAV_ROUTE_NONE);
+        settings_cache_get_int(cache, "bottom_nav_route_2", APP_NAV_ROUTE_NONE);
     app->bottom_nav_routes[3] =
-        storage_get_setting_int("bottom_nav_route_3", APP_NAV_ROUTE_NONE);
+        settings_cache_get_int(cache, "bottom_nav_route_3", APP_NAV_ROUTE_NONE);
     app_sanitize_bottom_nav_routes(app);
 }
 
@@ -283,9 +337,10 @@ save_settings(InbeApp *app)
 }
 
 static void
-load_language_setting(InbeApp *app, int settings_missing)
+load_language_setting(InbeApp *app, int settings_missing,
+                      const SettingsLoadCache *cache)
 {
-    const char *language = storage_get_setting_text("language");
+    const char *language = settings_cache_get(cache, "language");
 
     app->language_needs_save = 0;
     if(language != NULL && language[0] != '\0') {
@@ -316,11 +371,13 @@ app_load_settings(InbeApp *app)
     int max_breaths;
     int pause_seconds;
     int manual_seen_mask;
+    SettingsLoadCache settings_cache = {0};
 
     if(app == NULL)
         return 0;
 
     settings_missing = storage_settings_empty();
+    storage_list_settings(settings_cache_add, &settings_cache);
 
     {
         LoadedIntSetting settings[] = {
@@ -329,7 +386,8 @@ app_load_settings(InbeApp *app)
             {&max_breaths, "max_breaths", DefaultMaxBreaths},
             {&pause_seconds, "pause_seconds", DefaultPauseSeconds},
         };
-        load_int_settings(settings, sizeof(settings) / sizeof(settings[0]));
+        load_int_settings(settings, sizeof(settings) / sizeof(settings[0]),
+                          &settings_cache);
     }
 
     {
@@ -349,7 +407,8 @@ app_load_settings(InbeApp *app)
             {&app->show_session_return_button, "show_session_return_button", 1},
             {&app->meditation.show_extend_controls, "meditation_show_extend_controls", 1},
         };
-        load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]));
+        load_bool_settings(settings, sizeof(settings) / sizeof(settings[0]),
+                           &settings_cache);
     }
 #if ANDROID_BUILD || defined(PLATFORM_WEB)
     app->on_screen_keyboard_enabled = 1;
@@ -407,12 +466,13 @@ app_load_settings(InbeApp *app)
             {&app->transition_mode, "transition_mode", APP_TRANSITION_NONE,
              APP_TRANSITION_NONE, APP_TRANSITION_FADE},
         };
-        load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]));
+        load_clamped_settings(settings, sizeof(settings) / sizeof(settings[0]),
+                              &settings_cache);
     }
 
-    app->navigation_mode = load_navigation_mode();
-    app->profile_picture_icon = load_profile_picture_icon();
-    load_bottom_nav_routes(app);
+    app->navigation_mode = load_navigation_mode(&settings_cache);
+    app->profile_picture_icon = load_profile_picture_icon(&settings_cache);
+    load_bottom_nav_routes(app, &settings_cache);
     if(app->bottom_nav_route_count <= 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
     } else if(app->main_tab == APP_MAIN_TAB_NONE) {
@@ -421,17 +481,19 @@ app_load_settings(InbeApp *app)
                             : APP_MAIN_TAB_PRACTICE;
     }
 
-    manual_seen_mask = storage_get_setting_int("exercise_manual_seen_mask", -1);
+    manual_seen_mask = settings_cache_get_int(&settings_cache,
+                                           "exercise_manual_seen_mask", -1);
     if(manual_seen_mask < 0)
         manual_seen_mask = app->tutorial_seen ? exercise_manual_bit(EXERCISE_WIM_HOF) : 0;
     app->exercise_manual_seen_mask = manual_seen_mask & ((1 << EXERCISE_COUNT) - 1);
-    app->practice_visible_mask = storage_get_setting_int("practice_visible_mask",
+    app->practice_visible_mask = settings_cache_get_int(&settings_cache,
+                                                         "practice_visible_mask",
                                                          (1 << EXERCISE_COUNT) - 1);
     app->practice_visible_mask &= (1 << EXERCISE_COUNT) - 1;
     if(app->practice_visible_mask == 0)
         app->practice_visible_mask = (1 << EXERCISE_COUNT) - 1;
 
-    load_language_setting(app, settings_missing);
+    load_language_setting(app, settings_missing, &settings_cache);
 
     // Check for environment variable override for dark mode
     if(getenv("INBE_FORCE_DARK_MODE") != NULL) {
@@ -442,7 +504,7 @@ app_load_settings(InbeApp *app)
 #endif
 
     app->inbe.play_in_background =
-        storage_get_setting_int("play_in_background", 1) != 0;
+        settings_cache_get_int(&settings_cache, "play_in_background", 1) != 0;
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
              app->inbe.play_in_background);
     app->backgrounded = 0;

@@ -37,6 +37,7 @@
           "healthInfo"
         ]
       }
-    }
+    },
+    "gecko_android": {}
   }
 }

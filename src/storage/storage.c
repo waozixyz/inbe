@@ -578,26 +578,53 @@ storage_get_setting_text(const char *key)
     return g_storage.text_value[0] != '\0' ? g_storage.text_value : NULL;
 }
 
+int
+storage_list_settings(void (*callback)(const char *key, const char *value, void *user),
+                      void *user)
+{
+    sqlite3_stmt *stmt = NULL;
+
+    if(g_storage.db == NULL || callback == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT key,value FROM settings WHERE user_id=?1",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const char *key = (const char *)sqlite3_column_text(stmt, 0);
+        const char *value = (const char *)sqlite3_column_text(stmt, 1);
+        callback(key != NULL ? key : "", value != NULL ? value : "", user);
+    }
+    sqlite3_finalize(stmt);
+    return 1;
+}
+
 void
 storage_set_setting_text(const char *key, const char *value)
 {
     sqlite3_stmt *stmt = NULL;
+    int rc;
+
     if(g_storage.db == NULL || key == NULL)
         return;
     if(sqlite3_prepare_v2(g_storage.db,
                           "INSERT INTO settings(user_id,key,value,updated_at) "
                           "VALUES(?1,?2,?3,?4) "
                           "ON CONFLICT(user_id,key) DO UPDATE SET "
-                          "value=excluded.value,updated_at=excluded.updated_at",
+                          "value=excluded.value,updated_at=excluded.updated_at "
+                          "WHERE settings.value<>excluded.value",
                           -1, &stmt, NULL) != SQLITE_OK)
         return;
     bind_text(stmt, 1, g_storage.user_id);
     bind_text(stmt, 2, key);
     bind_text(stmt, 3, value != NULL ? value : "");
     sqlite3_bind_int64(stmt, 4, now_seconds());
-    sqlite3_step(stmt);
+    rc = sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-    storage_schedule_persist();
+    if(rc == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0 &&
+       g_storage.settings_write_depth <= 0)
+        storage_schedule_persist();
 }
 
 void
@@ -605,16 +632,21 @@ storage_settings_begin_write(void)
 {
     if(g_storage.db == NULL)
         return;
-    exec_sql("BEGIN IMMEDIATE");
+    if(g_storage.settings_write_depth == 0)
+        exec_sql("BEGIN IMMEDIATE");
+    g_storage.settings_write_depth++;
 }
 
 void
 storage_settings_end_write(void)
 {
-    if(g_storage.db == NULL)
+    if(g_storage.db == NULL || g_storage.settings_write_depth <= 0)
         return;
-    exec_sql("COMMIT");
-    storage_schedule_persist();
+    g_storage.settings_write_depth--;
+    if(g_storage.settings_write_depth == 0) {
+        exec_sql("COMMIT");
+        storage_schedule_persist();
+    }
 }
 
 void

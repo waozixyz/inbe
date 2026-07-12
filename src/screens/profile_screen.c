@@ -263,7 +263,16 @@ profile_screen_draw(InbeApp *app)
                                   : InbeScreenStart);
         return 1;
     }
-    profile_draw_tab_dropdown(app, selector_y, view_width);
+    {
+        int previous_tab = profile_draw_tab_dropdown(app, selector_y, view_width);
+        if(app->profile_tab != previous_tab) {
+            app->profile_scroll = 0;
+            if(app->profile_tab == PROFILE_TAB_FRIENDS)
+                profile_social_load_friends_cache(app);
+            else if(app->profile_tab == PROFILE_TAB_LEADERBOARD)
+                profile_social_load_leaderboard_cache(app);
+        }
+    }
 
     if(content_h < 0)
         content_h = 0;
