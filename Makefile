@@ -136,7 +136,7 @@ FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png) $(wildcard $(FLINT_DIR)
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui/ui_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
 FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(shell find $(FLINT_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(FLINT_ICON_ASSETS_C)
-FLINT_WEB_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
+FLINT_WEB_SRCS := $(FLINT_SRCS)
 FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
 FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
 FLINT_INCLUDE := -I$(FLINT_DIR)/include

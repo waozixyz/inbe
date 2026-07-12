@@ -9,7 +9,7 @@
 #include "sync_account.h"
 #include "theme.h"
 #include "ui.h"
-#if !ANDROID_BUILD && !defined(_WIN32) && !defined(PLATFORM_WEB) && !defined(INBE_DISABLE_FLINT_FILE_DIALOG)
+#if defined(PLATFORM_WEB) || (!ANDROID_BUILD && !defined(_WIN32) && !defined(INBE_DISABLE_FLINT_FILE_DIALOG))
 #define INBE_HAS_FLINT_FILE_DIALOG 1
 #include "file_dialog.h"
 #endif
@@ -53,6 +53,10 @@ typedef struct SettingsFileDialogOrigin {
 } SettingsFileDialogOrigin;
 
 static SettingsFileDialogOrigin file_dialog_origin;
+#endif
+#if defined(PLATFORM_WEB)
+static FileDialog web_file_dialog;
+static int web_file_dialog_ready;
 #endif
 static char pending_import_path[FS_PATH_MAX] = "";
 static DataImportInfo pending_import_info;
@@ -104,6 +108,27 @@ settings_file_dialog_finish(InbeApp *app)
     if(app != NULL)
         app->file_dialog_active = 0;
     return action;
+}
+#endif
+
+#if defined(PLATFORM_WEB)
+static void
+settings_web_file_dialog_begin(InbeApp *app, int action, const char *title, const char *filter)
+{
+    if(web_file_dialog_ready)
+        CloseFileDialog(&web_file_dialog);
+    InitFileDialog(&web_file_dialog);
+    web_file_dialog_ready = 1;
+    settings_file_dialog_begin(app, action);
+    BeginLoadFilteredFileDialog(&web_file_dialog, title, filter);
+}
+
+static void
+settings_web_file_dialog_close(void)
+{
+    if(web_file_dialog_ready)
+        CloseFileDialog(&web_file_dialog);
+    web_file_dialog_ready = 0;
 }
 #endif
 
@@ -416,7 +441,11 @@ settings_data_open_sync_account_config(InbeApp *app)
 static int
 settings_start_sync_key_export_dialog(InbeApp *app, const char *filename)
 {
-#if defined(INBE_HAS_FLINT_FILE_DIALOG)
+#if defined(PLATFORM_WEB)
+    (void)filename;
+    (void)app;
+    return 0;
+#elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     FileDialog dlg;
     (void)app;
     InitFileDialog(&dlg);
@@ -448,46 +477,9 @@ static int
 settings_start_sync_key_import_dialog(InbeApp *app)
 {
 #if defined(PLATFORM_WEB)
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT);
-    (void)app;
-    EM_ASM({
-        const importPath = UTF8ToString($0);
-        const accept = UTF8ToString($1);
-        Module.__inbeSyncKeyImportResult = 0;
-
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = accept;
-        input.style.display = "none";
-
-        input.onchange = async function() {
-            try {
-                if(!input.files || input.files.length === 0) {
-                    Module.__inbeSyncKeyImportResult = 2;
-                    return;
-                }
-
-                const file = input.files[0];
-                const bytes = new Uint8Array(await file.arrayBuffer());
-                try {
-                    FS.mkdirTree("/tmp");
-                } catch(e) {}
-                try {
-                    FS.unlink(importPath);
-                } catch(e) {}
-                FS.writeFile(importPath, bytes);
-                Module.__inbeSyncKeyImportResult = 1;
-            } catch(e) {
-                console.error("Inbe sync key import failed:", e);
-                Module.__inbeSyncKeyImportResult = 3;
-            } finally {
-                input.remove();
-            }
-        };
-
-        document.body.appendChild(input);
-        input.click();
-    }, "/tmp/inbe-sync-key-import.key", SETTINGS_SYNC_KEY_IMPORT_FILTER);
+    settings_web_file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT,
+                                   GetLocaleText("sync_import_key_dialog_title"),
+                                   SETTINGS_SYNC_KEY_IMPORT_FILTER);
     settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), NULL);
     return 1;
 #elif ANDROID_BUILD
@@ -587,8 +579,6 @@ void settings_data_handle_android_import(InbeApp *app) { (void)app; }
 #endif
 
 #if defined(PLATFORM_WEB)
-#define SETTINGS_WEB_IMPORT_PATH "/tmp/inbe-web-import.zip"
-#define SETTINGS_WEB_SYNC_KEY_IMPORT_PATH "/tmp/inbe-sync-key-import.key"
 #define SETTINGS_WEB_EXPORT_PATH "/tmp/inbe-web-export.zip"
 
 static int
@@ -618,87 +608,45 @@ settings_web_download_file(const char *path, const char *filename, const char *m
     }, path, filename, mime);
 }
 
-static void
-settings_web_import_open_picker(void)
-{
-    EM_ASM({
-        const importPath = UTF8ToString($0);
-        Module.__inbeImportResult = 0;
-
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = ".zip,.db,application/zip,application/x-sqlite3,application/octet-stream";
-        input.style.display = "none";
-
-        input.onchange = async function() {
-            try {
-                if(!input.files || input.files.length === 0) {
-                    Module.__inbeImportResult = 2;
-                    return;
-                }
-
-                const file = input.files[0];
-                const bytes = new Uint8Array(await file.arrayBuffer());
-                try {
-                    FS.mkdirTree("/tmp");
-                } catch(e) {}
-                try {
-                    FS.unlink(importPath);
-                } catch(e) {}
-                FS.writeFile(importPath, bytes);
-                Module.__inbeImportResult = 1;
-            } catch(e) {
-                console.error("Inbe web import failed:", e);
-                Module.__inbeImportResult = 3;
-            } finally {
-                input.remove();
-            }
-        };
-
-        document.body.appendChild(input);
-        input.click();
-    }, SETTINGS_WEB_IMPORT_PATH);
-}
-
 void
 settings_data_handle_web_import(InbeApp *app)
 {
-    int import_result = EM_ASM_INT({
-        const result = Module.__inbeImportResult || 0;
-        if(result !== 0)
-            Module.__inbeImportResult = 0;
-        return result;
-    });
+    int action;
+    int result;
+    const char *path;
 
-    if(import_result != 0)
-        settings_file_dialog_finish(app);
-    if(import_result == 2) {
-        settings_screen_set_status_error(GetLocaleText("import_cancelled"));
-    } else if(import_result != 0 && import_result != 1) {
-        settings_screen_set_status_error(GetLocaleText("import_failed"));
-    } else if(import_result == 1) {
-        settings_begin_import_for_path(app, SETTINGS_WEB_IMPORT_PATH);
-    }
-
-    import_result = EM_ASM_INT({
-        const result = Module.__inbeSyncKeyImportResult || 0;
-        if(result !== 0)
-            Module.__inbeSyncKeyImportResult = 0;
-        return result;
-    });
-
-    if(import_result == 0)
+    if(!web_file_dialog_ready || !web_file_dialog.active)
         return;
-    settings_file_dialog_finish(app);
-    if(import_result == 2) {
-        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
+
+    result = UpdateFileDialog(&web_file_dialog);
+    if(result == -1)
+        return;
+
+    action = settings_file_dialog_finish(app);
+    path = GetFileDialogPath(&web_file_dialog);
+    if(result == 0) {
+        if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_import_cancelled"));
+        else
+            settings_screen_set_status_error(GetLocaleText("import_cancelled"));
+        settings_web_file_dialog_close();
         return;
     }
-    if(import_result != 1) {
-        settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
+
+    if(path == NULL || path[0] == 0) {
+        if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+            settings_screen_set_status_error(GetLocaleText("sync_private_key_import_failed"));
+        else
+            settings_screen_set_status_error(GetLocaleText("import_invalid_file"));
+        settings_web_file_dialog_close();
         return;
     }
-    settings_import_sync_key_path(app, SETTINGS_WEB_SYNC_KEY_IMPORT_PATH);
+
+    if(action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
+        settings_import_sync_key_path(app, path);
+    else
+        settings_begin_import_for_path(app, path);
+    settings_web_file_dialog_close();
 }
 #else
 void settings_data_handle_web_import(InbeApp *app) { (void)app; }
@@ -716,9 +664,9 @@ settings_import_data(InbeApp *app)
         settings_screen_set_status_error(GetLocaleText("import_failed"));
     }
 #elif defined(PLATFORM_WEB)
-    settings_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT);
-    (void)app;
-    settings_web_import_open_picker();
+    settings_web_file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT,
+                                   GetLocaleText("import_data_dialog_title"),
+                                   SETTINGS_DATA_IMPORT_FILTER);
     settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), NULL);
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     FileDialog dlg;
@@ -783,6 +731,16 @@ settings_export_data(InbeApp *app)
         settings_screen_set_status_error(GetLocaleText("export_failed"));
         TraceLog(LOG_ERROR, "DATA: Export failed");
     }
+#elif defined(PLATFORM_WEB)
+    (void)app;
+    if(data_export(SETTINGS_WEB_EXPORT_PATH) &&
+       settings_web_download_file(SETTINGS_WEB_EXPORT_PATH, export_filename, "application/zip")) {
+        settings_screen_set_status_success(GetLocaleText("exported_label"), NULL);
+        TraceLog(LOG_INFO, "DATA: Web export download started");
+    } else {
+        settings_screen_set_status_error(GetLocaleText("export_failed"));
+        TraceLog(LOG_ERROR, "DATA: Web export failed");
+    }
 #elif defined(INBE_HAS_FLINT_FILE_DIALOG)
     {
         FileDialog dlg;
@@ -802,16 +760,6 @@ settings_export_data(InbeApp *app)
             settings_screen_set_status_error(GetLocaleText("export_cancelled"));
         }
         CloseFileDialog(&dlg);
-    }
-#elif defined(PLATFORM_WEB)
-    (void)app;
-    if(data_export(SETTINGS_WEB_EXPORT_PATH) &&
-       settings_web_download_file(SETTINGS_WEB_EXPORT_PATH, export_filename, "application/zip")) {
-        settings_screen_set_status_success(GetLocaleText("exported_label"), NULL);
-        TraceLog(LOG_INFO, "DATA: Web export download started");
-    } else {
-        settings_screen_set_status_error(GetLocaleText("export_failed"));
-        TraceLog(LOG_ERROR, "DATA: Web export failed");
     }
 #else
     (void)app;
