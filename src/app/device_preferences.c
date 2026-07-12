@@ -22,18 +22,14 @@ app_set_host_api(InbeApp *app, InbeHostApi host)
 static bool
 app_request_orientation_size(InbeApp *app)
 {
-    int width = 0;
-    int height = 0;
+    int width;
+    int height;
 
     if(app == NULL || app->host.request_size == NULL)
         return false;
 
-    if(app->host.get_size != NULL)
-        app->host.get_size(app->host.userdata, &width, &height);
-    else {
-        width = config.width;
-        height = config.height;
-    }
+    width = GetScreenWidth();
+    height = GetScreenHeight();
     if(width <= 0 || height <= 0)
         return true;
 
