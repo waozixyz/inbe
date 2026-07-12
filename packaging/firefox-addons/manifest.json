@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Inner Breeze",
   "short_name": "Inbe",
-  "version": "__APP_VERSION__",
+  "version": "1.8.6",
   "description": "Breathing, meditation, habit tracking, and encrypted sync.",
   "permissions": [
     "contextMenus"
@@ -26,6 +26,11 @@
     }
   },
   "background": {
-    "service_worker": "service_worker.js"
+    "scripts": ["background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "inbe@waozi.xyz"
+    }
   }
 }

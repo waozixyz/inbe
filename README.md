@@ -139,6 +139,7 @@ Web:
 make web
 make site
 make chrome-web-store
+make firefox-addons
 ```
 
 Linux:

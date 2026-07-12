@@ -82,6 +82,27 @@ file_exists(const char *path)
 }
 
 static int
+audio_file_looks_valid(const char *path)
+{
+    FILE *file;
+    unsigned char magic[4];
+    size_t got;
+
+    if(path == NULL || path[0] == '\0')
+        return 0;
+
+    file = fopen(path, "rb");
+    if(file == NULL)
+        return 0;
+
+    got = fread(magic, 1, sizeof(magic), file);
+    fclose(file);
+    return got == sizeof(magic) &&
+           magic[0] == 'O' && magic[1] == 'g' &&
+           magic[2] == 'g' && magic[3] == 'S';
+}
+
+static int
 safe_archive_member(const char *path)
 {
     if(path == NULL || path[0] == '\0')
@@ -375,11 +396,21 @@ extract_audio_archive(InbeApp *app, const char *archive_path)
                 EnsureRuntimeAssetDir(dir);
             }
         }
-        if(mz_zip_reader_extract_to_file(&archive, i, out_path, 0))
-            extracted++;
+        if(mz_zip_reader_extract_to_file(&archive, i, out_path, 0)) {
+            if(audio_file_looks_valid(out_path))
+                extracted++;
+            else
+                remove(out_path);
+        }
     }
 
     mz_zip_reader_end(&archive);
+    if(extracted != MEDITATION_MUSIC_TRACK_COUNT) {
+        snprintf(app->meditation.music_status, sizeof(app->meditation.music_status),
+                 "Audio archive did not contain usable audio");
+        return 0;
+    }
+
     snprintf(app->meditation.music_status, sizeof(app->meditation.music_status),
              "Installed %d audio files", extracted);
 #if defined(PLATFORM_WEB)
@@ -393,7 +424,7 @@ extract_audio_archive(InbeApp *app, const char *archive_path)
         });
     }
 #endif
-    return extracted > 0;
+    return 1;
 }
 
 int
@@ -610,7 +641,12 @@ meditation_music_update(InbeApp *app)
        !app->meditation.music_archive_extracted) {
         music_archive_path(app, archive_path, sizeof(archive_path));
         app->meditation.music_archive_extracted = 1;
-        extract_audio_archive(app, archive_path);
+        if(!extract_audio_archive(app, archive_path)) {
+            snprintf(app->meditation.music_download.error,
+                     sizeof(app->meditation.music_download.error),
+                     "%s", app->meditation.music_status);
+            app->meditation.music_download.status = RUNTIME_ASSET_ERROR;
+        }
     } else if(app->meditation.music_download.status == RUNTIME_ASSET_ERROR) {
         if(is_network_download_error(&app->meditation.music_download)) {
             set_status(app, GetLocaleText("meditation_music_network_error_title"));

@@ -380,14 +380,24 @@ CHROME_WEB_STORE_ICONS := \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-32.png \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-48.png \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-128.png
+FIREFOX_ADDONS_DIR := $(BUILD_DIST_DIR)/firefox-addons
+FIREFOX_ADDONS_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-firefox-addons.zip
+FIREFOX_ADDONS_MANIFEST := packaging/firefox-addons/manifest.json
+FIREFOX_ADDONS_BACKGROUND := packaging/firefox-addons/background.js
+FIREFOX_ADDONS_ICON_DIR := $(CHROME_WEB_STORE_ICON_DIR)
+FIREFOX_ADDONS_ICONS := $(CHROME_WEB_STORE_ICONS)
 WEB_ASSET_FILES := $(shell find web-assets site-icons -type f 2>/dev/null)
 UNPACKAGED_AUDIO_DIR := unpackaged_assets/audio
 UNPACKAGED_AUDIO_FILES := $(shell find $(UNPACKAGED_AUDIO_DIR) -type f 2>/dev/null)
 MEDITATION_AUDIO_ZIP := web-assets/dl/inbe-meditation-audio-v1.zip
+MEDITATION_AUDIO_TRACKS := \
+	Elijah_K/deep-meditation.ogg \
+	Elijah_K/path-of-meditation.ogg \
+	Elijah_K/truth-of-silence.ogg
 
 include $(FLINT_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test site chrome-web-store
+.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
 
 all: native
@@ -411,6 +421,7 @@ dist:
 	$(MAKE) package-unpackaged-assets && \
 	$(MAKE) web && \
 	$(MAKE) chrome-web-store && \
+	$(MAKE) firefox-addons && \
 	$(MAKE) click && \
 	$(MAKE) appimage && \
 	$(MAKE) windows && \
@@ -540,7 +551,7 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/ap
 		-o $@ \
 		tests/app_bottom_nav_test.c
 
-$(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR)):
+$(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
@@ -946,12 +957,12 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice \
 		-lidbfs.js \
 		-lm
 
-$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) | $(WEB_DIST_DIR)
-	perl -0pe 's#\{\{\{ SCRIPT \}\}\}#<script async src="index.js?v=$(WEB_CACHE_BUSTER)"></script>#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
+$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
+	perl -0pe 's#\{\{\{ SCRIPT \}\}\}#<script>window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
@@ -1101,12 +1112,30 @@ android-clean:
 	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)
 	rm -rf $(ANDROID_BUILD_DIR)
 
+validate-meditation-audio:
+	@set -e; \
+	for file in $(MEDITATION_AUDIO_TRACKS); do \
+		path="$(UNPACKAGED_AUDIO_DIR)/$$file"; \
+		if [ ! -f "$$path" ]; then \
+			echo "Missing meditation audio track: $$path"; \
+			exit 1; \
+		fi; \
+		size=$$(wc -c < "$$path" | tr -d ' '); \
+		magic=$$(dd if="$$path" bs=4 count=1 2>/dev/null); \
+		if [ "$$magic" != "OggS" ] || [ "$$size" -lt 4096 ]; then \
+			echo "Invalid meditation audio track: $$path"; \
+			echo "Expected a real Ogg file. If this is a Git LFS pointer, run git lfs pull."; \
+			exit 1; \
+		fi; \
+	done
+
 $(MEDITATION_AUDIO_ZIP): $(UNPACKAGED_AUDIO_FILES)
+	$(MAKE) validate-meditation-audio
 	mkdir -p $(dir $(MEDITATION_AUDIO_ZIP))
 	rm -f $(MEDITATION_AUDIO_ZIP)
-	cd $(UNPACKAGED_AUDIO_DIR) && find . -mindepth 2 -type f -name '*.ogg' -exec zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) {} + && zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) LICENSE.md MANIFEST.txt
+	cd $(UNPACKAGED_AUDIO_DIR) && zip -9 -r $(abspath $(MEDITATION_AUDIO_ZIP)) $(MEDITATION_AUDIO_TRACKS) LICENSE.md MANIFEST.txt
 
-package-unpackaged-assets: $(MEDITATION_AUDIO_ZIP)
+package-unpackaged-assets: validate-meditation-audio $(MEDITATION_AUDIO_ZIP)
 
 windows-runtime-assets-check:
 	@:
@@ -1126,6 +1155,7 @@ windows:
 		$(WIN32_ARCH)/$(WIN32_BINARY_NAME)
 
 web:
+	$(MAKE) validate-meditation-audio
 	$(MAKE) $(WEB_TARGET)
 	$(MAKE) web-smoke-test
 	rm -f $(WEB_DIST_ZIP)
@@ -1133,6 +1163,12 @@ web:
 
 web-smoke-test: $(WEB_SMOKE_TEST)
 	WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+
+web-smoke-test-firefox: $(WEB_SMOKE_TEST)
+	WEB_SMOKE_BROWSER="firefox" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+
+web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
+	WEB_SMOKE_BROWSER="librewolf" WEB_SMOKE_ALLOW_WEBGL_DISABLED=1 node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
 	tclsh site/build.tcl
@@ -1149,6 +1185,19 @@ $(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB
 	cp $(CHROME_WEB_STORE_ICONS) $(CHROME_WEB_STORE_DIR)/icons/
 	rm -f $(CHROME_WEB_STORE_ZIP)
 	cd $(CHROME_WEB_STORE_DIR) && zip -9 -r $(abspath $(CHROME_WEB_STORE_ZIP)) .
+
+firefox-addons: $(FIREFOX_ADDONS_ZIP)
+
+$(FIREFOX_ADDONS_ZIP): $(WEB_TARGET) $(FIREFOX_ADDONS_MANIFEST) $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_ICONS) | $(FIREFOX_ADDONS_DIR)
+	rm -rf $(FIREFOX_ADDONS_DIR)
+	mkdir -p $(FIREFOX_ADDONS_DIR)/icons
+	cp -R $(WEB_DIST_DIR)/. $(FIREFOX_ADDONS_DIR)/
+	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
+		$(FIREFOX_ADDONS_MANIFEST) > $(FIREFOX_ADDONS_DIR)/manifest.json
+	cp $(FIREFOX_ADDONS_BACKGROUND) $(FIREFOX_ADDONS_DIR)/background.js
+	cp $(FIREFOX_ADDONS_ICONS) $(FIREFOX_ADDONS_DIR)/icons/
+	rm -f $(FIREFOX_ADDONS_ZIP)
+	cd $(FIREFOX_ADDONS_DIR) && zip -9 -r $(abspath $(FIREFOX_ADDONS_ZIP)) .
 
 clean:
 	rm -rf build

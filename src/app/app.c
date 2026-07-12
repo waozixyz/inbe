@@ -465,6 +465,16 @@ app_open_modal(InbeApp *app, UIModalType type)
     app->modal_input_block_frame = app->inbe.frame;
 }
 
+static void
+app_clear_modal_state(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    app->modal.active = 0;
+    app->modal.type = UIModalNone;
+    app->modal_input_block_frame = app->inbe.frame;
+}
+
 void
 app_close_modal(InbeApp *app)
 {
@@ -489,9 +499,41 @@ app_close_modal(InbeApp *app)
         app->tutorial_step = 0;
         app->practice_tab = PRACTICE_TAB_PLAY;
     }
-    app->modal.active = 0;
-    app->modal.type = UIModalNone;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_clear_modal_state(app);
+}
+
+static int
+app_screen_local_modal_valid(const InbeApp *app, UIModalType type)
+{
+    if(app == NULL)
+        return 0;
+
+    switch(type) {
+    case UIModalConfirmExitSession:
+        return app->inbe.screen == InbeScreenSession ||
+               app->inbe.screen == InbeScreenMeditation ||
+               app->inbe.screen == InbeScreenSunSalutation;
+    case UIModalMeditationSetup:
+        return app->inbe.screen == InbeScreenStart;
+    case UIModalConfirmDeleteHabit:
+    case UIModalHabitPracticeListInfo:
+    case UIModalHabitCountingInfo:
+        return app->inbe.screen == InbeScreenHabitEdit;
+    case UIModalBottomNavConfig:
+        return app->inbe.screen == InbeScreenCustomizeNav;
+    default:
+        return 1;
+    }
+}
+
+static void
+app_clear_invalid_screen_local_modal(InbeApp *app)
+{
+    if(app == NULL || !app->modal.active)
+        return;
+    if(app_screen_local_modal_valid(app, app->modal.type))
+        return;
+    app_clear_modal_state(app);
 }
 
 void
@@ -1222,6 +1264,27 @@ app_web_background_tick(int elapsed_ms)
     app->backgrounded = 1;
     practice_active_advance_elapsed(app, elapsed_ms);
 }
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_launch_practice(int practice_id)
+{
+    InbeApp *app = get_global_inbe_app();
+    const PracticeDefinition *practice;
+
+    if(app == NULL)
+        return;
+
+    app->exercise_type = practice_clamp_id(practice_id);
+    app->main_tab = APP_MAIN_TAB_PRACTICE;
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    if(app->modal.active)
+        app_close_modal(app);
+
+    practice = practice_get(app->exercise_type);
+    if(practice->start != NULL)
+        practice->start(app);
+}
 #endif
 
 static void
@@ -1500,6 +1563,7 @@ updateapp(InbeApp *app)
     habits_screen_prepare_first_run_guide(app);
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
+    app_clear_invalid_screen_local_modal(app);
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;

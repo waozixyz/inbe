@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.6] - 2026-07-11
+### Changed
+- Added Firefox add-on packaging, release metadata updates, and CI/release automation.
+- Improved web audio asset validation and Firefox/LibreWolf smoke testing.
+- Fixed stale screen-local modal state so hidden modals cannot keep input captured after navigation.
+
 ## [1.8.5] - 2026-07-11
 ### Changed
 - Updated Flint to improve file dialogs, cursor behavior, focus reset, icon slider popups, and shared raylib build locking.

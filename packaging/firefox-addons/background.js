@@ -1,4 +1,5 @@
-const appUrl = chrome.runtime.getURL("index.html");
+const extensionApi = globalThis.browser || globalThis.chrome;
+const appUrl = extensionApi.runtime.getURL("index.html");
 
 const practiceUrls = {
   whm: `${appUrl}?inbe_launch=start-practice&practice=whm`,
@@ -7,33 +8,33 @@ const practiceUrls = {
 };
 
 function openApp(url = appUrl) {
-  chrome.tabs.create({ url });
+  extensionApi.tabs.create({ url });
 }
 
 function createContextMenus(contexts) {
-  chrome.contextMenus.create({
+  extensionApi.contextMenus.create({
     id: "open",
     title: "Open Inner Breeze",
     contexts,
   });
-  chrome.contextMenus.create({
+  extensionApi.contextMenus.create({
     id: "start-practice",
     title: "Start Practice",
     contexts,
   });
-  chrome.contextMenus.create({
+  extensionApi.contextMenus.create({
     id: "start-whm",
     parentId: "start-practice",
     title: "Wim Hof",
     contexts,
   });
-  chrome.contextMenus.create({
+  extensionApi.contextMenus.create({
     id: "start-meditation",
     parentId: "start-practice",
     title: "Meditation",
     contexts,
   });
-  chrome.contextMenus.create({
+  extensionApi.contextMenus.create({
     id: "start-sun-salutation",
     parentId: "start-practice",
     title: "Sun Salutation",
@@ -42,24 +43,29 @@ function createContextMenus(contexts) {
 }
 
 function rebuildContextMenus() {
-  chrome.contextMenus.removeAll(() => createContextMenus(["action"]));
+  const removed = extensionApi.contextMenus.removeAll();
+
+  if (removed && typeof removed.then === "function")
+    removed.then(() => createContextMenus(["action"]));
+  else
+    createContextMenus(["action"]);
 }
 
-chrome.action.onClicked.addListener(() => {
+extensionApi.action.onClicked.addListener(() => {
   openApp();
 });
 
-chrome.runtime.onInstalled.addListener((details) => {
+extensionApi.runtime.onInstalled.addListener((details) => {
   rebuildContextMenus();
   if (details.reason === "install")
     openApp();
 });
 
-chrome.runtime.onStartup.addListener(() => {
+extensionApi.runtime.onStartup.addListener(() => {
   rebuildContextMenus();
 });
 
-chrome.contextMenus.onClicked.addListener((info) => {
+extensionApi.contextMenus.onClicked.addListener((info) => {
   switch (info.menuItemId) {
     case "open":
       openApp();

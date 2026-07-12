@@ -2,6 +2,37 @@ var statusElement = document.querySelector('#status');
 var progressElement = document.querySelector('#progress');
 var loadingScreen = document.querySelector('#loading-screen');
 
+function webglAvailable() {
+  var canvas;
+  var gl;
+
+  try {
+    canvas = document.createElement('canvas');
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  } catch (e) {
+    gl = null;
+  }
+  return !!gl;
+}
+
+window.__inbeLoadApp = function(src) {
+  var script;
+
+  if (!webglAvailable()) {
+    if (statusElement) {
+      statusElement.textContent = 'WebGL is disabled. Enable WebGL in this browser to run Inner Breeze.';
+    }
+    if (progressElement) progressElement.hidden = true;
+    console.error('INBE: WebGL is disabled or unavailable');
+    return;
+  }
+
+  script = document.createElement('script');
+  script.async = true;
+  script.src = src;
+  document.body.appendChild(script);
+};
+
 function hideLoadingScreen() {
   if (!loadingScreen) return;
   window.requestAnimationFrame(function() {
@@ -100,6 +131,7 @@ var Module = {
   postRun: [function() {
     Module.__inbeRuntimeReady = true;
     hideLoadingScreen();
+    runLaunchCommand();
   }],
   locateFile: function(path, prefix) {
     if (path === 'index.wasm' || path === 'index.data') {
@@ -174,6 +206,31 @@ var Module = {
   }
 };
 globalThis.Module = Module;
+
+function launchPracticeId(value) {
+  switch (value) {
+    case 'whm':
+      return 0;
+    case 'meditation':
+      return 1;
+    case 'sun_salutation':
+      return 2;
+    default:
+      return -1;
+  }
+}
+
+function runLaunchCommand() {
+  var params = new URLSearchParams(window.location.search || '');
+  var launch = params.get('inbe_launch');
+  var practice = params.get('practice');
+  var practiceId;
+
+  if (launch !== 'start-practice') return;
+  practiceId = launchPracticeId(practice);
+  if (practiceId < 0 || typeof Module._app_web_launch_practice !== 'function') return;
+  Module._app_web_launch_practice(practiceId);
+}
 
 Module.setStatus('Downloading...');
 window.onerror = function() {

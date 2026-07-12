@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { createServer } from 'node:http';
-import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constants, readFileSync } from 'node:fs';
+import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constants, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -10,6 +10,9 @@ const root = resolve(process.argv[2] || 'build/dist/web');
 const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 30000);
+const allowWebglDisabled = process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED
+  ? !/^(0|false|no)$/i.test(process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED)
+  : false;
 const useNoSandbox = process.env.WEB_SMOKE_NO_SANDBOX
   ? !/^(0|false|no)$/i.test(process.env.WEB_SMOKE_NO_SANDBOX)
   : !!process.env.CI || (typeof process.getuid === 'function' && process.getuid() === 0);
@@ -69,7 +72,9 @@ function browserCandidates() {
     'google-chrome-stable',
     'chromium',
     'chromium-browser',
-    'chrome'
+    'chrome',
+    'firefox',
+    'librewolf'
   );
   return [...new Set(candidates.filter(Boolean))];
 }
@@ -87,6 +92,10 @@ function resolveBrowser() {
     if (resolved) return resolved;
   }
   throw new Error(`no Chrome/Chromium browser found; tried ${tried.join(', ')}`);
+}
+
+function isFirefoxBrowser(browser) {
+  return /(^|[/\\])(firefox|librewolf)(\.exe)?$/i.test(browser);
 }
 
 function contentType(path) {
@@ -223,6 +232,45 @@ function connect(wsUrl) {
   });
 }
 
+function connectBidi(wsUrl) {
+  return new Promise((resolveConnect, reject) => {
+    const ws = new WebSocket(wsUrl);
+    const pending = new Map();
+    const events = [];
+    let nextId = 1;
+
+    ws.addEventListener('open', () => {
+      resolveConnect({
+        events,
+        send(method, params = {}) {
+          const id = nextId++;
+          ws.send(JSON.stringify({ id, method, params }));
+          return new Promise((resolveSend, rejectSend) => {
+            pending.set(id, { resolve: resolveSend, reject: rejectSend, method });
+          });
+        },
+        close() {
+          ws.close();
+        }
+      });
+    });
+    ws.addEventListener('message', event => {
+      const message = JSON.parse(event.data);
+      if (message.id && pending.has(message.id)) {
+        const item = pending.get(message.id);
+        pending.delete(message.id);
+        if (message.error)
+          item.reject(new Error(`${item.method}: ${message.message || message.error || JSON.stringify(message)}`));
+        else
+          item.resolve(message.result || {});
+      } else if (message.method) {
+        events.push(message);
+      }
+    });
+    ws.addEventListener('error', event => reject(new Error(event.message || `WebSocket error for ${wsUrl}`)));
+  });
+}
+
 function eventText(event) {
   if (event.method === 'Runtime.consoleAPICalled') {
     return (event.params.args || []).map(arg => arg.value ?? arg.description ?? '').join(' ');
@@ -255,6 +303,19 @@ function fatalEvent(event) {
   return '';
 }
 
+function fatalBidiEvent(event) {
+  if (event.method !== 'log.entryAdded')
+    return '';
+
+  const params = event.params || {};
+  const text = params.text || params.args?.map(arg => arg.value ?? arg.text ?? '').join(' ') || '';
+  if (params.type === 'javascript' && params.level === 'error')
+    return text || 'javascript error';
+  if (params.level === 'error' && /Aborted|RuntimeError|unreachable|exception thrown/i.test(text))
+    return text;
+  return '';
+}
+
 async function waitForHealthyPage(client) {
   const start = Date.now();
   let sawRaylib = false;
@@ -275,9 +336,11 @@ async function waitForHealthyPage(client) {
     const result = await client.send('Runtime.evaluate', {
       expression: `(() => {
         const canvas = document.querySelector('canvas');
-        if (!canvas) return { ok: false, reason: 'missing canvas' };
+        const status = document.querySelector('#status')?.textContent || '';
+        if (/WebGL is disabled/.test(status)) return { ok: ${allowWebglDisabled ? 'true' : 'false'}, disabledWebgl: true, status };
+        if (!canvas) return { ok: false, reason: 'missing canvas', status };
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-        if (!gl) return { ok: false, reason: 'missing webgl' };
+        if (!gl) return { ok: false, reason: 'missing webgl', status };
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
         return {
@@ -304,6 +367,103 @@ async function waitForHealthyPage(client) {
 
   const recent = client.events.slice(-12).map(eventText).filter(Boolean).join(' | ');
   throw new Error(`web app did not become healthy within ${timeoutMs}ms; state=${JSON.stringify(lastState)}; recent=${recent}`);
+}
+
+async function waitForHealthyBidiPage(client, context) {
+  const start = Date.now();
+  let lastState = null;
+  let healthySince = 0;
+
+  while (Date.now() - start < timeoutMs) {
+    for (const event of client.events) {
+      const fatal = fatalBidiEvent(event);
+      if (fatal)
+        throw new Error(fatal);
+    }
+
+    const result = await client.send('script.evaluate', {
+      target: { context },
+      awaitPromise: false,
+      resultOwnership: 'none',
+      expression: `JSON.stringify((() => {
+        const canvas = document.querySelector('canvas');
+        const status = document.querySelector('#status')?.textContent || '';
+        if (/WebGL is disabled/.test(status)) return { ok: ${allowWebglDisabled ? 'true' : 'false'}, disabledWebgl: true, status };
+        if (!canvas) return { ok: false, reason: 'missing canvas', status };
+        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+        if (!gl) return { ok: false, reason: 'missing webgl', status };
+        const width = gl.drawingBufferWidth;
+        const height = gl.drawingBufferHeight;
+        const boot = Array.from(document.querySelectorAll('script')).some(script => /index\\.js/.test(script.src || ''));
+        return { ok: width > 0 && height > 0 && boot, width, height };
+      })())`
+    });
+    try {
+      lastState = JSON.parse(result.result?.value || '{}');
+    } catch {
+      lastState = null;
+    }
+    if (lastState?.ok) {
+      if (!healthySince)
+        healthySince = Date.now();
+      if (Date.now() - healthySince >= 1500)
+        return lastState;
+    } else {
+      healthySince = 0;
+    }
+    await delay(250);
+  }
+
+  throw new Error(`Firefox web app did not become healthy within ${timeoutMs}ms; state=${JSON.stringify(lastState)}`);
+}
+
+async function waitForFirefoxBidi(browser, stderrLines) {
+  const start = Date.now();
+  let exited = false;
+  const onExit = () => {
+    exited = true;
+  };
+  browser.once('exit', onExit);
+
+  try {
+    while (Date.now() - start < timeoutMs) {
+      if (exited) {
+        const stderr = stderrLines.join('').trim();
+        throw new Error(`Firefox exited before BiDi was ready${stderr ? `; firefox stderr: ${stderr.slice(-4000)}` : ''}`);
+      }
+
+      const stderr = stderrLines.join('');
+      const match = stderr.match(/WebDriver BiDi listening on (ws:\/\/[^\s]+)/);
+      if (match)
+        return match[1].replace(/\/?$/, '/session');
+
+      await delay(50);
+    }
+  } finally {
+    browser.off('exit', onExit);
+  }
+
+  const stderr = stderrLines.join('').trim();
+  throw new Error(`timed out waiting for Firefox BiDi${stderr ? `; firefox stderr: ${stderr.slice(-4000)}` : ''}`);
+}
+
+function writeFirefoxPrefs() {
+  writeFileSync(join(userDataDir, 'user.js'), [
+    'user_pref("browser.shell.checkDefaultBrowser", false);',
+    'user_pref("browser.tabs.warnOnClose", false);',
+    'user_pref("browser.warnOnQuit", false);',
+    'user_pref("datareporting.policy.dataSubmissionEnabled", false);',
+    'user_pref("dom.webgpu.enabled", false);',
+    'user_pref("gfx.webrender.software", true);',
+    'user_pref("media.autoplay.default", 0);',
+    'user_pref("privacy.fingerprintingProtection", false);',
+    'user_pref("privacy.resistFingerprinting", false);',
+    'user_pref("webgl.disabled", false);',
+    'user_pref("webgl.disable-fail-if-major-performance-caveat", false);',
+    'user_pref("webgl.enable-webgl2", true);',
+    'user_pref("webgl.force-enabled", true);',
+    ''
+  ].join('\n'));
 }
 
 async function waitForStorageIdle(client) {
@@ -366,50 +526,93 @@ let failure;
 try {
   const port = await listen();
   const browser = resolveBrowser();
-  const args = [
-    '--headless=new',
-    '--remote-debugging-port=0',
-    '--remote-debugging-address=127.0.0.1',
-    `--user-data-dir=${userDataDir}`,
-    '--no-first-run',
-    '--no-default-browser-check',
-    '--disable-background-networking',
-    '--disable-dev-shm-usage',
-    '--enable-unsafe-swiftshader',
-    '--ignore-gpu-blocklist',
-    '--enable-webgl',
-    '--use-gl=angle',
-    '--use-angle=swiftshader',
-    ...browserArgs,
-    'about:blank'
-  ];
-  if (useNoSandbox)
-    args.splice(1, 0, '--no-sandbox');
+  if (isFirefoxBrowser(browser)) {
+    writeFirefoxPrefs();
+    const args = [
+      '--headless',
+      '--new-instance',
+      '--profile',
+      userDataDir,
+      '--remote-debugging-port',
+      '0',
+      '--remote-allow-hosts',
+      '127.0.0.1',
+      '--remote-allow-origins',
+      '*',
+      ...browserArgs,
+      'about:blank'
+    ];
+    const firefoxStderr = [];
+    chrome = spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+    chrome.stderr.setEncoding('utf8');
+    chrome.stderr.on('data', chunk => {
+      firefoxStderr.push(chunk);
+      while (firefoxStderr.join('').length > 8000)
+        firefoxStderr.shift();
+    });
+    chrome.once('error', error => {
+      if (!failure)
+        failure = error;
+    });
 
-  const chromeStderr = [];
-  chrome = spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
-  chrome.stderr.setEncoding('utf8');
-  chrome.stderr.on('data', chunk => {
-    chromeStderr.push(chunk);
-    while (chromeStderr.join('').length > 8000)
-      chromeStderr.shift();
-  });
-  chrome.once('error', error => {
-    if (!failure)
-      failure = error;
-  });
+    const bidiUrl = await waitForFirefoxBidi(chrome, firefoxStderr);
+    client = await connectBidi(bidiUrl);
+    await client.send('session.new', { capabilities: {} });
+    await client.send('session.subscribe', { events: ['log.entryAdded'] });
+    const created = await client.send('browsingContext.create', { type: 'tab' });
+    const context = created.context;
+    await client.send('browsingContext.navigate', {
+      context,
+      url: `http://127.0.0.1:${port}/index.html`,
+      wait: 'complete'
+    });
+    await waitForHealthyBidiPage(client, context);
+  } else {
+    const args = [
+      '--headless=new',
+      '--remote-debugging-port=0',
+      '--remote-debugging-address=127.0.0.1',
+      `--user-data-dir=${userDataDir}`,
+      '--no-first-run',
+      '--no-default-browser-check',
+      '--disable-background-networking',
+      '--disable-dev-shm-usage',
+      '--enable-unsafe-swiftshader',
+      '--ignore-gpu-blocklist',
+      '--enable-webgl',
+      '--use-gl=angle',
+      '--use-angle=swiftshader',
+      ...browserArgs,
+      'about:blank'
+    ];
+    if (useNoSandbox)
+      args.splice(1, 0, '--no-sandbox');
 
-  const devtoolsPort = await waitForDevtools(chrome, chromeStderr);
-  const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
-    method: 'PUT'
-  });
-  client = await connect(pages.webSocketDebuggerUrl);
-  await client.send('Runtime.enable');
-  await client.send('Log.enable');
-  await client.send('Page.enable');
-  await client.send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
-  await waitForHealthyPage(client);
-  await verifyReloadPersistence(client);
+    const chromeStderr = [];
+    chrome = spawn(browser, args, { stdio: ['ignore', 'ignore', 'pipe'], detached: true });
+    chrome.stderr.setEncoding('utf8');
+    chrome.stderr.on('data', chunk => {
+      chromeStderr.push(chunk);
+      while (chromeStderr.join('').length > 8000)
+        chromeStderr.shift();
+    });
+    chrome.once('error', error => {
+      if (!failure)
+        failure = error;
+    });
+
+    const devtoolsPort = await waitForDevtools(chrome, chromeStderr);
+    const pages = await jsonRequest(`http://127.0.0.1:${devtoolsPort}/json/new?about:blank`, {
+      method: 'PUT'
+    });
+    client = await connect(pages.webSocketDebuggerUrl);
+    await client.send('Runtime.enable');
+    await client.send('Log.enable');
+    await client.send('Page.enable');
+    await client.send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
+    await waitForHealthyPage(client);
+    await verifyReloadPersistence(client);
+  }
   console.log('web smoke: PASS');
 } catch (error) {
   failure = error;
