@@ -134,7 +134,8 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_ICON_FILES := $(wildcard $(FLINT_DIR)/icons/*.png) $(wildcard $(FLINT_DIR)/pfp/*.png)
+FLINT_ICON_DIRS := icons language payments platforms tiles pfp
+FLINT_ICON_FILES := $(foreach dir,$(FLINT_ICON_DIRS),$(wildcard $(FLINT_DIR)/$(dir)/*.png))
 FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui/ui_icon_assets.c
 FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
 FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(shell find $(FLINT_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(FLINT_ICON_ASSETS_C)
@@ -581,7 +582,7 @@ $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embe
 
 $(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
 	@tmp="$@.tmp"; \
-	for dir in $(FLINT_DIR)/icons $(FLINT_DIR)/pfp; do find "$$dir" -maxdepth 1 -type f -name '*.png'; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
+	for dir in $(FLINT_ICON_DIRS); do find "$(FLINT_DIR)/$$dir" -maxdepth 1 -type f -name '*.png' 2>/dev/null; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_ASSETS_DEPS)
@@ -593,7 +594,7 @@ $(FLINT_ICON_ASSETS_C): $(FLINT_ICON_ASSETS_DEPS)
 		fi; \
 		exit 0; \
 	fi
-	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "icons pfp" src/ui/ui_icon_assets.c
+	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "$(FLINT_ICON_DIRS)" src/ui/ui_icon_assets.c
 
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check

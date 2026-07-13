@@ -1768,8 +1768,9 @@ updateapp(InbeApp *app)
     if(app->nav_sidebar_open)
         PushUIInputCapture((Rectangle){0, 0, (float)view_width,
                                        (float)view_height}, 0);
-    if(app->modal.active || app->close_prompt_open || first_run_guide_active ||
-       habits_guide_active) {
+    if(app->modal.active)
+        BeginUIModalLayer();
+    if(app->close_prompt_open || first_run_guide_active || habits_guide_active) {
         PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
     }
 
@@ -1988,6 +1989,8 @@ app_update_draw(void *vapp, Rectangle viewport) {
     SetUIViewSize(view_width, view_height);
 
     InitUI(view_width, view_height, GetUIDPIScale());
+    if(app->modal.active)
+        BeginUIModalLayer();
     practice_update_circle_bounds(app, app_content_top_reserved(app),
                                   app_content_bottom_reserved(app));
 

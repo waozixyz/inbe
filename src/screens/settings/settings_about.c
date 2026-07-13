@@ -70,11 +70,11 @@ about_draw_link_icons(InbeApp *app, int content_x, int content_w, int *y)
     int links_start_x = content_x + (content_w - grid_w) / 2;
     int row_spacing = ScaleUIPx(16);
     Texture2D icons[5] = {
-        app->icons[UI_ICON_TYPE_DISCORD],
-        app->icons[UI_ICON_TYPE_TELEGRAM],
-        app->icons[UI_ICON_TYPE_GITHUB],
-        app->icons[UI_ICON_TYPE_BTC],
-        app->icons[UI_ICON_TYPE_MONERO]
+        app->icons[UI_ICON_TYPE_PLATFORMS_DISCORD],
+        app->icons[UI_ICON_TYPE_PLATFORMS_TELEGRAM],
+        app->icons[UI_ICON_TYPE_PLATFORMS_GITHUB],
+        app->icons[UI_ICON_TYPE_PAYMENTS_BTC],
+        app->icons[UI_ICON_TYPE_PAYMENTS_MONERO]
     };
     const char *urls[5] = {
         "https://discord.com/invite/JbGZ4yENDt",

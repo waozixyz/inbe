@@ -641,7 +641,6 @@ app_draw_sidebar_profile_header(InbeApp *app, int x, int *y, int w,
     });
 
     if(header.pfp_clicked) {
-        app->nav_sidebar_open = 0;
         app->profile_picture_picker_scroll = 0;
         app_open_modal(app, UIModalProfilePicturePicker);
         *y += header.height + ScaleUIPx(12);
@@ -718,7 +717,8 @@ app_draw_nav_sidebar(InbeApp *app)
     if(app == NULL || (!app->nav_sidebar_open && !app_nav_sidebar_screen_active(app)))
         return;
 
-    ClearUIInputCaptures();
+    if(!app->modal.active)
+        ClearUIInputCaptures();
 
     sidebar_w = app_nav_sidebar_width();
     sidebar_x = view_width - sidebar_w;

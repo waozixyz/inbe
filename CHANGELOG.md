@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.8] - 2026-07-13
+### Changed
+- Updated Flint icon integration to use categorized sprite sheets for app UI, language, payments, platforms, tiles, and profile pictures.
+- Updated Inbe to use the new Flint icon categories and removed legacy eye icon usage.
+- Fixed profile picture picker selection so it closes the picker, keeps the sidebar open, and does not click through to sidebar links.
+
 ## [1.8.7] - 2026-07-12
 ### Changed
 - Fixed Firefox web persistence, mobile habit deletion, and customizable nav tap handling.
