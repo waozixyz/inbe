@@ -29,13 +29,6 @@ typedef struct AppSidebarSettingsItem {
     int tab;
 } AppSidebarSettingsItem;
 
-static void
-app_block_nav_click_frame(InbeApp *app)
-{
-    if(app != NULL)
-        app->modal_input_block_frame = app->inbe.frame;
-}
-
 static int
 app_nav_sidebar_width(void)
 {
@@ -277,7 +270,7 @@ app_open_profile_tab(InbeApp *app, int tab)
     app->profile_scroll = 0;
     app->sync_server_url_focused = 0;
     settings_screen_clear_status();
-    app_block_nav_click_frame(app);
+    app_block_pointer_frame(app);
     route = app_current_route(app);
     route.screen = InbeScreenProfile;
     route.profile_view = PROFILE_VIEW_MAIN;
@@ -540,7 +533,7 @@ app_open_settings_tab(InbeApp *app, int tab)
         app_leave_practice_config(app);
     app->settings_scroll = 0;
     settings_screen_clear_status();
-    app_block_nav_click_frame(app);
+    app_block_pointer_frame(app);
     route = app_current_route(app);
     route.screen = InbeScreenSettings;
     route.settings_tab = tab;
@@ -676,7 +669,7 @@ app_open_bottom_nav_config(InbeApp *app)
     app->bottom_nav_config_route_count = app->bottom_nav_route_count;
     app->nav_sidebar_open = 0;
     app->nav_sidebar_return_on_back = return_to_sidebar;
-    app_block_nav_click_frame(app);
+    app_block_pointer_frame(app);
     app_switch_screen(app, InbeScreenCustomizeNav);
 }
 
@@ -808,7 +801,7 @@ app_draw_nav_sidebar(InbeApp *app)
                               UI_BUTTON_STYLE_SECONDARY, app->modal.active,
                               &close_hover)) {
         app_close_nav_sidebar(app);
-        app_block_nav_click_frame(app);
+        app_block_pointer_frame(app);
     }
 }
 
@@ -943,7 +936,7 @@ app_draw_customize_nav_page(InbeApp *app)
     if(app_draw_close_title_bar(app,
                             GetLocaleText("customize_nav_title"),
                             GetUITabBarHeight())) {
-        app_block_nav_click_frame(app);
+        app_block_pointer_frame(app);
         app_open_main_tab(app, app->main_tab, 0);
         return 1;
     }
@@ -1153,7 +1146,7 @@ app_draw_bottom_nav(InbeApp *app)
             routes[i] = app->bottom_nav_routes[i];
         routes[route_count++] = APP_NAV_ROUTE_STACK;
 
-        if(app->modal_input_block_frame != app->inbe.frame ||
+        if(app->input_block_frame != app->inbe.frame ||
            !IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
             for(int i = 0; i < route_count; i++) {
                 int route = routes[i];

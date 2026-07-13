@@ -142,7 +142,7 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
                 app->tutorial_step = page - 1;
                 app->manual_scroll = 0;
             } else if(nav.close != NULL) {
-                app->modal_input_block_frame = app->inbe.frame;
+                app_block_pointer_frame(app);
                 nav.close(app, 0);
             }
         }
@@ -157,7 +157,7 @@ manual_screen_guide_draw_nav(InbeApp *app, ManualGuideNav nav)
            .icon_padding = button_pad,
        })) {
         if(page == nav.page_count - 1) {
-            app->modal_input_block_frame = app->inbe.frame;
+            app_block_pointer_frame(app);
             if(nav.close != NULL)
                 nav.close(app, 1);
             else

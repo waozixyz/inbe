@@ -552,13 +552,20 @@ app_content_top_reserved(const InbeApp *app)
 }
 
 void
+app_block_pointer_frame(InbeApp *app)
+{
+    if(app != NULL)
+        app->input_block_frame = app->inbe.frame;
+}
+
+void
 app_open_modal(InbeApp *app, UIModalType type)
 {
     if(app == NULL)
         return;
     app->modal.active = 1;
     app->modal.type = type;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 static void
@@ -568,7 +575,7 @@ app_clear_modal_state(InbeApp *app)
         return;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 void
@@ -583,7 +590,7 @@ app_close_modal(InbeApp *app)
        app->inbe.screen == InbeScreenStart &&
        app->practice_tab == PRACTICE_TAB_CONFIG) {
         app->modal.type = UIModalPracticeConfig;
-        app->modal_input_block_frame = app->inbe.frame;
+        app_block_pointer_frame(app);
         return;
     }
     if(type == UIModalPracticeConfig) {
@@ -1641,7 +1648,7 @@ draw_global_modal(InbeApp *app)
 
     if(app == NULL || !app->modal.active)
         return;
-    if(app->modal_input_block_frame == app->inbe.frame)
+    if(app->input_block_frame == app->inbe.frame)
         return;
 
     ClearUIInputCaptures();
@@ -1894,7 +1901,7 @@ updateapp(InbeApp *app)
         }
         // Skip drawing on the same frame modal opens to prevent click propagation
         if(app->modal.active && app->modal.type == UIModalMeditationSetup &&
-           app->modal_input_block_frame != app->inbe.frame) {
+           app->input_block_frame != app->inbe.frame) {
             const PracticeDefinition *practice = practice_get(PRACTICE_MEDITATION);
             if(practice->draw_setup_modal != NULL)
                 practice->draw_setup_modal(app);

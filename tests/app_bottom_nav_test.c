@@ -608,13 +608,20 @@ storage_get_setting_text(const char *key)
 }
 
 void
+app_block_pointer_frame(InbeApp *app)
+{
+    if(app != NULL)
+        app->input_block_frame = app->inbe.frame;
+}
+
+void
 app_open_modal(InbeApp *app, UIModalType type)
 {
     if(app == NULL)
         return;
     app->modal.active = 1;
     app->modal.type = type;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 void
@@ -624,7 +631,7 @@ app_close_modal(InbeApp *app)
         return;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 int
@@ -721,7 +728,7 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.modal_input_block_frame = app.inbe.frame;
+    app.input_block_frame = app.inbe.frame;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -741,7 +748,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.modal_input_block_frame = app.inbe.frame - 1;
+    app.input_block_frame = app.inbe.frame - 1;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 

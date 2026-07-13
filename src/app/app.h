@@ -444,7 +444,7 @@ struct InbeApp {
     int backgrounded;
     double desktop_background_last_time;
     int results_saved;
-    int modal_input_block_frame;
+    int input_block_frame;
     int close_prompt_open;
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
@@ -482,6 +482,7 @@ void app_unload_texture(Texture2D texture);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
+void app_block_pointer_frame(InbeApp *app);
 void app_request_desktop_close(InbeApp *app);
 AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
