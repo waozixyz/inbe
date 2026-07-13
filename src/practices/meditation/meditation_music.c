@@ -328,13 +328,13 @@ music_track_path(InbeApp *app, int track, char *out, size_t out_size)
 
 #if defined(DEBUG_LOCAL_ASSETS)
     snprintf(out, out_size, "unpackaged_assets/audio/%s", g_tracks[track].file);
-    if(file_exists(out))
+    if(audio_file_looks_valid(out))
         return;
 #endif
 
     if(join_path2(out, out_size, app->meditation.music_cache_dir, "/audio/") &&
        append_text_checked(out, out_size, g_tracks[track].file) &&
-       file_exists(out))
+       audio_file_looks_valid(out))
         return;
 
 #if defined(PLATFORM_WEB)
@@ -437,7 +437,7 @@ meditation_music_available(InbeApp *app)
 
     for(int i = 0; i < MEDITATION_MUSIC_TRACK_COUNT; i++) {
         music_track_path(app, i, path, sizeof(path));
-        if(!file_exists(path))
+        if(!audio_file_looks_valid(path))
             return 0;
     }
 
@@ -572,7 +572,7 @@ load_track(InbeApp *app, int track)
 
     meditation_music_unload(app);
     music_track_path(app, track, path, sizeof(path));
-    if(!file_exists(path)) {
+    if(!audio_file_looks_valid(path)) {
         set_status(app, "Track is not installed");
         return 0;
     }
