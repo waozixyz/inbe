@@ -1114,11 +1114,13 @@ app_draw_blank_home_easteregg(InbeApp *app)
     Texture2D logo;
     Rectangle src;
     Rectangle dst;
+    Vector2 mouse;
     float scale;
     float logo_size;
     float logo_scale;
     int bottom_reserved;
     int available_h;
+    int logo_hover;
 
     if(app == NULL)
         return;
@@ -1172,8 +1174,17 @@ app_draw_blank_home_easteregg(InbeApp *app)
         (float)logo.width * logo_scale,
         (float)logo.height * logo_scale
     };
+    mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
+    logo_hover = CheckCollisionPointRec(mouse, dst) &&
+                 !UIInputCapturesClick(mouse);
+    if(logo_hover) {
+        MarkUIClickable();
+        if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
+            OpenURL("https://waozi.xyz");
+    }
     DrawTexturePro(logo, src, dst, (Vector2){0}, 0.0f,
-                   (Color){150, 150, 150, 255});
+                   logo_hover ? (Color){210, 210, 210, 255}
+                              : (Color){150, 150, 150, 255});
 }
 
 static Sound
@@ -1336,6 +1347,9 @@ app_init(void *vapp) {
 #endif
 
     InitLocale();
+    InitUIDPI();
+    TraceLog(LOG_INFO, "INBE: app init width=%d height=%d embedded=%d",
+             config.width, config.height, config.loaded);
     if(!load_locale_font(app)) {
         TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
     }
@@ -1993,6 +2007,12 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     /* Update DPI cache */
     UpdateUIDPI(view_width, view_height);
+    if(!(GetUIDPIScale() > 0.0f) || GetUIDPIScale() > 8.0f) {
+        TraceLog(LOG_WARNING, "INBE_EMBED: repairing invalid dpi %.2f for %dx%d",
+                 GetUIDPIScale(), view_width, view_height);
+        InitUIDPI();
+        UpdateUIDPI(view_width, view_height);
+    }
     SetUIViewSize(view_width, view_height);
 
     InitUI(view_width, view_height, GetUIDPIScale());
@@ -2015,11 +2035,18 @@ app_update_draw(void *vapp, Rectangle viewport) {
         static int last_full_h = -1;
         static int last_content_x = -1;
         static int last_content_w = -1;
-        if(full_width != last_full_w || full_height != last_full_h ||
-           content_x != last_content_x || content_w != last_content_w) {
-            TraceLog(LOG_INFO, "INBE_EMBED: viewport=%dx%d content_x=%d content=%dx%d dpi=%.2f",
+        static double last_log_time = -1.0;
+        double now = GetTime();
+        int changed = full_width != last_full_w || full_height != last_full_h ||
+                      content_x != last_content_x || content_w != last_content_w;
+
+        if(changed && (last_log_time < 0.0 || now - last_log_time >= 0.25)) {
+            TraceLog(LOG_INFO, "INBE_EMBED: geometry viewport=%dx%d content_x=%d content=%dx%d dpi=%.2f",
                      full_width, full_height, content_x, content_w, full_height,
                      GetUIDPIScale());
+            last_log_time = now;
+        }
+        if(changed) {
             last_full_w = full_width;
             last_full_h = full_height;
             last_content_x = content_x;
