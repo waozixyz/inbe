@@ -164,6 +164,44 @@ bind_text(sqlite3_stmt *stmt, int index, const char *text)
     return sqlite3_bind_text(stmt, index, text != NULL ? text : "", -1, SQLITE_TRANSIENT) == SQLITE_OK;
 }
 
+long long
+db_select_int64(const char *sql, long long fallback)
+{
+    sqlite3_stmt *stmt = NULL;
+    long long value = fallback;
+
+    if(g_storage.db == NULL || sql == NULL)
+        return fallback;
+    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return fallback;
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        value = sqlite3_column_int64(stmt, 0);
+    sqlite3_finalize(stmt);
+    return value;
+}
+
+int
+db_select_int(const char *sql, int fallback)
+{
+    return (int)db_select_int64(sql, fallback);
+}
+
+int
+db_exec_text(const char *sql, const char *text)
+{
+    sqlite3_stmt *stmt = NULL;
+    int ok;
+
+    if(g_storage.db == NULL || sql == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, text);
+    ok = sqlite3_step(stmt) == SQLITE_DONE;
+    sqlite3_finalize(stmt);
+    return ok;
+}
+
 static int
 schema_exec(const char *sql)
 {

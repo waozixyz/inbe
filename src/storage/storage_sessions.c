@@ -85,22 +85,6 @@ write_session_rounds(const char *session_id, const int *round_times, int round_c
     return 1;
 }
 
-static int
-storage_count_sql(const char *sql)
-{
-    sqlite3_stmt *stmt = NULL;
-    int count = 0;
-
-    if(g_storage.db == NULL || sql == NULL)
-        return 0;
-    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
-        return 0;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        count = sqlite3_column_int(stmt, 0);
-    sqlite3_finalize(stmt);
-    return count;
-}
-
 int
 insert_session_at_ex(long long started_at, int local_date, const int *round_times, int round_count,
                      int topic, int activity, const char *source, char *out_id, size_t out_id_size)
@@ -286,13 +270,8 @@ storage_replace_session(const char *path_or_id, const int *round_times, int roun
         return storage_delete_session(path_or_id);
 
     exec_sql("BEGIN IMMEDIATE");
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1, &stmt,
-                          NULL) != SQLITE_OK)
+    if(!db_exec_text("DELETE FROM session_rounds WHERE session_id=?1", id))
         goto fail;
-    bind_text(stmt, 1, id);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    stmt = NULL;
     if(!write_session_rounds(id, saved, saved_count, 0))
         goto fail;
     if(sqlite3_prepare_v2(g_storage.db,
@@ -386,31 +365,20 @@ storage_delete_session(const char *path_or_id)
 int
 storage_discard_session(const char *path_or_id)
 {
-    sqlite3_stmt *stmt = NULL;
     char id[INBE_STORAGE_ID_SIZE];
 
     if(!parse_db_id(path_or_id, id, sizeof(id)))
         return 0;
     if(!exec_sql("BEGIN IMMEDIATE"))
         return 0;
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM session_rounds WHERE session_id=?1", -1,
-                          &stmt, NULL) != SQLITE_OK) {
+    if(!db_exec_text("DELETE FROM session_rounds WHERE session_id=?1", id)) {
         exec_sql("ROLLBACK");
         return 0;
     }
-    bind_text(stmt, 1, id);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    stmt = NULL;
-    if(sqlite3_prepare_v2(g_storage.db, "DELETE FROM sessions WHERE id=?1", -1, &stmt,
-                          NULL) != SQLITE_OK) {
+    if(!db_exec_text("DELETE FROM sessions WHERE id=?1", id)) {
         exec_sql("ROLLBACK");
         return 0;
     }
-    bind_text(stmt, 1, id);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    stmt = NULL;
     if(!exec_sql("COMMIT")) {
         exec_sql("ROLLBACK");
         return 0;
@@ -473,13 +441,13 @@ storage_has_any(void)
     count = storage_habit_count();
     if(count > 0)
         return 1;
-    return storage_count_sql("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0") > 0;
+    return db_select_int("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", 0) > 0;
 }
 
 int
 storage_session_count(void)
 {
-    return storage_count_sql("SELECT COUNT(*) FROM sessions WHERE deleted_at=0");
+    return db_select_int("SELECT COUNT(*) FROM sessions WHERE deleted_at=0", 0);
 }
 
 long long
@@ -506,8 +474,8 @@ storage_delete_all_sessions(void)
     if(g_storage.db == NULL)
         return 0;
 
-    habit_day_count = storage_count_sql(
-        "SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0");
+    habit_day_count =
+        db_select_int("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", 0);
     if(count <= 0 && habit_day_count <= 0 && habit_count <= 0)
         return 0;
 

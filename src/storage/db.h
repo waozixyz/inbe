@@ -23,6 +23,9 @@ extern StorageState g_storage;
 
 long long now_seconds(void);
 int bind_text(sqlite3_stmt *stmt, int index, const char *text);
+long long db_select_int64(const char *sql, long long fallback);
+int db_select_int(const char *sql, int fallback);
+int db_exec_text(const char *sql, const char *text);
 int storage_join_path(char *out, size_t out_size, const char *root, const char *name);
 int path_exists(const char *path);
 int ensure_dir_local(const char *path);

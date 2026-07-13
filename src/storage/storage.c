@@ -56,28 +56,12 @@ storage_migrate_habit_ids_to_uuid(void);
 #define STORAGE_ACTIVITY_SUN_SALUTATION_MASK (1 << 2)
 
 static long long
-storage_select_int64(const char *sql, long long fallback)
-{
-    sqlite3_stmt *stmt = NULL;
-    long long value = fallback;
-
-    if(g_storage.db == NULL || sql == NULL)
-        return fallback;
-    if(sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) != SQLITE_OK)
-        return fallback;
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-        value = sqlite3_column_int64(stmt, 0);
-    sqlite3_finalize(stmt);
-    return value;
-}
-
-static long long
 storage_next_change_time(void)
 {
     long long now = now_seconds();
     long long latest;
 
-    latest = storage_select_int64("SELECT MAX(updated_at) FROM ("
+    latest = db_select_int64("SELECT MAX(updated_at) FROM ("
                                   " SELECT COALESCE(MAX(updated_at),0) AS updated_at FROM habits"
                                   " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM habit_days"
                                   " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM sessions"
@@ -404,25 +388,17 @@ storage_has_local_syncable_data(void)
 {
     if(g_storage.db == NULL)
         return 0;
-    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM sessions "
-                            "WHERE user_id=(SELECT id FROM users LIMIT 1) "
-                            "AND deleted_at=0 LIMIT 1)",
-                            0) != 0)
-        return 1;
-    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM habits "
-                            "WHERE user_id=(SELECT id FROM users LIMIT 1) "
-                            "AND deleted_at=0 LIMIT 1)",
-                            0) != 0)
-        return 1;
-    if(storage_select_int64("SELECT EXISTS(SELECT 1 FROM habit_days hd "
-                            "JOIN habits h ON h.id=hd.habit_id "
-                            "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
-                            "AND (hd.completed!=0 OR hd.count>0) LIMIT 1)",
-                            0) != 0)
-        return 1;
-    return storage_select_int64("SELECT EXISTS(SELECT 1 FROM social_snapshots "
-                                "WHERE user_id=(SELECT id FROM users LIMIT 1) LIMIT 1)",
-                                0) != 0;
+    return db_select_int64(
+               "SELECT EXISTS(SELECT 1 FROM sessions "
+               "WHERE user_id=(SELECT id FROM users LIMIT 1) AND deleted_at=0 LIMIT 1) "
+               "OR EXISTS(SELECT 1 FROM habits "
+               "WHERE user_id=(SELECT id FROM users LIMIT 1) AND deleted_at=0 LIMIT 1) "
+               "OR EXISTS(SELECT 1 FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
+               "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
+               "AND (hd.completed!=0 OR hd.count>0) LIMIT 1) "
+               "OR EXISTS(SELECT 1 FROM social_snapshots "
+               "WHERE user_id=(SELECT id FROM users LIMIT 1) LIMIT 1)",
+               0) != 0;
 }
 
 int
@@ -1449,19 +1425,19 @@ storage_json_extract_text(const char *json, const char *path, char *out, size_t 
 static long long
 storage_max_sync_outbox_seq(void)
 {
-    return storage_select_int64("SELECT COALESCE(MAX(seq),0) FROM sync_outbox", 0);
+    return db_select_int64("SELECT COALESCE(MAX(seq),0) FROM sync_outbox", 0);
 }
 
 static int
 storage_has_pending_sync_outbox(void)
 {
-    return storage_select_int64("SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)", 0) != 0;
+    return db_select_int64("SELECT EXISTS(SELECT 1 FROM sync_outbox LIMIT 1)", 0) != 0;
 }
 
 static int
 storage_has_orphan_habit_days(void)
 {
-    return storage_select_int64(
+    return db_select_int64(
                "SELECT EXISTS(SELECT 1 FROM habit_days hd "
                "WHERE hd.habit_id<>'' "
                "AND NOT EXISTS (SELECT 1 FROM habits h WHERE h.id=hd.habit_id) "
@@ -2265,7 +2241,7 @@ storage_sync_status(InbeStorageSyncStatus *status)
     status->latest_protocol = (int)get_meta_int64(STORAGE_SYNC_LATEST_PROTOCOL_KEY,
                                                   INBE_SYNC_PROTOCOL_VERSION);
     status->protocol_upgrade_available = status->latest_protocol > INBE_SYNC_PROTOCOL_VERSION;
-    status->queued_changes = storage_select_int64("SELECT COUNT(*) FROM sync_outbox", 0);
+    status->queued_changes = db_select_int64("SELECT COUNT(*) FROM sync_outbox", 0);
     return 1;
 }
 
@@ -2414,7 +2390,7 @@ storage_habits_empty(void)
 int
 storage_habit_count(void)
 {
-    return (int)storage_select_int64("SELECT COUNT(*) FROM habits WHERE deleted_at=0", 0);
+    return db_select_int("SELECT COUNT(*) FROM habits WHERE deleted_at=0", 0);
 }
 
 int
