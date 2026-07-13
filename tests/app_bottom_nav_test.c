@@ -24,6 +24,8 @@ static const char *generic_button_clicked_label = NULL;
 static int padded_icon_click_index = -1;
 static int padded_icon_draw_count = 0;
 static int scroll_page_content_w_override = 0;
+static int pointer_release_consumed = 0;
+static Vector2 mouse_position = {0};
 
 static void
 expect(int condition, const char *message)
@@ -49,6 +51,8 @@ reset_state(void)
     padded_icon_click_index = -1;
     padded_icon_draw_count = 0;
     scroll_page_content_w_override = 0;
+    pointer_release_consumed = 0;
+    mouse_position = (Vector2){0};
     view_width = 320;
     view_height = 560;
     app_set_android_bottom_nav_height(0);
@@ -226,7 +230,7 @@ CheckCollisionPointRec(Vector2 point, Rectangle rec)
 Vector2
 GetMousePosition(void)
 {
-    return (Vector2){0};
+    return mouse_position;
 }
 
 Vector2
@@ -491,6 +495,16 @@ DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
 void
 ClearUIInputCaptures(void)
 {
+}
+
+int
+UIPointerReleaseOutside(Rectangle bounds)
+{
+    Vector2 mouse = GetMousePosition();
+
+    return mouse_released &&
+           !pointer_release_consumed &&
+           !CheckCollisionPointRec(mouse, bounds);
 }
 
 const char *
@@ -993,6 +1007,26 @@ test_compact_sidebar_close_footer_closes_to_home(void)
 }
 
 static void
+test_consumed_pfp_release_does_not_close_sidebar(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 720;
+    app.nav_sidebar_open = 1;
+    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    app.modal.active = 0;
+    mouse_released = 1;
+    pointer_release_consumed = 1;
+    mouse_position = (Vector2){100, 20};
+
+    app_draw_bottom_nav(&app);
+
+    expect(app.nav_sidebar_open == 1,
+           "consumed pfp picker release must not close sidebar");
+}
+
+static void
 test_sidebar_child_back_returns_to_compact_sidebar(void)
 {
     InbeApp app = test_app();
@@ -1053,6 +1087,7 @@ main(void)
     test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
     test_compact_sidebar_close_footer_closes_to_home();
+    test_consumed_pfp_release_does_not_close_sidebar();
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_becomes_overlay_when_width_expands();
 

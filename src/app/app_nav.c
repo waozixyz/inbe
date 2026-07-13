@@ -697,7 +697,6 @@ app_draw_nav_sidebar(InbeApp *app)
     int y;
     int hover = 0;
     int close_hover = 0;
-    Vector2 mouse;
     Color scrim = BLACK;
     UIScrollArea area;
     UIScrollView view;
@@ -744,12 +743,10 @@ app_draw_nav_sidebar(InbeApp *app)
     if(app->nav_sidebar_open_frame == app->inbe.frame)
         return;
 
-    mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
     if(app->nav_sidebar_open_frame != app->inbe.frame &&
-       IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-       !CheckCollisionPointRec(mouse, (Rectangle){(float)sidebar_x, 0.0f,
-                                                  (float)sidebar_w,
-                                                  (float)view_height})) {
+       UIPointerReleaseOutside((Rectangle){(float)sidebar_x, 0.0f,
+                                           (float)sidebar_w,
+                                           (float)view_height})) {
         app_close_nav_sidebar(app);
         return;
     }
