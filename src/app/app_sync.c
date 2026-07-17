@@ -28,6 +28,7 @@
 #define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 #define INBE_SYNC_SERVER_URL_DEFAULT "https://api.waozi.xyz"
 #define INBE_SYNC_INPUT_QUIET_SECONDS 0.45
+#define INBE_SOCIAL_ACTION_QUEUE_MAX 8
 
 typedef struct InbeSyncCoordinator {
     double dirty_sync_at;
@@ -37,8 +38,10 @@ typedef struct InbeSyncCoordinator {
     int social_refresh_pending;
     int social_refresh_running;
     int remote_sync_due;
-    char social_action[16];
-    char social_action_value[96];
+    int social_action_head;
+    int social_action_count;
+    char social_actions[INBE_SOCIAL_ACTION_QUEUE_MAX][16];
+    char social_action_values[INBE_SOCIAL_ACTION_QUEUE_MAX][96];
 } InbeSyncCoordinator;
 
 static InbeSyncCoordinator g_sync = {0};
@@ -56,6 +59,21 @@ typedef struct InbeSocialWorkerArgs {
     char action[16];
     char action_value[96];
 } InbeSocialWorkerArgs;
+
+typedef struct InbeSyncWorkerResult {
+    int finished;
+    int result;
+    int changed;
+} InbeSyncWorkerResult;
+
+typedef struct InbeSocialWorkerResult {
+    int finished;
+    int result;
+    char friend_requests_json[8192];
+    char friends_json[8192];
+    char leaderboard_json[8192];
+    char leaderboard_key[96];
+} InbeSocialWorkerResult;
 
 #if defined(_WIN32)
 #define sync_thread_return DWORD WINAPI
@@ -98,15 +116,8 @@ sync_thread_detach(SyncThread thread)
 }
 #endif
 
-static int g_sync_finished = 0;
-static int g_sync_finished_result = LYRA_SYNC_OK;
-static int g_sync_finished_changed = 0;
-static int g_social_finished = 0;
-static int g_social_finished_result = LYRA_SYNC_OK;
-static char g_social_friend_requests_json[8192];
-static char g_social_friends_json[8192];
-static char g_social_leaderboard_json[8192];
-static char g_social_leaderboard_key[96];
+static InbeSyncWorkerResult g_sync_result = {0, LYRA_SYNC_OK, 0};
+static InbeSocialWorkerResult g_social_result = {0, LYRA_SYNC_OK, "", "", "", ""};
 static int g_sync_events_running = 0;
 static char g_sync_events_url[256];
 #else
@@ -123,11 +134,170 @@ static const char *app_social_practice_id(int practice);
 static const char *app_social_metric_id(int practice, int metric);
 static void app_social_leaderboard_key(char *out, size_t out_size,
                                        int practice, int metric);
+static LyraSyncResult app_social_fetch(const char *url, const char *practice,
+                                       const char *metric, const char *action,
+                                       const char *action_value,
+                                       char *requests_json, size_t requests_size,
+                                       char *friends_json, size_t friends_size,
+                                       char *leaderboard_json,
+                                       size_t leaderboard_size);
+static void app_social_apply_result(InbeApp *app, const char *requests_json,
+                                    const char *friends_json,
+                                    const char *leaderboard_json,
+                                    const char *leaderboard_key);
 
 static void
 app_queue_social_refresh(void)
 {
     g_sync.social_refresh_pending = 1;
+}
+
+static int
+app_social_peek_action(char *action, size_t action_size,
+                       char *value, size_t value_size)
+{
+    int index;
+
+    if(action != NULL && action_size > 0)
+        action[0] = '\0';
+    if(value != NULL && value_size > 0)
+        value[0] = '\0';
+    if(g_sync.social_action_count <= 0)
+        return 0;
+    index = g_sync.social_action_head;
+    if(action != NULL && action_size > 0)
+        snprintf(action, action_size, "%s", g_sync.social_actions[index]);
+    if(value != NULL && value_size > 0)
+        snprintf(value, value_size, "%s", g_sync.social_action_values[index]);
+    return 1;
+}
+
+static int
+app_social_pop_action(char *action, size_t action_size,
+                      char *value, size_t value_size)
+{
+    int index;
+
+    if(action != NULL && action_size > 0)
+        action[0] = '\0';
+    if(value != NULL && value_size > 0)
+        value[0] = '\0';
+    if(g_sync.social_action_count <= 0)
+        return 0;
+    index = g_sync.social_action_head;
+    if(action != NULL && action_size > 0)
+        snprintf(action, action_size, "%s", g_sync.social_actions[index]);
+    if(value != NULL && value_size > 0)
+        snprintf(value, value_size, "%s", g_sync.social_action_values[index]);
+    g_sync.social_actions[index][0] = '\0';
+    g_sync.social_action_values[index][0] = '\0';
+    g_sync.social_action_head = (g_sync.social_action_head + 1) %
+                                INBE_SOCIAL_ACTION_QUEUE_MAX;
+    g_sync.social_action_count--;
+    return 1;
+}
+
+static int
+app_social_push_action(const char *action, const char *value)
+{
+    int index;
+
+    if(action == NULL || action[0] == '\0' || value == NULL || value[0] == '\0')
+        return 0;
+    if(g_sync.social_action_count >= INBE_SOCIAL_ACTION_QUEUE_MAX) {
+        TraceLog(LOG_WARNING, "SYNC: social action queue full");
+        return 0;
+    }
+    index = (g_sync.social_action_head + g_sync.social_action_count) %
+            INBE_SOCIAL_ACTION_QUEUE_MAX;
+    snprintf(g_sync.social_actions[index], sizeof(g_sync.social_actions[index]),
+             "%s", action);
+    snprintf(g_sync.social_action_values[index],
+             sizeof(g_sync.social_action_values[index]), "%s", value);
+    g_sync.social_action_count++;
+    g_sync.social_refresh_pending = 1;
+    return 1;
+}
+
+static LyraSyncResult
+app_social_fetch(const char *url, const char *practice, const char *metric,
+                 const char *action, const char *action_value,
+                 char *requests_json, size_t requests_size,
+                 char *friends_json, size_t friends_size,
+                 char *leaderboard_json, size_t leaderboard_size)
+{
+    LyraSyncResult result = LYRA_SYNC_INVALID_URL;
+    LyraSyncResult friends_result = LYRA_SYNC_REQUEST_FAILED;
+    LyraSyncResult leaderboard_result = LYRA_SYNC_REQUEST_FAILED;
+
+    if(requests_json != NULL && requests_size > 0)
+        snprintf(requests_json, requests_size, "{\"incoming\":[],\"outgoing\":[]}");
+    if(friends_json != NULL && friends_size > 0)
+        snprintf(friends_json, friends_size, "{\"friends\":[]}");
+    if(leaderboard_json != NULL && leaderboard_size > 0)
+        snprintf(leaderboard_json, leaderboard_size, "{\"rows\":[]}");
+    if(url == NULL || url[0] == '\0')
+        return LYRA_SYNC_INVALID_URL;
+
+    if(action != NULL && strcmp(action, "send") == 0) {
+        result = sync_client_send_friend_request(url, action_value);
+        if(result != LYRA_SYNC_OK)
+            return result;
+    } else if(action != NULL && strcmp(action, "accept") == 0) {
+        result = sync_client_accept_friend_request(url, action_value);
+        if(result != LYRA_SYNC_OK)
+            return result;
+    } else if(action != NULL && strcmp(action, "decline") == 0) {
+        result = sync_client_decline_friend_request(url, action_value);
+        if(result != LYRA_SYNC_OK)
+            return result;
+    } else if(action != NULL && strcmp(action, "remove") == 0) {
+        result = sync_client_remove_friend(url, action_value);
+        if(result != LYRA_SYNC_OK)
+            return result;
+    }
+
+    result = sync_client_get_friend_requests(url, requests_json, requests_size);
+    if(result != LYRA_SYNC_OK)
+        return result;
+    friends_result = sync_client_get_friends(url, friends_json, friends_size);
+    if(friends_result != LYRA_SYNC_OK)
+        return friends_result;
+    leaderboard_result = sync_client_get_friend_stats(url, "inbe", practice,
+                                                      metric, leaderboard_json,
+                                                      leaderboard_size);
+    return leaderboard_result;
+}
+
+static void
+app_social_apply_result(InbeApp *app, const char *requests_json,
+                        const char *friends_json,
+                        const char *leaderboard_json,
+                        const char *leaderboard_key)
+{
+    storage_set_social_cache_json("friends.requests", requests_json);
+    storage_set_social_cache_json("friends.list", friends_json);
+    if(leaderboard_key != NULL && leaderboard_key[0] != '\0')
+        storage_set_social_cache_json(leaderboard_key, leaderboard_json);
+    if(app != NULL) {
+        snprintf(app->profile_friend_requests_json,
+                 sizeof(app->profile_friend_requests_json), "%s",
+                 requests_json != NULL ? requests_json : "{\"incoming\":[],\"outgoing\":[]}");
+        snprintf(app->profile_friends_json, sizeof(app->profile_friends_json),
+                 "%s", friends_json != NULL ? friends_json : "{\"friends\":[]}");
+        if(leaderboard_key != NULL && leaderboard_key[0] != '\0') {
+            char current_key[96];
+            app_social_leaderboard_key(current_key, sizeof(current_key),
+                                       app->profile_leaderboard_practice,
+                                       app->profile_leaderboard_metric);
+            if(strcmp(current_key, leaderboard_key) == 0)
+                snprintf(app->profile_leaderboard_json,
+                         sizeof(app->profile_leaderboard_json), "%s",
+                         leaderboard_json != NULL ? leaderboard_json : "{\"rows\":[]}");
+        }
+        app->profile_friends_loaded = 1;
+        app->profile_leaderboard_loaded = 1;
+    }
 }
 
 #if !defined(PLATFORM_WEB)
@@ -145,9 +315,9 @@ app_sync_worker(void *userdata)
     }
 
     sync_lock();
-    g_sync_finished_result = result;
-    g_sync_finished_changed = changed;
-    g_sync_finished = 1;
+    g_sync_result.result = result;
+    g_sync_result.changed = changed;
+    g_sync_result.finished = 1;
     g_sync.sync_running = 0;
     sync_unlock();
     return sync_thread_done;
@@ -158,59 +328,35 @@ app_social_worker(void *userdata)
 {
     InbeSocialWorkerArgs *args = userdata;
     LyraSyncResult result = LYRA_SYNC_INVALID_URL;
-    LyraSyncResult friends_result = LYRA_SYNC_REQUEST_FAILED;
-    LyraSyncResult leaderboard_result = LYRA_SYNC_REQUEST_FAILED;
-    char requests_json[8192] = "{\"incoming\":[],\"outgoing\":[]}";
-    char friends_json[8192] = "{\"friends\":[]}";
-    char leaderboard_json[8192] = "{\"rows\":[]}";
+    char requests_json[8192];
+    char friends_json[8192];
+    char leaderboard_json[8192];
 
-    if(args != NULL) {
-        if(strcmp(args->action, "send") == 0) {
-            result = sync_client_send_friend_request(args->url, args->action_value);
-            if(result != LYRA_SYNC_OK)
-                goto done;
-        } else if(strcmp(args->action, "accept") == 0) {
-            result = sync_client_accept_friend_request(args->url, args->action_value);
-            if(result != LYRA_SYNC_OK)
-                goto done;
-        } else if(strcmp(args->action, "decline") == 0) {
-            result = sync_client_decline_friend_request(args->url, args->action_value);
-            if(result != LYRA_SYNC_OK)
-                goto done;
-        } else if(strcmp(args->action, "remove") == 0) {
-            result = sync_client_remove_friend(args->url, args->action_value);
-            if(result != LYRA_SYNC_OK)
-                goto done;
-        }
-
-        result = sync_client_get_friend_requests(args->url, requests_json,
-                                                 sizeof(requests_json));
-        if(result == LYRA_SYNC_OK) {
-            friends_result = sync_client_get_friends(args->url, friends_json,
-                                                     sizeof(friends_json));
-            leaderboard_result =
-                sync_client_get_friend_stats(args->url, "inbe", args->practice,
-                                             args->metric, leaderboard_json,
-                                             sizeof(leaderboard_json));
-            if(friends_result != LYRA_SYNC_OK)
-                result = friends_result;
-            else if(leaderboard_result != LYRA_SYNC_OK)
-                result = leaderboard_result;
-        }
+    if(args != NULL)
+        result = app_social_fetch(args->url, args->practice, args->metric,
+                                  args->action, args->action_value,
+                                  requests_json, sizeof(requests_json),
+                                  friends_json, sizeof(friends_json),
+                                  leaderboard_json, sizeof(leaderboard_json));
+    else {
+        snprintf(requests_json, sizeof(requests_json), "{\"incoming\":[],\"outgoing\":[]}");
+        snprintf(friends_json, sizeof(friends_json), "{\"friends\":[]}");
+        snprintf(leaderboard_json, sizeof(leaderboard_json), "{\"rows\":[]}");
     }
 
-done:
     sync_lock();
-    g_social_finished_result = result;
-    snprintf(g_social_friend_requests_json, sizeof(g_social_friend_requests_json),
+    g_social_result.result = result;
+    snprintf(g_social_result.friend_requests_json,
+             sizeof(g_social_result.friend_requests_json),
              "%s", requests_json);
-    snprintf(g_social_friends_json, sizeof(g_social_friends_json), "%s",
+    snprintf(g_social_result.friends_json, sizeof(g_social_result.friends_json), "%s",
              friends_json);
-    snprintf(g_social_leaderboard_json, sizeof(g_social_leaderboard_json), "%s",
+    snprintf(g_social_result.leaderboard_json,
+             sizeof(g_social_result.leaderboard_json), "%s",
              leaderboard_json);
-    snprintf(g_social_leaderboard_key, sizeof(g_social_leaderboard_key), "%s",
+    snprintf(g_social_result.leaderboard_key, sizeof(g_social_result.leaderboard_key), "%s",
              args != NULL ? args->leaderboard_key : "");
-    g_social_finished = 1;
+    g_social_result.finished = 1;
     g_sync.social_refresh_running = 0;
     sync_unlock();
     free(args);
@@ -256,10 +402,10 @@ app_collect_finished_sync(void)
     int changed;
 
     sync_lock();
-    finished = g_sync_finished;
-    result = g_sync_finished_result;
-    changed = g_sync_finished_changed;
-    g_sync_finished = 0;
+    finished = g_sync_result.finished;
+    result = g_sync_result.result;
+    changed = g_sync_result.changed;
+    g_sync_result.finished = 0;
     sync_unlock();
 
     if(!finished)
@@ -485,37 +631,34 @@ app_apply_pending_social_refresh(InbeApp *app)
 
     if(!g_sync.social_refresh_pending || !app_background_sync_safe(app))
         return;
+    if(g_sync.dirty_sync_at > 0.0)
+        return;
 #if !defined(PLATFORM_WEB)
     {
         SyncThread thread;
         InbeSocialWorkerArgs *args;
 
-        sync_lock();
-        if(g_sync.sync_running || g_sync.social_refresh_running) {
-            sync_unlock();
-            return;
-        }
-        snprintf(action, sizeof(action), "%s", g_sync.social_action);
-        snprintf(action_value, sizeof(action_value), "%s", g_sync.social_action_value);
-        g_sync.social_action[0] = '\0';
-        g_sync.social_action_value[0] = '\0';
-        g_sync.social_refresh_running = 1;
-        sync_unlock();
-
         if(!app_sync_url(url, sizeof(url))) {
             sync_lock();
-            g_sync.social_refresh_running = 0;
+            g_sync.social_refresh_pending = g_sync.social_action_count > 0;
             sync_unlock();
-            g_sync.social_refresh_pending = 0;
             return;
         }
         args = malloc(sizeof(*args));
-        if(args == NULL) {
-            sync_lock();
-            g_sync.social_refresh_running = 0;
+        if(args == NULL)
+            return;
+        sync_lock();
+        if(g_sync.sync_running || g_sync.social_refresh_running) {
             sync_unlock();
+            free(args);
             return;
         }
+        app_social_peek_action(action, sizeof(action), action_value,
+                               sizeof(action_value));
+        g_sync.social_refresh_pending = 0;
+        g_sync.social_refresh_running = 1;
+        sync_unlock();
+
         snprintf(args->url, sizeof(args->url), "%s", url);
         snprintf(args->practice, sizeof(args->practice), "%s",
                  app_social_practice_id(app->profile_leaderboard_practice));
@@ -533,17 +676,57 @@ app_apply_pending_social_refresh(InbeApp *app)
             free(args);
             sync_lock();
             g_sync.social_refresh_running = 0;
+            g_sync.social_refresh_pending = 1;
             sync_unlock();
             TraceLog(LOG_WARNING, "SYNC: failed to start social refresh thread");
             return;
         }
+        sync_lock();
+        app_social_pop_action(action, sizeof(action), action_value,
+                              sizeof(action_value));
+        sync_unlock();
         sync_thread_detach(thread);
     }
 #else
-    TraceLog(LOG_INFO, "SYNC: refreshing social cache");
-    profile_social_refresh_cache(app);
+    if(!app_sync_url(url, sizeof(url))) {
+        g_sync.social_refresh_pending = g_sync.social_action_count > 0;
+        return;
+    }
+    app_social_peek_action(action, sizeof(action), action_value,
+                           sizeof(action_value));
+    {
+        char requests_json[8192];
+        char friends_json[8192];
+        char leaderboard_json[8192];
+        char leaderboard_key[96];
+        LyraSyncResult result;
+
+        app_social_leaderboard_key(leaderboard_key, sizeof(leaderboard_key),
+                                   app->profile_leaderboard_practice,
+                                   app->profile_leaderboard_metric);
+        TraceLog(LOG_INFO, "SYNC: refreshing social cache");
+        result = app_social_fetch(url,
+                                  app_social_practice_id(app->profile_leaderboard_practice),
+                                  app_social_metric_id(app->profile_leaderboard_practice,
+                                                       app->profile_leaderboard_metric),
+                                  action, action_value,
+                                  requests_json, sizeof(requests_json),
+                                  friends_json, sizeof(friends_json),
+                                  leaderboard_json, sizeof(leaderboard_json));
+        if(result == LYRA_SYNC_OK)
+            app_social_apply_result(app, requests_json, friends_json,
+                                    leaderboard_json, leaderboard_key);
+        else
+            TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
+                     result, GetLyraSyncResultName(result));
+        if(result == LYRA_SYNC_OK)
+            app_social_pop_action(action, sizeof(action), action_value,
+                                  sizeof(action_value));
+    }
 #endif
-    g_sync.social_refresh_pending = 0;
+#if defined(PLATFORM_WEB)
+    g_sync.social_refresh_pending = g_sync.social_action_count > 0;
+#endif
 }
 
 #if !defined(PLATFORM_WEB)
@@ -558,17 +741,18 @@ app_collect_finished_social_refresh(InbeApp *app)
     char leaderboard_key[96];
 
     sync_lock();
-    finished = g_social_finished;
-    result = g_social_finished_result;
+    finished = g_social_result.finished;
+    result = g_social_result.result;
     if(finished) {
         snprintf(requests_json, sizeof(requests_json), "%s",
-                 g_social_friend_requests_json);
-        snprintf(friends_json, sizeof(friends_json), "%s", g_social_friends_json);
+                 g_social_result.friend_requests_json);
+        snprintf(friends_json, sizeof(friends_json), "%s",
+                 g_social_result.friends_json);
         snprintf(leaderboard_json, sizeof(leaderboard_json), "%s",
-                 g_social_leaderboard_json);
+                 g_social_result.leaderboard_json);
         snprintf(leaderboard_key, sizeof(leaderboard_key), "%s",
-                 g_social_leaderboard_key);
-        g_social_finished = 0;
+                 g_social_result.leaderboard_key);
+        g_social_result.finished = 0;
     }
     sync_unlock();
 
@@ -579,28 +763,12 @@ app_collect_finished_social_refresh(InbeApp *app)
                  result, GetLyraSyncResultName(result));
         return;
     }
-    storage_set_social_cache_json("friends.requests", requests_json);
-    storage_set_social_cache_json("friends.list", friends_json);
-    if(leaderboard_key[0] != '\0')
-        storage_set_social_cache_json(leaderboard_key, leaderboard_json);
-    if(app != NULL) {
-        snprintf(app->profile_friend_requests_json,
-                 sizeof(app->profile_friend_requests_json), "%s", requests_json);
-        snprintf(app->profile_friends_json, sizeof(app->profile_friends_json),
-                 "%s", friends_json);
-        if(leaderboard_key[0] != '\0') {
-            char current_key[96];
-            app_social_leaderboard_key(current_key, sizeof(current_key),
-                                       app->profile_leaderboard_practice,
-                                       app->profile_leaderboard_metric);
-            if(strcmp(current_key, leaderboard_key) == 0)
-                snprintf(app->profile_leaderboard_json,
-                         sizeof(app->profile_leaderboard_json), "%s",
-                         leaderboard_json);
-        }
-        app->profile_friends_loaded = 1;
-        app->profile_leaderboard_loaded = 1;
-    }
+    app_social_apply_result(app, requests_json, friends_json, leaderboard_json,
+                            leaderboard_key);
+    sync_lock();
+    if(g_sync.social_action_count > 0)
+        g_sync.social_refresh_pending = 1;
+    sync_unlock();
     TraceLog(LOG_INFO, "SYNC: social cache refreshed");
 }
 #else
@@ -625,12 +793,10 @@ app_request_social_action(const char *action, const char *value)
         return;
 #if !defined(PLATFORM_WEB)
     sync_lock();
-    snprintf(g_sync.social_action, sizeof(g_sync.social_action), "%s", action);
-    snprintf(g_sync.social_action_value, sizeof(g_sync.social_action_value), "%s", value);
-    g_sync.social_refresh_pending = 1;
+    app_social_push_action(action, value);
     sync_unlock();
 #else
-    g_sync.social_refresh_pending = 1;
+    app_social_push_action(action, value);
 #endif
 }
 

@@ -70,6 +70,9 @@ Sem conta
 [profile_add_friend_button]
 Adicionar amigo
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Recebidos
 ---
@@ -115,7 +118,7 @@ Respiração Wim Hof
 Meditação
 ---
 [exercise_sun_salutation]
-Sun Salutation
+Saudacao ao sol
 ---
 [sun_salutation_work_in_progress]
 Trabalho em andamento
@@ -128,6 +131,15 @@ Ritmo inicial
 ---
 [sun_salutation_end_speed_label]
 Ritmo final
+---
+[sun_salutation_figure_label]
+Figura
+---
+[sun_salutation_figure_man]
+Homem
+---
+[sun_salutation_figure_woman]
+Mulher
 ---
 [sun_salutation_tempo_preview_label]
 Previa do ritmo
@@ -298,10 +310,10 @@ Um companheiro tranquilo para respiracao, habitos e sincronizacao.
 Tema
 ---
 [theme_mode_label]
-Theme mode
+Modo do tema
 ---
 [theme_follow_device]
-System
+Sistema
 ---
 [speed_label]
 Velocidade
@@ -505,6 +517,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Paleta
+---
+[theme_sky]
+Ceu
+---
+[theme_ocean]
+Oceano
+---
+[theme_forest]
+Floresta
+---
+[theme_sunset]
+Por do sol
+---
+[theme_lavender]
+Lavanda
+---
+[theme_cherry]
+Cereja
+---
+[theme_dawn]
+Amanhecer
+---
+[theme_sage]
+Salvia
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menta
+---
+[theme_cobalt]
+Cobalto
 ---
 [orientation_label]
 Orientação

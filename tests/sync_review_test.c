@@ -858,6 +858,8 @@ test_social_cache_is_server_authored_sync_state(void)
     check_true("store local social cache",
                storage_set_social_cache_json("friends.list",
                                              "{\"friends\":[{\"user_id_hash\":\"local-edit\"}]}"));
+    check_false("social cache alone is not local syncable data",
+                storage_has_local_syncable_data());
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_not_contains("social cache not uploaded as typed data", payload, "social_cache");
     check_not_contains("social cache not uploaded as op", payload, "friends.list");

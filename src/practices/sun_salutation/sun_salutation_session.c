@@ -29,11 +29,14 @@ sun_salutation_exit_to_start(InbeApp *app)
 static void
 sun_salutation_finish(InbeApp *app)
 {
-    int seconds = 1;
+    int repetitions;
 
     if(app == NULL)
         return;
-    if(data_save_session_path_for_activity(&seconds, 1, 0, EXERCISE_SUN_SALUTATION,
+    repetitions = app->sun_salutation.repetitions;
+    if(repetitions < 1)
+        repetitions = 1;
+    if(data_save_session_path_for_activity(&repetitions, 1, 0, EXERCISE_SUN_SALUTATION,
                                            NULL, 0)) {
         sync_habits_for_activity(app, EXERCISE_SUN_SALUTATION);
         app_auto_sync(app);
@@ -155,7 +158,7 @@ sun_salutation_update_timer(InbeApp *app)
 }
 
 static void
-draw_pose_image(Texture2D texture, int top_y, int bottom_y)
+draw_pose_image(Texture2D texture, int pose_index, int top_y, int bottom_y)
 {
     Rectangle src;
     Rectangle dst;
@@ -167,22 +170,75 @@ draw_pose_image(Texture2D texture, int top_y, int bottom_y)
 
     if(texture.id == 0 || bottom_y <= top_y)
         return;
+    if(pose_index < 0)
+        pose_index = 0;
+    if(pose_index >= SUN_SALUTATION_POSE_COUNT)
+        pose_index = SUN_SALUTATION_POSE_COUNT - 1;
 
     max_w = (float)(view_width - ScaleUIPx(48));
     max_h = (float)(bottom_y - top_y);
-    scale = max_w / (float)texture.width;
-    if((float)texture.height * scale > max_h)
-        scale = max_h / (float)texture.height;
+    scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W;
+    if((float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h)
+        scale = max_h / (float)SUN_SALUTATION_POSE_FRAME_H;
     if(scale <= 0.0f)
         return;
 
-    w = (float)texture.width * scale;
-    h = (float)texture.height * scale;
-    src = (Rectangle){0, 0, (float)texture.width, (float)texture.height};
+    w = (float)SUN_SALUTATION_POSE_FRAME_W * scale;
+    h = (float)SUN_SALUTATION_POSE_FRAME_H * scale;
+    src = (Rectangle){
+        (float)((pose_index % SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_W),
+        (float)((pose_index / SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_H),
+        (float)SUN_SALUTATION_POSE_FRAME_W,
+        (float)SUN_SALUTATION_POSE_FRAME_H
+    };
     dst = (Rectangle){((float)view_width - w) * 0.5f,
                       (float)top_y + (max_h - h) * 0.5f,
                       w, h};
     DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE);
+}
+
+static void
+draw_pose_timer(InbeApp *app, int seconds, int top_y, int bottom_y)
+{
+    char timer_text[24];
+    int elapsed_seconds;
+    int text_w;
+    int x;
+    int y;
+    int w;
+    int h = ScaleUIPx(5);
+    int fill_w;
+    int font = GetUISmallFontSize();
+    Color muted = DarkenUIColor(GetThemeText(), 32);
+
+    if(app == NULL || seconds <= 0 || bottom_y <= top_y)
+        return;
+
+    elapsed_seconds = app->sun_salutation.step_ticks / 60;
+    if(elapsed_seconds > seconds)
+        elapsed_seconds = seconds;
+    snprintf(timer_text, sizeof(timer_text), "%ds / %ds", elapsed_seconds, seconds);
+    text_w = MeasureUIText(timer_text, font);
+    x = (view_width - text_w) / 2;
+    y = top_y + ScaleUIPx(4);
+    DrawUIText(timer_text, x, y, font, muted);
+
+    w = view_width / 3;
+    if(w < ScaleUIPx(96))
+        w = ScaleUIPx(96);
+    if(w > ScaleUIPx(220))
+        w = ScaleUIPx(220);
+    x = (view_width - w) / 2;
+    y += font + ScaleUIPx(6);
+    fill_w = (w * app->sun_salutation.step_ticks) / (seconds * 60);
+    if(fill_w < 0)
+        fill_w = 0;
+    if(fill_w > w)
+        fill_w = w;
+    DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 12));
+    DrawRectangle(x, y, fill_w, h, GetThemeButtonHover());
 }
 
 void
@@ -190,13 +246,15 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
 {
     UIIconRowItem controls[3];
     UIIconRowResult row;
-    Texture2D pose;
     const char *step_label;
     char step_title[32];
     int step;
     int repetition;
     int repetitions;
+    int figure;
     int pose_index;
+    int step_seconds;
+    int ticks_per_step;
     int text_w;
     int title_h = GetUITitleBarHeight();
     int subtitle_h = ScaleUIPx(34);
@@ -242,12 +300,18 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
         repetition = 0;
     if(repetition >= repetitions)
         repetition = repetitions - 1;
+    figure = app->sun_salutation.figure;
+    if(figure < 0 || figure >= SUN_SALUTATION_ACTIVE_FIGURE_COUNT)
+        figure = SUN_SALUTATION_FIGURE_MAN;
     app->sun_salutation.step = step;
     app->sun_salutation.repetition = repetition;
     app->sun_salutation.repetitions = repetitions;
+    app->sun_salutation.figure = figure;
     pose_index = sun_salutation_step_pose_index(step);
-    pose = app->sun_salutation.poses[pose_index];
-
+    step_seconds = sun_salutation_step_seconds(app);
+    ticks_per_step = step_seconds * 60;
+    if(ticks_per_step <= 0)
+        ticks_per_step = SUN_SALUTATION_DEFAULT_START_SECONDS * 60;
     step_label = sun_salutation_step_label(step);
     FormatLocaleText(step_title, sizeof(step_title), "sun_salutation_session_step_title",
                      step + 1, SUN_SALUTATION_STEP_COUNT);
@@ -288,7 +352,9 @@ sun_salutation_draw_screen(InbeApp *app, int center_x, int center_y)
     });
 
     image_bottom = row.y - ScaleUIPx(18);
-    draw_pose_image(pose, content_top, image_bottom);
+    draw_pose_timer(app, step_seconds, content_top, image_bottom);
+    draw_pose_image(app->sun_salutation.pose_sheets[figure], pose_index,
+                    content_top + ScaleUIPx(28), image_bottom);
 
     if(row.clicked_index == 0)
         sun_salutation_step_back(app);

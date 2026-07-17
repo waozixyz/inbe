@@ -70,6 +70,9 @@ Zadny ucet
 [profile_add_friend_button]
 Pridat pritele
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Prichozi
 ---
@@ -115,7 +118,7 @@ Wim Hofovo dýchání
 Meditace
 ---
 [exercise_sun_salutation]
-Sun Salutation
+Pozdrav slunci
 ---
 [sun_salutation_work_in_progress]
 Pracuje se
@@ -128,6 +131,15 @@ Pocatecni tempo
 ---
 [sun_salutation_end_speed_label]
 Koncove tempo
+---
+[sun_salutation_figure_label]
+Postava
+---
+[sun_salutation_figure_man]
+Muz
+---
+[sun_salutation_figure_woman]
+Zena
 ---
 [sun_salutation_tempo_preview_label]
 Nahled tempa
@@ -298,7 +310,7 @@ Klidny pruvodce pro dychani, navyky a synchronizaci.
 Motiv
 ---
 [theme_mode_label]
-Theme mode
+Rezim motivu
 ---
 [theme_follow_device]
 System
@@ -505,6 +517,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Paleta
+---
+[theme_sky]
+Nebe
+---
+[theme_ocean]
+Ocean
+---
+[theme_forest]
+Les
+---
+[theme_sunset]
+Zapad slunce
+---
+[theme_lavender]
+Levandule
+---
+[theme_cherry]
+Tresen
+---
+[theme_dawn]
+Usvit
+---
+[theme_sage]
+Salvej
+---
+[theme_sepia]
+Sepie
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Mata
+---
+[theme_cobalt]
+Kobalt
 ---
 [orientation_label]
 Orientace

@@ -1150,6 +1150,40 @@ test_existing_sessions_materialize_after_habit_save(void)
 }
 
 static void
+test_sync_apply_meditation_logs_feed_profile_stats(void)
+{
+    char root[512];
+    int streak = -1;
+    long avg_hold = -1;
+
+    make_clean_root(root, sizeof(root), "meditation-log-profile-stats");
+    check_true("init meditation log profile db", storage_init(root));
+    check_true("apply meditation log profile sync",
+               storage_apply_sync_response_json(
+                   "{\"server_version\":1,\"server_state_hash\":\"h1\","
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],"
+                   "\"sessions\":[{\"id\":\"med-session-1\","
+                   "\"started_at\":\"2026-07-15T00:00:00Z\","
+                   "\"local_date\":20260715,\"topic\":0,\"activity\":1,"
+                   "\"source\":\"sync\",\"rounds_hash\":101,\"deleted_at\":0,"
+                   "\"updated_at\":\"2026-07-15T00:00:00Z\","
+                   "\"rounds\":[{\"round_index\":0,\"hold_seconds\":600}]}],"
+                   "\"meditation_logs\":["
+                   "{\"id\":\"med-log-external\",\"session_id\":\"external-log-session\","
+                   "\"duration_seconds\":1200,"
+                   "\"completed_at\":\"2026-07-14T00:00:00Z\"},"
+                   "{\"id\":\"med-log-duplicate\",\"session_id\":\"med-session-1\","
+                   "\"duration_seconds\":3000,"
+                   "\"completed_at\":\"2026-07-15T00:00:00Z\"}]}}"));
+    check_true("meditation log profile stats call",
+               storage_profile_activity_stats(1, 20260716, &streak, &avg_hold));
+    check_int("meditation log profile streak", streak, 2);
+    check_int("meditation log profile average", (int)avg_hold, 900);
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 metadata_history_callback(const char *id, int year, int month, int day, int hour, int minute,
                           int second, int topic, int activity, const int *rounds, int round_count,
                           void *user)
@@ -1647,6 +1681,10 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
     habit_set_day(&habits, 2, 20260617, 1);
     habits_save(&habits);
     storage_set_setting_int("speed", 7);
+    storage_set_setting_int("sun_salutation_repetitions", 6);
+    storage_set_setting_int("sun_salutation_start_seconds", 9);
+    storage_set_setting_int("sun_salutation_end_seconds", 4);
+    storage_set_setting_int("sun_salutation_figure", 1);
     storage_set_setting_text("language", "en");
     storage_set_setting_text("future_unknown_key", "ignore-me");
     check_true("export multi habit source", storage_export_zip(zip_path));
@@ -1654,7 +1692,7 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
 }
 
 static void
-assert_multi_habits_imported(const char *root, int want_speed)
+assert_multi_habits_imported(const char *root, int want_speed, int expect_settings)
 {
     InbeHabits habits;
     InbeHabit *habit;
@@ -1676,6 +1714,19 @@ assert_multi_habits_imported(const char *root, int want_speed)
     habit = find_habit_ci(&habits, "Cold Shower");
     check_true("multi cold shower day", habit != NULL && habit_completed_day(habit, 20260617));
     check_int("multi import speed setting", storage_get_setting_int("speed", -1), want_speed);
+    if(expect_settings) {
+        check_int("multi import sun reps setting",
+                  storage_get_setting_int("sun_salutation_repetitions", -1), 6);
+        check_int("multi import sun start setting",
+                  storage_get_setting_int("sun_salutation_start_seconds", -1), 9);
+        check_int("multi import sun end setting",
+                  storage_get_setting_int("sun_salutation_end_seconds", -1), 4);
+        check_int("multi import sun figure setting",
+                  storage_get_setting_int("sun_salutation_figure", -1), 1);
+    } else {
+        check_int("multi data-only skips sun figure",
+                  storage_get_setting_int("sun_salutation_figure", -1), -1);
+    }
     check_str("multi import unknown setting", storage_get_setting_text("future_unknown_key"), NULL);
     storage_close();
 }
@@ -1704,14 +1755,14 @@ test_import_modes_preserve_habits_and_settings_choice(void)
     check_true("multi data only import",
                storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_ONLY));
     storage_close();
-    assert_multi_habits_imported(dest_data, 1);
+    assert_multi_habits_imported(dest_data, 1, 0);
 
     check_true("init settings import dest", storage_init(dest_settings));
     storage_set_setting_int("speed", 1);
     check_true("multi data settings import",
                storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
     storage_close();
-    assert_multi_habits_imported(dest_settings, 7);
+    assert_multi_habits_imported(dest_settings, 7, 1);
 
     remove_tree(source);
     remove_tree(dest_data);
@@ -2011,6 +2062,7 @@ main(void)
     test_deleted_linked_session_clears_synced_habit_day();
     test_deleted_linked_session_preserves_manual_habit_count();
     test_existing_sessions_materialize_after_habit_save();
+    test_sync_apply_meditation_logs_feed_profile_stats();
     test_session_metadata();
 
     if(g_failures != 0) {

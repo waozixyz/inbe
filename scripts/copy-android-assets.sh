@@ -22,20 +22,7 @@ ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
 rm -rf "$ASSETS_DIR"
 mkdir -p "$ASSETS_DIR"
 
-# Build fonts only when explicitly requested. Android/F-Droid builds use the
-# committed glyph atlas so they do not need host build tools beyond Gradle.
-if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
-    echo "Building fonts..."
-    mkdir -p assets/fonts
-    OTFCHOP_DIR="${OTFCHOP_DIR:-vendor/otfchop}"
-    if [ ! -x "$OTFCHOP_DIR/otfchop" ]; then
-        OTFCHOP_DIR="vendor/otfchop"
-        make -C "$OTFCHOP_DIR" otfchop
-    fi
-    "$OTFCHOP_DIR/otfchop" "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales
-else
-    echo "Using versioned fonts..."
-fi
+echo "Using versioned Noto font sources..."
 
 mkdir -p build
 sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
@@ -46,8 +33,13 @@ sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/practices/whm/2.png \
     assets/practices/meditation/1.png \
     assets/practices/*/banner.png \
-    assets/fonts/locales.png \
-    assets/fonts/locales.dat \
+    assets/practices/sunsalutation/poses_man_sheet.png \
+    assets/practices/sunsalutation/poses_woman_sheet.png \
+    vendor/flint/fonts/noto/NotoSans-Regular.ttf \
+    vendor/flint/fonts/noto/NotoSansSC-Regular.otf \
+    vendor/flint/fonts/noto/NotoSansJP-Regular.otf \
+    vendor/flint/fonts/noto/NotoSansKR-Regular.otf \
+    vendor/flint/fonts/noto/NotoSansTC-Regular.otf \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"

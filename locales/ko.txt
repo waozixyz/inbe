@@ -70,6 +70,9 @@ Sync
 [profile_add_friend_button]
 친구 추가
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 받은 요청
 ---
@@ -115,7 +118,7 @@ Add item
 명상
 ---
 [exercise_sun_salutation]
-Sun Salutation
+태양 경배
 ---
 [sun_salutation_work_in_progress]
 작업 중
@@ -128,6 +131,15 @@ Sun Salutation
 ---
 [sun_salutation_end_speed_label]
 종료 템포
+---
+[sun_salutation_figure_label]
+인물
+---
+[sun_salutation_figure_man]
+남성
+---
+[sun_salutation_figure_woman]
+여성
 ---
 [sun_salutation_tempo_preview_label]
 템포 미리보기
@@ -298,10 +310,10 @@ Finish
 테마
 ---
 [theme_mode_label]
-Theme mode
+테마 모드
 ---
 [theme_follow_device]
-System
+시스템
 ---
 [theme_system]
 시스템
@@ -311,6 +323,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 팔레트
+---
+[theme_sky]
+하늘
+---
+[theme_ocean]
+바다
+---
+[theme_forest]
+숲
+---
+[theme_sunset]
+노을
+---
+[theme_lavender]
+라벤더
+---
+[theme_cherry]
+체리
+---
+[theme_dawn]
+새벽
+---
+[theme_sage]
+세이지
+---
+[theme_sepia]
+세피아
+---
+[theme_mono]
+모노
+---
+[theme_mint]
+민트
+---
+[theme_cobalt]
+코발트
 ---
 [orientation_label]
 화면 방향

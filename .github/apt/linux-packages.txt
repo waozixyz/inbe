@@ -1,6 +1,7 @@
 build-essential
 ca-certificates
 curl
+dpkg
 libcurl4-openssl-dev
 libdrm-dev
 libdrm2
@@ -20,4 +21,6 @@ libsdl2-2.0-0
 libsdl2-dev
 patchelf
 pkg-config
+podman
+rpm
 zip

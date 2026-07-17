@@ -70,6 +70,9 @@ No account
 [profile_add_friend_button]
 Add friend
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Incoming
 ---
@@ -128,6 +131,15 @@ Start tempo
 ---
 [sun_salutation_end_speed_label]
 End tempo
+---
+[sun_salutation_figure_label]
+Figure
+---
+[sun_salutation_figure_man]
+Man
+---
+[sun_salutation_figure_woman]
+Woman
 ---
 [sun_salutation_tempo_preview_label]
 Tempo preview
@@ -317,6 +329,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Palette
+---
+[theme_sky]
+Sky
+---
+[theme_ocean]
+Ocean
+---
+[theme_forest]
+Forest
+---
+[theme_sunset]
+Sunset
+---
+[theme_lavender]
+Lavender
+---
+[theme_cherry]
+Cherry
+---
+[theme_dawn]
+Dawn
+---
+[theme_sage]
+Sage
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Mint
+---
+[theme_cobalt]
+Cobalt
 ---
 [orientation_label]
 Orientation

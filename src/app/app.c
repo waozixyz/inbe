@@ -368,10 +368,13 @@ app_enter_route(InbeApp *app, AppRoute route)
     if(app == NULL)
         return;
     if(route.screen == InbeScreenProfile) {
-        if(route.profile_tab == PROFILE_TAB_FRIENDS)
+        if(route.profile_tab == PROFILE_TAB_FRIENDS) {
             profile_social_load_friends_cache(app);
-        else if(route.profile_tab == PROFILE_TAB_LEADERBOARD)
+            app_request_social_refresh(app);
+        } else if(route.profile_tab == PROFILE_TAB_LEADERBOARD) {
             profile_social_load_leaderboard_cache(app);
+            app_request_social_refresh(app);
+        }
     }
 }
 
@@ -758,48 +761,257 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
     }
 }
 
+typedef struct UIFontCodepoints {
+    int *values;
+    int count;
+    int cap;
+} UIFontCodepoints;
+
+static void
+ui_font_codepoints_free(UIFontCodepoints *set)
+{
+    if(set == NULL)
+        return;
+    free(set->values);
+    set->values = NULL;
+    set->count = 0;
+    set->cap = 0;
+}
+
+static int
+ui_font_codepoints_has(const UIFontCodepoints *set, int codepoint)
+{
+    if(set == NULL)
+        return 0;
+    for(int i = 0; i < set->count; i++) {
+        if(set->values[i] == codepoint)
+            return 1;
+    }
+    return 0;
+}
+
+static int
+ui_font_codepoints_add(UIFontCodepoints *set, int codepoint)
+{
+    int *next;
+    int next_cap;
+
+    if(set == NULL || codepoint <= 0 || codepoint >= 0x110000)
+        return 0;
+    if(codepoint >= 0xD800 && codepoint <= 0xDFFF)
+        return 0;
+    if(ui_font_codepoints_has(set, codepoint))
+        return 1;
+
+    if(set->count >= set->cap) {
+        next_cap = set->cap == 0 ? 128 : set->cap * 2;
+        next = realloc(set->values, (size_t)next_cap * sizeof(*next));
+        if(next == NULL)
+            return 0;
+        set->values = next;
+        set->cap = next_cap;
+    }
+
+    set->values[set->count++] = codepoint;
+    return 1;
+}
+
+static void
+ui_font_codepoints_add_ascii(UIFontCodepoints *set)
+{
+    for(int codepoint = 0x20; codepoint <= 0x7E; codepoint++)
+        (void)ui_font_codepoints_add(set, codepoint);
+}
+
+static void
+ui_font_codepoints_add_data(UIFontCodepoints *set, const unsigned char *text, unsigned int size)
+{
+    if(set == NULL || text == NULL)
+        return;
+
+    for(unsigned int i = 0; i < size;) {
+        int codepoint;
+        unsigned char c = text[i];
+
+        if(c < 0x80) {
+            codepoint = c;
+            i++;
+        } else if((c & 0xE0) == 0xC0 && i + 1 < size) {
+            codepoint = ((int)(c & 0x1F) << 6) | (int)(text[i + 1] & 0x3F);
+            i += 2;
+        } else if((c & 0xF0) == 0xE0 && i + 2 < size) {
+            codepoint = ((int)(c & 0x0F) << 12) |
+                        ((int)(text[i + 1] & 0x3F) << 6) |
+                        (int)(text[i + 2] & 0x3F);
+            i += 3;
+        } else if((c & 0xF8) == 0xF0 && i + 3 < size) {
+            codepoint = ((int)(c & 0x07) << 18) |
+                        ((int)(text[i + 1] & 0x3F) << 12) |
+                        ((int)(text[i + 2] & 0x3F) << 6) |
+                        (int)(text[i + 3] & 0x3F);
+            i += 4;
+        } else {
+            i++;
+            continue;
+        }
+        if(codepoint != '\n' && codepoint != '\r' && codepoint != '\t')
+            (void)ui_font_codepoints_add(set, codepoint);
+    }
+}
+
+static const char *
+ui_font_asset_for_locale(const char *code)
+{
+    if(code != NULL) {
+        if(strcmp(code, "zh") == 0)
+            return "vendor/flint/fonts/noto/NotoSansSC-Regular.otf";
+        if(strcmp(code, "ja") == 0)
+            return "vendor/flint/fonts/noto/NotoSansJP-Regular.otf";
+        if(strcmp(code, "ko") == 0)
+            return "vendor/flint/fonts/noto/NotoSansKR-Regular.otf";
+        if(strcmp(code, "zh-TW") == 0 || strcmp(code, "zh_Hant") == 0)
+            return "vendor/flint/fonts/noto/NotoSansTC-Regular.otf";
+    }
+    return "vendor/flint/fonts/noto/NotoSans-Regular.ttf";
+}
+
+static int
+load_locale_font_codepoints(const char *code, UIFontCodepoints *set)
+{
+    char path[64];
+    const EmbeddedAsset *asset;
+
+    if(set == NULL)
+        return 0;
+
+    ui_font_codepoints_add_ascii(set);
+    if(code == NULL || code[0] == '\0')
+        code = "en";
+
+    asset = GetEmbeddedAsset("locales/index.txt");
+    if(asset != NULL)
+        ui_font_codepoints_add_data(set, asset->data, asset->size);
+
+    snprintf(path, sizeof(path), "locales/%s.txt", code);
+    asset = GetEmbeddedAsset(path);
+    if(asset != NULL)
+        ui_font_codepoints_add_data(set, asset->data, asset->size);
+
+    if(strcmp(code, "en") != 0) {
+        asset = GetEmbeddedAsset("locales/en.txt");
+        if(asset != NULL)
+            ui_font_codepoints_add_data(set, asset->data, asset->size);
+    }
+
+    return set->count > 0;
+}
+
+static int
+load_language_picker_font_codepoints(UIFontCodepoints *set)
+{
+    const EmbeddedAsset *asset;
+
+    if(set == NULL)
+        return 0;
+
+    ui_font_codepoints_add_ascii(set);
+    asset = GetEmbeddedAsset("locales/index.txt");
+    if(asset != NULL)
+        ui_font_codepoints_add_data(set, asset->data, asset->size);
+    return set->count > 0;
+}
+
+static int
+register_ui_font_source(const char *name, const char *path,
+                        const UIFontCodepoints *codepoints)
+{
+    const EmbeddedAsset *asset;
+
+    if(name == NULL || path == NULL || codepoints == NULL || codepoints->count <= 0)
+        return 0;
+
+    asset = GetEmbeddedAsset(path);
+    if(asset == NULL)
+        return 0;
+
+    return RegisterUIFontSource(name, GetEmbeddedAssetExtension(path),
+                                asset->data, asset->size,
+                                codepoints->values, codepoints->count);
+}
+
+static void
+register_language_picker_fonts(void)
+{
+    UIFontCodepoints codepoints = {0};
+
+    if(!load_language_picker_font_codepoints(&codepoints)) {
+        ui_font_codepoints_free(&codepoints);
+        return;
+    }
+
+    (void)register_ui_font_source("ui-lang-latin",
+                                  "vendor/flint/fonts/noto/NotoSans-Regular.ttf",
+                                  &codepoints);
+    (void)register_ui_font_source("ui-lang-ja",
+                                  "vendor/flint/fonts/noto/NotoSansJP-Regular.otf",
+                                  &codepoints);
+    (void)register_ui_font_source("ui-lang-ko",
+                                  "vendor/flint/fonts/noto/NotoSansKR-Regular.otf",
+                                  &codepoints);
+    (void)register_ui_font_source("ui-lang-zh",
+                                  "vendor/flint/fonts/noto/NotoSansSC-Regular.otf",
+                                  &codepoints);
+
+    ui_font_codepoints_free(&codepoints);
+}
+
 static int
 load_locale_font(InbeApp *app)
 {
-    Font font;
     Image white;
-    const EmbeddedAsset *png;
-    const EmbeddedAsset *dat;
+    UIFontCodepoints codepoints = {0};
+    const char *code;
+    const char *font_path;
+    const EmbeddedAsset *font_asset;
+    int ok = 0;
 
     if(app == NULL)
         return 0;
 
-    png = GetEmbeddedAsset("assets/fonts/locales.png");
-    dat = GetEmbeddedAsset("assets/fonts/locales.dat");
-    if(png == NULL || dat == NULL)
+    code = GetCurrentLocaleCode();
+    if(code == NULL || code[0] == '\0')
+        code = "en";
+    font_path = ui_font_asset_for_locale(code);
+    font_asset = GetEmbeddedAsset(font_path);
+    if(font_asset == NULL)
         return 0;
+    if(!load_locale_font_codepoints(code, &codepoints))
+        goto done;
 
-    font = LoadUIChoppedFontFromMemory(png->data, png->size,
-                                                    dat->data, dat->size,
-                                                    UI_TEXT_BASE_SIZE);
-    if(font.texture.id == 0)
-        return 0;
+    ClearUIFonts();
+    if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
+                             font_asset->data, font_asset->size,
+                             codepoints.values, codepoints.count))
+        goto done;
+    register_language_picker_fonts();
+    if(!UseUIFont("ui"))
+        goto done;
 
     white = GenImageColor(1, 1, WHITE);
     app->font_shapes_texture = LoadTextureFromImage(white);
     UnloadImage(white);
-    if(app->font_shapes_texture.id == 0) {
-        UnloadUIFont(&font);
-        goto fail;
-    }
+    if(app->font_shapes_texture.id == 0)
+        goto done;
     SetTextureFilter(app->font_shapes_texture, TEXTURE_FILTER_POINT);
 
-    app->locale_font = font;
-    app->locale_font_8 = font;
-    SetUIFont(app->locale_font);
-    SetUISmallFont(app->locale_font);
     SetShapesTexture(app->font_shapes_texture, (Rectangle){0, 0, 1, 1});
-    return 1;
+    ok = 1;
 
-fail:
-    app->locale_font = (Font){0};
-    app->locale_font_8 = (Font){0};
-    return 0;
+done:
+    ui_font_codepoints_free(&codepoints);
+    if(!ok)
+        ClearUIFonts();
+    return ok;
 }
 
 static void
@@ -807,12 +1019,7 @@ unload_locale_font(InbeApp *app)
 {
     if(app == NULL)
         return;
-
-    SetUIFont((Font){0});
-    SetUISmallFont((Font){0});
-    UnloadUIFont(&app->locale_font);
-    app->locale_font = (Font){0};
-    app->locale_font_8 = (Font){0};
+    ClearUIFonts();
 }
 
 static void
@@ -820,12 +1027,7 @@ discard_locale_font_cpu(InbeApp *app)
 {
     if(app == NULL)
         return;
-    free(app->locale_font.glyphs);
-    free(app->locale_font.recs);
-    app->locale_font = (Font){0};
-    app->locale_font_8 = (Font){0};
-    SetUIFont((Font){0});
-    SetUISmallFont((Font){0});
+    ClearUIFonts();
 }
 
 static void
@@ -847,7 +1049,7 @@ app_reload_graphics_resources(InbeApp *app)
     app->font_shapes_texture = (Texture2D){0};
     discard_locale_font_cpu(app);
     if(!load_locale_font(app))
-        TraceLog(LOG_WARNING, "FONT: Failed to reload chopped locale font");
+        TraceLog(LOG_WARNING, "FONT: Failed to reload Noto UI font");
 }
 
 void
@@ -887,6 +1089,8 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
 
     snprintf(app->language, sizeof(app->language), "%s", code);
     app->language_selected = 1;
+    if(!load_locale_font(app))
+        TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font for locale %s", code);
     refresh_locale_dependent_text(app);
 
     if(save_now)
@@ -1336,9 +1540,6 @@ app_init(void *vapp) {
     if(app == 0)
         return;
 
-    app->locale_font = (Font){0};
-    app->locale_font_8 = (Font){0};
-
 #if ANDROID_BUILD
     if (practice_active(app) != NULL) {
         android_allow_screen_off();
@@ -1350,9 +1551,6 @@ app_init(void *vapp) {
     InitUIDPI();
     TraceLog(LOG_INFO, "INBE: app init width=%d height=%d embedded=%d",
              config.width, config.height, config.loaded);
-    if(!load_locale_font(app)) {
-        TraceLog(LOG_WARNING, "FONT: Failed to load chopped locale font -> using built-in default");
-    }
     load_config();
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
@@ -1367,6 +1565,8 @@ app_init(void *vapp) {
     data_init();
     if(app_load_settings(app))
         save_settings(app);
+    if(!load_locale_font(app))
+        TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font -> using built-in default");
     app->practice_tab = PRACTICE_TAB_PLAY;
     app->practice_config_tab = 0;
     if(app->language_needs_save) {

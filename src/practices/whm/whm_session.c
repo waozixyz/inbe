@@ -438,28 +438,111 @@ finish_round(InbeApp *app)
 }
 
 static void
-session_step_back(InbeApp *app)
+clear_round_results_from(InbeApp *app, int first_round)
 {
-    int speed = app->inbe.speed_level;
-    int max_rounds = app->inbe.max_rounds;
-    int max_breaths = int_from_count(app->inbe.maxbreaths);
-    int pause_seconds = app->saved_pause_seconds;
-    int progressive_speed = app->inbe.progressive_speed;
-    int progressive_start_speed = app->inbe.progressive_start_speed;
-    int play_in_background = app->inbe.play_in_background;
+    if(app == NULL)
+        return;
 
-    inbeinit(&app->inbe);
-    app->inbe.progressive_speed = progressive_speed;
-    app->inbe.progressive_start_speed = progressive_start_speed;
-    app->inbe.play_in_background = play_in_background;
-    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds);
-    app->saved_pause_seconds = pause_seconds;
-    app->inbe.pause_seconds = 3;
-    session_update_circle_bounds_for_view(&app->inbe, GetUITitleBarHeight(), ScaleUIPx(56) + 80);
-    app->inbe.screen = InbeScreenSession;
-    app->session_paused = 0;
+    if(first_round < 0)
+        first_round = 0;
+    if(first_round >= MaxRounds)
+        return;
+
+    for(int i = first_round; i < MaxRounds; i++)
+        cpcount(app->inbe.results[i], "000");
     app->results_saved = 0;
     app->results_path[0] = '\0';
+}
+
+static int
+session_round_has_starting_step(InbeApp *app)
+{
+    if(app == NULL)
+        return 0;
+
+    return app->inbe.round == 0 || app->inbe.pause_seconds > 0;
+}
+
+static void
+session_enter_starting_step(InbeApp *app)
+{
+    app->inbe.phase = InbePhaseStarting;
+    app->inbe.dir = 0;
+    app->inbe.r = app->inbe.rmin;
+    app->inbe.breath_frame = 0;
+    app->inbe.breathtick = 0;
+    app->inbe.sectick = 0;
+    app->inbe.halftick = 0;
+    cpcount(app->inbe.count, "000");
+}
+
+static void
+session_enter_previous_round_last_step(InbeApp *app)
+{
+    if(app->inbe.round <= 0)
+        return;
+
+    clear_round_results_from(app, app->inbe.round);
+    app->inbe.round--;
+    app->inbe.phase = InbePhaseNext;
+    app->inbe.dir = 0;
+    app->inbe.r = app->inbe.rmax;
+    app->inbe.breath_frame = 0;
+    app->inbe.breathtick = 0;
+    app->inbe.sectick = 0;
+    app->inbe.halftick = 0;
+    cpcount(app->inbe.count, "000");
+}
+
+static void
+session_step_back(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    switch(app->inbe.phase) {
+    case InbePhaseStarting:
+        if(app->inbe.round > 0)
+            session_enter_previous_round_last_step(app);
+        else
+            session_enter_starting_step(app);
+        break;
+    case InbePhaseBreathe:
+        clear_round_results_from(app, app->inbe.round);
+        if(session_round_has_starting_step(app))
+            session_enter_starting_step(app);
+        else if(app->inbe.round > 0)
+            session_enter_previous_round_last_step(app);
+        else
+            session_reset_round_breathe(&app->inbe);
+        break;
+    case InbePhaseHold:
+        clear_round_results_from(app, app->inbe.round);
+        session_reset_round_breathe(&app->inbe);
+        break;
+    case InbePhaseRecover:
+        app->inbe.phase = InbePhaseHold;
+        app->inbe.dir = 0;
+        app->inbe.r = app->inbe.rmin;
+        app->inbe.breath_frame = 0;
+        app->inbe.breathtick = 0;
+        app->inbe.sectick = 0;
+        app->inbe.halftick = 0;
+        cpcount(app->inbe.count, app->inbe.results[app->inbe.round]);
+        clear_round_results_from(app, app->inbe.round);
+        break;
+    case InbePhaseNext:
+        app->inbe.phase = InbePhaseRecover;
+        app->inbe.dir = 0;
+        app->inbe.r = app->inbe.rmax;
+        app->inbe.breath_frame = 0;
+        app->inbe.breathtick = 0;
+        app->inbe.sectick = 0;
+        app->inbe.halftick = 0;
+        count_from_int(app->inbe.count, 14);
+        break;
+    }
+
     remember_sound_state(app);
 }
 

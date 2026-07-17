@@ -5,6 +5,7 @@
 #include "device_preferences.h"
 #include "locale.h"
 #include "practices/meditation/meditation_music.h"
+#include "practices/sun_salutation/sun_salutation_practice.h"
 #include "practices/whm/whm_session.h"
 #include "storage.h"
 #include "theme.h"
@@ -306,6 +307,7 @@ save_settings(InbeApp *app)
         {"sun_salutation_repetitions", app->sun_salutation.repetitions},
         {"sun_salutation_start_seconds", app->sun_salutation.start_seconds},
         {"sun_salutation_end_seconds", app->sun_salutation.end_seconds},
+        {"sun_salutation_figure", app->sun_salutation.figure},
         {"meditation_duration_mode", app->meditation.duration_mode},
         {"meditation_custom_minutes", app->meditation.custom_minutes},
         {"meditation_show_extend_controls", app->meditation.show_extend_controls ? 1 : 0},
@@ -447,6 +449,8 @@ app_load_settings(InbeApp *app)
              3, 12},
             {&app->sun_salutation.end_seconds, "sun_salutation_end_seconds", 5,
              3, 12},
+            {&app->sun_salutation.figure, "sun_salutation_figure", 0,
+             0, SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1},
             {&app->meditation.duration_mode, "meditation_duration_mode", 1,
              0, 5},
             {&app->meditation.custom_minutes, "meditation_custom_minutes", 20,

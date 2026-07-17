@@ -12,6 +12,32 @@
 extern int view_width;
 extern int view_height;
 
+static const char *
+settings_theme_label_key(ThemeId theme)
+{
+    switch(NormalizeTheme(theme)) {
+    case THEME_SKY: return "theme_sky";
+    case THEME_OCEAN: return "theme_ocean";
+    case THEME_FOREST: return "theme_forest";
+    case THEME_SUNSET: return "theme_sunset";
+    case THEME_LAVENDER: return "theme_lavender";
+    case THEME_CHERRY: return "theme_cherry";
+    case THEME_DAWN: return "theme_dawn";
+    case THEME_SAGE: return "theme_sage";
+    case THEME_INK: return "theme_sepia";
+    case THEME_MONO: return "theme_mono";
+    case THEME_MINT: return "theme_mint";
+    case THEME_COBALT: return "theme_cobalt";
+    default: return "theme_sky";
+    }
+}
+
+static const char *
+settings_theme_label(ThemeId theme)
+{
+    return GetLocaleText(settings_theme_label_key(theme));
+}
+
 int
 settings_theme_content_height(int content_w)
 {
@@ -60,7 +86,7 @@ settings_theme_draw(InbeApp *app, int x, int w, int *y, SettingsThemeState *stat
 
     if(app->theme_source == APP_THEME_SOURCE_APP) {
         for(int i = 0; i < THEME_COUNT; i++)
-            theme_options[i] = GetThemeLabel((ThemeId)i);
+            theme_options[i] = settings_theme_label((ThemeId)i);
         app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1);
         DrawUIText(GetLocaleText("theme_palette_label"), x, *y, GetUIFontSize(), GetThemeText());
         DrawUIDropdownButton(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),

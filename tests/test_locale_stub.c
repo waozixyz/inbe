@@ -17,5 +17,11 @@ GetLocaleText(const char *key)
         return "Yoga practice sessions.";
     if(strcmp(key, "habit_new_default_name") == 0)
         return "New Habit";
+    if(strcmp(key, "exercise_wim_hof") == 0)
+        return "Wim Hof Breathing";
+    if(strcmp(key, "exercise_meditation") == 0)
+        return "Meditation";
+    if(strcmp(key, "exercise_sun_salutation") == 0)
+        return "Sun Salutation";
     return key;
 }

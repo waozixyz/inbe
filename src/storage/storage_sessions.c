@@ -485,6 +485,7 @@ storage_delete_all_sessions(void)
         if(!exec_sql("DELETE FROM session_rounds WHERE session_id IN "
                      "(SELECT id FROM sessions WHERE user_id=(SELECT id FROM users "
                      "LIMIT 1));"
+                     "DELETE FROM meditation_logs WHERE user_id=(SELECT id FROM users LIMIT 1);"
                      "DELETE FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1);"
                      "DELETE FROM habit_days WHERE habit_id IN "
                      "(SELECT id FROM habits WHERE user_id=(SELECT id FROM users LIMIT "

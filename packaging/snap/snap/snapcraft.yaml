@@ -12,17 +12,12 @@ base: core22
 confinement: strict
 grade: stable
 
-contact: waozi@waozi.xyz
-website: https://inbe.waozi.xyz/
-issues: https://github.com/waozixyz/inbe/issues
-
 architectures:
   - build-on: amd64
   - build-on: arm64
 
 apps:
   inbe:
-    command-chain: [bin/desktop-launch]
     command: bin/inbe
     desktop: gui/inbe.desktop
     environment:
@@ -39,8 +34,6 @@ apps:
       - alsa
       - network
       - home
-    extensions:
-      - gnome-3-38-2204
 
 parts:
   desktop-glib:
@@ -51,16 +44,16 @@ parts:
   sdl2-runtime:
     plugin: nil
     stage-packages:
-      - libSDL2-2.0-0
-      - libSDL2-image-2.0-0
-      - libSDL2-ttf-2.0-0
+      - libsdl2-2.0-0
+      - libsdl2-image-2.0-0
+      - libsdl2-ttf-2.0-0
       - libgl1-mesa-glx
       - libgl1-mesa-dri
       - libgles2-mesa
-      - libglvnd0
+      - libgtk-3-0
       - libdrm2
       - libgbm1
-      - libegl1
+      - libegl1-mesa
       - libxkbcommon0
       - libpulse0
       - libasound2
@@ -70,8 +63,8 @@ parts:
   openssl:
     plugin: nil
     stage-packages:
-      - libssl3
-      - libcrypto++7
+      - libssl1.0.0
+      - libcrypto++9v5
 
   inbe:
     plugin: make
@@ -81,11 +74,22 @@ parts:
       - cmake
       - libssl-dev
       - libcurl4-openssl-dev
+      - libgtk-3-dev
+      - libsdl2-dev
+      - libdrm-dev
+      - libgbm-dev
+      - libegl1-mesa-dev
+      - libgles2-mesa-dev
       - pkg-config
     override-build: |
       make vendor-prebuilds-native
       make native
-      install -D -m755 build/bin/linux/inbe-linux-$SNAPCRAFT_ARCH_TRIPLET $SNAPCRAFT_PART_INSTALL/bin/inbe
+      binary="$(find build/bin/linux -maxdepth 1 -type f -name 'inbe-linux-*' | head -n 1)"
+      if [ -z "$binary" ]; then
+        echo "No Linux binary was produced"
+        exit 1
+      fi
+      install -D -m755 "$binary" $SNAPCRAFT_PART_INSTALL/bin/inbe
       strip $SNAPCRAFT_PART_INSTALL/bin/inbe
     prime:
       - bin/inbe

@@ -46,16 +46,13 @@ set(INBE_EMBEDDED_INPUTS
     assets/practices/meditation/1.png
     assets/pet/egg1.png
     ${INBE_PRACTICE_BANNER_ASSETS}
-    assets/practices/sunsalutation/pos_0001.png
-    assets/practices/sunsalutation/pos_0002.png
-    assets/practices/sunsalutation/pos_0003.png
-    assets/practices/sunsalutation/pos_0004.png
-    assets/practices/sunsalutation/pos_0005.png
-    assets/practices/sunsalutation/pos_0006.png
-    assets/practices/sunsalutation/pos_0007.png
-    assets/practices/sunsalutation/pos_0008.png
-    assets/fonts/locales.png
-    assets/fonts/locales.dat
+    assets/practices/sunsalutation/poses_man_sheet.png
+    assets/practices/sunsalutation/poses_woman_sheet.png
+    vendor/flint/fonts/noto/NotoSans-Regular.ttf
+    vendor/flint/fonts/noto/NotoSansSC-Regular.otf
+    vendor/flint/fonts/noto/NotoSansJP-Regular.otf
+    vendor/flint/fonts/noto/NotoSansKR-Regular.otf
+    vendor/flint/fonts/noto/NotoSansTC-Regular.otf
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)
@@ -100,7 +97,7 @@ target_compile_definitions(raylib PRIVATE
     SUPPORT_FILEFORMAT_GIF=0
     SUPPORT_FILEFORMAT_QOI=0
     SUPPORT_FILEFORMAT_DDS=0
-    SUPPORT_FILEFORMAT_TTF=0
+    SUPPORT_FILEFORMAT_TTF=1
     SUPPORT_FILEFORMAT_JPG=1
     SUPPORT_FILEFORMAT_PNG=1
     SUPPORT_FILEFORMAT_OGG=1

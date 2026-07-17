@@ -1,5 +1,6 @@
 #include "import.h"
 
+#include "app_setting_keys.h"
 #include "db.h"
 #include "screens/habits_screen.h"
 #include "breath_engine.h"
@@ -73,40 +74,9 @@ source_count_rows(sqlite3 *db, const char *sql)
 }
 
 static const char *const importable_setting_keys[] = {
-    "speed",
-    "max_rounds",
-    "max_breaths",
-    "pause_seconds",
-    "sound_volume",
-    "tutorial_seen",
-    "exercise_manual_seen_mask",
-    "theme",
-    "theme_source",
-    "dark_mode",
-    "theme_mode",
-    "orientation_mode",
-    "main_tab",
-    "fullscreen",
-    "on_screen_keyboard",
-    "progressive_speed",
-    "progressive_start_speed",
-    "breath_animation",
-    "double_tap_to_breathe",
-    "advanced_session_controls",
-    "hold_display_mode",
-    "exercise_type",
-    "meditation_duration_mode",
-    "meditation_custom_minutes",
-    "meditation_show_extend_controls",
-    "meditation_music_track",
-    "practice_music_mask",
-    "practice_music_track_wim_hof",
-    "practice_music_track_meditation",
-    "practice_music_track_sun_salutation",
-    "play_in_background",
-    "language",
-    "practice_category_tab",
-    "practice_visible_mask"
+#define INBE_SETTING_KEY_ENTRY(key) key,
+    INBE_IMPORTABLE_SETTING_KEYS(INBE_SETTING_KEY_ENTRY)
+#undef INBE_SETTING_KEY_ENTRY
 };
 
 static int

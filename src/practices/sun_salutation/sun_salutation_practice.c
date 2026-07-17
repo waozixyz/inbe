@@ -14,7 +14,7 @@ extern int view_width;
 extern int view_height;
 
 static const int g_sun_salutation_pose_sequence[SUN_SALUTATION_STEP_COUNT] = {
-    0, 1, 2, 3, 4, 5, 6, 7, 3, 2, 1, 0
+    0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 };
 
 static const char *g_sun_salutation_step_label_keys[SUN_SALUTATION_STEP_COUNT] = {
@@ -74,17 +74,21 @@ sun_salutation_normalize_settings(InbeApp *app)
                               SUN_SALUTATION_SECONDS_MAX);
     if(app->sun_salutation.start_seconds < app->sun_salutation.end_seconds)
         app->sun_salutation.end_seconds = app->sun_salutation.start_seconds;
+    app->sun_salutation.figure =
+        sun_salutation_clampi(app->sun_salutation.figure, 0,
+                              SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1);
 }
 
 void
 sun_salutation_practice_init(InbeApp *app)
 {
-    char path[64];
-
     if(app == NULL)
         return;
     if(app->sun_salutation.banner.id == 0)
         app->sun_salutation.banner = app_load_asset_texture("practices/sunsalutation/banner.png");
+    if(app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN].id == 0)
+        app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN] =
+            app_load_asset_texture("practices/sunsalutation/poses_man_sheet.png");
     if(app->sun_salutation.repetitions < 2 || app->sun_salutation.repetitions > 12)
         app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS;
     if(app->sun_salutation.start_seconds < SUN_SALUTATION_SECONDS_MIN ||
@@ -94,12 +98,6 @@ sun_salutation_practice_init(InbeApp *app)
        app->sun_salutation.end_seconds > SUN_SALUTATION_SECONDS_MAX)
         app->sun_salutation.end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS;
     sun_salutation_normalize_settings(app);
-    for(int i = 0; i < SUN_SALUTATION_POSE_COUNT; i++) {
-        if(app->sun_salutation.poses[i].id != 0)
-            continue;
-        snprintf(path, sizeof(path), "practices/sunsalutation/pos_%04d.png", i + 1);
-        app->sun_salutation.poses[i] = app_load_asset_texture(path);
-    }
 }
 
 void
@@ -109,14 +107,14 @@ sun_salutation_practice_destroy(InbeApp *app)
         return;
     app_unload_texture(app->sun_salutation.banner);
     app->sun_salutation.banner = (Texture2D){0};
-    for(int i = 0; i < SUN_SALUTATION_POSE_COUNT; i++) {
-        app_unload_texture(app->sun_salutation.poses[i]);
-        app->sun_salutation.poses[i] = (Texture2D){0};
+    for(int i = 0; i < SUN_SALUTATION_FIGURE_COUNT; i++) {
+        app_unload_texture(app->sun_salutation.pose_sheets[i]);
+        app->sun_salutation.pose_sheets[i] = (Texture2D){0};
     }
 }
 
 static void
-draw_preview_pose(Texture2D texture, int x, int y, int w, int h, Color tint)
+draw_preview_pose(Texture2D texture, int pose_index, int x, int y, int w, int h, Color tint)
 {
     Rectangle src;
     Rectangle dst;
@@ -126,12 +124,23 @@ draw_preview_pose(Texture2D texture, int x, int y, int w, int h, Color tint)
 
     if(texture.id == 0 || w <= 0 || h <= 0)
         return;
-    scale = (float)w / (float)texture.width;
-    if((float)texture.height * scale > (float)h)
-        scale = (float)h / (float)texture.height;
-    draw_w = (float)texture.width * scale;
-    draw_h = (float)texture.height * scale;
-    src = (Rectangle){0, 0, (float)texture.width, (float)texture.height};
+    if(pose_index < 0)
+        pose_index = 0;
+    if(pose_index >= SUN_SALUTATION_POSE_COUNT)
+        pose_index = SUN_SALUTATION_POSE_COUNT - 1;
+    scale = (float)w / (float)SUN_SALUTATION_POSE_FRAME_W;
+    if((float)SUN_SALUTATION_POSE_FRAME_H * scale > (float)h)
+        scale = (float)h / (float)SUN_SALUTATION_POSE_FRAME_H;
+    draw_w = (float)SUN_SALUTATION_POSE_FRAME_W * scale;
+    draw_h = (float)SUN_SALUTATION_POSE_FRAME_H * scale;
+    src = (Rectangle){
+        (float)((pose_index % SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_W),
+        (float)((pose_index / SUN_SALUTATION_POSE_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_H),
+        (float)SUN_SALUTATION_POSE_FRAME_W,
+        (float)SUN_SALUTATION_POSE_FRAME_H
+    };
     dst = (Rectangle){(float)x + ((float)w - draw_w) * 0.5f,
                       (float)y + ((float)h - draw_h) * 0.5f,
                       draw_w, draw_h};
@@ -191,7 +200,8 @@ draw_sun_salutation_preview(InbeApp *app, int x, int y, int w)
         DrawRectangle(px, py, thumb_w, thumb_h, DarkenUIColor(GetThemeBackground(), 6));
         if(i == active_step)
             DrawRectangleLines(px, py, thumb_w, thumb_h, GetThemeButtonHover());
-        draw_preview_pose(app->sun_salutation.poses[pose_index], px, py, thumb_w, thumb_h, tint);
+        draw_preview_pose(app->sun_salutation.pose_sheets[app->sun_salutation.figure], pose_index,
+                          px, py, thumb_w, thumb_h, tint);
         if(i < SUN_SALUTATION_STEP_COUNT - 1) {
             int next_col = (i + 1) % 6;
             if(next_col != 0)
@@ -206,6 +216,77 @@ draw_sun_salutation_preview(InbeApp *app, int x, int y, int w)
                           small_font) <= w)
         DrawUIText(GetLocaleText("sun_salutation_tempo_preview_hint"), x, row_y,
                         small_font, muted);
+}
+
+static int
+draw_sun_salutation_figure_selector(InbeApp *app, int x, int y, int w)
+{
+    int label_font = GetUIFontSize();
+    int small_font = GetUISmallFontSize();
+    int label_w;
+    int row_y;
+    int option_gap = ScaleUIPx(10);
+    int option_w = (w - option_gap) / 2;
+    int option_h = ScaleUIPx(118);
+    int image_h = ScaleUIPx(72);
+    int changed = 0;
+    Vector2 mouse = GetMousePosition();
+
+    if(app == NULL || SUN_SALUTATION_ACTIVE_FIGURE_COUNT <= 1)
+        return 0;
+
+    label_w = MeasureUIText(GetLocaleText("sun_salutation_figure_label"), label_font);
+    DrawUIText(GetLocaleText("sun_salutation_figure_label"), x + (w - label_w) / 2,
+               y, label_font, GetThemeText());
+    row_y = y + ScaleUIPx(30);
+
+    for(int i = 0; i < SUN_SALUTATION_ACTIVE_FIGURE_COUNT; i++) {
+        Rectangle bounds = {
+            (float)(x + i * (option_w + option_gap)),
+            (float)row_y,
+            (float)option_w,
+            (float)option_h
+        };
+        Rectangle image_bounds = {
+            bounds.x + ScaleUIPx(8),
+            bounds.y + ScaleUIPx(8),
+            bounds.width - ScaleUIPx(16),
+            (float)image_h
+        };
+        int selected = app->sun_salutation.figure == i;
+        int hover = CheckCollisionPointRec(mouse, bounds);
+        Color bg = selected ? Fade(GetThemeButtonHover(), 0.18f)
+                            : DarkenUIColor(GetThemeBackground(), hover ? 10 : 6);
+        Color border = selected ? GetThemeButtonHover()
+                                : DarkenUIColor(GetThemeText(), 45);
+        const char *label;
+        int text_w;
+        int pose_index = sun_salutation_step_pose_index(1);
+
+        if(i == SUN_SALUTATION_FIGURE_MAN)
+            label = GetLocaleText("sun_salutation_figure_man");
+        else
+            label = GetLocaleText("sun_salutation_figure_woman");
+        text_w = MeasureUIText(label, small_font);
+
+        DrawRectangleRec(bounds, bg);
+        DrawRectangleLinesEx(bounds, selected ? 2.0f : 1.0f, border);
+        draw_preview_pose(app->sun_salutation.pose_sheets[i], pose_index,
+                          (int)image_bounds.x, (int)image_bounds.y,
+                          (int)image_bounds.width, (int)image_bounds.height,
+                          WHITE);
+        DrawUIText(label, (int)(bounds.x + (bounds.width - text_w) * 0.5f),
+                   (int)(bounds.y + bounds.height - ScaleUIPx(28)),
+                   small_font, GetThemeText());
+
+        if(hover && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+           !UIInputCapturesClick(mouse) && !selected) {
+            app->sun_salutation.figure = i;
+            changed = 1;
+        }
+    }
+
+    return changed;
 }
 
 typedef struct SunSalutationConfigScrollPageContext {
@@ -227,7 +308,8 @@ sun_salutation_config_content_height(int content_w, void *user_data)
                                                           EXERCISE_SUN_SALUTATION,
                                                           content_w, 1, 1) +
                bottom_padding;
-    return sun_salutation_preview_height(content_w) + ScaleUIPx(16) +
+    return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? ScaleUIPx(148) + ScaleUIPx(16) : 0) +
+           sun_salutation_preview_height(content_w) + ScaleUIPx(16) +
            ScaleUIPx(74) * 3 + bottom_padding;
 }
 
@@ -309,6 +391,13 @@ sun_salutation_config_screen_draw(InbeApp *app)
         int y = page.content_y;
 
         if(app->practice_config_tab == 0) {
+            if(SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1) {
+                if(draw_sun_salutation_figure_selector(app, page.content_x, y, page.content_w)) {
+                    save_settings(app);
+                }
+                y += ScaleUIPx(148) + ScaleUIPx(16);
+            }
+
             draw_sun_salutation_preview(app, page.content_x, y, page.content_w);
             y += sun_salutation_preview_height(page.content_w) + ScaleUIPx(16);
 

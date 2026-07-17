@@ -85,7 +85,7 @@ jobs:
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
 
       - name: Set up Node.js
-        uses: actions/setup-node
+        uses: actions/setup-node@v4
         with:
           node-version: 22
 
@@ -302,6 +302,40 @@ jobs:
           mkdir -p build/release/linux
           find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
           test -n "$(find build/release/linux -type f -print -quit)"
+
+      - name: Build Debian Package
+        run: |
+          set -euo pipefail
+          make deb
+          find build/dist/deb -maxdepth 1 -type f -name '*.deb' -exec cp {} build/release/linux/ \;
+          deb="$(find build/release/linux -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          test -n "$deb"
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb" >/dev/null
+
+      - name: Build RPM Package
+        run: |
+          set -euo pipefail
+          make rpm
+          find build/dist/rpm -maxdepth 1 -type f -name '*.rpm' -exec cp {} build/release/linux/ \;
+          rpm_package="$(find build/release/linux -maxdepth 1 -type f -name '*.rpm' | head -n 1)"
+          test -n "$rpm_package"
+          rpm -qip "$rpm_package"
+          rpm -qlp "$rpm_package" >/dev/null
+
+      - name: Build Snap Package
+        run: |
+          set -euo pipefail
+          make snap
+          find build/dist/snap -maxdepth 1 -type f -name '*.snap' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.snap' -print -quit)"
+
+      - name: Build Flatpak Bundle
+        run: |
+          set -euo pipefail
+          make flatpak
+          find build/dist/flatpak -maxdepth 1 -type f -name '*.flatpak' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
 
       - name: Smoke Test Linux AppImage
         env:

@@ -267,10 +267,13 @@ profile_screen_draw(InbeApp *app)
         int previous_tab = profile_draw_tab_dropdown(app, selector_y, view_width);
         if(app->profile_tab != previous_tab) {
             app->profile_scroll = 0;
-            if(app->profile_tab == PROFILE_TAB_FRIENDS)
+            if(app->profile_tab == PROFILE_TAB_FRIENDS) {
                 profile_social_load_friends_cache(app);
-            else if(app->profile_tab == PROFILE_TAB_LEADERBOARD)
+                app_request_social_refresh(app);
+            } else if(app->profile_tab == PROFILE_TAB_LEADERBOARD) {
                 profile_social_load_leaderboard_cache(app);
+                app_request_social_refresh(app);
+            }
         }
     }
 

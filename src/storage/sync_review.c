@@ -1,5 +1,6 @@
 #include "storage.h"
 #include "db.h"
+#include "locale.h"
 
 #include <sqlite3.h>
 #include <stdarg.h>
@@ -239,9 +240,9 @@ static const char *
 review_activity_name(int activity)
 {
     switch(activity) {
-    case 0: return "Wim Hof";
-    case 1: return "Meditation";
-    case 2: return "Sun Salutation";
+    case 0: return GetLocaleText("exercise_wim_hof");
+    case 1: return GetLocaleText("exercise_meditation");
+    case 2: return GetLocaleText("exercise_sun_salutation");
     default: break;
     }
     return NULL;

@@ -58,6 +58,12 @@ void storage_settings_end_write(void);
 int storage_settings_empty(void);
 int storage_get_social_cache_json(const char *kind, char *out, size_t out_size);
 int storage_set_social_cache_json(const char *kind, const char *json);
+int storage_json_array_count_path(const char *json, const char *path);
+int storage_json_array_object_text(const char *json, const char *array_path,
+                                   int index, const char *key,
+                                   char *out, size_t out_size);
+double storage_json_array_object_number(const char *json, const char *array_path,
+                                        int index, const char *key);
 
 int storage_save_session(const int *round_times, int round_count,
                               char *out_id, size_t out_id_size);

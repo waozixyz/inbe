@@ -162,78 +162,16 @@ profile_social_load_leaderboard_cache(InbeApp *app)
     app->profile_leaderboard_loaded = 1;
 }
 
-static const char *
-profile_json_string_value(const char *object, const char *key, char *out, size_t out_size)
-{
-    char pattern[48];
-    const char *p;
-    char *w;
-    size_t left;
-
-    if(out == NULL || out_size == 0)
-        return NULL;
-    out[0] = '\0';
-    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
-    p = strstr(object, pattern);
-    if(p == NULL)
-        return NULL;
-    p = strchr(p + strlen(pattern), ':');
-    if(p == NULL)
-        return NULL;
-    p++;
-    while(*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r')
-        p++;
-    if(*p++ != '"')
-        return NULL;
-    w = out;
-    left = out_size - 1;
-    while(*p != '\0' && *p != '"' && left > 0) {
-        if(*p == '\\' && p[1] != '\0')
-            p++;
-        *w++ = *p++;
-        left--;
-    }
-    *w = '\0';
-    return *p == '"' ? p + 1 : NULL;
-}
-
-static double
-profile_json_number_value(const char *object, const char *key)
-{
-    char pattern[48];
-    const char *p;
-
-    snprintf(pattern, sizeof(pattern), "\"%s\"", key);
-    p = strstr(object, pattern);
-    if(p == NULL)
-        return 0.0;
-    p = strchr(p + strlen(pattern), ':');
-    if(p == NULL)
-        return 0.0;
-    return atof(p + 1);
-}
-
 static int
 profile_json_array_count(const char *json, const char *array_key)
 {
-    char key_pattern[48];
-    const char *p;
-    const char *end;
-    int count = 0;
+    char path[48];
 
-    snprintf(key_pattern, sizeof(key_pattern), "\"%s\"", array_key);
-    p = strstr(json != NULL ? json : "", key_pattern);
-    if(p == NULL)
+    if(array_key == NULL || array_key[0] == '\0')
         return 0;
-    p = strchr(p, '[');
-    end = p != NULL ? strchr(p, ']') : NULL;
-    if(p == NULL || end == NULL)
+    if(snprintf(path, sizeof(path), "$.%s", array_key) >= (int)sizeof(path))
         return 0;
-    while((p = strchr(p, '{')) != NULL && p < end) {
-        count++;
-        p++;
-    }
-    return count;
+    return storage_json_array_count_path(json, path);
 }
 
 int
@@ -301,32 +239,28 @@ static void
 profile_draw_json_people(const char *json, const char *array_key,
                          int x, int w, int *y, int with_actions, InbeApp *app)
 {
-    char key_pattern[48];
-    const char *p;
-    const char *end;
-    int rows = 0;
+    char array_path[48];
+    int count;
     int font = GetUIFontSize();
     int small = GetUISmallFontSize();
     int with_remove = !with_actions && strcmp(array_key, "friends") == 0;
     int with_cancel = !with_actions && strcmp(array_key, "outgoing") == 0;
 
-    snprintf(key_pattern, sizeof(key_pattern), "\"%s\"", array_key);
-    p = strstr(json != NULL ? json : "", key_pattern);
-    if(p == NULL) {
+    if(snprintf(array_path, sizeof(array_path), "$.%s", array_key) >=
+       (int)sizeof(array_path)) {
         DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
                         DarkenUIColor(GetThemeText(), 35));
         *y += ScaleUIPx(24);
         return;
     }
-    p = strchr(p, '[');
-    end = p != NULL ? strchr(p, ']') : NULL;
-    if(p == NULL || end == NULL) {
+    count = storage_json_array_count_path(json, array_path);
+    if(count <= 0) {
         DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
                         DarkenUIColor(GetThemeText(), 35));
         *y += ScaleUIPx(24);
         return;
     }
-    while((p = strchr(p, '{')) != NULL && p < end && rows < 8) {
+    for(int rows = 0; rows < count; rows++) {
         char id[80];
         char alias[48];
         char display_id[80];
@@ -341,23 +275,34 @@ profile_draw_json_people(const char *json, const char *array_key,
         id[0] = '\0';
         alias[0] = '\0';
         display_id[0] = '\0';
-        if(profile_json_string_value(p, "id", id, sizeof(id)) == NULL &&
-           profile_json_string_value(p, "user_id_hash", id, sizeof(id)) == NULL)
-            break;
+        if(!storage_json_array_object_text(json, array_path, rows, "id",
+                                           id, sizeof(id)))
+            storage_json_array_object_text(json, array_path, rows,
+                                           "user_id_hash", id, sizeof(id));
+        if(id[0] == '\0')
+            continue;
         if(strcmp(array_key, "incoming") == 0) {
-            profile_json_string_value(p, "requester_alias", alias, sizeof(alias));
-            profile_json_string_value(p, "requester_user_id_hash", display_id,
-                                      sizeof(display_id));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "requester_alias", alias, sizeof(alias));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "requester_user_id_hash", display_id,
+                                           sizeof(display_id));
         } else if(strcmp(array_key, "outgoing") == 0) {
-            profile_json_string_value(p, "target_alias", alias, sizeof(alias));
-            profile_json_string_value(p, "target_user_id_hash", display_id,
-                                      sizeof(display_id));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "target_alias", alias, sizeof(alias));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "target_user_id_hash", display_id,
+                                           sizeof(display_id));
         } else {
-            profile_json_string_value(p, "alias", alias, sizeof(alias));
-            profile_json_string_value(p, "user_id_hash", display_id, sizeof(display_id));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "alias", alias, sizeof(alias));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "user_id_hash", display_id,
+                                           sizeof(display_id));
         }
         if(alias[0] == '\0')
-            profile_json_string_value(p, "alias", alias, sizeof(alias));
+            storage_json_array_object_text(json, array_path, rows,
+                                           "alias", alias, sizeof(alias));
         if(display_id[0] == '\0')
             snprintf(display_id, sizeof(display_id), "%s", id);
         profile_display_name(title, sizeof(title), alias, display_id);
@@ -406,13 +351,6 @@ profile_draw_json_people(const char *json, const char *array_key,
             }
         }
         *y += row_h;
-        rows++;
-        p++;
-    }
-    if(rows == 0) {
-        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
-                        DarkenUIColor(GetThemeText(), 35));
-        *y += ScaleUIPx(24);
     }
 }
 
@@ -496,11 +434,18 @@ profile_social_draw_friends(InbeApp *app, int x, int w, int *y)
                                app->profile_friend_input[0] == '\0', &hover_add) || commit) &&
        app->profile_friend_input[0] != '\0') {
         if(profile_sync_url(url, sizeof(url))) {
-            app_request_friend_send(app, app->profile_friend_input);
-            settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
-            profile_social_load_friends_cache(app);
-            app->profile_friend_input[0] = '\0';
-            app->profile_friend_input_cursor = 0;
+            char target[80];
+
+            if(sync_client_normalize_friend_target(app->profile_friend_input,
+                                                   target, sizeof(target))) {
+                app_request_friend_send(app, target);
+                settings_screen_set_status_success(GetLocaleText("profile_updating_status"), NULL);
+                profile_social_load_friends_cache(app);
+                app->profile_friend_input[0] = '\0';
+                app->profile_friend_input_cursor = 0;
+            } else {
+                settings_screen_set_status_error(GetLocaleText("profile_friend_invalid"));
+            }
         } else {
             settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"));
         }
@@ -544,14 +489,13 @@ profile_social_friends_content_height(InbeApp *app, int content_w)
     friends_count = profile_json_array_count(app->profile_friends_json, "friends");
     if(incoming_count > 0)
         h += ScaleUIPx(28) +
-             (incoming_count > 8 ? 8 : incoming_count) * ScaleUIPx(42) +
+             incoming_count * ScaleUIPx(42) +
              ScaleUIPx(16);
     h += ScaleUIPx(28) +
-         (friends_count > 0 ? (friends_count > 8 ? 8 : friends_count) * ScaleUIPx(30)
-                            : ScaleUIPx(24));
+         (friends_count > 0 ? friends_count * ScaleUIPx(30) : ScaleUIPx(24));
     if(outgoing_count > 0)
         h += ScaleUIPx(16) + ScaleUIPx(28) +
-             (outgoing_count > 8 ? 8 : outgoing_count) * ScaleUIPx(30);
+             outgoing_count * ScaleUIPx(30);
     return h + ScaleUIPx(16);
 }
 
@@ -637,8 +581,9 @@ profile_leaderboard_row_compare(const void *left_ptr, const void *right_ptr)
 static void
 profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int *y)
 {
-    const char *p = strstr(json != NULL ? json : "", "\"rows\"");
     int rows = 0;
+    int cache_rows;
+    int friend_rows;
     int font = GetUIFontSize();
     int small = GetUISmallFontSize();
     ProfileLeaderboardDrawRow draw_rows[24];
@@ -650,18 +595,24 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
 
     self_sort_value = profile_local_leaderboard_value(app, self_value, sizeof(self_value));
 
-    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+    cache_rows = storage_json_array_count_path(json, "$.rows");
+    for(int i = 0; i < cache_rows && rows < 24; i++) {
         char alias[48];
         char user_id[80];
         char value[48];
         char label[48];
         double number;
 
-        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
-            break;
-        profile_json_string_value(p, "alias", alias, sizeof(alias));
-        profile_json_string_value(p, "label", label, sizeof(label));
-        number = profile_json_number_value(p, "value");
+        alias[0] = '\0';
+        label[0] = '\0';
+        if(!storage_json_array_object_text(json, "$.rows", i, "user_id_hash",
+                                           user_id, sizeof(user_id)))
+            continue;
+        storage_json_array_object_text(json, "$.rows", i, "alias",
+                                       alias, sizeof(alias));
+        storage_json_array_object_text(json, "$.rows", i, "label",
+                                       label, sizeof(label));
+        number = storage_json_array_object_number(json, "$.rows", i, "value");
         if(has_account && strcmp(user_id, account.public_id) == 0) {
             snprintf(value, sizeof(value), "%s", self_value);
             number = self_sort_value;
@@ -679,7 +630,6 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
         snprintf(draw_rows[rows].value, sizeof(draw_rows[rows].value), "%s", value);
         draw_rows[rows].sort_value = number;
         rows++;
-        p++;
     }
 
     if(has_account && !self_seen && rows < 24) {
@@ -694,29 +644,28 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
         rows++;
     }
 
-    p = strstr(app != NULL ? app->profile_friends_json : "", "\"friends\"");
-    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+    friend_rows = storage_json_array_count_path(app != NULL ? app->profile_friends_json : "",
+                                                "$.friends");
+    for(int i = 0; i < friend_rows && rows < 24; i++) {
         char alias[48];
         char user_id[80];
 
-        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
-            break;
+        alias[0] = '\0';
+        if(!storage_json_array_object_text(app != NULL ? app->profile_friends_json : "",
+                                           "$.friends", i, "user_id_hash",
+                                           user_id, sizeof(user_id)))
+            continue;
         if(profile_leaderboard_row_seen(draw_rows, rows, user_id)) {
-            p++;
             continue;
         }
-        profile_json_string_value(p, "alias", alias, sizeof(alias));
+        storage_json_array_object_text(app != NULL ? app->profile_friends_json : "",
+                                       "$.friends", i, "alias", alias,
+                                       sizeof(alias));
         snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s", user_id);
         snprintf(draw_rows[rows].alias, sizeof(draw_rows[rows].alias), "%s", alias);
-        snprintf(draw_rows[rows].value, sizeof(draw_rows[rows].value), "%s",
-                 app != NULL &&
-                 app->profile_leaderboard_practice == EXERCISE_MEDITATION &&
-                 app->profile_leaderboard_metric == PROFILE_LEADERBOARD_AVG_HOLD
-                     ? "0:00"
-                     : "0");
-        draw_rows[rows].sort_value = 0.0;
+        snprintf(draw_rows[rows].value, sizeof(draw_rows[rows].value), "...");
+        draw_rows[rows].sort_value = -1.0;
         rows++;
-        p++;
     }
 
     qsort(draw_rows, (size_t)rows, sizeof(draw_rows[0]), profile_leaderboard_row_compare);
@@ -742,42 +691,45 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
 static int
 profile_leaderboard_row_count(InbeApp *app, const char *json)
 {
-    const char *p = strstr(json != NULL ? json : "", "\"rows\"");
     ProfileLeaderboardDrawRow draw_rows[24];
     InbeSyncAccount account;
     int has_account = sync_account_load(&account) && account.public_id[0] != '\0';
     int self_seen = 0;
     int rows = 0;
+    int cache_rows = storage_json_array_count_path(json, "$.rows");
+    int friend_rows;
 
-    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+    for(int i = 0; i < cache_rows && rows < 24; i++) {
         char user_id[80];
 
-        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
-            break;
+        if(!storage_json_array_object_text(json, "$.rows", i, "user_id_hash",
+                                           user_id, sizeof(user_id)))
+            continue;
         if(has_account && strcmp(user_id, account.public_id) == 0)
             self_seen = 1;
         snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s", user_id);
         draw_rows[rows].alias[0] = '\0';
         rows++;
-        p++;
     }
     if(has_account && !self_seen && rows < 24) {
         snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s",
                  account.public_id);
         rows++;
     }
-    p = strstr(app != NULL ? app->profile_friends_json : "", "\"friends\"");
-    while(p != NULL && (p = strchr(p, '{')) != NULL && rows < 24) {
+    friend_rows = storage_json_array_count_path(app != NULL ? app->profile_friends_json : "",
+                                                "$.friends");
+    for(int i = 0; i < friend_rows && rows < 24; i++) {
         char user_id[80];
 
-        if(profile_json_string_value(p, "user_id_hash", user_id, sizeof(user_id)) == NULL)
-            break;
+        if(!storage_json_array_object_text(app != NULL ? app->profile_friends_json : "",
+                                           "$.friends", i, "user_id_hash",
+                                           user_id, sizeof(user_id)))
+            continue;
         if(!profile_leaderboard_row_seen(draw_rows, rows, user_id)) {
             snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s",
                      user_id);
             rows++;
         }
-        p++;
     }
     return rows > 12 ? 12 : rows;
 }

@@ -70,6 +70,9 @@ Kein Konto
 [profile_add_friend_button]
 Freund hinzufuegen
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Eingehend
 ---
@@ -115,7 +118,7 @@ Wim-Hof-Atmung
 Meditation
 ---
 [exercise_sun_salutation]
-Sun Salutation
+Sonnengruß
 ---
 [sun_salutation_work_in_progress]
 In Arbeit
@@ -128,6 +131,15 @@ Starttempo
 ---
 [sun_salutation_end_speed_label]
 Endtempo
+---
+[sun_salutation_figure_label]
+Figur
+---
+[sun_salutation_figure_man]
+Mann
+---
+[sun_salutation_figure_woman]
+Frau
 ---
 [sun_salutation_tempo_preview_label]
 Tempo-Vorschau
@@ -298,7 +310,7 @@ Ein ruhiger Begleiter fuer Atemuebungen, Gewohnheiten und Synchronisierung.
 Thema
 ---
 [theme_mode_label]
-Theme mode
+Themenmodus
 ---
 [theme_follow_device]
 System
@@ -505,6 +517,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Palette
+---
+[theme_sky]
+Himmel
+---
+[theme_ocean]
+Ozean
+---
+[theme_forest]
+Wald
+---
+[theme_sunset]
+Sonnenuntergang
+---
+[theme_lavender]
+Lavendel
+---
+[theme_cherry]
+Kirsche
+---
+[theme_dawn]
+Morgendammerung
+---
+[theme_sage]
+Salbei
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Minze
+---
+[theme_cobalt]
+Kobalt
 ---
 [orientation_label]
 Ausrichtung

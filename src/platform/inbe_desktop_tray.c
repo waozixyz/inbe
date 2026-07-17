@@ -69,23 +69,6 @@ GetTrayWindowAction(int visible)
 }
 
 static void
-InitTraySnapshotLabels(InbeTraySnapshot *snapshot)
-{
-    if(snapshot == NULL)
-        return;
-    snprintf(snapshot->show_hide_label, sizeof(snapshot->show_hide_label),
-             "Show Inner Breeze");
-    snprintf(snapshot->start_practice_label, sizeof(snapshot->start_practice_label),
-             "Start Practice");
-    snprintf(snapshot->habits_label, sizeof(snapshot->habits_label), "Mark Complete");
-    snprintf(snapshot->quit_label, sizeof(snapshot->quit_label), "Quit Inner Breeze");
-    snprintf(snapshot->whm_label, sizeof(snapshot->whm_label), "Wim Hof");
-    snprintf(snapshot->meditation_label, sizeof(snapshot->meditation_label), "Meditation");
-    snprintf(snapshot->sun_salutation_label, sizeof(snapshot->sun_salutation_label),
-             "Sun Salutation");
-}
-
-static void
 FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
 {
     if(snapshot == NULL)
@@ -132,7 +115,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         return 0;
 
     memset(&local_snapshot, 0, sizeof(local_snapshot));
-    InitTraySnapshotLabels(&local_snapshot);
+    FillTraySnapshotLabels(&local_snapshot);
     if(snapshot != NULL)
         local_snapshot = *snapshot;
 
@@ -427,6 +410,9 @@ inbe_desktop_tray_update_status(InbeApp *app)
                 FormatLocaleText(text, sizeof(text), "tray_wim_hof_hold", count);
                 break;
             case InbePhaseRecover:
+                count = 15 - count;
+                if(count < 0)
+                    count = 0;
                 FormatLocaleText(text, sizeof(text), "tray_wim_hof_breathe_in",
                                  count);
                 break;

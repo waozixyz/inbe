@@ -41,6 +41,51 @@ LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
+DEB_BUILD_DIR := $(BUILD_OBJ_DIR)/deb
+DEB_ROOT := $(DEB_BUILD_DIR)/root
+DEB_DIST_DIR := $(BUILD_DIST_DIR)/deb
+DEB_ARCH ?= $(if $(filter x86_64 amd64,$(ARCH)),amd64,$(if $(filter aarch64 arm64,$(ARCH)),arm64,$(ARCH)))
+DEB_BIN_SOURCE ?=
+DEB_BIN_INPUT = $(if $(strip $(DEB_BIN_SOURCE)),$(DEB_BIN_SOURCE),$(if $(filter linux,$(NATIVE_PLATFORM)),$(TARGET),))
+DEB_PACKAGE_NAME ?= $(APP_NAME)
+DEB_MAINTAINER ?= $(APP_MAINTAINER)
+DEB_SECTION ?= utils
+DEB_PRIORITY ?= optional
+DEB_DEPENDS ?= libc6, libsdl2-2.0-0, libgtk-3-0, libcurl4, libdrm2, libgbm1, libegl1, libgles2, hicolor-icon-theme
+DEB_TARGET = $(DEB_DIST_DIR)/$(DEB_PACKAGE_NAME)_$(APP_VERSION)_$(DEB_ARCH).deb
+DEB_TARGET_PREREQS = Makefile $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) $(VERSION_FILE) $(if $(filter linux,$(NATIVE_PLATFORM)),$(TARGET),)
+RPM_BUILD_DIR := $(BUILD_OBJ_DIR)/rpm
+RPM_TOPDIR := $(RPM_BUILD_DIR)/rpmbuild
+RPM_DIST_DIR := $(BUILD_DIST_DIR)/rpm
+RPM_ARCH ?= $(if $(filter x86_64 amd64,$(ARCH)),x86_64,$(if $(filter aarch64 arm64,$(ARCH)),aarch64,$(ARCH)))
+RPM_BIN_SOURCE ?=
+RPM_BIN_INPUT = $(if $(strip $(RPM_BIN_SOURCE)),$(RPM_BIN_SOURCE),$(if $(filter linux,$(NATIVE_PLATFORM)),$(TARGET),))
+RPM_PACKAGE_NAME ?= $(APP_NAME)
+RPM_RELEASE ?= 1
+RPM_LICENSE ?= BSD-3-Clause
+RPM_REQUIRES ?= glibc, SDL2, gtk3, libcurl, libdrm, mesa-libgbm, mesa-libEGL, mesa-libGLES, hicolor-icon-theme
+RPM_SPEC := $(RPM_BUILD_DIR)/$(RPM_PACKAGE_NAME).spec
+RPM_TARGET = $(RPM_DIST_DIR)/$(RPM_PACKAGE_NAME)-$(APP_VERSION)-$(RPM_RELEASE).$(RPM_ARCH).rpm
+RPM_TARGET_PREREQS = Makefile $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) $(VERSION_FILE) $(if $(filter linux,$(NATIVE_PLATFORM)),$(TARGET),)
+PODMAN ?= $(shell if [ "$(UNAME_S)" = "FreeBSD" ] && [ "$$(id -u)" != "0" ]; then \
+	if command -v doas >/dev/null 2>&1; then printf 'doas podman'; \
+	elif command -v sudo >/dev/null 2>&1; then printf 'sudo podman'; \
+	else printf 'podman'; fi; \
+else printf 'podman'; fi)
+PODMAN_RUN_PLATFORM ?= $(if $(filter FreeBSD,$(UNAME_S)),--os linux --arch amd64,)
+PODMAN_RUN_NETWORK ?= $(if $(filter FreeBSD,$(UNAME_S)),--network host,)
+SNAP_BUILD_DIR := $(BUILD_OBJ_DIR)/snap
+SNAP_DIST_DIR := $(BUILD_DIST_DIR)/snap
+SNAP_IMAGE ?= docker.io/snapcore/snapcraft:latest
+SNAP_APT_CACHE_VOLUME ?= $(APP_NAME)-snap-apt-cache
+SNAP_ROOT_CACHE_VOLUME ?= $(APP_NAME)-snap-root-cache
+SNAP_CACHE_VOLUMES := $(SNAP_APT_CACHE_VOLUME) $(SNAP_ROOT_CACHE_VOLUME)
+SNAP_TARGET = $(SNAP_DIST_DIR)/$(APP_NAME)_$(APP_VERSION)_$(ARCH).snap
+FLATPAK_BUILD_DIR := $(BUILD_OBJ_DIR)/flatpak
+FLATPAK_DIST_DIR := $(BUILD_DIST_DIR)/flatpak
+FLATPAK_IMAGE ?= ghcr.io/flathub-infra/flatpak-github-actions:gnome-46
+FLATPAK_MANIFEST = packaging/flatpak/$(APP_ID).yml
+FLATPAK_TARGET = $(FLATPAK_DIST_DIR)/$(APP_NAME)-$(APP_VERSION)-$(ARCH).flatpak
 APP_ID := $(ANDROID_APP_ID)
 APP_COMMENT := Syncable breathing, meditation, and habit practice app
 APP_DESC := Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.
@@ -90,7 +135,7 @@ WEB_OBJ_DIR := $(BUILD_OBJ_DIR)/web
 WEB_DIST_DIR := $(BUILD_DIST_DIR)/web
 CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
 VERSION_FILE := src/core/version.h
-APP_VERSION := $(shell sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' $(VERSION_FILE) 2>/dev/null)
+APP_VERSION := $(shell awk '/INBE_VERSION_STRING/ { print $$3; exit }' $(VERSION_FILE) 2>/dev/null | tr -d '"')
 
 FLINT_DIR ?= vendor/flint
 RAYLIB_DIR = $(FLINT_DIR)/vendor/raylib/src
@@ -193,7 +238,7 @@ CURL_INCLUDE_DIR := $(FLINT_CURL_INCLUDE_DIR)
 CURL_LIB_DIR := $(FLINT_CURL_LIB_DIR)
 CURL_SO := $(FLINT_CURL_SO)
 CURL_PROTOCOL_CHECK := $(FLINT_CURL_PROTOCOL_CHECK)
-FLINT_CURL_VERSION_NUM ?= $(shell printf '%s\n' '#include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(FLINT_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
+FLINT_CURL_VERSION_NUM ?= $(shell printf '%b\n' '\043include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(FLINT_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
 FLINT_CURL_VERSION_HEX := $(patsubst 0x%,%,$(FLINT_CURL_VERSION_NUM))
 SQLITE_DIR := vendor/sqlite
 SQLITE_BUILD_DIR := $(VENDOR_BUILD_DIR)/sqlite
@@ -299,14 +344,16 @@ SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
 endif
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) $(wildcard assets/practices/sunsalutation/pos_*.png)
+IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
-FONT_OUTPUTS := assets/fonts/locales.png assets/fonts/locales.dat
-OTFCHOP_DIR ?= $(FLINT_DIR)/tools/otfchop
-FONT_TOOL := $(OTFCHOP_DIR)/otfchop
-FONT_SOURCE := $(OTFCHOP_DIR)/unifont-17.0.04.otf
+FONT_FILES := \
+	$(FLINT_DIR)/fonts/noto/NotoSans-Regular.ttf \
+	$(FLINT_DIR)/fonts/noto/NotoSansSC-Regular.otf \
+	$(FLINT_DIR)/fonts/noto/NotoSansJP-Regular.otf \
+	$(FLINT_DIR)/fonts/noto/NotoSansKR-Regular.otf \
+	$(FLINT_DIR)/fonts/noto/NotoSansTC-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
-EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_OUTPUTS)
+EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
 WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
 WEB_SRC := $(WEB_APP_SRCS) $(EMBEDDED_ASSETS_C)
@@ -406,8 +453,8 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(FLINT_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native install install-user uninstall stage package-freebsd validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
-.NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click
+.PHONY: all native install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
 
@@ -438,6 +485,17 @@ dist:
 	$(MAKE) android-bundle PASSWORD="$$password"
 
 appimage: $(APPIMAGE_TARGET)
+
+deb package-deb: $(DEB_TARGET)
+
+rpm package-rpm: $(RPM_TARGET)
+
+snap package-snap: $(SNAP_TARGET)
+
+snap-cache-clean: podman-check
+	$(PODMAN) volume rm -f $(SNAP_CACHE_VOLUMES)
+
+flatpak package-flatpak: $(FLATPAK_TARGET)
 
 click: $(CLICK_TARGET)
 
@@ -529,22 +587,23 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c \
 		$(LIBOQS_A) -Wl,--gc-sections $(FLINT_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c tests/test_locale_stub.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_REVIEW_TEST): tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_review_test.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_OUTPUTS) | $(TEST_BIN_DIR)
+$(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-DFLINT_DIR=\"$(FLINT_DIR)\" \
 		-o $@ \
 		tests/font_locale_test.c
 
@@ -560,22 +619,13 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/ap
 		-o $@ \
 		tests/app_bottom_nav_test.c
 
-$(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
+$(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(DEB_BUILD_DIR) $(DEB_DIST_DIR) $(RPM_BUILD_DIR) $(RPM_DIST_DIR) $(SNAP_BUILD_DIR) $(SNAP_DIST_DIR) $(FLATPAK_BUILD_DIR) $(FLATPAK_DIST_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
 	mkdir -p $@
 
 $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
 	mkdir -p $@
 
-assets/fonts:
-	mkdir -p $@
-
 FORCE:
-
-$(FONT_TOOL): $(OTFCHOP_DIR)/otfchop.c $(OTFCHOP_DIR)/stb_truetype.h $(OTFCHOP_DIR)/stb_image_write.h
-	$(MAKE) -C $(OTFCHOP_DIR) otfchop
-
-assets/fonts/locales.png assets/fonts/locales.dat: $(LOCALE_FILES) $(FONT_TOOL) | assets/fonts
-	$(FONT_TOOL) $(FONT_SOURCE) $(LOCALE_FILES) assets/fonts/locales
 
 $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
 	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
@@ -722,7 +772,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
-$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
+$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -745,7 +795,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
+$(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -827,7 +877,7 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	fi
 	test -f $@
 
-$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -849,7 +899,7 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(FLINT_INCLUDE) \
@@ -939,7 +989,131 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		--output appimage
 	test -f $@
 
-$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_OUTPUTS) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
+deb-check:
+	@command -v dpkg-deb >/dev/null 2>&1 || { \
+		echo "dpkg-deb is missing. On FreeBSD install it with: pkg install dpkg"; \
+		echo "To build a Debian package on FreeBSD, pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
+		exit 1; \
+	}
+	@if [ -z "$(strip $(DEB_BIN_INPUT))" ]; then \
+		echo "No Linux binary is available for the Debian package."; \
+		echo "Run this target on Linux, or on FreeBSD pass DEB_BIN_SOURCE=/path/to/linux/inbe."; \
+		exit 1; \
+	fi
+
+$(DEB_TARGET): $(DEB_TARGET_PREREQS) deb-check | $(DEB_BUILD_DIR) $(DEB_DIST_DIR)
+	rm -rf $(DEB_ROOT)
+	mkdir -p $(DEB_ROOT)/DEBIAN $(DEB_ROOT)/usr/bin $(DEB_ROOT)/usr/share/applications $(DEB_ROOT)/usr/share/icons/hicolor/512x512/apps $(DEB_ROOT)/usr/share/metainfo
+	cp $(DEB_BIN_INPUT) $(DEB_ROOT)/usr/bin/$(APP_NAME)
+	chmod 755 $(DEB_ROOT)/usr/bin/$(APP_NAME)
+	cp $(LINUX_APPIMAGE_DESKTOP) $(DEB_ROOT)/usr/share/applications/$(APP_NAME).desktop
+	cp $(LINUX_APPIMAGE_ICON) $(DEB_ROOT)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' \
+		$(LINUX_APPIMAGE_APPDATA) > $(DEB_ROOT)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
+	@installed_size=$$(find $(DEB_ROOT)/usr -type f -exec wc -c {} + | awk '$$2 != "total" { bytes += $$1 } END { print int((bytes + 1023) / 1024) }'); \
+	{ \
+		printf 'Package: %s\n' '$(DEB_PACKAGE_NAME)'; \
+		printf 'Version: %s\n' '$(APP_VERSION)'; \
+		printf 'Architecture: %s\n' '$(DEB_ARCH)'; \
+		printf 'Maintainer: %s\n' '$(DEB_MAINTAINER)'; \
+		printf 'Section: %s\n' '$(DEB_SECTION)'; \
+		printf 'Priority: %s\n' '$(DEB_PRIORITY)'; \
+		printf 'Installed-Size: %s\n' "$$installed_size"; \
+		printf 'Depends: %s\n' '$(DEB_DEPENDS)'; \
+		printf 'Homepage: %s\n' '$(APP_WWW)'; \
+		printf 'Description: %s\n' '$(APP_COMMENT)'; \
+		printf ' %s\n' '$(APP_DESC)'; \
+	} > $(DEB_ROOT)/DEBIAN/control
+	rm -f $(DEB_DIST_DIR)/$(DEB_PACKAGE_NAME)_*_$(DEB_ARCH).deb
+	dpkg-deb --build --root-owner-group $(DEB_ROOT) $(DEB_TARGET)
+	test -f $@
+
+rpm-check:
+	@command -v rpmbuild >/dev/null 2>&1 || { \
+		echo "rpmbuild is missing. On FreeBSD install it with: pkg install rpm4"; \
+		echo "To build an RPM package on FreeBSD, pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
+		exit 1; \
+	}
+	@if [ -z "$(strip $(RPM_BIN_INPUT))" ]; then \
+		echo "No Linux binary is available for the RPM package."; \
+		echo "Run this target on Linux, or on FreeBSD pass RPM_BIN_SOURCE=/path/to/linux/inbe."; \
+		exit 1; \
+	fi
+
+$(RPM_TARGET): $(RPM_TARGET_PREREQS) rpm-check | $(RPM_BUILD_DIR) $(RPM_DIST_DIR)
+	rm -rf $(RPM_TOPDIR)
+	mkdir -p $(RPM_TOPDIR)/BUILD $(RPM_TOPDIR)/BUILDROOT $(RPM_TOPDIR)/RPMS $(RPM_TOPDIR)/SOURCES $(RPM_TOPDIR)/SPECS $(RPM_TOPDIR)/SRPMS
+	{ \
+		printf '%s\n' 'Name: $(RPM_PACKAGE_NAME)'; \
+		printf '%s\n' 'Version: $(APP_VERSION)'; \
+		printf '%s\n' 'Release: $(RPM_RELEASE)%{?dist}'; \
+		printf '%s\n' 'Summary: $(APP_COMMENT)'; \
+		printf '%s\n' 'License: $(RPM_LICENSE)'; \
+		printf '%s\n' 'URL: $(APP_WWW)'; \
+		printf '%s\n' 'Requires: $(RPM_REQUIRES)'; \
+		printf '%s\n' ''; \
+		printf '%s\n' '%description'; \
+		printf '%s\n' '$(APP_DESC)'; \
+		printf '%s\n' ''; \
+		printf '%s\n' '%prep'; \
+		printf '%s\n' ''; \
+		printf '%s\n' '%build'; \
+		printf '%s\n' ''; \
+		printf '%s\n' '%install'; \
+		printf '%s\n' 'rm -rf %{buildroot}'; \
+		printf '%s\n' 'mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/applications %{buildroot}/usr/share/icons/hicolor/512x512/apps %{buildroot}/usr/share/metainfo'; \
+		printf '%s\n' 'cp "$(abspath $(RPM_BIN_INPUT))" %{buildroot}/usr/bin/$(APP_NAME)'; \
+		printf '%s\n' 'chmod 755 %{buildroot}/usr/bin/$(APP_NAME)'; \
+		printf '%s\n' 'cp "$(abspath $(LINUX_APPIMAGE_DESKTOP))" %{buildroot}/usr/share/applications/$(APP_NAME).desktop'; \
+		printf '%s\n' 'cp "$(abspath $(LINUX_APPIMAGE_ICON))" %{buildroot}/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png'; \
+		printf '%s\n' 'sed -e '\''s/<release version="[^"]*"/<release version="$(APP_VERSION)"/'\'' "$(abspath $(LINUX_APPIMAGE_APPDATA))" > %{buildroot}/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml'; \
+		printf '%s\n' ''; \
+		printf '%s\n' '%files'; \
+		printf '%s\n' '/usr/bin/$(APP_NAME)'; \
+		printf '%s\n' '/usr/share/applications/$(APP_NAME).desktop'; \
+		printf '%s\n' '/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png'; \
+		printf '%s\n' '/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml'; \
+	} > $(RPM_SPEC)
+	rpmbuild -bb $(RPM_SPEC) \
+		--target $(RPM_ARCH) \
+		--define '_topdir $(abspath $(RPM_TOPDIR))' \
+		--define '_build_id_links none'
+	rm -f $(RPM_DIST_DIR)/$(RPM_PACKAGE_NAME)-*-$(RPM_RELEASE).$(RPM_ARCH).rpm
+	created=$$(find $(RPM_TOPDIR)/RPMS -type f -name '$(RPM_PACKAGE_NAME)-$(APP_VERSION)-$(RPM_RELEASE)*.$(RPM_ARCH).rpm' | head -n 1); \
+	if [ -z "$$created" ]; then echo "rpmbuild did not produce an RPM"; exit 1; fi; \
+	cp "$$created" $(RPM_TARGET)
+	test -f $@
+
+podman-check:
+	@$(PODMAN) --version >/dev/null 2>&1 || { \
+		echo "podman check failed. Install podman, run with root privileges on FreeBSD, or set PODMAN=/path/to/podman."; \
+		exit 1; \
+	}
+
+$(SNAP_TARGET): Makefile packaging/snap/snap/snapcraft.yaml | $(SNAP_BUILD_DIR) $(SNAP_DIST_DIR) podman-check
+	rm -f $(SNAP_DIST_DIR)/*.snap
+	$(PODMAN) run $(PODMAN_RUN_PLATFORM) $(PODMAN_RUN_NETWORK) --rm --privileged \
+		-v "$(SNAP_APT_CACHE_VOLUME):/var/cache/apt/archives" \
+		-v "$(SNAP_ROOT_CACHE_VOLUME):/root/.cache" \
+		-v "$(abspath .):/work" \
+		-w /work \
+		$(SNAP_IMAGE) \
+		sh -lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/inbe-snap; cp -a /work /tmp/inbe-snap; cd /tmp/inbe-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
+	created=$$(find $(SNAP_DIST_DIR) -maxdepth 1 -type f -name '*.snap' | head -n 1); \
+	if [ -z "$$created" ]; then echo "snapcraft did not produce a snap"; exit 1; fi; \
+	mv "$$created" $(SNAP_TARGET)
+	test -f $@
+
+$(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK_DIST_DIR) podman-check
+	rm -f $(FLATPAK_DIST_DIR)/*.flatpak
+	$(PODMAN) run $(PODMAN_RUN_PLATFORM) $(PODMAN_RUN_NETWORK) --rm --privileged \
+		-v "$(abspath .):/work" \
+		-w /work \
+		$(FLATPAK_IMAGE) \
+		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
+	test -f $@
+
+$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
@@ -980,7 +1154,7 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) manifest.json 
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
 
 android-copy-assets:
-	$(MAKE) $(FONT_OUTPUTS)
+	$(MAKE) $(FONT_FILES)
 	$(MAKE) $(EMBEDDED_ASSETS_C)
 	rm -rf droid/app/src/main/assets
 	mkdir -p droid/app/src/main/assets
@@ -1230,7 +1404,9 @@ clean-native:
 clean-vendor-builds:
 	rm -rf $(VENDOR_BUILD_DIR)
 
-NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native install install-user stage package-freebsd run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)),native)
+NEEDS_DEB_NATIVE := $(if $(strip $(DEB_BIN_SOURCE)),,$(if $(filter linux,$(NATIVE_PLATFORM)),$(filter deb package-deb,$(MAKECMDGOALS))))
+NEEDS_RPM_NATIVE := $(if $(strip $(RPM_BIN_SOURCE)),,$(if $(filter linux,$(NATIVE_PLATFORM)),$(filter rpm package-rpm,$(MAKECMDGOALS))))
+NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native install install-user stage package-freebsd run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)) $(NEEDS_DEB_NATIVE) $(NEEDS_RPM_NATIVE),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)

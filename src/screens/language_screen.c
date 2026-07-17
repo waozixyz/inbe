@@ -6,13 +6,29 @@
 #include "ui.h"
 #include "flint.h"
 
+#include <string.h>
+
 extern int view_width;
 extern int view_height;
-static const char *g_language_options[64];
+static UIDropdownOption g_language_options[64];
 static int g_language_option_count = 0;
 
+static const char *
+language_font_name_for_code(const char *code)
+{
+    if(code == NULL)
+        return "ui-lang-latin";
+    if(strcmp(code, "ja") == 0)
+        return "ui-lang-ja";
+    if(strcmp(code, "ko") == 0)
+        return "ui-lang-ko";
+    if(strcmp(code, "zh") == 0)
+        return "ui-lang-zh";
+    return "ui-lang-latin";
+}
+
 static void
-build_language_options(const char **options, int max_options, int *count)
+build_language_options(UIDropdownOption *options, int max_options, int *count)
 {
     int total = GetLocaleCount();
 
@@ -21,8 +37,10 @@ build_language_options(const char **options, int max_options, int *count)
     if(total < 0)
         total = 0;
 
-    for(int i = 0; i < total; i++)
-        options[i] = GetLocaleLabel(i);
+    for(int i = 0; i < total; i++) {
+        options[i].label = GetLocaleLabel(i);
+        options[i].font_name = language_font_name_for_code(GetLocaleCode(i));
+    }
 
     *count = total;
 }
@@ -46,7 +64,8 @@ language_dropdown_button(InbeApp *app, int id, int x, int y, int w, int h, int *
     if(*selected_index < 0 || *selected_index >= g_language_option_count)
         *selected_index = 0;
 
-    return DrawUIDropdownButton(id, x, y, w, h, g_language_options, g_language_option_count, selected_index);
+    return DrawUIDropdownButtonEx(id, x, y, w, h, g_language_options,
+                                  g_language_option_count, selected_index);
 }
 
 int

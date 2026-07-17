@@ -65,7 +65,6 @@ storage_next_change_time(void)
                                   " SELECT COALESCE(MAX(updated_at),0) AS updated_at FROM habits"
                                   " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM habit_days"
                                   " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM sessions"
-                                  " UNION ALL SELECT COALESCE(MAX(updated_at),0) FROM social_snapshots"
                                   ")",
                                   0);
     return latest >= now ? latest + 1 : now;
@@ -395,9 +394,7 @@ storage_has_local_syncable_data(void)
                "WHERE user_id=(SELECT id FROM users LIMIT 1) AND deleted_at=0 LIMIT 1) "
                "OR EXISTS(SELECT 1 FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
                "WHERE h.user_id=(SELECT id FROM users LIMIT 1) "
-               "AND (hd.completed!=0 OR hd.count>0) LIMIT 1) "
-               "OR EXISTS(SELECT 1 FROM social_snapshots "
-               "WHERE user_id=(SELECT id FROM users LIMIT 1) LIMIT 1)",
+               "AND (hd.completed!=0 OR hd.count>0) LIMIT 1)",
                0) != 0;
 }
 
@@ -1496,6 +1493,56 @@ storage_json_array_count(const char *json, const char *path)
     return count;
 }
 
+int
+storage_json_array_count_path(const char *json, const char *path)
+{
+    return storage_json_array_count(json, path);
+}
+
+int
+storage_json_array_object_text(const char *json, const char *array_path,
+                               int index, const char *key,
+                               char *out, size_t out_size)
+{
+    char path[128];
+
+    if(out == NULL || out_size == 0)
+        return 0;
+    out[0] = '\0';
+    if(array_path == NULL || key == NULL || index < 0)
+        return 0;
+    if(snprintf(path, sizeof(path), "%s[%d].%s", array_path, index, key) >=
+       (int)sizeof(path))
+        return 0;
+    return storage_json_extract_text(json, path, out, out_size);
+}
+
+double
+storage_json_array_object_number(const char *json, const char *array_path,
+                                 int index, const char *key)
+{
+    char path[128];
+    sqlite3_stmt *stmt = NULL;
+    double value = 0.0;
+
+    if(g_storage.db == NULL || json == NULL || array_path == NULL ||
+       key == NULL || index < 0)
+        return 0.0;
+    if(snprintf(path, sizeof(path), "%s[%d].%s", array_path, index, key) >=
+       (int)sizeof(path))
+        return 0.0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT CAST(COALESCE(json_extract(?1,?2),0) AS REAL)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0.0;
+    bind_text(stmt, 1, json);
+    bind_text(stmt, 2, path);
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        value = sqlite3_column_double(stmt, 0);
+    sqlite3_finalize(stmt);
+    return value;
+}
+
 static int
 storage_sync_response_has_changes(const char *json)
 {
@@ -1911,8 +1958,8 @@ storage_merge_duplicate_habit_names(void)
     return ok;
 }
 
-int
-storage_apply_sync_response_json(const char *response_json)
+static int
+storage_apply_sync_habits_json(const char *response_json)
 {
     static const char *habits_sql =
         "INSERT INTO "
@@ -1951,6 +1998,13 @@ storage_apply_sync_response_json(const char *response_json)
         " SELECT 1 FROM sync_outbox "
         " WHERE entity_type='habit' AND entity_id=habits.id AND local_date=0"
         "))";
+
+    return storage_exec_json_user_sql(habits_sql, response_json);
+}
+
+static int
+storage_apply_sync_habit_days_json(const char *response_json)
+{
     static const char *habit_days_sql =
         "INSERT INTO habit_days(habit_id,local_date,completed,count,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.habit_id'),''),"
@@ -1974,6 +2028,13 @@ storage_apply_sync_response_json(const char *response_json)
         "     WHERE entity_type='habit_day' AND entity_id=habit_days.habit_id "
         "       AND local_date=habit_days.local_date"
         "    ))";
+
+    return storage_exec_json_user_sql(habit_days_sql, response_json);
+}
+
+static int
+storage_apply_sync_sessions_json(const char *response_json)
+{
     static const char *sessions_sql =
         "INSERT INTO "
         "sessions(id,user_id,started_at,local_date,topic,activity,source,"
@@ -2009,6 +2070,13 @@ storage_apply_sync_response_json(const char *response_json)
         " SELECT 1 FROM sync_outbox "
         " WHERE entity_type='session' AND entity_id=sessions.id AND local_date=0"
         "))";
+
+    return storage_exec_json_user_sql(sessions_sql, response_json);
+}
+
+static int
+storage_apply_sync_session_rounds_json(const char *response_json)
+{
     static const char *delete_rounds_sql =
         "DELETE FROM session_rounds WHERE session_id IN ("
         " SELECT COALESCE(json_extract(value,'$.id'),'') "
@@ -2057,6 +2125,40 @@ storage_apply_sync_response_json(const char *response_json)
         "    AND NOT EXISTS (SELECT 1 FROM sync_outbox "
         "        WHERE entity_type='session' AND "
         "entity_id=COALESCE(json_extract(s.value,'$.id'),'') AND local_date=0)))";
+
+    return storage_exec_json_user_sql(delete_rounds_sql, response_json) &&
+           storage_exec_json_user_sql(rounds_sql, response_json);
+}
+
+static int
+storage_apply_sync_meditation_logs_json(const char *response_json)
+{
+    static const char *meditation_logs_sql =
+        "INSERT INTO "
+        "meditation_logs(id,user_id,session_id,duration_seconds,completed_at,updated_at) "
+        "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
+        "       COALESCE(json_extract(value,'$.session_id'),''),"
+        "       CAST(COALESCE(json_extract(value,'$.duration_seconds'),"
+        "                     json_extract(value,'$.duration'),0) AS INTEGER),"
+        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.completed_at')),"
+        "                     strftime('%s',json_extract(value,'$.timestamp')),'0') AS INTEGER),"
+        "       CAST(COALESCE(strftime('%s',json_extract(value,'$.completed_at')),"
+        "                     strftime('%s',json_extract(value,'$.timestamp')),'0') AS INTEGER) "
+        "FROM (SELECT value FROM json_each(?1,'$.changes.meditation_logs') "
+        "      UNION ALL SELECT value FROM json_each(?1,'$.data.meditation_logs')) "
+        "WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
+        "ON CONFLICT(id) DO UPDATE SET "
+        " user_id=excluded.user_id,session_id=excluded.session_id,"
+        " duration_seconds=excluded.duration_seconds,"
+        " completed_at=excluded.completed_at,updated_at=excluded.updated_at "
+        "WHERE excluded.updated_at > meditation_logs.updated_at";
+
+    return storage_exec_json_user_sql(meditation_logs_sql, response_json);
+}
+
+static int
+storage_apply_sync_social_json(const char *response_json)
+{
     static const char *social_cache_sql =
         "INSERT INTO social_snapshots(user_id,kind,json,updated_at) "
         "SELECT ?2,"
@@ -2077,6 +2179,14 @@ storage_apply_sync_response_json(const char *response_json)
         "WHERE COALESCE(json_extract(value,'$.kind'),'')<>'' "
         "ON CONFLICT(user_id,kind) DO UPDATE SET "
         " json=excluded.json,updated_at=excluded.updated_at";
+
+    return storage_exec_json_user_sql(social_sql, response_json) &&
+           storage_exec_json_user_sql(social_cache_sql, response_json);
+}
+
+int
+storage_apply_sync_response_json(const char *response_json)
+{
     long long server_version;
     long long server_clock;
     long long old_server_version;
@@ -2120,14 +2230,13 @@ storage_apply_sync_response_json(const char *response_json)
         return 0;
     storage_clear_uploaded_outbox(g_storage.pending_sync_outbox_seq);
     if(!storage_reconcile_remote_habit_ids(response_json) ||
-       !storage_exec_json_user_sql(habits_sql, response_json) ||
-       !storage_exec_json_user_sql(habit_days_sql, response_json) ||
+       !storage_apply_sync_habits_json(response_json) ||
+       !storage_apply_sync_habit_days_json(response_json) ||
        !storage_merge_duplicate_habit_names() ||
-       !storage_exec_json_user_sql(delete_rounds_sql, response_json) ||
-       !storage_exec_json_user_sql(rounds_sql, response_json) ||
-       !storage_exec_json_user_sql(sessions_sql, response_json) ||
-       !storage_exec_json_user_sql(social_sql, response_json) ||
-       !storage_exec_json_user_sql(social_cache_sql, response_json)) {
+       !storage_apply_sync_session_rounds_json(response_json) ||
+       !storage_apply_sync_sessions_json(response_json) ||
+       !storage_apply_sync_meditation_logs_json(response_json) ||
+       !storage_apply_sync_social_json(response_json)) {
         exec_sql("ROLLBACK TO inbe_sync_apply");
         exec_sql("RELEASE inbe_sync_apply");
         return 0;
@@ -2195,8 +2304,11 @@ storage_apply_remote_full_snapshot(const char *response_json)
 static int
 storage_clear_local_sync_data(void)
 {
-    static const char *const sqls[] = {"DELETE FROM session_rounds", "DELETE FROM sessions",
-                                       "DELETE FROM habit_days", "DELETE FROM habits",
+    static const char *const sqls[] = {"DELETE FROM meditation_logs",
+                                       "DELETE FROM session_rounds",
+                                       "DELETE FROM sessions",
+                                       "DELETE FROM habit_days",
+                                       "DELETE FROM habits",
                                        "DELETE FROM social_snapshots",
                                        "DELETE FROM sync_outbox"};
 
@@ -2306,6 +2418,21 @@ storage_profile_day_offset(int local_date, int today_date)
     return (int)(diff_days + 0.5);
 }
 
+static int
+storage_profile_date_from_epoch(long long epoch)
+{
+    time_t value = (time_t)epoch;
+    struct tm *tm_value;
+
+    if(epoch <= 0)
+        return 0;
+    tm_value = gmtime(&value);
+    if(tm_value == NULL)
+        return 0;
+    return (tm_value->tm_year + 1900) * 10000 +
+           (tm_value->tm_mon + 1) * 100 + tm_value->tm_mday;
+}
+
 int
 storage_profile_activity_stats(int activity, int today_date,
                                int *streak_out, long *avg_hold_out)
@@ -2313,6 +2440,7 @@ storage_profile_activity_stats(int activity, int today_date,
     sqlite3_stmt *stmt = NULL;
     int seen[371] = {0};
     int streak = 0;
+    int latest_offset = -1;
     long avg_value = 0;
 
     if(streak_out != NULL)
@@ -2332,12 +2460,42 @@ storage_profile_activity_stats(int activity, int today_date,
     sqlite3_bind_int(stmt, 2, activity);
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0), today_date);
-        if(offset >= 0 && offset <= 370)
+        if(offset >= 0 && offset <= 370) {
             seen[offset] = 1;
+            if(latest_offset < 0 || offset < latest_offset)
+                latest_offset = offset;
+        }
     }
     sqlite3_finalize(stmt);
     stmt = NULL;
 
+    if(activity == 1 &&
+       sqlite3_prepare_v2(g_storage.db,
+                          "SELECT completed_at FROM meditation_logs "
+                          "WHERE user_id=?1 AND duration_seconds>0",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            int local_date = storage_profile_date_from_epoch(sqlite3_column_int64(stmt, 0));
+            int offset = storage_profile_day_offset(local_date, today_date);
+            if(offset >= 0 && offset <= 370) {
+                seen[offset] = 1;
+                if(latest_offset < 0 || offset < latest_offset)
+                    latest_offset = offset;
+            }
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(latest_offset > 0) {
+        int i;
+
+        for(i = 0; i + latest_offset <= 370; i++)
+            seen[i] = seen[i + latest_offset];
+        for(; i <= 370; i++)
+            seen[i] = 0;
+    }
     while(streak <= 370 && seen[streak])
         streak++;
 
@@ -2356,14 +2514,26 @@ storage_profile_activity_stats(int activity, int today_date,
         }
     } else if(activity == 1) {
         if(sqlite3_prepare_v2(g_storage.db,
-                              "SELECT COALESCE(AVG(total_seconds),0) "
-                              "FROM ("
-                              "  SELECT SUM(sr.seconds) AS total_seconds "
+                              "WITH session_totals AS ("
+                              "  SELECT s.id, SUM(sr.seconds) AS seconds "
                               "  FROM sessions s JOIN session_rounds sr ON sr.session_id=s.id "
                               "  WHERE s.user_id=?1 AND s.deleted_at=0 AND s.activity=?2 "
                               "    AND sr.seconds>0 "
                               "  GROUP BY s.id"
-                              ")",
+                              "),"
+                              "log_totals AS ("
+                              "  SELECT ml.session_id AS id, ml.duration_seconds AS seconds "
+                              "  FROM meditation_logs ml "
+                              "  WHERE ml.user_id=?1 AND ml.duration_seconds>0 "
+                              "    AND NOT EXISTS (SELECT 1 FROM session_totals st "
+                              "                    WHERE st.id=ml.session_id)"
+                              "),"
+                              "all_totals AS ("
+                              "  SELECT seconds FROM session_totals "
+                              "  UNION ALL "
+                              "  SELECT seconds FROM log_totals"
+                              ") "
+                              "SELECT COALESCE(AVG(seconds),0) FROM all_totals",
                               -1, &stmt, NULL) == SQLITE_OK) {
             bind_text(stmt, 1, g_storage.user_id);
             sqlite3_bind_int(stmt, 2, activity);

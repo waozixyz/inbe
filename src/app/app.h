@@ -274,13 +274,14 @@ typedef struct MeditationPracticeState {
 
 typedef struct SunSalutationPracticeState {
     Texture2D banner;
-    Texture2D poses[8];
+    Texture2D pose_sheets[2];
     int step;
     int repetition;
     int repetitions;
     int start_seconds;
     int end_seconds;
     int step_ticks;
+    int figure;
 } SunSalutationPracticeState;
 
 typedef struct PetPreviewState {
@@ -330,8 +331,6 @@ struct InbeApp {
     Texture2D easteregg_art;
     Texture2D easteregg_waozi;
     Texture2D font_shapes_texture;
-    Font locale_font;
-    Font locale_font_8;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;

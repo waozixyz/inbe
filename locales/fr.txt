@@ -70,6 +70,9 @@ Aucun compte
 [profile_add_friend_button]
 Ajouter un ami
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Recues
 ---
@@ -115,7 +118,7 @@ Respiration Wim Hof
 Méditation
 ---
 [exercise_sun_salutation]
-Sun Salutation
+Salutation au soleil
 ---
 [sun_salutation_work_in_progress]
 Travail en cours
@@ -128,6 +131,15 @@ Tempo initial
 ---
 [sun_salutation_end_speed_label]
 Tempo final
+---
+[sun_salutation_figure_label]
+Silhouette
+---
+[sun_salutation_figure_man]
+Homme
+---
+[sun_salutation_figure_woman]
+Femme
 ---
 [sun_salutation_tempo_preview_label]
 Apercu du tempo
@@ -301,10 +313,10 @@ Un compagnon discret pour la respiration, les habitudes et la synchronisation.
 Thème
 ---
 [theme_mode_label]
-Theme mode
+Mode du theme
 ---
 [theme_follow_device]
-System
+Systeme
 ---
 [speed_label]
 Vitesse
@@ -508,6 +520,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Palette
+---
+[theme_sky]
+Ciel
+---
+[theme_ocean]
+Ocean
+---
+[theme_forest]
+Foret
+---
+[theme_sunset]
+Coucher de soleil
+---
+[theme_lavender]
+Lavande
+---
+[theme_cherry]
+Cerise
+---
+[theme_dawn]
+Aube
+---
+[theme_sage]
+Sauge
+---
+[theme_sepia]
+Sepia
+---
+[theme_mono]
+Mono
+---
+[theme_mint]
+Menthe
+---
+[theme_cobalt]
+Cobalt
 ---
 [orientation_label]
 Orientation

@@ -70,6 +70,9 @@ Sync
 [profile_add_friend_button]
 Добавить друга
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Входящие
 ---
@@ -115,7 +118,7 @@ Add item
 Медитация
 ---
 [exercise_sun_salutation]
-Sun Salutation
+Приветствие солнцу
 ---
 [sun_salutation_work_in_progress]
 В работе
@@ -128,6 +131,15 @@ Sun Salutation
 ---
 [sun_salutation_end_speed_label]
 Конечный темп
+---
+[sun_salutation_figure_label]
+Фигура
+---
+[sun_salutation_figure_man]
+Мужчина
+---
+[sun_salutation_figure_woman]
+Женщина
 ---
 [sun_salutation_tempo_preview_label]
 Предпросмотр темпа
@@ -301,10 +313,10 @@ OK
 Тема
 ---
 [theme_mode_label]
-Theme mode
+Режим темы
 ---
 [theme_follow_device]
-System
+Система
 ---
 [theme_system]
 Системная
@@ -314,6 +326,42 @@ Inner Breeze
 ---
 [theme_palette_label]
 Палитра
+---
+[theme_sky]
+Небо
+---
+[theme_ocean]
+Океан
+---
+[theme_forest]
+Лес
+---
+[theme_sunset]
+Закат
+---
+[theme_lavender]
+Лаванда
+---
+[theme_cherry]
+Вишня
+---
+[theme_dawn]
+Рассвет
+---
+[theme_sage]
+Шалфей
+---
+[theme_sepia]
+Сепия
+---
+[theme_mono]
+Моно
+---
+[theme_mint]
+Мята
+---
+[theme_cobalt]
+Кобальт
 ---
 [orientation_label]
 Ориентация

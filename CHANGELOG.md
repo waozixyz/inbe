@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.9] - 2026-07-17
+### Changed
+- Fixed Android native builds by embedding the current Noto font sources instead of stale generated `assets/fonts/ui.*` files.
+- Fixed Android UI font loading by enabling TTF/OTF support in the Android raylib build.
+- Updated sun-salutation assets to use pose sheets while keeping the figure setting focused on the man sequence for now.
+- Improved release packaging automation, Linux package targets, and store metadata.
+
 ## [1.8.8] - 2026-07-13
 ### Changed
 - Updated Flint icon integration to use categorized sprite sheets for app UI, language, payments, platforms, tiles, and profile pictures.

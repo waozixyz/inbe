@@ -276,7 +276,10 @@ draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int conte
                      ctx->entries[i].hour, ctx->entries[i].minute);
             if(activity == EXERCISE_SUN_SALUTATION)
                 FormatLocaleText(summary_text, sizeof(summary_text),
-                              "session_count_singular", 1);
+                              "practice_home_repetitions",
+                              ctx->entries[i].round_count > 0
+                                  ? ctx->entries[i].rounds[0]
+                                  : 1);
             else if(activity == EXERCISE_MEDITATION)
                 habit_format_duration(ctx->entries[i].total_seconds,
                                       summary_text, sizeof(summary_text));

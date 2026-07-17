@@ -329,7 +329,19 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "tray_meditation_paused",
         "tray_meditation_left",
         "tray_sun_salutation",
-        "tray_sun_salutation_paused"
+        "tray_sun_salutation_paused",
+        "theme_sky",
+        "theme_ocean",
+        "theme_forest",
+        "theme_sunset",
+        "theme_lavender",
+        "theme_cherry",
+        "theme_dawn",
+        "theme_sage",
+        "theme_sepia",
+        "theme_mono",
+        "theme_mint",
+        "theme_cobalt"
     };
 
     for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)

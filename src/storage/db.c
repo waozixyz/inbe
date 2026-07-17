@@ -262,6 +262,14 @@ schema_create(void)
         " round_index INTEGER NOT NULL,"
         " seconds INTEGER NOT NULL,"
         " PRIMARY KEY(session_id,round_index)"
+        ");"
+        "CREATE TABLE IF NOT EXISTS meditation_logs("
+        " id TEXT PRIMARY KEY,"
+        " user_id TEXT NOT NULL,"
+        " session_id TEXT NOT NULL,"
+        " duration_seconds INTEGER NOT NULL,"
+        " completed_at INTEGER NOT NULL,"
+        " updated_at INTEGER NOT NULL DEFAULT 0"
         ");") &&
         schema_exec(
         "CREATE TABLE IF NOT EXISTS habits("
