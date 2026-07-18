@@ -60,11 +60,11 @@ parts:
       - libasound2-data
       - libasound2-plugins
 
-  openssl:
+  sync-runtime:
     plugin: nil
     stage-packages:
-      - libssl1.0.0
-      - libcrypto++9v5
+      - libcurl4
+      - libssl3
 
   inbe:
     plugin: make

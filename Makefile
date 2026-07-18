@@ -76,7 +76,8 @@ PODMAN_RUN_PLATFORM ?= $(if $(filter FreeBSD,$(UNAME_S)),--os linux --arch amd64
 PODMAN_RUN_NETWORK ?= $(if $(filter FreeBSD,$(UNAME_S)),--network host,)
 SNAP_BUILD_DIR := $(BUILD_OBJ_DIR)/snap
 SNAP_DIST_DIR := $(BUILD_DIST_DIR)/snap
-SNAP_IMAGE ?= docker.io/snapcore/snapcraft:latest
+SNAP_IMAGE ?= ghcr.io/canonical/snapcraft:8_core22
+SNAP_ENTRYPOINT ?= /bin/sh
 SNAP_APT_CACHE_VOLUME ?= $(APP_NAME)-snap-apt-cache
 SNAP_ROOT_CACHE_VOLUME ?= $(APP_NAME)-snap-root-cache
 SNAP_CACHE_VOLUMES := $(SNAP_APT_CACHE_VOLUME) $(SNAP_ROOT_CACHE_VOLUME)
@@ -1097,8 +1098,9 @@ $(SNAP_TARGET): Makefile packaging/snap/snap/snapcraft.yaml | $(SNAP_BUILD_DIR) 
 		-v "$(SNAP_ROOT_CACHE_VOLUME):/root/.cache" \
 		-v "$(abspath .):/work" \
 		-w /work \
+		--entrypoint "$(SNAP_ENTRYPOINT)" \
 		$(SNAP_IMAGE) \
-		sh -lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/inbe-snap; cp -a /work /tmp/inbe-snap; cd /tmp/inbe-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
+		-lc 'set -eu; printf "%s\n" "APT::Cache-Start \"100000000\";" > /etc/apt/apt.conf.d/99cache-start; apt-get update; rm -rf /tmp/inbe-snap; cp -a /work /tmp/inbe-snap; cd /tmp/inbe-snap; rm -rf build snap; mkdir snap; cp packaging/snap/snap/snapcraft.yaml snap/snapcraft.yaml; sed -i "s/^version:.*/version: '\''$(APP_VERSION)'\''/" snap/snapcraft.yaml; snapcraft pack --destructive-mode; cp *.snap /work/$(SNAP_DIST_DIR)/'
 	created=$$(find $(SNAP_DIST_DIR) -maxdepth 1 -type f -name '*.snap' | head -n 1); \
 	if [ -z "$$created" ]; then echo "snapcraft did not produce a snap"; exit 1; fi; \
 	mv "$$created" $(SNAP_TARGET)

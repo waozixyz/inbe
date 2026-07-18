@@ -1176,9 +1176,12 @@ test_sync_apply_meditation_logs_feed_profile_stats(void)
                    "\"duration_seconds\":3000,"
                    "\"completed_at\":\"2026-07-15T00:00:00Z\"}]}}"));
     check_true("meditation log profile stats call",
-               storage_profile_activity_stats(1, 20260716, &streak, &avg_hold));
+               storage_profile_activity_stats(1, 20260715, &streak, &avg_hold));
     check_int("meditation log profile streak", streak, 2);
     check_int("meditation log profile average", (int)avg_hold, 900);
+    check_true("meditation log profile stale day call",
+               storage_profile_activity_stats(1, 20260716, &streak, &avg_hold));
+    check_int("meditation log profile stale day streak", streak, 0);
     storage_close();
     remove_tree(root);
 }

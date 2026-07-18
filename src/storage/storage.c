@@ -2440,7 +2440,6 @@ storage_profile_activity_stats(int activity, int today_date,
     sqlite3_stmt *stmt = NULL;
     int seen[371] = {0};
     int streak = 0;
-    int latest_offset = -1;
     long avg_value = 0;
 
     if(streak_out != NULL)
@@ -2460,11 +2459,8 @@ storage_profile_activity_stats(int activity, int today_date,
     sqlite3_bind_int(stmt, 2, activity);
     while(sqlite3_step(stmt) == SQLITE_ROW) {
         int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0), today_date);
-        if(offset >= 0 && offset <= 370) {
+        if(offset >= 0 && offset <= 370)
             seen[offset] = 1;
-            if(latest_offset < 0 || offset < latest_offset)
-                latest_offset = offset;
-        }
     }
     sqlite3_finalize(stmt);
     stmt = NULL;
@@ -2478,24 +2474,13 @@ storage_profile_activity_stats(int activity, int today_date,
         while(sqlite3_step(stmt) == SQLITE_ROW) {
             int local_date = storage_profile_date_from_epoch(sqlite3_column_int64(stmt, 0));
             int offset = storage_profile_day_offset(local_date, today_date);
-            if(offset >= 0 && offset <= 370) {
+            if(offset >= 0 && offset <= 370)
                 seen[offset] = 1;
-                if(latest_offset < 0 || offset < latest_offset)
-                    latest_offset = offset;
-            }
         }
         sqlite3_finalize(stmt);
         stmt = NULL;
     }
 
-    if(latest_offset > 0) {
-        int i;
-
-        for(i = 0; i + latest_offset <= 370; i++)
-            seen[i] = seen[i + latest_offset];
-        for(; i <= 370; i++)
-            seen[i] = 0;
-    }
     while(streak <= 370 && seen[streak])
         streak++;
 
