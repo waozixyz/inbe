@@ -506,6 +506,20 @@ profile_draw_leaderboard_value(int x, int w, int y, const char *value, int font)
     DrawUIText(value, x + w - rank_w, y, font, GetThemeText());
 }
 
+static void
+profile_leaderboard_zero_value(InbeApp *app, char *out, size_t out_size)
+{
+    if(out == NULL || out_size == 0)
+        return;
+    if(app != NULL &&
+       app->profile_leaderboard_practice == EXERCISE_MEDITATION &&
+       app->profile_leaderboard_metric == PROFILE_LEADERBOARD_AVG_HOLD) {
+        profile_format_leaderboard_time(0, out, out_size);
+        return;
+    }
+    snprintf(out, out_size, "0");
+}
+
 static int
 profile_today_index(void)
 {
@@ -663,8 +677,9 @@ profile_draw_leaderboard_rows(InbeApp *app, const char *json, int x, int w, int 
                                        sizeof(alias));
         snprintf(draw_rows[rows].user_id, sizeof(draw_rows[rows].user_id), "%s", user_id);
         snprintf(draw_rows[rows].alias, sizeof(draw_rows[rows].alias), "%s", alias);
-        snprintf(draw_rows[rows].value, sizeof(draw_rows[rows].value), "...");
-        draw_rows[rows].sort_value = -1.0;
+        profile_leaderboard_zero_value(app, draw_rows[rows].value,
+                                       sizeof(draw_rows[rows].value));
+        draw_rows[rows].sort_value = 0.0;
         rows++;
     }
 
