@@ -241,8 +241,8 @@ jobs:
           path: build/release/firefox-addons/*
           if-no-files-found: error
 
-  build-linux:
-    name: Build Linux
+  build-linux-appimage:
+    name: Build Linux AppImage
     runs-on: ubuntu-22.04
     needs: test
     env:
@@ -303,40 +303,6 @@ jobs:
           find build/dist/linux -maxdepth 1 -type f -name '*.AppImage' -exec cp {} build/release/linux/ \;
           test -n "$(find build/release/linux -type f -print -quit)"
 
-      - name: Build Debian Package
-        run: |
-          set -euo pipefail
-          make deb
-          find build/dist/deb -maxdepth 1 -type f -name '*.deb' -exec cp {} build/release/linux/ \;
-          deb="$(find build/release/linux -maxdepth 1 -type f -name '*.deb' | head -n 1)"
-          test -n "$deb"
-          dpkg-deb --info "$deb"
-          dpkg-deb --contents "$deb" >/dev/null
-
-      - name: Build RPM Package
-        run: |
-          set -euo pipefail
-          make rpm
-          find build/dist/rpm -maxdepth 1 -type f -name '*.rpm' -exec cp {} build/release/linux/ \;
-          rpm_package="$(find build/release/linux -maxdepth 1 -type f -name '*.rpm' | head -n 1)"
-          test -n "$rpm_package"
-          rpm -qip "$rpm_package"
-          rpm -qlp "$rpm_package" >/dev/null
-
-      - name: Build Snap Package
-        run: |
-          set -euo pipefail
-          make snap
-          find build/dist/snap -maxdepth 1 -type f -name '*.snap' -exec cp {} build/release/linux/ \;
-          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.snap' -print -quit)"
-
-      - name: Build Flatpak Bundle
-        run: |
-          set -euo pipefail
-          make flatpak
-          find build/dist/flatpak -maxdepth 1 -type f -name '*.flatpak' -exec cp {} build/release/linux/ \;
-          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
-
       - name: Smoke Test Linux AppImage
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
@@ -368,10 +334,208 @@ jobs:
           cat /tmp/inbe-appimage.log || true
           exit 1
 
-      - name: Upload Linux Artifact
+      - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux
+          name: release-linux-appimage
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-deb:
+    name: Build Linux Deb
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Debian Package
+        run: |
+          set -euo pipefail
+          make deb
+          mkdir -p build/release/linux
+          find build/dist/deb -maxdepth 1 -type f -name '*.deb' -exec cp {} build/release/linux/ \;
+          deb="$(find build/release/linux -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          test -n "$deb"
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb" >/dev/null
+
+      - name: Upload Linux Deb Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-deb
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-rpm:
+    name: Build Linux RPM
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build RPM Package
+        run: |
+          set -euo pipefail
+          make rpm
+          mkdir -p build/release/linux
+          find build/dist/rpm -maxdepth 1 -type f -name '*.rpm' -exec cp {} build/release/linux/ \;
+          rpm_package="$(find build/release/linux -maxdepth 1 -type f -name '*.rpm' | head -n 1)"
+          test -n "$rpm_package"
+          rpm -qip "$rpm_package"
+          rpm -qlp "$rpm_package" >/dev/null
+
+      - name: Upload Linux RPM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-rpm
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-snap:
+    name: Build Linux Snap
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Snap Package
+        run: |
+          set -euo pipefail
+          make snap
+          mkdir -p build/release/linux
+          find build/dist/snap -maxdepth 1 -type f -name '*.snap' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.snap' -print -quit)"
+
+      - name: Upload Linux Snap Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-snap
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-flatpak:
+    name: Build Linux Flatpak
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Flatpak Bundle
+        run: |
+          set -euo pipefail
+          make flatpak
+          mkdir -p build/release/linux
+          find build/dist/flatpak -maxdepth 1 -type f -name '*.flatpak' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
+
+      - name: Upload Linux Flatpak Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-flatpak
           path: build/release/linux/*
           if-no-files-found: error
 
@@ -585,7 +749,11 @@ jobs:
       - build-web
       - build-chrome-extension
       - build-firefox-addons
-      - build-linux
+      - build-linux-appimage
+      - build-linux-deb
+      - build-linux-rpm
+      - build-linux-snap
+      - build-linux-flatpak
       - build-freebsd
       - build-windows
       - build-android
