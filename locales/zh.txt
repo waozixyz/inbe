@@ -375,9 +375,6 @@ Finish
 [volume_label]
 音量
 ---
-[show_session_return_button_label]
-显示返回按钮
----
 [reset_to_defaults_label]
 恢复默认
 ---
@@ -946,9 +943,6 @@ Preview only. This tab is not implemented yet.
 ---
 [practice_home_wim_hof_metadata]
 %d 轮 | %d 次呼吸
----
-[sun_salutation_session_step_title]
-步骤 %d / %d
 ---
 [meditation_music_downloading_progress]
 正在下载音频... %d%%

@@ -375,9 +375,6 @@ Kruh
 [volume_label]
 Hlasitost
 ---
-[show_session_return_button_label]
-Zobrazit tlačítko návratu
----
 [reset_to_defaults_label]
 Obnovit výchozí
 ---
@@ -946,9 +943,6 @@ Data pocházejí z dokončených cvičení.
 ---
 [practice_home_wim_hof_metadata]
 %d kol | %d dechů
----
-[sun_salutation_session_step_title]
-Krok %d / %d
 ---
 [meditation_music_downloading_progress]
 Stahování zvuku... %d%%

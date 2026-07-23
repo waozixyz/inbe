@@ -25,3 +25,15 @@ GetLocaleText(const char *key)
         return "Sun Salutation";
     return key;
 }
+
+void
+PushUIInspectSource(const char *path, int line)
+{
+    (void)path;
+    (void)line;
+}
+
+void
+PopUIInspectSource(void)
+{
+}

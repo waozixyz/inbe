@@ -1,0 +1,70 @@
+#module "settings_ui"
+
+#import "app.h"
+#import "locale.h"
+#import "ui.h"
+
+label_paragraph :: (label: const char*, w: int) -> UIParagraph #private {
+    return (UIParagraph){.text = label, .width = w}
+}
+
+toggle_row_height :: (label: const char*, w: int) -> int {
+    if w <= 0 {
+        w = ScaleUIPx(160)
+    }
+
+    label_h := GetUIParagraphHeight(label_paragraph(label, w))
+    row_h := label_h + ScaleUIPx(8) + ScaleUIPx(30) + ScaleUIPx(22)
+    if row_h < ScaleUIPx(76) {
+        row_h = ScaleUIPx(76)
+    }
+    return row_h
+}
+
+draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) -> int {
+    if y == NULL {
+        return 0
+    }
+
+    row_h := toggle_row_height(label, w)
+    label_y := *y
+    draw DrawUIParagraph(label_paragraph(label, w), x, &label_y)
+    label_h := label_y - *y
+
+    if DrawUIToggleSwitch(x, *y + label_h + ScaleUIPx(8), ScaleUIPx(56), ScaleUIPx(30), value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+        *y += row_h
+        return 1
+    }
+
+    *y += row_h
+    return 0
+}
+
+commit_toggle_row :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, value: int*, save_now: int) -> int {
+    if draw_toggle_row(x, w, y, label, value) {
+        if app != NULL {
+            app->settings_dirty = 1
+            if save_now {
+                save_settings(app)
+            }
+        }
+        return 1
+    }
+    return 0
+}
+
+commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: int, label: const char*, min: int, max: int, value: int*, suffix: const char*, save_now: int) -> int {
+    if y == NULL {
+        return 0
+    }
+
+    changed := DrawUISlider(id, x, *y, w, label, min, max, value, suffix)
+    if changed && app != NULL {
+        app->settings_dirty = 1
+        if save_now {
+            save_settings(app)
+        }
+    }
+    *y += row_h
+    return changed
+}

@@ -1,0 +1,368 @@
+#import "app.h"
+#import "app_nav.h"
+#import "text_utils.h"
+#import "locale.h"
+#import "src/screens/profile_social.h"
+#import "screens/practice_screen.h"
+#import "screens/settings/settings_data_ui.h"
+#import "screens/settings/settings_sync_account_impl.h"
+#import "storage.h"
+#import "sync_account.h"
+#import "ui.h"
+#import "stddef.h"
+#import "stdio.h"
+
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+
+profile_format_size :: (out: char*, out_size: size_t, bytes: long long) #private {
+    if bytes >= 1024LL * 1024LL {
+        snprintf(out, out_size, "%lld MB",
+                    (bytes + 1024LL * 1024LL / 2) / (1024LL * 1024LL))
+    } else if bytes >= 1024 {
+        snprintf(out, out_size, "%lld KB", (bytes + 1024 / 2) / 1024)
+    } else {
+        snprintf(out, out_size, "%lld B", bytes)
+    }
+}
+
+profile_data_content_height :: (content_w: int) -> int #private {
+    height := settings_data_content_height(content_w) + ScaleUIPx(64)
+
+    if sync_account_load(&(InbeSyncAccount){0}) {
+        height += ScaleUIPx(86)
+    }
+
+    return height
+}
+
+profile_sync_content_height :: (content_w: int) -> int #private {
+    return settings_sync_account_config_content_height(content_w)
+}
+
+profile_habits_content_height :: (app: InbeApp*, content_w: int) -> int #private {
+    row_h := content_w < ScaleUIPx(260) ? ScaleUIPx(78) : ScaleUIPx(48)
+    count := app != nil ? app->habits.count : 0
+
+    return ScaleUIPx(16) + (count > 0 ? count * row_h : ScaleUIPx(24))
+}
+
+profile_content_height :: (content_w: int, user_data: void*) -> int {
+    app := (InbeApp*)user_data
+
+    if app != nil && app->profile_view == PROFILE_VIEW_HABITS {
+        return ScaleUIPx(12) + profile_habits_content_height(app, content_w)
+    }
+    if app != nil && app->profile_view == PROFILE_VIEW_DATA {
+        return ScaleUIPx(12) + profile_data_content_height(content_w)
+    }
+    if app != nil && app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT {
+        return ScaleUIPx(12) + profile_sync_content_height(content_w)
+    }
+    if app != nil && app->profile_tab == PROFILE_TAB_DATA {
+        return ScaleUIPx(12) + profile_data_content_height(content_w)
+    }
+    if app != nil && app->profile_tab == PROFILE_TAB_FRIENDS {
+        return ScaleUIPx(12) + profile_social_friends_content_height(app, content_w)
+    }
+    if app != nil && app->profile_tab == PROFILE_TAB_LEADERBOARD {
+        return ScaleUIPx(12) +
+               profile_social_leaderboard_content_height(app, content_w)
+    }
+
+    return ScaleUIPx(12) + profile_sync_content_height(content_w)
+}
+
+profile_draw_stat_row :: (x: int, w: int, y: int*, label: const char*,
+                         value: const char*) #private {
+    font := GetUIFontSize()
+    small_font := GetUISmallFontSize()
+    value_w := 0
+
+    DrawUIText(label, x, *y, small_font, DarkenUIColor(GetThemeText(), 35))
+    value_w = MeasureUIText(value, font)
+    DrawUIText(value, x + w - value_w, *y - ScaleUIPx(2), font,
+                  GetThemeText())
+    *y += ScaleUIPx(28)
+}
+
+profile_draw_data_summary :: (x: int, w: int, y: int*) #private {
+    value: [64] char = {0}
+
+    snprintf(value, sizeof(value), "%d", storage_habit_count())
+    profile_draw_stat_row(x, w, y, GetLocaleText("profile_habits_label"), value)
+    snprintf(value, sizeof(value), "%d", storage_session_count())
+    profile_draw_stat_row(x, w, y, GetLocaleText("profile_sessions_label"), value)
+    profile_format_size(value, sizeof(value), storage_total_size())
+    profile_draw_stat_row(x, w, y, GetLocaleText("profile_storage_label"), value)
+}
+
+profile_draw_divider :: (x: int, w: int, y: int) #private {
+    DrawLine(x, y, x + w, y, DarkenUIColor(GetThemeBackground(), 28))
+}
+
+profile_tab_title :: (tab: int) -> const char* #private {
+    if tab == PROFILE_TAB_SYNC {
+        return GetLocaleText("profile_sync_tab")
+    }
+    if tab == PROFILE_TAB_DATA {
+        return GetLocaleText("profile_data")
+    }
+    if tab == PROFILE_TAB_FRIENDS {
+        return GetLocaleText("profile_friends_title")
+    }
+    if tab == PROFILE_TAB_LEADERBOARD {
+        return GetLocaleText("profile_leaderboard_title")
+    }
+
+    return GetLocaleText("tab_profile")
+}
+
+profile_draw_tab_dropdown :: (app: InbeApp*, y: int, w: int) -> int {
+    options: [PROFILE_TAB_COUNT] const char* = {0}
+    selected := 0
+    dropdown_w := 0
+    dropdown_x := 0
+    dropdown_h := ScaleUIPx(36)
+    dropdown_y := y + (GetUITabBarHeight() - dropdown_h) / 2
+
+    if app == nil {
+        return -1
+    }
+
+    options[PROFILE_TAB_SYNC] = profile_tab_title(PROFILE_TAB_SYNC)
+    options[PROFILE_TAB_DATA] = profile_tab_title(PROFILE_TAB_DATA)
+    options[PROFILE_TAB_FRIENDS] = profile_tab_title(PROFILE_TAB_FRIENDS)
+    options[PROFILE_TAB_LEADERBOARD] = profile_tab_title(PROFILE_TAB_LEADERBOARD)
+
+    selected = app->profile_tab
+    dropdown_w = w - ScaleUIPx(32)
+    if dropdown_w > ScaleUIPx(CONTENT_MAX_W) {
+        dropdown_w = ScaleUIPx(CONTENT_MAX_W)
+    }
+    if dropdown_w < ScaleUIPx(180) {
+        dropdown_w = w - ScaleUIPx(16)
+    }
+    dropdown_x = (w - dropdown_w) / 2
+
+    DrawUIDropdownButton(812, dropdown_x, dropdown_y, dropdown_w,
+                            dropdown_h, options, PROFILE_TAB_COUNT,
+                            &app->profile_tab)
+    return selected
+}
+
+profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
+                            font: int, color: Color) #private {
+    fitted: [INBE_HABIT_NAME_SIZE + 4] char = {0}
+
+    if text == nil || max_w <= 0 {
+        return
+    }
+
+    inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
+    DrawUIText(fitted, x, y, font, color)
+}
+
+profile_draw_data :: (app: InbeApp*, x: int, w: int, y: int*) {
+    profile_draw_data_summary(x, w, y)
+    settings_data_draw_sync_status(x, w, y)
+    *y += ScaleUIPx(10)
+    settings_data_draw_actions(app, x, w, y)
+}
+
+profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
+    font := GetUIFontSize()
+    small := GetUISmallFontSize()
+    btn_h := ScaleUIPx(32)
+    btn_w := ScaleUIPx(74)
+    gap := ScaleUIPx(8)
+    stack_rows := w < ScaleUIPx(260)
+
+    *y += ScaleUIPx(16)
+
+    for int i = 0; i < app->habits.count; i++ {
+        row_y := *y
+        up_hover := 0
+        down_hover := 0
+        controls_w := btn_w * 2 + gap
+        name_w := stack_rows ? w : w - controls_w - gap
+
+        profile_draw_fitted_text(app->habits.items[i].name, x,
+                                    row_y + ScaleUIPx(7), name_w, font,
+                                    GetThemeText())
+        if stack_rows {
+            row_y += ScaleUIPx(36)
+        }
+        if DrawUIGenericButton(stack_rows ? x : x + w - btn_w * 2 - gap,
+                               row_y, btn_w, btn_h,
+                               GetLocaleText("move_up_button"),
+                               UI_BUTTON_STYLE_SECONDARY, i == 0,
+                               &up_hover) {
+            if habits_move(&app->habits, i, i - 1) {
+                app_auto_sync(app)
+            }
+            return
+        }
+        if DrawUIGenericButton(stack_rows ? x + btn_w + gap : x + w - btn_w,
+                               row_y, btn_w, btn_h,
+                               GetLocaleText("move_down_button"),
+                               UI_BUTTON_STYLE_SECONDARY,
+                               i == app->habits.count - 1, &down_hover) {
+            if habits_move(&app->habits, i, i + 1) {
+                app_auto_sync(app)
+            }
+            return
+        }
+        *y += stack_rows ? ScaleUIPx(78) : ScaleUIPx(46)
+        profile_draw_divider(x, w, *y - ScaleUIPx(6))
+    }
+
+    if app->habits.count <= 0 {
+        DrawUIText(GetLocaleText("habit_empty_title"), x, *y, small,
+                      DarkenUIColor(GetThemeText(), 35))
+    }
+}
+
+profile_screen_draw_remove_friend_modal :: (app: InbeApp*) {
+    message: [384] char = {0}
+    modal_result := 0
+
+    if app == nil || !app->modal.active ||
+       app->modal.type != UIModalConfirmRemoveFriend {
+        return
+    }
+
+    snprintf(message, sizeof(message),
+                GetLocaleText("profile_friend_remove_message"),
+                app->profile_pending_friend_remove_name[0] != '\0'
+                    ? app->profile_pending_friend_remove_name
+                    : "this friend")
+    modal_result = DrawUIModal(GetLocaleText("profile_friend_remove_title"),
+                               message,
+                               GetLocaleText("cancel_button"),
+                               GetLocaleText("delete_button"))
+    if modal_result == 1 {
+        app->profile_pending_friend_remove_id[0] = '\0'
+        app->profile_pending_friend_remove_name[0] = '\0'
+        app_close_modal(app)
+    } else if modal_result == 2 {
+        url: [256] char = {0}
+
+        if profile_social_sync_url(url, sizeof(url)) {
+            app_request_friend_remove(app,
+                                         app->profile_pending_friend_remove_id)
+            settings_screen_set_status_success(
+                GetLocaleText("profile_updating_status"), nil)
+        } else {
+            settings_screen_set_status_error(
+                GetLocaleText("sync_server_url_invalid"))
+        }
+        app->profile_pending_friend_remove_id[0] = '\0'
+        app->profile_pending_friend_remove_name[0] = '\0'
+        app_close_modal(app)
+    }
+}
+
+profile_screen_draw :: (app: InbeApp*) -> int {
+    if app == nil {
+        return 0
+    }
+
+    header_h := GetUITitleBarHeight()
+    selector_y := header_h + ScaleUIPx(8)
+    content_y := selector_y + GetUITabBarHeight()
+    content_h := view_height - content_y - app_content_bottom_reserved(app)
+    page := (UIScrollPage){0}
+    y := 0
+    previous_tab := 0
+    title := GetLocaleText("sync_configure_account_button")
+
+    #if ANDROID {
+        settings_data_handle_android_import(app)
+    } #else_if WEB {
+        settings_data_handle_web_import(app)
+    }
+
+    if app->profile_tab < 0 || app->profile_tab >= PROFILE_TAB_COUNT {
+        app->profile_tab = PROFILE_TAB_SYNC
+    }
+    if app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_OVERVIEW {
+        app->profile_tab = PROFILE_TAB_SYNC
+    }
+    if app->profile_view == PROFILE_VIEW_DATA {
+        title = GetLocaleText("profile_data")
+    } else if app->profile_view == PROFILE_VIEW_HABITS {
+        title = GetLocaleText("profile_my_habits_title")
+    }
+
+    on app_draw_close_title_bar(app, title, header_h) {
+        app->profile_scroll = 0
+        app->sync_server_url_focused = 0
+        if app_return_to_nav_sidebar_if_needed(app) {
+            return 1
+        }
+        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS ? InbeScreenHabits : InbeScreenStart)
+        return 1
+    }
+
+    previous_tab = profile_draw_tab_dropdown(app, selector_y, view_width)
+    if app->profile_tab != previous_tab {
+        app->profile_scroll = 0
+        if app->profile_tab == PROFILE_TAB_FRIENDS {
+            profile_social_load_friends_cache(app)
+            app_request_social_refresh(app)
+        } else if app->profile_tab == PROFILE_TAB_LEADERBOARD {
+            profile_social_load_leaderboard_cache(app)
+            app_request_social_refresh(app)
+        }
+    }
+
+    clamp_min content_h 0
+    page = BeginUIScrollPage((UIScrollPageSpec){
+        .y = content_y,
+        .height = content_h,
+        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+        .min_content_width = ScaleUIPx(320),
+        .scroll_offset = &app->profile_scroll,
+        .content_height = profile_content_height,
+        .user_data = app
+    })
+    y = page.content_y + ScaleUIPx(12)
+
+    if app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT {
+        settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
+    } else if app->profile_view == PROFILE_VIEW_DATA {
+        profile_draw_data(app, page.content_x, page.content_w, &y)
+    } else if app->profile_view == PROFILE_VIEW_HABITS {
+        profile_draw_habits(app, page.content_x, page.content_w, &y)
+    } else if app->profile_tab == PROFILE_TAB_DATA {
+        profile_draw_data(app, page.content_x, page.content_w, &y)
+    } else if app->profile_tab == PROFILE_TAB_FRIENDS {
+        profile_social_draw_friends(app, page.content_x, page.content_w, &y)
+    } else if app->profile_tab == PROFILE_TAB_LEADERBOARD {
+        profile_social_draw_leaderboard(app, page.content_x, page.content_w, &y)
+    } else {
+        settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
+    }
+    ScrollEnd(page)
+    SetUIDropdownClipTop(content_y)
+    SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
+    on DrawUIDropdownMenu(812) {
+        app->profile_view = PROFILE_VIEW_MAIN
+        app->profile_scroll = 0
+    }
+    SetUIDropdownClipTop(0)
+    SetUIDropdownClipBottom(0)
+    if app->profile_view == PROFILE_VIEW_MAIN && (app->profile_tab == PROFILE_TAB_LEADERBOARD || app->profile_tab == PROFILE_TAB_FRIENDS) {
+        SetUIDropdownClipTop(content_y)
+        SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
+        on DrawUIDropdownMenu(811) {
+            profile_social_load_leaderboard_cache(app)
+            app->profile_scroll = 0
+        }
+        SetUIDropdownClipTop(0)
+        SetUIDropdownClipBottom(0)
+    }
+
+    return 0
+}

@@ -375,9 +375,6 @@ Lingkaran
 [volume_label]
 Volume
 ---
-[show_session_return_button_label]
-Tampilkan tombol kembali
----
 [reset_to_defaults_label]
 Reset ke default
 ---
@@ -946,9 +943,6 @@ Data sesi berasal dari latihan selesai.
 ---
 [practice_home_wim_hof_metadata]
 %d ronde | %d napas
----
-[sun_salutation_session_step_title]
-Langkah %d / %d
 ---
 [meditation_music_downloading_progress]
 Mengunduh audio... %d%%

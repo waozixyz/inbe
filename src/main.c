@@ -1,4 +1,4 @@
-#include "flint.h"
+#include "kryon.h"
 #include "app.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
@@ -7,7 +7,7 @@
 #include "theme_meta.h"
 #include "web.h"
 #include "theme.h"
-#include "device_preferences.h"
+#include "app/device_preferences.h"
 #include "embedded_assets.h"
 #include <stdarg.h>
 #include <stddef.h>
@@ -70,7 +70,6 @@ set_desktop_window_icon(void)
 }
 
 static InbeApp inbe_app;
-static InbeApp *g_inbe_app_ptr = NULL;
 
 static const char *
 trace_level_name(int log_level)
@@ -262,13 +261,6 @@ windows_close_logger(void)
     }
 }
 #endif
-
-InbeApp* get_global_inbe_app(void) {
-    return g_inbe_app_ptr;
-}
-
-void set_global_inbe_app(InbeApp *app);
-
 
 #if ANDROID_BUILD
 static AndroidInsets insets;
@@ -821,9 +813,4 @@ int main(int argc, char **argv) {
 #endif
 #endif
     return 0;
-}
-
-void set_global_inbe_app(InbeApp *app) {
-    g_inbe_app_ptr = app;
-    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
 }

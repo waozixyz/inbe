@@ -277,6 +277,8 @@ scan_used_locale_get_calls_in_dir(const LocaleKeys *english, LocaleKeys *used,
             scan_used_locale_get_calls_in_file(english, used, path);
         } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
             scan_used_locale_get_calls_in_file(english, used, path);
+        } else if(len > 4 && strcmp(name + len - 4, ".kry") == 0) {
+            scan_used_locale_get_calls_in_file(english, used, path);
         }
     }
     closedir(dir);
@@ -396,6 +398,8 @@ scan_locale_get_calls_in_dir(const LocaleKeys *english, const char *dir_path)
             scan_locale_get_calls_in_file(english, path);
         } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
             scan_locale_get_calls_in_file(english, path);
+        } else if(len > 4 && strcmp(name + len - 4, ".kry") == 0) {
+            scan_locale_get_calls_in_file(english, path);
         }
     }
     closedir(dir);
@@ -413,9 +417,9 @@ main(void)
         return 1;
     memset(&used, 0, sizeof(used));
     scan_locale_get_calls_in_dir(&english, "src");
-    scan_locale_get_calls_in_dir(&english, "vendor/flint/src");
+    scan_locale_get_calls_in_dir(&english, "vendor/kryon/src");
     scan_used_locale_get_calls_in_dir(&english, &used, "src");
-    scan_used_locale_get_calls_in_dir(&english, &used, "vendor/flint/src");
+    scan_used_locale_get_calls_in_dir(&english, &used, "vendor/kryon/src");
     add_dynamic_locale_keys(&used);
     check_unused_english_keys(&english, &used);
 

@@ -375,9 +375,6 @@ Kreis
 [volume_label]
 Lautstärke
 ---
-[show_session_return_button_label]
-Zurück-Taste anzeigen
----
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
 ---
@@ -946,9 +943,6 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 ---
 [practice_home_wim_hof_metadata]
 %d Runden | %d Atemzüge
----
-[sun_salutation_session_step_title]
-Schritt %d / %d
 ---
 [meditation_music_downloading_progress]
 Audio wird geladen... %d%%

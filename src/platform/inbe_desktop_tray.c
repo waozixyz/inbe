@@ -8,7 +8,7 @@
 #include "locale.h"
 #include "practices/practice_registry.h"
 #include "practices/sun_salutation/sun_salutation_practice.h"
-#include "flint.h"
+#include "kryon.h"
 
 #include <stdio.h>
 #include <string.h>

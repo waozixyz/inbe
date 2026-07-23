@@ -55,34 +55,34 @@ function hideLoadingScreen() {
 }
 
 function runStorageSync(retryDelay) {
-  if (Module.__inbeStorageSyncing) return;
+  if (Module.__kryonStorageSyncing) return;
 
-  Module.__inbeStorageSyncing = true;
-  Module.__inbeStorageSyncPending = false;
-  var shouldLog = !!Module.__inbeStorageSyncLogSuccess;
-  Module.__inbeStorageSyncLogSuccess = false;
+  Module.__kryonStorageSyncing = true;
+  Module.__kryonStorageSyncPending = false;
+  var shouldLog = !!Module.__kryonStorageSyncLogSuccess;
+  Module.__kryonStorageSyncLogSuccess = false;
 
   try {
     FS.syncfs(false, function(err) {
-      Module.__inbeStorageSyncing = false;
+      Module.__kryonStorageSyncing = false;
       if (err) console.error('IDBFS save failed:', err);
       else if (shouldLog) console.log('IDBFS synced');
 
-      if (Module.__inbeStorageSyncPending) {
-        if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-        Module.__inbeStorageSyncTimer = setTimeout(function() {
-          Module.__inbeStorageSyncTimer = 0;
+      if (Module.__kryonStorageSyncPending) {
+        if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
+        Module.__kryonStorageSyncTimer = setTimeout(function() {
+          Module.__kryonStorageSyncTimer = 0;
           runStorageSync(retryDelay);
         }, retryDelay);
       }
     });
   } catch (e) {
-    Module.__inbeStorageSyncing = false;
+    Module.__kryonStorageSyncing = false;
     console.error('IDBFS sync error:', e);
-    if (Module.__inbeStorageSyncPending) {
-      if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-      Module.__inbeStorageSyncTimer = setTimeout(function() {
-        Module.__inbeStorageSyncTimer = 0;
+    if (Module.__kryonStorageSyncPending) {
+      if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
+      Module.__kryonStorageSyncTimer = setTimeout(function() {
+        Module.__kryonStorageSyncTimer = 0;
         runStorageSync(retryDelay);
       }, retryDelay);
     }
@@ -91,23 +91,23 @@ function runStorageSync(retryDelay) {
 
 function scheduleStorageSync(delay, logSuccess) {
   if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
-  Module.__inbeStorageSyncPending = true;
-  Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
-  if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+  Module.__kryonStorageSyncPending = true;
+  Module.__kryonStorageSyncLogSuccess = Module.__kryonStorageSyncLogSuccess || !!logSuccess;
+  if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
 
-  Module.__inbeStorageSyncTimer = setTimeout(function() {
-    Module.__inbeStorageSyncTimer = 0;
+  Module.__kryonStorageSyncTimer = setTimeout(function() {
+    Module.__kryonStorageSyncTimer = 0;
     runStorageSync(delay);
   }, delay);
 }
 
 function flushStorageSync(logSuccess) {
   if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
-  Module.__inbeStorageSyncPending = true;
-  Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
-  if (Module.__inbeStorageSyncTimer) {
-    clearTimeout(Module.__inbeStorageSyncTimer);
-    Module.__inbeStorageSyncTimer = 0;
+  Module.__kryonStorageSyncPending = true;
+  Module.__kryonStorageSyncLogSuccess = Module.__kryonStorageSyncLogSuccess || !!logSuccess;
+  if (Module.__kryonStorageSyncTimer) {
+    clearTimeout(Module.__kryonStorageSyncTimer);
+    Module.__kryonStorageSyncTimer = 0;
   }
   runStorageSync(0);
 }
@@ -124,8 +124,8 @@ document.addEventListener('visibilitychange', function() {
 
 var Module = {
   __inbeRuntimeReady: false,
-  __inbeScheduleStorageSync: scheduleStorageSync,
-  __inbeFlushStorageSync: flushStorageSync,
+  __kryonScheduleStorageSync: scheduleStorageSync,
+  __kryonFlushStorageSync: flushStorageSync,
   preRun: [function() {
     reportStorageOriginProblem();
 
@@ -196,7 +196,7 @@ var Module = {
       var height = canvas.height || rect.height || 1;
 
       e.preventDefault();
-      Module.__inbeContextClick = {
+      Module.__kryonContextClick = {
         x: Math.round((e.clientX - rect.left) * width / Math.max(1, rect.width)),
         y: Math.round((e.clientY - rect.top) * height / Math.max(1, rect.height)),
         time: Date.now()

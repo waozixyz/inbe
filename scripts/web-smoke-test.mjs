@@ -477,9 +477,9 @@ async function waitForStorageIdle(client) {
   while (Date.now() - start < timeoutMs) {
     const result = await client.send('Runtime.evaluate', {
       expression: `(() => ({
-        syncing: !!Module.__inbeStorageSyncing,
-        pending: !!Module.__inbeStorageSyncPending,
-        timer: !!Module.__inbeStorageSyncTimer
+        syncing: !!Module.__kryonStorageSyncing,
+        pending: !!Module.__kryonStorageSyncPending,
+        timer: !!Module.__kryonStorageSyncTimer
       }))()`,
       returnByValue: true
     });
@@ -501,7 +501,7 @@ async function waitForStorageIdleBidi(client, context) {
       target: { context },
       awaitPromise: false,
       resultOwnership: 'none',
-      expression: "JSON.stringify((() => ({ syncing: !!Module.__inbeStorageSyncing, pending: !!Module.__inbeStorageSyncPending, timer: !!Module.__inbeStorageSyncTimer }))())"
+      expression: "JSON.stringify((() => ({ syncing: !!Module.__kryonStorageSyncing, pending: !!Module.__kryonStorageSyncPending, timer: !!Module.__kryonStorageSyncTimer }))())"
     });
     try {
       lastState = JSON.parse(result.result?.value || '{}');
@@ -523,9 +523,9 @@ async function verifyReloadPersistence(client) {
     expression: `(() => {
       try { FS.mkdir('/home/inbe'); } catch (e) {}
       FS.writeFile('/home/inbe/web-smoke-persist.txt', ${JSON.stringify(marker)});
-      if (typeof Module.__inbeFlushStorageSync !== 'function')
+      if (typeof Module.__kryonFlushStorageSync !== 'function')
         throw new Error('missing immediate storage flush helper');
-      Module.__inbeFlushStorageSync(true);
+      Module.__kryonFlushStorageSync(true);
       return true;
     })()`,
     returnByValue: true
@@ -551,7 +551,7 @@ async function verifyReloadPersistence(client) {
 async function verifyAppSettingsReloadPersistence(client) {
   await waitForStorageIdle(client);
   let result = await client.send('Runtime.evaluate', {
-    expression: "(() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); Module.__inbeFlushStorageSync(true); return true; })()",
+    expression: "(() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return true; })()",
     returnByValue: true
   });
   if (!result.result?.value)
@@ -574,7 +574,7 @@ async function verifyAppSettingsReloadPersistenceBidi(client, context) {
     target: { context },
     awaitPromise: false,
     resultOwnership: 'none',
-    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__inbeFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
+    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
   });
   let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)

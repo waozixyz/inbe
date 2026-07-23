@@ -7,7 +7,7 @@
 #include "miniz.h"
 #include "version.h"
 
-#include "flint.h"
+#include "kryon.h"
 #include <sqlite3.h>
 #include <dirent.h>
 #include <stdio.h>

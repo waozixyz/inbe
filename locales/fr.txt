@@ -378,9 +378,6 @@ Cercle
 [volume_label]
 Volume
 ---
-[show_session_return_button_label]
-Afficher le bouton retour
----
 [reset_to_defaults_label]
 Réinitialiser
 ---
@@ -946,9 +943,6 @@ Les données viennent des pratiques terminées.
 ---
 [practice_home_wim_hof_metadata]
 %d cycles | %d respirations
----
-[sun_salutation_session_step_title]
-Étape %d / %d
 ---
 [meditation_music_downloading_progress]
 Téléchargement audio... %d%%

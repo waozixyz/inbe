@@ -11,8 +11,8 @@ endif()
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
-set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
-set(RAYLIB_DIR "${FLINT_DIR}/vendor/raylib/src")
+set(KRYON_DIR "${REPO_ROOT}/vendor/kryon")
+set(RAYLIB_DIR "${KRYON_DIR}/vendor/raylib/src")
 set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
 set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
@@ -28,12 +28,53 @@ foreach(oqs_x86_feature
         BMI1 BMI2 FMA PCLMULQDQ POPCNT SSE SSE2 SSE3 VPCLMULQDQ)
     set(OQS_USE_${oqs_x86_feature}_INSTRUCTIONS OFF CACHE BOOL "" FORCE)
 endforeach()
-add_subdirectory("${FLINT_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
+add_subdirectory("${KRYON_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
 if(NOT TARGET oqs)
     message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
 endif()
-file(GLOB_RECURSE FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
-list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/file_dialog/file_dialog.c")
+file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
+list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
+find_program(HOST_MAKE NAMES gmake make REQUIRED)
+set(KRYON_KC "${KRYON_DIR}/build/bin/kc")
+set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
+file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
+list(SORT INBE_KRY_SOURCES)
+set(INBE_KRY_GENERATED_SOURCES)
+set(INBE_KRY_GENERATED_HEADERS)
+foreach(kry_source ${INBE_KRY_SOURCES})
+    file(RELATIVE_PATH kry_rel "${REPO_ROOT}" "${kry_source}")
+    get_filename_component(kry_rel_dir "${kry_rel}" DIRECTORY)
+    get_filename_component(kry_name "${kry_rel}" NAME_WE)
+    set(kry_output_c "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.c")
+    set(kry_output_h "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.h")
+    if(kry_rel STREQUAL "src/storage/db.kry")
+        set(kry_output_c "${INBE_KRY_GEN_DIR}/src/storage/db_impl.c")
+        set(kry_output_h "${INBE_KRY_GEN_DIR}/src/storage/db_impl.h")
+    endif()
+    list(APPEND INBE_KRY_GENERATED_SOURCES "${kry_output_c}")
+    list(APPEND INBE_KRY_GENERATED_HEADERS "${kry_output_h}")
+endforeach()
+set(INBE_KRY_PROJECT_HEADER "${INBE_KRY_GEN_DIR}/kryon_project.h")
+add_custom_command(
+    OUTPUT ${INBE_KRY_GENERATED_SOURCES} ${INBE_KRY_GENERATED_HEADERS} "${INBE_KRY_PROJECT_HEADER}"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${INBE_KRY_GEN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${INBE_KRY_GEN_DIR}"
+    COMMAND "${KRYON_KC}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_SOURCES}
+    DEPENDS ${INBE_KRY_SOURCES} "${KRYON_KC}"
+    WORKING_DIRECTORY "${REPO_ROOT}"
+    VERBATIM
+)
+add_custom_command(
+    OUTPUT "${KRYON_KC}"
+    COMMAND "${HOST_MAKE}" -C "${KRYON_DIR}" build/bin/kc
+    DEPENDS "${KRYON_DIR}/Makefile"
+    VERBATIM
+)
+add_custom_target(inbe_kry_generated DEPENDS
+    ${INBE_KRY_GENERATED_SOURCES}
+    ${INBE_KRY_GENERATED_HEADERS}
+    "${INBE_KRY_PROJECT_HEADER}"
+)
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
@@ -48,11 +89,11 @@ set(INBE_EMBEDDED_INPUTS
     ${INBE_PRACTICE_BANNER_ASSETS}
     assets/practices/sunsalutation/poses_man_sheet.png
     assets/practices/sunsalutation/poses_woman_sheet.png
-    vendor/flint/fonts/noto/NotoSans-Regular.ttf
-    vendor/flint/fonts/noto/NotoSansSC-Regular.otf
-    vendor/flint/fonts/noto/NotoSansJP-Regular.otf
-    vendor/flint/fonts/noto/NotoSansKR-Regular.otf
-    vendor/flint/fonts/noto/NotoSansTC-Regular.otf
+    vendor/kryon/fonts/noto/NotoSans-Regular.ttf
+    vendor/kryon/fonts/noto/NotoSansSC-Regular.otf
+    vendor/kryon/fonts/noto/NotoSansJP-Regular.otf
+    vendor/kryon/fonts/noto/NotoSansKR-Regular.otf
+    vendor/kryon/fonts/noto/NotoSansTC-Regular.otf
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)
@@ -63,8 +104,8 @@ set(INBE_EMBEDDED_ASSETS_C "${CMAKE_BINARY_DIR}/inbe_embedded_assets.c")
 
 add_custom_command(
     OUTPUT "${INBE_EMBEDDED_ASSETS_C}"
-    COMMAND sh "${FLINT_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
-    DEPENDS "${FLINT_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
+    COMMAND sh "${KRYON_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
+    DEPENDS "${KRYON_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
 )
@@ -117,38 +158,9 @@ target_include_directories(raylib PUBLIC
 
 add_library(main SHARED
     "${SRC_DIR}/main.c"
-    "${SRC_DIR}/core/breath_engine.c"
-    "${SRC_DIR}/app/app_sync.c"
     "${SRC_DIR}/app/app.c"
-    "${SRC_DIR}/app/app_nav.c"
-    "${SRC_DIR}/app/app_settings.c"
-    "${SRC_DIR}/app/device_preferences.c"
-    "${SRC_DIR}/practices/practice_registry.c"
-    "${SRC_DIR}/practices/whm/whm_practice.c"
-    "${SRC_DIR}/practices/whm/whm_session.c"
-    "${SRC_DIR}/practices/whm/whm_manual.c"
-    "${SRC_DIR}/practices/whm/whm_config.c"
-    "${SRC_DIR}/practices/meditation/meditation_practice.c"
-    "${SRC_DIR}/practices/meditation/meditation_session.c"
-    "${SRC_DIR}/practices/meditation/meditation_manual.c"
-    "${SRC_DIR}/practices/meditation/meditation_config.c"
-    "${SRC_DIR}/practices/sun_salutation/sun_salutation_practice.c"
-    "${SRC_DIR}/practices/sun_salutation/sun_salutation_session.c"
-    "${SRC_DIR}/screens/habits_screen.c"
-    "${SRC_DIR}/screens/statistics_screen.c"
-    "${SRC_DIR}/screens/habits/edit.c"
-    "${SRC_DIR}/screens/habits/session.c"
-    "${SRC_DIR}/screens/profile_screen.c"
-    "${SRC_DIR}/screens/profile_social.c"
-    "${SRC_DIR}/screens/pet_screen.c"
-    "${SRC_DIR}/practices/meditation/meditation_music.c"
-    "${SRC_DIR}/storage/data.c"
-    "${SRC_DIR}/storage/db.c"
     "${SRC_DIR}/storage/import.c"
     "${SRC_DIR}/storage/storage.c"
-    "${SRC_DIR}/storage/storage_sessions.c"
-    "${SRC_DIR}/storage/sync_review.c"
-    "${SRC_DIR}/storage/sync_account.c"
     "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
@@ -156,28 +168,19 @@ add_library(main SHARED
     "${SRC_DIR}/platform/android/android_import.c"
     "${SRC_DIR}/platform/android/android_runtime_assets.c"
     "${SRC_DIR}/platform/android/android_share.c"
-    "${SRC_DIR}/screens/practice_screen.c"
-    "${SRC_DIR}/screens/language_screen.c"
-    "${SRC_DIR}/screens/manual_screen.c"
-    "${SRC_DIR}/screens/settings/settings_screen.c"
-    "${SRC_DIR}/screens/settings/settings_ui.c"
-    "${SRC_DIR}/screens/settings/settings_device.c"
-    "${SRC_DIR}/screens/settings/settings_session.c"
-    "${SRC_DIR}/screens/settings/settings_theme.c"
-    "${SRC_DIR}/screens/settings/settings_about.c"
-    "${SRC_DIR}/screens/settings/settings_data.c"
-    "${SRC_DIR}/screens/settings/settings_sync_account.c"
     "${INBE_EMBEDDED_ASSETS_C}"
-    ${FLINT_SOURCES}
+    ${INBE_KRY_GENERATED_SOURCES}
+    ${KRYON_SOURCES}
     "${SRC_DIR}/platform/android/android_insets.c"
     "${SRC_DIR}/platform/android/android_wakelock.c"
     "${SRC_DIR}/platform/android/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
+add_dependencies(main inbe_kry_generated)
 
 target_include_directories(main PRIVATE
-    "${FLINT_DIR}/include"
-    "${FLINT_DIR}/src"
+    "${KRYON_DIR}/include"
+    "${KRYON_DIR}/src"
     "${SRC_DIR}"
     "${SRC_DIR}/app"
     "${SRC_DIR}/core"
@@ -190,6 +193,8 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/storage"
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"
+    "${INBE_KRY_GEN_DIR}"
+    "${INBE_KRY_GEN_DIR}/src"
     "${NATIVE_APP_GLUE_DIR}"
     "${SQLITE_BUILD_DIR}"
 )

@@ -75,6 +75,18 @@ DrawRectangle(int posX, int posY, int width, int height, Color color)
 }
 
 void
+PushUIInspectSource(const char *path, int line)
+{
+    (void)path;
+    (void)line;
+}
+
+void
+PopUIInspectSource(void)
+{
+}
+
+void
 DrawLine(int startPosX, int startPosY, int endPosX, int endPosY, Color color)
 {
     (void)startPosX;
@@ -648,7 +660,7 @@ profile_social_pending_count(InbeApp *app)
     return 0;
 }
 
-#include "../src/app/app_nav.c"
+#include "../build/kryon/generated/src/app/app_nav.c"
 
 static InbeApp
 test_app(void)

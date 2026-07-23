@@ -1,0 +1,1044 @@
+#module "settings.sync_account"
+
+#import "screens/settings/settings_screen.h"
+#import "app.h"
+#import "locale.h"
+#import "storage/sync_account.h"
+#import "storage.h"
+#import "sync_account.h"
+#import "sync_client.h"
+#import "theme.h"
+#import "ui.h"
+#import "kryon.h"
+#import "ctype.h"
+#import "stdio.h"
+#import "string.h"
+
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+
+SettingsSyncKeySaveDialog :: int (*)(InbeApp*, const char*) #type
+SettingsSyncKeyImportDialog :: int (*)(InbeApp*) #type
+
+#enum {
+    INBE_PENDING_SYNC_ACCOUNT_NONE = 0
+}
+
+static sync_server_url_key: const char* = "sync_server_url"
+static sync_server_url_default: const char* = "https://api.waozi.xyz"
+static sync_account_alias_key: const char* = "sync_account_alias"
+
+static save_dialog_callback: SettingsSyncKeySaveDialog = nil
+static import_dialog_callback: SettingsSyncKeyImportDialog = nil
+
+ensure_default_server :: () #private {
+    saved := storage_get_setting_text(sync_server_url_key)
+
+    if saved == nil || saved[0] == '\0' {
+        storage_set_setting_text(sync_server_url_key, sync_server_url_default)
+    }
+}
+
+set_save_dialog :: (callback: SettingsSyncKeySaveDialog) {
+    save_dialog_callback = callback
+}
+
+set_import_dialog :: (callback: SettingsSyncKeyImportDialog) {
+    import_dialog_callback = callback
+}
+
+draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -> int #private {
+    link_h: int
+    clicked := 0
+
+    if text == nil || y == nil {
+        return 0
+    }
+
+    link_h = GetUITextHeight(text, font) + ScaleUIPx(8)
+    if link_h < ScaleUIPx(28) {
+        link_h = ScaleUIPx(28)
+    }
+
+    clicked = DrawUIHref((UIHref){
+        .bounds = {(float)x, (float)*y, (float)w, (float)link_h},
+        .text = text,
+        .font = font,
+    })
+    *y += link_h
+
+    return clicked
+}
+
+draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
+                        style: UITextInputStyle) #private {
+    field_h: int
+
+    if text == nil || y == nil {
+        return
+    }
+
+    field_h = GetUIReadonlyTextBoxHeight(text, font, w, style, 0)
+    DrawUIReadonlyTextBox((UIReadonlyTextBox){
+        .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
+        .text = text,
+        .font = font,
+        .style = style,
+    })
+    *y += field_h
+}
+
+compact_public_id :: (public_id: const char*, out: char*, out_size: size_t) #private {
+    len: size_t
+
+    if out == nil || out_size == 0 {
+        return
+    }
+
+    out[0] = '\0'
+    if public_id == nil {
+        return
+    }
+
+    len = strlen(public_id)
+    if len <= 12 {
+        snprintf(out, out_size, "%s", public_id)
+        return
+    }
+
+    snprintf(out, out_size, "%.*s...%.*s",
+                4, public_id, 4, public_id + len - 4)
+}
+
+backup_filename :: (out: char*, out_size: size_t) #private {
+    if out == nil || out_size == 0 {
+        return
+    }
+    snprintf(out, out_size, "account.key")
+}
+
+start_sync_key_export :: (app: InbeApp*, account: const InbeSyncAccount*) -> int #private {
+    filename: [64] char
+
+    backup_filename(filename, sizeof(filename))
+
+    #if ANDROID || WEB {
+        unused app
+        return sync_account_export_private_key(account, filename) ? 2 : 3
+    } #else {
+        if save_dialog_callback != nil {
+            return save_dialog_callback(app, filename)
+        }
+        return sync_account_export_private_key(account, filename) ? 2 : 3
+    }
+}
+
+start_sync_key_import :: (app: InbeApp*) -> int #private {
+    if import_dialog_callback != nil {
+        return import_dialog_callback(app)
+    }
+    return 0
+}
+
+sync_url_filter :: (codepoint: int, user_data: void*) -> int #private {
+    unused user_data
+    return codepoint >= 33 && codepoint <= 126 && !isspace(codepoint)
+}
+
+sync_alias_filter :: (codepoint: int, user_data: void*) -> int #private {
+    unused user_data
+    return (codepoint >= 'a' && codepoint <= 'z') ||
+           (codepoint >= 'A' && codepoint <= 'Z') ||
+           (codepoint >= '0' && codepoint <= '9') ||
+           codepoint == '_'
+}
+
+alias_normalize :: (text: char*) #private {
+    out: [40] char
+    n := 0
+
+    if text == nil {
+        return
+    }
+
+    for int i = 0; text[i] != '\0' && n < (int)sizeof(out) - 1; i++ {
+        ch := (unsigned char)text[i]
+
+        if ch == '@' && n == 0 {
+            continue
+        }
+        if ch >= 'A' && ch <= 'Z' {
+            ch = (unsigned char)(ch - 'A' + 'a')
+        }
+        if (ch >= 'a' && ch <= 'z') ||
+           (ch >= '0' && ch <= '9') ||
+           ch == '_' {
+            out[n] = (char)ch
+            n++
+        }
+    }
+
+    out[n] = '\0'
+    snprintf(text, 40, "%s", out)
+}
+
+alias_valid :: (text: const char*) -> int #private {
+    len: size_t
+
+    if text == nil {
+        return 0
+    }
+
+    len = strlen(text)
+    if len < 4 || len > 32 {
+        return 0
+    }
+
+    for size_t i = 0; i < len; i++ {
+        ch := text[i]
+
+        if (ch >= 'a' && ch <= 'z') ||
+           (ch >= '0' && ch <= '9') ||
+           ch == '_' {
+            continue
+        }
+        return 0
+    }
+
+    return 1
+}
+
+server_normalize :: (app: InbeApp*, out: char*, out_size: size_t) -> int #private {
+    if app == nil || out == nil || out_size == 0 {
+        return 0
+    }
+    if !sync_client_normalize_url(app->sync_server_url, out, out_size) {
+        return 0
+    }
+    snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s", out)
+    app->sync_server_url_cursor = (int)strlen(app->sync_server_url)
+    return 1
+}
+
+server_save :: (app: InbeApp*) #private {
+    url: [sizeof(app->sync_server_url)] char
+
+    if app == nil {
+        return
+    }
+    if !server_normalize(app, url, sizeof(url)) {
+        settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"))
+        return
+    }
+    storage_set_setting_text(sync_server_url_key, url)
+    settings_screen_set_status_success(GetLocaleText("sync_server_saved"), url)
+}
+
+open_alias_modal :: (app: InbeApp*, then_backup: int) #private {
+    alias: const char* = nil
+
+    if app == nil {
+        return
+    }
+
+    alias = storage_get_setting_text(sync_account_alias_key)
+    snprintf(app->sync_alias_input, sizeof(app->sync_alias_input), "%s",
+                alias != nil ? alias : "")
+    alias_normalize(app->sync_alias_input)
+    app->sync_alias_cursor = (int)strlen(app->sync_alias_input)
+    app->sync_alias_focused = 1
+    app->sync_alias_then_backup = then_backup
+    app_open_modal(app, UIModalSyncAlias)
+}
+
+save_prepared :: (app: InbeApp*, account: InbeSyncAccount*,
+                     action: int, clear_local_data: int) -> int {
+    result: InbeSyncAccountSaveResult
+
+    if app == nil || account == nil {
+        return 0
+    }
+
+    result = sync_account_save(account, clear_local_data)
+    if result == INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR {
+        app->pending_sync_account = *account
+        app->pending_sync_account_action = action
+        app_open_modal(app, UIModalConfirmSyncAccountSwitch)
+        return 0
+    }
+    if result != INBE_SYNC_ACCOUNT_SAVE_OK {
+        return 0
+    }
+
+    app->pending_sync_account_action = InbePendingSyncAccountNone
+    memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account))
+    ensure_default_server()
+
+    if action == InbePendingSyncAccountCreate {
+        settings_screen_set_status_success(GetLocaleText("sync_account_created"), nil)
+        app_auto_sync(app)
+        open_alias_modal(app, 1)
+    } else {
+        settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), nil)
+        TraceLog(LOG_INFO, "SYNC: Private key imported")
+        app_auto_sync(app)
+    }
+
+    return 1
+}
+
+draw_account_id :: (app: InbeApp*, account: const InbeSyncAccount*,
+                   x: int, w: int, y: int*, small_font: int,
+                   style: UITextInputStyle) #private {
+    alias := storage_get_setting_text(sync_account_alias_key)
+    display: [96] char
+
+    if account == nil {
+        return
+    }
+
+    if alias != nil && alias[0] != '\0' {
+        snprintf(display, sizeof(display), "@%s", alias)
+    } else {
+        compact_public_id(account->public_id, display, sizeof(display))
+    }
+
+    unused style
+    if draw_public_id_link(display, x, w, y, small_font) && app != nil {
+        app_open_modal(app, UIModalSyncPublicId)
+    }
+}
+
+server_connected :: (app: InbeApp*) -> int #private {
+    url: [sizeof(app->sync_server_url)] char
+    saved_url: const char* = nil
+    saved_normalized: [sizeof(app->sync_server_url)] char
+    account: InbeSyncAccount
+
+    if app == nil || !sync_account_load(&account) {
+        return 0
+    }
+    if !sync_client_normalize_url(app->sync_server_url, url, sizeof(url)) {
+        return 0
+    }
+
+    saved_url = storage_get_setting_text(sync_server_url_key)
+    if !sync_client_normalize_url(saved_url, saved_normalized,
+                                  sizeof(saved_normalized)) {
+        return 0
+    }
+
+    return strcmp(saved_normalized, url) == 0
+}
+
+result_key :: (result: LyraSyncResult) -> const char* #private {
+    if result == LYRA_SYNC_OK {
+        return "sync_connected"
+    }
+    if result == LYRA_SYNC_INVALID_URL {
+        return "sync_server_url_invalid"
+    }
+    if result == LYRA_SYNC_NO_ACCOUNT {
+        return "sync_no_account"
+    }
+    if result == LYRA_SYNC_AUTH_FAILED {
+        return "sync_auth_failed"
+    }
+    return "sync_failed"
+}
+
+create_account :: (app: InbeApp*, account: InbeSyncAccount*) -> int #private {
+    if account == nil {
+        return 0
+    }
+
+    if !sync_account_generate(account) {
+        settings_screen_set_status_error(GetLocaleText("sync_account_create_failed"))
+        return 0
+    }
+
+    if save_prepared(app, account, InbePendingSyncAccountCreate, 0) {
+        return 1
+    }
+
+    if app == nil || app->modal.type != UIModalConfirmSyncAccountSwitch {
+        settings_screen_set_status_error(GetLocaleText("sync_account_create_failed"))
+    }
+
+    return 0
+}
+
+run_connect :: (app: InbeApp*) #private {
+    result: LyraSyncResult
+    url: [sizeof(app->sync_server_url)] char
+
+    if app == nil {
+        return
+    }
+    if !server_normalize(app, url, sizeof(url)) {
+        settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"))
+        return
+    }
+
+    storage_set_setting_text(sync_server_url_key, url)
+    result = sync_client_sync(url)
+    if result == LYRA_SYNC_OK {
+        app_request_social_refresh(app)
+        if storage_sync_review_clear_if_no_visible_diff() {
+            app_reload_after_import(app, 0)
+            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
+        } else if storage_sync_review_apply_remote_if_local_empty() {
+            app_reload_after_import(app, 0)
+            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
+        } else if storage_sync_review_pending() {
+            app_open_modal(app, UIModalSyncReview)
+            settings_screen_set_status_error(GetLocaleText("sync_review_needed"))
+        } else {
+            app_reload_after_import(app, 0)
+            settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
+        }
+    } else {
+        settings_screen_set_status_error(GetLocaleText(result_key(result)))
+    }
+}
+
+logout :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    sync_account_clear()
+    settings_screen_set_status_success(
+        GetLocaleText("sync_logged_out_local_data_kept"), nil)
+}
+
+clear_remote_confirmed :: (app: InbeApp*) {
+    account: InbeSyncAccount
+    result: LyraSyncResult
+    url: [sizeof(app->sync_server_url)] char
+
+    if app == nil {
+        return
+    }
+    if !sync_account_load(&account) {
+        settings_screen_set_status_error(GetLocaleText("sync_no_account"))
+        return
+    }
+
+    if server_normalize(app, url, sizeof(url)) {
+        result = sync_client_delete_account(url)
+        if result != LYRA_SYNC_OK {
+            TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result)
+        }
+    } else {
+        TraceLog(LOG_WARNING, "SYNC: remote account delete skipped due to invalid URL")
+    }
+
+    sync_account_clear()
+    settings_screen_set_status_success(GetLocaleText("sync_remote_data_cleared"), nil)
+}
+
+text_style :: () -> UITextInputStyle #private {
+    return (UITextInputStyle){
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
+        .radius = 0.08f,
+        .padding_x = ScaleUIPx(10),
+    }
+}
+
+button_min_width :: (label: const char*) -> int #private {
+    return MeasureUIText(label != nil ? label : "", GetUISmallFontSize()) +
+           ScaleUIPx(20)
+}
+
+button_group_fits :: (items: const UIButtonRowItem*, start: int, count: int,
+                     width: int, gap: int) -> int #private {
+    button_w: int
+
+    if items == nil || count <= 0 || width <= 0 {
+        return 0
+    }
+
+    button_w = (width - gap * (count - 1)) / count
+    if button_w <= 0 {
+        return 0
+    }
+
+    for int i = 0; i < count; i++ {
+        if button_min_width(items[start + i].label) > button_w {
+            return 0
+        }
+    }
+
+    return 1
+}
+
+button_group_count :: (items: const UIButtonRowItem*, start: int, count: int,
+                      width: int, gap: int) -> int #private {
+    for int row_count = count; row_count > 1; row_count-- {
+        if button_group_fits(items, start, row_count, width, gap) {
+            return row_count
+        }
+    }
+    return 1
+}
+
+draw_adaptive_button_row :: (row: UIButtonRow, height_out: int*) -> int #private {
+    clicked := -1
+    gap := row.gap > 0 ? row.gap : ScaleUIPx(10)
+    draw_y := row.y
+    index := 0
+
+    if height_out != nil {
+        *height_out = 0
+    }
+    if row.items == nil || row.count <= 0 || row.width <= 0 || row.height <= 0 {
+        return -1
+    }
+
+    while index < row.count {
+        count := button_group_count(row.items, index, row.count - index,
+                                    row.width, gap)
+        button_w := (row.width - gap * (count - 1)) / count
+
+        for int i = 0; i < count; i++ {
+            hover := 0
+            item_index := index + i
+            button_x := row.x + i * (button_w + gap)
+            draw_w := i == count - 1 ? row.x + row.width - button_x : button_w
+
+            if DrawUIGenericButton(button_x, draw_y, draw_w, row.height,
+                                   row.items[item_index].label,
+                                   row.items[item_index].style,
+                                   row.items[item_index].disabled,
+                                   &hover) {
+                clicked = item_index
+            }
+        }
+
+        index += count
+        draw_y += row.height
+        if index < row.count {
+            draw_y += gap
+        }
+    }
+
+    if height_out != nil {
+        *height_out = draw_y - row.y
+    }
+
+    return clicked
+}
+
+adaptive_button_row_height :: (items: const UIButtonRowItem*, count: int,
+                              width: int, button_h: int, gap: int) -> int #private {
+    height := 0
+    index := 0
+
+    if items == nil || count <= 0 || width <= 0 || button_h <= 0 {
+        return 0
+    }
+
+    while index < count {
+        row_count := button_group_count(items, index, count - index, width, gap)
+
+        height += button_h
+        index += row_count
+        if index < count {
+            height += gap
+        }
+    }
+
+    return height
+}
+
+config_content_height :: (content_w: int) -> int {
+    account: InbeSyncAccount
+    has_account := sync_account_load(&account)
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    h := 0
+    display: [96] char
+    alias: const char* = nil
+
+    if content_w <= 0 {
+        content_w = ScaleUIPx(320)
+    }
+
+    if !has_account {
+        buttons: [2] UIButtonRowItem = {
+            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+        }
+
+        h += ScaleUIPx(12)
+        h += adaptive_button_row_height(buttons, 2, content_w, btn_h, gap)
+        h += ScaleUIPx(18)
+        h += ScaleUIPx(42)
+        return h
+    }
+
+    alias = storage_get_setting_text(sync_account_alias_key)
+    if alias != nil && alias[0] != '\0' {
+        snprintf(display, sizeof(display), "@%s", alias)
+    } else {
+        compact_public_id(account.public_id, display, sizeof(display))
+    }
+
+    h += ScaleUIPx(18)
+    h += GetUIReadonlyTextBoxHeight(display, GetUISmallFontSize(),
+                                    content_w, text_style(), 0)
+    h += ScaleUIPx(8)
+    h += ScaleUIPx(18) + btn_h + ScaleUIPx(12)
+    h += btn_h + ScaleUIPx(12)
+
+    buttons_main: [3] UIButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+    }
+    h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
+    h += ScaleUIPx(12)
+
+    buttons_danger: [2] UIButtonRowItem = {
+        {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0},
+    }
+    h += adaptive_button_row_height(buttons_danger, 2, content_w, btn_h, gap)
+    h += ScaleUIPx(12)
+    h += ScaleUIPx(42)
+
+    return h
+}
+
+draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+    account: InbeSyncAccount
+    has_account := sync_account_load(&account)
+    font := GetUIFontSize()
+    small_font := GetUISmallFontSize()
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    hover := 0
+
+    DrawUIText(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
+    *y += ScaleUIPx(26)
+
+    if !has_account {
+        if DrawUIGenericButton(x, *y, w, btn_h,
+                               GetLocaleText("sync_create_account_button"),
+                               UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+            create_account(app, &account)
+        }
+        *y += btn_h + ScaleUIPx(18)
+        return
+    }
+
+    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+                  DarkenUIColor(GetThemeText(), 30))
+    *y += ScaleUIPx(18)
+    draw_account_id(app, &account, x, w, y, small_font, text_style())
+    *y += ScaleUIPx(4)
+
+    buttons: [3] UIButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+    }
+    row_h := 0
+    clicked := draw_adaptive_button_row((UIButtonRow){
+        .x = x,
+        .y = *y,
+        .width = w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons,
+        .count = 3,
+    }, &row_h)
+
+    if clicked == 0 {
+        SetClipboardText(account.public_id)
+        settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), nil)
+    } else if clicked == 1 {
+        open_alias_modal(app, 0)
+    } else if clicked == 2 {
+        app_open_modal(app, UIModalSyncAccountBackup)
+    }
+
+    *y += row_h
+    *y += ScaleUIPx(16)
+}
+
+draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
+    account: InbeSyncAccount
+    has_account := sync_account_load(&account)
+    font := GetUIFontSize()
+    small_font := GetUISmallFontSize()
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    hover := 0
+    commit := 0
+    input_style := text_style()
+
+    if app != nil && app->sync_server_url[0] == '\0' {
+        saved: const char* = nil
+
+        ensure_default_server()
+        saved = storage_get_setting_text(sync_server_url_key)
+        snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
+                    saved != nil && saved[0] != '\0'
+                        ? saved
+                        : sync_server_url_default)
+        app->sync_server_url_cursor = (int)strlen(app->sync_server_url)
+    }
+
+    if !has_account {
+        buttons: [2] UIButtonRowItem = {
+            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+        }
+        row_h := 0
+        clicked: int
+
+        *y += ScaleUIPx(12)
+        clicked = draw_adaptive_button_row((UIButtonRow){
+            .x = x,
+            .y = *y,
+            .width = w,
+            .height = btn_h,
+            .gap = gap,
+            .items = buttons,
+            .count = 2,
+        }, &row_h)
+
+        if clicked == 0 {
+            has_account = create_account(app, &account)
+        } else if clicked == 1 {
+            if !start_sync_key_import(app) {
+                settings_screen_set_status_error(
+                    GetLocaleText("sync_private_key_import_failed"))
+            }
+        }
+        *y += row_h + ScaleUIPx(18)
+    }
+
+    if !has_account {
+        settings_screen_draw_status_reserved(x, y, ScaleUIPx(42))
+        unused font
+        return
+    }
+
+    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+                  DarkenUIColor(GetThemeText(), 30))
+    *y += ScaleUIPx(18)
+    draw_account_id(app, &account, x, w, y, small_font, input_style)
+    *y += ScaleUIPx(8)
+
+    DrawUIText(GetLocaleText("sync_remote_label"), x, *y, small_font,
+                  DarkenUIColor(GetThemeText(), 30))
+    *y += ScaleUIPx(18)
+    DrawUITextField((UITextField){
+        .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
+        .text = app->sync_server_url,
+        .text_size = sizeof(app->sync_server_url),
+        .cursor_position = &app->sync_server_url_cursor,
+        .focused = &app->sync_server_url_focused,
+        .max_codepoints = 255,
+        .font = small_font,
+        .style = input_style,
+        .filter = sync_url_filter,
+        .commit_pressed = &commit,
+    })
+    if commit {
+        server_save(app)
+    }
+    *y += btn_h + ScaleUIPx(12)
+
+    if DrawUIGenericButton(x, *y, w, btn_h,
+                           server_connected(app)
+                               ? GetLocaleText("sync_connected_button")
+                               : GetLocaleText("sync_connect_button"),
+                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+        run_connect(app)
+    }
+    *y += btn_h + ScaleUIPx(12)
+
+    buttons_main: [3] UIButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+    }
+    row_h_main := 0
+    clicked_main := draw_adaptive_button_row((UIButtonRow){
+        .x = x,
+        .y = *y,
+        .width = w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons_main,
+        .count = 3,
+    }, &row_h_main)
+
+    if clicked_main == 0 {
+        SetClipboardText(account.public_id)
+        settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), nil)
+    } else if clicked_main == 1 {
+        open_alias_modal(app, 0)
+    } else if clicked_main == 2 {
+        app_open_modal(app, UIModalSyncAccountBackup)
+    }
+    *y += row_h_main
+    *y += ScaleUIPx(12)
+
+    buttons_danger: [2] UIButtonRowItem = {
+        {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0},
+    }
+    row_h_danger := 0
+    clicked_danger := draw_adaptive_button_row((UIButtonRow){
+        .x = x,
+        .y = *y,
+        .width = w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons_danger,
+        .count = 2,
+    }, &row_h_danger)
+
+    if clicked_danger == 0 {
+        logout(app)
+    } else if clicked_danger == 1 {
+        app_open_modal(app, UIModalConfirmDeleteSyncAccount)
+    }
+    *y += row_h_danger
+    *y += ScaleUIPx(12)
+
+    settings_screen_draw_status_reserved(x, y, ScaleUIPx(42))
+    unused font
+}
+
+draw_backup_modal :: (app: InbeApp*) -> int {
+    frame: UIPanelFrame
+    account: InbeSyncAccount
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    pad_bottom := ScaleUIPx(24)
+    text_button_gap := ScaleUIPx(40)
+    hover := 0
+    y: int
+    modal_h: int
+    button_y: int
+    warning: UIParagraph
+
+    memset(&account, 0, sizeof(account))
+    sync_account_load(&account)
+
+    warning = (UIParagraph){
+        .text = GetLocaleText("sync_backup_warning"),
+        .width = ScaleUIPx(336) - ScaleUIPx(36),
+    }
+    modal_h = ScaleUIPx(58) +
+              GetUIParagraphHeight(warning) +
+              text_button_gap +
+              btn_h * 2 + gap +
+              pad_bottom
+    if modal_h < ScaleUIPx(224) {
+        modal_h = ScaleUIPx(224)
+    }
+
+    frame = DrawUIModalFrame(ScaleUIPx(336), modal_h,
+                             GetLocaleText("sync_backup_title"),
+                             (Texture2D){0}, (Texture2D){0})
+    y = frame.content_y
+    warning.width = frame.content_w
+    DrawUIParagraph(warning, frame.content_x, &y)
+
+    button_y = y + text_button_gap
+    if button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h {
+        button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap
+    }
+    if DrawUIGenericButton(frame.content_x, button_y, frame.content_w, btn_h,
+                           GetLocaleText("sync_save_key_file_button"),
+                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+        return start_sync_key_export(app, &account)
+    }
+    if DrawUIGenericButton(frame.content_x, button_y + btn_h + gap,
+                           frame.content_w, btn_h,
+                           GetLocaleText("close_button"),
+                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+        return 1
+    }
+
+    return 0
+}
+
+draw_alias_modal :: (app: InbeApp*) -> int {
+    frame: UIPanelFrame
+    input_style := text_style()
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    y: int
+    at_w: int
+    commit := 0
+    result := 0
+    url: [256] char
+    current_alias: [40] char
+    stored_alias: const char* = nil
+    has_alias: int
+    unchanged_alias: int
+
+    if app == nil {
+        return 3
+    }
+
+    stored_alias = storage_get_setting_text(sync_account_alias_key)
+    snprintf(current_alias, sizeof(current_alias), "%s",
+                stored_alias != nil ? stored_alias : "")
+    alias_normalize(current_alias)
+    has_alias = current_alias[0] != '\0'
+
+    frame = DrawUIModalFrame(ScaleUIPx(336), ScaleUIPx(238),
+                             GetLocaleText(has_alias
+                                            ? "sync_alias_change_title"
+                                            : "sync_alias_title"),
+                             (Texture2D){0}, (Texture2D){0})
+    y = frame.content_y
+
+    DrawUIText(GetLocaleText(has_alias
+                                ? "sync_alias_change_message"
+                                : "sync_alias_message"),
+                  frame.content_x, y, GetUISmallFontSize(),
+                  DarkenUIColor(GetThemeText(), 20))
+    y += ScaleUIPx(40)
+
+    at_w = MeasureUIText("@", GetUIFontSize()) + ScaleUIPx(12)
+    DrawUIText("@", frame.content_x,
+                  GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
+                  GetUIFontSize(), GetThemeText())
+    DrawUITextField((UITextField){
+        .bounds = {(float)(frame.content_x + at_w), (float)y,
+                   (float)(frame.content_w - at_w), (float)btn_h},
+        .text = app->sync_alias_input,
+        .text_size = sizeof(app->sync_alias_input),
+        .cursor_position = &app->sync_alias_cursor,
+        .focused = &app->sync_alias_focused,
+        .max_codepoints = 32,
+        .font = GetUISmallFontSize(),
+        .style = input_style,
+        .filter = sync_alias_filter,
+        .commit_pressed = &commit,
+    })
+    alias_normalize(app->sync_alias_input)
+    y += btn_h + ScaleUIPx(12)
+
+    DrawUIText(GetLocaleText("sync_alias_rule"), frame.content_x, y,
+                  GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
+    y += ScaleUIPx(34)
+    unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
+
+    buttons: [2] UIButtonRowItem = {
+        {
+            GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
+            UI_BUTTON_STYLE_SECONDARY,
+            0,
+        },
+        {
+            GetLocaleText(has_alias
+                          ? "sync_alias_save_button"
+                          : "sync_alias_register_button"),
+            UI_BUTTON_STYLE_PRIMARY,
+            !alias_valid(app->sync_alias_input) || unchanged_alias,
+        },
+    }
+    clicked := draw_adaptive_button_row((UIButtonRow){
+        .x = frame.content_x,
+        .y = y,
+        .width = frame.content_w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons,
+        .count = 2,
+    }, nil)
+
+    if clicked == 0 {
+        return 3
+    }
+    if clicked == 1 ||
+       (commit && alias_valid(app->sync_alias_input) && !unchanged_alias) {
+        if server_normalize(app, url, sizeof(url)) {
+            alias_result := sync_client_register_alias(url, app->sync_alias_input)
+
+            TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
+                        app->sync_alias_input, url)
+            if alias_result == LYRA_SYNC_OK {
+                TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input)
+                result = 1
+            } else {
+                TraceLog(LOG_WARNING,
+                            "SYNC: alias register failed result=%d alias=@%s",
+                            (int)alias_result, app->sync_alias_input)
+                result = 2
+            }
+        } else {
+            TraceLog(LOG_WARNING, "SYNC: alias register failed invalid server url")
+            result = 2
+        }
+    }
+
+    return result
+}
+
+draw_public_id_modal :: (app: InbeApp*) -> int {
+    frame: UIPanelFrame
+    account: InbeSyncAccount
+    input_style := text_style()
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(10)
+    y: int
+    result := 0
+
+    unused app
+    memset(&account, 0, sizeof(account))
+    if !sync_account_load(&account) {
+        return 1
+    }
+
+    frame = DrawUIModalFrame(ScaleUIPx(356), ScaleUIPx(218),
+                             GetLocaleText("sync_public_id_full_title"),
+                             (Texture2D){0}, (Texture2D){0})
+    y = frame.content_y
+
+    DrawUIText(GetLocaleText("sync_public_id_full_message"),
+                  frame.content_x, y, GetUISmallFontSize(),
+                  DarkenUIColor(GetThemeText(), 25))
+    y += ScaleUIPx(34)
+
+    draw_public_id_field(account.public_id, frame.content_x, frame.content_w,
+                            &y, GetUISmallFontSize(), input_style)
+    y += ScaleUIPx(18)
+
+    buttons: [2] UIButtonRowItem = {
+        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+        {GetLocaleText("close_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+    }
+    clicked := draw_adaptive_button_row((UIButtonRow){
+        .x = frame.content_x,
+        .y = y,
+        .width = frame.content_w,
+        .height = btn_h,
+        .gap = gap,
+        .items = buttons,
+        .count = 2,
+    }, nil)
+
+    if clicked == 0 {
+        SetClipboardText(account.public_id)
+        settings_screen_set_status_success(GetLocaleText("sync_public_id_copied"), nil)
+    } else if clicked == 1 {
+        result = 1
+    }
+
+    return result
+}

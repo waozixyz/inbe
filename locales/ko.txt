@@ -435,9 +435,6 @@ Inner Breeze
 [volume_label]
 음량
 ---
-[show_session_return_button_label]
-돌아가기 버튼 표시
----
 [reset_to_defaults_label]
 기본값으로 재설정
 ---
@@ -945,9 +942,6 @@ Preview only. This tab is not implemented yet.
 ---
 [practice_home_wim_hof_metadata]
 %d 라운드 | %d 호흡
----
-[sun_salutation_session_step_title]
-단계 %d / %d
 ---
 [meditation_music_downloading_progress]
 오디오 다운로드 중... %d%%

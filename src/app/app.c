@@ -17,12 +17,12 @@
 #include "screens/profile_screen.h"
 #include "screens/profile_social.h"
 #include "screens/settings/settings_screen.h"
-#include "screens/settings/settings_data.h"
-#include "screens/settings/settings_sync_account.h"
+#include "screens/settings/settings_data_ui.h"
+#include "screens/settings/settings_sync_account_impl.h"
 #include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
-#include "device_preferences.h"
+#include "app/device_preferences.h"
 #include "storage.h"
 #include "theme.h"
 #include "ui_clip.h"
@@ -46,11 +46,6 @@
 #if ANDROID_BUILD
 #include "android_wakelock.h"
 #include "android_device.h"
-void set_global_inbe_app(InbeApp *app);
-#endif
-
-#if defined(PLATFORM_WEB)
-InbeApp *get_global_inbe_app(void);
 #endif
 
 #if defined(PLATFORM_WEB) || ANDROID_BUILD
@@ -78,6 +73,46 @@ typedef struct AppProfileStats {
 } AppProfileStats;
 
 static AppProfileStats g_app_profile;
+
+static void app_apply_route(InbeApp *app, AppRoute route);
+static void inbe_app_host_enter(void *app, int screen_index);
+static void inbe_app_host_draw(void *app, Rectangle viewport);
+
+static const AppScreen inbe_app_screens[] = {
+    {"start", "Practice", "Start", "src/screens/practice_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"session", "Practice", "Wim Hof Session", "src/practices/whm/whm_session.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"meditation", "Practice", "Meditation Session", "src/practices/meditation/meditation_session.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"sun_salutation", "Practice", "Sun Salutation", "src/practices/sun_salutation/sun_salutation_session.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"results", "Practice", "Results", "src/practices/whm/results.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"settings", "App", "Settings", "src/screens/settings/settings_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"language", "App", "Language", "src/screens/language_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"manual", "Practice", "Manual", "src/screens/manual_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"profile", "App", "Profile", "src/screens/profile_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"habits", "Habits", "Habits", "src/screens/habits_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"pet", "App", "Pet", "src/screens/pet_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"customize_nav", "App", "Customize Navigation", "src/app/customize_nav.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"nav_sidebar", "App", "Navigation Sidebar", "src/app/nav_sidebar.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"habit_edit", "Habits", "Edit Habit", "src/screens/habits/edit.kry", inbe_app_host_enter, inbe_app_host_draw},
+    {"habit_session_edit", "Habits", "Edit Habit Session", "src/screens/habits/session.kry", inbe_app_host_enter, inbe_app_host_draw},
+};
+
+static const int inbe_app_screen_ids[] = {
+    InbeScreenStart,
+    InbeScreenSession,
+    InbeScreenMeditation,
+    InbeScreenSunSalutation,
+    InbeScreenResults,
+    InbeScreenSettings,
+    InbeScreenLanguage,
+    InbeScreenManual,
+    InbeScreenProfile,
+    InbeScreenHabits,
+    InbeScreenPet,
+    InbeScreenCustomizeNav,
+    InbeScreenNavSidebar,
+    InbeScreenHabitEdit,
+    InbeScreenHabitSessionEdit,
+};
 
 static int
 app_profile_enabled(void)
@@ -149,7 +184,99 @@ InbeConfig config = {
 int view_width = INBE_DEFAULT_WIDTH;
 int view_height = INBE_DEFAULT_HEIGHT;
 static int app_full_view_width = INBE_DEFAULT_WIDTH;
+static InbeApp *g_inbe_app_ptr;
 /* Theme colors are now accessed via theme accessor functions */
+
+InbeApp *
+get_global_inbe_app(void)
+{
+    return g_inbe_app_ptr;
+}
+
+void
+set_global_inbe_app(InbeApp *app)
+{
+    g_inbe_app_ptr = app;
+    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
+}
+
+static void
+inbe_app_host_enter(void *vapp, int screen_index)
+{
+    InbeApp *app = vapp;
+    AppRoute route;
+    int transition_mode;
+
+    if(app == NULL || screen_index < 0 ||
+       screen_index >= (int)(sizeof(inbe_app_screens) / sizeof(inbe_app_screens[0])))
+        return;
+    route = app_current_route(app);
+    route.screen = inbe_app_screen_ids[screen_index];
+    transition_mode = app->transition_mode;
+    app->transition_mode = APP_TRANSITION_NONE;
+    app_switch_route(app, route);
+    app->transition_mode = transition_mode;
+}
+
+static void
+inbe_app_host_draw(void *vapp, Rectangle viewport)
+{
+    app_update_draw(vapp, (Rectangle){0.0f, 0.0f,
+                                      viewport.width, viewport.height});
+}
+
+AppHost *
+CreateKryonLivePreview(int abi_version, const char *project_path)
+{
+    static App app_runtime;
+    static AppHost host;
+    InbeApp *app;
+
+    if(abi_version != APP_HOST_ABI_VERSION)
+        return NULL;
+    app = calloc(1, sizeof(*app));
+    if(app == NULL)
+        return NULL;
+    memset(&app_runtime, 0, sizeof(app_runtime));
+    memset(&host, 0, sizeof(host));
+    if(project_path != NULL && project_path[0] != '\0')
+        ChangeDirectory(project_path);
+    app_init(app);
+    set_global_inbe_app(app);
+    app_runtime.app = app;
+    app_runtime.screens = inbe_app_screens;
+    app_runtime.screen_count = (int)(sizeof(inbe_app_screens) /
+                                     sizeof(inbe_app_screens[0]));
+    app_runtime.selected_screen = 0;
+    BindAppHost(&app_runtime, &host);
+    return &host;
+}
+
+void
+DestroyKryonLivePreview(AppHost *host)
+{
+    App *runtime;
+
+    if(host == NULL || host->userdata == NULL)
+        return;
+    runtime = host->userdata;
+    app_destroy(runtime->app);
+    set_global_inbe_app(NULL);
+    memset(runtime, 0, sizeof(*runtime));
+    memset(host, 0, sizeof(*host));
+}
+
+AppHost *
+CreateAppHost(int abi_version, const char *project_path)
+{
+    return CreateKryonLivePreview(abi_version, project_path);
+}
+
+void
+DestroyAppHost(AppHost *host)
+{
+    DestroyKryonLivePreview(host);
+}
 
 int
 app_draw_close_title_bar(InbeApp *app, const char *title, int height)
@@ -864,15 +991,15 @@ ui_font_asset_for_locale(const char *code)
 {
     if(code != NULL) {
         if(strcmp(code, "zh") == 0)
-            return "vendor/flint/fonts/noto/NotoSansSC-Regular.otf";
+            return "vendor/kryon/fonts/noto/NotoSansSC-Regular.otf";
         if(strcmp(code, "ja") == 0)
-            return "vendor/flint/fonts/noto/NotoSansJP-Regular.otf";
+            return "vendor/kryon/fonts/noto/NotoSansJP-Regular.otf";
         if(strcmp(code, "ko") == 0)
-            return "vendor/flint/fonts/noto/NotoSansKR-Regular.otf";
+            return "vendor/kryon/fonts/noto/NotoSansKR-Regular.otf";
         if(strcmp(code, "zh-TW") == 0 || strcmp(code, "zh_Hant") == 0)
-            return "vendor/flint/fonts/noto/NotoSansTC-Regular.otf";
+            return "vendor/kryon/fonts/noto/NotoSansTC-Regular.otf";
     }
-    return "vendor/flint/fonts/noto/NotoSans-Regular.ttf";
+    return "vendor/kryon/fonts/noto/NotoSans-Regular.ttf";
 }
 
 static int
@@ -950,16 +1077,16 @@ register_language_picker_fonts(void)
     }
 
     (void)register_ui_font_source("ui-lang-latin",
-                                  "vendor/flint/fonts/noto/NotoSans-Regular.ttf",
+                                  "vendor/kryon/fonts/noto/NotoSans-Regular.ttf",
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-ja",
-                                  "vendor/flint/fonts/noto/NotoSansJP-Regular.otf",
+                                  "vendor/kryon/fonts/noto/NotoSansJP-Regular.otf",
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-ko",
-                                  "vendor/flint/fonts/noto/NotoSansKR-Regular.otf",
+                                  "vendor/kryon/fonts/noto/NotoSansKR-Regular.otf",
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-zh",
-                                  "vendor/flint/fonts/noto/NotoSansSC-Regular.otf",
+                                  "vendor/kryon/fonts/noto/NotoSansSC-Regular.otf",
                                   &codepoints);
 
     ui_font_codepoints_free(&codepoints);
@@ -988,7 +1115,8 @@ load_locale_font(InbeApp *app)
     if(!load_locale_font_codepoints(code, &codepoints))
         goto done;
 
-    ClearUIFonts();
+    if(!IsUIInspectActive())
+        ClearUIFonts();
     if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
                              font_asset->data, font_asset->size,
                              codepoints.values, codepoints.count))
@@ -1009,7 +1137,7 @@ load_locale_font(InbeApp *app)
 
 done:
     ui_font_codepoints_free(&codepoints);
-    if(!ok)
+    if(!ok && !IsUIInspectActive())
         ClearUIFonts();
     return ok;
 }
@@ -1019,7 +1147,8 @@ unload_locale_font(InbeApp *app)
 {
     if(app == NULL)
         return;
-    ClearUIFonts();
+    if(!IsUIInspectActive())
+        ClearUIFonts();
 }
 
 static void
@@ -1027,7 +1156,8 @@ discard_locale_font_cpu(InbeApp *app)
 {
     if(app == NULL)
         return;
-    ClearUIFonts();
+    if(!IsUIInspectActive())
+        ClearUIFonts();
 }
 
 static void
@@ -2014,10 +2144,9 @@ updateapp(InbeApp *app)
        || (IsKeyPressed(KEY_BACKSPACE) &&
            ((app->inbe.screen == InbeScreenStart &&
              app->practice_tab != PRACTICE_TAB_PLAY) ||
-            (app->show_session_return_button &&
-             (app->inbe.screen == InbeScreenSession ||
-              app->inbe.screen == InbeScreenMeditation ||
-              app->inbe.screen == InbeScreenSunSalutation))))
+            app->inbe.screen == InbeScreenSession ||
+            app->inbe.screen == InbeScreenMeditation ||
+            app->inbe.screen == InbeScreenSunSalutation))
 #endif
        ) {
         if(app->nav_sidebar_open || app->inbe.screen == InbeScreenNavSidebar) {
@@ -2074,12 +2203,12 @@ updateapp(InbeApp *app)
     }
 
     if(app->inbe.screen == InbeScreenHabitEdit) {
-        draw_habit_edit_screen(app);
+        habit_edit_draw(app);
         goto finish_frame;
     }
 
     if(app->inbe.screen == InbeScreenHabitSessionEdit) {
-        draw_habit_session_edit_screen(app);
+        habit_session_draw_edit_screen(app);
         goto finish_frame;
     }
 
@@ -2259,10 +2388,18 @@ app_update_draw(void *vapp, Rectangle viewport) {
     InitUI(view_width, view_height, GetUIDPIScale());
     app->camera = (Camera2D){0};
     app->camera.zoom = 1.0f;
-    app->camera.offset.x = viewport.x + content_x;
-    app->camera.offset.y = viewport.y;
+    app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;
+    app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y;
     SetUIFrame(app->camera);
 
+    if(IsUIInspectActive()) {
+        DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
+        profile_update_start = app_profile_now();
+        updateapp(app);
+        app_profile_accum(&g_app_profile.update_total,
+                          &g_app_profile.update_max,
+                          profile_update_start);
+    } else {
     BeginUIClip((int)viewport.x + content_x, (int)viewport.y, content_w, full_height);
         BeginMode2D(app->camera);
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
@@ -2273,6 +2410,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
                               profile_update_start);
         EndMode2D();
     EndUIClip();
+    }
     profile_habits_start = app_profile_now();
     habits_flush_save(app);
     app_profile_accum(&g_app_profile.habits_total,
@@ -2309,13 +2447,14 @@ app_destroy(void *vapp)
         save_settings(app);
     habits_flush_save(app);
 
-    // Unload all icons
-    UnloadAllUIIconTextures(app->icons);
+    if(!IsUIInspectActive())
+        UnloadAllUIIconTextures(app->icons);
     app_unload_texture(app->pet.egg);
     app_unload_texture(app->easteregg_art);
     app_unload_texture(app->easteregg_waozi);
     app_unload_texture(app->font_shapes_texture);
-    unload_locale_font(app);
+    if(!IsUIInspectActive())
+        unload_locale_font(app);
 
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);

@@ -19,7 +19,7 @@ ANDROID_AAPT2 ?= $(shell if [ -n "$(ANDROID_SDK)" ]; then find "$(ANDROID_SDK)/b
 ANDROID_GRADLE_ARGS := $(if $(ANDROID_AAPT2),-Pandroid.aapt2FromMavenOverride="$(ANDROID_AAPT2)",)
 ANDROID_JAVA_HOME ?= $(shell for dir in /usr/local/openjdk17 /usr/lib/jvm/java-17-openjdk-amd64 /usr/lib/jvm/java-17-openjdk; do if [ -x "$$dir/bin/java" ]; then printf "%s\n" "$$dir"; break; fi; done)
 ANDROID_GRADLE_ENV := unset ANDROID_HOME; $(if $(ANDROID_JAVA_HOME),JAVA_HOME="$(ANDROID_JAVA_HOME)" PATH="$(ANDROID_JAVA_HOME)/bin:$$PATH")
-ANDROID_KEYSTORE ?= $(HOME)/.android/flint-release.keystore
+ANDROID_KEYSTORE ?= $(HOME)/.android/kryon-release.keystore
 ANDROID_KEY_ALIAS ?= inbe-key
 
 BUILD_DIR := build
@@ -138,8 +138,8 @@ CHROME_WEB_STORE_DIR := $(BUILD_DIST_DIR)/chrome-web-store
 VERSION_FILE := src/core/version.h
 APP_VERSION := $(shell awk '/INBE_VERSION_STRING/ { print $$3; exit }' $(VERSION_FILE) 2>/dev/null | tr -d '"')
 
-FLINT_DIR ?= vendor/flint
-RAYLIB_DIR = $(FLINT_DIR)/vendor/raylib/src
+KRYON_DIR ?= vendor/kryon
+RAYLIB_DIR = $(KRYON_DIR)/vendor/raylib/src
 RAYLIB_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
 WIN64_ARCH := x86_64
@@ -180,23 +180,23 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-FLINT_ICON_DIRS := icons language payments platforms tiles pfp
-FLINT_ICON_FILES := $(foreach dir,$(FLINT_ICON_DIRS),$(wildcard $(FLINT_DIR)/$(dir)/*.png))
-FLINT_ICON_ASSETS_C := $(FLINT_DIR)/src/ui/ui_icon_assets.c
-FLINT_ICON_STAMP := $(BUILD_OBJ_DIR)/flint-icons.sha256
-FLINT_SRCS := $(filter-out $(FLINT_ICON_ASSETS_C),$(shell find $(FLINT_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(FLINT_ICON_ASSETS_C)
-FLINT_WEB_SRCS := $(FLINT_SRCS)
-FLINT_WINDOWS_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
-FLINT_CLICK_SRCS := $(filter-out $(FLINT_DIR)/src/file_dialog/file_dialog.c,$(FLINT_SRCS))
-FLINT_INCLUDE := -I$(FLINT_DIR)/include
-FLINT_ALLOW_ICON_REGEN ?= $(if $(filter vendor/flint,$(FLINT_DIR)),1,0)
-FLINT_ICON_ASSETS_DEPS := $(if $(filter 1,$(FLINT_ALLOW_ICON_REGEN)),$(FLINT_ICON_STAMP) $(FLINT_DIR)/scripts/embed-icons.sh,)
-FLINT_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
-FLINT_LIBOQS_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/liboqs
-FLINT_WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/liboqs
-FLINT_CURL_BUILD_DIR := $(FLINT_VENDOR_BUILD_DIR)/curl
-FLINT_CURL_REQUIRE_WEBSOCKETS := 1
-FLINT_CURL_EXTRA_CMAKE_FLAGS := \
+KRYON_ICON_DIRS := icons language payments platforms tiles pfp
+KRYON_ICON_FILES := $(foreach dir,$(KRYON_ICON_DIRS),$(wildcard $(KRYON_DIR)/$(dir)/*.png))
+KRYON_ICON_ASSETS_C := $(KRYON_DIR)/src/ui/ui_icon_assets.c
+KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
+KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
+KRYON_WEB_SRCS := $(KRYON_SRCS)
+KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
+KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
+KRYON_INCLUDE := -I$(KRYON_DIR)/include
+KRYON_ALLOW_ICON_REGEN ?= 0
+KRYON_ICON_ASSETS_DEPS := $(if $(filter 1,$(KRYON_ALLOW_ICON_REGEN)),$(KRYON_ICON_STAMP) $(KRYON_DIR)/scripts/embed-icons.sh,)
+KRYON_VENDOR_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)
+KRYON_LIBOQS_BUILD_DIR := $(KRYON_VENDOR_BUILD_DIR)/liboqs
+KRYON_WEB_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/liboqs
+KRYON_CURL_BUILD_DIR := $(KRYON_VENDOR_BUILD_DIR)/curl
+KRYON_CURL_REQUIRE_WEBSOCKETS := 1
+KRYON_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_DISABLE_WEBSOCKETS=OFF \
 	-DCURL_DISABLE_INSTALL=OFF \
 	-DCURL_DISABLE_DICT=ON \
@@ -214,8 +214,8 @@ FLINT_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_ZLIB=OFF \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
-include $(FLINT_DIR)/mk/vendor.mk
-FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
+include $(KRYON_DIR)/mk/vendor.mk
+KRYON_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
 	-DOQS_USE_ADX_INSTRUCTIONS=OFF \
 	-DOQS_USE_AES_INSTRUCTIONS=OFF \
 	-DOQS_USE_AVX_INSTRUCTIONS=OFF \
@@ -233,26 +233,26 @@ FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
 	-DOQS_USE_SSE2_INSTRUCTIONS=OFF \
 	-DOQS_USE_SSE3_INSTRUCTIONS=OFF \
 	-DOQS_USE_VPCLMULQDQ_INSTRUCTIONS=OFF
-CURL_DIR := $(FLINT_CURL_DIR)
-CURL_BUILD_DIR := $(FLINT_CURL_BUILD_DIR)
-CURL_INCLUDE_DIR := $(FLINT_CURL_INCLUDE_DIR)
-CURL_LIB_DIR := $(FLINT_CURL_LIB_DIR)
-CURL_SO := $(FLINT_CURL_SO)
-CURL_PROTOCOL_CHECK := $(FLINT_CURL_PROTOCOL_CHECK)
-FLINT_CURL_VERSION_NUM ?= $(shell printf '%b\n' '\043include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(FLINT_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
-FLINT_CURL_VERSION_HEX := $(patsubst 0x%,%,$(FLINT_CURL_VERSION_NUM))
+CURL_DIR := $(KRYON_CURL_DIR)
+CURL_BUILD_DIR := $(KRYON_CURL_BUILD_DIR)
+CURL_INCLUDE_DIR := $(KRYON_CURL_INCLUDE_DIR)
+CURL_LIB_DIR := $(KRYON_CURL_LIB_DIR)
+CURL_SO := $(KRYON_CURL_SO)
+CURL_PROTOCOL_CHECK := $(KRYON_CURL_PROTOCOL_CHECK)
+KRYON_CURL_VERSION_NUM ?= $(shell printf '%b\n' '\043include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(KRYON_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
+KRYON_CURL_VERSION_HEX := $(patsubst 0x%,%,$(KRYON_CURL_VERSION_NUM))
 SQLITE_DIR := vendor/sqlite
 SQLITE_BUILD_DIR := $(VENDOR_BUILD_DIR)/sqlite
 SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
 SQLITE_AMALGAMATION_H := $(SQLITE_BUILD_DIR)/sqlite3.h
 SQLITE_SRC := $(SQLITE_AMALGAMATION_C)
 SQLITE_INCLUDE := -I$(SQLITE_BUILD_DIR)
-LIBOQS_DIR := $(FLINT_LIBOQS_DIR)
-LIBOQS_BUILD_DIR := $(FLINT_LIBOQS_BUILD_DIR)
-LIBOQS_A := $(FLINT_LIBOQS_A)
-LIBOQS_INCLUDE := $(FLINT_LIBOQS_INCLUDE)
-WEB_LIBOQS_BUILD_DIR := $(FLINT_WEB_LIBOQS_BUILD_DIR)
-WEB_LIBOQS_A := $(FLINT_WEB_LIBOQS_A)
+LIBOQS_DIR := $(KRYON_LIBOQS_DIR)
+LIBOQS_BUILD_DIR := $(KRYON_LIBOQS_BUILD_DIR)
+LIBOQS_A := $(KRYON_LIBOQS_A)
+LIBOQS_INCLUDE := $(KRYON_LIBOQS_INCLUDE)
+WEB_LIBOQS_BUILD_DIR := $(KRYON_WEB_LIBOQS_BUILD_DIR)
+WEB_LIBOQS_A := $(KRYON_WEB_LIBOQS_A)
 WEB_LIBOQS_INCLUDE := -I$(WEB_LIBOQS_BUILD_DIR)/include
 TEST_BIN_DIR := $(BUILD_BIN_DIR)/tests
 STORAGE_IMPORT_TEST := $(TEST_BIN_DIR)/storage_import_test
@@ -264,69 +264,29 @@ FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST)
-RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(FLINT_CURL_CFLAGS)
-RUNTIME_ASSET_LDLIBS := $(FLINT_CURL_LDLIBS)
+RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
+RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
 APP_SRCS := \
 	src/main.c \
-	src/app/app_sync.c \
-	src/core/breath_engine.c \
 	src/app/app.c \
-	src/app/app_nav.c \
-	src/app/app_settings.c \
-	src/app/device_preferences.c \
-	src/practices/practice_registry.c \
-	src/practices/whm/whm_practice.c \
-	src/practices/whm/whm_session.c \
-	src/practices/whm/whm_manual.c \
-	src/practices/whm/whm_config.c \
-	src/practices/meditation/meditation_practice.c \
-	src/practices/meditation/meditation_session.c \
-	src/practices/meditation/meditation_manual.c \
-	src/practices/meditation/meditation_config.c \
-	src/practices/sun_salutation/sun_salutation_practice.c \
-	src/practices/sun_salutation/sun_salutation_session.c \
-	src/screens/habits_screen.c \
-	src/screens/statistics_screen.c \
-	src/screens/habits/edit.c \
-	src/screens/habits/session.c \
-	src/screens/profile_screen.c \
-	src/screens/profile_social.c \
-	src/screens/pet_screen.c \
-	src/practices/meditation/meditation_music.c \
-	src/storage/data.c \
-	src/storage/db.c \
 	src/storage/import.c \
 	src/storage/storage.c \
-	src/storage/storage_sessions.c \
-	src/storage/sync_review.c \
-	src/storage/sync_account.c \
 	src/storage/sync_client.c \
 	src/third_party/miniz.c \
-	src/platform/android/android_device.c \
-	src/screens/practice_screen.c \
-	src/screens/language_screen.c \
-	src/screens/manual_screen.c \
-	src/screens/settings/settings_screen.c \
-	src/screens/settings/settings_ui.c \
-	src/screens/settings/settings_device.c \
-	src/screens/settings/settings_session.c \
-	src/screens/settings/settings_theme.c \
-	src/screens/settings/settings_about.c \
-	src/screens/settings/settings_data.c \
-	src/screens/settings/settings_sync_account.c
+	src/platform/android/android_device.c
 
 ifeq ($(NATIVE_PLATFORM),linux)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; fi)
-DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA -DFLINT_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR -DFLINT_DESKTOP_TRAY_APPINDICATOR)
+DESKTOP_TRAY_DEFINE := $(if $(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),-DINBE_DESKTOP_TRAY_AYATANA -DKRYON_DESKTOP_TRAY_AYATANA,-DINBE_DESKTOP_TRAY_APPINDICATOR -DKRYON_DESKTOP_TRAY_APPINDICATOR)
 endif
 ifeq ($(NATIVE_PLATFORM),freebsd)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DFLINT_DESKTOP_TRAY_GTK_STATUS_ICON
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
 APP_SRCS += src/platform/inbe_desktop_tray.c
-DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DFLINT_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DKRYON_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
 DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
 endif
 
@@ -348,18 +308,33 @@ LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_FILES := \
-	$(FLINT_DIR)/fonts/noto/NotoSans-Regular.ttf \
-	$(FLINT_DIR)/fonts/noto/NotoSansSC-Regular.otf \
-	$(FLINT_DIR)/fonts/noto/NotoSansJP-Regular.otf \
-	$(FLINT_DIR)/fonts/noto/NotoSansKR-Regular.otf \
-	$(FLINT_DIR)/fonts/noto/NotoSansTC-Regular.otf
+	$(KRYON_DIR)/fonts/noto/NotoSans-Regular.ttf \
+	$(KRYON_DIR)/fonts/noto/NotoSansSC-Regular.otf \
+	$(KRYON_DIR)/fonts/noto/NotoSansJP-Regular.otf \
+	$(KRYON_DIR)/fonts/noto/NotoSansKR-Regular.otf \
+	$(KRYON_DIR)/fonts/noto/NotoSansTC-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
-SRC := $(APP_SRCS) $(EMBEDDED_ASSETS_C)
+KC ?= $(KRYON_DIR)/build/bin/kc
+KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
+KRY_SRCS := $(shell find src -type f -name '*.kry' 2>/dev/null | LC_ALL=C sort)
+KRY_GEN_SRCS := $(patsubst %.kry,$(KRY_GEN_DIR)/%.c,$(KRY_SRCS))
+KRY_GEN_HDRS := $(patsubst %.kry,$(KRY_GEN_DIR)/%.h,$(KRY_SRCS))
+KRY_GEN_SRCS := $(filter-out $(KRY_GEN_DIR)/src/storage/db.c,$(KRY_GEN_SRCS)) $(KRY_GEN_DIR)/src/storage/db_impl.c
+KRY_GEN_HDRS := $(filter-out $(KRY_GEN_DIR)/src/storage/db.h,$(KRY_GEN_HDRS)) $(KRY_GEN_DIR)/src/storage/db_impl.h
+KRY_PROJECT_HDR := $(KRY_GEN_DIR)/kryon_project.h
+KRY_GEN_STAMP := $(KRY_GEN_DIR)/.fresh
+SRC := $(APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
+KRYON_LIVE_APP_SRCS := $(filter-out src/main.c src/platform/inbe_desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS)
+KRYON_LIVE_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
+KRYON_LIVE_SRC := $(KRYON_LIVE_APP_SRCS) $(KRYON_LIVE_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
 WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
-WEB_SRC := $(WEB_APP_SRCS) $(EMBEDDED_ASSETS_C)
+WEB_SRC := $(WEB_APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
 
 APP_INCLUDE := -Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/practices/sun_salutation -Isrc/storage -Isrc/platform -Isrc/platform/android -Isrc/third_party
+APP_INCLUDE += $(KRYON_INCLUDE)
+APP_INCLUDE += -I$(KRY_GEN_DIR)
+APP_INCLUDE += -I$(KRY_GEN_DIR)/src
 RAY_PKGS ?= sdl2 libdrm gbm egl glesv2
 RAY_SDL_CFLAGS ?= $(shell pkg-config --cflags sdl2 2>/dev/null)
 RAY_SDL_LDLIBS ?= $(shell pkg-config --libs sdl2 2>/dev/null)
@@ -370,18 +345,18 @@ RAY_LDLIBS ?= $(strip $(RAY_SDL_LDLIBS) $(RAY_GL_LDLIBS))
 RAY_SDL_INCLUDE_DIR ?= $(shell pkg-config --variable=includedir sdl2 2>/dev/null | sed 's,/SDL2$$,,')
 RAY_RAYLIB_CONFIG ?= -DSUPPORT_SCREEN_CAPTURE=0 -DSUPPORT_COMPRESSION_API=0 -DSUPPORT_AUTOMATION_EVENTS=0 -DSUPPORT_CLIPBOARD_IMAGE=0 -DSUPPORT_FILEFORMAT_BMP=0 -DSUPPORT_FILEFORMAT_GIF=0 -DSUPPORT_FILEFORMAT_QOI=0 -DSUPPORT_FILEFORMAT_DDS=0 -DSUPPORT_FILEFORMAT_TTF=1
 ifeq ($(NATIVE_PLATFORM),freebsd)
-FLINT_RAYLIB_AUDIO_PERIOD_FRAMES ?= 128
-FLINT_RAYLIB_AUDIO_PERIODS ?= 2
+KRYON_RAYLIB_AUDIO_PERIOD_FRAMES ?= 128
+KRYON_RAYLIB_AUDIO_PERIODS ?= 2
 endif
-FLINT_RAYLIB_AUDIO_PERIOD_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES)),-DAUDIO_DEVICE_PERIOD_SIZE_IN_FRAMES=$(FLINT_RAYLIB_AUDIO_PERIOD_FRAMES),)
-FLINT_RAYLIB_AUDIO_PERIODS_CONFIG := $(if $(strip $(FLINT_RAYLIB_AUDIO_PERIODS)),-DAUDIO_DEVICE_PERIODS=$(FLINT_RAYLIB_AUDIO_PERIODS),)
-APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0 $(FLINT_RAYLIB_AUDIO_PERIOD_CONFIG) $(FLINT_RAYLIB_AUDIO_PERIODS_CONFIG)
+KRYON_RAYLIB_AUDIO_PERIOD_CONFIG := $(if $(strip $(KRYON_RAYLIB_AUDIO_PERIOD_FRAMES)),-DAUDIO_DEVICE_PERIOD_SIZE_IN_FRAMES=$(KRYON_RAYLIB_AUDIO_PERIOD_FRAMES),)
+KRYON_RAYLIB_AUDIO_PERIODS_CONFIG := $(if $(strip $(KRYON_RAYLIB_AUDIO_PERIODS)),-DAUDIO_DEVICE_PERIODS=$(KRYON_RAYLIB_AUDIO_PERIODS),)
+APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT_PNG=0 -DSUPPORT_FILEFORMAT_JPG=0 -DSUPPORT_FILEFORMAT_OGG=0 -DSUPPORT_FILEFORMAT_MP3=%,$(RAY_RAYLIB_CONFIG)) -DSUPPORT_MODULE_RAUDIO=1 -DSUPPORT_FILEFORMAT_JPG=1 -DSUPPORT_FILEFORMAT_OGG=1 -DSUPPORT_FILEFORMAT_MP3=0 $(KRYON_RAYLIB_AUDIO_PERIOD_CONFIG) $(KRYON_RAYLIB_AUDIO_PERIODS_CONFIG)
 COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
 CFLAGS := $(COMMON_CFLAGS) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
 WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
 WEB_CFLAGS := $(filter-out -Os,$(COMMON_CFLAGS)) -O1 -std=gnu99
-CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_FLINT_FILE_DIALOG -DHAS_LIBCURL=1 $(AARCH64_FLINT_CURL_CFLAGS)
+CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 $(AARCH64_KRYON_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
 WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lws2_32 -liphlpapi -lcrypt32 -lsecur32 -lbcrypt -ladvapi32 -lm
@@ -398,6 +373,7 @@ endif
 
 BINARY_NAME := $(APP_NAME)-$(NATIVE_PLATFORM)-$(ARCH)
 TARGET := $(NATIVE_BIN_DIR)/$(BINARY_NAME)
+KRYON_LIVE_TARGET := $(BUILD_DIR)/kryon/live_preview.so
 WIN64_BINARY_NAME := $(APP_NAME)-windows-$(WIN64_ARCH).exe
 WIN64_TARGET := $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)
 WIN32_BINARY_NAME := $(APP_NAME)-windows-$(WIN32_ARCH).exe
@@ -409,11 +385,11 @@ LINUXDEPLOY ?= linuxdeploy
 WEB_CC ?= emcc
 WEB_AR ?= emar
 WEB_RANLIB ?= emranlib
-include $(FLINT_DIR)/mk/raylib.mk
-FLINT_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
-FLINT_WEB_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
-FLINT_WINDOWS_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
-FLINT_CLICK_SRCS += $(FLINT_RAYLIB_WRAPPERS_C)
+include $(KRYON_DIR)/mk/raylib.mk
+KRYON_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
+KRYON_WEB_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
+KRYON_WINDOWS_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
+KRYON_CLICK_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_APP_SCRIPT := <script>window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
@@ -452,14 +428,29 @@ MEDITATION_AUDIO_TRACKS := \
 	Elijah_K/path-of-meditation.ogg \
 	Elijah_K/truth-of-silence.ogg
 
-include $(FLINT_DIR)/mk/package-freebsd.mk
+include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: all native kryon-live kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
 
 native: $(TARGET)
+
+kryon-live: $(KRYON_LIVE_TARGET)
+
+kryon-host: kryon-live
+
+$(KC): $(KRYON_DIR)/cmd/kc/kc.c
+	$(MAKE) -C $(KRYON_DIR) build/bin/kc
+
+$(KRY_GEN_STAMP): Makefile $(KC) $(KRY_SRCS)
+	rm -rf $(KRY_GEN_DIR)
+	mkdir -p $(KRY_GEN_DIR)
+	$(KC) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
+	touch $@
+
+$(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR): $(KRY_GEN_STAMP)
 
 dist:
 	@password="$(PASSWORD)"; \
@@ -570,11 +561,11 @@ test: $(TESTS)
 	fi; \
 	exit "$$status"
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/screens/habits/edit.c src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
@@ -582,43 +573,45 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 		-o $@ \
 		tests/locale_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_DIR)/src/lyra/lyra_sync.c $(KRYON_DIR)/src/lyra/lyra_account.c $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
-		-Isrc/storage -Isrc -Isrc/core $(FLINT_INCLUDE) $(FLINT_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(FLINT_DIR)/src/lyra/lyra_sync.c $(FLINT_DIR)/src/lyra/lyra_account.c \
-		$(LIBOQS_A) -Wl,--gc-sections $(FLINT_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
+		-Isrc/storage -Isrc -Isrc/core $(KRYON_INCLUDE) $(KRYON_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
+		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_DIR)/src/lyra/lyra_sync.c $(KRYON_DIR)/src/lyra/lyra_account.c \
+		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c src/storage/sync_account.c src/storage/sync_account.h $(FLINT_DIR)/src/lyra/lyra_account.c $(FLINT_DIR)/include/lyra_account.h src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_DIR)/src/lyra/lyra_account.c $(KRYON_DIR)/include/lyra_account.h src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c tests/test_locale_stub.c src/storage/sync_account.c $(FLINT_DIR)/src/lyra/lyra_account.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_DIR)/src/lyra/lyra_account.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(FLINT_INCLUDE) $(SQLITE_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c src/storage/storage_sessions.c src/storage/sync_review.c src/storage/db.c src/storage/import.c src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c src/storage/import.c $(KRY_GEN_DIR)/src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-DFLINT_DIR=\"$(FLINT_DIR)\" \
+		-DKRYON_DIR=\"$(KRYON_DIR)\" \
 		-o $@ \
 		tests/font_locale_test.c
 
-$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(FLINT_DIR)/src/ui/guide.c $(FLINT_DIR)/include/ui.h | $(TEST_BIN_DIR)
+$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		-o $@ \
 		tests/guide_overlay_test.c
 
-$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.c src/app/app_nav.h src/app/app.h $(FLINT_DIR)/include/ui.h | $(TEST_BIN_DIR)
+$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage $(FLINT_INCLUDE) \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
 		-o $@ \
-		tests/app_bottom_nav_test.c
+		tests/app_bottom_nav_test.c \
+		$(KRY_GEN_DIR)/src/app/customize_nav.c \
+		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
 
 $(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(DEB_BUILD_DIR) $(DEB_DIST_DIR) $(RPM_BUILD_DIR) $(RPM_DIST_DIR) $(SNAP_BUILD_DIR) $(SNAP_DIST_DIR) $(FLATPAK_BUILD_DIR) $(FLATPAK_DIST_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
 	mkdir -p $@
@@ -628,24 +621,24 @@ $(WINDOWS_BIN_DIR)/$(WIN64_ARCH) $(WINDOWS_BIN_DIR)/$(WIN32_ARCH):
 
 FORCE:
 
-$(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(FLINT_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
-	sh $(FLINT_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
+$(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embed-assets.sh | $(BUILD_OBJ_DIR)
+	sh $(KRYON_DIR)/scripts/embed-assets.sh $@ $(EMBEDDED_ASSET_FILES)
 
-$(FLINT_ICON_STAMP): FORCE $(FLINT_ICON_FILES) | $(BUILD_OBJ_DIR)
+$(KRYON_ICON_STAMP): FORCE $(KRYON_ICON_FILES) | $(BUILD_OBJ_DIR)
 	@tmp="$@.tmp"; \
-	for dir in $(FLINT_ICON_DIRS); do find "$(FLINT_DIR)/$$dir" -maxdepth 1 -type f -name '*.png' 2>/dev/null; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
+	for dir in $(KRYON_ICON_DIRS); do find "$(KRYON_DIR)/$$dir" -maxdepth 1 -type f -name '*.png' 2>/dev/null; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
-$(FLINT_ICON_ASSETS_C): $(FLINT_ICON_ASSETS_DEPS)
-	@if [ "$(FLINT_ALLOW_ICON_REGEN)" != "1" ]; then \
+$(KRYON_ICON_ASSETS_C): $(KRYON_ICON_ASSETS_DEPS)
+	@if [ "$(KRYON_ALLOW_ICON_REGEN)" != "1" ]; then \
 		if [ ! -f "$@" ]; then \
-			echo "Missing Flint icon assets: $@"; \
-			echo "Use vendor/flint or regenerate icons in the root Flint checkout intentionally."; \
+			echo "Missing Kryon icon assets: $@"; \
+			echo "Regenerate icons in the root Kryon checkout and update vendor/kryon intentionally."; \
 			exit 1; \
 		fi; \
 		exit 0; \
 	fi
-	cd $(FLINT_DIR) && sh scripts/embed-icons.sh "$(FLINT_ICON_DIRS)" src/ui/ui_icon_assets.c
+	cd $(KRYON_DIR) && sh scripts/embed-icons.sh "$(KRYON_ICON_DIRS)" src/ui/ui_icon_assets.c
 
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check
@@ -658,14 +651,14 @@ $(CLICK_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DCMAKE_C_COMPILER=$(AARCH64_CC) \
 		-DCMAKE_AR=$(AARCH64_AR) \
 		-DCMAKE_RANLIB=$(AARCH64_RANLIB) \
-		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DCMAKE_BUILD_TYPE=$(KRYON_LIBOQS_BUILD_TYPE) \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
-		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
-		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+		$(KRYON_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
+		-DOQS_MINIMAL_BUILD=$(KRYON_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(CLICK_LIBOQS_BUILD_DIR) --target oqs
 
 $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H): $(SQLITE_DIR)/configure $(SQLITE_DIR)/manifest | $(BUILD_OBJ_DIR)
@@ -713,14 +706,14 @@ $(WIN64_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DCMAKE_AR=$(WIN64_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN64_RANLIB_PATH) \
 		-DCMAKE_EXE_LINKER_FLAGS="$(WIN64_THREAD_LDFLAGS)" \
-		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DCMAKE_BUILD_TYPE=$(KRYON_LIBOQS_BUILD_TYPE) \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
-		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
-		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+		$(KRYON_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
+		-DOQS_MINIMAL_BUILD=$(KRYON_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN64_LIBOQS_BUILD_DIR) --target oqs
 
 $(WIN32_CURL_A): $(CURL_DIR)/CMakeLists.txt
@@ -763,20 +756,20 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DCMAKE_AR=$(WIN32_AR_PATH) \
 		-DCMAKE_RANLIB=$(WIN32_RANLIB_PATH) \
 		-DCMAKE_EXE_LINKER_FLAGS="$(WIN32_THREAD_LDFLAGS)" \
-		-DCMAKE_BUILD_TYPE=$(FLINT_LIBOQS_BUILD_TYPE) \
+		-DCMAKE_BUILD_TYPE=$(KRYON_LIBOQS_BUILD_TYPE) \
 		-DBUILD_SHARED_LIBS=OFF \
 		-DOQS_BUILD_ONLY_LIB=ON \
 		-DOQS_USE_OPENSSL=OFF \
 		-DOQS_DIST_BUILD=OFF \
 		-DOQS_OPT_TARGET=generic \
-		$(FLINT_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
-		-DOQS_MINIMAL_BUILD=$(FLINT_LIBOQS_MINIMAL_BUILD)
+		$(KRYON_LIBOQS_CPU_FEATURE_CMAKE_FLAGS) \
+		-DOQS_MINIMAL_BUILD=$(KRYON_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
-$(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
+$(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
 	$(CC) $(CFLAGS) \
 		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(LIBOQS_INCLUDE) \
 		$(RAY_CFLAGS) \
@@ -786,7 +779,7 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_SRCS) \
+		$(KRYON_SRCS) \
 		$(SQLITE_SRC) \
 		$(RAYLIB_A) \
 		$(LIBOQS_A) \
@@ -796,10 +789,30 @@ $(TARGET): Makefile $(SRC) $(FLINT_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
+$(KRYON_LIVE_TARGET): Makefile $(KRYON_LIVE_SRC) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) | $(BUILD_DIR)
+	mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -fPIC -shared \
+		$(APP_INCLUDE) \
+		$(KRYON_INCLUDE) \
+		$(SQLITE_INCLUDE) \
+		$(LIBOQS_INCLUDE) \
+		$(RAY_CFLAGS) \
+		-DHAS_LIBOQS=1 \
+		-DSUPPORT_MODULE_RAUDIO=1 \
+		-DSUPPORT_FILEFORMAT_OGG=1 \
+		-DSUPPORT_FILEFORMAT_MP3=0 \
+		-o $@ \
+		$(KRYON_LIVE_SRC) \
+		$(SQLITE_SRC) \
+		$(NATIVE_SYSTEM_LDLIBS) \
+		-Wl,-Bsymbolic \
+		-Wl,--allow-shlib-undefined \
+		$(LDFLAGS)
+
+$(CLICK_BIN): Makefile $(SRC) $(KRYON_CLICK_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(CLICK_LIBOQS_INCLUDE) \
 		$(AARCH64_RAY_CFLAGS) \
@@ -810,12 +823,12 @@ $(CLICK_BIN): Makefile $(SRC) $(FLINT_CLICK_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_S
 		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_CLICK_SRCS) \
+		$(KRYON_CLICK_SRCS) \
 		$(SQLITE_SRC) \
 		$(CLICK_RAYLIB_A) \
 		$(CLICK_LIBOQS_A) \
 		$(AARCH64_RAY_LDLIBS) \
-		$(AARCH64_FLINT_CURL_LDLIBS) \
+		$(AARCH64_KRYON_CURL_LDLIBS) \
 		-lm -lpthread -ldl -lrt \
 		$(LDFLAGS)
 	@if command -v patchelf >/dev/null; then \
@@ -878,10 +891,10 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	fi
 	test -f $@
 
-$(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(WIN64_LIBOQS_INCLUDE) \
 		-I$(WIN64_CURL_INCLUDE_DIR) \
@@ -890,7 +903,7 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		-DCURL_STATICLIB \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_WINDOWS_SRCS) \
+		$(KRYON_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN64_RAYLIB_A) \
 		$(WIN64_CURL_A) \
@@ -900,10 +913,10 @@ $(WIN64_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(WIN32_LIBOQS_INCLUDE) \
 		-I$(WIN32_CURL_INCLUDE_DIR) \
@@ -912,7 +925,7 @@ $(WIN32_TARGET): Makefile $(SRC) $(FLINT_WINDOWS_SRCS) $(FLINT_ICON_STAMP) $(SQL
 		-DCURL_STATICLIB \
 		-o $@ \
 		$(SRC) \
-		$(FLINT_WINDOWS_SRCS) \
+		$(KRYON_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN32_RAYLIB_A) \
 		$(WIN32_CURL_A) \
@@ -1115,11 +1128,11 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
-$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
+$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
-		$(FLINT_INCLUDE) \
+		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(WEB_LIBOQS_INCLUDE) \
 		-DHAS_LIBOQS=1 \
@@ -1129,7 +1142,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(FLINT_WEB_SRCS) $(FLINT_ICON_STAMP) $(SQ
 		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $(WEB_JS_TARGET) \
 		$(WEB_SRC) \
-		$(FLINT_WEB_SRCS) \
+		$(KRYON_WEB_SRCS) \
 		$(SQLITE_SRC) \
 		$(WEB_RAYLIB_A) \
 		$(WEB_LIBOQS_A) \
@@ -1425,11 +1438,11 @@ endif
 ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
 $(error RAY_RAYLIB_CONFIG is not set. Set RAY_RAYLIB_CONFIG explicitly)
 endif
-ifeq ($(strip $(FLINT_CURL_LDLIBS)),)
-$(error libcurl metadata is missing. Install libcurl pkg-config metadata or set FLINT_CURL_CFLAGS/FLINT_CURL_LDLIBS explicitly)
+ifeq ($(strip $(KRYON_CURL_LDLIBS)),)
+$(error libcurl metadata is missing. Install libcurl pkg-config metadata or set KRYON_CURL_CFLAGS/KRYON_CURL_LDLIBS explicitly)
 endif
-ifneq ($(shell v='$(FLINT_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
-$(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(FLINT_CURL_VERSION_NUM))
+ifneq ($(shell v='$(KRYON_CURL_VERSION_HEX)'; if [ "$$v" = 075600 ] || [ "$$v" \> 075600 ]; then echo yes; fi),yes)
+$(error libcurl >= 7.86.0 is required for websocket sync; found LIBCURL_VERSION_NUM=$(KRYON_CURL_VERSION_NUM))
 endif
 endif
 
@@ -1454,8 +1467,8 @@ endif
 ifeq ($(strip $(AARCH64_RAY_SDL_INCLUDE_DIR)),)
 $(error AARCH64_RAY_SDL_INCLUDE_DIR is not set. Set AARCH64_RAY_SDL_INCLUDE_DIR for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
-ifeq ($(strip $(AARCH64_FLINT_CURL_LDLIBS)),)
-$(error AARCH64_FLINT_CURL_LDLIBS is not set. Set AARCH64_FLINT_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
+ifeq ($(strip $(AARCH64_KRYON_CURL_LDLIBS)),)
+$(error AARCH64_KRYON_CURL_LDLIBS is not set. Set AARCH64_KRYON_CURL_LDLIBS for your cross sysroot, or pass CLICK_BIN_SOURCE=/path/to/inbe)
 endif
 endif
 endif

@@ -25,7 +25,7 @@ mkdir -p "$ASSETS_DIR"
 echo "Using versioned Noto font sources..."
 
 mkdir -p build
-sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
+sh vendor/kryon/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
     assets/easteregg/art.png \
     assets/easteregg/waozi.png \
@@ -35,11 +35,11 @@ sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/practices/*/banner.png \
     assets/practices/sunsalutation/poses_man_sheet.png \
     assets/practices/sunsalutation/poses_woman_sheet.png \
-    vendor/flint/fonts/noto/NotoSans-Regular.ttf \
-    vendor/flint/fonts/noto/NotoSansSC-Regular.otf \
-    vendor/flint/fonts/noto/NotoSansJP-Regular.otf \
-    vendor/flint/fonts/noto/NotoSansKR-Regular.otf \
-    vendor/flint/fonts/noto/NotoSansTC-Regular.otf \
+    vendor/kryon/fonts/noto/NotoSans-Regular.ttf \
+    vendor/kryon/fonts/noto/NotoSansSC-Regular.otf \
+    vendor/kryon/fonts/noto/NotoSansJP-Regular.otf \
+    vendor/kryon/fonts/noto/NotoSansKR-Regular.otf \
+    vendor/kryon/fonts/noto/NotoSansTC-Regular.otf \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"

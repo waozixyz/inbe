@@ -1,0 +1,7 @@
+#import "app.h"
+#import "app_nav.h"
+
+screen customize_nav {
+    args InbeApp *app
+    app_draw_customize_nav_page(app)
+}

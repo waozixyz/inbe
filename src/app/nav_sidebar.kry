@@ -1,0 +1,6 @@
+#import "app.h"
+
+screen nav_sidebar {
+    args InbeApp *app
+    unused app
+}

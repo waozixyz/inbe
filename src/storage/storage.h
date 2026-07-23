@@ -1,7 +1,7 @@
 #ifndef INBE_STORAGE_H
 #define INBE_STORAGE_H
 
-#include "flint.h"
+#include "kryon.h"
 #include <stddef.h>
 
 enum {

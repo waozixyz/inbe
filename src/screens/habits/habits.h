@@ -2,7 +2,7 @@
 #define INBE_HABITS_INTERNAL_H
 
 #include "habits_screen.h"
-#include "practice_screen.h"
+#include "screens/practice_screen.h"
 #include "data.h"
 #include "storage.h"
 #include "app.h"

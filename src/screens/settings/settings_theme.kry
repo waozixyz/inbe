@@ -1,0 +1,158 @@
+#module "settings.theme"
+
+#import "app.h"
+#import "app_settings.h"
+#import "app/device_preferences.h"
+#import "locale.h"
+#import "theme.h"
+#import "theme_meta.h"
+#import "ui.h"
+#import "ui_overlay.h"
+#import "src/screens/settings/settings_types.h"
+
+ui :: #import "src/screens/settings/settings_ui"
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+
+content_height :: (content_w: int) -> int {
+    #if WEB {
+        unused content_w
+        return ScaleUIPx(260)
+    } #else {
+        return ScaleUIPx(244) + ui.toggle_row_height(GetLocaleText("transition_label"), content_w)
+    }
+}
+
+draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
+    if app == NULL || y == NULL || state == NULL {
+        return
+    }
+
+    settings := (UIThemeSettings){
+        .id_base = 101,
+        .x = x,
+        .y = *y,
+        .w = w,
+        .theme_source = &app->theme_source,
+        .theme_mode = &app->theme_mode,
+        .theme_id = &app->theme_id,
+        .allow_system_source = 1,
+        .allow_system_mode = ANDROID_BUILD,
+        .theme_label = GetLocaleText("theme_label"),
+        .source_app_label = GetLocaleText("theme_inner_breeze"),
+        .source_system_label = GetLocaleText("theme_system"),
+        .mode_label = GetLocaleText("theme_mode_label"),
+        .mode_system_label = GetLocaleText("theme_follow_device"),
+        .mode_light_label = GetLocaleText("theme_light"),
+        .mode_dark_label = GetLocaleText("theme_dark"),
+        .palette_label = GetLocaleText("theme_palette_label"),
+        .system_theme_label = GetSystemThemeNameCached()
+    }
+
+    *y = DrawUIThemeSettings(settings, &state->menu_state)
+    *y += ScaleUIPx(18)
+
+    #if WEB {
+        app->transition_mode = APP_TRANSITION_NONE
+    } #else {
+        transitions_enabled := 0
+        app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE)
+        transitions_enabled = app->transition_mode == APP_TRANSITION_FADE
+        on ui.draw_toggle_row(x, w, y, GetLocaleText("transition_label"), &transitions_enabled) {
+            app->transition_mode = transitions_enabled ? APP_TRANSITION_FADE : APP_TRANSITION_NONE
+            if app->transition_mode == APP_TRANSITION_NONE {
+                ResetUITransition(&app->screen_transition)
+                app->content_transition.active = 0
+                app->route_transition_target = app_current_route(app)
+            }
+            app->settings_dirty = 1
+            app->settings_save_delay_ticks = 18
+        }
+    }
+}
+
+handle_overlays :: (app: InbeApp*, state: SettingsThemeState*) {
+    if app == NULL || state == NULL {
+        return
+    }
+
+    settings := (UIThemeSettings){
+        .id_base = 101,
+        .theme_source = &app->theme_source,
+        .theme_mode = &app->theme_mode,
+        .theme_id = &app->theme_id,
+        .allow_system_source = 1,
+        .allow_system_mode = ANDROID_BUILD
+    }
+    result := DrawUIThemeSettingsMenus(settings, &state->menu_state)
+
+    if result.changed {
+        #if !ANDROID {
+            if app->theme_source == APP_THEME_SOURCE_SYSTEM {
+                app->theme_mode = APP_THEME_SYSTEM
+            }
+        }
+        app_refresh_theme(app)
+        app->settings_dirty = 1
+        app->settings_save_delay_ticks = 18
+    }
+
+    #if WEB {
+        app->transition_mode = APP_TRANSITION_NONE
+    }
+}
+
+settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
+    modal_w := ScaleUIPx(320)
+    modal_h := ScaleUIPx(360)
+    title := GetLocaleText("theme_picker_title")
+    frame := (UIPanelFrame){0}
+    scroll_area := (UIScrollArea){0}
+    scroll_view := (UIScrollView){0}
+    picker_h := 0
+    draw_w := 0
+
+    frame = DrawUIModalFrame(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
+    if frame.right_clicked {
+        app_close_modal(app)
+        return
+    }
+
+    draw_w = frame.content_w
+    picker_h = GetUIThemePickerHeight(draw_w)
+    scroll_area = (UIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)frame.content_h
+        },
+        .content_height = picker_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &app->theme_state.theme_picker_scroll,
+        .wheel_step = ScaleUIPx(42),
+        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
+    }
+
+    for int i = 0; i < 3; i++ {
+        measured := MeasureUIScrollContainer(scroll_area)
+        if measured.content_w == draw_w {
+            break
+        }
+        draw_w = measured.content_w
+        scroll_area.content_height = GetUIThemePickerHeight(draw_w)
+    }
+
+    picker_h = GetUIThemePickerHeight(draw_w)
+    scroll_area.content_height = picker_h
+    scroll_view = BeginUIScrollContainer(scroll_area)
+    on DrawUIThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
+        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
+        app_refresh_theme(app)
+        app->settings_dirty = 1
+        save_settings(app)
+        app_close_modal(app)
+    }
+    EndUIScrollContainer(scroll_area, scroll_view)
+}

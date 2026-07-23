@@ -1,0 +1,78 @@
+#enum {
+    Rshift = 3
+    Runit = 1 << Rshift
+}
+
+#enum {
+    CountSize = 4
+    MaxRounds = 12
+    DefaultSpeedLevel = 6
+    DefaultMaxRounds = 4
+    DefaultMaxBreaths = 30
+    DefaultPauseSeconds = 2
+    DefaultProgressiveStartSpeed = 3
+}
+
+#enum {
+    InbeScreenStart = 0
+    InbeScreenSession
+    InbeScreenPracticeSession = InbeScreenSession
+    InbeScreenMeditation
+    InbeScreenSunSalutation
+    InbeScreenResults
+    InbeScreenSettings
+    InbeScreenPracticeConfig
+    InbeScreenLanguage
+    InbeScreenManual
+    InbeScreenProfile
+    InbeScreenHabits
+    InbeScreenPet
+    InbeScreenCustomizeNav
+    InbeScreenNavSidebar
+    InbeScreenHabitEdit
+    InbeScreenHabitSessionEdit
+}
+
+#enum {
+    InbePhaseStarting = 0
+    InbePhaseBreathe
+    InbePhaseHold
+    InbePhaseRecover
+    InbePhaseNext
+}
+
+InbeBreathAnimation :: enum {
+    InbeBreathAnimationLinear = 0
+    InbeBreathAnimationInOut = 1
+    InbeBreathAnimationCount
+}
+
+Inbe :: struct {
+    screen: int
+    phase: int
+    round: int
+
+    r: int
+    rmin: int
+    rmax: int
+    dir: int
+    speed_level: int
+    breath_frame: int
+    breath_half_ticks: int
+    frame: int
+
+    breathtick: int
+    sectick: int
+    halftick: int
+    max_rounds: int
+    pause_seconds: int
+    play_in_background: int
+    progressive_speed: int
+    progressive_start_speed: int
+    breath_animation: int
+
+    count: [CountSize] char
+    maxbreaths: [CountSize] char
+
+    results: [MaxRounds][CountSize] char
+}

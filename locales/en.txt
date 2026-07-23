@@ -441,9 +441,6 @@ Circle
 [volume_label]
 Volume
 ---
-[show_session_return_button_label]
-Show return button
----
 [reset_to_defaults_label]
 Reset to defaults
 ---
@@ -945,9 +942,6 @@ Session data comes from completed practices.
 ---
 [practice_home_wim_hof_metadata]
 %d rounds | %d breaths
----
-[sun_salutation_session_step_title]
-Step %d / %d
 ---
 [meditation_music_downloading_progress]
 Downloading audio... %d%%

@@ -1,0 +1,6 @@
+#import "app.h"
+
+screen results {
+    args InbeApp *app
+    unused app
+}

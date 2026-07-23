@@ -253,7 +253,7 @@ public class MainActivity extends NativeActivity {
                     connection.setInstanceFollowRedirects(true);
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(30000);
-                    connection.setRequestProperty("User-Agent", "flint-runtime-assets/1");
+                    connection.setRequestProperty("User-Agent", "kryon-runtime-assets/1");
                     status = connection.getResponseCode();
 
                     if (status < 200 || status >= 300) {

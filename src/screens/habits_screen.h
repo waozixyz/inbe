@@ -1,7 +1,7 @@
 #ifndef HABITS_SCREEN_H
 #define HABITS_SCREEN_H
 
-#include "flint.h"
+#include "kryon.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
 #include <stddef.h>
@@ -151,14 +151,36 @@ void habit_edit_cancel(InbeApp *app);
 
 /* UI functions (moved to habits_screen.c) */
 void draw_habits_screen(InbeApp *app);
-void draw_habit_edit_screen(InbeApp *app);
-void draw_habit_session_edit_screen(InbeApp *app);
+void habit_edit_draw(InbeApp *app);
+void habit_session_draw_edit_screen(InbeApp *app);
+int habits_screen_selector_height(InbeApp *app);
 int habits_screen_top_reserved(InbeApp *app);
 int habits_screen_first_run_guide_active(const InbeApp *app);
 void habits_screen_prepare_first_run_guide(InbeApp *app);
 void habits_screen_dismiss_first_run_guide(InbeApp *app);
 void habits_screen_draw_first_run_guide(InbeApp *app);
-int draw_habit_session_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
+void draw_habits_top_bar(InbeApp *app, int draw_menu);
+void draw_habits_reorder(InbeApp *app, int content_top);
+void draw_habits_overview(InbeApp *app, int content_top);
+void habits_enter_detail(InbeApp *app, int selected_habit);
+void habits_enter_reorder(InbeApp *app);
+void habits_begin_new_detail(InbeApp *app);
+int habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
+                             int x, int y, int w, int h, int disabled,
+                             int allow_left_increment);
+int habit_weekly_visible_days(InbeHabits *habits);
+int habits_scroll_page_content_height(int content_w, void *user_data);
+void draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
+                             HabitLinkedContext *linked_ctx,
+                             int content_x, int content_w, int y,
+                             int visible_days);
+int habit_calendar_day_cell(InbeApp *app, int x, int y, int w, int h,
+                            const char *label, int completed, int disabled,
+                            int current_day);
+void draw_habit_completion_underline(int x, int y, int w, int h, Color color);
+void draw_habit_day_count_label(int x, int y, int w, int h, int count);
+void draw_habit_link_dot(int x, int y, int w, Color color);
+int habit_session_draw_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
 int habit_is_linked(const InbeHabit *habit);
 void habit_session_cancel_edit(InbeApp *app);
 

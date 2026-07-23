@@ -4,7 +4,7 @@ plugins {
 
 android {
     namespace 'xyz.waozi.inbe'
-    compileSdk 35
+    compileSdk 36
     ndkVersion "28.2.13676358"
 
     compileOptions {
@@ -18,7 +18,7 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
 
-    def getKeystorePath = { -> project.findProperty('keystore.path') ?: keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/flint-release.keystore" }
+    def getKeystorePath = { -> project.findProperty('keystore.path') ?: keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/kryon-release.keystore" }
     def getKeystoreAlias = { -> project.findProperty('keystore.alias') ?: keystoreProps['keystore.alias'] ?: "inbe-key" }
 
     def releasePassword = project.findProperty('keystore.password') ?: ""
@@ -34,9 +34,9 @@ android {
 
     defaultConfig {
         minSdk 21
-        targetSdk 35
-        versionCode 84
-        versionName "1.8.9"
+        targetSdk 36
+        versionCode 85
+        versionName "1.8.10"
     }
     
 

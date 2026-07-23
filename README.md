@@ -18,22 +18,22 @@ gmake native
 gmake run
 ```
 
-To debug Inbe against the root Flint checkout instead of the vendored
-submodule, override `FLINT_DIR`:
+To debug Inbe against the root Kryon checkout instead of the vendored
+submodule, override `KRYON_DIR`:
 
 ```bash
-make run FLINT_DIR=../flint
+make run KRYON_DIR=../kryon
 ```
 
 On FreeBSD:
 
 ```bash
-gmake run FLINT_DIR=../flint
+gmake run KRYON_DIR=../kryon
 ```
 
 Use this only for local debugging; permanent Flint fixes should be committed in
-the root Flint repository and then brought into Inbe by updating
-`vendor/flint`.
+the root Kryon repository and then brought into Inbe by updating
+`vendor/kryon`.
 
 Native binaries are written to `build/bin/<platform>/`, for example
 `build/bin/freebsd/inbe-freebsd-x86_64` on FreeBSD.
@@ -198,7 +198,7 @@ uninstalled.
 - `locales/` - translations
 - `droid/` - Android project
 - `site/` - website
-- `vendor/flint/` - Flint UI/runtime submodule
+- `vendor/kryon/` - Flint UI/runtime submodule
 
 ## Notes
 

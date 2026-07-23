@@ -600,7 +600,7 @@ jobs:
           path: |
             vendor-builds/windows
             vendor-builds/sqlite
-          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/mk/**', 'vendor/flint/scripts/prepare-raylib-source.sh', 'vendor/flint/tools/generate-flint-compat.sh', 'vendor/flint/vendor/raylib/src/**', 'vendor/flint/vendor/curl/**', 'vendor/sqlite/**') }}
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/kryon/mk/**', 'vendor/kryon/scripts/prepare-raylib-source.sh', 'vendor/kryon/tools/generate-kryon-compat.sh', 'vendor/kryon/vendor/raylib/src/**', 'vendor/kryon/vendor/curl/**', 'vendor/sqlite/**') }}
           restore-keys: |
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
@@ -661,12 +661,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.ANDROID_HOME }}/platforms/android-35
+            ${{ env.ANDROID_HOME }}/platforms/android-36
             ${{ env.ANDROID_HOME }}/build-tools/34.0.0
             ${{ env.ANDROID_HOME }}/ndk/25.1.8937393
             ${{ env.ANDROID_HOME }}/ndk/28.2.13676358
             ${{ env.ANDROID_HOME }}/cmake/3.22.1
-          key: android-sdk-${{ runner.os }}-${{ runner.arch }}-api35-bt34-ndk25-ndk28-cmake322
+          key: android-sdk-${{ runner.os }}-${{ runner.arch }}-api36-bt34-ndk25-ndk28-cmake322
           restore-keys: |
             android-sdk-${{ runner.os }}-${{ runner.arch }}-
 
@@ -676,7 +676,7 @@ jobs:
           path: |
             droid/app/.cxx
             droid/app/build/intermediates/cxx
-          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'flint/src/**/*.c', 'flint/include/**/*.h', 'vendor/flint/vendor/raylib/src/**') }}
+          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'vendor/kryon/src/**/*.c', 'vendor/kryon/include/**/*.h', 'vendor/kryon/vendor/raylib/src/**') }}
           restore-keys: |
             android-native-${{ runner.os }}-${{ runner.arch }}-
 
@@ -685,7 +685,7 @@ jobs:
           set -euo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
+          "$SDKMANAGER" "platforms;android-36" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
 
       - name: Prepare Android signing key
         env:

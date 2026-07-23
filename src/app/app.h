@@ -1,7 +1,7 @@
 #ifndef INBE_APP_H
 #define INBE_APP_H
 
-#include "flint.h"
+#include "kryon.h"
 #include "platform.h"
 #include "breath_engine.h"
 #include "app_fwd.h"
@@ -9,7 +9,7 @@
 #include "ui_transition.h"
 #include "ui_icon_types.h"
 #include "screens/habits_screen.h"
-#include "screens/settings/settings_theme.h"
+#include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
 enum {
@@ -348,7 +348,6 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
-    int show_session_return_button;
     int profile_view;
     int profile_tab;
     int profile_tab_scroll;
@@ -460,6 +459,8 @@ void app_set_host_api(InbeApp *app, InbeHostApi host);
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
+InbeApp *get_global_inbe_app(void);
+void set_global_inbe_app(InbeApp *app);
 void app_switch_screen(InbeApp *app, int screen);
 AppRoute app_current_route(const InbeApp *app);
 void app_switch_route(InbeApp *app, AppRoute route);

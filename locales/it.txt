@@ -435,9 +435,6 @@ Cerchio
 [volume_label]
 Volume
 ---
-[show_session_return_button_label]
-Mostra pulsante indietro
----
 [reset_to_defaults_label]
 Ripristina predefiniti
 ---
@@ -946,9 +943,6 @@ I dati arrivano dalle pratiche completate.
 ---
 [practice_home_wim_hof_metadata]
 %d round | %d respiri
----
-[sun_salutation_session_step_title]
-Passo %d / %d
 ---
 [meditation_music_downloading_progress]
 Download audio... %d%%

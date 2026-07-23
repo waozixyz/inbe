@@ -1,0 +1,31 @@
+#module "settings.session"
+
+#import "app.h"
+#import "app_settings.h"
+#import "locale.h"
+
+ui :: #import "src/screens/settings/settings_ui"
+
+content_height :: (content_w: int) -> int {
+    label_w := content_w > 0 ? content_w : ScaleUIPx(240)
+    height := ScaleUIPx(52) + ScaleUIPx(40)
+
+    height += ui.toggle_row_height(GetLocaleText("play_in_background_label"), label_w)
+    return height
+}
+
+draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+    guard app == NULL || y == NULL
+
+    sound_volume := app->sound_volume
+    if ui.commit_slider_row(app, 6, x, w, y, ScaleUIPx(52), GetLocaleText("volume_label"), SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX, &sound_volume, "", 0) {
+        app->sound_volume = sound_volume
+        save_settings(app)
+    }
+
+    play_in_background := app->inbe.play_in_background
+    if ui.commit_toggle_row(app, x, w, y, GetLocaleText("play_in_background_label"), &play_in_background, 0) {
+        app->inbe.play_in_background = play_in_background
+        save_settings(app)
+    }
+}

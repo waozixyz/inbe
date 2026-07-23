@@ -375,9 +375,6 @@ OK
 [volume_label]
 音量
 ---
-[show_session_return_button_label]
-戻るボタンを表示
----
 [reset_to_defaults_label]
 デフォルトに戻す
 ---
@@ -948,9 +945,6 @@ Preview only. This tab is not implemented yet.
 ---
 [practice_home_wim_hof_metadata]
 %d ラウンド | %d 呼吸
----
-[sun_salutation_session_step_title]
-ステップ %d / %d
 ---
 [meditation_music_downloading_progress]
 音声をダウンロード中... %d%%

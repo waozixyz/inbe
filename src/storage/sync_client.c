@@ -590,8 +590,9 @@ EM_JS(int, sync_web_fetch_poll_js,
     return request.state === 1 ? 1 : 2;
 });
 
-EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
+EM_JS(int, sync_websocket_start_js, (const char *url_ptr, const char *token_ptr), {
     const url = UTF8ToString(url_ptr);
+    const token = UTF8ToString(token_ptr);
     const now = Date.now();
     function scheduleRetry() {
         const failures = Math.min((Module.__inbeSyncWebSocketFailures || 0) + 1, 8);
@@ -619,7 +620,7 @@ EM_JS(int, sync_websocket_start_js, (const char *url_ptr), {
     }
     Module.__inbeSyncWebSocketUrl = url;
     try {
-        const ws = new WebSocket(url);
+        const ws = new WebSocket(url, ["inbe-sync-v1", "bearer." + token]);
         Module.__inbeSyncWebSocket = ws;
         ws.onopen = function() {
             Module.__inbeSyncWebSocketRetryAt = 0;
@@ -1065,11 +1066,7 @@ sync_client_web_start_remote_events(const char *base_url)
         return 0;
     if(!sync_join_ws_url(ws_url, sizeof(ws_url), base_url, INBE_SYNC_WS_PATH))
         return 0;
-    if(strlen(ws_url) + strlen(token) + strlen("?token=") >= sizeof(ws_url))
-        return 0;
-    strncat(ws_url, "?token=", sizeof(ws_url) - strlen(ws_url) - 1);
-    strncat(ws_url, token, sizeof(ws_url) - strlen(ws_url) - 1);
-    return sync_websocket_start_js(ws_url);
+    return sync_websocket_start_js(ws_url, token);
 }
 
 int
@@ -1080,7 +1077,7 @@ sync_client_web_poll_remote_event(void)
 #endif
 
 static int
-sync_flint_http_request(const char *method, const char *url, const char *body,
+sync_kryon_http_request(const char *method, const char *url, const char *body,
                         const char *const *headers, int header_count,
                         LyraSyncBuffer *response, long *status, void *user)
 {
@@ -1090,21 +1087,21 @@ sync_flint_http_request(const char *method, const char *url, const char *body,
 }
 
 static const char *
-sync_flint_get_text(const char *key, void *user)
+sync_kryon_get_text(const char *key, void *user)
 {
     (void)user;
     return storage_get_setting_text(key);
 }
 
 static void
-sync_flint_set_text(const char *key, const char *value, void *user)
+sync_kryon_set_text(const char *key, const char *value, void *user)
 {
     (void)user;
     storage_set_setting_text(key, value);
 }
 
 static char *
-sync_flint_build_payload(const char *user_id_hash, const char *public_key_hex,
+sync_kryon_build_payload(const char *user_id_hash, const char *public_key_hex,
                          void *user)
 {
     (void)user;
@@ -1112,28 +1109,28 @@ sync_flint_build_payload(const char *user_id_hash, const char *public_key_hex,
 }
 
 static void
-sync_flint_free_payload(char *payload, void *user)
+sync_kryon_free_payload(char *payload, void *user)
 {
     (void)user;
     storage_free_sync_payload_json(payload);
 }
 
 static int
-sync_flint_apply_response(const char *response_json, void *user)
+sync_kryon_apply_response(const char *response_json, void *user)
 {
     (void)user;
     return storage_apply_sync_response_json(response_json);
 }
 
 static void
-sync_flint_purge_synced_deleted(void *user)
+sync_kryon_purge_synced_deleted(void *user)
 {
     (void)user;
     storage_purge_synced_deleted_data();
 }
 
 static void
-sync_flint_log_http_failure(const char *step, long status,
+sync_kryon_log_http_failure(const char *step, long status,
                             const char *response, void *user)
 {
     (void)user;
@@ -1141,7 +1138,7 @@ sync_flint_log_http_failure(const char *step, long status,
 }
 
 static LyraSyncConfig
-sync_flint_config(const char *base_url, const InbeSyncAccount *account)
+sync_kryon_config(const char *base_url, const InbeSyncAccount *account)
 {
     LyraSyncConfig cfg;
 
@@ -1149,14 +1146,17 @@ sync_flint_config(const char *base_url, const InbeSyncAccount *account)
     cfg.base_url = base_url;
     cfg.account = account;
     cfg.client_id = storage_sync_client_id();
-    cfg.http_request = sync_flint_http_request;
-    cfg.get_text = sync_flint_get_text;
-    cfg.set_text = sync_flint_set_text;
-    cfg.build_payload = sync_flint_build_payload;
-    cfg.free_payload = sync_flint_free_payload;
-    cfg.apply_response = sync_flint_apply_response;
-    cfg.purge_synced_deleted = sync_flint_purge_synced_deleted;
-    cfg.log_http_failure = sync_flint_log_http_failure;
+    cfg.signature_context = "inbe-sync-v1";
+    cfg.user_header_name = "X-Inbe-User";
+    cfg.signature_header_name = "X-Inbe-Signature";
+    cfg.http_request = sync_kryon_http_request;
+    cfg.get_text = sync_kryon_get_text;
+    cfg.set_text = sync_kryon_set_text;
+    cfg.build_payload = sync_kryon_build_payload;
+    cfg.free_payload = sync_kryon_free_payload;
+    cfg.apply_response = sync_kryon_apply_response;
+    cfg.purge_synced_deleted = sync_kryon_purge_synced_deleted;
+    cfg.log_http_failure = sync_kryon_log_http_failure;
     return cfg;
 }
 
@@ -1198,7 +1198,7 @@ sync_client_sync(const char *base_url)
         return LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
         return LYRA_SYNC_NO_ACCOUNT;
-    cfg = sync_flint_config(base_url, &account);
+    cfg = sync_kryon_config(base_url, &account);
     return RunLyraSync(&cfg);
 }
 
@@ -1257,7 +1257,7 @@ sync_client_bearer_request(const char *base_url, const char *method, const char 
 
     if(!sync_account_load(&account))
         return LYRA_SYNC_NO_ACCOUNT;
-    cfg = sync_flint_config(base_url, &account);
+    cfg = sync_kryon_config(base_url, &account);
     return RequestLyraSyncBearer(&cfg, method, path, body, out, out_size);
 }
 
@@ -1558,6 +1558,6 @@ sync_client_delete_account(const char *base_url)
         return LYRA_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
         return LYRA_SYNC_NO_ACCOUNT;
-    cfg = sync_flint_config(base_url, &account);
+    cfg = sync_kryon_config(base_url, &account);
     return DeleteLyraSyncAccount(&cfg);
 }
