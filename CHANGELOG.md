@@ -2,7 +2,7 @@
 ## [1.8.10] - 2026-07-26
 ### Changed
 - Migrated `src/storage/import.c` to Kry (`import.kry`, transpiled to `import_impl.c`), following the established `db.kry` pattern; the hand-written `import.h` remains the public contract.
-- Bumped the Kryon vendor to `22afa31` (text input focus is now persistent and single-owner across frames; Kry language is now minimal with sugar verbs removed; website Platforms grid refreshed).
+- Fixed the web/emscripten build: `src/storage/sync_account.kry` now imports `<emscripten.h>` for its `#intrinsic "web"` declaration (which expands to `EM_ASM_INT`), matching the other two files using that intrinsic. This had broken the web build since the original Kry migration.
 - Reworked the desktop close behavior: raylib's built-in ESC-to-exit is now disabled on native/desktop (ESC is handled per-screen, and close goes through our own keep-running/quit prompt when a tray is present); without a tray the window close button quits immediately.
 - Habits editor: added description scroll state so long descriptions scroll correctly.
 - Renamed a shadowed `text` parameter in `copy_text_checked` to `input` for clarity (meditation music path).
