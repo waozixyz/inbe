@@ -2,6 +2,7 @@
 ## [1.8.10] - 2026-07-26
 ### Changed
 - Migrated `src/storage/import.c` to Kry (`import.kry`, transpiled to `import_impl.c`), following the established `db.kry` pattern; the hand-written `import.h` remains the public contract.
+- Bumped the Kryon vendor to `22afa31` plus a one-line fix (`c26b7ec` on the `fix/platform-thread-stddef` branch) adding `#include <stddef.h>` to `platform_thread.c` so the web build can resolve `NULL`. The bump brings persistent text-input focus, a minimal Kry language (sugar verbs removed), and the new `WidgetButton` UI widget used by the practice screen.
 - Fixed the web/emscripten build: `src/storage/sync_account.kry` now imports `<emscripten.h>` for its `#intrinsic "web"` declaration (which expands to `EM_ASM_INT`), matching the other two files using that intrinsic. This had broken the web build since the original Kry migration.
 - Reworked the desktop close behavior: raylib's built-in ESC-to-exit is now disabled on native/desktop (ESC is handled per-screen, and close goes through our own keep-running/quit prompt when a tray is present); without a tray the window close button quits immediately.
 - Habits editor: added description scroll state so long descriptions scroll correctly.
