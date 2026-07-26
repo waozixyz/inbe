@@ -51,6 +51,10 @@ foreach(kry_source ${INBE_KRY_SOURCES})
         set(kry_output_c "${INBE_KRY_GEN_DIR}/src/storage/db_impl.c")
         set(kry_output_h "${INBE_KRY_GEN_DIR}/src/storage/db_impl.h")
     endif()
+    if(kry_rel STREQUAL "src/storage/import.kry")
+        set(kry_output_c "${INBE_KRY_GEN_DIR}/src/storage/import_impl.c")
+        set(kry_output_h "${INBE_KRY_GEN_DIR}/src/storage/import_impl.h")
+    endif()
     list(APPEND INBE_KRY_GENERATED_SOURCES "${kry_output_c}")
     list(APPEND INBE_KRY_GENERATED_HEADERS "${kry_output_h}")
 endforeach()
@@ -159,7 +163,6 @@ target_include_directories(raylib PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app/app.c"
-    "${SRC_DIR}/storage/import.c"
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
