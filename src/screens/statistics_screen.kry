@@ -405,7 +405,9 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
             w := slot_w - ScaleUIPx(10)
             bar_y := y + chart_h - h - ScaleUIPx(22)
 
-            clamp_min w ScaleUIPx(4)
+            if w < ScaleUIPx(4) {
+                w = ScaleUIPx(4)
+            }
             DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenUIColor(active->color, 12) : DarkenUIColor(GetThemeBackground(), 24))
             DrawUIText(labels[i], x + (w - MeasureUIText(labels[i], UI_TEXT_12)) / 2, y + chart_h - ScaleUIPx(18), UI_TEXT_12, DarkenUIColor(GetThemeText(), 18))
         }
@@ -456,7 +458,9 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
         }
     }
 
-    clamp_min scroll_h 0
+    if scroll_h < 0 {
+        scroll_h = 0
+    }
     page_ctx = (StatisticsScrollPageContext){linked_ctx != NULL ? linked_ctx->count : 0}
     page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = max_w, .scroll_offset = &app->habits.scroll, .content_height = statistics_scroll_page_content_height, .user_data = &page_ctx})
     statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + ScaleUIPx(8))

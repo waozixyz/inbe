@@ -58,7 +58,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         transitions_enabled := 0
         app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE)
         transitions_enabled = app->transition_mode == APP_TRANSITION_FADE
-        on ui.draw_toggle_row(x, w, y, GetLocaleText("transition_label"), &transitions_enabled) {
+        if ui.draw_toggle_row(x, w, y, GetLocaleText("transition_label"), &transitions_enabled) {
             app->transition_mode = transitions_enabled ? APP_TRANSITION_FADE : APP_TRANSITION_NONE
             if app->transition_mode == APP_TRANSITION_NONE {
                 ResetUITransition(&app->screen_transition)
@@ -147,7 +147,7 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     picker_h = GetUIThemePickerHeight(draw_w)
     scroll_area.content_height = picker_h
     scroll_view = BeginUIScrollContainer(scroll_area)
-    on DrawUIThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
+    if DrawUIThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
         app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
         app_refresh_theme(app)
         app->settings_dirty = 1

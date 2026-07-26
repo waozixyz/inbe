@@ -28,7 +28,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
 
     row_h := toggle_row_height(label, w)
     label_y := *y
-    draw DrawUIParagraph(label_paragraph(label, w), x, &label_y)
+    DrawUIParagraph(label_paragraph(label, w), x, &label_y)
     label_h := label_y - *y
 
     if DrawUIToggleSwitch(x, *y + label_h + ScaleUIPx(8), ScaleUIPx(56), ScaleUIPx(30), value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {

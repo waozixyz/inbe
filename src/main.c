@@ -728,6 +728,12 @@ int main(int argc, char **argv) {
     }
 
     set_desktop_window_icon();
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /* Disable raylib's built-in ESC-to-exit. We surface close requests through
+     * our own "keep running / quit?" prompt (see app_request_desktop_close),
+     * and ESC is already handled by individual screens via IsKeyPressed. */
+    SetExitKey(0);
+#endif
     InitUIDPI();
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
@@ -763,6 +769,11 @@ int main(int argc, char **argv) {
     }
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
+    /* With a tray, the close button asks whether to keep running in the
+     * background (hiding to tray) or quit. The SDL_QUIT that raylib would
+     * otherwise latch is already swallowed by the tray's event filter, so
+     * WindowShouldClose() can only become true via a stray path; guard the
+     * re-fire so the prompt never pops again while already open. */
     while(!quit) {
         InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
         AppClosePromptResult close_result;
@@ -782,25 +793,16 @@ int main(int argc, char **argv) {
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
-        if(WindowShouldClose())
+        if(WindowShouldClose() && !inbe_app.close_prompt_open)
             app_request_desktop_close(&inbe_app);
     }
 #else
+    /* No tray: there is nothing to keep running in the background, so a close
+     * request (window button, WM, or signal) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
-        AppClosePromptResult close_result;
         frame();
-        close_result = app_consume_close_prompt_result(&inbe_app);
-        if(close_result == AppClosePromptKeepRunning)
-            MinimizeWindow();
-        else if(close_result == AppClosePromptQuit)
+        if(WindowShouldClose() || g_shutdown_requested)
             quit = 1;
-        if(WindowShouldClose()) {
-#if ANDROID_BUILD
-            quit = 1;
-#else
-            app_request_desktop_close(&inbe_app);
-#endif
-        }
     }
 #endif
 

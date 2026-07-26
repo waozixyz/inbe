@@ -1,4 +1,17 @@
 # Changelog
+## [1.8.10] - 2026-07-26
+### Changed
+- Migrated `src/storage/import.c` to Kry (`import.kry`, transpiled to `import_impl.c`), following the established `db.kry` pattern; the hand-written `import.h` remains the public contract.
+- Bumped the Kryon vendor to `22afa31` (text input focus is now persistent and single-owner across frames; Kry language is now minimal with sugar verbs removed; website Platforms grid refreshed).
+- Reworked the desktop close behavior: raylib's built-in ESC-to-exit is now disabled on native/desktop (ESC is handled per-screen, and close goes through our own keep-running/quit prompt when a tray is present); without a tray the window close button quits immediately.
+- Habits editor: added description scroll state so long descriptions scroll correctly.
+- Renamed a shadowed `text` parameter in `copy_text_checked` to `input` for clarity (meditation music path).
+- Various screen and settings UI refinements across habits edit, pet, practice, profile, language, manual, and settings screens.
+- Added `.zcode` to `.gitignore`.
+
+### Note
+- Meditation audio asset refresh is held back from this release (requires `git-lfs` to be installed locally before committing); will ship in a follow-up.
+
 ## [1.8.9] - 2026-07-17
 ### Changed
 - Fixed Android native builds by embedding the current Noto font sources instead of stale generated `assets/fonts/ui.*` files.

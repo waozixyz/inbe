@@ -108,7 +108,9 @@ practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_ga
     if layout == NULL {
         return
     }
-    clamp_min scroll_h 0
+    if scroll_h < 0 {
+        scroll_h = 0
+    }
     *layout = (PracticeSubscreenLayout){integrated, title_h, scroll_y, scroll_h}
 }
 
@@ -355,11 +357,11 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
         dots_x = x
         dots_w = w
     }
-    icon_button .bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f {
+    if DrawUIIconButton((UIIconButton){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
         practice_select_home_card(app, practice_next_visible(app, -1))
     }
     practice_draw_home_dots(app, dots_x, y + (row_h - practice_home_dots_height(app)) / 2, dots_w)
-    icon_button .bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f {
+    if DrawUIIconButton((UIIconButton){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
         practice_select_home_card(app, practice_next_visible(app, 1))
     }
 }
@@ -367,8 +369,12 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
 practice_home_card_height :: (y: int, bottom_reserved: int) -> int #private {
     card_h := view_height - y - bottom_reserved - ScaleUIPx(176)
 
-    clamp_min card_h ScaleUIPx(180)
-    clamp_max card_h ScaleUIPx(300)
+    if card_h < ScaleUIPx(180) {
+        card_h = ScaleUIPx(180)
+    }
+    if card_h > ScaleUIPx(300) {
+        card_h = ScaleUIPx(300)
+    }
     return card_h
 }
 
@@ -751,7 +757,9 @@ practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, man
     btn_h := ScaleUIPx(42)
     gap := 0
 
-    clamp_max content_w max_w
+    if content_w > max_w {
+        content_w = max_w
+    }
     if content_w < ScaleUIPx(260) {
         content_w = view_width - ScaleUIPx(16)
     }
@@ -859,11 +867,15 @@ page start(app: InbeApp*) {
     bottom_reserved = app_content_bottom_reserved(app)
     scroll_y = 0
     scroll_h = view_height - scroll_y - bottom_reserved
-    clamp_min scroll_h 0
+    if scroll_h < 0 {
+        scroll_h = 0
+    }
 
     practice = practice_get(app->exercise_type)
     content_w = view_width - ScaleUIPx(24)
-    clamp_max content_w ScaleUIPx(480)
+    if content_w > ScaleUIPx(480) {
+        content_w = ScaleUIPx(480)
+    }
     if content_w < ScaleUIPx(260) {
         content_w = view_width - ScaleUIPx(16)
     }
@@ -882,55 +894,55 @@ page start(app: InbeApp*) {
         app->practice_home_scroll = 0
     }
 
-    draw practice_draw_home_title(app, x, y, content_w)
-    advance y by practice_home_title_height(app) + ScaleUIPx(10)
-    advance layout_y by practice_home_title_height(app) + ScaleUIPx(10)
+    practice_draw_home_title(app, x, y, content_w)
+    y += practice_home_title_height(app) + ScaleUIPx(10)
+    layout_y += practice_home_title_height(app) + ScaleUIPx(10)
 
     card_w = content_w
     card_h = practice_home_card_height(layout_y, bottom_reserved)
     card := (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h}
-    texture banner = practice_card_banner(app, app->exercise_type)
+    banner: Texture2D = practice_card_banner(app, app->exercise_type)
     if banner.id != 0 {
-        draw practice_draw_card_banner(banner, card)
+        practice_draw_card_banner(banner, card)
     } else {
-        draw DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
+        DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
     }
-    draw DrawRectangleLinesEx(card, ScaleUIPx(2), LightenUIColor(GetThemeBackground(), 55))
+    DrawRectangleLinesEx(card, ScaleUIPx(2), LightenUIColor(GetThemeBackground(), 55))
 
     carousel_count = practice_visible_count(app)
-    advance y by card_h
+    y += card_h
     if carousel_count > 1 {
-        draw practice_draw_home_carousel_controls(app, x, y, content_w)
-        advance y by practice_home_carousel_controls_height(app)
+        practice_draw_home_carousel_controls(app, x, y, content_w)
+        y += practice_home_carousel_controls_height(app)
     }
-    advance y by ScaleUIPx(10)
+    y += ScaleUIPx(10)
 
-    button x, y, content_w, btn_h, GetLocaleText("practice_start_button"), UI_BUTTON_STYLE_PRIMARY, 0, &hover {
+    if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_start_button"), UI_BUTTON_STYLE_PRIMARY) {
         if practice->start != NULL {
             practice->start(app)
         }
     }
-    advance y by btn_h + gap
+    y += btn_h + gap
 
     if practice_home_actions_share_row(practice, content_w) {
         row_gap = practice_home_action_gap(content_w)
         practice_home_action_row_widths(content_w, &manual_w, &config_w)
-        button x, y, manual_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover {
+        if WidgetButton(x, y, manual_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
 
-        button x + manual_w + row_gap, y, config_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover {
+        if WidgetButton(x + manual_w + row_gap, y, config_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
     } else {
         if practice->draw_manual != NULL {
-            button x, y, content_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover {
+            if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY) {
                 practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
             }
-            advance y by btn_h + gap
+            y += btn_h + gap
         }
         if practice->draw_config != NULL {
-            button x, y, content_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY, 0, &hover {
+            if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }
         }

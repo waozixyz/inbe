@@ -8,6 +8,7 @@
 .claude/
 .local/
 .codex/
+.zcode
 .agents/
 .cache/
 .ccache

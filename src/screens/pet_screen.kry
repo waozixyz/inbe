@@ -27,18 +27,28 @@ pet_screen_draw :: (app: InbeApp*) {
     text_y := 0
     muted := DarkenUIColor(GetThemeText(), 34)
 
-    clamp_min content_h ScaleUIPx(120)
+    if content_h < ScaleUIPx(120) {
+        content_h = ScaleUIPx(120)
+    }
     center_y = content_h / 2 - ScaleUIPx(18)
 
     egg_size = view_width < view_height ? view_width : view_height
     egg_size = egg_size * 42 / 100
-    clamp_min egg_size ScaleUIPx(120)
-    clamp_max egg_size ScaleUIPx(240)
+    if egg_size < ScaleUIPx(120) {
+        egg_size = ScaleUIPx(120)
+    }
+    if egg_size > ScaleUIPx(240) {
+        egg_size = ScaleUIPx(240)
+    }
 
     pet.draw_egg(app, center_x, center_y, egg_size)
     text_w = view_width - ScaleUIPx(48)
-    clamp_max text_w ScaleUIPx(360)
-    clamp_min text_w ScaleUIPx(160)
+    if text_w > ScaleUIPx(360) {
+        text_w = ScaleUIPx(360)
+    }
+    if text_w < ScaleUIPx(160) {
+        text_w = ScaleUIPx(160)
+    }
     text_x = center_x - text_w / 2
     text_y = center_y + egg_size / 2 + ScaleUIPx(28)
 

@@ -691,7 +691,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
     diff_content_h: int = ScaleUIPx(40)
     p: const char* = nil
     diff_view: UIScrollView
-    line: char* = nil
+    diff_line: char* = nil
     line_y: int
     line_color: Color
 
@@ -761,23 +761,23 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         .wheel_step = ScaleUIPx(24)
     })
 
-    line = strtok(diff_detail, "\n")
+    diff_line = strtok(diff_detail, "\n")
     line_y = diff_view.content_y
-    while line != nil {
+    while diff_line != nil {
         line_color = GetThemeText()
-        if line[0] == '-' {
+        if diff_line[0] == '-' {
             line_color = (Color){215, 88, 88, 255}
-        } else if line[0] == '+' {
+        } else if diff_line[0] == '+' {
             line_color = (Color){74, 170, 112, 255}
         }
 
-        DrawUIText(line,
+        DrawUIText(diff_line,
                       diff_view.content_x,
                       line_y,
                       GetUISmallFontSize(),
                       line_color)
         line_y += ScaleUIPx(20)
-        line = strtok(nil, "\n")
+        diff_line = strtok(nil, "\n")
     }
 
     EndUIScrollContainer((UIScrollArea){

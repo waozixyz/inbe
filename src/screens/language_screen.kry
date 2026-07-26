@@ -38,7 +38,7 @@ language_screen_draw :: (app: InbeApp*) {
     button_x = view_width / 2
     button_y = dropdown_y + ScaleUIPx(64)
 
-    on DrawUILocaleDropdownButton(200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
+    if DrawUILocaleDropdownButton(200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
         selection_changed = 1
     }
 
@@ -46,13 +46,13 @@ language_screen_draw :: (app: InbeApp*) {
     title_w = MeasureUIText(GetLocaleText("language_picker_title"), title_font)
     DrawUIText(GetLocaleText("language_picker_title"), view_width / 2 - title_w / 2, ScaleUIPx(28), title_font, GetThemeText())
     DrawUIText(GetLocaleText("language_label"), dropdown_x, dropdown_y - ScaleUIPx(24), label_font, GetThemeText())
-    on DrawUITextButton(button_x, button_y, GetLocaleText("next_button"), &next_hover) {
+    if DrawUITextButton(button_x, button_y, GetLocaleText("next_button"), &next_hover) {
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->practice_tab = PRACTICE_TAB_PLAY
         app_switch_screen(app, InbeScreenStart)
     }
 
-    on DrawUIDropdownMenu(200) {
+    if DrawUIDropdownMenu(200) {
         selection_changed = 1
     }
 

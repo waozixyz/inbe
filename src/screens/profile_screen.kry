@@ -295,7 +295,7 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         title = GetLocaleText("profile_my_habits_title")
     }
 
-    on app_draw_close_title_bar(app, title, header_h) {
+    if app_draw_close_title_bar(app, title, header_h) {
         app->profile_scroll = 0
         app->sync_server_url_focused = 0
         if app_return_to_nav_sidebar_if_needed(app) {
@@ -317,7 +317,9 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         }
     }
 
-    clamp_min content_h 0
+    if content_h < 0 {
+        content_h = 0
+    }
     page = BeginUIScrollPage((UIScrollPageSpec){
         .y = content_y,
         .height = content_h,
@@ -344,10 +346,10 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     } else {
         settings_sync_account_draw_config(app, page.content_x, page.content_w, &y)
     }
-    ScrollEnd(page)
+    EndUIScrollPage(page)
     SetUIDropdownClipTop(content_y)
     SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-    on DrawUIDropdownMenu(812) {
+    if DrawUIDropdownMenu(812) {
         app->profile_view = PROFILE_VIEW_MAIN
         app->profile_scroll = 0
     }
@@ -356,7 +358,7 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     if app->profile_view == PROFILE_VIEW_MAIN && (app->profile_tab == PROFILE_TAB_LEADERBOARD || app->profile_tab == PROFILE_TAB_FRIENDS) {
         SetUIDropdownClipTop(content_y)
         SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-        on DrawUIDropdownMenu(811) {
+        if DrawUIDropdownMenu(811) {
             profile_social_load_leaderboard_cache(app)
             app->profile_scroll = 0
         }

@@ -304,6 +304,7 @@ typedef struct HabitEditState {
     int index;
     int cursor;
     int description_cursor;
+    int description_scroll_y;
     int focused;
     int description_focused;
     char text[INBE_HABIT_NAME_SIZE];

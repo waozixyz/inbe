@@ -101,23 +101,23 @@ known_track_archive_member :: (path: const char*) -> int #private {
     return 0
 }
 
-copy_text_checked :: (out: char*, out_size: size_t, text: const char*) -> int #private {
+copy_text_checked :: (out: char*, out_size: size_t, input: const char*) -> int #private {
     len: size_t
 
     if out == nil || out_size == 0 {
         return 0
     }
-    if text == nil {
-        text = ""
+    if input == nil {
+        input = ""
     }
 
-    len = strlen(text)
+    len = strlen(input)
     if len >= out_size {
         out[0] = '\0'
         return 0
     }
 
-    memcpy(out, text, len + 1)
+    memcpy(out, input, len + 1)
     return 1
 }
 

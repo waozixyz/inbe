@@ -288,6 +288,33 @@ text_field :: (text: char*, text_size: size_t, cursor: int*,
     }
 }
 
+text_area :: (text: char*, text_size: size_t, cursor: int*,
+                          focused: int*, scroll_y: int*, max_codepoints: int,
+                          font: int) -> UITextArea #private {
+    style: UITextInputStyle = {
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
+        .radius = 0.08f,
+        .padding_x = ScaleUIPx(10)
+    }
+
+    return (UITextArea){
+        .bounds = {0},
+        .text = text,
+        .text_size = text_size,
+        .cursor_position = cursor,
+        .focused = focused,
+        .scroll_y = scroll_y,
+        .max_codepoints = max_codepoints,
+        .font = font,
+        .line_gap = ScaleUIPx(4),
+        .style = style
+    }
+}
+
 color_button :: (app: InbeApp*, x: int, y: int, color: Color,
                       selected: int) -> int #private {
     mouse_world := GetScreenToWorld2D(GetMousePosition(), app->camera)
@@ -328,10 +355,7 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
         .label = GetLocaleText("habit_name_label"),
         .field_h = ScaleUIPx(40)
     })
-    height += GetUILabelTextFieldHeight((UILabelTextField){
-        .label = GetLocaleText("habit_description_label"),
-        .field_h = ScaleUIPx(40)
-    })
+    height += ScaleUIPx(22) + ScaleUIPx(120) + ScaleUIPx(24)
     height += ScaleUIPx(32) + ScaleUIPx(76)
     height += GetUISectionLabelHeight((UISectionLabel){0})
     for int i = 0; i < EXERCISE_COUNT; i++ {
@@ -380,6 +404,7 @@ draw :: (app: InbeApp*) {
     font := GetUIFontSize()
     label_font := GetUISmallFontSize()
     field_h := ScaleUIPx(40)
+    desc_field_h := ScaleUIPx(120)
     hover := 0
     title_font := 0
     title_w := 0
@@ -509,21 +534,28 @@ draw :: (app: InbeApp*) {
     clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor)
     y += GetUILabelTextFieldHeight((UILabelTextField){.field_h = field_h})
 
-    DrawUILabelTextField((UILabelTextField){
-        .label = GetLocaleText("habit_description_label"),
-        .field = text_field(app->habit_edit.description,
-                                       sizeof(app->habit_edit.description),
-                                       &app->habit_edit.description_cursor,
-                                       &app->habit_edit.description_focused,
-                                       INBE_HABIT_DESCRIPTION_SIZE - 1,
-                                       font),
-        .field_h = field_h,
-        .label_font = label_font,
-        .label_color = DarkenUIColor(GetThemeText(), 34)
-    }, content_x, y, content_w)
+    desc_label_h := ScaleUIPx(22)
+    desc_label_gap := 0
+    desc_bottom_gap := ScaleUIPx(24)
+    DrawUIText(GetLocaleText("habit_description_label"), content_x, y,
+                  label_font, DarkenUIColor(GetThemeText(), 34))
+    desc_area := text_area(app->habit_edit.description,
+                                    sizeof(app->habit_edit.description),
+                                    &app->habit_edit.description_cursor,
+                                    &app->habit_edit.description_focused,
+                                    &app->habit_edit.description_scroll_y,
+                                    INBE_HABIT_DESCRIPTION_SIZE - 1,
+                                    font)
+    desc_area.bounds = (Rectangle){
+        (float)content_x,
+        (float)(y + desc_label_h + desc_label_gap),
+        (float)content_w,
+        (float)desc_field_h
+    }
+    DrawUITextArea(desc_area)
     clamp_cursor(app->habit_edit.description,
                                &app->habit_edit.description_cursor)
-    y += GetUILabelTextFieldHeight((UILabelTextField){.field_h = field_h})
+    y += desc_label_h + desc_label_gap + desc_field_h + desc_bottom_gap
 
     DrawUIText(GetLocaleText("habit_underline_label"), content_x, y,
                   label_font, DarkenUIColor(GetThemeText(), 34))

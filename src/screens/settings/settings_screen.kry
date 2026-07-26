@@ -127,7 +127,7 @@ settings_draw_section_header :: (app: InbeApp*, tab: int) #private {
     header_h := GetUITabBarHeight()
     title := settings_screen_tab_label(tab)
 
-    on app_draw_close_title_bar(app, title, header_h) {
+    if app_draw_close_title_bar(app, title, header_h) {
         app->settings_scroll = 0
         if app->modal.type == UIModalThemePicker {
             app_close_modal(app)
@@ -168,7 +168,9 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         settings_data_handle_web_import(app)
     }
 
-    clamp_min content_viewport_h 0
+    if content_viewport_h < 0 {
+        content_viewport_h = 0
+    }
 
     settings_draw_section_header(app, app->settings_tab)
     page_ctx = (SettingsScrollPageContext){app, app->settings_tab}
