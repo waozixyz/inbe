@@ -15,6 +15,7 @@ WEB :: #defined(PLATFORM_WEB)
     #import "android_share.h" #private
 }
 #if WEB {
+    #import <emscripten.h>
     web_download_file :: (path: const char*, filename: const char*,
                           mime: const char*) -> int #intrinsic "web"
 }
