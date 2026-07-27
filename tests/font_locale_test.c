@@ -5,6 +5,8 @@
 #define KRYON_DIR "vendor/kryon"
 #endif
 
+#define FONT_SUBSET_DIR "assets/fonts/subset"
+
 typedef struct LocaleFontCase {
     const char *locale;
     const char *font;
@@ -15,15 +17,15 @@ font_for_locale(const char *locale)
 {
     if(locale != NULL) {
         if(strcmp(locale, "zh") == 0)
-            return KRYON_DIR "/fonts/noto/NotoSansSC-Regular.otf";
+            return FONT_SUBSET_DIR "/NotoSansSC-Inbe-Regular.otf";
         if(strcmp(locale, "ja") == 0)
-            return KRYON_DIR "/fonts/noto/NotoSansJP-Regular.otf";
+            return FONT_SUBSET_DIR "/NotoSansJP-Inbe-Regular.otf";
         if(strcmp(locale, "ko") == 0)
-            return KRYON_DIR "/fonts/noto/NotoSansKR-Regular.otf";
+            return FONT_SUBSET_DIR "/NotoSansKR-Inbe-Regular.otf";
         if(strcmp(locale, "zh-TW") == 0 || strcmp(locale, "zh_Hant") == 0)
-            return KRYON_DIR "/fonts/noto/NotoSansTC-Regular.otf";
+            return FONT_SUBSET_DIR "/NotoSansTC-Inbe-Regular.otf";
     }
-    return KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf";
+    return FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf";
 }
 
 static int
@@ -41,18 +43,18 @@ int
 main(void)
 {
     static const LocaleFontCase cases[] = {
-        {"en", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"cs", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"de", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"es", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"fr", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"id", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"it", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"pt", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"ru", KRYON_DIR "/fonts/noto/NotoSans-Regular.ttf"},
-        {"zh", KRYON_DIR "/fonts/noto/NotoSansSC-Regular.otf"},
-        {"ja", KRYON_DIR "/fonts/noto/NotoSansJP-Regular.otf"},
-        {"ko", KRYON_DIR "/fonts/noto/NotoSansKR-Regular.otf"}
+        {"en", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"cs", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"de", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"es", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"fr", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"id", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"it", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"pt", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"ru", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
+        {"zh", FONT_SUBSET_DIR "/NotoSansSC-Inbe-Regular.otf"},
+        {"ja", FONT_SUBSET_DIR "/NotoSansJP-Inbe-Regular.otf"},
+        {"ko", FONT_SUBSET_DIR "/NotoSansKR-Inbe-Regular.otf"}
     };
     int failures = 0;
 

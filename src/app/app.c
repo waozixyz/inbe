@@ -58,6 +58,12 @@
 
 static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
 
+#define INBE_FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
+#define INBE_FONT_SC "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf"
+#define INBE_FONT_JP "assets/fonts/subset/NotoSansJP-Inbe-Regular.otf"
+#define INBE_FONT_KR "assets/fonts/subset/NotoSansKR-Inbe-Regular.otf"
+#define INBE_FONT_TC "assets/fonts/subset/NotoSansTC-Inbe-Regular.otf"
+
 typedef struct AppProfileStats {
     int initialized;
     int enabled;
@@ -991,15 +997,15 @@ ui_font_asset_for_locale(const char *code)
 {
     if(code != NULL) {
         if(strcmp(code, "zh") == 0)
-            return "vendor/kryon/fonts/noto/NotoSansSC-Regular.otf";
+            return INBE_FONT_SC;
         if(strcmp(code, "ja") == 0)
-            return "vendor/kryon/fonts/noto/NotoSansJP-Regular.otf";
+            return INBE_FONT_JP;
         if(strcmp(code, "ko") == 0)
-            return "vendor/kryon/fonts/noto/NotoSansKR-Regular.otf";
+            return INBE_FONT_KR;
         if(strcmp(code, "zh-TW") == 0 || strcmp(code, "zh_Hant") == 0)
-            return "vendor/kryon/fonts/noto/NotoSansTC-Regular.otf";
+            return INBE_FONT_TC;
     }
-    return "vendor/kryon/fonts/noto/NotoSans-Regular.ttf";
+    return INBE_FONT_LATIN;
 }
 
 static int
@@ -1075,6 +1081,34 @@ register_ui_font_source(const char *name, const char *path,
                                 codepoints->values, codepoints->count);
 }
 
+#if ANDROID_BUILD
+static void
+register_android_system_font_fallbacks(const UIFontCodepoints *codepoints)
+{
+    static const struct {
+        const char *name;
+        const char *path;
+    } fonts[] = {
+        {"sys-cjk", "/system/fonts/NotoSansCJK-Regular.ttc"},
+        {"sys-sc", "/system/fonts/NotoSansSC-Regular.otf"},
+        {"sys-jp", "/system/fonts/NotoSansJP-Regular.otf"},
+        {"sys-kr", "/system/fonts/NotoSansKR-Regular.otf"},
+        {"sys-tc", "/system/fonts/NotoSansTC-Regular.otf"},
+        {"sys-latin", "/system/fonts/NotoSans-Regular.ttf"},
+        {"sys-roboto", "/system/fonts/Roboto-Regular.ttf"}
+    };
+
+    if(codepoints == NULL || codepoints->count <= 0)
+        return;
+
+    for(size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++) {
+        (void)RegisterUIFontFileSource(fonts[i].name, fonts[i].path,
+                                       codepoints->values, codepoints->count,
+                                       1);
+    }
+}
+#endif
+
 static void
 register_language_picker_fonts(void)
 {
@@ -1086,16 +1120,16 @@ register_language_picker_fonts(void)
     }
 
     (void)register_ui_font_source("ui-lang-latin",
-                                  "vendor/kryon/fonts/noto/NotoSans-Regular.ttf",
+                                  INBE_FONT_LATIN,
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-ja",
-                                  "vendor/kryon/fonts/noto/NotoSansJP-Regular.otf",
+                                  INBE_FONT_JP,
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-ko",
-                                  "vendor/kryon/fonts/noto/NotoSansKR-Regular.otf",
+                                  INBE_FONT_KR,
                                   &codepoints);
     (void)register_ui_font_source("ui-lang-zh",
-                                  "vendor/kryon/fonts/noto/NotoSansSC-Regular.otf",
+                                  INBE_FONT_SC,
                                   &codepoints);
 
     ui_font_codepoints_free(&codepoints);
@@ -1130,6 +1164,9 @@ load_locale_font(InbeApp *app)
                              font_asset->data, font_asset->size,
                              codepoints.values, codepoints.count))
         goto done;
+#if ANDROID_BUILD
+    register_android_system_font_fallbacks(&codepoints);
+#endif
     register_language_picker_fonts();
     if(!UseUIFont("ui"))
         goto done;

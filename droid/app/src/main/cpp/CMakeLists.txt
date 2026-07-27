@@ -93,11 +93,11 @@ set(INBE_EMBEDDED_INPUTS
     ${INBE_PRACTICE_BANNER_ASSETS}
     assets/practices/sunsalutation/poses_man_sheet.png
     assets/practices/sunsalutation/poses_woman_sheet.png
-    vendor/kryon/fonts/noto/NotoSans-Regular.ttf
-    vendor/kryon/fonts/noto/NotoSansSC-Regular.otf
-    vendor/kryon/fonts/noto/NotoSansJP-Regular.otf
-    vendor/kryon/fonts/noto/NotoSansKR-Regular.otf
-    vendor/kryon/fonts/noto/NotoSansTC-Regular.otf
+    assets/fonts/subset/NotoSans-Inbe-Regular.ttf
+    assets/fonts/subset/NotoSansSC-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansJP-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansKR-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansTC-Inbe-Regular.otf
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)

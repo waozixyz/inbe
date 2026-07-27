@@ -320,12 +320,15 @@ endif
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
+FONT_SUBSET_DIR := assets/fonts/subset
+FONT_SUBSET_CORPUS := locales assets/fonts/input_common.txt
+FONT_SUBSET_DEPS := $(LOCALE_FILES) assets/fonts/input_common.txt
 FONT_FILES := \
-	$(KRYON_DIR)/fonts/noto/NotoSans-Regular.ttf \
-	$(KRYON_DIR)/fonts/noto/NotoSansSC-Regular.otf \
-	$(KRYON_DIR)/fonts/noto/NotoSansJP-Regular.otf \
-	$(KRYON_DIR)/fonts/noto/NotoSansKR-Regular.otf \
-	$(KRYON_DIR)/fonts/noto/NotoSansTC-Regular.otf
+	$(FONT_SUBSET_DIR)/NotoSans-Inbe-Regular.ttf \
+	$(FONT_SUBSET_DIR)/NotoSansSC-Inbe-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansJP-Inbe-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansKR-Inbe-Regular.otf \
+	$(FONT_SUBSET_DIR)/NotoSansTC-Inbe-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
 KC ?= $(KRYON_DIR)/build/bin/kc
@@ -445,7 +448,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native kryon-live kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: all native kryon-live kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -549,9 +552,9 @@ screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
 
 
-.SILENT: test $(TESTS)
+.SILENT: test $(TESTS) font-bundle-check
 
-test: $(TESTS)
+test: $(TESTS) font-bundle-check
 	echo "== Inbe tests =="; \
 	status=0; \
 	for test_bin in $(TESTS); do \
@@ -575,6 +578,26 @@ test: $(TESTS)
 		echo "== FAIL: Inbe tests =="; \
 	fi; \
 	exit "$$status"
+
+font-bundle-check:
+	for font in $(FONT_FILES); do \
+		case "$$font" in \
+			$(KRYON_DIR)/fonts/noto/*) \
+				echo "Full Noto font must not be embedded: $$font"; \
+				exit 1; \
+				;; \
+		esac; \
+	done
+
+font-subsets:
+	$(MAKE) -C $(KRYON_DIR) font-subsets \
+		FONT_SUBSET_OUT_DIR="$(abspath $(FONT_SUBSET_DIR))" \
+		FONT_SUBSET_SOURCE_DIR="$(abspath $(KRYON_DIR)/fonts/noto)" \
+		FONT_SUBSET_PREFIX=Inbe \
+		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
+
+$(FONT_FILES): $(KRYON_DIR)/scripts/subset-fonts.sh $(FONT_SUBSET_DEPS)
+	$(MAKE) font-subsets
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c $(KRY_GEN_DIR)/src/storage/import_impl.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \

@@ -22,7 +22,7 @@ ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
 rm -rf "$ASSETS_DIR"
 mkdir -p "$ASSETS_DIR"
 
-echo "Using versioned Noto font sources..."
+echo "Using Kryon-generated Noto font subsets..."
 
 mkdir -p build
 sh vendor/kryon/scripts/embed-assets.sh build/inbe_embedded_assets.c \
@@ -35,11 +35,11 @@ sh vendor/kryon/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     assets/practices/*/banner.png \
     assets/practices/sunsalutation/poses_man_sheet.png \
     assets/practices/sunsalutation/poses_woman_sheet.png \
-    vendor/kryon/fonts/noto/NotoSans-Regular.ttf \
-    vendor/kryon/fonts/noto/NotoSansSC-Regular.otf \
-    vendor/kryon/fonts/noto/NotoSansJP-Regular.otf \
-    vendor/kryon/fonts/noto/NotoSansKR-Regular.otf \
-    vendor/kryon/fonts/noto/NotoSansTC-Regular.otf \
+    assets/fonts/subset/NotoSans-Inbe-Regular.ttf \
+    assets/fonts/subset/NotoSansSC-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansJP-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansKR-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansTC-Inbe-Regular.otf \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"
