@@ -83,6 +83,7 @@ jobs:
           site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
           netlify deploy \
             --dir build/site \
+            --no-build \
             --alias "pr-${{ github.event.pull_request.number }}" \
             --message "Preview ${{ github.event.pull_request.number }}" \
             --auth "$auth_token" \
@@ -114,6 +115,7 @@ jobs:
           site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
           netlify deploy \
             --dir build/site \
+            --no-build \
             --prod \
             --message "Production ${{ github.sha }}" \
             --auth "$auth_token" \
