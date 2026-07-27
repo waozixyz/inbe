@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.11] - 2026-07-27
+### Changed
+- Reduced bundled font size by switching shipped UI fonts to Kryon-generated Noto subsets.
+- Added Android system font fallback for arbitrary user-entered text while keeping embedded subsets for app UI and non-Android builds.
+- Updated Kryon to provide shared font subsetting tooling and dynamic font fallback loading for downstream apps.
+
 ## [1.8.10] - 2026-07-26
 ### Changed
 - Migrated `src/storage/import.c` to Kry (`import.kry`, transpiled to `import_impl.c`), following the established `db.kry` pattern; the hand-written `import.h` remains the public contract.
