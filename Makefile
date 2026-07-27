@@ -322,7 +322,6 @@ IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/wao
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_SUBSET_DIR := assets/fonts/subset
 FONT_SUBSET_CORPUS := locales assets/fonts/input_common.txt
-FONT_SUBSET_DEPS := $(LOCALE_FILES) assets/fonts/input_common.txt
 FONT_FILES := \
 	$(FONT_SUBSET_DIR)/NotoSans-Inbe-Regular.ttf \
 	$(FONT_SUBSET_DIR)/NotoSansSC-Inbe-Regular.otf \
@@ -595,9 +594,6 @@ font-subsets:
 		FONT_SUBSET_SOURCE_DIR="$(abspath $(KRYON_DIR)/fonts/noto)" \
 		FONT_SUBSET_PREFIX=Inbe \
 		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
-
-$(FONT_FILES): $(FONT_SUBSET_DEPS)
-	$(MAKE) font-subsets
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c $(KRY_GEN_DIR)/src/storage/import_impl.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
