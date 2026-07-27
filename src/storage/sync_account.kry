@@ -26,7 +26,7 @@ static sync_private_key_key: const char* = "sync_private_key"
 static sync_account_alias_key: const char* = "sync_account_alias"
 
 account_has_values :: (account: const InbeSyncAccount*) -> int #private {
-    return HasLyraAccountValues(account)
+    return HasKsyncAccountValues(account)
 }
 
 sync_account_write_and_reset :: (account: const InbeSyncAccount*) #private {
@@ -46,11 +46,11 @@ sync_account_same_owner :: (owner: const char*, account: const InbeSyncAccount*)
 }
 
 sync_sha256_hex :: (data: const uint8_t*, len: size_t, out_hex: [65] char) {
-    LyraSha256Hex(data, len, out_hex)
+    KsyncSha256Hex(data, len, out_hex)
 }
 
 sync_account_available :: () -> int {
-    return IsLyraAccountAvailable()
+    return IsKsyncAccountAvailable()
 }
 
 sync_account_load :: (account: InbeSyncAccount*) -> int {
@@ -85,7 +85,7 @@ sync_account_generate :: (account: InbeSyncAccount*) -> int {
         return 0
     }
     memset(account, 0, sizeof(*account))
-    return CreateLyraAccount(account)
+    return CreateKsyncAccount(account)
 }
 
 sync_account_import_private_key_preview :: (account: InbeSyncAccount*,
@@ -95,7 +95,7 @@ sync_account_import_private_key_preview :: (account: InbeSyncAccount*,
         return 0
     }
     memset(account, 0, sizeof(*account))
-    if !ImportLyraAccountFile(filename, account) {
+    if !ImportKsyncAccountFile(filename, account) {
         TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file")
         return 0
     }
@@ -135,13 +135,13 @@ sync_account_clear :: () -> int {
 
 sync_account_export_private_key :: (account: const InbeSyncAccount*,
                                        filename: const char*) -> int {
-    body: [LYRA_ACCOUNT_EXPORT_TEXT_SIZE] char = {0}
+    body: [KSYNC_ACCOUNT_EXPORT_TEXT_SIZE] char = {0}
     len: int
 
     if !account_has_values(account) || filename == nil || filename[0] == '\0' {
         return 0
     }
-    if !ExportLyraAccountText(account, body, sizeof(body)) {
+    if !ExportKsyncAccountText(account, body, sizeof(body)) {
         return 0
     }
     len = (int)strlen(body)
@@ -174,6 +174,6 @@ sync_account_sign_hex :: (message: const uint8_t*, message_len: size_t,
     if !sync_account_load(&account) {
         return 0
     }
-    return SignLyraAccountHex(&account, message, message_len, out_signature_hex,
+    return SignKsyncAccountHex(&account, message, message_len, out_signature_hex,
                               out_size)
 }

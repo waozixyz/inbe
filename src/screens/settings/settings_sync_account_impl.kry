@@ -331,17 +331,17 @@ server_connected :: (app: InbeApp*) -> int #private {
     return strcmp(saved_normalized, url) == 0
 }
 
-result_key :: (result: LyraSyncResult) -> const char* #private {
-    if result == LYRA_SYNC_OK {
+result_key :: (result: KsyncSyncResult) -> const char* #private {
+    if result == KSYNC_SYNC_OK {
         return "sync_connected"
     }
-    if result == LYRA_SYNC_INVALID_URL {
+    if result == KSYNC_SYNC_INVALID_URL {
         return "sync_server_url_invalid"
     }
-    if result == LYRA_SYNC_NO_ACCOUNT {
+    if result == KSYNC_SYNC_NO_ACCOUNT {
         return "sync_no_account"
     }
-    if result == LYRA_SYNC_AUTH_FAILED {
+    if result == KSYNC_SYNC_AUTH_FAILED {
         return "sync_auth_failed"
     }
     return "sync_failed"
@@ -369,7 +369,7 @@ create_account :: (app: InbeApp*, account: InbeSyncAccount*) -> int #private {
 }
 
 run_connect :: (app: InbeApp*) #private {
-    result: LyraSyncResult
+    result: KsyncSyncResult
     url: [sizeof(app->sync_server_url)] char
 
     if app == nil {
@@ -382,7 +382,7 @@ run_connect :: (app: InbeApp*) #private {
 
     storage_set_setting_text(sync_server_url_key, url)
     result = sync_client_sync(url)
-    if result == LYRA_SYNC_OK {
+    if result == KSYNC_SYNC_OK {
         app_request_social_refresh(app)
         if storage_sync_review_clear_if_no_visible_diff() {
             app_reload_after_import(app, 0)
@@ -413,7 +413,7 @@ logout :: (app: InbeApp*) #private {
 
 clear_remote_confirmed :: (app: InbeApp*) {
     account: InbeSyncAccount
-    result: LyraSyncResult
+    result: KsyncSyncResult
     url: [sizeof(app->sync_server_url)] char
 
     if app == nil {
@@ -426,7 +426,7 @@ clear_remote_confirmed :: (app: InbeApp*) {
 
     if server_normalize(app, url, sizeof(url)) {
         result = sync_client_delete_account(url)
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result)
         }
     } else {
@@ -972,7 +972,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
 
             TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",
                         app->sync_alias_input, url)
-            if alias_result == LYRA_SYNC_OK {
+            if alias_result == KSYNC_SYNC_OK {
                 TraceLog(LOG_INFO, "SYNC: alias saved @%s", app->sync_alias_input)
                 result = 1
             } else {

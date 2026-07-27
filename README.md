@@ -203,7 +203,7 @@ uninstalled.
 ## Notes
 
 Inbe stores app data locally in SQLite. Optional sync can mirror user-owned
-data through a Lyra-compatible sync server.
+data through a Ksync-compatible sync server.
 
 ## Support
 

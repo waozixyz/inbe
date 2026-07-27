@@ -4,15 +4,38 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if defined(__has_include)
+#if __has_include("ksync_account.h")
+#include "ksync_account.h"
+#else
 #include "lyra_account.h"
+#define KSYNC_PUBLIC_ID_HEX_SIZE LYRA_PUBLIC_ID_HEX_SIZE
+#define KSYNC_PUBLIC_KEY_HEX_SIZE LYRA_PUBLIC_KEY_HEX_SIZE
+#define KSYNC_PRIVATE_KEY_HEX_SIZE LYRA_PRIVATE_KEY_HEX_SIZE
+#define KSYNC_ACCOUNT_EXPORT_TEXT_SIZE LYRA_ACCOUNT_EXPORT_TEXT_SIZE
+#define KsyncAccount LyraAccount
+#define IsKsyncAccountAvailable IsLyraAccountAvailable
+#define HasKsyncAccountValues HasLyraAccountValues
+#define CreateKsyncAccount CreateLyraAccount
+#define ValidateKsyncAccount ValidateLyraAccount
+#define ParseKsyncAccountText ParseLyraAccountText
+#define ExportKsyncAccountText ExportLyraAccountText
+#define ImportKsyncAccountFile ImportLyraAccountFile
+#define ExportKsyncAccountFile ExportLyraAccountFile
+#define KsyncSha256Hex LyraSha256Hex
+#define SignKsyncAccountHex SignLyraAccountHex
+#endif
+#else
+#include "ksync_account.h"
+#endif
 
 enum {
-    INBE_SYNC_PUBLIC_ID_HEX_SIZE = LYRA_PUBLIC_ID_HEX_SIZE,
-    INBE_SYNC_PUBLIC_KEY_HEX_SIZE = LYRA_PUBLIC_KEY_HEX_SIZE,
-    INBE_SYNC_PRIVATE_KEY_HEX_SIZE = LYRA_PRIVATE_KEY_HEX_SIZE
+    INBE_SYNC_PUBLIC_ID_HEX_SIZE = KSYNC_PUBLIC_ID_HEX_SIZE,
+    INBE_SYNC_PUBLIC_KEY_HEX_SIZE = KSYNC_PUBLIC_KEY_HEX_SIZE,
+    INBE_SYNC_PRIVATE_KEY_HEX_SIZE = KSYNC_PRIVATE_KEY_HEX_SIZE
 };
 
-typedef LyraAccount InbeSyncAccount;
+typedef KsyncAccount InbeSyncAccount;
 
 typedef enum InbeSyncAccountSaveResult {
     INBE_SYNC_ACCOUNT_SAVE_FAILED = 0,

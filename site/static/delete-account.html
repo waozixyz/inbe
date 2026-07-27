@@ -131,7 +131,8 @@
 		form.addEventListener("submit", async (event) => {
 			event.preventDefault();
 			const exportedKey = keyText.value.trim();
-			if (!exportedKey.startsWith("lyra-account-key-v1") &&
+			if (!exportedKey.startsWith("ksync-account-key-v1") &&
+					!exportedKey.startsWith("lyra-account-key-v1") &&
 					!exportedKey.startsWith("inbe-sync-key-v1") &&
 					!exportedKey.startsWith("account-key-v1")) {
 				setStatus("error", "Upload the exported account key file.");

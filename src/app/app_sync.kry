@@ -66,8 +66,8 @@ static g_sync_events_url: [256] char
 
 #if !WEB {
     static g_sync_mutex: KryMutex = KRY_MUTEX_INIT
-    static g_sync_result: InbeSyncWorkerResult = {0, LYRA_SYNC_OK, 0}
-    static g_social_result: InbeSocialWorkerResult = {0, LYRA_SYNC_OK, "", "", "", ""}
+    static g_sync_result: InbeSyncWorkerResult = {0, KSYNC_SYNC_OK, 0}
+    static g_social_result: InbeSocialWorkerResult = {0, KSYNC_SYNC_OK, "", "", "", ""}
     static g_sync_events_running: int = 0
 } #else {
     static g_sync_events_retry_at: double = 0.0
@@ -171,10 +171,10 @@ app_social_fetch :: (url: const char*, practice: const char*, metric: const char
                     action: const char*, action_value: const char*,
                     requests_json: char*, requests_size: size_t,
                     friends_json: char*, friends_size: size_t,
-                    leaderboard_json: char*, leaderboard_size: size_t) -> LyraSyncResult #private {
-    result: LyraSyncResult = LYRA_SYNC_INVALID_URL
-    friends_result: LyraSyncResult = LYRA_SYNC_REQUEST_FAILED
-    leaderboard_result: LyraSyncResult = LYRA_SYNC_REQUEST_FAILED
+                    leaderboard_json: char*, leaderboard_size: size_t) -> KsyncSyncResult #private {
+    result: KsyncSyncResult = KSYNC_SYNC_INVALID_URL
+    friends_result: KsyncSyncResult = KSYNC_SYNC_REQUEST_FAILED
+    leaderboard_result: KsyncSyncResult = KSYNC_SYNC_REQUEST_FAILED
 
     if requests_json != nil && requests_size > 0 {
         snprintf(requests_json, requests_size, "{\"incoming\":[],\"outgoing\":[]}")
@@ -186,37 +186,37 @@ app_social_fetch :: (url: const char*, practice: const char*, metric: const char
         snprintf(leaderboard_json, leaderboard_size, "{\"rows\":[]}")
     }
     if url == nil || url[0] == '\0' {
-        return LYRA_SYNC_INVALID_URL
+        return KSYNC_SYNC_INVALID_URL
     }
 
     if action != nil && strcmp(action, "send") == 0 {
         result = sync_client_send_friend_request(url, action_value)
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             return result
         }
     } else if action != nil && strcmp(action, "accept") == 0 {
         result = sync_client_accept_friend_request(url, action_value)
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             return result
         }
     } else if action != nil && strcmp(action, "decline") == 0 {
         result = sync_client_decline_friend_request(url, action_value)
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             return result
         }
     } else if action != nil && strcmp(action, "remove") == 0 {
         result = sync_client_remove_friend(url, action_value)
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             return result
         }
     }
 
     result = sync_client_get_friend_requests(url, requests_json, requests_size)
-    if result != LYRA_SYNC_OK {
+    if result != KSYNC_SYNC_OK {
         return result
     }
     friends_result = sync_client_get_friends(url, friends_json, friends_size)
-    if friends_result != LYRA_SYNC_OK {
+    if friends_result != KSYNC_SYNC_OK {
         return friends_result
     }
     leaderboard_result = sync_client_get_friend_stats(url, "inbe", practice,
@@ -286,12 +286,12 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
 #if !WEB {
     app_sync_worker :: (userdata: void*) -> void* #private {
         args := (InbeSyncWorkerArgs*)userdata
-        result: LyraSyncResult = LYRA_SYNC_INVALID_URL
+        result: KsyncSyncResult = KSYNC_SYNC_INVALID_URL
         changed := 0
 
         if args != nil {
             result = sync_client_sync(args->url)
-            changed = result == LYRA_SYNC_OK && storage_last_sync_changed()
+            changed = result == KSYNC_SYNC_OK && storage_last_sync_changed()
             free(args)
         }
 
@@ -306,7 +306,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
 
     app_social_worker :: (userdata: void*) -> void* #private {
         args := (InbeSocialWorkerArgs*)userdata
-        result: LyraSyncResult = LYRA_SYNC_INVALID_URL
+        result: KsyncSyncResult = KSYNC_SYNC_INVALID_URL
         requests_json: [8192] char
         friends_json: [8192] char
         leaderboard_json: [8192] char
@@ -350,7 +350,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
             return nil
         }
         while 1 {
-            result: LyraSyncResult
+            result: KsyncSyncResult
 
             sync_lock()
             if g_sync.sync_running {
@@ -362,11 +362,11 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
 
             result = sync_client_wait_for_remote_event(args->url)
             sync_lock()
-            if result == LYRA_SYNC_OK {
+            if result == KSYNC_SYNC_OK {
                 g_sync.remote_sync_due = 1
             }
             sync_unlock()
-            if result != LYRA_SYNC_OK {
+            if result != KSYNC_SYNC_OK {
                 KrySleepSeconds(2)
             }
         }
@@ -391,7 +391,7 @@ app_collect_finished_sync :: () #private {
             return
         }
     } #else {
-        result: LyraSyncResult
+        result: KsyncSyncResult
         changed := 0
 
         if sync_client_web_poll_remote_event() {
@@ -406,7 +406,7 @@ app_collect_finished_sync :: () #private {
         g_sync.sync_running = 0
     }
 
-    if result == LYRA_SYNC_OK {
+    if result == KSYNC_SYNC_OK {
         TraceLog(LOG_INFO, "SYNC: background sync complete changed=%d", changed)
         app_queue_social_refresh()
         if changed {
@@ -414,7 +414,7 @@ app_collect_finished_sync :: () #private {
         }
     } else {
         TraceLog(LOG_WARNING, "SYNC: background sync failed result=%d name=%s",
-                    result, GetLyraSyncResultName(result))
+                    result, GetKsyncSyncResultName(result))
     }
 }
 
@@ -671,7 +671,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         friends_json: [8192] char
         leaderboard_json: [8192] char
         leaderboard_key: [96] char
-        result: LyraSyncResult
+        result: KsyncSyncResult
 
         app_social_leaderboard_key(leaderboard_key, sizeof(leaderboard_key),
                                       app->profile_leaderboard_practice,
@@ -685,14 +685,14 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
                                   requests_json, sizeof(requests_json),
                                   friends_json, sizeof(friends_json),
                                   leaderboard_json, sizeof(leaderboard_json))
-        if result == LYRA_SYNC_OK {
+        if result == KSYNC_SYNC_OK {
             app_social_apply_result(app, requests_json, friends_json,
                                        leaderboard_json, leaderboard_key)
         } else {
             TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
-                        result, GetLyraSyncResultName(result))
+                        result, GetKsyncSyncResultName(result))
         }
-        if result == LYRA_SYNC_OK {
+        if result == KSYNC_SYNC_OK {
             app_social_pop_action(action, sizeof(action), action_value,
                                      sizeof(action_value))
         }
@@ -728,9 +728,9 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
         if !finished {
             return
         }
-        if result != LYRA_SYNC_OK {
+        if result != KSYNC_SYNC_OK {
             TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
-                        result, GetLyraSyncResultName(result))
+                        result, GetKsyncSyncResultName(result))
             return
         }
         app_social_apply_result(app, requests_json, friends_json,

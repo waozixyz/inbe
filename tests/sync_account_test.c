@@ -281,7 +281,8 @@ test_import_export_clear(void)
     exported = LoadFileText(export_path);
     check_true("read exported key", exported != NULL);
     if(exported != NULL) {
-        check_true("export uses generic key header",
+        check_true("export uses accepted key header",
+                   strstr(exported, "ksync-account-key-v1\n") == exported ||
                    strstr(exported, "lyra-account-key-v1\n") == exported);
         check_true("export includes public key", strstr(exported, "\npublic_key=") != NULL);
         UnloadFileText(exported);
