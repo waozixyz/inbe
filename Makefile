@@ -596,7 +596,7 @@ font-subsets:
 		FONT_SUBSET_PREFIX=Inbe \
 		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
 
-$(FONT_FILES): $(KRYON_DIR)/scripts/subset-fonts.sh $(FONT_SUBSET_DEPS)
+$(FONT_FILES): $(FONT_SUBSET_DEPS)
 	$(MAKE) font-subsets
 
 $(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c $(KRY_GEN_DIR)/src/storage/import_impl.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
