@@ -345,6 +345,28 @@ color_button :: (app: InbeApp*, x: int, y: int, color: Color,
     return 0
 }
 
+color_palette_columns :: (content_w: int) -> int #private {
+    option_count := 12
+    button_w := ScaleUIPx(38)
+    gap := ScaleUIPx(4)
+
+    for int columns = option_count; columns > 1; columns-- {
+        total_w := button_w * columns + gap * (columns - 1)
+        if total_w <= content_w {
+            return columns
+        }
+    }
+    return 1
+}
+
+color_palette_height :: (content_w: int) -> int #private {
+    option_count := 12
+    columns := color_palette_columns(content_w)
+    rows := (option_count + columns - 1) / columns
+
+    return (rows - 1) * ScaleUIPx(42) + ScaleUIPx(34)
+}
+
 scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
     app := (InbeApp*)user_data
     actions: [2] UIButtonRowItem
@@ -356,7 +378,7 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
         .field_h = ScaleUIPx(40)
     })
     height += ScaleUIPx(22) + ScaleUIPx(120) + ScaleUIPx(24)
-    height += ScaleUIPx(32) + ScaleUIPx(76)
+    height += ScaleUIPx(32) + color_palette_height(content_w)
     height += GetUISectionLabelHeight((UISectionLabel){0})
     for int i = 0; i < EXERCISE_COUNT; i++ {
         height += GetUICheckboxRowHeight((UICheckboxRow){0})
@@ -573,10 +595,14 @@ draw :: (app: InbeApp*) {
     color_options[10] = (Color){216, 116, 164, 255}
     color_options[11] = (Color){198, 96, 118, 255}
 
+    color_columns := color_palette_columns(content_w)
+    color_button_w := ScaleUIPx(38)
+    color_gap := ScaleUIPx(4)
     for int i = 0; i < 12; i++ {
-        row := i / 6
-        col := i % 6
-        cx := content_x + ScaleUIPx(18) + col * ScaleUIPx(42)
+        row := i / color_columns
+        col := i % color_columns
+        cx := content_x + color_button_w / 2 +
+              col * (color_button_w + color_gap)
         cy := y + row * ScaleUIPx(42)
         selected := app->habit_edit.color.r == color_options[i].r &&
                     app->habit_edit.color.g == color_options[i].g &&
@@ -586,7 +612,7 @@ draw :: (app: InbeApp*) {
             app->habit_edit.color = color_options[i]
         }
     }
-    y += ScaleUIPx(76)
+    y += color_palette_height(content_w)
 
     if DrawUISectionLabel((UISectionLabel){
         .label = GetLocaleText("habit_practice_list_title"),
