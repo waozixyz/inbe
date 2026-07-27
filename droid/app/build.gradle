@@ -37,6 +37,14 @@ android {
         targetSdk 36
         versionCode 85
         versionName "1.8.10"
+        externalNativeBuild {
+            cmake {
+                if (System.getProperty('os.name').toLowerCase().contains('freebsd')) {
+                    arguments '-DANDROID_HOST_TAG=linux-x86_64',
+                              '-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON'
+                }
+            }
+        }
     }
     
 
@@ -53,7 +61,6 @@ android {
     externalNativeBuild {
         cmake {
             path 'src/main/cpp/CMakeLists.txt'
-            version '3.22.1'
         }
     }
 

@@ -10,6 +10,7 @@
 .codex/
 .zcode
 .agents/
+.kryon-ide-state
 .cache/
 .ccache
 *.wasm

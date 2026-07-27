@@ -1315,8 +1315,13 @@ android-install-release: android-release
 	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
 
 android-avd:
-	bash scripts/emulator.sh
+	@if [ "$(UNAME_S)" = "FreeBSD" ]; then \
+		HOME="$${ANDROID_TOOL_HOME:-/tmp/inbe-android-home}" ANDROID_SDK_ROOT="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" ANDROID_HOME="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}" bash scripts/emulator.sh; \
+	else \
+		bash scripts/emulator.sh; \
+	fi
 	@adb_cmd="$$HOME/.android-sdk-writable/platform-tools/adb"; \
+	if [ "$(UNAME_S)" = "FreeBSD" ]; then adb_cmd="$${ANDROID_SDK_WORK_ROOT:-$${ANDROID_SDK_ROOT:-$${ANDROID_HOME:-/tmp/android-sdk}}}/platform-tools/adb"; fi; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd="$${ANDROID_SDK_ROOT:-$${ANDROID_HOME}}/platform-tools/adb"; fi; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd=adb; fi; \
 	$(MAKE) android-install ADB="$$adb_cmd -e"

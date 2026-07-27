@@ -1,5 +1,7 @@
 ANDROID :: ANDROID_BUILD
 
+#import "platform/android/android_runtime_assets.h"
+
 #if ANDROID {
     #import "runtime_assets.h" #private
     #import "kryon.h" #private

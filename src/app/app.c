@@ -1049,6 +1049,15 @@ load_language_picker_font_codepoints(UIFontCodepoints *set)
 }
 
 static int
+app_running_in_kryon_preview(void)
+{
+    const char *inspect = getenv("KRYON_INSPECT");
+
+    return IsUIInspectActive() ||
+           (inspect != NULL && inspect[0] != '\0' && strcmp(inspect, "0") != 0);
+}
+
+static int
 register_ui_font_source(const char *name, const char *path,
                         const UIFontCodepoints *codepoints)
 {
@@ -1167,6 +1176,9 @@ app_reload_graphics_resources(InbeApp *app)
         return;
 
     app->graphics_reload_requested = 0;
+    if(app_running_in_kryon_preview())
+        return;
+
     TraceLog(LOG_INFO, "ANDROID: Reloading graphics resources");
 
     for(int i = 0; i < UI_ICON_TYPE_COUNT; i++)

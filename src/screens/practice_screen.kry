@@ -440,18 +440,29 @@ practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
     subtitle := practice_home_subtitle(app->exercise_type)
     metadata: [96] char = {0}
     title_font := 0
-    title_rect := (Rectangle){0}
-    metadata_rect := (Rectangle){0}
+    title_w := 0
+    metadata_font := 0
+    metadata_w := 0
 
     practice_home_metadata(app, metadata, sizeof(metadata))
     title_font = GetUITitleFontSize(title, w)
-    title_rect = (Rectangle){(float)x, (float)y, (float)w, (float)ScaleUIPx(34)}
-    DrawFittedUITextInRect(title, title_rect, title_font, UI_TEXT_16, GetThemeText())
-    metadata_rect = (Rectangle){(float)x, (float)(y + ScaleUIPx(34)), (float)w, (float)ScaleUIPx(18)}
-    DrawFittedUITextInRect(metadata, metadata_rect, GetUISmallFontSize(), UI_TEXT_8, DarkenUIColor(GetThemeText(), 22))
+    title_w = MeasureUIText(title, title_font)
+    DrawUIText(title, x + (w - title_w) / 2,
+               GetUIControlTextY(title, y, ScaleUIPx(34), title_font),
+               title_font, GetThemeText())
+    metadata_font = GetUISmallFontSize()
+    metadata_w = MeasureUIText(metadata, metadata_font)
+    DrawUIText(metadata, x + (w - metadata_w) / 2,
+               GetUIControlTextY(metadata, y + ScaleUIPx(34),
+                                 ScaleUIPx(18), metadata_font),
+               metadata_font, DarkenUIColor(GetThemeText(), 22))
     if subtitle != NULL {
-        subtitle_rect := (Rectangle){(float)x, (float)(y + ScaleUIPx(56)), (float)w, (float)ScaleUIPx(18)}
-        DrawFittedUITextInRect(subtitle, subtitle_rect, GetUISmallFontSize(), UI_TEXT_8, DarkenUIColor(GetThemeText(), 22))
+        subtitle_font := GetUISmallFontSize()
+        subtitle_w := MeasureUIText(subtitle, subtitle_font)
+        DrawUIText(subtitle, x + (w - subtitle_w) / 2,
+                   GetUIControlTextY(subtitle, y + ScaleUIPx(56),
+                                     ScaleUIPx(18), subtitle_font),
+                   subtitle_font, DarkenUIColor(GetThemeText(), 22))
     }
 }
 

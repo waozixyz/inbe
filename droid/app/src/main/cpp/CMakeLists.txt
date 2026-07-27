@@ -168,15 +168,11 @@ add_library(main SHARED
     "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"
-    "${SRC_DIR}/platform/android/android_import.c"
-    "${SRC_DIR}/platform/android/android_runtime_assets.c"
     "${SRC_DIR}/platform/android/android_share.c"
     "${INBE_EMBEDDED_ASSETS_C}"
     ${INBE_KRY_GENERATED_SOURCES}
     ${KRYON_SOURCES}
     "${SRC_DIR}/platform/android/android_insets.c"
-    "${SRC_DIR}/platform/android/android_wakelock.c"
-    "${SRC_DIR}/platform/android/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
 add_dependencies(main inbe_kry_generated)
@@ -204,6 +200,7 @@ target_include_directories(main PRIVATE
 
 target_compile_definitions(main PRIVATE
     PLATFORM_ANDROID
+    ANDROID_BUILD=1
     _DEFAULT_SOURCE
     _GNU_SOURCE
     _FILE_OFFSET_BITS=64

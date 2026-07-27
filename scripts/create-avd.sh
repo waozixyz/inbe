@@ -13,18 +13,32 @@ if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
   exit 1
 fi
 
-# Set up persistent writable SDK location
-ORIGINAL_SDK_ROOT="$ANDROID_SDK_ROOT"
-PERSISTENT_SDK_ROOT="$HOME/.android-sdk-writable"
+UNAME_S="$(uname -s)"
+
+# Set up persistent writable SDK location. Android's Linux host tools cannot
+# reliably see FreeBSD home paths through linuxulator, so keep their working SDK
+# under /tmp unless the caller provides a specific location.
+ORIGINAL_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+if [ "$UNAME_S" = "FreeBSD" ]; then
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-/tmp/android-sdk}"
+else
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-$HOME/.android-sdk-writable}"
+fi
 export ANDROID_SDK_ROOT="$PERSISTENT_SDK_ROOT"
 export ANDROID_HOME="$PERSISTENT_SDK_ROOT"
 
 mkdir -p "$ANDROID_SDK_ROOT"
 
-# Create symlinks for SDK components
+# Reuse SDK components from the original SDK. On FreeBSD, copy them because the
+# Linux binaries may not be able to follow symlinks back into /home.
 for component in build-tools cmake cmdline-tools emulator licenses ndk platforms platform-tools tools; do
   if [ -e "$ORIGINAL_SDK_ROOT/$component" ] && [ ! -e "$ANDROID_SDK_ROOT/$component" ]; then
-    ln -sf "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+    if [ "$UNAME_S" = "FreeBSD" ]; then
+      cp -R "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+      chmod -R u+w "$ANDROID_SDK_ROOT/$component" 2>/dev/null || true
+    else
+      ln -sf "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+    fi
   fi
 done
 
@@ -124,7 +138,8 @@ if [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
     rm -rf "$TARGET_DIR"
   fi
   mkdir -p "$TARGET_DIR"
-  cp -R --no-preserve=mode,ownership "$SOURCE_DIR"/. "$TARGET_DIR"/
+  cp -R "$SOURCE_DIR"/. "$TARGET_DIR"/
+  chmod -R u+w "$TARGET_DIR" 2>/dev/null || true
 fi
 
 ABI_DISPLAY="$ABI_TYPE"
