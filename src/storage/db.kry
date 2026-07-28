@@ -213,7 +213,8 @@ schema_exec :: (sql: const char*) -> int {
 
 schema_create :: () -> int #export {
     if !schema_exec(
-        "PRAGMA journal_mode=DELETE;"
+        "PRAGMA journal_mode=WAL;"
+        "PRAGMA synchronous=NORMAL;"
         "PRAGMA foreign_keys=ON;") {
         return 0
     }
