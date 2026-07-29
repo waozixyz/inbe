@@ -186,9 +186,10 @@ session_update_notification :: (app: InbeApp*) #private {
             FormatLocaleText(text, sizeof(text), "notification_breath_in_seconds", count)
             break
         case InbePhaseStarting:
+            notification_pause: int = inbe_effective_pause_seconds(&app->inbe)
             FormatLocaleText(text, sizeof(text), "notification_starting_seconds",
-                          app->inbe.pause_seconds > 0
-                              ? app->inbe.pause_seconds - app->inbe.sectick / 60
+                          notification_pause > 0
+                              ? notification_pause - app->inbe.sectick / 60
                               : 0)
             break
         case InbePhaseNext:
@@ -278,6 +279,10 @@ session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
 
     for int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++ {
         inbestep(&app->inbe)
+        if inbe_just_completed(&app->inbe) {
+            session_complete(app)
+            break
+        }
         practice_update_session_sounds(app)
 #if ANDROID {
         session_update_notification(app)
@@ -299,8 +304,6 @@ session_start :: (app: InbeApp*) {
     app->inbe.progressive_start_speed = progressive_start_speed
     app->inbe.play_in_background = play_in_background
     apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
-    app->saved_pause_seconds = app->inbe.pause_seconds
-    app->inbe.pause_seconds = 3
     session_update_circle_bounds_for_view(&app->inbe, GetUITitleBarHeight(), ScaleUIPx(56) + 80)
     app_switch_screen(app, InbeScreenSession)
     app->session_paused = 0
@@ -399,13 +402,7 @@ session_has_completed_rounds :: (app: InbeApp*) -> int {
 }
 
 finish_hold :: (app: InbeApp*) #private {
-    cpcount(app->inbe.results[app->inbe.round], app->inbe.count)
-    cpcount(app->inbe.count, "000")
-    app->inbe.phase = InbePhaseRecover
-    app->inbe.r = app->inbe.rmin
-    app->inbe.breath_frame = 0
-    app->inbe.breathtick = 0
-    app->inbe.sectick = 0
+    inbe_end_hold(&app->inbe)
     app_play_breath_cue(app, 0)
 }
 
@@ -416,21 +413,23 @@ finish_round :: (app: InbeApp*) #private {
 
     if app->inbe.round < app->inbe.max_rounds - 1 {
         app->inbe.round++
-        if app->inbe.round == 1 {
-            app->inbe.pause_seconds = app->saved_pause_seconds
-        }
         reset_round_start(&app->inbe)
     } else {
-        if session_ensure_results_saved(app) {
-            meditation_music_stop(app)
-#if ANDROID {
-            android_allow_screen_off()
-            stop_android_background_session(app)
+        inbe_clear_completed(&app->inbe)
+        session_complete(app)
+    }
 }
-            app_switch_screen(app, InbeScreenResults)
-        } else {
-            app_init(app)
-        }
+
+session_complete :: (app: InbeApp*) #private {
+    if session_ensure_results_saved(app) {
+        meditation_music_stop(app)
+#if ANDROID {
+        android_allow_screen_off()
+        stop_android_background_session(app)
+}
+        app_switch_screen(app, InbeScreenResults)
+    } else {
+        app_init(app)
     }
 }
 
@@ -580,7 +579,7 @@ draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
     text_color: Color = text_color_for_background(GetThemeCircle())
 
     if app->inbe.phase == InbePhaseStarting {
-        total_seconds: int = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds
+        total_seconds: int = inbe_effective_pause_seconds(&app->inbe)
         int remaining
 
         if total_seconds <= 0 {
@@ -698,7 +697,7 @@ session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
 
     switch app->inbe.phase {
     case InbePhaseStarting:
-        total_seconds = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds
+        total_seconds = inbe_effective_pause_seconds(&app->inbe)
         total_frames = total_seconds * 60
 
         total = total_seconds > 0 ? total_seconds : 1
@@ -1143,6 +1142,11 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         inbestep(&app->inbe)
         update_session_sounds(app)
 }
+    }
+
+    if inbe_just_completed(&app->inbe) {
+        session_complete(app)
+        return
     }
 
     if app->inbe.phase != InbePhaseHold {

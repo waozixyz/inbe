@@ -448,7 +448,6 @@ struct InbeApp {
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
     char results_path[FS_PATH_MAX];
-    int saved_pause_seconds;
     int volume_popup_active;
     UIModal modal;
     int play_circle_hover;
