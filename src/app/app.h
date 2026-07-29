@@ -447,6 +447,7 @@ struct InbeApp {
     int close_prompt_open;
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
+    int request_quit;   /* desktop no-tray build: app layer requests exit */
     char results_path[FS_PATH_MAX];
     int volume_popup_active;
     UIModal modal;
@@ -484,6 +485,7 @@ void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
 void app_block_pointer_frame(InbeApp *app);
 void app_request_desktop_close(InbeApp *app);
+void app_request_desktop_quit(InbeApp *app);
 AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
                                                    const char *save_message,

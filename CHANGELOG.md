@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.12] - 2026-07-29
+### Changed
+- Fixed the Wim Hof between-round countdown: round 0 always counts down from 3 (the intentional 3-2-1), and rounds 1+ now honor the user's configured "Pause after round" setting. The breath engine now owns the full session state machine, so auto-play and manual round-advance share one path and final-round results are always persisted.
+- Added desktop keyboard shortcuts for quitting the app: `Ctrl+Q` quits from any screen, and `Esc` quits when idle on the home screen (deeper screens keep their existing Esc behavior). On tray-enabled builds these go through the keep-running/quit prompt; without a tray they exit immediately, matching the window close button.
+- Enabled WAL mode for app storage to improve database concurrency and read/write throughput.
+
 ## [1.8.11] - 2026-07-27
 ### Changed
 - Reduced bundled font size by switching shipped UI fonts to Kryon-generated Noto subsets.

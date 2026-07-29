@@ -798,10 +798,11 @@ int main(int argc, char **argv) {
     }
 #else
     /* No tray: there is nothing to keep running in the background, so a close
-     * request (window button, WM, or signal) just quits. No prompt. */
+     * request (window button, WM, signal, or a Ctrl+Q/Esc shortcut via
+     * app_request_desktop_quit) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
         frame();
-        if(WindowShouldClose() || g_shutdown_requested)
+        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit)
             quit = 1;
     }
 #endif
