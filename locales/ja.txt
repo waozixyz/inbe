@@ -363,15 +363,6 @@ OK
 [no_sessions]
 セッションなし
 ---
-[hold_display_label]
-ホールド表示
----
-[hold_display_stopwatch]
-ストップウォッチ
----
-[hold_display_circle]
-円
----
 [volume_label]
 音量
 ---

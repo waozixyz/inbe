@@ -366,15 +366,6 @@ Touchez deux fois l'écran pour respirer
 [no_sessions]
 Aucune session
 ---
-[hold_display_label]
-Affichage de la retention
----
-[hold_display_stopwatch]
-Chronometre
----
-[hold_display_circle]
-Cercle
----
 [volume_label]
 Volume
 ---

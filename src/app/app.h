@@ -139,11 +139,6 @@ typedef struct InbeConfig {
 
 extern InbeConfig config;
 
-typedef enum HoldDisplayMode {
-    HOLD_DISPLAY_CIRCLE = 0,
-    HOLD_DISPLAY_STOPWATCH = 1,
-} HoldDisplayMode;
-
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
@@ -428,7 +423,6 @@ struct InbeApp {
     int advanced_session_controls;
     int double_tap_to_breathe;
     double breath_tap_last_time;
-    int hold_display_mode;
     int exercise_type;
     int practice_tab;
     int practice_config_tab;

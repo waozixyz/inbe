@@ -228,7 +228,6 @@ save_settings :: (app: InbeApp*) {
                         app->advanced_session_controls ? 1 : 0)
     save_setting_int("double_tap_to_breathe",
                         app->double_tap_to_breathe ? 1 : 0)
-    save_setting_int("hold_display_mode", app->hold_display_mode)
     save_setting_int("exercise_type", app->exercise_type)
     save_setting_int("sun_salutation_repetitions",
                         app->sun_salutation.repetitions)
@@ -387,9 +386,6 @@ app_load_settings :: (app: InbeApp*) -> int {
                             "breath_animation", InbeBreathAnimationLinear,
                             InbeBreathAnimationLinear,
                             InbeBreathAnimationCount - 1)
-    load_clamped_setting(&settings_cache, &app->hold_display_mode,
-                            "hold_display_mode", HOLD_DISPLAY_CIRCLE,
-                            HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH)
     load_clamped_setting(&settings_cache, &app->exercise_type,
                             "exercise_type", EXERCISE_WIM_HOF,
                             EXERCISE_WIM_HOF, EXERCISE_COUNT - 1)

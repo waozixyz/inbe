@@ -363,15 +363,6 @@ Doppeltippe auf den Bildschirm, um zu atmen
 [no_sessions]
 Keine Sitzungen
 ---
-[hold_display_label]
-Atemhalteanzeige
----
-[hold_display_stopwatch]
-Stoppuhr
----
-[hold_display_circle]
-Kreis
----
 [volume_label]
 Lautstärke
 ---

@@ -426,15 +426,6 @@ Inner Breeze
 [no_sessions]
 Нет сессий
 ---
-[hold_display_label]
-Отображение задержки
----
-[hold_display_stopwatch]
-Секундомер
----
-[hold_display_circle]
-Круг
----
 [volume_label]
 Громкость
 ---

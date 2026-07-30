@@ -620,58 +620,6 @@ draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
     DrawCenteredUIControlText(app->inbe.count, center_x, center_y, font, text_color)
 }
 
-draw_hold_display_mode_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int {
-    labels: [2] const char* = {GetLocaleText("hold_display_circle"), GetLocaleText("hold_display_stopwatch")}
-    selected: int = clampi(app->hold_display_mode, HOLD_DISPLAY_CIRCLE, HOLD_DISPLAY_STOPWATCH)
-    h: int = ScaleUIPx(36)
-    segment_w: int = w / 2
-    clicked: int = 0
-    mouse_world: Vector2 = GetScreenToWorld2D(GetMousePosition(), app->camera)
-
-    for int i = 0; i < 2; i++ {
-        segment_x: int = x + i * segment_w
-        current_w: int = i == 1 ? x + w - segment_x : segment_w
-        rect: Rectangle = {segment_x, y, current_w, h}
-        active_hit: int = CheckCollisionPointRec(mouse_world, rect) &&
-                         !UIInputCapturesClick(mouse_world)
-        hovered: int = active_hit && UIHoverEffectsEnabled()
-        active: int = i == selected
-        fill: Color = active ? GetThemeButton() : DarkenUIColor(GetThemeBackground(), 10)
-        top: Color = LightenUIColor(fill, 35)
-        bottom: Color = DarkenUIColor(fill, 45)
-        font: int = GetUIFontSize()
-        int text_w
-
-        if active_hit {
-            MarkUIClickable()
-            if hovered && !active {
-                fill = GetThemeButtonHover()
-                top = DarkenUIColor(GetThemeButtonHover(), 40)
-                bottom = LightenUIColor(GetThemeButtonHover(), 40)
-            }
-        }
-
-        DrawRectangle(segment_x, y, current_w, h, fill)
-        DrawUIBevel(segment_x, y, current_w, h, top, bottom)
-
-        if MeasureUIText(labels[i], font) > current_w - ScaleUIPx(12) {
-            font = UI_TEXT_12
-        }
-        text_w = MeasureUIText(labels[i], font)
-        DrawUIText(labels[i], segment_x + (current_w - text_w) / 2,
-                        GetUIControlTextY(labels[i], y, h, font), font, GetThemeText())
-
-        if active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-           !UIInputCapturesClick(mouse_world) && selected != i {
-            app->hold_display_mode = i == 0 ? HOLD_DISPLAY_CIRCLE : HOLD_DISPLAY_STOPWATCH
-            app->settings_dirty = 1
-            clicked = 1
-        }
-    }
-
-    return clicked
-}
-
 color_with_alpha :: (color: Color, alpha: unsigned char) -> Color #private {
     color.a = alpha
     return color

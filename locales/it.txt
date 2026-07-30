@@ -423,15 +423,6 @@ Tocca due volte lo schermo per respirare
 [no_sessions]
 Nessuna sessione
 ---
-[hold_display_label]
-Visualizzazione trattenuta
----
-[hold_display_stopwatch]
-Cronometro
----
-[hold_display_circle]
-Cerchio
----
 [volume_label]
 Volume
 ---

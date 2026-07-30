@@ -423,15 +423,6 @@ Inner Breeze
 [no_sessions]
 세션 없음
 ---
-[hold_display_label]
-홀드 표시
----
-[hold_display_stopwatch]
-스톱워치
----
-[hold_display_circle]
-원형
----
 [volume_label]
 음량
 ---

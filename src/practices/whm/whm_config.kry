@@ -274,12 +274,6 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(66)
 
-    DrawUIText(GetLocaleText("hold_display_label"), content_x, y,
-                  GetUIFontSize(), GetThemeText())
-    y += ScaleUIPx(26)
-    draw_hold_display_mode_selector(app, content_x, y, content_w)
-    y += ScaleUIPx(52)
-
     DrawUIText(GetLocaleText("double_tap_to_breathe_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
     if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
@@ -316,7 +310,6 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
         app->settings_preview.breath_animation = InbeBreathAnimationLinear
         app->advanced_session_controls = 0
         app->double_tap_to_breathe = 0
-        app->hold_display_mode = HOLD_DISPLAY_CIRCLE
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
                           max_breaths, pause_seconds)

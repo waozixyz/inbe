@@ -22,7 +22,6 @@
     X("breath_animation") \
     X("double_tap_to_breathe") \
     X("advanced_session_controls") \
-    X("hold_display_mode") \
     X("exercise_type") \
     X("sun_salutation_repetitions") \
     X("sun_salutation_start_seconds") \

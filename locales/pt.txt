@@ -363,15 +363,6 @@ Toque duas vezes na tela para respirar
 [no_sessions]
 Sem sessões
 ---
-[hold_display_label]
-Exibicao da retencao
----
-[hold_display_stopwatch]
-Cronometro
----
-[hold_display_circle]
-Circulo
----
 [volume_label]
 Volume
 ---

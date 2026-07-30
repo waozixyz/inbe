@@ -39,26 +39,20 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     text: [CountSize] char = {0}
     font := UI_TEXT_16
     thickness := ScaleUIPx(5)
-    text_color := GetThemeText()
+    text_color := manual_text_color_for_background(GetThemeCircle())
 
     count_from_int(text, seconds)
     if thickness < 3 {
         thickness = 3
     }
 
-    if app->hold_display_mode == HOLD_DISPLAY_CIRCLE {
-        sweep := 360.0f * (float)(app->inbe.frame % (60 * 60)) / (float)(60 * 60)
-
-        DrawRing((Vector2){center_x, center_y},
-                    (float)(radius + ScaleUIPx(8) - thickness / 2),
-                    (float)(radius + ScaleUIPx(8) + thickness / 2),
-                    -90.0f, -90.0f + sweep, 96, GetThemeText())
-        text_color = manual_text_color_for_background(GetThemeBackground())
-    } else {
-        DrawCircle(center_x, center_y, radius, GetThemeCircle())
-        DrawCircleLines(center_x, center_y, radius, GetThemeText())
-        text_color = manual_text_color_for_background(GetThemeCircle())
-    }
+    sweep := 360.0f * (float)(app->inbe.frame % (60 * 60)) / (float)(60 * 60)
+    DrawCircle(center_x, center_y, radius, GetThemeCircle())
+    DrawCircleLines(center_x, center_y, radius, GetThemeText())
+    DrawRing((Vector2){center_x, center_y},
+                (float)(radius + ScaleUIPx(8) - thickness / 2),
+                (float)(radius + ScaleUIPx(8) + thickness / 2),
+                -90.0f, -90.0f + sweep, 96, GetThemeText())
 
     DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
 }

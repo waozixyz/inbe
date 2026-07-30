@@ -363,15 +363,6 @@ Dvakrát klepněte na obrazovku pro nádech
 [no_sessions]
 Žádná sezení
 ---
-[hold_display_label]
-Zobrazeni zadrze
----
-[hold_display_stopwatch]
-Stopky
----
-[hold_display_circle]
-Kruh
----
 [volume_label]
 Hlasitost
 ---

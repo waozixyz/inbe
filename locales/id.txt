@@ -363,15 +363,6 @@ Ketuk layar dua kali untuk bernapas
 [no_sessions]
 Tidak ada sesi
 ---
-[hold_display_label]
-Tampilan tahan napas
----
-[hold_display_stopwatch]
-Stopwatch
----
-[hold_display_circle]
-Lingkaran
----
 [volume_label]
 Volume
 ---
