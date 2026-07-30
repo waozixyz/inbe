@@ -41,8 +41,10 @@ file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
 list(SORT INBE_KRY_SOURCES)
 set(INBE_KRY_GENERATED_SOURCES)
 set(INBE_KRY_GENERATED_HEADERS)
+set(INBE_KRY_COMMAND_SOURCES)
 foreach(kry_source ${INBE_KRY_SOURCES})
     file(RELATIVE_PATH kry_rel "${REPO_ROOT}" "${kry_source}")
+    list(APPEND INBE_KRY_COMMAND_SOURCES "${kry_rel}")
     get_filename_component(kry_rel_dir "${kry_rel}" DIRECTORY)
     get_filename_component(kry_name "${kry_rel}" NAME_WE)
     set(kry_output_c "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.c")
@@ -63,7 +65,7 @@ add_custom_command(
     OUTPUT ${INBE_KRY_GENERATED_SOURCES} ${INBE_KRY_GENERATED_HEADERS} "${INBE_KRY_PROJECT_HEADER}"
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${INBE_KRY_GEN_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${INBE_KRY_GEN_DIR}"
-    COMMAND "${KRYON_KC}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_SOURCES}
+    COMMAND "${KRYON_KC}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_COMMAND_SOURCES}
     DEPENDS ${INBE_KRY_SOURCES} "${KRYON_KC}"
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
