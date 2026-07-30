@@ -787,6 +787,24 @@ app_request_desktop_close(InbeApp *app)
     app->close_prompt_result = AppClosePromptNone;
 }
 
+/*
+ * Desktop quit request from a keyboard shortcut (Ctrl+Q) or Esc at the home
+ * screen. Tray builds route through the keep-running/quit prompt; no-tray
+ * builds have nothing to keep running, so they exit immediately (matching the
+ * window-close button behaviour).
+ */
+void
+app_request_desktop_quit(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+    app_request_desktop_close(app);
+#else
+    app->request_quit = 1;
+#endif
+}
+
 AppClosePromptResult
 app_consume_close_prompt_result(InbeApp *app)
 {
@@ -2213,6 +2231,22 @@ updateapp(InbeApp *app)
             handle_back_button(app);
         }
     }
+
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+    /* Ctrl+Q quits from any screen. Esc quits only when idle on the home
+     * screen (Play tab, nothing open); deeper screens already bind Esc to
+     * their own back/cancel handlers. */
+    if(IsKeyPressed(KEY_Q) &&
+       (IsKeyDown(KEY_LEFT_CONTROL) || IsKeyDown(KEY_RIGHT_CONTROL))) {
+        app_request_desktop_quit(app);
+    } else if(IsKeyPressed(KEY_ESCAPE) &&
+              app->inbe.screen == InbeScreenStart &&
+              app->practice_tab == PRACTICE_TAB_PLAY &&
+              !app->nav_sidebar_open && !app->modal.active &&
+              !first_run_guide_active && !habits_guide_active) {
+        app_request_desktop_quit(app);
+    }
+#endif
 
     if(app->inbe.screen == InbeScreenSettings) {
         if(settings_screen_draw(app))

@@ -75,4 +75,5 @@ Inbe :: struct {
     maxbreaths: [CountSize] char
 
     results: [MaxRounds][CountSize] char
+    completed: int
 }

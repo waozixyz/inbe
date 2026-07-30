@@ -93,6 +93,7 @@ inbeinit :: (l: Inbe*) {
 
     cpcount(l->count, "000")
     cpcount(l->maxbreaths, "030")
+    l->completed = 0
 }
 
 lerp_int :: (a: int, b: int, num: int, den: int) -> int #private {
@@ -171,6 +172,17 @@ current_breath_progress :: (l: const Inbe*) -> float {
     return 0.5f + amount * 0.5f
 }
 
+inbe_effective_pause_seconds :: (l: const Inbe*) -> int {
+    if l == nil {
+        return 0
+    }
+
+    if l->round == 0 {
+        return 3
+    }
+    return l->pause_seconds
+}
+
 smoothstepf :: (t: float) -> float #private {
     if t < 0.0f {
         t = 0.0f
@@ -205,7 +217,7 @@ draw_radius :: (l: const Inbe*) -> float {
 }
 
 starting :: (l: Inbe*) #private {
-    pause_ticks := l->pause_seconds * 60
+    pause_ticks := inbe_effective_pause_seconds(l) * 60
 
     if pause_ticks <= 0 {
         l->sectick = 0
@@ -284,7 +296,8 @@ next :: (l: Inbe*) #private {
             l->round++
             l->phase = InbePhaseStarting
         } else {
-            l->screen = InbeScreenResults
+            l->completed = 1
+            l->phase = InbePhaseStarting
         }
     }
 }
@@ -352,6 +365,9 @@ inbestep :: (l: Inbe*) {
     if l == nil {
         return
     }
+    if l->completed {
+        return
+    }
 
     switch l->phase {
     case InbePhaseStarting:
@@ -370,4 +386,32 @@ inbestep :: (l: Inbe*) {
         next(l)
         break
     }
+}
+
+inbe_end_hold :: (l: Inbe*) {
+    if l == nil {
+        return
+    }
+
+    cpcount(l->results[l->round], l->count)
+    cpcount(l->count, "000")
+    l->phase = InbePhaseRecover
+    l->r = l->rmin
+    l->breath_frame = 0
+    l->breathtick = 0
+    l->sectick = 0
+}
+
+inbe_just_completed :: (l: const Inbe*) -> int {
+    if l == nil {
+        return 0
+    }
+    return l->completed
+}
+
+inbe_clear_completed :: (l: Inbe*) {
+    if l == nil {
+        return
+    }
+    l->completed = 0
 }
