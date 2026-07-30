@@ -762,6 +762,7 @@ practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, man
     content_w := view_width - ScaleUIPx(24)
     max_w := ScaleUIPx(480)
     practice := practice_get(app->exercise_type)
+    carousel_count := 0
     x := 0
     y := 0
     card_h := 0
@@ -782,7 +783,12 @@ practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, man
     if card != NULL {
         *card = (Rectangle){(float)x, (float)y, (float)content_w, (float)card_h}
     }
-    y += card_h + practice_home_carousel_controls_height(app) + ScaleUIPx(10)
+    y += card_h
+    carousel_count = practice_visible_count(app)
+    if carousel_count > 1 {
+        y += practice_home_carousel_controls_height(app)
+    }
+    y += ScaleUIPx(10)
     if start != NULL {
         *start = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h}
     }
@@ -807,6 +813,23 @@ practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, man
             *config = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h}
         }
     }
+}
+
+practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> Rectangle #private {
+    left := manual.x < config.x ? manual.x : config.x
+    top := manual.y < config.y ? manual.y : config.y
+    right := manual.x + manual.width
+    bottom := manual.y + manual.height
+    config_right := config.x + config.width
+    config_bottom := config.y + config.height
+
+    if config_right > right {
+        right = config_right
+    }
+    if config_bottom > bottom {
+        bottom = config_bottom
+    }
+    return (Rectangle){left, top, right - left, bottom - top}
 }
 
 practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
@@ -844,7 +867,7 @@ practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     practice_home_layout(app, &card, &start, &manual, &config)
     steps[0] = (UIGuideStep){card, GetLocaleText("practice_guide_carousel")}
     steps[1] = (UIGuideStep){start, GetLocaleText("practice_guide_start")}
-    steps[2] = (UIGuideStep){(Rectangle){manual.x, manual.y, manual.width, (config.y + config.height) - manual.y}, GetLocaleText("practice_guide_manual_config")}
+    steps[2] = (UIGuideStep){practice_home_action_guide_anchor(manual, config), GetLocaleText("practice_guide_manual_config")}
     result = DrawUIGuideOverlay((UIGuideOverlay){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = 0, .reserved_bottom = GetUIBottomNavHeight(), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
