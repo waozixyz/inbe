@@ -1,5 +1,5 @@
 #import "app.h"
-#import "breath_engine.h"
+#import "core/breath_engine.h"
 #import "locale.h"
 #import "practices/practice_registry.h"
 #import "theme.h"
@@ -173,4 +173,15 @@ manual_screen_draw :: (app: InbeApp*) {
     if practice->draw_manual != NULL {
         practice->draw_manual(app)
     }
+}
+
+route manual {
+    title "Manual"
+    group "Practice"
+    page manual
+}
+
+screen manual {
+    args InbeApp *app
+    manual_screen_draw(app)
 }

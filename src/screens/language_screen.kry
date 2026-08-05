@@ -60,3 +60,14 @@ language_screen_draw :: (app: InbeApp*) {
         apply_language_selection(app, *selected_index, 1)
     }
 }
+
+route language {
+    title "Language"
+    group "App"
+    page language
+}
+
+screen language {
+    args InbeApp *app
+    language_screen_draw(app)
+}

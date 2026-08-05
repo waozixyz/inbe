@@ -7,8 +7,9 @@
 #endif
 
 #include "app.h"
-#include "app_sync.h"
-#include "app_settings.h"
+#include "app_runtime.h"
+#include "app/app_sync.h"
+#include "app/app_settings.h"
 #include "data.h"
 #include "locale.h"
 #include "screens/language_screen.h"
@@ -31,6 +32,7 @@
 #include "ui_text.h"
 #include "embedded_assets.h"
 #include "practices/meditation/meditation_practice.h"
+#include "practices/whm/whm_session.h"
 
 #include <limits.h>
 #include <stdio.h>
@@ -81,43 +83,28 @@ typedef struct AppProfileStats {
 static AppProfileStats g_app_profile;
 
 static void app_apply_route(InbeApp *app, AppRoute route);
-static void inbe_app_host_enter(void *app, int screen_index);
-static void inbe_app_host_draw(void *app, Rectangle viewport);
 
-static const AppScreen inbe_app_screens[] = {
-    {"start", "Practice", "Start", "src/screens/practice_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"session", "Practice", "Wim Hof Session", "src/practices/whm/whm_session.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"meditation", "Practice", "Meditation Session", "src/practices/meditation/meditation_session.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"sun_salutation", "Practice", "Sun Salutation", "src/practices/sun_salutation/sun_salutation_session.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"results", "Practice", "Results", "src/practices/whm/results.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"settings", "App", "Settings", "src/screens/settings/settings_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"language", "App", "Language", "src/screens/language_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"manual", "Practice", "Manual", "src/screens/manual_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"profile", "App", "Profile", "src/screens/profile_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"habits", "Habits", "Habits", "src/screens/habits_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"pet", "App", "Pet", "src/screens/pet_screen.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"customize_nav", "App", "Customize Navigation", "src/app/customize_nav.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"nav_sidebar", "App", "Navigation Sidebar", "src/app/nav_sidebar.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"habit_edit", "Habits", "Edit Habit", "src/screens/habits/edit.kry", inbe_app_host_enter, inbe_app_host_draw},
-    {"habit_session_edit", "Habits", "Edit Habit Session", "src/screens/habits/session.kry", inbe_app_host_enter, inbe_app_host_draw},
-};
+typedef struct InbeRouteBinding {
+    const char *id;
+    int screen;
+} InbeRouteBinding;
 
-static const int inbe_app_screen_ids[] = {
-    InbeScreenStart,
-    InbeScreenSession,
-    InbeScreenMeditation,
-    InbeScreenSunSalutation,
-    InbeScreenResults,
-    InbeScreenSettings,
-    InbeScreenLanguage,
-    InbeScreenManual,
-    InbeScreenProfile,
-    InbeScreenHabits,
-    InbeScreenPet,
-    InbeScreenCustomizeNav,
-    InbeScreenNavSidebar,
-    InbeScreenHabitEdit,
-    InbeScreenHabitSessionEdit,
+static const InbeRouteBinding inbe_route_bindings[] = {
+    {"start", InbeScreenStart},
+    {"session", InbeScreenSession},
+    {"meditation", InbeScreenMeditation},
+    {"sun_salutation", InbeScreenSunSalutation},
+    {"results", InbeScreenResults},
+    {"settings", InbeScreenSettings},
+    {"language", InbeScreenLanguage},
+    {"manual", InbeScreenManual},
+    {"profile", InbeScreenProfile},
+    {"habits", InbeScreenHabits},
+    {"pet", InbeScreenPet},
+    {"customize_nav", InbeScreenCustomizeNav},
+    {"nav_sidebar", InbeScreenNavSidebar},
+    {"habit_edit", InbeScreenHabitEdit},
+    {"habit_session_edit", InbeScreenHabitSessionEdit},
 };
 
 static int
@@ -206,82 +193,74 @@ set_global_inbe_app(InbeApp *app)
     TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
 }
 
-static void
-inbe_app_host_enter(void *vapp, int screen_index)
+void *
+CreateApp(const char *project_path)
+{
+    InbeApp *app;
+
+    app = calloc(1, sizeof(*app));
+    if(app == NULL)
+        return NULL;
+    if(project_path != NULL && project_path[0] != '\0')
+        ChangeDirectory(project_path);
+    app_init(app);
+    set_global_inbe_app(app);
+    return app;
+}
+
+void
+DestroyApp(void *vapp)
+{
+    InbeApp *app = vapp;
+
+    if(app == NULL)
+        return;
+    app_destroy(app);
+    set_global_inbe_app(NULL);
+    free(app);
+}
+
+void
+ApplyRoute(void *vapp, const AppRouteInfo *route_info)
 {
     InbeApp *app = vapp;
     AppRoute route;
     int transition_mode;
+    int screen = -1;
 
-    if(app == NULL || screen_index < 0 ||
-       screen_index >= (int)(sizeof(inbe_app_screens) / sizeof(inbe_app_screens[0])))
+    if(app == NULL || route_info == NULL || route_info->id == NULL)
+        return;
+    if(strcmp(route_info->id, "session") == 0) {
+        transition_mode = app->transition_mode;
+        app->transition_mode = APP_TRANSITION_NONE;
+        session_start(app);
+        app->transition_mode = transition_mode;
+        return;
+    }
+    for(size_t i = 0;
+        i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+        i++) {
+        if(strcmp(inbe_route_bindings[i].id, route_info->id) == 0) {
+            screen = inbe_route_bindings[i].screen;
+            break;
+        }
+    }
+    if(screen < 0)
         return;
     route = app_current_route(app);
-    route.screen = inbe_app_screen_ids[screen_index];
+    route.screen = screen;
     transition_mode = app->transition_mode;
     app->transition_mode = APP_TRANSITION_NONE;
     app_switch_route(app, route);
     app->transition_mode = transition_mode;
 }
 
-static void
-inbe_app_host_draw(void *vapp, Rectangle viewport)
-{
-    app_update_draw(vapp, (Rectangle){0.0f, 0.0f,
-                                      viewport.width, viewport.height});
-}
-
-AppHost *
-CreateKryonLivePreview(int abi_version, const char *project_path)
-{
-    static App app_runtime;
-    static AppHost host;
-    InbeApp *app;
-
-    if(abi_version != APP_HOST_ABI_VERSION)
-        return NULL;
-    app = calloc(1, sizeof(*app));
-    if(app == NULL)
-        return NULL;
-    memset(&app_runtime, 0, sizeof(app_runtime));
-    memset(&host, 0, sizeof(host));
-    if(project_path != NULL && project_path[0] != '\0')
-        ChangeDirectory(project_path);
-    app_init(app);
-    set_global_inbe_app(app);
-    app_runtime.app = app;
-    app_runtime.screens = inbe_app_screens;
-    app_runtime.screen_count = (int)(sizeof(inbe_app_screens) /
-                                     sizeof(inbe_app_screens[0]));
-    app_runtime.selected_screen = 0;
-    BindAppHost(&app_runtime, &host);
-    return &host;
-}
-
 void
-DestroyKryonLivePreview(AppHost *host)
+BeginScreenDraw(void *vapp, Rectangle viewport)
 {
-    App *runtime;
-
-    if(host == NULL || host->userdata == NULL)
-        return;
-    runtime = host->userdata;
-    app_destroy(runtime->app);
-    set_global_inbe_app(NULL);
-    memset(runtime, 0, sizeof(*runtime));
-    memset(host, 0, sizeof(*host));
-}
-
-AppHost *
-CreateAppHost(int abi_version, const char *project_path)
-{
-    return CreateKryonLivePreview(abi_version, project_path);
-}
-
-void
-DestroyAppHost(AppHost *host)
-{
-    DestroyKryonLivePreview(host);
+    (void)vapp;
+    view_width = (int)viewport.width;
+    view_height = (int)viewport.height;
 }
 
 int
@@ -1791,7 +1770,7 @@ app_init(void *vapp) {
     app->camera = (Camera2D){0};
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
-    app->settings_tab = SETTINGS_TAB_SESSION;
+    app->settings_tab = SETTINGS_TAB_DEVICE;
     app->habit_edit = (HabitEditState){
         .index = -1,
         .color = {99, 196, 165, 255},

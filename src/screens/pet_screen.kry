@@ -58,3 +58,14 @@ pet_screen_draw :: (app: InbeApp*) {
     paragraph = (UIParagraph){.text = subtext, .width = text_w, .font = UI_TEXT_12, .line_gap = ScaleUIPx(3), .color = muted}
     DrawUIParagraph(paragraph, text_x, &text_y)
 }
+
+route pet {
+    title "Pet"
+    group "App"
+    page pet
+}
+
+screen pet {
+    args InbeApp *app
+    pet_screen_draw(app)
+}

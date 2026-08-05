@@ -601,8 +601,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     profile_items: [1] const AppSidebarRouteItem = {
         {"tab_profile", APP_NAV_ROUTE_PROFILE}
     }
-    settings_items: [4] const AppSidebarSettingsItem = {
-        {SETTINGS_TAB_SESSION},
+    settings_items: [3] const AppSidebarSettingsItem = {
         {SETTINGS_TAB_DEVICE},
         {SETTINGS_TAB_THEME},
         {SETTINGS_TAB_ABOUT}

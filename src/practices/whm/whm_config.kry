@@ -235,8 +235,10 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     max_rounds := app->inbe.max_rounds
     max_breaths := int_from_count(app->inbe.maxbreaths)
     pause_seconds := app->inbe.pause_seconds
+    sound_volume := app->sound_volume
     double_tap_to_breathe := app->double_tap_to_breathe
     advanced_session_controls := app->advanced_session_controls
+    retention_marker_enabled := app->retention_marker_enabled
     toggle_w := ScaleUIPx(56)
     toggle_h := ScaleUIPx(30)
     reset_w := MeasureUIText(GetLocaleText("reset_to_defaults_label"),
@@ -274,6 +276,15 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(66)
 
+    if DrawUISlider(6, content_x, y, content_w,
+                    GetLocaleText("cue_volume_label"),
+                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
+                    &sound_volume, "") {
+        app->sound_volume = sound_volume
+        app->settings_dirty = 1
+    }
+    y += ScaleUIPx(66)
+
     DrawUIText(GetLocaleText("double_tap_to_breathe_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
     if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
@@ -290,6 +301,17 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
                           &advanced_session_controls, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->advanced_session_controls = advanced_session_controls
+        app->settings_dirty = 1
+    }
+    y += ScaleUIPx(76)
+
+    DrawUIText(GetLocaleText("retention_marker_label"), content_x, y,
+                  GetUIFontSize(), GetThemeText())
+    if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
+                          &retention_marker_enabled, GetLocaleText("toggle_off"),
+                          GetLocaleText("toggle_on")) {
+        app->retention_marker_enabled = retention_marker_enabled
+        app->retention_marker_last_bucket = 0
         app->settings_dirty = 1
     }
     y += ScaleUIPx(76)
@@ -353,8 +375,9 @@ whm_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
                bottom_padding
     }
 
-    return ScaleUIPx(66) * 3 +
+    return ScaleUIPx(66) * 4 +
            ScaleUIPx(26) + ScaleUIPx(52) +
+           ScaleUIPx(76) +
            ScaleUIPx(76) +
            ScaleUIPx(76) +
            ScaleUIPx(36) + ScaleUIPx(28) +

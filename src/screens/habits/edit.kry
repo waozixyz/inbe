@@ -699,3 +699,14 @@ draw :: (app: InbeApp*) {
 
     EndUIScrollPage(page)
 }
+
+route habit_edit {
+    title "Edit Habit"
+    group "Habits"
+    page habit_edit
+}
+
+screen habit_edit {
+    args InbeApp *app
+    habit_edit_draw(app)
+}

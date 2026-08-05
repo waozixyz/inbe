@@ -363,8 +363,14 @@ Finish
 [no_sessions]
 没有会话
 ---
-[volume_label]
-音量
+[cue_volume_label]
+Cue volume
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 恢复默认

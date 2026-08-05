@@ -1,5 +1,11 @@
 #import "app.h"
 
+route nav_sidebar {
+    title "Navigation Sidebar"
+    group "App"
+    page nav_sidebar
+}
+
 screen nav_sidebar {
     args InbeApp *app
     unused app

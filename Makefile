@@ -341,11 +341,12 @@ KRY_GEN_HDRS := $(filter-out $(KRY_GEN_DIR)/src/storage/db.h,$(KRY_GEN_HDRS)) $(
 KRY_GEN_SRCS := $(filter-out $(KRY_GEN_DIR)/src/storage/import.c,$(KRY_GEN_SRCS)) $(KRY_GEN_DIR)/src/storage/import_impl.c
 KRY_GEN_HDRS := $(filter-out $(KRY_GEN_DIR)/src/storage/import.h,$(KRY_GEN_HDRS)) $(KRY_GEN_DIR)/src/storage/import_impl.h
 KRY_PROJECT_HDR := $(KRY_GEN_DIR)/kryon_project.h
+KRY_PROJECT_C := $(KRY_GEN_DIR)/kryon_project.c
 KRY_GEN_STAMP := $(KRY_GEN_DIR)/.fresh
 SRC := $(APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
-KRYON_LIVE_APP_SRCS := $(filter-out src/main.c src/platform/inbe_desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS)
-KRYON_LIVE_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
-KRYON_LIVE_SRC := $(KRYON_LIVE_APP_SRCS) $(KRYON_LIVE_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
+KRYON_HOST_APP_SRCS := $(filter-out src/main.c src/platform/inbe_desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
+KRYON_HOST_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
+KRYON_HOST_SRC := $(KRYON_HOST_APP_SRCS) $(KRYON_HOST_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
 WEB_APP_SRCS := $(filter-out src/platform/inbe_desktop_tray.c,$(APP_SRCS))
 WEB_SRC := $(WEB_APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
 
@@ -391,7 +392,7 @@ endif
 
 BINARY_NAME := $(APP_NAME)-$(NATIVE_PLATFORM)-$(ARCH)
 TARGET := $(NATIVE_BIN_DIR)/$(BINARY_NAME)
-KRYON_LIVE_TARGET := $(BUILD_DIR)/kryon/live_preview.so
+KRYON_HOST_TARGET := $(BUILD_DIR)/kryon/app_host.so
 WIN64_BINARY_NAME := $(APP_NAME)-windows-$(WIN64_ARCH).exe
 WIN64_TARGET := $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)
 WIN32_BINARY_NAME := $(APP_NAME)-windows-$(WIN32_ARCH).exe
@@ -448,16 +449,14 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native kryon-live kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
 
 native: $(TARGET)
 
-kryon-live: $(KRYON_LIVE_TARGET)
-
-kryon-host: kryon-live
+kryon-host: $(KRYON_HOST_TARGET)
 
 $(KC): $(KRYON_DIR)/cmd/kc/kc.c
 	$(MAKE) -C $(KRYON_DIR) build/bin/kc
@@ -468,7 +467,7 @@ $(KRY_GEN_STAMP): Makefile $(KC) $(KRY_SRCS)
 	$(KC) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
 	touch $@
 
-$(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR): $(KRY_GEN_STAMP)
+$(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR) $(KRY_PROJECT_C): $(KRY_GEN_STAMP)
 
 dist:
 	@password="$(PASSWORD)"; \
@@ -831,7 +830,7 @@ $(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(NATIVE_SYSTEM_LDLIBS) \
 		$(LDFLAGS)
 
-$(KRYON_LIVE_TARGET): Makefile $(KRYON_LIVE_SRC) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) | $(BUILD_DIR)
+$(KRYON_HOST_TARGET): Makefile $(KRYON_HOST_SRC) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) | $(BUILD_DIR)
 	mkdir -p $(dir $@)
 	$(CC) $(CFLAGS) -fPIC -shared \
 		$(APP_INCLUDE) \
@@ -844,7 +843,7 @@ $(KRYON_LIVE_TARGET): Makefile $(KRYON_LIVE_SRC) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-DSUPPORT_FILEFORMAT_OGG=1 \
 		-DSUPPORT_FILEFORMAT_MP3=0 \
 		-o $@ \
-		$(KRYON_LIVE_SRC) \
+		$(KRYON_HOST_SRC) \
 		$(SQLITE_SRC) \
 		$(NATIVE_SYSTEM_LDLIBS) \
 		-Wl,-Bsymbolic \

@@ -1,7 +1,7 @@
 #module "settings.theme"
 
 #import "app.h"
-#import "app_settings.h"
+#import "app/app_settings.h"
 #import "app/device_preferences.h"
 #import "locale.h"
 #import "theme.h"

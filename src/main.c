@@ -589,7 +589,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "settings_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->settings_tab = SETTINGS_TAB_SESSION;
+        app->settings_tab = SETTINGS_TAB_DEVICE;
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "data") == 0 ||
               strcmp(request->scene, "profile_data") == 0) {

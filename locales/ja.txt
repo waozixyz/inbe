@@ -363,8 +363,14 @@ OK
 [no_sessions]
 セッションなし
 ---
-[volume_label]
-音量
+[cue_volume_label]
+Cue volume
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 デフォルトに戻す

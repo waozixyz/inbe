@@ -2,7 +2,7 @@
 #define HABITS_SCREEN_H
 
 #include "kryon.h"
-#include "breath_engine.h"
+#include "core/breath_engine.h"
 #include "app_fwd.h"
 #include <stddef.h>
 

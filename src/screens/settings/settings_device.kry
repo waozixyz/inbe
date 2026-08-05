@@ -1,5 +1,5 @@
 #import "app.h"
-#import "app_settings.h"
+#import "app/app_settings.h"
 #import "app/device_preferences.h"
 #import "locale.h"
 #import "src/screens/settings/settings_types.h"
@@ -20,11 +20,12 @@ settings_device_orientation_option_count :: () -> int #private {
 }
 
 settings_device_content_height :: (content_w: int) -> int {
+    label_w := content_w > 0 ? content_w : ScaleUIPx(240)
     height := ScaleUIPx(76) + ScaleUIPx(76) + ScaleUIPx(40)
 
-    #if DESKTOP {
-        label_w := content_w > 0 ? content_w : ScaleUIPx(240)
+    height += settings_ui_toggle_row_height(GetLocaleText("play_in_background_label"), label_w)
 
+    #if DESKTOP {
         height += ScaleUIPx(50)
         height += settings_ui_toggle_row_height(GetLocaleText("on_screen_keyboard_label"), label_w)
     }
@@ -42,6 +43,7 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         GetLocaleText("orientation_sensor")
     }
     orientation_option_count := settings_device_orientation_option_count()
+    play_in_background := app->inbe.play_in_background
 
     if app == NULL || y == NULL || state == NULL {
         return
@@ -51,6 +53,12 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         app->on_screen_keyboard_enabled = 1
     } #else {
         keyboard_toggle = app->on_screen_keyboard_enabled
+    }
+
+    if settings_ui_commit_toggle_row(app, x, w, y,
+                                     GetLocaleText("play_in_background_label"),
+                                     &play_in_background, 0) {
+        app->inbe.play_in_background = play_in_background
     }
 
     DrawUIText(GetLocaleText("language_label"), x, *y,

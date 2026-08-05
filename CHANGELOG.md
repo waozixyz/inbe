@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.13] - 2026-08-05
+### Changed
+- Split cue and music volume controls so short practice cues stay on `sound_volume` while streamed meditation music uses the new persisted `music_volume` setting.
+- Added an optional WHM retention 30-second marker, defaulting off, with controls in the WHM practice session settings.
+- Moved background playback into Device settings and removed the standalone global Session settings tab.
+- Updated practice music/settings UI and importable settings to include the new audio preferences.
+
 ## [1.8.12] - 2026-07-29
 ### Changed
 - Fixed the Wim Hof between-round countdown: round 0 always counts down from 3 (the intentional 3-2-1), and rounds 1+ now honor the user's configured "Pause after round" setting. The breath engine now owns the full session state machine, so auto-play and manual round-advance share one path and final-round results are always persisted.

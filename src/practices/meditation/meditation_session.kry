@@ -532,6 +532,12 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 }
 
+route meditation {
+    title "Meditation Session"
+    group "Practice"
+    page meditation
+}
+
 screen meditation {
     args InbeApp *app
     meditation_draw_screen(app, view_width / 2, view_height / 2)

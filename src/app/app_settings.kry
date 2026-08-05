@@ -193,6 +193,9 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths))
     save_setting_int("pause_seconds", app->inbe.pause_seconds)
     save_setting_int("sound_volume", app->sound_volume)
+    save_setting_int("music_volume", app->music_volume)
+    save_setting_int("retention_marker_enabled",
+                        app->retention_marker_enabled ? 1 : 0)
     save_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0)
     save_setting_int("habits_guide_seen", app->habits_guide_seen ? 1 : 0)
     save_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask)
@@ -350,12 +353,16 @@ app_load_settings :: (app: InbeApp*) -> int {
                          "double_tap_to_breathe", 0)
     load_bool_setting(&settings_cache, &app->meditation.show_extend_controls,
                          "meditation_show_extend_controls", 1)
+    load_bool_setting(&settings_cache, &app->retention_marker_enabled,
+                         "retention_marker_enabled", 0)
     #if ANDROID || WEB {
         app->on_screen_keyboard_enabled = 1
     }
 
     load_clamped_setting(&settings_cache, &app->sound_volume, "sound_volume",
                             100, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
+    load_clamped_setting(&settings_cache, &app->music_volume, "music_volume",
+                            50, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
     load_clamped_setting(&settings_cache, &app->theme_id, "theme", 0, 0,
                             THEME_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->theme_source, "theme_source",

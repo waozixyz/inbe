@@ -3,7 +3,7 @@
 
 #include "kryon.h"
 #include "platform.h"
-#include "breath_engine.h"
+#include "core/breath_engine.h"
 #include "app_fwd.h"
 #include "runtime_assets.h"
 #include "ui_transition.h"
@@ -42,8 +42,7 @@ enum {
 };
 
 enum {
-    SETTINGS_TAB_SESSION = 0,
-    SETTINGS_TAB_DEVICE,
+    SETTINGS_TAB_DEVICE = 0,
     SETTINGS_TAB_THEME,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
@@ -332,6 +331,9 @@ struct InbeApp {
     Sound bell_sound;
     int audio_ready;
     int sound_volume;
+    int music_volume;
+    int retention_marker_enabled;
+    int retention_marker_last_bucket;
     int sound_last_screen;
     int sound_last_phase;
     int sound_last_dir;
@@ -499,6 +501,6 @@ void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 
 #include "app_nav.h"
-#include "app_settings.h"
+#include "app/app_settings.h"
 
 #endif

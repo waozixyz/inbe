@@ -1,7 +1,5 @@
 name "Inner Breeze"
-live "build/kryon/live_preview.so"
 generated "build/kryon/generated"
-build_live "if [ -d ../kryon ]; then KRYON_DIR=../kryon; export KRYON_DIR; fi; sh vendor/kryon/scripts/kryon-app.sh preview"
 
 target "Native" "native" "sh vendor/kryon/scripts/kryon-app.sh run native"
 target "Web" "web" "sh vendor/kryon/scripts/kryon-app.sh build web"

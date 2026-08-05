@@ -368,3 +368,14 @@ profile_screen_draw :: (app: InbeApp*) -> int {
 
     return 0
 }
+
+route profile {
+    title "Profile"
+    group "App"
+    page profile
+}
+
+screen profile {
+    args InbeApp *app
+    unused profile_screen_draw(app)
+}

@@ -363,8 +363,14 @@ Toque duas vezes na tela para respirar
 [no_sessions]
 Sem sessões
 ---
-[volume_label]
-Volume
+[cue_volume_label]
+Cue volume
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 Restaurar padrões

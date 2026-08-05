@@ -35,8 +35,8 @@ android {
     defaultConfig {
         minSdk 21
         targetSdk 36
-        versionCode 87
-        versionName "1.8.12"
+        versionCode 88
+        versionName "1.8.13"
         externalNativeBuild {
             cmake {
                 if (System.getProperty('os.name').toLowerCase().contains('freebsd')) {

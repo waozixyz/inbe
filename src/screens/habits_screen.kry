@@ -10,7 +10,7 @@
 #import "theme.h"
 #import "runtime_assets.h"
 #import "locale.h"
-#import "breath_engine.h"
+#import "core/breath_engine.h"
 #import "ui_clip.h"
 #import "ui.h"
 #import "stdio.h"
@@ -2923,6 +2923,12 @@ draw_habits_screen :: (app: InbeApp*) {
     if app->inbe.screen == InbeScreenHabits {
         draw_habits_top_bar(app, 1)
     }
+}
+
+route habits {
+    title "Habits"
+    group "Habits"
+    page habits
 }
 
 screen habits {

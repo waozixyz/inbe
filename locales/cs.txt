@@ -363,8 +363,14 @@ Dvakrát klepněte na obrazovku pro nádech
 [no_sessions]
 Žádná sezení
 ---
-[volume_label]
-Hlasitost
+[cue_volume_label]
+Cue volume
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 Obnovit výchozí

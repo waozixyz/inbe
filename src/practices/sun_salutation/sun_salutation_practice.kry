@@ -1,5 +1,5 @@
 #import "app.h"
-#import "app_settings.h"
+#import "app/app_settings.h"
 #import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"

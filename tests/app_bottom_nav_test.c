@@ -422,8 +422,6 @@ const char *
 settings_screen_tab_label(int tab)
 {
     switch(tab) {
-    case SETTINGS_TAB_SESSION:
-        return "Session";
     case SETTINGS_TAB_DEVICE:
         return "Device";
     case SETTINGS_TAB_THEME:

@@ -363,8 +363,14 @@ Doppeltippe auf den Bildschirm, um zu atmen
 [no_sessions]
 Keine Sitzungen
 ---
-[volume_label]
-Lautstärke
+[cue_volume_label]
+Cue volume
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen

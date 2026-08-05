@@ -19,6 +19,19 @@ ANDROID :: ANDROID_BUILD
     #import "android_wakelock.h" #private
 }
 
+route session {
+    title "Wim Hof Session"
+    group "Practice"
+    page session
+}
+
+screen session {
+    args InbeApp *app
+    hover: int = 0
+    practice_draw_active_breathing(app, view_width / 2, view_height / 2)
+    practice_update_active_breathing(app, view_width / 2, view_height / 2, &hover)
+}
+
 static whm_background_remainder_ms: int = 0
 #if ANDROID {
     static whm_last_notification_text: [96] char = ""
@@ -156,10 +169,40 @@ remember_sound_state :: (app: InbeApp*) #private {
         return
     }
 
+    if app->inbe.screen != InbeScreenSession ||
+       app->inbe.phase != InbePhaseHold {
+        app->retention_marker_last_bucket = 0
+    }
     app->sound_last_screen = app->inbe.screen
     app->sound_last_phase = app->inbe.phase
     app->sound_last_dir = app->inbe.dir
     cpcount(app->sound_last_count, app->inbe.count)
+}
+
+update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
+    seconds: int
+    bucket: int
+
+    if app == nil {
+        return
+    }
+    if !app->retention_marker_enabled ||
+       app->inbe.phase != InbePhaseHold {
+        app->retention_marker_last_bucket = 0
+        return
+    }
+    if phase_changed {
+        app->retention_marker_last_bucket = 0
+    }
+
+    seconds = int_from_count(app->inbe.count)
+    bucket = seconds / 30
+    if bucket <= 0 || bucket <= app->retention_marker_last_bucket {
+        return
+    }
+
+    app->retention_marker_last_bucket = bucket
+    app_play_bell_cue(app, 0.45f)
 }
 
 #if ANDROID {
@@ -244,6 +287,7 @@ update_session_sounds :: (app: InbeApp*) {
         }
     }
 
+    update_retention_marker(app, phase_changed)
     remember_sound_state(app)
 }
 
@@ -309,6 +353,7 @@ session_start :: (app: InbeApp*) {
     app->session_paused = 0
     app->results_saved = 0
     app->results_path[0] = '\0'
+    app->retention_marker_last_bucket = 0
     remember_sound_state(app)
 
 #if ANDROID {
@@ -1106,7 +1151,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         breath_font: int = UI_TEXT_16
         breath_w: int = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72)
         breath_h: int = GetUITextLineHeight(breath_font) + ScaleUIPx(28)
-        breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(22)
+        breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(42)
         int breath_x
         breath_hover: int = 0
 

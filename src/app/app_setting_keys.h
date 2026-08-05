@@ -7,6 +7,8 @@
     X("max_breaths") \
     X("pause_seconds") \
     X("sound_volume") \
+    X("music_volume") \
+    X("retention_marker_enabled") \
     X("tutorial_seen") \
     X("exercise_manual_seen_mask") \
     X("theme") \
