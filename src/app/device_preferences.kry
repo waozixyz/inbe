@@ -46,6 +46,7 @@ app_request_orientation_size :: (app: InbeApp*) -> int #private {
 
 refresh_theme_colors :: (theme_id: int, dark_mode: int) {
     SetThemeMode(dark_mode ? THEME_MODE_DARK : THEME_MODE_LIGHT)
+    SetThemeStyle(THEME_STYLE_SYSTEM)
     SetCurrentTheme(theme_id, dark_mode)
 }
 
@@ -84,6 +85,7 @@ app_refresh_theme :: (app: InbeApp*) {
     }
 
     SetThemeMode((ThemeMode)app->theme_mode)
+    SetThemeStyle((ThemeStyle)app->theme_style)
 
     #if ANDROID {
         SetSystemThemeDarkMode(android_device_system_dark() != 0)

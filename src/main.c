@@ -137,6 +137,7 @@ typedef struct ScreenshotRequest {
     int height;
     int theme_id;
     int dark_mode;
+    int theme_style;
     char scene[64];
     char output[512];
 } ScreenshotRequest;
@@ -434,7 +435,8 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         .width = config.width,
         .height = config.height,
         .theme_id = THEME_SKY,
-        .dark_mode = 0
+        .dark_mode = 0,
+        .theme_style = THEME_STYLE_SYSTEM
     };
 
     for(int i = 1; i < argc; i++) {
@@ -459,6 +461,9 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         } else if(strcmp(arg, "--screenshot-dark") == 0 && value != NULL) {
             request->dark_mode = parse_int_arg(value, request->dark_mode) != 0;
             i++;
+        } else if(strcmp(arg, "--screenshot-style") == 0 && value != NULL) {
+            request->theme_style = parse_int_arg(value, request->theme_style);
+            i++;
         }
     }
 
@@ -470,6 +475,9 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         request->height = 320;
     if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
         request->theme_id = THEME_SKY;
+    if(request->theme_style < THEME_STYLE_SYSTEM ||
+       request->theme_style > THEME_STYLE_AERO)
+        request->theme_style = THEME_STYLE_SYSTEM;
 }
 
 static int
@@ -533,7 +541,7 @@ screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
     app->theme_id = theme_id;
     app->theme_mode = dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
     app->dark_mode = dark_mode != 0;
-    refresh_theme_colors(app->theme_id, app->dark_mode);
+    app_refresh_theme(app);
 }
 
 static void
@@ -550,6 +558,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->habits_guide_seen = 1;
     app->tutorial_seen = 1;
     screenshot_seed_habits(app);
+    app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
     if(strcmp(request->scene, "background_music") == 0) {
@@ -635,10 +644,8 @@ static int
 run_screenshot_mode(const ScreenshotRequest *request)
 {
     Image capture;
-    char output[512];
-    char cwd[512];
-    char *slash;
     int warmup_frames = 4;
+    int saved;
 
     if(request == NULL || !request->active)
         return 0;
@@ -660,19 +667,9 @@ run_screenshot_mode(const ScreenshotRequest *request)
     if(capture.data == NULL)
         return 1;
 
-    snprintf(output, sizeof(output), "%s", request->output);
-    snprintf(cwd, sizeof(cwd), "%s", GetWorkingDirectory());
-    slash = strrchr(output, '/');
-    if(slash != NULL) {
-        *slash = '\0';
-        if(ChangeDirectory(output))
-            ExportImage(capture, slash + 1);
-        ChangeDirectory(cwd);
-    } else {
-        ExportImage(capture, output);
-    }
+    saved = ExportImage(capture, request->output);
     UnloadImage(capture);
-    return 1;
+    return saved ? 1 : -1;
 }
 
 int main(int argc, char **argv) {
@@ -757,7 +754,8 @@ int main(int argc, char **argv) {
     inbe_desktop_tray_init();
 #endif
 
-    if(run_screenshot_mode(&screenshot)) {
+    int screenshot_result = run_screenshot_mode(&screenshot);
+    if(screenshot_result != 0) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
         inbe_desktop_tray_shutdown();
 #endif
@@ -765,7 +763,7 @@ int main(int argc, char **argv) {
 #if defined(_WIN32) && !ANDROID_BUILD
         windows_close_logger();
 #endif
-        return 0;
+        return screenshot_result > 0 ? 0 : 1;
     }
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)

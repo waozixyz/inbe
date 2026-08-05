@@ -17,9 +17,9 @@ WEB :: #defined(PLATFORM_WEB)
 content_height :: (content_w: int) -> int {
     #if WEB {
         unused content_w
-        return ScaleUIPx(260)
+        return ScaleUIPx(314)
     } #else {
-        return ScaleUIPx(244) + ui.toggle_row_height(GetLocaleText("transition_label"), content_w)
+        return ScaleUIPx(298) + ui.toggle_row_height(GetLocaleText("transition_label"), content_w)
     }
 }
 
@@ -36,6 +36,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .theme_source = &app->theme_source,
         .theme_mode = &app->theme_mode,
         .theme_id = &app->theme_id,
+        .theme_style = &app->theme_style,
         .allow_system_source = 1,
         .allow_system_mode = ANDROID_BUILD,
         .theme_label = GetLocaleText("theme_label"),
@@ -46,6 +47,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .mode_light_label = GetLocaleText("theme_light"),
         .mode_dark_label = GetLocaleText("theme_dark"),
         .palette_label = GetLocaleText("theme_palette_label"),
+        .style_label = GetLocaleText("theme_style_label"),
         .system_theme_label = GetSystemThemeNameCached()
     }
 
@@ -81,6 +83,7 @@ handle_overlays :: (app: InbeApp*, state: SettingsThemeState*) {
         .theme_source = &app->theme_source,
         .theme_mode = &app->theme_mode,
         .theme_id = &app->theme_id,
+        .theme_style = &app->theme_style,
         .allow_system_source = 1,
         .allow_system_mode = ANDROID_BUILD
     }

@@ -395,6 +395,7 @@ struct InbeApp {
     int theme_source;
     int dark_mode;
     int theme_mode;
+    int theme_style;
     int orientation_mode;
     int navigation_mode;
     int bottom_nav_routes[APP_BOTTOM_NAV_CONTENT_MAX];

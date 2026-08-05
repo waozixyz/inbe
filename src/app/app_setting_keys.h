@@ -15,6 +15,7 @@
     X("theme_source") \
     X("dark_mode") \
     X("theme_mode") \
+    X("theme_style") \
     X("orientation_mode") \
     X("main_tab") \
     X("fullscreen") \

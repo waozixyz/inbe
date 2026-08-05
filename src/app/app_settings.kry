@@ -204,6 +204,7 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("theme_source", app->theme_source)
     save_setting_int("dark_mode", app->dark_mode)
     save_setting_int("theme_mode", app->theme_mode)
+    save_setting_int("theme_style", app->theme_style)
     save_setting_int("orientation_mode", app->orientation_mode)
     save_setting_int("navigation_mode", app->navigation_mode)
     save_setting_int("profile_picture_icon", app->profile_picture_icon)
@@ -370,6 +371,9 @@ app_load_settings :: (app: InbeApp*) -> int {
                             APP_THEME_SOURCE_SYSTEM)
     load_clamped_setting(&settings_cache, &app->theme_mode, "theme_mode",
                             APP_THEME_SYSTEM, APP_THEME_SYSTEM, APP_THEME_DARK)
+    load_clamped_setting(&settings_cache, &app->theme_style, "theme_style",
+                            THEME_STYLE_SYSTEM, THEME_STYLE_SYSTEM,
+                            THEME_STYLE_AERO)
     load_clamped_setting(&settings_cache, &app->orientation_mode,
                             "orientation_mode", APP_ORIENTATION_SYSTEM,
                             APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR)
