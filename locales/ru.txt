@@ -427,13 +427,16 @@ Inner Breeze
 Нет сессий
 ---
 [cue_volume_label]
-Cue volume
+Громкость сигналов
+---
+[cue_volume_test_button]
+Проверить сигнал
 ---
 [music_volume_label]
-Music volume
+Громкость музыки
 ---
 [retention_marker_label]
-Retention 30s marker
+Метка задержки 30 с
 ---
 [reset_to_defaults_label]
 Сбросить настройки

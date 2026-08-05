@@ -424,13 +424,16 @@ Inner Breeze
 세션 없음
 ---
 [cue_volume_label]
-Cue volume
+안내음 음량
+---
+[cue_volume_test_button]
+안내음 테스트
 ---
 [music_volume_label]
-Music volume
+음악 음량
 ---
 [retention_marker_label]
-Retention 30s marker
+보유 30초 표시음
 ---
 [reset_to_defaults_label]
 기본값으로 재설정

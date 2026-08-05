@@ -364,13 +364,16 @@ Doppeltippe auf den Bildschirm, um zu atmen
 Keine Sitzungen
 ---
 [cue_volume_label]
-Cue volume
+Hinweislautstärke
+---
+[cue_volume_test_button]
+Hinweis testen
 ---
 [music_volume_label]
-Music volume
+Musiklautstärke
 ---
 [retention_marker_label]
-Retention 30s marker
+30-s-Retentionsmarkierung
 ---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen

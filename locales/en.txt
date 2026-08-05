@@ -432,6 +432,9 @@ No sessions
 [cue_volume_label]
 Cue volume
 ---
+[cue_volume_test_button]
+Test cue
+---
 [music_volume_label]
 Music volume
 ---

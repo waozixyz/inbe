@@ -364,13 +364,16 @@ Ketuk layar dua kali untuk bernapas
 Tidak ada sesi
 ---
 [cue_volume_label]
-Cue volume
+Volume isyarat
+---
+[cue_volume_test_button]
+Tes isyarat
 ---
 [music_volume_label]
-Music volume
+Volume musik
 ---
 [retention_marker_label]
-Retention 30s marker
+Penanda retensi 30 dtk
 ---
 [reset_to_defaults_label]
 Reset ke default

@@ -364,13 +364,16 @@ OK
 セッションなし
 ---
 [cue_volume_label]
-Cue volume
+合図の音量
+---
+[cue_volume_test_button]
+合図をテスト
 ---
 [music_volume_label]
-Music volume
+音楽の音量
 ---
 [retention_marker_label]
-Retention 30s marker
+リテンション30秒マーカー
 ---
 [reset_to_defaults_label]
 デフォルトに戻す

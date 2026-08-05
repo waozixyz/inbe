@@ -364,13 +364,16 @@ Dvakrát klepněte na obrazovku pro nádech
 Žádná sezení
 ---
 [cue_volume_label]
-Cue volume
+Hlasitost pokynů
+---
+[cue_volume_test_button]
+Test pokynu
 ---
 [music_volume_label]
-Music volume
+Hlasitost hudby
 ---
 [retention_marker_label]
-Retention 30s marker
+Značka retence po 30 s
 ---
 [reset_to_defaults_label]
 Obnovit výchozí

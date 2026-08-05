@@ -367,13 +367,16 @@ Touchez deux fois l'écran pour respirer
 Aucune session
 ---
 [cue_volume_label]
-Cue volume
+Volume des repères
+---
+[cue_volume_test_button]
+Tester le repère
 ---
 [music_volume_label]
-Music volume
+Volume de la musique
 ---
 [retention_marker_label]
-Retention 30s marker
+Repère de rétention 30 s
 ---
 [reset_to_defaults_label]
 Réinitialiser

@@ -4,7 +4,7 @@
 - Split cue and music volume controls so short practice cues stay on `sound_volume` while streamed meditation music uses the new persisted `music_volume` setting.
 - Added an optional WHM retention 30-second marker, defaulting off, with controls in the WHM practice session settings.
 - Moved background playback into Device settings and removed the standalone global Session settings tab.
-- Updated practice music/settings UI and importable settings to include the new audio preferences.
+- Updated practice music/settings UI and importable settings to include the new audio preferences, including a cue-volume test button.
 
 ## [1.8.12] - 2026-07-29
 ### Changed

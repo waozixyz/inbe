@@ -364,13 +364,16 @@ Finish
 没有会话
 ---
 [cue_volume_label]
-Cue volume
+提示音量
+---
+[cue_volume_test_button]
+测试提示音
 ---
 [music_volume_label]
-Music volume
+音乐音量
 ---
 [retention_marker_label]
-Retention 30s marker
+屏息 30 秒标记
 ---
 [reset_to_defaults_label]
 恢复默认

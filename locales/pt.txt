@@ -364,13 +364,16 @@ Toque duas vezes na tela para respirar
 Sem sessões
 ---
 [cue_volume_label]
-Cue volume
+Volume dos sinais
+---
+[cue_volume_test_button]
+Testar sinal
 ---
 [music_volume_label]
-Music volume
+Volume da música
 ---
 [retention_marker_label]
-Retention 30s marker
+Marcador de retenção 30 s
 ---
 [reset_to_defaults_label]
 Restaurar padrões
