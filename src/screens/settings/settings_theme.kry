@@ -24,6 +24,8 @@ content_height :: (content_w: int) -> int {
 }
 
 draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
+    result := (UIThemeSettingsResult){0}
+
     if app == NULL || y == NULL || state == NULL {
         return
     }
@@ -39,19 +41,20 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .theme_style = &app->theme_style,
         .allow_system_source = 1,
         .allow_system_mode = ANDROID_BUILD,
-        .theme_label = GetLocaleText("theme_label"),
-        .source_app_label = GetLocaleText("theme_inner_breeze"),
-        .source_system_label = GetLocaleText("theme_system"),
-        .mode_label = GetLocaleText("theme_mode_label"),
-        .mode_system_label = GetLocaleText("theme_follow_device"),
-        .mode_light_label = GetLocaleText("theme_light"),
-        .mode_dark_label = GetLocaleText("theme_dark"),
-        .palette_label = GetLocaleText("theme_palette_label"),
-        .style_label = GetLocaleText("theme_style_label"),
         .system_theme_label = GetSystemThemeNameCached()
     }
 
-    *y = DrawUIThemeSettings(settings, &state->menu_state)
+    if UIThemeSettingsNode(settings, &state->menu_state, &result) {
+        #if !ANDROID {
+            if app->theme_source == APP_THEME_SOURCE_SYSTEM {
+                app->theme_mode = APP_THEME_SYSTEM
+            }
+        }
+        app_refresh_theme(app)
+        app->settings_dirty = 1
+        app->settings_save_delay_ticks = 18
+    }
+    *y += UIGetNodeHeight(UINodeThemeSettings(settings))
     *y += ScaleUIPx(18)
 
     #if WEB {
@@ -73,38 +76,6 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     }
 }
 
-handle_overlays :: (app: InbeApp*, state: SettingsThemeState*) {
-    if app == NULL || state == NULL {
-        return
-    }
-
-    settings := (UIThemeSettings){
-        .id_base = 101,
-        .theme_source = &app->theme_source,
-        .theme_mode = &app->theme_mode,
-        .theme_id = &app->theme_id,
-        .theme_style = &app->theme_style,
-        .allow_system_source = 1,
-        .allow_system_mode = ANDROID_BUILD
-    }
-    result := DrawUIThemeSettingsMenus(settings, &state->menu_state)
-
-    if result.changed {
-        #if !ANDROID {
-            if app->theme_source == APP_THEME_SOURCE_SYSTEM {
-                app->theme_mode = APP_THEME_SYSTEM
-            }
-        }
-        app_refresh_theme(app)
-        app->settings_dirty = 1
-        app->settings_save_delay_ticks = 18
-    }
-
-    #if WEB {
-        app->transition_mode = APP_TRANSITION_NONE
-    }
-}
-
 settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     modal_w := ScaleUIPx(320)
     modal_h := ScaleUIPx(360)
@@ -115,14 +86,14 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     picker_h := 0
     draw_w := 0
 
-    frame = DrawUIModalFrame(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
+    frame = UIModalFrameNode(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
     if frame.right_clicked {
         app_close_modal(app)
         return
     }
 
     draw_w = frame.content_w
-    picker_h = GetUIThemePickerHeight(draw_w)
+    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
     scroll_area = (UIScrollArea){
         .bounds = {
             (float)frame.content_x,
@@ -144,13 +115,13 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
             break
         }
         draw_w = measured.content_w
-        scroll_area.content_height = GetUIThemePickerHeight(draw_w)
+        scroll_area.content_height = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
     }
 
-    picker_h = GetUIThemePickerHeight(draw_w)
+    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
     scroll_area.content_height = picker_h
     scroll_view = BeginUIScrollContainer(scroll_area)
-    if DrawUIThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
+    if UIThemePickerNode(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
         app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
         app_refresh_theme(app)
         app->settings_dirty = 1

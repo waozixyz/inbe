@@ -306,15 +306,6 @@ Tentang
 [about_text]
 Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 ---
-[theme_label]
-Tema
----
-[theme_mode_label]
-Mode tema
----
-[theme_follow_device]
-Sistem
----
 [speed_label]
 Kecepatan
 ---
@@ -368,6 +359,30 @@ Volume isyarat
 ---
 [cue_volume_test_button]
 Tes isyarat
+---
+[cue_volume_playing_label]
+Memutar...
+---
+[audio_output_label]
+Keluaran audio
+---
+[audio_system_default_label]
+Keluaran bawaan sistem
+---
+[audio_status_ready]
+Siap
+---
+[audio_status_unavailable]
+Tidak tersedia
+---
+[audio_test_output_button]
+Tes keluaran
+---
+[audio_reinitialize_button]
+Inisialisasi ulang audio
+---
+[audio_output_level_label]
+Level keluaran
 ---
 [music_volume_label]
 Volume musik
@@ -450,12 +465,6 @@ MATI
 [toggle_on]
 NYALA
 ---
-[theme_light]
-Terang
----
-[theme_dark]
-Gelap
----
 [on_screen_keyboard_label]
 Keyboard di layar
 ---
@@ -505,51 +514,6 @@ Hapus
 ---
 [meditation_music_attribution]
 Musik oleh Elijah_K.
----
-[theme_system]
-Sistem
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palet
----
-[theme_sky]
-Langit
----
-[theme_ocean]
-Laut
----
-[theme_forest]
-Hutan
----
-[theme_sunset]
-Senja
----
-[theme_lavender]
-Lavender
----
-[theme_cherry]
-Ceri
----
-[theme_dawn]
-Fajar
----
-[theme_sage]
-Sage
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Mint
----
-[theme_cobalt]
-Kobalt
 ---
 [orientation_label]
 Orientasi
@@ -811,8 +775,6 @@ Transisi
 ---
 [theme_picker_title]
 Pilih Tema
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

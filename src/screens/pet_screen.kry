@@ -53,10 +53,10 @@ pet_screen_draw :: (app: InbeApp*) {
     text_y = center_y + egg_size / 2 + ScaleUIPx(28)
 
     paragraph = (UIParagraph){.text = text, .width = text_w, .font = UI_TEXT_16, .line_gap = ScaleUIPx(3), .color = GetThemeText()}
-    DrawUIParagraph(paragraph, text_x, &text_y)
+    UIParagraphNode(paragraph, text_x, &text_y)
     text_y += ScaleUIPx(6)
     paragraph = (UIParagraph){.text = subtext, .width = text_w, .font = UI_TEXT_12, .line_gap = ScaleUIPx(3), .color = muted}
-    DrawUIParagraph(paragraph, text_x, &text_y)
+    UIParagraphNode(paragraph, text_x, &text_y)
 }
 
 route pet {

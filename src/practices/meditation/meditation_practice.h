@@ -8,6 +8,7 @@ void meditation_practice_destroy(InbeApp *app);
 void meditation_practice_start(InbeApp *app);
 void meditation_practice_update(InbeApp *app);
 void meditation_practice_leave_config(InbeApp *app);
+void meditation_music_unload(InbeApp *app);
 int meditation_configured_duration_seconds(const InbeApp *app);
 void meditation_start_configured(InbeApp *app);
 void meditation_manual_draw(InbeApp *app);

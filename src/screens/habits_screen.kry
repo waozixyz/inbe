@@ -1024,7 +1024,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         if draw_menu {
             return
         }
-        DrawUITitleBar(GetLocaleText("tab_habits"), top_h)
+        UITitleBarNode(GetLocaleText("tab_habits"), top_h)
         return
     }
 
@@ -1045,6 +1045,13 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
                },
                top_h) {
             habits_return_to_overview(app)
+        }
+        selected_habit: int = habits_top_dropdown_selected - habit_offset
+        if !(draft_new && habits_top_dropdown_selected == 0) &&
+           selected_habit >= 0 &&
+           selected_habit < app->habits.count &&
+           app->habits.selected != selected_habit {
+            habits_select_habit(app, selected_habit)
         }
 
         tabs[HABIT_TAB_WEEKLY] = (UISubtab){
@@ -1067,7 +1074,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active
         }
-        clicked_tab = DrawUISubtabBar((UISubtabBar){
+        clicked_tab = UISubtabBarNode((UISubtabBar){
             .bounds = {
                 0,
                 (float)habits_screen_selector_height(app),
@@ -1086,22 +1093,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         return
     }
 
-    if app->modal.active {
-        return
-    }
-
-    if DrawUIDropdownMenu(301) {
-        selected_habit: int = habits_top_dropdown_selected - habit_offset
-
-        if draft_new && habits_top_dropdown_selected == 0 {
-            return
-        }
-        if selected_habit >= 0 &&
-           selected_habit < app->habits.count &&
-           app->habits.selected != selected_habit {
-            habits_select_habit(app, selected_habit)
-        }
-    }
+    return
 }
 
 habits_overview_day_columns :: (content_w: int) -> int {
@@ -1467,7 +1459,7 @@ habits_draw_fitted_text :: (text: const char*, x: int, y: int,
         return
     }
     inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
-    DrawUIText(fitted, x, y, font, color)
+    UITextNode(fitted, x, y, font, color)
 }
 
 draw_habits_reorder :: (app: InbeApp*, content_top: int) {
@@ -1504,7 +1496,7 @@ draw_habits_reorder :: (app: InbeApp*, content_top: int) {
     count = app->habits.count
 
     if app->habits.count <= 0 {
-        DrawUIText(GetLocaleText("habit_empty_title"), x, y, small,
+        UITextNode(GetLocaleText("habit_empty_title"), x, y, small,
                       DarkenUIColor(GetThemeText(), 35))
         EndUIScrollPage(page)
         return
@@ -1550,7 +1542,7 @@ draw_habits_reorder :: (app: InbeApp*, content_top: int) {
         if reorder.dragging && i == reorder.active_index {
             continue
         }
-        DrawUIReorderHandle(x, row_y[i], handle_w, row_h,
+        UIReorderHandleNode(0, x, row_y[i], handle_w, row_h,
                                reorder.active && i == reorder.active_index)
         habits_draw_fitted_text(app->habits.items[i].name,
                                    x + handle_w,
@@ -1564,7 +1556,7 @@ draw_habits_reorder :: (app: InbeApp*, content_top: int) {
     if reorder.dragging &&
        reorder.target_index >= 0 &&
        reorder.target_index < count {
-        DrawUIReorderPlaceholder(reorder_items[reorder.target_index].bounds)
+        UIReorderPlaceholderNode(reorder_items[reorder.target_index].bounds)
     }
     if reorder.dragging &&
        reorder.active_index >= 0 &&
@@ -1574,7 +1566,7 @@ draw_habits_reorder :: (app: InbeApp*, content_top: int) {
 
         DrawRectangle(x, overlay_y, w, row_h,
                          LightenUIColor(GetThemeBackground(), 8))
-        DrawUIReorderHandle(x, overlay_y, handle_w, row_h, 1)
+        UIReorderHandleNode(0, x, overlay_y, handle_w, row_h, 1)
         habits_draw_fitted_text(app->habits.items[i].name,
                                    x + handle_w,
                                    overlay_y + ScaleUIPx(13),
@@ -1707,14 +1699,14 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
     snprintf(progress, sizeof(progress),
                 GetLocaleText("habits_done_count_label"),
                 done_count, app->habits.count)
-    DrawUIText(progress, content_x, y, font, GetThemeText())
+    UITextNode(progress, content_x, y, font, GetThemeText())
     y += ScaleUIPx(28)
 
     if app->habits.count <= 0 {
-        DrawUIText(GetLocaleText("habit_empty_title"), content_x, y, font,
+        UITextNode(GetLocaleText("habit_empty_title"), content_x, y, font,
                       DarkenUIColor(GetThemeText(), 35))
         y += ScaleUIPx(36)
-        if DrawUIGenericButton(content_x, y, content_w, btn_h,
+        if UIGenericButtonNode(0, content_x, y, content_w, btn_h,
                                GetLocaleText("habit_new_button"),
                                UI_BUTTON_STYLE_SECONDARY,
                                app->habits.count >= INBE_HABIT_MAX,
@@ -1747,7 +1739,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             snprintf(date_label, sizeof(date_label), "%d", day_index % 100)
             text_w = MeasureUIText(date_label, small)
         }
-        DrawUIText(date_label, day_x + (cell - text_w) / 2,
+        UITextNode(date_label, day_x + (cell - text_w) / 2,
                       grid_y, small, DarkenUIColor(GetThemeText(), 34))
     }
     y += ScaleUIPx(20)
@@ -1794,7 +1786,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
         }
         DrawRectangle(overview_x, row_y + (cell - swatch) / 2,
                          swatch, swatch, habit->color)
-        DrawUIText(label, overview_x + swatch + ScaleUIPx(5),
+        UITextNode(label, overview_x + swatch + ScaleUIPx(5),
                       GetUIControlTextY(label, row_y, cell, small),
                       small, GetThemeText())
         if label_hover {
@@ -1914,7 +1906,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             MarkUIClickable()
         }
         DrawRectangle(detail_x, row_y, cell, cell, detail_fill)
-        DrawUIBevel(detail_x, row_y, cell, cell,
+        UIBevelNode(detail_x, row_y, cell, cell,
                        LightenUIColor(detail_fill, detail_hover ? 34 : 24),
                        DarkenUIColor(detail_fill, detail_hover ? 38 : 28))
         DrawRectangleLines(detail_x, row_y, cell, cell, detail_border)
@@ -1924,7 +1916,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             return
         }
         more_w = MeasureUIText(more, UI_TEXT_16)
-        DrawUIText(more, detail_x + (cell - more_w) / 2,
+        UITextNode(more, detail_x + (cell - more_w) / 2,
                       GetUIControlTextY(more, row_y, cell, UI_TEXT_16),
                       UI_TEXT_16, GetThemeText())
 
@@ -1933,7 +1925,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
 
     y += ScaleUIPx(10)
     if habits_overview_actions_stack(content_w) {
-        if DrawUIGenericButton(content_x, y, content_w, btn_h,
+        if UIGenericButtonNode(0, content_x, y, content_w, btn_h,
                                GetLocaleText("habit_new_button"),
                                UI_BUTTON_STYLE_SECONDARY,
                                app->habits.count >= INBE_HABIT_MAX,
@@ -1941,7 +1933,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             habits_begin_new_detail(app)
         }
         y += btn_h + btn_gap
-        if DrawUIGenericButton(content_x, y, content_w, btn_h,
+        if UIGenericButtonNode(0, content_x, y, content_w, btn_h,
                                GetLocaleText("habit_reorder_title"),
                                UI_BUTTON_STYLE_SECONDARY,
                                app->habits.count <= 0,
@@ -1950,14 +1942,14 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
         }
     } else {
         half_w = (content_w - btn_gap) / 2
-        if DrawUIGenericButton(content_x, y, half_w, btn_h,
+        if UIGenericButtonNode(0, content_x, y, half_w, btn_h,
                                GetLocaleText("habit_new_button"),
                                UI_BUTTON_STYLE_SECONDARY,
                                app->habits.count >= INBE_HABIT_MAX,
                                &add_hover) {
             habits_begin_new_detail(app)
         }
-        if DrawUIGenericButton(content_x + half_w + btn_gap,
+        if UIGenericButtonNode(0, content_x + half_w + btn_gap,
                                y, half_w, btn_h,
                                GetLocaleText("habit_reorder_title"),
                                UI_BUTTON_STYLE_SECONDARY,
@@ -2003,14 +1995,14 @@ habits_screen_draw_first_run_guide :: (app: InbeApp*) {
         GetLocaleText("habits_guide_meditation_session_data")
     }
 
-    result = DrawUIGuideOverlay((UIGuideOverlay){
+    result = UIGuideOverlayNode((UIGuideOverlay){
         .steps = steps,
         .count = HABITS_GUIDE_STEPS,
         .step = &app->habits_guide_step,
         .view_width = view_width,
         .view_height = view_height,
         .reserved_top = habits_screen_top_reserved(app),
-        .reserved_bottom = GetUIBottomNavHeight(),
+        .reserved_bottom = UIGetNodeHeight(UINodeBottomNav((UIBottomNav){0})),
         .max_width = ScaleUIPx(300),
         .paragraph_font = GetUISmallFontSize(),
         .close_icon = app->icons[UI_ICON_TYPE_X],
@@ -2066,7 +2058,7 @@ draw_habit_day_count_label :: (x: int, y: int, w: int, h: int,
 
     snprintf(count_label, sizeof(count_label), "%d", count)
     count_w = MeasureUIText(count_label, count_font)
-    DrawUIText(count_label,
+    UITextNode(count_label,
                   x + (w - count_w) / 2,
                   y + h - count_font - padding,
                   count_font,
@@ -2112,12 +2104,12 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
     }
 
     DrawRectangle(x, y, w, h, fill)
-    DrawUIBevel(x, y, w, h,
+    UIBevelNode(x, y, w, h,
                    LightenUIColor(fill, hovered ? 36 : 28),
                    DarkenUIColor(fill, hovered ? 42 : 34))
 
     text_w = MeasureUIText(label, font)
-    DrawUIText(label,
+    UITextNode(label,
                   x + (w - text_w) / 2,
                   GetUIControlTextY(label, y, h, font),
                   font,
@@ -2156,7 +2148,7 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
         draw_text = fitted
     }
 
-    DrawUIText(draw_text,
+    UITextNode(draw_text,
                   x + (w - MeasureUIText(draw_text, font_size)) / 2,
                   GetUITextY(draw_text, y, h, font_size),
                   font_size,
@@ -2265,7 +2257,7 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
     }
 
     DrawRectangle(x, y, w, h, fill)
-    DrawUIBevel(x, y, w, h,
+    UIBevelNode(x, y, w, h,
                    LightenUIColor(fill, 36),
                    DarkenUIColor(fill, 42))
 
@@ -2440,12 +2432,12 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
         if label_w > 0 {
             DrawRectangle(content_x, y, label_w, row_h,
                              DarkenUIColor(GetThemeBackground(), 5))
-            DrawUIText(day_label,
+            UITextNode(day_label,
                           content_x + ScaleUIPx(8),
                           y + ScaleUIPx(7),
                           day_font,
                           GetThemeText())
-            DrawUIText(date_label,
+            UITextNode(date_label,
                           content_x + ScaleUIPx(8),
                           y + ScaleUIPx(33),
                           date_font,
@@ -2516,7 +2508,7 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
 
             snprintf(count_label, sizeof(count_label), "%d", count)
             count_w = MeasureUIText(count_label, count_font)
-            DrawUIText(count_label,
+            UITextNode(count_label,
                           button_x + button_w - count_w - ScaleUIPx(6),
                           y + ScaleUIPx(5),
                           count_font,
@@ -2531,7 +2523,7 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
     }
 
     y += ScaleUIPx(8)
-    if DrawUIGenericButton(content_x, y, content_w, load_h,
+    if UIGenericButtonNode(0, content_x, y, content_w, load_h,
                            GetLocaleText("habit_load_more_button"),
                            UI_BUTTON_STYLE_SECONDARY,
                            app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS,
@@ -2659,9 +2651,9 @@ draw_habits_screen :: (app: InbeApp*) {
                              content_top * app->camera.zoom),
                        (int)(view_width * app->camera.zoom),
                        (int)(viewport_h * app->camera.zoom))
-        DrawUIText(empty_text, content_x + (content_w - empty_w) / 2,
+        UITextNode(empty_text, content_x + (content_w - empty_w) / 2,
                       empty_y, empty_font, GetThemeText())
-        if DrawUIGenericButton(content_x + (content_w - button_w) / 2,
+        if UIGenericButtonNode(0, content_x + (content_w - button_w) / 2,
                                empty_y + ScaleUIPx(38),
                                button_w, button_h, create_text,
                                UI_BUTTON_STYLE_PRIMARY, 0,
@@ -2785,17 +2777,17 @@ draw_habits_screen :: (app: InbeApp*) {
     }
 
     forward_disabled = app->habits.month_offset >= 0
-    if DrawUIGenericButton(content_x, y, ScaleUIPx(44), month_h, "<",
+    if UIGenericButtonNode(0, content_x, y, ScaleUIPx(44), month_h, "<",
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         app->habits.month_offset--
     }
-    if DrawUIGenericButton(content_x + content_w - ScaleUIPx(44), y,
+    if UIGenericButtonNode(0, content_x + content_w - ScaleUIPx(44), y,
                            ScaleUIPx(44), month_h, ">",
                            UI_BUTTON_STYLE_SECONDARY,
                            forward_disabled, &hover) {
         app->habits.month_offset++
     }
-    DrawUIText(month_label,
+    UITextNode(month_label,
                   content_x +
                       (content_w -
                        MeasureUIText(month_label, UI_TEXT_24)) / 2,

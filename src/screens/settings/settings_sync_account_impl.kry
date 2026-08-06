@@ -60,7 +60,7 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
         link_h = ScaleUIPx(28)
     }
 
-    clicked = DrawUIHref((UIHref){
+    clicked = UIHrefNode((UIHref){
         .bounds = {(float)x, (float)*y, (float)w, (float)link_h},
         .text = text,
         .font = font,
@@ -78,8 +78,8 @@ draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
         return
     }
 
-    field_h = GetUIReadonlyTextBoxHeight(text, font, w, style, 0)
-    DrawUIReadonlyTextBox((UIReadonlyTextBox){
+    field_h = UIGetNodeHeight(UINodeReadonlyTextBox((UIReadonlyTextBox){.bounds = {(float)x, 0, (float)w, 0}, .text = text, .font = font, .style = style}))
+    UIReadonlyTextBoxNode((UIReadonlyTextBox){
         .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
         .text = text,
         .font = font,
@@ -510,7 +510,7 @@ draw_adaptive_button_row :: (row: UIButtonRow, height_out: int*) -> int #private
             button_x := row.x + i * (button_w + gap)
             draw_w := i == count - 1 ? row.x + row.width - button_x : button_w
 
-            if DrawUIGenericButton(button_x, draw_y, draw_w, row.height,
+            if UIGenericButtonNode(0, button_x, draw_y, draw_w, row.height,
                                    row.items[item_index].label,
                                    row.items[item_index].style,
                                    row.items[item_index].disabled,
@@ -589,8 +589,7 @@ config_content_height :: (content_w: int) -> int {
     }
 
     h += ScaleUIPx(18)
-    h += GetUIReadonlyTextBoxHeight(display, GetUISmallFontSize(),
-                                    content_w, text_style(), 0)
+    h += UIGetNodeHeight(UINodeReadonlyTextBox((UIReadonlyTextBox){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
     h += ScaleUIPx(8)
     h += ScaleUIPx(18) + btn_h + ScaleUIPx(12)
     h += btn_h + ScaleUIPx(12)
@@ -623,11 +622,11 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     gap := ScaleUIPx(10)
     hover := 0
 
-    DrawUIText(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
+    UITextNode(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
     *y += ScaleUIPx(26)
 
     if !has_account {
-        if DrawUIGenericButton(x, *y, w, btn_h,
+        if UIGenericButtonNode(0, x, *y, w, btn_h,
                                GetLocaleText("sync_create_account_button"),
                                UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
             create_account(app, &account)
@@ -636,7 +635,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         return
     }
 
-    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+    UITextNode(GetLocaleText("sync_public_id_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
     draw_account_id(app, &account, x, w, y, small_font, text_style())
@@ -730,16 +729,16 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         return
     }
 
-    DrawUIText(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+    UITextNode(GetLocaleText("sync_public_id_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
     draw_account_id(app, &account, x, w, y, small_font, input_style)
     *y += ScaleUIPx(8)
 
-    DrawUIText(GetLocaleText("sync_remote_label"), x, *y, small_font,
+    UITextNode(GetLocaleText("sync_remote_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
-    DrawUITextField((UITextField){
+    UITextFieldNode((UITextField){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
         .text = app->sync_server_url,
         .text_size = sizeof(app->sync_server_url),
@@ -756,7 +755,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
     *y += btn_h + ScaleUIPx(12)
 
-    if DrawUIGenericButton(x, *y, w, btn_h,
+    if UIGenericButtonNode(0, x, *y, w, btn_h,
                            server_connected(app)
                                ? GetLocaleText("sync_connected_button")
                                : GetLocaleText("sync_connect_button"),
@@ -840,7 +839,7 @@ draw_backup_modal :: (app: InbeApp*) -> int {
         .width = ScaleUIPx(336) - ScaleUIPx(36),
     }
     modal_h = ScaleUIPx(58) +
-              GetUIParagraphHeight(warning) +
+              UIGetNodeHeight(UINodeParagraph(warning, 0, 0)) +
               text_button_gap +
               btn_h * 2 + gap +
               pad_bottom
@@ -848,23 +847,23 @@ draw_backup_modal :: (app: InbeApp*) -> int {
         modal_h = ScaleUIPx(224)
     }
 
-    frame = DrawUIModalFrame(ScaleUIPx(336), modal_h,
+    frame = UIModalFrameNode(ScaleUIPx(336), modal_h,
                              GetLocaleText("sync_backup_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
     warning.width = frame.content_w
-    DrawUIParagraph(warning, frame.content_x, &y)
+    UIParagraphNode(warning, frame.content_x, &y)
 
     button_y = y + text_button_gap
     if button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h {
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap
     }
-    if DrawUIGenericButton(frame.content_x, button_y, frame.content_w, btn_h,
+    if UIGenericButtonNode(0, frame.content_x, button_y, frame.content_w, btn_h,
                            GetLocaleText("sync_save_key_file_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
         return start_sync_key_export(app, &account)
     }
-    if DrawUIGenericButton(frame.content_x, button_y + btn_h + gap,
+    if UIGenericButtonNode(0, frame.content_x, button_y + btn_h + gap,
                            frame.content_w, btn_h,
                            GetLocaleText("close_button"),
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
@@ -899,14 +898,14 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     alias_normalize(current_alias)
     has_alias = current_alias[0] != '\0'
 
-    frame = DrawUIModalFrame(ScaleUIPx(336), ScaleUIPx(238),
+    frame = UIModalFrameNode(ScaleUIPx(336), ScaleUIPx(238),
                              GetLocaleText(has_alias
                                             ? "sync_alias_change_title"
                                             : "sync_alias_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    DrawUIText(GetLocaleText(has_alias
+    UITextNode(GetLocaleText(has_alias
                                 ? "sync_alias_change_message"
                                 : "sync_alias_message"),
                   frame.content_x, y, GetUISmallFontSize(),
@@ -914,10 +913,10 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     y += ScaleUIPx(40)
 
     at_w = MeasureUIText("@", GetUIFontSize()) + ScaleUIPx(12)
-    DrawUIText("@", frame.content_x,
+    UITextNode("@", frame.content_x,
                   GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
                   GetUIFontSize(), GetThemeText())
-    DrawUITextField((UITextField){
+    UITextFieldNode((UITextField){
         .bounds = {(float)(frame.content_x + at_w), (float)y,
                    (float)(frame.content_w - at_w), (float)btn_h},
         .text = app->sync_alias_input,
@@ -933,7 +932,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     alias_normalize(app->sync_alias_input)
     y += btn_h + ScaleUIPx(12)
 
-    DrawUIText(GetLocaleText("sync_alias_rule"), frame.content_x, y,
+    UITextNode(GetLocaleText("sync_alias_rule"), frame.content_x, y,
                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
     y += ScaleUIPx(34)
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
@@ -1005,12 +1004,12 @@ draw_public_id_modal :: (app: InbeApp*) -> int {
         return 1
     }
 
-    frame = DrawUIModalFrame(ScaleUIPx(356), ScaleUIPx(218),
+    frame = UIModalFrameNode(ScaleUIPx(356), ScaleUIPx(218),
                              GetLocaleText("sync_public_id_full_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    DrawUIText(GetLocaleText("sync_public_id_full_message"),
+    UITextNode(GetLocaleText("sync_public_id_full_message"),
                   frame.content_x, y, GetUISmallFontSize(),
                   DarkenUIColor(GetThemeText(), 25))
     y += ScaleUIPx(34)

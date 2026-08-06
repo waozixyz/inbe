@@ -45,7 +45,7 @@ settings_about_content_height :: (content_w: int) -> int {
         .color = DarkenUIColor(GetThemeText(), 35)
     }
 
-    return ScaleUIPx(194) + GetUIParagraphHeight(description) +
+    return ScaleUIPx(194) + UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
            about_link_icons_height(content_w)
 }
 
@@ -87,7 +87,7 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
         row := i / columns
         icon_x := links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding
         icon_y := *y + row * (icon_btn_w + row_spacing)
-        DrawUIIconLink(icon_x, icon_y, icon_size, icons[i], urls[i])
+        UIIconLinkNode(0, icon_x, icon_y, icon_size, icons[i], urls[i])
     }
     *y += about_link_icons_height(content_w)
 }
@@ -103,18 +103,18 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     description := (UIParagraph){0}
 
     *y += ScaleUIPx(16)
-    DrawUIIconTexture(x + (w - logo_size) / 2, *y, logo_size,
+    UIIconTextureNode(0, x + (w - logo_size) / 2, *y, logo_size,
                          app->icons[UI_ICON_TYPE_APP], WHITE)
     *y += logo_size + ScaleUIPx(12)
 
     text_w = MeasureUIText(GetLocaleText("app_title"), title_font)
-    DrawUIText(GetLocaleText("app_title"), x + (w - text_w) / 2,
+    UITextNode(GetLocaleText("app_title"), x + (w - text_w) / 2,
                   *y, title_font, GetThemeText())
     *y += ScaleUIPx(34)
 
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
     text_w = MeasureUIText(version_text, small_font)
-    DrawUIText(version_text, x + (w - text_w) / 2, *y, small_font, muted)
+    UITextNode(version_text, x + (w - text_w) / 2, *y, small_font, muted)
     *y += ScaleUIPx(28)
 
     description = (UIParagraph){
@@ -124,7 +124,7 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         .line_gap = ScaleUIPx(4),
         .color = muted
     }
-    DrawUIParagraph(description, x, y)
+    UIParagraphNode(description, x, y)
     *y += ScaleUIPx(18)
 
     about_draw_link_icons(app, x, w, y)

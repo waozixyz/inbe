@@ -309,15 +309,6 @@ A propos
 [about_text]
 Un compagnon discret pour la respiration, les habitudes et la synchronisation.
 ---
-[theme_label]
-Thème
----
-[theme_mode_label]
-Mode du theme
----
-[theme_follow_device]
-Systeme
----
 [speed_label]
 Vitesse
 ---
@@ -371,6 +362,30 @@ Volume des repères
 ---
 [cue_volume_test_button]
 Tester le repère
+---
+[cue_volume_playing_label]
+Lecture...
+---
+[audio_output_label]
+Sortie audio
+---
+[audio_system_default_label]
+Sortie système par défaut
+---
+[audio_status_ready]
+Prêt
+---
+[audio_status_unavailable]
+Indisponible
+---
+[audio_test_output_button]
+Tester la sortie
+---
+[audio_reinitialize_button]
+Réinitialiser l'audio
+---
+[audio_output_level_label]
+Niveau de sortie
 ---
 [music_volume_label]
 Volume de la musique
@@ -453,12 +468,6 @@ DÉSACTIVÉ
 [toggle_on]
 ACTIVÉ
 ---
-[theme_light]
-Clair
----
-[theme_dark]
-Sombre
----
 [on_screen_keyboard_label]
 Clavier à l'écran
 ---
@@ -508,51 +517,6 @@ Effacer
 ---
 [meditation_music_attribution]
 Musique par Elijah_K.
----
-[theme_system]
-Système
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palette
----
-[theme_sky]
-Ciel
----
-[theme_ocean]
-Ocean
----
-[theme_forest]
-Foret
----
-[theme_sunset]
-Coucher de soleil
----
-[theme_lavender]
-Lavande
----
-[theme_cherry]
-Cerise
----
-[theme_dawn]
-Aube
----
-[theme_sage]
-Sauge
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Menthe
----
-[theme_cobalt]
-Cobalt
 ---
 [orientation_label]
 Orientation

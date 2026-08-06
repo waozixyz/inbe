@@ -5,6 +5,7 @@
 #import "practices/whm/whm_practice.h"
 #import "practices/whm/whm_session.h"
 #import "screens/practice_screen.h"
+#import "src/screens/settings/settings_ui.h"
 #import "theme.h"
 #import "ui.h"
 
@@ -71,7 +72,7 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
     })
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180})
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface())
-    DrawUIBevel(modal_x, modal_y, modal_w, modal_h,
+    UIBevelNode(modal_x, modal_y, modal_w, modal_h,
                    LightenUIColor(GetThemeSurface(), 40),
                    DarkenUIColor(GetThemeSurface(), 40))
 
@@ -82,10 +83,10 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
         title_font--
         title_w = MeasureUIText(title, title_font)
     }
-    DrawUIText(title, modal_x + (modal_w - title_w) / 2, title_y,
+    UITextNode(title, modal_x + (modal_w - title_w) / 2, title_y,
                   title_font, GetThemeText())
 
-    if DrawUIPaddedIconBtn(modal_x + modal_w - close_w - ScaleUIPx(6),
+    if UIPaddedIconBtnNode(0, modal_x + modal_w - close_w - ScaleUIPx(6),
                            modal_y + ScaleUIPx(6), close_size, close_padding,
                            app->icons[UI_ICON_TYPE_X], &close_hover) {
         app_close_modal(app)
@@ -103,7 +104,7 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
                                     modal_x + modal_w / 2,
                                     modal_y + ScaleUIPx(150))
 
-    if DrawUISlider(12, modal_x + ScaleUIPx(24), modal_y + ScaleUIPx(250),
+    if UISliderNode(12, modal_x + ScaleUIPx(24), modal_y + ScaleUIPx(250),
                     modal_w - ScaleUIPx(48),
                     GetLocaleText("progressive_start_speed_label"),
                     SETTINGS_SPEED_MIN, max_speed, &start_speed, "") {
@@ -124,7 +125,7 @@ whm_draw_subtab_bar :: (y: int, h: int, tab_names: const char**,
         tabs[i].label = tab_names[i]
         tabs[i].disabled = 0
     }
-    return DrawUISubtabBar((UISubtabBar){
+    return UISubtabBarNode((UISubtabBar){
         .bounds = {0, (float)y, (float)view_width, (float)h},
         .tabs = tabs,
         .count = tab_count,
@@ -153,12 +154,19 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
                                         InbeBreathAnimationLinear,
                                         InbeBreathAnimationCount - 1)
 
-    DrawUIText(GetLocaleText("breath_animation_label"), content_x, y,
+    UITextNode(GetLocaleText("breath_animation_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
-    DrawUIDropdownButton(104, content_x, y + ScaleUIPx(26), content_w,
+    if UIDropdownNode(104, content_x, y + ScaleUIPx(26), content_w,
                             ScaleUIPx(36), animation_options,
                             InbeBreathAnimationCount,
-                            &app->inbe.breath_animation)
+                            &app->inbe.breath_animation) {
+        app->inbe.breath_animation = clampi(app->inbe.breath_animation,
+                                            InbeBreathAnimationLinear,
+                                            InbeBreathAnimationCount - 1)
+        app->settings_preview.breath_animation = app->inbe.breath_animation
+        app->settings_preview.progressive_speed = 0
+        app->settings_dirty = 1
+    }
     if draw_breath_animation_menu != nil {
         *draw_breath_animation_menu = 1
     }
@@ -180,7 +188,7 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
     preview_radius = (int)((float)app->settings_preview.rmax * 0.72f + 1.0f)
     draw_preview_inbe(&app->settings_preview, content_x + content_w / 2,
                          y + preview_padding + preview_radius)
-    if DrawUISlider(1, content_x, y + preview_padding + preview_radius * 2 +
+    if UISliderNode(1, content_x, y + preview_padding + preview_radius * 2 +
                        ScaleUIPx(28), content_w, GetLocaleText("speed_label"),
                     SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "") {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
@@ -191,9 +199,9 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += preview_padding + preview_radius * 2 + ScaleUIPx(102)
 
-    DrawUIText(GetLocaleText("progressive_speed_label"), content_x, y,
+    UITextNode(GetLocaleText("progressive_speed_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
-    if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
+    if UIToggleNode(0, content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
                           &progressive_speed, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->inbe.progressive_speed = progressive_speed
@@ -218,7 +226,7 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
                 app->inbe.progressive_start_speed
             app->settings_dirty = 1
         }
-        if DrawUIGenericButton(content_x, y, modify_w, ScaleUIPx(36),
+        if UIGenericButtonNode(0, content_x, y, modify_w, ScaleUIPx(36),
                                GetLocaleText("modify_start_speed_button"),
                                UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover) {
             app_open_modal(app, UIModalEditProgressiveStartSpeed)
@@ -245,11 +253,13 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
                              GetUIFontSize()) + ScaleUIPx(24)
     reset_h := ScaleUIPx(36)
     reset_hover := 0
-    cue_test_label := GetLocaleText("cue_volume_test_button")
+    cue_test_label := app_bell_cue_playing(app) ?
+        GetLocaleText("cue_volume_playing_label") :
+        GetLocaleText("cue_volume_test_button")
     cue_test_w := MeasureUIText(cue_test_label, GetUIFontSize()) + ScaleUIPx(24)
     cue_test_hover := 0
 
-    if DrawUISlider(2, content_x, y, content_w, GetLocaleText("max_rounds_label"),
+    if UISliderNode(2, content_x, y, content_w, GetLocaleText("max_rounds_label"),
                     1, MaxRounds, &max_rounds, "") {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
@@ -258,7 +268,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(66)
 
-    if DrawUISlider(3, content_x, y, content_w, GetLocaleText("max_breaths_label"),
+    if UISliderNode(3, content_x, y, content_w, GetLocaleText("max_breaths_label"),
                     SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX,
                     &max_breaths, "") {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
@@ -268,7 +278,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(66)
 
-    if DrawUISlider(4, content_x, y, content_w,
+    if UISliderNode(4, content_x, y, content_w,
                     GetLocaleText("pause_after_round_label"),
                     SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX,
                     &pause_seconds, "s") {
@@ -279,7 +289,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(66)
 
-    if DrawUISlider(6, content_x, y, content_w,
+    if UISliderNode(6, content_x, y, content_w,
                     GetLocaleText("cue_volume_label"),
                     SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
                     &sound_volume, "") {
@@ -291,16 +301,19 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     if cue_test_w > content_w {
         cue_test_w = content_w
     }
-    if DrawUIGenericButton(content_x, y, cue_test_w, reset_h,
+    if UIGenericButtonNode(0, content_x, y, cue_test_w, reset_h,
                            cue_test_label, UI_BUTTON_STYLE_SECONDARY,
                            0, &cue_test_hover) {
         app_play_bell_cue(app, 1.0f)
     }
-    y += reset_h + ScaleUIPx(28)
+    y += reset_h + ScaleUIPx(10)
+    y += settings_ui_draw_audio_meter(app, content_x, y, content_w,
+                                      GetLocaleText("audio_output_level_label"))
+    y += ScaleUIPx(18)
 
-    DrawUIText(GetLocaleText("double_tap_to_breathe_label"), content_x, y,
+    UITextNode(GetLocaleText("double_tap_to_breathe_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
-    if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
+    if UIToggleNode(0, content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
                           &double_tap_to_breathe, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->double_tap_to_breathe = double_tap_to_breathe
@@ -308,9 +321,9 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(76)
 
-    DrawUIText(GetLocaleText("advanced_session_controls_label"), content_x, y,
+    UITextNode(GetLocaleText("advanced_session_controls_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
-    if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
+    if UIToggleNode(0, content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
                           &advanced_session_controls, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->advanced_session_controls = advanced_session_controls
@@ -318,9 +331,9 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     }
     y += ScaleUIPx(76)
 
-    DrawUIText(GetLocaleText("retention_marker_label"), content_x, y,
+    UITextNode(GetLocaleText("retention_marker_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
-    if DrawUIToggleSwitch(content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
+    if UIToggleNode(0, content_x, y + ScaleUIPx(26), toggle_w, toggle_h,
                           &retention_marker_enabled, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->retention_marker_enabled = retention_marker_enabled
@@ -332,7 +345,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     if reset_w > content_w {
         reset_w = content_w
     }
-    if DrawUIGenericButton(content_x + content_w - reset_w, y, reset_w, reset_h,
+    if UIGenericButtonNode(0, content_x + content_w - reset_w, y, reset_w, reset_h,
                            GetLocaleText("reset_to_defaults_label"),
                            UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover) {
         speed = DefaultSpeedLevel
@@ -462,19 +475,6 @@ whm_config_screen_draw :: (app: InbeApp*) {
                                                    &y, 1, 1)
     }
     EndUIScrollPage(page)
-
-    if app->practice_config_tab == 2 {
-        meditation_music_draw_dropdown_menu(app)
-    }
-
-    if draw_breath_animation_menu && DrawUIDropdownMenu(104) {
-        app->inbe.breath_animation = clampi(app->inbe.breath_animation,
-                                            InbeBreathAnimationLinear,
-                                            InbeBreathAnimationCount - 1)
-        app->settings_preview.breath_animation = app->inbe.breath_animation
-        app->settings_preview.progressive_speed = 0
-        app->settings_dirty = 1
-    }
 
     if app->modal.active && app->modal.type == UIModalEditProgressiveStartSpeed {
         whm_draw_progressive_start_speed_editor(app)

@@ -35,14 +35,14 @@ draw_intro_page :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #pri
     img_h := ScaleUIPx(190)
     paragraph := (UIParagraph){0}
 
-    DrawUITutorialImage(app->meditation.image_1,
+    UITutorialImageNode(app->meditation.image_1,
                            "practices/meditation/1.png",
                            content_x, *y, content_w, img_h)
     *y += img_h + ScaleUIPx(22)
 
     paragraph = manual_screen_tutorial_paragraph(
         GetLocaleText("meditation_manual_intro_text"), content_w)
-    DrawUIParagraph(paragraph, content_x, y)
+    UIParagraphNode(paragraph, content_x, y)
 }
 
 intro_page_height :: (content_w: int) -> int #private {
@@ -50,7 +50,7 @@ intro_page_height :: (content_w: int) -> int #private {
         GetLocaleText("meditation_manual_intro_text"), content_w)
 
     return ScaleUIPx(190) + ScaleUIPx(22) +
-           GetUIParagraphHeight(paragraph) + ScaleUIPx(20)
+           UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0)) + ScaleUIPx(20)
 }
 
 meditation_manual_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {

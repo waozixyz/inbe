@@ -79,9 +79,9 @@ profile_draw_stat_row :: (x: int, w: int, y: int*, label: const char*,
     small_font := GetUISmallFontSize()
     value_w := 0
 
-    DrawUIText(label, x, *y, small_font, DarkenUIColor(GetThemeText(), 35))
+    UITextNode(label, x, *y, small_font, DarkenUIColor(GetThemeText(), 35))
     value_w = MeasureUIText(value, font)
-    DrawUIText(value, x + w - value_w, *y - ScaleUIPx(2), font,
+    UITextNode(value, x + w - value_w, *y - ScaleUIPx(2), font,
                   GetThemeText())
     *y += ScaleUIPx(28)
 }
@@ -124,7 +124,7 @@ profile_draw_tab_dropdown :: (app: InbeApp*, y: int, w: int) -> int {
     dropdown_w := 0
     dropdown_x := 0
     dropdown_h := ScaleUIPx(36)
-    dropdown_y := y + (GetUITabBarHeight() - dropdown_h) / 2
+    dropdown_y := y + (UIGetNodeHeight(UINodeTabBar((UITabBar){0})) - dropdown_h) / 2
 
     if app == nil {
         return -1
@@ -145,7 +145,7 @@ profile_draw_tab_dropdown :: (app: InbeApp*, y: int, w: int) -> int {
     }
     dropdown_x = (w - dropdown_w) / 2
 
-    DrawUIDropdownButton(812, dropdown_x, dropdown_y, dropdown_w,
+    UIDropdownNode(812, dropdown_x, dropdown_y, dropdown_w,
                             dropdown_h, options, PROFILE_TAB_COUNT,
                             &app->profile_tab)
     return selected
@@ -160,7 +160,7 @@ profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
     }
 
     inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), max_w, font)
-    DrawUIText(fitted, x, y, font, color)
+    UITextNode(fitted, x, y, font, color)
 }
 
 profile_draw_data :: (app: InbeApp*, x: int, w: int, y: int*) {
@@ -193,7 +193,7 @@ profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
         if stack_rows {
             row_y += ScaleUIPx(36)
         }
-        if DrawUIGenericButton(stack_rows ? x : x + w - btn_w * 2 - gap,
+        if UIGenericButtonNode(0, stack_rows ? x : x + w - btn_w * 2 - gap,
                                row_y, btn_w, btn_h,
                                GetLocaleText("move_up_button"),
                                UI_BUTTON_STYLE_SECONDARY, i == 0,
@@ -203,7 +203,7 @@ profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
             }
             return
         }
-        if DrawUIGenericButton(stack_rows ? x + btn_w + gap : x + w - btn_w,
+        if UIGenericButtonNode(0, stack_rows ? x + btn_w + gap : x + w - btn_w,
                                row_y, btn_w, btn_h,
                                GetLocaleText("move_down_button"),
                                UI_BUTTON_STYLE_SECONDARY,
@@ -218,7 +218,7 @@ profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 
     if app->habits.count <= 0 {
-        DrawUIText(GetLocaleText("habit_empty_title"), x, *y, small,
+        UITextNode(GetLocaleText("habit_empty_title"), x, *y, small,
                       DarkenUIColor(GetThemeText(), 35))
     }
 }
@@ -237,7 +237,7 @@ profile_screen_draw_remove_friend_modal :: (app: InbeApp*) {
                 app->profile_pending_friend_remove_name[0] != '\0'
                     ? app->profile_pending_friend_remove_name
                     : "this friend")
-    modal_result = DrawUIModal(GetLocaleText("profile_friend_remove_title"),
+    modal_result = UIModalNode(GetLocaleText("profile_friend_remove_title"),
                                message,
                                GetLocaleText("cancel_button"),
                                GetLocaleText("delete_button"))
@@ -268,9 +268,9 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         return 0
     }
 
-    header_h := GetUITitleBarHeight()
+    header_h := UIGetNodeHeight(UINodeTitleBar(0))
     selector_y := header_h + ScaleUIPx(8)
-    content_y := selector_y + GetUITabBarHeight()
+    content_y := selector_y + UIGetNodeHeight(UINodeTabBar((UITabBar){0}))
     content_h := view_height - content_y - app_content_bottom_reserved(app)
     page := (UIScrollPage){0}
     y := 0
@@ -307,6 +307,7 @@ profile_screen_draw :: (app: InbeApp*) -> int {
 
     previous_tab = profile_draw_tab_dropdown(app, selector_y, view_width)
     if app->profile_tab != previous_tab {
+        app->profile_view = PROFILE_VIEW_MAIN
         app->profile_scroll = 0
         if app->profile_tab == PROFILE_TAB_FRIENDS {
             profile_social_load_friends_cache(app)
@@ -349,19 +350,11 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     EndUIScrollPage(page)
     SetUIDropdownClipTop(content_y)
     SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-    if DrawUIDropdownMenu(812) {
-        app->profile_view = PROFILE_VIEW_MAIN
-        app->profile_scroll = 0
-    }
     SetUIDropdownClipTop(0)
     SetUIDropdownClipBottom(0)
     if app->profile_view == PROFILE_VIEW_MAIN && (app->profile_tab == PROFILE_TAB_LEADERBOARD || app->profile_tab == PROFILE_TAB_FRIENDS) {
         SetUIDropdownClipTop(content_y)
         SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-        if DrawUIDropdownMenu(811) {
-            profile_social_load_leaderboard_cache(app)
-            app->profile_scroll = 0
-        }
         SetUIDropdownClipTop(0)
         SetUIDropdownClipBottom(0)
     }

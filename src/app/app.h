@@ -330,6 +330,8 @@ struct InbeApp {
     Sound breath_out_sound;
     Sound bell_sound;
     int audio_ready;
+    int audio_meter_attached;
+    float audio_meter_level;
     int sound_volume;
     int music_volume;
     int retention_marker_enabled;
@@ -475,6 +477,9 @@ int app_should_use_tab_bar(const InbeApp *app);
 void app_play_breath_cue(InbeApp *app, int dir);
 void app_play_bell_cue(InbeApp *app, float scale);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
+int app_audio_reinitialize(InbeApp *app);
+float app_audio_output_level(InbeApp *app);
+int app_bell_cue_playing(InbeApp *app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 

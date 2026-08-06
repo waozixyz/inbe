@@ -312,60 +312,6 @@ About
 [about_text]
 A quiet breathing companion for practice, habits, and sync.
 ---
-[theme_label]
-Theme
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
-[theme_system]
-System
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palette
----
-[theme_sky]
-Sky
----
-[theme_ocean]
-Ocean
----
-[theme_forest]
-Forest
----
-[theme_sunset]
-Sunset
----
-[theme_lavender]
-Lavender
----
-[theme_cherry]
-Cherry
----
-[theme_dawn]
-Dawn
----
-[theme_sage]
-Sage
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Mint
----
-[theme_cobalt]
-Cobalt
----
 [orientation_label]
 Orientation
 ---
@@ -434,6 +380,30 @@ Cue volume
 ---
 [cue_volume_test_button]
 Test cue
+---
+[cue_volume_playing_label]
+Playing...
+---
+[audio_output_label]
+Audio output
+---
+[audio_system_default_label]
+System default output
+---
+[audio_status_ready]
+Ready
+---
+[audio_status_unavailable]
+Unavailable
+---
+[audio_test_output_button]
+Test output
+---
+[audio_reinitialize_button]
+Reinitialize audio
+---
+[audio_output_level_label]
+Output level
 ---
 [music_volume_label]
 Music volume
@@ -515,12 +485,6 @@ OFF
 ---
 [toggle_on]
 ON
----
-[theme_light]
-Light
----
-[theme_dark]
-Dark
 ---
 [on_screen_keyboard_label]
 On-screen keyboard

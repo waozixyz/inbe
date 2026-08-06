@@ -97,11 +97,11 @@ draw_round_line :: (line_text: const char*, seconds_text: const char*,
     text_y = GetUIControlTextY(line_text, y, h, font)
     draw_x = x
 
-    DrawUIText(prefix, draw_x, text_y, font, GetThemeText())
+    UITextNode(prefix, draw_x, text_y, font, GetThemeText())
     draw_x += MeasureUIText(prefix, font)
-    DrawUIText(seconds_text, draw_x, text_y, font, GetThemeButtonHover())
+    UITextNode(seconds_text, draw_x, text_y, font, GetThemeButtonHover())
     draw_x += MeasureUIText(seconds_text, font)
-    DrawUIText(suffix, draw_x, text_y, font, GetThemeText())
+    UITextNode(suffix, draw_x, text_y, font, GetThemeText())
 }
 
 delete_round :: (entry: const HabitLinkedEntry*, round: int) -> int #private {
@@ -253,7 +253,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
 
     if ctx->count <= 0 {
         if draw {
-            DrawUIText(GetLocaleText("no_sessions"), content_x, y,
+            UITextNode(GetLocaleText("no_sessions"), content_x, y,
                           GetUIFontSize(), GetThemeText())
         }
         return y + row_h
@@ -273,7 +273,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
         }
 
         if draw {
-            DrawUIText(practice_activity_label(activity), content_x, y,
+            UITextNode(practice_activity_label(activity), content_x, y,
                           section_font, DarkenUIColor(GetThemeText(), 12))
         }
         y += section_h
@@ -316,15 +316,15 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
             }
 
             if draw {
-                DrawUIText(time_text, content_x,
+                UITextNode(time_text, content_x,
                               GetUIControlTextY(time_text, y, row_h,
                                                 row_font),
                               row_font, GetThemeText())
-                DrawUIText(summary_text, summary_x,
+                UITextNode(summary_text, summary_x,
                               GetUIControlTextY(summary_text, y, row_h,
                                                 row_font),
                               row_font, DarkenUIColor(GetThemeText(), 12))
-                if DrawUIPaddedIconBtn(trash_x, y - ScaleUIPx(4),
+                if UIPaddedIconBtnNode(0, trash_x, y - ScaleUIPx(4),
                                        icon_size, icon_padding,
                                        app->icons[UI_ICON_TYPE_TRASH],
                                        &hover_trash) {
@@ -377,7 +377,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                     draw_round_line(round_line, round_seconds, round_text_x,
                                        y, round_text_w, ScaleUIPx(24),
                                        row_font, editing_round)
-                    if DrawUIPaddedIconBtn(round_edit_x, y - ScaleUIPx(6),
+                    if UIPaddedIconBtnNode(0, round_edit_x, y - ScaleUIPx(6),
                                            icon_size, icon_padding,
                                            app->icons[editing_round
                                                       ? UI_ICON_TYPE_SAVE
@@ -392,7 +392,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                         }
                         return y
                     }
-                    if DrawUIPaddedIconBtn(round_trash_x, y - ScaleUIPx(6),
+                    if UIPaddedIconBtnNode(0, round_trash_x, y - ScaleUIPx(6),
                                            icon_size, icon_padding,
                                            app->icons[UI_ICON_TYPE_TRASH],
                                            &hover_round_trash) {
@@ -432,7 +432,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
             if draw {
                 FormatLocaleText(total_text, sizeof(total_text),
                                     "habit_session_total_count", total_count)
-                if DrawUIGenericButton(minus_x, y, step_w, button_h, "-",
+                if UIGenericButtonNode(0, minus_x, y, step_w, button_h, "-",
                                        UI_BUTTON_STYLE_SECONDARY,
                                        total_count <= minimum_count, &hover) {
                     habit_apply_count_action(app, app->habit_detail_index,
@@ -443,11 +443,11 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                 }
                 DrawRectangle(label_x, y, label_w, button_h,
                                  DarkenUIColor(GetThemeBackground(), 5))
-                DrawUIText(total_text, label_x + ScaleUIPx(8),
+                UITextNode(total_text, label_x + ScaleUIPx(8),
                               GetUIControlTextY(total_text, y, button_h,
                                                 GetUISmallFontSize()),
                               GetUISmallFontSize(), GetThemeText())
-                if DrawUIGenericButton(plus_x, y, step_w, button_h, "+",
+                if UIGenericButtonNode(0, plus_x, y, step_w, button_h, "+",
                                        UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                                 ctx->day_filter, 1,
@@ -534,7 +534,7 @@ keyboard_key :: (x: int, y: int, w: int, h: int,
                     label: const char*) -> int {
     hover := 0
 
-    return DrawUIGenericButton(x, y, w, h, label,
+    return UIGenericButtonNode(0, x, y, w, h, label,
                                UI_BUTTON_STYLE_SECONDARY, 0, &hover)
 }
 

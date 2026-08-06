@@ -306,60 +306,6 @@ Finish
 [about_text]
 호흡, 습관, 동기화를 위한 조용한 동반자입니다.
 ---
-[theme_label]
-테마
----
-[theme_mode_label]
-테마 모드
----
-[theme_follow_device]
-시스템
----
-[theme_system]
-시스템
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-팔레트
----
-[theme_sky]
-하늘
----
-[theme_ocean]
-바다
----
-[theme_forest]
-숲
----
-[theme_sunset]
-노을
----
-[theme_lavender]
-라벤더
----
-[theme_cherry]
-체리
----
-[theme_dawn]
-새벽
----
-[theme_sage]
-세이지
----
-[theme_sepia]
-세피아
----
-[theme_mono]
-모노
----
-[theme_mint]
-민트
----
-[theme_cobalt]
-코발트
----
 [orientation_label]
 화면 방향
 ---
@@ -428,6 +374,30 @@ Inner Breeze
 ---
 [cue_volume_test_button]
 안내음 테스트
+---
+[cue_volume_playing_label]
+재생 중...
+---
+[audio_output_label]
+오디오 출력
+---
+[audio_system_default_label]
+시스템 기본 출력
+---
+[audio_status_ready]
+준비됨
+---
+[audio_status_unavailable]
+사용 불가
+---
+[audio_test_output_button]
+출력 테스트
+---
+[audio_reinitialize_button]
+오디오 다시 초기화
+---
+[audio_output_level_label]
+출력 레벨
 ---
 [music_volume_label]
 음악 음량
@@ -509,12 +479,6 @@ Inner Breeze
 ---
 [toggle_on]
 켜짐
----
-[theme_light]
-라이트
----
-[theme_dark]
-다크
 ---
 [on_screen_keyboard_label]
 화면 키보드
@@ -810,8 +774,6 @@ Description
 ---
 [theme_picker_title]
 테마 선택
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

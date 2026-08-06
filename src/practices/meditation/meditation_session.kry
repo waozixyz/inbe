@@ -283,7 +283,7 @@ format_time :: (dst: char*, dst_size: size_t, seconds: int) #private {
 draw_duration_button :: (x: int, y: int, w: int, h: int,
                         label: const char*) -> int #private {
     hover := 0
-    return DrawUIGenericButton(x, y, w, h, label,
+    return UIGenericButtonNode(0, x, y, w, h, label,
                                UI_BUTTON_STYLE_PRIMARY, 0, &hover)
 }
 
@@ -350,7 +350,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
     })
     DrawRectangle(0, 0, view_width, view_height, (Color){0, 0, 0, 180})
     DrawRectangle(modal_x, modal_y, modal_w, modal_h, GetThemeSurface())
-    DrawUIBevel(modal_x,
+    UIBevelNode(modal_x,
                    modal_y,
                    modal_w,
                    modal_h,
@@ -360,7 +360,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
     title_font = GetUITitleFontSize(GetLocaleText("meditation_title"),
                                     modal_w - side * 2)
     title_w = MeasureUIText(GetLocaleText("meditation_title"), title_font)
-    DrawUIText(GetLocaleText("meditation_title"),
+    UITextNode(GetLocaleText("meditation_title"),
                   modal_x + (modal_w - title_w) / 2,
                   modal_y + ScaleUIPx(16),
                   title_font,
@@ -387,7 +387,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
 
     cancel_y = modal_y + modal_h - btn_h - ScaleUIPx(16)
     cancel_x = modal_x + (modal_w - cancel_w) / 2
-    if DrawUIGenericButton(cancel_x,
+    if UIGenericButtonNode(0, cancel_x,
                            cancel_y,
                            cancel_w,
                            btn_h,
@@ -400,9 +400,9 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
 }
 
 draw_sound_controls :: (app: InbeApp*) #private {
-    title_h := GetUITitleBarHeight()
+    title_h := UIGetNodeHeight(UINodeTitleBar(0))
 
-    if DrawUIIconSliderPopup((UIIconSliderPopup){
+    if UIIconSliderPopupNode((UIIconSliderPopup){
         .id = 501,
         .x = view_width - ScaleUIPx(76),
         .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
@@ -444,7 +444,7 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
     }
 
     for int i = 0; i < 3; i++ {
-        if DrawUIGenericButton(x + i * (btn_w + gap),
+        if UIGenericButtonNode(0, x + i * (btn_w + gap),
                                y,
                                btn_w,
                                btn_h,
@@ -467,7 +467,7 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
             finish_x = view_width - ScaleUIPx(12) - finish_w
         }
 
-        if DrawUIGenericButton(finish_x,
+        if UIGenericButtonNode(0, finish_x,
                                finish_y,
                                finish_w,
                                btn_h,
@@ -485,7 +485,7 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     font := UI_TEXT_24
     max_w: int
     text_w: int
-    title_h := GetUITitleBarHeight()
+    title_h := UIGetNodeHeight(UINodeTitleBar(0))
 
     if app_draw_close_title_bar(app, GetLocaleText("meditation_title"), title_h) {
         meditation_request_exit(app)
@@ -504,7 +504,7 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         font = UI_TEXT_16
     }
     text_w = MeasureUIText(time_text, font)
-    DrawUIText(time_text,
+    UITextNode(time_text,
                   center_x - text_w / 2,
                   GetUIControlTextY(time_text,
                                     center_y - font,

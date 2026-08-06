@@ -2,6 +2,7 @@
 
 #import "app.h"
 #import "locale.h"
+#import "theme.h"
 #import "ui.h"
 
 label_paragraph :: (label: const char*, w: int) -> UIParagraph #private {
@@ -13,7 +14,7 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         w = ScaleUIPx(160)
     }
 
-    label_h := GetUIParagraphHeight(label_paragraph(label, w))
+    label_h := UIGetNodeHeight(UINodeParagraph(label_paragraph(label, w), 0, 0))
     row_h := label_h + ScaleUIPx(8) + ScaleUIPx(30) + ScaleUIPx(22)
     if row_h < ScaleUIPx(76) {
         row_h = ScaleUIPx(76)
@@ -28,10 +29,10 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
 
     row_h := toggle_row_height(label, w)
     label_y := *y
-    DrawUIParagraph(label_paragraph(label, w), x, &label_y)
+    UIParagraphNode(label_paragraph(label, w), x, &label_y)
     label_h := label_y - *y
 
-    if DrawUIToggleSwitch(x, *y + label_h + ScaleUIPx(8), ScaleUIPx(56), ScaleUIPx(30), value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+    if UIToggleNode(0, x, *y + label_h + ScaleUIPx(8), ScaleUIPx(56), ScaleUIPx(30), value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
         *y += row_h
         return 1
     }
@@ -58,7 +59,7 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
         return 0
     }
 
-    changed := DrawUISlider(id, x, *y, w, label, min, max, value, suffix)
+    changed := UISliderNode(id, x, *y, w, label, min, max, value, suffix)
     if changed && app != NULL {
         app->settings_dirty = 1
         if save_now {
@@ -67,4 +68,37 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
     }
     *y += row_h
     return changed
+}
+
+draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
+    label_font := UI_TEXT_12
+    bar_h := ScaleUIPx(10)
+    label_h := ScaleUIPx(18)
+    level := app_audio_output_level(app)
+    fill_w := (int)(level * (float)w)
+    bg := GetThemeBackground()
+
+    if w <= 0 {
+        return ScaleUIPx(34)
+    }
+    if fill_w < 0 {
+        fill_w = 0
+    }
+    if fill_w > w {
+        fill_w = w
+    }
+
+    UITextNode(label, x, y, label_font, DarkenUIColor(GetThemeText(), 28))
+    DrawRectangle(x, y + label_h, w, bar_h, DarkenUIColor(bg, 28))
+    UIBevelNode(x, y + label_h, w, bar_h,
+                DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
+    if fill_w > 0 {
+        inner_w := fill_w - ScaleUIPx(4)
+        if inner_w < ScaleUIPx(2) {
+            inner_w = ScaleUIPx(2)
+        }
+        DrawRectangle(x + ScaleUIPx(2), y + label_h + ScaleUIPx(2),
+                      inner_w, bar_h - ScaleUIPx(4), GetThemeButtonHover())
+    }
+    return label_h + bar_h + ScaleUIPx(8)
 }

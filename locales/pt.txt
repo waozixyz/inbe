@@ -306,15 +306,6 @@ Sobre
 [about_text]
 Um companheiro tranquilo para respiracao, habitos e sincronizacao.
 ---
-[theme_label]
-Tema
----
-[theme_mode_label]
-Modo do tema
----
-[theme_follow_device]
-Sistema
----
 [speed_label]
 Velocidade
 ---
@@ -368,6 +359,30 @@ Volume dos sinais
 ---
 [cue_volume_test_button]
 Testar sinal
+---
+[cue_volume_playing_label]
+Reproduzindo...
+---
+[audio_output_label]
+Saída de áudio
+---
+[audio_system_default_label]
+Saída padrão do sistema
+---
+[audio_status_ready]
+Pronta
+---
+[audio_status_unavailable]
+Indisponível
+---
+[audio_test_output_button]
+Testar saída
+---
+[audio_reinitialize_button]
+Reiniciar áudio
+---
+[audio_output_level_label]
+Nível de saída
 ---
 [music_volume_label]
 Volume da música
@@ -450,12 +465,6 @@ DESLIGADO
 [toggle_on]
 LIGADO
 ---
-[theme_light]
-Claro
----
-[theme_dark]
-Escuro
----
 [on_screen_keyboard_label]
 Teclado na tela
 ---
@@ -505,51 +514,6 @@ Limpar
 ---
 [meditation_music_attribution]
 Música por Elijah_K.
----
-[theme_system]
-Sistema
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Paleta
----
-[theme_sky]
-Ceu
----
-[theme_ocean]
-Oceano
----
-[theme_forest]
-Floresta
----
-[theme_sunset]
-Por do sol
----
-[theme_lavender]
-Lavanda
----
-[theme_cherry]
-Cereja
----
-[theme_dawn]
-Amanhecer
----
-[theme_sage]
-Salvia
----
-[theme_sepia]
-Sepia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Menta
----
-[theme_cobalt]
-Cobalto
 ---
 [orientation_label]
 Orientação
@@ -811,8 +775,6 @@ Transição
 ---
 [theme_picker_title]
 Escolher tema
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

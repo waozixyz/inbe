@@ -106,7 +106,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
     snprintf(page_label, sizeof(page_label), "%d / %d", page + 1, nav.page_count)
     DrawCenteredUIControlText(page_label, view_width / 2, nav.y + nav.h / 2, page_font, GetThemeText())
     if page > 0 || nav.show_left_on_first {
-        if DrawUIIconButton((UIIconButton){
+        if UIIconButtonNode((UIIconButton){
             .bounds = {
                 (float)side_pad,
                 (float)button_y,
@@ -127,7 +127,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
         }
     }
 
-    if DrawUIIconButton((UIIconButton){
+    if UIIconButtonNode((UIIconButton){
         .bounds = {
             (float)(view_width - side_pad - button_size),
             (float)button_y,

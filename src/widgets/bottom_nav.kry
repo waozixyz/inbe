@@ -143,7 +143,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
                 route := routes[i]
                 items[i] = (UIBottomNavItem){route, bottom_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
             }
-            result = DrawUIBottomNav((UIBottomNav){.view_width = view_width, .view_height = view_height, .bottom_margin = app_android_bottom_nav_height(), .count = route_count, .items = items})
+            result = UIBottomNavNode((UIBottomNav){.view_width = view_width, .view_height = view_height, .bottom_margin = app_android_bottom_nav_height(), .count = route_count, .items = items})
             if result.clicked_route != APP_NAV_ROUTE_NONE {
                 app_apply_nav_route(app, result.clicked_route)
             }

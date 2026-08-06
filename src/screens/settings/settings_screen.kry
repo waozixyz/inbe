@@ -67,10 +67,10 @@ settings_draw_status :: (x: int, y: int*) #private {
     }
     status_font = GetUISmallFontSize()
     status_color = unified_status_type == 2 ? RED : GetThemeText()
-    DrawUIText(unified_status, x, *y, status_font, status_color)
+    UITextNode(unified_status, x, *y, status_font, status_color)
     *y += ScaleUIPx(18)
     if unified_detail[0] != '\0' {
-        DrawUIText(unified_detail, x, *y, status_font, DarkenUIColor(GetThemeText(), 40))
+        UITextNode(unified_detail, x, *y, status_font, DarkenUIColor(GetThemeText(), 40))
         *y += ScaleUIPx(18)
     }
 }
@@ -117,7 +117,7 @@ settings_screen_tab_label :: (tab: int) -> const char* {
 }
 
 settings_draw_section_header :: (app: InbeApp*, tab: int) #private {
-    header_h := GetUITabBarHeight()
+    header_h := UIGetNodeHeight(UINodeTabBar((UITabBar){0}))
     title := settings_screen_tab_label(tab)
 
     if app_draw_close_title_bar(app, title, header_h) {
@@ -150,7 +150,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         app->settings_tab = SETTINGS_TAB_DEVICE
     }
 
-    detail_header_h = GetUITabBarHeight()
+    detail_header_h = UIGetNodeHeight(UINodeTabBar((UITabBar){0}))
     tab_content_start_y = detail_header_h
     tab_content_start_y += ScaleUIPx(8)
     content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app)
@@ -182,9 +182,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     EndUIScrollPage(page)
     SetUIDropdownClipTop(tab_content_start_y)
     SetUIDropdownClipBottom(view_height - app_content_bottom_reserved(app))
-    if app->settings_tab == SETTINGS_TAB_THEME {
-        theme_panel.handle_overlays(app, &app->theme_state)
-    } else if app->settings_tab == SETTINGS_TAB_DEVICE {
+    if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_handle_overlays(app, &device_state)
     }
     SetUIDropdownClipTop(0)

@@ -309,60 +309,6 @@ OK
 [about_text]
 Спокойный помощник для дыхания, привычек и синхронизации.
 ---
-[theme_label]
-Тема
----
-[theme_mode_label]
-Режим темы
----
-[theme_follow_device]
-Система
----
-[theme_system]
-Системная
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Палитра
----
-[theme_sky]
-Небо
----
-[theme_ocean]
-Океан
----
-[theme_forest]
-Лес
----
-[theme_sunset]
-Закат
----
-[theme_lavender]
-Лаванда
----
-[theme_cherry]
-Вишня
----
-[theme_dawn]
-Рассвет
----
-[theme_sage]
-Шалфей
----
-[theme_sepia]
-Сепия
----
-[theme_mono]
-Моно
----
-[theme_mint]
-Мята
----
-[theme_cobalt]
-Кобальт
----
 [orientation_label]
 Ориентация
 ---
@@ -431,6 +377,30 @@ Inner Breeze
 ---
 [cue_volume_test_button]
 Проверить сигнал
+---
+[cue_volume_playing_label]
+Идет звук...
+---
+[audio_output_label]
+Аудиовыход
+---
+[audio_system_default_label]
+Системный выход по умолчанию
+---
+[audio_status_ready]
+Готов
+---
+[audio_status_unavailable]
+Недоступно
+---
+[audio_test_output_button]
+Проверить выход
+---
+[audio_reinitialize_button]
+Перезапустить аудио
+---
+[audio_output_level_label]
+Уровень выхода
 ---
 [music_volume_label]
 Громкость музыки
@@ -512,12 +482,6 @@ Inner Breeze
 ---
 [toggle_on]
 ВКЛ
----
-[theme_light]
-Светлая
----
-[theme_dark]
-Темная
 ---
 [on_screen_keyboard_label]
 Экранная клавиатура
@@ -811,8 +775,6 @@ Description
 ---
 [theme_picker_title]
 Выбор темы
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

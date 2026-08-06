@@ -250,7 +250,7 @@ draw_download_progress :: (app: InbeApp*, x: int, y: int, w: int) #private {
     }
 
     DrawRectangle(x, y, w, bar_h, DarkenUIColor(bg, 28))
-    DrawUIBevel(x, y, w, bar_h, DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
+    UIBevelNode(x, y, w, bar_h, DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
     if fill_w > 0 {
         inner_w := fill_w - ScaleUIPx(4)
 
@@ -278,14 +278,14 @@ attribution_height :: (content_w: int) -> int #private {
     if content_w <= 0 {
         return 0
     }
-    return GetUIParagraphHeight(attribution_paragraph(content_w))
+    return UIGetNodeHeight(UINodeParagraph(attribution_paragraph(content_w), 0, 0))
 }
 
 draw_attribution :: (content_x: int, content_w: int, y: int*) #private {
     if y == nil || content_w <= 0 {
         return
     }
-    DrawUIParagraph(attribution_paragraph(content_w), content_x, y)
+    UIParagraphNode(attribution_paragraph(content_w), content_x, y)
 }
 
 archive_path :: (app: InbeApp*, out: char*, out_size: size_t) #private {
@@ -725,12 +725,12 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     practice = practice_clamp_id(practice)
     enabled = (app->meditation.music_practice_mask & (1 << practice)) != 0
 
-    DrawUIText(GetLocaleText("practice_music_enabled_label"),
+    UITextNode(GetLocaleText("practice_music_enabled_label"),
                   content_x,
                   *y,
                   GetUIFontSize(),
                   GetThemeText())
-    if DrawUIToggleSwitch(content_x,
+    if UIToggleNode(0, content_x,
                           *y + ScaleUIPx(26),
                           toggle_w,
                           toggle_h,
@@ -748,7 +748,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     *y += ScaleUIPx(76)
 
     music_volume = app->music_volume
-    if DrawUISlider(7, content_x, *y, content_w,
+    if UISliderNode(7, content_x, *y, content_w,
                     GetLocaleText("music_volume_label"),
                     SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
                     &music_volume, "") {
@@ -761,7 +761,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         return
     }
 
-    if DrawUIDropdownButton(451 + practice,
+    if UIDropdownNode(451 + practice,
                             content_x,
                             *y,
                             content_w,
@@ -787,7 +787,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         if button_w > content_w {
             button_w = content_w
         }
-        if DrawUIGenericButton(content_x,
+        if UIGenericButtonNode(0, content_x,
                                *y,
                                button_w,
                                button_h,
@@ -814,7 +814,7 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         if button_w > content_w {
             button_w = content_w
         }
-        if DrawUIGenericButton(content_x,
+        if UIGenericButtonNode(0, content_x,
                                *y,
                                button_w,
                                button_h,
@@ -834,13 +834,13 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
             format_download_status(download_status,
                                       sizeof(download_status),
                                       &app->meditation.music_download)
-            DrawUIText(download_status, content_x, *y,
+            UITextNode(download_status, content_x, *y,
                           GetUIFontSize(), GetThemeText())
             *y += ScaleUIPx(28)
             draw_download_progress(app, content_x, *y, content_w)
             *y += ScaleUIPx(22)
         } else {
-            DrawUIText(app->meditation.music_status,
+            UITextNode(app->meditation.music_status,
                           content_x,
                           *y,
                           GetUIFontSize(),
@@ -894,22 +894,4 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
 
     h += attribution_height(content_w) + ScaleUIPx(10)
     return h
-}
-
-meditation_music_draw_dropdown_menu :: (app: InbeApp*) -> int {
-    changed := 0
-
-    if app == nil {
-        return 0
-    }
-
-    for int i = 0; i < EXERCISE_COUNT; i++ {
-        if DrawUIDropdownMenu(451 + i) {
-            app->settings_dirty = 1
-            app->meditation.music_track = app->meditation.music_practice_tracks[i]
-            meditation_music_unload(app)
-            changed = 1
-        }
-    }
-    return changed
 }

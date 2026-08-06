@@ -306,15 +306,6 @@ O aplikaci
 [about_text]
 Klidny pruvodce pro dychani, navyky a synchronizaci.
 ---
-[theme_label]
-Motiv
----
-[theme_mode_label]
-Rezim motivu
----
-[theme_follow_device]
-System
----
 [speed_label]
 Rychlost
 ---
@@ -368,6 +359,30 @@ Hlasitost pokynů
 ---
 [cue_volume_test_button]
 Test pokynu
+---
+[cue_volume_playing_label]
+Přehrává se...
+---
+[audio_output_label]
+Zvukový výstup
+---
+[audio_system_default_label]
+Výchozí systémový výstup
+---
+[audio_status_ready]
+Připraveno
+---
+[audio_status_unavailable]
+Nedostupné
+---
+[audio_test_output_button]
+Test výstupu
+---
+[audio_reinitialize_button]
+Znovu inicializovat zvuk
+---
+[audio_output_level_label]
+Úroveň výstupu
 ---
 [music_volume_label]
 Hlasitost hudby
@@ -450,12 +465,6 @@ VYP
 [toggle_on]
 ZAP
 ---
-[theme_light]
-Světlý
----
-[theme_dark]
-Tmavý
----
 [on_screen_keyboard_label]
 Klávesnice na obrazovce
 ---
@@ -505,51 +514,6 @@ Vymazat
 ---
 [meditation_music_attribution]
 Hudba od Elijah_K.
----
-[theme_system]
-Systém
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Paleta
----
-[theme_sky]
-Nebe
----
-[theme_ocean]
-Ocean
----
-[theme_forest]
-Les
----
-[theme_sunset]
-Zapad slunce
----
-[theme_lavender]
-Levandule
----
-[theme_cherry]
-Tresen
----
-[theme_dawn]
-Usvit
----
-[theme_sage]
-Salvej
----
-[theme_sepia]
-Sepie
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Mata
----
-[theme_cobalt]
-Kobalt
 ---
 [orientation_label]
 Orientace
@@ -811,8 +775,6 @@ Přechod
 ---
 [theme_picker_title]
 Vybrat motiv
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

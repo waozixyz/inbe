@@ -306,60 +306,6 @@ Informazioni
 [about_text]
 Un compagno discreto per respirazione, abitudini e sincronizzazione.
 ---
-[theme_label]
-Tema
----
-[theme_mode_label]
-Modalita tema
----
-[theme_follow_device]
-Sistema
----
-[theme_system]
-Sistema
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palette
----
-[theme_sky]
-Cielo
----
-[theme_ocean]
-Oceano
----
-[theme_forest]
-Foresta
----
-[theme_sunset]
-Tramonto
----
-[theme_lavender]
-Lavanda
----
-[theme_cherry]
-Ciliegia
----
-[theme_dawn]
-Alba
----
-[theme_sage]
-Salvia
----
-[theme_sepia]
-Seppia
----
-[theme_mono]
-Mono
----
-[theme_mint]
-Menta
----
-[theme_cobalt]
-Cobalto
----
 [orientation_label]
 Orientamento
 ---
@@ -428,6 +374,30 @@ Volume segnali
 ---
 [cue_volume_test_button]
 Prova segnale
+---
+[cue_volume_playing_label]
+Riproduzione...
+---
+[audio_output_label]
+Uscita audio
+---
+[audio_system_default_label]
+Uscita predefinita di sistema
+---
+[audio_status_ready]
+Pronta
+---
+[audio_status_unavailable]
+Non disponibile
+---
+[audio_test_output_button]
+Prova uscita
+---
+[audio_reinitialize_button]
+Reinizializza audio
+---
+[audio_output_level_label]
+Livello uscita
 ---
 [music_volume_label]
 Volume musica
@@ -509,12 +479,6 @@ SPENTO
 ---
 [toggle_on]
 ACCESO
----
-[theme_light]
-Chiaro
----
-[theme_dark]
-Scuro
 ---
 [on_screen_keyboard_label]
 Tastiera su schermo
@@ -811,8 +775,6 @@ Transizione
 ---
 [theme_picker_title]
 Scegli tema
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID

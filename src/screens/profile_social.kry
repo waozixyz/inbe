@@ -244,7 +244,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
 
     if snprintf(array_path, sizeof(array_path), "$.%s", array_key) >=
        (int)sizeof(array_path) {
-        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
+        UITextNode(GetLocaleText("profile_none_label"), x, *y, small,
                       DarkenUIColor(GetThemeText(), 35))
         *y += ScaleUIPx(24)
         return
@@ -252,7 +252,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
 
     count = storage_json_array_count_path(json, array_path)
     if count <= 0 {
-        DrawUIText(GetLocaleText("profile_none_label"), x, *y, small,
+        UITextNode(GetLocaleText("profile_none_label"), x, *y, small,
                       DarkenUIColor(GetThemeText(), 35))
         *y += ScaleUIPx(24)
         return
@@ -310,14 +310,14 @@ draw_json_people :: (json: const char*, array_key: const char*,
         }
 
         display_name(title, sizeof(title), alias, display_id)
-        DrawUIText(title, x, *y, font, GetThemeText())
+        UITextNode(title, x, *y, font, GetThemeText())
 
         if with_remove {
             icon_size := ScaleUIPx(18)
             icon_padding := ScaleUIPx(6)
             button_w := icon_size + icon_padding * 2
 
-            if DrawUIPaddedIconBtn(x + w - button_w, *y - ScaleUIPx(6),
+            if UIPaddedIconBtnNode(0, x + w - button_w, *y - ScaleUIPx(6),
                                    icon_size, icon_padding,
                                    app->icons[UI_ICON_TYPE_TRASH],
                                    &hover_remove) {
@@ -328,7 +328,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
             icon_padding := ScaleUIPx(6)
             button_w := icon_size + icon_padding * 2
 
-            if DrawUIPaddedIconBtn(x + w - button_w, *y - ScaleUIPx(6),
+            if UIPaddedIconBtnNode(0, x + w - button_w, *y - ScaleUIPx(6),
                                    icon_size, icon_padding,
                                    app->icons[UI_ICON_TYPE_TRASH],
                                    &hover_cancel) &&
@@ -342,7 +342,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
         if with_actions {
             btn_w := (w - ScaleUIPx(8)) / 2
 
-            if DrawUIGenericButton(x, *y + ScaleUIPx(22), btn_w,
+            if UIGenericButtonNode(0, x, *y + ScaleUIPx(22), btn_w,
                                    ScaleUIPx(30),
                                    GetLocaleText("profile_friend_accept_button"),
                                    UI_BUTTON_STYLE_PRIMARY, 0,
@@ -352,7 +352,7 @@ draw_json_people :: (json: const char*, array_key: const char*,
                 settings_screen_set_status_success(
                     GetLocaleText("profile_updating_status"), nil)
             }
-            if DrawUIGenericButton(x + btn_w + ScaleUIPx(8),
+            if UIGenericButtonNode(0, x + btn_w + ScaleUIPx(8),
                                    *y + ScaleUIPx(22), btn_w, ScaleUIPx(30),
                                    GetLocaleText("profile_friend_decline_button"),
                                    UI_BUTTON_STYLE_SECONDARY, 0,
@@ -390,11 +390,11 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
                                       "outgoing")
 
     *y += ScaleUIPx(16)
-    DrawUIText(GetLocaleText("profile_friends_title"), x, *y, font,
+    UITextNode(GetLocaleText("profile_friends_title"), x, *y, font,
                   GetThemeText())
     *y += ScaleUIPx(30)
 
-    DrawUITextField((UITextField){
+    UITextFieldNode((UITextField){
         .bounds = {x, *y, w, ScaleUIPx(38)},
         .text = app->profile_friend_input,
         .text_size = sizeof(app->profile_friend_input),
@@ -409,7 +409,7 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
     })
     *y += ScaleUIPx(46)
 
-    if (DrawUIGenericButton(x, *y, w, btn_h,
+    if (UIGenericButtonNode(0, x, *y, w, btn_h,
                             GetLocaleText("profile_add_friend_button"),
                             UI_BUTTON_STYLE_PRIMARY,
                             app->profile_friend_input[0] == '\0',
@@ -438,7 +438,7 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += btn_h + ScaleUIPx(22)
 
     if incoming_count > 0 {
-        DrawUIText(GetLocaleText("profile_incoming_title"), x, *y, font,
+        UITextNode(GetLocaleText("profile_incoming_title"), x, *y, font,
                       GetThemeText())
         *y += ScaleUIPx(28)
         draw_json_people(app->profile_friend_requests_json, "incoming",
@@ -446,14 +446,14 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
         *y += ScaleUIPx(16)
     }
 
-    DrawUIText(GetLocaleText("profile_friends_title"), x, *y, font,
+    UITextNode(GetLocaleText("profile_friends_title"), x, *y, font,
                   GetThemeText())
     *y += ScaleUIPx(28)
     draw_json_people(app->profile_friends_json, "friends", x, w, y, 0, app)
 
     if outgoing_count > 0 {
         *y += ScaleUIPx(16)
-        DrawUIText(GetLocaleText("profile_outgoing_title"), x, *y, font,
+        UITextNode(GetLocaleText("profile_outgoing_title"), x, *y, font,
                       GetThemeText())
         *y += ScaleUIPx(28)
         draw_json_people(app->profile_friend_requests_json, "outgoing",
@@ -497,7 +497,7 @@ draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
                           font: int) #private {
     rank_w := MeasureUIText(value, font)
 
-    DrawUIText(value, x + w - rank_w, y, font, GetThemeText())
+    UITextNode(value, x + w - rank_w, y, font, GetThemeText())
 }
 
 leaderboard_zero_value :: (app: InbeApp*, out: char*, out_size: size_t) #private {
@@ -695,13 +695,13 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
         display_name(display, sizeof(display),
                         draw_rows[i].alias, draw_rows[i].user_id)
         snprintf(name, sizeof(name), "%d. %s", i + 1, display)
-        DrawUIText(name, x, *y, font, GetThemeText())
+        UITextNode(name, x, *y, font, GetThemeText())
         draw_leaderboard_value(x, w, *y, draw_rows[i].value, font)
         *y += ScaleUIPx(30)
     }
 
     if rows == 0 {
-        DrawUIText(GetLocaleText("profile_no_leaderboard_data"),
+        UITextNode(GetLocaleText("profile_no_leaderboard_data"),
                       x, *y, small, DarkenUIColor(GetThemeText(), 35))
         *y += ScaleUIPx(24)
     }
@@ -817,7 +817,7 @@ draw_choice_row :: (app: InbeApp*, x: int, w: int, y: int*, value: int*,
         bw := i == count - 1 ? x + w - bx : btn_w
         selected := *value == i
 
-        if DrawUIGenericButton(bx, *y, bw, btn_h, labels[i],
+        if UIGenericButtonNode(0, bx, *y, bw, btn_h, labels[i],
                                selected ? UI_BUTTON_STYLE_TAB_SELECTED
                                         : UI_BUTTON_STYLE_TAB,
                                0, &hover) && !selected {
@@ -868,12 +868,12 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
                      PROFILE_LEADERBOARD_AVG_HOLD)
 
     *y += ScaleUIPx(16)
-    DrawUIText(GetLocaleText("profile_practice_label"), x, *y,
+    UITextNode(GetLocaleText("profile_practice_label"), x, *y,
                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
     *y += ScaleUIPx(22)
 
     before_practice = app->profile_leaderboard_practice
-    DrawUIDropdownButton(811, x, *y, w, ScaleUIPx(36),
+    UIDropdownNode(811, x, *y, w, ScaleUIPx(36),
                             practice_options, EXERCISE_COUNT,
                             &app->profile_leaderboard_practice)
     if app->profile_leaderboard_practice != before_practice {

@@ -342,7 +342,7 @@ app_content_bottom_reserved :: (app: const InbeApp*) -> int {
        !app_is_blank_home(app) {
         return 0
     }
-    return GetUIBottomNavHeight()
+    return UIGetNodeHeight(UINodeBottomNav((UIBottomNav){0}))
 }
 
 app_page_height :: (app: const InbeApp*, full_height: int) -> int {
@@ -418,7 +418,7 @@ app_sidebar_button :: (app: InbeApp*, x: int, y: int*, w: int,
     h := ScaleUIPx(38)
     disabled := app != NULL && app->modal.active
 
-    if DrawUIGenericButton(x, *y, w, h, label, UI_BUTTON_STYLE_SECONDARY,
+    if UIGenericButtonNode(0, x, *y, w, h, label, UI_BUTTON_STYLE_SECONDARY,
                            disabled || route == APP_NAV_ROUTE_NONE, &hover) {
         app_apply_nav_route(app, route)
         return 1
@@ -455,7 +455,7 @@ app_sidebar_settings_button :: (app: InbeApp*, x: int, y: int*, w: int,
     h := ScaleUIPx(38)
     disabled := app != NULL && app->modal.active
 
-    if DrawUIGenericButton(x, *y, w, h, settings_screen_tab_label(tab),
+    if UIGenericButtonNode(0, x, *y, w, h, settings_screen_tab_label(tab),
                            UI_BUTTON_STYLE_SECONDARY, disabled, &hover) {
         app_open_settings_tab(app, tab)
         return 1
@@ -522,7 +522,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
                     GetLocaleText("profile_friends_summary"), friends_count)
     }
 
-    header = DrawUISidebarAccountHeader((UISidebarAccountHeader){
+    header = UISidebarAccountHeaderNode((UISidebarAccountHeader){
         .x = x,
         .y = *y,
         .width = w,
@@ -689,7 +689,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
     y += ScaleUIPx(10)
-    if DrawUIGenericButton(area.content_x, y, area.content_width, ScaleUIPx(40),
+    if UIGenericButtonNode(0, area.content_x, y, area.content_width, ScaleUIPx(40),
                            GetLocaleText("customize_nav_button"),
                            UI_BUTTON_STYLE_PRIMARY, app->modal.active, &hover) {
         app_open_bottom_nav_config(app)
@@ -701,7 +701,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
 
     DrawLine(sidebar_x, view_height - footer_h, sidebar_x + sidebar_w,
                 view_height - footer_h, DarkenUIColor(GetThemeSurface(), 28))
-    if DrawUIGenericButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
+    if UIGenericButtonNode(0, sidebar_x + pad, close_y, sidebar_w - pad * 2,
                            close_h, GetLocaleText("close_button"),
                            UI_BUTTON_STYLE_SECONDARY, app->modal.active,
                            &close_hover) {
@@ -831,7 +831,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     draw_count = app->bottom_nav_config_route_count
 
     if app_draw_close_title_bar(app, GetLocaleText("customize_nav_title"),
-                                GetUITabBarHeight()) {
+                                UIGetNodeHeight(UINodeTabBar((UITabBar){0}))) {
         app_block_pointer_frame(app)
         app_open_main_tab(app, app->main_tab, 0)
         return 1
@@ -841,8 +841,8 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     options[1] = app_nav_route_label(APP_NAV_ROUTE_PRACTICE)
 
     page = BeginUIScrollPage((UIScrollPageSpec){
-        .y = GetUITabBarHeight() + ScaleUIPx(8),
-        .height = view_height - GetUITabBarHeight() - ScaleUIPx(8),
+        .y = UIGetNodeHeight(UINodeTabBar((UITabBar){0})) + ScaleUIPx(8),
+        .height = view_height - UIGetNodeHeight(UINodeTabBar((UITabBar){0})) - ScaleUIPx(8),
         .max_content_width = ScaleUIPx(CONTENT_MAX_W),
         .min_content_width = ScaleUIPx(300),
         .scroll_offset = &app->nav_sidebar_scroll
@@ -899,12 +899,17 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
             continue
         }
 
-        DrawUIReorderHandle(page.content_x, row_y[i], handle_w, row_h,
+        UIReorderHandleNode(0, page.content_x, row_y[i], handle_w, row_h,
                                reorder.active && i == reorder.active_index)
-        DrawUIDropdownButton(740 + i, dropdown_x, dropdown_y,
+        if UIDropdownNode(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
-                                APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i])
-        if DrawUIPaddedIconBtn(trash_x, dropdown_y - ScaleUIPx(2),
+                                APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i]) &&
+           action == APP_NAV_CONFIG_ACTION_NONE {
+            action = APP_NAV_CONFIG_ACTION_SET
+            action_index = i
+            action_route = app_nav_route_for_option(selected[i])
+        }
+        if UIPaddedIconBtnNode(0, trash_x, dropdown_y - ScaleUIPx(2),
                                ScaleUIPx(20), ScaleUIPx(8),
                                app->icons[UI_ICON_TYPE_TRASH],
                                &trash_hover) &&
@@ -915,7 +920,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
     }
     if reorder.dragging && reorder.target_index >= 0 &&
        reorder.target_index < draw_count {
-        DrawUIReorderPlaceholder(reorder_items[reorder.target_index].bounds)
+        UIReorderPlaceholderNode(reorder_items[reorder.target_index].bounds)
     }
     if reorder.dragging && reorder.active_index >= 0 &&
        reorder.active_index < draw_count {
@@ -934,12 +939,12 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         }
         DrawRectangle(page.content_x, overlay_y, page.content_w, row_h,
                          LightenUIColor(GetThemeBackground(), 8))
-        DrawUIReorderHandle(page.content_x, overlay_y, handle_w, row_h, 1)
-        DrawUIDropdownButton(740 + i, dropdown_x, dropdown_y,
+        UIReorderHandleNode(0, page.content_x, overlay_y, handle_w, row_h, 1)
+        UIDropdownNode(740 + i, dropdown_x, dropdown_y,
                                 dropdown_w, button_h, options,
                                 APP_BOTTOM_NAV_CONFIGURABLE_COUNT, &selected[i])
         app_nav_mark_int_used(trash_hover)
-        DrawUIIconTexture(trash_x + ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
+        UIIconTextureNode(0, trash_x + ScaleUIPx(8), dropdown_y + ScaleUIPx(6),
                              ScaleUIPx(20), app->icons[UI_ICON_TYPE_TRASH],
                              GetThemeIcon())
     }
@@ -948,7 +953,7 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
 
     if draw_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
         add_hover := 0
-        if DrawUIGenericButton(page.content_x, y, page.content_w, button_h,
+        if UIGenericButtonNode(0, page.content_x, y, page.content_w, button_h,
                                GetLocaleText("customize_nav_add"),
                                UI_BUTTON_STYLE_SECONDARY, 0, &add_hover) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
@@ -956,19 +961,6 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
         }
         y += button_h + ScaleUIPx(14)
     }
-
-    SetUIDropdownClipTop(GetUITabBarHeight() + ScaleUIPx(8))
-    SetUIDropdownClipBottom(view_height)
-    for int i = 0; i < draw_count; i++ {
-        if DrawUIDropdownMenu(740 + i) &&
-           action == APP_NAV_CONFIG_ACTION_NONE {
-            action = APP_NAV_CONFIG_ACTION_SET
-            action_index = i
-            action_route = app_nav_route_for_option(selected[i])
-        }
-    }
-    SetUIDropdownClipTop(0)
-    SetUIDropdownClipBottom(0)
 
     EndUIScrollPage(page)
 

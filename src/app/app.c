@@ -59,6 +59,7 @@
 #endif
 
 static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
+static volatile int g_audio_meter_peak_milli;
 
 #define INBE_FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
 #define INBE_FONT_SC "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf"
@@ -275,9 +276,9 @@ app_draw_close_title_bar(InbeApp *app, const char *title, int height)
 
     if(y < 0)
         y = 0;
-    DrawUITitleBar(title, height);
+    UITitleBarNode(title, height);
     if(app != NULL && !app->modal.active &&
-       DrawUIPaddedIconBtn(x, y, button_size, padding,
+       UIPaddedIconBtnNode(0, x, y, button_size, padding,
                            app->icons[UI_ICON_TYPE_X], &hover))
         return 1;
     return 0;
@@ -307,11 +308,11 @@ app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
     DrawRectangle(0, 0, view_width, height, GetThemeBackground());
     DrawLine(0, height - 1, view_width, height - 1,
              DarkenUIColor(GetThemeButton(), 18));
-    DrawUIDropdownButton(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
+    UIDropdownNode(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
                          dropdown_h, dropdown.options, dropdown.option_count,
                          dropdown.selected_index);
     if(app != NULL && !app->modal.active &&
-       DrawUIPaddedIconBtn(close_x, close_y, button_size, padding,
+       UIPaddedIconBtnNode(0, close_x, close_y, button_size, padding,
                            app->icons[UI_ICON_TYPE_X], &hover))
         return 1;
     return 0;
@@ -662,7 +663,7 @@ int
 app_content_top_reserved(const InbeApp *app)
 {
     if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return GetUITabBarHeight();
+        return UIGetNodeHeight(UINodeTabBar((UITabBar){0}));
     return app_toolbar_height();
 }
 
@@ -803,7 +804,7 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
     int modal_result;
 
     if(can_save) {
-        modal_result = DrawUIModal3Button(GetLocaleText("exit_session_title"),
+        modal_result = UIModal3ButtonNode(GetLocaleText("exit_session_title"),
                                           save_message,
                                           GetLocaleText("cancel_button"),
                                           GetLocaleText("save_button"),
@@ -813,7 +814,7 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
         if(modal_result == 3)
             return SessionExitModalDiscard;
     } else {
-        modal_result = DrawUIModal(GetLocaleText("exit_session_title"),
+        modal_result = UIModalNode(GetLocaleText("exit_session_title"),
                                      discard_message,
                                      GetLocaleText("cancel_button"),
                                      GetLocaleText("exit_button"));
@@ -843,7 +844,7 @@ app_draw_close_prompt(InbeApp *app)
         .label = GetLocaleText("desktop_close_quit_button"),
         .style = UI_BUTTON_STYLE_DANGER
     };
-    modal_result = DrawUIActionModal((UIModalSpec){
+    modal_result = UIActionModalNode((UIModalSpec){
         .title = GetLocaleText("desktop_close_prompt_title"),
         .message = GetLocaleText("desktop_close_prompt_message"),
         .actions = actions,
@@ -1614,6 +1615,32 @@ app_sound_volume_scale(InbeApp *app, float scale)
     return volume;
 }
 
+static void
+audio_mixed_meter(void *bufferData, unsigned int frames)
+{
+    float *samples = bufferData;
+    float peak = 0.0f;
+    int peak_milli;
+    unsigned int count;
+
+    if(samples == NULL || frames == 0)
+        return;
+
+    count = frames * 2;
+    for(unsigned int i = 0; i < count; i++) {
+        float sample = samples[i];
+        if(sample < 0.0f)
+            sample = -sample;
+        if(sample > peak)
+            peak = sample;
+    }
+    if(peak > 1.0f)
+        peak = 1.0f;
+    peak_milli = (int)(peak * 1000.0f);
+    if(peak_milli > g_audio_meter_peak_milli)
+        g_audio_meter_peak_milli = peak_milli;
+}
+
 static float
 app_breath_cue_pitch(InbeApp *app)
 {
@@ -1664,6 +1691,8 @@ app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
         TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
 }
 
+static void SafeUnloadSound(Sound sound);
+
 void
 app_play_sound(InbeApp *app, Sound sound, float scale)
 {
@@ -1691,6 +1720,49 @@ app_play_bell_cue(InbeApp *app, float scale)
     app_play_sound(app, app->bell_sound, scale);
 }
 
+int
+app_bell_cue_playing(InbeApp *app)
+{
+    if(app == NULL || !app->audio_ready || app->bell_sound.frameCount == 0)
+        return 0;
+    return IsSoundPlaying(app->bell_sound) ? 1 : 0;
+}
+
+float
+app_audio_output_level(InbeApp *app)
+{
+    float latest;
+
+    if(app == NULL || !app->audio_ready)
+        return 0.0f;
+
+    latest = (float)g_audio_meter_peak_milli / 1000.0f;
+    g_audio_meter_peak_milli = 0;
+    if(latest > app->audio_meter_level)
+        app->audio_meter_level = latest;
+    else
+        app->audio_meter_level *= 0.86f;
+
+    if(app->audio_meter_level < 0.01f)
+        app->audio_meter_level = 0.0f;
+    if(app->audio_meter_level > 1.0f)
+        app->audio_meter_level = 1.0f;
+    return app->audio_meter_level;
+}
+
+static void
+unload_cue_sounds(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+    SafeUnloadSound(app->breath_in_sound);
+    SafeUnloadSound(app->breath_out_sound);
+    SafeUnloadSound(app->bell_sound);
+    app->breath_in_sound = (Sound){0};
+    app->breath_out_sound = (Sound){0};
+    app->bell_sound = (Sound){0};
+}
+
 static void
 init_audio(InbeApp *app)
 {
@@ -1708,6 +1780,31 @@ init_audio(InbeApp *app)
     app->breath_in_sound = load_sound_asset("breath-in.ogg");
     app->breath_out_sound = load_sound_asset("breath-out.ogg");
     app->bell_sound = load_sound_asset("bell.ogg");
+    AttachAudioMixedProcessor(audio_mixed_meter);
+    app->audio_meter_attached = 1;
+}
+
+int
+app_audio_reinitialize(InbeApp *app)
+{
+    if(app == NULL)
+        return 0;
+
+    meditation_music_unload(app);
+    if(app->audio_ready && app->audio_meter_attached) {
+        DetachAudioMixedProcessor(audio_mixed_meter);
+        app->audio_meter_attached = 0;
+    }
+    unload_cue_sounds(app);
+    if(app->audio_ready) {
+        CloseAudioDevice();
+        app->audio_ready = 0;
+    }
+    app->audio_meter_level = 0.0f;
+    g_audio_meter_peak_milli = 0;
+
+    init_audio(app);
+    return app->audio_ready ? 1 : 0;
 }
 
 void
@@ -2017,7 +2114,7 @@ draw_profile_picture_picker_modal(InbeApp *app)
     if(app == NULL)
         return;
 
-    result = DrawUIProfilePicturePickerModal((UIProfilePicturePickerModal){
+    result = UIProfilePicturePickerNode((UIProfilePicturePickerModal){
         .title = "Profile picture",
         .icons = app->icons,
         .selected_icon_type = &app->profile_picture_icon,
@@ -2047,7 +2144,7 @@ draw_global_modal(InbeApp *app)
         return;
 
     if(app->modal.type == UIModalMeditationNetworkError) {
-        modal_result = DrawUIModal(GetLocaleText("meditation_music_network_error_title"),
+        modal_result = UIModalNode(GetLocaleText("meditation_music_network_error_title"),
                                      GetLocaleText("meditation_music_network_error_message"),
                                      GetLocaleText("ok_button"),
                                      GetLocaleText("ok_button"));
@@ -2278,7 +2375,7 @@ updateapp(InbeApp *app)
         practice_update_circle_bounds(app, app_content_top_reserved(app),
                                       app_content_bottom_reserved(app));
     } else if(app->inbe.screen == InbeScreenSession) {
-        practice_update_circle_bounds(app, GetUITitleBarHeight(), 84);
+        practice_update_circle_bounds(app, UIGetNodeHeight(UINodeTitleBar(0)), 84);
     }
 
     if(app->inbe.screen == InbeScreenSession)
@@ -2363,7 +2460,7 @@ finish_frame:
 #if !defined(PLATFORM_WEB)
     if(app->transition_mode == APP_TRANSITION_FADE &&
        app->screen_transition.active) {
-        DrawUITransitionFade(&app->screen_transition, view_width,
+        UITransitionFadeNode(&app->screen_transition, view_width,
                                    app_page_height(app, view_height),
                                    GetThemeBackground());
     }
@@ -2518,9 +2615,7 @@ app_destroy(void *vapp)
     if(!IsUIInspectActive())
         unload_locale_font(app);
 
-    SafeUnloadSound(app->breath_in_sound);
-    SafeUnloadSound(app->breath_out_sound);
-    SafeUnloadSound(app->bell_sound);
+    unload_cue_sounds(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->destroy != NULL)
@@ -2528,6 +2623,10 @@ app_destroy(void *vapp)
     }
 
     if (app->audio_ready) {
+        if(app->audio_meter_attached) {
+            DetachAudioMixedProcessor(audio_mixed_meter);
+            app->audio_meter_attached = 0;
+        }
         CloseAudioDevice();
         app->audio_ready = 0;
     }
