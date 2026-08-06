@@ -770,9 +770,6 @@ Mejor racha
 ---
 ---
 
-[transition_label]
-Transición
----
 [theme_picker_title]
 Elegir tema
 ---

@@ -58,7 +58,6 @@
 #define INBE_DEFAULT_HEIGHT 720
 #endif
 
-static const float APP_SCREEN_TRANSITION_SECONDS = 0.18f;
 static volatile int g_audio_meter_peak_milli;
 
 #define INBE_FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
@@ -226,16 +225,12 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
 {
     InbeApp *app = vapp;
     AppRoute route;
-    int transition_mode;
     int screen = -1;
 
     if(app == NULL || route_info == NULL || route_info->id == NULL)
         return;
     if(strcmp(route_info->id, "session") == 0) {
-        transition_mode = app->transition_mode;
-        app->transition_mode = APP_TRANSITION_NONE;
         session_start(app);
-        app->transition_mode = transition_mode;
         return;
     }
     for(size_t i = 0;
@@ -250,10 +245,7 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
         return;
     route = app_current_route(app);
     route.screen = screen;
-    transition_mode = app->transition_mode;
-    app->transition_mode = APP_TRANSITION_NONE;
     app_switch_route(app, route);
-    app->transition_mode = transition_mode;
 }
 
 void
@@ -377,104 +369,6 @@ app_route_equal(AppRoute a, AppRoute b)
     return 1;
 }
 
-static int
-app_route_direction(AppRoute from, AppRoute to)
-{
-    if(from.screen != to.screen)
-        return to.screen > from.screen ? 1 : -1;
-    switch(from.screen) {
-    case InbeScreenStart:
-        if(from.exercise_type != to.exercise_type)
-            return to.exercise_type > from.exercise_type ? 1 : -1;
-        if(from.practice_tab != to.practice_tab)
-            return to.practice_tab > from.practice_tab ? 1 : -1;
-        if(from.practice_config_tab != to.practice_config_tab)
-            return to.practice_config_tab > from.practice_config_tab ? 1 : -1;
-        break;
-    case InbeScreenSettings:
-        if(from.settings_tab != to.settings_tab)
-            return to.settings_tab > from.settings_tab ? 1 : -1;
-        break;
-    case InbeScreenProfile:
-        if(from.profile_view != to.profile_view)
-            return to.profile_view > from.profile_view ? 1 : -1;
-        if(from.profile_tab != to.profile_tab)
-            return to.profile_tab > from.profile_tab ? 1 : -1;
-        break;
-    case InbeScreenHabits:
-        if(from.habits_screen_mode != to.habits_screen_mode)
-            return to.habits_screen_mode > from.habits_screen_mode ? 1 : -1;
-        if(from.habits_tab != to.habits_tab)
-            return to.habits_tab > from.habits_tab ? 1 : -1;
-        break;
-    default:
-        break;
-    }
-    return 1;
-}
-
-static float
-app_smooth_progress(float value)
-{
-    if(value < 0.0f)
-        value = 0.0f;
-    if(value > 1.0f)
-        value = 1.0f;
-    return value * value * (3.0f - 2.0f * value);
-}
-
-static void
-app_begin_content_transition(InbeApp *app, int direction)
-{
-    if(app == NULL)
-        return;
-    app->content_transition.active = 1;
-    app->content_transition.direction = direction < 0 ? -1 : 1;
-    app->content_transition.elapsed_seconds = 0.0f;
-    app->content_transition.duration_seconds = 0.16f;
-}
-
-static float
-app_content_transition_progress(const InbeApp *app)
-{
-    if(app == NULL || !app->content_transition.active ||
-       app->content_transition.duration_seconds <= 0.0f)
-        return 1.0f;
-    return app_smooth_progress(app->content_transition.elapsed_seconds /
-                               app->content_transition.duration_seconds);
-}
-
-static int
-app_content_transition_offset(const InbeApp *app)
-{
-    float progress;
-    int span;
-
-    if(app == NULL || !app->content_transition.active)
-        return 0;
-    progress = app_content_transition_progress(app);
-    span = ScaleUIPx(34);
-    if(span > view_width / 8)
-        span = view_width / 8;
-    if(span < ScaleUIPx(14))
-        span = ScaleUIPx(14);
-    return (int)((float)(app->content_transition.direction * span) * (1.0f - progress));
-}
-
-static void
-app_step_content_transition(InbeApp *app)
-{
-    if(app == NULL || !app->content_transition.active)
-        return;
-    app->content_transition.elapsed_seconds += GetFrameTime();
-    if(app->content_transition.elapsed_seconds >=
-       app->content_transition.duration_seconds) {
-        app->content_transition.active = 0;
-        app->content_transition.elapsed_seconds = 0.0f;
-    }
-}
-
-
 static void
 app_enter_route(InbeApp *app, AppRoute route)
 {
@@ -510,55 +404,16 @@ app_apply_route(InbeApp *app, AppRoute route)
 void
 app_switch_route(InbeApp *app, AppRoute route)
 {
-    AppRoute current;
-
     if(app == NULL)
         return;
-    current = app_current_route(app);
-    if(app_route_equal(current, route) &&
-       (!app->screen_transition.active ||
-        app_route_equal(app->route_transition_target, route)))
+    if(app_route_equal(app_current_route(app), route))
         return;
 
     if(route.screen == InbeScreenHabits && app->inbe.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
 
-#if defined(PLATFORM_WEB)
-    ResetUITransition(&app->screen_transition);
-    app->content_transition.active = 0;
     app_apply_route(app, route);
     app_enter_route(app, app_current_route(app));
-    app->route_transition_target = app_current_route(app);
-    return;
-#else
-    if(app->transition_mode == APP_TRANSITION_NONE) {
-        ResetUITransition(&app->screen_transition);
-        app->content_transition.active = 0;
-        app_apply_route(app, route);
-        app_enter_route(app, app_current_route(app));
-        app->route_transition_target = app_current_route(app);
-        return;
-    }
-#endif
-
-    if(current.screen == route.screen) {
-        ResetUITransition(&app->screen_transition);
-        app_apply_route(app, route);
-        app_enter_route(app, app_current_route(app));
-        app->route_transition_target = app_current_route(app);
-        app_begin_content_transition(app, app_route_direction(current, route));
-        return;
-    }
-
-    app->content_transition.active = 0;
-    app->route_transition_target = route;
-    if(app->screen_transition.active) {
-        if(!app_route_equal(current, route))
-            ReverseUITransitionToOut(&app->screen_transition);
-        return;
-    }
-
-    BeginUITransition(&app->screen_transition, APP_SCREEN_TRANSITION_SECONDS);
 }
 
 void
@@ -574,72 +429,12 @@ app_switch_screen(InbeApp *app, int screen)
 }
 
 static void
-app_advance_screen_transition(InbeApp *app)
-{
-    int completed_phase;
-
-    if(app == NULL)
-        return;
-    completed_phase = StepUITransition(&app->screen_transition, GetFrameTime());
-    if(completed_phase == UI_TRANSITION_OUT) {
-        app_apply_route(app, app->route_transition_target);
-        app_enter_route(app, app_current_route(app));
-    }
-    else if(completed_phase == UI_TRANSITION_IN)
-        app->route_transition_target = app_current_route(app);
-}
-
-static void
-app_draw_content_transition_overlay(InbeApp *app)
-{
-    float progress;
-    int alpha;
-    int h;
-    Color wash;
-
-    if(app == NULL || !app->content_transition.active)
-        return;
-    progress = app_content_transition_progress(app);
-    alpha = (int)((1.0f - progress) * 54.0f);
-    if(alpha <= 0)
-        return;
-    h = app_page_height(app, view_height);
-    wash = GetThemeBackground();
-    wash.a = (unsigned char)alpha;
-    DrawRectangle(0, 0, view_width, h, wash);
-}
-
-static void
 app_observe_direct_route_change(InbeApp *app, AppRoute before_route)
 {
-    if(app == NULL || app->screen_transition.active ||
-       app_route_equal(before_route, app_current_route(app)))
+    if(app == NULL || app_route_equal(before_route, app_current_route(app)))
         return;
-
-    if(app->transition_mode == APP_TRANSITION_NONE) {
-        app->route_transition_target = app_current_route(app);
-        app->content_transition.active = 0;
-        return;
-    }
-
-    if(before_route.screen == app->inbe.screen) {
-        app_begin_content_transition(app,
-                                     app_route_direction(before_route,
-                                                         app_current_route(app)));
-        app->route_transition_target = app_current_route(app);
-        return;
-    }
-
-    app->content_transition.active = 0;
-    app->screen_transition = (UITransition){
-        .active = 1,
-        .phase = UI_TRANSITION_IN,
-        .elapsed_seconds = 0.0f,
-        .duration_seconds = APP_SCREEN_TRANSITION_SECONDS
-    };
     if(app->inbe.screen == InbeScreenHabits && before_route.screen != InbeScreenHabits)
         app->habits.focus_selected_tab = 1;
-    app->route_transition_target = app_current_route(app);
 }
 
 static void
@@ -1852,12 +1647,10 @@ app_init(void *vapp) {
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
     app->habit_session_edit = (HabitSessionEditState){.round = -1};
-    ResetUITransition(&app->screen_transition);
     app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
                            ? InbeScreenHabits
                            : InbeScreenStart;
     app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
-    app->route_transition_target = app_current_route(app);
     init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
@@ -1886,8 +1679,6 @@ app_init(void *vapp) {
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-    app->route_transition_target = app_current_route(app);
-
     app->modal = (UIModal){0};
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
@@ -2238,7 +2029,6 @@ updateapp(InbeApp *app)
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
     int bottom_input_reserved = 0;
-    int content_transition_offset = 0;
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app_update_desktop_background_state(app);
@@ -2276,12 +2066,6 @@ updateapp(InbeApp *app)
                                        (float)(view_height - bottom_input_reserved)});
         content_input_clip_active = 1;
     }
-    content_transition_offset = app_content_transition_offset(app);
-    if(content_transition_offset != 0) {
-        app->camera.offset.x += (float)content_transition_offset;
-        SetUIFrame(app->camera);
-    }
-
     if(IsKeyPressed(KEY_BACK)
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
        || (IsKeyPressed(KEY_BACKSPACE) &&
@@ -2439,11 +2223,6 @@ updateapp(InbeApp *app)
 finish_frame:
     if(content_input_clip_active)
         PopUIInputClip();
-    if(content_transition_offset != 0) {
-        app->camera.offset.x -= (float)content_transition_offset;
-        SetUIFrame(app->camera);
-    }
-    app_draw_content_transition_overlay(app);
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -2457,16 +2236,6 @@ finish_frame:
     app_draw_close_prompt(app);
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
-#if !defined(PLATFORM_WEB)
-    if(app->transition_mode == APP_TRANSITION_FADE &&
-       app->screen_transition.active) {
-        UITransitionFadeNode(&app->screen_transition, view_width,
-                                   app_page_height(app, view_height),
-                                   GetThemeBackground());
-    }
-#endif
-    app_advance_screen_transition(app);
-    app_step_content_transition(app);
     app->inbe.frame++;
 }
 
@@ -2511,7 +2280,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
 
     app_device_preferences_update(app);
     app_refresh_theme(app);
-    SetUITransitionCuesEnabled(app->transition_mode == APP_TRANSITION_FADE);
+    SetUITransitionCuesEnabled(0);
 
     DrawRectangleRec(viewport, GetThemeBackground());
 
@@ -2564,6 +2333,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
             profile_update_start = app_profile_now();
             updateapp(app);
+            UIRenderOverlays();
             app_profile_accum(&g_app_profile.update_total,
                               &g_app_profile.update_max,
                               profile_update_start);

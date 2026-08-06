@@ -770,9 +770,6 @@ Rangkaian terbaik
 ---
 ---
 
-[transition_label]
-Transisi
----
 [theme_picker_title]
 Pilih Tema
 ---

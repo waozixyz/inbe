@@ -770,9 +770,6 @@ Migliore serie
 ---
 ---
 
-[transition_label]
-Transizione
----
 [theme_picker_title]
 Scegli tema
 ---

@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.14] - 2026-08-06
+### Changed
+- Updated Kryon to the retro-only widget runtime while style selection is paused.
+- Fixed deferred dropdown overlays so Inbe dropdown menus open above later controls.
+- Restored practice carousel left/right navigation and kept session title bars using close buttons.
+- Removed the app-level Animations setting and transition preference storage.
+
 ## [1.8.13] - 2026-08-05
 ### Changed
 - Split cue and music volume controls so short practice cues stay on `sound_volume` while streamed meditation music uses the new persisted `music_volume` setting.

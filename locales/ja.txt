@@ -772,9 +772,6 @@ Description
 ---
 ---
 
-[transition_label]
-切り替え
----
 [theme_picker_title]
 テーマ選択
 ---

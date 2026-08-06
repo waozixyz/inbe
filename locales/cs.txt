@@ -770,9 +770,6 @@ Nejlepší série
 ---
 ---
 
-[transition_label]
-Přechod
----
 [theme_picker_title]
 Vybrat motiv
 ---

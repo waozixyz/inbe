@@ -809,9 +809,6 @@ Meilleure série
 ---
 ---
 
-[transition_label]
-Effet
----
 [theme_picker_title]
 Choisir un thème
 ---

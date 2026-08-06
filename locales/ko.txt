@@ -769,9 +769,6 @@ Description
 ---
 ---
 
-[transition_label]
-전환
----
 [theme_picker_title]
 테마 선택
 ---

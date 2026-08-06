@@ -770,9 +770,6 @@ Description
 ---
 ---
 
-[transition_label]
-Переход
----
 [theme_picker_title]
 Выбор темы
 ---

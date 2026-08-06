@@ -213,7 +213,6 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("bottom_nav_route_1", app->bottom_nav_routes[1])
     save_setting_int("bottom_nav_route_2", app->bottom_nav_routes[2])
     save_setting_int("bottom_nav_route_3", app->bottom_nav_routes[3])
-    save_setting_int("transition_mode", app->transition_mode)
     save_setting_int("main_tab", app->main_tab)
     save_setting_int("habits_screen_mode",
                         app->habits.screen_mode == HABITS_SCREEN_REORDER
@@ -434,10 +433,6 @@ app_load_settings :: (app: InbeApp*) -> int {
     load_clamped_setting(&settings_cache, &app->practice_category_tab,
                             "practice_category_tab", PRACTICE_CATEGORY_MIND,
                             0, PRACTICE_CATEGORY_COUNT - 1)
-    load_clamped_setting(&settings_cache, &app->transition_mode,
-                            "transition_mode", APP_TRANSITION_NONE,
-                            APP_TRANSITION_NONE, APP_TRANSITION_FADE)
-
     app->navigation_mode = load_navigation_mode(&settings_cache)
     app->profile_picture_icon = load_profile_picture_icon(&settings_cache)
     load_bottom_nav_routes(app, &settings_cache)
@@ -471,10 +466,6 @@ app_load_settings :: (app: InbeApp*) -> int {
     if getenv("INBE_FORCE_DARK_MODE") != nil {
         app->theme_mode = APP_THEME_DARK
     }
-    #if WEB {
-        app->transition_mode = APP_TRANSITION_NONE
-    }
-
     app->inbe.play_in_background =
         settings_cache_get_int(&settings_cache, "play_in_background", 1) != 0
     TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",

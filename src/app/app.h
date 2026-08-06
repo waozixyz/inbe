@@ -174,11 +174,6 @@ typedef enum NavigationMode {
     NAV_MODE_DROPDOWN = 1,
 } NavigationMode;
 
-typedef enum AppTransitionMode {
-    APP_TRANSITION_NONE = 0,
-    APP_TRANSITION_FADE = 1,
-} AppTransitionMode;
-
 typedef enum AppDeviceOrientation {
     APP_DEVICE_ORIENTATION_UNKNOWN = 0,
     APP_DEVICE_ORIENTATION_PORTRAIT = 1,
@@ -222,13 +217,6 @@ typedef struct AppRoute {
     int habits_screen_mode;
     int habits_tab;
 } AppRoute;
-
-typedef struct AppContentTransition {
-    int active;
-    int direction;
-    float elapsed_seconds;
-    float duration_seconds;
-} AppContentTransition;
 
 int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
 int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
@@ -410,7 +398,6 @@ struct InbeApp {
     int nav_sidebar_return_on_back;
     UIIconType profile_picture_icon;
     int profile_picture_picker_scroll;
-    int transition_mode;
     int android_orientation;
     int main_tab;
     InbeHabits habits;
@@ -434,9 +421,6 @@ struct InbeApp {
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;
-    UITransition screen_transition;
-    AppContentTransition content_transition;
-    AppRoute route_transition_target;
     int file_dialog_active;
     int session_paused;
     int backgrounded;

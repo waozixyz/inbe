@@ -808,9 +808,6 @@ Best streak
 ---
 ---
 ---
-[transition_label]
-Animations
----
 [theme_picker_title]
 Choose Theme
 ---

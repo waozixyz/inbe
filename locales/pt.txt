@@ -770,9 +770,6 @@ Melhor sequência
 ---
 ---
 
-[transition_label]
-Transição
----
 [theme_picker_title]
 Escolher tema
 ---

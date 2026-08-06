@@ -357,6 +357,9 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
         dots_x = x
         dots_w = w
     }
+    if UIIconButtonNode((UIIconButton){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
+        practice_select_home_card(app, practice_next_visible(app, -1))
+    }
     practice_draw_home_dots(app, dots_x, y + (row_h - practice_home_dots_height(app)) / 2, dots_w)
     if UIIconButtonNode((UIIconButton){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
         practice_select_home_card(app, practice_next_visible(app, 1))

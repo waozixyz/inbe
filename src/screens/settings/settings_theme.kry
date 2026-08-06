@@ -15,11 +15,12 @@ ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 
 content_height :: (content_w: int) -> int {
+    unused content_w
+
     #if WEB {
-        unused content_w
         return ScaleUIPx(314)
     } #else {
-        return ScaleUIPx(298) + ui.toggle_row_height(GetLocaleText("transition_label"), content_w)
+        return ScaleUIPx(298)
     }
 }
 
@@ -56,24 +57,6 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     }
     *y += UIGetNodeHeight(UINodeThemeSettings(settings))
     *y += ScaleUIPx(18)
-
-    #if WEB {
-        app->transition_mode = APP_TRANSITION_NONE
-    } #else {
-        transitions_enabled := 0
-        app->transition_mode = clampi(app->transition_mode, APP_TRANSITION_NONE, APP_TRANSITION_FADE)
-        transitions_enabled = app->transition_mode == APP_TRANSITION_FADE
-        if ui.draw_toggle_row(x, w, y, GetLocaleText("transition_label"), &transitions_enabled) {
-            app->transition_mode = transitions_enabled ? APP_TRANSITION_FADE : APP_TRANSITION_NONE
-            if app->transition_mode == APP_TRANSITION_NONE {
-                ResetUITransition(&app->screen_transition)
-                app->content_transition.active = 0
-                app->route_transition_target = app_current_route(app)
-            }
-            app->settings_dirty = 1
-            app->settings_save_delay_ticks = 18
-        }
-    }
 }
 
 settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
