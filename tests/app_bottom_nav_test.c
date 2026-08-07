@@ -173,10 +173,19 @@ ScaleUIPx(int px)
     return px;
 }
 
-int
-GetUITabBarHeight(void)
+UIWidgetNode
+UINodeTabBar(UITabBar bar)
 {
-    return 44;
+    UIWidgetNode node = {0};
+    node.bounds.height = 44;
+    (void)bar;
+    return node;
+}
+
+int
+UIGetNodeHeight(UIWidgetNode node)
+{
+    return (int)node.bounds.height;
 }
 
 int
@@ -259,14 +268,8 @@ IsMouseButtonPressed(int button)
     return false;
 }
 
-int
-GetUIBottomNavHeight(void)
-{
-    return 52;
-}
-
 UIBottomNavResult
-DrawUIBottomNav(UIBottomNav nav)
+UIBottomNavNode(UIBottomNav nav)
 {
     bottom_nav_last = nav;
     if(nav.count > APP_BOTTOM_NAV_CONTENT_MAX + 1)
@@ -283,20 +286,22 @@ DrawUIBottomNav(UIBottomNav nav)
     };
 }
 
+UIWidgetNode
+UINodeBottomNav(UIBottomNav nav)
+{
+    UIWidgetNode node = {0};
+    node.bounds.height = 52;
+    (void)nav;
+    return node;
+}
+
 UISidebarAccountHeaderResult
-DrawUISidebarAccountHeader(UISidebarAccountHeader header)
+UISidebarAccountHeaderNode(UISidebarAccountHeader header)
 {
     (void)header;
     return (UISidebarAccountHeaderResult){
         .height = 138
     };
-}
-
-UIProfilePicturePickerResult
-DrawUIProfilePicturePickerModal(UIProfilePicturePickerModal modal)
-{
-    (void)modal;
-    return (UIProfilePicturePickerResult){0};
 }
 
 UIScrollView
@@ -319,18 +324,11 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 }
 
 int
-DrawUISectionLabel(UISectionLabel label, int x, int y)
+UIGenericButtonNode(int id, int x, int y, int w, int h,
+                    const char *label, UIButtonStyle style,
+                    int disabled, int *hover)
 {
-    (void)label;
-    (void)x;
-    (void)y;
-    return 0;
-}
-
-int
-DrawUIGenericButton(int x, int y, int w, int h, const char *label,
-                    UIButtonStyle style, int disabled, int *hover)
-{
+    (void)id;
     (void)x;
     (void)y;
     (void)w;
@@ -346,13 +344,6 @@ DrawUIGenericButton(int x, int y, int w, int h, const char *label,
     return 0;
 }
 
-UIBottomNavConfigResult
-DrawUIBottomNavConfigModal(UIBottomNavConfigModal modal)
-{
-    (void)modal;
-    return (UIBottomNavConfigResult){0};
-}
-
 UIReorderListResult
 UpdateUIReorderList(UIReorderList list)
 {
@@ -366,8 +357,9 @@ UpdateUIReorderList(UIReorderList list)
 }
 
 void
-DrawUIReorderHandle(int x, int y, int w, int h, int active)
+UIReorderHandleNode(int id, int x, int y, int w, int h, int active)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)w;
@@ -376,7 +368,7 @@ DrawUIReorderHandle(int x, int y, int w, int h, int active)
 }
 
 void
-DrawUIReorderPlaceholder(Rectangle bounds)
+UIReorderPlaceholderNode(Rectangle bounds)
 {
     (void)bounds;
 }
@@ -440,9 +432,9 @@ GetUISmallFontSize(void)
 }
 
 int
-DrawUIDropdownButton(int id, int x, int y, int w, int h,
-                     const char **options, int option_count,
-                     int *selected_index)
+UIDropdownNode(int id, int x, int y, int w, int h,
+               const char **options, int option_count,
+               int *selected_index)
 {
     (void)id;
     (void)x;
@@ -452,13 +444,6 @@ DrawUIDropdownButton(int id, int x, int y, int w, int h,
     (void)options;
     (void)option_count;
     (void)selected_index;
-    return 0;
-}
-
-int
-DrawUIDropdownMenu(int id)
-{
-    (void)id;
     return 0;
 }
 
@@ -475,9 +460,10 @@ SetUIDropdownClipBottom(int y)
 }
 
 int
-DrawUIPaddedIconBtn(int x, int y, int size, int padding,
+UIPaddedIconBtnNode(int id, int x, int y, int size, int padding,
                     Texture2D icon, int *hover)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)size;
@@ -493,8 +479,9 @@ DrawUIPaddedIconBtn(int x, int y, int size, int padding,
 }
 
 void
-DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
+UIIconTextureNode(int id, int x, int y, int size, Texture2D icon, Color tint)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)size;

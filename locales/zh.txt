@@ -255,6 +255,9 @@ Finish
 [cancel_button]
 取消
 ---
+[skip_button]
+跳过
+---
 [ok_button]
 确定
 ---

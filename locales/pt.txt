@@ -255,6 +255,9 @@ Salvar rodadas concluídas antes de sair?
 [cancel_button]
 Cancelar
 ---
+[skip_button]
+Pular
+---
 [ok_button]
 OK
 ---

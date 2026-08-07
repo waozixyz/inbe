@@ -258,6 +258,9 @@ Finish
 [cancel_button]
 Отмена
 ---
+[skip_button]
+Пропустить
+---
 [ok_button]
 OK
 ---

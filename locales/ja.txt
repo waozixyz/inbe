@@ -255,6 +255,9 @@ Finish
 [cancel_button]
 キャンセル
 ---
+[skip_button]
+スキップ
+---
 [ok_button]
 OK
 ---

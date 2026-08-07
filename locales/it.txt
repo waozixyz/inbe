@@ -255,6 +255,9 @@ Salvare i round completati prima di uscire?
 [cancel_button]
 Annulla
 ---
+[skip_button]
+Salta
+---
 [ok_button]
 OK
 ---

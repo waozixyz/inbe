@@ -255,6 +255,9 @@ Uložit dokončená kola před ukončením?
 [cancel_button]
 Zrušit
 ---
+[skip_button]
+Přeskočit
+---
 [ok_button]
 OK
 ---

@@ -255,6 +255,9 @@ Simpan ronde yang selesai sebelum keluar?
 [cancel_button]
 Batal
 ---
+[skip_button]
+Lewati
+---
 [ok_button]
 OK
 ---

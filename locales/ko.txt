@@ -255,6 +255,9 @@ Finish
 [cancel_button]
 취소
 ---
+[skip_button]
+건너뛰기
+---
 [ok_button]
 확인
 ---

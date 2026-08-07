@@ -255,6 +255,9 @@ RESULTADOS
 [cancel_button]
 Cancelar
 ---
+[skip_button]
+Omitir
+---
 [ok_button]
 Aceptar
 ---
