@@ -63,6 +63,49 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         keyboard_toggle = app->on_screen_keyboard_enabled
     }
 
+    UITextNode(GetLocaleText("language_label"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    if UILocaleDropdownNode(101, x, *y + ScaleUIPx(26), w,
+                                  ScaleUIPx(36), &app->language_index) {
+        state->language_menu_changed = 1
+    }
+    state->draw_language_menu = 1
+    *y += ScaleUIPx(76)
+
+    orientation_max := orientation_option_count - 1
+    app->orientation_mode = clampi(app->orientation_mode,
+                                   APP_ORIENTATION_SYSTEM, orientation_max)
+    UITextNode(GetLocaleText("orientation_label"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    if UIDropdownNode(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+                            orientation_options, orientation_option_count,
+                            &app->orientation_mode) {
+        state->orientation_changed = 1
+    }
+    state->draw_orientation_menu = 1
+    *y += ScaleUIPx(76)
+
+    #if DESKTOP {
+        if UICheckboxNode(0, x, *y, GetLocaleText("fullscreen_label"),
+                                &app->fullscreen_enabled) {
+            if app->fullscreen_enabled && !IsWindowFullscreen() {
+                ToggleFullscreen()
+            } else if !app->fullscreen_enabled && IsWindowFullscreen() {
+                ToggleFullscreen()
+            }
+            app->settings_dirty = 1
+        }
+        *y += ScaleUIPx(50)
+    }
+
+    #if DESKTOP {
+        if settings_ui_commit_toggle_row(app, x, w, y,
+                                         GetLocaleText("on_screen_keyboard_label"),
+                                         &keyboard_toggle, 0) {
+            app->on_screen_keyboard_enabled = keyboard_toggle
+        }
+    }
+
     if settings_ui_commit_toggle_row(app, x, w, y,
                                      GetLocaleText("play_in_background_label"),
                                      &play_in_background, 0) {
@@ -117,49 +160,6 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         *y += settings_ui_draw_audio_meter(app, x, *y, w,
                                            GetLocaleText("audio_output_level_label"))
         *y += ScaleUIPx(18)
-    }
-
-    UITextNode(GetLocaleText("language_label"), x, *y,
-                  GetUIFontSize(), GetThemeText())
-    if UILocaleDropdownNode(101, x, *y + ScaleUIPx(26), w,
-                                  ScaleUIPx(36), &app->language_index) {
-        state->language_menu_changed = 1
-    }
-    state->draw_language_menu = 1
-    *y += ScaleUIPx(76)
-
-    orientation_max := orientation_option_count - 1
-    app->orientation_mode = clampi(app->orientation_mode,
-                                   APP_ORIENTATION_SYSTEM, orientation_max)
-    UITextNode(GetLocaleText("orientation_label"), x, *y,
-                  GetUIFontSize(), GetThemeText())
-    if UIDropdownNode(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
-                            orientation_options, orientation_option_count,
-                            &app->orientation_mode) {
-        state->orientation_changed = 1
-    }
-    state->draw_orientation_menu = 1
-    *y += ScaleUIPx(76)
-
-    #if DESKTOP {
-        if UICheckboxNode(0, x, *y, GetLocaleText("fullscreen_label"),
-                                &app->fullscreen_enabled) {
-            if app->fullscreen_enabled && !IsWindowFullscreen() {
-                ToggleFullscreen()
-            } else if !app->fullscreen_enabled && IsWindowFullscreen() {
-                ToggleFullscreen()
-            }
-            app->settings_dirty = 1
-        }
-        *y += ScaleUIPx(50)
-    }
-
-    #if DESKTOP {
-        if settings_ui_commit_toggle_row(app, x, w, y,
-                                         GetLocaleText("on_screen_keyboard_label"),
-                                         &keyboard_toggle, 0) {
-            app->on_screen_keyboard_enabled = keyboard_toggle
-        }
     }
 }
 

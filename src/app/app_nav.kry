@@ -684,7 +684,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
     if app_draw_sidebar_settings_items(app, area.content_x, &y,
-                                       area.content_width, settings_items, 4) {
+                                       area.content_width, settings_items, 3) {
         EndUIScrollContainer(area, view)
         return
     }
