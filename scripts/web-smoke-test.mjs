@@ -347,11 +347,17 @@ async function waitForHealthyPage(client) {
         if (!gl) return { ok: false, reason: 'missing webgl', status };
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
+        const M = globalThis.Module;
         return {
           ok: width > 0 && height > 0,
           width,
           height,
-          loadingClass: document.querySelector('#loading-screen')?.className || ''
+          loadingClass: document.querySelector('#loading-screen')?.className || '',
+          moduleLoaded: !!M,
+          runtimeReady: !!(M && M.__inbeRuntimeReady),
+          moduleStatus: (M && M.setStatus && M.setStatus.last && M.setStatus.last.text) || '',
+          mainStarted: !!(typeof Module !== 'undefined' && Module._main) || /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
+          runDependencies: M && (typeof M.monitorRunDependencies === 'function') ? M.totalDependencies : undefined
         };
       })()`,
       returnByValue: true
@@ -370,7 +376,12 @@ async function waitForHealthyPage(client) {
   }
 
   const recent = client.events.slice(-12).map(eventText).filter(Boolean).join(' | ');
-  throw new Error(`web app did not become healthy within ${timeoutMs}ms; state=${JSON.stringify(lastState)}; recent=${recent}`);
+  const allExceptions = client.events
+    .filter(e => e.method === 'Runtime.exceptionThrown')
+    .map(eventText)
+    .filter(Boolean)
+    .join(' | ');
+  throw new Error(`web app did not become healthy within ${timeoutMs}ms; state=${JSON.stringify(lastState)}; recent=${recent || '(none)'}; exceptions=${allExceptions || '(none)'}`);
 }
 
 async function waitForHealthyBidiPage(client, context) {
