@@ -842,7 +842,7 @@ practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
 }
 
 practice_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
-    account := (InbeSyncAccount){0}
+    account := (KsyncAccount){0}
     return app != NULL && !app->tutorial_seen && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && !sync_account_load(&account)
 }
 

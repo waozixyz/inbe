@@ -29,7 +29,7 @@ profile_format_size :: (out: char*, out_size: size_t, bytes: long long) #private
 profile_data_content_height :: (content_w: int) -> int #private {
     height := settings_data_content_height(content_w) + ScaleUIPx(64)
 
-    if sync_account_load(&(InbeSyncAccount){0}) {
+    if sync_account_load(&(KsyncAccount){0}) {
         height += ScaleUIPx(86)
     }
 
@@ -281,6 +281,11 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         settings_data_handle_android_import(app)
     } #else_if WEB {
         settings_data_handle_web_import(app)
+    }
+
+    if app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT ||
+       (app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_SYNC) {
+        settings_data_register_sync_key_dialogs()
     }
 
     if app->profile_tab < 0 || app->profile_tab >= PROFILE_TAB_COUNT {

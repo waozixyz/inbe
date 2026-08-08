@@ -1239,7 +1239,7 @@ habits_screen_dismiss_first_run_guide :: (app: InbeApp*) {
 }
 
 habits_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
-    account: InbeSyncAccount
+    account: KsyncAccount
 
     return app != nil &&
         !app->habits_guide_seen &&

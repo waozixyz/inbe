@@ -198,6 +198,11 @@ sync_server_load :: (app: InbeApp*) #private {
     app->sync_server_url_cursor = (int)strlen(app->sync_server_url)
 }
 
+register_sync_key_dialogs :: () {
+    settings_sync_account_set_save_dialog(start_sync_key_export_dialog)
+    settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
+}
+
 open_sync_account_config :: (app: InbeApp*) {
     if app == nil {
         return
@@ -227,7 +232,7 @@ start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #p
         unused app
         InitFileDialog(&dlg)
         if SaveFileDialog(&dlg, GetLocaleText("sync_save_key_dialog_title"), filename) {
-            account: InbeSyncAccount
+            account: KsyncAccount
             path := GetFileDialogPath(&dlg)
             if path != nil && path[0] != '\0' &&
                sync_account_load(&account) &&
@@ -251,7 +256,7 @@ start_sync_key_export_dialog :: (app: InbeApp*, filename: const char*) -> int #p
 }
 
 import_sync_key_path :: (app: InbeApp*, path: const char*) -> int #private {
-    account: InbeSyncAccount
+    account: KsyncAccount
 
     if path != nil && path[0] != '\0' &&
        sync_account_import_private_key_preview(&account, path) {
@@ -315,7 +320,7 @@ content_height :: (content_w: int) -> int {
 }
 
 draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: InbeSyncAccount
+    account: KsyncAccount
     data_button_h := ScaleUIPx(36)
     hover_import: int = 0
     hover_export: int = 0

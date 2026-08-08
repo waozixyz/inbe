@@ -591,7 +591,7 @@ settings_screen_clear_status(void)
 }
 
 int
-sync_account_load(InbeSyncAccount *account)
+sync_account_load(KsyncAccount *account)
 {
     (void)account;
     return 0;

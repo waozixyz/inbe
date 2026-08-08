@@ -359,7 +359,7 @@ struct InbeApp {
     int sync_alias_focused;
     int sync_alias_then_backup;
     char sync_alias_input[40];
-    InbeSyncAccount pending_sync_account;
+    KsyncAccount pending_sync_account;
     int pending_sync_account_action;
     int device_picker_open;
     int device_picker_scroll;

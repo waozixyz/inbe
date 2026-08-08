@@ -117,7 +117,7 @@ backup_filename :: (out: char*, out_size: size_t) #private {
     snprintf(out, out_size, "account.key")
 }
 
-start_sync_key_export :: (app: InbeApp*, account: const InbeSyncAccount*) -> int #private {
+start_sync_key_export :: (app: InbeApp*, account: const KsyncAccount*) -> int #private {
     filename: [64] char
 
     backup_filename(filename, sizeof(filename))
@@ -251,7 +251,7 @@ open_alias_modal :: (app: InbeApp*, then_backup: int) #private {
     app_open_modal(app, UIModalSyncAlias)
 }
 
-save_prepared :: (app: InbeApp*, account: InbeSyncAccount*,
+save_prepared :: (app: InbeApp*, account: KsyncAccount*,
                      action: int, clear_local_data: int) -> int {
     result: InbeSyncAccountSaveResult
 
@@ -287,7 +287,7 @@ save_prepared :: (app: InbeApp*, account: InbeSyncAccount*,
     return 1
 }
 
-draw_account_id :: (app: InbeApp*, account: const InbeSyncAccount*,
+draw_account_id :: (app: InbeApp*, account: const KsyncAccount*,
                    x: int, w: int, y: int*, small_font: int,
                    style: UITextInputStyle) #private {
     alias := storage_get_setting_text(sync_account_alias_key)
@@ -313,7 +313,7 @@ server_connected :: (app: InbeApp*) -> int #private {
     url: [sizeof(app->sync_server_url)] char
     saved_url: const char* = nil
     saved_normalized: [sizeof(app->sync_server_url)] char
-    account: InbeSyncAccount
+    account: KsyncAccount
 
     if app == nil || !sync_account_load(&account) {
         return 0
@@ -347,7 +347,7 @@ result_key :: (result: KsyncSyncResult) -> const char* #private {
     return "sync_failed"
 }
 
-create_account :: (app: InbeApp*, account: InbeSyncAccount*) -> int #private {
+create_account :: (app: InbeApp*, account: KsyncAccount*) -> int #private {
     if account == nil {
         return 0
     }
@@ -412,7 +412,7 @@ logout :: (app: InbeApp*) #private {
 }
 
 clear_remote_confirmed :: (app: InbeApp*) {
-    account: InbeSyncAccount
+    account: KsyncAccount
     result: KsyncSyncResult
     url: [sizeof(app->sync_server_url)] char
 
@@ -556,7 +556,7 @@ adaptive_button_row_height :: (items: const UIButtonRowItem*, count: int,
 }
 
 config_content_height :: (content_w: int) -> int {
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account := sync_account_load(&account)
     btn_h := ScaleUIPx(36)
     gap := ScaleUIPx(10)
@@ -614,7 +614,7 @@ config_content_height :: (content_w: int) -> int {
 }
 
 draw :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account := sync_account_load(&account)
     font := GetUIFontSize()
     small_font := GetUISmallFontSize()
@@ -671,7 +671,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
 }
 
 draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account := sync_account_load(&account)
     font := GetUIFontSize()
     small_font := GetUISmallFontSize()
@@ -820,7 +820,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
 
 draw_backup_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
-    account: InbeSyncAccount
+    account: KsyncAccount
     btn_h := ScaleUIPx(36)
     gap := ScaleUIPx(10)
     pad_bottom := ScaleUIPx(24)
@@ -991,7 +991,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
 
 draw_public_id_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
-    account: InbeSyncAccount
+    account: KsyncAccount
     input_style := text_style()
     btn_h := ScaleUIPx(36)
     gap := ScaleUIPx(10)

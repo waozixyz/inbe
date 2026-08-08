@@ -240,7 +240,7 @@ make_account_values_variant(int variant, char public_id[65],
 }
 
 static InbeSyncAccountSaveResult
-import_key_and_save(InbeSyncAccount *account, const char *path, int clear_local_data)
+import_key_and_save(KsyncAccount *account, const char *path, int clear_local_data)
 {
     if(!sync_account_import_private_key_preview(account, path))
         return INBE_SYNC_ACCOUNT_SAVE_FAILED;
@@ -256,7 +256,7 @@ test_import_export_clear(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     char *exported;
     FILE *file;
 
@@ -330,7 +330,7 @@ test_reject_invalid_keys(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     FILE *file;
 
     make_clean_root(root, sizeof(root), "invalid");
@@ -368,7 +368,7 @@ test_imported_account_backfills_existing_local_data(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     char *payload;
     int rounds[] = {30, 45, 60};
 
@@ -428,7 +428,7 @@ test_logout_preserves_data_owner(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
 
     make_clean_root(root, sizeof(root), "logout-owner");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -459,8 +459,8 @@ test_different_account_requires_clear_local_data(void)
     char public_id_two[65];
     char public_key_two[2625];
     char private_key_two[5121];
-    InbeSyncAccount account;
-    InbeSyncAccount loaded;
+    KsyncAccount account;
+    KsyncAccount loaded;
 
     make_clean_root(root, sizeof(root), "account-switch");
     snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);
@@ -517,8 +517,8 @@ test_social_cache_does_not_block_account_switch(void)
     char public_id_two[65];
     char public_key_two[2625];
     char private_key_two[5121];
-    InbeSyncAccount account;
-    InbeSyncAccount loaded;
+    KsyncAccount account;
+    KsyncAccount loaded;
 
     make_clean_root(root, sizeof(root), "social-cache-account-switch");
     snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);

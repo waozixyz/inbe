@@ -25,11 +25,11 @@ static sync_public_key_key: const char* = "sync_public_key"
 static sync_private_key_key: const char* = "sync_private_key"
 static sync_account_alias_key: const char* = "sync_account_alias"
 
-account_has_values :: (account: const InbeSyncAccount*) -> int #private {
+account_has_values :: (account: const KsyncAccount*) -> int #private {
     return HasKsyncAccountValues(account)
 }
 
-sync_account_write_and_reset :: (account: const InbeSyncAccount*) #private {
+sync_account_write_and_reset :: (account: const KsyncAccount*) #private {
     storage_settings_begin_write()
     storage_set_setting_text(sync_public_id_key, account != nil ? account->public_id : "")
     storage_set_setting_text(sync_public_key_key, account != nil ? account->public_key_hex : "")
@@ -41,7 +41,7 @@ sync_account_write_and_reset :: (account: const InbeSyncAccount*) #private {
     storage_settings_end_write()
 }
 
-sync_account_same_owner :: (owner: const char*, account: const InbeSyncAccount*) -> int #private {
+sync_account_same_owner :: (owner: const char*, account: const KsyncAccount*) -> int #private {
     return owner != nil && account != nil && strcmp(owner, account->public_id) == 0
 }
 
@@ -53,7 +53,7 @@ sync_account_available :: () -> int {
     return IsKsyncAccountAvailable()
 }
 
-sync_account_load :: (account: InbeSyncAccount*) -> int {
+sync_account_load :: (account: KsyncAccount*) -> int {
     public_id: const char*
     public_key: const char*
     private_key: const char*
@@ -79,7 +79,7 @@ sync_account_load :: (account: InbeSyncAccount*) -> int {
     return account_has_values(account)
 }
 
-sync_account_generate :: (account: InbeSyncAccount*) -> int {
+sync_account_generate :: (account: KsyncAccount*) -> int {
     data_init()
     if account == nil {
         return 0
@@ -88,7 +88,7 @@ sync_account_generate :: (account: InbeSyncAccount*) -> int {
     return CreateKsyncAccount(account)
 }
 
-sync_account_import_private_key_preview :: (account: InbeSyncAccount*,
+sync_account_import_private_key_preview :: (account: KsyncAccount*,
                                                filename: const char*) -> int {
     data_init()
     if account == nil || filename == nil || filename[0] == '\0' {
@@ -102,7 +102,7 @@ sync_account_import_private_key_preview :: (account: InbeSyncAccount*,
     return 1
 }
 
-sync_account_save :: (account: InbeSyncAccount*,
+sync_account_save :: (account: KsyncAccount*,
                          clear_local_data: int) -> InbeSyncAccountSaveResult {
     owner: const char*
 
@@ -133,7 +133,7 @@ sync_account_clear :: () -> int {
     return 1
 }
 
-sync_account_export_private_key :: (account: const InbeSyncAccount*,
+sync_account_export_private_key :: (account: const KsyncAccount*,
                                        filename: const char*) -> int {
     body: [KSYNC_ACCOUNT_EXPORT_TEXT_SIZE] char = {0}
     len: int
@@ -169,7 +169,7 @@ sync_account_export_private_key :: (account: const InbeSyncAccount*,
 
 sync_account_sign_hex :: (message: const uint8_t*, message_len: size_t,
                              out_signature_hex: char*, out_size: size_t) -> int {
-    account: InbeSyncAccount
+    account: KsyncAccount
 
     if !sync_account_load(&account) {
         return 0

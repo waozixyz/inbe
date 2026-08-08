@@ -1,41 +1,7 @@
 #ifndef INBE_SYNC_CLIENT_H
 #define INBE_SYNC_CLIENT_H
 
-#if defined(__has_include)
-#if __has_include("ksync_sync.h")
 #include "ksync_sync.h"
-#else
-#include "lyra_sync.h"
-#define KsyncSyncResult LyraSyncResult
-#define KSYNC_SYNC_OK LYRA_SYNC_OK
-#define KSYNC_SYNC_INVALID_URL LYRA_SYNC_INVALID_URL
-#define KSYNC_SYNC_NO_ACCOUNT LYRA_SYNC_NO_ACCOUNT
-#define KSYNC_SYNC_PAYLOAD_FAILED LYRA_SYNC_PAYLOAD_FAILED
-#define KSYNC_SYNC_CHALLENGE_FAILED LYRA_SYNC_CHALLENGE_FAILED
-#define KSYNC_SYNC_SIGN_FAILED LYRA_SYNC_SIGN_FAILED
-#define KSYNC_SYNC_REQUEST_FAILED LYRA_SYNC_REQUEST_FAILED
-#define KSYNC_SYNC_AUTH_FAILED LYRA_SYNC_AUTH_FAILED
-#define KsyncSyncBuffer LyraSyncBuffer
-#define KsyncSyncConfig LyraSyncConfig
-#define AppendKsyncSyncBuffer AppendLyraSyncBuffer
-#define AppendKsyncSyncBufferJSONString AppendLyraSyncBufferJSONString
-#define FreeKsyncSyncBuffer FreeLyraSyncBuffer
-#define FindKsyncSyncJSONString FindLyraSyncJSONString
-#define FindKsyncSyncJSONInt64 FindLyraSyncJSONInt64
-#define GetKsyncSyncResultName GetLyraSyncResultName
-#define IsKsyncSyncURLValid IsLyraSyncURLValid
-#define NormalizeKsyncSyncURL NormalizeLyraSyncURL
-#define JoinKsyncSyncURL JoinLyraSyncURL
-#define JoinKsyncSyncWebSocketURL JoinLyraSyncWebSocketURL
-#define ClearKsyncSyncAuthToken ClearLyraSyncAuthToken
-#define LoginKsyncSync LoginLyraSync
-#define RunKsyncSync RunLyraSync
-#define RequestKsyncSyncBearer RequestLyraSyncBearer
-#define DeleteKsyncSyncAccount DeleteLyraSyncAccount
-#endif
-#else
-#include "ksync_sync.h"
-#endif
 
 #include <stddef.h>
 

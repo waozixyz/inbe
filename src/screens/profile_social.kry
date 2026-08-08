@@ -589,7 +589,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
     font := GetUIFontSize()
     small := GetUISmallFontSize()
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
     self_value: [48] char = {0}
@@ -709,7 +709,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
 
 leaderboard_row_count :: (app: InbeApp*, json: const char*) -> int #private {
     draw_rows: [24] ProfileLeaderboardDrawRow = {0}
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
     rows := 0

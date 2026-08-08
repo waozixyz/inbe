@@ -488,7 +488,7 @@ app_draw_sidebar_settings_items :: (app: InbeApp*, x: int, y: int*, w: int,
 }
 
 app_sidebar_account_label :: (out: char*, out_size: size_t) #private {
-    account: InbeSyncAccount
+    account: KsyncAccount
     alias: const char*
 
     if out == NULL || out_size == 0 {
@@ -595,7 +595,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     scrim := BLACK
     area: UIScrollArea
     view: UIScrollView
-    account: InbeSyncAccount
+    account: KsyncAccount
     has_account: int
     account_label: [96] char
     profile_items: [1] const AppSidebarRouteItem = {

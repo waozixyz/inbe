@@ -577,7 +577,7 @@ app_apply_pending_sync_refresh :: (app: InbeApp*) #private {
 
 app_sync_url :: (url: char*, url_size: size_t) -> int #private {
     saved_url: const char*
-    account: InbeSyncAccount
+    account: KsyncAccount
 
     if url == nil || url_size == 0 {
         return 0
