@@ -34,8 +34,9 @@ if(NOT TARGET oqs)
 endif()
 file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
 list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
-find_program(HOST_MAKE NAMES gmake make REQUIRED)
-set(KRYON_KC "${KRYON_DIR}/build/bin/kc")
+file(GLOB KRYON_KC_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kc/*.c")
+find_program(HOST_CC NAMES cc clang gcc REQUIRED)
+set(KRYON_KC "${CMAKE_BINARY_DIR}/host-tools/kc")
 set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
 file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
 list(SORT INBE_KRY_SOURCES)
@@ -72,8 +73,9 @@ add_custom_command(
 )
 add_custom_command(
     OUTPUT "${KRYON_KC}"
-    COMMAND "${HOST_MAKE}" -C "${KRYON_DIR}" build/bin/kc
-    DEPENDS "${KRYON_DIR}/Makefile"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
+    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -o "${KRYON_KC}" ${KRYON_KC_SOURCES}
+    DEPENDS ${KRYON_KC_SOURCES}
     VERBATIM
 )
 add_custom_target(inbe_kry_generated DEPENDS

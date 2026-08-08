@@ -56,21 +56,24 @@ image_dir_ready() {
   [ -d "$dir" ] && { [ -f "$dir/source.properties" ] || [ -f "$dir/system.img" ] || [ -f "$dir/kernel-ranchu" ]; }
 }
 
+image_specs() {
+  cat << EOF
+google_apis_playstore_ps16k x86_64
+google_apis_ps16k x86_64
+google_apis_playstore x86_64
+google_apis x86_64
+default x86_64
+google_apis_playstore_ps16k arm64-v8a
+google_apis_ps16k arm64-v8a
+google_apis_playstore arm64-v8a
+google_apis arm64-v8a
+default arm64-v8a
+EOF
+}
+
 find_system_image() {
-  for spec in \
-    "google_apis_playstore_ps16k x86_64" \
-    "google_apis_ps16k x86_64" \
-    "google_apis_playstore x86_64" \
-    "google_apis x86_64" \
-    "default x86_64" \
-    "google_apis_playstore_ps16k arm64-v8a" \
-    "google_apis_ps16k arm64-v8a" \
-    "google_apis_playstore arm64-v8a" \
-    "google_apis arm64-v8a" \
-    "default arm64-v8a"; do
-    set -- $spec
-    type="$1"
-    abi="$2"
+  while read -r type abi; do
+    [ -n "$type" ] || continue
     for root in "$ANDROID_SDK_ROOT" "$ORIGINAL_SDK_ROOT"; do
       dir="$root/system-images/android-$ANDROID_API/$type/$abi"
       if image_dir_ready "$dir"; then
@@ -81,7 +84,7 @@ find_system_image() {
         return 0
       fi
     done
-  done
+  done < <(image_specs)
   return 1
 }
 
@@ -97,20 +100,8 @@ install_system_image() {
     return 1
   fi
 
-  for spec in \
-    "google_apis_playstore_ps16k x86_64" \
-    "google_apis_ps16k x86_64" \
-    "google_apis_playstore x86_64" \
-    "google_apis x86_64" \
-    "default x86_64" \
-    "google_apis_playstore_ps16k arm64-v8a" \
-    "google_apis_ps16k arm64-v8a" \
-    "google_apis_playstore arm64-v8a" \
-    "google_apis arm64-v8a" \
-    "default arm64-v8a"; do
-    set -- $spec
-    type="$1"
-    abi="$2"
+  while read -r type abi; do
+    [ -n "$type" ] || continue
     package="system-images;android-$ANDROID_API;$type;$abi"
     echo "📦 Installing Android system image: $package"
     if yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "$package"; then
@@ -118,7 +109,7 @@ install_system_image() {
         return 0
       fi
     fi
-  done
+  done < <(image_specs)
 
   return 1
 }

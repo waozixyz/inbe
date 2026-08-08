@@ -4,6 +4,11 @@ set -e
 
 AVD_NAME="${AVD_NAME:-inbe-test}"
 UNAME_S="$(uname -s)"
+KERNEL_R="$(uname -r 2>/dev/null || true)"
+SOFT_EMULATOR=0
+if [ "$UNAME_S" = "FreeBSD" ] || echo "$KERNEL_R" | grep -qi FreeBSD || [ ! -e /dev/kvm ]; then
+  SOFT_EMULATOR=1
+fi
 
 if [ "$UNAME_S" = "FreeBSD" ]; then
   mkdir -p "$HOME"
@@ -35,7 +40,12 @@ for component in build-tools cmake cmdline-tools emulator licenses ndk platforms
   fi
 done
 
-if [ -d "$PERSISTENT_SDK_ROOT" ] && [ -d "$PERSISTENT_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
+NEED_CREATE_AVD=0
+if [ ! -d "$PERSISTENT_SDK_ROOT" ] || [ ! -d "$PERSISTENT_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
+  NEED_CREATE_AVD=1
+fi
+
+if [ "$NEED_CREATE_AVD" -eq 0 ]; then
   export ANDROID_SDK_ROOT="$PERSISTENT_SDK_ROOT"
   export ANDROID_SDK_HOME="$PERSISTENT_SDK_ROOT"
   export ANDROID_AVD_HOME="$PERSISTENT_SDK_ROOT/avd"
@@ -73,7 +83,7 @@ if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   exit 0
 fi
 
-if [ "$UNAME_S" = "FreeBSD" ]; then
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
   LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" -version >/dev/null
 elif LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$EMULATOR_CMD" 2>/dev/null | grep -q "not found"; then
   echo "❌ Emulator runtime libraries are missing."
@@ -87,7 +97,7 @@ echo "🚀 Launching Pixel 8 Pro emulator ($AVD_NAME)..."
 unset ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 
-if [ "$UNAME_S" = "FreeBSD" ]; then
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
   LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
     -no-window \
     -no-audio \
@@ -108,8 +118,8 @@ fi
 
 echo "⏳ Waiting for boot (this may take a while)..."
 timeout_seconds=120
-if [ "$UNAME_S" = "FreeBSD" ]; then
-  timeout_seconds=300
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
+  timeout_seconds=600
 fi
 elapsed=0
 
