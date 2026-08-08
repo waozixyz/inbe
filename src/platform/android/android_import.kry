@@ -39,6 +39,12 @@ ANDROID :: ANDROID_BUILD
             return 0
         }
 
+        pthread_mutex_lock(&import_mutex)
+        pending_result = ANDROID_IMPORT_RESULT_NONE
+        pending_kind = kind
+        pending_path[0] = '\0'
+        pthread_mutex_unlock(&import_mutex)
+
         activity := app->activity
         jvm := activity->vm
         env: JNIEnv* = nil

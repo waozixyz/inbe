@@ -315,8 +315,8 @@ public class MainActivity extends NativeActivity {
                 try {
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("*/*");
                     String[] mimeTypes = parseMimeTypes(mimeTypesCsv);
+                    intent.setType(primaryMimeType(mimeTypes));
                     if (mimeTypes.length > 0) {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
                     }
@@ -344,6 +344,20 @@ public class MainActivity extends NativeActivity {
             }
         }
         return result.toArray(new String[0]);
+    }
+
+    private static String primaryMimeType(String[] mimeTypes) {
+        if (mimeTypes == null || mimeTypes.length == 0) {
+            return "*/*";
+        }
+        for (String mimeType : mimeTypes) {
+            if (mimeType != null && mimeType.endsWith("/*")) {
+                return mimeType;
+            }
+        }
+        return mimeTypes[0] != null && !mimeTypes[0].isEmpty()
+            ? mimeTypes[0]
+            : "*/*";
     }
 
     @Override

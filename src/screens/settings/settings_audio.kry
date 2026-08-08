@@ -24,6 +24,13 @@ NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
     static audio_web_dialog_ready: int = 0
 }
 
+SettingsAudioDialogOrigin :: struct {
+    active: int
+    screen: int
+    settings_tab: int
+    settings_scroll: int
+}
+
 #enum {
     SETTINGS_AUDIO_ACTION_NONE = 0
     SETTINGS_AUDIO_ACTION_SOUND_IN
@@ -39,14 +46,59 @@ NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
     SETTINGS_AUDIO_PREVIEW_MUSIC
 }
 
-static audio_import_action: int = SETTINGS_AUDIO_ACTION_NONE
 static audio_import_filter: const char* = ".ogg"
-static android_audio_mime_types: const char* = "audio/ogg,application/ogg,audio/*,application/octet-stream"
 static audio_preview_kind: int = SETTINGS_AUDIO_PREVIEW_NONE
 static audio_preview_index: int = -1
 static audio_preview_sound: Sound = {0}
 static audio_preview_music: Music = {0}
 static audio_preview_music_loaded: int = 0
+
+#if ANDROID || WEB {
+    static audio_import_action: int = SETTINGS_AUDIO_ACTION_NONE
+    static audio_dialog_origin: SettingsAudioDialogOrigin = {0}
+}
+
+#if ANDROID {
+    static android_audio_mime_types: const char* = "audio/ogg,application/ogg,audio/*,application/octet-stream"
+}
+
+settings_audio_dialog_begin :: (app: InbeApp*, action: int) #private {
+    #if ANDROID || WEB {
+        if app == nil {
+            return
+        }
+        audio_import_action = action
+        app->file_dialog_active = 1
+        audio_dialog_origin.active = 1
+        audio_dialog_origin.screen = app->inbe.screen
+        audio_dialog_origin.settings_tab = app->settings_tab
+        audio_dialog_origin.settings_scroll = app->settings_scroll
+    } #else {
+        unused app
+        unused action
+    }
+}
+
+settings_audio_dialog_finish :: (app: InbeApp*) -> int #private {
+    #if ANDROID || WEB {
+        action := audio_import_action
+
+        if app != nil && audio_dialog_origin.active {
+            app->inbe.screen = audio_dialog_origin.screen
+            app->settings_tab = audio_dialog_origin.settings_tab
+            app->settings_scroll = audio_dialog_origin.settings_scroll
+        }
+        audio_dialog_origin.active = 0
+        audio_import_action = SETTINGS_AUDIO_ACTION_NONE
+        if app != nil {
+            app->file_dialog_active = 0
+        }
+        return action
+    } #else {
+        unused app
+        return SETTINGS_AUDIO_ACTION_NONE
+    }
+}
 
 settings_audio_cue_sound :: (app: InbeApp*, cue: int) -> Sound #private {
     empty: Sound = {0}
@@ -270,12 +322,12 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
 settings_audio_start_import :: (app: InbeApp*, action: int) #private {
     settings_audio_stop_preview(app)
     #if ANDROID {
-        audio_import_action = action
+        settings_audio_dialog_begin(app, action)
         if android_import_open_picker_for(audio_android_kind(action),
                                           android_audio_mime_types) {
             settings_screen_set_status_success(GetLocaleText("audio_import_title"), nil)
         } else {
-            audio_import_action = SETTINGS_AUDIO_ACTION_NONE
+            settings_audio_dialog_finish(app)
             settings_screen_set_status_error(GetLocaleText("audio_import_failed"))
         }
     } #else_if WEB {
@@ -284,7 +336,7 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         }
         InitFileDialog(&audio_web_dialog)
         audio_web_dialog_ready = 1
-        audio_import_action = action
+        settings_audio_dialog_begin(app, action)
         BeginLoadFilteredFileDialog(&audio_web_dialog,
                                     GetLocaleText("audio_import_title"),
                                     audio_import_filter)
@@ -310,25 +362,26 @@ settings_audio_handle_import :: (app: InbeApp*) {
     #if ANDROID {
         path: [FS_PATH_MAX] char = {0}
         result: int
+        action := audio_import_action
 
-        if audio_import_action == SETTINGS_AUDIO_ACTION_NONE {
+        if action == SETTINGS_AUDIO_ACTION_NONE {
             return
         }
-        result = android_import_poll_result_for(audio_android_kind(audio_import_action),
+        result = android_import_poll_result_for(audio_android_kind(action),
                                                 path, sizeof(path))
         if result == ANDROID_IMPORT_RESULT_NONE {
             return
         }
+        action = settings_audio_dialog_finish(app)
         if result == ANDROID_IMPORT_RESULT_CANCELLED {
-            audio_import_action = SETTINGS_AUDIO_ACTION_NONE
             settings_screen_set_status_error(GetLocaleText("audio_import_cancelled"))
             return
         }
-        audio_import_path(app, audio_import_action, path)
-        audio_import_action = SETTINGS_AUDIO_ACTION_NONE
+        audio_import_path(app, action, path)
     } #else_if WEB {
         result: int
         path: const char*
+        action: int
 
         if !audio_web_dialog_ready || !audio_web_dialog.active {
             return
@@ -337,15 +390,15 @@ settings_audio_handle_import :: (app: InbeApp*) {
         if result == -1 {
             return
         }
+        action = settings_audio_dialog_finish(app)
         path = GetFileDialogPath(&audio_web_dialog)
         if result == 0 {
             settings_screen_set_status_error(GetLocaleText("audio_import_cancelled"))
         } else {
-            audio_import_path(app, audio_import_action, path)
+            audio_import_path(app, action, path)
         }
         CloseFileDialog(&audio_web_dialog)
         audio_web_dialog_ready = 0
-        audio_import_action = SETTINGS_AUDIO_ACTION_NONE
     } #else {
         unused app
     }
