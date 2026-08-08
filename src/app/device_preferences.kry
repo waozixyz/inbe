@@ -5,6 +5,7 @@
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+DESKTOP :: !ANDROID && !WEB
 
 #if ANDROID {
     #import "android_device.h" #private
@@ -12,6 +13,48 @@ WEB :: #defined(PLATFORM_WEB)
 
 #if WEB {
     #import "web.h" #private
+}
+
+#if DESKTOP {
+    app_desktop_restore_window_size :: () #private {
+        width := config.width > 0 ? config.width : 900
+        height := config.height > 0 ? config.height : 720
+
+        if width <= 0 {
+            width = 900
+        }
+        if height <= 0 {
+            height = 720
+        }
+        SetWindowSize(width, height)
+    }
+
+    app_desktop_set_fullscreen :: (enabled: int) {
+        monitor := GetCurrentMonitor()
+        width := GetMonitorWidth(monitor)
+        height := GetMonitorHeight(monitor)
+
+        if enabled {
+            if width <= 0 {
+                width = GetScreenWidth()
+            }
+            if height <= 0 {
+                height = GetScreenHeight()
+            }
+            if !IsWindowFullscreen() {
+                SetWindowSize(width, height)
+                ToggleFullscreen()
+            } else if GetScreenWidth() != width ||
+                      GetScreenHeight() != height {
+                ToggleFullscreen()
+                SetWindowSize(width, height)
+                ToggleFullscreen()
+            }
+        } else if IsWindowFullscreen() {
+            ToggleFullscreen()
+            app_desktop_restore_window_size()
+        }
+    }
 }
 
 app_set_host_api :: (app: InbeApp*, host: InbeHostApi) {
@@ -141,6 +184,9 @@ app_device_preferences_init :: (app: InbeApp*) {
     }
 
     app_refresh_theme(app)
+    #if DESKTOP {
+        app_desktop_set_fullscreen(app->fullscreen_enabled)
+    }
     app_apply_orientation_preference(app)
 }
 

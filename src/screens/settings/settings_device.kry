@@ -80,11 +80,7 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
     #if DESKTOP {
         if UICheckboxNode(0, x, *y, GetLocaleText("fullscreen_label"),
                                 &app->fullscreen_enabled) {
-            if app->fullscreen_enabled && !IsWindowFullscreen() {
-                ToggleFullscreen()
-            } else if !app->fullscreen_enabled && IsWindowFullscreen() {
-                ToggleFullscreen()
-            }
+            app_desktop_set_fullscreen(app->fullscreen_enabled)
             app->settings_dirty = 1
         }
         *y += ScaleUIPx(50)

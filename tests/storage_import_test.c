@@ -365,8 +365,9 @@ test_sync_backfill_includes_existing_habits(void)
     check_true("reopen backfill sync db", storage_init(root));
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("existing habit included by one-time sync backfill",
-               payload != NULL && strstr(payload, "\"habits\":[{") != NULL &&
-                   strstr(payload, "\"habit_days\"") != NULL);
+               payload != NULL && strstr(payload, "\"ops\":[{") != NULL &&
+                   strstr(payload, "\"entity_type\":\"habit\"") != NULL &&
+                   strstr(payload, "\"payload\":{\"id\"") != NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -418,6 +419,79 @@ test_sync_payload_includes_queued_current_edits(void)
     storage_free_sync_payload_json(payload);
 
     storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_payload_batches_large_outbox(void)
+{
+    char root[512];
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *day_stmt = NULL;
+    sqlite3_stmt *outbox_stmt = NULL;
+    char *payload;
+    const char *response =
+        "{\"server_version\":1,\"server_clock\":1,\"changes\":{\"habits\":[],"
+        "\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-large-outbox-batch");
+    check_true("init large outbox db", storage_init(root));
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open large outbox raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("insert large outbox habit",
+                   sqlite3_exec(db,
+                                "INSERT INTO "
+                                "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,"
+                                "sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                                "VALUES('batch-habit',(SELECT id FROM users LIMIT 1),'Batch',"
+                                "255,255,255,0,0,1,0,0,1781902800);",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        check_true("prepare large outbox day inserts",
+                   sqlite3_prepare_v2(db,
+                                      "INSERT INTO habit_days(habit_id,local_date,completed,count,"
+                                      "updated_at) "
+                                      "VALUES('batch-habit',?1,1,1,1781902800)",
+                                      -1, &day_stmt, NULL) == SQLITE_OK);
+        check_true("prepare large outbox queue inserts",
+                   sqlite3_prepare_v2(
+                       db,
+                       "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                       "VALUES('habit_day','batch-habit',?1,1781902800)",
+                       -1, &outbox_stmt, NULL) == SQLITE_OK);
+        if(day_stmt != NULL && outbox_stmt != NULL) {
+            for(int i = 0; i < 405; i++) {
+                sqlite3_bind_int(day_stmt, 1, 20260101 + i);
+                check_true("insert large outbox day row", sqlite3_step(day_stmt) == SQLITE_DONE);
+                sqlite3_reset(day_stmt);
+                sqlite3_clear_bindings(day_stmt);
+                sqlite3_bind_int(outbox_stmt, 1, 20260101 + i);
+                check_true("insert large outbox queue row",
+                           sqlite3_step(outbox_stmt) == SQLITE_DONE);
+                sqlite3_reset(outbox_stmt);
+                sqlite3_clear_bindings(outbox_stmt);
+            }
+        }
+        if(day_stmt != NULL)
+            sqlite3_finalize(day_stmt);
+        if(outbox_stmt != NULL)
+            sqlite3_finalize(outbox_stmt);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen large outbox db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_int("large outbox payload is batched",
+              storage_json_array_count_path(payload, "$.ops"), 400);
+    storage_free_sync_payload_json(payload);
+    check_true("apply large outbox batch response", storage_apply_sync_response_json(response));
+    storage_close();
+    check_int("large outbox leaves later rows queued",
+              read_raw_count_query(root, "SELECT COUNT(*) FROM sync_outbox"), 6);
+
     remove_tree(root);
 }
 
@@ -1038,7 +1112,7 @@ test_deleted_linked_session_clears_synced_habit_day(void)
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("initial linked habit day uploaded",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":true") != NULL &&
                    strstr(payload, "\"count\":1") != NULL);
     storage_free_sync_payload_json(payload);
@@ -1056,10 +1130,10 @@ test_deleted_linked_session_clears_synced_habit_day(void)
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("linked session delete uploads session tombstone",
-               payload != NULL && strstr(payload, "\"sessions\":[{\"id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"session\"") != NULL &&
                    strstr(payload, "\"deleted_at\":0") == NULL);
     check_true("linked session delete clears remote habit day",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":false") != NULL &&
                    strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
@@ -1537,7 +1611,7 @@ test_deleted_habit_payload_clears_remote_days(void)
                payload != NULL && strstr(payload, deleted_id) != NULL &&
                    strstr(payload, "\"deleted_at\":0") == NULL);
     check_true("deleted habit payload clears habit day",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":false") != NULL &&
                    strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
@@ -2051,6 +2125,7 @@ main(void)
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
+    test_sync_payload_batches_large_outbox();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
     test_sync_apply_clears_acknowledged_outbox_before_equal_timestamp_merge();

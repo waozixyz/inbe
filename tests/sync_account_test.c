@@ -408,7 +408,7 @@ test_imported_account_backfills_existing_local_data(void)
                    strstr(payload, "\"local_date\":20260621") != NULL &&
                    strstr(payload, "\"count\":5") != NULL);
         check_true("existing local session uploaded",
-                   strstr(payload, "\"sessions\":[{") != NULL &&
+                   strstr(payload, "\"entity_type\":\"session\"") != NULL &&
                    strstr(payload, "\"rounds\":[") != NULL);
         check_true("local settings still excluded",
                    strstr(payload, "\"preferences\"") == NULL &&

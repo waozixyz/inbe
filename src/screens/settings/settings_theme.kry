@@ -58,7 +58,11 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         }
         app_refresh_theme(app)
         app->settings_dirty = 1
-        app->settings_save_delay_ticks = 18
+        if result.style_changed {
+            save_settings(app)
+        } else {
+            app->settings_save_delay_ticks = 18
+        }
     }
     *y += UIGetNodeHeight(UINodeThemeSettings(settings))
     *y += ScaleUIPx(18)

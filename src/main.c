@@ -474,7 +474,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     if(request->height < 320)
         request->height = 320;
     if(request->theme_style < THEME_STYLE_SYSTEM ||
-       request->theme_style > THEME_STYLE_AERO)
+       request->theme_style > THEME_STYLE_MATERIAL)
         request->theme_style = THEME_STYLE_SYSTEM;
     if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
         request->theme_id = THEME_SKY;
@@ -739,9 +739,6 @@ int main(int argc, char **argv) {
     #if ANDROID_BUILD
     inbe_app.fullscreen_enabled = 0;
     #endif
-    if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
-        ToggleFullscreen();
-
     SetTargetFPS(60);
 
 #if defined(PLATFORM_WEB)

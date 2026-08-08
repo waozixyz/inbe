@@ -980,7 +980,9 @@ habits_begin_new_detail :: (app: InbeApp*) {
 }
 
 draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
-    tabs: [HABIT_TAB_COUNT] UISubtab
+    tabs: [HABIT_TAB_COUNT] UITab
+    actions: [1] UITopNavAction
+    nav_result: UITopNavResult
     option_count: int
     habit_offset: int = 0
     draft_new: int
@@ -1024,7 +1026,12 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         if draw_menu {
             return
         }
-        UITitleBarNode(GetLocaleText("tab_habits"), top_h)
+        UITopNavNode((UITopNav){
+            .id = 300,
+            .width = view_width,
+            .height = top_h,
+            .title = GetLocaleText("tab_habits")
+        })
         return
     }
 
@@ -1032,18 +1039,24 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         dropdown_h: int = ScaleUIPx(32)
 
         habits_top_dropdown_selected = selected
-        if app_draw_close_dropdown_title_bar(
-               app,
-               (UITitleBarDropdown){
-                   .id = 301,
-                   .options = habits_top_options,
-                   .option_count = option_count,
-                   .selected_index = &habits_top_dropdown_selected,
-                   .disabled = app->modal.active,
-                   .min_width = ScaleUIPx(120),
-                   .height = dropdown_h
-               },
-               top_h) {
+        actions[0] = (UITopNavAction){
+            .icon = app->icons[UI_ICON_TYPE_X],
+            .disabled = app->modal.active
+        }
+        nav_result = UITopNavNode((UITopNav){
+            .id = 301,
+            .width = view_width,
+            .height = top_h,
+            .options = habits_top_options,
+            .option_count = option_count,
+            .selected_index = &habits_top_dropdown_selected,
+            .disabled = app->modal.active,
+            .dropdown_min_width = ScaleUIPx(120),
+            .dropdown_height = dropdown_h,
+            .actions = actions,
+            .action_count = 1
+        })
+        if nav_result.clicked_action == 0 {
             habits_return_to_overview(app)
         }
         selected_habit: int = habits_top_dropdown_selected - habit_offset
@@ -1054,27 +1067,27 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
             habits_select_habit(app, selected_habit)
         }
 
-        tabs[HABIT_TAB_WEEKLY] = (UISubtab){
+        tabs[HABIT_TAB_WEEKLY] = (UITab){
             .icon = app->icons[UI_ICON_TYPE_WEEKLY],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_MONTHLY] = (UISubtab){
+        tabs[HABIT_TAB_MONTHLY] = (UITab){
             .icon = app->icons[UI_ICON_TYPE_CALENDAR],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_STATISTICS] = (UISubtab){
+        tabs[HABIT_TAB_STATISTICS] = (UITab){
             .icon = app->icons[UI_ICON_TYPE_STAT],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_EDIT] = (UISubtab){
+        tabs[HABIT_TAB_EDIT] = (UITab){
             .icon = app->icons[UI_ICON_TYPE_EDIT],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active
         }
-        clicked_tab = UISubtabBarNode((UISubtabBar){
+        clicked_tab = UITabBarNode((UITabBar){
             .bounds = {
                 0,
                 (float)habits_screen_selector_height(app),
@@ -1083,7 +1096,11 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
             },
             .tabs = tabs,
             .count = HABIT_TAB_COUNT,
-            .selected_index = app->habits.tab
+            .selected_index = app->habits.tab,
+            .min_tab_width = ScaleUIPx(64),
+            .max_tab_width = ScaleUIPx(96),
+            .scroll_offset = &app->habits.tab_scroll,
+            .focus_selected = app->habits.focus_selected_tab
         })
         if clicked_tab >= 0 &&
            clicked_tab < HABIT_TAB_COUNT &&

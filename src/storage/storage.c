@@ -22,6 +22,8 @@
 
 static long long
 storage_max_sync_outbox_seq(void);
+static long long
+storage_sync_outbox_batch_seq(int limit);
 static int
 storage_has_pending_sync_outbox(void);
 static int
@@ -54,6 +56,7 @@ storage_migrate_habit_ids_to_uuid(void);
 #define STORAGE_DEFAULT_HABIT_ID_MIGRATION_KEY "default_habit_id_migration_v1_done"
 #define STORAGE_HABIT_UUID_MIGRATION_KEY "habit_uuid_migration_v1_done"
 #define STORAGE_ACTIVITY_SUN_SALUTATION_MASK (1 << 2)
+#define STORAGE_SYNC_OP_BATCH_LIMIT 400
 
 static long long
 storage_next_change_time(void)
@@ -1008,79 +1011,6 @@ storage_append_session_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
 
 typedef void (*StorageJsonRowFn)(JsonBuilder *json, sqlite3_stmt *stmt);
 
-static void
-storage_append_sync_query_array(JsonBuilder *json, const char *key,
-                                const char *sql, long long through_seq,
-                                StorageJsonRowFn append_row)
-{
-    sqlite3_stmt *stmt = NULL;
-    int first = 1;
-
-    json_appendf(json, "\"%s\":[", key);
-    if(g_storage.db != NULL &&
-       sqlite3_prepare_v2(g_storage.db, sql, -1, &stmt, NULL) == SQLITE_OK) {
-        bind_text(stmt, 1, g_storage.user_id);
-        sqlite3_bind_int64(stmt, 2, through_seq);
-        while(sqlite3_step(stmt) == SQLITE_ROW) {
-            if(!first)
-                json_append(json, ",");
-            first = 0;
-            append_row(json, stmt);
-        }
-    }
-    if(stmt != NULL)
-        sqlite3_finalize(stmt);
-    json_append(json, "]");
-}
-
-static void
-storage_append_habits_json(JsonBuilder *json, long long through_seq)
-{
-    storage_append_sync_query_array(
-        json, "habits",
-        "SELECT "
-        "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
-        "enabled,sort_order,deleted_at,updated_at "
-        "FROM habits WHERE user_id=?1 AND id IN ("
-        " SELECT entity_id FROM sync_outbox WHERE entity_type='habit' AND "
-        "seq<=?2"
-        ") ORDER BY updated_at,sort_order,id",
-        through_seq, storage_append_habit_row_json);
-}
-
-static void
-storage_append_habit_days_json(JsonBuilder *json, long long through_seq)
-{
-    storage_append_sync_query_array(
-        json, "habit_days",
-        "SELECT "
-        "hd.habit_id,hd.local_date,hd.completed,hd.count,hd.updated_at "
-        "FROM habit_days hd JOIN habits h ON h.id=hd.habit_id "
-        "WHERE h.user_id=?1 AND EXISTS ("
-        " SELECT 1 FROM sync_outbox o WHERE o.entity_type='habit_day' "
-        " AND o.entity_id=hd.habit_id AND o.local_date=hd.local_date AND "
-        "o.seq<=?2"
-        ") "
-        "ORDER BY hd.updated_at,hd.habit_id,hd.local_date",
-        through_seq, storage_append_habit_day_row_json);
-}
-
-static void
-storage_append_sessions_json(JsonBuilder *json, long long through_seq)
-{
-    storage_append_sync_query_array(
-        json, "sessions",
-        "SELECT "
-        "id,started_at,local_date,topic,activity,source,"
-        "rounds_hash,deleted_at,updated_at "
-        "FROM sessions WHERE user_id=?1 AND id IN ("
-        " SELECT entity_id FROM sync_outbox WHERE "
-        "entity_type='session' AND seq<=?2"
-        ") "
-        "ORDER BY updated_at,started_at,id",
-        through_seq, storage_append_session_row_json);
-}
-
 static int
 storage_append_id_payload_json(JsonBuilder *json, const char *sql,
                                const char *id, StorageJsonRowFn append_row)
@@ -1301,7 +1231,7 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     force_zero_day_repair = get_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 0) == 0;
     if(force_zero_day_repair)
         since_server_version = 0;
-    through_seq = storage_max_sync_outbox_seq();
+    through_seq = storage_sync_outbox_batch_seq(STORAGE_SYNC_OP_BATCH_LIMIT);
     g_storage.pending_sync_outbox_seq = through_seq;
     json.ok = 1;
     json_append(&json, "{");
@@ -1326,12 +1256,9 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
         json_append(&json, ",");
         json_append_key_string(&json, "public_key", public_key_hex);
     }
-    json_append(&json, ",");
-    storage_append_habits_json(&json, through_seq);
-    json_append(&json, ",");
-    storage_append_habit_days_json(&json, through_seq);
-    json_append(&json, ",");
-    storage_append_sessions_json(&json, through_seq);
+    json_append(&json, ",\"habits\":[]");
+    json_append(&json, ",\"habit_days\":[]");
+    json_append(&json, ",\"sessions\":[]");
     json_append(&json, ",");
     storage_append_sync_ops_json(&json, through_seq);
     json_append(&json, "}");
@@ -1342,11 +1269,9 @@ storage_build_sync_payload_json(const char *user_id_hash, const char *public_key
     }
     TraceLog(LOG_INFO,
              "SYNC: payload since=%lld bootstrap=%d outbox_through=%lld "
-             "habits=%d habit_days=%d sessions=%d",
+             "ops=%d",
              since_server_version, since_server_version <= 0 || !full_upload_done, through_seq,
-             storage_json_array_count(json.data, "$.habits"),
-             storage_json_array_count(json.data, "$.habit_days"),
-             storage_json_array_count(json.data, "$.sessions"));
+             storage_json_array_count(json.data, "$.ops"));
     return json.data;
 }
 
@@ -1425,6 +1350,30 @@ static long long
 storage_max_sync_outbox_seq(void)
 {
     return db_select_int64("SELECT COALESCE(MAX(seq),0) FROM sync_outbox", 0);
+}
+
+static long long
+storage_sync_outbox_batch_seq(int limit)
+{
+    sqlite3_stmt *stmt = NULL;
+    long long seq = 0;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(limit <= 0)
+        return storage_max_sync_outbox_seq();
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT seq FROM sync_outbox ORDER BY seq LIMIT 1 OFFSET ?1",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        sqlite3_bind_int(stmt, 1, limit - 1);
+        if(sqlite3_step(stmt) == SQLITE_ROW)
+            seq = sqlite3_column_int64(stmt, 0);
+    }
+    if(stmt != NULL)
+        sqlite3_finalize(stmt);
+    if(seq > 0)
+        return seq;
+    return storage_max_sync_outbox_seq();
 }
 
 static int
