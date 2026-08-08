@@ -243,7 +243,6 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     max_rounds := app->inbe.max_rounds
     max_breaths := int_from_count(app->inbe.maxbreaths)
     pause_seconds := app->inbe.pause_seconds
-    sound_volume := app->sound_volume
     double_tap_to_breathe := app->double_tap_to_breathe
     advanced_session_controls := app->advanced_session_controls
     retention_marker_enabled := app->retention_marker_enabled
@@ -253,11 +252,6 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
                              GetUIFontSize()) + ScaleUIPx(24)
     reset_h := ScaleUIPx(36)
     reset_hover := 0
-    cue_test_label := app_bell_cue_playing(app) ?
-        GetLocaleText("cue_volume_playing_label") :
-        GetLocaleText("cue_volume_test_button")
-    cue_test_w := MeasureUIText(cue_test_label, GetUIFontSize()) + ScaleUIPx(24)
-    cue_test_hover := 0
 
     if UISliderNode(2, content_x, y, content_w, GetLocaleText("max_rounds_label"),
                     1, MaxRounds, &max_rounds, "") {
@@ -288,28 +282,6 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
         app->settings_dirty = 1
     }
     y += ScaleUIPx(66)
-
-    if UISliderNode(6, content_x, y, content_w,
-                    GetLocaleText("cue_volume_label"),
-                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
-                    &sound_volume, "") {
-        app->sound_volume = sound_volume
-        app->settings_dirty = 1
-    }
-    y += ScaleUIPx(66)
-
-    if cue_test_w > content_w {
-        cue_test_w = content_w
-    }
-    if UIGenericButtonNode(0, content_x, y, cue_test_w, reset_h,
-                           cue_test_label, UI_BUTTON_STYLE_SECONDARY,
-                           0, &cue_test_hover) {
-        app_play_bell_cue(app, 1.0f)
-    }
-    y += reset_h + ScaleUIPx(10)
-    y += settings_ui_draw_audio_meter(app, content_x, y, content_w,
-                                      GetLocaleText("audio_output_level_label"))
-    y += ScaleUIPx(18)
 
     UITextNode(GetLocaleText("double_tap_to_breathe_label"), content_x, y,
                   GetUIFontSize(), GetThemeText())
@@ -401,9 +373,7 @@ whm_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
                bottom_padding
     }
 
-    return ScaleUIPx(66) * 4 +
-           ScaleUIPx(36) + ScaleUIPx(28) +
-           ScaleUIPx(26) + ScaleUIPx(52) +
+    return ScaleUIPx(66) * 3 +
            ScaleUIPx(76) +
            ScaleUIPx(76) +
            ScaleUIPx(76) +

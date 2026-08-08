@@ -60,6 +60,9 @@ function findOnPath(command) {
 function browserCandidates() {
   const candidates = [];
   if (process.env.CHROME) candidates.push(process.env.CHROME);
+  if (process.platform === 'freebsd') {
+    candidates.push('firefox', 'librewolf');
+  }
   candidates.push(
     '/usr/bin/chromium',
     '/usr/bin/chromium-browser',

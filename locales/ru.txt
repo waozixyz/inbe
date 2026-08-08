@@ -111,6 +111,9 @@ Add item
 [play_button]
 СТАРТ
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Дыхание Вима Хофа
 ---
@@ -377,12 +380,6 @@ OK
 ---
 [cue_volume_label]
 Громкость сигналов
----
-[cue_volume_test_button]
-Проверить сигнал
----
-[cue_volume_playing_label]
-Идет звук...
 ---
 [audio_output_label]
 Аудиовыход
@@ -1088,6 +1085,9 @@ Audio imported
 ---
 [audio_import_failed]
 Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
 ---
 [audio_import_cancelled]
 Audio import cancelled

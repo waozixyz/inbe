@@ -111,6 +111,9 @@ Add item
 [play_button]
 開始
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 ヴィム・ホフ呼吸法
 ---
@@ -359,12 +362,6 @@ OK
 ---
 [cue_volume_label]
 合図の音量
----
-[cue_volume_test_button]
-合図をテスト
----
-[cue_volume_playing_label]
-再生中...
 ---
 [audio_output_label]
 音声出力
@@ -1090,6 +1087,9 @@ Audio imported
 ---
 [audio_import_failed]
 Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
 ---
 [audio_import_cancelled]
 Audio import cancelled

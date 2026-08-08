@@ -111,6 +111,9 @@ Add item
 [play_button]
 AVVIA
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Respirazione Wim Hof
 ---
@@ -374,12 +377,6 @@ Nessuna sessione
 ---
 [cue_volume_label]
 Volume segnali
----
-[cue_volume_test_button]
-Prova segnale
----
-[cue_volume_playing_label]
-Riproduzione...
 ---
 [audio_output_label]
 Uscita audio
@@ -1088,6 +1085,9 @@ Audio imported
 ---
 [audio_import_failed]
 Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
 ---
 [audio_import_cancelled]
 Audio import cancelled

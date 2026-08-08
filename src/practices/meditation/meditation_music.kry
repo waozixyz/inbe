@@ -684,7 +684,6 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     hover := 0
     installed: int
     enabled: int
-    music_volume: int
     test_label: const char*
     download_status: [96] char
     track_options: [INBE_AUDIO_MUSIC_COUNT_MAX] const char*
@@ -719,16 +718,6 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         meditation_music_unload(app)
     }
     *y += ScaleUIPx(76)
-
-    music_volume = app->music_volume
-    if UISliderNode(7, content_x, *y, content_w,
-                    GetLocaleText("music_volume_label"),
-                    SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
-                    &music_volume, "") {
-        app->music_volume = music_volume
-        app->settings_dirty = 1
-    }
-    *y += ScaleUIPx(66)
 
     if !enabled {
         return
@@ -839,7 +828,7 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
                                                   show_installed_download: int,
                                                   show_status: int) -> int {
     installed: int
-    h := ScaleUIPx(76) + ScaleUIPx(66)
+    h := ScaleUIPx(76)
     enabled: int
 
     if app == nil {

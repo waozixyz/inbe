@@ -111,6 +111,9 @@ Add item
 [play_button]
 INICIAR
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Respiração Wim Hof
 ---
@@ -359,12 +362,6 @@ Sem sessões
 ---
 [cue_volume_label]
 Volume dos sinais
----
-[cue_volume_test_button]
-Testar sinal
----
-[cue_volume_playing_label]
-Reproduzindo...
 ---
 [audio_output_label]
 Saída de áudio
@@ -1088,6 +1085,9 @@ Audio imported
 ---
 [audio_import_failed]
 Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
 ---
 [audio_import_cancelled]
 Audio import cancelled

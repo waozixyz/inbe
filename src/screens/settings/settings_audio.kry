@@ -32,9 +32,195 @@ NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
     SETTINGS_AUDIO_ACTION_MUSIC
 }
 
+#enum {
+    SETTINGS_AUDIO_PREVIEW_NONE = 0
+    SETTINGS_AUDIO_PREVIEW_CUE
+    SETTINGS_AUDIO_PREVIEW_CUSTOM_SOUND
+    SETTINGS_AUDIO_PREVIEW_MUSIC
+}
+
 static audio_import_action: int = SETTINGS_AUDIO_ACTION_NONE
 static audio_import_filter: const char* = ".ogg"
 static android_audio_mime_types: const char* = "audio/ogg,application/ogg,audio/*,application/octet-stream"
+static audio_preview_kind: int = SETTINGS_AUDIO_PREVIEW_NONE
+static audio_preview_index: int = -1
+static audio_preview_sound: Sound = {0}
+static audio_preview_music: Music = {0}
+static audio_preview_music_loaded: int = 0
+
+settings_audio_cue_sound :: (app: InbeApp*, cue: int) -> Sound #private {
+    empty: Sound = {0}
+
+    if app == nil {
+        return empty
+    }
+    if cue == INBE_AUDIO_CUE_BREATH_IN {
+        return app->breath_in_sound
+    }
+    if cue == INBE_AUDIO_CUE_BREATH_OUT {
+        return app->breath_out_sound
+    }
+    if cue == INBE_AUDIO_CUE_BELL {
+        return app->bell_sound
+    }
+    return empty
+}
+
+settings_audio_stop_preview :: (app: InbeApp*) #private {
+    if app != nil {
+        if app->breath_in_sound.frameCount != 0 {
+            StopSound(app->breath_in_sound)
+        }
+        if app->breath_out_sound.frameCount != 0 {
+            StopSound(app->breath_out_sound)
+        }
+        if app->bell_sound.frameCount != 0 {
+            StopSound(app->bell_sound)
+        }
+    }
+    if audio_preview_sound.frameCount != 0 {
+        StopSound(audio_preview_sound)
+        UnloadSound(audio_preview_sound)
+        audio_preview_sound = (Sound){0}
+    }
+    if audio_preview_music_loaded {
+        StopMusicStream(audio_preview_music)
+        UnloadMusicStream(audio_preview_music)
+        audio_preview_music = (Music){0}
+        audio_preview_music_loaded = 0
+    }
+    audio_preview_kind = SETTINGS_AUDIO_PREVIEW_NONE
+    audio_preview_index = -1
+}
+
+settings_audio_update_preview :: () #private {
+    if audio_preview_music_loaded {
+        UpdateMusicStream(audio_preview_music)
+    }
+}
+
+settings_audio_sound_volume :: (app: InbeApp*) -> float #private {
+    if app == nil || app->sound_volume <= 0 {
+        return 0.0f
+    }
+    return (float)app->sound_volume / 100.0f
+}
+
+settings_audio_music_volume :: (app: InbeApp*) -> float #private {
+    if app == nil || app->music_volume <= 0 {
+        return 0.0f
+    }
+    return (float)app->music_volume / 100.0f
+}
+
+settings_audio_preview_cue_playing :: (app: InbeApp*, cue: int) -> int #private {
+    sound := settings_audio_cue_sound(app, cue)
+    if app == nil || !app->audio_ready || sound.frameCount == 0 {
+        return 0
+    }
+    return IsSoundPlaying(sound) ? 1 : 0
+}
+
+settings_audio_preview_custom_sound_playing :: (index: int) -> int #private {
+    if audio_preview_kind != SETTINGS_AUDIO_PREVIEW_CUSTOM_SOUND ||
+       audio_preview_index != index ||
+       audio_preview_sound.frameCount == 0 {
+        return 0
+    }
+    return IsSoundPlaying(audio_preview_sound) ? 1 : 0
+}
+
+settings_audio_preview_music_playing :: (index: int) -> int #private {
+    if audio_preview_kind != SETTINGS_AUDIO_PREVIEW_MUSIC ||
+       audio_preview_index != index ||
+       !audio_preview_music_loaded {
+        return 0
+    }
+    return IsMusicStreamPlaying(audio_preview_music) ? 1 : 0
+}
+
+settings_audio_toggle_cue_preview :: (app: InbeApp*, cue: int) #private {
+    sound := settings_audio_cue_sound(app, cue)
+
+    if app == nil || !app->audio_ready || sound.frameCount == 0 {
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    if IsSoundPlaying(sound) {
+        PauseSound(sound)
+        return
+    }
+    settings_audio_stop_preview(app)
+    audio_preview_kind = SETTINGS_AUDIO_PREVIEW_CUE
+    audio_preview_index = cue
+    app_play_sound(app, sound, 1.0f)
+}
+
+settings_audio_toggle_custom_sound_preview :: (app: InbeApp*, index: int) #private {
+    if app == nil || !app->audio_ready ||
+       index < 0 || index >= app->audio_custom_sound_count {
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    if settings_audio_preview_custom_sound_playing(index) {
+        PauseSound(audio_preview_sound)
+        return
+    }
+    settings_audio_stop_preview(app)
+    audio_preview_sound = LoadSound(app->audio_custom_sounds[index].path)
+    if audio_preview_sound.frameCount == 0 {
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    audio_preview_kind = SETTINGS_AUDIO_PREVIEW_CUSTOM_SOUND
+    audio_preview_index = index
+    SetSoundVolume(audio_preview_sound, settings_audio_sound_volume(app))
+    PlaySound(audio_preview_sound)
+}
+
+settings_audio_toggle_music_preview :: (app: InbeApp*, index: int) #private {
+    path: [FS_PATH_MAX] char = {0}
+
+    if app == nil || !app->audio_ready {
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    if settings_audio_preview_music_playing(index) {
+        PauseMusicStream(audio_preview_music)
+        return
+    }
+    if audio_preview_kind == SETTINGS_AUDIO_PREVIEW_MUSIC &&
+       audio_preview_index == index &&
+       audio_preview_music_loaded {
+        ResumeMusicStream(audio_preview_music)
+        return
+    }
+    if !app_audio_music_path(app, index, path, sizeof(path)) {
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    settings_audio_stop_preview(app)
+    audio_preview_music = LoadMusicStream(path)
+    if !IsMusicValid(audio_preview_music) {
+        audio_preview_music = (Music){0}
+        settings_screen_set_status_error(GetLocaleText("audio_preview_failed"))
+        return
+    }
+    audio_preview_kind = SETTINGS_AUDIO_PREVIEW_MUSIC
+    audio_preview_index = index
+    audio_preview_music_loaded = 1
+    SetMusicVolume(audio_preview_music, settings_audio_music_volume(app))
+    PlayMusicStream(audio_preview_music)
+}
+
+draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
+                              disabled: int) -> int #private {
+    hover := 0
+    return UIGenericButtonNode(0, x, y, w, ScaleUIPx(32),
+                               playing ? GetLocaleText("pause_button")
+                                       : GetLocaleText("play_button"),
+                               UI_BUTTON_STYLE_SECONDARY, disabled, &hover)
+}
 
 audio_action_to_cue :: (action: int) -> int #private {
     if action == SETTINGS_AUDIO_ACTION_SOUND_IN {
@@ -82,6 +268,7 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
 }
 
 settings_audio_start_import :: (app: InbeApp*, action: int) #private {
+    settings_audio_stop_preview(app)
     #if ANDROID {
         audio_import_action = action
         if android_import_open_picker_for(audio_android_kind(action),
@@ -184,6 +371,14 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
                      label: const char*, action: int) #private {
     options: [INBE_AUDIO_CUSTOM_SOUND_MAX + 1] const char*
     count := app->audio_custom_sound_count + 1
+    preview_w := ScaleUIPx(82)
+    control_gap := ScaleUIPx(8)
+    dropdown_w := w - preview_w - control_gap
+
+    if dropdown_w < ScaleUIPx(140) {
+        dropdown_w = w
+        preview_w = w
+    }
 
     options[0] = GetLocaleText("audio_builtin_label")
     if count > INBE_AUDIO_CUSTOM_SOUND_MAX + 1 {
@@ -194,11 +389,20 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
     }
 
     UITextNode(label, x, *y, GetUIFontSize(), GetThemeText())
-    if UIDropdownNode(820 + cue, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+    if UIDropdownNode(820 + cue, x, *y + ScaleUIPx(26), dropdown_w, ScaleUIPx(36),
                       options, count, &app->audio_cue_selected[cue]) {
+        settings_audio_stop_preview(app)
         app_audio_reload_cue_sounds(app)
         app->settings_dirty = 1
         save_settings(app)
+    }
+    if preview_w < w {
+        if draw_audio_preview_button(x + dropdown_w + control_gap,
+                                     *y + ScaleUIPx(28), preview_w,
+                                     settings_audio_preview_cue_playing(app, cue),
+                                     app == nil || !app->audio_ready) {
+            settings_audio_toggle_cue_preview(app, cue)
+        }
     }
     *y += ScaleUIPx(76)
     draw_import_button(app, x, w, y, GetLocaleText("audio_import_sound_button"),
@@ -207,6 +411,8 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
 
 draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     button_w := ScaleUIPx(96)
+    preview_w := ScaleUIPx(82)
+    gap := ScaleUIPx(8)
     row_h := ScaleUIPx(42)
 
     if app->audio_custom_sound_count <= 0 {
@@ -217,15 +423,22 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += ScaleUIPx(30)
     for int i = 0; i < app->audio_custom_sound_count; i++ {
         hover := 0
-        label_w := w - button_w - ScaleUIPx(10)
+        label_w := w - button_w - preview_w - gap * 2
         if label_w < ScaleUIPx(80) {
-            label_w = w
+            label_w = w - button_w - gap
         }
         UITextNode(app->audio_custom_sounds[i].title, x, *y + ScaleUIPx(8),
                    UI_TEXT_12, GetThemeText())
+        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
+                                     preview_w,
+                                     settings_audio_preview_custom_sound_playing(i),
+                                     app == nil || !app->audio_ready) {
+            settings_audio_toggle_custom_sound_preview(app, i)
+        }
         if UIGenericButtonNode(0, x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
                                UI_BUTTON_STYLE_DANGER, 0, &hover) {
+            settings_audio_stop_preview(app)
             app_audio_remove_custom_sound(app, i)
             app->settings_dirty = 1
             save_settings(app)
@@ -240,6 +453,9 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     options: [INBE_AUDIO_MUSIC_COUNT_MAX] const char*
     count := app_audio_music_count(app)
     button_w := ScaleUIPx(96)
+    preview_w := ScaleUIPx(82)
+    gap := ScaleUIPx(8)
+    dropdown_w := w - preview_w - gap
 
     if count > INBE_AUDIO_MUSIC_COUNT_MAX {
         count = INBE_AUDIO_MUSIC_COUNT_MAX
@@ -251,12 +467,25 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     UITextNode(GetLocaleText("audio_music_title"), x, *y,
                GetUIFontSize(), GetThemeText())
     *y += ScaleUIPx(26)
-    if UIDropdownNode(850, x, *y, w, ScaleUIPx(36), options, count,
+    if dropdown_w < ScaleUIPx(140) {
+        dropdown_w = w
+        preview_w = w
+    }
+    if UIDropdownNode(850, x, *y, dropdown_w, ScaleUIPx(36), options, count,
                       &app->meditation.music_track) {
+        settings_audio_stop_preview(app)
         app_audio_music_sanitize_selection(app)
         meditation_music_unload(app)
         app->settings_dirty = 1
         save_settings(app)
+    }
+    if preview_w < w {
+        if draw_audio_preview_button(x + dropdown_w + gap, *y + ScaleUIPx(2),
+                                     preview_w,
+                                     settings_audio_preview_music_playing(app->meditation.music_track),
+                                     app == nil || !app->audio_ready) {
+            settings_audio_toggle_music_preview(app, app->meditation.music_track)
+        }
     }
     *y += ScaleUIPx(48)
     draw_import_button(app, x, w, y, GetLocaleText("audio_import_music_button"),
@@ -270,11 +499,19 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += ScaleUIPx(30)
     for int i = 0; i < app->audio_custom_music_count; i++ {
         hover := 0
+        track_index := INBE_AUDIO_BUILTIN_MUSIC_COUNT + i
         UITextNode(app->audio_custom_music[i].title, x, *y + ScaleUIPx(8),
                    UI_TEXT_12, GetThemeText())
+        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
+                                     preview_w,
+                                     settings_audio_preview_music_playing(track_index),
+                                     app == nil || !app->audio_ready) {
+            settings_audio_toggle_music_preview(app, track_index)
+        }
         if UIGenericButtonNode(0, x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
                                UI_BUTTON_STYLE_DANGER, 0, &hover) {
+            settings_audio_stop_preview(app)
             app_audio_remove_custom_music(app, i)
             app->settings_dirty = 1
             save_settings(app)
@@ -288,17 +525,25 @@ settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     sound_volume := app->sound_volume
     music_volume := app->music_volume
 
+    settings_audio_update_preview()
+
     if settings_ui_commit_slider_row(app, 871, x, w, y, ScaleUIPx(66),
                                      GetLocaleText("cue_volume_label"),
                                      SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
                                      &sound_volume, "", 0) {
         app->sound_volume = sound_volume
+        if audio_preview_sound.frameCount != 0 {
+            SetSoundVolume(audio_preview_sound, settings_audio_sound_volume(app))
+        }
     }
     if settings_ui_commit_slider_row(app, 872, x, w, y, ScaleUIPx(66),
                                      GetLocaleText("music_volume_label"),
                                      SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
                                      &music_volume, "", 0) {
         app->music_volume = music_volume
+        if audio_preview_music_loaded {
+            SetMusicVolume(audio_preview_music, settings_audio_music_volume(app))
+        }
     }
 
     *y += settings_ui_draw_audio_meter(app, x, *y, w,
