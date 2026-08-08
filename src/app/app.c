@@ -33,6 +33,7 @@
 #include "embedded_assets.h"
 #include "practices/meditation/meditation_practice.h"
 #include "practices/whm/whm_session.h"
+#include "sync_account.h"
 
 #include <limits.h>
 #include <stdio.h>
@@ -59,6 +60,7 @@
 #endif
 
 static volatile int g_audio_meter_peak_milli;
+static void SafeUnloadSound(Sound sound);
 
 #define INBE_FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
 #define INBE_FONT_SC "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf"
@@ -1486,8 +1488,6 @@ app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
         TraceLog(LOG_ERROR, "AUDIO: PlaySound returned but sound is not playing");
 }
 
-static void SafeUnloadSound(Sound sound);
-
 void
 app_play_sound(InbeApp *app, Sound sound, float scale)
 {
@@ -1558,6 +1558,39 @@ unload_cue_sounds(InbeApp *app)
     app->bell_sound = (Sound){0};
 }
 
+static Sound
+load_cue_sound(InbeApp *app, int cue)
+{
+    char path[FS_PATH_MAX];
+    Wave wave;
+    Sound sound = {0};
+
+    if(app == NULL)
+        return sound;
+    if(app_audio_cue_path(app, cue, path, sizeof(path))) {
+        wave = LoadWave(path);
+        if(wave.data != NULL) {
+            WaveFormat(&wave, 44100, 16, 2);
+            sound = LoadSoundFromWave(wave);
+            UnloadWave(wave);
+            if(sound.frameCount != 0)
+                return sound;
+        }
+    }
+    return load_sound_asset(app_audio_cue_default_asset(cue));
+}
+
+void
+app_audio_reload_cue_sounds(InbeApp *app)
+{
+    if(app == NULL || !app->audio_ready)
+        return;
+    unload_cue_sounds(app);
+    app->breath_in_sound = load_cue_sound(app, INBE_AUDIO_CUE_BREATH_IN);
+    app->breath_out_sound = load_cue_sound(app, INBE_AUDIO_CUE_BREATH_OUT);
+    app->bell_sound = load_cue_sound(app, INBE_AUDIO_CUE_BELL);
+}
+
 static void
 init_audio(InbeApp *app)
 {
@@ -1572,9 +1605,7 @@ init_audio(InbeApp *app)
     }
     TraceLog(LOG_INFO, "AUDIO: Audio device initialized");
 
-    app->breath_in_sound = load_sound_asset("breath-in.ogg");
-    app->breath_out_sound = load_sound_asset("breath-out.ogg");
-    app->bell_sound = load_sound_asset("bell.ogg");
+    app_audio_reload_cue_sounds(app);
     AttachAudioMixedProcessor(audio_mixed_meter);
     app->audio_meter_attached = 1;
 }
@@ -1767,6 +1798,40 @@ app_web_test_onboarding_state(void)
 
     return app->language_selected && strcmp(app->language, "es") == 0 &&
            app->tutorial_seen && app->habits_guide_seen;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_import_sync_key(void)
+{
+    KsyncAccount generated;
+    KsyncAccount imported;
+    KsyncAccount loaded;
+    char body[KSYNC_ACCOUNT_EXPORT_TEXT_SIZE];
+    char path[FS_PATH_MAX];
+    int len;
+
+    data_init();
+    memset(&generated, 0, sizeof(generated));
+    memset(&imported, 0, sizeof(imported));
+    memset(&loaded, 0, sizeof(loaded));
+    snprintf(path, sizeof(path), "%s/web-smoke-sync.key", data_root());
+
+    if(!sync_account_generate(&generated))
+        return 0;
+    if(!ExportKsyncAccountText(&generated, body, sizeof(body)))
+        return 0;
+    len = (int)strlen(body);
+    if(!SaveFileData(path, body, len))
+        return 0;
+    if(!sync_account_import_private_key_preview(&imported, path))
+        return 0;
+    if(sync_account_save(&imported, 1) != INBE_SYNC_ACCOUNT_SAVE_OK)
+        return 0;
+    if(!sync_account_load(&loaded))
+        return 0;
+    return strcmp(imported.public_id, loaded.public_id) == 0 &&
+           strcmp(imported.private_key_hex, loaded.private_key_hex) == 0;
 }
 #endif
 

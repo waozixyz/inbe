@@ -1059,3 +1059,48 @@ Quit Inner Breeze
 [tray_mark_complete]
 Mark Complete
 ---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---

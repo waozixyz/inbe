@@ -53,6 +53,7 @@ public class MainActivity extends NativeActivity {
     private boolean autoPausedForLifecycle = false;
     private boolean notificationPermissionRequestInFlight = false;
     private int lastDeleteRepeatCount = -1;
+    private int pendingImportKind = 0;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
@@ -63,8 +64,8 @@ public class MainActivity extends NativeActivity {
     private native int nativeGetPlayInBackground();
     private native int nativePauseSession();
     private native void nativeResumeSession();
-    private native void nativeImportSelectedFile(String path);
-    private native void nativeImportCancelled();
+    private native void nativeImportSelectedFile(int kind, String path);
+    private native void nativeImportCancelled(int kind);
     private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
     private native void nativeRuntimeAssetDownloadProgress(long handle, long bytes, long totalBytes);
     private native void nativeRuntimeAssetDownloadFailed(long handle, int httpStatus, String error);
@@ -307,7 +308,7 @@ public class MainActivity extends NativeActivity {
         return SyncNetwork.webSocketWait(TAG, urlText, headers);
     }
 
-    public void openImportPicker(final String mimeTypesCsv) {
+    public void openImportPicker(final String mimeTypesCsv, final int kind) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
@@ -319,10 +320,11 @@ public class MainActivity extends NativeActivity {
                     if (mimeTypes.length > 0) {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
                     }
+                    pendingImportKind = kind;
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to open import picker", e);
-                    nativeImportCancelled();
+                    nativeImportCancelled(kind);
                 }
             }
         });
@@ -351,24 +353,24 @@ public class MainActivity extends NativeActivity {
         if (requestCode != REQUEST_IMPORT_ZIP) return;
 
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
-            nativeImportCancelled();
+            nativeImportCancelled(pendingImportKind);
             return;
         }
 
         Uri uri = data.getData();
         File importDir = new File(getCacheDir(), "imports");
-        File importFile = new File(importDir, "inbe-import");
+        File importFile = new File(importDir, "inbe-import-" + pendingImportKind);
 
         try {
             if (!importDir.exists() && !importDir.mkdirs()) {
-                nativeImportSelectedFile("");
+                nativeImportSelectedFile(pendingImportKind, "");
                 return;
             }
 
             try (InputStream input = getContentResolver().openInputStream(uri);
                  FileOutputStream output = new FileOutputStream(importFile)) {
                 if (input == null) {
-                    nativeImportSelectedFile("");
+                    nativeImportSelectedFile(pendingImportKind, "");
                     return;
                 }
 
@@ -379,10 +381,10 @@ public class MainActivity extends NativeActivity {
                 }
             }
 
-            nativeImportSelectedFile(importFile.getAbsolutePath());
+            nativeImportSelectedFile(pendingImportKind, importFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e(TAG, "Failed to import selected file", e);
-            nativeImportSelectedFile("");
+            nativeImportSelectedFile(pendingImportKind, "");
         }
     }
 

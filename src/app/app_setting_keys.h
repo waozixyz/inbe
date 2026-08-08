@@ -8,6 +8,11 @@
     X("pause_seconds") \
     X("sound_volume") \
     X("music_volume") \
+    X("audio_cue_breath_in") \
+    X("audio_cue_breath_out") \
+    X("audio_cue_bell") \
+    X("audio_custom_sound_count") \
+    X("audio_custom_music_count") \
     X("retention_marker_enabled") \
     X("tutorial_seen") \
     X("exercise_manual_seen_mask") \

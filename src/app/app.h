@@ -43,9 +43,26 @@ enum {
 
 enum {
     SETTINGS_TAB_DEVICE = 0,
+    SETTINGS_TAB_AUDIO,
     SETTINGS_TAB_THEME,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
+};
+
+enum {
+    INBE_AUDIO_CUE_BREATH_IN = 0,
+    INBE_AUDIO_CUE_BREATH_OUT,
+    INBE_AUDIO_CUE_BELL,
+    INBE_AUDIO_CUE_COUNT
+};
+
+enum {
+    INBE_AUDIO_BUILTIN_MUSIC_COUNT = 3,
+    INBE_AUDIO_CUSTOM_SOUND_MAX = 8,
+    INBE_AUDIO_CUSTOM_MUSIC_MAX = 16,
+    INBE_AUDIO_LABEL_SIZE = 64,
+    INBE_AUDIO_MUSIC_COUNT_MAX =
+        INBE_AUDIO_BUILTIN_MUSIC_COUNT + INBE_AUDIO_CUSTOM_MUSIC_MAX
 };
 
 enum {
@@ -135,6 +152,11 @@ typedef struct InbeConfig {
 	int loaded;
     int title_custom;
 } InbeConfig;
+
+typedef struct InbeAudioLibraryItem {
+    char title[INBE_AUDIO_LABEL_SIZE];
+    char path[FS_PATH_MAX];
+} InbeAudioLibraryItem;
 
 extern InbeConfig config;
 
@@ -322,6 +344,11 @@ struct InbeApp {
     float audio_meter_level;
     int sound_volume;
     int music_volume;
+    int audio_cue_selected[INBE_AUDIO_CUE_COUNT];
+    int audio_custom_sound_count;
+    int audio_custom_music_count;
+    InbeAudioLibraryItem audio_custom_sounds[INBE_AUDIO_CUSTOM_SOUND_MAX];
+    InbeAudioLibraryItem audio_custom_music[INBE_AUDIO_CUSTOM_MUSIC_MAX];
     int retention_marker_enabled;
     int retention_marker_last_bucket;
     int sound_last_screen;
@@ -464,6 +491,20 @@ void app_play_sound(InbeApp *app, Sound sound, float scale);
 int app_audio_reinitialize(InbeApp *app);
 float app_audio_output_level(InbeApp *app);
 int app_bell_cue_playing(InbeApp *app);
+void app_audio_library_load(InbeApp *app);
+void app_audio_library_save(const InbeApp *app);
+void app_audio_reload_cue_sounds(InbeApp *app);
+int app_audio_import_custom_sound(InbeApp *app, int cue, const char *path);
+int app_audio_import_custom_music(InbeApp *app, const char *path);
+int app_audio_remove_custom_sound(InbeApp *app, int index);
+int app_audio_remove_custom_music(InbeApp *app, int index);
+int app_audio_music_count(const InbeApp *app);
+const char *app_audio_music_label(const InbeApp *app, int index);
+int app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size);
+int app_audio_music_file_valid(const char *path);
+const char *app_audio_cue_default_asset(int cue);
+int app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size);
+void app_audio_music_sanitize_selection(InbeApp *app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 

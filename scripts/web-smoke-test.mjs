@@ -410,7 +410,15 @@ async function waitForHealthyBidiPage(client, context) {
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
         const boot = Array.from(document.querySelectorAll('script')).some(script => /index\\.js/.test(script.src || ''));
-        return { ok: width > 0 && height > 0 && boot, width, height };
+        const M = globalThis.Module;
+        return {
+          ok: width > 0 && height > 0 && boot && !!(M && M.__inbeRuntimeReady),
+          width,
+          height,
+          boot,
+          runtimeReady: !!(M && M.__inbeRuntimeReady),
+          hasOnboardingHook: !!(M && M._app_web_test_onboarding_state)
+        };
       })())`
     });
     try {
@@ -579,6 +587,21 @@ async function verifyAppSettingsReloadPersistence(client) {
     throw new Error('app settings did not persist across reload');
 }
 
+async function verifySyncKeyImport(client) {
+  await waitForStorageIdle(client);
+  const result = await client.send('Runtime.evaluate', {
+    expression: "(() => typeof Module._app_web_test_import_sync_key === 'function' && Module._app_web_test_import_sync_key() === 1)()",
+    returnByValue: true
+  });
+  if (!result.result?.value)
+    throw new Error('web sync key import hook failed');
+  await client.send('Runtime.evaluate', {
+    expression: "(() => { Module.__kryonFlushStorageSync(true); return true; })()",
+    returnByValue: true
+  });
+  await waitForStorageIdle(client);
+}
+
 async function verifyAppSettingsReloadPersistenceBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
@@ -603,6 +626,40 @@ async function verifyAppSettingsReloadPersistenceBidi(client, context) {
   state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
     throw new Error('Firefox app settings did not persist across reload');
+}
+
+async function verifyAppSettingsImmediateBidi(client, context) {
+  await waitForStorageIdleBidi(client, context);
+  const result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
+  });
+  const state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error(state.reason || 'Firefox app settings immediate save/readback failed');
+  await waitForStorageIdleBidi(client, context);
+}
+
+async function verifySyncKeyImportBidi(client, context) {
+  await waitForStorageIdleBidi(client, context);
+  const result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => ({ ok: typeof Module._app_web_test_import_sync_key === 'function' && Module._app_web_test_import_sync_key() === 1 }))())"
+  });
+  const state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error('Firefox web sync key import hook failed');
+  await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => { Module.__kryonFlushStorageSync(true); return { ok: true }; })())"
+  });
+  await waitForStorageIdleBidi(client, context);
 }
 
 let chrome;
@@ -653,7 +710,8 @@ try {
       wait: 'complete'
     });
     await waitForHealthyBidiPage(client, context);
-    await verifyAppSettingsReloadPersistenceBidi(client, context);
+    await verifyAppSettingsImmediateBidi(client, context);
+    await verifySyncKeyImportBidi(client, context);
   } else {
     const args = [
       '--headless=new',
@@ -700,6 +758,7 @@ try {
     await waitForHealthyPage(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
+    await verifySyncKeyImport(client);
   }
   console.log('web smoke: PASS');
 } catch (error) {

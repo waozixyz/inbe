@@ -21,11 +21,12 @@
 HAS_FILE_DIALOG :: #defined(PLATFORM_WEB) || (!ANDROID_BUILD && !#defined(_WIN32) && !#defined(INBE_DISABLE_KRYON_FILE_DIALOG))
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
-NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
 
 #if HAS_FILE_DIALOG {
     INBE_HAS_KRYON_FILE_DIALOG :: #define 1
 }
+
+NATIVE_FILE_DIALOG :: #defined(INBE_HAS_KRYON_FILE_DIALOG)
 
 #if WEB {
     #import <emscripten.h>
@@ -283,7 +284,8 @@ start_sync_key_import_dialog :: (app: InbeApp*) -> int #private {
     } #else_if ANDROID {
         file_dialog_begin(app, SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT)
         unused app
-        if android_import_open_picker(android_sync_key_import_mime_types) {
+        if android_import_open_picker_for(ANDROID_IMPORT_KIND_SYNC_KEY,
+                                          android_sync_key_import_mime_types) {
             settings_screen_set_status_success(GetLocaleText("sync_import_key_dialog_title"), nil)
             return 1
         }
@@ -436,8 +438,12 @@ draw_sync_status :: (x: int, w: int, y: int*) {
 handle_android_import :: (app: InbeApp*) {
     #if ANDROID {
         import_path: [FS_PATH_MAX] char = {0}
-        import_result := android_import_poll_result(import_path, sizeof(import_path))
-        action: int
+        action: int = data_file_dialog_action
+        import_result := android_import_poll_result_for(
+            action == SETTINGS_DATA_ACTION_SYNC_KEY_IMPORT
+                ? ANDROID_IMPORT_KIND_SYNC_KEY
+                : ANDROID_IMPORT_KIND_DATA,
+            import_path, sizeof(import_path))
 
         if import_result == ANDROID_IMPORT_RESULT_NONE {
             return
@@ -520,7 +526,8 @@ handle_web_import :: (app: InbeApp*) {
 import_data :: (app: InbeApp*) #private {
     #if ANDROID {
         file_dialog_begin(app, SETTINGS_DATA_ACTION_IMPORT)
-        if android_import_open_picker(android_data_import_mime_types) {
+        if android_import_open_picker_for(ANDROID_IMPORT_KIND_DATA,
+                                          android_data_import_mime_types) {
             settings_screen_set_status_success(GetLocaleText("import_data_dialog_title"), nil)
         } else {
             file_dialog_finish(app)

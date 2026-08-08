@@ -29,12 +29,6 @@ static tracks: [MEDITATION_MUSIC_TRACK_COUNT] const MeditationTrack = {
     {"Truth Of Silence", "Elijah_K/truth-of-silence.ogg"}
 }
 
-static track_options: [MEDITATION_MUSIC_TRACK_COUNT] const char* = {
-    "Deep Meditation",
-    "Path Of Meditation",
-    "Truth Of Silence"
-}
-
 practice_mask_all :: () -> int #private {
     return (1 << EXERCISE_COUNT) - 1
 }
@@ -44,17 +38,7 @@ sanitize_practice_music :: (app: InbeApp*) #private {
         return
     }
 
-    app->meditation.music_practice_mask &= practice_mask_all()
-    for int i = 0; i < EXERCISE_COUNT; i++ {
-        if app->meditation.music_practice_tracks[i] < 0 ||
-           app->meditation.music_practice_tracks[i] >= MEDITATION_MUSIC_TRACK_COUNT {
-            app->meditation.music_practice_tracks[i] = 0
-        }
-    }
-    if app->meditation.music_track < 0 ||
-       app->meditation.music_track >= MEDITATION_MUSIC_TRACK_COUNT {
-        app->meditation.music_track = 0
-    }
+    app_audio_music_sanitize_selection(app)
 }
 
 audio_file_looks_valid :: (path: const char*) -> int #private {
@@ -436,10 +420,10 @@ meditation_music_selected_label :: (app: InbeApp*) -> const char* {
         return ""
     }
     track = app->meditation.music_track
-    if track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT {
+    if track < 0 || track >= app_audio_music_count(app) {
         track = 0
     }
-    return tracks[track].title
+    return app_audio_music_label(app, track)
 }
 
 meditation_music_init :: (app: InbeApp*) {
@@ -457,10 +441,7 @@ meditation_music_init :: (app: InbeApp*) {
         EnsureRuntimeAssetDir(app->meditation.music_cache_dir)
     }
 
-    if app->meditation.music_track < 0 ||
-       app->meditation.music_track >= MEDITATION_MUSIC_TRACK_COUNT {
-        app->meditation.music_track = 0
-    }
+    app_audio_music_sanitize_selection(app)
 
     if app->meditation.music_status[0] == '\0' {
         if meditation_music_available(app) {
@@ -527,13 +508,13 @@ load_track :: (app: InbeApp*, track: int) -> int #private {
         return 0
     }
 
-    if track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT {
+    if track < 0 || track >= app_audio_music_count(app) {
         track = 0
     }
 
     meditation_music_unload(app)
-    track_path(app, track, path, sizeof(path))
-    if !audio_file_looks_valid(path) {
+    if !app_audio_music_path(app, track, path, sizeof(path)) ||
+       !audio_file_looks_valid(path) {
         set_status(app, "Track is not installed")
         return 0
     }
@@ -566,13 +547,8 @@ test_track :: (app: InbeApp*) #private {
         set_status(app, "Test audio stopped")
         return
     }
-    if !meditation_music_available(app) {
-        set_status(app, missing_audio_message())
-        return
-    }
-
     track = app->meditation.music_track
-    if track < 0 || track >= MEDITATION_MUSIC_TRACK_COUNT {
+    if track < 0 || track >= app_audio_music_count(app) {
         track = 0
     }
     if !load_track(app, track) {
@@ -602,11 +578,6 @@ meditation_music_start_session :: (app: InbeApp*) {
     if (app->meditation.music_practice_mask & (1 << practice)) == 0 {
         return
     }
-    if !meditation_music_available(app) {
-        set_status(app, missing_audio_message())
-        return
-    }
-
     track = app->meditation.music_practice_tracks[practice]
     if !load_track(app, track) {
         return
@@ -716,6 +687,8 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
     music_volume: int
     test_label: const char*
     download_status: [96] char
+    track_options: [INBE_AUDIO_MUSIC_COUNT_MAX] const char*
+    track_count: int
 
     if app == nil || y == nil {
         return
@@ -761,13 +734,20 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         return
     }
 
+    track_count = app_audio_music_count(app)
+    if track_count > INBE_AUDIO_MUSIC_COUNT_MAX {
+        track_count = INBE_AUDIO_MUSIC_COUNT_MAX
+    }
+    for int i = 0; i < track_count; i++ {
+        track_options[i] = app_audio_music_label(app, i)
+    }
     if UIDropdownNode(451 + practice,
                             content_x,
                             *y,
                             content_w,
                             ScaleUIPx(36),
                             track_options,
-                            MEDITATION_MUSIC_TRACK_COUNT,
+                            track_count,
                             &app->meditation.music_practice_tracks[practice]) {
         app->settings_dirty = 1
         app->meditation.music_track =

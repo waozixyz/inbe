@@ -3,6 +3,7 @@
 #import "app/app_settings.h"
 #import "locale.h"
 #import "settings_about.h"
+#import "screens/settings/settings_audio.h"
 #import "screens/settings/settings_data_ui.h"
 #import "screens/settings/settings_device.h"
 #import "screens/settings/settings_types.h"
@@ -90,6 +91,9 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
     if tab == SETTINGS_TAB_DEVICE {
         return settings_device_content_height(content_w)
     }
+    if tab == SETTINGS_TAB_AUDIO {
+        return settings_audio_content_height(content_w)
+    }
     return settings_about_content_height(content_w)
 }
 
@@ -109,6 +113,9 @@ settings_screen_tab_label :: (tab: int) -> const char* {
     }
     if tab == SETTINGS_TAB_THEME {
         return GetLocaleText("settings_section_appearance")
+    }
+    if tab == SETTINGS_TAB_AUDIO {
+        return GetLocaleText("settings_tab_audio")
     }
     if tab == SETTINGS_TAB_ABOUT {
         return GetLocaleText("settings_tab_about")
@@ -160,6 +167,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     } #else_if WEB {
         settings_data_handle_web_import(app)
     }
+    settings_audio_handle_import(app)
 
     if content_viewport_h < 0 {
         content_viewport_h = 0
@@ -173,6 +181,8 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     if app->settings_tab == SETTINGS_TAB_THEME {
         theme_panel.draw(app, page.content_x, page.content_w,
                             &y, &app->theme_state)
+    } else if app->settings_tab == SETTINGS_TAB_AUDIO {
+        settings_audio_draw(app, page.content_x, page.content_w, &y)
     } else if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_draw(app, page.content_x, page.content_w, &y, &device_state)
     } else {

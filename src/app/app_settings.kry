@@ -194,6 +194,7 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("pause_seconds", app->inbe.pause_seconds)
     save_setting_int("sound_volume", app->sound_volume)
     save_setting_int("music_volume", app->music_volume)
+    app_audio_library_save(app)
     save_setting_int("retention_marker_enabled",
                         app->retention_marker_enabled ? 1 : 0)
     save_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0)
@@ -315,6 +316,7 @@ app_load_settings :: (app: InbeApp*) -> int {
     max_breaths: int
     pause_seconds: int
     manual_seen_mask: int
+    music_max: int
     settings_cache: SettingsLoadCache = {0}
 
     if app == nil {
@@ -363,6 +365,11 @@ app_load_settings :: (app: InbeApp*) -> int {
                             100, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
     load_clamped_setting(&settings_cache, &app->music_volume, "music_volume",
                             50, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
+    app_audio_library_load(app)
+    music_max = app_audio_music_count(app) - 1
+    if music_max < 0 {
+        music_max = 0
+    }
     load_clamped_setting(&settings_cache, &app->theme_id, "theme", 0, 0,
                             THEME_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->theme_source, "theme_source",
@@ -414,22 +421,23 @@ app_load_settings :: (app: InbeApp*) -> int {
                             "meditation_custom_minutes", 20, 1, 240)
     load_clamped_setting(&settings_cache, &app->meditation.music_track,
                             "meditation_music_track", 0, 0,
-                            MEDITATION_MUSIC_TRACK_COUNT - 1)
+                            music_max)
     load_clamped_setting(&settings_cache,
                             &app->meditation.music_practice_mask,
                             "practice_music_mask", 1 << EXERCISE_MEDITATION,
                             0, (1 << EXERCISE_COUNT) - 1)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_WIM_HOF],
-        "practice_music_track_wim_hof", 0, 0, MEDITATION_MUSIC_TRACK_COUNT - 1)
+        "practice_music_track_wim_hof", 0, 0, music_max)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_MEDITATION],
         "practice_music_track_meditation", 0, 0,
-        MEDITATION_MUSIC_TRACK_COUNT - 1)
+        music_max)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_SUN_SALUTATION],
         "practice_music_track_sun_salutation", 0, 0,
-        MEDITATION_MUSIC_TRACK_COUNT - 1)
+        music_max)
+    app_audio_music_sanitize_selection(app)
     load_clamped_setting(&settings_cache, &app->practice_category_tab,
                             "practice_category_tab", PRACTICE_CATEGORY_MIND,
                             0, PRACTICE_CATEGORY_COUNT - 1)

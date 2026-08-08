@@ -275,6 +275,7 @@ RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 APP_SRCS := \
 	src/main.c \
 	src/app/app.c \
+	src/app/audio_library.c \
 	src/storage/storage.c \
 	src/storage/sync_client.c \
 	src/third_party/miniz.c \
@@ -1196,7 +1197,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQ
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_import_sync_key \
 		-lidbfs.js \
 		-lm
 
@@ -1351,6 +1352,10 @@ android-avd:
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd="$${ANDROID_SDK_ROOT:-$${ANDROID_HOME}}/platform-tools/adb"; fi; \
 	if [ ! -x "$$adb_cmd" ]; then adb_cmd=adb; fi; \
 	$(MAKE) android-install ADB="$$adb_cmd -e"
+
+android-smoke:
+	@mkdir -p build/android
+	sh scripts/android-smoke-test.sh "$(ANDROID_SDK)" "$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)"
 
 android-clean:
 	$(GRADLE) -p droid clean $(ANDROID_GRADLE_ARGS)
