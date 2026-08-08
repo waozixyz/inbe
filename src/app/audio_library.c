@@ -72,19 +72,32 @@ int
 app_audio_music_file_valid(const char *path)
 {
     FILE *file;
-    unsigned char magic[4];
-    size_t got;
 
     if(path == NULL || path[0] == '\0')
+        return 0;
+    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.xm;.mod"))
         return 0;
     file = fopen(path, "rb");
     if(file == NULL)
         return 0;
-    got = fread(magic, 1, sizeof(magic), file);
     fclose(file);
-    return got == sizeof(magic) &&
-           magic[0] == 'O' && magic[1] == 'g' &&
-           magic[2] == 'g' && magic[3] == 'S';
+    return 1;
+}
+
+int
+app_audio_sound_file_valid(const char *path)
+{
+    FILE *file;
+
+    if(path == NULL || path[0] == '\0')
+        return 0;
+    if(!IsFileExtension(path, ".ogg;.wav;.qoa"))
+        return 0;
+    file = fopen(path, "rb");
+    if(file == NULL)
+        return 0;
+    fclose(file);
+    return 1;
 }
 
 static int
@@ -123,6 +136,7 @@ static void
 audio_title_from_path(char out[INBE_AUDIO_LABEL_SIZE], const char *path)
 {
     const char *name;
+    const char *ext;
     size_t len;
 
     if(out == NULL)
@@ -131,34 +145,41 @@ audio_title_from_path(char out[INBE_AUDIO_LABEL_SIZE], const char *path)
     if(name == NULL || name[0] == '\0')
         name = "Custom audio";
     snprintf(out, INBE_AUDIO_LABEL_SIZE, "%s", name);
+    ext = GetFileExtension(out);
     len = strlen(out);
-    if(len > 4 && strcmp(out + len - 4, ".ogg") == 0)
-        out[len - 4] = '\0';
+    if(ext != NULL && ext[0] == '.' && strlen(ext) < len)
+        out[len - strlen(ext)] = '\0';
     if(out[0] != '\0')
         out[0] = (char)toupper((unsigned char)out[0]);
 }
 
 static int
 audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
-                  const char *kind, const char *src)
+                  const char *kind, const char *src,
+                  int (*valid)(const char *path))
 {
     char dir[FS_PATH_MAX];
     char dst[FS_PATH_MAX];
     char title[INBE_AUDIO_LABEL_SIZE];
+    const char *ext;
     int index;
 
-    if(items == NULL || count == NULL || *count < 0 || *count >= max_count)
+    if(items == NULL || count == NULL || valid == NULL ||
+       *count < 0 || *count >= max_count)
         return -1;
-    if(!app_audio_music_file_valid(src))
+    if(!valid(src))
         return -1;
     if(!audio_ensure_library_dir(kind, dir, sizeof(dir)))
         return -1;
 
     index = *count;
-    snprintf(dst, sizeof(dst), "%s/custom-%02d.ogg", dir, index + 1);
+    ext = GetFileExtension(src);
+    if(ext == NULL || ext[0] == '\0')
+        ext = ".ogg";
+    snprintf(dst, sizeof(dst), "%s/custom-%02d%s", dir, index + 1, ext);
     if(!audio_copy_file(src, dst))
         return -1;
-    if(!app_audio_music_file_valid(dst))
+    if(!valid(dst))
         return -1;
 
     audio_title_from_path(title, src);
@@ -270,7 +291,8 @@ app_audio_import_custom_sound(InbeApp *app, int cue, const char *path)
     index = audio_import_item(app->audio_custom_sounds,
                               &app->audio_custom_sound_count,
                               INBE_AUDIO_CUSTOM_SOUND_MAX,
-                              "sounds", path);
+                              "sounds", path,
+                              app_audio_sound_file_valid);
     if(index < 0)
         return 0;
     if(cue >= 0 && cue < INBE_AUDIO_CUE_COUNT)
@@ -290,7 +312,8 @@ app_audio_import_custom_music(InbeApp *app, const char *path)
     index = audio_import_item(app->audio_custom_music,
                               &app->audio_custom_music_count,
                               INBE_AUDIO_CUSTOM_MUSIC_MAX,
-                              "music", path);
+                              "music", path,
+                              app_audio_music_file_valid);
     if(index < 0)
         return 0;
     app->meditation.music_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
@@ -392,7 +415,7 @@ app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size)
     selected = app->audio_cue_selected[cue];
     if(selected <= 0 || selected > app->audio_custom_sound_count)
         return 0;
-    if(!app_audio_music_file_valid(app->audio_custom_sounds[selected - 1].path)) {
+    if(!app_audio_sound_file_valid(app->audio_custom_sounds[selected - 1].path)) {
         app->audio_cue_selected[cue] = 0;
         return 0;
     }

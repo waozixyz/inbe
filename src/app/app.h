@@ -501,6 +501,7 @@ int app_audio_remove_custom_music(InbeApp *app, int index);
 int app_audio_music_count(const InbeApp *app);
 const char *app_audio_music_label(const InbeApp *app, int index);
 int app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size);
+int app_audio_sound_file_valid(const char *path);
 int app_audio_music_file_valid(const char *path);
 const char *app_audio_cue_default_asset(int cue);
 int app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size);

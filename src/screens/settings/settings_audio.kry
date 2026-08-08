@@ -46,12 +46,16 @@ SettingsAudioDialogOrigin :: struct {
     SETTINGS_AUDIO_PREVIEW_MUSIC
 }
 
-static audio_import_filter: const char* = ".ogg"
+static audio_import_filter: const char* = ".ogg,.wav,.qoa,.xm,.mod"
+static audio_sound_import_filter: const char* = ".ogg,.wav,.qoa"
 static audio_preview_kind: int = SETTINGS_AUDIO_PREVIEW_NONE
 static audio_preview_index: int = -1
 static audio_preview_sound: Sound = {0}
 static audio_preview_music: Music = {0}
 static audio_preview_music_loaded: int = 0
+static audio_status_action: int = SETTINGS_AUDIO_ACTION_NONE
+static audio_status_type: int = 0
+static audio_status: [256] char = ""
 
 #if ANDROID || WEB {
     static audio_import_action: int = SETTINGS_AUDIO_ACTION_NONE
@@ -59,7 +63,45 @@ static audio_preview_music_loaded: int = 0
 }
 
 #if ANDROID {
-    static android_audio_mime_types: const char* = "audio/ogg,application/ogg,audio/*,application/octet-stream"
+    static android_audio_mime_types: const char* = "audio/*,audio/ogg,application/ogg,application/octet-stream"
+}
+
+settings_audio_import_filter :: (action: int) -> const char* #private {
+    if action == SETTINGS_AUDIO_ACTION_MUSIC {
+        return audio_import_filter
+    }
+    return audio_sound_import_filter
+}
+
+settings_audio_set_status :: (action: int, message: const char*, status_type: int) #private {
+    audio_status_action = action
+    audio_status_type = status_type
+    if message != nil {
+        strncpy(audio_status, message, sizeof(audio_status) - 1)
+        audio_status[sizeof(audio_status) - 1] = '\0'
+    } else {
+        audio_status[0] = '\0'
+    }
+    settings_screen_clear_status()
+}
+
+settings_audio_set_status_success :: (action: int, message: const char*) #private {
+    settings_audio_set_status(action, message, 1)
+}
+
+settings_audio_set_status_error :: (action: int, message: const char*) #private {
+    settings_audio_set_status(action, message, 2)
+}
+
+settings_audio_draw_status :: (x: int, y: int*, action: int) #private {
+    status_color := (Color){0}
+
+    if audio_status_action != action || audio_status[0] == '\0' {
+        return
+    }
+    status_color = audio_status_type == 2 ? RED : GetThemeText()
+    UITextNode(audio_status, x, *y, GetUISmallFontSize(), status_color)
+    *y += ScaleUIPx(24)
 }
 
 settings_audio_dialog_begin :: (app: InbeApp*, action: int) #private {
@@ -297,25 +339,25 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
     cue := audio_action_to_cue(action)
 
     if app == nil || path == nil || path[0] == '\0' {
-        settings_screen_set_status_error(GetLocaleText("audio_import_failed"))
+        settings_audio_set_status_error(action, GetLocaleText("audio_import_failed"))
         return 0
     }
     if action == SETTINGS_AUDIO_ACTION_MUSIC {
         if app_audio_import_custom_music(app, path) {
             app->settings_dirty = 1
             save_settings(app)
-            settings_screen_set_status_success(GetLocaleText("audio_imported"), nil)
+            settings_audio_set_status_success(action, GetLocaleText("audio_imported"))
             return 1
         }
     } else if cue >= 0 {
         if app_audio_import_custom_sound(app, cue, path) {
             app->settings_dirty = 1
             save_settings(app)
-            settings_screen_set_status_success(GetLocaleText("audio_imported"), nil)
+            settings_audio_set_status_success(action, GetLocaleText("audio_imported"))
             return 1
         }
     }
-    settings_screen_set_status_error(GetLocaleText("audio_import_failed"))
+    settings_audio_set_status_error(action, GetLocaleText("audio_import_failed"))
     return 0
 }
 
@@ -325,10 +367,10 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         settings_audio_dialog_begin(app, action)
         if android_import_open_picker_for(audio_android_kind(action),
                                           android_audio_mime_types) {
-            settings_screen_set_status_success(GetLocaleText("audio_import_title"), nil)
+            settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
         } else {
             settings_audio_dialog_finish(app)
-            settings_screen_set_status_error(GetLocaleText("audio_import_failed"))
+            settings_audio_set_status_error(action, GetLocaleText("audio_import_failed"))
         }
     } #else_if WEB {
         if audio_web_dialog_ready {
@@ -339,22 +381,21 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         settings_audio_dialog_begin(app, action)
         BeginLoadFilteredFileDialog(&audio_web_dialog,
                                     GetLocaleText("audio_import_title"),
-                                    audio_import_filter)
-        settings_screen_set_status_success(GetLocaleText("audio_import_title"), nil)
+                                    settings_audio_import_filter(action))
+        settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
         InitFileDialog(&dlg)
-        if LoadFilteredFileDialog(&dlg, GetLocaleText("audio_import_title"),
-                                  audio_import_filter) {
+        if LoadFileDialog(&dlg, GetLocaleText("audio_import_title")) {
             audio_import_path(app, action, GetFileDialogPath(&dlg))
         } else {
-            settings_screen_set_status_error(GetLocaleText("audio_import_cancelled"))
+            settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
         }
         CloseFileDialog(&dlg)
     } #else {
         unused app
         unused action
-        settings_screen_set_status_error(GetLocaleText("audio_import_failed"))
+        settings_audio_set_status_error(action, GetLocaleText("audio_import_failed"))
     }
 }
 
@@ -374,7 +415,7 @@ settings_audio_handle_import :: (app: InbeApp*) {
         }
         action = settings_audio_dialog_finish(app)
         if result == ANDROID_IMPORT_RESULT_CANCELLED {
-            settings_screen_set_status_error(GetLocaleText("audio_import_cancelled"))
+            settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
             return
         }
         audio_import_path(app, action, path)
@@ -393,7 +434,7 @@ settings_audio_handle_import :: (app: InbeApp*) {
         action = settings_audio_dialog_finish(app)
         path = GetFileDialogPath(&audio_web_dialog)
         if result == 0 {
-            settings_screen_set_status_error(GetLocaleText("audio_import_cancelled"))
+            settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
         } else {
             audio_import_path(app, action, path)
         }
@@ -417,7 +458,9 @@ draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         settings_audio_start_import(app, action)
     }
-    *y += ScaleUIPx(48)
+    *y += ScaleUIPx(42)
+    settings_audio_draw_status(x, y, action)
+    *y += ScaleUIPx(6)
 }
 
 draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
