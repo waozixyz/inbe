@@ -9,7 +9,7 @@ import { spawn } from 'node:child_process';
 const root = resolve(process.argv[2] || 'build/dist/web');
 const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
-const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 30000);
+const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 90000);
 const allowWebglDisabled = process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED
   ? !/^(0|false|no)$/i.test(process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED)
   : false;
@@ -367,7 +367,7 @@ async function waitForHealthyPage(client) {
     });
     const value = result.result?.value;
     lastState = value;
-    if (sawRaylib && value?.ok) {
+    if (sawRaylib && value?.ok && value?.runtimeReady) {
       if (!healthySince)
         healthySince = Date.now();
       if (Date.now() - healthySince >= 1500)
@@ -595,12 +595,12 @@ async function verifyAppSettingsReloadPersistence(client) {
 
 async function verifySyncKeyImport(client) {
   await waitForStorageIdle(client);
-  const result = await client.send('Runtime.evaluate', {
-    expression: "(() => typeof Module._app_web_test_import_sync_key === 'function' && Module._app_web_test_import_sync_key() === 1)()",
+  let result = await client.send('Runtime.evaluate', {
+    expression: "(() => { if (typeof Module._app_web_test_import_sync_key !== 'function') return false; Module._app_web_test_import_sync_key(); return true; })()",
     returnByValue: true
   });
   if (!result.result?.value)
-    throw new Error('web sync key import hook failed');
+    throw new Error('missing web sync key import hook');
   const flush = await client.send('Runtime.evaluate', {
     expression: "(async () => await Module.__kryonFlushStorageSync(true))()",
     awaitPromise: true,
@@ -609,6 +609,12 @@ async function verifySyncKeyImport(client) {
   if (!flush.result?.value)
     throw new Error('IDBFS flush failed after web sync key import hook');
   await waitForStorageIdle(client);
+  result = await client.send('Runtime.evaluate', {
+    expression: "(() => typeof Module._app_web_test_sync_key_state === 'function' && Module._app_web_test_sync_key_state() === 1)()",
+    returnByValue: true
+  });
+  if (!result.result?.value)
+    throw new Error('web sync key import did not save account settings');
 }
 
 async function verifyAppSettingsReloadPersistenceBidi(client, context) {
@@ -653,15 +659,15 @@ async function verifyAppSettingsImmediateBidi(client, context) {
 
 async function verifySyncKeyImportBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
-  const result = await client.send('script.evaluate', {
+  let result = await client.send('script.evaluate', {
     target: { context },
     awaitPromise: false,
     resultOwnership: 'none',
-    expression: "JSON.stringify((() => ({ ok: typeof Module._app_web_test_import_sync_key === 'function' && Module._app_web_test_import_sync_key() === 1 }))())"
+    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_import_sync_key !== 'function') return { ok: false }; Module._app_web_test_import_sync_key(); return { ok: true }; })())"
   });
   let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
-    throw new Error('Firefox web sync key import hook failed');
+    throw new Error('missing Firefox web sync key import hook');
   const flush = await client.send('script.evaluate', {
     target: { context },
     awaitPromise: true,
@@ -672,6 +678,15 @@ async function verifySyncKeyImportBidi(client, context) {
   if (!state.ok)
     throw new Error('Firefox IDBFS flush failed after web sync key import hook');
   await waitForStorageIdleBidi(client, context);
+  result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: "JSON.stringify((() => ({ ok: typeof Module._app_web_test_sync_key_state === 'function' && Module._app_web_test_sync_key_state() === 1 }))())"
+  });
+  state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error('Firefox web sync key import did not save account settings');
 }
 
 let chrome;

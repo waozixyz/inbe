@@ -19,7 +19,7 @@ ANDROID :: ANDROID_BUILD
 DESKTOP :: #defined(PLATFORM_DESKTOP)
 
 #enum {
-    APP_SETTINGS_CACHE_MAX = 96
+    APP_SETTINGS_CACHE_MAX = 192
 }
 
 SettingsCacheEntry :: struct {

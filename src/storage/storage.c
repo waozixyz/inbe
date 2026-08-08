@@ -265,8 +265,13 @@ void
 storage_schedule_persist(void)
 {
 #if defined(__EMSCRIPTEN__)
-    if(g_storage.db != NULL)
+    if(g_storage.db != NULL) {
         sqlite3_db_cacheflush(g_storage.db);
+        if(sqlite3_get_autocommit(g_storage.db)) {
+            sqlite3_exec(g_storage.db, "PRAGMA wal_checkpoint(TRUNCATE)", NULL, NULL, NULL);
+            sqlite3_db_cacheflush(g_storage.db);
+        }
+    }
     ScheduleWebStorageSync(120, 0);
 #endif
 }
