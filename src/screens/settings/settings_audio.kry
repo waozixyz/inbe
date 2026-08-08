@@ -104,6 +104,18 @@ settings_audio_draw_status :: (x: int, y: int*, action: int) #private {
     *y += ScaleUIPx(24)
 }
 
+settings_audio_file_dialog_available :: () -> int #private {
+    #if NATIVE_FILE_DIALOG {
+        backend := GetFileDialogBackendName()
+        if backend == nil || strcmp(backend, "none") == 0 {
+            return 0
+        }
+        return 1
+    } #else {
+        return 1
+    }
+}
+
 settings_audio_dialog_begin :: (app: InbeApp*, action: int) #private {
     #if ANDROID || WEB {
         if app == nil {
@@ -385,6 +397,10 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
     } #else_if NATIVE_FILE_DIALOG {
         dlg: FileDialog = {0}
+        if !settings_audio_file_dialog_available() {
+            settings_audio_set_status_error(action, "Install zenity or yad for file import")
+            return
+        }
         InitFileDialog(&dlg)
         if LoadFileDialog(&dlg, GetLocaleText("audio_import_title")) {
             audio_import_path(app, action, GetFileDialogPath(&dlg))
@@ -445,16 +461,72 @@ settings_audio_handle_import :: (app: InbeApp*) {
     }
 }
 
+settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    status_label := app->audio_ready ?
+        GetLocaleText("audio_status_ready") :
+        GetLocaleText("audio_status_unavailable")
+    test_hover := 0
+    reinit_hover := 0
+    button_gap := ScaleUIPx(10)
+    button_w := (w - button_gap) / 2
+    min_button_w := ScaleUIPx(122)
+    stack_buttons := w < min_button_w * 2 + button_gap
+
+    UITextNode(GetLocaleText("audio_output_label"), x, *y,
+               GetUIFontSize(), GetThemeText())
+    UITextNode(GetLocaleText("audio_system_default_label"), x,
+               *y + ScaleUIPx(26), UI_TEXT_12,
+               DarkenUIColor(GetThemeText(), 28))
+    UITextNode(status_label, x, *y + ScaleUIPx(46), UI_TEXT_12,
+               app->audio_ready ? GetThemeButtonHover() :
+                   DarkenUIColor(GetThemeText(), 28))
+    *y += ScaleUIPx(70)
+
+    if stack_buttons {
+        button_w = w
+    }
+    if UIGenericButtonNode(873, x, *y, button_w, ScaleUIPx(36),
+                           GetLocaleText("audio_test_output_button"),
+                           UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
+        app_play_bell_cue(app, 1.0f)
+    }
+    if stack_buttons {
+        *y += ScaleUIPx(46)
+        if UIGenericButtonNode(874, x, *y, button_w, ScaleUIPx(36),
+                               GetLocaleText("audio_reinitialize_button"),
+                               UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
+            app_audio_reinitialize(app)
+        }
+    } else {
+        if UIGenericButtonNode(874, x + button_w + button_gap, *y,
+                               button_w, ScaleUIPx(36),
+                               GetLocaleText("audio_reinitialize_button"),
+                               UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
+            app_audio_reinitialize(app)
+        }
+    }
+    *y += ScaleUIPx(46)
+    *y += settings_ui_draw_audio_meter(app, x, *y, w,
+                                       GetLocaleText("audio_output_level_label"))
+    *y += ScaleUIPx(18)
+}
+
 settings_audio_content_height :: (content_w: int) -> int {
-    unused content_w
-    return ScaleUIPx(96) + ScaleUIPx(76) * INBE_AUDIO_CUE_COUNT +
+    audio_button_min := ScaleUIPx(122)
+    audio_button_gap := ScaleUIPx(10)
+    height := ScaleUIPx(96) + ScaleUIPx(76) * INBE_AUDIO_CUE_COUNT +
            ScaleUIPx(52) * (INBE_AUDIO_CUSTOM_SOUND_MAX + INBE_AUDIO_CUSTOM_MUSIC_MAX + 2) +
            ScaleUIPx(180)
+    height += ScaleUIPx(156)
+    if content_w > 0 && content_w < audio_button_min * 2 + audio_button_gap {
+        height += ScaleUIPx(46)
+    }
+    return height
 }
 
 draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int) #private {
     hover := 0
-    if UIGenericButtonNode(0, x, *y, w, ScaleUIPx(36), label,
+    if UIGenericButtonNode(880 + action, x, *y, w, ScaleUIPx(36), label,
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         settings_audio_start_import(app, action)
     }
@@ -623,6 +695,8 @@ settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
 
     settings_audio_update_preview()
 
+    settings_audio_draw_output(app, x, w, y)
+
     if settings_ui_commit_slider_row(app, 871, x, w, y, ScaleUIPx(66),
                                      GetLocaleText("cue_volume_label"),
                                      SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX,
@@ -641,10 +715,6 @@ settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
             SetMusicVolume(audio_preview_music, settings_audio_music_volume(app))
         }
     }
-
-    *y += settings_ui_draw_audio_meter(app, x, *y, w,
-                                       GetLocaleText("audio_output_level_label"))
-    *y += ScaleUIPx(18)
 
     draw_cue_selector(app, x, w, y, INBE_AUDIO_CUE_BREATH_IN,
                       GetLocaleText("audio_breath_in_label"),

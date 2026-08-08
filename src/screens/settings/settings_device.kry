@@ -25,14 +25,6 @@ settings_device_content_height :: (content_w: int) -> int {
 
     height += settings_ui_toggle_row_height(GetLocaleText("play_in_background_label"), label_w)
 
-    #if !ANDROID {
-        audio_button_min := ScaleUIPx(122)
-        audio_button_gap := ScaleUIPx(10)
-        height += ScaleUIPx(156)
-        if content_w > 0 && content_w < audio_button_min * 2 + audio_button_gap {
-            height += ScaleUIPx(46)
-        }
-    }
     #if DESKTOP {
         height += ScaleUIPx(50)
         height += settings_ui_toggle_row_height(GetLocaleText("on_screen_keyboard_label"), label_w)
@@ -112,55 +104,6 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         app->inbe.play_in_background = play_in_background
     }
 
-    #if !ANDROID {
-        status_label := app->audio_ready ?
-            GetLocaleText("audio_status_ready") :
-            GetLocaleText("audio_status_unavailable")
-        test_hover := 0
-        reinit_hover := 0
-        button_gap := ScaleUIPx(10)
-        button_w := (w - button_gap) / 2
-        min_button_w := ScaleUIPx(122)
-        stack_buttons := w < min_button_w * 2 + button_gap
-
-        UITextNode(GetLocaleText("audio_output_label"), x, *y,
-                   GetUIFontSize(), GetThemeText())
-        UITextNode(GetLocaleText("audio_system_default_label"), x,
-                   *y + ScaleUIPx(26), UI_TEXT_12,
-                   DarkenUIColor(GetThemeText(), 28))
-        UITextNode(status_label, x, *y + ScaleUIPx(46), UI_TEXT_12,
-                   app->audio_ready ? GetThemeButtonHover() :
-                       DarkenUIColor(GetThemeText(), 28))
-        *y += ScaleUIPx(70)
-
-        if stack_buttons {
-            button_w = w
-        }
-        if UIGenericButtonNode(0, x, *y, button_w, ScaleUIPx(36),
-                               GetLocaleText("audio_test_output_button"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
-            app_play_bell_cue(app, 1.0f)
-        }
-        if stack_buttons {
-            *y += ScaleUIPx(46)
-            if UIGenericButtonNode(0, x, *y, button_w, ScaleUIPx(36),
-                                   GetLocaleText("audio_reinitialize_button"),
-                                   UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
-                app_audio_reinitialize(app)
-            }
-        } else {
-            if UIGenericButtonNode(0, x + button_w + button_gap, *y,
-                                   button_w, ScaleUIPx(36),
-                                   GetLocaleText("audio_reinitialize_button"),
-                                   UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
-                app_audio_reinitialize(app)
-            }
-        }
-        *y += ScaleUIPx(46)
-        *y += settings_ui_draw_audio_meter(app, x, *y, w,
-                                           GetLocaleText("audio_output_level_label"))
-        *y += ScaleUIPx(18)
-    }
 }
 
 settings_device_handle_overlays :: (app: InbeApp*, state: SettingsDeviceState*) {
