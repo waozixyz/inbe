@@ -61,42 +61,47 @@ function runStorageSync(retryDelay) {
   Module.__kryonStorageSyncPending = false;
   var shouldLog = !!Module.__kryonStorageSyncLogSuccess;
   Module.__kryonStorageSyncLogSuccess = false;
-  Module.__kryonStorageSyncPromise = new Promise(function(resolve) {
-    Module.__kryonStorageSyncResolve = resolve;
-  });
+  if (!Module.__kryonStorageSyncPromise) {
+    Module.__kryonStorageSyncPromise = new Promise(function(resolve) {
+      Module.__kryonStorageSyncResolve = resolve;
+    });
+  }
+
+  function finishStorageSync(ok) {
+    var resolve = Module.__kryonStorageSyncResolve;
+
+    Module.__kryonStorageSyncResolve = null;
+    Module.__kryonStorageSyncPromise = null;
+    if (resolve) resolve(ok);
+  }
+
+  function drainPendingStorageSync() {
+    if (!Module.__kryonStorageSyncPending) {
+      finishStorageSync(true);
+      return;
+    }
+    if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
+    Module.__kryonStorageSyncTimer = setTimeout(function() {
+      Module.__kryonStorageSyncTimer = 0;
+      runStorageSync(retryDelay);
+    }, retryDelay);
+  }
 
   try {
     FS.syncfs(false, function(err) {
-      var resolve = Module.__kryonStorageSyncResolve;
       Module.__kryonStorageSyncing = false;
-      Module.__kryonStorageSyncResolve = null;
-      Module.__kryonStorageSyncPromise = null;
-      if (err) console.error('IDBFS save failed:', err);
-      else if (shouldLog) console.log('IDBFS synced');
-      if (resolve) resolve(!err);
-
-      if (Module.__kryonStorageSyncPending) {
-        if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
-        Module.__kryonStorageSyncTimer = setTimeout(function() {
-          Module.__kryonStorageSyncTimer = 0;
-          runStorageSync(retryDelay);
-        }, retryDelay);
+      if (err) {
+        console.error('IDBFS save failed:', err);
+        finishStorageSync(false);
+      } else {
+        if (shouldLog) console.log('IDBFS synced');
+        drainPendingStorageSync();
       }
     });
   } catch (e) {
-    var resolve = Module.__kryonStorageSyncResolve;
     Module.__kryonStorageSyncing = false;
-    Module.__kryonStorageSyncResolve = null;
-    Module.__kryonStorageSyncPromise = null;
     console.error('IDBFS sync error:', e);
-    if (resolve) resolve(false);
-    if (Module.__kryonStorageSyncPending) {
-      if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
-      Module.__kryonStorageSyncTimer = setTimeout(function() {
-        Module.__kryonStorageSyncTimer = 0;
-        runStorageSync(retryDelay);
-      }, retryDelay);
-    }
+    finishStorageSync(false);
   }
 
   return Module.__kryonStorageSyncPromise || Promise.resolve(false);
