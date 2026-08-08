@@ -55,18 +55,25 @@ function hideLoadingScreen() {
 }
 
 function runStorageSync(retryDelay) {
-  if (Module.__kryonStorageSyncing) return;
+  if (Module.__kryonStorageSyncing) return Module.__kryonStorageSyncPromise || Promise.resolve(false);
 
   Module.__kryonStorageSyncing = true;
   Module.__kryonStorageSyncPending = false;
   var shouldLog = !!Module.__kryonStorageSyncLogSuccess;
   Module.__kryonStorageSyncLogSuccess = false;
+  Module.__kryonStorageSyncPromise = new Promise(function(resolve) {
+    Module.__kryonStorageSyncResolve = resolve;
+  });
 
   try {
     FS.syncfs(false, function(err) {
+      var resolve = Module.__kryonStorageSyncResolve;
       Module.__kryonStorageSyncing = false;
+      Module.__kryonStorageSyncResolve = null;
+      Module.__kryonStorageSyncPromise = null;
       if (err) console.error('IDBFS save failed:', err);
       else if (shouldLog) console.log('IDBFS synced');
+      if (resolve) resolve(!err);
 
       if (Module.__kryonStorageSyncPending) {
         if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
@@ -77,8 +84,12 @@ function runStorageSync(retryDelay) {
       }
     });
   } catch (e) {
+    var resolve = Module.__kryonStorageSyncResolve;
     Module.__kryonStorageSyncing = false;
+    Module.__kryonStorageSyncResolve = null;
+    Module.__kryonStorageSyncPromise = null;
     console.error('IDBFS sync error:', e);
+    if (resolve) resolve(false);
     if (Module.__kryonStorageSyncPending) {
       if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
       Module.__kryonStorageSyncTimer = setTimeout(function() {
@@ -87,6 +98,8 @@ function runStorageSync(retryDelay) {
       }, retryDelay);
     }
   }
+
+  return Module.__kryonStorageSyncPromise || Promise.resolve(false);
 }
 
 function scheduleStorageSync(delay, logSuccess) {
@@ -102,14 +115,14 @@ function scheduleStorageSync(delay, logSuccess) {
 }
 
 function flushStorageSync(logSuccess) {
-  if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
+  if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return Promise.resolve(false);
   Module.__kryonStorageSyncPending = true;
   Module.__kryonStorageSyncLogSuccess = Module.__kryonStorageSyncLogSuccess || !!logSuccess;
   if (Module.__kryonStorageSyncTimer) {
     clearTimeout(Module.__kryonStorageSyncTimer);
     Module.__kryonStorageSyncTimer = 0;
   }
-  runStorageSync(0);
+  return runStorageSync(0);
 }
 
 function flushStorageBeforePageSuspends() {
@@ -124,6 +137,8 @@ document.addEventListener('visibilitychange', function() {
 
 var Module = {
   __inbeRuntimeReady: false,
+  __kryonStorageSyncPromise: null,
+  __kryonStorageSyncResolve: null,
   __kryonScheduleStorageSync: scheduleStorageSync,
   __kryonFlushStorageSync: flushStorageSync,
   preRun: [function() {

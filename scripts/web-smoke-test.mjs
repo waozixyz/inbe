@@ -573,7 +573,8 @@ async function verifyReloadPersistence(client) {
 async function verifyAppSettingsReloadPersistence(client) {
   await waitForStorageIdle(client);
   let result = await client.send('Runtime.evaluate', {
-    expression: "(() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return true; })()",
+    expression: "(async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') throw new Error('missing app settings save test hook'); Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return true; })()",
+    awaitPromise: true,
     returnByValue: true
   });
   if (!result.result?.value)
@@ -609,9 +610,9 @@ async function verifyAppSettingsReloadPersistenceBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
     target: { context },
-    awaitPromise: false,
+    awaitPromise: true,
     resultOwnership: 'none',
-    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
+    expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
   });
   let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
@@ -635,9 +636,9 @@ async function verifyAppSettingsImmediateBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   const result = await client.send('script.evaluate', {
     target: { context },
-    awaitPromise: false,
+    awaitPromise: true,
     resultOwnership: 'none',
-    expression: "JSON.stringify((() => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })())"
+    expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
   });
   const state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
