@@ -541,17 +541,19 @@ async function waitForStorageIdleBidi(client, context) {
 async function verifyReloadPersistence(client) {
   await waitForStorageIdle(client);
   const marker = `web-smoke-${Date.now()}`;
-  await client.send('Runtime.evaluate', {
-    expression: `(() => {
+  const flush = await client.send('Runtime.evaluate', {
+    expression: `(async () => {
       try { FS.mkdir('/home/inbe'); } catch (e) {}
       FS.writeFile('/home/inbe/web-smoke-persist.txt', ${JSON.stringify(marker)});
       if (typeof Module.__kryonFlushStorageSync !== 'function')
         throw new Error('missing immediate storage flush helper');
-      Module.__kryonFlushStorageSync(true);
-      return true;
+      return await Module.__kryonFlushStorageSync(true);
     })()`,
+    awaitPromise: true,
     returnByValue: true
   });
+  if (!flush.result?.value)
+    throw new Error('IDBFS flush failed before reload persistence check');
   await waitForStorageIdle(client);
   await client.send('Page.reload', { ignoreCache: true });
   await waitForHealthyPage(client);
@@ -599,10 +601,13 @@ async function verifySyncKeyImport(client) {
   });
   if (!result.result?.value)
     throw new Error('web sync key import hook failed');
-  await client.send('Runtime.evaluate', {
-    expression: "(() => { Module.__kryonFlushStorageSync(true); return true; })()",
+  const flush = await client.send('Runtime.evaluate', {
+    expression: "(async () => await Module.__kryonFlushStorageSync(true))()",
+    awaitPromise: true,
     returnByValue: true
   });
+  if (!flush.result?.value)
+    throw new Error('IDBFS flush failed after web sync key import hook');
   await waitForStorageIdle(client);
 }
 
@@ -614,7 +619,7 @@ async function verifyAppSettingsReloadPersistenceBidi(client, context) {
     resultOwnership: 'none',
     expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
   });
-  let state = JSON.parse(result.result?.value || '{}');
+  const state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
     throw new Error(state.reason || 'failed to invoke Firefox app settings save test hook or immediate readback failed');
   await waitForStorageIdleBidi(client, context);
@@ -640,7 +645,7 @@ async function verifyAppSettingsImmediateBidi(client, context) {
     resultOwnership: 'none',
     expression: "(async () => JSON.stringify(await (async () => { if (typeof Module._app_web_test_save_onboarding_state !== 'function') return { ok: false, reason: 'missing app settings save test hook' }; Module._app_web_test_save_onboarding_state(); await Module.__kryonFlushStorageSync(true); return { ok: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state() === 1 }; })()))()"
   });
-  const state = JSON.parse(result.result?.value || '{}');
+  let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
     throw new Error(state.reason || 'Firefox app settings immediate save/readback failed');
   await waitForStorageIdleBidi(client, context);
@@ -654,15 +659,18 @@ async function verifySyncKeyImportBidi(client, context) {
     resultOwnership: 'none',
     expression: "JSON.stringify((() => ({ ok: typeof Module._app_web_test_import_sync_key === 'function' && Module._app_web_test_import_sync_key() === 1 }))())"
   });
-  const state = JSON.parse(result.result?.value || '{}');
+  let state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
     throw new Error('Firefox web sync key import hook failed');
-  await client.send('script.evaluate', {
+  const flush = await client.send('script.evaluate', {
     target: { context },
-    awaitPromise: false,
+    awaitPromise: true,
     resultOwnership: 'none',
-    expression: "JSON.stringify((() => { Module.__kryonFlushStorageSync(true); return { ok: true }; })())"
+    expression: "(async () => JSON.stringify({ ok: await Module.__kryonFlushStorageSync(true) }))()"
   });
+  state = JSON.parse(flush.result?.value || '{}');
+  if (!state.ok)
+    throw new Error('Firefox IDBFS flush failed after web sync key import hook');
   await waitForStorageIdleBidi(client, context);
 }
 
