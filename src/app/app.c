@@ -1724,6 +1724,7 @@ static KsyncAccount web_test_loaded_account;
 static char web_test_account_body[KSYNC_ACCOUNT_EXPORT_TEXT_SIZE];
 static uint8_t web_test_public_key[1312];
 static uint8_t web_test_private_key[2560];
+static int web_test_sync_key_import_status;
 
 static void
 web_test_bytes_to_hex(const uint8_t *bytes, size_t len, char *out, size_t out_size)
@@ -1849,12 +1850,17 @@ app_web_test_sync_key_state(void)
     KsyncAccount *loaded = &web_test_loaded_account;
 
     memset(loaded, 0, sizeof(*loaded));
+    if(web_test_sync_key_import_status != 1)
+        return web_test_sync_key_import_status;
     if(!HasKsyncAccountValues(source))
-        return 0;
+        return -10;
     if(!sync_account_load(loaded))
-        return 0;
-    return strcmp(source->public_id, loaded->public_id) == 0 &&
-           strcmp(source->private_key_hex, loaded->private_key_hex) == 0;
+        return -11;
+    if(strcmp(source->public_id, loaded->public_id) != 0)
+        return -12;
+    if(strcmp(source->private_key_hex, loaded->private_key_hex) != 0)
+        return -13;
+    return 1;
 }
 
 EMSCRIPTEN_KEEPALIVE
@@ -1864,28 +1870,32 @@ app_web_test_import_sync_key(void)
     KsyncAccount *source = &web_test_source_account;
     KsyncAccount *imported = &web_test_imported_account;
     char *body = web_test_account_body;
-    char path[FS_PATH_MAX];
-    int len;
 
+    web_test_sync_key_import_status = 0;
     data_init();
     memset(imported, 0, sizeof(*imported));
     memset(body, 0, sizeof(web_test_account_body));
-    snprintf(path, sizeof(path), "%s/web-smoke-sync.key", data_root());
 
     web_test_make_sync_account(source);
-    if(!HasKsyncAccountValues(source))
+    if(!HasKsyncAccountValues(source)) {
+        web_test_sync_key_import_status = -1;
         return;
-    if(!ExportKsyncAccountText(source, body, sizeof(web_test_account_body)))
+    }
+    if(!ExportKsyncAccountText(source, body, sizeof(web_test_account_body))) {
+        web_test_sync_key_import_status = -2;
         return;
-    len = (int)strlen(body);
-    if(!SaveFileData(path, body, len))
+    }
+    if(!ParseKsyncAccountText(body, imported)) {
+        web_test_sync_key_import_status = -3;
         return;
-    if(!sync_account_import_private_key_preview(imported, path))
-        return;
+    }
+    storage_settings_begin_write();
     storage_set_setting_text("sync_public_id", imported->public_id);
     storage_set_setting_text("sync_public_key", imported->public_key_hex);
     storage_set_setting_text("sync_private_key", imported->private_key_hex);
     storage_set_setting_text("sync_account_alias", "");
+    storage_settings_end_write();
+    web_test_sync_key_import_status = 1;
 }
 #endif
 
