@@ -636,7 +636,7 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_FILES) | $(TEST_BIN_DIR)
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		$(KRYON_INCLUDE) \
+		-I$(KRYON_DIR) $(KRYON_INCLUDE) \
 		-o $@ \
 		tests/guide_overlay_test.c
 

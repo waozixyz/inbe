@@ -31,7 +31,7 @@ SetUIModalCapture(Rectangle bounds)
 }
 
 int
-UIRenderIconButton(UIIconButton button)
+DrawUIIconButton(UIIconButton button)
 {
     (void)button;
     icon_call_count++;
@@ -76,7 +76,7 @@ ui_paragraph_height(UIParagraph paragraph)
 }
 
 void
-UIRenderParagraph(UIParagraph paragraph, int x, int *y)
+DrawUIParagraph(UIParagraph paragraph, int x, int *y)
 {
     (void)paragraph;
     (void)x;
@@ -104,7 +104,7 @@ DarkenUIColor(Color color, int amount)
 }
 
 void
-UIRenderText(const char *text, int x, int y, int font_size, Color color)
+DrawUIText(const char *text, int x, int y, int font_size, Color color)
 {
     (void)text;
     (void)x;
@@ -149,7 +149,7 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
     (void)startPos; (void)endPos; (void)thick; (void)color;
 }
 
-#include "../vendor/kryon/src/ui/guide.c"
+#include "src/ui/guide.c"
 
 static UIGuideOverlay
 test_guide(int *step)
@@ -198,7 +198,7 @@ test_blocks_passthrough(void)
     UIGuideResult result;
 
     reset_input();
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(!result.closed && !result.finished && !result.changed,
            "plain draw should not change guide state");
     expect(!g_ui_input_blocked, "guide must restore unblocked input after draw");
@@ -206,7 +206,7 @@ test_blocks_passthrough(void)
     expect(UIHoverEffectsEnabled(), "guide must restore hover effects after draw");
 
     g_ui_input_blocked = 1;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(!result.closed && !result.finished && !result.changed,
            "plain draw with preblocked input should not change guide state");
     expect(g_ui_input_blocked, "guide must restore preblocked input after draw");
@@ -220,26 +220,26 @@ test_next_back_close_finish(void)
 
     reset_input();
     icon_click_call = 2;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 1, "next button should advance step");
     expect(!g_ui_input_blocked, "next button should restore unblocked input");
 
     reset_input();
     icon_click_call = 2;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 0, "back button should return to previous step");
     expect(!g_ui_input_blocked, "back button should restore unblocked input");
 
     reset_input();
     icon_click_call = 1;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.closed, "close button should close guide");
     expect(!g_ui_input_blocked, "close button should restore unblocked input");
 
     step = 2;
     reset_input();
     icon_click_call = 3;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.finished, "check button should finish guide on last step");
     expect(!g_ui_input_blocked, "finish button should restore unblocked input");
 }
@@ -252,17 +252,17 @@ test_keyboard_navigation(void)
 
     reset_input();
     pressed_key = KEY_RIGHT;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 1, "right key should advance guide");
 
     reset_input();
     pressed_key = KEY_LEFT;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.changed && step == 0, "left key should go back");
 
     reset_input();
     pressed_key = KEY_ESCAPE;
-    result = UIRenderGuideOverlay(test_guide(&step));
+    result = DrawUIGuideOverlay(test_guide(&step));
     expect(result.closed, "escape key should close guide");
 }
 
