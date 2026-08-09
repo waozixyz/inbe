@@ -105,20 +105,20 @@ statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, v
     DrawRectangle(x, y, w, h, DarkenUIColor(GetThemeBackground(), 8))
     DrawRectangle(x, y, ScaleUIPx(4), h, accent)
     DrawLine(x, y + h - 1, x + w, y + h - 1, DarkenUIColor(GetThemeBackground(), 30))
-    UITextNode(label, x + ScaleUIPx(12), y + ScaleUIPx(8), label_font, DarkenUIColor(GetThemeText(), 20))
+    Text(label, x + ScaleUIPx(12), y + ScaleUIPx(8), label_font, DarkenUIColor(GetThemeText(), 20))
     value_w = MeasureUIText(value, value_font)
     if value_w > w - ScaleUIPx(24) {
         value_font = UI_TEXT_16
     }
-    UITextNode(value, x + ScaleUIPx(12), y + ScaleUIPx(30), value_font, GetThemeText())
+    Text(value, x + ScaleUIPx(12), y + ScaleUIPx(30), value_font, GetThemeText())
 }
 
 statistics_draw_section_title :: (title: const char*, x: int, y: int, w: int) -> int #private {
-    paragraph := (UIParagraph){.text = title, .width = w, .font = UI_TEXT_16, .line_gap = ScaleUIPx(3), .color = GetThemeText()}
+    paragraph := (UIParagraphSpec){.text = title, .width = w, .font = UI_TEXT_16, .line_gap = ScaleUIPx(3), .color = GetThemeText()}
     title_y := y
     height := UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
 
-    UIParagraphNode(paragraph, x, &title_y)
+    Paragraph(paragraph, x, &title_y)
     return height
 }
 
@@ -154,9 +154,9 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
         }
 
         DrawRectangle(segment_x, y, current_w, h, fill)
-        UIBevelNode(segment_x, y, current_w, h, top, bottom)
+        Bevel(segment_x, y, current_w, h, top, bottom)
         text_w = MeasureUIText(labels[i], font)
-        UITextNode(labels[i], segment_x + (current_w - text_w) / 2, GetUIControlTextY(labels[i], y, h, font), font, GetThemeText())
+        Text(labels[i], segment_x + (current_w - text_w) / 2, GetUIControlTextY(labels[i], y, h, font), font, GetThemeText())
         if active_hit && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && !UIInputCapturesClick(mouse_world) && selected != i {
             app->habits.hold_stats_range_days = values[i]
             clicked = 1
@@ -238,7 +238,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
         seconds := max_hold - (max_hold * i) / 2
         snprintf(axis_label, sizeof(axis_label), "%ds", seconds)
         DrawLine(plot_x, line_y, plot_x + plot_w, line_y, DarkenUIColor(GetThemeBackground(), 20))
-        UITextNode(axis_label, content_x + ScaleUIPx(4), line_y - ScaleUIPx(8), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
+        Text(axis_label, content_x + ScaleUIPx(4), line_y - ScaleUIPx(8), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
     }
     DrawLine(plot_x, plot_y + plot_h, plot_x + plot_w, plot_y + plot_h, DarkenUIColor(GetThemeText(), 42))
     {
@@ -297,7 +297,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
     if point_count <= 0 {
         empty := GetLocaleText(graph_days == 31 ? "habit_stats_no_rounds_month" : "habit_stats_no_rounds_week")
         text_w := MeasureUIText(empty, UI_TEXT_12)
-        UITextNode(empty, content_x + (content_w - text_w) / 2, y + graph_h / 2 - ScaleUIPx(8), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
+        Text(empty, content_x + (content_w - text_w) / 2, y + graph_h / 2 - ScaleUIPx(8), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
     }
     for int i = 0; i < graph_days; i++ {
         day_offset := graph_days - 1 - i
@@ -314,7 +314,7 @@ statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedConte
             FormatLocaleText(label, sizeof(label), "statistics_day_offset_label", day_offset)
         }
         day_x = plot_x + (plot_w * i) / graph_days
-        UITextNode(label, day_x + ScaleUIPx(2), y + graph_h - ScaleUIPx(20), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
+        Text(label, day_x + ScaleUIPx(2), y + graph_h - ScaleUIPx(20), UI_TEXT_12, DarkenUIColor(GetThemeText(), 24))
     }
 }
 
@@ -409,7 +409,7 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
                 w = ScaleUIPx(4)
             }
             DrawRectangle(x, bar_y, w, h, weekday_counts[i] > 0 ? LightenUIColor(active->color, 12) : DarkenUIColor(GetThemeBackground(), 24))
-            UITextNode(labels[i], x + (w - MeasureUIText(labels[i], UI_TEXT_12)) / 2, y + chart_h - ScaleUIPx(18), UI_TEXT_12, DarkenUIColor(GetThemeText(), 18))
+            Text(labels[i], x + (w - MeasureUIText(labels[i], UI_TEXT_12)) / 2, y + chart_h - ScaleUIPx(18), UI_TEXT_12, DarkenUIColor(GetThemeText(), 18))
         }
     }
     y += chart_h + ScaleUIPx(24)

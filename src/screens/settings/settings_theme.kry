@@ -36,7 +36,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         allow_system_source = 0
     }
 
-    settings := (UIThemeSettings){
+    settings := (ThemeSettingsProps){
         .id_base = 101,
         .x = x,
         .y = *y,
@@ -50,7 +50,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .system_theme_label = GetSystemThemeNameCached()
     }
 
-    if UIThemeSettingsNode(settings, &state->menu_state, &result) {
+    if ThemeSettings(settings, &state->menu_state, &result) {
         #if !ANDROID {
             if app->theme_source == APP_THEME_SOURCE_SYSTEM {
                 app->theme_mode = APP_THEME_SYSTEM
@@ -78,7 +78,7 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     picker_h := 0
     draw_w := 0
 
-    frame = UIModalFrameNode(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
+    frame = ModalFrame(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
     if frame.right_clicked {
         app_close_modal(app)
         return
@@ -113,7 +113,7 @@ settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
     picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
     scroll_area.content_height = picker_h
     scroll_view = BeginUIScrollContainer(scroll_area)
-    if UIThemePickerNode(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
+    if ThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
         app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
         app_refresh_theme(app)
         app->settings_dirty = 1

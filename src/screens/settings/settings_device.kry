@@ -55,9 +55,9 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         keyboard_toggle = app->on_screen_keyboard_enabled
     }
 
-    UITextNode(GetLocaleText("language_label"), x, *y,
+    Text(GetLocaleText("language_label"), x, *y,
                   GetUIFontSize(), GetThemeText())
-    if UILocaleDropdownNode(101, x, *y + ScaleUIPx(26), w,
+    if LocaleDropdown(101, x, *y + ScaleUIPx(26), w,
                                   ScaleUIPx(36), &app->language_index) {
         state->language_menu_changed = 1
     }
@@ -67,9 +67,9 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
     orientation_max := orientation_option_count - 1
     app->orientation_mode = clampi(app->orientation_mode,
                                    APP_ORIENTATION_SYSTEM, orientation_max)
-    UITextNode(GetLocaleText("orientation_label"), x, *y,
+    Text(GetLocaleText("orientation_label"), x, *y,
                   GetUIFontSize(), GetThemeText())
-    if UIDropdownNode(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+    if Dropdown(103, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
                             orientation_options, orientation_option_count,
                             &app->orientation_mode) {
         state->orientation_changed = 1
@@ -78,7 +78,7 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
     *y += ScaleUIPx(76)
 
     #if DESKTOP {
-        if UICheckboxNode(0, x, *y, GetLocaleText("fullscreen_label"),
+        if Checkbox(0, x, *y, GetLocaleText("fullscreen_label"),
                                 &app->fullscreen_enabled) {
             app_desktop_set_fullscreen(app->fullscreen_enabled)
             app->settings_dirty = 1

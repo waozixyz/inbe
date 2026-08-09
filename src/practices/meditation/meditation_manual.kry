@@ -33,16 +33,16 @@ meditation_manual_close :: (app: InbeApp*, mark_seen: int) {
 
 draw_intro_page :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
     img_h := ScaleUIPx(190)
-    paragraph := (UIParagraph){0}
+    paragraph := (UIParagraphSpec){0}
 
-    UITutorialImageNode(app->meditation.image_1,
+    TutorialImage(app->meditation.image_1,
                            "practices/meditation/1.png",
                            content_x, *y, content_w, img_h)
     *y += img_h + ScaleUIPx(22)
 
     paragraph = manual_screen_tutorial_paragraph(
         GetLocaleText("meditation_manual_intro_text"), content_w)
-    UIParagraphNode(paragraph, content_x, y)
+    Paragraph(paragraph, content_x, y)
 }
 
 intro_page_height :: (content_w: int) -> int #private {

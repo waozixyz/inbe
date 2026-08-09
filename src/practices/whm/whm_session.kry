@@ -907,7 +907,7 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     if practice_y < ScaleUIPx(8) {
         practice_y = ScaleUIPx(8)
     }
-    UITextNode(practice_text, center_x - practice_w / 2,
+    Text(practice_text, center_x - practice_w / 2,
                     GetUIControlTextY(practice_text, practice_y, ScaleUIPx(32), practice_font),
                     practice_font, GetThemeText())
 
@@ -920,7 +920,7 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     if app->exercise_type == EXERCISE_SUN_SALUTATION {
         warning_w = MeasureUIText(warning_text, warning_font)
         warning_y = center_y + scaled_radius + ScaleUIPx(14)
-        UITextNode(warning_text, center_x - warning_w / 2,
+        Text(warning_text, center_x - warning_w / 2,
                         GetUIControlTextY(warning_text, warning_y, ScaleUIPx(28), warning_font),
                         warning_font, GetThemeText())
     }
@@ -972,11 +972,11 @@ session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int)
         title_w = MeasureUIText(title, font)
     }
 
-    UITitleBarNode("", height)
-    UITextNode(title, (view_width - title_w) / 2,
+    TitleBar("", height)
+    Text(title, (view_width - title_w) / 2,
                GetUIControlTextY(title, 0, height, font), font, GetThemeText())
     if app != nil && !app->modal.active &&
-       UIPaddedIconBtnNode(0, close_x, close_y, close_icon, close_padding,
+       PaddedIconBtn(0, close_x, close_y, close_icon, close_padding,
                            app->icons[UI_ICON_TYPE_X], &hover) {
         return 1
     }
@@ -1061,7 +1061,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         return
     }
 
-    if UIIconSliderPopupNode((UIIconSliderPopup){
+    if IconSliderPopup((IconSliderPopupProps){
            .id = 500,
            .x = view_width - ScaleUIPx(76),
            .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
@@ -1087,7 +1087,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             {app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE], 0},
             {app->icons[UI_ICON_TYPE_FORWARD], 0}
         }
-        row: UIIconRowResult = UIBottomIconRowNode((UIBottomIconRow){
+        row: UIIconRowResult = BottomIconRow((BottomIconRowProps){
             .center_x = center_x,
             .view_width = view_width,
             .view_height = view_height,
@@ -1164,7 +1164,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             if hint_y > breath_max_y {
                 hint_y = breath_max_y
             }
-            UITextNode(hint, center_x - hint_w / 2, hint_y, hint_font,
+            Text(hint, center_x - hint_w / 2, hint_y, hint_font,
                             GetThemeText())
             if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
                 now: double = GetTime()
@@ -1189,7 +1189,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             breath_y = breath_max_y
         }
         breath_x = center_x - breath_w / 2
-        if UIGenericButtonNode(0, breath_x, breath_y, breath_w, breath_h,
+        if GenericButton(0, breath_x, breath_y, breath_w, breath_h,
                                   breath_label, UI_BUTTON_STYLE_PRIMARY, 0,
                                   &breath_hover) {
             finish_hold(app)
@@ -1232,7 +1232,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
 
     title_font = GetUITitleFontSize(GetLocaleText("results_title"), view_width - ScaleUIPx(48))
     title_w = MeasureUIText(GetLocaleText("results_title"), title_font)
-    UITextNode(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText())
+    Text(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText())
 
     for int i = 0; i < rounds; i++ {
         seconds: int = round_times[i]
@@ -1260,7 +1260,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
         for int i = 0; i < 3; i++ {
             rows[i] = (UIInfoRow){lines[i], summary_font, GetThemeText()}
         }
-        UIInfoRowsNode((UIInfoRows){
+        InfoRows((InfoRowsProps){
             .x = box_x,
             .y = box_y,
             .width = box_w,
@@ -1283,7 +1283,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
         row_font: int = GetUIFontSize()
         FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
         info_row = (UIInfoRow){row, row_font, GetThemeText()}
-        UIInfoRowsNode((UIInfoRows){
+        InfoRows((InfoRowsProps){
             .x = box_x,
             .y = row_y - 1,
             .width = box_w,
@@ -1297,11 +1297,11 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
         row_y += row_h
     }
 
-    if UITextButtonNode(0, center_x - box_w / 4, action_y, GetLocaleText("discard_button"), &discard_hover) {
+    if TextButton(0, center_x - box_w / 4, action_y, GetLocaleText("discard_button"), &discard_hover) {
         session_discard_saved_results(app)
         app_init(app)
     }
-    if UITextButtonNode(0, center_x + box_w / 4, action_y, GetLocaleText("save_results_button"), &save_hover) {
+    if TextButton(0, center_x + box_w / 4, action_y, GetLocaleText("save_results_button"), &save_hover) {
         if session_ensure_results_saved(app) {
             app_init(app)
         }

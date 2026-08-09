@@ -78,7 +78,7 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     app->meditation.duration_mode = mode
     app->meditation.custom_minutes = clampi(app->meditation.custom_minutes, 1, 240)
 
-    UITextNode(GetLocaleText("meditation_duration_setting"), x, *y,
+    Text(GetLocaleText("meditation_duration_setting"), x, *y,
                   GetUIFontSize(), GetThemeText())
     *y += ScaleUIPx(30)
 
@@ -91,7 +91,7 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
         by := *y + row * (btn_h + gap)
         style := i == mode ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
 
-        if UIGenericButtonNode(0, bx, by, btn_w, btn_h, labels[i],
+        if GenericButton(0, bx, by, btn_w, btn_h, labels[i],
                                style, 0, &hover) {
             app->meditation.duration_mode = i
             meditation_config_save(app)
@@ -106,7 +106,7 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     snprintf(custom_text, sizeof(custom_text), "%s: %d min",
                 GetLocaleText("meditation_custom_minutes"),
                 app->meditation.custom_minutes)
-    UITextNode(custom_text, x, custom_row_y, GetUIFontSize(), GetThemeText())
+    Text(custom_text, x, custom_row_y, GetUIFontSize(), GetThemeText())
 
     adjust_w := ScaleUIPx(50)
     adjust_total := adjust_w * 4 + gap * 3
@@ -114,7 +114,7 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     adjust_y := custom_row_y + ScaleUIPx(34)
 
     for int i = 0; i < 4; i++ {
-        if UIGenericButtonNode(0, adjust_x + i * (adjust_w + gap), adjust_y,
+        if GenericButton(0, adjust_x + i * (adjust_w + gap), adjust_y,
                                adjust_w, btn_h, adjust_labels[i],
                                UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
             app->meditation.custom_minutes =
@@ -125,10 +125,10 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
     }
     *y += ScaleUIPx(96)
 
-    UITextNode(GetLocaleText("meditation_extend_controls_label"), x, *y,
+    Text(GetLocaleText("meditation_extend_controls_label"), x, *y,
                   GetUIFontSize(), GetThemeText())
     toggle_value = app->meditation.show_extend_controls
-    if UIToggleNode(0, x, *y + ScaleUIPx(26), ScaleUIPx(56), ScaleUIPx(30),
+    if Toggle(0, x, *y + ScaleUIPx(26), ScaleUIPx(56), ScaleUIPx(30),
                           &toggle_value, GetLocaleText("toggle_off"),
                           GetLocaleText("toggle_on")) {
         app->meditation.show_extend_controls = toggle_value
@@ -167,7 +167,7 @@ meditation_config_screen_draw :: (app: InbeApp*) {
         {.label = config_tabs[0], .disabled = 0},
         {.label = config_tabs[1], .disabled = 0}
     }
-    clicked_config_tab = UISubtabBarNode((UISubtabBar){
+    clicked_config_tab = SubtabBar((SubtabBarProps){
         .bounds = {
             0,
             (float)layout.title_h,

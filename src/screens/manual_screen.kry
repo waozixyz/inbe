@@ -46,8 +46,8 @@ manual_screen_tutorial_max_width :: () -> int {
     return ScaleUIPx(480)
 }
 
-manual_screen_tutorial_paragraph :: (text: const char*, content_w: int) -> UIParagraph {
-    return (UIParagraph){.text = text, .width = content_w, .font = manual_screen_tutorial_body_font(), .line_gap = manual_screen_tutorial_line_gap()}
+manual_screen_tutorial_paragraph :: (text: const char*, content_w: int) -> UIParagraphSpec {
+    return (UIParagraphSpec){.text = text, .width = content_w, .font = manual_screen_tutorial_body_font(), .line_gap = manual_screen_tutorial_line_gap()}
 }
 
 manual_screen_guide_update_page :: (app: InbeApp*, page_count: int, start: ManualGuideStartFn, close: ManualGuideCloseFn) -> int {
@@ -106,7 +106,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
     snprintf(page_label, sizeof(page_label), "%d / %d", page + 1, nav.page_count)
     DrawCenteredUIControlText(page_label, view_width / 2, nav.y + nav.h / 2, page_font, GetThemeText())
     if page > 0 || nav.show_left_on_first {
-        if UIIconButtonNode((UIIconButton){
+        if IconButton((IconButtonProps){
             .bounds = {
                 (float)side_pad,
                 (float)button_y,
@@ -127,7 +127,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
         }
     }
 
-    if UIIconButtonNode((UIIconButton){
+    if IconButton((IconButtonProps){
         .bounds = {
             (float)(view_width - side_pad - button_size),
             (float)button_y,

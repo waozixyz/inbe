@@ -91,7 +91,7 @@ trimmed_text :: (app: InbeApp*) -> const char* #private {
 
 info_modal :: (title: const char*, message: const char*) -> int #private {
     frame: UIPanelFrame
-    paragraph: UIParagraph
+    paragraph: UIParagraphSpec
     scroll_view: UIScrollView
     scroll_area: UIScrollArea
     y := 0
@@ -119,13 +119,13 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
         modal_w = ScaleUIPx(240)
     }
 
-    paragraph = (UIParagraph){
+    paragraph = (UIParagraphSpec){
         .text = message,
         .width = modal_w - ScaleUIPx(36),
         .font = GetUIFontSize(),
         .line_gap = ScaleUIPx(4)
     }
-    modal_h = UIGetNodeHeight(UINodeParagraphModal((UIParagraphModalMeasure){
+    modal_h = UIGetNodeHeight(UINodeParagraphModal((ParagraphModalMeasureProps){
         .message = message,
         .width = modal_w,
         .button_h = button_h,
@@ -133,7 +133,7 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
         .min_height = ScaleUIPx(196)
     }))
 
-    frame = UIModalFrameNode(modal_w, modal_h, title,
+    frame = ModalFrame(modal_w, modal_h, title,
                              (Texture2D){0}, (Texture2D){0})
     paragraph.width = frame.content_w
     paragraph_h = UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
@@ -157,10 +157,10 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
     }
     scroll_view = BeginUIScrollContainer(scroll_area)
     y = scroll_view.content_y
-    UIParagraphNode(paragraph, scroll_view.content_x, &y)
+    Paragraph(paragraph, scroll_view.content_x, &y)
     EndUIScrollContainer(scroll_area, scroll_view)
 
-    if UIGenericButtonNode(0, frame.x + (frame.w - button_w) / 2,
+    if GenericButton(0, frame.x + (frame.w - button_w) / 2,
                            button_y, button_w, button_h,
                            GetLocaleText("ok_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
@@ -265,7 +265,7 @@ handle_keyboard :: (app: InbeApp*) #private {
 
 text_field :: (text: char*, text_size: size_t, cursor: int*,
                          focused: int*, max_codepoints: int,
-                         font: int) -> UITextField #private {
+                         font: int) -> TextFieldProps #private {
     style: UITextInputStyle = {
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
@@ -276,7 +276,7 @@ text_field :: (text: char*, text_size: size_t, cursor: int*,
         .padding_x = ScaleUIPx(10)
     }
 
-    return (UITextField){
+    return (TextFieldProps){
         .bounds = {0},
         .text = text,
         .text_size = text_size,
@@ -290,7 +290,7 @@ text_field :: (text: char*, text_size: size_t, cursor: int*,
 
 text_area :: (text: char*, text_size: size_t, cursor: int*,
                           focused: int*, scroll_y: int*, max_codepoints: int,
-                          font: int) -> UITextArea #private {
+                          font: int) -> TextAreaProps #private {
     style: UITextInputStyle = {
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
@@ -301,7 +301,7 @@ text_area :: (text: char*, text_size: size_t, cursor: int*,
         .padding_x = ScaleUIPx(10)
     }
 
-    return (UITextArea){
+    return (TextAreaProps){
         .bounds = {0},
         .text = text,
         .text_size = text_size,
@@ -373,19 +373,19 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
     action_count := 1
     height := ScaleUIPx(18)
 
-    height += UIGetNodeHeight(UINodeLabelTextField((UILabelTextField){
+    height += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){
         .label = GetLocaleText("habit_name_label"),
         .field_h = ScaleUIPx(40)
     }, 0, 0, content_w))
     height += ScaleUIPx(22) + ScaleUIPx(120) + ScaleUIPx(24)
     height += ScaleUIPx(32) + color_palette_height(content_w)
-    height += UIGetNodeHeight(UINodeSectionLabel((UISectionLabel){0}, 0, 0))
+    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        height += UIGetNodeHeight(UINodeCheckboxRow((UICheckboxRow){0}, 0, 0))
+        height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
     height += ScaleUIPx(4)
-    height += UIGetNodeHeight(UINodeSectionLabel((UISectionLabel){0}, 0, 0))
-    height += UIGetNodeHeight(UINodeCheckboxRow((UICheckboxRow){0}, 0, 0))
+    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     height += ScaleUIPx(10)
 
     actions[0] = (UIButtonRowItem){
@@ -403,7 +403,7 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
         }
         action_count = 2
     }
-    height += UIGetNodeHeight(UINodeButtonRow((UIButtonRow){
+    height += UIGetNodeHeight(UINodeButtonRow((ButtonRowProps){
         .width = content_w,
         .height = ScaleUIPx(40),
         .items = actions,
@@ -452,7 +452,7 @@ draw :: (app: InbeApp*) {
         DrawLine(0, top_h - 1, view_width, top_h - 1,
                     DarkenUIColor(GetThemeButton(), 18))
         if !app->modal.active &&
-           UIPaddedIconBtnNode(0, view_width - ScaleUIPx(52), ScaleUIPx(12),
+           PaddedIconBtn(0, view_width - ScaleUIPx(52), ScaleUIPx(12),
                                ScaleUIPx(24), ScaleUIPx(8),
                                app->icons[UI_ICON_TYPE_X], &hover) {
             cancel(app)
@@ -461,11 +461,11 @@ draw :: (app: InbeApp*) {
         }
         title_font = GetUITitleFontSize(title, view_width - ScaleUIPx(120))
         title_w = MeasureUIText(title, title_font)
-        UITextNode(title, (view_width - title_w) / 2,
+        Text(title, (view_width - title_w) / 2,
                       GetUIControlTextY(title, 0, top_h, title_font),
                       title_font, GetThemeText())
         if !app->modal.active &&
-           UIPaddedIconBtnNode(0, view_width - ScaleUIPx(100), ScaleUIPx(12),
+           PaddedIconBtn(0, view_width - ScaleUIPx(100), ScaleUIPx(12),
                                ScaleUIPx(24), ScaleUIPx(8),
                                app->icons[UI_ICON_TYPE_CHECK], &hover) {
             commit(app)
@@ -493,7 +493,7 @@ draw :: (app: InbeApp*) {
     }
 
     if app->modal.active && app->modal.type == UIModalConfirmDeleteHabit {
-        modal_result := UIModalNode(GetLocaleText("habit_delete_title"),
+        modal_result := Modal(GetLocaleText("habit_delete_title"),
                                     GetLocaleText("habit_delete_message"),
                                     GetLocaleText("cancel_button"),
                                     GetLocaleText("delete_button"))
@@ -541,7 +541,7 @@ draw :: (app: InbeApp*) {
         return
     }
 
-    UILabelTextFieldNode((UILabelTextField){
+    LabelTextField((LabelTextFieldProps){
         .label = GetLocaleText("habit_name_label"),
         .field = text_field(app->habit_edit.text,
                                        sizeof(app->habit_edit.text),
@@ -554,12 +554,12 @@ draw :: (app: InbeApp*) {
         .label_color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y, content_w)
     clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor)
-    y += UIGetNodeHeight(UINodeLabelTextField((UILabelTextField){.field_h = field_h}, 0, 0, content_w))
+    y += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){.field_h = field_h}, 0, 0, content_w))
 
     desc_label_h := ScaleUIPx(22)
     desc_label_gap := 0
     desc_bottom_gap := ScaleUIPx(24)
-    UITextNode(GetLocaleText("habit_description_label"), content_x, y,
+    Text(GetLocaleText("habit_description_label"), content_x, y,
                   label_font, DarkenUIColor(GetThemeText(), 34))
     desc_area := text_area(app->habit_edit.description,
                                     sizeof(app->habit_edit.description),
@@ -574,12 +574,12 @@ draw :: (app: InbeApp*) {
         (float)content_w,
         (float)desc_field_h
     }
-    UITextAreaNode(desc_area)
+    TextArea(desc_area)
     clamp_cursor(app->habit_edit.description,
                                &app->habit_edit.description_cursor)
     y += desc_label_h + desc_label_gap + desc_field_h + desc_bottom_gap
 
-    UITextNode(GetLocaleText("habit_underline_label"), content_x, y,
+    Text(GetLocaleText("habit_underline_label"), content_x, y,
                   label_font, DarkenUIColor(GetThemeText(), 34))
     y += ScaleUIPx(32)
     color_options[0] = (Color){224, 92, 92, 255}
@@ -614,20 +614,20 @@ draw :: (app: InbeApp*) {
     }
     y += color_palette_height(content_w)
 
-    if UISectionLabelNode((UISectionLabel){
+    if SectionLabel((SectionLabelProps){
         .label = GetLocaleText("habit_practice_list_title"),
         .info_button = 1,
         .color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y) {
         app_open_modal(app, UIModalHabitPracticeListInfo)
     }
-    y += UIGetNodeHeight(UINodeSectionLabel((UISectionLabel){0}, 0, 0))
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
 
     for int i = 0; i < EXERCISE_COUNT; i++ {
         enabled := (app->habit_edit.sync_activity &
                     habit_activity_mask_for(i)) != 0
 
-        if UICheckboxRowNode((UICheckboxRow){
+        if CheckboxRow((CheckboxRowProps){
             .label = activity_options[i],
             .value = &enabled
         }, content_x, y) {
@@ -640,25 +640,25 @@ draw :: (app: InbeApp*) {
             }
             app->habit_edit.sync_mode = app->habit_edit.sync_activity != 0 ? INBE_HABIT_SYNC_ACTIVITIES : INBE_HABIT_SYNC_NONE
         }
-        y += UIGetNodeHeight(UINodeCheckboxRow((UICheckboxRow){0}, 0, 0))
+        y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
 
     y += ScaleUIPx(4)
-    if UISectionLabelNode((UISectionLabel){
+    if SectionLabel((SectionLabelProps){
         .label = GetLocaleText("habit_counting_title"),
         .info_button = 1,
         .color = DarkenUIColor(GetThemeText(), 34)
     }, content_x, y) {
         app_open_modal(app, UIModalHabitCountingInfo)
     }
-    y += UIGetNodeHeight(UINodeSectionLabel((UISectionLabel){0}, 0, 0))
-    if UICheckboxRowNode((UICheckboxRow){
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    if CheckboxRow((CheckboxRowProps){
         .label = GetLocaleText("habit_multiple_counts_label"),
         .value = &app->habit_edit.counter_enabled
     }, content_x, y) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0
     }
-    y += UIGetNodeHeight(UINodeCheckboxRow((UICheckboxRow){0}, 0, 0))
+    y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
 
     y += ScaleUIPx(10)
     actions: [2] UIButtonRowItem
@@ -680,7 +680,7 @@ draw :: (app: InbeApp*) {
             .style = UI_BUTTON_STYLE_PRIMARY
         }
     }
-    clicked_action = UIButtonRowNode((UIButtonRow){
+    clicked_action = ButtonRow((ButtonRowProps){
         .x = content_x,
         .y = y,
         .width = content_w,

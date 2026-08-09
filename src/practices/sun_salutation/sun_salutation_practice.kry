@@ -194,7 +194,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
 
     label_w = MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_label"),
                             label_font)
-    UITextNode(GetLocaleText("sun_salutation_tempo_preview_label"),
+    Text(GetLocaleText("sun_salutation_tempo_preview_label"),
                   x + (w - label_w) / 2,
                   y,
                   label_font,
@@ -249,7 +249,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
     row_y = y + thumb_h * 2 + ScaleUIPx(26)
     if MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_hint"),
                      small_font) <= w {
-        UITextNode(GetLocaleText("sun_salutation_tempo_preview_hint"),
+        Text(GetLocaleText("sun_salutation_tempo_preview_hint"),
                       x,
                       row_y,
                       small_font,
@@ -275,7 +275,7 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
 
     label_w = MeasureUIText(GetLocaleText("sun_salutation_figure_label"),
                             label_font)
-    UITextNode(GetLocaleText("sun_salutation_figure_label"),
+    Text(GetLocaleText("sun_salutation_figure_label"),
                   x + (w - label_w) / 2,
                   y,
                   label_font,
@@ -324,7 +324,7 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
                              (int)image_bounds.width,
                              (int)image_bounds.height,
                              WHITE)
-        UITextNode(label,
+        Text(label,
                       (int)(bounds.x + (bounds.width - text_w) * 0.5f),
                       (int)(bounds.y + bounds.height - ScaleUIPx(28)),
                       small_font,
@@ -410,7 +410,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         {.label = config_tabs[0], .disabled = 0},
         {.label = config_tabs[1], .disabled = 0}
     }
-    clicked_config_tab = UISubtabBarNode((UISubtabBar){
+    clicked_config_tab = SubtabBar((SubtabBarProps){
         .bounds = {0, (float)title_h, (float)view_width, (float)config_tab_h},
         .tabs = tabs,
         .count = 2,
@@ -455,7 +455,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         y += preview_height(page.content_w) + ScaleUIPx(16)
 
         repetitions = app->sun_salutation.repetitions
-        if UISliderNode(610,
+        if Slider(610,
                         page.content_x,
                         y,
                         page.content_w,
@@ -470,7 +470,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         y += ScaleUIPx(74)
 
         start_seconds = app->sun_salutation.start_seconds
-        if UISliderNode(611,
+        if Slider(611,
                         page.content_x,
                         y,
                         page.content_w,
@@ -486,7 +486,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         y += ScaleUIPx(74)
 
         end_seconds = app->sun_salutation.end_seconds
-        if UISliderNode(612,
+        if Slider(612,
                         page.content_x,
                         y,
                         page.content_w,

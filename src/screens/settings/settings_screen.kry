@@ -68,10 +68,10 @@ settings_draw_status :: (x: int, y: int*) #private {
     }
     status_font = GetUISmallFontSize()
     status_color = unified_status_type == 2 ? RED : GetThemeText()
-    UITextNode(unified_status, x, *y, status_font, status_color)
+    Text(unified_status, x, *y, status_font, status_color)
     *y += ScaleUIPx(18)
     if unified_detail[0] != '\0' {
-        UITextNode(unified_detail, x, *y, status_font, DarkenUIColor(GetThemeText(), 40))
+        Text(unified_detail, x, *y, status_font, DarkenUIColor(GetThemeText(), 40))
         *y += ScaleUIPx(18)
     }
 }
@@ -84,7 +84,6 @@ settings_screen_draw_status_reserved :: (x: int, y: int*, reserved_h: int) {
 }
 
 settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int #private {
-    unused app
     if tab == SETTINGS_TAB_THEME {
         return theme_panel.content_height(content_w)
     }
@@ -92,7 +91,7 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
         return settings_device_content_height(content_w)
     }
     if tab == SETTINGS_TAB_AUDIO {
-        return settings_audio_content_height(content_w)
+        return settings_audio_content_height(app, content_w)
     }
     return settings_about_content_height(content_w)
 }
@@ -124,7 +123,7 @@ settings_screen_tab_label :: (tab: int) -> const char* {
 }
 
 settings_draw_section_header :: (app: InbeApp*, tab: int) #private {
-    header_h := UIGetNodeHeight(UINodeTabBar((UITabBar){0}))
+    header_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
     title := settings_screen_tab_label(tab)
 
     if app_draw_close_title_bar(app, title, header_h) {
@@ -157,7 +156,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         app->settings_tab = SETTINGS_TAB_DEVICE
     }
 
-    detail_header_h = UIGetNodeHeight(UINodeTabBar((UITabBar){0}))
+    detail_header_h = UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
     tab_content_start_y = detail_header_h
     tab_content_start_y += ScaleUIPx(8)
     content_viewport_h = view_height - tab_content_start_y - app_content_bottom_reserved(app)

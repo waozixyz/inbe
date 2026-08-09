@@ -100,7 +100,7 @@ settings_audio_draw_status :: (x: int, y: int*, action: int) #private {
         return
     }
     status_color = audio_status_type == 2 ? RED : GetThemeText()
-    UITextNode(audio_status, x, *y, GetUISmallFontSize(), status_color)
+    Text(audio_status, x, *y, GetUISmallFontSize(), status_color)
     *y += ScaleUIPx(24)
 }
 
@@ -322,7 +322,7 @@ settings_audio_toggle_music_preview :: (app: InbeApp*, index: int) #private {
 draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
                               disabled: int) -> int #private {
     hover := 0
-    return UIGenericButtonNode(0, x, y, w, ScaleUIPx(32),
+    return GenericButton(0, x, y, w, ScaleUIPx(32),
                                playing ? GetLocaleText("pause_button")
                                        : GetLocaleText("play_button"),
                                UI_BUTTON_STYLE_SECONDARY, disabled, &hover)
@@ -472,12 +472,12 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
     min_button_w := ScaleUIPx(122)
     stack_buttons := w < min_button_w * 2 + button_gap
 
-    UITextNode(GetLocaleText("audio_output_label"), x, *y,
+    Text(GetLocaleText("audio_output_label"), x, *y,
                GetUIFontSize(), GetThemeText())
-    UITextNode(GetLocaleText("audio_system_default_label"), x,
+    Text(GetLocaleText("audio_system_default_label"), x,
                *y + ScaleUIPx(26), UI_TEXT_12,
                DarkenUIColor(GetThemeText(), 28))
-    UITextNode(status_label, x, *y + ScaleUIPx(46), UI_TEXT_12,
+    Text(status_label, x, *y + ScaleUIPx(46), UI_TEXT_12,
                app->audio_ready ? GetThemeButtonHover() :
                    DarkenUIColor(GetThemeText(), 28))
     *y += ScaleUIPx(70)
@@ -485,20 +485,20 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
     if stack_buttons {
         button_w = w
     }
-    if UIGenericButtonNode(873, x, *y, button_w, ScaleUIPx(36),
+    if GenericButton(873, x, *y, button_w, ScaleUIPx(36),
                            GetLocaleText("audio_test_output_button"),
                            UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
         app_play_bell_cue(app, 1.0f)
     }
     if stack_buttons {
         *y += ScaleUIPx(46)
-        if UIGenericButtonNode(874, x, *y, button_w, ScaleUIPx(36),
+        if GenericButton(874, x, *y, button_w, ScaleUIPx(36),
                                GetLocaleText("audio_reinitialize_button"),
                                UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
             app_audio_reinitialize(app)
         }
     } else {
-        if UIGenericButtonNode(874, x + button_w + button_gap, *y,
+        if GenericButton(874, x + button_w + button_gap, *y,
                                button_w, ScaleUIPx(36),
                                GetLocaleText("audio_reinitialize_button"),
                                UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
@@ -511,22 +511,77 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
     *y += ScaleUIPx(18)
 }
 
-settings_audio_content_height :: (content_w: int) -> int {
+settings_audio_import_button_height :: (action: int) -> int #private {
+    height := ScaleUIPx(48)
+
+    if audio_status_action == action && audio_status[0] != '\0' {
+        height += ScaleUIPx(24)
+    }
+    return height
+}
+
+settings_audio_output_height :: (content_w: int) -> int #private {
     audio_button_min := ScaleUIPx(122)
     audio_button_gap := ScaleUIPx(10)
-    height := ScaleUIPx(96) + ScaleUIPx(76) * INBE_AUDIO_CUE_COUNT +
-           ScaleUIPx(52) * (INBE_AUDIO_CUSTOM_SOUND_MAX + INBE_AUDIO_CUSTOM_MUSIC_MAX + 2) +
-           ScaleUIPx(180)
-    height += ScaleUIPx(156)
+    height := ScaleUIPx(70) + ScaleUIPx(46) +
+        ScaleUIPx(18) + ScaleUIPx(10) + ScaleUIPx(8) +
+        ScaleUIPx(18)
+
     if content_w > 0 && content_w < audio_button_min * 2 + audio_button_gap {
         height += ScaleUIPx(46)
     }
     return height
 }
 
+settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
+    custom_sound_count := 0
+    custom_music_count := 0
+    height := settings_audio_output_height(content_w)
+
+    height += ScaleUIPx(66) * 2
+    height += ScaleUIPx(76) +
+        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_IN)
+    height += ScaleUIPx(76) +
+        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_OUT)
+    height += ScaleUIPx(76) +
+        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_SOUND_BELL)
+
+    if app != nil {
+        custom_sound_count = app->audio_custom_sound_count
+        custom_music_count = app->audio_custom_music_count
+    }
+    if custom_sound_count < 0 {
+        custom_sound_count = 0
+    }
+    if custom_sound_count > INBE_AUDIO_CUSTOM_SOUND_MAX {
+        custom_sound_count = INBE_AUDIO_CUSTOM_SOUND_MAX
+    }
+    if custom_music_count < 0 {
+        custom_music_count = 0
+    }
+    if custom_music_count > INBE_AUDIO_CUSTOM_MUSIC_MAX {
+        custom_music_count = INBE_AUDIO_CUSTOM_MUSIC_MAX
+    }
+
+    if custom_sound_count > 0 {
+        height += ScaleUIPx(30) + ScaleUIPx(42) * custom_sound_count +
+            ScaleUIPx(8)
+    }
+
+    height += ScaleUIPx(26) + ScaleUIPx(48) +
+        settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_MUSIC)
+
+    if custom_music_count > 0 {
+        height += ScaleUIPx(30) + ScaleUIPx(42) * custom_music_count
+    }
+
+    height += ScaleUIPx(42)
+    return height
+}
+
 draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int) #private {
     hover := 0
-    if UIGenericButtonNode(880 + action, x, *y, w, ScaleUIPx(36), label,
+    if GenericButton(880 + action, x, *y, w, ScaleUIPx(36), label,
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         settings_audio_start_import(app, action)
     }
@@ -556,8 +611,8 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
         options[i + 1] = app->audio_custom_sounds[i].title
     }
 
-    UITextNode(label, x, *y, GetUIFontSize(), GetThemeText())
-    if UIDropdownNode(820 + cue, x, *y + ScaleUIPx(26), dropdown_w, ScaleUIPx(36),
+    Text(label, x, *y, GetUIFontSize(), GetThemeText())
+    if Dropdown(820 + cue, x, *y + ScaleUIPx(26), dropdown_w, ScaleUIPx(36),
                       options, count, &app->audio_cue_selected[cue]) {
         settings_audio_stop_preview(app)
         app_audio_reload_cue_sounds(app)
@@ -586,7 +641,7 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     if app->audio_custom_sound_count <= 0 {
         return
     }
-    UITextNode(GetLocaleText("audio_custom_sounds_title"), x, *y,
+    Text(GetLocaleText("audio_custom_sounds_title"), x, *y,
                GetUIFontSize(), GetThemeText())
     *y += ScaleUIPx(30)
     for int i = 0; i < app->audio_custom_sound_count; i++ {
@@ -595,7 +650,7 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         if label_w < ScaleUIPx(80) {
             label_w = w - button_w - gap
         }
-        UITextNode(app->audio_custom_sounds[i].title, x, *y + ScaleUIPx(8),
+        Text(app->audio_custom_sounds[i].title, x, *y + ScaleUIPx(8),
                    UI_TEXT_12, GetThemeText())
         if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
                                      preview_w,
@@ -603,7 +658,7 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_custom_sound_preview(app, i)
         }
-        if UIGenericButtonNode(0, x + w - button_w, *y, button_w,
+        if GenericButton(0, x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
                                UI_BUTTON_STYLE_DANGER, 0, &hover) {
             settings_audio_stop_preview(app)
@@ -632,14 +687,14 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         options[i] = app_audio_music_label(app, i)
     }
 
-    UITextNode(GetLocaleText("audio_music_title"), x, *y,
+    Text(GetLocaleText("audio_music_title"), x, *y,
                GetUIFontSize(), GetThemeText())
     *y += ScaleUIPx(26)
     if dropdown_w < ScaleUIPx(140) {
         dropdown_w = w
         preview_w = w
     }
-    if UIDropdownNode(850, x, *y, dropdown_w, ScaleUIPx(36), options, count,
+    if Dropdown(850, x, *y, dropdown_w, ScaleUIPx(36), options, count,
                       &app->meditation.music_track) {
         settings_audio_stop_preview(app)
         app_audio_music_sanitize_selection(app)
@@ -662,13 +717,13 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     if app->audio_custom_music_count <= 0 {
         return
     }
-    UITextNode(GetLocaleText("audio_custom_music_title"), x, *y,
+    Text(GetLocaleText("audio_custom_music_title"), x, *y,
                GetUIFontSize(), GetThemeText())
     *y += ScaleUIPx(30)
     for int i = 0; i < app->audio_custom_music_count; i++ {
         hover := 0
         track_index := INBE_AUDIO_BUILTIN_MUSIC_COUNT + i
-        UITextNode(app->audio_custom_music[i].title, x, *y + ScaleUIPx(8),
+        Text(app->audio_custom_music[i].title, x, *y + ScaleUIPx(8),
                    UI_TEXT_12, GetThemeText())
         if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
                                      preview_w,
@@ -676,7 +731,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_music_preview(app, track_index)
         }
-        if UIGenericButtonNode(0, x + w - button_w, *y, button_w,
+        if GenericButton(0, x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
                                UI_BUTTON_STYLE_DANGER, 0, &hover) {
             settings_audio_stop_preview(app)

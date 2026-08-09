@@ -37,7 +37,7 @@ about_link_icons_height :: (content_w: int) -> int #private {
 }
 
 settings_about_content_height :: (content_w: int) -> int {
-    description := (UIParagraph){
+    description := (UIParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = content_w,
         .font = GetUIFontSize(),
@@ -87,7 +87,7 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
         row := i / columns
         icon_x := links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding
         icon_y := *y + row * (icon_btn_w + row_spacing)
-        UIIconLinkNode(0, icon_x, icon_y, icon_size, icons[i], urls[i])
+        IconLink(0, icon_x, icon_y, icon_size, icons[i], urls[i])
     }
     *y += about_link_icons_height(content_w)
 }
@@ -100,31 +100,31 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     logo_size := ScaleUIPx(56)
     text_w := 0
     muted := DarkenUIColor(GetThemeText(), 35)
-    description := (UIParagraph){0}
+    description := (UIParagraphSpec){0}
 
     *y += ScaleUIPx(16)
-    UIIconTextureNode(0, x + (w - logo_size) / 2, *y, logo_size,
+    IconTexture(0, x + (w - logo_size) / 2, *y, logo_size,
                          app->icons[UI_ICON_TYPE_APP], WHITE)
     *y += logo_size + ScaleUIPx(12)
 
     text_w = MeasureUIText(GetLocaleText("app_title"), title_font)
-    UITextNode(GetLocaleText("app_title"), x + (w - text_w) / 2,
+    Text(GetLocaleText("app_title"), x + (w - text_w) / 2,
                   *y, title_font, GetThemeText())
     *y += ScaleUIPx(34)
 
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
     text_w = MeasureUIText(version_text, small_font)
-    UITextNode(version_text, x + (w - text_w) / 2, *y, small_font, muted)
+    Text(version_text, x + (w - text_w) / 2, *y, small_font, muted)
     *y += ScaleUIPx(28)
 
-    description = (UIParagraph){
+    description = (UIParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = w,
         .font = font,
         .line_gap = ScaleUIPx(4),
         .color = muted
     }
-    UIParagraphNode(description, x, y)
+    Paragraph(description, x, y)
     *y += ScaleUIPx(18)
 
     about_draw_link_icons(app, x, w, y)

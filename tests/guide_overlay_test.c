@@ -69,14 +69,14 @@ GetUIFontSize(void)
 }
 
 int
-ui_paragraph_height(UIParagraph paragraph)
+ui_paragraph_height(UIParagraphSpec paragraph)
 {
     (void)paragraph;
     return 34;
 }
 
 void
-DrawUIParagraph(UIParagraph paragraph, int x, int *y)
+DrawUIParagraph(UIParagraphSpec paragraph, int x, int *y)
 {
     (void)paragraph;
     (void)x;

@@ -219,7 +219,6 @@ DestroyApp(void *vapp)
         return;
     app_destroy(app);
     set_global_inbe_app(NULL);
-    free(app);
 }
 
 void
@@ -270,9 +269,9 @@ app_draw_close_title_bar(InbeApp *app, const char *title, int height)
 
     if(y < 0)
         y = 0;
-    UITitleBarNode(title, height);
+    TitleBar(title, height);
     if(app != NULL && !app->modal.active &&
-       UIPaddedIconBtnNode(0, x, y, button_size, padding,
+       PaddedIconBtn(0, x, y, button_size, padding,
                            app->icons[UI_ICON_TYPE_X], &hover))
         return 1;
     return 0;
@@ -302,11 +301,11 @@ app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
     DrawRectangle(0, 0, view_width, height, GetThemeBackground());
     DrawLine(0, height - 1, view_width, height - 1,
              DarkenUIColor(GetThemeButton(), 18));
-    UIDropdownNode(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
+    Dropdown(dropdown.id, dropdown_x, dropdown_y, dropdown_w,
                          dropdown_h, dropdown.options, dropdown.option_count,
                          dropdown.selected_index);
     if(app != NULL && !app->modal.active &&
-       UIPaddedIconBtnNode(0, close_x, close_y, button_size, padding,
+       PaddedIconBtn(0, close_x, close_y, button_size, padding,
                            app->icons[UI_ICON_TYPE_X], &hover))
         return 1;
     return 0;
@@ -460,7 +459,7 @@ int
 app_content_top_reserved(const InbeApp *app)
 {
     if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return UIGetNodeHeight(UINodeTabBar((UITabBar){0}));
+        return UIGetNodeHeight(UINodeTabBar((TabBarProps){0}));
     return app_toolbar_height();
 }
 
@@ -601,7 +600,7 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
     int modal_result;
 
     if(can_save) {
-        modal_result = UIModal3ButtonNode(GetLocaleText("exit_session_title"),
+        modal_result = Modal3Button(GetLocaleText("exit_session_title"),
                                           save_message,
                                           GetLocaleText("cancel_button"),
                                           GetLocaleText("save_button"),
@@ -611,7 +610,7 @@ app_draw_session_exit_modal(int can_save, const char *save_message,
         if(modal_result == 3)
             return SessionExitModalDiscard;
     } else {
-        modal_result = UIModalNode(GetLocaleText("exit_session_title"),
+        modal_result = Modal(GetLocaleText("exit_session_title"),
                                      discard_message,
                                      GetLocaleText("cancel_button"),
                                      GetLocaleText("exit_button"));
@@ -641,7 +640,7 @@ app_draw_close_prompt(InbeApp *app)
         .label = GetLocaleText("desktop_close_quit_button"),
         .style = UI_BUTTON_STYLE_DANGER
     };
-    modal_result = UIActionModalNode((UIModalSpec){
+    modal_result = ActionModal((ModalProps){
         .title = GetLocaleText("desktop_close_prompt_title"),
         .message = GetLocaleText("desktop_close_prompt_message"),
         .actions = actions,
@@ -1712,7 +1711,7 @@ app_init(void *vapp) {
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-    app->modal = (UIModal){0};
+    app->modal = (InbeModal){0};
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
@@ -2036,7 +2035,7 @@ draw_profile_picture_picker_modal(InbeApp *app)
     if(app == NULL)
         return;
 
-    result = UIProfilePicturePickerNode((UIProfilePicturePickerModal){
+    result = ProfilePicturePicker((UIProfilePicturePickerModal){
         .title = "Profile picture",
         .icons = app->icons,
         .selected_icon_type = &app->profile_picture_icon,
@@ -2066,7 +2065,7 @@ draw_global_modal(InbeApp *app)
         return;
 
     if(app->modal.type == UIModalMeditationNetworkError) {
-        modal_result = UIModalNode(GetLocaleText("meditation_music_network_error_title"),
+        modal_result = Modal(GetLocaleText("meditation_music_network_error_title"),
                                      GetLocaleText("meditation_music_network_error_message"),
                                      GetLocaleText("ok_button"),
                                      GetLocaleText("ok_button"));

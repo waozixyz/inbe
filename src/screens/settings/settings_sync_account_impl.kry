@@ -60,7 +60,7 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
         link_h = ScaleUIPx(28)
     }
 
-    clicked = UIHrefNode((UIHref){
+    clicked = Href((HrefProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)link_h},
         .text = text,
         .font = font,
@@ -78,8 +78,8 @@ draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
         return
     }
 
-    field_h = UIGetNodeHeight(UINodeReadonlyTextBox((UIReadonlyTextBox){.bounds = {(float)x, 0, (float)w, 0}, .text = text, .font = font, .style = style}))
-    UIReadonlyTextBoxNode((UIReadonlyTextBox){
+    field_h = UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {(float)x, 0, (float)w, 0}, .text = text, .font = font, .style = style}))
+    ReadonlyTextBox((ReadonlyTextBoxProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)field_h},
         .text = text,
         .font = font,
@@ -486,7 +486,7 @@ button_group_count :: (items: const UIButtonRowItem*, start: int, count: int,
     return 1
 }
 
-draw_adaptive_button_row :: (row: UIButtonRow, height_out: int*) -> int #private {
+draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #private {
     clicked := -1
     gap := row.gap > 0 ? row.gap : ScaleUIPx(10)
     draw_y := row.y
@@ -510,7 +510,7 @@ draw_adaptive_button_row :: (row: UIButtonRow, height_out: int*) -> int #private
             button_x := row.x + i * (button_w + gap)
             draw_w := i == count - 1 ? row.x + row.width - button_x : button_w
 
-            if UIGenericButtonNode(0, button_x, draw_y, draw_w, row.height,
+            if GenericButton(0, button_x, draw_y, draw_w, row.height,
                                    row.items[item_index].label,
                                    row.items[item_index].style,
                                    row.items[item_index].disabled,
@@ -589,7 +589,7 @@ config_content_height :: (content_w: int) -> int {
     }
 
     h += ScaleUIPx(18)
-    h += UIGetNodeHeight(UINodeReadonlyTextBox((UIReadonlyTextBox){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
+    h += UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){.bounds = {0, 0, (float)content_w, 0}, .text = display, .font = GetUISmallFontSize(), .style = text_style()}))
     h += ScaleUIPx(8)
     h += ScaleUIPx(18) + btn_h + ScaleUIPx(12)
     h += btn_h + ScaleUIPx(12)
@@ -622,11 +622,11 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     gap := ScaleUIPx(10)
     hover := 0
 
-    UITextNode(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
+    Text(GetLocaleText("sync_account_title"), x, *y, font, GetThemeText())
     *y += ScaleUIPx(26)
 
     if !has_account {
-        if UIGenericButtonNode(0, x, *y, w, btn_h,
+        if GenericButton(0, x, *y, w, btn_h,
                                GetLocaleText("sync_create_account_button"),
                                UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
             create_account(app, &account)
@@ -635,7 +635,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         return
     }
 
-    UITextNode(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+    Text(GetLocaleText("sync_public_id_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
     draw_account_id(app, &account, x, w, y, small_font, text_style())
@@ -647,7 +647,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
     }
     row_h := 0
-    clicked := draw_adaptive_button_row((UIButtonRow){
+    clicked := draw_adaptive_button_row((ButtonRowProps){
         .x = x,
         .y = *y,
         .width = w,
@@ -702,7 +702,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         clicked: int
 
         *y += ScaleUIPx(12)
-        clicked = draw_adaptive_button_row((UIButtonRow){
+        clicked = draw_adaptive_button_row((ButtonRowProps){
             .x = x,
             .y = *y,
             .width = w,
@@ -729,16 +729,16 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         return
     }
 
-    UITextNode(GetLocaleText("sync_public_id_label"), x, *y, small_font,
+    Text(GetLocaleText("sync_public_id_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
     draw_account_id(app, &account, x, w, y, small_font, input_style)
     *y += ScaleUIPx(8)
 
-    UITextNode(GetLocaleText("sync_remote_label"), x, *y, small_font,
+    Text(GetLocaleText("sync_remote_label"), x, *y, small_font,
                   DarkenUIColor(GetThemeText(), 30))
     *y += ScaleUIPx(18)
-    UITextFieldNode((UITextField){
+    TextField((TextFieldProps){
         .bounds = {(float)x, (float)*y, (float)w, (float)btn_h},
         .text = app->sync_server_url,
         .text_size = sizeof(app->sync_server_url),
@@ -755,7 +755,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
     *y += btn_h + ScaleUIPx(12)
 
-    if UIGenericButtonNode(0, x, *y, w, btn_h,
+    if GenericButton(0, x, *y, w, btn_h,
                            server_connected(app)
                                ? GetLocaleText("sync_connected_button")
                                : GetLocaleText("sync_connect_button"),
@@ -770,7 +770,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0},
     }
     row_h_main := 0
-    clicked_main := draw_adaptive_button_row((UIButtonRow){
+    clicked_main := draw_adaptive_button_row((ButtonRowProps){
         .x = x,
         .y = *y,
         .width = w,
@@ -796,7 +796,7 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
         {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0},
     }
     row_h_danger := 0
-    clicked_danger := draw_adaptive_button_row((UIButtonRow){
+    clicked_danger := draw_adaptive_button_row((ButtonRowProps){
         .x = x,
         .y = *y,
         .width = w,
@@ -829,12 +829,12 @@ draw_backup_modal :: (app: InbeApp*) -> int {
     y: int
     modal_h: int
     button_y: int
-    warning: UIParagraph
+    warning: UIParagraphSpec
 
     memset(&account, 0, sizeof(account))
     sync_account_load(&account)
 
-    warning = (UIParagraph){
+    warning = (UIParagraphSpec){
         .text = GetLocaleText("sync_backup_warning"),
         .width = ScaleUIPx(336) - ScaleUIPx(36),
     }
@@ -847,23 +847,23 @@ draw_backup_modal :: (app: InbeApp*) -> int {
         modal_h = ScaleUIPx(224)
     }
 
-    frame = UIModalFrameNode(ScaleUIPx(336), modal_h,
+    frame = ModalFrame(ScaleUIPx(336), modal_h,
                              GetLocaleText("sync_backup_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
     warning.width = frame.content_w
-    UIParagraphNode(warning, frame.content_x, &y)
+    Paragraph(warning, frame.content_x, &y)
 
     button_y = y + text_button_gap
     if button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h {
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap
     }
-    if UIGenericButtonNode(0, frame.content_x, button_y, frame.content_w, btn_h,
+    if GenericButton(0, frame.content_x, button_y, frame.content_w, btn_h,
                            GetLocaleText("sync_save_key_file_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
         return start_sync_key_export(app, &account)
     }
-    if UIGenericButtonNode(0, frame.content_x, button_y + btn_h + gap,
+    if GenericButton(0, frame.content_x, button_y + btn_h + gap,
                            frame.content_w, btn_h,
                            GetLocaleText("close_button"),
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
@@ -898,14 +898,14 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     alias_normalize(current_alias)
     has_alias = current_alias[0] != '\0'
 
-    frame = UIModalFrameNode(ScaleUIPx(336), ScaleUIPx(238),
+    frame = ModalFrame(ScaleUIPx(336), ScaleUIPx(238),
                              GetLocaleText(has_alias
                                             ? "sync_alias_change_title"
                                             : "sync_alias_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    UITextNode(GetLocaleText(has_alias
+    Text(GetLocaleText(has_alias
                                 ? "sync_alias_change_message"
                                 : "sync_alias_message"),
                   frame.content_x, y, GetUISmallFontSize(),
@@ -913,10 +913,10 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     y += ScaleUIPx(40)
 
     at_w = MeasureUIText("@", GetUIFontSize()) + ScaleUIPx(12)
-    UITextNode("@", frame.content_x,
+    Text("@", frame.content_x,
                   GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
                   GetUIFontSize(), GetThemeText())
-    UITextFieldNode((UITextField){
+    TextField((TextFieldProps){
         .bounds = {(float)(frame.content_x + at_w), (float)y,
                    (float)(frame.content_w - at_w), (float)btn_h},
         .text = app->sync_alias_input,
@@ -932,7 +932,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     alias_normalize(app->sync_alias_input)
     y += btn_h + ScaleUIPx(12)
 
-    UITextNode(GetLocaleText("sync_alias_rule"), frame.content_x, y,
+    Text(GetLocaleText("sync_alias_rule"), frame.content_x, y,
                   GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
     y += ScaleUIPx(34)
     unchanged_alias = has_alias && strcmp(app->sync_alias_input, current_alias) == 0
@@ -951,7 +951,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
             !alias_valid(app->sync_alias_input) || unchanged_alias,
         },
     }
-    clicked := draw_adaptive_button_row((UIButtonRow){
+    clicked := draw_adaptive_button_row((ButtonRowProps){
         .x = frame.content_x,
         .y = y,
         .width = frame.content_w,
@@ -1004,12 +1004,12 @@ draw_public_id_modal :: (app: InbeApp*) -> int {
         return 1
     }
 
-    frame = UIModalFrameNode(ScaleUIPx(356), ScaleUIPx(218),
+    frame = ModalFrame(ScaleUIPx(356), ScaleUIPx(218),
                              GetLocaleText("sync_public_id_full_title"),
                              (Texture2D){0}, (Texture2D){0})
     y = frame.content_y
 
-    UITextNode(GetLocaleText("sync_public_id_full_message"),
+    Text(GetLocaleText("sync_public_id_full_message"),
                   frame.content_x, y, GetUISmallFontSize(),
                   DarkenUIColor(GetThemeText(), 25))
     y += ScaleUIPx(34)
@@ -1022,7 +1022,7 @@ draw_public_id_modal :: (app: InbeApp*) -> int {
         {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_PRIMARY, 0},
         {GetLocaleText("close_button"), UI_BUTTON_STYLE_SECONDARY, 0},
     }
-    clicked := draw_adaptive_button_row((UIButtonRow){
+    clicked := draw_adaptive_button_row((ButtonRowProps){
         .x = frame.content_x,
         .y = y,
         .width = frame.content_w,

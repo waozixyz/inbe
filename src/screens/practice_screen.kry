@@ -284,8 +284,6 @@ practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
     app->settings_scroll = 0
     app->practice_home_scroll = 0
     app->tutorial_step = 0
-    app->settings_dirty = 1
-    app->settings_save_delay_ticks = 18
     app_switch_route(app, route)
 }
 
@@ -357,11 +355,11 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
         dots_x = x
         dots_w = w
     }
-    if UIIconButtonNode((UIIconButton){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
+    if IconButton((IconButtonProps){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
         practice_select_home_card(app, practice_next_visible(app, -1))
     }
     practice_draw_home_dots(app, dots_x, y + (row_h - practice_home_dots_height(app)) / 2, dots_w)
-    if UIIconButtonNode((UIIconButton){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
+    if IconButton((IconButtonProps){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
         practice_select_home_card(app, practice_next_visible(app, 1))
     }
 }
@@ -447,19 +445,19 @@ practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
     practice_home_metadata(app, metadata, sizeof(metadata))
     title_font = GetUITitleFontSize(title, w)
     title_w = MeasureUIText(title, title_font)
-    UITextNode(title, x + (w - title_w) / 2,
+    Text(title, x + (w - title_w) / 2,
                GetUIControlTextY(title, y, ScaleUIPx(34), title_font),
                title_font, GetThemeText())
     metadata_font = GetUISmallFontSize()
     metadata_w = MeasureUIText(metadata, metadata_font)
-    UITextNode(metadata, x + (w - metadata_w) / 2,
+    Text(metadata, x + (w - metadata_w) / 2,
                GetUIControlTextY(metadata, y + ScaleUIPx(34),
                                  ScaleUIPx(18), metadata_font),
                metadata_font, DarkenUIColor(GetThemeText(), 22))
     if subtitle != NULL {
         subtitle_font := GetUISmallFontSize()
         subtitle_w := MeasureUIText(subtitle, subtitle_font)
-        UITextNode(subtitle, x + (w - subtitle_w) / 2,
+        Text(subtitle, x + (w - subtitle_w) / 2,
                    GetUIControlTextY(subtitle, y + ScaleUIPx(56),
                                      ScaleUIPx(18), subtitle_font),
                    subtitle_font, DarkenUIColor(GetThemeText(), 22))
@@ -619,7 +617,7 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
     if tab_count <= 0 {
         return -1
     }
-    clicked = UITabBarNode((UITabBar){.bounds = {0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((UITabBar){0}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
+    clicked = TabBar((TabBarProps){.bounds = {0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
     return clicked >= 0 && clicked < tab_count ? values[clicked] : -1
 }
 
@@ -649,7 +647,7 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
         return
     }
     if draw_menu {
-        header_result := UIToolbarHeaderNode((UIToolbarHeader){.toolbar = (UIToolbar){.id = 300, .draw_menu = 1, .options = exercise_options, .option_count = activity_count, .selected_index = &activity_index}})
+        header_result := ToolbarHeader((ToolbarHeaderProps){.toolbar = (ToolbarProps){.id = 300, .draw_menu = 1, .options = exercise_options, .option_count = activity_count, .selected_index = &activity_index}})
         menu_result := header_result.toolbar
         if !app->modal.active && menu_result.selected_menu_item >= 0 {
             route = app_current_route(app)
@@ -665,8 +663,6 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             app->practice_home_scroll = 0
             app->tutorial_step = 0
             app->practice_config_tab = 0
-            app->settings_dirty = 1
-            app->settings_save_delay_ticks = 18
             app_switch_route(app, route)
         }
         return
@@ -687,12 +683,10 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
             app->practice_home_scroll = 0
             app->tutorial_step = 0
             app->practice_config_tab = 0
-            app->settings_dirty = 1
-            app->settings_save_delay_ticks = 18
             app_switch_route(app, route)
         }
     } else {
-        UIToolbarHeaderNode((UIToolbarHeader){.leading_icon = (Texture2D){0}, .toolbar = (UIToolbar){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((UITabBar){0})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
+        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((TabBarProps){0})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
     }
     if !app->modal.active {
         app->practice_tab = PRACTICE_TAB_PLAY
@@ -715,7 +709,7 @@ practice_screen_draw_floating_actions :: (app: InbeApp*) {
     if practice->draw_config != NULL {
         hover := 0
         x -= button_w
-        if UIPaddedIconBtnNode(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_WRENCH], &hover) {
+        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_WRENCH], &hover) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
         x -= gap
@@ -723,7 +717,7 @@ practice_screen_draw_floating_actions :: (app: InbeApp*) {
     if practice->draw_manual != NULL {
         hover := 0
         x -= button_w
-        if UIPaddedIconBtnNode(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_MANUAL], &hover) {
+        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_MANUAL], &hover) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
     }
@@ -758,7 +752,7 @@ practice_screen_draw_modal :: (app: InbeApp*) {
 
 practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, manual: Rectangle*, config: Rectangle*) #private {
     top := ScaleUIPx(14)
-    bottom_reserved := UIGetNodeHeight(UINodeBottomNav((UIBottomNav){0}))
+    bottom_reserved := UIGetNodeHeight(UINodeBottomNav((BottomNavProps){0}))
     content_w := view_width - ScaleUIPx(24)
     max_w := ScaleUIPx(480)
     practice := practice_get(app->exercise_type)
@@ -868,7 +862,7 @@ practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     steps[0] = (UIGuideStep){card, GetLocaleText("practice_guide_carousel")}
     steps[1] = (UIGuideStep){start, GetLocaleText("practice_guide_start")}
     steps[2] = (UIGuideStep){practice_home_action_guide_anchor(manual, config), GetLocaleText("practice_guide_manual_config")}
-    result = UIGuideOverlayNode((UIGuideOverlay){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = 0, .reserved_bottom = UIGetNodeHeight(UINodeBottomNav((UIBottomNav){0})), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
+    result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = 0, .reserved_bottom = UIGetNodeHeight(UINodeBottomNav((BottomNavProps){0})), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
     }
@@ -957,7 +951,12 @@ page start(app: InbeApp*) {
     }
     y += ScaleUIPx(10)
 
-    if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_start_button"), UI_BUTTON_STYLE_PRIMARY) {
+    if Button((ButtonProps){
+        .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+        .label = GetLocaleText("practice_start_button"),
+        .font = GetUIFontSize(),
+        .style = UI_BUTTON_STYLE_PRIMARY,
+    }) {
         if practice->start != NULL {
             practice->start(app)
         }
@@ -967,22 +966,43 @@ page start(app: InbeApp*) {
     if practice_home_actions_share_row(practice, content_w) {
         row_gap = practice_home_action_gap(content_w)
         practice_home_action_row_widths(content_w, &manual_w, &config_w)
-        if WidgetButton(x, y, manual_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY) {
+        if Button((ButtonProps){
+            .bounds = {(float)x, (float)y, (float)manual_w, (float)btn_h},
+            .label = GetLocaleText("practice_manual_button"),
+            .font = GetUIFontSize(),
+            .style = UI_BUTTON_STYLE_SECONDARY,
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
 
-        if WidgetButton(x + manual_w + row_gap, y, config_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY) {
+        if Button((ButtonProps){
+            .bounds = {(float)(x + manual_w + row_gap), (float)y,
+                       (float)config_w, (float)btn_h},
+            .label = GetLocaleText("practice_configure_button"),
+            .font = GetUIFontSize(),
+            .style = UI_BUTTON_STYLE_SECONDARY,
+        }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
     } else {
         if practice->draw_manual != NULL {
-            if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_manual_button"), UI_BUTTON_STYLE_SECONDARY) {
+            if Button((ButtonProps){
+                .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+                .label = GetLocaleText("practice_manual_button"),
+                .font = GetUIFontSize(),
+                .style = UI_BUTTON_STYLE_SECONDARY,
+            }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
             }
             y += btn_h + gap
         }
         if practice->draw_config != NULL {
-            if WidgetButton(x, y, content_w, btn_h, GetLocaleText("practice_configure_button"), UI_BUTTON_STYLE_SECONDARY) {
+            if Button((ButtonProps){
+                .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+                .label = GetLocaleText("practice_configure_button"),
+                .font = GetUIFontSize(),
+                .style = UI_BUTTON_STYLE_SECONDARY,
+            }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }
         }

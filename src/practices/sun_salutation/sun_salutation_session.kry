@@ -239,7 +239,7 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
     text_w = MeasureUIText(timer_text, font)
     x = (view_width - text_w) / 2
     y = top_y + ScaleUIPx(4)
-    UITextNode(timer_text, x, y, font, muted)
+    Text(timer_text, x, y, font, muted)
 
     w = view_width / 3
     if w < ScaleUIPx(96) {
@@ -283,7 +283,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 
     if app->modal.active && app->modal.type == UIModalConfirmExitSession {
-        modal_result := UIModalNode(GetLocaleText("exit_session_title"),
+        modal_result := Modal(GetLocaleText("exit_session_title"),
                                     GetLocaleText("all_progress_lost_message"),
                                     GetLocaleText("cancel_button"),
                                     GetLocaleText("exit_button"))
@@ -363,7 +363,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         app->icons[UI_ICON_TYPE_FORWARD],
         0
     }
-    row = UIBottomIconRowNode((UIBottomIconRow){
+    row = BottomIconRow((BottomIconRowProps){
         .center_x = center_x,
         .view_width = view_width,
         .view_height = view_height,

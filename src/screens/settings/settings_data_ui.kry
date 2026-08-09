@@ -333,14 +333,14 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
     settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
 
     *y += ScaleUIPx(SETTINGS_DATA_TOP_PADDING)
-    if UIGenericButtonNode(0, x, *y, w, data_button_h,
+    if GenericButton(0, x, *y, w, data_button_h,
                            GetLocaleText("import_data_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover_import) {
         import_data(app)
     }
     *y += data_button_h + ScaleUIPx(12)
 
-    if UIGenericButtonNode(0, x, *y, w, data_button_h,
+    if GenericButton(0, x, *y, w, data_button_h,
                            GetLocaleText("export_data_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover_export) {
         export_data(app)
@@ -348,7 +348,7 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += data_button_h + ScaleUIPx(12)
 
     if !has_account {
-        if UIGenericButtonNode(0, x, *y, w, data_button_h,
+        if GenericButton(0, x, *y, w, data_button_h,
                                GetLocaleText("clear_local_data_button"),
                                UI_BUTTON_STYLE_DANGER, 0, &hover_delete) {
             request_delete_all_data(app)
@@ -375,7 +375,7 @@ draw_sync_status :: (x: int, w: int, y: int*) {
         return
     }
 
-    UITextNode(GetLocaleText("sync_status_title"),
+    Text(GetLocaleText("sync_status_title"),
                   x, *y, label_font, label_color)
     *y += ScaleUIPx(24)
 
@@ -386,22 +386,22 @@ draw_sync_status :: (x: int, w: int, y: int*) {
                         GetLocaleText(status.has_account
                                       ? "sync_status_connected"
                                       : "sync_status_not_set"))
-    UITextNode(line, x, row_y, font,
+    Text(line, x, row_y, font,
                   status.has_account ? ok_color : body_color)
 
     FormatLocaleText(line, sizeof(line), "sync_status_queued",
                         status.queued_changes)
-    UITextNode(line, x + left_w, row_y, font,
+    Text(line, x + left_w, row_y, font,
                   status.queued_changes > 0 ? warn_color : body_color)
 
     row_y += ScaleUIPx(22)
     FormatLocaleText(line, sizeof(line), "sync_status_server",
                         status.server_version)
-    UITextNode(line, x, row_y, font, body_color)
+    Text(line, x, row_y, font, body_color)
 
     FormatLocaleText(line, sizeof(line), "sync_status_clock",
                         status.server_clock)
-    UITextNode(line, x + left_w, row_y, font, body_color)
+    Text(line, x + left_w, row_y, font, body_color)
 
     row_y += ScaleUIPx(22)
     if status.protocol_upgrade_available {
@@ -430,7 +430,7 @@ draw_sync_status :: (x: int, w: int, y: int*) {
        status.repair_pending {
         status_line_color = warn_color
     }
-    UITextNode(line, x, row_y, font, status_line_color)
+    Text(line, x, row_y, font, status_line_color)
 
     *y += ScaleUIPx(74)
 }
@@ -636,7 +636,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
 
     unused app
 
-    frame = UIModalFrameNode(ScaleUIPx(320),
+    frame = ModalFrame(ScaleUIPx(320),
                              ScaleUIPx(232),
                              GetLocaleText("import_choice_title"),
                              (Texture2D){0},
@@ -644,12 +644,12 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
     msg_x = frame.content_x
     msg_y = frame.content_y
 
-    UITextNode(message, msg_x, msg_y, font, GetThemeText())
+    Text(message, msg_x, msg_y, font, GetThemeText())
 
     btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h * 2 - row_gap
     btn_w = (frame.content_w - row_gap) / 2
 
-    if UIGenericButtonNode(0, frame.content_x,
+    if GenericButton(0, frame.content_x,
                            btn_y,
                            btn_w,
                            btn_h,
@@ -660,7 +660,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
         return 1
     }
 
-    if UIGenericButtonNode(0, frame.content_x + btn_w + row_gap,
+    if GenericButton(0, frame.content_x + btn_w + row_gap,
                            btn_y,
                            btn_w,
                            btn_h,
@@ -671,7 +671,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
         return 2
     }
 
-    if UIGenericButtonNode(0, frame.content_x,
+    if GenericButton(0, frame.content_x,
                            btn_y + btn_h + row_gap,
                            frame.content_w,
                            btn_h,
@@ -688,7 +688,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
 draw_sync_review_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
     diff_detail: char* = nil
-    intro: UIParagraph
+    intro: UIParagraphSpec
     intro_y: int
     intro_h: int
     modal_w: int
@@ -725,12 +725,12 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         return 0
     }
 
-    frame = UIModalFrameNode(modal_w,
+    frame = ModalFrame(modal_w,
                              modal_h,
                              GetLocaleText("sync_review_needed"),
                              (Texture2D){0},
                              (Texture2D){0})
-    intro = (UIParagraph){
+    intro = (UIParagraphSpec){
         .text = GetLocaleText("sync_review_message"),
         .width = frame.content_w,
         .font = GetUISmallFontSize(),
@@ -739,7 +739,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
     }
     intro_h = UIGetNodeHeight(UINodeParagraph(intro, 0, 0))
     intro_y = frame.content_y
-    UIParagraphNode(intro, frame.content_x, &intro_y)
+    Paragraph(intro, frame.content_x, &intro_y)
 
     diff_y = frame.content_y + intro_h + ScaleUIPx(12)
     btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h
@@ -783,7 +783,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
             line_color = (Color){74, 170, 112, 255}
         }
 
-        UITextNode(diff_line,
+        Text(diff_line,
                       diff_view.content_x,
                       line_y,
                       GetUISmallFontSize(),
@@ -802,18 +802,18 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         .scroll_offset = &sync_review_diff_scroll
     }, diff_view)
 
-    UITextNode(GetLocaleText("sync_review_local_only"),
+    Text(GetLocaleText("sync_review_local_only"),
                   frame.content_x,
                   legend_y,
                   GetUISmallFontSize(),
                   (Color){215, 88, 88, 255})
-    UITextNode(GetLocaleText("sync_review_remote_only"),
+    Text(GetLocaleText("sync_review_remote_only"),
                   frame.content_x + ScaleUIPx(112),
                   legend_y,
                   GetUISmallFontSize(),
                   (Color){74, 170, 112, 255})
 
-    if UIGenericButtonNode(0, frame.content_x,
+    if GenericButton(0, frame.content_x,
                            btn_y,
                            (frame.content_w - gap) / 2,
                            btn_h,
@@ -825,7 +825,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
         return 1
     }
 
-    if UIGenericButtonNode(0, frame.content_x + (frame.content_w + gap) / 2,
+    if GenericButton(0, frame.content_x + (frame.content_w + gap) / 2,
                            btn_y,
                            (frame.content_w - gap) / 2,
                            btn_h,
@@ -866,7 +866,7 @@ draw_modals :: (app: InbeApp*) -> int {
     }
 
     if app->modal.type == UIModalConfirmDeleteData {
-        modal_result := UIModalNode(GetLocaleText("clear_local_data_title"),
+        modal_result := Modal(GetLocaleText("clear_local_data_title"),
                                     GetLocaleText("clear_local_data_message"),
                                     GetLocaleText("cancel_button"),
                                     GetLocaleText("clear_button"))
@@ -901,7 +901,7 @@ draw_modals :: (app: InbeApp*) -> int {
     }
 
     if app->modal.type == UIModalConfirmDeleteSyncAccount {
-        modal_result := UIModalNode(GetLocaleText("sync_clear_remote_data_title"),
+        modal_result := Modal(GetLocaleText("sync_clear_remote_data_title"),
                                     GetLocaleText("sync_clear_remote_data_message"),
                                     GetLocaleText("cancel_button"),
                                     GetLocaleText("clear_button"))
@@ -916,7 +916,7 @@ draw_modals :: (app: InbeApp*) -> int {
     }
 
     if app->modal.type == UIModalConfirmSyncAccountSwitch {
-        modal_result := UIModalNode(GetLocaleText("sync_account_switch_title"),
+        modal_result := Modal(GetLocaleText("sync_account_switch_title"),
                                     GetLocaleText("sync_account_switch_message"),
                                     GetLocaleText("cancel_button"),
                                     GetLocaleText("sync_account_switch_clear_button"))

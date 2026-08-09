@@ -143,7 +143,7 @@ typedef enum AppClosePromptResult {
 typedef struct {
     int active;
     UIModalType type;
-} UIModal;
+} InbeModal;
 
 typedef struct InbeConfig {
 	char title[64];
@@ -460,7 +460,7 @@ struct InbeApp {
     int request_quit;   /* desktop no-tray build: app layer requests exit */
     char results_path[FS_PATH_MAX];
     int volume_popup_active;
-    UIModal modal;
+    InbeModal modal;
     int play_circle_hover;
     float play_circle_scale;
     SettingsThemeState theme_state;

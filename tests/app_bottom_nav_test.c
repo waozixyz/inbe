@@ -15,7 +15,7 @@ static int failures = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
-static UIBottomNav bottom_nav_last;
+static BottomNavProps bottom_nav_last;
 static UIBottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
@@ -174,7 +174,7 @@ ScaleUIPx(int px)
 }
 
 UIWidgetNode
-UINodeTabBar(UITabBar bar)
+UINodeTabBar(TabBarProps bar)
 {
     UIWidgetNode node = {0};
     node.bounds.height = 44;
@@ -269,7 +269,7 @@ IsMouseButtonPressed(int button)
 }
 
 UIBottomNavResult
-UIBottomNavNode(UIBottomNav nav)
+UIBottomNavNode(BottomNavProps nav)
 {
     bottom_nav_last = nav;
     if(nav.count > APP_BOTTOM_NAV_CONTENT_MAX + 1)
@@ -287,7 +287,7 @@ UIBottomNavNode(UIBottomNav nav)
 }
 
 UIWidgetNode
-UINodeBottomNav(UIBottomNav nav)
+UINodeBottomNav(BottomNavProps nav)
 {
     UIWidgetNode node = {0};
     node.bounds.height = 52;

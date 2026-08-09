@@ -5,8 +5,8 @@
 #import "theme.h"
 #import "ui.h"
 
-label_paragraph :: (label: const char*, w: int) -> UIParagraph #private {
-    return (UIParagraph){.text = label, .width = w}
+label_paragraph :: (label: const char*, w: int) -> UIParagraphSpec #private {
+    return (UIParagraphSpec){.text = label, .width = w}
 }
 
 toggle_row_height :: (label: const char*, w: int) -> int {
@@ -62,7 +62,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
         label_w = w
     }
 
-    UIParagraphNode(label_paragraph(label, label_w), x, &label_y)
+    Paragraph(label_paragraph(label, label_w), x, &label_y)
     label_h := label_y - *y
     toggle_x := x
     toggle_y := *y + label_h + ScaleUIPx(material ? 14 : 10)
@@ -72,7 +72,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
         toggle_y = *y + (row_h - toggle_h) / 2
     }
 
-    if UIToggleNode(0, toggle_x, toggle_y, toggle_w, toggle_h, value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+    if Toggle(0, toggle_x, toggle_y, toggle_w, toggle_h, value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
         *y += row_h
         return 1
     }
@@ -99,7 +99,7 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
         return 0
     }
 
-    changed := UISliderNode(id, x, *y, w, label, min, max, value, suffix)
+    changed := Slider(id, x, *y, w, label, min, max, value, suffix)
     if changed && app != NULL {
         app->settings_dirty = 1
         if save_now {
@@ -128,9 +128,9 @@ draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) 
         fill_w = w
     }
 
-    UITextNode(label, x, y, label_font, DarkenUIColor(GetThemeText(), 28))
+    Text(label, x, y, label_font, DarkenUIColor(GetThemeText(), 28))
     DrawRectangle(x, y + label_h, w, bar_h, DarkenUIColor(bg, 28))
-    UIBevelNode(x, y + label_h, w, bar_h,
+    Bevel(x, y + label_h, w, bar_h,
                 DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
     if fill_w > 0 {
         inner_w := fill_w - ScaleUIPx(4)

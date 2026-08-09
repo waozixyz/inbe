@@ -57,7 +57,7 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
 }
 
-tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> UIParagraph #private {
+tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> UIParagraphSpec #private {
     has_icon := step == 1
     paragraph := manual_screen_tutorial_paragraph(
         GetLocaleText(tutorial_keys[step]), content_w)
@@ -73,7 +73,7 @@ tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #
 }
 
 draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, content_w: int) #private {
-    UIParagraphNode(tutorial_paragraph(app, step, content_w), content_x, y)
+    Paragraph(tutorial_paragraph(app, step, content_w), content_x, y)
 }
 
 manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
@@ -168,7 +168,7 @@ whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #
                          *y + ScaleUIPx(40))
     *y += (int)(app->settings_preview.rmax * 0.72f) + ScaleUIPx(54)
 
-    if UISliderNode(10, page.content_x, *y, page.content_w,
+    if Slider(10, page.content_x, *y, page.content_w,
                     GetLocaleText("speed_label"), SETTINGS_SPEED_MIN,
                     SETTINGS_SPEED_MAX, &speed, "") {
         apply_settings(&app->inbe, speed, app->inbe.max_rounds,
@@ -191,7 +191,7 @@ whm_manual_draw_hold_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #pr
     *y += hold_preview_extent
     draw_tutorial_hold_preview(app, center_x, *y, hold_preview_radius)
     *y += hold_preview_extent + ScaleUIPx(24)
-    UITextButtonNode(0, center_x, *y, GetLocaleText("breath_button"),
+    TextButton(0, center_x, *y, GetLocaleText("breath_button"),
                         &breath_button_hover)
     *y += ScaleUIPx(42) + ScaleUIPx(18)
     draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
@@ -201,7 +201,7 @@ whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) 
     if step == 0 {
         img_h := ScaleUIPx(170)
 
-        UITutorialImageNode(app->whm.image_1, "practices/whm/1.png",
+        TutorialImage(app->whm.image_1, "practices/whm/1.png",
                                page.content_x, *y, page.content_w, img_h)
         *y += img_h + ScaleUIPx(22)
         draw_tutorial_paragraph(app, 0, page.content_x, y, page.content_w)
@@ -214,7 +214,7 @@ whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) 
     } else {
         img_h := ScaleUIPx(170)
 
-        UITutorialImageNode(app->whm.image_2, "practices/whm/2.png",
+        TutorialImage(app->whm.image_2, "practices/whm/2.png",
                                page.content_x, *y, page.content_w, img_h)
         *y += img_h + ScaleUIPx(22)
         draw_tutorial_paragraph(app, 4, page.content_x, y, page.content_w)
