@@ -1115,8 +1115,9 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
 
 habits_overview_day_columns :: (content_w: int) -> int {
     max_label_w: int = ScaleUIPx(136)
-    gap: int = ScaleUIPx(4)
-    preferred_cell: int = ScaleUIPx(28)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap: int = ScaleUIPx(material ? 6 : 4)
+    preferred_cell: int = ScaleUIPx(material ? 30 : 28)
     columns: int
 
     if content_w <= 0 {
@@ -1139,8 +1140,9 @@ habits_overview_total_columns :: (content_w: int) -> int #private {
 habits_overview_label_width :: (content_w: int) -> int {
     min_label_w: int = ScaleUIPx(56)
     max_label_w: int = ScaleUIPx(136)
-    gap: int = ScaleUIPx(4)
-    cell: int = ScaleUIPx(28)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap: int = ScaleUIPx(material ? 6 : 4)
+    cell: int = ScaleUIPx(material ? 30 : 28)
     columns: int = habits_overview_total_columns(content_w)
     label_w: int = content_w - gap * columns - cell * columns
 
@@ -1155,12 +1157,13 @@ habits_overview_label_width :: (content_w: int) -> int {
 
 habits_overview_cell_size :: (content_w: int) -> int {
     label_w: int = habits_overview_label_width(content_w)
-    gap: int = ScaleUIPx(4)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap: int = ScaleUIPx(material ? 6 : 4)
     columns: int = habits_overview_total_columns(content_w)
     cell: int = (content_w - label_w - gap * columns) / columns
 
-    if cell > ScaleUIPx(28) {
-        cell = ScaleUIPx(28)
+    if cell > ScaleUIPx(material ? 30 : 28) {
+        cell = ScaleUIPx(material ? 30 : 28)
     }
     if cell < ScaleUIPx(18) {
         cell = ScaleUIPx(18)
@@ -1225,6 +1228,8 @@ habits_overview_content_height :: (content_w: int,
     app: InbeApp* = user_data
     rows: int = app != nil && app->habits.count > 0 ? app->habits.count : 1
     cell: int = habits_overview_cell_size(content_w)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    row_gap: int = ScaleUIPx(material ? 10 : 8)
     action_h: int = ScaleUIPx(34)
 
     if habits_overview_actions_stack(content_w) {
@@ -1232,7 +1237,7 @@ habits_overview_content_height :: (content_w: int,
     }
 
     return ScaleUIPx(52) + ScaleUIPx(20) +
-        rows * (cell + ScaleUIPx(8)) +
+        rows * (cell + row_gap) +
         ScaleUIPx(24) + action_h
 }
 
@@ -1443,7 +1448,9 @@ habits_overview_grid_anchor :: (app: InbeApp*) -> Rectangle #private {
     content_y: int
     label_w: int
     cell: int
-    cell_gap: int = ScaleUIPx(4)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    cell_gap: int = ScaleUIPx(material ? 6 : 4)
+    row_gap: int = ScaleUIPx(material ? 10 : 8)
     grid_total_w: int
     total_columns: int
     rows: int = app != nil && app->habits.count > 0 ? app->habits.count : 1
@@ -1460,7 +1467,7 @@ habits_overview_grid_anchor :: (app: InbeApp*) -> Rectangle #private {
         (float)(content_x + (content_w - grid_total_w) / 2 - ScaleUIPx(4)),
         (float)(y - ScaleUIPx(4)),
         (float)(grid_total_w + ScaleUIPx(8)),
-        (float)(ScaleUIPx(20) + rows * (cell + ScaleUIPx(8)))
+        (float)(ScaleUIPx(20) + rows * (cell + row_gap))
     }
 }
 
@@ -1684,7 +1691,9 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
     done_count: int
     progress: [64] char = {0}
     label_w: int
-    cell_gap: int = ScaleUIPx(4)
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    cell_gap: int = ScaleUIPx(material ? 6 : 4)
+    row_gap: int = ScaleUIPx(material ? 10 : 8)
     cell: int
     grid_total_w: int
     overview_x: int
@@ -1844,25 +1853,46 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             if !completed && !future_day && (has_linked_day || count > 0) {
                 completed = 1
             }
-            fill = completed
-                ? habit->color
-                : DarkenUIColor(GetThemeBackground(), 7)
-            if day_index == today_index {
+            if material {
                 fill = completed
-                    ? LightenUIColor(fill, 12)
-                    : DarkenUIColor(GetThemeBackground(), 14)
-            }
-            if cell_hover {
-                fill = completed
-                    ? LightenUIColor(fill, 22)
-                    : GetThemeButtonHover()
-            }
+                    ? habit->color
+                    : GetThemeSurface()
+                border = day_index == today_index
+                    ? GetThemeButtonHover()
+                    : Fade(GetThemeText(), 0.18f)
+                if cell_hover {
+                    fill = completed
+                        ? LightenUIColor(fill, 18)
+                        : Fade(GetThemeButtonHover(), 0.22f)
+                }
 
-            DrawRectangle(day_x, row_y, cell, cell, fill)
-            DrawRectangleLinesEx(cell_bounds, 1.0f, border)
-            if day == 0 {
-                DrawRectangle(day_x, row_y, cell, ScaleUIPx(3),
-                                 GetThemeText())
+                DrawRectangleRounded(cell_bounds, 0.42f, 8, fill)
+                if day_index == today_index || cell_hover {
+                    DrawRectangleRoundedLinesEx(cell_bounds, 0.42f, 8,
+                                                  day_index == today_index ? 2.0f : 1.0f,
+                                                  border)
+                }
+            } else {
+                fill = completed
+                    ? habit->color
+                    : DarkenUIColor(GetThemeBackground(), 7)
+                if day_index == today_index {
+                    fill = completed
+                        ? LightenUIColor(fill, 12)
+                        : DarkenUIColor(GetThemeBackground(), 14)
+                }
+                if cell_hover {
+                    fill = completed
+                        ? LightenUIColor(fill, 22)
+                        : GetThemeButtonHover()
+                }
+
+                DrawRectangle(day_x, row_y, cell, cell, fill)
+                DrawRectangleLinesEx(cell_bounds, 1.0f, border)
+                if day == 0 {
+                    DrawRectangle(day_x, row_y, cell, ScaleUIPx(3),
+                                     GetThemeText())
+                }
             }
 
             if counting_enabled {
@@ -1910,7 +1940,9 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
         detail_active: int = CheckCollisionPointRec(mouse, detail_bounds) &&
             !UIInputCapturesClick(mouse)
         detail_hover: int = detail_active && UIHoverEffectsEnabled()
-        detail_fill: Color = DarkenUIColor(GetThemeBackground(), 7)
+        detail_fill: Color = material
+            ? GetThemeSurface()
+            : DarkenUIColor(GetThemeBackground(), 7)
         detail_border: Color = DarkenUIColor(GetThemeText(), 46)
         more: const char* = "..."
         more_w: int
@@ -1922,11 +1954,25 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
         if detail_active {
             MarkUIClickable()
         }
-        DrawRectangle(detail_x, row_y, cell, cell, detail_fill)
-        UIBevelNode(detail_x, row_y, cell, cell,
-                       LightenUIColor(detail_fill, detail_hover ? 34 : 24),
-                       DarkenUIColor(detail_fill, detail_hover ? 38 : 28))
-        DrawRectangleLines(detail_x, row_y, cell, cell, detail_border)
+        if material {
+            detail_bounds = (Rectangle){
+                (float)detail_x,
+                (float)row_y,
+                (float)cell,
+                (float)cell
+            }
+            DrawRectangleRounded(detail_bounds, 0.42f, 8, detail_fill)
+            if detail_hover {
+                DrawRectangleRoundedLinesEx(detail_bounds, 0.42f, 8,
+                                              1.0f, detail_border)
+            }
+        } else {
+            DrawRectangle(detail_x, row_y, cell, cell, detail_fill)
+            UIBevelNode(detail_x, row_y, cell, cell,
+                           LightenUIColor(detail_fill, detail_hover ? 34 : 24),
+                           DarkenUIColor(detail_fill, detail_hover ? 38 : 28))
+            DrawRectangleLines(detail_x, row_y, cell, cell, detail_border)
+        }
         if detail_active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             habits_enter_detail(app, i)
             EndUIScrollPage(page)
@@ -1937,7 +1983,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
                       GetUIControlTextY(more, row_y, cell, UI_TEXT_16),
                       UI_TEXT_16, GetThemeText())
 
-        y += cell + ScaleUIPx(8)
+        y += cell + row_gap
     }
 
     y += ScaleUIPx(10)
@@ -2087,11 +2133,15 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
                                disabled: int, current_day: int) -> int {
     mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
     inside: int
     hovered: int
     fill: Color = completed
         ? GetThemeButton()
-        : DarkenUIColor(GetThemeBackground(), 10)
+        : (material ? GetThemeSurface() : DarkenUIColor(GetThemeBackground(), 10))
+    border: Color = current_day
+        ? GetThemeButtonHover()
+        : Fade(GetThemeText(), 0.18f)
     text_color: Color = disabled
         ? DarkenUIColor(GetThemeText(), 35)
         : GetThemeText()
@@ -2109,21 +2159,40 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
              !UIInputCapturesClick(mouse_world)
     hovered = inside && UIHoverEffectsEnabled()
 
-    if hovered {
-        fill = GetThemeButtonHover()
-    } else if current_day {
-        fill = completed
-            ? LightenUIColor(fill, 12)
-            : DarkenUIColor(GetThemeBackground(), 14)
+    if material {
+        if hovered {
+            fill = completed
+                ? LightenUIColor(fill, 18)
+                : Fade(GetThemeButtonHover(), 0.22f)
+        } else if current_day && completed {
+            fill = LightenUIColor(fill, 10)
+        }
+    } else {
+        if hovered {
+            fill = GetThemeButtonHover()
+        } else if current_day {
+            fill = completed
+                ? LightenUIColor(fill, 12)
+                : DarkenUIColor(GetThemeBackground(), 14)
+        }
     }
     if !disabled && completed {
         text_color = habit_text_color_for_background(fill)
     }
 
-    DrawRectangle(x, y, w, h, fill)
-    UIBevelNode(x, y, w, h,
-                   LightenUIColor(fill, hovered ? 36 : 28),
-                   DarkenUIColor(fill, hovered ? 42 : 34))
+    if material {
+        DrawRectangleRounded(bounds, 0.32f, 10, fill)
+        if current_day || hovered {
+            DrawRectangleRoundedLinesEx(bounds, 0.32f, 10,
+                                          current_day ? 2.0f : 1.0f,
+                                          border)
+        }
+    } else {
+        DrawRectangle(x, y, w, h, fill)
+        UIBevelNode(x, y, w, h,
+                       LightenUIColor(fill, hovered ? 36 : 28),
+                       DarkenUIColor(fill, hovered ? 42 : 34))
+    }
 
     text_w = MeasureUIText(label, font)
     UITextNode(label,
@@ -2140,7 +2209,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
 }
 
 habit_weekly_row_height :: () -> int #private {
-    return ScaleUIPx(52)
+    return ScaleUIPx(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 58 : 52)
 }
 
 habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
@@ -2232,11 +2301,12 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
                                secondary: const char*) -> int #private {
     mouse_world: Vector2
     bounds: Rectangle = {(float)x, (float)y, (float)w, (float)h}
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
     active: int
     hovered: int
     fill: Color = completed
         ? GetThemeButton()
-        : DarkenUIColor(GetThemeBackground(), 10)
+        : (material ? GetThemeSurface() : DarkenUIColor(GetThemeBackground(), 10))
     text_color: Color = disabled
         ? DarkenUIColor(GetThemeText(), 35)
         : GetThemeText()
@@ -2267,16 +2337,26 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
     hovered = hovered && !disabled
 
     if hovered {
-        fill = GetThemeButtonHover()
+        fill = material && !completed
+            ? Fade(GetThemeButtonHover(), 0.22f)
+            : GetThemeButtonHover()
     }
     if !disabled && completed {
         text_color = habit_text_color_for_background(fill)
     }
 
-    DrawRectangle(x, y, w, h, fill)
-    UIBevelNode(x, y, w, h,
-                   LightenUIColor(fill, 36),
-                   DarkenUIColor(fill, 42))
+    if material {
+        DrawRectangleRounded(bounds, 0.18f, 10, fill)
+        if hovered {
+            DrawRectangleRoundedLinesEx(bounds, 0.18f, 10, 1.0f,
+                                          Fade(GetThemeText(), 0.22f))
+        }
+    } else {
+        DrawRectangle(x, y, w, h, fill)
+        UIBevelNode(x, y, w, h,
+                       LightenUIColor(fill, 36),
+                       DarkenUIColor(fill, 42))
+    }
 
     text_x = x + pad
     text_w = w - pad * 2
@@ -2314,7 +2394,7 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
 
 habit_weekly_content_height :: (visible_days: int) -> int #private {
     row_h: int = habit_weekly_row_height()
-    row_gap: int = ScaleUIPx(6)
+    row_gap: int = ScaleUIPx(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 10 : 6)
     load_h: int = ScaleUIPx(38)
 
     if visible_days < HABIT_WEEKLY_INITIAL_DAYS {
@@ -2342,7 +2422,7 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
     button_x: int
     button_w: int
     row_h: int = habit_weekly_row_height()
-    row_gap: int = ScaleUIPx(6)
+    row_gap: int = ScaleUIPx(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 10 : 6)
     day_font: int = UI_TEXT_16
     date_font: int = UI_TEXT_12
     load_h: int = ScaleUIPx(38)
@@ -2447,8 +2527,17 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
                     (row_tm.tm_year + 1900) % 100)
 
         if label_w > 0 {
-            DrawRectangle(content_x, y, label_w, row_h,
-                             DarkenUIColor(GetThemeBackground(), 5))
+            if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
+                DrawRectangleRounded((Rectangle){
+                    (float)content_x,
+                    (float)y,
+                    (float)label_w,
+                    (float)row_h
+                }, 0.18f, 10, GetThemeSurface())
+            } else {
+                DrawRectangle(content_x, y, label_w, row_h,
+                                 DarkenUIColor(GetThemeBackground(), 5))
+            }
             UITextNode(day_label,
                           content_x + ScaleUIPx(8),
                           y + ScaleUIPx(7),

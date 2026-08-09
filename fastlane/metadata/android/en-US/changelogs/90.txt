@@ -1,0 +1,6 @@
+Changed
+---
+- Updated Kryon to the clean Kryon-owned app API and Material toggle rendering.
+- Improved Material spacing in settings toggle rows.
+- Updated Habits overview, calendar day cells, and weekly rows to use Material-friendly rounded controls.
+- Disabled app audio initialization while running inside Kryon preview.

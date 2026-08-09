@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.15] - 2026-08-09
+### Changed
+- Updated Kryon to the clean Kryon-owned app API and Material toggle rendering.
+- Improved Material spacing in settings toggle rows.
+- Updated Habits overview, calendar day cells, and weekly rows to use Material-friendly rounded controls.
+- Disabled app audio initialization while running inside Kryon preview.
+
 ## [1.8.14] - 2026-08-06
 ### Changed
 - Updated Kryon to the retro-only widget runtime while style selection is paused.

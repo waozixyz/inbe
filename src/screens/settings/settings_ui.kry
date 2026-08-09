@@ -14,10 +14,33 @@ toggle_row_height :: (label: const char*, w: int) -> int {
         w = ScaleUIPx(160)
     }
 
-    label_h := UIGetNodeHeight(UINodeParagraph(label_paragraph(label, w), 0, 0))
-    row_h := label_h + ScaleUIPx(8) + ScaleUIPx(30) + ScaleUIPx(22)
-    if row_h < ScaleUIPx(76) {
-        row_h = ScaleUIPx(76)
+    toggle_w := ScaleUIPx(56)
+    toggle_h := ScaleUIPx(30)
+    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap := ScaleUIPx(material ? 22 : 16)
+    label_w := w - toggle_w - gap
+
+    if label_w < ScaleUIPx(120) {
+        label_w = w
+    }
+
+    label_h := UIGetNodeHeight(UINodeParagraph(label_paragraph(label, label_w), 0, 0))
+    if label_w < w {
+        row_h := label_h
+        if row_h < toggle_h {
+            row_h = toggle_h
+        }
+        row_h += ScaleUIPx(material ? 32 : 24)
+        if row_h < ScaleUIPx(material ? 66 : 58) {
+            row_h = ScaleUIPx(material ? 66 : 58)
+        }
+        return row_h
+    }
+
+    row_h := label_h + ScaleUIPx(material ? 14 : 10) + toggle_h +
+        ScaleUIPx(material ? 30 : 22)
+    if row_h < ScaleUIPx(material ? 86 : 76) {
+        row_h = ScaleUIPx(material ? 86 : 76)
     }
     return row_h
 }
@@ -29,10 +52,27 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
 
     row_h := toggle_row_height(label, w)
     label_y := *y
-    UIParagraphNode(label_paragraph(label, w), x, &label_y)
-    label_h := label_y - *y
+    toggle_w := ScaleUIPx(56)
+    toggle_h := ScaleUIPx(30)
+    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap := ScaleUIPx(material ? 22 : 16)
+    label_w := w - toggle_w - gap
 
-    if UIToggleNode(0, x, *y + label_h + ScaleUIPx(8), ScaleUIPx(56), ScaleUIPx(30), value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+    if label_w < ScaleUIPx(120) {
+        label_w = w
+    }
+
+    UIParagraphNode(label_paragraph(label, label_w), x, &label_y)
+    label_h := label_y - *y
+    toggle_x := x
+    toggle_y := *y + label_h + ScaleUIPx(material ? 14 : 10)
+
+    if label_w < w {
+        toggle_x = x + w - toggle_w
+        toggle_y = *y + (row_h - toggle_h) / 2
+    }
+
+    if UIToggleNode(0, toggle_x, toggle_y, toggle_w, toggle_h, value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
         *y += row_h
         return 1
     }

@@ -1629,7 +1629,8 @@ app_audio_reinitialize(InbeApp *app)
     app->audio_meter_level = 0.0f;
     g_audio_meter_peak_milli = 0;
 
-    init_audio(app);
+    if(!app_running_in_kryon_preview())
+        init_audio(app);
     return app->audio_ready ? 1 : 0;
 }
 
@@ -1682,7 +1683,8 @@ app_init(void *vapp) {
                            ? InbeScreenHabits
                            : InbeScreenStart;
     app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
-    init_audio(app);
+    if(!app_running_in_kryon_preview())
+        init_audio(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->init != NULL)
