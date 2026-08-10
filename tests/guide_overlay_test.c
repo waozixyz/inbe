@@ -31,7 +31,7 @@ SetUIModalCapture(Rectangle bounds)
 }
 
 int
-DrawUIIconButton(UIIconButton button)
+DrawUIIconButton(IconButtonProps button)
 {
     (void)button;
     icon_call_count++;
@@ -151,7 +151,7 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
 
 #include "src/ui/guide.c"
 
-static UIGuideOverlay
+static GuideOverlayProps
 test_guide(int *step)
 {
     static UIGuideStep steps[3] = {
@@ -160,7 +160,7 @@ test_guide(int *step)
         {{20, 120, 80, 30}, "Third"}
     };
 
-    return (UIGuideOverlay){
+    return (GuideOverlayProps){
         .steps = steps,
         .count = 3,
         .step = step,

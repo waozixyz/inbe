@@ -235,7 +235,7 @@ FormatLocaleText(char *out, size_t out_size, const char *key, ...)
 }
 
 int
-DrawUIHref(UIHref link)
+DrawUIHref(HrefProps link)
 {
     (void)link;
     return 0;
@@ -269,7 +269,7 @@ IsMouseButtonPressed(int button)
 }
 
 UIBottomNavResult
-UIBottomNavNode(BottomNavProps nav)
+BottomNav(BottomNavProps nav)
 {
     bottom_nav_last = nav;
     if(nav.count > APP_BOTTOM_NAV_CONTENT_MAX + 1)
@@ -296,7 +296,7 @@ UINodeBottomNav(BottomNavProps nav)
 }
 
 UISidebarAccountHeaderResult
-UISidebarAccountHeaderNode(UISidebarAccountHeader header)
+SidebarAccountHeader(UISidebarAccountHeaderSpec header)
 {
     (void)header;
     return (UISidebarAccountHeaderResult){
@@ -324,9 +324,9 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 }
 
 int
-UIGenericButtonNode(int id, int x, int y, int w, int h,
-                    const char *label, UIButtonStyle style,
-                    int disabled, int *hover)
+GenericButton(int id, int x, int y, int w, int h,
+              const char *label, UIButtonStyle style, int disabled,
+              int *hover)
 {
     (void)id;
     (void)x;
@@ -357,7 +357,7 @@ UpdateUIReorderList(UIReorderList list)
 }
 
 void
-UIReorderHandleNode(int id, int x, int y, int w, int h, int active)
+ReorderHandle(int id, int x, int y, int w, int h, int active)
 {
     (void)id;
     (void)x;
@@ -368,7 +368,7 @@ UIReorderHandleNode(int id, int x, int y, int w, int h, int active)
 }
 
 void
-UIReorderPlaceholderNode(Rectangle bounds)
+ReorderPlaceholder(Rectangle bounds)
 {
     (void)bounds;
 }
@@ -432,9 +432,8 @@ GetUISmallFontSize(void)
 }
 
 int
-UIDropdownNode(int id, int x, int y, int w, int h,
-               const char **options, int option_count,
-               int *selected_index)
+Dropdown(int id, int x, int y, int w, int h, const char **options,
+         int option_count, int *selected_index)
 {
     (void)id;
     (void)x;
@@ -460,8 +459,8 @@ SetUIDropdownClipBottom(int y)
 }
 
 int
-UIPaddedIconBtnNode(int id, int x, int y, int size, int padding,
-                    Texture2D icon, int *hover)
+PaddedIconBtn(int id, int x, int y, int size, int padding,
+              Texture2D icon, int *hover)
 {
     (void)id;
     (void)x;
@@ -479,7 +478,7 @@ UIPaddedIconBtnNode(int id, int x, int y, int size, int padding,
 }
 
 void
-UIIconTextureNode(int id, int x, int y, int size, Texture2D icon, Color tint)
+IconTexture(int id, int x, int y, int size, Texture2D icon, Color tint)
 {
     (void)id;
     (void)x;

@@ -28,7 +28,6 @@ WEB :: #defined(PLATFORM_WEB)
 #enum {
     HABITS_GUIDE_STEPS = 6
     HABITS_TOP_H = 36
-    HABITS_TAB_H = 40
     HABITS_OVERVIEW_MIN_DAY_COLUMNS = 2
     HABITS_OVERVIEW_DETAIL_COLUMNS = 1
 }
@@ -852,7 +851,8 @@ habits_screen_selector_height :: (app: InbeApp*) -> int {
 
 habits_screen_top_reserved :: (app: InbeApp*) -> int {
     if app != nil && app->habits.screen_mode == HABITS_SCREEN_DETAIL {
-        return habits_screen_selector_height(app) + ScaleUIPx(HABITS_TAB_H)
+        return habits_screen_selector_height(app) +
+               UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
     }
     return habits_screen_selector_height(app)
 }
@@ -1092,7 +1092,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
                 0,
                 (float)habits_screen_selector_height(app),
                 (float)view_width,
-                (float)ScaleUIPx(HABITS_TAB_H)
+                (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
             },
             .tabs = tabs,
             .count = HABIT_TAB_COUNT,
@@ -1327,7 +1327,7 @@ habits_screen_tab_anchor :: (app: InbeApp*, first_tab: int,
     bar_x: int = 0
     bar_y: int = habits_screen_selector_height(app)
     bar_w: int = view_width
-    tab_h: int = ScaleUIPx(HABITS_TAB_H)
+    tab_h: int = UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
     tab_w: int = bar_w / HABIT_TAB_COUNT
     x: int
     w: int = tab_count * tab_w
@@ -2065,7 +2065,7 @@ habits_screen_draw_first_run_guide :: (app: InbeApp*) {
         .view_width = view_width,
         .view_height = view_height,
         .reserved_top = habits_screen_top_reserved(app),
-        .reserved_bottom = UIGetNodeHeight(UINodeBottomNav((BottomNavProps){0})),
+        .reserved_bottom = app_content_bottom_reserved(app),
         .max_width = ScaleUIPx(300),
         .paragraph_font = GetUISmallFontSize(),
         .close_icon = app->icons[UI_ICON_TYPE_X],

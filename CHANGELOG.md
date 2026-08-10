@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.16] - 2026-08-10
+### Changed
+- Fixed first-run guide overlay alignment under the Material theme by using style-aware tab and bottom navigation measurements.
+- Fixed Audio settings scroll height calculation so the page sizes to the actual custom sound, music, output, and import controls.
+- Restored Android 6/API 23 native launch compatibility by extracting packaged JNI libraries for older devices.
+- Updated Kryon to the canonical widget API and refreshed the vendored Kryon pointer.
+
 ## [1.8.15] - 2026-08-09
 ### Changed
 - Updated Kryon to the clean Kryon-owned app API and Material toggle rendering.

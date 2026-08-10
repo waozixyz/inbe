@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Inner Breeze",
   "short_name": "Inbe",
-  "version": "1.8.15",
+  "version": "1.8.16",
   "description": "Breathing, meditation, habit tracking, and encrypted sync.",
   "permissions": [
     "contextMenus"
