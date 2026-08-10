@@ -740,7 +740,7 @@ session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
     *countdown = is_countdown
 }
 
-draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, radius: float) #private {
+draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, radius: float) {
     total_ticks: int = 1
     countdown: int = 0
     progress: float = 0.0f

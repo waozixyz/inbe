@@ -35,26 +35,28 @@ manual_text_color_for_background :: (background: Color) -> Color #private {
 }
 
 draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radius: int) #private {
+    previous_phase := app->inbe.phase
+    previous_count: [CountSize] char = {0}
+    previous_sectick := app->inbe.sectick
+    previous_r := app->inbe.r
+    text_color := manual_text_color_for_background(GetThemeCircle())
     seconds := (app->inbe.frame / 60) % 60
     text: [CountSize] char = {0}
-    font := UI_TEXT_16
-    thickness := ScaleUIPx(5)
-    text_color := manual_text_color_for_background(GetThemeCircle())
 
+    cpcount(previous_count, app->inbe.count)
     count_from_int(text, seconds)
-    if thickness < 3 {
-        thickness = 3
-    }
 
-    sweep := 360.0f * (float)(app->inbe.frame % (60 * 60)) / (float)(60 * 60)
-    DrawCircle(center_x, center_y, radius, GetThemeCircle())
-    DrawCircleLines(center_x, center_y, radius, GetThemeText())
-    DrawRing((Vector2){center_x, center_y},
-                (float)(radius + ScaleUIPx(8) - thickness / 2),
-                (float)(radius + ScaleUIPx(8) + thickness / 2),
-                -90.0f, -90.0f + sweep, 96, GetThemeText())
+    app->inbe.phase = InbePhaseHold
+    cpcount(app->inbe.count, text)
+    app->inbe.sectick = app->inbe.frame % 60
+    app->inbe.r = (float)radius
+    draw_session_progress_circle(app, center_x, center_y, (float)radius)
+    DrawCenteredUIControlText(text, center_x, center_y, UI_TEXT_16, text_color)
 
-    DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
+    app->inbe.phase = previous_phase
+    cpcount(app->inbe.count, previous_count)
+    app->inbe.sectick = previous_sectick
+    app->inbe.r = previous_r
 }
 
 tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> UIParagraphSpec #private {

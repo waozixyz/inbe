@@ -233,7 +233,10 @@ commit :: (app: InbeApp*) {
     }
 
     cancel(app)
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
     app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY ? HABIT_TAB_WEEKLY : HABIT_TAB_MONTHLY
+    app->habits.scroll = 0
+    save_settings(app)
     app_switch_screen(app, InbeScreenHabits)
 }
 
@@ -367,10 +370,41 @@ color_palette_height :: (content_w: int) -> int #private {
     return (rows - 1) * ScaleUIPx(42) + ScaleUIPx(34)
 }
 
+action_delete_width :: (content_w: int) -> int #private {
+    width := MeasureUIText(GetLocaleText("habit_delete_button"),
+                           GetUISmallFontSize()) + ScaleUIPx(20)
+    min_w := ScaleUIPx(72)
+    max_w := ScaleUIPx(112)
+
+    if width < min_w {
+        width = min_w
+    }
+    if width > max_w {
+        width = max_w
+    }
+    if width > content_w {
+        width = content_w
+    }
+    return width
+}
+
+action_row_height :: (content_w: int, is_new: int) -> int #private {
+    gap := ScaleUIPx(8)
+    button_h := ScaleUIPx(40)
+    delete_w := 0
+
+    if is_new {
+        return button_h
+    }
+    delete_w = action_delete_width(content_w)
+    if content_w - delete_w - gap < ScaleUIPx(96) {
+        return button_h * 2 + gap
+    }
+    return button_h
+}
+
 scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
     app := (InbeApp*)user_data
-    actions: [2] UIButtonRowItem
-    action_count := 1
     height := ScaleUIPx(18)
 
     height += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){
@@ -388,27 +422,8 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
     height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     height += ScaleUIPx(10)
 
-    actions[0] = (UIButtonRowItem){
-        .label = GetLocaleText("save_button"),
-        .style = UI_BUTTON_STYLE_PRIMARY
-    }
-    if app != nil && !app->habit_edit.is_new {
-        actions[0] = (UIButtonRowItem){
-            .label = GetLocaleText("habit_delete_button"),
-            .style = UI_BUTTON_STYLE_DANGER
-        }
-        actions[1] = (UIButtonRowItem){
-            .label = GetLocaleText("save_button"),
-            .style = UI_BUTTON_STYLE_PRIMARY
-        }
-        action_count = 2
-    }
-    height += UIGetNodeHeight(UINodeButtonRow((ButtonRowProps){
-        .width = content_w,
-        .height = ScaleUIPx(40),
-        .items = actions,
-        .count = action_count
-    }))
+    height += action_row_height(content_w,
+                                app == nil || app->habit_edit.is_new)
     height += ScaleUIPx(24)
     return height
 }
@@ -661,40 +676,49 @@ draw :: (app: InbeApp*) {
     y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
 
     y += ScaleUIPx(10)
-    actions: [2] UIButtonRowItem
-    action_count := app->habit_edit.is_new ? 1 : 2
-    clicked_action := 0
-
     if app->habit_edit.is_new {
-        actions[0] = (UIButtonRowItem){
-            .label = GetLocaleText("save_button"),
-            .style = UI_BUTTON_STYLE_PRIMARY
+        if GenericButton(0, content_x, y, content_w, ScaleUIPx(40),
+                         GetLocaleText("save_button"),
+                         UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+            EndUIScrollPage(page)
+            commit(app)
+            return
         }
     } else {
-        actions[0] = (UIButtonRowItem){
-            .label = GetLocaleText("habit_delete_button"),
-            .style = UI_BUTTON_STYLE_DANGER
+        action_gap := ScaleUIPx(8)
+        action_h := ScaleUIPx(40)
+        delete_w := action_delete_width(content_w)
+        save_x := content_x + delete_w + action_gap
+        save_w := content_w - delete_w - action_gap
+
+        if save_w < ScaleUIPx(96) {
+            if GenericButton(0, content_x, y, content_w, action_h,
+                             GetLocaleText("save_button"),
+                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                EndUIScrollPage(page)
+                commit(app)
+                return
+            }
+            y += action_h + action_gap
+            if GenericButton(0, content_x, y, delete_w, action_h,
+                             GetLocaleText("habit_delete_button"),
+                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                app_open_modal(app, UIModalConfirmDeleteHabit)
+            }
+        } else {
+            if GenericButton(0, content_x, y, delete_w, action_h,
+                             GetLocaleText("habit_delete_button"),
+                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                app_open_modal(app, UIModalConfirmDeleteHabit)
+            }
+            if GenericButton(0, save_x, y, save_w, action_h,
+                             GetLocaleText("save_button"),
+                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                EndUIScrollPage(page)
+                commit(app)
+                return
+            }
         }
-        actions[1] = (UIButtonRowItem){
-            .label = GetLocaleText("save_button"),
-            .style = UI_BUTTON_STYLE_PRIMARY
-        }
-    }
-    clicked_action = ButtonRow((ButtonRowProps){
-        .x = content_x,
-        .y = y,
-        .width = content_w,
-        .height = ScaleUIPx(40),
-        .items = actions,
-        .count = action_count
-    })
-    if !app->habit_edit.is_new && clicked_action == 0 {
-        app_open_modal(app, UIModalConfirmDeleteHabit)
-    } else if (app->habit_edit.is_new && clicked_action == 0) ||
-              (!app->habit_edit.is_new && clicked_action == 1) {
-        EndUIScrollPage(page)
-        commit(app)
-        return
     }
 
     EndUIScrollPage(page)

@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.17] - 2026-08-10
+### Changed
+- Updated the WHM tutorial hold preview to use the same progress circle rendering as practice sessions.
+- Fixed manual tutorial navigation arrows to use the centered left and right icons.
+- Fixed habit edit Save so it returns directly to the habits overview, with a smaller Delete action for existing habits.
+- Updated Kryon to allow apps to disable automatic default font loading during UI initialization.
+
 ## [1.8.16] - 2026-08-10
 ### Changed
 - Fixed first-run guide overlay alignment under the Material theme by using style-aware tab and bottom navigation measurements.

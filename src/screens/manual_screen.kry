@@ -113,7 +113,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
                 (float)button_size,
                 (float)button_size
             },
-            .icon = app->icons[UI_ICON_TYPE_BACKWARD],
+            .icon = app->icons[UI_ICON_TYPE_LEFT],
             .icon_size = ScaleUIPx(20),
             .icon_padding = button_pad
         }) {
@@ -135,7 +135,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
             (float)button_size
         },
         .icon = app->icons[page >= nav.page_count - 1 ?
-                           UI_ICON_TYPE_CHECK : UI_ICON_TYPE_FORWARD],
+                           UI_ICON_TYPE_CHECK : UI_ICON_TYPE_RIGHT],
         .icon_size = ScaleUIPx(20),
         .icon_padding = button_pad
     }) {
