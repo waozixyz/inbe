@@ -425,7 +425,7 @@ app_audio_remove_custom_music(InbeApp *app, int index)
         app->meditation.music_track--;
     for(int i = 0; i < EXERCISE_COUNT; i++) {
         if(app->meditation.music_practice_tracks[i] == removed_track)
-            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE;
+            app->meditation.music_practice_tracks[i] = 0;
         else if(app->meditation.music_practice_tracks[i] > removed_track)
             app->meditation.music_practice_tracks[i]--;
     }
@@ -533,6 +533,7 @@ void
 app_audio_music_sanitize_selection(InbeApp *app)
 {
     int count;
+    int mask;
 
     if(app == NULL)
         return;
@@ -541,7 +542,10 @@ app_audio_music_sanitize_selection(InbeApp *app)
         count = 1;
     if(app->meditation.music_track < 0 || app->meditation.music_track >= count)
         app->meditation.music_track = 0;
-    app->meditation.music_practice_mask &= (1 << EXERCISE_COUNT) - 1;
+    /* The mask is derived from the per-practice track slots so it can never
+     * drift out of sync: a bit is set iff that practice has a valid track
+     * (i.e. not INBE_AUDIO_MUSIC_NONE). */
+    mask = 0;
     for(int i = 0; i < EXERCISE_COUNT; i++) {
         int track = app->meditation.music_practice_tracks[i];
         /* INBE_AUDIO_MUSIC_NONE (-1) is valid and means "no music". Any other
@@ -550,5 +554,8 @@ app_audio_music_sanitize_selection(InbeApp *app)
         if(track != INBE_AUDIO_MUSIC_NONE &&
            (track < 0 || track >= count))
             app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE;
+        if(app->meditation.music_practice_tracks[i] != INBE_AUDIO_MUSIC_NONE)
+            mask |= 1 << i;
     }
+    app->meditation.music_practice_mask = mask;
 }

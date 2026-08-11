@@ -172,7 +172,7 @@ whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #
 
     if Slider(10, page.content_x, *y, page.content_w,
                     GetLocaleText("speed_label"), SETTINGS_SPEED_MIN,
-                    SETTINGS_SPEED_MAX, &speed, "") {
+                    SETTINGS_SPEED_MAX, &speed, "", nil) {
         apply_settings(&app->inbe, speed, app->inbe.max_rounds,
                           int_from_count(app->inbe.maxbreaths),
                           app->inbe.pause_seconds)

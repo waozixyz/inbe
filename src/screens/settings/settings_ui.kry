@@ -99,7 +99,7 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
         return 0
     }
 
-    changed := Slider(id, x, *y, w, label, min, max, value, suffix)
+    changed := Slider(id, x, *y, w, label, min, max, value, suffix, nil)
     if changed && app != NULL {
         app->settings_dirty = 1
         if save_now {

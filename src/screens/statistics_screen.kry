@@ -98,7 +98,7 @@ statistics_day_offset_from_today :: (day_index: int, today_tm: const struct tm*)
 }
 
 statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, value: const char*, accent: Color) #private {
-    label_font := UI_TEXT_12
+    label_font := UI_TEXT_16
     value_font := UI_TEXT_24
     value_w := 0
 
@@ -108,7 +108,7 @@ statistics_draw_metric :: (x: int, y: int, w: int, h: int, label: const char*, v
     Text(label, x + ScaleUIPx(12), y + ScaleUIPx(8), label_font, DarkenUIColor(GetThemeText(), 20))
     value_w = MeasureUIText(value, value_font)
     if value_w > w - ScaleUIPx(24) {
-        value_font = UI_TEXT_16
+        value_font = 20
     }
     Text(value, x + ScaleUIPx(12), y + ScaleUIPx(30), value_font, GetThemeText())
 }

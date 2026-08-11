@@ -1663,7 +1663,12 @@ app_init(void *vapp) {
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     UpdateUIDPI(view_width, view_height);
-    InitUI(view_width, view_height, GetUIDPIScale());
+    {
+        float user_scale = app->ui_scale_tenths > 0
+                               ? (float)app->ui_scale_tenths / 10.0f
+                               : 1.0f;
+        InitUI(view_width, view_height, GetUIDPIScale() * user_scale);
+    }
     TraceLog(LOG_INFO, "INBE: DPI scale=%.2f (viewport %dx%d)", GetUIDPIScale(), view_width, view_height);
 #if ANDROID_BUILD
     SetUITextInputPlatformCallback(android_device_set_soft_keyboard_visible);
@@ -2411,7 +2416,12 @@ app_update_draw(void *vapp, Rectangle viewport) {
     }
     SetUIViewSize(view_width, view_height);
 
-    InitUI(view_width, view_height, GetUIDPIScale());
+    {
+        float user_scale = app->ui_scale_tenths > 0
+                               ? (float)app->ui_scale_tenths / 10.0f
+                               : 1.0f;
+        InitUI(view_width, view_height, GetUIDPIScale() * user_scale);
+    }
     TraceLog(LOG_INFO, "INBE_EMBED: DPI scale=%.2f for %dx%d",
              GetUIDPIScale(), view_width, view_height);
     if(app->modal.active)

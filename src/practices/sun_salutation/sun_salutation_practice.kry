@@ -427,7 +427,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
                     2,
                     12,
                     &repetitions,
-                    "x") {
+                    "x", nil) {
         app->sun_salutation.repetitions = repetitions
         save_settings(app)
     }
@@ -442,7 +442,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
                     SUN_SALUTATION_SECONDS_MIN,
                     SUN_SALUTATION_SECONDS_MAX,
                     &start_seconds,
-                    "s") {
+                    "s", nil) {
         app->sun_salutation.start_seconds = start_seconds
         normalize_settings(app)
         save_settings(app)
@@ -458,7 +458,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
                     SUN_SALUTATION_SECONDS_MIN,
                     app->sun_salutation.start_seconds,
                     &end_seconds,
-                    "s") {
+                    "s", nil) {
         app->sun_salutation.end_seconds = end_seconds
         normalize_settings(app)
         save_settings(app)

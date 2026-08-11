@@ -594,7 +594,7 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
         }
     }
     practice_total_h := 0
-    practice_n := 3
+    practice_n := practice_count()
     for int p = 0; p < practice_n; p++ {
         practice_total_h += ScaleUIPx(30) + ScaleUIPx(48) + ScaleUIPx(6)
         if app != nil {
@@ -721,7 +721,6 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     button_w := ScaleUIPx(96)
     preview_w := ScaleUIPx(82)
     gap := ScaleUIPx(8)
-    button_h := ScaleUIPx(36)
 
     if count > INBE_AUDIO_MUSIC_COUNT_MAX {
         count = INBE_AUDIO_MUSIC_COUNT_MAX
@@ -760,10 +759,8 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
                           track_options, count + 1, &selection) {
             if selection <= 0 {
                 app->meditation.music_practice_tracks[p] = INBE_AUDIO_MUSIC_NONE
-                app->meditation.music_practice_mask &= ~(1 << p)
             } else {
                 app->meditation.music_practice_tracks[p] = selection - 1
-                app->meditation.music_practice_mask |= 1 << p
             }
             if app->meditation.music_practice_tracks[p] >= 0 {
                 app->meditation.music_track = app->meditation.music_practice_tracks[p]

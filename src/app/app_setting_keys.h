@@ -22,6 +22,7 @@
     X("theme_mode") \
     X("theme_style") \
     X("orientation_mode") \
+    X("ui_scale") \
     X("main_tab") \
     X("fullscreen") \
     X("on_screen_keyboard") \

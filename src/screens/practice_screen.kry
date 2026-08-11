@@ -448,14 +448,14 @@ practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
     Text(title, x + (w - title_w) / 2,
                GetUIControlTextY(title, y, ScaleUIPx(34), title_font),
                title_font, GetThemeText())
-    metadata_font = GetUISmallFontSize()
+    metadata_font = GetUIFontSize()
     metadata_w = MeasureUIText(metadata, metadata_font)
     Text(metadata, x + (w - metadata_w) / 2,
                GetUIControlTextY(metadata, y + ScaleUIPx(34),
                                  ScaleUIPx(18), metadata_font),
                metadata_font, DarkenUIColor(GetThemeText(), 22))
     if subtitle != NULL {
-        subtitle_font := GetUISmallFontSize()
+        subtitle_font := GetUIFontSize()
         subtitle_w := MeasureUIText(subtitle, subtitle_font)
         Text(subtitle, x + (w - subtitle_w) / 2,
                    GetUIControlTextY(subtitle, y + ScaleUIPx(56),

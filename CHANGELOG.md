@@ -1,4 +1,13 @@
 # Changelog
+## [1.8.19] - 2026-08-11
+### Added
+- Added a user-facing Scale factor control in Appearance settings, with a slider plus minus/plus steppers, that rescales the whole UI live on top of the device DPI. Shows the effective scale (e.g. 2.0x) and supports shrinking below the default.
+
+### Changed
+- Bumped practice screen metadata/subtitle, statistics metric labels, and About version text to the regular font tier so they stay readable at high scale.
+- Made the per-practice music track setting keys data-driven so future practices persist automatically, and derived the practice music enable mask from the track selection to prevent drift.
+- Updated Kryon Slider widget to allow a caller-supplied value text (e.g. "1.8x") and bumped the vendored Kryon pointer.
+
 ## [1.8.18] - 2026-08-10
 ### Changed
 - Fixed Android audio/music import failing with "unsupported audio format": the file picker now preserves the original filename and a correct extension derived from the picked file's MIME type, instead of copying to an extension-less cache path.

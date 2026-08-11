@@ -312,6 +312,9 @@ Audio
 [settings_section_appearance]
 Appearance
 ---
+[appearance_scale_label]
+Scale factor
+---
 [settings_tab_about]
 About
 ---

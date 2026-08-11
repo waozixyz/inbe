@@ -107,7 +107,7 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
     if Slider(12, modal_x + ScaleUIPx(24), modal_y + ScaleUIPx(250),
                     modal_w - ScaleUIPx(48),
                     GetLocaleText("progressive_start_speed_label"),
-                    SETTINGS_SPEED_MIN, max_speed, &start_speed, "") {
+                    SETTINGS_SPEED_MIN, max_speed, &start_speed, "", nil) {
         app->inbe.progressive_start_speed = start_speed
         app->settings_dirty = 1
     }
@@ -190,7 +190,7 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
                          y + preview_padding + preview_radius)
     if Slider(1, content_x, y + preview_padding + preview_radius * 2 +
                        ScaleUIPx(28), content_w, GetLocaleText("speed_label"),
-                    SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "") {
+                    SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX, &speed, "", nil) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
                           max_breaths, pause_seconds)
@@ -254,7 +254,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     reset_hover := 0
 
     if Slider(2, content_x, y, content_w, GetLocaleText("max_rounds_label"),
-                    1, MaxRounds, &max_rounds, "") {
+                    1, MaxRounds, &max_rounds, "", nil) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
                           max_breaths, pause_seconds)
@@ -264,7 +264,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
 
     if Slider(3, content_x, y, content_w, GetLocaleText("max_breaths_label"),
                     SETTINGS_BREATHS_MIN, SETTINGS_BREATHS_MAX,
-                    &max_breaths, "") {
+                    &max_breaths, "", nil) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
                           max_breaths, pause_seconds)
@@ -275,7 +275,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     if Slider(4, content_x, y, content_w,
                     GetLocaleText("pause_after_round_label"),
                     SETTINGS_PAUSE_MIN, SETTINGS_PAUSE_MAX,
-                    &pause_seconds, "s") {
+                    &pause_seconds, "s", nil) {
         apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
         apply_settings(&app->settings_preview, speed, max_rounds,
                           max_breaths, pause_seconds)

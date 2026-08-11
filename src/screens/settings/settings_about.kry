@@ -96,7 +96,6 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     version_text: [32] char = {0}
     title_font := GetUITitleFontSize(GetLocaleText("app_title"), w)
     font := GetUIFontSize()
-    small_font := GetUISmallFontSize()
     logo_size := ScaleUIPx(56)
     text_w := 0
     muted := DarkenUIColor(GetThemeText(), 35)
@@ -113,8 +112,8 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(34)
 
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
-    text_w = MeasureUIText(version_text, small_font)
-    Text(version_text, x + (w - text_w) / 2, *y, small_font, muted)
+    text_w = MeasureUIText(version_text, font)
+    Text(version_text, x + (w - text_w) / 2, *y, font, muted)
     *y += ScaleUIPx(28)
 
     description = (UIParagraphSpec){

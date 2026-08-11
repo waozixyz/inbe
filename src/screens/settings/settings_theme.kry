@@ -7,8 +7,10 @@
 #import "theme.h"
 #import "theme_meta.h"
 #import "ui.h"
+#import "ui_dpi.h"
 #import "ui_overlay.h"
 #import "src/screens/settings/settings_types.h"
+#import <stdio.h>
 
 ui :: #import "src/screens/settings/settings_ui"
 ANDROID :: ANDROID_BUILD
@@ -18,9 +20,9 @@ content_height :: (content_w: int) -> int {
     unused content_w
 
     #if WEB {
-        return ScaleUIPx(314)
+        return ScaleUIPx(314) + ScaleUIPx(66)
     } #else {
-        return ScaleUIPx(298)
+        return ScaleUIPx(298) + ScaleUIPx(66)
     }
 }
 
@@ -35,6 +37,8 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     #if WEB {
         allow_system_source = 0
     }
+
+    draw_scale_row(app, x, w, y)
 
     settings := (ThemeSettingsProps){
         .id_base = 101,
@@ -66,6 +70,50 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     }
     *y += UIGetNodeHeight(UINodeThemeSettings(settings))
     *y += ScaleUIPx(18)
+}
+
+draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    scale_value := app->ui_scale_tenths
+    multiplier := scale_value / 10.0f
+    effective := multiplier * GetUIDPIScale()
+    scale_text: [16] char
+    step_w := ScaleUIPx(28)
+    step_gap := ScaleUIPx(8)
+    step_y := *y + ScaleUIPx(28) - ScaleUIPx(14)
+    slider_x := x + step_w + step_gap
+    slider_w := w - (step_w + step_gap) * 2
+    minus_hover := 0
+    plus_hover := 0
+    snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
+    if TextButton(141, x + step_w / 2, step_y, "-", &minus_hover) {
+        if scale_value > 5 {
+            scale_value = scale_value - 1
+        }
+    }
+    if slider_w < ScaleUIPx(100) {
+        slider_x = x
+        slider_w = w
+    }
+    if Slider(140, slider_x, *y,
+              slider_w, GetLocaleText("appearance_scale_label"),
+              5, 25, &scale_value, "", scale_text) {
+        app->ui_scale_tenths = scale_value
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    if slider_w < w {
+        if TextButton(142, x + w - step_w / 2, step_y, "+", &plus_hover) {
+            if scale_value < 25 {
+                scale_value = scale_value + 1
+            }
+        }
+    }
+    if scale_value != app->ui_scale_tenths {
+        app->ui_scale_tenths = scale_value
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    *y += ScaleUIPx(66)
 }
 
 settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
