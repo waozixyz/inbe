@@ -2422,8 +2422,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
                                : 1.0f;
         InitUI(view_width, view_height, GetUIDPIScale() * user_scale);
     }
-    TraceLog(LOG_INFO, "INBE_EMBED: DPI scale=%.2f for %dx%d",
-             GetUIDPIScale(), view_width, view_height);
     if(app->modal.active)
         BeginUIModalLayer();
     practice_update_circle_bounds(app, app_content_top_reserved(app),
