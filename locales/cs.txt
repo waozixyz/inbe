@@ -816,6 +816,24 @@ Hudba na pozadí
 [practice_music_enabled_label]
 Přehrávat během tohoto cvičení
 ---
+[appearance_scale_label]
+Měřítko
+---
+[audio_music_none_option]
+Žádné
+---
+[audio_import_error_invalid_path]
+Neplatná cesta k souboru
+---
+[audio_import_error_invalid_format]
+Nepodporovaný formát zvuku
+---
+[audio_import_error_file_not_found]
+Soubor nenalezen
+---
+[audio_import_error_copy_failed]
+Soubor nelze zkopírovat
+---
 [practice_start_button]
 Spustit cvičení
 ---

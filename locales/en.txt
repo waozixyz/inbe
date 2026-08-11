@@ -874,9 +874,6 @@ Best streak
 [theme_picker_title]
 Choose Theme
 ---
-[practice_music_title]
-Background music
----
 [practice_music_enabled_label]
 Play during this practice
 ---

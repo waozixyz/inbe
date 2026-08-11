@@ -815,6 +815,24 @@ Musique d’arrière-plan
 [practice_music_enabled_label]
 Lire pendant cette pratique
 ---
+[appearance_scale_label]
+Échelle
+---
+[audio_music_none_option]
+Aucun
+---
+[audio_import_error_invalid_path]
+Chemin de fichier invalide
+---
+[audio_import_error_invalid_format]
+Format audio non pris en charge
+---
+[audio_import_error_file_not_found]
+Fichier introuvable
+---
+[audio_import_error_copy_failed]
+Impossible de copier le fichier
+---
 [practice_start_button]
 Démarrer la pratique
 ---

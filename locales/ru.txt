@@ -816,6 +816,24 @@ Alias saved
 [practice_music_enabled_label]
 Включать во время этой практики
 ---
+[appearance_scale_label]
+Масштаб
+---
+[audio_music_none_option]
+Нет
+---
+[audio_import_error_invalid_path]
+Неверный путь к файлу
+---
+[audio_import_error_invalid_format]
+Неподдерживаемый формат аудио
+---
+[audio_import_error_file_not_found]
+Файл не найден
+---
+[audio_import_error_copy_failed]
+Не удалось скопировать файл
+---
 [practice_start_button]
 Начать практику
 ---

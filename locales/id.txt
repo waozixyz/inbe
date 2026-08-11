@@ -816,6 +816,24 @@ Musik latar
 [practice_music_enabled_label]
 Putar selama latihan ini
 ---
+[appearance_scale_label]
+Skala
+---
+[audio_music_none_option]
+Tidak ada
+---
+[audio_import_error_invalid_path]
+Path berkas tidak valid
+---
+[audio_import_error_invalid_format]
+Format audio tidak didukung
+---
+[audio_import_error_file_not_found]
+Berkas tidak ditemukan
+---
+[audio_import_error_copy_failed]
+Tidak dapat menyalin berkas
+---
 [practice_start_button]
 Mulai latihan
 ---

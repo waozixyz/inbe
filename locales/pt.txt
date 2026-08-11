@@ -816,6 +816,24 @@ Música de fundo
 [practice_music_enabled_label]
 Tocar durante esta prática
 ---
+[appearance_scale_label]
+Escala
+---
+[audio_music_none_option]
+Nenhum
+---
+[audio_import_error_invalid_path]
+Caminho de arquivo inválido
+---
+[audio_import_error_invalid_format]
+Formato de áudio não suportado
+---
+[audio_import_error_file_not_found]
+Arquivo não encontrado
+---
+[audio_import_error_copy_failed]
+Não foi possível copiar o arquivo
+---
 [practice_start_button]
 Iniciar prática
 ---

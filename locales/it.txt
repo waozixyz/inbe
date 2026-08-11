@@ -816,6 +816,24 @@ Musica di sottofondo
 [practice_music_enabled_label]
 Riproduci durante questa pratica
 ---
+[appearance_scale_label]
+Scala
+---
+[audio_music_none_option]
+Nessuno
+---
+[audio_import_error_invalid_path]
+Percorso file non valido
+---
+[audio_import_error_invalid_format]
+Formato audio non supportato
+---
+[audio_import_error_file_not_found]
+File non trovato
+---
+[audio_import_error_copy_failed]
+Impossibile copiare il file
+---
 [practice_start_button]
 Avvia pratica
 ---

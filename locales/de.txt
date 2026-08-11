@@ -816,6 +816,24 @@ Hintergrundmusik
 [practice_music_enabled_label]
 Während dieser Übung abspielen
 ---
+[appearance_scale_label]
+Skalierung
+---
+[audio_music_none_option]
+Keine
+---
+[audio_import_error_invalid_path]
+Ungültiger Dateipfad
+---
+[audio_import_error_invalid_format]
+Nicht unterstütztes Audioformat
+---
+[audio_import_error_file_not_found]
+Datei nicht gefunden
+---
+[audio_import_error_copy_failed]
+Datei konnte nicht kopiert werden
+---
 [practice_start_button]
 Praxis starten
 ---
