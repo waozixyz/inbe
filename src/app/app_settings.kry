@@ -428,14 +428,14 @@ app_load_settings :: (app: InbeApp*) -> int {
                             0, (1 << EXERCISE_COUNT) - 1)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_WIM_HOF],
-        "practice_music_track_wim_hof", 0, 0, music_max)
+        "practice_music_track_wim_hof", INBE_AUDIO_MUSIC_NONE, -1, music_max)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_MEDITATION],
-        "practice_music_track_meditation", 0, 0,
+        "practice_music_track_meditation", 0, -1,
         music_max)
     load_clamped_setting(&settings_cache,
         &app->meditation.music_practice_tracks[EXERCISE_SUN_SALUTATION],
-        "practice_music_track_sun_salutation", 0, 0,
+        "practice_music_track_sun_salutation", INBE_AUDIO_MUSIC_NONE, -1,
         music_max)
     app_audio_music_sanitize_selection(app)
     load_clamped_setting(&settings_cache, &app->practice_category_tab,

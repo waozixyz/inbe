@@ -432,6 +432,18 @@ Audio imported
 [audio_import_failed]
 Could not import audio
 ---
+[audio_import_error_invalid_path]
+Invalid file path
+---
+[audio_import_error_invalid_format]
+Unsupported audio format
+---
+[audio_import_error_file_not_found]
+File not found
+---
+[audio_import_error_copy_failed]
+Could not copy file
+---
 [audio_preview_failed]
 Could not preview audio
 ---
@@ -443,6 +455,9 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_none_option]
+None
 ---
 [audio_custom_music_title]
 Custom music

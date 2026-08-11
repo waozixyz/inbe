@@ -862,7 +862,7 @@ practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     steps[0] = (UIGuideStep){card, GetLocaleText("practice_guide_carousel")}
     steps[1] = (UIGuideStep){start, GetLocaleText("practice_guide_start")}
     steps[2] = (UIGuideStep){practice_home_action_guide_anchor(manual, config), GetLocaleText("practice_guide_manual_config")}
-    result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = 0, .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
+    result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
     }

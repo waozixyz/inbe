@@ -367,10 +367,8 @@ whm_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
         return h + bottom_padding
     }
 
-    if app->practice_config_tab == 2 {
-        return meditation_music_measure_practice_settings(app, EXERCISE_WIM_HOF,
-                                                          content_w, 1, 1) +
-               bottom_padding
+    if app->practice_config_tab > 1 {
+        app->practice_config_tab = 1
     }
 
     return ScaleUIPx(66) * 3 +
@@ -393,16 +391,15 @@ whm_config_screen_draw :: (app: InbeApp*) {
     config_tab_gap := ScaleUIPx(14)
     draw_breath_animation_menu := 0
     clicked_config_tab := -1
-    config_tabs: [3] const char* = {
+    config_tabs: [2] const char* = {
         GetLocaleText("settings_section_breathing"),
-        GetLocaleText("settings_section_session"),
-        GetLocaleText("practice_music_title")
+        GetLocaleText("settings_section_session")
     }
 
     if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app->settings_drag_slider = 0
     }
-    if app->practice_config_tab < 0 || app->practice_config_tab > 2 {
+    if app->practice_config_tab < 0 || app->practice_config_tab > 1 {
         app->practice_config_tab = 0
     }
 
@@ -412,7 +409,7 @@ whm_config_screen_draw :: (app: InbeApp*) {
                                            UIModalPracticeConfig, nil)
 
     clicked_config_tab = whm_draw_subtab_bar(layout.title_h, config_tab_h,
-                                             config_tabs, 3,
+                                             config_tabs, 2,
                                              app->practice_config_tab)
     if clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab {
         route := app_current_route(app)
@@ -435,14 +432,9 @@ whm_config_screen_draw :: (app: InbeApp*) {
         whm_config_draw_breathing_tab(app, page.content_x, page.content_w,
                                          page.content_y,
                                          &draw_breath_animation_menu)
-    } else if app->practice_config_tab == 1 {
+    } else {
         whm_config_draw_session_tab(app, page.content_x, page.content_w,
                                        page.content_y)
-    } else {
-        y := page.content_y
-        meditation_music_draw_practice_settings(app, EXERCISE_WIM_HOF,
-                                                   page.content_x, page.content_w,
-                                                   &y, 1, 1)
     }
     EndUIScrollPage(page)
 

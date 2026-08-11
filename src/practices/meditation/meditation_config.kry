@@ -32,11 +32,6 @@ meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #priv
                            : 0) +
                       ScaleUIPx(24)
 
-    if app != NULL && app->practice_config_tab == 1 {
-        return meditation_music_measure_practice_settings(app, EXERCISE_MEDITATION,
-                                                          content_w, 1, 1) +
-               bottom_padding
-    }
     return meditation_config_duration_height(content_w) + bottom_padding
 }
 
@@ -145,48 +140,13 @@ meditation_config_scroll_page_content_height :: (content_w: int, user_data: void
 
 meditation_config_screen_draw :: (app: InbeApp*) {
     layout := (PracticeSubscreenLayout){0}
-    config_tab_h := ScaleUIPx(40)
-    config_tab_gap := ScaleUIPx(14)
-    clicked_config_tab := -1
-    config_tabs: [2] const char* = {
-        GetLocaleText("meditation_duration_setting"),
-        GetLocaleText("practice_music_title")
-    }
 
-    if app->practice_config_tab < 0 || app->practice_config_tab > 1 {
-        app->practice_config_tab = 0
-    }
+    app->practice_config_tab = 0
 
-    practice_screen_config_layout(app, UIModalPracticeConfig,
-                                     config_tab_h + config_tab_gap, &layout)
+    practice_screen_config_layout(app, UIModalPracticeConfig, 0, &layout)
     practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
                                            UIModalPracticeConfig,
                                            meditation_practice_leave_config)
-
-    tabs: [2] UISubtab = {
-        {.label = config_tabs[0], .disabled = 0},
-        {.label = config_tabs[1], .disabled = 0}
-    }
-    clicked_config_tab = SubtabBar((SubtabBarProps){
-        .bounds = {
-            0,
-            (float)layout.title_h,
-            (float)view_width,
-            (float)config_tab_h
-        },
-        .tabs = tabs,
-        .count = 2,
-        .selected_index = app->practice_config_tab
-    })
-
-    if clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab {
-        route := app_current_route(app)
-
-        route.practice_config_tab = clicked_config_tab
-        app->settings_scroll = 0
-        meditation_music_unload(app)
-        app_switch_route(app, route)
-    }
 
     page_ctx := (MeditationConfigScrollPageContext){app}
     page := BeginUIScrollPage((UIScrollPageSpec){
@@ -200,12 +160,6 @@ meditation_config_screen_draw :: (app: InbeApp*) {
     })
     y := page.content_y
 
-    if app->practice_config_tab == 0 {
-        meditation_config_draw_duration(app, page.content_x, page.content_w, &y)
-    } else {
-        meditation_music_draw_practice_settings(app, EXERCISE_MEDITATION,
-                                                  page.content_x, page.content_w,
-                                                  &y, 1, 1)
-    }
+    meditation_config_draw_duration(app, page.content_x, page.content_w, &y)
     EndUIScrollPage(page)
 }

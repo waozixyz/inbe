@@ -15,10 +15,12 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.view.DisplayCutout;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.util.DisplayMetrics;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
@@ -33,6 +35,7 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.URL;
+import java.util.Arrays;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
@@ -57,6 +60,7 @@ public class MainActivity extends NativeActivity {
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
+    private native void nativeSetDeviceDensity(float density);
     private native void nativeSetSystemDark(int dark);
     private native void nativeSetOrientation(int orientation);
     private native void nativeWakeLockReady();
@@ -321,6 +325,7 @@ public class MainActivity extends NativeActivity {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
                     }
                     pendingImportKind = kind;
+                    Log.d(TAG, "Opening import picker - kind=" + kind + ", mimeTypes=" + mimeTypesCsv + ", parsed=" + Arrays.toString(mimeTypes));
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to open import picker", e);
@@ -360,6 +365,88 @@ public class MainActivity extends NativeActivity {
             : "*/*";
     }
 
+    private String extensionForUri(Uri uri) {
+        if (uri == null) return null;
+
+        // Prefer the MIME type reported by the content resolver; it is the most
+        // reliable signal for content:// URIs and maps unambiguously to an ext.
+        String mimeType = null;
+        try {
+            mimeType = getContentResolver().getType(uri);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve MIME type for uri=" + uri, e);
+        }
+        String ext = mimeType != null ? extensionForMimeType(mimeType) : null;
+        if (ext != null && !ext.isEmpty()) return ext;
+
+        // Fall back to whatever extension the URI itself exposes. For Media Store
+        // documents this is usually absent, but it covers file:// and some providers.
+        String uriExt = MimeTypeMap.getFileExtensionFromUrl(uri.getLastPathSegment());
+        return (uriExt != null && !uriExt.isEmpty()) ? uriExt : null;
+    }
+
+    private static String extensionForMimeType(String mimeType) {
+        if (mimeType == null) return null;
+        String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        if (ext != null && !ext.isEmpty()) return ext;
+
+        // Handle audio types the system map does not always resolve.
+        switch (mimeType) {
+            case "audio/mpeg":
+            case "audio/mp3":
+                return "mp3";
+            case "audio/ogg":
+            case "application/ogg":
+                return "ogg";
+            case "audio/flac":
+                return "flac";
+            case "audio/mp4":
+            case "audio/x-m4a":
+            case "audio/m4a":
+                return "m4a";
+            case "audio/opus":
+            case "audio/x-opus+ogg":
+                return "opus";
+            case "audio/x-wav":
+            case "audio/wav":
+                return "wav";
+            default:
+                return null;
+        }
+    }
+
+    private String displayNameForUri(Uri uri) {
+        if (uri == null) return null;
+
+        // Query the provider's DISPLAY_NAME column; this is the canonical way to
+        // get the original filesystem filename for a content:// URI.
+        try (android.database.Cursor cursor = getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    String name = cursor.getString(idx);
+                    if (name != null && !name.isEmpty()) return name;
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to query display name for uri=" + uri, e);
+        }
+
+        // Fall back to the URI's last path segment (useful for file:// URIs).
+        String last = uri.getLastPathSegment();
+        return (last != null && !last.isEmpty()) ? last : null;
+    }
+
+    private static String sanitizeFileName(String name) {
+        if (name == null || name.isEmpty()) return null;
+        // Strip path separators / parent refs so a crafted name can't escape the
+        // import directory, and trim surrounding whitespace.
+        String cleaned = name.replaceAll("[\\\\/]", "_").trim();
+        return cleaned.isEmpty() ? null : cleaned;
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -367,16 +454,37 @@ public class MainActivity extends NativeActivity {
         if (requestCode != REQUEST_IMPORT_ZIP) return;
 
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
+            Log.d(TAG, "Import cancelled - kind=" + pendingImportKind + ", resultCode=" + resultCode + ", data=" + (data != null));
             nativeImportCancelled(pendingImportKind);
             return;
         }
 
         Uri uri = data.getData();
+        Log.d(TAG, "File selected for import - kind=" + pendingImportKind + ", uri=" + uri);
+
         File importDir = new File(getCacheDir(), "imports");
-        File importFile = new File(importDir, "inbe-import-" + pendingImportKind);
+        String extension = extensionForUri(uri);
+        String displayName = sanitizeFileName(displayNameForUri(uri));
+        String importName;
+        if (displayName != null) {
+            // Use the real filesystem name. If it already carries the right
+            // extension (per MIME type) keep it; otherwise append the MIME-derived
+            // extension so native validation accepts it.
+            boolean hasExt = displayName.lastIndexOf('.') > 0
+                    && extension != null
+                    && !extension.isEmpty()
+                    && displayName.toLowerCase().endsWith("." + extension.toLowerCase());
+            importName = hasExt ? displayName : displayName + "."
+                    + (extension != null && !extension.isEmpty() ? extension : "bin");
+        } else {
+            importName = "inbe-import-" + pendingImportKind
+                    + (extension != null && !extension.isEmpty() ? "." + extension : "");
+        }
+        File importFile = new File(importDir, importName);
 
         try {
             if (!importDir.exists() && !importDir.mkdirs()) {
+                Log.e(TAG, "Failed to create import directory");
                 nativeImportSelectedFile(pendingImportKind, "");
                 return;
             }
@@ -384,17 +492,23 @@ public class MainActivity extends NativeActivity {
             try (InputStream input = getContentResolver().openInputStream(uri);
                  FileOutputStream output = new FileOutputStream(importFile)) {
                 if (input == null) {
+                    Log.e(TAG, "Failed to open input stream for uri=" + uri);
                     nativeImportSelectedFile(pendingImportKind, "");
                     return;
                 }
 
                 byte[] buffer = new byte[8192];
                 int read;
+                long totalBytes = 0;
                 while ((read = input.read(buffer)) != -1) {
                     output.write(buffer, 0, read);
+                    totalBytes += read;
                 }
+                Log.d(TAG, "File copied successfully - kind=" + pendingImportKind + ", path=" + importFile.getAbsolutePath() + ", size=" + totalBytes + " bytes");
             }
 
+            String mimeType = getContentResolver().getType(uri);
+            Log.d(TAG, "Calling nativeImportSelectedFile - kind=" + pendingImportKind + ", path=" + importFile.getAbsolutePath() + ", mimeType=" + mimeType);
             nativeImportSelectedFile(pendingImportKind, importFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e(TAG, "Failed to import selected file", e);
@@ -625,6 +739,11 @@ public class MainActivity extends NativeActivity {
             }
 
             nativeSetInsets(statusBar, navBar, cLeft, cTop, cRight, cBottom);
+
+            // Set device density for proper DPI scaling
+            DisplayMetrics metrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            nativeSetDeviceDensity(metrics.density);
 
         } catch (Exception e) {
             Log.e(TAG, "Error structuralizing window layout properties: " + e.getMessage());

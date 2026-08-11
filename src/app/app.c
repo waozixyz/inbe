@@ -458,9 +458,17 @@ app_toolbar_height(void)
 int
 app_content_top_reserved(const InbeApp *app)
 {
+    int system_top = 0;
+
+#if ANDROID_BUILD
+    // Include system status bar and camera cutout on Android
+    extern int android_get_system_top_reserved(void);
+    system_top = android_get_system_top_reserved();
+#endif
+
     if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return UIGetNodeHeight(UINodeTabBar((TabBarProps){0}));
-    return app_toolbar_height();
+        return system_top + UIGetNodeHeight(UINodeTabBar((TabBarProps){0}));
+    return system_top + app_toolbar_height();
 }
 
 void
@@ -1656,6 +1664,7 @@ app_init(void *vapp) {
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
     UpdateUIDPI(view_width, view_height);
     InitUI(view_width, view_height, GetUIDPIScale());
+    TraceLog(LOG_INFO, "INBE: DPI scale=%.2f (viewport %dx%d)", GetUIDPIScale(), view_width, view_height);
 #if ANDROID_BUILD
     SetUITextInputPlatformCallback(android_device_set_soft_keyboard_visible);
 #endif
@@ -2403,6 +2412,8 @@ app_update_draw(void *vapp, Rectangle viewport) {
     SetUIViewSize(view_width, view_height);
 
     InitUI(view_width, view_height, GetUIDPIScale());
+    TraceLog(LOG_INFO, "INBE_EMBED: DPI scale=%.2f for %dx%d",
+             GetUIDPIScale(), view_width, view_height);
     if(app->modal.active)
         BeginUIModalLayer();
     practice_update_circle_bounds(app, app_content_top_reserved(app),
@@ -2443,7 +2454,6 @@ app_update_draw(void *vapp, Rectangle viewport) {
     view_width = content_w;
     view_height = full_height;
     SetUIViewSize(view_width, view_height);
-    InitUI(view_width, view_height, GetUIDPIScale());
     app->camera = (Camera2D){0};
     app->camera.zoom = 1.0f;
     app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;

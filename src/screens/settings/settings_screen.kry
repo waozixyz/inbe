@@ -2,6 +2,7 @@
 #import "app_nav.h"
 #import "app/app_settings.h"
 #import "locale.h"
+#import "practices/meditation/meditation_practice.h"
 #import "settings_about.h"
 #import "screens/settings/settings_audio.h"
 #import "screens/settings/settings_data_ui.h"
@@ -167,6 +168,9 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         settings_data_handle_web_import(app)
     }
     settings_audio_handle_import(app)
+    if app->settings_tab == SETTINGS_TAB_AUDIO {
+        meditation_music_update(app)
+    }
 
     if content_viewport_h < 0 {
         content_viewport_h = 0

@@ -75,7 +75,8 @@ app_audio_music_file_valid(const char *path)
 
     if(path == NULL || path[0] == '\0')
         return 0;
-    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.xm;.mod"))
+    /* Support for: ogg, wav, qoa, xm, mod, mp3, flac, m4a, opus */
+    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"))
         return 0;
     file = fopen(path, "rb");
     if(file == NULL)
@@ -91,7 +92,8 @@ app_audio_sound_file_valid(const char *path)
 
     if(path == NULL || path[0] == '\0')
         return 0;
-    if(!IsFileExtension(path, ".ogg;.wav;.qoa"))
+    /* Support for: ogg, wav, qoa, mp3, flac, m4a, opus */
+    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"))
         return 0;
     file = fopen(path, "rb");
     if(file == NULL)
@@ -156,7 +158,7 @@ audio_title_from_path(char out[INBE_AUDIO_LABEL_SIZE], const char *path)
 static int
 audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
                   const char *kind, const char *src,
-                  int (*valid)(const char *path))
+                  int (*valid)(const char *path), int *error_code)
 {
     char dir[FS_PATH_MAX];
     char dst[FS_PATH_MAX];
@@ -164,23 +166,56 @@ audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
     const char *ext;
     int index;
 
+    if(error_code)
+        *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
+
     if(items == NULL || count == NULL || valid == NULL ||
-       *count < 0 || *count >= max_count)
+       *count < 0 || *count >= max_count) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
         return -1;
-    if(!valid(src))
+    }
+
+    if(src == NULL || src[0] == '\0') {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_INVALID_PATH;
         return -1;
-    if(!audio_ensure_library_dir(kind, dir, sizeof(dir)))
+    }
+
+    if(!valid(src)) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_INVALID_FORMAT;
         return -1;
+    }
+
+    if(!audio_ensure_library_dir(kind, dir, sizeof(dir))) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_COPY_FAILED;
+        return -1;
+    }
+
+    if(!FileExists(src)) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_FILE_NOT_FOUND;
+        return -1;
+    }
 
     index = *count;
     ext = GetFileExtension(src);
     if(ext == NULL || ext[0] == '\0')
         ext = ".ogg";
     snprintf(dst, sizeof(dst), "%s/custom-%02d%s", dir, index + 1, ext);
-    if(!audio_copy_file(src, dst))
+    if(!audio_copy_file(src, dst)) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_COPY_FAILED;
         return -1;
-    if(!valid(dst))
+    }
+
+    if(!valid(dst)) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_INVALID_FORMAT;
         return -1;
+    }
 
     audio_title_from_path(title, src);
     snprintf(items[index].title, sizeof(items[index].title), "%s", title);
@@ -284,15 +319,29 @@ app_audio_library_save(const InbeApp *app)
 int
 app_audio_import_custom_sound(InbeApp *app, int cue, const char *path)
 {
+    int error_code;
+    return app_audio_import_custom_sound_ex(app, cue, path, &error_code);
+}
+
+int
+app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *error_code)
+{
     int index;
 
-    if(app == NULL)
+    if(error_code)
+        *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
+
+    if(app == NULL) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
         return 0;
+    }
+
     index = audio_import_item(app->audio_custom_sounds,
                               &app->audio_custom_sound_count,
                               INBE_AUDIO_CUSTOM_SOUND_MAX,
                               "sounds", path,
-                              app_audio_sound_file_valid);
+                              app_audio_sound_file_valid, error_code);
     if(index < 0)
         return 0;
     if(cue >= 0 && cue < INBE_AUDIO_CUE_COUNT)
@@ -305,15 +354,29 @@ app_audio_import_custom_sound(InbeApp *app, int cue, const char *path)
 int
 app_audio_import_custom_music(InbeApp *app, const char *path)
 {
+    int error_code;
+    return app_audio_import_custom_music_ex(app, path, &error_code);
+}
+
+int
+app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code)
+{
     int index;
 
-    if(app == NULL)
+    if(error_code)
+        *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
+
+    if(app == NULL) {
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
         return 0;
+    }
+
     index = audio_import_item(app->audio_custom_music,
                               &app->audio_custom_music_count,
                               INBE_AUDIO_CUSTOM_MUSIC_MAX,
                               "music", path,
-                              app_audio_music_file_valid);
+                              app_audio_music_file_valid, error_code);
     if(index < 0)
         return 0;
     app->meditation.music_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
@@ -362,7 +425,7 @@ app_audio_remove_custom_music(InbeApp *app, int index)
         app->meditation.music_track--;
     for(int i = 0; i < EXERCISE_COUNT; i++) {
         if(app->meditation.music_practice_tracks[i] == removed_track)
-            app->meditation.music_practice_tracks[i] = 0;
+            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE;
         else if(app->meditation.music_practice_tracks[i] > removed_track)
             app->meditation.music_practice_tracks[i]--;
     }
@@ -480,8 +543,12 @@ app_audio_music_sanitize_selection(InbeApp *app)
         app->meditation.music_track = 0;
     app->meditation.music_practice_mask &= (1 << EXERCISE_COUNT) - 1;
     for(int i = 0; i < EXERCISE_COUNT; i++) {
-        if(app->meditation.music_practice_tracks[i] < 0 ||
-           app->meditation.music_practice_tracks[i] >= count)
-            app->meditation.music_practice_tracks[i] = 0;
+        int track = app->meditation.music_practice_tracks[i];
+        /* INBE_AUDIO_MUSIC_NONE (-1) is valid and means "no music". Any other
+         * out-of-range value is clamped to None rather than 0 so a stale index
+         * never silently selects a different track. */
+        if(track != INBE_AUDIO_MUSIC_NONE &&
+           (track < 0 || track >= count))
+            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE;
     }
 }

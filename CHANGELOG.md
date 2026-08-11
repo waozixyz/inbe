@@ -1,4 +1,12 @@
 # Changelog
+## [1.8.18] - 2026-08-10
+### Changed
+- Fixed Android audio/music import failing with "unsupported audio format": the file picker now preserves the original filename and a correct extension derived from the picked file's MIME type, instead of copying to an extension-less cache path.
+- Fixed long custom music titles overlapping the play/pause and remove buttons in Audio settings by fitting them with an ellipsis.
+- Moved background music selection out of per-practice customization and into Audio settings, with one track dropdown per practice (Wim Hof, Meditation, Sun Salutation), each defaulting to "None" except Meditation.
+- Added a download/redownload button and progress indicator for the bundled meditation music pack directly in Audio settings.
+- Showed the "Music by Elijah_K." attribution under a practice's track dropdown only when a bundled track requiring attribution is selected.
+
 ## [1.8.17] - 2026-08-10
 ### Changed
 - Updated the WHM tutorial hold preview to use the same progress circle rendering as practice sessions.

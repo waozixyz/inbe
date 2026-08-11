@@ -62,6 +62,15 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
     pthread_mutex_unlock(&insets_mutex);
 }
 
+static void nativeSetDeviceDensity(JNIEnv *env, jobject thiz, jfloat density)
+{
+    (void)env;
+    (void)thiz;
+
+    extern void SetUIDeviceDensity(float);
+    SetUIDeviceDensity(density);
+}
+
 static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
 {
 	void *app = get_global_inbe_app();
@@ -138,6 +147,7 @@ static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
 
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
+    {"nativeSetDeviceDensity", "(F)V", (void*)nativeSetDeviceDensity},
     {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
     {"nativeSetBackgroundActive", "(Z)V", (void*)nativeSetBackgroundActive},
     {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
@@ -212,4 +222,18 @@ int android_insets_is_initialized(void) {
     result = insets_initialized;
     pthread_mutex_unlock(&insets_mutex);
     return result;
+}
+
+int android_get_system_top_reserved(void) {
+    int status_bar;
+    int cutout_top;
+
+    pthread_mutex_lock(&insets_mutex);
+    status_bar = current_insets.status_bar;
+    cutout_top = current_insets.cutout_top;
+    pthread_mutex_unlock(&insets_mutex);
+
+    // Return the max of status bar and camera cutout, ensuring non-negative
+    int system_top = status_bar > cutout_top ? status_bar : cutout_top;
+    return system_top > 0 ? system_top : 0;
 }

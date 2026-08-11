@@ -349,14 +349,7 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
     }
 
     bottom_padding = app_content_bottom_reserved(ctx->app) + ScaleUIPx(24)
-    if ctx->app->practice_config_tab == 1 {
-        return meditation_music_measure_practice_settings(ctx->app,
-                                                          EXERCISE_SUN_SALUTATION,
-                                                          content_w,
-                                                          1,
-                                                          1) +
-               bottom_padding
-    }
+    ctx->app->practice_config_tab = 0
     return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? ScaleUIPx(148) + ScaleUIPx(16) : 0) +
            preview_height(content_w) + ScaleUIPx(16) +
            ScaleUIPx(74) * 3 + bottom_padding
@@ -364,27 +357,18 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
 
 sun_salutation_config_screen_draw :: (app: InbeApp*) {
     title_h := app_content_top_reserved(app)
-    config_tab_h := ScaleUIPx(40)
-    config_tab_gap := ScaleUIPx(14)
     scroll_y: int
     scroll_h: int
     repetitions: int
     start_seconds: int
     end_seconds: int
-    clicked_config_tab: int
-    config_tabs: [2] const char* = {
-        GetLocaleText("practice_config_title"),
-        GetLocaleText("practice_music_title")
-    }
 
     if app == nil {
         return
     }
 
     normalize_settings(app)
-    if app->practice_config_tab < 0 || app->practice_config_tab > 1 {
-        app->practice_config_tab = 0
-    }
+    app->practice_config_tab = 0
 
     if app->modal.active && app->modal.type == UIModalPracticeConfig {
         title_h = UIGetNodeHeight(UINodeTitleBar(0))
@@ -406,26 +390,7 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         return
     }
 
-    tabs: [2] UISubtab = {
-        {.label = config_tabs[0], .disabled = 0},
-        {.label = config_tabs[1], .disabled = 0}
-    }
-    clicked_config_tab = SubtabBar((SubtabBarProps){
-        .bounds = {0, (float)title_h, (float)view_width, (float)config_tab_h},
-        .tabs = tabs,
-        .count = 2,
-        .selected_index = app->practice_config_tab
-    })
-    if clicked_config_tab >= 0 && clicked_config_tab != app->practice_config_tab {
-        route := app_current_route(app)
-
-        route.practice_config_tab = clicked_config_tab
-        app->settings_scroll = 0
-        meditation_music_unload(app)
-        app_switch_route(app, route)
-    }
-
-    scroll_y = title_h + config_tab_h + config_tab_gap
+    scroll_y = title_h + ScaleUIPx(14)
     scroll_h = view_height - scroll_y - app_content_bottom_reserved(app)
     if scroll_h < 0 {
         scroll_h = 0
@@ -443,70 +408,60 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
     })
     y := page.content_y
 
-    if app->practice_config_tab == 0 {
-        if SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 {
-            if draw_figure_selector(app, page.content_x, y, page.content_w) {
-                save_settings(app)
-            }
-            y += ScaleUIPx(148) + ScaleUIPx(16)
-        }
-
-        draw_preview(app, page.content_x, y, page.content_w)
-        y += preview_height(page.content_w) + ScaleUIPx(16)
-
-        repetitions = app->sun_salutation.repetitions
-        if Slider(610,
-                        page.content_x,
-                        y,
-                        page.content_w,
-                        GetLocaleText("sun_salutation_repetitions_label"),
-                        2,
-                        12,
-                        &repetitions,
-                        "x") {
-            app->sun_salutation.repetitions = repetitions
+    if SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 {
+        if draw_figure_selector(app, page.content_x, y, page.content_w) {
             save_settings(app)
         }
-        y += ScaleUIPx(74)
+        y += ScaleUIPx(148) + ScaleUIPx(16)
+    }
 
-        start_seconds = app->sun_salutation.start_seconds
-        if Slider(611,
-                        page.content_x,
-                        y,
-                        page.content_w,
-                        GetLocaleText("sun_salutation_start_speed_label"),
-                        SUN_SALUTATION_SECONDS_MIN,
-                        SUN_SALUTATION_SECONDS_MAX,
-                        &start_seconds,
-                        "s") {
-            app->sun_salutation.start_seconds = start_seconds
-            normalize_settings(app)
-            save_settings(app)
-        }
-        y += ScaleUIPx(74)
+    draw_preview(app, page.content_x, y, page.content_w)
+    y += preview_height(page.content_w) + ScaleUIPx(16)
 
-        end_seconds = app->sun_salutation.end_seconds
-        if Slider(612,
-                        page.content_x,
-                        y,
-                        page.content_w,
-                        GetLocaleText("sun_salutation_end_speed_label"),
-                        SUN_SALUTATION_SECONDS_MIN,
-                        app->sun_salutation.start_seconds,
-                        &end_seconds,
-                        "s") {
-            app->sun_salutation.end_seconds = end_seconds
-            normalize_settings(app)
-            save_settings(app)
-        }
-    } else {
-        meditation_music_draw_practice_settings(app,
-                                                  EXERCISE_SUN_SALUTATION,
-                                                  page.content_x,
-                                                  page.content_w,
-                                                  &y,
-                                                  1,
-                                                  1)
+    repetitions = app->sun_salutation.repetitions
+    if Slider(610,
+                    page.content_x,
+                    y,
+                    page.content_w,
+                    GetLocaleText("sun_salutation_repetitions_label"),
+                    2,
+                    12,
+                    &repetitions,
+                    "x") {
+        app->sun_salutation.repetitions = repetitions
+        save_settings(app)
+    }
+    y += ScaleUIPx(74)
+
+    start_seconds = app->sun_salutation.start_seconds
+    if Slider(611,
+                    page.content_x,
+                    y,
+                    page.content_w,
+                    GetLocaleText("sun_salutation_start_speed_label"),
+                    SUN_SALUTATION_SECONDS_MIN,
+                    SUN_SALUTATION_SECONDS_MAX,
+                    &start_seconds,
+                    "s") {
+        app->sun_salutation.start_seconds = start_seconds
+        normalize_settings(app)
+        save_settings(app)
+    }
+    y += ScaleUIPx(74)
+
+    end_seconds = app->sun_salutation.end_seconds
+    if Slider(612,
+                    page.content_x,
+                    y,
+                    page.content_w,
+                    GetLocaleText("sun_salutation_end_speed_label"),
+                    SUN_SALUTATION_SECONDS_MIN,
+                    app->sun_salutation.start_seconds,
+                    &end_seconds,
+                    "s") {
+        app->sun_salutation.end_seconds = end_seconds
+        normalize_settings(app)
+        save_settings(app)
     }
 
     EndUIScrollPage(page)

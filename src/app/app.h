@@ -62,7 +62,10 @@ enum {
     INBE_AUDIO_CUSTOM_MUSIC_MAX = 16,
     INBE_AUDIO_LABEL_SIZE = 64,
     INBE_AUDIO_MUSIC_COUNT_MAX =
-        INBE_AUDIO_BUILTIN_MUSIC_COUNT + INBE_AUDIO_CUSTOM_MUSIC_MAX
+        INBE_AUDIO_BUILTIN_MUSIC_COUNT + INBE_AUDIO_CUSTOM_MUSIC_MAX,
+    /* Sentinel for "no music selected" on a per-practice track slot. A value
+     * of -1 means the practice plays no background music. */
+    INBE_AUDIO_MUSIC_NONE = -1
 };
 
 enum {
@@ -494,6 +497,17 @@ int app_bell_cue_playing(InbeApp *app);
 void app_audio_library_load(InbeApp *app);
 void app_audio_library_save(const InbeApp *app);
 void app_audio_reload_cue_sounds(InbeApp *app);
+
+/* Audio import error codes */
+#define AUDIO_IMPORT_SUCCESS 1
+#define AUDIO_IMPORT_ERROR_INVALID_PATH -1
+#define AUDIO_IMPORT_ERROR_INVALID_FORMAT -2
+#define AUDIO_IMPORT_ERROR_FILE_NOT_FOUND -3
+#define AUDIO_IMPORT_ERROR_COPY_FAILED -4
+#define AUDIO_IMPORT_ERROR_UNKNOWN -5
+
+int app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *error_code);
+int app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code);
 int app_audio_import_custom_sound(InbeApp *app, int cue, const char *path);
 int app_audio_import_custom_music(InbeApp *app, const char *path);
 int app_audio_remove_custom_sound(InbeApp *app, int index);
