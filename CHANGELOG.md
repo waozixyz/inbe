@@ -1,4 +1,11 @@
 # Changelog
+## [1.8.20] - 2026-08-12
+### Fixed
+- Fixed Android default scaling being too small by using the best available DPI estimate (maximum of viewport ratio, device density, and window scale) instead of device density alone, which under-scaled on tall screens.
+- Regenerated the Latin font subset to include accented characters (ä ö ü ß é ñ č etc.) so German, French, Spanish, Czech and other Latin-script languages no longer fall back to a visually different system font.
+- Removed per-frame DPI scale log spam from the embed draw path.
+- Fixed the CI release build by upstreaming the SetUIDeviceDensity hook and other kryon fixes that were only present as uncommitted vendor working-tree edits.
+
 ## [1.8.19] - 2026-08-11
 ### Added
 - Added a user-facing Scale factor control in Appearance settings, with a slider plus minus/plus steppers, that rescales the whole UI live on top of the device DPI. Shows the effective scale (e.g. 2.0x) and supports shrinking below the default.
