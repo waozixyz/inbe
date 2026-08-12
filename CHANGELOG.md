@@ -1,4 +1,8 @@
 # Changelog
+## [1.8.21] - 2026-08-12
+### Fixed
+- Fixed text corruption and overflow at high UI scale: font-shrink loops in the habits weekly view and WHM progressive-speed editor stepped or compared against scaled pixel values instead of logical font sizes, causing text to shrink too fast or never shrink. Title bars, toasts, and empty text fields now use the scaled line height for vertical centering and container sizing.
+
 ## [1.8.20] - 2026-08-12
 ### Fixed
 - Fixed Android default scaling being too small by using the best available DPI estimate (maximum of viewport ratio, device density, and window scale) instead of device density alone, which under-scaled on tall screens.

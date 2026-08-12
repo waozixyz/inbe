@@ -28,7 +28,7 @@
     <binary>inbe</binary>
   </provides>
   <releases>
-    <release version="1.8.20" date="2026-08-12"/>
+    <release version="1.8.21" date="2026-08-12"/>
   </releases>
   <content_rating type="oars-1.1"/>
 </component>

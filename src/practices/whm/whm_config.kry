@@ -79,7 +79,7 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
     title = GetLocaleText("progressive_start_speed_editor_title")
     title_w = MeasureUIText(title, title_font)
     title_max_w = modal_w - close_w * 2 - ScaleUIPx(24)
-    while title_font > ScaleUIPx(12) && title_w > title_max_w {
+    while title_font > UI_TEXT_12 && title_w > title_max_w {
         title_font--
         title_w = MeasureUIText(title, title_font)
     }

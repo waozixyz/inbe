@@ -2226,7 +2226,7 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
     font_size = text_size
     while font_size > UI_TEXT_8 &&
           MeasureUIText(text, font_size) > w {
-        font_size -= ScaleUIPx(1)
+        font_size -= 1
     }
 
     if MeasureUIText(text, font_size) > w {
