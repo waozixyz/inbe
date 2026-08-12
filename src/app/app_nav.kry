@@ -107,7 +107,9 @@ app_open_nav_sidebar :: (app: InbeApp*) #private {
     }
     app->nav_sidebar_open = 1
     app->nav_sidebar_open_frame = app->inbe.frame
+    app->nav_sidebar_return_on_back = 0
     if app_nav_sidebar_compact() {
+        app->nav_sidebar_prior_screen = app->inbe.screen
         app_switch_screen(app, InbeScreenNavSidebar)
     }
 }
@@ -119,7 +121,13 @@ app_close_nav_sidebar :: (app: InbeApp*) {
     app->nav_sidebar_open = 0
     app->nav_sidebar_return_on_back = 0
     if app_nav_sidebar_screen_active(app) {
-        app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
+        prior := app->nav_sidebar_prior_screen
+        if prior > 0 && prior != InbeScreenNavSidebar {
+            app_switch_screen(app, prior)
+        } else {
+            app_switch_screen(app, app_screen_for_main_tab(app->main_tab))
+        }
+        app_block_pointer_frame(app)
     }
 }
 
@@ -140,6 +148,7 @@ app_return_to_nav_sidebar_if_needed :: (app: InbeApp*) -> int {
     }
     app->nav_sidebar_return_on_back = 0
     app_open_nav_sidebar(app)
+    app->nav_sidebar_prior_screen = app_screen_for_main_tab(app->main_tab)
     return 1
 }
 
@@ -648,6 +657,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
        UIPointerReleaseOutside((Rectangle){(float)sidebar_x, 0.0f,
                                            (float)sidebar_w,
                                            (float)view_height}) {
+        UIConsumeRelease()
         app_close_nav_sidebar(app)
         return
     }

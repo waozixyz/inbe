@@ -1,4 +1,9 @@
 # Changelog
+## [1.8.22] - 2026-08-12
+### Fixed
+- Fixed a ghost-click bug when closing the sidebar by swiping left on mobile: the pointer release bled through to the newly-shown screen, triggering a stray click on whatever nav item or button was under the release point (e.g. opening About). The release is now consumed before the screen switch.
+- Fixed sidebar navigation returning to the wrong screen: closing the sidebar now remembers and returns to the screen it was opened from, and the return-on-back flag is properly cleared on re-open so it can't loop.
+
 ## [1.8.21] - 2026-08-12
 ### Fixed
 - Fixed text corruption and overflow at high UI scale: font-shrink loops in the habits weekly view and WHM progressive-speed editor stepped or compared against scaled pixel values instead of logical font sizes, causing text to shrink too fast or never shrink. Title bars, toasts, and empty text fields now use the scaled line height for vertical centering and container sizing.

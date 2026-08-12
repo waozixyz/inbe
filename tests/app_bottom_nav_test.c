@@ -503,6 +503,12 @@ UIPointerReleaseOutside(Rectangle bounds)
            !CheckCollisionPointRec(mouse, bounds);
 }
 
+void
+UIConsumeRelease(void)
+{
+    pointer_release_consumed = 1;
+}
+
 const char *
 GetLocaleText(const char *key)
 {
