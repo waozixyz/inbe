@@ -218,7 +218,19 @@ KRYON_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_ZLIB=OFF \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
+# inbe is a UI-only app: drop the 2D physics subsystem (Box2D) entirely. The
+# flag must precede the vendor.mk include (which defaults it to 1); the source
+# filter and define are applied right after it. KRYON_WEB/WINDOWS/CLICK_SRCS
+# were snapshotted from KRYON_SRCS above (before this filter), so re-apply it
+# to every build variant -- otherwise the kryon physics .c files (which need
+# box2d.h) leak into the web/Windows/click builds and break them.
+KRYON_WITH_PHYSICS ?= 0
 include $(KRYON_DIR)/mk/vendor.mk
+KRYON_INCLUDE += $(KRYON_PHYSICS_CPPFLAGS)
+KRYON_SRCS := $(filter-out $(KRYON_PHYSICS_SRCS),$(KRYON_SRCS))
+KRYON_WEB_SRCS := $(filter-out $(KRYON_PHYSICS_SRCS),$(KRYON_WEB_SRCS))
+KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_PHYSICS_SRCS),$(KRYON_WINDOWS_SRCS))
+KRYON_CLICK_SRCS := $(filter-out $(KRYON_PHYSICS_SRCS),$(KRYON_CLICK_SRCS))
 KRYON_LIBOQS_CPU_FEATURE_CMAKE_FLAGS ?= \
 	-DOQS_USE_ADX_INSTRUCTIONS=OFF \
 	-DOQS_USE_AES_INSTRUCTIONS=OFF \
