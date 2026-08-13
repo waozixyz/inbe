@@ -11,7 +11,6 @@
 #include "app/app_sync.h"
 #include "app/app_settings.h"
 #include "data.h"
-#include "locale.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
@@ -25,12 +24,6 @@
 #include "practices/practice_registry.h"
 #include "app/device_preferences.h"
 #include "storage.h"
-#include "theme.h"
-#include "ui_clip.h"
-#include "ui.h"
-#include "ui_dpi.h"
-#include "ui_text.h"
-#include "embedded_assets.h"
 #include "practices/meditation/meditation_practice.h"
 #include "practices/whm/whm_session.h"
 #include "sync_account.h"
@@ -696,104 +689,6 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
     }
 }
 
-typedef struct UIFontCodepoints {
-    int *values;
-    int count;
-    int cap;
-} UIFontCodepoints;
-
-static void
-ui_font_codepoints_free(UIFontCodepoints *set)
-{
-    if(set == NULL)
-        return;
-    free(set->values);
-    set->values = NULL;
-    set->count = 0;
-    set->cap = 0;
-}
-
-static int
-ui_font_codepoints_has(const UIFontCodepoints *set, int codepoint)
-{
-    if(set == NULL)
-        return 0;
-    for(int i = 0; i < set->count; i++) {
-        if(set->values[i] == codepoint)
-            return 1;
-    }
-    return 0;
-}
-
-static int
-ui_font_codepoints_add(UIFontCodepoints *set, int codepoint)
-{
-    int *next;
-    int next_cap;
-
-    if(set == NULL || codepoint <= 0 || codepoint >= 0x110000)
-        return 0;
-    if(codepoint >= 0xD800 && codepoint <= 0xDFFF)
-        return 0;
-    if(ui_font_codepoints_has(set, codepoint))
-        return 1;
-
-    if(set->count >= set->cap) {
-        next_cap = set->cap == 0 ? 128 : set->cap * 2;
-        next = realloc(set->values, (size_t)next_cap * sizeof(*next));
-        if(next == NULL)
-            return 0;
-        set->values = next;
-        set->cap = next_cap;
-    }
-
-    set->values[set->count++] = codepoint;
-    return 1;
-}
-
-static void
-ui_font_codepoints_add_ascii(UIFontCodepoints *set)
-{
-    for(int codepoint = 0x20; codepoint <= 0x7E; codepoint++)
-        (void)ui_font_codepoints_add(set, codepoint);
-}
-
-static void
-ui_font_codepoints_add_data(UIFontCodepoints *set, const unsigned char *text, unsigned int size)
-{
-    if(set == NULL || text == NULL)
-        return;
-
-    for(unsigned int i = 0; i < size;) {
-        int codepoint;
-        unsigned char c = text[i];
-
-        if(c < 0x80) {
-            codepoint = c;
-            i++;
-        } else if((c & 0xE0) == 0xC0 && i + 1 < size) {
-            codepoint = ((int)(c & 0x1F) << 6) | (int)(text[i + 1] & 0x3F);
-            i += 2;
-        } else if((c & 0xF0) == 0xE0 && i + 2 < size) {
-            codepoint = ((int)(c & 0x0F) << 12) |
-                        ((int)(text[i + 1] & 0x3F) << 6) |
-                        (int)(text[i + 2] & 0x3F);
-            i += 3;
-        } else if((c & 0xF8) == 0xF0 && i + 3 < size) {
-            codepoint = ((int)(c & 0x07) << 18) |
-                        ((int)(text[i + 1] & 0x3F) << 12) |
-                        ((int)(text[i + 2] & 0x3F) << 6) |
-                        (int)(text[i + 3] & 0x3F);
-            i += 4;
-        } else {
-            i++;
-            continue;
-        }
-        if(codepoint != '\n' && codepoint != '\r' && codepoint != '\t')
-            (void)ui_font_codepoints_add(set, codepoint);
-    }
-}
-
 static const char *
 ui_font_asset_for_locale(const char *code)
 {
@@ -811,52 +706,6 @@ ui_font_asset_for_locale(const char *code)
 }
 
 static int
-load_locale_font_codepoints(const char *code, UIFontCodepoints *set)
-{
-    char path[64];
-    const EmbeddedAsset *asset;
-
-    if(set == NULL)
-        return 0;
-
-    ui_font_codepoints_add_ascii(set);
-    if(code == NULL || code[0] == '\0')
-        code = "en";
-
-    asset = GetEmbeddedAsset("locales/index.txt");
-    if(asset != NULL)
-        ui_font_codepoints_add_data(set, asset->data, asset->size);
-
-    snprintf(path, sizeof(path), "locales/%s.txt", code);
-    asset = GetEmbeddedAsset(path);
-    if(asset != NULL)
-        ui_font_codepoints_add_data(set, asset->data, asset->size);
-
-    if(strcmp(code, "en") != 0) {
-        asset = GetEmbeddedAsset("locales/en.txt");
-        if(asset != NULL)
-            ui_font_codepoints_add_data(set, asset->data, asset->size);
-    }
-
-    return set->count > 0;
-}
-
-static int
-load_language_picker_font_codepoints(UIFontCodepoints *set)
-{
-    const EmbeddedAsset *asset;
-
-    if(set == NULL)
-        return 0;
-
-    ui_font_codepoints_add_ascii(set);
-    asset = GetEmbeddedAsset("locales/index.txt");
-    if(asset != NULL)
-        ui_font_codepoints_add_data(set, asset->data, asset->size);
-    return set->count > 0;
-}
-
-static int
 app_running_in_kryon_preview(void)
 {
     const char *inspect = getenv("KRYON_INSPECT");
@@ -865,13 +714,17 @@ app_running_in_kryon_preview(void)
            (inspect != NULL && inspect[0] != '\0' && strcmp(inspect, "0") != 0);
 }
 
+/* Register a UI font from an embedded asset. Kryon seeds the standard
+ * codepoint range (ASCII, Latin and Latin Extended, punctuation, currency,
+ * Greek, Cyrillic) and grows the atlas on demand, so the font renders every
+ * glyph its file contains in its own typeface instead of falling back to a
+ * different registered font. */
 static int
-register_ui_font_source(const char *name, const char *path,
-                        const UIFontCodepoints *codepoints)
+register_ui_font_source(const char *name, const char *path)
 {
     const EmbeddedAsset *asset;
 
-    if(name == NULL || path == NULL || codepoints == NULL || codepoints->count <= 0)
+    if(name == NULL || path == NULL)
         return 0;
 
     asset = GetEmbeddedAsset(path);
@@ -880,18 +733,20 @@ register_ui_font_source(const char *name, const char *path,
 
     return RegisterUIFontSource(name, GetEmbeddedAssetExtension(path),
                                 asset->data, asset->size,
-                                codepoints->values, codepoints->count);
+                                NULL, 0);
 }
 
 #if ANDROID_BUILD
+/* Android system fonts act as cross-font fallback for scripts the bundled
+ * subset lacks. They are dynamic source fonts: the atlas grows as glyphs are
+ * needed. (.ttc collections are omitted -- raylib cannot load them.) */
 static void
-register_android_system_font_fallbacks(const UIFontCodepoints *codepoints)
+register_android_system_font_fallbacks(void)
 {
     static const struct {
         const char *name;
         const char *path;
     } fonts[] = {
-        {"sys-cjk", "/system/fonts/NotoSansCJK-Regular.ttc"},
         {"sys-sc", "/system/fonts/NotoSansSC-Regular.otf"},
         {"sys-jp", "/system/fonts/NotoSansJP-Regular.otf"},
         {"sys-kr", "/system/fonts/NotoSansKR-Regular.otf"},
@@ -900,48 +755,27 @@ register_android_system_font_fallbacks(const UIFontCodepoints *codepoints)
         {"sys-roboto", "/system/fonts/Roboto-Regular.ttf"}
     };
 
-    if(codepoints == NULL || codepoints->count <= 0)
-        return;
-
-    for(size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++) {
-        (void)RegisterUIFontFileSource(fonts[i].name, fonts[i].path,
-                                       codepoints->values, codepoints->count,
-                                       1);
-    }
+    for(size_t i = 0; i < sizeof(fonts) / sizeof(fonts[0]); i++)
+        (void)RegisterUIFontFileSource(fonts[i].name, fonts[i].path, NULL, 0);
 }
 #endif
 
+/* The language picker lists every locale in its native script, so CJK glyphs
+ * must render even when the active UI font is Latin. Register the CJK subset
+ * fonts as cross-font fallback; they grow on demand as their glyphs are drawn. */
 static void
 register_language_picker_fonts(void)
 {
-    UIFontCodepoints codepoints = {0};
-
-    if(!load_language_picker_font_codepoints(&codepoints)) {
-        ui_font_codepoints_free(&codepoints);
-        return;
-    }
-
-    (void)register_ui_font_source("ui-lang-latin",
-                                  INBE_FONT_LATIN,
-                                  &codepoints);
-    (void)register_ui_font_source("ui-lang-ja",
-                                  INBE_FONT_JP,
-                                  &codepoints);
-    (void)register_ui_font_source("ui-lang-ko",
-                                  INBE_FONT_KR,
-                                  &codepoints);
-    (void)register_ui_font_source("ui-lang-zh",
-                                  INBE_FONT_SC,
-                                  &codepoints);
-
-    ui_font_codepoints_free(&codepoints);
+    (void)register_ui_font_source("ui-lang-latin", INBE_FONT_LATIN);
+    (void)register_ui_font_source("ui-lang-ja", INBE_FONT_JP);
+    (void)register_ui_font_source("ui-lang-ko", INBE_FONT_KR);
+    (void)register_ui_font_source("ui-lang-zh", INBE_FONT_SC);
 }
 
 static int
 load_locale_font(InbeApp *app)
 {
     Image white;
-    UIFontCodepoints codepoints = {0};
     const char *code;
     const char *font_path;
     const EmbeddedAsset *font_asset;
@@ -957,17 +791,15 @@ load_locale_font(InbeApp *app)
     font_asset = GetEmbeddedAsset(font_path);
     if(font_asset == NULL)
         return 0;
-    if(!load_locale_font_codepoints(code, &codepoints))
-        goto done;
 
     if(!IsUIInspectActive())
         ClearUIFonts();
     if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
                              font_asset->data, font_asset->size,
-                             codepoints.values, codepoints.count))
+                             NULL, 0))
         goto done;
 #if ANDROID_BUILD
-    register_android_system_font_fallbacks(&codepoints);
+    register_android_system_font_fallbacks();
 #endif
     register_language_picker_fonts();
     if(!UseUIFont("ui"))
@@ -984,7 +816,6 @@ load_locale_font(InbeApp *app)
     ok = 1;
 
 done:
-    ui_font_codepoints_free(&codepoints);
     if(!ok && !IsUIInspectActive())
         ClearUIFonts();
     return ok;
