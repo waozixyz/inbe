@@ -1,7 +1,6 @@
 #include "android_share.h"
 #include "platform.h"
 #include "data.h"
-#include "locale.h"
 #include "storage.h"
 #include "version.h"
 #include "kryon.h"

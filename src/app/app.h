@@ -6,8 +6,6 @@
 #include "core/breath_engine.h"
 #include "app_fwd.h"
 #include "runtime_assets.h"
-#include "ui_transition.h"
-#include "ui_icon_types.h"
 #include "screens/habits_screen.h"
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"

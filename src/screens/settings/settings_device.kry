@@ -1,11 +1,8 @@
 #import "app.h"
 #import "app/app_settings.h"
 #import "app/device_preferences.h"
-#import "locale.h"
 #import "src/screens/settings/settings_types.h"
 #import "src/screens/settings/settings_ui.h"
-#import "theme.h"
-#import "ui.h"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)

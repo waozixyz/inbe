@@ -1,11 +1,8 @@
 #import "app.h"
 #import "data.h"
-#import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "stdio.h"
-#import "theme.h"
-#import "ui.h"
 
 exit_to_start :: (app: InbeApp*) #private {
     if app == nil {

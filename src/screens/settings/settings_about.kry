@@ -1,9 +1,5 @@
 #import "app.h"
-#import "kryon.h"
-#import "locale.h"
 #import "stdio.h"
-#import "theme.h"
-#import "ui.h"
 #import "version.h"
 
 about_link_icon_columns :: (content_w: int) -> int #private {

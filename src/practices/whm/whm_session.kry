@@ -3,10 +3,6 @@
 #import "app_nav.h" #private
 #import "platform.h" #private
 #import "data.h" #private
-#import "locale.h" #private
-#import "theme.h" #private
-#import "ui_dpi.h" #private
-#import "ui.h" #private
 #import "practices/meditation/meditation_music.h" #private
 #import "practices/practice_registry.h" #private
 #import <math.h>

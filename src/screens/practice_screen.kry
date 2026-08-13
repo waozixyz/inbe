@@ -1,13 +1,9 @@
 #import "app.h"
 #import "app_nav.h"
 #import "app/app_settings.h"
-#import "locale.h"
 #import "screens/manual_screen.h"
 #import "practices/practice_registry.h"
 #import "sync_account.h"
-#import "theme.h"
-#import "ui.h"
-#import "ui_overlay.h"
 
 #enum {
     PRACTICE_CATEGORY_TAB_H = 40

@@ -1,13 +1,9 @@
 #import "app.h"
-#import "kryon.h"
-#import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/whm/whm_practice.h"
 #import "practices/whm/whm_session.h"
 #import "screens/practice_screen.h"
 #import "src/screens/settings/settings_ui.h"
-#import "theme.h"
-#import "ui.h"
 
 whm_draw_exact_speed_preview :: (preview: Inbe*, preview_speed: int*,
                                 speed: int, max_rounds: int, max_breaths: int,

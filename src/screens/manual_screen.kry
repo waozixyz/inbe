@@ -1,9 +1,6 @@
 #import "app.h"
 #import "core/breath_engine.h"
-#import "locale.h"
 #import "practices/practice_registry.h"
-#import "theme.h"
-#import "ui.h"
 #import "stdio.h"
 
 ManualGuideStartFn :: void (*)(InbeApp*) #type

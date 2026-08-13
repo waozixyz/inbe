@@ -1,12 +1,8 @@
 #import "app.h"
-#import "kryon.h"
-#import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/meditation/meditation_practice.h"
 #import "screens/practice_screen.h"
 #import "stdio.h"
-#import "theme.h"
-#import "ui.h"
 
 MeditationConfigScrollPageContext :: struct {
     app: InbeApp*

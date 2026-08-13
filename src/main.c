@@ -2,13 +2,7 @@
 #include "app.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
-#include "ui_clip.h"
-#include "ui_dpi.h"
-#include "theme_meta.h"
-#include "web.h"
-#include "theme.h"
 #include "app/device_preferences.h"
-#include "embedded_assets.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>

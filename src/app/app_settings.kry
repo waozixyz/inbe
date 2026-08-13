@@ -2,14 +2,10 @@
 
 #import "app_nav.h" #private
 #import "app/device_preferences.h" #private
-#import "locale.h" #private
 #import "practices/meditation/meditation_music.h" #private
 #import "practices/sun_salutation/sun_salutation_practice.h" #private
 #import "practices/whm/whm_session.h" #private
 #import "storage.h" #private
-#import "theme.h" #private
-#import "ui_dpi.h" #private
-#import "ui.h" #private
 #import <stdio.h>
 #import <stdlib.h>
 #import <string.h>

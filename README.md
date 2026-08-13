@@ -31,7 +31,7 @@ On FreeBSD:
 gmake run KRYON_DIR=../kryon
 ```
 
-Use this only for local debugging; permanent Flint fixes should be committed in
+Use this only for local debugging. Permanent Kryon fixes should be committed in
 the root Kryon repository and then brought into Inbe by updating
 `vendor/kryon`.
 
@@ -198,7 +198,7 @@ uninstalled.
 - `locales/` - translations
 - `droid/` - Android project
 - `site/` - website
-- `vendor/kryon/` - Flint UI/runtime submodule
+- `vendor/kryon/` - Kryon UI/runtime submodule
 
 ## Notes
 

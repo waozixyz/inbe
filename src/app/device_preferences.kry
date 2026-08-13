@@ -1,7 +1,5 @@
 #import "app.h"
 #import "platform.h"
-#import "theme.h"
-#import "ui.h"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)

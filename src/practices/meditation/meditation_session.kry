@@ -1,12 +1,9 @@
 #import "app.h"
 #import "data.h"
-#import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/meditation/meditation_practice.h"
 #import "practices/practice_registry.h"
 #import "stdio.h"
-#import "theme.h"
-#import "ui.h"
 
 static background_remainder_ms: int = 0
 

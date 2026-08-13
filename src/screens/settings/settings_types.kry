@@ -1,6 +1,6 @@
 #module "settings.types"
 
-#import "ui_overlay.h"
+#import "kryon.h"
 
 SettingsDeviceState :: struct {
     draw_language_menu: int

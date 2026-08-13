@@ -1,11 +1,8 @@
 #import "app.h"
 #import "app_nav.h"
 
-#import "locale.h" #private
 #import "storage.h" #private
 #import "sync_account.h" #private
-#import "theme.h" #private
-#import "ui.h" #private
 #import "screens/profile_social.h" #private
 #import "screens/settings/settings_screen.h" #private
 #import <stdio.h>

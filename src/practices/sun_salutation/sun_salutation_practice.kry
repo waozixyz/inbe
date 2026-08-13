@@ -1,12 +1,8 @@
 #import "app.h"
 #import "app/app_settings.h"
-#import "locale.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "stdio.h"
-#import "theme.h"
-#import "ui.h"
-#import "ui_text.h"
 
 static pose_sequence: [SUN_SALUTATION_STEP_COUNT] const int = {
     0, 1, 2, 3, 4, 5,

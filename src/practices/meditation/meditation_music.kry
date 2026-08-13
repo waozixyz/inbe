@@ -1,15 +1,10 @@
 #import "app.h"
-#import "locale.h"
 #import "miniz.h"
 #import "practices/practice_registry.h"
 #import "runtime_assets.h"
 #import "stdio.h"
 #import "stdlib.h"
 #import "string.h"
-#import "theme.h"
-#import "ui.h"
-#import "ui_color.h"
-#import "ui_text.h"
 
 WEB :: #defined(PLATFORM_WEB)
 HAS_DEBUG_LOCAL_ASSETS :: #defined(DEBUG_LOCAL_ASSETS)

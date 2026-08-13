@@ -1,15 +1,9 @@
 #import "app.h"
 #import "app/app_settings.h"
-#import "kryon.h"
-#import "locale.h"
 #import "practices/whm/whm_practice.h"
 #import "practices/whm/whm_session.h"
 #import "screens/manual_screen.h"
 #import "screens/practice_screen.h"
-#import "theme.h"
-#import "theme_meta.h"
-#import "ui.h"
-#import "ui_clip.h"
 
 static tutorial_keys: [5] const char* = {
     "tutorial_step_intro",

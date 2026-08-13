@@ -1,11 +1,4 @@
 #import "app.h"
-#import "kryon.h"
-#import "locale.h"
-#import "theme.h"
-#import "ui.h"
-#import "ui_color.h"
-#import "ui_scaling.h"
-#import "ui_text.h"
 
 pet :: #import "src/widgets/pet_egg"
 

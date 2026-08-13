@@ -1,7 +1,6 @@
 #import "app.h"
 #import "app_nav.h"
 #import "app/app_settings.h"
-#import "locale.h"
 #import "practices/meditation/meditation_practice.h"
 #import "settings_about.h"
 #import "screens/settings/settings_audio.h"
@@ -9,8 +8,6 @@
 #import "screens/settings/settings_device.h"
 #import "screens/settings/settings_types.h"
 #import "string.h"
-#import "theme.h"
-#import "ui.h"
 
 SettingsScrollPageContext :: struct {
     app: InbeApp*

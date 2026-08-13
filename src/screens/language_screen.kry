@@ -1,7 +1,4 @@
 #import "app.h"
-#import "locale.h"
-#import "theme.h"
-#import "ui.h"
 
 language_screen_draw :: (app: InbeApp*) {
     if app == NULL {

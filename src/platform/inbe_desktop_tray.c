@@ -5,10 +5,8 @@
 #include "app.h"
 #include "desktop_tray.h"
 #include "habits_screen.h"
-#include "locale.h"
 #include "practices/practice_registry.h"
 #include "practices/sun_salutation/sun_salutation_practice.h"
-#include "kryon.h"
 
 #include <stdio.h>
 #include <string.h>

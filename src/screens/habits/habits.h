@@ -6,12 +6,8 @@
 #include "data.h"
 #include "storage.h"
 #include "app.h"
-#include "theme.h"
 #include "runtime_assets.h"
-#include "locale.h"
 #include "core/breath_engine.h"
-#include "ui_clip.h"
-#include "ui.h"
 
 #include <stdio.h>
 #include <stdlib.h>

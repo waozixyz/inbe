@@ -3,12 +3,6 @@
 #import "app.h"
 #import "app/app_settings.h"
 #import "app/device_preferences.h"
-#import "locale.h"
-#import "theme.h"
-#import "theme_meta.h"
-#import "ui.h"
-#import "ui_dpi.h"
-#import "ui_overlay.h"
 #import "src/screens/settings/settings_types.h"
 #import <stdio.h>
 

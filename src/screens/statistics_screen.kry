@@ -1,13 +1,10 @@
 #import "app.h"
 #import "habits/habits.h"
-#import "locale.h"
 #import "stddef.h"
 #import "stdio.h"
 #import "stdlib.h"
 #import "string.h"
-#import "theme.h"
 #import "time.h"
-#import "ui.h"
 
 #enum {
     STATISTICS_MAX_GRAPH_DAYS = 31

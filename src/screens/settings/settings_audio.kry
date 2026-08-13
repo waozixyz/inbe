@@ -2,14 +2,11 @@
 #import "app/app_settings.h"
 #import "android_import.h"
 #import "file_dialog.h"
-#import "locale.h"
 #import "practices/meditation/meditation_practice.h"
 #import "practices/practice_registry.h"
 #import "screens/settings/settings_screen.h"
 #import "src/screens/settings/settings_ui.h"
 #import "text_utils.h"
-#import "theme.h"
-#import "ui.h"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)

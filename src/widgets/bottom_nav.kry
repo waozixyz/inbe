@@ -1,7 +1,5 @@
 #import "app.h"
 #import "app_nav.h"
-#import "locale.h"
-#import "ui.h"
 
 bottom_nav_route_label :: (route: int) -> const char* #private {
     if route == APP_NAV_ROUTE_PROFILE || route == APP_NAV_ROUTE_ACCOUNT {

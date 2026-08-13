@@ -1,7 +1,6 @@
 #import "storage.h"
 
 #import "db.h" #private
-#import "locale.h" #private
 #import <sqlite3.h>
 #import <stdio.h>
 #import <stdlib.h>

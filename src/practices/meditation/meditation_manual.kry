@@ -1,11 +1,7 @@
 #import "app.h"
-#import "kryon.h"
-#import "locale.h"
 #import "practices/meditation/meditation_practice.h"
 #import "screens/manual_screen.h"
 #import "screens/practice_screen.h"
-#import "theme.h"
-#import "ui.h"
 
 meditation_manual_start :: (app: InbeApp*) #private {
     mark_exercise_manual_seen(app, EXERCISE_MEDITATION)

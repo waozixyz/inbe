@@ -1,7 +1,6 @@
 #module "pet"
 
 #import "app.h"
-#import "kryon.h"
 #import "math.h"
 
 draw_egg :: (app: InbeApp*, center_x: int, center_y: int, egg_size: int) {
