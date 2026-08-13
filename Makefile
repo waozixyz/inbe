@@ -1432,7 +1432,7 @@ web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
 	WEB_SMOKE_BROWSER="librewolf" WEB_SMOKE_ALLOW_WEBGL_DISABLED=1 node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
-	tclsh site/build.tcl
+	sh site/build.sh
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 

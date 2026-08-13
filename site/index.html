@@ -12,7 +12,7 @@
 	<link rel="manifest" href="/manifest.json">
 	<link rel="icon" type="image/png" sizes="32x32" href="/site-icons/favicon-32x32.png">
 	<link rel="apple-touch-icon" href="/site-icons/apple-touch-icon.png">
-	<meta name="theme-color" content="#5566aa">
+	<meta name="theme-color" content="#f3f1ea">
 	<meta property="og:type" content="website">
 	<meta property="og:url" content="https://inbe.waozi.xyz/">
 	<meta property="og:title" content="Inner Breeze">
@@ -25,48 +25,77 @@
 	<meta name="twitter:image" content="https://inbe.waozi.xyz/og.jpg">
 </head>
 <body>
+	<header class="site-header">
+		<div class="site-header-inner">
+			<a class="brand" href="#main-content">
+				<img src="/web-assets/icons/inbe.png" width="22" height="22" alt="Inner Breeze">
+				<span>INNER BREEZE</span>
+			</a>
+			<nav class="header-nav" aria-label="Primary">
+				<a href="#downloads">Download</a>
+				<a href="#features">Features</a>
+				<a href="#safety">Safety</a>
+				<a class="is-external" href="https://waozi.xyz">Waozi ↗</a>
+				<a class="btn btn-primary" href="/build/web/index.html">Run Web</a>
+			</nav>
+		</div>
+	</header>
 	<div class="content">
 		<main id="main-content">
 			<section class="hero" aria-label="App introduction and download options">
-				<img class="tk-img" src="/web-assets/icons/inbe.png" width="128" alt="Inner Breeze app logo">
-				<h1>Inner Breeze</h1>
-				<p>calm breathing, meditation sessions, and habit tracking</p>
-				<p class="version">${version}</p>
-				<nav aria-label="Platform downloads" class="platform-buttons">
-					<a href="/build/web/index.html" class="platform-btn web">
-						<img src="/web-assets/icons/wasm.png" alt="">
-						<span>Run Web</span>
-					</a>
-					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" class="platform-btn android" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/droid.png" alt="">
-						<span>Android</span>
-					</a>
-					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" class="platform-btn windows" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/win.png" alt="">
-						<span>Windows</span>
-					</a>
-					<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" class="platform-btn linux" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/tux.png" alt="">
-						<span>Linux</span>
-					</a>
-				</nav>
-				<nav aria-label="App store downloads" class="platform-buttons">
-					<a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/playstore.png" alt="">
-						<span>Play Store</span>
-					</a>
-					<a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/fdroid.png" alt="">
-						<span>F-Droid</span>
-					</a>
-					<a href="https://waozi.itch.io/inbe" class="platform-btn web" target="_blank" rel="noopener">
-						<img src="/web-assets/icons/itch.png" alt="">
-						<span>itch.io</span>
-					</a>
-				</nav>
+				<div class="hero-copy">
+					<span class="hero-eyebrow"><span class="dot"></span>Breathing &middot; meditation &middot; habits</span>
+					<img class="tk-img" src="/web-assets/icons/inbe.png" width="96" alt="Inner Breeze app logo">
+					<h1>Inner Breeze</h1>
+					<p class="hero-sub">calm breathing, meditation sessions, habit tracking, themes, and local-first progress history</p>
+					<p class="version">${version}</p>
+					<div class="hero-cta">
+						<a class="btn btn-primary" href="/build/web/index.html">Run Web</a>
+						<a class="btn" href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">View source</a>
+					</div>
+				</div>
+				<div class="hero-panel" id="downloads">
+					<div class="hero-panel-bar">
+						<span class="tl"></span><span class="tl"></span><span class="tl"></span>
+						<span class="title">downloads</span>
+					</div>
+					<div class="hero-panel-body">
+						<nav aria-label="Platform downloads" class="platform-buttons">
+							<a href="/build/web/index.html" class="platform-btn web">
+								<img src="/web-assets/icons/wasm.png" alt="">
+								<span>Run Web</span>
+							</a>
+							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" class="platform-btn android" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/droid.png" alt="">
+								<span>Android</span>
+							</a>
+							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" class="platform-btn windows" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/win.png" alt="">
+								<span>Windows</span>
+							</a>
+							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" class="platform-btn linux" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/tux.png" alt="">
+								<span>Linux</span>
+							</a>
+							<a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/playstore.png" alt="">
+								<span>Play Store</span>
+							</a>
+							<a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/fdroid.png" alt="">
+								<span>F-Droid</span>
+							</a>
+							<a href="https://waozi.itch.io/inbe" class="platform-btn web" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/itch.png" alt="">
+								<span>itch.io</span>
+							</a>
+						</nav>
+					</div>
+				</div>
 			</section>
 
-			<section class="features-section">
+			<section class="features-section" id="features">
+				<p class="section-eyebrow">Features</p>
 				<h2>Features</h2>
 				<div class="features-grid">
 					<div class="feature-item"><h3>Guided Breathing</h3><p>Wim Hof style rounds with clear breath cues, retention timing, and session flow.</p></div>
@@ -84,7 +113,8 @@
 				<p><a href="/legacy-converter.html">Open legacy data converter</a></p>
 			</section>
 
-			<section class="about-section">
+			<section class="about-section" id="safety">
+				<p class="section-eyebrow">Safety</p>
 				<h2>Practice Safely</h2>
 				<p>Inner Breeze includes intense breathing exercises and calmer meditation sessions. Choose the practice that fits the moment, stay seated or lying down, and keep the session gentle when you need rest.</p>
 				<ul class="benefits-list">
