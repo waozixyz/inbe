@@ -134,17 +134,7 @@ jobs:
             --data-binary "@build/inbe-site.zip" \
             "https://api.netlify.com/api/v1/sites/$site_id/deploys")"
 
-          python3 - "$response" <<'PY'
-import json
-import sys
-
-deploy = json.loads(sys.argv[1])
-state = deploy.get("state", "")
-url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy.get("id")
-print(f"Netlify deploy {state}: {url}")
-if state in ("error", "failed"):
-    raise SystemExit(1)
-PY
+          python3 -c 'import json, sys; deploy = json.loads(sys.argv[1]); state = deploy.get("state", ""); url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy.get("id"); print(f"Netlify deploy {state}: {url}"); raise SystemExit(1 if state in ("error", "failed") else 0)' "$response"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
