@@ -325,7 +325,7 @@
 	min-height: 36px;
 	padding: 8px 14px;
 	font-weight: 700;
-	cursor: url('/web-assets/cursors/sight.png') 6 1, pointer;
+	cursor: pointer;
 }
 
 .dropdown[open] summary {
