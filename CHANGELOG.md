@@ -1,4 +1,10 @@
 # Changelog
+## [1.8.23] - 2026-08-13
+### Fixed
+- Properly fixed accented characters (ä ö ü ß é ñ č etc.) typed into text fields rendering in a different, broken font. The active UI font is now dynamic in kryon and renders every glyph its file contains in its own typeface, instead of the brittle per-locale codepoint set that missed any character not present in the current locale's file. (1.8.20 only regenerated the font subset; this is the root-cause fix in kryon.)
+### Changed
+- Bumped the vendored Kryon pointer, and excluded Kryon's 2D physics (Box2D) sources from the Android build (inbe is UI-only) so the APK builds cleanly after the bump.
+
 ## [1.8.22] - 2026-08-12
 ### Fixed
 - Fixed a ghost-click bug when closing the sidebar by swiping left on mobile: the pointer release bled through to the newly-shown screen, triggering a stray click on whatever nav item or button was under the release point (e.g. opening About). The release is now consumed before the screen switch.
