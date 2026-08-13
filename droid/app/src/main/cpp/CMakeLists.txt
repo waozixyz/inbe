@@ -34,6 +34,13 @@ if(NOT TARGET oqs)
 endif()
 file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
 list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
+# inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
+# KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
+list(REMOVE_ITEM KRYON_SOURCES
+    "${KRYON_DIR}/src/scene/physics_world.c"
+    "${KRYON_DIR}/src/scene/node_body2d.c"
+    "${KRYON_DIR}/src/scene/node_area2d.c"
+    "${KRYON_DIR}/src/scene/node_collision_shape2d.c")
 file(GLOB KRYON_KC_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kc/*.c")
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
 set(KRYON_KC "${CMAKE_BINARY_DIR}/host-tools/kc")
@@ -217,6 +224,7 @@ target_compile_definitions(main PRIVATE
     SUPPORT_FILEFORMAT_OGG=1
     UI_EMBEDDED_ONLY=1
     HAS_LIBOQS=1
+    KRYON_WITH_PHYSICS=0
 )
 
 target_compile_options(main PRIVATE
