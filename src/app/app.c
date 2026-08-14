@@ -1381,6 +1381,31 @@ app_update_desktop_background_state(InbeApp *app)
 }
 #endif
 
+/* Wrappers for screen draws that return int (e.g. "handled?"); the dispatcher
+ * in updateapp() always finishes the frame after them, so the return is unused. */
+static void app_draw_settings_screen(InbeApp *app)      { (void)settings_screen_draw(app); }
+static void app_draw_profile_screen(InbeApp *app)       { (void)profile_screen_draw(app); }
+static void app_draw_customize_nav_screen(InbeApp *app) { (void)app_draw_customize_nav_page(app); }
+
+/* Simple screens: draw, then finish the frame. Adding a screen is a one-line
+ * table entry. The practice screens (Start/Session/Meditation/SunSalutation/
+ * Results) are dispatched separately below -- they share circle-bounds and
+ * active-session logic that does not fit a flat table. */
+static const struct {
+    int screen;
+    void (*draw)(InbeApp *app);
+} g_simple_screens[] = {
+    { InbeScreenSettings,         app_draw_settings_screen },
+    { InbeScreenProfile,          app_draw_profile_screen },
+    { InbeScreenPet,              pet_screen_draw },
+    { InbeScreenCustomizeNav,     app_draw_customize_nav_screen },
+    { InbeScreenNavSidebar,       NULL },
+    { InbeScreenLanguage,         language_screen_draw },
+    { InbeScreenHabits,           draw_habits_screen },
+    { InbeScreenHabitEdit,        habit_edit_draw },
+    { InbeScreenHabitSessionEdit, habit_session_draw_edit_screen },
+};
+
 static void
 updateapp(InbeApp *app)
 {
@@ -1474,51 +1499,12 @@ updateapp(InbeApp *app)
     }
 #endif
 
-    if(app->inbe.screen == InbeScreenSettings) {
-        if(settings_screen_draw(app))
+    for(size_t i = 0; i < sizeof(g_simple_screens) / sizeof(g_simple_screens[0]); i++) {
+        if(app->inbe.screen == g_simple_screens[i].screen) {
+            if(g_simple_screens[i].draw != NULL)
+                g_simple_screens[i].draw(app);
             goto finish_frame;
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenProfile) {
-        if(profile_screen_draw(app))
-            goto finish_frame;
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenPet) {
-        pet_screen_draw(app);
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenCustomizeNav) {
-        if(app_draw_customize_nav_page(app))
-            goto finish_frame;
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenNavSidebar) {
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenLanguage) {
-        language_screen_draw(app);
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenHabits) {
-        draw_habits_screen(app);
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenHabitEdit) {
-        habit_edit_draw(app);
-        goto finish_frame;
-    }
-
-    if(app->inbe.screen == InbeScreenHabitSessionEdit) {
-        habit_session_draw_edit_screen(app);
-        goto finish_frame;
+        }
     }
 
     if(app->inbe.screen == InbeScreenStart) {
