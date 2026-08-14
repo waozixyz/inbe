@@ -1159,7 +1159,7 @@ Omitir
 Descanso ahora
 ---
 [break_prelude_text]
-Se acerca un descanso — relájate un momento
+Se acerca un descanso - relájate un momento
 ---
 [settings_tab_breaks]
 Descansos

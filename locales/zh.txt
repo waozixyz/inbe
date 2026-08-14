@@ -1159,7 +1159,7 @@ Remove
 立即休息
 ---
 [break_prelude_text]
-休息即将开始——放松一下
+休息即将开始 - 放松一下
 ---
 [settings_tab_breaks]
 休息

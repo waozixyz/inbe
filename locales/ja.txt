@@ -1161,7 +1161,7 @@ Remove
 今すぐ休息
 ---
 [break_prelude_text]
-まもなく休憩です — 少しリラックスしましょう
+まもなく休憩です - 少しリラックスしましょう
 ---
 [settings_tab_breaks]
 休憩

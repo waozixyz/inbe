@@ -1159,7 +1159,7 @@ Lewati
 Istirahat panjang sekarang
 ---
 [break_prelude_text]
-Istirahat sebentar lagi — santai sejenak
+Istirahat sebentar lagi - santai sejenak
 ---
 [settings_tab_breaks]
 Istirahat

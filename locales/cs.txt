@@ -1159,7 +1159,7 @@ Přeskočit
 Delší přestávka hned
 ---
 [break_prelude_text]
-Přestávka se blíží — na chvíli se uvolněte
+Přestávka se blíží - na chvíli se uvolněte
 ---
 [settings_tab_breaks]
 Přestávky

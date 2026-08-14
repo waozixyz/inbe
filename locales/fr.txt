@@ -1158,7 +1158,7 @@ Passer
 Pause repos maintenant
 ---
 [break_prelude_text]
-Pause imminente — détendez-vous un instant
+Pause imminente - détendez-vous un instant
 ---
 [settings_tab_breaks]
 Pauses

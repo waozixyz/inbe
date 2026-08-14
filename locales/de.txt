@@ -1159,7 +1159,7 @@ Verschieben
 Ruhepause jetzt
 ---
 [break_prelude_text]
-Pause steht bevor — entspannen Sie sich kurz
+Pause steht bevor - entspannen Sie sich kurz
 ---
 [settings_tab_breaks]
 Pausen

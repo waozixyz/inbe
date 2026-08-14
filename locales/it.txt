@@ -1159,7 +1159,7 @@ Salta
 Pausa di riposo ora
 ---
 [break_prelude_text]
-Pausa in arrivo — rilassati un momento
+Pausa in arrivo - rilassati un momento
 ---
 [settings_tab_breaks]
 Pausa

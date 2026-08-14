@@ -1158,7 +1158,7 @@ Remove
 지금 긴 휴식
 ---
 [break_prelude_text]
-곧 휴식이 시작됩니다 — 잠시 몸을 푸세요
+곧 휴식이 시작됩니다 - 잠시 몸을 푸세요
 ---
 [settings_tab_breaks]
 휴식

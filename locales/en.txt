@@ -1154,7 +1154,7 @@ Skip
 Rest break now
 ---
 [break_prelude_text]
-Break coming up — unwind for a moment
+Break coming up - unwind for a moment
 ---
 [settings_tab_breaks]
 Breaks
