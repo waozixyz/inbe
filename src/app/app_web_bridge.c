@@ -1,7 +1,10 @@
 #include "app.h"
 #include "app_internal.h"
+#include "data.h"
 #include "sync_account.h"
 #include "storage.h"
+#include "practices/practice_registry.h"
+#include <stdio.h>
 #include <string.h>
 
 #if defined(PLATFORM_WEB)
