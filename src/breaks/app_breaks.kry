@@ -12,6 +12,7 @@ WEB :: #defined(PLATFORM_WEB)
     BreakEventQueueMax = 8
     BreakStatsFlushS = 60
     BreakFallbackInputTicks = 90
+    BreakCatchupMaxS = 300
 }
 
 break_day_key :: () -> int #private {
@@ -122,7 +123,34 @@ app_breaks_update :: (app: InbeApp*) {
 
 #if !ANDROID && !WEB {
     active := break_sample_activity(app)
+    now := GetTime()
+    elapsed := 0.0f
+    ticks := 0
+
     app->break_input_active = active
+
+    if app->break_last_update_time <= 0.0f {
+        app->break_last_update_time = now
+    }
+    elapsed = (float)(now - app->break_last_update_time)
+    if elapsed < 0.0f {
+        elapsed = 0.0f
+    }
+    if elapsed > (float)BreakCatchupMaxS {
+        elapsed = (float)BreakCatchupMaxS
+    }
+    app->break_last_update_time = now
+
+    pending := app->break_tick_pending + elapsed * (float)BreakTicksPerSecond
+    ticks = (int)pending
+    if ticks <= 0 {
+        app->break_tick_pending = pending
+        return
+    }
+    if ticks > BreakCatchupMaxS * BreakTicksPerSecond {
+        ticks = BreakCatchupMaxS * BreakTicksPerSecond
+    }
+    app->break_tick_pending = pending - (float)ticks
 
     day := break_day_key()
     if break_engine_set_day(&app->breaks, day) {
@@ -131,9 +159,10 @@ app_breaks_update :: (app: InbeApp*) {
         app->break_stats_flush_s = 0
     }
 
-    break_engine_tick(&app->breaks, active)
-
-    app->break_stats_flush_s++
+    for int i = 0; i < ticks; i++ {
+        break_engine_tick(&app->breaks, active)
+        app->break_stats_flush_s++
+    }
     if app->break_stats_flush_s >= BreakStatsFlushS {
         app->break_stats_flush_s = 0
         storage_break_flush_day(&app->breaks)

@@ -485,6 +485,8 @@ struct InbeApp {
     int break_fallback_last_input;
     int break_stats_flush_s;
     int break_exercises_scroll;
+    double break_last_update_time;
+    float break_tick_pending;
 };
 
 void app_set_host_api(InbeApp *app, InbeHostApi host);
