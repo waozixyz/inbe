@@ -286,11 +286,7 @@ RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
 APP_SRCS := \
 	src/main.c \
-	src/app/app.c \
-	src/app/app_fonts.c \
-	src/app/app_audio.c \
-	src/app/app_web_bridge.c \
-	src/app/audio_library.c \
+	$(sort $(wildcard src/app/*.c)) \
 	src/storage/storage.c \
 	src/storage/sync_client.c \
 	src/third_party/miniz.c \

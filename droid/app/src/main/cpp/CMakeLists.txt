@@ -47,6 +47,11 @@ set(KRYON_KC "${CMAKE_BINARY_DIR}/host-tools/kc")
 set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
 file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
 list(SORT INBE_KRY_SOURCES)
+# App-layer sources are cross-platform modules that belong in every build.
+# Glob them so adding an app .c file needs no edit here -- this list had
+# drifted out of sync with the Makefile APP_SRCS more than once.
+file(GLOB APP_C_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/app/*.c")
+list(SORT APP_C_SOURCES)
 set(INBE_KRY_GENERATED_SOURCES)
 set(INBE_KRY_GENERATED_HEADERS)
 set(INBE_KRY_COMMAND_SOURCES)
@@ -173,11 +178,7 @@ target_include_directories(raylib PUBLIC
 
 add_library(main SHARED
     "${SRC_DIR}/main.c"
-    "${SRC_DIR}/app/app.c"
-    "${SRC_DIR}/app/app_fonts.c"
-    "${SRC_DIR}/app/app_audio.c"
-    "${SRC_DIR}/app/app_web_bridge.c"
-    "${SRC_DIR}/app/audio_library.c"
+    ${APP_C_SOURCES}
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
