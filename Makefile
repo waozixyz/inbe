@@ -218,13 +218,14 @@ KRYON_CURL_EXTRA_CMAKE_FLAGS := \
 	-DCURL_ZLIB=OFF \
 	-DCURL_BROTLI=OFF \
 	-DCURL_ZSTD=OFF
-# inbe is a UI-only app: drop the 2D physics subsystem (Box2D) entirely. The
-# flag must precede the vendor.mk include (which defaults it to 1); the source
-# filter and define are applied right after it. KRYON_WEB/WINDOWS/CLICK_SRCS
+# inbe is a UI-only app: drop the 2D physics subsystem (Box2D) entirely.
+# := on purpose: this is a property of the app, not a knob. Setting it to 1
+# would also require linking $(KRYON_PHYSICS_DEPS) (libbox2d), which this
+# Makefile does not wire up -- so a ?= here would invite a broken build.
+# The filter is applied to every variant below; KRYON_WEB/WINDOWS/CLICK_SRCS
 # were snapshotted from KRYON_SRCS above (before this filter), so re-apply it
-# to every build variant -- otherwise the kryon physics .c files (which need
-# box2d.h) leak into the web/Windows/click builds and break them.
-KRYON_WITH_PHYSICS ?= 0
+# to keep the kryon physics .c files (which need box2d.h) out of every build.
+KRYON_WITH_PHYSICS := 0
 include $(KRYON_DIR)/mk/vendor.mk
 KRYON_INCLUDE += $(KRYON_PHYSICS_CPPFLAGS)
 KRYON_SRCS := $(filter-out $(KRYON_PHYSICS_SRCS),$(KRYON_SRCS))
@@ -256,7 +257,10 @@ CURL_LIB_DIR := $(KRYON_CURL_LIB_DIR)
 CURL_SO := $(KRYON_CURL_SO)
 CURL_PROTOCOL_CHECK := $(KRYON_CURL_PROTOCOL_CHECK)
 KRYON_CURL_VERSION_NUM ?= $(shell printf '%b\n' '\043include <curl/curlver.h>' 'LIBCURL_VERSION_NUM' | $(CC) -I$(KRYON_CURL_DIR)/include -E -P - 2>/dev/null | tail -n 1)
-KRYON_CURL_VERSION_HEX := $(patsubst 0x%,%,$(KRYON_CURL_VERSION_NUM))
+# Lazy on purpose: := would run the preprocessor above at parse time on every
+# invocation (make clean included). The only consumer is the version guard in
+# the NEEDS_NATIVE_ENV block, which expands this only for build goals.
+KRYON_CURL_VERSION_HEX = $(patsubst 0x%,%,$(KRYON_CURL_VERSION_NUM))
 SQLITE_DIR := vendor/sqlite
 SQLITE_BUILD_DIR := $(VENDOR_BUILD_DIR)/sqlite
 SQLITE_AMALGAMATION_C := $(SQLITE_BUILD_DIR)/sqlite3.c
@@ -462,7 +466,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native

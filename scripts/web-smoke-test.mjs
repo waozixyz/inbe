@@ -6,6 +6,11 @@ import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
 
+if (typeof WebSocket === 'undefined') {
+  console.error('web smoke: FAIL: this script needs the global WebSocket API. Use Node >= 21, or pass --experimental-websocket on Node 20.');
+  process.exit(1);
+}
+
 const root = resolve(process.argv[2] || 'build/dist/web');
 const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
@@ -725,6 +730,61 @@ let chrome;
 let client;
 let failure;
 
+/* Proves the page is actually rendering: a canvas with nonzero size, a live
+ * WebGL context, and a cycling requestAnimationFrame loop. Catches "boots to
+ * a black screen" that console-error checks cannot see. Runs in the page, so
+ * the same expression serves both the CDP and the Firefox BiDi paths. */
+const RENDER_LIVE_EXPRESSION = `(async () => JSON.stringify(await (async () => {
+  const canvas = document.querySelector('canvas');
+  if (!canvas)
+    return { ok: false, reason: 'no canvas element' };
+  if (canvas.clientWidth === 0 || canvas.clientHeight === 0)
+    return { ok: false, reason: 'canvas has zero display size' };
+  const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+  if (!gl)
+    return { ok: false, reason: 'no WebGL context' };
+  if (!gl.getParameter(gl.VERSION))
+    return { ok: false, reason: 'WebGL context unresponsive' };
+  let frames = 0;
+  await new Promise(resolve => {
+    const tick = () => {
+      frames++;
+      if (frames >= 3)
+        resolve();
+      else
+        requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+    setTimeout(resolve, 5000);
+  });
+  if (frames < 3)
+    return { ok: false, reason: 'render loop not cycling (rAF frames=' + frames + ')' };
+  return { ok: true, frames };
+})()))()`;
+
+async function verifyRenderingLive(client) {
+  const result = await client.send('Runtime.evaluate', {
+    expression: RENDER_LIVE_EXPRESSION,
+    awaitPromise: true,
+    returnByValue: true
+  });
+  const state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error(`page is not rendering: ${state.reason}`);
+}
+
+async function verifyRenderingLiveBidi(client, context) {
+  const result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: true,
+    resultOwnership: 'none',
+    expression: RENDER_LIVE_EXPRESSION
+  });
+  const state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error(`page is not rendering: ${state.reason}`);
+}
+
 try {
   const port = await listen();
   const browser = resolveBrowser();
@@ -769,6 +829,7 @@ try {
       wait: 'complete'
     });
     await waitForHealthyBidiPage(client, context);
+    await verifyRenderingLiveBidi(client, context);
     await verifyAppSettingsImmediateBidi(client, context);
     await verifySyncKeyImportBidi(client, context);
   } else {
@@ -815,6 +876,7 @@ try {
     await client.send('Page.enable');
     await client.send('Page.navigate', { url: `http://127.0.0.1:${port}/index.html` });
     await waitForHealthyPage(client);
+    await verifyRenderingLive(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
     await verifySyncKeyImport(client);
