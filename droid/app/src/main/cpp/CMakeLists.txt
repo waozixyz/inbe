@@ -174,6 +174,9 @@ target_include_directories(raylib PUBLIC
 add_library(main SHARED
     "${SRC_DIR}/main.c"
     "${SRC_DIR}/app/app.c"
+    "${SRC_DIR}/app/app_fonts.c"
+    "${SRC_DIR}/app/app_audio.c"
+    "${SRC_DIR}/app/app_web_bridge.c"
     "${SRC_DIR}/app/audio_library.c"
     "${SRC_DIR}/storage/storage.c"
     "${SRC_DIR}/storage/sync_client.c"
