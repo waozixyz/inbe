@@ -277,10 +277,11 @@ SYNC_URL_TEST := $(TEST_BIN_DIR)/sync_url_test
 SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
 SYNC_REVIEW_TEST := $(TEST_BIN_DIR)/sync_review_test
 FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
+FONT_GLYPH_COVERAGE_TEST := $(TEST_BIN_DIR)/font_glyph_coverage_test
 GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 BREATH_TIMING_TEST := $(TEST_BIN_DIR)/breath_timing_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST)
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
@@ -649,6 +650,11 @@ $(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_FILES) | $(TEST_BIN_DIR)
 		-DKRYON_DIR=\"$(KRYON_DIR)\" \
 		-o $@ \
 		tests/font_locale_test.c
+
+$(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LOCALE_FILES) assets/fonts/input_common.txt | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-o $@ \
+		tests/font_glyph_coverage_test.c
 
 $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
