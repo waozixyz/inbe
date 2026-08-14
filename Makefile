@@ -461,7 +461,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-check-keystore android-copy-assets android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -564,6 +564,11 @@ screenshot: $(TARGET)
 
 
 .SILENT: test $(TESTS) font-bundle-check
+
+## Local parity with the ci.yml gate: unit tests plus the web build (emcc).
+## Run before pushing to catch web-only breakage -- e.g. code under
+## #if defined(PLATFORM_WEB) -- that `make test` (desktop-native) misses.
+ci: test web
 
 test: $(TESTS) font-bundle-check
 	echo "== Inbe tests =="; \
