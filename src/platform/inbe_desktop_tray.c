@@ -1,4 +1,5 @@
 #include "inbe_desktop_tray.h"
+#include "kryon.h" /* raylib API (MinimizeWindow) for the stub branch below */
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 

@@ -348,7 +348,7 @@ FONT_FILES := \
 	$(FONT_SUBSET_DIR)/NotoSansTC-Inbe-Regular.otf
 EMBEDDED_ASSETS_C := $(BUILD_OBJ_DIR)/$(APP_NAME)_embedded_assets.c
 EMBEDDED_ASSET_FILES := $(LOCALE_FILES) $(IMAGE_FILES) $(SOUND_FILES) $(FONT_FILES)
-KC ?= $(KRYON_DIR)/build/bin/kc
+K2C ?= $(KRYON_DIR)/build/bin/k2c
 KRY_GEN_DIR := $(BUILD_DIR)/kryon/generated
 KRY_SRCS := $(shell find src -type f -name '*.kry' 2>/dev/null | LC_ALL=C sort)
 KRY_GEN_SRCS := $(patsubst %.kry,$(KRY_GEN_DIR)/%.c,$(KRY_SRCS))
@@ -475,13 +475,13 @@ native: $(TARGET)
 
 kryon-host: $(KRYON_HOST_TARGET)
 
-$(KC): $(KRYON_DIR)/cmd/kc/kc.c
-	$(MAKE) -C $(KRYON_DIR) build/bin/kc
+$(K2C): $(KRYON_DIR)/cmd/k2c/main.c
+	$(MAKE) -C $(KRYON_DIR) build/bin/k2c
 
-$(KRY_GEN_STAMP): Makefile $(KC) $(KRY_SRCS)
+$(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
 	rm -rf $(KRY_GEN_DIR)
 	mkdir -p $(KRY_GEN_DIR)
-	$(KC) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
+	$(K2C) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
 	touch $@
 
 $(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR) $(KRY_PROJECT_C): $(KRY_GEN_STAMP)
