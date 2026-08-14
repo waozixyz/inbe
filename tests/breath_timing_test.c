@@ -15,7 +15,7 @@
  * restored on the auto-play path, so every round counted down from 3 and the
  * configured "Pause after round" setting was ignored.
  *
- * Pure engine: no raylib. The kc transpiler emits PushUIInspectSource /
+ * Pure engine: no raylib. The k2c transpiler emits PushUIInspectSource /
  * PopUIInspectSource debug markers into every generated function, so we provide
  * no-op stubs (same pattern as app_bottom_nav_test.c).
  */
@@ -31,7 +31,7 @@ expect(int condition, const char *message)
     }
 }
 
-/* kc-emitted debug-source markers. */
+/* k2c-emitted debug-source markers. */
 void
 PushUIInspectSource(const char *path, int line)
 {

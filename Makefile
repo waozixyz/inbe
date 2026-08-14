@@ -481,7 +481,12 @@ native: $(TARGET)
 
 kryon-host: $(KRYON_HOST_TARGET)
 
-$(K2C): $(KRYON_DIR)/cmd/k2c/main.c
+# All compiler sources, not just main.c: k2c is multi-file now, and a
+# single-file prerequisite lets a stale binary silently regenerate with
+# old behavior (mirrors kryon's own K2C_SRCS).
+K2C_SRCS := $(sort $(wildcard $(KRYON_DIR)/cmd/k2c/*.c)) \
+	$(KRYON_DIR)/cmd/kir/kir.c $(KRYON_DIR)/cmd/kir/kir_parse.c
+$(K2C): $(K2C_SRCS)
 	$(MAKE) -C $(KRYON_DIR) build/bin/k2c
 
 $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
