@@ -1122,3 +1122,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+Zeit für eine Mikropause
+---
+[break_micro_body]
+Lockern Sie die Schultern, schauen Sie weg vom Bildschirm und atmen Sie langsam, bis der Balken voll ist.
+---
+[break_rest_title]
+Zeit für eine Ruhepause
+---
+[break_rest_body]
+Stehen Sie auf, strecken Sie sich und lassen Sie die Augen auf etwas Fernem ruhen.
+---
+[break_daily_title]
+Tageslimit erreicht
+---
+[break_daily_body]
+Sie waren den ganzen Tag aktiv. Ziehen Sie in Betracht, für heute aufzuhören.
+---
+[break_time_remaining]
+%d Sekunden verbleibend
+---
+[break_stay_idle_note]
+Lassen Sie die Tastatur los, damit die Pause gezählt wird
+---
+[break_lock_note]
+Noch %d Sekunden gesperrt
+---
+[break_postpone_button]
+Verschieben
+---
+[break_skip_button]
+Überspringen
+---
+[break_rest_now_button]
+Ruhepause jetzt
+---
+[break_prelude_text]
+Pause steht bevor — entspannen Sie sich kurz
+---

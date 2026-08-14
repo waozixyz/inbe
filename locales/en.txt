@@ -1117,3 +1117,42 @@ Quit Inner Breeze
 [tray_mark_complete]
 Mark Complete
 ---
+[break_micro_title]
+Time for a micro-break
+---
+[break_micro_body]
+Relax your shoulders, look away from the screen, and breathe slowly until the bar fills.
+---
+[break_rest_title]
+Time for a rest break
+---
+[break_rest_body]
+Stand up, stretch, and let your eyes rest on something far away.
+---
+[break_daily_title]
+Daily limit reached
+---
+[break_daily_body]
+You have been active all day. Consider finishing up for today.
+---
+[break_time_remaining]
+%d seconds remaining
+---
+[break_stay_idle_note]
+Keep your hands off the keyboard to let the break count
+---
+[break_lock_note]
+Locked for %d more seconds
+---
+[break_postpone_button]
+Postpone
+---
+[break_skip_button]
+Skip
+---
+[break_rest_now_button]
+Rest break now
+---
+[break_prelude_text]
+Break coming up — unwind for a moment
+---

@@ -1122,3 +1122,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+Saatnya mikro-istirahat
+---
+[break_micro_body]
+Rilekskan bahu, alihkan pandangan dari layar, dan bernapaslah perlahan sampai barisnya penuh.
+---
+[break_rest_title]
+Saatnya istirahat panjang
+---
+[break_rest_body]
+Berdirilah, peregangan, dan biarkan mata beristirahat memandang sesuatu yang jauh.
+---
+[break_daily_title]
+Batas harian tercapai
+---
+[break_daily_body]
+Anda aktif sepanjang hari. Pertimbangkan untuk berhenti hari ini.
+---
+[break_time_remaining]
+%d detik tersisa
+---
+[break_stay_idle_note]
+Lepaskan keyboard agar istirahat terhitung
+---
+[break_lock_note]
+Terkunci %d detik lagi
+---
+[break_postpone_button]
+Tunda
+---
+[break_skip_button]
+Lewati
+---
+[break_rest_now_button]
+Istirahat panjang sekarang
+---
+[break_prelude_text]
+Istirahat sebentar lagi — santai sejenak
+---

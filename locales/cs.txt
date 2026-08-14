@@ -1122,3 +1122,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+Čas na krátkou přestávku
+---
+[break_micro_body]
+Uvolněte ramena, podívejte se pryč od obrazovky a dýchejte pomalu, dokud se pruh nezaplní.
+---
+[break_rest_title]
+Čas na delší přestávku
+---
+[break_rest_body]
+Vstaňte, protáhněte se a nechte oči odpočinout na něčem vzdáleném.
+---
+[break_daily_title]
+Denní limit dosažen
+---
+[break_daily_body]
+Byli jste aktivní celý den. Zvažte, že na dnešek skončíte.
+---
+[break_time_remaining]
+Zbývá %d sekund
+---
+[break_stay_idle_note]
+Nechejte klávesnici v klidu, aby se přestávka počítala
+---
+[break_lock_note]
+Uzamčeno ještě %d sekund
+---
+[break_postpone_button]
+Odložit
+---
+[break_skip_button]
+Přeskočit
+---
+[break_rest_now_button]
+Delší přestávka hned
+---
+[break_prelude_text]
+Přestávka se blíží — na chvíli se uvolněte
+---

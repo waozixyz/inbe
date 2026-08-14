@@ -7,26 +7,6 @@ break_overlay_active :: (app: const InbeApp*) -> int {
     return app->inbe.screen == InbeScreenBreak
 }
 
-break_overlay_title_key :: (t: int) -> const char* #private {
-    if t == BREAK_REST {
-        return "break_rest_title"
-    }
-    if t == BREAK_DAILY {
-        return "break_daily_title"
-    }
-    return "break_micro_title"
-}
-
-break_overlay_body_key :: (t: int) -> const char* #private {
-    if t == BREAK_REST {
-        return "break_rest_body"
-    }
-    if t == BREAK_DAILY {
-        return "break_daily_body"
-    }
-    return "break_micro_body"
-}
-
 break_overlay_remaining_s :: (app: const InbeApp*, t: int) -> int {
     timer := &app->breaks.timers[t]
     left := timer->duration_s - timer->idle_s
@@ -93,8 +73,22 @@ break_overlay_draw :: (app: InbeApp*) {
 
     title_font := UI_TEXT_24
     body_font := UI_TEXT_16
-    title := GetLocaleText(break_overlay_title_key(t))
-    body := GetLocaleText(break_overlay_body_key(t))
+    title: const char*
+    body: const char*
+    if t == BREAK_REST {
+        title = GetLocaleText("break_rest_title")
+    } else if t == BREAK_DAILY {
+        title = GetLocaleText("break_daily_title")
+    } else {
+        title = GetLocaleText("break_micro_title")
+    }
+    if t == BREAK_REST {
+        body = GetLocaleText("break_rest_body")
+    } else if t == BREAK_DAILY {
+        body = GetLocaleText("break_daily_body")
+    } else {
+        body = GetLocaleText("break_micro_body")
+    }
     title_w := MeasureUIText(title, title_font)
     text_x := view_width / 2
 

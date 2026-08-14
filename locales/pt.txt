@@ -1122,3 +1122,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+Hora de uma micropausa
+---
+[break_micro_body]
+Relaxe os ombros, desvie o olhar da tela e respire devagar até a barra encher.
+---
+[break_rest_title]
+Hora de uma pausa
+---
+[break_rest_body]
+Levante-se, alongue-se e deixe os olhos descansarem em algo distante.
+---
+[break_daily_title]
+Limite diário atingido
+---
+[break_daily_body]
+Você esteve ativo o dia todo. Considere parar por hoje.
+---
+[break_time_remaining]
+%d segundos restantes
+---
+[break_stay_idle_note]
+Tire as mãos do teclado para a pausa contar
+---
+[break_lock_note]
+Bloqueado por mais %d segundos
+---
+[break_postpone_button]
+Adiar
+---
+[break_skip_button]
+Pular
+---
+[break_rest_now_button]
+Pausa agora
+---
+[break_prelude_text]
+Pausa se aproximando — relaxe um momento
+---

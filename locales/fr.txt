@@ -1121,3 +1121,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+Pause courte
+---
+[break_micro_body]
+Détendez vos épaules, détournez le regard de l'écran et respirez lentement jusqu'à ce que la barre se remplisse.
+---
+[break_rest_title]
+Pause repos
+---
+[break_rest_body]
+Levez-vous, étirez-vous et laissez reposer vos yeux sur quelque chose de lointain.
+---
+[break_daily_title]
+Limite quotidienne atteinte
+---
+[break_daily_body]
+Vous avez été actif toute la journée. Pensez à arrêter pour aujourd'hui.
+---
+[break_time_remaining]
+%d secondes restantes
+---
+[break_stay_idle_note]
+Laissez le clavier pour que la pause compte
+---
+[break_lock_note]
+Verrouillé encore %d secondes
+---
+[break_postpone_button]
+Reporter
+---
+[break_skip_button]
+Passer
+---
+[break_rest_now_button]
+Pause repos maintenant
+---
+[break_prelude_text]
+Pause imminente — détendez-vous un instant
+---

@@ -1124,3 +1124,42 @@ Custom music
 [remove_button]
 Remove
 ---
+[break_micro_title]
+小休憩の時間です
+---
+[break_micro_body]
+肩をゆるめ、画面から目を離し、バーが満ちるまでゆっくり呼吸しましょう。
+---
+[break_rest_title]
+休息の時間です
+---
+[break_rest_body]
+立ち上がってストレッチし、遠くを眺めて目を休めましょう。
+---
+[break_daily_title]
+本日の利用上限に達しました
+---
+[break_daily_body]
+一日中アクティブでした。今日はここまでにすることを検討してください。
+---
+[break_time_remaining]
+残り %d 秒
+---
+[break_stay_idle_note]
+休憩としてカウントするためキーボードから手を離してください
+---
+[break_lock_note]
+あと %d 秒ロック中
+---
+[break_postpone_button]
+後で
+---
+[break_skip_button]
+スキップ
+---
+[break_rest_now_button]
+今すぐ休息
+---
+[break_prelude_text]
+まもなく休憩です — 少しリラックスしましょう
+---
