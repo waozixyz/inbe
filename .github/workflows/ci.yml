@@ -181,9 +181,10 @@ jobs:
             libxt6t64 libxtst6 libpci3 || \
           sudo apt-get install -y --no-install-recommends \
             libgtk-3-0 libx11-xcb1 libxcb-shm0 libasound2 libdbus-glib-1-2 libxt6 libxtst6 libpci3
-          curl -sL "https://download.mozilla.org/?product=firefox-latest-release&os=linux64&lang=en-US" \
+          curl -sL "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
             -o "$HOME/firefox.tar.xz"
           tar -xJf "$HOME/firefox.tar.xz" -C "$HOME"
+          test -x "$HOME/firefox/firefox"
           echo "$HOME/firefox" >> "$GITHUB_PATH"
 
       - name: Run Web Smoke Test (Firefox)
