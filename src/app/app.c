@@ -15,6 +15,8 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
+#include "screens/break_overlay.h"
+#include "breaks/app_breaks.h"
 #include "screens/profile_screen.h"
 #include "screens/profile_social.h"
 #include "screens/settings/settings_screen.h"
@@ -1079,6 +1081,12 @@ app_init(void *vapp) {
 #endif
 
     inbeinit(&app->inbe);
+    break_engine_init(&app->breaks);
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+    app->breaks_enabled = 1;
+#else
+    app->breaks_enabled = 0;
+#endif
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -1404,6 +1412,7 @@ static const struct {
     { InbeScreenHabits,           draw_habits_screen },
     { InbeScreenHabitEdit,        habit_edit_draw },
     { InbeScreenHabitSessionEdit, habit_session_draw_edit_screen },
+    { InbeScreenBreak,            break_overlay_draw },
 };
 
 static void
@@ -1424,6 +1433,7 @@ updateapp(InbeApp *app)
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app_update_desktop_background_state(app);
 #endif
+    app_breaks_update(app);
     app_update_nav_sidebar_mode(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);

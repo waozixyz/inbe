@@ -4,6 +4,7 @@
 #include "kryon.h"
 #include "platform.h"
 #include "core/breath_engine.h"
+#include "breaks/break_engine.h"
 #include "app_fwd.h"
 #include "runtime_assets.h"
 #include "screens/habits_screen.h"
@@ -467,6 +468,11 @@ struct InbeApp {
     int play_circle_hover;
     float play_circle_scale;
     SettingsThemeState theme_state;
+    BreakEngine breaks;
+    int breaks_enabled;
+    int break_prev_screen;
+    int break_block_mode;
+    int break_input_active;
 };
 
 void app_set_host_api(InbeApp *app, InbeHostApi host);

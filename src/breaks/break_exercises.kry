@@ -1,0 +1,122 @@
+#import "app.h"
+
+#enum {
+    BREAK_EXERCISE_MAX_STEPS = 3
+    BREAK_EXERCISE_COUNT = 10
+}
+
+static break_ex_titles: [BREAK_EXERCISE_COUNT] const char* = {
+    "break_ex_shoulder_rolls", "break_ex_neck_tilt", "break_ex_wrist_fingers",
+    "break_ex_upper_back", "break_ex_blade_squeeze", "break_ex_seated_twist",
+    "break_ex_eye_horizon", "break_ex_eye_near_far", "break_ex_breath_drop",
+    "break_ex_forearm_desk"
+}
+
+static break_ex_steps_a: [BREAK_EXERCISE_COUNT] const char* = {
+    "break_ex_shoulder_rolls_s1", "break_ex_neck_tilt_s1",
+    "break_ex_wrist_fingers_s1", "break_ex_upper_back_s1",
+    "break_ex_blade_squeeze_s1", "break_ex_seated_twist_s1",
+    "break_ex_eye_horizon_s1", "break_ex_eye_near_far_s1",
+    "break_ex_breath_drop_s1", "break_ex_forearm_desk_s1"
+}
+
+static break_ex_steps_b: [BREAK_EXERCISE_COUNT] const char* = {
+    "break_ex_shoulder_rolls_s2", "break_ex_neck_tilt_s2",
+    "break_ex_wrist_fingers_s2", "break_ex_upper_back_s2",
+    "break_ex_blade_squeeze_s2", "break_ex_seated_twist_s2",
+    "break_ex_eye_horizon_s2", "break_ex_eye_near_far_s2",
+    "break_ex_breath_drop_s2", "break_ex_forearm_desk_s2"
+}
+
+static break_ex_steps_c: [BREAK_EXERCISE_COUNT] const char* = {
+    "", "", "", "", "", "", "", "",
+    "break_ex_breath_drop_s3", ""
+}
+
+static break_ex_step_counts: [BREAK_EXERCISE_COUNT] int = {
+    2, 2, 2, 2, 2, 2, 2, 2, 3, 2
+}
+
+static break_ex_step_durations: [BREAK_EXERCISE_COUNT] int = {
+    15, 15, 15, 15, 15, 15, 15, 15, 12, 15
+}
+
+break_exercise_count :: () -> int {
+    return BREAK_EXERCISE_COUNT
+}
+
+break_exercise_max_steps :: () -> int {
+    return BREAK_EXERCISE_MAX_STEPS
+}
+
+break_exercise_valid :: (index: int) -> int {
+    return index >= 0 && index < BREAK_EXERCISE_COUNT
+}
+
+break_exercise_title :: (index: int) -> const char* {
+    if !break_exercise_valid(index) {
+        return ""
+    }
+    return break_ex_titles[index]
+}
+
+break_exercise_step :: (index: int, step: int) -> const char* {
+    if !break_exercise_valid(index) {
+        return ""
+    }
+    if step < 0 || step >= break_ex_step_counts[index] {
+        return ""
+    }
+    if step == 0 {
+        return break_ex_steps_a[index]
+    }
+    if step == 1 {
+        return break_ex_steps_b[index]
+    }
+    return break_ex_steps_c[index]
+}
+
+break_exercise_step_duration_s :: (index: int) -> int {
+    if !break_exercise_valid(index) {
+        return 0
+    }
+    return break_ex_step_durations[index]
+}
+
+break_exercise_total_s :: (index: int) -> int {
+    if !break_exercise_valid(index) {
+        return 0
+    }
+    return break_ex_step_counts[index] * break_ex_step_durations[index]
+}
+
+break_exercise_shuffle :: (seed: int, count: int, out_indices: int*, out_size: int) -> int {
+    if out_indices == nil || out_size <= 0 {
+        return 0
+    }
+
+    n := count < 1 ? 1 : count
+    if n > BREAK_EXERCISE_COUNT {
+        n = BREAK_EXERCISE_COUNT
+    }
+    if n > out_size {
+        n = out_size
+    }
+
+    for int i = 0; i < n; i++ {
+        out_indices[i] = i
+    }
+
+    state := seed
+    if state <= 0 {
+        state = 1
+    }
+    for int i = n - 1; i > 0; i-- {
+        state = state * 1103515245 + 12345
+        j := ((state >> 16) & 0x7fff) % (i + 1)
+        tmp := out_indices[i]
+        out_indices[i] = out_indices[j]
+        out_indices[j] = tmp
+    }
+    return n
+}
