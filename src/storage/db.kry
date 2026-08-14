@@ -1,5 +1,5 @@
 #module "storage.db"
-#import "db.h"
+#import "storage/db.h"
 
 #import "import.h"
 #import "kryon.h"

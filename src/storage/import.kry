@@ -1,13 +1,13 @@
 #module "storage.import"
-#import "import.h"
+#import "storage/import.h"
 
 #import "app_setting_keys.h" #private
-#import "db.h" #private
+#import "storage/db.h" #private
 #import "screens/habits_screen.h" #private
 #import "core/breath_engine.h" #private
-#import "miniz.h" #private
+#import "miniz.h"
 #import "version.h" #private
-#import "kryon.h" #private
+#import "kryon.h"
 #import <sqlite3.h>
 #import <dirent.h>
 #import <stdio.h>
