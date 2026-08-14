@@ -288,6 +288,7 @@ APP_SRCS := \
 	src/main.c \
 	src/app/app.c \
 	src/app/app_fonts.c \
+	src/app/app_audio.c \
 	src/app/audio_library.c \
 	src/storage/storage.c \
 	src/storage/sync_client.c \

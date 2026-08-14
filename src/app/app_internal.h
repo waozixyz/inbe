@@ -16,4 +16,9 @@ int  load_locale_font(InbeApp *app);
 void unload_locale_font(InbeApp *app);
 void discard_locale_font_cpu(InbeApp *app);
 
+/* app_audio.c */
+void audio_mixed_meter(void *bufferData, unsigned int frames);
+void unload_cue_sounds(InbeApp *app);
+void init_audio(InbeApp *app);
+
 #endif /* INBE_APP_INTERNAL_H */
