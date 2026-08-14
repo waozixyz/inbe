@@ -1,5 +1,4 @@
 #module "storage.import"
-#output "import_impl"
 #import "import.h"
 
 #import "app_setting_keys.h" #private

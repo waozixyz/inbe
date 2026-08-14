@@ -1,5 +1,4 @@
 #module "storage.db"
-#output "db_impl"
 #import "db.h"
 
 #import "import.h"
