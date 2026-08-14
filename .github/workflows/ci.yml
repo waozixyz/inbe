@@ -176,6 +176,8 @@ jobs:
       - name: Install Firefox (Mozilla build)
         run: |
           set -euo pipefail
+          sudo apt-get install -y --no-install-recommends xvfb \
+            libgl1-mesa-dri libgl1 libegl1 mesa-utils || true
           sudo apt-get install -y --no-install-recommends \
             libgtk-3-0t64 libx11-xcb1 libxcb-shm0 libasound2t64 libdbus-glib-1-2 \
             libxt6t64 libxtst6 libpci3 || \
@@ -188,6 +190,8 @@ jobs:
           echo "$HOME/firefox" >> "$GITHUB_PATH"
 
       - name: Run Web Smoke Test (Firefox)
+        env:
+          LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           set -euo pipefail
-          make web-smoke-test-firefox
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" make web-smoke-test-firefox
