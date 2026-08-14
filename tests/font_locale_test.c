@@ -1,3 +1,14 @@
+/*
+ * Locale -> font asset mapping + font file presence.
+ *
+ * Links the REAL selector (ui_font_asset_for_locale from
+ * src/app/app_font_assets.h) instead of a hand copy, so a change in the app
+ * is actually what gets tested. Glyph coverage of the files themselves is
+ * asserted separately by font_glyph_coverage_test.
+ */
+
+#include "../src/app/app_font_assets.h"
+
 #include <stdio.h>
 #include <string.h>
 
@@ -5,28 +16,10 @@
 #define KRYON_DIR "vendor/kryon"
 #endif
 
-#define FONT_SUBSET_DIR "assets/fonts/subset"
-
 typedef struct LocaleFontCase {
     const char *locale;
     const char *font;
 } LocaleFontCase;
-
-static const char *
-font_for_locale(const char *locale)
-{
-    if(locale != NULL) {
-        if(strcmp(locale, "zh") == 0)
-            return FONT_SUBSET_DIR "/NotoSansSC-Inbe-Regular.otf";
-        if(strcmp(locale, "ja") == 0)
-            return FONT_SUBSET_DIR "/NotoSansJP-Inbe-Regular.otf";
-        if(strcmp(locale, "ko") == 0)
-            return FONT_SUBSET_DIR "/NotoSansKR-Inbe-Regular.otf";
-        if(strcmp(locale, "zh-TW") == 0 || strcmp(locale, "zh_Hant") == 0)
-            return FONT_SUBSET_DIR "/NotoSansTC-Inbe-Regular.otf";
-    }
-    return FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf";
-}
 
 static int
 file_exists(const char *path)
@@ -43,27 +36,31 @@ int
 main(void)
 {
     static const LocaleFontCase cases[] = {
-        {"en", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"cs", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"de", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"es", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"fr", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"id", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"it", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"pt", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"ru", FONT_SUBSET_DIR "/NotoSans-Inbe-Regular.ttf"},
-        {"zh", FONT_SUBSET_DIR "/NotoSansSC-Inbe-Regular.otf"},
-        {"ja", FONT_SUBSET_DIR "/NotoSansJP-Inbe-Regular.otf"},
-        {"ko", FONT_SUBSET_DIR "/NotoSansKR-Inbe-Regular.otf"}
+        {"en",      INBE_FONT_LATIN},
+        {"cs",      INBE_FONT_LATIN},
+        {"de",      INBE_FONT_LATIN},
+        {"es",      INBE_FONT_LATIN},
+        {"fr",      INBE_FONT_LATIN},
+        {"id",      INBE_FONT_LATIN},
+        {"it",      INBE_FONT_LATIN},
+        {"pt",      INBE_FONT_LATIN},
+        {"ru",      INBE_FONT_LATIN},
+        {"zh",      INBE_FONT_SC},
+        {"zh-TW",   INBE_FONT_TC},
+        {"zh_Hant", INBE_FONT_TC},
+        {"ja",      INBE_FONT_JP},
+        {"ko",      INBE_FONT_KR},
+        {NULL,      INBE_FONT_LATIN}
     };
     int failures = 0;
 
     for(size_t i = 0; i < sizeof(cases) / sizeof(cases[0]); i++) {
-        const char *actual = font_for_locale(cases[i].locale);
+        const char *actual = ui_font_asset_for_locale(cases[i].locale);
 
-        if(strcmp(actual, cases[i].font) != 0) {
+        if(actual == NULL || strcmp(actual, cases[i].font) != 0) {
             fprintf(stderr, "FAIL locale %s mapped to %s, expected %s\n",
-                    cases[i].locale, actual, cases[i].font);
+                    cases[i].locale ? cases[i].locale : "(null)",
+                    actual ? actual : "(null)", cases[i].font);
             failures++;
         }
         if(!file_exists(cases[i].font)) {

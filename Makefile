@@ -645,7 +645,7 @@ $(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/stora
 		tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db_impl.c $(KRY_GEN_DIR)/src/storage/import_impl.c $(KRY_GEN_DIR)/src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(FONT_LOCALE_TEST): tests/font_locale_test.c $(FONT_FILES) | $(TEST_BIN_DIR)
+$(FONT_LOCALE_TEST): tests/font_locale_test.c src/app/app_font_assets.h $(FONT_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-DKRYON_DIR=\"$(KRYON_DIR)\" \
 		-o $@ \

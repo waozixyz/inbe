@@ -1,30 +1,9 @@
 #include "app.h"
 #include "locale.h"
 #include "app_internal.h"
+#include "app_font_assets.h"
 #include <stdlib.h>
 #include <string.h>
-
-#define INBE_FONT_LATIN "assets/fonts/subset/NotoSans-Inbe-Regular.ttf"
-#define INBE_FONT_SC "assets/fonts/subset/NotoSansSC-Inbe-Regular.otf"
-#define INBE_FONT_JP "assets/fonts/subset/NotoSansJP-Inbe-Regular.otf"
-#define INBE_FONT_KR "assets/fonts/subset/NotoSansKR-Inbe-Regular.otf"
-#define INBE_FONT_TC "assets/fonts/subset/NotoSansTC-Inbe-Regular.otf"
-
-static const char *
-ui_font_asset_for_locale(const char *code)
-{
-    if(code != NULL) {
-        if(strcmp(code, "zh") == 0)
-            return INBE_FONT_SC;
-        if(strcmp(code, "ja") == 0)
-            return INBE_FONT_JP;
-        if(strcmp(code, "ko") == 0)
-            return INBE_FONT_KR;
-        if(strcmp(code, "zh-TW") == 0 || strcmp(code, "zh_Hant") == 0)
-            return INBE_FONT_TC;
-    }
-    return INBE_FONT_LATIN;
-}
 
 int
 app_running_in_kryon_preview(void)

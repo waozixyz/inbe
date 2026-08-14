@@ -110,6 +110,11 @@ jobs:
           make chrome-web-store
           test -f build/dist/inbe-chrome-web-store.zip
 
+      - name: Run Web Smoke Test
+        run: |
+          set -euo pipefail
+          make web-smoke-test
+
   build-firefox-addons:
     name: Build Firefox Add-on
     runs-on: ubuntu-latest
