@@ -44,15 +44,6 @@ PopUIInspectSource(void)
 {
 }
 
-static int
-count_value(const char *v)
-{
-    int a = v[0] >= '0' && v[0] <= '9' ? v[0] - '0' : 0;
-    int b = v[1] >= '0' && v[1] <= '9' ? v[1] - '0' : 0;
-    int c = v[2] >= '0' && v[2] <= '9' ? v[2] - '0' : 0;
-    return a * 100 + b * 10 + c;
-}
-
 /* Step the engine until phase transitions away from `phase` or `max_steps` hit. */
 static int
 run_while_phase(Inbe *l, int phase, int max_steps)
