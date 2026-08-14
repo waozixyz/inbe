@@ -41,6 +41,16 @@ LINUX_APPIMAGE_APPRUN := $(LINUX_APPIMAGE_DIR)/AppRun
 LINUX_APPIMAGE_DESKTOP := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).desktop
 LINUX_APPIMAGE_ICON := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).png
 LINUX_APPIMAGE_APPDATA := $(LINUX_APPIMAGE_DIR)/$(APP_NAME).appdata.xml
+
+# Desktop install configuration for the kryon-provided install suite
+# (mk/package-freebsd.mk: install / install-user / uninstall / stage).
+# Without these the install ships a bare binary -- no menu entry, no icon.
+# Everything the app needs ships inside the executable (UI_EMBEDDED_ONLY=1).
+APP_ID := $(ANDROID_APP_ID)
+APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
+APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
+APP_ICON := $(LINUX_APPIMAGE_ICON)
+
 DEB_BUILD_DIR := $(BUILD_OBJ_DIR)/deb
 DEB_ROOT := $(DEB_BUILD_DIR)/root
 DEB_DIST_DIR := $(BUILD_DIST_DIR)/deb
