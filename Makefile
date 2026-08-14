@@ -296,7 +296,8 @@ GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 BREATH_TIMING_TEST := $(TEST_BIN_DIR)/breath_timing_test
 BREAK_ENGINE_TEST := $(TEST_BIN_DIR)/break_engine_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST)
+ACTIVITY_MONITOR_TEST := $(TEST_BIN_DIR)/activity_monitor_test
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
@@ -306,6 +307,7 @@ APP_SRCS := \
 	src/storage/storage.c \
 	src/storage/sync_client.c \
 	src/third_party/miniz.c \
+	src/platform/inbe_activity_monitor.c \
 	src/platform/android/android_device.c
 
 ifeq ($(NATIVE_PLATFORM),linux)
@@ -698,6 +700,14 @@ $(BREAK_ENGINE_TEST): tests/break_engine_test.c $(KRY_GEN_DIR)/src/breaks/break_
 		-o $@ \
 		tests/break_engine_test.c \
 		$(KRY_GEN_DIR)/src/breaks/break_engine.c
+
+# Plain C (no generated code): dlopen-based X idle monitor with stub fallback.
+$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c src/platform/inbe_activity_monitor.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-Isrc \
+		-o $@ \
+		tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c \
+		$(if $(filter linux,$(NATIVE_PLATFORM)),-ldl,)
 
 $(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(DEB_BUILD_DIR) $(DEB_DIST_DIR) $(RPM_BUILD_DIR) $(RPM_DIST_DIR) $(SNAP_BUILD_DIR) $(SNAP_DIST_DIR) $(FLATPAK_BUILD_DIR) $(FLATPAK_DIST_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
 	mkdir -p $@
