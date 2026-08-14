@@ -254,6 +254,32 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("play_in_background", app->inbe.play_in_background)
     save_setting_int("practice_category_tab", app->practice_category_tab)
 
+    save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    save_setting_int("break_block_mode", app->break_block_mode)
+    save_setting_int("break_sounds_enabled", app->break_sounds_enabled ? 1 : 0)
+    save_setting_int("break_exercise_count", app->break_exercise_count)
+    save_setting_int("break_reading_mode", app->breaks.reading_mode ? 1 : 0)
+    save_setting_int("break_micro_counts_as_activity",
+                        app->breaks.micro_counts_as_activity ? 1 : 0)
+    for int t = 0; t < BREAK_TYPE_COUNT; t++ {
+        timer := &app->breaks.timers[t]
+        key: [48] char
+        break_timer_setting_key(t, "enabled", key, sizeof(key))
+        save_setting_int(key, timer->enabled ? 1 : 0)
+        break_timer_setting_key(t, "limit", key, sizeof(key))
+        save_setting_int(key, timer->limit_s)
+        break_timer_setting_key(t, "duration", key, sizeof(key))
+        save_setting_int(key, timer->duration_s)
+        break_timer_setting_key(t, "postpone", key, sizeof(key))
+        save_setting_int(key, timer->postpone_s)
+        break_timer_setting_key(t, "max_prompts", key, sizeof(key))
+        save_setting_int(key, timer->max_prompts)
+        break_timer_setting_key(t, "show_skip", key, sizeof(key))
+        save_setting_int(key, timer->show_skip ? 1 : 0)
+        break_timer_setting_key(t, "show_postpone", key, sizeof(key))
+        save_setting_int(key, timer->show_postpone ? 1 : 0)
+    }
+
     storage_set_setting_text("language",
         (app->language_selected && app->language[0] != '\0') ? app->language : "")
     storage_set_setting_text("habits_selected_id",
@@ -320,6 +346,19 @@ practice_music_track_key :: (index: int, out: char*, out_size: int) #private {
     }
 }
 
+break_timer_setting_key :: (t: int, field: const char*, out: char*, out_size: int) #private {
+    if out == nil || out_size <= 0 {
+        return
+    }
+    if t == BREAK_REST {
+        snprintf(out, out_size, "break_rest_%s", field)
+    } else if t == BREAK_DAILY {
+        snprintf(out, out_size, "break_daily_%s", field)
+    } else {
+        snprintf(out, out_size, "break_micro_%s", field)
+    }
+}
+
 app_load_settings :: (app: InbeApp*) -> int {
     settings_missing: int
     speed: int
@@ -368,6 +407,43 @@ app_load_settings :: (app: InbeApp*) -> int {
                          "meditation_show_extend_controls", 1)
     load_bool_setting(&settings_cache, &app->retention_marker_enabled,
                          "retention_marker_enabled", 0)
+    load_bool_setting(&settings_cache, &app->breaks_enabled,
+                         "breaks_enabled", app->breaks_enabled)
+    load_clamped_setting(&settings_cache, &app->break_block_mode,
+                            "break_block_mode", 0, 0, 2)
+    load_bool_setting(&settings_cache, &app->break_sounds_enabled,
+                         "break_sounds_enabled", 1)
+    load_clamped_setting(&settings_cache, &app->break_exercise_count,
+                            "break_exercise_count", 3, 0, 4)
+    load_bool_setting(&settings_cache, &app->breaks.reading_mode,
+                         "break_reading_mode", 0)
+    load_bool_setting(&settings_cache, &app->breaks.micro_counts_as_activity,
+                         "break_micro_counts_as_activity", 0)
+    for int t = 0; t < BREAK_TYPE_COUNT; t++ {
+        timer := &app->breaks.timers[t]
+        key: [48] char
+        break_timer_setting_key(t, "enabled", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->enabled, key,
+                             timer->enabled)
+        break_timer_setting_key(t, "limit", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->limit_s, key,
+                                timer->limit_s, 30, 86400)
+        break_timer_setting_key(t, "duration", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->duration_s, key,
+                                timer->duration_s, 0, 3600)
+        break_timer_setting_key(t, "postpone", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->postpone_s, key,
+                                timer->postpone_s, 10, 3600)
+        break_timer_setting_key(t, "max_prompts", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->max_prompts, key,
+                                timer->max_prompts, 0, 10)
+        break_timer_setting_key(t, "show_skip", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->show_skip, key,
+                             timer->show_skip)
+        break_timer_setting_key(t, "show_postpone", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->show_postpone, key,
+                             timer->show_postpone)
+    }
     #if ANDROID || WEB {
         app->on_screen_keyboard_enabled = 1
     }

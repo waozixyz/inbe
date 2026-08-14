@@ -4,6 +4,7 @@
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #include "app.h"
+#include "breaks/app_breaks.h"
 #include "desktop_tray.h"
 #include "habits_screen.h"
 #include "practices/practice_registry.h"
@@ -15,6 +16,8 @@
 typedef struct InbeTraySnapshot {
     int window_visible;
     int count;
+    int break_mode;
+    int break_reading_mode;
     char show_hide_label[96];
     char start_practice_label[96];
     char habits_label[96];
@@ -22,6 +25,15 @@ typedef struct InbeTraySnapshot {
     char whm_label[96];
     char meditation_label[96];
     char sun_salutation_label[96];
+    char break_label[96];
+    char break_rest_now_label[96];
+    char break_exercises_label[96];
+    char break_mode_label[96];
+    char break_mode_normal_label[96];
+    char break_mode_quiet_label[96];
+    char break_mode_suspended_label[96];
+    char break_reading_label[96];
+    char break_settings_label[96];
     char habit_labels[INBE_HABIT_MAX][128];
     int habit_indices[INBE_HABIT_MAX];
     int habit_enabled[INBE_HABIT_MAX];
@@ -86,15 +98,38 @@ FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
              GetLocaleText("exercise_meditation"));
     snprintf(snapshot->sun_salutation_label, sizeof(snapshot->sun_salutation_label), "%s",
              GetLocaleText("exercise_sun_salutation"));
+    snprintf(snapshot->break_label, sizeof(snapshot->break_label), "%s",
+             GetLocaleText("settings_tab_breaks"));
+    snprintf(snapshot->break_rest_now_label, sizeof(snapshot->break_rest_now_label), "%s",
+             GetLocaleText("settings_breaks_rest_now"));
+    snprintf(snapshot->break_exercises_label, sizeof(snapshot->break_exercises_label), "%s",
+             GetLocaleText("break_exercises_title"));
+    snprintf(snapshot->break_mode_label, sizeof(snapshot->break_mode_label), "%s",
+             GetLocaleText("settings_breaks_mode"));
+    snprintf(snapshot->break_mode_normal_label, sizeof(snapshot->break_mode_normal_label), "%s",
+             GetLocaleText("settings_breaks_mode_normal"));
+    snprintf(snapshot->break_mode_quiet_label, sizeof(snapshot->break_mode_quiet_label), "%s",
+             GetLocaleText("settings_breaks_mode_quiet"));
+    snprintf(snapshot->break_mode_suspended_label, sizeof(snapshot->break_mode_suspended_label), "%s",
+             GetLocaleText("settings_breaks_mode_suspended"));
+    snprintf(snapshot->break_reading_label, sizeof(snapshot->break_reading_label), "%s",
+             GetLocaleText("settings_breaks_reading_mode"));
+    snprintf(snapshot->break_settings_label, sizeof(snapshot->break_settings_label), "%s",
+             GetLocaleText("settings_tab_breaks"));
 }
 
 static void
 SeedTraySnapshot(void)
 {
     InbeTraySnapshot next;
+    InbeApp *app = get_global_inbe_app();
 
     memset(&next, 0, sizeof(next));
     next.window_visible = !IsWindowHidden();
+    if(app != NULL) {
+        next.break_mode = app->breaks.mode;
+        next.break_reading_mode = app->breaks.reading_mode;
+    }
     FillTraySnapshotLabels(&next);
     TraySnapshot = next;
 }
@@ -103,14 +138,18 @@ static int
 BuildTrayMenu(const InbeTraySnapshot *snapshot,
               DesktopTrayMenuItem *items, int item_count,
               DesktopTrayMenuItem *start_items, int start_item_count,
-              DesktopTrayMenuItem *habit_items, int habit_item_count)
+              DesktopTrayMenuItem *habit_items, int habit_item_count,
+              DesktopTrayMenuItem *break_items, int break_item_count,
+              DesktopTrayMenuItem *break_mode_items, int break_mode_item_count)
 {
     InbeTraySnapshot local_snapshot;
     int item_index = 0;
 
-    if(items == NULL || item_count < 5 ||
+    if(items == NULL || item_count < 6 ||
        start_items == NULL || start_item_count < 3 ||
-       habit_items == NULL || habit_item_count < INBE_HABIT_MAX)
+       habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
+       break_items == NULL || break_item_count < 5 ||
+       break_mode_items == NULL || break_mode_item_count < 3)
         return 0;
 
     memset(&local_snapshot, 0, sizeof(local_snapshot));
@@ -146,6 +185,57 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         };
     }
 
+    break_mode_items[0] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_mode_normal_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL,
+        .enabled = local_snapshot.break_mode != BreakModeNormal
+    };
+    break_mode_items[1] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_mode_quiet_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET,
+        .enabled = local_snapshot.break_mode != BreakModeQuiet
+    };
+    break_mode_items[2] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_mode_suspended_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED,
+        .enabled = local_snapshot.break_mode != BreakModeSuspended
+    };
+
+    break_items[0] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_rest_now_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_REST_NOW,
+        .enabled = 1
+    };
+    break_items[1] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_exercises_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_EXERCISES,
+        .enabled = 1
+    };
+    break_items[2] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
+        .label = local_snapshot.break_mode_label,
+        .enabled = 1,
+        .children = break_mode_items,
+        .child_count = 3
+    };
+    break_items[3] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_reading_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE,
+        .enabled = 1
+    };
+    break_items[4] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.break_settings_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+        .enabled = 1
+    };
+
     items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.show_hide_label,
@@ -167,6 +257,13 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .child_count = local_snapshot.count
     };
     items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
+        .label = local_snapshot.break_label,
+        .enabled = 1,
+        .children = break_items,
+        .child_count = 5
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SEPARATOR
     };
     items[item_index++] = (DesktopTrayMenuItem){
@@ -182,17 +279,22 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
 static void
 ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 {
-    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem items[6];
     DesktopTrayMenuItem start_items[3];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    DesktopTrayMenuItem break_items[5];
+    DesktopTrayMenuItem break_mode_items[3];
     int count;
 
     memset(items, 0, sizeof(items));
     memset(start_items, 0, sizeof(start_items));
     memset(habit_items, 0, sizeof(habit_items));
+    memset(break_items, 0, sizeof(break_items));
+    memset(break_mode_items, 0, sizeof(break_mode_items));
 
-    count = BuildTrayMenu(snapshot, items, 5, start_items, 3,
-                          habit_items, INBE_HABIT_MAX);
+    count = BuildTrayMenu(snapshot, items, 6, start_items, 3,
+                          habit_items, INBE_HABIT_MAX,
+                          break_items, 5, break_mode_items, 3);
     SetDesktopTrayMenu(items, count);
     SetDesktopTrayActivateAction(GetTrayWindowAction(snapshot != NULL
                                                          ? snapshot->window_visible
@@ -203,17 +305,22 @@ int
 inbe_desktop_tray_init(void)
 {
     DesktopTraySpec spec;
-    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem items[6];
     DesktopTrayMenuItem start_items[3];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
+    DesktopTrayMenuItem break_items[5];
+    DesktopTrayMenuItem break_mode_items[3];
     int item_count;
 
     SeedTraySnapshot();
     memset(items, 0, sizeof(items));
     memset(start_items, 0, sizeof(start_items));
     memset(habit_items, 0, sizeof(habit_items));
-    item_count = BuildTrayMenu(&TraySnapshot, items, 5, start_items, 3,
-                               habit_items, INBE_HABIT_MAX);
+    memset(break_items, 0, sizeof(break_items));
+    memset(break_mode_items, 0, sizeof(break_mode_items));
+    item_count = BuildTrayMenu(&TraySnapshot, items, 6, start_items, 3,
+                               habit_items, INBE_HABIT_MAX,
+                               break_items, 5, break_mode_items, 3);
 
     memset(&spec, 0, sizeof(spec));
     spec.id = "inbe";
@@ -314,6 +421,8 @@ UpdateTrayMenuSnapshot(InbeApp *app)
 
     memset(&next, 0, sizeof(next));
     next.window_visible = !IsWindowHidden();
+    next.break_mode = app->breaks.mode;
+    next.break_reading_mode = app->breaks.reading_mode;
     FillTraySnapshotLabels(&next);
 
     today = habits_today_index();
@@ -375,6 +484,36 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
     case INBE_DESKTOP_TRAY_ACTION_QUIT:
         if(quit != NULL)
             *quit = 1;
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_REST_NOW:
+        if(app->breaks_enabled)
+            app_breaks_rest_break_now(app);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_EXERCISES:
+        if(app->modal.active)
+            app_close_modal(app);
+        RestoreTrayWindow();
+        app_switch_screen(app, InbeScreenBreakExercises);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL:
+        app_breaks_set_mode(app, BreakModeNormal, 0);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_QUIET:
+        app_breaks_set_mode(app, BreakModeQuiet, 0);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_SUSPENDED:
+        app_breaks_set_mode(app, BreakModeSuspended, 0);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE:
+        app->breaks.reading_mode = !app->breaks.reading_mode;
+        app->settings_dirty = 1;
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS:
+        if(app->modal.active)
+            app_close_modal(app);
+        RestoreTrayWindow();
+        app->settings_tab = SETTINGS_TAB_BREAKS;
+        app_switch_screen(app, InbeScreenSettings);
         break;
     case INBE_DESKTOP_TRAY_ACTION_NONE:
     default:
@@ -439,6 +578,22 @@ inbe_desktop_tray_update_status(InbeApp *app)
                          app->sun_salutation.step + 1,
                          app->sun_salutation.repetition + 1,
                          app->sun_salutation.repetitions);
+    } else if(app->breaks_enabled) {
+        if(app->breaks.mode == BreakModeSuspended) {
+            snprintf(text, sizeof(text), "%s", GetLocaleText("settings_breaks_mode_suspended"));
+        } else if(app->breaks.mode == BreakModeQuiet) {
+            snprintf(text, sizeof(text), "%s", GetLocaleText("settings_breaks_mode_quiet"));
+        } else {
+            int next_break = -1;
+            for(int t = 0; t < BREAK_TYPE_COUNT; t++) {
+                int due = break_timer_next_due_s(&app->breaks, t);
+                if(due > 0 && (next_break < 0 || due < next_break))
+                    next_break = due;
+            }
+            if(next_break > 0)
+                FormatLocaleText(text, sizeof(text), "tray_next_break",
+                                 next_break / 60, next_break % 60);
+        }
     }
 
     SetDesktopTrayStatus(text);

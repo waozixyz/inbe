@@ -5,6 +5,7 @@
 #include "platform.h"
 #include "core/breath_engine.h"
 #include "breaks/break_engine.h"
+#include "breaks/break_exercises.h"
 #include "app_fwd.h"
 #include "runtime_assets.h"
 #include "screens/habits_screen.h"
@@ -43,6 +44,7 @@ enum {
 enum {
     SETTINGS_TAB_DEVICE = 0,
     SETTINGS_TAB_AUDIO,
+    SETTINGS_TAB_BREAKS,
     SETTINGS_TAB_THEME,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
@@ -473,6 +475,16 @@ struct InbeApp {
     int break_prev_screen;
     int break_block_mode;
     int break_input_active;
+    int break_sounds_enabled;
+    int break_exercise_count;
+    int break_ex_picked[4];
+    int break_ex_pick_count;
+    int break_ex_offset_s;
+    int break_ex_paused;
+    int break_ex_hidden;
+    int break_fallback_last_input;
+    int break_stats_flush_s;
+    int break_exercises_scroll;
 };
 
 void app_set_host_api(InbeApp *app, InbeHostApi host);

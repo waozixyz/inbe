@@ -1,5 +1,3 @@
-#import "app.h"
-
 #enum {
     BREAK_EXERCISE_MAX_STEPS = 3
     BREAK_EXERCISE_COUNT = 10

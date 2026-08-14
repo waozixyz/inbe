@@ -1161,3 +1161,216 @@ Ruhepause jetzt
 [break_prelude_text]
 Pause steht bevor — entspannen Sie sich kurz
 ---
+[settings_tab_breaks]
+Pausen
+---
+[settings_breaks_enabled]
+Pausen-Erinnerungen
+---
+[settings_breaks_status]
+Timer-Status
+---
+[settings_breaks_due_now]
+jetzt fällig
+---
+[settings_breaks_timer_off]
+aus
+---
+[settings_breaks_block_mode]
+Blockierung
+---
+[settings_breaks_block_off]
+Aus
+---
+[settings_breaks_block_input]
+Eingabe blockieren
+---
+[settings_breaks_block_screen]
+Eingabe und Bildschirm blockieren
+---
+[settings_breaks_sounds]
+Pausenklänge
+---
+[settings_breaks_reading_mode]
+Lesemodus
+---
+[settings_breaks_micro_counts]
+Kurzpausen als Aktivität zählen
+---
+[settings_breaks_exercises]
+Übungen pro Ruhepause
+---
+[settings_breaks_rest_now]
+Ruhepause jetzt
+---
+[settings_breaks_view_exercises]
+Übungen ansehen
+---
+[settings_breaks_micro_header]
+Kurzhaltung
+---
+[settings_breaks_rest_header]
+Ruhepause
+---
+[settings_breaks_daily_header]
+Tageslimit
+---
+[settings_breaks_timer_enabled]
+Timer aktivieren
+---
+[settings_breaks_limit]
+Zeit zwischen Pausen
+---
+[settings_breaks_duration]
+Pausendauer
+---
+[settings_breaks_postpone]
+Aufschubzeit
+---
+[settings_breaks_prompts]
+Max. Erinnerungen
+---
+[settings_breaks_show_skip]
+Überspringen-Schaltfläche zeigen
+---
+[settings_breaks_show_postpone]
+Aufschieben-Schaltfläche zeigen
+---
+[settings_breaks_week_stats]
+Letzte 7 Tage (genommen / übersprungen / aufgeschoben)
+---
+[settings_breaks_no_data]
+Noch keine Pausenstatistik
+---
+[settings_breaks_desktop_only]
+Pausen-Erinnerungen sind am Desktop verfügbar
+---
+[settings_breaks_mode]
+Modus
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Leise
+---
+[settings_breaks_mode_suspended]
+Angehalten
+---
+[tray_next_break]
+Nächste Pause %d:%02d
+---
+[break_exercises_title]
+Pausenübungen
+---
+[break_exercises_intro]
+Kurze Dehnungen für Ruhepausen. Sie laufen automatisch während Ruhepausen ab.
+---
+[break_ex_prev]
+Zurück
+---
+[break_ex_play]
+Abspielen
+---
+[break_ex_pause]
+Pause
+---
+[break_ex_next]
+Weiter
+---
+[break_ex_stop]
+Stopp
+---
+[break_ex_shoulder_rolls]
+Schulterkreisen
+---
+[break_ex_shoulder_rolls_s1]
+Rollen Sie die Schultern langsam nach hinten
+---
+[break_ex_shoulder_rolls_s2]
+Halten Sie die Bewegung weich und entspannt
+---
+[break_ex_neck_tilt]
+Nacken-Seitneigung
+---
+[break_ex_neck_tilt_s1]
+Neigen Sie den Kopf zu einer Schulter
+---
+[break_ex_neck_tilt_s2]
+Sanft halten, dann die Seite wechseln
+---
+[break_ex_wrist_fingers]
+Hand- und Fingerdehnung
+---
+[break_ex_wrist_fingers_s1]
+Strecken Sie einen Arm und ziehen Sie die Finger zurück
+---
+[break_ex_wrist_fingers_s2]
+Dehnen Sie das Handgelenk, dann wechseln
+---
+[break_ex_upper_back]
+Oberrückendehnung
+---
+[break_ex_upper_back_s1]
+Falten Sie die Hände und runden Sie den Ober Rücken
+---
+[break_ex_upper_back_s2]
+Ausatmen und die Schultern sinken lassen
+---
+[break_ex_blade_squeeze]
+Schulterblatt-Anspannung
+---
+[break_ex_blade_squeeze_s1]
+Ziehen Sie die Schulterblätter zusammen
+---
+[break_ex_blade_squeeze_s2]
+Kurz halten, dann lösen
+---
+[break_ex_seated_twist]
+Sitzende Rumpfdrehung
+---
+[break_ex_seated_twist_s1]
+Sitzen Sie aufrecht und drehen Sie sich zu einer Seite
+---
+[break_ex_seated_twist_s2]
+Hüfte gerade halten, dann wechseln
+---
+[break_ex_eye_horizon]
+In die Ferne blicken
+---
+[break_ex_eye_horizon_s1]
+Suchen Sie den fernsten Punkt im Raum
+---
+[break_ex_eye_horizon_s2]
+Blick entspannen und atmen
+---
+[break_ex_eye_near_far]
+Nah und fern fokussieren
+---
+[break_ex_eye_near_far_s1]
+Blicken Sie auf Ihren nahen Daumen
+---
+[break_ex_eye_near_far_s2]
+Dann auf etwas Fernes fokussieren
+---
+[break_ex_breath_drop]
+Atem und Schultern lassen
+---
+[break_ex_breath_drop_s1]
+Einatmen und Schultern heben
+---
+[break_ex_breath_drop_s2]
+Ausatmen und sinken lassen
+---
+[break_ex_breath_drop_s3]
+Spüren Sie, wie die Spannung löst
+---
+[break_ex_forearm_desk]
+Unterarm-Dehnung am Tisch
+---
+[break_ex_forearm_desk_s1]
+Handfläche auf den Tisch, Finger nach hinten
+---
+[break_ex_forearm_desk_s2]
+Sanft drücken, bis der Unterarm dehnt
+---

@@ -1161,3 +1161,216 @@ Pausa di riposo ora
 [break_prelude_text]
 Pausa in arrivo — rilassati un momento
 ---
+[settings_tab_breaks]
+Pausa
+---
+[settings_breaks_enabled]
+Promemoria pause
+---
+[settings_breaks_status]
+Stato dei timer
+---
+[settings_breaks_due_now]
+in scadenza
+---
+[settings_breaks_timer_off]
+disattivato
+---
+[settings_breaks_block_mode]
+Blocco
+---
+[settings_breaks_block_off]
+Disattivato
+---
+[settings_breaks_block_input]
+Blocca input
+---
+[settings_breaks_block_screen]
+Blocca input e schermo
+---
+[settings_breaks_sounds]
+Suoni pausa
+---
+[settings_breaks_reading_mode]
+Modalità lettura
+---
+[settings_breaks_micro_counts]
+Conta le micropause come attività
+---
+[settings_breaks_exercises]
+Esercizi per pausa
+---
+[settings_breaks_rest_now]
+Pausa riposo ora
+---
+[settings_breaks_view_exercises]
+Vedi esercizi
+---
+[settings_breaks_micro_header]
+Micropausa
+---
+[settings_breaks_rest_header]
+Pausa riposo
+---
+[settings_breaks_daily_header]
+Limite giornaliero
+---
+[settings_breaks_timer_enabled]
+Attiva timer
+---
+[settings_breaks_limit]
+Tempo tra le pause
+---
+[settings_breaks_duration]
+Durata pausa
+---
+[settings_breaks_postpone]
+Tempo di rinvio
+---
+[settings_breaks_prompts]
+Avvisi massimi
+---
+[settings_breaks_show_skip]
+Mostra pulsante Salta
+---
+[settings_breaks_show_postpone]
+Mostra pulsante Rimanda
+---
+[settings_breaks_week_stats]
+Ultimi 7 giorni (fatte / saltate / rinviate)
+---
+[settings_breaks_no_data]
+Ancora nessuna statistica
+---
+[settings_breaks_desktop_only]
+I promemoria pause sono disponibili su desktop
+---
+[settings_breaks_mode]
+Modalità
+---
+[settings_breaks_mode_normal]
+Normale
+---
+[settings_breaks_mode_quiet]
+Silenzioso
+---
+[settings_breaks_mode_suspended]
+Sospeso
+---
+[tray_next_break]
+Prossima pausa %d:%02d
+---
+[break_exercises_title]
+Esercizi di pausa
+---
+[break_exercises_intro]
+Allungamenti brevi per le pause. Si avviano automaticamente.
+---
+[break_ex_prev]
+Prec.
+---
+[break_ex_play]
+Riproduci
+---
+[break_ex_pause]
+Pausa
+---
+[break_ex_next]
+Succ.
+---
+[break_ex_stop]
+Ferma
+---
+[break_ex_shoulder_rolls]
+Rotazioni delle spalle
+---
+[break_ex_shoulder_rolls_s1]
+Ruota le spalle lentamente all'indietro
+---
+[break_ex_shoulder_rolls_s2]
+Mantieni il movimento fluido e rilassato
+---
+[break_ex_neck_tilt]
+Inclinazione laterale del collo
+---
+[break_ex_neck_tilt_s1]
+Inclina la testa verso una spalla
+---
+[break_ex_neck_tilt_s2]
+Tieni dolcemente poi cambia lato
+---
+[break_ex_wrist_fingers]
+Allungamento polsi e dita
+---
+[break_ex_wrist_fingers_s1]
+Estendi un braccio e tira le dita indietro
+---
+[break_ex_wrist_fingers_s2]
+Allunga il polso poi cambia mano
+---
+[break_ex_upper_back]
+Allungamento della schiena alta
+---
+[break_ex_upper_back_s1]
+Intreccia le mani e arrotonda la schiena
+---
+[break_ex_upper_back_s2]
+Espira e lascia scendere le spalle
+---
+[break_ex_blade_squeeze]
+Compressione delle scapole
+---
+[break_ex_blade_squeeze_s1]
+Avvicina le scapole
+---
+[break_ex_blade_squeeze_s2]
+Tieni un attimo poi rilascia
+---
+[break_ex_seated_twist]
+Torsione del busto da seduti
+---
+[break_ex_seated_twist_s1]
+Siedi dritto e ruota verso un lato
+---
+[break_ex_seated_twist_s2]
+Mantieni i fianchi fermi poi cambia
+---
+[break_ex_eye_horizon]
+Guardare lontano
+---
+[break_ex_eye_horizon_s1]
+Trova il punto più lontano della stanza
+---
+[break_ex_eye_horizon_s2]
+Ammorbidisci lo sguardo e respira
+---
+[break_ex_eye_near_far]
+Messa a fuoco vicino e lontano
+---
+[break_ex_eye_near_far_s1]
+Guarda il pollice da vicino
+---
+[break_ex_eye_near_far_s2]
+Poi metti a fuoco qualcosa di lontano
+---
+[break_ex_breath_drop]
+Respiro e spalle
+---
+[break_ex_breath_drop_s1]
+Inspira e solleva le spalle
+---
+[break_ex_breath_drop_s2]
+Espira e lasciale cadere
+---
+[break_ex_breath_drop_s3]
+Senti la tensione sciogliersi
+---
+[break_ex_forearm_desk]
+Allungamento dell'avambraccio
+---
+[break_ex_forearm_desk_s1]
+Posa il palmo sulla scrivania, dita indietro
+---
+[break_ex_forearm_desk_s2]
+Premi dolcemente fino ad allungare
+---

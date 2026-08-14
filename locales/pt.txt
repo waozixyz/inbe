@@ -1161,3 +1161,216 @@ Pausa agora
 [break_prelude_text]
 Pausa se aproximando — relaxe um momento
 ---
+[settings_tab_breaks]
+Pausas
+---
+[settings_breaks_enabled]
+Lembretes de pausa
+---
+[settings_breaks_status]
+Estado dos temporizadores
+---
+[settings_breaks_due_now]
+agora
+---
+[settings_breaks_timer_off]
+desligado
+---
+[settings_breaks_block_mode]
+Bloqueio
+---
+[settings_breaks_block_off]
+Desligado
+---
+[settings_breaks_block_input]
+Bloquear entrada
+---
+[settings_breaks_block_screen]
+Bloquear entrada e tela
+---
+[settings_breaks_sounds]
+Sons de pausa
+---
+[settings_breaks_reading_mode]
+Modo leitura
+---
+[settings_breaks_micro_counts]
+Contar micropausas como atividade
+---
+[settings_breaks_exercises]
+Exercícios por pausa
+---
+[settings_breaks_rest_now]
+Pausa agora
+---
+[settings_breaks_view_exercises]
+Ver exercícios
+---
+[settings_breaks_micro_header]
+Micropausa
+---
+[settings_breaks_rest_header]
+Pausa de descanso
+---
+[settings_breaks_daily_header]
+Limite diário
+---
+[settings_breaks_timer_enabled]
+Ativar temporizador
+---
+[settings_breaks_limit]
+Tempo entre pausas
+---
+[settings_breaks_duration]
+Duração da pausa
+---
+[settings_breaks_postpone]
+Tempo de adiamento
+---
+[settings_breaks_prompts]
+Avisos máximos
+---
+[settings_breaks_show_skip]
+Mostrar botão Pular
+---
+[settings_breaks_show_postpone]
+Mostrar botão Adiar
+---
+[settings_breaks_week_stats]
+Últimos 7 dias (feitas / puladas / adiadas)
+---
+[settings_breaks_no_data]
+Ainda sem estatísticas
+---
+[settings_breaks_desktop_only]
+Os lembretes de pausa estão disponíveis no desktop
+---
+[settings_breaks_mode]
+Modo
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Silencioso
+---
+[settings_breaks_mode_suspended]
+Suspenso
+---
+[tray_next_break]
+Próxima pausa %d:%02d
+---
+[break_exercises_title]
+Exercícios de pausa
+---
+[break_exercises_intro]
+Alongamentos curtos para as pausas. Tocam automaticamente.
+---
+[break_ex_prev]
+Ant.
+---
+[break_ex_play]
+Tocar
+---
+[break_ex_pause]
+Pausar
+---
+[break_ex_next]
+Próx.
+---
+[break_ex_stop]
+Parar
+---
+[break_ex_shoulder_rolls]
+Rotação dos ombros
+---
+[break_ex_shoulder_rolls_s1]
+Role os ombros lentamente para trás
+---
+[break_ex_shoulder_rolls_s2]
+Mantenha o movimento suave e relaxado
+---
+[break_ex_neck_tilt]
+Inclinação lateral do pescoço
+---
+[break_ex_neck_tilt_s1]
+Incline a cabeça em direção a um ombro
+---
+[break_ex_neck_tilt_s2]
+Segure suave e troque de lado
+---
+[break_ex_wrist_fingers]
+Alongamento de punhos e dedos
+---
+[break_ex_wrist_fingers_s1]
+Estenda um braço e puxe os dedos para trás
+---
+[break_ex_wrist_fingers_s2]
+Alongue o punho e troque de mão
+---
+[break_ex_upper_back]
+Alongamento das costas superiores
+---
+[break_ex_upper_back_s1]
+Entrelace as mãos e arredonde as costas
+---
+[break_ex_upper_back_s2]
+Expire e deixe os ombros caírem
+---
+[break_ex_blade_squeeze]
+Aperto das escápulas
+---
+[break_ex_blade_squeeze_s1]
+Junte as escápulas
+---
+[break_ex_blade_squeeze_s2]
+Segure um pouco e solte
+---
+[break_ex_seated_twist]
+Torção do tronco sentado
+---
+[break_ex_seated_twist_s1]
+Sente-se ereto e gire para um lado
+---
+[break_ex_seated_twist_s2]
+Mantenha o quadril firme e troque de lado
+---
+[break_ex_eye_horizon]
+Olhar para longe
+---
+[break_ex_eye_horizon_s1]
+Encontre o ponto mais distante da sala
+---
+[break_ex_eye_horizon_s2]
+Suavize o olhar e respire
+---
+[break_ex_eye_near_far]
+Foco perto e longe
+---
+[break_ex_eye_near_far_s1]
+Olhe seu polegar de perto
+---
+[break_ex_eye_near_far_s2]
+Depois foque em algo distante
+---
+[break_ex_breath_drop]
+Respiração e ombros
+---
+[break_ex_breath_drop_s1]
+Inspire e levante os ombros
+---
+[break_ex_breath_drop_s2]
+Expire e deixe-os cair
+---
+[break_ex_breath_drop_s3]
+Sinta a tensão sair
+---
+[break_ex_forearm_desk]
+Alongamento do antebraço
+---
+[break_ex_forearm_desk_s1]
+Coloque a palma na mesa, dedos para trás
+---
+[break_ex_forearm_desk_s2]
+Pressione suave até alongar o antebraço
+---

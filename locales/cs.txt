@@ -1161,3 +1161,216 @@ Delší přestávka hned
 [break_prelude_text]
 Přestávka se blíží — na chvíli se uvolněte
 ---
+[settings_tab_breaks]
+Přestávky
+---
+[settings_breaks_enabled]
+Připomínky přestávek
+---
+[settings_breaks_status]
+Stav časovačů
+---
+[settings_breaks_due_now]
+nyní
+---
+[settings_breaks_timer_off]
+vypnuto
+---
+[settings_breaks_block_mode]
+Blokování
+---
+[settings_breaks_block_off]
+Vypnuto
+---
+[settings_breaks_block_input]
+Blokovat vstup
+---
+[settings_breaks_block_screen]
+Blokovat vstup a obrazovku
+---
+[settings_breaks_sounds]
+Zvuky přestávek
+---
+[settings_breaks_reading_mode]
+Režim čtení
+---
+[settings_breaks_micro_counts]
+Počítat mikropřestávky jako aktivitu
+---
+[settings_breaks_exercises]
+Cvičení na přestávku
+---
+[settings_breaks_rest_now]
+Přestávka hned
+---
+[settings_breaks_view_exercises]
+Zobrazit cvičení
+---
+[settings_breaks_micro_header]
+Mikropřestávka
+---
+[settings_breaks_rest_header]
+Delší přestávka
+---
+[settings_breaks_daily_header]
+Denní limit
+---
+[settings_breaks_timer_enabled]
+Zapnout časovač
+---
+[settings_breaks_limit]
+Čas mezi přestávkami
+---
+[settings_breaks_duration]
+Délka přestávky
+---
+[settings_breaks_postpone]
+Čas odložení
+---
+[settings_breaks_prompts]
+Max. upozornění
+---
+[settings_breaks_show_skip]
+Zobrazit tlačítko Přeskočit
+---
+[settings_breaks_show_postpone]
+Zobrazit tlačítko Odložit
+---
+[settings_breaks_week_stats]
+Posledních 7 dní (absolvováno / přeskočeno / odloženo)
+---
+[settings_breaks_no_data]
+Zatím žádné statistiky
+---
+[settings_breaks_desktop_only]
+Připomínky přestávek jsou k dispozici na počítači
+---
+[settings_breaks_mode]
+Režim
+---
+[settings_breaks_mode_normal]
+Normální
+---
+[settings_breaks_mode_quiet]
+Tichý
+---
+[settings_breaks_mode_suspended]
+Pozastaveno
+---
+[tray_next_break]
+Další přestávka %d:%02d
+---
+[break_exercises_title]
+Cvičení při přestávkách
+---
+[break_exercises_intro]
+Krátká protažení pro přestávky. Přehrávají se automaticky.
+---
+[break_ex_prev]
+Před
+---
+[break_ex_play]
+Přehrát
+---
+[break_ex_pause]
+Pauza
+---
+[break_ex_next]
+Další
+---
+[break_ex_stop]
+Zastavit
+---
+[break_ex_shoulder_rolls]
+Kroužení rameny
+---
+[break_ex_shoulder_rolls_s1]
+Kroužte rameny pomalu dozadu
+---
+[break_ex_shoulder_rolls_s2]
+Pohyb ponechte plynulý a uvolněný
+---
+[break_ex_neck_tilt]
+Naklonění krku
+---
+[break_ex_neck_tilt_s1]
+Nakloňte hlavu k rameni
+---
+[break_ex_neck_tilt_s2]
+Chvíli vydržte a změňte stranu
+---
+[break_ex_wrist_fingers]
+Protažení zápěstí a prstů
+---
+[break_ex_wrist_fingers_s1]
+Natažte paži a zatáhněte prsty dozadu
+---
+[break_ex_wrist_fingers_s2]
+Protahejte zápěstí a změňte ruku
+---
+[break_ex_upper_back]
+Protažení horních zad
+---
+[break_ex_upper_back_s1]
+Propleťte ruce a zakulacte horní část zad
+---
+[break_ex_upper_back_s2]
+Vydechněte a nechte ramena klesnout
+---
+[break_ex_blade_squeeze]
+Stahování lopatek
+---
+[break_ex_blade_squeeze_s1]
+Stáhněte lopatky k sobě
+---
+[break_ex_blade_squeeze_s2]
+Chvíli držte a uvolněte
+---
+[break_ex_seated_twist]
+Sezení s otočením trupu
+---
+[break_ex_seated_twist_s1]
+Sedte si rovně a otočte se na jednu stranu
+---
+[break_ex_seated_twist_s2]
+Boky nechte vpředu a změňte stranu
+---
+[break_ex_eye_horizon]
+Pohled do dálky
+---
+[break_ex_eye_horizon_s1]
+Najděte nejvzdálenější bod v místnosti
+---
+[break_ex_eye_horizon_s2]
+Rozostřete pohled a dýchejte
+---
+[break_ex_eye_near_far]
+Ostření zblízka i z dálky
+---
+[break_ex_eye_near_far_s1]
+Podívejte se zblízka na palec
+---
+[break_ex_eye_near_far_s2]
+Pak zaostřete na vzdálený předmět
+---
+[break_ex_breath_drop]
+Dech a ramena
+---
+[break_ex_breath_drop_s1]
+Vdechněte a zvedněte ramena
+---
+[break_ex_breath_drop_s2]
+Vydechněte a nechte je spadnout
+---
+[break_ex_breath_drop_s3]
+Všimněte si uvolnění napětí
+---
+[break_ex_forearm_desk]
+Protažení předloktí o stůl
+---
+[break_ex_forearm_desk_s1]
+Položte dlaň na stůl, prsty dozadu
+---
+[break_ex_forearm_desk_s2]
+Lehce tlačte, až se předloktí protáhne
+---

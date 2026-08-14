@@ -1161,3 +1161,216 @@ Descanso ahora
 [break_prelude_text]
 Se acerca un descanso — relájate un momento
 ---
+[settings_tab_breaks]
+Descansos
+---
+[settings_breaks_enabled]
+Recordatorios de descanso
+---
+[settings_breaks_status]
+Estado del temporizador
+---
+[settings_breaks_due_now]
+pendiente ahora
+---
+[settings_breaks_timer_off]
+apagado
+---
+[settings_breaks_block_mode]
+Bloqueo
+---
+[settings_breaks_block_off]
+Desactivado
+---
+[settings_breaks_block_input]
+Bloquear entrada
+---
+[settings_breaks_block_screen]
+Bloquear entrada y pantalla
+---
+[settings_breaks_sounds]
+Sonidos de descanso
+---
+[settings_breaks_reading_mode]
+Modo lectura
+---
+[settings_breaks_micro_counts]
+Contar micropausas como actividad
+---
+[settings_breaks_exercises]
+Ejercicios por descanso
+---
+[settings_breaks_rest_now]
+Descanso ahora
+---
+[settings_breaks_view_exercises]
+Ver ejercicios
+---
+[settings_breaks_micro_header]
+Micropausa
+---
+[settings_breaks_rest_header]
+Descanso
+---
+[settings_breaks_daily_header]
+Límite diario
+---
+[settings_breaks_timer_enabled]
+Activar temporizador
+---
+[settings_breaks_limit]
+Tiempo entre descansos
+---
+[settings_breaks_duration]
+Duración del descanso
+---
+[settings_breaks_postpone]
+Tiempo de aplazamiento
+---
+[settings_breaks_prompts]
+Avisos máximos
+---
+[settings_breaks_show_skip]
+Mostrar botón Omitir
+---
+[settings_breaks_show_postpone]
+Mostrar botón Aplazar
+---
+[settings_breaks_week_stats]
+Últimos 7 días (hechos / omitidos / aplazados)
+---
+[settings_breaks_no_data]
+Aún no hay estadísticas
+---
+[settings_breaks_desktop_only]
+Los recordatorios están disponibles en escritorio
+---
+[settings_breaks_mode]
+Modo
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Silencioso
+---
+[settings_breaks_mode_suspended]
+Suspendido
+---
+[tray_next_break]
+Próximo descanso %d:%02d
+---
+[break_exercises_title]
+Ejercicios de descanso
+---
+[break_exercises_intro]
+Estiramientos cortos para los descansos. Se reproducen automáticamente.
+---
+[break_ex_prev]
+Anterior
+---
+[break_ex_play]
+Reproducir
+---
+[break_ex_pause]
+Pausa
+---
+[break_ex_next]
+Siguiente
+---
+[break_ex_stop]
+Detener
+---
+[break_ex_shoulder_rolls]
+Círculos de hombros
+---
+[break_ex_shoulder_rolls_s1]
+Rueda los hombros lentamente hacia atrás
+---
+[break_ex_shoulder_rolls_s2]
+Mantén el movimiento suave y relajado
+---
+[break_ex_neck_tilt]
+Inclinación lateral del cuello
+---
+[break_ex_neck_tilt_s1]
+Inclina la cabeza hacia un hombro
+---
+[break_ex_neck_tilt_s2]
+Sostén suave y cambia de lado
+---
+[break_ex_wrist_fingers]
+Estiramiento de muñeca y dedos
+---
+[break_ex_wrist_fingers_s1]
+Extiende un brazo y tira de los dedos hacia atrás
+---
+[break_ex_wrist_fingers_s2]
+Estira la muñeca y cambia de mano
+---
+[break_ex_upper_back]
+Estiramiento de espalda alta
+---
+[break_ex_upper_back_s1]
+Entrelaza las manos y redondea la espalda
+---
+[break_ex_upper_back_s2]
+Exhala y deja caer los hombros
+---
+[break_ex_blade_squeeze]
+Apriete de escápulas
+---
+[break_ex_blade_squeeze_s1]
+Junta las escápulas
+---
+[break_ex_blade_squeeze_s2]
+Sostén un momento y suelta
+---
+[break_ex_seated_twist]
+Giro de torso sentado
+---
+[break_ex_seated_twist_s1]
+Siéntate erguido y gira a un lado
+---
+[break_ex_seated_twist_s2]
+Mantén la cadera firme y cambia de lado
+---
+[break_ex_eye_horizon]
+Mirar a lo lejos
+---
+[break_ex_eye_horizon_s1]
+Busca el punto más lejano de la habitación
+---
+[break_ex_eye_horizon_s2]
+Suaviza la mirada y respira
+---
+[break_ex_eye_near_far]
+Enfoque cerca y lejos
+---
+[break_ex_eye_near_far_s1]
+Mira tu pulgar de cerca
+---
+[break_ex_eye_near_far_s2]
+Luego enfoca algo lejano
+---
+[break_ex_breath_drop]
+Respiración y hombros
+---
+[break_ex_breath_drop_s1]
+Inhala y sube los hombros
+---
+[break_ex_breath_drop_s2]
+Exhala y déjalos caer
+---
+[break_ex_breath_drop_s3]
+Notas cómo se libera la tensión
+---
+[break_ex_forearm_desk]
+Estiramiento de antebrazo
+---
+[break_ex_forearm_desk_s1]
+Pon la palma en la mesa, dedos hacia atrás
+---
+[break_ex_forearm_desk_s2]
+Presiona suave hasta estirar el antebrazo
+---

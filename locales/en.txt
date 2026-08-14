@@ -1156,3 +1156,216 @@ Rest break now
 [break_prelude_text]
 Break coming up — unwind for a moment
 ---
+[settings_tab_breaks]
+Breaks
+---
+[settings_breaks_enabled]
+Break reminders
+---
+[settings_breaks_status]
+Timer status
+---
+[settings_breaks_due_now]
+due now
+---
+[settings_breaks_timer_off]
+off
+---
+[settings_breaks_block_mode]
+Blocking
+---
+[settings_breaks_block_off]
+Off
+---
+[settings_breaks_block_input]
+Block input
+---
+[settings_breaks_block_screen]
+Block input and screen
+---
+[settings_breaks_sounds]
+Break sounds
+---
+[settings_breaks_reading_mode]
+Reading mode
+---
+[settings_breaks_micro_counts]
+Count micro-breaks as activity
+---
+[settings_breaks_exercises]
+Exercises per rest break
+---
+[settings_breaks_rest_now]
+Rest break now
+---
+[settings_breaks_view_exercises]
+View exercises
+---
+[settings_breaks_micro_header]
+Micro-break
+---
+[settings_breaks_rest_header]
+Rest break
+---
+[settings_breaks_daily_header]
+Daily limit
+---
+[settings_breaks_timer_enabled]
+Enable timer
+---
+[settings_breaks_limit]
+Time between breaks
+---
+[settings_breaks_duration]
+Break duration
+---
+[settings_breaks_postpone]
+Postpone time
+---
+[settings_breaks_prompts]
+Max prompts
+---
+[settings_breaks_show_skip]
+Show Skip button
+---
+[settings_breaks_show_postpone]
+Show Postpone button
+---
+[settings_breaks_week_stats]
+Last 7 days (taken / skipped / postponed)
+---
+[settings_breaks_no_data]
+No break statistics yet
+---
+[settings_breaks_desktop_only]
+Break reminders are available on desktop
+---
+[settings_breaks_mode]
+Mode
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Quiet
+---
+[settings_breaks_mode_suspended]
+Suspended
+---
+[tray_next_break]
+Next break %d:%02d
+---
+[break_exercises_title]
+Break exercises
+---
+[break_exercises_intro]
+Short stretches for rest breaks. They play automatically during rest breaks.
+---
+[break_ex_prev]
+Prev
+---
+[break_ex_play]
+Play
+---
+[break_ex_pause]
+Pause
+---
+[break_ex_next]
+Next
+---
+[break_ex_stop]
+Stop
+---
+[break_ex_shoulder_rolls]
+Shoulder rolls
+---
+[break_ex_shoulder_rolls_s1]
+Roll your shoulders slowly backward
+---
+[break_ex_shoulder_rolls_s2]
+Keep the motion smooth and relaxed
+---
+[break_ex_neck_tilt]
+Neck side tilt
+---
+[break_ex_neck_tilt_s1]
+Tilt your head toward one shoulder
+---
+[break_ex_neck_tilt_s2]
+Hold gently, then switch sides
+---
+[break_ex_wrist_fingers]
+Wrist and finger stretch
+---
+[break_ex_wrist_fingers_s1]
+Extend one arm and pull the fingers back
+---
+[break_ex_wrist_fingers_s2]
+Stretch the wrist, then switch hands
+---
+[break_ex_upper_back]
+Upper back stretch
+---
+[break_ex_upper_back_s1]
+Clasp your hands and round your upper back
+---
+[break_ex_upper_back_s2]
+Breathe out and let the shoulders drop
+---
+[break_ex_blade_squeeze]
+Shoulder blade squeeze
+---
+[break_ex_blade_squeeze_s1]
+Draw your shoulder blades together
+---
+[break_ex_blade_squeeze_s2]
+Hold briefly, then release
+---
+[break_ex_seated_twist]
+Seated torso twist
+---
+[break_ex_seated_twist_s1]
+Sit tall and rotate to one side
+---
+[break_ex_seated_twist_s2]
+Keep hips square, then switch sides
+---
+[break_ex_eye_horizon]
+Look into the distance
+---
+[break_ex_eye_horizon_s1]
+Find the farthest point in the room
+---
+[break_ex_eye_horizon_s2]
+Soften your gaze and breathe
+---
+[break_ex_eye_near_far]
+Focus near and far
+---
+[break_ex_eye_near_far_s1]
+Look at your thumb close up
+---
+[break_ex_eye_near_far_s2]
+Then focus on something far away
+---
+[break_ex_breath_drop]
+Breath and shoulder drop
+---
+[break_ex_breath_drop_s1]
+Inhale and lift your shoulders
+---
+[break_ex_breath_drop_s2]
+Exhale and let them fall
+---
+[break_ex_breath_drop_s3]
+Notice the tension release
+---
+[break_ex_forearm_desk]
+Forearm desk stretch
+---
+[break_ex_forearm_desk_s1]
+Place a palm on the desk, fingers back
+---
+[break_ex_forearm_desk_s2]
+Gently press until the forearm stretches
+---

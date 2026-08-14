@@ -32,6 +32,7 @@
     InbeScreenHabitEdit
     InbeScreenHabitSessionEdit
     InbeScreenBreak
+    InbeScreenBreakExercises
 }
 
 #enum {

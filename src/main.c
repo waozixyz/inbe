@@ -613,6 +613,12 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         screenshot_apply_theme(app, THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "break_exercises") == 0) {
+        app->inbe.screen = InbeScreenBreakExercises;
+    } else if(strcmp(request->scene, "break_settings") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->settings_tab = SETTINGS_TAB_BREAKS;
+        app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "break_micro") == 0 ||
               strcmp(request->scene, "break_rest") == 0 ||
               strcmp(request->scene, "break_daily") == 0) {
@@ -628,6 +634,16 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
                                            ? app->breaks.timers[t].duration_s / 3
                                            : 0;
         app->inbe.screen = InbeScreenBreak;
+        if(t == BREAK_REST) {
+            app->break_ex_picked[0] = 0;
+            app->break_ex_picked[1] = 6;
+            app->break_ex_picked[2] = 8;
+            app->break_ex_pick_count = 3;
+            app->breaks.timers[BREAK_REST].idle_s = 200;
+            app->break_ex_offset_s = 0;
+            app->break_ex_paused = 0;
+            app->break_ex_hidden = 0;
+        }
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;

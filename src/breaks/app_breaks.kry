@@ -1,5 +1,6 @@
 #import "app.h"
 #import "platform/inbe_activity_monitor.h" #private
+#import "storage/break_stats.h" #private
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
@@ -9,6 +10,8 @@ WEB :: #defined(PLATFORM_WEB)
     BreakDayResetHour = 4
     BreakPreludeToastS = 6
     BreakEventQueueMax = 8
+    BreakStatsFlushS = 60
+    BreakFallbackInputTicks = 90
 }
 
 break_day_key :: () -> int #private {
@@ -26,6 +29,24 @@ break_day_key :: () -> int #private {
     return key
 }
 
+break_fallback_input_seen :: () -> int #private {
+    wheel := (int)(GetMouseWheelMove() * 1000.0f)
+    if wheel != 0 {
+        return 1
+    }
+    dx := GetMouseDelta().x
+    dy := GetMouseDelta().y
+    if dx != 0.0f || dy != 0.0f {
+        return 1
+    }
+    for int k = KEY_SPACE; k <= KEY_KB_MENU; k++ {
+        if IsKeyPressed(k) {
+            return 1
+        }
+    }
+    return 0
+}
+
 break_sample_activity :: (app: InbeApp*) -> int #private {
     idle_ms := inbe_activity_get_idle_ms()
 
@@ -33,10 +54,35 @@ break_sample_activity :: (app: InbeApp*) -> int #private {
         return idle_ms < BreakActivityThresholdMs ? 1 : 0
     }
 
-    if IsWindowFocused() {
-        return 1
+    if !IsWindowFocused() {
+        return 0
     }
-    return 0
+    if break_fallback_input_seen() {
+        app->break_fallback_last_input = app->inbe.frame
+    }
+    return app->inbe.frame - app->break_fallback_last_input < BreakFallbackInputTicks ? 1 : 0
+}
+
+break_play_cue :: (app: InbeApp*, scale: float) #private {
+    if app->break_sounds_enabled {
+        app_play_bell_cue(app, scale)
+    }
+}
+
+break_pick_exercises :: (app: InbeApp*) #private {
+    app->break_ex_pick_count = 0
+    app->break_ex_offset_s = 0
+    app->break_ex_paused = 0
+    app->break_ex_hidden = 0
+
+    if app->break_exercise_count <= 0 {
+        return
+    }
+
+    seed := app->breaks.day_key * 100 + app->breaks.stats[BREAK_REST].taken +
+            app->breaks.stats[BREAK_REST].natural + 1
+    app->break_ex_pick_count = break_exercise_shuffle(seed,
+        app->break_exercise_count, app->break_ex_picked, 4)
 }
 
 break_engine_open_window :: (app: InbeApp*, t: int) #private {
@@ -80,10 +126,18 @@ app_breaks_update :: (app: InbeApp*) {
 
     day := break_day_key()
     if break_engine_set_day(&app->breaks, day) {
+        storage_break_flush_day(&app->breaks)
         break_engine_reset_day_stats(&app->breaks)
+        app->break_stats_flush_s = 0
     }
 
     break_engine_tick(&app->breaks, active)
+
+    app->break_stats_flush_s++
+    if app->break_stats_flush_s >= BreakStatsFlushS {
+        app->break_stats_flush_s = 0
+        storage_break_flush_day(&app->breaks)
+    }
 
     for int i = 0; i < BreakEventQueueMax; i++ {
         t := 0
@@ -94,12 +148,155 @@ app_breaks_update :: (app: InbeApp*) {
 
         if event == BreakEventPrompt {
             ShowUIToastFor(GetLocaleText("break_prelude_text"), BreakPreludeToastS)
+            break_play_cue(app, 0.8f)
         } else if event == BreakEventStart {
+            if t == BREAK_REST {
+                break_pick_exercises(app)
+            }
             break_engine_open_window(app, t)
+            break_play_cue(app, 1.0f)
         } else if event == BreakEventTaken || event == BreakEventNatural {
             break_engine_close_window(app)
+            if t != BREAK_DAILY {
+                break_play_cue(app, 1.2f)
+            }
         } else if event == BreakEventSkipped || event == BreakEventPostponed {
             break_engine_close_window(app)
         }
     }
+}
+}
+
+app_breaks_set_mode :: (app: InbeApp*, mode: int, duration_s: int) {
+    if app == nil {
+        return
+    }
+    break_engine_set_mode(&app->breaks, mode, duration_s)
+}
+
+app_breaks_rest_break_now :: (app: InbeApp*) {
+    if app == nil || !app->breaks_enabled {
+        return
+    }
+    break_pick_exercises(app)
+    break_engine_force_break(&app->breaks, BREAK_REST)
+    for int i = 0; i < BreakEventQueueMax; i++ {
+        t := 0
+        event := break_engine_take_event(&app->breaks, &t)
+        if event == BreakEventStart {
+            break_engine_open_window(app, t)
+        }
+    }
+}
+
+app_breaks_exercise_second :: (app: const InbeApp*) -> int {
+    if app == nil || app->break_ex_pick_count <= 0 || app->break_ex_hidden {
+        return -1
+    }
+    if app->break_ex_paused {
+        return app->break_ex_offset_s
+    }
+    timer := &app->breaks.timers[BREAK_REST]
+    elapsed := timer->idle_s - app->break_ex_offset_s
+    if elapsed < 0 {
+        elapsed = 0
+    }
+    return elapsed
+}
+
+app_breaks_exercise_at :: (app: const InbeApp*, second: int, start_out: int*) -> int {
+    if app == nil || second < 0 {
+        return -1
+    }
+    start := 0
+    for int i = 0; i < app->break_ex_pick_count; i++ {
+        total := break_exercise_total_s(app->break_ex_picked[i])
+        if second < start + total {
+            if start_out != nil {
+                *start_out = start
+            }
+            return i
+        }
+        start += total
+    }
+    return -1
+}
+
+app_breaks_exercise_step_second :: (app: const InbeApp*, index: int, second: int) -> int {
+    if app == nil || index < 0 || index >= app->break_ex_pick_count {
+        return -1
+    }
+    ex := app->break_ex_picked[index]
+    duration := break_exercise_step_duration_s(ex)
+    if duration <= 0 {
+        return -1
+    }
+    return second / duration
+}
+
+app_breaks_exercise_toggle_pause :: (app: InbeApp*) {
+    elapsed := 0
+
+    if app == nil || app->break_ex_pick_count <= 0 || app->break_ex_hidden {
+        return
+    }
+    elapsed = app_breaks_exercise_second(app)
+    if elapsed < 0 {
+        return
+    }
+    if !app->break_ex_paused {
+        app->break_ex_offset_s = elapsed
+        app->break_ex_paused = 1
+    } else {
+        app->break_ex_offset_s = app->breaks.timers[BREAK_REST].idle_s - elapsed
+        if app->break_ex_offset_s < 0 {
+            app->break_ex_offset_s = 0
+        }
+        app->break_ex_paused = 0
+    }
+}
+
+app_breaks_exercise_skip :: (app: InbeApp*, forward: int) {
+    start := 0
+    index := 0
+    target := 0
+    idle := 0
+
+    if app == nil || app->break_ex_pick_count <= 0 || app->break_ex_hidden {
+        return
+    }
+
+    idle = app->breaks.timers[BREAK_REST].idle_s
+    index = app_breaks_exercise_at(app, app_breaks_exercise_second(app), &start)
+    if index < 0 {
+        return
+    }
+
+    if forward {
+        target = start + break_exercise_total_s(app->break_ex_picked[index])
+        if target >= idle && index >= app->break_ex_pick_count - 1 {
+            return
+        }
+    } else {
+        target = start
+        if index > 0 {
+            target -= break_exercise_total_s(app->break_ex_picked[index - 1])
+        }
+        if target < 0 {
+            target = 0
+        }
+    }
+
+    app->break_ex_offset_s = idle - target
+    if app->break_ex_offset_s < 0 {
+        app->break_ex_offset_s = 0
+    }
+    app->break_ex_paused = 0
+}
+
+app_breaks_exercise_hide :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    app->break_ex_hidden = 1
 }

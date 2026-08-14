@@ -1161,3 +1161,216 @@ Istirahat panjang sekarang
 [break_prelude_text]
 Istirahat sebentar lagi — santai sejenak
 ---
+[settings_tab_breaks]
+Istirahat
+---
+[settings_breaks_enabled]
+Pengingat istirahat
+---
+[settings_breaks_status]
+Status pewaktu
+---
+[settings_breaks_due_now]
+sekarang
+---
+[settings_breaks_timer_off]
+mati
+---
+[settings_breaks_block_mode]
+Pemblokiran
+---
+[settings_breaks_block_off]
+Mati
+---
+[settings_breaks_block_input]
+Blokir masukan
+---
+[settings_breaks_block_screen]
+Blokir masukan dan layar
+---
+[settings_breaks_sounds]
+Suara istirahat
+---
+[settings_breaks_reading_mode]
+Mode membaca
+---
+[settings_breaks_micro_counts]
+Hitung mikro-istirahat sebagai aktivitas
+---
+[settings_breaks_exercises]
+Latihan per istirahat
+---
+[settings_breaks_rest_now]
+Istirahat sekarang
+---
+[settings_breaks_view_exercises]
+Lihat latihan
+---
+[settings_breaks_micro_header]
+Mikro-istirahat
+---
+[settings_breaks_rest_header]
+Istirahat panjang
+---
+[settings_breaks_daily_header]
+Batas harian
+---
+[settings_breaks_timer_enabled]
+Aktifkan pewaktu
+---
+[settings_breaks_limit]
+Waktu antar istirahat
+---
+[settings_breaks_duration]
+Durasi istirahat
+---
+[settings_breaks_postpone]
+Waktu tunda
+---
+[settings_breaks_prompts]
+Maks. pengingat
+---
+[settings_breaks_show_skip]
+Tampilkan tombol Lewati
+---
+[settings_breaks_show_postpone]
+Tampilkan tombol Tunda
+---
+[settings_breaks_week_stats]
+7 hari terakhir (diambil / dilewati / ditunda)
+---
+[settings_breaks_no_data]
+Belum ada statistik
+---
+[settings_breaks_desktop_only]
+Pengingat tersedia di desktop
+---
+[settings_breaks_mode]
+Mode
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Senyap
+---
+[settings_breaks_mode_suspended]
+Ditangguhkan
+---
+[tray_next_break]
+Istirahat berikutnya %d:%02d
+---
+[break_exercises_title]
+Latihan istirahat
+---
+[break_exercises_intro]
+Peregangan singkat untuk istirahat. Diputar otomatis.
+---
+[break_ex_prev]
+Seb.
+---
+[break_ex_play]
+Putar
+---
+[break_ex_pause]
+Jeda
+---
+[break_ex_next]
+Lanjut
+---
+[break_ex_stop]
+Berhenti
+---
+[break_ex_shoulder_rolls]
+Putaran bahu
+---
+[break_ex_shoulder_rolls_s1]
+Putar bahu perlahan ke belakang
+---
+[break_ex_shoulder_rolls_s2]
+Jaga gerakan halus dan rileks
+---
+[break_ex_neck_tilt]
+Miringkan leher
+---
+[break_ex_neck_tilt_s1]
+Miringkan kepala ke satu bahu
+---
+[break_ex_neck_tilt_s2]
+Tahan lembut, lalu ganti sisi
+---
+[break_ex_wrist_fingers]
+Peregangan pergelangan dan jari
+---
+[break_ex_wrist_fingers_s1]
+Rentangkan satu lengan dan tarik jari ke belakang
+---
+[break_ex_wrist_fingers_s2]
+Regangkan pergelangan, lalu ganti tangan
+---
+[break_ex_upper_back]
+Peregangan punggung atas
+---
+[break_ex_upper_back_s1]
+Genggam tangan dan bulatkan punggung
+---
+[break_ex_upper_back_s2]
+Hembuskan napas dan turunkan bahu
+---
+[break_ex_blade_squeeze]
+Rapatkan tulang belikat
+---
+[break_ex_blade_squeeze_s1]
+Tarik belikat ke belakang
+---
+[break_ex_blade_squeeze_s2]
+Tahan sebentar, lalu lepas
+---
+[break_ex_seated_twist]
+Puntir badan duduk
+---
+[break_ex_seated_twist_s1]
+Duduk tegak dan putar ke satu sisi
+---
+[break_ex_seated_twist_s2]
+Jaga pinggul tetap, lalu ganti sisi
+---
+[break_ex_eye_horizon]
+Menatap ke kejauhan
+---
+[break_ex_eye_horizon_s1]
+Cari titik terjauh di ruangan
+---
+[break_ex_eye_horizon_s2]
+Lunakkan pandangan dan bernapas
+---
+[break_ex_eye_near_far]
+Fokus dekat dan jauh
+---
+[break_ex_eye_near_far_s1]
+Lihat ibu jari dari dekat
+---
+[break_ex_eye_near_far_s2]
+Lalu fokus ke sesuatu yang jauh
+---
+[break_ex_breath_drop]
+Napas dan bahu
+---
+[break_ex_breath_drop_s1]
+Tarik napas dan angkat bahu
+---
+[break_ex_breath_drop_s2]
+Hembuskan dan biarkan turun
+---
+[break_ex_breath_drop_s3]
+Rasakan ketegangan lepas
+---
+[break_ex_forearm_desk]
+Peregangan lengan bawah
+---
+[break_ex_forearm_desk_s1]
+Letakkan telapak di meja, jari ke belakang
+---
+[break_ex_forearm_desk_s2]
+Tekan perlahan sampai terasa meregang
+---

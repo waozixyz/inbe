@@ -246,8 +246,40 @@ static void
 scan_used_locale_get_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
                                    const char *path)
 {
+    FILE *fp;
+    char line[2048];
+
     scan_used_locale_literal_calls_in_file(english, used, path, "GetLocaleText(");
     scan_used_locale_literal_calls_in_file(english, used, path, "FormatLocaleText(");
+
+    /* Key literals also appear in data tables (break_exercise_* steps are
+     * resolved through helper functions, not direct GetLocaleText calls):
+     * any quoted literal in a source file that names a known English key
+     * counts as used. */
+    fp = fopen(path, "rb");
+    if(fp == NULL)
+        return;
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        char *cursor = line;
+        while((cursor = strchr(cursor, '"')) != NULL) {
+            char key[MAX_KEY_LEN];
+            char *start = cursor + 1;
+            char *end = strchr(start, '"');
+            size_t len;
+
+            if(end == NULL)
+                break;
+            len = (size_t)(end - start);
+            if(len > 0 && len < sizeof(key)) {
+                memcpy(key, start, len);
+                key[len] = '\0';
+                if(keys_contains(english, key))
+                    keys_add(used, key);
+            }
+            cursor = end + 1;
+        }
+    }
+    fclose(fp);
 }
 
 static void

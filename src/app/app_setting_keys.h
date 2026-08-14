@@ -47,6 +47,32 @@
     X("play_in_background") \
     X("language") \
     X("practice_category_tab") \
-    X("practice_visible_mask")
+    X("practice_visible_mask") \
+    X("breaks_enabled") \
+    X("break_block_mode") \
+    X("break_sounds_enabled") \
+    X("break_exercise_count") \
+    X("break_reading_mode") \
+    X("break_micro_counts_as_activity") \
+    X("break_micro_enabled") \
+    X("break_micro_limit") \
+    X("break_micro_duration") \
+    X("break_micro_postpone") \
+    X("break_micro_max_prompts") \
+    X("break_micro_show_skip") \
+    X("break_micro_show_postpone") \
+    X("break_rest_enabled") \
+    X("break_rest_limit") \
+    X("break_rest_duration") \
+    X("break_rest_postpone") \
+    X("break_rest_max_prompts") \
+    X("break_rest_show_skip") \
+    X("break_rest_show_postpone") \
+    X("break_daily_enabled") \
+    X("break_daily_limit") \
+    X("break_daily_postpone") \
+    X("break_daily_max_prompts") \
+    X("break_daily_show_skip") \
+    X("break_daily_show_postpone")
 
 #endif

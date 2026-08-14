@@ -16,6 +16,7 @@
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
 #include "screens/break_overlay.h"
+#include "screens/break_exercises_screen.h"
 #include "breaks/app_breaks.h"
 #include "screens/profile_screen.h"
 #include "screens/profile_social.h"
@@ -1087,6 +1088,12 @@ app_init(void *vapp) {
 #else
     app->breaks_enabled = 0;
 #endif
+    app->break_sounds_enabled = 1;
+    app->break_exercise_count = 3;
+    app->break_ex_pick_count = 0;
+    app->break_ex_offset_s = 0;
+    app->break_ex_paused = 0;
+    app->break_ex_hidden = 0;
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -1413,6 +1420,7 @@ static const struct {
     { InbeScreenHabitEdit,        habit_edit_draw },
     { InbeScreenHabitSessionEdit, habit_session_draw_edit_screen },
     { InbeScreenBreak,            break_overlay_draw },
+    { InbeScreenBreakExercises,   break_exercises_screen_draw },
 };
 
 static void

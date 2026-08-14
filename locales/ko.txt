@@ -1160,3 +1160,216 @@ Remove
 [break_prelude_text]
 곧 휴식이 시작됩니다 — 잠시 몸을 푸세요
 ---
+[settings_tab_breaks]
+휴식
+---
+[settings_breaks_enabled]
+휴식 알림
+---
+[settings_breaks_status]
+타이머 상태
+---
+[settings_breaks_due_now]
+곧
+---
+[settings_breaks_timer_off]
+꺼짐
+---
+[settings_breaks_block_mode]
+차단
+---
+[settings_breaks_block_off]
+끄기
+---
+[settings_breaks_block_input]
+입력 차단
+---
+[settings_breaks_block_screen]
+입력 및 화면 차단
+---
+[settings_breaks_sounds]
+휴식 소리
+---
+[settings_breaks_reading_mode]
+읽기 모드
+---
+[settings_breaks_micro_counts]
+짧은 휴식을 활동으로 계산
+---
+[settings_breaks_exercises]
+휴식당 운동 수
+---
+[settings_breaks_rest_now]
+지금 휴식
+---
+[settings_breaks_view_exercises]
+운동 보기
+---
+[settings_breaks_micro_header]
+짧은 휴식
+---
+[settings_breaks_rest_header]
+긴 휴식
+---
+[settings_breaks_daily_header]
+일일 한도
+---
+[settings_breaks_timer_enabled]
+타이머 켜기
+---
+[settings_breaks_limit]
+휴식 간격
+---
+[settings_breaks_duration]
+휴식 시간
+---
+[settings_breaks_postpone]
+미루기 시간
+---
+[settings_breaks_prompts]
+최대 알림 수
+---
+[settings_breaks_show_skip]
+건너뛰기 버튼 표시
+---
+[settings_breaks_show_postpone]
+나중에 버튼 표시
+---
+[settings_breaks_week_stats]
+최근 7일 (완료 / 건너뜀 / 미룸)
+---
+[settings_breaks_no_data]
+아직 통계가 없습니다
+---
+[settings_breaks_desktop_only]
+휴식 알림은 데스크톱에서 사용할 수 있습니다
+---
+[settings_breaks_mode]
+모드
+---
+[settings_breaks_mode_normal]
+보통
+---
+[settings_breaks_mode_quiet]
+조용히
+---
+[settings_breaks_mode_suspended]
+일시 중지
+---
+[tray_next_break]
+다음 휴식 %d:%02d
+---
+[break_exercises_title]
+휴식 운동
+---
+[break_exercises_intro]
+휴식용 짧은 스트레치. 자동으로 재생됩니다.
+---
+[break_ex_prev]
+이전
+---
+[break_ex_play]
+재생
+---
+[break_ex_pause]
+일시정지
+---
+[break_ex_next]
+다음
+---
+[break_ex_stop]
+정지
+---
+[break_ex_shoulder_rolls]
+어깨 돌리기
+---
+[break_ex_shoulder_rolls_s1]
+어깨를 천천히 뒤로 돌리세요
+---
+[break_ex_shoulder_rolls_s2]
+부드럽고 편안하게 유지하세요
+---
+[break_ex_neck_tilt]
+목 옆으로 기울이기
+---
+[break_ex_neck_tilt_s1]
+머리를 한쪽 어깨로 기울이세요
+---
+[break_ex_neck_tilt_s2]
+부드럽게 유지한 뒤 반대쪽
+---
+[break_ex_wrist_fingers]
+손목·손가락 스트레치
+---
+[break_ex_wrist_fingers_s1]
+한 팔을 뻗고 손가락을 뒤로 당기세요
+---
+[break_ex_wrist_fingers_s2]
+손목을 스트레치하고 손을 바꾸세요
+---
+[break_ex_upper_back]
+등 상부 스트레치
+---
+[break_ex_upper_back_s1]
+손을 모으고 등을 둥글게 하세요
+---
+[break_ex_upper_back_s2]
+내쉬며 어깨를 내리세요
+---
+[break_ex_blade_squeeze]
+견갑골 모으기
+---
+[break_ex_blade_squeeze_s1]
+견갑골을 서로 모으세요
+---
+[break_ex_blade_squeeze_s2]
+잠시 유지한 뒤 푸세요
+---
+[break_ex_seated_twist]
+앉아서 몸 비틀기
+---
+[break_ex_seated_twist_s1]
+바르게 앉아 한쪽으로 돌리세요
+---
+[break_ex_seated_twist_s2]
+골반은 고정하고 쪽을 바꾸세요
+---
+[break_ex_eye_horizon]
+멀리 보기
+---
+[break_ex_eye_horizon_s1]
+방에서 가장 먼 지점을 찾으세요
+---
+[break_ex_eye_horizon_s2]
+시선을 부드럽게 하고 호흡하세요
+---
+[break_ex_eye_near_far]
+가까이·멀리 초점
+---
+[break_ex_eye_near_far_s1]
+엄지를 가까이에서 보세요
+---
+[break_ex_eye_near_far_s2]
+그다음 먼 곳에 초점을 맞추세요
+---
+[break_ex_breath_drop]
+호흡과 어깨
+---
+[break_ex_breath_drop_s1]
+들이쉬며 어깨를 올리세요
+---
+[break_ex_breath_drop_s2]
+내쉬며 내리세요
+---
+[break_ex_breath_drop_s3]
+긴장이 풀리는 것을 느끼세요
+---
+[break_ex_forearm_desk]
+책상에서 팔꿈치 스트레치
+---
+[break_ex_forearm_desk_s1]
+손바닥을 책상에, 손가락은 뒤로
+---
+[break_ex_forearm_desk_s2]
+팔이 스트레치될 때까지 부드럽게 누르세요
+---

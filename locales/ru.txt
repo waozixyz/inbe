@@ -1161,3 +1161,216 @@ Remove
 [break_prelude_text]
 Скоро перерыв — расслабьтесь на минуту
 ---
+[settings_tab_breaks]
+Перерывы
+---
+[settings_breaks_enabled]
+Напоминания о перерывах
+---
+[settings_breaks_status]
+Состояние таймеров
+---
+[settings_breaks_due_now]
+сейчас
+---
+[settings_breaks_timer_off]
+выключен
+---
+[settings_breaks_block_mode]
+Блокировка
+---
+[settings_breaks_block_off]
+Выкл.
+---
+[settings_breaks_block_input]
+Блокировать ввод
+---
+[settings_breaks_block_screen]
+Блокировать ввод и экран
+---
+[settings_breaks_sounds]
+Звуки перерывов
+---
+[settings_breaks_reading_mode]
+Режим чтения
+---
+[settings_breaks_micro_counts]
+Считать микроперерывы активностью
+---
+[settings_breaks_exercises]
+Упражнений на перерыв
+---
+[settings_breaks_rest_now]
+Перерыв сейчас
+---
+[settings_breaks_view_exercises]
+Открыть упражнения
+---
+[settings_breaks_micro_header]
+Микроперерыв
+---
+[settings_breaks_rest_header]
+Перерыв на отдых
+---
+[settings_breaks_daily_header]
+Дневной лимит
+---
+[settings_breaks_timer_enabled]
+Включить таймер
+---
+[settings_breaks_limit]
+Время между перерывами
+---
+[settings_breaks_duration]
+Длительность перерыва
+---
+[settings_breaks_postpone]
+Время отсрочки
+---
+[settings_breaks_prompts]
+Макс. напоминаний
+---
+[settings_breaks_show_skip]
+Показывать кнопку «Пропустить»
+---
+[settings_breaks_show_postpone]
+Показывать кнопку «Отложить»
+---
+[settings_breaks_week_stats]
+Последние 7 дней (взято / пропущено / отложено)
+---
+[settings_breaks_no_data]
+Статистики пока нет
+---
+[settings_breaks_desktop_only]
+Напоминания доступны на компьютере
+---
+[settings_breaks_mode]
+Режим
+---
+[settings_breaks_mode_normal]
+Обычный
+---
+[settings_breaks_mode_quiet]
+Тихий
+---
+[settings_breaks_mode_suspended]
+Приостановлен
+---
+[tray_next_break]
+Следующий перерыв %d:%02d
+---
+[break_exercises_title]
+Упражнения для перерывов
+---
+[break_exercises_intro]
+Короткие разминки для перерывов. Запускаются автоматически.
+---
+[break_ex_prev]
+Назад
+---
+[break_ex_play]
+Играть
+---
+[break_ex_pause]
+Пауза
+---
+[break_ex_next]
+Далее
+---
+[break_ex_stop]
+Стоп
+---
+[break_ex_shoulder_rolls]
+Круги плечами
+---
+[break_ex_shoulder_rolls_s1]
+Медленно вращайте плечами назад
+---
+[break_ex_shoulder_rolls_s2]
+Движение плавное и расслабленное
+---
+[break_ex_neck_tilt]
+Наклон шеи вбок
+---
+[break_ex_neck_tilt_s1]
+Наклоните голову к плечу
+---
+[break_ex_neck_tilt_s2]
+Держите мягко, затем смените сторону
+---
+[break_ex_wrist_fingers]
+Растяжка запястий и пальцев
+---
+[break_ex_wrist_fingers_s1]
+Вытяните руку и потяните пальцы на себя
+---
+[break_ex_wrist_fingers_s2]
+Растяните запястье и смените руку
+---
+[break_ex_upper_back]
+Растяжка верха спины
+---
+[break_ex_upper_back_s1]
+Сцепите руки и округлите спину
+---
+[break_ex_upper_back_s2]
+Выдохните и опустите плечи
+---
+[break_ex_blade_squeeze]
+Сведение лопаток
+---
+[break_ex_blade_squeeze_s1]
+Сведите лопатки вместе
+---
+[break_ex_blade_squeeze_s2]
+Держите недолго и отпустите
+---
+[break_ex_seated_twist]
+Скручивание корпуса сидя
+---
+[break_ex_seated_twist_s1]
+Сядьте ровно и повернитесь в сторону
+---
+[break_ex_seated_twist_s2]
+Бёдра неподвижны, затем смените сторону
+---
+[break_ex_eye_horizon]
+Взгляд вдаль
+---
+[break_ex_eye_horizon_s1]
+Найдите самую дальнюю точку комнаты
+---
+[break_ex_eye_horizon_s2]
+Смягчите взгляд и дышите
+---
+[break_ex_eye_near_far]
+Фокус вблизи и вдали
+---
+[break_ex_eye_near_far_s1]
+Посмотрите на большой палец вблизи
+---
+[break_ex_eye_near_far_s2]
+Затем сфокусируйтесь на далёком
+---
+[break_ex_breath_drop]
+Дыхание и плечи
+---
+[break_ex_breath_drop_s1]
+Вдох — поднимите плечи
+---
+[break_ex_breath_drop_s2]
+Выдох — опустите их
+---
+[break_ex_breath_drop_s3]
+Почувствуйте, как уходит напряжение
+---
+[break_ex_forearm_desk]
+Растяжка предплечья о стол
+---
+[break_ex_forearm_desk_s1]
+Положите ладонь на стол, пальцы назад
+---
+[break_ex_forearm_desk_s2]
+Мягко давите до растяжения
+---
