@@ -90,7 +90,8 @@ add_custom_command(
 add_custom_command(
     OUTPUT "${KRYON_K2C}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
-    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I"${KRYON_DIR}/cmd/kir" -I"${KRYON_DIR}/cmd/k2c" -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
+    # VERBATIM escapes embedded quotes, so unquoted -I paths (no spaces here)
+    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I${KRYON_DIR}/cmd/kir -I${KRYON_DIR}/cmd/k2c -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
     DEPENDS ${KRYON_K2C_SOURCES}
     VERBATIM
 )
