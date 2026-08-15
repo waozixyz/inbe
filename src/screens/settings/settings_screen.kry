@@ -4,6 +4,7 @@
 #import "practices/meditation/meditation_practice.h"
 #import "settings_about.h"
 #import "screens/settings/settings_audio.h"
+#import "screens/settings/settings_notifications.h"
 #import "screens/settings/settings_breaks.h"
 #import "screens/settings/settings_data_ui.h"
 #import "screens/settings/settings_device.h"
@@ -95,6 +96,9 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
     if tab == SETTINGS_TAB_BREAKS {
         return settings_breaks_content_height(app, content_w)
     }
+    if tab == SETTINGS_TAB_NOTIFICATIONS {
+        return settings_notifications_content_height(app, content_w)
+    }
     return settings_about_content_height(content_w)
 }
 
@@ -120,6 +124,9 @@ settings_screen_tab_label :: (tab: int) -> const char* {
     }
     if tab == SETTINGS_TAB_BREAKS {
         return GetLocaleText("settings_tab_breaks")
+    }
+    if tab == SETTINGS_TAB_NOTIFICATIONS {
+        return GetLocaleText("settings_tab_notifications")
     }
     if tab == SETTINGS_TAB_ABOUT {
         return GetLocaleText("settings_tab_about")
@@ -194,6 +201,8 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         settings_device_draw(app, page.content_x, page.content_w, &y, &device_state)
     } else if app->settings_tab == SETTINGS_TAB_BREAKS {
         settings_breaks_draw(app, page.content_x, page.content_w, &y)
+    } else if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
+        settings_notifications_draw(app, page.content_x, page.content_w, &y)
     } else {
         settings_about_draw(app, page.content_x, page.content_w, &y)
     }

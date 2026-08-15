@@ -1374,9 +1374,6 @@ Pon la palma en la mesa, dedos hacia atrás
 [break_ex_forearm_desk_s2]
 Presiona suave hasta estirar el antebrazo
 ---
-[notifications_label]
-Notificaciones
----
 [notifications_test]
 Enviar notificación de prueba
 ---
@@ -1392,9 +1389,6 @@ Sesión completada
 [notification_session_done_body]
 Tu sesión de práctica ha terminado.
 ---
-[push_label]
-Notificaciones push
----
 [break_hud_micro]
 Micro
 ---
@@ -1403,4 +1397,40 @@ Descanso
 ---
 [break_hud_daily]
 Día
+---
+[settings_tab_notifications]
+Notificaciones
+---
+[notifications_section]
+Notificaciones
+---
+[notifications_friend_request_label]
+Notificar solicitudes de amistad
+---
+[notifications_friend_request_title]
+Solicitud de amistad
+---
+[notifications_friend_request_body]
+Tienes una nueva solicitud de amistad
+---
+[reminder_add]
+Añadir recordatorio
+---
+[notifications_push_section]
+Entrega push
+---
+[notifications_push_status_on]
+Conectado
+---
+[notifications_push_status_off]
+Sin configurar
+---
+[notifications_push_setup]
+Configurar push…
+---
+[notifications_reminders_section]
+Recordatorios
+---
+[reminder_title]
+Recordatorio
 ---

@@ -221,8 +221,30 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0)
     save_setting_int("on_screen_keyboard",
                         app->on_screen_keyboard_enabled ? 1 : 0)
-    save_setting_int("notifications_enabled",
-                        app->notifications_enabled ? 1 : 0)
+    save_setting_int("notification_friend_request",
+                        app->notification_friend_request ? 1 : 0)
+    save_setting_int("reminder_count", app->reminder_count)
+    for int i = 0; i < APP_REMINDER_MAX; i++ {
+        key: [40] char
+        r := &app->reminders[i]
+        if snprintf(key, sizeof(key), "reminder_%d_practice", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->practice : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_hour", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->hour : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_enabled", i) <
+           (int)sizeof(key) {
+            save_setting_int(key,
+                             i < app->reminder_count && r->enabled ? 1 : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_last_day", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->last_day : 0)
+        }
+    }
     save_setting_int("progressive_speed", app->inbe.progressive_speed)
     save_setting_int("progressive_start_speed",
                         app->inbe.progressive_start_speed)
@@ -333,6 +355,49 @@ load_clamped_setting :: (cache: const SettingsLoadCache*, dst: int*,
     *dst = clampi(value, min_value, max_value)
 }
 
+load_reminders :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
+    key: [40] char
+
+    if app == nil || cache == nil {
+        return
+    }
+    if settings_cache_get(cache, "reminder_count") == nil {
+        app->reminder_count = 1
+        app->reminders[0].practice = 0
+        app->reminders[0].hour = 8
+        app->reminders[0].enabled = 1
+        app->reminders[0].last_day = 0
+        return
+    }
+    app->reminder_count = clampi(
+        settings_cache_get_int(cache, "reminder_count", 1), 0,
+        APP_REMINDER_MAX)
+    for int i = 0; i < app->reminder_count; i++ {
+        r := &app->reminders[i]
+        r->practice = 0
+        r->hour = 8
+        r->enabled = 1
+        r->last_day = 0
+        if snprintf(key, sizeof(key), "reminder_%d_practice", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->practice, key, 0, 0,
+                                 APP_REMINDER_PRACTICE_COUNT - 1)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_hour", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->hour, key, 8, 0, 23)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_enabled", i) <
+           (int)sizeof(key) {
+            load_bool_setting(cache, &r->enabled, key, 1)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_last_day", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->last_day, key, 0, 0, 99999999)
+        }
+    }
+}
+
 practice_music_track_key :: (index: int, out: char*, out_size: int) #private {
     if out == nil || out_size <= 0 {
         return
@@ -395,12 +460,13 @@ app_load_settings :: (app: InbeApp*) -> int {
     #if ANDROID || WEB {
         load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
                              "on_screen_keyboard", 1)
-        load_bool_setting(&settings_cache, &app->notifications_enabled,
-                             "notifications_enabled", 1)
     } #else {
         load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
                              "on_screen_keyboard", 0)
     }
+    load_bool_setting(&settings_cache, &app->notification_friend_request,
+                         "notification_friend_request", 1)
+    load_reminders(app, &settings_cache)
     load_bool_setting(&settings_cache, &app->inbe.progressive_speed,
                          "progressive_speed", 1)
     load_bool_setting(&settings_cache, &app->advanced_session_controls,

@@ -1,5 +1,6 @@
 #import "app.h"
 
+#import "app/app_notifications.h" #private
 #import "platform.h" #private
 #import "screens/profile_social.h" #private
 #import "storage.h" #private
@@ -280,6 +281,7 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
         }
         app->profile_friends_loaded = 1
         app->profile_leaderboard_loaded = 1
+        app_notifications_on_friends_synced(app)
     }
 }
 

@@ -1374,9 +1374,6 @@ Remove
 [break_ex_forearm_desk_s2]
 Мягко давите до растяжения
 ---
-[notifications_label]
-Уведомления
----
 [notifications_test]
 Отправить тестовое уведомление
 ---
@@ -1392,9 +1389,6 @@ Remove
 [notification_session_done_body]
 Ваша тренировочная сессия завершена.
 ---
-[push_label]
-Push-уведомления
----
 [break_hud_micro]
 Микро
 ---
@@ -1403,4 +1397,40 @@ Push-уведомления
 ---
 [break_hud_daily]
 День
+---
+[settings_tab_notifications]
+Уведомления
+---
+[notifications_section]
+Уведомления
+---
+[notifications_friend_request_label]
+Уведомления о заявках в друзья
+---
+[notifications_friend_request_title]
+Заявка в друзья
+---
+[notifications_friend_request_body]
+У вас новая заявка в друзья
+---
+[reminder_add]
+Добавить напоминание
+---
+[notifications_push_section]
+Доставка push
+---
+[notifications_push_status_on]
+Подключено
+---
+[notifications_push_status_off]
+Не настроено
+---
+[notifications_push_setup]
+Настроить push…
+---
+[notifications_reminders_section]
+Напоминания
+---
+[reminder_title]
+Напоминание
 ---

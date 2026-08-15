@@ -1373,9 +1373,6 @@ Remove
 [break_ex_forearm_desk_s2]
 팔이 스트레치될 때까지 부드럽게 누르세요
 ---
-[notifications_label]
-알림
----
 [notifications_test]
 테스트 알림 보내기
 ---
@@ -1391,9 +1388,6 @@ Inner Breeze 알림이 작동합니다.
 [notification_session_done_body]
 연습 세션이 완료되었습니다.
 ---
-[push_label]
-푸시 알림
----
 [break_hud_micro]
 짧은
 ---
@@ -1402,4 +1396,40 @@ Inner Breeze 알림이 작동합니다.
 ---
 [break_hud_daily]
 일일
+---
+[settings_tab_notifications]
+알림
+---
+[notifications_section]
+알림
+---
+[notifications_friend_request_label]
+친구 요청 알림
+---
+[notifications_friend_request_title]
+친구 요청
+---
+[notifications_friend_request_body]
+새 친구 요청이 있습니다
+---
+[reminder_add]
+알림 추가
+---
+[notifications_push_section]
+푸시 전달
+---
+[notifications_push_status_on]
+연결됨
+---
+[notifications_push_status_off]
+설정 안 됨
+---
+[notifications_push_setup]
+푸시 설정…
+---
+[notifications_reminders_section]
+알림
+---
+[reminder_title]
+알림
 ---

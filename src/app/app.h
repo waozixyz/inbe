@@ -45,6 +45,7 @@ enum {
     SETTINGS_TAB_DEVICE = 0,
     SETTINGS_TAB_AUDIO,
     SETTINGS_TAB_BREAKS,
+    SETTINGS_TAB_NOTIFICATIONS,
     SETTINGS_TAB_THEME,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
@@ -244,6 +245,18 @@ typedef struct AppRoute {
     int habits_tab;
 } AppRoute;
 
+enum {
+    APP_REMINDER_MAX = 16,
+    APP_REMINDER_PRACTICE_COUNT = 3
+};
+
+typedef struct AppReminder {
+    int practice;
+    int hour;
+    int enabled;
+    int last_day;
+} AppReminder;
+
 int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
 int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
                                       int height);
@@ -396,7 +409,10 @@ struct InbeApp {
     int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
-    int notifications_enabled;
+    int notification_friend_request;
+    int friend_request_last_count;
+    AppReminder reminders[APP_REMINDER_MAX];
+    int reminder_count;
     char language[16];
     int language_selected;
     int language_index;

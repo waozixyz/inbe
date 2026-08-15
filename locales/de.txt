@@ -1374,9 +1374,6 @@ Handfläche auf den Tisch, Finger nach hinten
 [break_ex_forearm_desk_s2]
 Sanft drücken, bis der Unterarm dehnt
 ---
-[notifications_label]
-Benachrichtigungen
----
 [notifications_test]
 Testbenachrichtigung senden
 ---
@@ -1392,9 +1389,6 @@ Sitzung abgeschlossen
 [notification_session_done_body]
 Deine Übungssitzung ist abgeschlossen.
 ---
-[push_label]
-Push-Benachrichtigungen
----
 [break_hud_micro]
 Mikro
 ---
@@ -1403,4 +1397,40 @@ Ruhe
 ---
 [break_hud_daily]
 Tag
+---
+[settings_tab_notifications]
+Benachrichtigungen
+---
+[notifications_section]
+Benachrichtigungen
+---
+[notifications_friend_request_label]
+Bei Freundschaftsanfragen benachrichtigen
+---
+[notifications_friend_request_title]
+Freundschaftsanfrage
+---
+[notifications_friend_request_body]
+Du hast eine neue Freundschaftsanfrage
+---
+[reminder_add]
+Erinnerung hinzufügen
+---
+[notifications_push_section]
+Push-Zustellung
+---
+[notifications_push_status_on]
+Verbunden
+---
+[notifications_push_status_off]
+Nicht eingerichtet
+---
+[notifications_push_setup]
+Push einrichten…
+---
+[notifications_reminders_section]
+Erinnerungen
+---
+[reminder_title]
+Erinnerung
 ---

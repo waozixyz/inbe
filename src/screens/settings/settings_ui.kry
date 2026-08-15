@@ -6,7 +6,7 @@ label_paragraph :: (label: const char*, w: int) -> UIParagraphSpec #private {
     return (UIParagraphSpec){.text = label, .width = w}
 }
 
-toggle_switch_width :: () -> int #private {
+toggle_switch_width :: () -> int {
     if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
         return ScaleUIPx(52)
     }

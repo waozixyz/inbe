@@ -1374,9 +1374,6 @@ Posa il palmo sulla scrivania, dita indietro
 [break_ex_forearm_desk_s2]
 Premi dolcemente fino ad allungare
 ---
-[notifications_label]
-Notifiche
----
 [notifications_test]
 Invia notifica di prova
 ---
@@ -1392,9 +1389,6 @@ Sessione completata
 [notification_session_done_body]
 La tua sessione di pratica è completata.
 ---
-[push_label]
-Notifiche push
----
 [break_hud_micro]
 Micro
 ---
@@ -1403,4 +1397,40 @@ Riposo
 ---
 [break_hud_daily]
 Giorno
+---
+[settings_tab_notifications]
+Notifiche
+---
+[notifications_section]
+Notifiche
+---
+[notifications_friend_request_label]
+Notifiche per richieste di amicizia
+---
+[notifications_friend_request_title]
+Richiesta di amicizia
+---
+[notifications_friend_request_body]
+Hai una nuova richiesta di amicizia
+---
+[reminder_add]
+Aggiungi promemoria
+---
+[notifications_push_section]
+Consegna push
+---
+[notifications_push_status_on]
+Connesso
+---
+[notifications_push_status_off]
+Non configurato
+---
+[notifications_push_setup]
+Configura push…
+---
+[notifications_reminders_section]
+Promemoria
+---
+[reminder_title]
+Promemoria
 ---

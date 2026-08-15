@@ -1374,9 +1374,6 @@ Položte dlaň na stůl, prsty dozadu
 [break_ex_forearm_desk_s2]
 Lehce tlačte, až se předloktí protáhne
 ---
-[notifications_label]
-Notifikace
----
 [notifications_test]
 Odeslat testovací notifikaci
 ---
@@ -1392,9 +1389,6 @@ Relace dokončena
 [notification_session_done_body]
 Vaše cvičení bylo dokončeno.
 ---
-[push_label]
-Push notifikace
----
 [break_hud_micro]
 Mikro
 ---
@@ -1403,4 +1397,40 @@ Odpočinek
 ---
 [break_hud_daily]
 Den
+---
+[settings_tab_notifications]
+Notifikace
+---
+[notifications_section]
+Oznámení
+---
+[notifications_friend_request_label]
+Upozornit na žádosti o přátelství
+---
+[notifications_friend_request_title]
+Žádost o přátelství
+---
+[notifications_friend_request_body]
+Máš novou žádost o přátelství
+---
+[reminder_add]
+Přidat připomínku
+---
+[notifications_push_section]
+Doručení push
+---
+[notifications_push_status_on]
+Připojeno
+---
+[notifications_push_status_off]
+Nenastaveno
+---
+[notifications_push_setup]
+Nastavit push…
+---
+[notifications_reminders_section]
+Připomínky
+---
+[reminder_title]
+Připomínka
 ---

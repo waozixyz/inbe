@@ -1369,9 +1369,6 @@ Place a palm on the desk, fingers back
 [break_ex_forearm_desk_s2]
 Gently press until the forearm stretches
 ---
-[notifications_label]
-Notifications
----
 [notifications_test]
 Send test notification
 ---
@@ -1387,9 +1384,6 @@ Session complete
 [notification_session_done_body]
 Your practice session is complete.
 ---
-[push_label]
-Push notifications
----
 [break_hud_micro]
 Micro
 ---
@@ -1398,4 +1392,40 @@ Rest
 ---
 [break_hud_daily]
 Daily
+---
+[settings_tab_notifications]
+Notifications
+---
+[notifications_section]
+Notifications
+---
+[notifications_friend_request_label]
+Friend request notifications
+---
+[notifications_friend_request_title]
+Friend request
+---
+[notifications_friend_request_body]
+You have a new friend request
+---
+[reminder_add]
+Add reminder
+---
+[notifications_push_section]
+Push delivery
+---
+[notifications_push_status_on]
+Connected
+---
+[notifications_push_status_off]
+Not set up
+---
+[notifications_push_setup]
+Set up push…
+---
+[notifications_reminders_section]
+Reminders
+---
+[reminder_title]
+Reminder
 ---

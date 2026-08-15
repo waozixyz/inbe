@@ -1374,9 +1374,6 @@ Letakkan telapak di meja, jari ke belakang
 [break_ex_forearm_desk_s2]
 Tekan perlahan sampai terasa meregang
 ---
-[notifications_label]
-Notifikasi
----
 [notifications_test]
 Kirim notifikasi uji
 ---
@@ -1392,9 +1389,6 @@ Sesi selesai
 [notification_session_done_body]
 Sesi latihan Anda telah selesai.
 ---
-[push_label]
-Notifikasi push
----
 [break_hud_micro]
 Mikro
 ---
@@ -1403,4 +1397,40 @@ Istirahat
 ---
 [break_hud_daily]
 Harian
+---
+[settings_tab_notifications]
+Notifikasi
+---
+[notifications_section]
+Notifikasi
+---
+[notifications_friend_request_label]
+Notifikasi permintaan pertemanan
+---
+[notifications_friend_request_title]
+Permintaan pertemanan
+---
+[notifications_friend_request_body]
+Kamu punya permintaan pertemanan baru
+---
+[reminder_add]
+Tambah pengingat
+---
+[notifications_push_section]
+Pengiriman push
+---
+[notifications_push_status_on]
+Terhubung
+---
+[notifications_push_status_off]
+Belum disiapkan
+---
+[notifications_push_setup]
+Siapkan push…
+---
+[notifications_reminders_section]
+Pengingat
+---
+[reminder_title]
+Pengingat
 ---

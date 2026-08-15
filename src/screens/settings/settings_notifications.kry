@@ -1,0 +1,200 @@
+#module "settings_notifications"
+
+#import "app.h"
+#import "app/app_notifications"
+#import "screens/settings/settings_ui"
+#import "platform/android/android_push"
+#import "kryon.h" #private
+#import <stdio.h>
+
+push_supported :: () -> int #private {
+    return IsNotificationSupported() && IsNotificationPermissionGranted()
+}
+
+entry_height :: () -> int #private {
+    return ScaleUIPx(36) + ScaleUIPx(8) + ScaleUIPx(34) + ScaleUIPx(14)
+}
+
+content_height :: (app: InbeApp*, content_w: int) -> int {
+    height := ScaleUIPx(30)
+
+    if app == nil {
+        return height
+    }
+    #if ANDROID {
+        height += ScaleUIPx(44)
+        height += ScaleUIPx(50)
+    }
+    height += ScaleUIPx(34)
+    height += settings_ui_toggle_row_height(
+        GetLocaleText("notifications_friend_request_label"), content_w)
+    height += ScaleUIPx(16)
+    height += ScaleUIPx(50)
+    height += ScaleUIPx(34)
+    height += app->reminder_count * entry_height()
+    if app->reminder_count < APP_REMINDER_MAX {
+        height += ScaleUIPx(42)
+    }
+    return height
+}
+
+remove_reminder :: (app: InbeApp*, index: int) #private {
+    if app == nil || index < 0 || index >= app->reminder_count {
+        return
+    }
+    for int i = index; i + 1 < app->reminder_count; i++ {
+        app->reminders[i] = app->reminders[i + 1]
+    }
+    app->reminder_count -= 1
+    app->settings_dirty = 1
+    save_settings(app)
+}
+
+draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #private {
+    r := &app->reminders[index]
+    row_h := ScaleUIPx(36)
+    btn := ScaleUIPx(34)
+    del := ScaleUIPx(30)
+    gap := ScaleUIPx(10)
+    hover := 0
+    options: [APP_REMINDER_PRACTICE_COUNT] const char* = {0}
+
+    for int p = 0; p < APP_REMINDER_PRACTICE_COUNT; p++ {
+        options[p] = app_notifications_practice_label(p)
+    }
+    if Dropdown(400 + index * 4, x, *y, w - del - gap, row_h,
+                options, APP_REMINDER_PRACTICE_COUNT, &r->practice) {
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    if IconButton((IconButtonProps){
+        .bounds = {(float)(x + w - del),
+                   (float)(*y + (row_h - del) / 2),
+                   (float)del, (float)del},
+        .icon = app->icons[UI_ICON_TYPE_X],
+        .icon_size = ScaleUIPx(14),
+        .icon_padding = ScaleUIPx(8)
+    }) {
+        remove_reminder(app, index)
+        return 1
+    }
+    *y += row_h + ScaleUIPx(8)
+
+    hour := r->hour
+    time_buf: [8] char
+    if hour < 0 {
+        hour = 0
+    }
+    if hour > 23 {
+        hour = 23
+    }
+    snprintf(time_buf, 8, "%02d:00", hour)
+
+    time_w := MeasureUIText(time_buf, GetUIFontSize())
+    time_gap := ScaleUIPx(12)
+    group_w := btn * 2 + time_gap * 2 + time_w
+    group_x := x + w - group_w
+    enabled := r->enabled
+
+    if Toggle(0, x, *y + (btn - ScaleUIPx(30)) / 2,
+              settings_ui_toggle_switch_width(), ScaleUIPx(30), &enabled,
+              GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+        r->enabled = enabled
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    if GenericButton(401 + index * 4, group_x, *y, btn, btn, "-",
+                     UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+        r->hour = (hour + 23) % 24
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    DrawCenteredUIControlText(time_buf, group_x + btn + time_gap + time_w / 2,
+                              GetUITextY(time_buf, *y, btn, GetUIFontSize()),
+                              GetUIFontSize(), GetThemeText())
+    if GenericButton(402 + index * 4, group_x + btn + time_gap * 2 + time_w,
+                     *y, btn, btn, "+", UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+        r->hour = (hour + 1) % 24
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    *y += btn + ScaleUIPx(14)
+    return 0
+}
+
+draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+    push_hover := 0
+    test_hover := 0
+    add_hover := 0
+    friend_toggle := 0
+    i := 0
+
+    if app == nil || y == nil {
+        return
+    }
+
+    #if ANDROID {
+        Text(GetLocaleText("notifications_push_section"), x, *y,
+             GetUIFontSize(), GetThemeText())
+        *y += ScaleUIPx(30)
+        if push_supported() {
+            Text(GetLocaleText("notifications_push_status_on"),
+                 x, *y, GetUIFontSize(), LightenUIColor(GetThemeText(), 40))
+        } else {
+            Text(GetLocaleText("notifications_push_status_off"),
+                 x, *y, GetUIFontSize(), LightenUIColor(GetThemeText(), 40))
+        }
+        *y += ScaleUIPx(44)
+        if GenericButton(200, x, *y, w, ScaleUIPx(34),
+                         GetLocaleText("notifications_push_setup"),
+                         UI_BUTTON_STYLE_SECONDARY, 0, &push_hover) {
+            platform_android_push_configure()
+        }
+        *y += ScaleUIPx(50)
+    }
+
+    Text(GetLocaleText("notifications_section"), x, *y,
+         GetUIFontSize(), GetThemeText())
+    *y += ScaleUIPx(34)
+
+    friend_toggle = app->notification_friend_request
+    if settings_ui_commit_toggle_row(app, x, w, y,
+                                     GetLocaleText("notifications_friend_request_label"),
+                                     &friend_toggle, 1) {
+        app->notification_friend_request = friend_toggle
+    }
+    *y += ScaleUIPx(16)
+
+    if GenericButton(201, x, *y, w, ScaleUIPx(34),
+                     GetLocaleText("notifications_test"),
+                     UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
+        app_notifications_send_test_notification(app)
+    }
+    *y += ScaleUIPx(50)
+
+    Text(GetLocaleText("notifications_reminders_section"), x, *y,
+         GetUIFontSize(), GetThemeText())
+    *y += ScaleUIPx(34)
+
+    while i < app->reminder_count && i < APP_REMINDER_MAX {
+        if !draw_entry(app, i, x, w, y) {
+            i += 1
+        }
+    }
+
+    if app->reminder_count < APP_REMINDER_MAX {
+        if GenericButton(210, x, *y, w, ScaleUIPx(34),
+                         GetLocaleText("reminder_add"),
+                         UI_BUTTON_STYLE_SECONDARY, 0, &add_hover) {
+            r := &app->reminders[app->reminder_count]
+            r->practice = 0
+            r->hour = 8
+            r->enabled = 1
+            r->last_day = 0
+            app->reminder_count += 1
+            app->settings_dirty = 1
+            save_settings(app)
+        }
+        *y += ScaleUIPx(42)
+    }
+}

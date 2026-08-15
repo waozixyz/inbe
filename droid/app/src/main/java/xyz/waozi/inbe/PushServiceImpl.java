@@ -14,6 +14,7 @@ import org.unifiedpush.android.connector.FailedReason;
 import org.unifiedpush.android.connector.PushService;
 import org.unifiedpush.android.connector.data.PushEndpoint;
 import org.unifiedpush.android.connector.data.PushMessage;
+import org.unifiedpush.android.connector.data.PublicKeySet;
 
 /**
  * UnifiedPush message entry point (unifiedpush.org, spec AND_3.1.0).
@@ -31,6 +32,8 @@ public class PushServiceImpl extends PushService {
     private static final String TAG = "INBE_PUSH";
     private static final String PREFS = "inbe_push";
     private static final String PREF_ENDPOINT = "endpoint";
+    private static final String PREF_AUTH = "auth";
+    private static final String PREF_P256DH = "p256dh";
     private static final String CHANNEL_ID = "inbe.push";
     private static final int NOTIFICATION_ID = 0x7042;
 
@@ -50,9 +53,19 @@ public class PushServiceImpl extends PushService {
     @Override
     public void onNewEndpoint(PushEndpoint endpoint, String instance) {
         Log.d(TAG, "new endpoint (temporary=" + endpoint.getTemporary() + ")");
-        prefs().edit().putString(PREF_ENDPOINT, endpoint.getUrl()).apply();
-        // endpoint.getPubKeySet() (web-push auth/p256dh) is not consumed yet:
-        // v1 accepts cleartext messages only.
+        SharedPreferences.Editor e = prefs().edit()
+                .putString(PREF_ENDPOINT, endpoint.getUrl());
+        // Encrypted distributors (Sunup/Mozilla) require RFC8291 aes128gcm
+        // payloads: the sender encrypts with these keys, and the connector
+        // decrypts on receipt. Stored so the sync server can use them.
+        PublicKeySet keys = endpoint.getPubKeySet();
+        if (keys != null) {
+            e.putString(PREF_AUTH, keys.getAuth())
+             .putString(PREF_P256DH, keys.getPubKey());
+        } else {
+            e.remove(PREF_AUTH).remove(PREF_P256DH);
+        }
+        e.apply();
     }
 
     @Override

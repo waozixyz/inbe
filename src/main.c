@@ -557,7 +557,19 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "background_music") == 0) {
+    if(strcmp(request->scene, "first_run_guide") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_seen = 0;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "first_run_guide_blank") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_seen = 0;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "background_music") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_MEDITATION;
         app->practice_tab = PRACTICE_TAB_CONFIG;
@@ -595,6 +607,10 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "settings_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_DEVICE;
+        app->inbe.screen = InbeScreenSettings;
+    } else if(strcmp(request->scene, "settings_notifications") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->settings_tab = SETTINGS_TAB_NOTIFICATIONS;
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "data") == 0 ||
               strcmp(request->scene, "profile_data") == 0) {

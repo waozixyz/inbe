@@ -1,18 +1,20 @@
 #module "app.notifications"
 
 #import "app.h"
+#import "screens/profile_social"
 #import "kryon.h" #private
+#import <time.h>
 
-init :: () {
+init :: (app: InbeApp*) {
     SetNotificationAppName("inbe")
     RequestNotificationPermission()
+    if app != nil {
+        app->friend_request_last_count = -1
+    }
 }
 
 allowed :: (app: InbeApp*) -> int {
     if app == nil {
-        return 0
-    }
-    if !app->notifications_enabled {
         return 0
     }
     return IsNotificationPermissionGranted()
@@ -39,4 +41,80 @@ send_session_complete :: (app: InbeApp*) {
     SendNotificationEx(GetLocaleText("notification_session_done_title"),
                        GetLocaleText("notification_session_done_body"),
                        "inbe.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
+}
+
+practice_label :: (practice: int) -> const char* {
+    if practice == 1 {
+        return GetLocaleText("exercise_meditation")
+    }
+    if practice == 2 {
+        return GetLocaleText("exercise_sun_salutation")
+    }
+    return GetLocaleText("exercise_wim_hof")
+}
+
+tick :: (app: InbeApp*) {
+    t: time_t
+    tm: struct tm*
+    day := 0
+    hour := 0
+
+    if app == nil {
+        return
+    }
+    if !allowed(app) {
+        return
+    }
+    t = time(nil)
+    tm = localtime(&t)
+    if tm == nil {
+        return
+    }
+    day = (tm->tm_year + 1900) * 1000 + tm->tm_yday
+    hour = tm->tm_hour
+
+    for int i = 0; i < app->reminder_count && i < APP_REMINDER_MAX; i++ {
+        r := &app->reminders[i]
+        if !r->enabled || r->last_day == day || r->hour != hour {
+            continue
+        }
+        if SendNotificationEx(GetLocaleText("reminder_title"),
+                              practice_label(r->practice),
+                              "inbe.reminder", 100 + i,
+                              NOTIFICATION_PRIORITY_DEFAULT) {
+            r->last_day = day
+            save_settings(app)
+        }
+    }
+}
+
+on_friends_synced :: (app: InbeApp*) {
+    count := 0
+
+    if app == nil {
+        return
+    }
+    if app->friend_request_last_count < 0 {
+        app->friend_request_last_count = profile_social_pending_count(app)
+        return
+    }
+    count = profile_social_pending_count(app)
+    if count > app->friend_request_last_count {
+        if app->notification_friend_request && allowed(app) {
+            #if !WEB {
+                if !IsWindowFocused() {
+                    SendNotificationEx(
+                        GetLocaleText("notifications_friend_request_title"),
+                        GetLocaleText("notifications_friend_request_body"),
+                        "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+                }
+            } #else {
+                SendNotificationEx(
+                    GetLocaleText("notifications_friend_request_title"),
+                    GetLocaleText("notifications_friend_request_body"),
+                    "inbe.friend", 7, NOTIFICATION_PRIORITY_DEFAULT)
+            }
+        }
+    }
+    app->friend_request_last_count = count
 }

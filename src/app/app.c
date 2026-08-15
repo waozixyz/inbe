@@ -1067,7 +1067,7 @@ app_init(void *vapp) {
     TraceLog(LOG_INFO, "INBE: app init width=%d height=%d embedded=%d",
              config.width, config.height, config.loaded);
     load_config();
-    app_notifications_init();
+    app_notifications_init(app);
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;
@@ -1447,6 +1447,7 @@ updateapp(InbeApp *app)
 #endif
     app_breaks_update(app);
     app_update_nav_sidebar_mode(app);
+    app_notifications_tick(app);
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
