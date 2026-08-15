@@ -809,9 +809,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-배경 음악
----
 [practice_music_enabled_label]
 이 연습 중 재생
 ---

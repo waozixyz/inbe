@@ -142,6 +142,13 @@ check_locale_file(const LocaleKeys *english, const char *path)
             failures++;
         }
     }
+    for(int i = 0; i < translated.count; i++) {
+        if(!keys_contains(english, translated.keys[i])) {
+            fprintf(stderr, "FAIL %s extra key [%s] not in en.txt\n",
+                    path, translated.keys[i]);
+            failures++;
+        }
+    }
 }
 
 static void

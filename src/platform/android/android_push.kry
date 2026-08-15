@@ -4,290 +4,127 @@ ANDROID :: ANDROID_BUILD
 
 #if ANDROID {
     #import "app.h"
+    #import "platform/android/android_jni"
     #import "kryon.h" #private
     #import <android/log.h>
-    #import <android_native_app_glue.h>
-    #import <jni.h>
-
-    GetAndroidApp :: () -> struct android_app* #extern
 
     LOG_TAG :: #define "INBE_PUSH"
 
     static push_registered_cache: int = -1
     static push_registered_frames: int = 0
 
-    copy_string_array_member :: (env: JNIEnv*, activity: jobject,
-                                method_name: const char*, dst: char*,
-                                dst_stride: int, count: int) -> int #private {
-        array: jobjectArray
-        copied := 0
-
-        array = nil
-        clazz := (*env)->GetObjectClass(env, activity)
-        if clazz {
-            method := (*env)->GetMethodID(env, clazz, method_name,
-                                          "()[Ljava/lang/String;")
-            if method {
-                array = (jobjectArray)(*env)->CallObjectMethod(env, activity,
-                                                               method)
-            } else {
-                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-                                    "string array method not found")
-            }
-        }
-        if (*env)->ExceptionCheck(env) {
-            (*env)->ExceptionDescribe(env)
-            (*env)->ExceptionClear(env)
-        }
-        if array == nil {
-            return 0
-        }
-        for int i = 0; i < count; i++ {
-            s := (jstring)(*env)->GetObjectArrayElement(env, array, i)
-            if s == nil {
-                continue
-            }
-            text := (*env)->GetStringUTFChars(env, s, nil)
-            if text != nil {
-                row := dst + i * dst_stride
-                for int c = 0; c < dst_stride - 1 && text[c] != 0; c++ {
-                    row[c] = text[c]
-                }
-                row[dst_stride - 1] = 0
-                (*env)->ReleaseStringUTFChars(env, s, text)
-                copied += 1
-            }
-            (*env)->DeleteLocalRef(env, s)
-        }
-        (*env)->DeleteLocalRef(env, array)
-        return copied
-    }
-
     refresh_distributors :: (inbe: InbeApp*) {
-        app := GetAndroidApp()
-        env: JNIEnv* = nil
-        attached := 0
-        jvm: JavaVM*
-        activity: jobject
+        session: AndroidJni
         count := 0
 
         if inbe == nil {
             return
         }
         inbe->push_distributor_count = 0
-        if app == nil {
+        session = platform_android_jni_attach()
+        if !platform_android_jni_valid(&session) {
             return
-        }
-        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
-            return
-        }
-        jvm = app->activity->vm
-        activity = app->activity->clazz
-
-        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
-            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
-                return
-            }
-            attached = 1
         }
 
         array: jobjectArray = nil
-        clazz := (*env)->GetObjectClass(env, activity)
+        clazz := (*session.env)->GetObjectClass(session.env, session.activity)
         if clazz {
-            method := (*env)->GetMethodID(env, clazz, "getUnifiedPushDistributors",
-                                          "()[Ljava/lang/String;")
+            method := (*session.env)->GetMethodID(session.env, clazz,
+                                                  "getUnifiedPushDistributors",
+                                                  "()[Ljava/lang/String;")
             if method {
-                array = (jobjectArray)(*env)->CallObjectMethod(env, activity, method)
+                array = (jobjectArray)(*session.env)->CallObjectMethod(
+                    session.env, session.activity, method)
             } else {
                 __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
                                     "getUnifiedPushDistributors not found")
             }
         }
-        if (*env)->ExceptionCheck(env) {
-            (*env)->ExceptionDescribe(env)
-            (*env)->ExceptionClear(env)
-        }
 
         if array != nil {
-            count = (*env)->GetArrayLength(env, array)
+            count = (*session.env)->GetArrayLength(session.env, array)
             if count > APP_PUSH_DISTRIBUTOR_MAX {
                 count = APP_PUSH_DISTRIBUTOR_MAX
             }
             for int i = 0; i < count; i++ {
-                s := (jstring)(*env)->GetObjectArrayElement(env, array, i)
+                s := (jstring)(*session.env)->GetObjectArrayElement(session.env,
+                                                                    array, i)
                 if s == nil {
                     continue
                 }
-                text := (*env)->GetStringUTFChars(env, s, nil)
+                text := (*session.env)->GetStringUTFChars(session.env, s, nil)
                 if text != nil {
                     for int c = 0; c < 95 && text[c] != 0; c++ {
                         inbe->push_distributors[i][c] = text[c]
                     }
                     inbe->push_distributors[i][95] = 0
-                    (*env)->ReleaseStringUTFChars(env, s, text)
+                    (*session.env)->ReleaseStringUTFChars(session.env, s, text)
                 }
-                (*env)->DeleteLocalRef(env, s)
+                (*session.env)->DeleteLocalRef(session.env, s)
             }
             inbe->push_distributor_count = count
-            (*env)->DeleteLocalRef(env, array)
+            (*session.env)->DeleteLocalRef(session.env, array)
         }
 
         if count > 0 {
-            copy_string_array_member(env, activity, "getUnifiedPushDistributorLabels",
-                                     &inbe->push_distributor_labels[0][0], 64,
-                                     count)
-            copy_string_array_member(env, activity, "getUnifiedPushDistributorIcons",
-                                     &inbe->push_distributor_icons[0][0], 256,
-                                     count)
+            platform_android_jni_call_string_array(
+                &session, "getUnifiedPushDistributorLabels",
+                &inbe->push_distributor_labels[0][0], 64, count)
+            platform_android_jni_call_string_array(
+                &session, "getUnifiedPushDistributorIcons",
+                &inbe->push_distributor_icons[0][0], 256, count)
         }
-
-        if attached {
-            (*jvm)->DetachCurrentThread(jvm)
-        }
+        platform_android_jni_detach(&session)
     }
 
     configure_with :: (inbe: InbeApp*, index: int) {
-        app := GetAndroidApp()
-        env: JNIEnv* = nil
-        attached := 0
-        jvm: JavaVM*
-        activity: jobject
+        session: AndroidJni
 
         if inbe == nil || index < 0 || index >= inbe->push_distributor_count {
             return
         }
-        if app == nil {
+        session = platform_android_jni_attach()
+        if !platform_android_jni_valid(&session) {
             return
         }
-        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
-            return
-        }
-        jvm = app->activity->vm
-        activity = app->activity->clazz
-
-        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
-            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
-                return
-            }
-            attached = 1
-        }
-
-        arg := (*env)->NewStringUTF(env, inbe->push_distributors[index])
+        arg := platform_android_jni_new_string(
+            &session, &inbe->push_distributors[index][0])
         if arg != nil {
-            clazz := (*env)->GetObjectClass(env, activity)
-            if clazz {
-                method := (*env)->GetMethodID(env, clazz,
-                                              "configureUnifiedPushWith",
-                                              "(Ljava/lang/String;)V")
-                if method {
-                    (*env)->CallVoidMethod(env, activity, method, arg)
-                } else {
-                    __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-                                        "configureUnifiedPushWith not found")
-                }
-            }
-            (*env)->DeleteLocalRef(env, arg)
+            platform_android_jni_call_void_string(&session,
+                                                  "configureUnifiedPushWith",
+                                                  arg)
+            platform_android_jni_delete_local(&session, arg)
         }
-        if (*env)->ExceptionCheck(env) {
-            (*env)->ExceptionDescribe(env)
-            (*env)->ExceptionClear(env)
-        }
-        if attached {
-            (*jvm)->DetachCurrentThread(jvm)
-        }
+        platform_android_jni_detach(&session)
     }
 
     configure :: () {
-        app := GetAndroidApp()
-        if app == nil {
-            return
-        }
-        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
-            return
-        }
+        session: AndroidJni
 
-        jvm: JavaVM* = app->activity->vm
-        activity := app->activity->clazz
-        env: JNIEnv* = nil
-        attached := 0
-
-        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
-            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
-                return
-            }
-            attached = 1
+        session = platform_android_jni_attach()
+        if platform_android_jni_valid(&session) {
+            platform_android_jni_call_void(&session, "configureUnifiedPush",
+                                           "()V")
         }
-
-        clazz := (*env)->GetObjectClass(env, activity)
-        if clazz {
-            method := (*env)->GetMethodID(env, clazz, "configureUnifiedPush", "()V")
-            if method {
-                (*env)->CallVoidMethod(env, activity, method)
-                push_registered_cache = -1
-            } else {
-                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-                                    "configureUnifiedPush not found")
-            }
-        }
-
-        if (*env)->ExceptionCheck(env) {
-            (*env)->ExceptionDescribe(env)
-            (*env)->ExceptionClear(env)
-        }
-        if attached {
-            (*jvm)->DetachCurrentThread(jvm)
-        }
+        platform_android_jni_detach(&session)
     }
 
     registered :: () -> int {
-        app := GetAndroidApp()
-        cached := 0
+        session: AndroidJni
 
-        if app == nil {
-            return 0
-        }
-        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
-            return 0
-        }
         push_registered_frames += 1
-        cached = push_registered_cache >= 0 ? push_registered_cache : 0
         if push_registered_cache >= 0 && push_registered_frames < 30 {
-            return cached
+            return push_registered_cache
         }
         push_registered_frames = 0
 
-        jvm: JavaVM* = app->activity->vm
-        activity := app->activity->clazz
-        env: JNIEnv* = nil
-        attached := 0
-
-        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
-            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
-                return cached
-            }
-            attached = 1
+        session = platform_android_jni_attach()
+        if !platform_android_jni_valid(&session) {
+            return push_registered_cache >= 0 ? push_registered_cache : 0
         }
-
-        result := 0
-        clazz := (*env)->GetObjectClass(env, activity)
-        if clazz {
-            method := (*env)->GetMethodID(env, clazz, "isUnifiedPushRegistered", "()Z")
-            if method {
-                result = (*env)->CallBooleanMethod(env, activity, method) ? 1 : 0
-            } else {
-                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
-                                    "isUnifiedPushRegistered not found")
-            }
-        }
-
-        if (*env)->ExceptionCheck(env) {
-            (*env)->ExceptionDescribe(env)
-            (*env)->ExceptionClear(env)
-        }
-        if attached {
-            (*jvm)->DetachCurrentThread(jvm)
-        }
-        push_registered_cache = result
-        return result
+        push_registered_cache = platform_android_jni_call_bool(
+            &session, "isUnifiedPushRegistered")
+        platform_android_jni_detach(&session)
+        return push_registered_cache
     }
 }

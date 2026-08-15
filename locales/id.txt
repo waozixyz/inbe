@@ -810,9 +810,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Musik latar
----
 [practice_music_enabled_label]
 Putar selama latihan ini
 ---

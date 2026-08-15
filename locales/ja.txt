@@ -812,9 +812,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-バックグラウンド音楽
----
 [practice_music_enabled_label]
 この練習中に再生
 ---

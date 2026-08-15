@@ -406,7 +406,6 @@ struct InbeApp {
     char sync_alias_input[40];
     KsyncAccount pending_sync_account;
     int pending_sync_account_action;
-    int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;

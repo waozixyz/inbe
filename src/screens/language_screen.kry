@@ -35,7 +35,7 @@ language_screen_draw :: (app: InbeApp*) {
     button_x = view_width / 2
     button_y = dropdown_y + ScaleUIPx(64)
 
-    if LocaleDropdown(200, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
+    if LocaleDropdown(260, dropdown_x, dropdown_y, dropdown_w, dropdown_h, selected_index) {
         selection_changed = 1
     }
 

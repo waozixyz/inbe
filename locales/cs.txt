@@ -810,9 +810,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Hudba na pozadí
----
 [practice_music_enabled_label]
 Přehrávat během tohoto cvičení
 ---

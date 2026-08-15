@@ -475,12 +475,14 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
     status_label := app->audio_ready ?
         GetLocaleText("audio_status_ready") :
         GetLocaleText("audio_status_unavailable")
-    test_hover := 0
-    reinit_hover := 0
-    button_gap := ScaleUIPx(10)
-    button_w := (w - button_gap) / 2
-    min_button_w := ScaleUIPx(122)
-    stack_buttons := w < min_button_w * 2 + button_gap
+    buttons: [2] UIButtonRowItem = {
+        {GetLocaleText("audio_test_output_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("audio_reinitialize_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+    }
+    row := (ButtonRowProps){.x = x, .y = *y, .width = w,
+                            .height = ScaleUIPx(36),
+                            .items = buttons, .count = 2}
+    clicked := ButtonRow(row)
 
     Text(GetLocaleText("audio_output_label"), x, *y,
                GetUIFontSize(), GetThemeText())
@@ -492,30 +494,13 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
                    DarkenUIColor(GetThemeText(), 28))
     *y += ScaleUIPx(70)
 
-    if stack_buttons {
-        button_w = w
-    }
-    if GenericButton(873, x, *y, button_w, ScaleUIPx(36),
-                           GetLocaleText("audio_test_output_button"),
-                           UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
+    if clicked == 1 {
         app_play_bell_cue(app, 1.0f)
     }
-    if stack_buttons {
-        *y += ScaleUIPx(46)
-        if GenericButton(874, x, *y, button_w, ScaleUIPx(36),
-                               GetLocaleText("audio_reinitialize_button"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
-            app_audio_reinitialize(app)
-        }
-    } else {
-        if GenericButton(874, x + button_w + button_gap, *y,
-                               button_w, ScaleUIPx(36),
-                               GetLocaleText("audio_reinitialize_button"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &reinit_hover) {
-            app_audio_reinitialize(app)
-        }
+    if clicked == 2 {
+        app_audio_reinitialize(app)
     }
-    *y += ScaleUIPx(46)
+    *y += GetUIButtonRowHeight(row)
     *y += settings_ui_draw_audio_meter(app, x, *y, w,
                                        GetLocaleText("audio_output_level_label"))
     *y += ScaleUIPx(18)

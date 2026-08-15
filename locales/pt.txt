@@ -810,9 +810,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Música de fundo
----
 [practice_music_enabled_label]
 Tocar durante esta prática
 ---

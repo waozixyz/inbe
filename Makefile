@@ -297,7 +297,8 @@ APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 BREATH_TIMING_TEST := $(TEST_BIN_DIR)/breath_timing_test
 BREAK_ENGINE_TEST := $(TEST_BIN_DIR)/break_engine_test
 ACTIVITY_MONITOR_TEST := $(TEST_BIN_DIR)/activity_monitor_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST)
+SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
@@ -641,6 +642,11 @@ $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-o $@ \
 		tests/locale_keys_test.c
+
+$(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/storage/import.kry | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-o $@ \
+		tests/settings_keys_test.c
 
 $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \

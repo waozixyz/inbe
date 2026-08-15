@@ -810,9 +810,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Фоновая музыка
----
 [practice_music_enabled_label]
 Включать во время этой практики
 ---

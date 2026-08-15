@@ -810,9 +810,6 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-背景音乐
----
 [practice_music_enabled_label]
 在本练习中播放
 ---

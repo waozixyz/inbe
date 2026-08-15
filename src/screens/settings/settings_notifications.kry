@@ -94,10 +94,7 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     }
     snprintf(time_buf, 8, "%02d:00", hour)
 
-    time_w := MeasureUIText(time_buf, GetUIFontSize())
-    time_gap := ScaleUIPx(12)
-    group_w := btn * 2 + time_gap * 2 + time_w
-    group_x := x + w - group_w
+    stepper_w := btn * 2 + MeasureUIText(time_buf, GetUIFontSize()) + ScaleUIPx(24)
     enabled := r->enabled
 
     if Toggle(0, x, *y + (btn - ScaleUIPx(30)) / 2,
@@ -107,17 +104,15 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
         app->settings_dirty = 1
         save_settings(app)
     }
-    if GenericButton(401 + index * 4, group_x, *y, btn, btn, "-",
-                     UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
-        r->hour = (hour + 23) % 24
-        app->settings_dirty = 1
-        save_settings(app)
-    }
-    DrawCenteredUIControlText(time_buf, group_x + btn + time_gap + time_w / 2,
-                              *y + btn / 2, GetUIFontSize(), GetThemeText())
-    if GenericButton(402 + index * 4, group_x + btn + time_gap * 2 + time_w,
-                     *y, btn, btn, "+", UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
-        r->hour = (hour + 1) % 24
+    if Spinbox((SpinboxProps){
+        .bounds = {(float)(x + w - stepper_w), (float)*y, (float)stepper_w, (float)btn},
+        .id = 401 + index * 2,
+        .min = 0,
+        .max = 23,
+        .value = &r->hour,
+        .value_text = time_buf,
+        .wrap = 1
+    }) {
         app->settings_dirty = 1
         save_settings(app)
     }
@@ -145,15 +140,8 @@ close_picker :: (app: InbeApp*) #private {
 
 handle_overlays :: (app: InbeApp*) {
     #if ANDROID {
-        panel: Rectangle
-        hover := 0
-        w := 0
-        row_h := ScaleUIPx(40)
-        panel_h := 0
-        x := 0
-        y := 0
-        ty := 0
-        scrim := BLACK
+        labels: [APP_PUSH_DISTRIBUTOR_MAX] const char* = {0}
+        picked := 0
 
         if app == nil || !app->push_picker_open {
             return
@@ -170,67 +158,21 @@ handle_overlays :: (app: InbeApp*) {
             app->push_distributor_textures_loaded = 1
         }
 
-        w = ScaleUIPx(300)
-        if w > view_width - ScaleUIPx(32) {
-            w = view_width - ScaleUIPx(32)
-        }
-        panel_h = ScaleUIPx(50) + app->push_distributor_count * row_h +
-                  ScaleUIPx(50)
-        x = (view_width - w) / 2
-        y = (view_height - panel_h) / 2
-        panel = (Rectangle){(float)x, (float)y, (float)w, (float)panel_h}
-
-        scrim.a = 130
-        DrawRectangle(0, 0, view_width, view_height, scrim)
-        SetUIModalCapture(panel)
-        if UIPointerReleaseOutside(panel) {
-            UIConsumeRelease()
-            close_picker(app)
-            return
-        }
-
-        DrawRectangleRounded(panel, 0.06, 8, GetThemeSurface())
-        DrawRectangleRoundedLines(panel, 0.06, 8,
-                                  DarkenUIColor(GetThemeSurface(), 30))
-        Text(GetLocaleText("notifications_push_picker_title"),
-             x + ScaleUIPx(14), y + ScaleUIPx(14), GetUIFontSize(),
-             GetThemeText())
-
-        icon_size := row_h - ScaleUIPx(8)
-        ty = y + ScaleUIPx(50)
         for int i = 0; i < app->push_distributor_count; i++ {
-            has_icon := app->push_distributor_textures[i].id != 0
-            if GenericButton(220 + i, x + ScaleUIPx(14), ty,
-                             w - ScaleUIPx(28), row_h, "",
-                             UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
-                platform_android_push_configure_with(app, i)
-                close_picker(app)
-                return
-            }
-            text_x := x + ScaleUIPx(26)
-            if has_icon {
-                icon_x := x + ScaleUIPx(26)
-                DrawTexturePro(
-                    app->push_distributor_textures[i],
-                    (Rectangle){0, 0,
-                                (float)app->push_distributor_textures[i].width,
-                                (float)app->push_distributor_textures[i].height},
-                    (Rectangle){(float)icon_x, (float)(ty + ScaleUIPx(4)),
-                                (float)icon_size, (float)icon_size},
-                    (Vector2){0}, 0.0f, WHITE)
-                text_x = icon_x + icon_size + ScaleUIPx(12)
-            }
-            label_center := (text_x + x + w - ScaleUIPx(14)) / 2
-            DrawCenteredUIControlText(
-                &app->push_distributor_labels[i][0],
-                label_center, ty + row_h / 2, GetUIFontSize(), GetThemeText())
-            ty += row_h
+            labels[i] = &app->push_distributor_labels[i][0]
         }
 
-        if GenericButton(229, x + ScaleUIPx(14), ty + ScaleUIPx(6),
-                         w - ScaleUIPx(28), ScaleUIPx(36),
-                         GetLocaleText("close_button"),
-                         UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+        picked = PickerDialog((PickerDialogProps){
+            .title = GetLocaleText("notifications_push_picker_title"),
+            .labels = labels,
+            .icons = &app->push_distributor_textures[0],
+            .option_count = app->push_distributor_count,
+            .cancel_label = GetLocaleText("close_button")
+        })
+        if picked > 0 {
+            platform_android_push_configure_with(app, picked - 1)
+            close_picker(app)
+        } else if picked < 0 {
             close_picker(app)
         }
     }
