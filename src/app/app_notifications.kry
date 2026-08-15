@@ -7,7 +7,9 @@
 
 init :: (app: InbeApp*) {
     SetNotificationAppName("inbe")
-    RequestNotificationPermission()
+    #if !WEB {
+        RequestNotificationPermission()
+    }
     if app != nil {
         app->friend_request_last_count = -1
     }
@@ -21,6 +23,9 @@ allowed :: (app: InbeApp*) -> int {
 }
 
 send_test_notification :: (app: InbeApp*) -> int {
+    #if WEB {
+        RequestNotificationPermission()
+    }
     if !allowed(app) {
         return 0
     }
