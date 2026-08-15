@@ -221,6 +221,8 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0)
     save_setting_int("on_screen_keyboard",
                         app->on_screen_keyboard_enabled ? 1 : 0)
+    save_setting_int("notifications_enabled",
+                        app->notifications_enabled ? 1 : 0)
     save_setting_int("progressive_speed", app->inbe.progressive_speed)
     save_setting_int("progressive_start_speed",
                         app->inbe.progressive_start_speed)
@@ -393,6 +395,8 @@ app_load_settings :: (app: InbeApp*) -> int {
     #if ANDROID || WEB {
         load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
                              "on_screen_keyboard", 1)
+        load_bool_setting(&settings_cache, &app->notifications_enabled,
+                             "notifications_enabled", 1)
     } #else {
         load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
                              "on_screen_keyboard", 0)

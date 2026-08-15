@@ -12,6 +12,7 @@
 #include "app/app_sync.h"
 #include "app/app_settings.h"
 #include "data.h"
+#include "app/app_notifications.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
@@ -1066,6 +1067,7 @@ app_init(void *vapp) {
     TraceLog(LOG_INFO, "INBE: app init width=%d height=%d embedded=%d",
              config.width, config.height, config.loaded);
     load_config();
+    app_notifications_init();
 
     view_width = config.width > 0 ? config.width : INBE_DEFAULT_WIDTH;
     view_height = config.height > 0 ? config.height : INBE_DEFAULT_HEIGHT;

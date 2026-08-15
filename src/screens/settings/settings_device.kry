@@ -1,3 +1,4 @@
+#import "app/app_notifications"
 #import "app.h"
 #import "app/app_settings.h"
 #import "app/device_preferences.h"
@@ -21,6 +22,9 @@ settings_device_content_height :: (content_w: int) -> int {
     height := ScaleUIPx(76) + ScaleUIPx(76) + ScaleUIPx(40)
 
     height += settings_ui_toggle_row_height(GetLocaleText("play_in_background_label"), label_w)
+    height += ScaleUIPx(12)
+    height += settings_ui_toggle_row_height(GetLocaleText("notifications_label"), label_w)
+    height += ScaleUIPx(44)
 
     #if DESKTOP {
         height += ScaleUIPx(50)
@@ -96,6 +100,24 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
                                      &play_in_background, 0) {
         app->inbe.play_in_background = play_in_background
     }
+
+    notifications_enabled := app->notifications_enabled
+    if settings_ui_commit_toggle_row(app, x, w, y,
+                                     GetLocaleText("notifications_label"),
+                                     &notifications_enabled, 0) {
+        app->notifications_enabled = notifications_enabled
+        if notifications_enabled && !IsNotificationPermissionGranted() {
+            RequestNotificationPermission()
+        }
+    }
+
+    test_hover := 0
+    if GenericButton(107, x, *y, w, ScaleUIPx(34),
+                     GetLocaleText("notifications_test"),
+                     UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
+        app_notifications_send_test_notification(app)
+    }
+    *y += ScaleUIPx(44)
 
 }
 

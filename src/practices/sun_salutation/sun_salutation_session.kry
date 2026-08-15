@@ -1,3 +1,4 @@
+#import "app/app_notifications"
 #import "app.h"
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
@@ -19,6 +20,7 @@ exit_to_start :: (app: InbeApp*) #private {
 }
 
 finish :: (app: InbeApp*) #private {
+    app_notifications_send_session_complete(app)
     repetitions := 0
 
     if app == nil {

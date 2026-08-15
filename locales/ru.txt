@@ -1374,3 +1374,21 @@ Remove
 [break_ex_forearm_desk_s2]
 Мягко давите до растяжения
 ---
+[notifications_label]
+Уведомления
+---
+[notifications_test]
+Отправить тестовое уведомление
+---
+[notification_test_title]
+Тестовое уведомление
+---
+[notification_test_body]
+Уведомления от Inner Breeze работают.
+---
+[notification_session_done_title]
+Сессия завершена
+---
+[notification_session_done_body]
+Ваша тренировочная сессия завершена.
+---

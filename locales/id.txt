@@ -1374,3 +1374,21 @@ Letakkan telapak di meja, jari ke belakang
 [break_ex_forearm_desk_s2]
 Tekan perlahan sampai terasa meregang
 ---
+[notifications_label]
+Notifikasi
+---
+[notifications_test]
+Kirim notifikasi uji
+---
+[notification_test_title]
+Notifikasi uji
+---
+[notification_test_body]
+Notifikasi dari Inner Breeze berfungsi.
+---
+[notification_session_done_title]
+Sesi selesai
+---
+[notification_session_done_body]
+Sesi latihan Anda telah selesai.
+---

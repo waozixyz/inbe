@@ -1373,3 +1373,21 @@ Posez la paume sur le bureau, doigts vers l'arrière
 [break_ex_forearm_desk_s2]
 Appuyez doucement jusqu'à sentir l'étirement
 ---
+[notifications_label]
+Notifications
+---
+[notifications_test]
+Envoyer une notification de test
+---
+[notification_test_title]
+Notification de test
+---
+[notification_test_body]
+Les notifications d'Inner Breeze fonctionnent.
+---
+[notification_session_done_title]
+Séance terminée
+---
+[notification_session_done_body]
+Votre séance de pratique est terminée.
+---

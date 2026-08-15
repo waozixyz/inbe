@@ -1374,3 +1374,21 @@ Remove
 [break_ex_forearm_desk_s2]
 轻压直到前臂有拉伸感
 ---
+[notifications_label]
+通知
+---
+[notifications_test]
+发送测试通知
+---
+[notification_test_title]
+测试通知
+---
+[notification_test_body]
+Inner Breeze 的通知正常工作。
+---
+[notification_session_done_title]
+课程完成
+---
+[notification_session_done_body]
+你的练习课程已完成。
+---

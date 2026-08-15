@@ -1374,3 +1374,21 @@ Pon la palma en la mesa, dedos hacia atrás
 [break_ex_forearm_desk_s2]
 Presiona suave hasta estirar el antebrazo
 ---
+[notifications_label]
+Notificaciones
+---
+[notifications_test]
+Enviar notificación de prueba
+---
+[notification_test_title]
+Notificación de prueba
+---
+[notification_test_body]
+Las notificaciones de Inner Breeze funcionan.
+---
+[notification_session_done_title]
+Sesión completada
+---
+[notification_session_done_body]
+Tu sesión de práctica ha terminado.
+---

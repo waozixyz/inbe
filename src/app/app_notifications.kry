@@ -1,0 +1,42 @@
+#module "app.notifications"
+
+#import "app.h"
+#import "kryon.h" #private
+
+init :: () {
+    SetNotificationAppName("inbe")
+    RequestNotificationPermission()
+}
+
+allowed :: (app: InbeApp*) -> int {
+    if app == nil {
+        return 0
+    }
+    if !app->notifications_enabled {
+        return 0
+    }
+    return IsNotificationPermissionGranted()
+}
+
+send_test_notification :: (app: InbeApp*) -> int {
+    if !allowed(app) {
+        return 0
+    }
+    return SendNotificationEx(GetLocaleText("notification_test_title"),
+                              GetLocaleText("notification_test_body"),
+                              "inbe.test", 2, NOTIFICATION_PRIORITY_DEFAULT)
+}
+
+send_session_complete :: (app: InbeApp*) {
+    if !allowed(app) {
+        return
+    }
+    #if !WEB {
+        if IsWindowFocused() {
+            return
+        }
+    }
+    SendNotificationEx(GetLocaleText("notification_session_done_title"),
+                       GetLocaleText("notification_session_done_body"),
+                       "inbe.session", 3, NOTIFICATION_PRIORITY_DEFAULT)
+}

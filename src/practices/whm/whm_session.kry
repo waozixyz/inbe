@@ -1,3 +1,4 @@
+#import "app/app_notifications"
 #import "practices/whm/whm_session.h"
 
 #import "app_nav.h" #private
@@ -468,6 +469,7 @@ session_complete :: (app: InbeApp*) #private {
         android_allow_screen_off()
         stop_android_background_session(app)
 }
+        app_notifications_send_session_complete(app)
         app_switch_screen(app, InbeScreenResults)
     } else {
         app_init(app)

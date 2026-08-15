@@ -1369,3 +1369,21 @@ Place a palm on the desk, fingers back
 [break_ex_forearm_desk_s2]
 Gently press until the forearm stretches
 ---
+[notifications_label]
+Notifications
+---
+[notifications_test]
+Send test notification
+---
+[notification_test_title]
+Test notification
+---
+[notification_test_body]
+Notifications from Inner Breeze work.
+---
+[notification_session_done_title]
+Session complete
+---
+[notification_session_done_body]
+Your practice session is complete.
+---

@@ -1376,3 +1376,21 @@ Remove
 [break_ex_forearm_desk_s2]
 前腕が伸びるまでやさしく押します
 ---
+[notifications_label]
+通知
+---
+[notifications_test]
+テスト通知を送信
+---
+[notification_test_title]
+テスト通知
+---
+[notification_test_body]
+Inner Breezeの通知は機能しています。
+---
+[notification_session_done_title]
+セッション完了
+---
+[notification_session_done_body]
+プラクティスセッションが完了しました。
+---

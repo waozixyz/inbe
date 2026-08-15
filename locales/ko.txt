@@ -1373,3 +1373,21 @@ Remove
 [break_ex_forearm_desk_s2]
 팔이 스트레치될 때까지 부드럽게 누르세요
 ---
+[notifications_label]
+알림
+---
+[notifications_test]
+테스트 알림 보내기
+---
+[notification_test_title]
+테스트 알림
+---
+[notification_test_body]
+Inner Breeze 알림이 작동합니다.
+---
+[notification_session_done_title]
+세션 완료
+---
+[notification_session_done_body]
+연습 세션이 완료되었습니다.
+---

@@ -1374,3 +1374,21 @@ Posa il palmo sulla scrivania, dita indietro
 [break_ex_forearm_desk_s2]
 Premi dolcemente fino ad allungare
 ---
+[notifications_label]
+Notifiche
+---
+[notifications_test]
+Invia notifica di prova
+---
+[notification_test_title]
+Notifica di prova
+---
+[notification_test_body]
+Le notifiche di Inner Breeze funzionano.
+---
+[notification_session_done_title]
+Sessione completata
+---
+[notification_session_done_body]
+La tua sessione di pratica è completata.
+---

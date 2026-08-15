@@ -1374,3 +1374,21 @@ Položte dlaň na stůl, prsty dozadu
 [break_ex_forearm_desk_s2]
 Lehce tlačte, až se předloktí protáhne
 ---
+[notifications_label]
+Notifikace
+---
+[notifications_test]
+Odeslat testovací notifikaci
+---
+[notification_test_title]
+Testovací notifikace
+---
+[notification_test_body]
+Notifikace z Inner Breeze fungují.
+---
+[notification_session_done_title]
+Relace dokončena
+---
+[notification_session_done_body]
+Vaše cvičení bylo dokončeno.
+---

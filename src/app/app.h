@@ -396,6 +396,7 @@ struct InbeApp {
     int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
+    int notifications_enabled;
     char language[16];
     int language_selected;
     int language_index;
