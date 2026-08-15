@@ -6,12 +6,25 @@ label_paragraph :: (label: const char*, w: int) -> UIParagraphSpec #private {
     return (UIParagraphSpec){.text = label, .width = w}
 }
 
+toggle_switch_width :: () -> int #private {
+    if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
+        return ScaleUIPx(52)
+    }
+
+    font := GetUIFontSize()
+    off_w := MeasureUIText(GetLocaleText("toggle_off"), font)
+    on_w := MeasureUIText(GetLocaleText("toggle_on"), font)
+    half := (off_w > on_w ? off_w : on_w) + ScaleUIPx(16)
+
+    return half * 2 + ScaleUIPx(6)
+}
+
 toggle_row_height :: (label: const char*, w: int) -> int {
     if w <= 0 {
         w = ScaleUIPx(160)
     }
 
-    toggle_w := ScaleUIPx(56)
+    toggle_w := toggle_switch_width()
     toggle_h := ScaleUIPx(30)
     material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
     gap := ScaleUIPx(material ? 22 : 16)
@@ -49,7 +62,7 @@ draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) ->
 
     row_h := toggle_row_height(label, w)
     label_y := *y
-    toggle_w := ScaleUIPx(56)
+    toggle_w := toggle_switch_width()
     toggle_h := ScaleUIPx(30)
     material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
     gap := ScaleUIPx(material ? 22 : 16)
