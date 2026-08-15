@@ -8,7 +8,11 @@
 #import <stdio.h>
 
 push_supported :: () -> int #private {
-    return IsNotificationSupported() && IsNotificationPermissionGranted()
+    #if ANDROID {
+        return platform_android_push_registered()
+    } #else {
+        return IsNotificationSupported() && IsNotificationPermissionGranted()
+    }
 }
 
 entry_height :: () -> int #private {
@@ -110,8 +114,7 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
         save_settings(app)
     }
     DrawCenteredUIControlText(time_buf, group_x + btn + time_gap + time_w / 2,
-                              GetUITextY(time_buf, *y, btn, GetUIFontSize()),
-                              GetUIFontSize(), GetThemeText())
+                              *y + btn / 2, GetUIFontSize(), GetThemeText())
     if GenericButton(402 + index * 4, group_x + btn + time_gap * 2 + time_w,
                      *y, btn, btn, "+", UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         r->hour = (hour + 1) % 24

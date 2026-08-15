@@ -524,7 +524,12 @@ public class MainActivity extends NativeActivity {
      * Called from native settings: set up UnifiedPush. With no distributor
      * installed, offer Sunup on F-Droid; with several, let the user pick.
      */
+    public boolean isUnifiedPushRegistered() {
+        return PushServiceImpl.getEndpoint(this) != null;
+    }
+
     public void configureUnifiedPush() {
+        requestNotificationPermissionIfNeeded();
         final List<String> distributors = UnifiedPush.getDistributors(this);
         if (distributors.isEmpty()) {
             Toast.makeText(this,
@@ -541,6 +546,9 @@ public class MainActivity extends NativeActivity {
         if (distributors.size() == 1) {
             UnifiedPush.saveDistributor(this, distributors.get(0));
             UnifiedPush.register(this, "inbe", "Inner Breeze", null);
+            Toast.makeText(this,
+                    "Push: registering with " + distributors.get(0),
+                    Toast.LENGTH_SHORT).show();
             return;
         }
         final String[] names = distributors.toArray(new String[0]);
@@ -549,6 +557,9 @@ public class MainActivity extends NativeActivity {
                 .setItems(names, (dialog, which) -> {
                     UnifiedPush.saveDistributor(this, names[which]);
                     UnifiedPush.register(this, "inbe", "Inner Breeze", null);
+                    Toast.makeText(this,
+                            "Push: registering with " + names[which],
+                            Toast.LENGTH_SHORT).show();
                 })
                 .show();
     }

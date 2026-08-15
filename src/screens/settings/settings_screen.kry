@@ -167,6 +167,11 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
         app->settings_tab = SETTINGS_TAB_DEVICE
     }
+    #if ANDROID {
+        if app->settings_tab == SETTINGS_TAB_BREAKS {
+            app->settings_tab = SETTINGS_TAB_DEVICE
+        }
+    }
 
     detail_header_h = UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
     tab_content_start_y = detail_header_h

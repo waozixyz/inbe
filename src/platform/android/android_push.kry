@@ -12,6 +12,9 @@ ANDROID :: ANDROID_BUILD
 
     LOG_TAG :: #define "INBE_PUSH"
 
+    static push_registered_cache: int = -1
+    static push_registered_frames: int = 0
+
     configure :: () {
         app := GetAndroidApp()
         if app == nil {
@@ -38,6 +41,7 @@ ANDROID :: ANDROID_BUILD
             method := (*env)->GetMethodID(env, clazz, "configureUnifiedPush", "()V")
             if method {
                 (*env)->CallVoidMethod(env, activity, method)
+                push_registered_cache = -1
             } else {
                 __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
                                     "configureUnifiedPush not found")
@@ -51,5 +55,57 @@ ANDROID :: ANDROID_BUILD
         if attached {
             (*jvm)->DetachCurrentThread(jvm)
         }
+    }
+
+    registered :: () -> int {
+        app := GetAndroidApp()
+        cached := 0
+
+        if app == nil {
+            return 0
+        }
+        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
+            return 0
+        }
+        push_registered_frames += 1
+        cached = push_registered_cache >= 0 ? push_registered_cache : 0
+        if push_registered_cache >= 0 && push_registered_frames < 30 {
+            return cached
+        }
+        push_registered_frames = 0
+
+        jvm: JavaVM* = app->activity->vm
+        activity := app->activity->clazz
+        env: JNIEnv* = nil
+        attached := 0
+
+        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
+            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
+                return cached
+            }
+            attached = 1
+        }
+
+        result := 0
+        clazz := (*env)->GetObjectClass(env, activity)
+        if clazz {
+            method := (*env)->GetMethodID(env, clazz, "isUnifiedPushRegistered", "()Z")
+            if method {
+                result = (*env)->CallBooleanMethod(env, activity, method) ? 1 : 0
+            } else {
+                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+                                    "isUnifiedPushRegistered not found")
+            }
+        }
+
+        if (*env)->ExceptionCheck(env) {
+            (*env)->ExceptionDescribe(env)
+            (*env)->ExceptionClear(env)
+        }
+        if attached {
+            (*jvm)->DetachCurrentThread(jvm)
+        }
+        push_registered_cache = result
+        return result
     }
 }

@@ -607,13 +607,25 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     profile_items: [1] const AppSidebarRouteItem = {
         {"tab_profile", APP_NAV_ROUTE_PROFILE}
     }
-    settings_items: [6] const AppSidebarSettingsItem = {
-        {SETTINGS_TAB_DEVICE},
-        {SETTINGS_TAB_AUDIO},
-        {SETTINGS_TAB_BREAKS},
-        {SETTINGS_TAB_NOTIFICATIONS},
-        {SETTINGS_TAB_THEME},
-        {SETTINGS_TAB_ABOUT}
+    settings_count := 6
+    #if ANDROID {
+        settings_items: [5] const AppSidebarSettingsItem = {
+            {SETTINGS_TAB_DEVICE},
+            {SETTINGS_TAB_AUDIO},
+            {SETTINGS_TAB_NOTIFICATIONS},
+            {SETTINGS_TAB_THEME},
+            {SETTINGS_TAB_ABOUT}
+        }
+        settings_count = 5
+    } #else {
+        settings_items: [6] const AppSidebarSettingsItem = {
+            {SETTINGS_TAB_DEVICE},
+            {SETTINGS_TAB_AUDIO},
+            {SETTINGS_TAB_BREAKS},
+            {SETTINGS_TAB_NOTIFICATIONS},
+            {SETTINGS_TAB_THEME},
+            {SETTINGS_TAB_ABOUT}
+        }
     }
 
     if app == NULL || (!app->nav_sidebar_open && !app_nav_sidebar_screen_active(app)) {
@@ -694,7 +706,8 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
     if app_draw_sidebar_settings_items(app, area.content_x, &y,
-                                       area.content_width, settings_items, 6) {
+                                       area.content_width, settings_items,
+                                       settings_count) {
         EndUIScrollContainer(area, view)
         return
     }
