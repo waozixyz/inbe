@@ -529,6 +529,17 @@ public class MainActivity extends NativeActivity {
     }
 
     public void configureUnifiedPush() {
+        // Called via JNI from the native render thread; toasts, dialogs and
+        // permission requests need the UI thread's Looper.
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                configureUnifiedPushOnUi();
+            }
+        });
+    }
+
+    private void configureUnifiedPushOnUi() {
         requestNotificationPermissionIfNeeded();
         final List<String> distributors = UnifiedPush.getDistributors(this);
         if (distributors.isEmpty()) {
