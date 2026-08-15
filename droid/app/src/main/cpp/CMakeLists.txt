@@ -41,9 +41,13 @@ list(REMOVE_ITEM KRYON_SOURCES
     "${KRYON_DIR}/src/scene/node_body2d.c"
     "${KRYON_DIR}/src/scene/node_area2d.c"
     "${KRYON_DIR}/src/scene/node_collision_shape2d.c")
-file(GLOB KRYON_KC_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/kc/*.c")
+file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
+list(APPEND KRYON_K2C_SOURCES
+    "${KRYON_DIR}/cmd/kir/kir.c"
+    "${KRYON_DIR}/cmd/kir/kir_parse.c")
 find_program(HOST_CC NAMES cc clang gcc REQUIRED)
-set(KRYON_KC "${CMAKE_BINARY_DIR}/host-tools/kc")
+set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
+# needs the kir headers on the include path
 set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
 file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
 list(SORT INBE_KRY_SOURCES)
@@ -78,16 +82,16 @@ add_custom_command(
     OUTPUT ${INBE_KRY_GENERATED_SOURCES} ${INBE_KRY_GENERATED_HEADERS} "${INBE_KRY_PROJECT_HEADER}"
     COMMAND ${CMAKE_COMMAND} -E remove_directory "${INBE_KRY_GEN_DIR}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${INBE_KRY_GEN_DIR}"
-    COMMAND "${KRYON_KC}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_COMMAND_SOURCES}
-    DEPENDS ${INBE_KRY_SOURCES} "${KRYON_KC}"
+    COMMAND "${KRYON_K2C}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_COMMAND_SOURCES}
+    DEPENDS ${INBE_KRY_SOURCES} "${KRYON_K2C}"
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
 )
 add_custom_command(
-    OUTPUT "${KRYON_KC}"
+    OUTPUT "${KRYON_K2C}"
     COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
-    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -o "${KRYON_KC}" ${KRYON_KC_SOURCES}
-    DEPENDS ${KRYON_KC_SOURCES}
+    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I"${KRYON_DIR}/cmd/kir" -I"${KRYON_DIR}/cmd/k2c" -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
+    DEPENDS ${KRYON_K2C_SOURCES}
     VERBATIM
 )
 add_custom_target(inbe_kry_generated DEPENDS
