@@ -428,6 +428,11 @@ struct InbeApp {
     int exercise_manual_seen_mask;
     int practice_visible_mask;
     int practice_home_scroll;
+    Rectangle practice_home_bounds_card;
+    Rectangle practice_home_bounds_start;
+    Rectangle practice_home_bounds_manual;
+    Rectangle practice_home_bounds_config;
+    int practice_home_bounds_valid;
 
     int theme_id;
     int theme_source;

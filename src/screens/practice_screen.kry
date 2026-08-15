@@ -360,8 +360,29 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
     }
 }
 
-practice_home_card_height :: (y: int, bottom_reserved: int) -> int #private {
-    card_h := view_height - y - bottom_reserved - ScaleUIPx(176)
+practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int #private {
+    practice := practice_get(app != NULL ? app->exercise_type : 0)
+    gap := ScaleUIPx(12)
+    btn_h := ScaleUIPx(42)
+    height := practice_home_carousel_controls_height(app) + ScaleUIPx(10) + btn_h
+
+    if practice_home_actions_share_row(practice, content_w) {
+        height += gap + btn_h
+    } else {
+        if practice != NULL && practice->draw_manual != NULL {
+            height += gap + btn_h
+        }
+        if practice != NULL && practice->draw_config != NULL {
+            height += gap + btn_h
+        }
+    }
+    return height + ScaleUIPx(14)
+}
+
+practice_home_card_height :: (app: const InbeApp*, y: int, bottom_reserved: int,
+                             content_w: int) -> int #private {
+    card_h := view_height - y - bottom_reserved -
+              practice_home_below_card_height(app, content_w)
 
     if card_h < ScaleUIPx(180) {
         card_h = ScaleUIPx(180)
@@ -499,28 +520,12 @@ practice_home_content_height :: (content_w: int, user_data: void*) -> int #priva
     if app == NULL {
         return 0
     }
-    practice := practice_get(app->exercise_type)
-    scroll_y := 0
-    bottom_reserved := app_content_bottom_reserved(app)
     y := ScaleUIPx(14)
-    btn_h := ScaleUIPx(42)
-    gap := practice_home_action_gap(content_w)
 
     y += practice_home_title_height(app) + ScaleUIPx(10)
-    y += practice_home_card_height(scroll_y + y, bottom_reserved)
-    y += practice_home_carousel_controls_height(app) + ScaleUIPx(10)
-    y += btn_h
-    if practice_home_actions_share_row(practice, content_w) {
-        y += gap + btn_h
-    } else {
-        if practice->draw_manual != NULL {
-            y += gap + btn_h
-        }
-        if practice->draw_config != NULL {
-            y += gap + btn_h
-        }
-    }
-    return y + ScaleUIPx(14)
+    y += practice_home_card_height(app, y, app_content_bottom_reserved(app),
+                                  content_w)
+    return y + practice_home_below_card_height(app, content_w)
 }
 
 practice_screen_draw_home :: (app: InbeApp*) {
@@ -746,82 +751,6 @@ practice_screen_draw_modal :: (app: InbeApp*) {
     }
 }
 
-practice_home_layout :: (app: InbeApp*, card: Rectangle*, start: Rectangle*, manual: Rectangle*, config: Rectangle*) #private {
-    top := ScaleUIPx(14)
-    bottom_reserved := app_content_bottom_reserved(app)
-    content_w := view_width - ScaleUIPx(24)
-    max_w := ScaleUIPx(480)
-    practice := practice_get(app->exercise_type)
-    carousel_count := 0
-    x := 0
-    y := 0
-    card_h := 0
-    btn_h := ScaleUIPx(42)
-    gap := 0
-
-    if content_w > max_w {
-        content_w = max_w
-    }
-    if content_w < ScaleUIPx(260) {
-        content_w = view_width - ScaleUIPx(16)
-    }
-    gap = practice_home_action_gap(content_w)
-    x = (view_width - content_w) / 2
-    y = top
-    y += practice_home_title_height(app) + ScaleUIPx(10)
-    card_h = practice_home_card_height(y, bottom_reserved)
-    if card != NULL {
-        *card = (Rectangle){(float)x, (float)y, (float)content_w, (float)card_h}
-    }
-    y += card_h
-    carousel_count = practice_visible_count(app)
-    if carousel_count > 1 {
-        y += practice_home_carousel_controls_height(app)
-    }
-    y += ScaleUIPx(10)
-    if start != NULL {
-        *start = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h}
-    }
-    y += btn_h + gap
-    if practice_home_actions_share_row(practice, content_w) {
-        row_gap := practice_home_action_gap(content_w)
-        manual_w := 0
-        config_w := 0
-        practice_home_action_row_widths(content_w, &manual_w, &config_w)
-        if manual != NULL {
-            *manual = (Rectangle){(float)x, (float)y, (float)manual_w, (float)btn_h}
-        }
-        if config != NULL {
-            *config = (Rectangle){(float)(x + manual_w + row_gap), (float)y, (float)config_w, (float)btn_h}
-        }
-    } else {
-        if manual != NULL {
-            *manual = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h}
-        }
-        y += btn_h + gap
-        if config != NULL {
-            *config = (Rectangle){(float)x, (float)y, (float)content_w, (float)btn_h}
-        }
-    }
-}
-
-practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> Rectangle #private {
-    left := manual.x < config.x ? manual.x : config.x
-    top := manual.y < config.y ? manual.y : config.y
-    right := manual.x + manual.width
-    bottom := manual.y + manual.height
-    config_right := config.x + config.width
-    config_bottom := config.y + config.height
-
-    if config_right > right {
-        right = config_right
-    }
-    if config_bottom > bottom {
-        bottom = config_bottom
-    }
-    return (Rectangle){left, top, right - left, bottom - top}
-}
-
 practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
     if app == NULL {
         return
@@ -843,21 +772,36 @@ practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
     app->practice_tab = PRACTICE_TAB_PLAY
 }
 
+practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> Rectangle #private {
+    left := manual.x < config.x ? manual.x : config.x
+    top := manual.y < config.y ? manual.y : config.y
+    right := manual.x + manual.width
+    bottom := manual.y + manual.height
+    config_right := config.x + config.width
+    config_bottom := config.y + config.height
+
+    if config_right > right {
+        right = config_right
+    }
+    if config_bottom > bottom {
+        bottom = config_bottom
+    }
+    return (Rectangle){left, top, right - left, bottom - top}
+}
+
 practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     steps: [3] UIGuideStep = {0}
     result := (UIGuideResult){0}
-    card := (Rectangle){0}
-    start := (Rectangle){0}
-    manual := (Rectangle){0}
-    config := (Rectangle){0}
 
     if !practice_screen_first_run_guide_active(app) {
         return
     }
-    practice_home_layout(app, &card, &start, &manual, &config)
-    steps[0] = (UIGuideStep){card, GetLocaleText("practice_guide_carousel")}
-    steps[1] = (UIGuideStep){start, GetLocaleText("practice_guide_start")}
-    steps[2] = (UIGuideStep){practice_home_action_guide_anchor(manual, config), GetLocaleText("practice_guide_manual_config")}
+    if !app->practice_home_bounds_valid {
+        return
+    }
+    steps[0] = (UIGuideStep){app->practice_home_bounds_card, GetLocaleText("practice_guide_carousel")}
+    steps[1] = (UIGuideStep){app->practice_home_bounds_start, GetLocaleText("practice_guide_start")}
+    steps[2] = (UIGuideStep){practice_home_action_guide_anchor(app->practice_home_bounds_manual, app->practice_home_bounds_config), GetLocaleText("practice_guide_manual_config")}
     result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
@@ -894,6 +838,7 @@ page start(app: InbeApp*) {
     config_w := 0
 
     practice_clamp_activity_to_tab(app)
+    app->practice_home_bounds_valid = 0
     bottom_reserved = app_content_bottom_reserved(app)
     scroll_y = 0
     scroll_h = view_height - scroll_y - bottom_reserved
@@ -929,8 +874,10 @@ page start(app: InbeApp*) {
     layout_y += practice_home_title_height(app) + ScaleUIPx(10)
 
     card_w = content_w
-    card_h = practice_home_card_height(layout_y, bottom_reserved)
+    card_h = practice_home_card_height(app, layout_y, bottom_reserved, content_w)
     card := (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h}
+    app->practice_home_bounds_card = card
+    app->practice_home_bounds_valid = 1
     banner: Texture2D = practice_card_banner(app, app->exercise_type)
     if banner.id != 0 {
         practice_draw_card_banner(banner, card)
@@ -947,8 +894,10 @@ page start(app: InbeApp*) {
     }
     y += ScaleUIPx(10)
 
+    app->practice_home_bounds_start = (Rectangle){(float)x, (float)y,
+                                                 (float)content_w, (float)btn_h}
     if Button((ButtonProps){
-        .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+        .bounds = app->practice_home_bounds_start,
         .label = GetLocaleText("practice_start_button"),
         .font = GetUIFontSize(),
         .style = UI_BUTTON_STYLE_PRIMARY,
@@ -962,8 +911,10 @@ page start(app: InbeApp*) {
     if practice_home_actions_share_row(practice, content_w) {
         row_gap = practice_home_action_gap(content_w)
         practice_home_action_row_widths(content_w, &manual_w, &config_w)
+        app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
+                                                       (float)manual_w, (float)btn_h}
         if Button((ButtonProps){
-            .bounds = {(float)x, (float)y, (float)manual_w, (float)btn_h},
+            .bounds = app->practice_home_bounds_manual,
             .label = GetLocaleText("practice_manual_button"),
             .font = GetUIFontSize(),
             .style = UI_BUTTON_STYLE_SECONDARY,
@@ -971,9 +922,10 @@ page start(app: InbeApp*) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
 
+        app->practice_home_bounds_config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
+                                                       (float)config_w, (float)btn_h}
         if Button((ButtonProps){
-            .bounds = {(float)(x + manual_w + row_gap), (float)y,
-                       (float)config_w, (float)btn_h},
+            .bounds = app->practice_home_bounds_config,
             .label = GetLocaleText("practice_configure_button"),
             .font = GetUIFontSize(),
             .style = UI_BUTTON_STYLE_SECONDARY,
@@ -982,8 +934,10 @@ page start(app: InbeApp*) {
         }
     } else {
         if practice->draw_manual != NULL {
+            app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
+                                                           (float)content_w, (float)btn_h}
             if Button((ButtonProps){
-                .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+                .bounds = app->practice_home_bounds_manual,
                 .label = GetLocaleText("practice_manual_button"),
                 .font = GetUIFontSize(),
                 .style = UI_BUTTON_STYLE_SECONDARY,
@@ -993,8 +947,10 @@ page start(app: InbeApp*) {
             y += btn_h + gap
         }
         if practice->draw_config != NULL {
+            app->practice_home_bounds_config = (Rectangle){(float)x, (float)y,
+                                                           (float)content_w, (float)btn_h}
             if Button((ButtonProps){
-                .bounds = {(float)x, (float)y, (float)content_w, (float)btn_h},
+                .bounds = app->practice_home_bounds_config,
                 .label = GetLocaleText("practice_configure_button"),
                 .font = GetUIFontSize(),
                 .style = UI_BUTTON_STYLE_SECONDARY,
