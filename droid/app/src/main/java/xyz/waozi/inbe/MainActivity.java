@@ -12,6 +12,10 @@ import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Insets;
 import android.net.Uri;
+import android.widget.Toast;
+import android.app.AlertDialog;
+import java.util.List;
+import org.unifiedpush.android.connector.UnifiedPush;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -514,6 +518,39 @@ public class MainActivity extends NativeActivity {
             Log.e(TAG, "Failed to import selected file", e);
             nativeImportSelectedFile(pendingImportKind, "");
         }
+    }
+
+    /**
+     * Called from native settings: set up UnifiedPush. With no distributor
+     * installed, offer Sunup on F-Droid; with several, let the user pick.
+     */
+    public void configureUnifiedPush() {
+        final List<String> distributors = UnifiedPush.getDistributors(this);
+        if (distributors.isEmpty()) {
+            Toast.makeText(this,
+                    "Install a UnifiedPush distributor (e.g. Sunup)",
+                    Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                        "https://f-droid.org/en/packages/org.unifiedpush.distributor.sunup/")));
+            } catch (Exception e) {
+                Log.w(TAG, "no activity to open F-Droid");
+            }
+            return;
+        }
+        if (distributors.size() == 1) {
+            UnifiedPush.saveDistributor(this, distributors.get(0));
+            UnifiedPush.register(this, "inbe", "Inner Breeze", null);
+            return;
+        }
+        final String[] names = distributors.toArray(new String[0]);
+        new AlertDialog.Builder(this)
+                .setTitle("Push provider")
+                .setItems(names, (dialog, which) -> {
+                    UnifiedPush.saveDistributor(this, names[which]);
+                    UnifiedPush.register(this, "inbe", "Inner Breeze", null);
+                })
+                .show();
     }
 
     public void acquireWakeLock() {

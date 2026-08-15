@@ -1,4 +1,5 @@
 #import "app/app_notifications"
+#import "platform/android/android_push"
 #import "app.h"
 #import "app/app_settings.h"
 #import "app/device_preferences.h"
@@ -25,6 +26,9 @@ settings_device_content_height :: (content_w: int) -> int {
     height += ScaleUIPx(12)
     height += settings_ui_toggle_row_height(GetLocaleText("notifications_label"), label_w)
     height += ScaleUIPx(44)
+    #if ANDROID {
+        height += ScaleUIPx(44)
+    }
 
     #if DESKTOP {
         height += ScaleUIPx(50)
@@ -118,6 +122,16 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         app_notifications_send_test_notification(app)
     }
     *y += ScaleUIPx(44)
+
+    #if ANDROID {
+        push_hover := 0
+        if GenericButton(108, x, *y, w, ScaleUIPx(34),
+                         GetLocaleText("push_label"),
+                         UI_BUTTON_STYLE_SECONDARY, 0, &push_hover) {
+            platform_android_push_configure()
+        }
+        *y += ScaleUIPx(44)
+    }
 
 }
 

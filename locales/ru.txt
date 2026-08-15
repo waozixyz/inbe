@@ -1392,3 +1392,15 @@ Remove
 [notification_session_done_body]
 Ваша тренировочная сессия завершена.
 ---
+[push_label]
+Push-уведомления
+---
+[break_hud_micro]
+Микро
+---
+[break_hud_rest]
+Отдых
+---
+[break_hud_daily]
+День
+---

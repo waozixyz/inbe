@@ -1391,3 +1391,15 @@ Inner Breeze 알림이 작동합니다.
 [notification_session_done_body]
 연습 세션이 완료되었습니다.
 ---
+[push_label]
+푸시 알림
+---
+[break_hud_micro]
+짧은
+---
+[break_hud_rest]
+휴식
+---
+[break_hud_daily]
+일일
+---

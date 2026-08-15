@@ -1392,3 +1392,15 @@ Sesión completada
 [notification_session_done_body]
 Tu sesión de práctica ha terminado.
 ---
+[push_label]
+Notificaciones push
+---
+[break_hud_micro]
+Micro
+---
+[break_hud_rest]
+Descanso
+---
+[break_hud_daily]
+Día
+---

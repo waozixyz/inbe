@@ -1,0 +1,55 @@
+#module "platform.android.push"
+
+ANDROID :: ANDROID_BUILD
+
+#if ANDROID {
+    #import "kryon.h" #private
+    #import <android/log.h>
+    #import <android_native_app_glue.h>
+    #import <jni.h>
+
+    GetAndroidApp :: () -> struct android_app* #extern
+
+    LOG_TAG :: #define "INBE_PUSH"
+
+    configure :: () {
+        app := GetAndroidApp()
+        if app == nil {
+            return
+        }
+        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
+            return
+        }
+
+        jvm: JavaVM* = app->activity->vm
+        activity := app->activity->clazz
+        env: JNIEnv* = nil
+        attached := 0
+
+        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
+            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
+                return
+            }
+            attached = 1
+        }
+
+        clazz := (*env)->GetObjectClass(env, activity)
+        if clazz {
+            method := (*env)->GetMethodID(env, clazz, "configureUnifiedPush", "()V")
+            if method {
+                (*env)->CallVoidMethod(env, activity, method)
+            } else {
+                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+                                    "configureUnifiedPush not found")
+            }
+        }
+
+        if (*env)->ExceptionCheck(env) {
+            (*env)->ExceptionDescribe(env)
+            (*env)->ExceptionClear(env)
+        }
+        if attached {
+            (*jvm)->DetachCurrentThread(jvm)
+        }
+    }
+}

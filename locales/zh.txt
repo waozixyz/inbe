@@ -1392,3 +1392,15 @@ Inner Breeze 的通知正常工作。
 [notification_session_done_body]
 你的练习课程已完成。
 ---
+[push_label]
+推送通知
+---
+[break_hud_micro]
+小憩
+---
+[break_hud_rest]
+休息
+---
+[break_hud_daily]
+每日
+---

@@ -1392,3 +1392,15 @@ Relace dokončena
 [notification_session_done_body]
 Vaše cvičení bylo dokončeno.
 ---
+[push_label]
+Push notifikace
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Odpočinek
+---
+[break_hud_daily]
+Den
+---

@@ -1392,3 +1392,15 @@ Sessão concluída
 [notification_session_done_body]
 Sua sessão de prática foi concluída.
 ---
+[push_label]
+Notificações push
+---
+[break_hud_micro]
+Micro
+---
+[break_hud_rest]
+Pausa
+---
+[break_hud_daily]
+Dia
+---

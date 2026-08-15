@@ -1392,3 +1392,15 @@ Sitzung abgeschlossen
 [notification_session_done_body]
 Deine Übungssitzung ist abgeschlossen.
 ---
+[push_label]
+Push-Benachrichtigungen
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Ruhe
+---
+[break_hud_daily]
+Tag
+---

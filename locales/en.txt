@@ -1387,3 +1387,15 @@ Session complete
 [notification_session_done_body]
 Your practice session is complete.
 ---
+[push_label]
+Push notifications
+---
+[break_hud_micro]
+Micro
+---
+[break_hud_rest]
+Rest
+---
+[break_hud_daily]
+Daily
+---

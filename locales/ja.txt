@@ -1394,3 +1394,15 @@ Inner Breezeの通知は機能しています。
 [notification_session_done_body]
 プラクティスセッションが完了しました。
 ---
+[push_label]
+プッシュ通知
+---
+[break_hud_micro]
+小
+---
+[break_hud_rest]
+休憩
+---
+[break_hud_daily]
+日次
+---

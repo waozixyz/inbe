@@ -1392,3 +1392,15 @@ Sesi selesai
 [notification_session_done_body]
 Sesi latihan Anda telah selesai.
 ---
+[push_label]
+Notifikasi push
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Istirahat
+---
+[break_hud_daily]
+Harian
+---
