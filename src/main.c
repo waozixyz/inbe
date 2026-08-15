@@ -1,5 +1,6 @@
 #include "kryon.h"
 #include "app.h"
+#include "breaks/app_breaks.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
 #include "app/device_preferences.h"
@@ -404,6 +405,7 @@ frame(void)
     draw_full_frame(width, height);
 #endif
     EndDrawing();
+    app_breaks_hud_update(&inbe_app);
 }
 
 static int

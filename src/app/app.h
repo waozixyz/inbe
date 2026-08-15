@@ -489,6 +489,9 @@ struct InbeApp {
     double break_last_update_time;
     float break_tick_pending;
     int break_window_taken;
+    UIWindow *break_hud;
+    int break_hud_w;
+    int break_hud_h;
 };
 
 void app_set_host_api(InbeApp *app, InbeHostApi host);

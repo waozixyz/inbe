@@ -1596,7 +1596,6 @@ updateapp(InbeApp *app)
 finish_frame:
     if(content_input_clip_active)
         PopUIInputClip();
-    app_breaks_hud_draw(app);
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;
@@ -1743,6 +1742,9 @@ app_destroy(void *vapp)
 {
     InbeApp *app = vapp;
     if (app == NULL) return;
+
+    CloseUIWindow(app->break_hud);
+    app->break_hud = NULL;
 
     if(app->settings_dirty || app->settings_save_delay_ticks > 0)
         save_settings(app);

@@ -335,22 +335,57 @@ app_breaks_exercise_hide :: (app: InbeApp*) {
     app->break_ex_hidden = 1
 }
 
-app_breaks_hud_draw :: (app: InbeApp*) {
-    if app == nil || !app->breaks_enabled {
-        return
-    }
-
+app_breaks_hud_update :: (app: InbeApp*) {
 #if !ANDROID && !WEB {
-    if app->inbe.screen == InbeScreenBreak {
+    if app == nil {
+        return
+    }
+    if !app->breaks_enabled || app->inbe.screen == InbeScreenBreak {
+        if app->break_hud != nil {
+            CloseUIWindow(app->break_hud)
+            app->break_hud = nil
+        }
         return
     }
 
-    hud_w := ScaleUIPx(150)
-    row_h := ScaleUIPx(17)
-    pad := ScaleUIPx(7)
-    hud_x := view_width - hud_w - ScaleUIPx(8)
-    hud_y := ScaleUIPx(8)
+    scale := GetUIDPIScale()
+    if scale <= 0 || scale > 8 {
+        scale = 1
+    }
+    hud_w := (int)(150 * scale + 0.5)
+    row_h := (int)(17 * scale + 0.5)
+    pad := (int)(7 * scale + 0.5)
     hud_h := pad * 2 + row_h * BREAK_TYPE_COUNT
+
+    if app->break_hud != nil && (app->break_hud_w != hud_w || app->break_hud_h != hud_h) {
+        CloseUIWindow(app->break_hud)
+        app->break_hud = nil
+    }
+    if app->break_hud == nil {
+        track := DarkenUIColor(GetThemeBackground(), 18)
+        flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
+                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_TOP_RIGHT
+        app->break_hud = OpenUIWindow("Inner Breeze", ScaleUIPx(8), ScaleUIPx(8),
+                                      hud_w, hud_h, flags, track, scale)
+        if app->break_hud == nil {
+            return
+        }
+        app->break_hud_w = hud_w
+        app->break_hud_h = hud_h
+    }
+
+    BeginUIWindow(app->break_hud)
+    app_breaks_hud_draw(app, hud_w, hud_h, row_h, pad)
+    EndUIWindow()
+
+    if IsUIWindowClicked(app->break_hud) {
+        app->settings_tab = SETTINGS_TAB_BREAKS
+        app_switch_screen(app, InbeScreenSettings)
+    }
+}
+}
+
+app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: int) {
     track := DarkenUIColor(GetThemeBackground(), 18)
     border := DarkenUIColor(GetThemeText(), 62)
     muted := DarkenUIColor(GetThemeText(), 45)
@@ -362,21 +397,14 @@ app_breaks_hud_draw :: (app: InbeApp*) {
         GetLocaleText("break_hud_daily")
     }
 
-    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
-       CheckCollisionPointRec(GetMousePosition(), (Rectangle){(float)hud_x, (float)hud_y, (float)hud_w, (float)hud_h}) {
-        app->settings_tab = SETTINGS_TAB_BREAKS
-        app_switch_screen(app, InbeScreenSettings)
-        return
-    }
-
-    Rect(hud_x, hud_y, hud_w, hud_h, track, border)
+    Rect(0, 0, hud_w, hud_h, track, border)
 
     for int t = 0; t < BREAK_TYPE_COUNT; t++ {
         timer := &app->breaks.timers[t]
-        row_y := hud_y + pad + row_h * t
-        bar_x := hud_x + pad
+        row_y := pad + row_h * t
+        bar_x := pad
         bar_w := hud_w - pad * 2
-        time_x := hud_x + hud_w - pad
+        time_x := hud_w - pad
         next := break_timer_next_due_s(&app->breaks, t)
 
         Text(labels[t], bar_x, row_y + ScaleUIPx(2), UI_TEXT_12, muted)
@@ -410,5 +438,4 @@ app_breaks_hud_draw :: (app: InbeApp*) {
             }
         }
     }
-}
 }
