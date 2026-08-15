@@ -1085,12 +1085,12 @@ app_init(void *vapp) {
 
     inbeinit(&app->inbe);
     break_engine_init(&app->breaks);
-#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
-    app->breaks_enabled = 1;
-#else
     app->breaks_enabled = 0;
-#endif
+#if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app->break_sounds_enabled = 1;
+#else
+    app->break_sounds_enabled = 0;
+#endif
     app->break_exercise_count = 3;
     app->break_ex_pick_count = 0;
     app->break_ex_offset_s = 0;
@@ -1596,6 +1596,7 @@ updateapp(InbeApp *app)
 finish_frame:
     if(content_input_clip_active)
         PopUIInputClip();
+    app_breaks_hud_draw(app);
     if(practice_fullscreen_modal) {
         draw_global_modal(app);
         global_modal_drawn = 1;

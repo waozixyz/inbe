@@ -334,3 +334,81 @@ app_breaks_exercise_hide :: (app: InbeApp*) {
     }
     app->break_ex_hidden = 1
 }
+
+app_breaks_hud_draw :: (app: InbeApp*) {
+    if app == nil || !app->breaks_enabled {
+        return
+    }
+
+#if !ANDROID && !WEB {
+    if app->inbe.screen == InbeScreenBreak {
+        return
+    }
+
+    hud_w := ScaleUIPx(150)
+    row_h := ScaleUIPx(17)
+    pad := ScaleUIPx(7)
+    hud_x := view_width - hud_w - ScaleUIPx(8)
+    hud_y := ScaleUIPx(8)
+    hud_h := pad * 2 + row_h * BREAK_TYPE_COUNT
+    track := DarkenUIColor(GetThemeBackground(), 18)
+    border := DarkenUIColor(GetThemeText(), 62)
+    muted := DarkenUIColor(GetThemeText(), 45)
+    fill := (Color){74, 178, 102, 255}
+    overdue := (Color){222, 140, 44, 255}
+    labels: [BREAK_TYPE_COUNT] const char* = {
+        GetLocaleText("break_hud_micro"),
+        GetLocaleText("break_hud_rest"),
+        GetLocaleText("break_hud_daily")
+    }
+
+    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+       CheckCollisionPointRec(GetMousePosition(), (Rectangle){(float)hud_x, (float)hud_y, (float)hud_w, (float)hud_h}) {
+        app->settings_tab = SETTINGS_TAB_BREAKS
+        app_switch_screen(app, InbeScreenSettings)
+        return
+    }
+
+    Rect(hud_x, hud_y, hud_w, hud_h, track, border)
+
+    for int t = 0; t < BREAK_TYPE_COUNT; t++ {
+        timer := &app->breaks.timers[t]
+        row_y := hud_y + pad + row_h * t
+        bar_x := hud_x + pad
+        bar_w := hud_w - pad * 2
+        time_x := hud_x + hud_w - pad
+        next := break_timer_next_due_s(&app->breaks, t)
+
+        Text(labels[t], bar_x, row_y + ScaleUIPx(2), UI_TEXT_12, muted)
+
+        if !timer->enabled || next < 0 {
+            line := "off"
+            Text(line, time_x - MeasureUIText(line, UI_TEXT_12), row_y + ScaleUIPx(2),
+                 UI_TEXT_12, muted)
+        } else {
+            line: [16] char
+            if next == 0 {
+                snprintf(line, sizeof(line), "%s", GetLocaleText("settings_breaks_due_now"))
+            } else {
+                snprintf(line, sizeof(line), "%d:%02d", next / 60, next % 60)
+            }
+            color := next == 0 ? overdue : GetThemeText()
+            Text(line, time_x - MeasureUIText(line, UI_TEXT_12), row_y + ScaleUIPx(2),
+                 UI_TEXT_12, color)
+
+            if timer->limit_s > 0 {
+                fraction := timer->active_s * (bar_w - 2) / timer->limit_s
+                if fraction > bar_w - 2 {
+                    fraction = bar_w - 2
+                }
+                Rect(bar_x, row_y + row_h - ScaleUIPx(4), bar_w, ScaleUIPx(3),
+                     DarkenUIColor(GetThemeBackground(), 30), DarkenUIColor(GetThemeBackground(), 30))
+                if fraction > 0 {
+                    Rect(bar_x + 1, row_y + row_h - ScaleUIPx(4), fraction, ScaleUIPx(3),
+                         next == 0 ? overdue : fill, next == 0 ? overdue : fill)
+                }
+            }
+        }
+    }
+}
+}

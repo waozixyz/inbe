@@ -618,6 +618,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "break_settings") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_BREAKS;
+        app->breaks_enabled = 1;
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "break_micro") == 0 ||
               strcmp(request->scene, "break_rest") == 0 ||
