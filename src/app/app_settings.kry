@@ -194,6 +194,7 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("retention_marker_enabled",
                         app->retention_marker_enabled ? 1 : 0)
     save_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0)
+    save_setting_int("tutorial_step", app->tutorial_step)
     save_setting_int("habits_guide_seen", app->habits_guide_seen ? 1 : 0)
     save_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask)
     save_setting_int("practice_visible_mask", app->practice_visible_mask)
@@ -452,6 +453,8 @@ app_load_settings :: (app: InbeApp*) -> int {
                                            DefaultPauseSeconds)
 
     load_bool_setting(&settings_cache, &app->tutorial_seen, "tutorial_seen", 0)
+    load_clamped_setting(&settings_cache, &app->tutorial_step,
+                            "tutorial_step", 0, 0, 9999)
     load_bool_setting(&settings_cache, &app->habits_guide_seen,
                          "habits_guide_seen", 0)
     load_bool_setting(&settings_cache, &app->dark_mode, "dark_mode", 0)

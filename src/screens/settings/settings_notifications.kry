@@ -125,6 +125,24 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     return 0
 }
 
+close_picker :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    #if ANDROID {
+        if app->push_distributor_textures_loaded {
+            for int i = 0; i < APP_PUSH_DISTRIBUTOR_MAX; i++ {
+                if app->push_distributor_textures[i].id != 0 {
+                    UnloadTexture(app->push_distributor_textures[i])
+                    app->push_distributor_textures[i] = (Texture2D){0}
+                }
+            }
+            app->push_distributor_textures_loaded = 0
+        }
+    }
+    app->push_picker_open = 0
+}
+
 handle_overlays :: (app: InbeApp*) {
     #if ANDROID {
         panel: Rectangle
@@ -139,6 +157,17 @@ handle_overlays :: (app: InbeApp*) {
 
         if app == nil || !app->push_picker_open {
             return
+        }
+
+        if !app->push_distributor_textures_loaded {
+            for int i = 0; i < app->push_distributor_count; i++ {
+                app->push_distributor_textures[i] = (Texture2D){0}
+                if app->push_distributor_icons[i][0] != 0 {
+                    app->push_distributor_textures[i] = LoadTexture(
+                        &app->push_distributor_icons[i][0])
+                }
+            }
+            app->push_distributor_textures_loaded = 1
         }
 
         w = ScaleUIPx(300)
@@ -156,7 +185,7 @@ handle_overlays :: (app: InbeApp*) {
         SetUIModalCapture(panel)
         if UIPointerReleaseOutside(panel) {
             UIConsumeRelease()
-            app->push_picker_open = 0
+            close_picker(app)
             return
         }
 
@@ -167,16 +196,34 @@ handle_overlays :: (app: InbeApp*) {
              x + ScaleUIPx(14), y + ScaleUIPx(14), GetUIFontSize(),
              GetThemeText())
 
+        icon_size := row_h - ScaleUIPx(8)
         ty = y + ScaleUIPx(50)
         for int i = 0; i < app->push_distributor_count; i++ {
+            has_icon := app->push_distributor_textures[i].id != 0
             if GenericButton(220 + i, x + ScaleUIPx(14), ty,
-                             w - ScaleUIPx(28), row_h,
-                             app->push_distributors[i],
+                             w - ScaleUIPx(28), row_h, "",
                              UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
                 platform_android_push_configure_with(app, i)
-                app->push_picker_open = 0
+                close_picker(app)
                 return
             }
+            text_x := x + ScaleUIPx(26)
+            if has_icon {
+                icon_x := x + ScaleUIPx(26)
+                DrawTexturePro(
+                    app->push_distributor_textures[i],
+                    (Rectangle){0, 0,
+                                (float)app->push_distributor_textures[i].width,
+                                (float)app->push_distributor_textures[i].height},
+                    (Rectangle){(float)icon_x, (float)(ty + ScaleUIPx(4)),
+                                (float)icon_size, (float)icon_size},
+                    (Vector2){0}, 0.0f, WHITE)
+                text_x = icon_x + icon_size + ScaleUIPx(12)
+            }
+            label_center := (text_x + x + w - ScaleUIPx(14)) / 2
+            DrawCenteredUIControlText(
+                &app->push_distributor_labels[i][0],
+                label_center, ty + row_h / 2, GetUIFontSize(), GetThemeText())
             ty += row_h
         }
 
@@ -184,7 +231,7 @@ handle_overlays :: (app: InbeApp*) {
                          w - ScaleUIPx(28), ScaleUIPx(36),
                          GetLocaleText("close_button"),
                          UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
-            app->push_picker_open = 0
+            close_picker(app)
         }
     }
 }

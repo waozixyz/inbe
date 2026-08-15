@@ -16,13 +16,59 @@ ANDROID :: ANDROID_BUILD
     static push_registered_cache: int = -1
     static push_registered_frames: int = 0
 
+    copy_string_array_member :: (env: JNIEnv*, activity: jobject,
+                                method_name: const char*, dst: char*,
+                                dst_stride: int, count: int) -> int #private {
+        array: jobjectArray
+        copied := 0
+
+        array = nil
+        clazz := (*env)->GetObjectClass(env, activity)
+        if clazz {
+            method := (*env)->GetMethodID(env, clazz, method_name,
+                                          "()[Ljava/lang/String;")
+            if method {
+                array = (jobjectArray)(*env)->CallObjectMethod(env, activity,
+                                                               method)
+            } else {
+                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+                                    "string array method not found")
+            }
+        }
+        if (*env)->ExceptionCheck(env) {
+            (*env)->ExceptionDescribe(env)
+            (*env)->ExceptionClear(env)
+        }
+        if array == nil {
+            return 0
+        }
+        for int i = 0; i < count; i++ {
+            s := (jstring)(*env)->GetObjectArrayElement(env, array, i)
+            if s == nil {
+                continue
+            }
+            text := (*env)->GetStringUTFChars(env, s, nil)
+            if text != nil {
+                row := dst + i * dst_stride
+                for int c = 0; c < dst_stride - 1 && text[c] != 0; c++ {
+                    row[c] = text[c]
+                }
+                row[dst_stride - 1] = 0
+                (*env)->ReleaseStringUTFChars(env, s, text)
+                copied += 1
+            }
+            (*env)->DeleteLocalRef(env, s)
+        }
+        (*env)->DeleteLocalRef(env, array)
+        return copied
+    }
+
     refresh_distributors :: (inbe: InbeApp*) {
         app := GetAndroidApp()
         env: JNIEnv* = nil
         attached := 0
         jvm: JavaVM*
         activity: jobject
-        array: jobjectArray
         count := 0
 
         if inbe == nil {
@@ -45,7 +91,7 @@ ANDROID :: ANDROID_BUILD
             attached = 1
         }
 
-        array = nil
+        array: jobjectArray = nil
         clazz := (*env)->GetObjectClass(env, activity)
         if clazz {
             method := (*env)->GetMethodID(env, clazz, "getUnifiedPushDistributors",
@@ -84,6 +130,15 @@ ANDROID :: ANDROID_BUILD
             }
             inbe->push_distributor_count = count
             (*env)->DeleteLocalRef(env, array)
+        }
+
+        if count > 0 {
+            copy_string_array_member(env, activity, "getUnifiedPushDistributorLabels",
+                                     &inbe->push_distributor_labels[0][0], 64,
+                                     count)
+            copy_string_array_member(env, activity, "getUnifiedPushDistributorIcons",
+                                     &inbe->push_distributor_icons[0][0], 256,
+                                     count)
         }
 
         if attached {

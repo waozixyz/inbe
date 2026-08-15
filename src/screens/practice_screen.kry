@@ -762,7 +762,7 @@ practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
 
 practice_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
     account := (KsyncAccount){0}
-    return app != NULL && !app->tutorial_seen && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !sync_account_load(&account)
+    return app != NULL && !app->tutorial_seen && app->tutorial_step == 0 && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !sync_account_load(&account)
 }
 
 practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
@@ -803,6 +803,9 @@ practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     steps[1] = (UIGuideStep){app->practice_home_bounds_start, GetLocaleText("practice_guide_start")}
     steps[2] = (UIGuideStep){practice_home_action_guide_anchor(app->practice_home_bounds_manual, app->practice_home_bounds_config), GetLocaleText("practice_guide_manual_config")}
     result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
+    if result.changed {
+        save_settings(app)
+    }
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
     }

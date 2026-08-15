@@ -417,6 +417,10 @@ struct InbeApp {
     int push_picker_open;
     int push_distributor_count;
     char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];
+    char push_distributor_labels[APP_PUSH_DISTRIBUTOR_MAX][64];
+    char push_distributor_icons[APP_PUSH_DISTRIBUTOR_MAX][256];
+    Texture2D push_distributor_textures[APP_PUSH_DISTRIBUTOR_MAX];
+    int push_distributor_textures_loaded;
     char language[16];
     int language_selected;
     int language_index;
