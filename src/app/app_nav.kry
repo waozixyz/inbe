@@ -691,7 +691,8 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     area = (UIScrollArea){
         .bounds = {(float)sidebar_x, (float)scroll_y, (float)sidebar_w,
                    (float)scroll_h},
-        .content_height = ScaleUIPx(300),
+        .content_height = (1 + settings_count) * (ScaleUIPx(38) + ScaleUIPx(8)) +
+                          ScaleUIPx(10) + ScaleUIPx(40),
         .content_x = sidebar_x + pad,
         .content_width = sidebar_w - pad * 2,
         .scroll_offset = &app->nav_sidebar_scroll,
