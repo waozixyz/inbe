@@ -8,15 +8,12 @@
 #import "storage.h" #private
 #import <stdio.h>
 #import <stdlib.h>
+#import <stdlib.h>
 #import <string.h>
 
 WEB :: #defined(PLATFORM_WEB)
 ANDROID :: ANDROID_BUILD
 DESKTOP :: #defined(PLATFORM_DESKTOP)
-
-#enum {
-    APP_SETTINGS_CACHE_MAX = 192
-}
 
 SettingsCacheEntry :: struct {
     key: [64] char
@@ -24,16 +21,30 @@ SettingsCacheEntry :: struct {
 }
 
 SettingsLoadCache :: struct {
-    entries: [APP_SETTINGS_CACHE_MAX] SettingsCacheEntry
+    entries: SettingsCacheEntry*
     count: int
+    capacity: int
 }
 
 settings_cache_add :: (key: const char*, value: const char*, user: void*) #private {
     cache := (SettingsLoadCache*)user
 
-    if cache == nil || key == nil || key[0] == '\0' ||
-       cache->count >= APP_SETTINGS_CACHE_MAX {
+    if cache == nil || key == nil || key[0] == '\0' {
         return
+    }
+    if cache->count >= cache->capacity {
+        grown: SettingsCacheEntry* = nil
+        new_capacity := cache->capacity > 0 ? cache->capacity * 2 : 128
+        grown = (SettingsCacheEntry*)realloc(cache->entries,
+                     (size_t)new_capacity * sizeof(*grown))
+        if grown == nil {
+            TraceLog(LOG_WARNING,
+                     "INBE: settings cache cannot grow to %d entries",
+                     new_capacity)
+            return
+        }
+        cache->entries = grown
+        cache->capacity = new_capacity
     }
     snprintf(cache->entries[cache->count].key,
                 sizeof(cache->entries[cache->count].key), "%s", key)
@@ -650,5 +661,6 @@ app_load_settings :: (app: InbeApp*) -> int {
                       pause_seconds)
     refresh_locale_dependent_text(app)
 
+    free(settings_cache.entries)
     return settings_missing
 }

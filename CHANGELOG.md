@@ -16,6 +16,7 @@
 - Vendored Kryon bumped through the notification, UIWindow and guide fixes.
 
 ### Fixed
+- Settings silently stopped persisting across reloads on web (and could drop settings on any platform once enough keys existed): the settings load cache was a fixed 192-entry array that silently discarded entries past the cap, and the notification-era keys pushed the setting count over it. The cache now grows dynamically and logs if its allocation ever fails.
 - First-run guide misalignment on small screens: the highlight anchors now come from the rectangles the draw code actually renders, the practice home reserves the exact space below its card (so it no longer flips into scroll mode when everything fits), the guide never starts on the welcome screen, the Android back key closes it, and its progress persists so it does not return after quitting mid-tour.
 - "Set up push" did nothing: the UnifiedPush configuration ran via JNI on the native render thread, which has no Looper, and the resulting exception aborted registration before it started. It now runs on the UI thread.
 - The reminder time is exactly centered between the - and + buttons and vertically aligned with them.
