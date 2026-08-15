@@ -30,7 +30,10 @@ storage_break_today :: () -> int #private {
 }
 
 storage_break_flush_day :: (e: const BreakEngine*) {
-    sql: const char* = "INSERT OR REPLACE INTO break_days(user_id,local_date,break_type,prompts,repeated_prompts,taken,natural,skipped,postponed,overdue_s,usage_s,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
+    sql: const char* = "INSERT OR REPLACE INTO break_days"
+        "(user_id,local_date,break_type,prompts,repeated_prompts,taken,"
+        "natural,skipped,postponed,overdue_s,usage_s,updated_at) "
+        "VALUES(?,?,?,?,?,?,?,?,?,?,?,?)"
     stmt: sqlite3_stmt* = nil
     date: int
     now: long long
@@ -71,7 +74,9 @@ storage_break_flush_day :: (e: const BreakEngine*) {
 }
 
 storage_break_history :: (days: int, out: BreakDayRow*, max_rows: int) -> int {
-    sql: const char* = "SELECT local_date,break_type,prompts,repeated_prompts,taken,natural,skipped,postponed,overdue_s,usage_s FROM break_days WHERE user_id = ? AND local_date >= ? ORDER BY local_date DESC,break_type"
+    sql: const char* = "SELECT local_date,break_type,prompts,repeated_prompts,"
+        "taken,natural,skipped,postponed,overdue_s,usage_s FROM break_days "
+        "WHERE user_id = ? AND local_date >= ? ORDER BY local_date DESC,break_type"
     stmt: sqlite3_stmt* = nil
     today: int
     cutoff: int

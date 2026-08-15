@@ -103,9 +103,14 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
     if app->break_block_mode >= 1 {
         inbe_break_set_input_blocked(1)
     }
+    app->break_window_taken = 1
 }
 
 break_engine_close_window :: (app: InbeApp*) #private {
+    if !app->break_window_taken {
+        return
+    }
+    app->break_window_taken = 0
     if app->inbe.screen == InbeScreenBreak {
         app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
     }
