@@ -607,9 +607,10 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
     profile_items: [1] const AppSidebarRouteItem = {
         {"tab_profile", APP_NAV_ROUTE_PROFILE}
     }
-    settings_items: [4] const AppSidebarSettingsItem = {
+    settings_items: [5] const AppSidebarSettingsItem = {
         {SETTINGS_TAB_DEVICE},
         {SETTINGS_TAB_AUDIO},
+        {SETTINGS_TAB_BREAKS},
         {SETTINGS_TAB_THEME},
         {SETTINGS_TAB_ABOUT}
     }
@@ -692,7 +693,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
     if app_draw_sidebar_settings_items(app, area.content_x, &y,
-                                       area.content_width, settings_items, 4) {
+                                       area.content_width, settings_items, 5) {
         EndUIScrollContainer(area, view)
         return
     }
