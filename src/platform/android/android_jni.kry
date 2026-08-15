@@ -17,7 +17,7 @@ ANDROID :: ANDROID_BUILD
         attached: int
     }
 
-    attach :: () -> AndroidJni #private {
+    attach :: () -> AndroidJni  {
         session: AndroidJni = {0}
         app := GetAndroidApp()
 
@@ -27,27 +27,27 @@ ANDROID :: ANDROID_BUILD
         if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
             return session
         }
-        session->jvm = app->activity->vm
-        session->activity = app->activity->clazz
+        session.jvm = app->activity->vm
+        session.activity = app->activity->clazz
 
-        if (*session->jvm)->GetEnv(session->jvm, &session->env, JNI_VERSION_1_6) != JNI_OK {
-            if (*session->jvm)->AttachCurrentThread(session->jvm, &session->env, nil) != JNI_OK ||
-               session->env == nil {
-                session->jvm = nil
-                session->env = nil
-                session->activity = nil
+        if (*session.jvm)->GetEnv(session.jvm, &session.env, JNI_VERSION_1_6) != JNI_OK {
+            if (*session.jvm)->AttachCurrentThread(session.jvm, &session.env, nil) != JNI_OK ||
+               session.env == nil {
+                session.jvm = nil
+                session.env = nil
+                session.activity = nil
                 return session
             }
-            session->attached = 1
+            session.attached = 1
         }
         return session
     }
 
-    valid :: (session: const AndroidJni*) -> int #private {
+    valid :: (session: const AndroidJni*) -> int  {
         return session != nil && session->env != nil && session->activity != nil
     }
 
-    detach :: (session: const AndroidJni*) #private {
+    detach :: (session: const AndroidJni*)  {
         if session == nil {
             return
         }
@@ -61,7 +61,7 @@ ANDROID :: ANDROID_BUILD
     }
 
     call_void :: (session: const AndroidJni*, method_name: const char*,
-                  signature: const char*) -> int #private {
+                  signature: const char*) -> int  {
         if !valid(session) {
             return 0
         }
@@ -83,7 +83,7 @@ ANDROID :: ANDROID_BUILD
     }
 
     call_void_string :: (session: const AndroidJni*, method_name: const char*,
-                         arg: jstring) -> int #private {
+                         arg: jstring) -> int  {
         if !valid(session) || arg == nil {
             return 0
         }
@@ -104,7 +104,7 @@ ANDROID :: ANDROID_BUILD
         return called
     }
 
-    call_bool :: (session: const AndroidJni*, method_name: const char*) -> int #private {
+    call_bool :: (session: const AndroidJni*, method_name: const char*) -> int  {
         if !valid(session) {
             return 0
         }
@@ -126,7 +126,7 @@ ANDROID :: ANDROID_BUILD
     }
 
     call_string_array :: (session: const AndroidJni*, method_name: const char*,
-                          dst: char*, dst_stride: int, count: int) -> int #private {
+                          dst: char*, dst_stride: int, count: int) -> int  {
         array: jobjectArray
         copied := 0
 
@@ -171,14 +171,14 @@ ANDROID :: ANDROID_BUILD
         return copied
     }
 
-    new_string :: (session: const AndroidJni*, text: const char*) -> jstring #private {
+    new_string :: (session: const AndroidJni*, text: const char*) -> jstring  {
         if !valid(session) || text == nil {
             return nil
         }
         return (*session->env)->NewStringUTF(session->env, text)
     }
 
-    delete_local :: (session: const AndroidJni*, ref: jobject) #private {
+    delete_local :: (session: const AndroidJni*, ref: jobject)  {
         if valid(session) && ref != nil {
             (*session->env)->DeleteLocalRef(session->env, ref)
         }
