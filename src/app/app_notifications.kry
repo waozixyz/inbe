@@ -1,5 +1,7 @@
 #module "app.notifications"
 
+WEB :: #defined(PLATFORM_WEB)
+
 #import "app.h"
 #import "screens/profile_social"
 #import "kryon.h" #private
