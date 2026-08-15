@@ -1416,6 +1416,9 @@ Máš novou žádost o přátelství
 [reminder_add]
 Přidat připomínku
 ---
+[notifications_push_picker_title]
+Poskytovatel push
+---
 [notifications_push_section]
 Doručení push
 ---

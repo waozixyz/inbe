@@ -125,6 +125,70 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     return 0
 }
 
+handle_overlays :: (app: InbeApp*) {
+    #if ANDROID {
+        panel: Rectangle
+        hover := 0
+        w := 0
+        row_h := ScaleUIPx(40)
+        panel_h := 0
+        x := 0
+        y := 0
+        ty := 0
+        scrim := BLACK
+
+        if app == nil || !app->push_picker_open {
+            return
+        }
+
+        w = ScaleUIPx(300)
+        if w > view_width - ScaleUIPx(32) {
+            w = view_width - ScaleUIPx(32)
+        }
+        panel_h = ScaleUIPx(50) + app->push_distributor_count * row_h +
+                  ScaleUIPx(50)
+        x = (view_width - w) / 2
+        y = (view_height - panel_h) / 2
+        panel = (Rectangle){(float)x, (float)y, (float)w, (float)panel_h}
+
+        scrim.a = 130
+        DrawRectangle(0, 0, view_width, view_height, scrim)
+        SetUIModalCapture(panel)
+        if UIPointerReleaseOutside(panel) {
+            UIConsumeRelease()
+            app->push_picker_open = 0
+            return
+        }
+
+        DrawRectangleRounded(panel, 0.06, 8, GetThemeSurface())
+        DrawRectangleRoundedLines(panel, 0.06, 8,
+                                  DarkenUIColor(GetThemeSurface(), 30))
+        Text(GetLocaleText("notifications_push_picker_title"),
+             x + ScaleUIPx(14), y + ScaleUIPx(14), GetUIFontSize(),
+             GetThemeText())
+
+        ty = y + ScaleUIPx(50)
+        for int i = 0; i < app->push_distributor_count; i++ {
+            if GenericButton(220 + i, x + ScaleUIPx(14), ty,
+                             w - ScaleUIPx(28), row_h,
+                             app->push_distributors[i],
+                             UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                platform_android_push_configure_with(app, i)
+                app->push_picker_open = 0
+                return
+            }
+            ty += row_h
+        }
+
+        if GenericButton(229, x + ScaleUIPx(14), ty + ScaleUIPx(6),
+                         w - ScaleUIPx(28), ScaleUIPx(36),
+                         GetLocaleText("close_button"),
+                         UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+            app->push_picker_open = 0
+        }
+    }
+}
+
 draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     push_hover := 0
     test_hover := 0
@@ -151,7 +215,12 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         if GenericButton(200, x, *y, w, ScaleUIPx(34),
                          GetLocaleText("notifications_push_setup"),
                          UI_BUTTON_STYLE_SECONDARY, 0, &push_hover) {
-            platform_android_push_configure()
+            platform_android_push_refresh_distributors(app)
+            if app->push_distributor_count > 0 {
+                app->push_picker_open = 1
+            } else {
+                platform_android_push_configure()
+            }
         }
         *y += ScaleUIPx(50)
     }

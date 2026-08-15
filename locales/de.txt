@@ -1416,6 +1416,9 @@ Du hast eine neue Freundschaftsanfrage
 [reminder_add]
 Erinnerung hinzufügen
 ---
+[notifications_push_picker_title]
+Push-Anbieter
+---
 [notifications_push_section]
 Push-Zustellung
 ---

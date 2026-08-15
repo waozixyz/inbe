@@ -247,7 +247,8 @@ typedef struct AppRoute {
 
 enum {
     APP_REMINDER_MAX = 16,
-    APP_REMINDER_PRACTICE_COUNT = 3
+    APP_REMINDER_PRACTICE_COUNT = 3,
+    APP_PUSH_DISTRIBUTOR_MAX = 4
 };
 
 typedef struct AppReminder {
@@ -413,6 +414,9 @@ struct InbeApp {
     int friend_request_last_count;
     AppReminder reminders[APP_REMINDER_MAX];
     int reminder_count;
+    int push_picker_open;
+    int push_distributor_count;
+    char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];
     char language[16];
     int language_selected;
     int language_index;

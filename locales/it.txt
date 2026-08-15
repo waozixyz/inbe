@@ -1416,6 +1416,9 @@ Hai una nuova richiesta di amicizia
 [reminder_add]
 Aggiungi promemoria
 ---
+[notifications_push_picker_title]
+Provider push
+---
 [notifications_push_section]
 Consegna push
 ---

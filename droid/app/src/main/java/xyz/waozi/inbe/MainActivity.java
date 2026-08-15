@@ -528,51 +528,46 @@ public class MainActivity extends NativeActivity {
         return PushServiceImpl.getEndpoint(this) != null;
     }
 
-    public void configureUnifiedPush() {
-        // Called via JNI from the native render thread; toasts, dialogs and
-        // permission requests need the UI thread's Looper.
+    public String[] getUnifiedPushDistributors() {
+        final List<String> distributors = UnifiedPush.getDistributors(this);
+        return distributors.toArray(new String[0]);
+    }
+
+    public void configureUnifiedPushWith(final String pkg) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                configureUnifiedPushOnUi();
+                requestNotificationPermissionIfNeeded();
+                UnifiedPush.saveDistributor(MainActivity.this, pkg);
+                UnifiedPush.register(MainActivity.this, "inbe", "Inner Breeze", null);
+                Toast.makeText(MainActivity.this,
+                        "Push: registering with " + pkg,
+                        Toast.LENGTH_SHORT).show();
             }
         });
     }
 
-    private void configureUnifiedPushOnUi() {
-        requestNotificationPermissionIfNeeded();
-        final List<String> distributors = UnifiedPush.getDistributors(this);
-        if (distributors.isEmpty()) {
-            Toast.makeText(this,
-                    "Install a UnifiedPush distributor (e.g. Sunup)",
-                    Toast.LENGTH_LONG).show();
-            try {
-                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
-                        "https://f-droid.org/en/packages/org.unifiedpush.distributor.sunup/")));
-            } catch (Exception e) {
-                Log.w(TAG, "no activity to open F-Droid");
+    public void configureUnifiedPush() {
+        // Called via JNI from the native render thread; toasts, dialogs and
+        // permission requests need the UI thread's Looper. Only reached when
+        // no distributor is installed at all.
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!UnifiedPush.getDistributors(MainActivity.this).isEmpty()) {
+                    return;
+                }
+                Toast.makeText(MainActivity.this,
+                        "Install a UnifiedPush distributor (e.g. Sunup)",
+                        Toast.LENGTH_LONG).show();
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                            "https://f-droid.org/en/packages/org.unifiedpush.distributor.sunup/")));
+                } catch (Exception e) {
+                    Log.w(TAG, "no activity to open F-Droid");
+                }
             }
-            return;
-        }
-        if (distributors.size() == 1) {
-            UnifiedPush.saveDistributor(this, distributors.get(0));
-            UnifiedPush.register(this, "inbe", "Inner Breeze", null);
-            Toast.makeText(this,
-                    "Push: registering with " + distributors.get(0),
-                    Toast.LENGTH_SHORT).show();
-            return;
-        }
-        final String[] names = distributors.toArray(new String[0]);
-        new AlertDialog.Builder(this)
-                .setTitle("Push provider")
-                .setItems(names, (dialog, which) -> {
-                    UnifiedPush.saveDistributor(this, names[which]);
-                    UnifiedPush.register(this, "inbe", "Inner Breeze", null);
-                    Toast.makeText(this,
-                            "Push: registering with " + names[which],
-                            Toast.LENGTH_SHORT).show();
-                })
-                .show();
+        });
     }
 
     public void acquireWakeLock() {

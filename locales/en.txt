@@ -1411,6 +1411,9 @@ You have a new friend request
 [reminder_add]
 Add reminder
 ---
+[notifications_push_picker_title]
+Push provider
+---
 [notifications_push_section]
 Push delivery
 ---

@@ -3,6 +3,7 @@
 ANDROID :: ANDROID_BUILD
 
 #if ANDROID {
+    #import "app.h"
     #import "kryon.h" #private
     #import <android/log.h>
     #import <android_native_app_glue.h>
@@ -14,6 +15,132 @@ ANDROID :: ANDROID_BUILD
 
     static push_registered_cache: int = -1
     static push_registered_frames: int = 0
+
+    refresh_distributors :: (inbe: InbeApp*) {
+        app := GetAndroidApp()
+        env: JNIEnv* = nil
+        attached := 0
+        jvm: JavaVM*
+        activity: jobject
+        array: jobjectArray
+        count := 0
+
+        if inbe == nil {
+            return
+        }
+        inbe->push_distributor_count = 0
+        if app == nil {
+            return
+        }
+        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
+            return
+        }
+        jvm = app->activity->vm
+        activity = app->activity->clazz
+
+        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
+            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
+                return
+            }
+            attached = 1
+        }
+
+        array = nil
+        clazz := (*env)->GetObjectClass(env, activity)
+        if clazz {
+            method := (*env)->GetMethodID(env, clazz, "getUnifiedPushDistributors",
+                                          "()[Ljava/lang/String;")
+            if method {
+                array = (jobjectArray)(*env)->CallObjectMethod(env, activity, method)
+            } else {
+                __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+                                    "getUnifiedPushDistributors not found")
+            }
+        }
+        if (*env)->ExceptionCheck(env) {
+            (*env)->ExceptionDescribe(env)
+            (*env)->ExceptionClear(env)
+        }
+
+        if array != nil {
+            count = (*env)->GetArrayLength(env, array)
+            if count > APP_PUSH_DISTRIBUTOR_MAX {
+                count = APP_PUSH_DISTRIBUTOR_MAX
+            }
+            for int i = 0; i < count; i++ {
+                s := (jstring)(*env)->GetObjectArrayElement(env, array, i)
+                if s == nil {
+                    continue
+                }
+                text := (*env)->GetStringUTFChars(env, s, nil)
+                if text != nil {
+                    for int c = 0; c < 95 && text[c] != 0; c++ {
+                        inbe->push_distributors[i][c] = text[c]
+                    }
+                    inbe->push_distributors[i][95] = 0
+                    (*env)->ReleaseStringUTFChars(env, s, text)
+                }
+                (*env)->DeleteLocalRef(env, s)
+            }
+            inbe->push_distributor_count = count
+            (*env)->DeleteLocalRef(env, array)
+        }
+
+        if attached {
+            (*jvm)->DetachCurrentThread(jvm)
+        }
+    }
+
+    configure_with :: (inbe: InbeApp*, index: int) {
+        app := GetAndroidApp()
+        env: JNIEnv* = nil
+        attached := 0
+        jvm: JavaVM*
+        activity: jobject
+
+        if inbe == nil || index < 0 || index >= inbe->push_distributor_count {
+            return
+        }
+        if app == nil {
+            return
+        }
+        if app->activity == nil || app->activity->vm == nil || app->activity->clazz == nil {
+            return
+        }
+        jvm = app->activity->vm
+        activity = app->activity->clazz
+
+        if (*jvm)->GetEnv(jvm, &env, JNI_VERSION_1_6) != JNI_OK {
+            if (*jvm)->AttachCurrentThread(jvm, &env, nil) != JNI_OK || env == nil {
+                return
+            }
+            attached = 1
+        }
+
+        arg := (*env)->NewStringUTF(env, inbe->push_distributors[index])
+        if arg != nil {
+            clazz := (*env)->GetObjectClass(env, activity)
+            if clazz {
+                method := (*env)->GetMethodID(env, clazz,
+                                              "configureUnifiedPushWith",
+                                              "(Ljava/lang/String;)V")
+                if method {
+                    (*env)->CallVoidMethod(env, activity, method, arg)
+                } else {
+                    __android_log_write(ANDROID_LOG_ERROR, LOG_TAG,
+                                        "configureUnifiedPushWith not found")
+                }
+            }
+            (*env)->DeleteLocalRef(env, arg)
+        }
+        if (*env)->ExceptionCheck(env) {
+            (*env)->ExceptionDescribe(env)
+            (*env)->ExceptionClear(env)
+        }
+        if attached {
+            (*jvm)->DetachCurrentThread(jvm)
+        }
+    }
 
     configure :: () {
         app := GetAndroidApp()

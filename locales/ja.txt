@@ -1418,6 +1418,9 @@ Inner Breezeの通知は機能しています。
 [reminder_add]
 リマインダーを追加
 ---
+[notifications_push_picker_title]
+プッシュプロバイダー
+---
 [notifications_push_section]
 プッシュ配信
 ---

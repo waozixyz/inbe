@@ -1416,6 +1416,9 @@ Você tem um novo pedido de amizade
 [reminder_add]
 Adicionar lembrete
 ---
+[notifications_push_picker_title]
+Provedor de push
+---
 [notifications_push_section]
 Entrega push
 ---

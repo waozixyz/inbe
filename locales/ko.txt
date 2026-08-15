@@ -1415,6 +1415,9 @@ Inner Breeze 알림이 작동합니다.
 [reminder_add]
 알림 추가
 ---
+[notifications_push_picker_title]
+푸시 공급자
+---
 [notifications_push_section]
 푸시 전달
 ---
