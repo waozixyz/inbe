@@ -890,6 +890,7 @@ settings_audio_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     sound_volume := app->sound_volume
     music_volume := app->music_volume
 
+    app_audio_ensure_ready(app)
     settings_audio_update_preview()
 
     settings_audio_draw_output(app, x, w, y)

@@ -1115,8 +1115,10 @@ app_init(void *vapp) {
                            ? InbeScreenHabits
                            : InbeScreenStart;
     app->habits.focus_selected_tab = app->inbe.screen == InbeScreenHabits;
+#if !defined(PLATFORM_WEB)
     if(!app_running_in_kryon_preview())
         init_audio(app);
+#endif
     for(int i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->init != NULL)

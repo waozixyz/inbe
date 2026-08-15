@@ -106,10 +106,10 @@ app_play_sound_pitch(InbeApp *app, Sound sound, float scale, float pitch)
 
     if(app == NULL)
         return;
-    if(!app->audio_ready) {
-        TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because audio device is not ready");
+    if(!app->audio_ready)
+        app_audio_ensure_ready(app);
+    if(!app->audio_ready)
         return;
-    }
     if(sound.frameCount == 0) {
         TraceLog(LOG_ERROR, "AUDIO: Cannot play sound because sound is not loaded");
         return;
@@ -250,6 +250,16 @@ init_audio(InbeApp *app)
     app_audio_reload_cue_sounds(app);
     AttachAudioMixedProcessor(audio_mixed_meter);
     app->audio_meter_attached = 1;
+}
+
+void
+app_audio_ensure_ready(InbeApp *app)
+{
+    if(app == NULL || app->audio_ready)
+        return;
+    if(app_running_in_kryon_preview())
+        return;
+    init_audio(app);
 }
 
 int

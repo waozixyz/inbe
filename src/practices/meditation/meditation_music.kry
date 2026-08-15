@@ -496,6 +496,7 @@ load_track :: (app: InbeApp*, track: int) -> int #private {
     if app == nil {
         return 0
     }
+    app_audio_ensure_ready(app)
     if !app->audio_ready {
         TraceLog(LOG_ERROR,
                     "AUDIO: Cannot load meditation music because audio device is not ready")

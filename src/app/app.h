@@ -512,6 +512,7 @@ int app_should_use_tab_bar(const InbeApp *app);
 void app_play_breath_cue(InbeApp *app, int dir);
 void app_play_bell_cue(InbeApp *app, float scale);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
+void app_audio_ensure_ready(InbeApp *app);
 int app_audio_reinitialize(InbeApp *app);
 float app_audio_output_level(InbeApp *app);
 int app_bell_cue_playing(InbeApp *app);
