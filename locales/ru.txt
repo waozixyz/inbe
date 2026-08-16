@@ -1062,6 +1062,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1138,7 +1162,7 @@ Remove
 Вы были активны весь день. Подумайте о том, чтобы закончить на сегодня.
 ---
 [break_time_remaining]
-Осталось %d сек.
+Осталось %s
 ---
 [break_stay_idle_note]
 Уберите руки от клавиатуры, чтобы перерыв засчитался
@@ -1194,14 +1218,8 @@ Remove
 [settings_breaks_micro_counts]
 Считать микроперерывы активностью
 ---
-[settings_breaks_exercises]
-Упражнений на перерыв
----
 [settings_breaks_rest_now]
 Перерыв сейчас
----
-[settings_breaks_view_exercises]
-Открыть упражнения
 ---
 [settings_breaks_micro_header]
 Микроперерыв
@@ -1252,28 +1270,13 @@ Remove
 Приостановлен
 ---
 [tray_next_break]
-Следующий перерыв %d:%02d
+Следующий перерыв %s
 ---
 [break_exercises_title]
 Упражнения для перерывов
 ---
 [break_exercises_intro]
 Короткие разминки для перерывов. Запускаются автоматически.
----
-[break_ex_prev]
-Назад
----
-[break_ex_play]
-Играть
----
-[break_ex_pause]
-Пауза
----
-[break_ex_next]
-Далее
----
-[break_ex_stop]
-Стоп
 ---
 [break_ex_shoulder_rolls]
 Круги плечами

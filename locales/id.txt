@@ -1062,6 +1062,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1138,7 +1162,7 @@ Batas harian tercapai
 Anda aktif sepanjang hari. Pertimbangkan untuk berhenti hari ini.
 ---
 [break_time_remaining]
-%d detik tersisa
+%s tersisa
 ---
 [break_stay_idle_note]
 Lepaskan keyboard agar istirahat terhitung
@@ -1194,14 +1218,8 @@ Mode membaca
 [settings_breaks_micro_counts]
 Hitung mikro-istirahat sebagai aktivitas
 ---
-[settings_breaks_exercises]
-Latihan per istirahat
----
 [settings_breaks_rest_now]
 Istirahat sekarang
----
-[settings_breaks_view_exercises]
-Lihat latihan
 ---
 [settings_breaks_micro_header]
 Mikro-istirahat
@@ -1252,28 +1270,13 @@ Senyap
 Ditangguhkan
 ---
 [tray_next_break]
-Istirahat berikutnya %d:%02d
+Istirahat berikutnya %s
 ---
 [break_exercises_title]
 Latihan istirahat
 ---
 [break_exercises_intro]
 Peregangan singkat untuk istirahat. Diputar otomatis.
----
-[break_ex_prev]
-Seb.
----
-[break_ex_play]
-Putar
----
-[break_ex_pause]
-Jeda
----
-[break_ex_next]
-Lanjut
----
-[break_ex_stop]
-Berhenti
 ---
 [break_ex_shoulder_rolls]
 Putaran bahu

@@ -1062,6 +1062,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1138,7 +1162,7 @@ Denní limit dosažen
 Byli jste aktivní celý den. Zvažte, že na dnešek skončíte.
 ---
 [break_time_remaining]
-Zbývá %d sekund
+Zbývá %s
 ---
 [break_stay_idle_note]
 Nechejte klávesnici v klidu, aby se přestávka počítala
@@ -1194,14 +1218,8 @@ Režim čtení
 [settings_breaks_micro_counts]
 Počítat mikropřestávky jako aktivitu
 ---
-[settings_breaks_exercises]
-Cvičení na přestávku
----
 [settings_breaks_rest_now]
 Přestávka hned
----
-[settings_breaks_view_exercises]
-Zobrazit cvičení
 ---
 [settings_breaks_micro_header]
 Mikropřestávka
@@ -1252,28 +1270,13 @@ Tichý
 Pozastaveno
 ---
 [tray_next_break]
-Další přestávka %d:%02d
+Další přestávka %s
 ---
 [break_exercises_title]
 Cvičení při přestávkách
 ---
 [break_exercises_intro]
 Krátká protažení pro přestávky. Přehrávají se automaticky.
----
-[break_ex_prev]
-Před
----
-[break_ex_play]
-Přehrát
----
-[break_ex_pause]
-Pauza
----
-[break_ex_next]
-Další
----
-[break_ex_stop]
-Zastavit
 ---
 [break_ex_shoulder_rolls]
 Kroužení rameny

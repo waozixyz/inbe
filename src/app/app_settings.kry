@@ -290,8 +290,12 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("practice_category_tab", app->practice_category_tab)
 
     save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    save_setting_int("desktop_startup_mode", app->desktop_startup_mode)
+    save_setting_int("desktop_close_action", app->desktop_close_action)
     save_setting_int("break_block_mode", app->break_block_mode)
     save_setting_int("break_sounds_enabled", app->break_sounds_enabled ? 1 : 0)
+    save_setting_int("break_hud_x", app->break_hud_x)
+    save_setting_int("break_hud_y", app->break_hud_y)
     save_setting_int("break_exercise_count", app->break_exercise_count)
     save_setting_int("break_reading_mode", app->breaks.reading_mode ? 1 : 0)
     save_setting_int("break_micro_counts_as_activity",
@@ -492,10 +496,18 @@ app_load_settings :: (app: InbeApp*) -> int {
                          "retention_marker_enabled", 0)
     load_bool_setting(&settings_cache, &app->breaks_enabled,
                          "breaks_enabled", app->breaks_enabled)
+    load_clamped_setting(&settings_cache, &app->desktop_startup_mode,
+                            "desktop_startup_mode", 0, 0, INBE_STARTUP_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->desktop_close_action,
+                            "desktop_close_action", 0, 0, INBE_CLOSE_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->break_block_mode,
                             "break_block_mode", 0, 0, 2)
     load_bool_setting(&settings_cache, &app->break_sounds_enabled,
                          "break_sounds_enabled", 1)
+    load_clamped_setting(&settings_cache, &app->break_hud_x,
+                            "break_hud_x", -1, -1, 32767)
+    load_clamped_setting(&settings_cache, &app->break_hud_y,
+                            "break_hud_y", -1, -1, 32767)
     load_clamped_setting(&settings_cache, &app->break_exercise_count,
                             "break_exercise_count", 3, 0, 4)
     load_bool_setting(&settings_cache, &app->breaks.reading_mode,

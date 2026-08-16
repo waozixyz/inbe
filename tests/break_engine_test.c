@@ -1,6 +1,7 @@
 #include "breaks/break_engine.h"
 
 #include <stdio.h>
+#include <string.h>
 
 /*
  * Workrave-style break engine test.
@@ -76,10 +77,10 @@ test_defaults_match_workrave(void)
            e.timers[BREAK_DAILY].duration_s == 0 &&
            e.timers[BREAK_DAILY].postpone_s == 1200,
            "daily defaults: 4 h / no duration / 1200 s");
-    expect(e.timers[BREAK_MICRO].max_prompts == 3 &&
+    expect(e.timers[BREAK_MICRO].max_prompts == 0 &&
            e.timers[BREAK_REST].max_prompts == 3 &&
            e.timers[BREAK_DAILY].max_prompts == 3,
-           "max prompts default to 3");
+           "micro opens directly; rest/daily max prompts default to 3");
     expect(e.mode == BreakModeNormal, "mode defaults to normal");
     expect(break_timer_next_due_s(&e, BREAK_MICRO) == 180,
            "fresh micro timer due in 180 s");
@@ -95,6 +96,7 @@ test_active_time_prompts_at_limit(void)
     e.timers[BREAK_REST].enabled = 0;
     e.timers[BREAK_DAILY].enabled = 0;
     e.timers[BREAK_MICRO].limit_s = 60;
+    e.timers[BREAK_MICRO].max_prompts = 3;
 
     run_seconds(&e, 59, 1);
     expect(e.timers[BREAK_MICRO].state == BreakStateRunning &&
@@ -150,6 +152,7 @@ test_ignored_prompts_escalate_to_break(void)
     break_engine_init(&e);
     e.timers[BREAK_REST].enabled = 0;
     e.timers[BREAK_DAILY].enabled = 0;
+    e.timers[BREAK_MICRO].max_prompts = 3;
 
     ev = 0;
     for (s = 0; s < 240; s++) {
@@ -261,6 +264,7 @@ test_micro_promotes_to_rest(void)
     break_engine_init(&e);
     e.timers[BREAK_DAILY].enabled = 0;
     e.timers[BREAK_MICRO].limit_s = 60;
+    e.timers[BREAK_MICRO].max_prompts = 3;
     e.timers[BREAK_REST].limit_s = 80;
 
     run_seconds(&e, 59, 1);
@@ -335,6 +339,7 @@ test_quiet_suspended_and_timed_modes(void)
     e.timers[BREAK_REST].enabled = 0;
     e.timers[BREAK_DAILY].enabled = 0;
     e.timers[BREAK_MICRO].limit_s = 60;
+    e.timers[BREAK_MICRO].max_prompts = 3;
 
     break_engine_set_mode(&e, BreakModeQuiet, 0);
     run_seconds(&e, 70, 1);
@@ -403,6 +408,7 @@ test_micro_counts_toward_daily_limit(void)
     e.timers[BREAK_REST].enabled = 0;
     e.timers[BREAK_MICRO].limit_s = 10;
     e.timers[BREAK_MICRO].duration_s = 5;
+    e.timers[BREAK_MICRO].max_prompts = 3;
     e.timers[BREAK_DAILY].limit_s = 20;
     e.micro_counts_as_activity = 1;
 
@@ -438,6 +444,111 @@ test_force_break_and_next_due(void)
            "breaking timer reports due now");
 }
 
+static void
+test_natural_take_latches_until_activity(void)
+{
+    BreakEngine e;
+
+    break_engine_init(&e);
+    e.timers[BREAK_REST].enabled = 0;
+    e.timers[BREAK_DAILY].enabled = 0;
+
+    /* Three break-durations of continuous idle: exactly one natural take. */
+    run_seconds(&e, 90, 0);
+    expect(e.stats[BREAK_MICRO].natural == 1 &&
+           e.timers[BREAK_MICRO].active_s == 0,
+           "one continuous idle period takes the break once");
+
+    run_seconds(&e, 5, 1);          /* input re-arms the natural break */
+    run_seconds(&e, 30, 0);         /* a fresh idle period takes again */
+    expect(e.stats[BREAK_MICRO].natural == 2,
+           "input re-arms the natural break");
+}
+
+static void
+test_rest_completion_resets_micro(void)
+{
+    BreakEngine e;
+    int brk = -1;
+
+    break_engine_init(&e);
+    e.timers[BREAK_DAILY].enabled = 0;
+    e.timers[BREAK_MICRO].limit_s = 10000;   /* keep micro dormant */
+    e.timers[BREAK_MICRO].duration_s = 600;  /* longer than the rest break */
+    e.timers[BREAK_REST].limit_s = 10;
+    e.timers[BREAK_REST].duration_s = 10;
+    e.timers[BREAK_REST].max_prompts = 0;
+
+    run_seconds(&e, 10, 1);
+    expect(e.timers[BREAK_REST].state == BreakStateBreaking,
+           "rest break window opens at its limit");
+    expect(e.timers[BREAK_MICRO].active_s == 10,
+           "micro accrues while the user works");
+
+    run_seconds(&e, 12, 0);         /* idle through the 10 s rest break */
+    expect(e.timers[BREAK_REST].state == BreakStateRunning &&
+           e.stats[BREAK_REST].taken == 1,
+           "rest break completes on idle");
+    expect(e.timers[BREAK_MICRO].active_s == 0,
+           "completing a rest break resets the micro timer");
+    /* micro idle_s re-accrues from zero after the reset while the user is
+     * still away; that is expected, not a double take (the latch holds). */
+}
+
+static void
+test_note_idle_resets_after_long_absence(void)
+{
+    BreakEngine e;
+    int brk = -1;
+
+    break_engine_init(&e);
+    e.timers[BREAK_DAILY].enabled = 0;
+    e.timers[BREAK_MICRO].limit_s = 10000;
+    e.timers[BREAK_REST].limit_s = 10000;
+
+    run_seconds(&e, 20, 1);
+    expect(e.timers[BREAK_REST].active_s == 20 &&
+           e.timers[BREAK_MICRO].active_s == 20,
+           "activity accrues before the absence");
+
+    /* The OS idle counter reports a 20 minute absence (beyond the catch-up
+     * cap of the per-second ticks): both timers reset naturally, once. */
+    expect(break_engine_note_idle(&e, 1200) == 1,
+           "long observed absence takes the breaks");
+    expect(e.stats[BREAK_MICRO].natural == 1 &&
+           e.stats[BREAK_REST].natural == 1,
+           "micro and rest both reset naturally");
+    expect(e.timers[BREAK_MICRO].active_s == 0 &&
+           e.timers[BREAK_REST].active_s == 0,
+           "timers reset after the natural break");
+    (void)break_engine_take_event(&e, &brk);
+
+    expect(break_engine_note_idle(&e, 3000) == 0,
+           "the same idle period does not take twice");
+
+    run_seconds(&e, 1, 1);          /* input re-arms the latch */
+    expect(break_engine_note_idle(&e, 1200) == 1,
+           "after input a new absence takes again");
+    (void)break_engine_take_event(&e, &brk);
+}
+
+static void
+test_format_duration_formats_hours(void)
+{
+    char buf[16];
+
+    break_format_duration(buf, sizeof(buf), 59);
+    expect(strcmp(buf, "0:59") == 0, "below an hour stays M:SS");
+    break_format_duration(buf, sizeof(buf), 3599);
+    expect(strcmp(buf, "59:59") == 0, "just under an hour stays M:SS");
+    break_format_duration(buf, sizeof(buf), 3600);
+    expect(strcmp(buf, "1:00:00") == 0, "hour boundary switches to H:MM:SS");
+    break_format_duration(buf, sizeof(buf), 14400);
+    expect(strcmp(buf, "4:00:00") == 0, "daily limit renders as H:MM:SS");
+    break_format_duration(buf, sizeof(buf), -5);
+    expect(strcmp(buf, "0:00") == 0, "negative clamps to zero");
+}
+
 int
 main(void)
 {
@@ -454,6 +565,10 @@ main(void)
     test_reading_mode();
     test_micro_counts_toward_daily_limit();
     test_force_break_and_next_due();
+    test_natural_take_latches_until_activity();
+    test_rest_completion_resets_micro();
+    test_note_idle_resets_after_long_absence();
+    test_format_duration_formats_hours();
 
     if (failures) {
         printf("FAIL (%d assertion(s))\n", failures);

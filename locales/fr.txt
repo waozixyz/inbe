@@ -1061,6 +1061,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1137,7 +1161,7 @@ Limite quotidienne atteinte
 Vous avez été actif toute la journée. Pensez à arrêter pour aujourd'hui.
 ---
 [break_time_remaining]
-%d secondes restantes
+%s restantes
 ---
 [break_stay_idle_note]
 Laissez le clavier pour que la pause compte
@@ -1193,14 +1217,8 @@ Mode lecture
 [settings_breaks_micro_counts]
 Compter les micro-pauses comme activité
 ---
-[settings_breaks_exercises]
-Exercices par pause
----
 [settings_breaks_rest_now]
 Pause repos maintenant
----
-[settings_breaks_view_exercises]
-Voir les exercices
 ---
 [settings_breaks_micro_header]
 Micro-pause
@@ -1251,28 +1269,13 @@ Silencieux
 Suspendu
 ---
 [tray_next_break]
-Prochaine pause %d:%02d
+Prochaine pause %s
 ---
 [break_exercises_title]
 Exercices de pause
 ---
 [break_exercises_intro]
 Étirements courts pour les pauses. Ils se jouent automatiquement.
----
-[break_ex_prev]
-Préc.
----
-[break_ex_play]
-Lecture
----
-[break_ex_pause]
-Pause
----
-[break_ex_next]
-Suiv.
----
-[break_ex_stop]
-Arrêter
 ---
 [break_ex_shoulder_rolls]
 Rotations des épaules

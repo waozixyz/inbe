@@ -12,6 +12,16 @@
 #include <string.h>
 #include <time.h>
 
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
+
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 #include "platform/inbe_desktop_tray.h"
 #endif
@@ -123,6 +133,94 @@ handle_shutdown_signal(int signum)
 {
     (void)signum;
     g_shutdown_requested = 1;
+}
+#endif
+
+/*
+ * Single instance: a pid lock file next to the database pins the one live
+ * instance. A new launch replaces an existing one by default - the old
+ * process gets SIGTERM (its handler saves settings and exits cleanly), and
+ * only gets SIGKILL if it hangs. Stale locks (crashed process) are taken
+ * over; a recycled pid whose /proc name is not "inbe" is not signalled.
+ */
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+static int
+inbe_lock_process_alive(long pid)
+{
+    char comm[64];
+    FILE *file;
+    size_t len;
+
+    if(pid <= 1 || kill((pid_t)pid, 0) != 0)
+        return 0;
+    snprintf(comm, sizeof(comm), "/proc/%ld/comm", pid);
+    file = fopen(comm, "r");
+    if(file == NULL)
+        return 1; /* no /proc (non-Linux): trust the signal probe */
+    len = fread(comm, 1, sizeof(comm) - 1, file);
+    fclose(file);
+    comm[len] = '\0';
+    return strstr(comm, "inbe") != NULL;
+}
+
+static void
+inbe_ensure_single_instance(void)
+{
+    const char *override_root = getenv("INBE_DATA_ROOT");
+    const char *xdg = getenv("XDG_DATA_HOME");
+    const char *home = getenv("HOME");
+    char root[512];
+    char lock_path[600];
+    FILE *file;
+    long other_pid = 0;
+    int i;
+
+    if(override_root != NULL && override_root[0] != '\0')
+        snprintf(root, sizeof(root), "%s", override_root);
+    else if(xdg != NULL && xdg[0] != '\0')
+        snprintf(root, sizeof(root), "%s/inbe", xdg);
+    else if(home != NULL && home[0] != '\0')
+        snprintf(root, sizeof(root), "%s/.local/share/inbe", home);
+    else
+        return;
+    mkdir(root, 0755); /* best effort; the app creates it properly later */
+    snprintf(lock_path, sizeof(lock_path), "%s/inbe.lock", root);
+
+    file = fopen(lock_path, "r");
+    if(file != NULL) {
+        if(fscanf(file, "%ld", &other_pid) != 1)
+            other_pid = 0;
+        fclose(file);
+    }
+    if(inbe_lock_process_alive(other_pid)) {
+        TraceLog(LOG_INFO, "INBE: replacing existing instance (pid %ld)",
+                 other_pid);
+        kill((pid_t)other_pid, SIGTERM);
+        for(i = 0; i < 50; i++) {
+            if(kill((pid_t)other_pid, 0) != 0)
+                break;
+            usleep(100 * 1000);
+        }
+        if(kill((pid_t)other_pid, 0) == 0) {
+            TraceLog(LOG_WARNING,
+                     "INBE: old instance %ld did not exit, killing it",
+                     other_pid);
+            kill((pid_t)other_pid, SIGKILL);
+        }
+    }
+
+    file = fopen(lock_path, "w");
+    if(file == NULL) {
+        TraceLog(LOG_WARNING, "INBE: cannot write %s", lock_path);
+        return;
+    }
+    fprintf(file, "%ld\n", (long)getpid());
+    fclose(file);
+}
+#else
+static void
+inbe_ensure_single_instance(void)
+{
 }
 #endif
 
@@ -357,6 +455,16 @@ frame(void)
 #if defined(PLATFORM_WEB)
     SyncWebWindowSize();
 #endif
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /* Memory snapshots at two steady-state points when diagnostics are on. */
+    static int mem_debug_frame_count = 0;
+
+    if(mem_debug_frame_count == 2 || mem_debug_frame_count == 240) {
+        KryonMemReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
+        UIFontMemoryReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
+    }
+    mem_debug_frame_count++;
+#endif
 
     int width = GetScreenWidth();
     int height = GetScreenHeight();
@@ -406,6 +514,7 @@ frame(void)
 #endif
     EndDrawing();
     app_breaks_hud_update(&inbe_app);
+    app_breaks_window_update(&inbe_app);
 }
 
 static int
@@ -718,6 +827,13 @@ run_screenshot_mode(const ScreenshotRequest *request)
 
 int main(int argc, char **argv) {
     ScreenshotRequest screenshot;
+
+#if defined(__GLIBC__)
+    /* Cap glibc's per-thread malloc arenas. The app runs ~19 threads (audio,
+     * tray, sync, SDL) and the default arena ceiling (8 per core) lets each
+     * grow its own heap, inflating idle RSS. Four arenas are plenty here. */
+    mallopt(M_ARENA_MAX, 4);
+#endif
     parse_screenshot_args(argc, argv, &screenshot);
     install_trace_log_filter();
     if(screenshot.active) {
@@ -738,10 +854,31 @@ int main(int argc, char **argv) {
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
 #endif
 
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /*
+     * SDL (the window backend here, plus the tray) disables the OS screensaver
+     * by default. On X11 that suspends/reset the server's idle counter - the
+     * same counter inbe_activity_monitor reads to tell active time from idle
+     * time for break scheduling. With SDL's default the app looks permanently
+     * active and the break timers count down even with nobody at the machine.
+     * Let SDL leave the screensaver alone: a break reminder app has no
+     * business blocking the screen saver anyway. Must be set before
+     * InitWindow() initializes SDL video.
+     */
+    setenv("SDL_VIDEO_ALLOW_SCREENSAVER", "1", 1);
+#endif
+
 #if defined(PLATFORM_WEB)
     SetConfigFlags(GetWebWindowFlags());
 #elif !ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
+#endif
+
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+    /* One live instance per user: a normal launch replaces any existing
+     * one; screenshot mode is one-shot and leaves the running app alone. */
+    if(!screenshot.active)
+        inbe_ensure_single_instance();
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
@@ -779,6 +916,8 @@ int main(int argc, char **argv) {
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
+    KryonMemReport("after-app-init");
+    UIFontMemoryReport("after-app-init");
 
     #if ANDROID_BUILD
     inbe_app.fullscreen_enabled = 0;
@@ -793,6 +932,12 @@ int main(int argc, char **argv) {
     signal(SIGTERM, handle_shutdown_signal);
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     inbe_desktop_tray_init();
+    /* "Start minimized" startup mode: launch straight to the tray; break
+     * windows restore on top when a break fires. */
+    if(inbe_app.desktop_startup_mode == INBE_STARTUP_HIDDEN &&
+       !screenshot.active)
+        inbe_desktop_tray_keep_running();
+    KryonMemReport("after-tray-init");
 #endif
 
     int screenshot_result = run_screenshot_mode(&screenshot);

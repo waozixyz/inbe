@@ -1064,6 +1064,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1140,7 +1164,7 @@ Remove
 一日中アクティブでした。今日はここまでにすることを検討してください。
 ---
 [break_time_remaining]
-残り %d 秒
+残り %s
 ---
 [break_stay_idle_note]
 休憩としてカウントするためキーボードから手を離してください
@@ -1196,14 +1220,8 @@ Remove
 [settings_breaks_micro_counts]
 小休憩を操作として数える
 ---
-[settings_breaks_exercises]
-休憩あたりのエクササイズ
----
 [settings_breaks_rest_now]
 今すぐ休憩
----
-[settings_breaks_view_exercises]
-エクササイズを見る
 ---
 [settings_breaks_micro_header]
 小休憩
@@ -1254,28 +1272,13 @@ Remove
 一時停止
 ---
 [tray_next_break]
-次の休憩 %d:%02d
+次の休憩 %s
 ---
 [break_exercises_title]
 休憩エクササイズ
 ---
 [break_exercises_intro]
 休憩用の簡単なストレッチ。自動的に再生されます。
----
-[break_ex_prev]
-前へ
----
-[break_ex_play]
-再生
----
-[break_ex_pause]
-一時停止
----
-[break_ex_next]
-次へ
----
-[break_ex_stop]
-停止
 ---
 [break_ex_shoulder_rolls]
 肩の回転

@@ -25,6 +25,8 @@ settings_device_content_height :: (content_w: int) -> int {
     #if DESKTOP {
         height += ScaleUIPx(50)
         height += settings_ui_toggle_row_height(GetLocaleText("on_screen_keyboard_label"), label_w)
+        height += ScaleUIPx(76)
+        height += ScaleUIPx(76)
     }
     return height
 }
@@ -89,6 +91,37 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
                                          &keyboard_toggle, 0) {
             app->on_screen_keyboard_enabled = keyboard_toggle
         }
+
+        startup_mode := app->desktop_startup_mode
+        startup_options: [2] const char* = {
+            GetLocaleText("desktop_startup_mode_normal"),
+            GetLocaleText("desktop_startup_mode_minimized")
+        }
+        Text(GetLocaleText("desktop_startup_mode_label"), x, *y,
+                      GetUIFontSize(), GetThemeText())
+        if Dropdown(104, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+                                 startup_options, 2, &startup_mode) {
+            app->desktop_startup_mode = startup_mode
+            app->settings_dirty = 1
+            save_settings(app)
+        }
+        *y += ScaleUIPx(76)
+
+        close_action := app->desktop_close_action
+        close_options: [3] const char* = {
+            GetLocaleText("desktop_close_action_ask"),
+            GetLocaleText("desktop_close_action_keep_running"),
+            GetLocaleText("desktop_close_action_quit")
+        }
+        Text(GetLocaleText("desktop_close_action_label"), x, *y,
+                      GetUIFontSize(), GetThemeText())
+        if Dropdown(105, x, *y + ScaleUIPx(26), w, ScaleUIPx(36),
+                                 close_options, 3, &close_action) {
+            app->desktop_close_action = close_action
+            app->settings_dirty = 1
+            save_settings(app)
+        }
+        *y += ScaleUIPx(76)
     }
 
     if settings_ui_commit_toggle_row(app, x, w, y,

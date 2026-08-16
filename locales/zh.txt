@@ -1062,6 +1062,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1138,7 +1162,7 @@ Remove
 你今天一整天都很活跃，考虑就此结束吧。
 ---
 [break_time_remaining]
-剩余 %d 秒
+剩余 %s
 ---
 [break_stay_idle_note]
 把手从键盘上移开，休息才会计入
@@ -1194,14 +1218,8 @@ Remove
 [settings_breaks_micro_counts]
 将小憩计为活动
 ---
-[settings_breaks_exercises]
-每次休息的练习
----
 [settings_breaks_rest_now]
 立即休息
----
-[settings_breaks_view_exercises]
-查看练习
 ---
 [settings_breaks_micro_header]
 小憩
@@ -1252,28 +1270,13 @@ Remove
 暂停
 ---
 [tray_next_break]
-下次休息 %d:%02d
+下次休息 %s
 ---
 [break_exercises_title]
 休息练习
 ---
 [break_exercises_intro]
 为休息准备的简短拉伸，会自动播放。
----
-[break_ex_prev]
-上一个
----
-[break_ex_play]
-播放
----
-[break_ex_pause]
-暂停
----
-[break_ex_next]
-下一个
----
-[break_ex_stop]
-停止
 ---
 [break_ex_shoulder_rolls]
 绕肩

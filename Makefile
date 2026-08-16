@@ -318,7 +318,10 @@ ifeq ($(NATIVE_PLATFORM),linux)
 # for a reliable tray icon on modern desktops.
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists ayatana-appindicator3-0.1; then printf '%s' ayatana-appindicator3-0.1; elif pkg-config --exists appindicator3-0.1; then printf '%s' appindicator3-0.1; elif pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
 ifeq ($(filter ayatana-appindicator3-0.1 appindicator3-0.1,$(DESKTOP_TRAY_PKG)),)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON
+# GTK-only tray: resolve GTK at runtime through kryon's gtk_dl shim so neither
+# libgtk-3 nor its gdk/pango/cairo chain is linked into the binary. GTK maps
+# only when the tray actually starts (unset INBE_NO_TRAY to skip it entirely).
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
 else ifeq ($(filter ayatana-appindicator3-0.1,$(DESKTOP_TRAY_PKG)),ayatana-appindicator3-0.1)
 DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_AYATANA -DKRYON_DESKTOP_TRAY_AYATANA
 else
@@ -327,27 +330,24 @@ endif
 endif
 ifeq ($(NATIVE_PLATFORM),freebsd)
 DESKTOP_TRAY_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON
+DESKTOP_TRAY_DEFINE := -DINBE_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_DESKTOP_TRAY_GTK_STATUS_ICON -DKRYON_TRAY_GTK_DL
 endif
 ifneq ($(strip $(DESKTOP_TRAY_PKG)),)
 APP_SRCS += src/platform/inbe_desktop_tray.c
 DESKTOP_TRAY_CFLAGS := $(shell pkg-config --cflags $(DESKTOP_TRAY_PKG)) -DINBE_DESKTOP_TRAY_ENABLED -DKRYON_DESKTOP_TRAY_ENABLED $(DESKTOP_TRAY_DEFINE)
+ifeq ($(filter ayatana-appindicator3-0.1 appindicator3-0.1,$(DESKTOP_TRAY_PKG)),)
+# Headers only for the GTK-only tray; the gtk_dl shim owns the symbols.
+DESKTOP_TRAY_LDLIBS :=
+else
 DESKTOP_TRAY_LDLIBS := $(shell pkg-config --libs $(DESKTOP_TRAY_PKG))
 endif
+endif
 
-ifneq ($(filter linux freebsd,$(NATIVE_PLATFORM)),)
-SYSTEM_THEME_PKG := $(shell if pkg-config --exists gtk+-3.0; then printf '%s' gtk+-3.0; fi)
-FILE_DIALOG_PKG := gtk+-3.0
-endif
-ifneq ($(filter all native install run run-fresh screenshot dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS))$(if $(MAKECMDGOALS),,default),)
-ifeq ($(strip $(SYSTEM_THEME_PKG)),)
-$(error gtk+-3.0 is required for native desktop file dialogs)
-endif
-endif
-ifneq ($(strip $(SYSTEM_THEME_PKG)),)
-SYSTEM_THEME_CFLAGS := $(shell pkg-config --cflags $(SYSTEM_THEME_PKG)) -DSYSTEM_THEME_GTK
-SYSTEM_THEME_LDLIBS := $(shell pkg-config --libs $(SYSTEM_THEME_PKG))
-endif
+# No in-process GTK anywhere else either: the system theme uses kryon's
+# built-in palettes, and native file dialogs shell out to zenity/kdialog/yad
+# (kryon's default backend order) instead of opening a GTK dialog in-process.
+SYSTEM_THEME_CFLAGS :=
+SYSTEM_THEME_LDLIBS :=
 
 LOCALE_FILES := $(wildcard locales/*.txt)
 IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png
@@ -687,7 +687,7 @@ $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \

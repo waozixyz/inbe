@@ -49,8 +49,12 @@
     X("practice_category_tab") \
     X("practice_visible_mask") \
     X("breaks_enabled") \
+    X("desktop_startup_mode") \
+    X("desktop_close_action") \
     X("break_block_mode") \
     X("break_sounds_enabled") \
+    X("break_hud_x") \
+    X("break_hud_y") \
     X("break_exercise_count") \
     X("break_reading_mode") \
     X("break_micro_counts_as_activity") \

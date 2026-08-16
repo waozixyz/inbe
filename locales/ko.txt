@@ -1061,6 +1061,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1137,7 +1161,7 @@ Remove
 하루 종일 활동했습니다. 오늘은 여기서 마무리하는 것을 고려하세요.
 ---
 [break_time_remaining]
-%d초 남음
+%s 남음
 ---
 [break_stay_idle_note]
 휴식으로 계산되려면 키보드에서 손을 떼세요
@@ -1193,14 +1217,8 @@ Remove
 [settings_breaks_micro_counts]
 짧은 휴식을 활동으로 계산
 ---
-[settings_breaks_exercises]
-휴식당 운동 수
----
 [settings_breaks_rest_now]
 지금 휴식
----
-[settings_breaks_view_exercises]
-운동 보기
 ---
 [settings_breaks_micro_header]
 짧은 휴식
@@ -1251,28 +1269,13 @@ Remove
 일시 중지
 ---
 [tray_next_break]
-다음 휴식 %d:%02d
+다음 휴식 %s
 ---
 [break_exercises_title]
 휴식 운동
 ---
 [break_exercises_intro]
 휴식용 짧은 스트레치. 자동으로 재생됩니다.
----
-[break_ex_prev]
-이전
----
-[break_ex_play]
-재생
----
-[break_ex_pause]
-일시정지
----
-[break_ex_next]
-다음
----
-[break_ex_stop]
-정지
 ---
 [break_ex_shoulder_rolls]
 어깨 돌리기

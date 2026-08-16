@@ -13,6 +13,7 @@
 #include "app/app_settings.h"
 #include "data.h"
 #include "app/app_notifications.h"
+#include "platform/inbe_desktop_tray.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/pet_screen.h"
@@ -555,6 +556,19 @@ app_request_desktop_close(InbeApp *app)
 {
     if(app == NULL)
         return;
+    /* Configured close behaviour overrides the ask prompt (desktop only). */
+    if(app->desktop_close_action == INBE_CLOSE_QUIT) {
+        app->request_quit = 1;
+        return;
+    }
+    if(app->desktop_close_action == INBE_CLOSE_KEEP_RUNNING) {
+#if defined(INBE_DESKTOP_TRAY_ENABLED)
+        inbe_desktop_tray_keep_running();
+#else
+        MinimizeWindow();
+#endif
+        return;
+    }
     app->close_prompt_open = 1;
     app->close_prompt_input_block_frame = app->inbe.frame;
     app->close_prompt_result = AppClosePromptNone;
@@ -1086,6 +1100,10 @@ app_init(void *vapp) {
     inbeinit(&app->inbe);
     break_engine_init(&app->breaks);
     app->breaks_enabled = 0;
+    app->desktop_startup_mode = INBE_STARTUP_SHOW;
+    app->desktop_close_action = INBE_CLOSE_ASK;
+    app->break_hud_x = -1;
+    app->break_hud_y = -1;
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app->break_sounds_enabled = 1;
 #else

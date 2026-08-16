@@ -115,7 +115,7 @@ FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
     snprintf(snapshot->break_reading_label, sizeof(snapshot->break_reading_label), "%s",
              GetLocaleText("settings_breaks_reading_mode"));
     snprintf(snapshot->break_settings_label, sizeof(snapshot->break_settings_label), "%s",
-             GetLocaleText("settings_tab_breaks"));
+             GetLocaleText("tray_break_settings"));
 }
 
 static void
@@ -148,7 +148,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     if(items == NULL || item_count < 6 ||
        start_items == NULL || start_item_count < 3 ||
        habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
-       break_items == NULL || break_item_count < 5 ||
+       break_items == NULL || break_item_count < 4 ||
        break_mode_items == NULL || break_mode_item_count < 3)
         return 0;
 
@@ -211,25 +211,19 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .enabled = 1
     };
     break_items[1] = (DesktopTrayMenuItem){
-        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
-        .label = local_snapshot.break_exercises_label,
-        .action = INBE_DESKTOP_TRAY_ACTION_BREAK_EXERCISES,
-        .enabled = 1
-    };
-    break_items[2] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
         .label = local_snapshot.break_mode_label,
         .enabled = 1,
         .children = break_mode_items,
         .child_count = 3
     };
-    break_items[3] = (DesktopTrayMenuItem){
+    break_items[2] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_reading_label,
         .action = INBE_DESKTOP_TRAY_ACTION_BREAK_READING_TOGGLE,
         .enabled = 1
     };
-    break_items[4] = (DesktopTrayMenuItem){
+    break_items[3] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.break_settings_label,
         .action = INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
@@ -261,7 +255,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .label = local_snapshot.break_label,
         .enabled = 1,
         .children = break_items,
-        .child_count = 5
+        .child_count = 4
     };
     items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SEPARATOR
@@ -294,7 +288,7 @@ ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 
     count = BuildTrayMenu(snapshot, items, 6, start_items, 3,
                           habit_items, INBE_HABIT_MAX,
-                          break_items, 5, break_mode_items, 3);
+                          break_items, 4, break_mode_items, 3);
     SetDesktopTrayMenu(items, count);
     SetDesktopTrayActivateAction(GetTrayWindowAction(snapshot != NULL
                                                          ? snapshot->window_visible
@@ -312,6 +306,12 @@ inbe_desktop_tray_init(void)
     DesktopTrayMenuItem break_mode_items[3];
     int item_count;
 
+    /* INBE_NO_TRAY=1 skips the tray entirely. With the lazy-GTK tray build
+     * this also keeps libgtk-3 and its dependency chain out of the process;
+     * closing the window then quits or minimizes instead of hiding. */
+    if(getenv("INBE_NO_TRAY") != NULL)
+        return 0;
+
     SeedTraySnapshot();
     memset(items, 0, sizeof(items));
     memset(start_items, 0, sizeof(start_items));
@@ -320,7 +320,7 @@ inbe_desktop_tray_init(void)
     memset(break_mode_items, 0, sizeof(break_mode_items));
     item_count = BuildTrayMenu(&TraySnapshot, items, 6, start_items, 3,
                                habit_items, INBE_HABIT_MAX,
-                               break_items, 5, break_mode_items, 3);
+                               break_items, 4, break_mode_items, 3);
 
     memset(&spec, 0, sizeof(spec));
     spec.id = "inbe";
@@ -590,9 +590,12 @@ inbe_desktop_tray_update_status(InbeApp *app)
                 if(due > 0 && (next_break < 0 || due < next_break))
                     next_break = due;
             }
-            if(next_break > 0)
-                FormatLocaleText(text, sizeof(text), "tray_next_break",
-                                 next_break / 60, next_break % 60);
+            if(next_break > 0) {
+                char due[16];
+
+                break_format_duration(due, sizeof(due), next_break);
+                FormatLocaleText(text, sizeof(text), "tray_next_break", due);
+            }
         }
     }
 

@@ -34,97 +34,36 @@ break_overlay_draw_bar :: (x: int, y: int, w: int, h: int, fraction: int) #priva
     }
 }
 
-break_overlay_draw_exercises :: (app: InbeApp*, panel_x: int, panel_y: int, panel_w: int, panel_h: int) #private {
-    start := 0
-    elapsed := app_breaks_exercise_second(app)
-    index := app_breaks_exercise_at(app, elapsed, &start)
-    step := 0
-    muted := DarkenUIColor(GetThemeText(), 40)
-    hover := 0
-
-    if elapsed < 0 || index < 0 {
-        return
-    }
-
-    ex := app->break_ex_picked[index]
-    step = app_breaks_exercise_step_second(app, index, elapsed - start)
-    if step < 0 {
-        step = 0
-    }
-
-    counter: [64] char
-    snprintf(counter, sizeof(counter), "%d/%d", index + 1, app->break_ex_pick_count)
-    Text(GetLocaleText(break_exercise_title(ex)), panel_x + ScaleUIPx(24),
-         panel_y + ScaleUIPx(190), GetUIFontSize(), GetThemeText())
-    counter_w := MeasureUIText(counter, UI_TEXT_12)
-    Text(counter, panel_x + panel_w - ScaleUIPx(24) - counter_w,
-         panel_y + ScaleUIPx(194), UI_TEXT_12, muted)
-
-    step_key := break_exercise_step(ex, step)
-    paragraph := (UIParagraphSpec){.text = GetLocaleText(step_key), .width = panel_w - ScaleUIPx(48), .font = UI_TEXT_16, .line_gap = ScaleUIPx(3), .color = muted}
-    step_y := panel_y + ScaleUIPx(222)
-    Paragraph(paragraph, panel_x + ScaleUIPx(24), &step_y)
-
-    ctrl_y := panel_y + panel_h - ScaleUIPx(104)
-    ctrl_w := ScaleUIPx(64)
-    ctrl_gap := ScaleUIPx(8)
-    row_w := ctrl_w * 4 + ctrl_gap * 3
-    ctrl_x := panel_x + panel_w / 2 - row_w / 2
-
-    if DrawUITextButton(ctrl_x, ctrl_y, GetLocaleText("break_ex_prev"), &hover) {
-        app_breaks_exercise_skip(app, 0)
-        return
-    }
-    ctrl_x += ctrl_w + ctrl_gap
-    if DrawUITextButton(ctrl_x, ctrl_y,
-                        app->break_ex_paused ? GetLocaleText("break_ex_play") : GetLocaleText("break_ex_pause"),
-                        &hover) {
-        app_breaks_exercise_toggle_pause(app)
-        return
-    }
-    ctrl_x += ctrl_w + ctrl_gap
-    if DrawUITextButton(ctrl_x, ctrl_y, GetLocaleText("break_ex_next"), &hover) {
-        app_breaks_exercise_skip(app, 1)
-        return
-    }
-    ctrl_x += ctrl_w + ctrl_gap
-    if DrawUITextButton(ctrl_x, ctrl_y, GetLocaleText("break_ex_stop"), &hover) {
-        app_breaks_exercise_hide(app)
-        return
-    }
-}
-
-break_overlay_draw :: (app: InbeApp*) {
+break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
     if app == nil {
         return
     }
 
     t := break_engine_active_break(&app->breaks)
     if t < 0 {
-        app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
         return
     }
 
     timer := &app->breaks.timers[t]
-    panel_w := view_width * 72 / 100
+    panel_w := w * 72 / 100
     if panel_w > ScaleUIPx(560) {
         panel_w = ScaleUIPx(560)
     }
     if panel_w < ScaleUIPx(280) {
         panel_w = ScaleUIPx(280)
     }
-    panel_h := view_height * 46 / 100
+    panel_h := h * 46 / 100
     if panel_h > ScaleUIPx(420) {
         panel_h = ScaleUIPx(420)
     }
     if panel_h < ScaleUIPx(240) {
         panel_h = ScaleUIPx(240)
     }
-    panel_x := view_width / 2 - panel_w / 2
-    panel_y := view_height / 2 - panel_h / 2
+    panel_x := w / 2 - panel_w / 2
+    panel_y := h / 2 - panel_h / 2
 
     scrim := DarkenUIColor(DarkenUIColor(GetThemeBackground(), 8), 30)
-    Rect(0, 0, view_width, view_height, scrim, scrim)
+    Rect(0, 0, w, h, scrim, scrim)
 
     muted := DarkenUIColor(GetThemeText(), 40)
     activity_flash := app->break_input_active != 0 && (app->inbe.frame / 30) % 2 == 0
@@ -152,15 +91,17 @@ break_overlay_draw :: (app: InbeApp*) {
         body = GetLocaleText("break_micro_body")
     }
     title_w := MeasureUIText(title, title_font)
-    text_x := view_width / 2
+    text_x := w / 2
 
     Text(title, text_x - title_w / 2, panel_y + ScaleUIPx(28), title_font, GetThemeText())
 
     remaining := break_overlay_remaining_s(app, t)
     time_text_w := 0
     if timer->duration_s > 0 {
-        time_label: [64] char
-        snprintf(time_label, sizeof(time_label), GetLocaleText("break_time_remaining"), remaining)
+        time_text: [16] char
+        time_label: [96] char
+        break_format_duration(time_text, sizeof(time_text), remaining)
+        snprintf(time_label, sizeof(time_label), GetLocaleText("break_time_remaining"), time_text)
         time_text_w = MeasureUIText(time_label, body_font)
         Text(time_label, text_x - time_text_w / 2, panel_y + ScaleUIPx(64), body_font, muted)
     }
@@ -188,10 +129,6 @@ break_overlay_draw :: (app: InbeApp*) {
              (Color){222, 140, 44, 255})
     }
 
-    if t == BREAK_REST && app->break_ex_pick_count > 0 && !app->break_ex_hidden {
-        break_overlay_draw_exercises(app, panel_x, panel_y, panel_w, panel_h)
-    }
-
     button_y := panel_y + panel_h - ScaleUIPx(56)
     button_w := ScaleUIPx(132)
     gap := ScaleUIPx(12)
@@ -206,7 +143,7 @@ break_overlay_draw :: (app: InbeApp*) {
         count++
     }
     row_w := count * button_w + (count - 1) * gap
-    button_x := view_width / 2 - row_w / 2
+    button_x := w / 2 - row_w / 2
     locked := timer->lock_buttons_s > 0
     hover := 0
 
@@ -240,4 +177,16 @@ break_overlay_draw :: (app: InbeApp*) {
             return
         }
     }
+}
+
+# Main-window route (InbeScreenBreak): the overlay sized to the app view.
+break_overlay_draw :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    if break_engine_active_break(&app->breaks) < 0 {
+        app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
+        return
+    }
+    break_overlay_draw_sized(app, view_width, view_height)
 }

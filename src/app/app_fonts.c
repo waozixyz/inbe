@@ -20,7 +20,8 @@ app_running_in_kryon_preview(void)
  * glyph its file contains in its own typeface instead of falling back to a
  * different registered font. */
 static int
-register_ui_font_source(const char *name, const char *path)
+register_ui_font_source(const char *name, const char *path,
+                        const int *codepoints, int codepoint_count)
 {
     const EmbeddedAsset *asset;
 
@@ -33,7 +34,7 @@ register_ui_font_source(const char *name, const char *path)
 
     return RegisterUIFontSource(name, GetEmbeddedAssetExtension(path),
                                 asset->data, asset->size,
-                                NULL, 0);
+                                codepoints, codepoint_count);
 }
 
 #if ANDROID_BUILD
@@ -60,16 +61,42 @@ register_android_system_font_fallbacks(void)
 }
 #endif
 
+/* Fallback fonts only ever draw language names: ASCII plus the no-break
+ * space covers their seeded set, and the native-script glyphs grow the
+ * raster on demand with one batched re-rasterization per burst. This avoids
+ * rasterizing the ~1000-glyph standard seed in every fallback font at
+ * startup. */
+static const int *
+language_picker_seed_codepoints(int *out_count)
+{
+    static int seed[0x7E - 0x20 + 2];
+    static int ready = 0;
+    int count = 0;
+
+    if(!ready) {
+        for(int cp = 0x20; cp <= 0x7E; cp++)
+            seed[count++] = cp;
+        seed[count++] = 0x00A0;
+        ready = 1;
+    }
+    if(out_count != NULL)
+        *out_count = count;
+    return seed;
+}
+
 /* The language picker lists every locale in its native script, so CJK glyphs
  * must render even when the active UI font is Latin. Register the CJK subset
  * fonts as cross-font fallback; they grow on demand as their glyphs are drawn. */
 static void
 register_language_picker_fonts(void)
 {
-    (void)register_ui_font_source("ui-lang-latin", INBE_FONT_LATIN);
-    (void)register_ui_font_source("ui-lang-ja", INBE_FONT_JP);
-    (void)register_ui_font_source("ui-lang-ko", INBE_FONT_KR);
-    (void)register_ui_font_source("ui-lang-zh", INBE_FONT_SC);
+    int seed_count = 0;
+    const int *seed = language_picker_seed_codepoints(&seed_count);
+
+    (void)register_ui_font_source("ui-lang-latin", INBE_FONT_LATIN, NULL, 0);
+    (void)register_ui_font_source("ui-lang-ja", INBE_FONT_JP, seed, seed_count);
+    (void)register_ui_font_source("ui-lang-ko", INBE_FONT_KR, seed, seed_count);
+    (void)register_ui_font_source("ui-lang-zh", INBE_FONT_SC, seed, seed_count);
 }
 
 int

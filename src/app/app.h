@@ -59,6 +59,19 @@ enum {
 };
 
 enum {
+    INBE_STARTUP_SHOW = 0,
+    INBE_STARTUP_HIDDEN,
+    INBE_STARTUP_COUNT
+};
+
+enum {
+    INBE_CLOSE_ASK = 0,
+    INBE_CLOSE_KEEP_RUNNING,
+    INBE_CLOSE_QUIT,
+    INBE_CLOSE_COUNT
+};
+
+enum {
     INBE_AUDIO_BUILTIN_MUSIC_COUNT = 3,
     INBE_AUDIO_CUSTOM_SOUND_MAX = 8,
     INBE_AUDIO_CUSTOM_MUSIC_MAX = 16,
@@ -493,6 +506,8 @@ struct InbeApp {
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
     int request_quit;   /* desktop no-tray build: app layer requests exit */
+    int desktop_startup_mode;   /* INBE_STARTUP_* (desktop only) */
+    int desktop_close_action;   /* INBE_CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];
     int volume_popup_active;
     InbeModal modal;
@@ -513,6 +528,11 @@ struct InbeApp {
     int break_ex_hidden;
     int break_fallback_last_input;
     int break_stats_flush_s;
+    int break_hud_x;             /* persisted HUD position; -1 = default */
+    int break_hud_y;
+    struct UIWindow *break_window; /* centered always-on-top break overlay */
+    int break_window_w;
+    int break_window_h;
     int break_exercises_scroll;
     double break_last_update_time;
     float break_tick_pending;

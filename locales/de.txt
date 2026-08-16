@@ -1062,6 +1062,30 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1138,7 +1162,7 @@ Tageslimit erreicht
 Sie waren den ganzen Tag aktiv. Ziehen Sie in Betracht, für heute aufzuhören.
 ---
 [break_time_remaining]
-%d Sekunden verbleibend
+%s verbleibend
 ---
 [break_stay_idle_note]
 Lassen Sie die Tastatur los, damit die Pause gezählt wird
@@ -1194,14 +1218,8 @@ Lesemodus
 [settings_breaks_micro_counts]
 Kurzpausen als Aktivität zählen
 ---
-[settings_breaks_exercises]
-Übungen pro Ruhepause
----
 [settings_breaks_rest_now]
 Ruhepause jetzt
----
-[settings_breaks_view_exercises]
-Übungen ansehen
 ---
 [settings_breaks_micro_header]
 Kurzhaltung
@@ -1252,28 +1270,13 @@ Leise
 Angehalten
 ---
 [tray_next_break]
-Nächste Pause %d:%02d
+Nächste Pause %s
 ---
 [break_exercises_title]
 Pausenübungen
 ---
 [break_exercises_intro]
 Kurze Dehnungen für Ruhepausen. Sie laufen automatisch während Ruhepausen ab.
----
-[break_ex_prev]
-Zurück
----
-[break_ex_play]
-Abspielen
----
-[break_ex_pause]
-Pause
----
-[break_ex_next]
-Weiter
----
-[break_ex_stop]
-Stopp
 ---
 [break_ex_shoulder_rolls]
 Schulterkreisen

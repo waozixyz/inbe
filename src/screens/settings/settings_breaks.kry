@@ -26,7 +26,6 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_sounds"), label_w)
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_reading_mode"), label_w)
     height += settings_ui_toggle_row_height(GetLocaleText("settings_breaks_micro_counts"), label_w)
-    height += settings_breaks_slider_h()
 
     timer_keys: [3] const char* = {
         "settings_breaks_micro_header",
@@ -77,7 +76,7 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
         } else if next == 0 {
             snprintf(line, sizeof(line), "%s", GetLocaleText("settings_breaks_due_now"))
         } else {
-            snprintf(line, sizeof(line), "%d:%02d", next / 60, next % 60)
+            break_format_duration(line, sizeof(line), next)
         }
         Text(names[t], x, *y, UI_TEXT_12, muted)
         Text(line, bar_x - ScaleUIPx(8) - MeasureUIText(line, UI_TEXT_12), *y, UI_TEXT_12, GetThemeText())
@@ -85,6 +84,7 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
         track := DarkenUIColor(GetThemeBackground(), 26)
         border := DarkenUIColor(GetThemeText(), 60)
         fill := (Color){74, 178, 102, 255}
+        idle_col := (Color){240, 200, 60, 255}
         if timer->limit_s > 0 {
             fraction := timer->active_s * (bar_w - 2) / timer->limit_s
             if fraction > bar_w - 2 {
@@ -93,6 +93,15 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
             Rect(bar_x, *y + ScaleUIPx(2), bar_w, ScaleUIPx(12), track, border)
             if fraction > 0 {
                 Rect(bar_x + 1, *y + ScaleUIPx(3), fraction, ScaleUIPx(10), fill, fill)
+            }
+            # Same yellow idle tip as the HUD: fills the rest of the bar while
+            # the user is away; full means a natural break resets the timer.
+            if timer->state == BreakStateRunning && timer->duration_s > 0 &&
+               timer->idle_s > 0 && !timer->idle_latched {
+                tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
+                if tip > 0 {
+                    Rect(bar_x + 1 + fraction, *y + ScaleUIPx(3), tip, ScaleUIPx(10), idle_col, idle_col)
+                }
             }
         }
         *y += ScaleUIPx(22)
@@ -223,7 +232,6 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     sounds := app->break_sounds_enabled
     reading := app->breaks.reading_mode
     micro_counts := app->breaks.micro_counts_as_activity
-    exercises := app->break_exercise_count
     block_mode := app->break_block_mode
 
     settings_breaks_draw_status(app, x, w, y)
@@ -264,23 +272,14 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                                      &micro_counts, 0) {
         app->breaks.micro_counts_as_activity = micro_counts
     }
-    if settings_ui_commit_slider_row(app, 541, x, w, y, settings_breaks_slider_h(),
-                                     GetLocaleText("settings_breaks_exercises"),
-                                     0, 4, &exercises, "", 0) {
-        app->break_exercise_count = exercises
-    }
 
     button_w := (w - ScaleUIPx(12)) / 2
     if button_w > ScaleUIPx(200) {
         button_w = ScaleUIPx(200)
     }
     rest_hover := 0
-    view_hover := 0
     if DrawUITextButton(x, *y, GetLocaleText("settings_breaks_rest_now"), &rest_hover) {
         app_breaks_rest_break_now(app)
-    }
-    if DrawUITextButton(x + w - button_w, *y, GetLocaleText("settings_breaks_view_exercises"), &view_hover) {
-        app_switch_screen(app, InbeScreenBreakExercises)
     }
     *y += ScaleUIPx(60)
 

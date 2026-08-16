@@ -7,6 +7,8 @@
 #import "screens/settings/settings_screen.h" #private
 #import <stdio.h>
 
+DESKTOP :: !ANDROID && !WEB
+
 #enum {
     APP_BOTTOM_NAV_CONFIGURABLE_COUNT = 2
     APP_NAV_CONFIG_ACTION_NONE,

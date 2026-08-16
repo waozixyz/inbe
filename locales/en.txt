@@ -611,6 +611,30 @@ Keep Running
 [desktop_close_quit_button]
 Quit
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[tray_break_settings]
+Break Settings...
+---
 [sync_account_title]
 Account
 ---
@@ -1136,7 +1160,7 @@ Daily limit reached
 You have been active all day. Consider finishing up for today.
 ---
 [break_time_remaining]
-%d seconds remaining
+%s remaining
 ---
 [break_stay_idle_note]
 Keep your hands off the keyboard to let the break count
@@ -1192,14 +1216,8 @@ Reading mode
 [settings_breaks_micro_counts]
 Count micro-breaks as activity
 ---
-[settings_breaks_exercises]
-Exercises per rest break
----
 [settings_breaks_rest_now]
 Rest break now
----
-[settings_breaks_view_exercises]
-View exercises
 ---
 [settings_breaks_micro_header]
 Micro-break
@@ -1250,28 +1268,13 @@ Quiet
 Suspended
 ---
 [tray_next_break]
-Next break %d:%02d
+Next break %s
 ---
 [break_exercises_title]
 Break exercises
 ---
 [break_exercises_intro]
 Short stretches for rest breaks. They play automatically during rest breaks.
----
-[break_ex_prev]
-Prev
----
-[break_ex_play]
-Play
----
-[break_ex_pause]
-Pause
----
-[break_ex_next]
-Next
----
-[break_ex_stop]
-Stop
 ---
 [break_ex_shoulder_rolls]
 Shoulder rolls
