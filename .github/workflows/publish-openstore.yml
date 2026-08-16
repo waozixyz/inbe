@@ -75,9 +75,12 @@ jobs:
       - name: Build Click package
         run: |
           set -euo pipefail
-          export AARCH64_CC=aarch64-linux-gnu-gcc
-          export AARCH64_AR=aarch64-linux-gnu-ar
-          export AARCH64_RANLIB=aarch64-linux-gnu-ranlib
+          # Absolute paths: CMake cross builds do not resolve bare tool names
+          # (CMAKE_AR=aarch64-linux-gnu-ar ends up NOTFOUND and the liboqs
+          # archive step fails with "No such file or directory").
+          export AARCH64_CC="$(command -v aarch64-linux-gnu-gcc)"
+          export AARCH64_AR="$(command -v aarch64-linux-gnu-ar)"
+          export AARCH64_RANLIB="$(command -v aarch64-linux-gnu-ranlib)"
           export AARCH64_PKG_CONFIG_PATH=/usr/lib/aarch64-linux-gnu/pkgconfig:/usr/share/pkgconfig
           export PKG_CONFIG_LIBDIR="$AARCH64_PKG_CONFIG_PATH"
           export AARCH64_RAY_SDL_CFLAGS="$(pkg-config --cflags sdl2)"
