@@ -200,6 +200,7 @@ KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_INCLUDE := -I$(KRYON_DIR)/include
 KRYON_SYNC_ACCOUNT_C := $(KRYON_DIR)/src/ksync/ksync_account.c
+KRYON_SYNC_CRYPTO_C := $(KRYON_DIR)/src/ksync/ksync_crypto.c
 KRYON_SYNC_C := $(KRYON_DIR)/src/ksync/ksync_sync.c
 KRYON_SYNC_TRANSPORT_C := $(KRYON_DIR)/src/ksync/ksync_transport.c
 KRYON_SYNC_ACCOUNT_H := $(KRYON_DIR)/include/ksync_account.h
@@ -648,17 +649,17 @@ $(SETTINGS_KEYS_TEST): tests/settings_keys_test.c src/app/app_settings.kry src/s
 		-o $@ \
 		tests/settings_keys_test.c
 
-$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sync_client.h $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(CURL_PROTOCOL_CHECK) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -Wno-unused-function -std=c99 -D_DEFAULT_SOURCE -DINBE_SYNC_CLIENT_TESTS -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc/storage -Isrc -Isrc/core $(KRYON_INCLUDE) $(KRYON_CURL_CFLAGS) $(LIBOQS_INCLUDE) -o $@ \
-		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) \
+		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_ACCOUNT_H) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
