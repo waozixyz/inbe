@@ -7,6 +7,7 @@ ovl :: #import "screens/break_overlay"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
+TRAY :: #defined(INBE_DESKTOP_TRAY_ENABLED)
 
 #enum {
     BreakActivityThresholdMs = 1000
@@ -179,10 +180,15 @@ app_breaks_window_update :: (app: InbeApp*) {
         return
     }
     if IsUIWindowRightClicked(app->break_window) {
-        win_quit := 0
-        inbe_desktop_tray_apply_action(app,
-                                         INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
-                                         &win_quit)
+        #if TRAY {
+            win_quit := 0
+            inbe_desktop_tray_apply_action(app,
+                                             INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+                                             &win_quit)
+        } #else {
+            app->settings_tab = SETTINGS_TAB_BREAKS
+            app_switch_screen(app, InbeScreenSettings)
+        }
         return
     }
     if IsUIWindowClicked(app->break_window) {
@@ -563,10 +569,15 @@ app_breaks_hud_update :: (app: InbeApp*) {
         app->settings_dirty = 1
         save_settings(app)
     } else if IsUIWindowRightClicked(app->break_hud) {
-        hud_quit := 0
-        inbe_desktop_tray_apply_action(app,
-                                         INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
-                                         &hud_quit)
+        #if TRAY {
+            hud_quit := 0
+            inbe_desktop_tray_apply_action(app,
+                                             INBE_DESKTOP_TRAY_ACTION_BREAK_SETTINGS,
+                                             &hud_quit)
+        } #else {
+            app->settings_tab = SETTINGS_TAB_BREAKS
+            app_switch_screen(app, InbeScreenSettings)
+        }
     } else if IsUIWindowClicked(app->break_hud) {
         app->settings_tab = SETTINGS_TAB_BREAKS
         app_switch_screen(app, InbeScreenSettings)
