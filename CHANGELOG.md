@@ -1,4 +1,25 @@
 # Changelog
+## [1.9.1] - 2026-08-16
+### Added
+- Breaks render in their own centered always-on-top OS window (desktop): the main window - even hidden to tray - is no longer taken over; Postpone/Skip/Rest-now are clickable in it and right-click opens Break settings.
+- The timer HUD is drag-and-drop movable anywhere on screen, remembers its position across restarts, hides disabled timers entirely, and right-clicking it opens Break settings; it stays visible during a break showing the remaining rest time.
+- Desktop Device settings: startup mode (show window / start minimized to tray) and on-close behavior (ask / always keep running / always quit).
+- Single-instance: launching replaces an existing instance by default (graceful SIGTERM handover via a PID lock; screenshot mode is exempt).
+
+### Changed
+- Micro breaks open their window the moment they are due - the invisible toast-prompt phase is gone (rest/daily keep their prompts).
+- Break exercises are removed for now: breaks are just the countdown and controls; the "Exercises" settings row and the tray entry are gone. Running a practice during a break is planned as the follow-up.
+- Idle memory: source fonts now rasterize once each at the DPI-scaled base size (plus one lazily built tier for large text) instead of caching up to eight per-size rasterizations, and a burst of new glyphs re-rasterizes at most once per frame per font; language-picker fallback fonts seed ASCII only and grow on demand (kryon `ui_text` change).
+- The process no longer links GTK: the system theme reads the desktop's real palette from the theme's gtk.css (kryon `system_theme`), file dialogs shell out to zenity/kdialog/yad (kryon's default backend order), and the GTK tray backend resolves libgtk-3 through kryon's runtime loader only when the tray actually starts. `INBE_NO_TRAY=1` skips the tray entirely (idle RSS drops from ~132 MB to ~103 MB; with the tray it is ~126 MB).
+- glibc malloc arenas are capped at four (the app runs ~19 threads; the default ceiling let per-thread arenas inflate idle RSS).
+- `KRYON_MEM_DEBUG=1` prints RSS/arena snapshots at startup and steady state (`KryonMemReport`), plus per-font rasterization stats (`UIFontMemoryReport`).
+- Vendored Kryon bumped to master (ui_window center/drag/right-click/click-position, per-window XImage buffers, X11 `Time` layout fix; system_theme gtk.css palette).
+
+### Fixed
+- Clicks on extra OS windows (HUD, break window) register correctly: the X11 `Time` field in the event stand-in had the wrong width, shifting button/position reads (right-click and buttons appeared dead).
+- Extra OS windows no longer corrupt the heap when two windows of different sizes alternate (per-window XImage buffers).
+- The Breaks entry shows in the settings sidebar on desktop again (`#if DESKTOP` resolved against an undefined constant, compiling the mobile branch everywhere).
+
 ## [1.9.0] - 2026-08-15
 ### Added
 - Break reminders, Workrave-style: micro, rest and daily break timers with break exercises, statistics, and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
