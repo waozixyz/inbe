@@ -865,7 +865,11 @@ int main(int argc, char **argv) {
      * business blocking the screen saver anyway. Must be set before
      * InitWindow() initializes SDL video.
      */
+#if defined(_WIN32)
+    _putenv("SDL_VIDEO_ALLOW_SCREENSAVER=1");
+#else
     setenv("SDL_VIDEO_ALLOW_SCREENSAVER", "1", 1);
+#endif
 #endif
 
 #if defined(PLATFORM_WEB)
