@@ -1238,9 +1238,6 @@ Afficher le bouton Reporter
 [settings_breaks_no_data]
 Pas encore de statistiques
 ---
-[settings_breaks_desktop_only]
-Les rappels de pause sont disponibles sur ordinateur
----
 [settings_breaks_mode]
 Mode
 ---

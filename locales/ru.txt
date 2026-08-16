@@ -1239,9 +1239,6 @@ Remove
 [settings_breaks_no_data]
 Статистики пока нет
 ---
-[settings_breaks_desktop_only]
-Напоминания доступны на компьютере
----
 [settings_breaks_mode]
 Режим
 ---

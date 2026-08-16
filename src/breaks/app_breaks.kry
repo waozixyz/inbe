@@ -4,6 +4,7 @@
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+DESKTOP :: !ANDROID && !WEB
 
 #enum {
     BreakActivityThresholdMs = 1000
@@ -100,8 +101,10 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
         SetWindowState(FLAG_WINDOW_UNDECORATED)
         MaximizeWindow()
     }
-    if app->break_block_mode >= 1 {
-        inbe_break_set_input_blocked(1)
+    #if DESKTOP {
+        if app->break_block_mode >= 1 {
+            inbe_break_set_input_blocked(1)
+        }
     }
     app->break_window_taken = 1
 }
@@ -118,7 +121,9 @@ break_engine_close_window :: (app: InbeApp*) #private {
     if app->break_block_mode >= 2 {
         RestoreWindow()
     }
-    inbe_break_set_input_blocked(0)
+    #if DESKTOP {
+        inbe_break_set_input_blocked(0)
+    }
 }
 
 app_breaks_update :: (app: InbeApp*) {

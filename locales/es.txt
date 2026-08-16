@@ -1239,9 +1239,6 @@ Mostrar botón Aplazar
 [settings_breaks_no_data]
 Aún no hay estadísticas
 ---
-[settings_breaks_desktop_only]
-Los recordatorios están disponibles en escritorio
----
 [settings_breaks_mode]
 Modo
 ---

@@ -1239,9 +1239,6 @@ Tampilkan tombol Tunda
 [settings_breaks_no_data]
 Belum ada statistik
 ---
-[settings_breaks_desktop_only]
-Pengingat tersedia di desktop
----
 [settings_breaks_mode]
 Mode
 ---

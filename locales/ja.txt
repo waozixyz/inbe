@@ -1241,9 +1241,6 @@ Remove
 [settings_breaks_no_data]
 統計はまだありません
 ---
-[settings_breaks_desktop_only]
-休憩リマインダーはデスクトップで利用できます
----
 [settings_breaks_mode]
 モード
 ---

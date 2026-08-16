@@ -1239,9 +1239,6 @@ Remove
 [settings_breaks_no_data]
 暂无统计数据
 ---
-[settings_breaks_desktop_only]
-休息提醒仅在桌面版可用
----
 [settings_breaks_mode]
 模式
 ---

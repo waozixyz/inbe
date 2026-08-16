@@ -1239,9 +1239,6 @@ Letzte 7 Tage (genommen / übersprungen / aufgeschoben)
 [settings_breaks_no_data]
 Noch keine Pausenstatistik
 ---
-[settings_breaks_desktop_only]
-Pausen-Erinnerungen sind am Desktop verfügbar
----
 [settings_breaks_mode]
 Modus
 ---

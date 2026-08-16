@@ -1239,9 +1239,6 @@ Ultimi 7 giorni (fatte / saltate / rinviate)
 [settings_breaks_no_data]
 Ancora nessuna statistica
 ---
-[settings_breaks_desktop_only]
-I promemoria pause sono disponibili su desktop
----
 [settings_breaks_mode]
 Modalità
 ---

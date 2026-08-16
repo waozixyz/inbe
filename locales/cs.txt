@@ -1239,9 +1239,6 @@ Posledních 7 dní (absolvováno / přeskočeno / odloženo)
 [settings_breaks_no_data]
 Zatím žádné statistiky
 ---
-[settings_breaks_desktop_only]
-Připomínky přestávek jsou k dispozici na počítači
----
 [settings_breaks_mode]
 Režim
 ---

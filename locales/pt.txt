@@ -1239,9 +1239,6 @@ Mostrar botão Adiar
 [settings_breaks_no_data]
 Ainda sem estatísticas
 ---
-[settings_breaks_desktop_only]
-Os lembretes de pausa estão disponíveis no desktop
----
 [settings_breaks_mode]
 Modo
 ---

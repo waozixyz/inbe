@@ -1238,9 +1238,6 @@ Remove
 [settings_breaks_no_data]
 아직 통계가 없습니다
 ---
-[settings_breaks_desktop_only]
-휴식 알림은 데스크톱에서 사용할 수 있습니다
----
 [settings_breaks_mode]
 모드
 ---

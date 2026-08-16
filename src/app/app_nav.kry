@@ -608,16 +608,7 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         {"tab_profile", APP_NAV_ROUTE_PROFILE}
     }
     settings_count := 6
-    #if ANDROID {
-        settings_items: [5] const AppSidebarSettingsItem = {
-            {SETTINGS_TAB_DEVICE},
-            {SETTINGS_TAB_AUDIO},
-            {SETTINGS_TAB_NOTIFICATIONS},
-            {SETTINGS_TAB_THEME},
-            {SETTINGS_TAB_ABOUT}
-        }
-        settings_count = 5
-    } #else {
+    #if DESKTOP {
         settings_items: [6] const AppSidebarSettingsItem = {
             {SETTINGS_TAB_DEVICE},
             {SETTINGS_TAB_AUDIO},
@@ -626,6 +617,15 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
             {SETTINGS_TAB_THEME},
             {SETTINGS_TAB_ABOUT}
         }
+    } #else {
+        settings_items: [5] const AppSidebarSettingsItem = {
+            {SETTINGS_TAB_DEVICE},
+            {SETTINGS_TAB_AUDIO},
+            {SETTINGS_TAB_NOTIFICATIONS},
+            {SETTINGS_TAB_THEME},
+            {SETTINGS_TAB_ABOUT}
+        }
+        settings_count = 5
     }
 
     if app == NULL || (!app->nav_sidebar_open && !app_nav_sidebar_screen_active(app)) {

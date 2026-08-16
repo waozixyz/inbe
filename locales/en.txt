@@ -1237,9 +1237,6 @@ Last 7 days (taken / skipped / postponed)
 [settings_breaks_no_data]
 No break statistics yet
 ---
-[settings_breaks_desktop_only]
-Break reminders are available on desktop
----
 [settings_breaks_mode]
 Mode
 ---

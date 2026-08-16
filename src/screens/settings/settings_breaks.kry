@@ -226,13 +226,6 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     exercises := app->break_exercise_count
     block_mode := app->break_block_mode
 
-    #if !DESKTOP {
-        Text(GetLocaleText("settings_breaks_desktop_only"), x, *y, UI_TEXT_12,
-             DarkenUIColor(GetThemeText(), 40))
-        *y += ScaleUIPx(30)
-        return
-    }
-
     settings_breaks_draw_status(app, x, w, y)
 
     if settings_ui_commit_toggle_row(app, x, w, y,
