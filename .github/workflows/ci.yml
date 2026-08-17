@@ -78,7 +78,7 @@ jobs:
       - name: Language screen — native vs cartridge, 0 pixel tolerance
         run: |
           set +e
-          KRB_EXACT_XWD=1 xvfb-run -a --server-args="-screen 0 1280x1024x24" sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
           rc=$?
           cp /tmp/kryon-krb-native.*/native.png /tmp/native.png 2>/dev/null || true
           cp /tmp/kryon-krb-native.*/cart.png /tmp/cart.png 2>/dev/null || true
