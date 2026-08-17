@@ -27,6 +27,7 @@
 #include "screens/settings/settings_theme.h"
 #include "screens/practice_screen.h"
 #include "practices/practice_registry.h"
+#include "practices/patterns/patterns_practice.h"
 #include "app/device_preferences.h"
 #include "storage.h"
 #include "practices/meditation/meditation_practice.h"
@@ -85,6 +86,7 @@ static const InbeRouteBinding inbe_route_bindings[] = {
     {"session", InbeScreenSession},
     {"meditation", InbeScreenMeditation},
     {"sun_salutation", InbeScreenSunSalutation},
+    {"patterns", InbeScreenPatterns},
     {"results", InbeScreenResults},
     {"settings", InbeScreenSettings},
     {"language", InbeScreenLanguage},
@@ -523,7 +525,8 @@ app_screen_local_modal_valid(const InbeApp *app, UIModalType type)
     case UIModalConfirmExitSession:
         return app->inbe.screen == InbeScreenSession ||
                app->inbe.screen == InbeScreenMeditation ||
-               app->inbe.screen == InbeScreenSunSalutation;
+               app->inbe.screen == InbeScreenSunSalutation ||
+               app->inbe.screen == InbeScreenPatterns;
     case UIModalMeditationSetup:
         return app->inbe.screen == InbeScreenStart;
     case UIModalConfirmDeleteHabit:
@@ -1287,6 +1290,14 @@ handle_back_button(InbeApp *app)
         }
         break;
 
+    case InbeScreenPatterns:
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_PATTERNS);
+            if(practice->request_exit != NULL)
+                practice->request_exit(app);
+        }
+        break;
+
     default:
         break;
     }
@@ -1496,7 +1507,8 @@ updateapp(InbeApp *app)
              app->practice_tab != PRACTICE_TAB_PLAY) ||
             app->inbe.screen == InbeScreenSession ||
             app->inbe.screen == InbeScreenMeditation ||
-            app->inbe.screen == InbeScreenSunSalutation))
+            app->inbe.screen == InbeScreenSunSalutation ||
+            app->inbe.screen == InbeScreenPatterns))
 #endif
        ) {
         if(app->nav_sidebar_open || app->inbe.screen == InbeScreenNavSidebar) {
@@ -1592,6 +1604,13 @@ updateapp(InbeApp *app)
     case InbeScreenSunSalutation:
         {
             const PracticeDefinition *practice = practice_get(PRACTICE_SUN_SALUTATION);
+            if(practice->draw_active_session != NULL)
+                practice->draw_active_session(app, center_x, center_y);
+        }
+        break;
+    case InbeScreenPatterns:
+        {
+            const PracticeDefinition *practice = practice_get(PRACTICE_PATTERNS);
             if(practice->draw_active_session != NULL)
                 practice->draw_active_session(app, center_x, center_y);
         }

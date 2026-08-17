@@ -1,6 +1,7 @@
 #import "app.h"
 #import "practices/meditation/meditation_practice.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
+#import "practices/patterns/patterns_practice.h"
 #import "practices/whm/whm_practice.h"
 #import "practices/whm/whm_session.h"
 
@@ -17,7 +18,8 @@ PracticeId :: enum {
     PRACTICE_WHM = 0
     PRACTICE_MEDITATION = 1
     PRACTICE_SUN_SALUTATION = 2
-    PRACTICE_COUNT = 3
+    PRACTICE_PATTERNS = 3
+    PRACTICE_COUNT = 4
 }
 
 PracticeVoidFn :: void (*)(InbeApp*) #type
@@ -106,6 +108,25 @@ static practices: [PRACTICE_COUNT] const PracticeDefinition = {
         .background_stop = nil,
         .advance_elapsed = nil,
     },
+    {
+        .id = PRACTICE_PATTERNS,
+        .label_key = "exercise_patterns",
+        .init = patterns_practice_init,
+        .destroy = patterns_practice_destroy,
+        .start = patterns_practice_start,
+        .draw_manual = nil,
+        .close_manual = nil,
+        .draw_config = patterns_config_screen_draw,
+        .leave_config = patterns_practice_leave_config,
+        .update = nil,
+        .draw_setup_modal = nil,
+        .draw_active_session = patterns_draw_screen,
+        .request_exit = patterns_request_exit,
+        .is_active = practice_patterns_is_active,
+        .background_start = nil,
+        .background_stop = nil,
+        .advance_elapsed = nil,
+    },
 }
 
 practice_whm_is_active :: (app: const InbeApp*) -> int #private {
@@ -118,6 +139,10 @@ practice_meditation_is_active :: (app: const InbeApp*) -> int #private {
 
 practice_sun_salutation_is_active :: (app: const InbeApp*) -> int #private {
     return app != nil && app->inbe.screen == InbeScreenSunSalutation
+}
+
+practice_patterns_is_active :: (app: const InbeApp*) -> int #private {
+    return app != nil && app->inbe.screen == InbeScreenPatterns
 }
 
 practice_get :: (id: int) -> const PracticeDefinition* {

@@ -58,6 +58,9 @@ practice_label :: (practice: int) -> const char* {
     if practice == 2 {
         return GetLocaleText("exercise_sun_salutation")
     }
+    if practice == 3 {
+        return GetLocaleText("exercise_patterns")
+    }
     return GetLocaleText("exercise_wim_hof")
 }
 

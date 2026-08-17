@@ -1,0 +1,541 @@
+#import "app.h"
+#import "data.h"
+#import "practices/patterns/patterns_practice.h"
+#import "practices/practice_registry.h"
+#import "screens/practice_screen.h"
+#import <stdio.h>
+#import <string.h>
+
+# Timed-ratio breathing practice: preset patterns (box, 4-7-8, coherent,
+# extended exhale) plus a fully custom in/hold/exhale/hold-out ratio. The
+# session is a driven animation (circle grows on inhale, shrinks on exhale)
+# with optional breath cues, saved as one session of its own activity kind.
+
+PatternsConfigContext :: struct {
+    app: InbeApp*
+}
+
+#enum {
+    PATTERNS_PRESET_BOX = 0
+    PATTERNS_PRESET_478
+    PATTERNS_PRESET_COHERENT
+    PATTERNS_PRESET_EXTENDED_EXHALE
+    PATTERNS_PRESET_CUSTOM
+    PATTERNS_PRESET_COUNT
+    PATTERNS_PHASE_INHALE = 0
+    PATTERNS_PHASE_HOLD_IN
+    PATTERNS_PHASE_EXHALE
+    PATTERNS_PHASE_HOLD_OUT
+    PATTERNS_MAX_SECONDS = 60
+}
+
+static preset_ratios: [PATTERNS_PRESET_COUNT * 4] const int = {
+    4, 4, 4, 4,
+    4, 7, 8, 0,
+    5, 0, 5, 0,
+    4, 0, 6, 0,
+    0, 0, 0, 0
+}
+
+preset_ratio :: (preset: int, part: int) -> int #private {
+    if preset < 0 || preset >= PATTERNS_PRESET_COUNT {
+        preset = PATTERNS_PRESET_BOX
+    }
+    if part < 0 || part > 3 {
+        return 0
+    }
+    return preset_ratios[preset * 4 + part]
+}
+
+preset_label_key :: (preset: int) -> const char* #private {
+    if preset == PATTERNS_PRESET_478 {
+        return "patterns_preset_478"
+    }
+    if preset == PATTERNS_PRESET_COHERENT {
+        return "patterns_preset_coherent"
+    }
+    if preset == PATTERNS_PRESET_EXTENDED_EXHALE {
+        return "patterns_preset_extended_exhale"
+    }
+    if preset == PATTERNS_PRESET_CUSTOM {
+        return "patterns_preset_custom"
+    }
+    return "patterns_preset_box"
+}
+
+pattern_ratio :: (app: const InbeApp*, out: int*) #private {
+    preset := app != nil ? app->patterns.preset : PATTERNS_PRESET_BOX
+
+    if preset < 0 || preset >= PATTERNS_PRESET_COUNT {
+        preset = PATTERNS_PRESET_BOX
+    }
+    for int i = 0; i < 4; i++ {
+        out[i] = preset_ratio(preset, i)
+    }
+    if preset == PATTERNS_PRESET_CUSTOM {
+        for int i = 0; i < 4; i++ {
+            out[i] = app->patterns.custom[i]
+        }
+    }
+    for int i = 0; i < 4; i++ {
+        if out[i] < 0 {
+            out[i] = 0
+        }
+        if out[i] > PATTERNS_MAX_SECONDS {
+            out[i] = PATTERNS_MAX_SECONDS
+        }
+    }
+}
+
+patterns_ratio_text :: (app: const InbeApp*, out: char*, out_size: size_t) {
+    if out == nil || out_size == 0 {
+        return
+    }
+    ratio: [4] int = {0, 0, 0, 0}
+    pattern_ratio(app, ratio)
+    snprintf(out, out_size, "%d-%d-%d-%d",
+             ratio[0], ratio[1], ratio[2], ratio[3])
+}
+
+patterns_preset_count :: () -> int {
+    return PATTERNS_PRESET_COUNT
+}
+
+patterns_practice_init :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    app->patterns.preset = PATTERNS_PRESET_BOX
+    for int i = 0; i < 4; i++ {
+        app->patterns.custom[i] = preset_ratio(PATTERNS_PRESET_BOX, i)
+    }
+    app->patterns.duration_minutes = 5
+}
+
+patterns_practice_destroy :: (app: InbeApp*) {
+    unused app
+}
+
+patterns_practice_start :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    app->patterns.active = 1
+    app->patterns.paused = 0
+    app->patterns.phase = PATTERNS_PHASE_INHALE
+    app->patterns.phase_second = 0
+    app->patterns.frame_ticks = 0
+    app->patterns.cycle = 0
+    app->patterns.elapsed_seconds = 0
+    app_close_modal(app)
+    app_switch_screen(app, InbeScreenPatterns)
+    practice_background_start(app, PRACTICE_PATTERNS)
+}
+
+patterns_practice_leave_config :: (app: InbeApp*) {
+    unused app
+}
+
+patterns_request_exit :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    app_open_modal(app, UIModalConfirmExitSession)
+}
+
+phase_label_key :: (phase: int) -> const char* #private {
+    if phase == PATTERNS_PHASE_HOLD_IN {
+        return "patterns_phase_hold_in"
+    }
+    if phase == PATTERNS_PHASE_EXHALE {
+        return "patterns_phase_exhale"
+    }
+    if phase == PATTERNS_PHASE_HOLD_OUT {
+        return "patterns_phase_hold_out"
+    }
+    return "patterns_phase_inhale"
+}
+
+finish_session :: (app: InbeApp*) #private {
+    duration := app->patterns.elapsed_seconds
+
+    app->patterns.active = 0
+    app->patterns.paused = 0
+    if duration >= 60 {
+        if data_save_session_path_for_activity(&duration, 1, 0,
+                                               EXERCISE_PATTERNS,
+                                               nil, 0) {
+            sync_habits_for_activity(app, EXERCISE_PATTERNS)
+            app_auto_sync(app)
+        }
+    }
+    app_play_bell_cue(app, 1.0)
+    app_switch_screen(app, InbeScreenStart)
+}
+
+handle_exit_modal :: (app: InbeApp*) -> int #private {
+    result: SessionExitModalResult
+
+    if app == nil || !app->modal.active ||
+       app->modal.type != UIModalConfirmExitSession {
+        return 0
+    }
+    result = app_draw_session_exit_modal(
+        app->patterns.elapsed_seconds >= 60,
+        GetLocaleText("patterns_save_elapsed_message"),
+        GetLocaleText("patterns_under_minute_exit_message")
+    )
+    if result == SessionExitModalCancel {
+        app_close_modal(app)
+    } else if result == SessionExitModalSave ||
+              result == SessionExitModalDiscard {
+        if result == SessionExitModalSave {
+            duration := app->patterns.elapsed_seconds
+            if duration >= 60 &&
+               data_save_session_path_for_activity(&duration, 1, 0,
+                                                   EXERCISE_PATTERNS,
+                                                   nil, 0) {
+                sync_habits_for_activity(app, EXERCISE_PATTERNS)
+                app_auto_sync(app)
+            }
+        }
+        app->patterns.active = 0
+        app->patterns.paused = 0
+        app_close_modal(app)
+        app_switch_screen(app, InbeScreenStart)
+    }
+    return 1
+}
+
+advance_second :: (app: InbeApp*) #private {
+    ratio: [4] int
+    total := 0
+
+    pattern_ratio(app, ratio)
+    for int i = 0; i < 4; i++ {
+        total += ratio[i]
+    }
+    if total <= 0 {
+        # degenerate all-zero custom pattern: nothing to breathe to
+        return
+    }
+
+    app->patterns.elapsed_seconds++
+    app->patterns.phase_second++
+    if app->patterns.phase_second >= ratio[app->patterns.phase] {
+        app->patterns.phase_second = 0
+        app->patterns.phase = (app->patterns.phase + 1) % 4
+        if app->patterns.phase == PATTERNS_PHASE_INHALE {
+            app->patterns.cycle++
+        }
+        if ratio[app->patterns.phase] == 0 {
+            # zero-length phase: skip it immediately (once; chain-skips
+            # resolve over the following seconds)
+            app->patterns.phase = (app->patterns.phase + 1) % 4
+            if app->patterns.phase == PATTERNS_PHASE_INHALE {
+                app->patterns.cycle++
+            }
+        }
+        if app->patterns.phase == PATTERNS_PHASE_EXHALE {
+            app_play_breath_cue(app, 0)
+        } else if app->patterns.phase == PATTERNS_PHASE_INHALE {
+            app_play_breath_cue(app, 1)
+        }
+    }
+    if app->patterns.duration_minutes > 0 &&
+       app->patterns.elapsed_seconds >=
+       app->patterns.duration_minutes * 60 {
+        finish_session(app)
+    }
+}
+
+draw_config :: (app: InbeApp*) #private {
+    layout := (PracticeSubscreenLayout){0}
+    hover := 0
+
+    practice_screen_config_layout(app, UIModalPracticeConfig, 0, &layout)
+    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
+                                           UIModalPracticeConfig,
+                                           patterns_practice_leave_config)
+
+    page_ctx := (PatternsConfigContext){app}
+    page := BeginUIScrollPage((UIScrollPageSpec){
+        .y = layout.scroll_y,
+        .height = layout.scroll_h,
+        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+        .min_content_width = ScaleUIPx(320),
+        .scroll_offset = &app->settings_scroll,
+        .content_height = patterns_config_content_height_cb,
+        .user_data = &page_ctx
+    })
+    y := page.content_y
+    x := page.content_x
+    w := page.content_w
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(8)
+
+    Text(GetLocaleText("patterns_preset_label"), x, y,
+                  GetUIFontSize(), GetThemeText())
+    y += ScaleUIPx(30)
+
+    preset_w := (w - gap) / 2
+    if preset_w > ScaleUIPx(220) {
+        preset_w = ScaleUIPx(220)
+    }
+    for int i = 0; i < PATTERNS_PRESET_COUNT; i++ {
+        col := i % 2
+        row := i / 2
+        label: [96] char
+        ratio: [4] int
+
+        for int j = 0; j < 4; j++ {
+            ratio[j] = preset_ratio(i, j)
+        }
+        if i == PATTERNS_PRESET_CUSTOM {
+            for int j = 0; j < 4; j++ {
+                ratio[j] = app->patterns.custom[j]
+            }
+        }
+        snprintf(label, sizeof(label), "%s  %d-%d-%d-%d",
+                 GetLocaleText(preset_label_key(i)),
+                 ratio[0], ratio[1], ratio[2], ratio[3])
+        style := app->patterns.preset == i
+            ? UI_BUTTON_STYLE_PRIMARY
+            : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, x + col * (preset_w + gap),
+                               y + row * (btn_h + gap), preset_w, btn_h,
+                               label, style, 0, &hover) {
+            app->patterns.preset = i
+            app->settings_dirty = 1
+            save_settings(app)
+        }
+    }
+    y += ((PATTERNS_PRESET_COUNT + 1) / 2) * (btn_h + gap) + ScaleUIPx(10)
+
+    if app->patterns.preset == PATTERNS_PRESET_CUSTOM {
+        Text(GetLocaleText("patterns_custom_label"), x, y,
+                      GetUIFontSize(), GetThemeText())
+        y += ScaleUIPx(30)
+        step_labels: [4] const char* = {
+            GetLocaleText("patterns_phase_inhale"),
+            GetLocaleText("patterns_phase_hold_in"),
+            GetLocaleText("patterns_phase_exhale"),
+            GetLocaleText("patterns_phase_hold_out")
+        }
+        for int i = 0; i < 4; i++ {
+            value := app->patterns.custom[i]
+            Text(step_labels[i], x, y, GetUIFontSize(), GetThemeText())
+            minus_w := ScaleUIPx(46)
+            if GenericButton(0, x + w - minus_w * 2 - gap, y,
+                                   minus_w, btn_h, "-5",
+                                   UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                app->patterns.custom[i] -= 5
+                if app->patterns.custom[i] < 0 {
+                    app->patterns.custom[i] = 0
+                }
+                app->settings_dirty = 1
+                save_settings(app)
+            }
+            if GenericButton(0, x + w - minus_w, y, minus_w, btn_h,
+                                   "+5", UI_BUTTON_STYLE_SECONDARY, 0,
+                                   &hover) {
+                app->patterns.custom[i] += 5
+                if app->patterns.custom[i] > PATTERNS_MAX_SECONDS {
+                    app->patterns.custom[i] = PATTERNS_MAX_SECONDS
+                }
+                app->settings_dirty = 1
+                save_settings(app)
+            }
+            value_text: [16] char
+            snprintf(value_text, sizeof(value_text), "%d s  ",
+                     app->patterns.custom[i])
+            value_w := MeasureUIText(value_text, GetUIFontSize())
+            Text(value_text, x + w - minus_w * 2 - gap - value_w - ScaleUIPx(8),
+                          y, GetUIFontSize(), GetThemeText())
+            y += btn_h + gap
+        }
+        y += ScaleUIPx(6)
+    }
+
+    Text(GetLocaleText("patterns_duration_label"), x, y,
+                  GetUIFontSize(), GetThemeText())
+    y += ScaleUIPx(30)
+    duration_values: [5] const int = {0, 3, 5, 10, 20}
+    for int i = 0; i < 5; i++ {
+        label: [32] char
+        if duration_values[i] == 0 {
+            snprintf(label, sizeof(label), "%s",
+                     GetLocaleText("patterns_duration_open"))
+        } else {
+            snprintf(label, sizeof(label), "%d", duration_values[i])
+        }
+        dur_w := (w - gap * 4) / 5
+        style := app->patterns.duration_minutes == duration_values[i]
+            ? UI_BUTTON_STYLE_PRIMARY
+            : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, x + i * (dur_w + gap), y, dur_w, btn_h,
+                               label, style, 0, &hover) {
+            app->patterns.duration_minutes = duration_values[i]
+            app->settings_dirty = 1
+            save_settings(app)
+        }
+    }
+    y += btn_h + ScaleUIPx(10)
+
+    EndUIScrollPage(page)
+}
+
+patterns_config_content_height_cb :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (PatternsConfigContext*)user_data
+    app := ctx != nil ? ctx->app : nil
+    btn_h := ScaleUIPx(36)
+    gap := ScaleUIPx(8)
+    height := ScaleUIPx(24)
+
+    unused content_w
+    height += ScaleUIPx(30)
+    height += ((PATTERNS_PRESET_COUNT + 1) / 2) * (btn_h + gap) + ScaleUIPx(10)
+    if app != nil && app->patterns.preset == PATTERNS_PRESET_CUSTOM {
+        height += ScaleUIPx(30) + 4 * (btn_h + gap) + ScaleUIPx(6)
+    }
+    height += ScaleUIPx(30) + btn_h + ScaleUIPx(10)
+    height += ScaleUIPx(24)
+    return height
+}
+
+patterns_config_screen_draw :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    app->practice_config_tab = 0
+    draw_config(app)
+}
+
+patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
+    ratio: [4] int
+    time_text: [32] char
+    hover := 0
+    title_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+
+    if app == nil {
+        return
+    }
+    if app_draw_close_title_bar(app, GetLocaleText("patterns_title"), title_h) {
+        patterns_request_exit(app)
+        return
+    }
+    if handle_exit_modal(app) {
+        return
+    }
+
+    pattern_ratio(app, ratio)
+    phase_len := ratio[app->patterns.phase]
+    if phase_len <= 0 {
+        phase_len = 1
+    }
+    progress := (float)app->patterns.phase_second / (float)phase_len
+    if app->patterns.phase == PATTERNS_PHASE_INHALE {
+        pattern_circle_draw(app, center_x, center_y, 0.25 + progress * 0.75)
+    } else if app->patterns.phase == PATTERNS_PHASE_EXHALE {
+        pattern_circle_draw(app, center_x, center_y, 1.0 - progress * 0.75)
+    } else if app->patterns.phase == PATTERNS_PHASE_HOLD_IN {
+        pattern_circle_draw(app, center_x, center_y, 1.0)
+    } else {
+        pattern_circle_draw(app, center_x, center_y, 0.25)
+    }
+
+    label := GetLocaleText(phase_label_key(app->patterns.phase))
+    label_w := MeasureUIText(label, UI_TEXT_16)
+    Text(label, center_x - label_w / 2,
+                  center_y - ScaleUIPx(120), UI_TEXT_16, GetThemeText())
+
+    left := ratio[app->patterns.phase] - app->patterns.phase_second
+    if left < 1 {
+        left = 1
+    }
+    snprintf(time_text, sizeof(time_text), "%d", left)
+    phase_time_w := MeasureUIText(time_text, UI_TEXT_24)
+    Text(time_text, center_x - phase_time_w / 2,
+                  center_y - ScaleUIPx(84), UI_TEXT_24,
+                  DarkenUIColor(GetThemeText(), 30))
+
+    snprintf(time_text, sizeof(time_text), "%d", app->patterns.cycle + 1)
+    cycle_w := MeasureUIText(time_text, UI_TEXT_16)
+    Text(GetLocaleText("patterns_cycle_label"), center_x - cycle_w / 2 - ScaleUIPx(24),
+                  center_y + ScaleUIPx(110), UI_TEXT_16,
+                  DarkenUIColor(GetThemeText(), 30))
+    Text(time_text, center_x + cycle_w / 2 + ScaleUIPx(8),
+                  center_y + ScaleUIPx(110), UI_TEXT_16, GetThemeText())
+
+    if app->patterns.duration_minutes > 0 {
+        remain := app->patterns.duration_minutes * 60 -
+                  app->patterns.elapsed_seconds
+        if remain < 0 {
+            remain = 0
+        }
+        snprintf(time_text, sizeof(time_text), "%d:%02d", remain / 60,
+                 remain % 60)
+    } else {
+        snprintf(time_text, sizeof(time_text), "%d:%02d",
+                 app->patterns.elapsed_seconds / 60,
+                 app->patterns.elapsed_seconds % 60)
+    }
+    total_w := MeasureUIText(time_text, UI_TEXT_16)
+    Text(time_text, center_x - total_w / 2, center_y + ScaleUIPx(140),
+                  UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
+
+    if app->patterns.paused {
+        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(170),
+                               ScaleUIPx(120), ScaleUIPx(34),
+                               GetLocaleText("patterns_resume_button"),
+                               UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+            app->patterns.paused = 0
+        }
+        return
+    }
+    if IsKeyPressed(KEY_SPACE) || GenericButton(0, center_x - ScaleUIPx(60),
+                          center_y + ScaleUIPx(170), ScaleUIPx(120),
+                          ScaleUIPx(34), GetLocaleText("patterns_pause_button"),
+                          UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+        app->patterns.paused = 1
+    }
+
+    if !app->backgrounded {
+        app->patterns.frame_ticks++
+        if app->patterns.frame_ticks >= 60 {
+            app->patterns.frame_ticks = 0
+            advance_second(app)
+        }
+    }
+}
+
+pattern_circle_draw :: (app: InbeApp*, center_x: int, center_y: int,
+                          fraction: float) #private {
+    min_r := ScaleUIPx(36)
+    max_r := ScaleUIPx(110)
+    if fraction < 0.0 {
+        fraction = 0.0
+    }
+    if fraction > 1.0 {
+        fraction = 1.0
+    }
+    r := (int)((float)min_r + fraction * (float)(max_r - min_r))
+    circle := GetThemeCircle()
+
+    DrawCircle(center_x, center_y, (float)(r + ScaleUIPx(8)),
+               DarkenUIColor(GetThemeBackground(), 10))
+    DrawCircle(center_x, center_y, (float)r, circle)
+    DrawCircleLines(center_x, center_y, (float)max_r, GetThemeText())
+    unused app
+}
+
+route patterns {
+    title "Breathing Patterns"
+    group "Practice"
+    page patterns
+}
+
+screen patterns {
+    args InbeApp *app
+    patterns_draw_screen(app, view_width / 2, view_height / 2)
+}

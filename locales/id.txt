@@ -909,6 +909,11 @@ Data sesi berasal dari latihan selesai.
 [practice_home_wim_hof_metadata]
 %d ronde | %d napas
 ---
+[practice_home_patterns_metadata]
+%s | %d mnt
+---
+%d ronde | %d napas
+---
 [meditation_music_downloading_progress]
 Mengunduh audio... %d%%
 ---
@@ -1121,6 +1126,66 @@ Off
 ---
 [habit_reminder_title]
 Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
 ---
 [tray_break_settings]
 Break Settings...

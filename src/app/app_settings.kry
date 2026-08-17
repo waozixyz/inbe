@@ -290,6 +290,12 @@ save_settings :: (app: InbeApp*) {
     }
     save_setting_int("play_in_background", app->inbe.play_in_background)
     save_setting_int("practice_category_tab", app->practice_category_tab)
+    save_setting_int("patterns_preset", app->patterns.preset)
+    save_setting_int("patterns_custom_in", app->patterns.custom[0])
+    save_setting_int("patterns_custom_hold_in", app->patterns.custom[1])
+    save_setting_int("patterns_custom_exhale", app->patterns.custom[2])
+    save_setting_int("patterns_custom_hold_out", app->patterns.custom[3])
+    save_setting_int("patterns_duration_minutes", app->patterns.duration_minutes)
 
     save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
     save_setting_int("desktop_startup_mode", app->desktop_startup_mode)
@@ -632,6 +638,18 @@ app_load_settings :: (app: InbeApp*) -> int {
     load_clamped_setting(&settings_cache, &app->practice_category_tab,
                             "practice_category_tab", PRACTICE_CATEGORY_MIND,
                             0, PRACTICE_CATEGORY_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->patterns.preset,
+                            "patterns_preset", 0, 0, 4)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[0],
+                            "patterns_custom_in", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[1],
+                            "patterns_custom_hold_in", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[2],
+                            "patterns_custom_exhale", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[3],
+                            "patterns_custom_hold_out", 0, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.duration_minutes,
+                            "patterns_duration_minutes", 5, 0, 120)
     app->navigation_mode = load_navigation_mode(&settings_cache)
     app->profile_picture_icon = load_profile_picture_icon(&settings_cache)
     load_bottom_nav_routes(app, &settings_cache)

@@ -48,6 +48,12 @@
     X("play_in_background") \
     X("language") \
     X("practice_category_tab") \
+    X("patterns_preset") \
+    X("patterns_custom_in") \
+    X("patterns_custom_hold_in") \
+    X("patterns_custom_exhale") \
+    X("patterns_custom_hold_out") \
+    X("patterns_duration_minutes") \
     X("practice_visible_mask") \
     X("breaks_enabled") \
     X("desktop_startup_mode") \

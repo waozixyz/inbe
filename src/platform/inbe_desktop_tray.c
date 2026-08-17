@@ -25,6 +25,7 @@ typedef struct InbeTraySnapshot {
     char whm_label[96];
     char meditation_label[96];
     char sun_salutation_label[96];
+    char patterns_label[96];
     char break_label[96];
     char break_rest_now_label[96];
     char break_exercises_label[96];
@@ -98,6 +99,8 @@ FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
              GetLocaleText("exercise_meditation"));
     snprintf(snapshot->sun_salutation_label, sizeof(snapshot->sun_salutation_label), "%s",
              GetLocaleText("exercise_sun_salutation"));
+    snprintf(snapshot->patterns_label, sizeof(snapshot->patterns_label), "%s",
+             GetLocaleText("exercise_patterns"));
     snprintf(snapshot->break_label, sizeof(snapshot->break_label), "%s",
              GetLocaleText("settings_tab_breaks"));
     snprintf(snapshot->break_rest_now_label, sizeof(snapshot->break_rest_now_label), "%s",
@@ -146,7 +149,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     int item_index = 0;
 
     if(items == NULL || item_count < 6 ||
-       start_items == NULL || start_item_count < 3 ||
+       start_items == NULL || start_item_count < 4 ||
        habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
        break_items == NULL || break_item_count < 4 ||
        break_mode_items == NULL || break_mode_item_count < 3)
@@ -173,6 +176,12 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
         .label = local_snapshot.sun_salutation_label,
         .action = INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION,
+        .enabled = 1
+    };
+    start_items[3] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.patterns_label,
+        .action = INBE_DESKTOP_TRAY_ACTION_START_PATTERNS,
         .enabled = 1
     };
 
@@ -242,7 +251,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .label = local_snapshot.start_practice_label,
         .enabled = 1,
         .children = start_items,
-        .child_count = 3
+        .child_count = 4
     };
     items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
@@ -275,7 +284,7 @@ static void
 ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 {
     DesktopTrayMenuItem items[6];
-    DesktopTrayMenuItem start_items[3];
+    DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
     DesktopTrayMenuItem break_items[5];
     DesktopTrayMenuItem break_mode_items[3];
@@ -301,7 +310,7 @@ inbe_desktop_tray_init(void)
 {
     DesktopTraySpec spec;
     DesktopTrayMenuItem items[6];
-    DesktopTrayMenuItem start_items[3];
+    DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
     DesktopTrayMenuItem break_items[5];
     DesktopTrayMenuItem break_mode_items[3];
@@ -481,6 +490,9 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
         break;
     case INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION:
         StartTrayPractice(app, PRACTICE_SUN_SALUTATION);
+        break;
+    case INBE_DESKTOP_TRAY_ACTION_START_PATTERNS:
+        StartTrayPractice(app, PRACTICE_PATTERNS);
         break;
     case INBE_DESKTOP_TRAY_ACTION_QUIT:
         if(quit != NULL)

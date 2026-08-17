@@ -2838,7 +2838,7 @@ int
 storage_export_sessions_csv(const char *path)
 {
     static const char *query =
-        "SELECT s.local_date, s.topic, s.source, "
+        "SELECT s.local_date, s.activity, s.source, "
         "COALESCE((SELECT SUM(r.seconds) FROM session_rounds r "
         "          WHERE r.session_id = s.id), 0), "
         "COALESCE((SELECT COUNT(*) FROM session_rounds r "
@@ -2847,7 +2847,8 @@ storage_export_sessions_csv(const char *path)
         "          WHERE m.session_id = s.id), 0) "
         "FROM sessions s WHERE s.deleted_at IS NULL "
         "ORDER BY s.local_date, s.started_at";
-    static const char *topic_names[] = {"wim_hof", "sun_salutation"};
+    static const char *topic_names[] = {"wim_hof", "meditation",
+                                        "sun_salutation", "patterns"};
     FILE *file;
     sqlite3_stmt *stmt;
     int ok = 0;
@@ -2871,6 +2872,8 @@ storage_export_sessions_csv(const char *path)
         const char *topic_name = topic >= 0 &&
             (size_t)topic < sizeof(topic_names) / sizeof(topic_names[0])
             ? topic_names[topic] : "other";
+        if(sqlite3_column_int(stmt, 5) > 0)
+            topic_name = "meditation";
 
         fprintf(file, "%s,%s,%s,%d,%d,%d\n",
                 date != NULL ? (const char *)date : "",

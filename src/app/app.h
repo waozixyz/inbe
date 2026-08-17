@@ -182,7 +182,8 @@ typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
     EXERCISE_SUN_SALUTATION = 2,
-    EXERCISE_COUNT = 3
+    EXERCISE_PATTERNS = 3,
+    EXERCISE_COUNT = 4
 } ExerciseType;
 
 typedef enum AppThemeMode {
@@ -259,7 +260,7 @@ typedef struct AppRoute {
 
 enum {
     APP_REMINDER_MAX = 16,
-    APP_REMINDER_PRACTICE_COUNT = 3,
+    APP_REMINDER_PRACTICE_COUNT = 4,
     APP_PUSH_DISTRIBUTOR_MAX = 4
 };
 
@@ -332,6 +333,19 @@ typedef struct HabitSessionEditState {
     char path[FS_PATH_MAX];
     char text[16];
 } HabitSessionEditState;
+
+typedef struct InbePatterns {
+    int preset;
+    int custom[4];         /* inhale, hold-in, exhale, hold-out seconds */
+    int duration_minutes;  /* 0 = open-ended */
+    int active;
+    int paused;
+    int phase;
+    int phase_second;
+    int frame_ticks;
+    int cycle;
+    int elapsed_seconds;
+} InbePatterns;
 
 typedef struct HabitEditState {
     int active;
@@ -483,6 +497,7 @@ struct InbeApp {
     char habit_detail_session_path[FS_PATH_MAX];
     HabitSessionEditState habit_session_edit;
     HabitEditState habit_edit;
+    InbePatterns patterns;
     int habit_reminder_day;      /* yday+year key for once-per-day firing */
     unsigned int habit_reminded_mask;
     int habit_counter_press_day;

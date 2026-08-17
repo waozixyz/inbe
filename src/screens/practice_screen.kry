@@ -3,6 +3,7 @@
 #import "app/app_settings.h"
 #import "screens/manual_screen.h"
 #import "practices/practice_registry.h"
+#import "practices/patterns/patterns_practice.h"
 #import "sync_account.h"
 
 #enum {
@@ -435,6 +436,14 @@ practice_home_metadata :: (app: InbeApp*, out: char*, out_size: size_t) #private
         FormatLocaleText(out, out_size, "practice_home_minutes", practice_home_meditation_minutes(app))
     } else if id == EXERCISE_SUN_SALUTATION {
         FormatLocaleText(out, out_size, "practice_home_repetitions", app->sun_salutation.repetitions)
+    } else if id == EXERCISE_PATTERNS {
+        ratio: [24] char = {0}
+        patterns_ratio_text(app, ratio, sizeof(ratio))
+        if app->patterns.duration_minutes > 0 {
+            FormatLocaleText(out, out_size, "practice_home_patterns_metadata", ratio, app->patterns.duration_minutes)
+        } else {
+            snprintf(out, out_size, "%s", ratio)
+        }
     } else {
         FormatLocaleText(out, out_size, "practice_home_wim_hof_metadata", app->inbe.max_rounds, int_from_count(app->inbe.maxbreaths))
     }

@@ -19,6 +19,7 @@
     InbeScreenPracticeSession = InbeScreenSession
     InbeScreenMeditation
     InbeScreenSunSalutation
+    InbeScreenPatterns
     InbeScreenResults
     InbeScreenSettings
     InbeScreenPracticeConfig
