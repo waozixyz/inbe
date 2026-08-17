@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="start_wim_hof"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_whm">
+        <intent
+            android:action="xyz.waozi.inbe.action.START_PRACTICE"
+            android:targetPackage="xyz.waozi.inbe"
+            android:targetClass="xyz.waozi.inbe.MainActivity">
+            <extra
+                android:name="practice_id"
+                android:value="0" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="start_meditation"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_meditation">
+        <intent
+            android:action="xyz.waozi.inbe.action.START_PRACTICE"
+            android:targetPackage="xyz.waozi.inbe"
+            android:targetClass="xyz.waozi.inbe.MainActivity">
+            <extra
+                android:name="practice_id"
+                android:value="1" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="start_sun_salutation"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_sun_salutation">
+        <intent
+            android:action="xyz.waozi.inbe.action.START_PRACTICE"
+            android:targetPackage="xyz.waozi.inbe"
+            android:targetClass="xyz.waozi.inbe.MainActivity">
+            <extra
+                android:name="practice_id"
+                android:value="2" />
+        </intent>
+    </shortcut>
+    <shortcut
+        android:shortcutId="start_patterns"
+        android:enabled="true"
+        android:icon="@mipmap/ic_launcher"
+        android:shortcutShortLabel="@string/shortcut_patterns">
+        <intent
+            android:action="xyz.waozi.inbe.action.START_PRACTICE"
+            android:targetPackage="xyz.waozi.inbe"
+            android:targetClass="xyz.waozi.inbe.MainActivity">
+            <extra
+                android:name="practice_id"
+                android:value="3" />
+        </intent>
+    </shortcut>
+</shortcuts>

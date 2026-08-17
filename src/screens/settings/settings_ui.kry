@@ -1,0 +1,154 @@
+#module "settings_ui"
+
+#import "app.h"
+
+label_paragraph :: (label: const char*, w: int) -> UIParagraphSpec #private {
+    return (UIParagraphSpec){.text = label, .width = w}
+}
+
+toggle_switch_width :: () -> int {
+    if GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL {
+        return ScaleUIPx(52)
+    }
+
+    font := GetUIFontSize()
+    off_w := MeasureUIText(GetLocaleText("toggle_off"), font)
+    on_w := MeasureUIText(GetLocaleText("toggle_on"), font)
+    half := (off_w > on_w ? off_w : on_w) + ScaleUIPx(16)
+
+    return half * 2 + ScaleUIPx(6)
+}
+
+toggle_row_height :: (label: const char*, w: int) -> int {
+    if w <= 0 {
+        w = ScaleUIPx(160)
+    }
+
+    toggle_w := toggle_switch_width()
+    toggle_h := ScaleUIPx(30)
+    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap := ScaleUIPx(material ? 22 : 16)
+    label_w := w - toggle_w - gap
+
+    if label_w < ScaleUIPx(120) {
+        label_w = w
+    }
+
+    label_h := UIGetNodeHeight(UINodeParagraph(label_paragraph(label, label_w), 0, 0))
+    if label_w < w {
+        row_h := label_h
+        if row_h < toggle_h {
+            row_h = toggle_h
+        }
+        row_h += ScaleUIPx(material ? 32 : 24)
+        if row_h < ScaleUIPx(material ? 66 : 58) {
+            row_h = ScaleUIPx(material ? 66 : 58)
+        }
+        return row_h
+    }
+
+    row_h := label_h + ScaleUIPx(material ? 14 : 10) + toggle_h +
+        ScaleUIPx(material ? 30 : 22)
+    if row_h < ScaleUIPx(material ? 86 : 76) {
+        row_h = ScaleUIPx(material ? 86 : 76)
+    }
+    return row_h
+}
+
+draw_toggle_row :: (x: int, w: int, y: int*, label: const char*, value: int*) -> int {
+    if y == NULL {
+        return 0
+    }
+
+    row_h := toggle_row_height(label, w)
+    label_y := *y
+    toggle_w := toggle_switch_width()
+    toggle_h := ScaleUIPx(30)
+    material := GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    gap := ScaleUIPx(material ? 22 : 16)
+    label_w := w - toggle_w - gap
+
+    if label_w < ScaleUIPx(120) {
+        label_w = w
+    }
+
+    Paragraph(label_paragraph(label, label_w), x, &label_y)
+    label_h := label_y - *y
+    toggle_x := x
+    toggle_y := *y + label_h + ScaleUIPx(material ? 14 : 10)
+
+    if label_w < w {
+        toggle_x = x + w - toggle_w
+        toggle_y = *y + (row_h - toggle_h) / 2
+    }
+
+    if Toggle(0, toggle_x, toggle_y, toggle_w, toggle_h, value, GetLocaleText("toggle_off"), GetLocaleText("toggle_on")) {
+        *y += row_h
+        return 1
+    }
+
+    *y += row_h
+    return 0
+}
+
+commit_toggle_row :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, value: int*, save_now: int) -> int {
+    if draw_toggle_row(x, w, y, label, value) {
+        if app != NULL {
+            app->settings_dirty = 1
+            if save_now {
+                save_settings(app)
+            }
+        }
+        return 1
+    }
+    return 0
+}
+
+commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: int, label: const char*, min: int, max: int, value: int*, suffix: const char*, save_now: int) -> int {
+    if y == NULL {
+        return 0
+    }
+
+    changed := Slider(id, x, *y, w, label, min, max, value, suffix, nil)
+    if changed && app != NULL {
+        app->settings_dirty = 1
+        if save_now {
+            save_settings(app)
+        }
+    }
+    *y += row_h
+    return changed
+}
+
+draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
+    label_font := UI_TEXT_12
+    bar_h := ScaleUIPx(10)
+    label_h := ScaleUIPx(18)
+    level := app_audio_output_level(app)
+    fill_w := (int)(level * (float)w)
+    bg := GetThemeBackground()
+
+    if w <= 0 {
+        return ScaleUIPx(34)
+    }
+    if fill_w < 0 {
+        fill_w = 0
+    }
+    if fill_w > w {
+        fill_w = w
+    }
+
+    Text(label, x, y, label_font, DarkenUIColor(GetThemeText(), 28))
+    DrawRectangle(x, y + label_h, w, bar_h, DarkenUIColor(bg, 28))
+    Bevel(x, y + label_h, w, bar_h,
+                DarkenUIColor(bg, 55), LightenUIColor(bg, 35))
+    if fill_w > 0 {
+        inner_w := fill_w - ScaleUIPx(4)
+        if inner_w < ScaleUIPx(2) {
+            inner_w = ScaleUIPx(2)
+        }
+        DrawRectangle(x + ScaleUIPx(2), y + label_h + ScaleUIPx(2),
+                      inner_w, bar_h - ScaleUIPx(4), GetThemeButtonHover())
+    }
+    return label_h + bar_h + ScaleUIPx(8)
+}

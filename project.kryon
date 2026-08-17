@@ -1,0 +1,12 @@
+name "Inner Breeze"
+generated "build/kryon/generated"
+
+target "Native" "native" "sh vendor/kryon/scripts/kryon-app.sh run native"
+target "Web" "web" "sh vendor/kryon/scripts/kryon-app.sh build web"
+target "Android Debug" "android-debug" "sh vendor/kryon/scripts/kryon-app.sh build android-debug"
+target "Android Release" "android-release" "sh vendor/kryon/scripts/kryon-app.sh build android-release"
+target "Windows" "windows" "sh vendor/kryon/scripts/kryon-app.sh build windows"
+target "AppImage" "appimage" "sh vendor/kryon/scripts/kryon-app.sh package appimage"
+target "Click" "click" "sh vendor/kryon/scripts/kryon-app.sh package click"
+target "Snap" "snap" "sh vendor/kryon/scripts/kryon-app.sh package snap"
+target "Flatpak" "flatpak" "sh vendor/kryon/scripts/kryon-app.sh package flatpak"

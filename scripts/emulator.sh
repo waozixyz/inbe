@@ -3,6 +3,16 @@
 set -e
 
 AVD_NAME="${AVD_NAME:-inbe-test}"
+UNAME_S="$(uname -s)"
+KERNEL_R="$(uname -r 2>/dev/null || true)"
+SOFT_EMULATOR=0
+if [ "$UNAME_S" = "FreeBSD" ] || echo "$KERNEL_R" | grep -qi FreeBSD || [ ! -e /dev/kvm ]; then
+  SOFT_EMULATOR=1
+fi
+
+if [ "$UNAME_S" = "FreeBSD" ]; then
+  mkdir -p "$HOME"
+fi
 
 # Check for Android SDK location
 if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
@@ -11,17 +21,31 @@ if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
 fi
 
 # Set up writable SDK location
-PERSISTENT_SDK_ROOT="$HOME/.android-sdk-writable"
 ORIGINAL_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+if [ "$UNAME_S" = "FreeBSD" ]; then
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-/tmp/android-sdk}"
+else
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-$HOME/.android-sdk-writable}"
+fi
 
 mkdir -p "$PERSISTENT_SDK_ROOT"
 for component in build-tools cmake cmdline-tools emulator licenses ndk platforms platform-tools tools; do
   if [ -n "$ORIGINAL_SDK_ROOT" ] && [ -e "$ORIGINAL_SDK_ROOT/$component" ] && [ ! -e "$PERSISTENT_SDK_ROOT/$component" ]; then
-    ln -sf "$ORIGINAL_SDK_ROOT/$component" "$PERSISTENT_SDK_ROOT/$component"
+    if [ "$UNAME_S" = "FreeBSD" ]; then
+      cp -R "$ORIGINAL_SDK_ROOT/$component" "$PERSISTENT_SDK_ROOT/$component"
+      chmod -R u+w "$PERSISTENT_SDK_ROOT/$component" 2>/dev/null || true
+    else
+      ln -sf "$ORIGINAL_SDK_ROOT/$component" "$PERSISTENT_SDK_ROOT/$component"
+    fi
   fi
 done
 
-if [ -d "$PERSISTENT_SDK_ROOT" ] && [ -d "$PERSISTENT_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
+NEED_CREATE_AVD=0
+if [ ! -d "$PERSISTENT_SDK_ROOT" ] || [ ! -d "$PERSISTENT_SDK_ROOT/avd/$AVD_NAME.avd" ]; then
+  NEED_CREATE_AVD=1
+fi
+
+if [ "$NEED_CREATE_AVD" -eq 0 ]; then
   export ANDROID_SDK_ROOT="$PERSISTENT_SDK_ROOT"
   export ANDROID_SDK_HOME="$PERSISTENT_SDK_ROOT"
   export ANDROID_AVD_HOME="$PERSISTENT_SDK_ROOT/avd"
@@ -48,6 +72,10 @@ fi
 EMULATOR_DIR="$(cd "$(dirname "$EMULATOR_CMD")" && pwd)"
 EMULATOR_LD_LIBRARY_PATH="${ANDROID_EMULATOR_LD_LIBRARY_PATH:-$EMULATOR_DIR/lib64:$EMULATOR_DIR/lib64/qt/lib}"
 
+if [ "$UNAME_S" = "FreeBSD" ] && command -v brandelf >/dev/null 2>&1; then
+  find "$EMULATOR_DIR" -type f -perm -111 -exec brandelf -t Linux {} + >/dev/null 2>&1 || true
+fi
+
 # Check if emulator is already running
 if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   echo "✅ Emulator already running"
@@ -55,7 +83,9 @@ if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   exit 0
 fi
 
-if LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$EMULATOR_CMD" 2>/dev/null | grep -q "not found"; then
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
+  LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" -version >/dev/null
+elif LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" ldd "$EMULATOR_CMD" 2>/dev/null | grep -q "not found"; then
   echo "❌ Emulator runtime libraries are missing."
   echo "   Install the emulator runtime libraries or set ANDROID_EMULATOR_LD_LIBRARY_PATH."
   exit 1
@@ -67,17 +97,30 @@ echo "🚀 Launching Pixel 8 Pro emulator ($AVD_NAME)..."
 unset ANDROID_HOME
 export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 
-# Launch emulator in background with KVM acceleration
-LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
-  -gpu host \
-  -skin 1440x2960 \
-  -no-snapshot-load \
-  -no-boot-anim \
-  -verbose \
-  -qemu -enable-kvm > /tmp/emulator.log 2>&1 &
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
+  LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
+    -no-window \
+    -no-audio \
+    -gpu off \
+    -no-accel \
+    -no-snapshot-load \
+    -no-boot-anim \
+    -verbose > /tmp/emulator.log 2>&1 &
+else
+  LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
+    -gpu host \
+    -skin 1440x2960 \
+    -no-snapshot-load \
+    -no-boot-anim \
+    -verbose \
+    -qemu -enable-kvm > /tmp/emulator.log 2>&1 &
+fi
 
 echo "⏳ Waiting for boot (this may take a while)..."
 timeout_seconds=120
+if [ "$SOFT_EMULATOR" -eq 1 ]; then
+  timeout_seconds=600
+fi
 elapsed=0
 
 timeout 20 "$ADB_CMD" -e wait-for-device >/dev/null 2>&1 || true

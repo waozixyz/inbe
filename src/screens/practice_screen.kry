@@ -1,0 +1,1023 @@
+#import "app.h"
+#import "app_nav.h"
+#import "app/app_settings.h"
+#import "screens/manual_screen.h"
+#import "practices/practice_registry.h"
+#import "practices/patterns/patterns_practice.h"
+#import "sync_account.h"
+
+#enum {
+    PRACTICE_CATEGORY_TAB_H = 40
+    PRACTICE_CATEGORY_TOAST_TICKS = 120
+    PRACTICE_CONFIG_TAB_LIST = -1
+}
+
+PracticeSubscreenLayout :: struct {
+    integrated: int
+    title_h: int
+    scroll_y: int
+    scroll_h: int
+}
+
+PracticeManualLayout :: struct {
+    integrated: int
+    title_h: int
+    nav_y: int
+    nav_h: int
+    content_y: int
+    content_h: int
+}
+
+PracticeLeaveConfigFn :: void (*)(InbeApp*) #type
+
+practice_visible_mask_all :: () -> int {
+    return (1 << EXERCISE_COUNT) - 1
+}
+
+practice_sanitize_visible_mask :: (mask_arg: int) -> int #private {
+    mask := mask_arg & practice_visible_mask_all()
+    return mask != 0 ? mask : practice_visible_mask_all()
+}
+
+practice_is_visible :: (app: const InbeApp*, exercise: int) -> int {
+    mask := 0
+
+    if exercise < 0 || exercise >= EXERCISE_COUNT {
+        return 0
+    }
+    mask = practice_sanitize_visible_mask(app != NULL ? app->practice_visible_mask : 0)
+    return (mask & (1 << exercise)) != 0
+}
+
+practice_first_visible :: (app: const InbeApp*) -> int #private {
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if practice_is_visible(app, i) {
+            return i
+        }
+    }
+    return EXERCISE_WIM_HOF
+}
+
+practice_set_visible :: (app: InbeApp*, exercise: int, visible: int) {
+    mask := 0
+
+    if app == NULL || exercise < 0 || exercise >= EXERCISE_COUNT {
+        return
+    }
+    mask = practice_sanitize_visible_mask(app->practice_visible_mask)
+    if visible {
+        mask = mask | (1 << exercise)
+    } else if (mask & ~(1 << exercise)) != 0 {
+        mask = mask & ~(1 << exercise)
+    }
+    app->practice_visible_mask = practice_sanitize_visible_mask(mask)
+    practice_clamp_activity_to_tab(app)
+    save_settings(app)
+}
+
+practice_activity_count_for_tab :: (tab: int) -> int {
+    unused tab
+    return practice_count()
+}
+
+practice_activity_for_tab :: (tab: int, index: int) -> int {
+    unused tab
+    if index < 0 {
+        return EXERCISE_WIM_HOF
+    }
+    if index >= practice_count() {
+        return practice_count() - 1
+    }
+    return index
+}
+
+practice_screen_subscreen_integrated :: (app: const InbeApp*, modal_type: int) -> int {
+    return app != NULL && app->inbe.screen == InbeScreenStart && (int)app->modal.type != modal_type
+}
+
+practice_screen_config_layout :: (app: InbeApp*, modal_type: int, content_top_gap: int, layout: PracticeSubscreenLayout*) {
+    integrated := practice_screen_subscreen_integrated(app, modal_type)
+    title_h := integrated ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    scroll_y := title_h + content_top_gap
+    bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
+    scroll_h := view_height - scroll_y - bottom_reserved - (integrated ? ScaleUIPx(8) : 0)
+
+    if layout == NULL {
+        return
+    }
+    if scroll_h < 0 {
+        scroll_h = 0
+    }
+    *layout = (PracticeSubscreenLayout){integrated, title_h, scroll_y, scroll_h}
+}
+
+practice_screen_manual_layout :: (app: InbeApp*, modal_type: int, page_count: int, content_top_gap: int, content_bottom_gap: int, min_content_h: int, layout: PracticeManualLayout*) {
+    integrated := practice_screen_subscreen_integrated(app, modal_type)
+    title_h := integrated ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    nav_h := page_count > 1 ? manual_screen_guide_nav_height() : 0
+    bottom_reserved := integrated ? app_content_bottom_reserved(app) : 0
+    nav_y := title_h
+    content_y := title_h + nav_h + content_top_gap
+    content_h := view_height - bottom_reserved - content_y - content_bottom_gap
+
+    if layout == NULL {
+        return
+    }
+    if content_h < min_content_h {
+        content_h = min_content_h
+    }
+    *layout = (PracticeManualLayout){integrated, title_h, nav_y, nav_h, content_y, content_h}
+}
+
+practice_screen_handle_config_title :: (app: InbeApp*, title: const char*, modal_type: int, leave_config: PracticeLeaveConfigFn) -> int {
+    title_h := 0
+
+    if app == NULL {
+        return 0
+    }
+    title_h = practice_screen_subscreen_integrated(app, modal_type) ? app_content_top_reserved(app) : UIGetNodeHeight(UINodeTitleBar(0))
+    if !app_draw_close_title_bar(app, title, title_h) {
+        return 0
+    }
+    if app->modal.active && (int)app->modal.type == modal_type {
+        app_close_modal(app)
+    } else {
+        if app->settings_dirty {
+            save_settings(app)
+        }
+        if leave_config != NULL {
+            leave_config(app)
+        }
+        app->settings_scroll = 0
+        app->practice_tab = PRACTICE_TAB_PLAY
+        app_switch_screen(app, InbeScreenStart)
+    }
+    return 1
+}
+
+practice_card_color_top :: (exercise: int) -> Color {
+    id := practice_clamp_id(exercise)
+    if id == EXERCISE_MEDITATION {
+        return (Color){78, 126, 164, 255}
+    }
+    if id == EXERCISE_SUN_SALUTATION {
+        return (Color){213, 134, 72, 255}
+    }
+    return (Color){72, 142, 128, 255}
+}
+
+practice_card_color_bottom :: (exercise: int) -> Color {
+    id := practice_clamp_id(exercise)
+    if id == EXERCISE_MEDITATION {
+        return (Color){52, 74, 122, 255}
+    }
+    if id == EXERCISE_SUN_SALUTATION {
+        return (Color){177, 87, 85, 255}
+    }
+    return (Color){43, 93, 118, 255}
+}
+
+practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle) {
+    src_w := 0.0f
+    src_h := 0.0f
+    scale := 0.0f
+    src := (Rectangle){0}
+
+    if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
+        return
+    }
+    src_w = (float)texture.width
+    src_h = (float)texture.height
+    scale = dest.width / src_w
+    if src_h * scale < dest.height {
+        scale = dest.height / src_h
+    }
+    src.width = dest.width / scale
+    src.height = dest.height / scale
+    src.x = (src_w - src.width) / 2.0f
+    src.y = (src_h - src.height) / 2.0f
+    DrawTexturePro(texture, src, dest, (Vector2){0}, 0.0f, WHITE)
+}
+
+practice_card_banner :: (app: const InbeApp*, exercise: int) -> Texture2D {
+    id := practice_clamp_id(exercise)
+
+    if app == NULL {
+        return (Texture2D){0}
+    }
+    if id == EXERCISE_WIM_HOF {
+        return app->whm.banner
+    }
+    if id == EXERCISE_SUN_SALUTATION {
+        return app->sun_salutation.banner
+    }
+    if id == EXERCISE_MEDITATION {
+        return app->meditation.banner
+    }
+    return (Texture2D){0}
+}
+
+practice_next_visible :: (app: InbeApp*, dir: int) -> int {
+    if app == NULL {
+        return EXERCISE_WIM_HOF
+    }
+    current := practice_clamp_id(app->exercise_type)
+    for int step = 1; step <= EXERCISE_COUNT; step++ {
+        id := (current + dir * step + EXERCISE_COUNT * 2) % EXERCISE_COUNT
+        if practice_is_visible(app, id) {
+            return id
+        }
+    }
+    return current
+}
+
+practice_visible_count :: (app: const InbeApp*) -> int {
+    count := 0
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if practice_is_visible(app, i) {
+            count++
+        }
+    }
+    return count
+}
+
+practice_visible_index :: (app: const InbeApp*, exercise: int) -> int {
+    index := 0
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if !practice_is_visible(app, i) {
+            continue
+        }
+        if i == exercise {
+            return index
+        }
+        index++
+    }
+    return 0
+}
+
+practice_home_dots_height :: (app: const InbeApp*) -> int #private {
+    return practice_visible_count(app) > 1 ? ScaleUIPx(28) : 0
+}
+
+practice_home_carousel_controls_height :: (app: const InbeApp*) -> int #private {
+    return practice_visible_count(app) > 1 ? ScaleUIPx(52) : 0
+}
+
+practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
+    route := (AppRoute){0}
+
+    if app == NULL {
+        return
+    }
+    if app->practice_tab == PRACTICE_TAB_CONFIG {
+        app_leave_practice_config(app)
+    }
+    route = app_current_route(app)
+    route.screen = InbeScreenStart
+    route.exercise_type = practice_clamp_id(exercise)
+    route.practice_tab = PRACTICE_TAB_PLAY
+    route.practice_config_tab = 0
+    app->manual_scroll = 0
+    app->settings_scroll = 0
+    app->practice_home_scroll = 0
+    app->tutorial_step = 0
+    app_switch_route(app, route)
+}
+
+practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
+    count := practice_visible_count(app)
+    active_index := 0
+    radius := ScaleUIPx(4)
+    active_radius := ScaleUIPx(5)
+    hit := ScaleUIPx(24)
+    gap := ScaleUIPx(14)
+    total_w := 0
+    start_x := 0
+    center_y := 0
+    dot_index := 0
+    mouse_world := (Vector2){0}
+
+    if app == NULL || count <= 1 {
+        return
+    }
+
+    active_index = practice_visible_index(app, app->exercise_type)
+    total_w = count * hit + (count - 1) * gap
+    start_x = x + (w - total_w) / 2 + hit / 2
+    center_y = y + ScaleUIPx(14)
+    mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
+
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if !practice_is_visible(app, i) {
+            continue
+        }
+        center_x := start_x + dot_index * (hit + gap)
+        current_radius := dot_index == active_index ? active_radius : radius
+        hit_bounds := (Rectangle){(float)(center_x - hit / 2), (float)(center_y - hit / 2), (float)hit, (float)hit}
+        active := CheckCollisionPointRec(mouse_world, hit_bounds) && !UIInputCapturesClick(mouse_world)
+        hovered := active && UIHoverEffectsEnabled()
+        fill := dot_index == active_index ? GetThemeText() : GetThemeBackground()
+        stroke := GetThemeText()
+
+        if hovered {
+            fill = dot_index == active_index ? LightenUIColor(fill, 18) : DarkenUIColor(GetThemeBackground(), 16)
+            stroke = LightenUIColor(stroke, 18)
+            MarkUIClickable()
+        }
+        DrawCircle(center_x, center_y, current_radius, fill)
+        DrawCircleLines(center_x, center_y, current_radius + ScaleUIPx(1), stroke)
+        if active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && i != app->exercise_type {
+            practice_select_home_card(app, i)
+        }
+        dot_index++
+    }
+}
+
+practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) #private {
+    arrow := ScaleUIPx(44)
+    row_h := practice_home_carousel_controls_height(app)
+    arrow_y := y + (row_h - arrow) / 2
+    gap := ScaleUIPx(8)
+    dots_x := x + arrow + gap
+    dots_w := w - (arrow + gap) * 2
+    arrow_bg := GetThemeButton()
+    arrow_hover := GetThemeButtonHover()
+    arrow_border := DarkenUIColor(GetThemeButton(), 35)
+    arrow_icon := GetThemeText()
+
+    if app == NULL || row_h <= 0 {
+        return
+    }
+    if dots_w < ScaleUIPx(80) {
+        dots_x = x
+        dots_w = w
+    }
+    if IconButton((IconButtonProps){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
+        practice_select_home_card(app, practice_next_visible(app, -1))
+    }
+    practice_draw_home_dots(app, dots_x, y + (row_h - practice_home_dots_height(app)) / 2, dots_w)
+    if IconButton((IconButtonProps){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
+        practice_select_home_card(app, practice_next_visible(app, 1))
+    }
+}
+
+practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int #private {
+    practice := practice_get(app != NULL ? app->exercise_type : 0)
+    gap := ScaleUIPx(12)
+    btn_h := ScaleUIPx(42)
+    height := practice_home_carousel_controls_height(app) + ScaleUIPx(10) + btn_h
+
+    if practice_home_actions_share_row(practice, content_w) {
+        height += gap + btn_h
+    } else {
+        if practice != NULL && practice->draw_manual != NULL {
+            height += gap + btn_h
+        }
+        if practice != NULL && practice->draw_config != NULL {
+            height += gap + btn_h
+        }
+    }
+    return height + ScaleUIPx(14)
+}
+
+practice_home_card_height :: (app: const InbeApp*, y: int, bottom_reserved: int,
+                             content_w: int) -> int #private {
+    card_h := view_height - y - bottom_reserved -
+              practice_home_below_card_height(app, content_w)
+
+    if card_h < ScaleUIPx(180) {
+        card_h = ScaleUIPx(180)
+    }
+    if card_h > ScaleUIPx(300) {
+        card_h = ScaleUIPx(300)
+    }
+    return card_h
+}
+
+practice_home_action_gap :: (content_w: int) -> int #private {
+    return content_w < ScaleUIPx(340) ? ScaleUIPx(6) : ScaleUIPx(8)
+}
+
+practice_home_subtitle :: (exercise: int) -> const char* #private {
+    return NULL
+}
+
+practice_home_meditation_minutes :: (app: const InbeApp*) -> int #private {
+    mode := app != NULL ? app->meditation.duration_mode : 1
+
+    if mode == 0 {
+        return 5
+    }
+    if mode == 1 {
+        return 15
+    }
+    if mode == 2 {
+        return 30
+    }
+    if mode == 3 {
+        return 60
+    }
+    if mode == 4 {
+        return 120
+    }
+    return app != NULL ? clampi(app->meditation.custom_minutes, 1, 240) : 15
+}
+
+practice_home_metadata :: (app: InbeApp*, out: char*, out_size: size_t) #private {
+    if out == NULL || out_size == 0 {
+        return
+    }
+    out[0] = '\0'
+    if app == NULL {
+        return
+    }
+    id := practice_clamp_id(app->exercise_type)
+    if id == EXERCISE_MEDITATION {
+        FormatLocaleText(out, out_size, "practice_home_minutes", practice_home_meditation_minutes(app))
+    } else if id == EXERCISE_SUN_SALUTATION {
+        FormatLocaleText(out, out_size, "practice_home_repetitions", app->sun_salutation.repetitions)
+    } else if id == EXERCISE_PATTERNS {
+        ratio: [24] char = {0}
+        patterns_ratio_text(app, ratio, sizeof(ratio))
+        if app->patterns.duration_minutes > 0 {
+            FormatLocaleText(out, out_size, "practice_home_patterns_metadata", ratio, app->patterns.duration_minutes)
+        } else {
+            snprintf(out, out_size, "%s", ratio)
+        }
+    } else {
+        FormatLocaleText(out, out_size, "practice_home_wim_hof_metadata", app->inbe.max_rounds, int_from_count(app->inbe.maxbreaths))
+    }
+}
+
+practice_home_title_height :: (app: const InbeApp*) -> int #private {
+    subtitle := app != NULL ? practice_home_subtitle(app->exercise_type) : NULL
+    return subtitle != NULL ? ScaleUIPx(80) : ScaleUIPx(58)
+}
+
+practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
+    if app == NULL {
+        return
+    }
+
+    practice := practice_get(app->exercise_type)
+    title := practice->label_key != NULL ? practice_label(app->exercise_type) : ""
+    subtitle := practice_home_subtitle(app->exercise_type)
+    metadata: [96] char = {0}
+    title_font := 0
+    title_w := 0
+    metadata_font := 0
+    metadata_w := 0
+
+    practice_home_metadata(app, metadata, sizeof(metadata))
+    title_font = GetUITitleFontSize(title, w)
+    title_w = MeasureUIText(title, title_font)
+    Text(title, x + (w - title_w) / 2,
+               GetUIControlTextY(title, y, ScaleUIPx(34), title_font),
+               title_font, GetThemeText())
+    metadata_font = GetUIFontSize()
+    metadata_w = MeasureUIText(metadata, metadata_font)
+    Text(metadata, x + (w - metadata_w) / 2,
+               GetUIControlTextY(metadata, y + ScaleUIPx(34),
+                                 ScaleUIPx(18), metadata_font),
+               metadata_font, DarkenUIColor(GetThemeText(), 22))
+    if subtitle != NULL {
+        subtitle_font := GetUIFontSize()
+        subtitle_w := MeasureUIText(subtitle, subtitle_font)
+        Text(subtitle, x + (w - subtitle_w) / 2,
+                   GetUIControlTextY(subtitle, y + ScaleUIPx(56),
+                                     ScaleUIPx(18), subtitle_font),
+                   subtitle_font, DarkenUIColor(GetThemeText(), 22))
+    }
+}
+
+practice_home_action_row_widths :: (content_w: int, manual_w: int*, config_w: int*) -> int #private {
+    font := GetUISmallFontSize()
+    pad := ScaleUIPx(8)
+    gap := practice_home_action_gap(content_w)
+    manual_min := MeasureUIText(GetLocaleText("practice_manual_button"), font) + pad * 2
+    config_min := MeasureUIText(GetLocaleText("practice_configure_button"), font) + pad * 2
+    half_w := 0
+    available_w := 0
+
+    if content_w < manual_min + config_min + gap {
+        return 0
+    }
+    available_w = content_w - gap
+    half_w = available_w / 2
+    if half_w >= manual_min && available_w - half_w >= config_min {
+        *manual_w = half_w
+        *config_w = available_w - half_w
+        return 1
+    }
+    *manual_w = manual_min
+    *config_w = available_w - *manual_w
+    if *config_w < config_min {
+        *config_w = config_min
+        *manual_w = available_w - *config_w
+    }
+    return *manual_w >= manual_min && *config_w >= config_min
+}
+
+practice_home_actions_share_row :: (practice: const PracticeDefinition*, content_w: int) -> int #private {
+    manual_w := 0
+    config_w := 0
+    return practice != NULL && practice->draw_manual != NULL && practice->draw_config != NULL && practice_home_action_row_widths(content_w, &manual_w, &config_w)
+}
+
+practice_home_content_height :: (content_w: int, user_data: void*) -> int #private {
+    app := (InbeApp*)user_data
+    if app == NULL {
+        return 0
+    }
+    y := ScaleUIPx(14)
+
+    y += practice_home_title_height(app) + ScaleUIPx(10)
+    y += practice_home_card_height(app, y, app_content_bottom_reserved(app),
+                                  content_w)
+    y += practice_home_below_card_height(app, content_w)
+    return y + practice_home_visibility_height(app)
+}
+
+# "Show" row: per-practice checkboxes that drive the carousel visibility
+# (at least one stays on).
+practice_home_visibility_height :: (app: const InbeApp*) -> int #private {
+    rows := 0
+
+    if app == NULL || practice_count() <= 1 {
+        return 0
+    }
+    rows = (practice_count() + 1) / 2
+    return ScaleUIPx(26) + rows * ScaleUIPx(30) + ScaleUIPx(10)
+}
+
+practice_draw_home_visibility :: (app: InbeApp*, x: int, y: int, w: int) #private {
+    row_h := ScaleUIPx(30)
+
+    if app == NULL || practice_home_visibility_height(app) <= 0 {
+        return
+    }
+
+    Text(GetLocaleText("practice_show_label"), x, y,
+                  GetUISmallFontSize(), GetThemeText())
+    y += ScaleUIPx(26)
+
+    two_cols := w >= ScaleUIPx(360)
+    col_w := w
+    if two_cols {
+        col_w = w / 2
+    }
+    for int i = 0; i < practice_count(); i++ {
+        col := two_cols ? i % 2 : 0
+        row := two_cols ? i / 2 : i
+        visible := practice_is_visible(app, i)
+        if Checkbox(7300 + i, x + col * col_w, y + row * row_h,
+                              practice_label(i), &visible) {
+            practice_set_visible(app, i, visible)
+        }
+    }
+}
+
+practice_screen_draw_home :: (app: InbeApp*) {
+    start_kry_draw(app)
+}
+
+practice_activity_label :: (exercise: int) -> const char* {
+    return practice_label(exercise)
+}
+
+practice_clamp_activity_to_tab :: (app: InbeApp*) {
+    if app == NULL {
+        return
+    }
+    app->practice_visible_mask = practice_sanitize_visible_mask(app->practice_visible_mask)
+    app->exercise_type = practice_clamp_id(app->exercise_type)
+    if !practice_is_visible(app, app->exercise_type) {
+        app->exercise_type = practice_first_visible(app)
+    }
+}
+
+practice_screen_open_tab :: (app: InbeApp*, tab: int) {
+    route := (AppRoute){0}
+
+    if app == NULL || app->modal.active {
+        return
+    }
+    if tab == PRACTICE_TAB_PLAY {
+        route = app_current_route(app)
+        if app->practice_tab == PRACTICE_TAB_CONFIG {
+            app_leave_practice_config(app)
+        }
+        route.practice_tab = PRACTICE_TAB_PLAY
+        route.screen = InbeScreenStart
+        if app->modal.type == UIModalPracticeManual || app->modal.type == UIModalPracticeConfig {
+            app_close_modal(app)
+        }
+        app_switch_route(app, route)
+    } else if tab == PRACTICE_TAB_MANUAL {
+        route = app_current_route(app)
+        if practice_get(app->exercise_type)->draw_manual == NULL {
+            return
+        }
+        if app->practice_tab == PRACTICE_TAB_CONFIG {
+            app_leave_practice_config(app)
+        }
+        route.practice_tab = PRACTICE_TAB_MANUAL
+        route.screen = InbeScreenStart
+        app->tutorial_step = 0
+        app->manual_scroll = 0
+        app_switch_route(app, route)
+    } else if tab == PRACTICE_TAB_CONFIG {
+        route = app_current_route(app)
+        if practice_get(app->exercise_type)->draw_config == NULL {
+            return
+        }
+        if app->practice_tab != PRACTICE_TAB_CONFIG {
+            reset_settings_preview(app)
+            app->settings_scroll = 0
+            app->practice_config_tab = 0
+        }
+        route.practice_tab = PRACTICE_TAB_CONFIG
+        route.practice_config_tab = 0
+        route.screen = InbeScreenStart
+        app_switch_route(app, route)
+    }
+}
+
+practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private {
+    tabs := (UITab[EXERCISE_COUNT]){0}
+    values := (int[EXERCISE_COUNT]){0}
+    tab_count := 0
+    selected_index := 0
+    clicked := 0
+
+    if app == NULL {
+        return -1
+    }
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if !practice_is_visible(app, i) {
+            continue
+        }
+        if i == app->exercise_type {
+            selected_index = tab_count
+        }
+        values[tab_count] = i
+        tabs[tab_count] = (UITab){.label = practice_activity_label(i), .icon = (Texture2D){0}, .icon_size = 0, .disabled = app->modal.active}
+        tab_count++
+    }
+    if tab_count <= 0 {
+        return -1
+    }
+    clicked = TabBar((TabBarProps){.bounds = {0, (float)y, (float)view_width, (float)UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))}, .tabs = tabs, .count = tab_count, .selected_index = selected_index, .min_tab_width = ScaleUIPx(120), .max_tab_width = ScaleUIPx(180)})
+    return clicked >= 0 && clicked < tab_count ? values[clicked] : -1
+}
+
+practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
+    exercise_options := (const char*[EXERCISE_COUNT]){0}
+    exercise_values := (int[EXERCISE_COUNT]){0}
+    activity_count := 0
+    activity_index := 0
+    route := (AppRoute){0}
+
+    if app == NULL {
+        return
+    }
+    practice_clamp_activity_to_tab(app)
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if !practice_is_visible(app, i) {
+            continue
+        }
+        if i == app->exercise_type {
+            activity_index = activity_count
+        }
+        exercise_values[activity_count] = i
+        exercise_options[activity_count] = practice_activity_label(i)
+        activity_count++
+    }
+    if activity_count <= 0 {
+        return
+    }
+    if draw_menu {
+        header_result := ToolbarHeader((ToolbarHeaderProps){.toolbar = (ToolbarProps){.id = 300, .draw_menu = 1, .options = exercise_options, .option_count = activity_count, .selected_index = &activity_index}})
+        menu_result := header_result.toolbar
+        if !app->modal.active && menu_result.selected_menu_item >= 0 {
+            route = app_current_route(app)
+            if app->practice_tab == PRACTICE_TAB_CONFIG {
+                app_leave_practice_config(app)
+            }
+            route.exercise_type = exercise_values[activity_index]
+            route.practice_tab = PRACTICE_TAB_PLAY
+            route.practice_config_tab = 0
+            route.screen = InbeScreenStart
+            app->manual_scroll = 0
+            app->settings_scroll = 0
+            app->practice_home_scroll = 0
+            app->tutorial_step = 0
+            app->practice_config_tab = 0
+            app_switch_route(app, route)
+        }
+        return
+    }
+    if app_should_use_tab_bar(app) {
+        clicked_exercise := practice_screen_draw_desktop_tab_bar(app, 0)
+        if clicked_exercise >= 0 && clicked_exercise != app->exercise_type {
+            route = app_current_route(app)
+            if app->practice_tab == PRACTICE_TAB_CONFIG {
+                app_leave_practice_config(app)
+            }
+            route.exercise_type = clicked_exercise
+            route.practice_tab = PRACTICE_TAB_PLAY
+            route.practice_config_tab = 0
+            route.screen = InbeScreenStart
+            app->manual_scroll = 0
+            app->settings_scroll = 0
+            app->practice_home_scroll = 0
+            app->tutorial_step = 0
+            app->practice_config_tab = 0
+            app_switch_route(app, route)
+        }
+    } else {
+        ToolbarHeader((ToolbarHeaderProps){.leading_icon = (Texture2D){0}, .toolbar = (ToolbarProps){.id = 300, .height = UIGetNodeHeight(UINodeTabBar((TabBarProps){0})), .options = app->modal.active ? NULL : exercise_options, .option_count = app->modal.active ? 0 : activity_count, .selected_index = &activity_index, .dropdown_min_width = ScaleUIPx(160), .dropdown_height = ScaleUIPx(36), .side_padding = -1}})
+    }
+    if !app->modal.active {
+        app->practice_tab = PRACTICE_TAB_PLAY
+    }
+}
+
+practice_screen_draw_floating_actions :: (app: InbeApp*) {
+    icon_size := ScaleUIPx(22)
+    icon_padding := ScaleUIPx(9)
+    button_w := icon_size + icon_padding * 2
+    gap := ScaleUIPx(10)
+    margin := ScaleUIPx(14)
+    y := app_content_top_reserved(app) + ScaleUIPx(10)
+    x := view_width - margin
+
+    if app == NULL || app->modal.active || app->inbe.screen != InbeScreenStart {
+        return
+    }
+    practice := practice_get(app->exercise_type)
+    if practice->draw_config != NULL {
+        hover := 0
+        x -= button_w
+        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_WRENCH], &hover) {
+            practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
+        }
+        x -= gap
+    }
+    if practice->draw_manual != NULL {
+        hover := 0
+        x -= button_w
+        if PaddedIconBtn(0, x, y, icon_size, icon_padding, app->icons[UI_ICON_TYPE_MANUAL], &hover) {
+            practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
+        }
+    }
+}
+
+practice_screen_draw_modal :: (app: InbeApp*) {
+    if app == NULL || !app->modal.active {
+        return
+    }
+    if app->modal.type != UIModalPracticeManual && app->modal.type != UIModalPracticeConfig && app->modal.type != UIModalEditProgressiveStartSpeed {
+        return
+    }
+    DrawRectangle(0, 0, view_width, view_height, GetThemeBackground())
+    if app->modal.type == UIModalEditProgressiveStartSpeed {
+        practice := practice_get(app->exercise_type)
+        if practice->draw_config != NULL {
+            practice->draw_config(app)
+        }
+        return
+    }
+    if app->modal.type == UIModalPracticeManual {
+        app->practice_tab = PRACTICE_TAB_MANUAL
+        manual_screen_draw(app)
+    } else {
+        practice := practice_get(app->exercise_type)
+        app->practice_tab = PRACTICE_TAB_CONFIG
+        if practice->draw_config != NULL {
+            practice->draw_config(app)
+        }
+    }
+}
+
+practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
+    if app == NULL {
+        return
+    }
+    app->tutorial_seen = 1
+    app->tutorial_step = 0
+    save_settings(app)
+}
+
+practice_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
+    account := (KsyncAccount){0}
+    return app != NULL && !app->tutorial_seen && app->tutorial_step == 0 && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !sync_account_load(&account)
+}
+
+practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
+    if !practice_screen_first_run_guide_active(app) {
+        return
+    }
+    app->practice_tab = PRACTICE_TAB_PLAY
+}
+
+practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> Rectangle #private {
+    left := manual.x < config.x ? manual.x : config.x
+    top := manual.y < config.y ? manual.y : config.y
+    right := manual.x + manual.width
+    bottom := manual.y + manual.height
+    config_right := config.x + config.width
+    config_bottom := config.y + config.height
+
+    if config_right > right {
+        right = config_right
+    }
+    if config_bottom > bottom {
+        bottom = config_bottom
+    }
+    return (Rectangle){left, top, right - left, bottom - top}
+}
+
+practice_screen_draw_first_run_guide :: (app: InbeApp*) {
+    steps: [3] UIGuideStep = {0}
+    result := (UIGuideResult){0}
+
+    if !practice_screen_first_run_guide_active(app) {
+        return
+    }
+    if !app->practice_home_bounds_valid {
+        return
+    }
+    steps[0] = (UIGuideStep){app->practice_home_bounds_card, GetLocaleText("practice_guide_carousel")}
+    steps[1] = (UIGuideStep){app->practice_home_bounds_start, GetLocaleText("practice_guide_start")}
+    steps[2] = (UIGuideStep){practice_home_action_guide_anchor(app->practice_home_bounds_manual, app->practice_home_bounds_config), GetLocaleText("practice_guide_manual_config")}
+    result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
+    if result.changed {
+        save_settings(app)
+    }
+    if result.closed || result.finished {
+        practice_screen_dismiss_first_run_guide(app)
+    }
+}
+
+route start {
+    title "Practice"
+    group "Practice"
+    page start
+}
+
+page start(app: InbeApp*) {
+    guard app == NULL
+
+    practice := (const PracticeDefinition*)NULL
+    scroll_y := 0
+    scroll_h := 0
+    bottom_reserved := 0
+    page := (UIScrollPage){0}
+    use_scroll := 0
+    content_w := 0
+    x := 0
+    y := 0
+    layout_y := 0
+    card_w := 0
+    card_h := 0
+    gap := ScaleUIPx(12)
+    btn_h := ScaleUIPx(42)
+    hover := 0
+    carousel_count := 0
+    row_gap := 0
+    manual_w := 0
+    config_w := 0
+
+    practice_clamp_activity_to_tab(app)
+    app->practice_home_bounds_valid = 0
+    bottom_reserved = app_content_bottom_reserved(app)
+    scroll_y = 0
+    scroll_h = view_height - scroll_y - bottom_reserved
+    if scroll_h < 0 {
+        scroll_h = 0
+    }
+
+    practice = practice_get(app->exercise_type)
+    content_w = view_width - ScaleUIPx(24)
+    if content_w > ScaleUIPx(480) {
+        content_w = ScaleUIPx(480)
+    }
+    if content_w < ScaleUIPx(260) {
+        content_w = view_width - ScaleUIPx(16)
+    }
+    x = (view_width - content_w) / 2
+    y = scroll_y + ScaleUIPx(14)
+    layout_y = y
+
+    if practice_home_content_height(content_w, app) > scroll_h {
+        use_scroll = 1
+        page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = ScaleUIPx(480), .min_content_width = ScaleUIPx(260), .scroll_offset = &app->practice_home_scroll, .content_height = practice_home_content_height, .user_data = app})
+        content_w = page.content_w
+        x = page.content_x
+        y = page.content_y + ScaleUIPx(14)
+        layout_y = scroll_y + ScaleUIPx(14)
+    } else {
+        app->practice_home_scroll = 0
+    }
+
+    practice_draw_home_title(app, x, y, content_w)
+    y += practice_home_title_height(app) + ScaleUIPx(10)
+    layout_y += practice_home_title_height(app) + ScaleUIPx(10)
+
+    card_w = content_w
+    card_h = practice_home_card_height(app, layout_y, bottom_reserved, content_w)
+    card := (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h}
+    app->practice_home_bounds_card = card
+    app->practice_home_bounds_valid = 1
+    banner: Texture2D = practice_card_banner(app, app->exercise_type)
+    if banner.id != 0 {
+        practice_draw_card_banner(banner, card)
+    } else {
+        DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
+    }
+    DrawRectangleLinesEx(card, ScaleUIPx(2), LightenUIColor(GetThemeBackground(), 55))
+
+    carousel_count = practice_visible_count(app)
+    y += card_h
+    if carousel_count > 1 {
+        practice_draw_home_carousel_controls(app, x, y, content_w)
+        y += practice_home_carousel_controls_height(app)
+    }
+    y += ScaleUIPx(10)
+
+    app->practice_home_bounds_start = (Rectangle){(float)x, (float)y,
+                                                 (float)content_w, (float)btn_h}
+    if Button((ButtonProps){
+        .bounds = app->practice_home_bounds_start,
+        .label = GetLocaleText("practice_start_button"),
+        .font = GetUIFontSize(),
+        .style = UI_BUTTON_STYLE_PRIMARY,
+    }) {
+        if practice->start != NULL {
+            practice->start(app)
+        }
+    }
+    y += btn_h + gap
+
+    if practice_home_actions_share_row(practice, content_w) {
+        row_gap = practice_home_action_gap(content_w)
+        practice_home_action_row_widths(content_w, &manual_w, &config_w)
+        app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
+                                                       (float)manual_w, (float)btn_h}
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_manual,
+            .label = GetLocaleText("practice_manual_button"),
+            .font = GetUIFontSize(),
+            .style = UI_BUTTON_STYLE_SECONDARY,
+        }) {
+            practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
+        }
+
+        app->practice_home_bounds_config = (Rectangle){(float)(x + manual_w + row_gap), (float)y,
+                                                       (float)config_w, (float)btn_h}
+        if Button((ButtonProps){
+            .bounds = app->practice_home_bounds_config,
+            .label = GetLocaleText("practice_configure_button"),
+            .font = GetUIFontSize(),
+            .style = UI_BUTTON_STYLE_SECONDARY,
+        }) {
+            practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
+        }
+        y += btn_h + gap
+    } else {
+        if practice->draw_manual != NULL {
+            app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
+                                                           (float)content_w, (float)btn_h}
+            if Button((ButtonProps){
+                .bounds = app->practice_home_bounds_manual,
+                .label = GetLocaleText("practice_manual_button"),
+                .font = GetUIFontSize(),
+                .style = UI_BUTTON_STYLE_SECONDARY,
+            }) {
+                practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
+            }
+            y += btn_h + gap
+        }
+        if practice->draw_config != NULL {
+            app->practice_home_bounds_config = (Rectangle){(float)x, (float)y,
+                                                           (float)content_w, (float)btn_h}
+            if Button((ButtonProps){
+                .bounds = app->practice_home_bounds_config,
+                .label = GetLocaleText("practice_configure_button"),
+                .font = GetUIFontSize(),
+                .style = UI_BUTTON_STYLE_SECONDARY,
+            }) {
+                practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
+            }
+            y += btn_h + gap
+        }
+    }
+
+    practice_draw_home_visibility(app, x, y + ScaleUIPx(6), content_w)
+
+    if use_scroll {
+        EndUIScrollPage(page)
+    }
+}
+

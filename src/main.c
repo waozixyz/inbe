@@ -1,14 +1,9 @@
-#include "flint.h"
+#include "kryon.h"
 #include "app.h"
+#include "breaks/app_breaks.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
-#include "ui_clip.h"
-#include "ui_dpi.h"
-#include "theme_meta.h"
-#include "web.h"
-#include "theme.h"
-#include "device_preferences.h"
-#include "embedded_assets.h"
+#include "app/device_preferences.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -16,6 +11,16 @@
 #include <signal.h>
 #include <string.h>
 #include <time.h>
+
+#if defined(__GLIBC__)
+#include <malloc.h>
+#endif
+
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+#include <sys/stat.h>
+#include <sys/types.h>
+#include <unistd.h>
+#endif
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
 #include "platform/inbe_desktop_tray.h"
@@ -70,7 +75,56 @@ set_desktop_window_icon(void)
 }
 
 static InbeApp inbe_app;
-static InbeApp *g_inbe_app_ptr = NULL;
+
+static const char *
+trace_level_name(int log_level)
+{
+    switch(log_level) {
+    case LOG_TRACE: return "TRACE";
+    case LOG_DEBUG: return "DEBUG";
+    case LOG_INFO: return "INFO";
+    case LOG_WARNING: return "WARNING";
+    case LOG_ERROR: return "ERROR";
+    case LOG_FATAL: return "FATAL";
+    default: return "INFO";
+    }
+}
+
+static int
+trace_has_prefix(const char *text, const char *prefix)
+{
+    size_t len;
+
+    if(text == NULL || prefix == NULL)
+        return 0;
+    len = strlen(prefix);
+    return strncmp(text, prefix, len) == 0;
+}
+
+static int
+trace_is_quiet_text(const char *text)
+{
+    return trace_has_prefix(text, "IMAGE:") ||
+           trace_has_prefix(text, "TEXTURE:");
+}
+
+static void
+filtered_trace_log(int log_level, const char *text, va_list args)
+{
+    if(log_level < LOG_WARNING && trace_is_quiet_text(text))
+        return;
+
+    fprintf(stderr, "%s: ", trace_level_name(log_level));
+    vfprintf(stderr, text, args);
+    fputc('\n', stderr);
+}
+
+static void
+install_trace_log_filter(void)
+{
+    SetTraceLogCallback(filtered_trace_log);
+}
+
 #if !defined(PLATFORM_WEB)
 static volatile sig_atomic_t g_shutdown_requested;
 
@@ -82,12 +136,101 @@ handle_shutdown_signal(int signum)
 }
 #endif
 
+/*
+ * Single instance: a pid lock file next to the database pins the one live
+ * instance. A new launch replaces an existing one by default - the old
+ * process gets SIGTERM (its handler saves settings and exits cleanly), and
+ * only gets SIGKILL if it hangs. Stale locks (crashed process) are taken
+ * over; a recycled pid whose /proc name is not "inbe" is not signalled.
+ */
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+static int
+inbe_lock_process_alive(long pid)
+{
+    char comm[64];
+    FILE *file;
+    size_t len;
+
+    if(pid <= 1 || kill((pid_t)pid, 0) != 0)
+        return 0;
+    snprintf(comm, sizeof(comm), "/proc/%ld/comm", pid);
+    file = fopen(comm, "r");
+    if(file == NULL)
+        return 1; /* no /proc (non-Linux): trust the signal probe */
+    len = fread(comm, 1, sizeof(comm) - 1, file);
+    fclose(file);
+    comm[len] = '\0';
+    return strstr(comm, "inbe") != NULL;
+}
+
+static void
+inbe_ensure_single_instance(void)
+{
+    const char *override_root = getenv("INBE_DATA_ROOT");
+    const char *xdg = getenv("XDG_DATA_HOME");
+    const char *home = getenv("HOME");
+    char root[512];
+    char lock_path[600];
+    FILE *file;
+    long other_pid = 0;
+    int i;
+
+    if(override_root != NULL && override_root[0] != '\0')
+        snprintf(root, sizeof(root), "%s", override_root);
+    else if(xdg != NULL && xdg[0] != '\0')
+        snprintf(root, sizeof(root), "%s/inbe", xdg);
+    else if(home != NULL && home[0] != '\0')
+        snprintf(root, sizeof(root), "%s/.local/share/inbe", home);
+    else
+        return;
+    mkdir(root, 0755); /* best effort; the app creates it properly later */
+    snprintf(lock_path, sizeof(lock_path), "%s/inbe.lock", root);
+
+    file = fopen(lock_path, "r");
+    if(file != NULL) {
+        if(fscanf(file, "%ld", &other_pid) != 1)
+            other_pid = 0;
+        fclose(file);
+    }
+    if(inbe_lock_process_alive(other_pid)) {
+        TraceLog(LOG_INFO, "INBE: replacing existing instance (pid %ld)",
+                 other_pid);
+        kill((pid_t)other_pid, SIGTERM);
+        for(i = 0; i < 50; i++) {
+            if(kill((pid_t)other_pid, 0) != 0)
+                break;
+            usleep(100 * 1000);
+        }
+        if(kill((pid_t)other_pid, 0) == 0) {
+            TraceLog(LOG_WARNING,
+                     "INBE: old instance %ld did not exit, killing it",
+                     other_pid);
+            kill((pid_t)other_pid, SIGKILL);
+        }
+    }
+
+    file = fopen(lock_path, "w");
+    if(file == NULL) {
+        TraceLog(LOG_WARNING, "INBE: cannot write %s", lock_path);
+        return;
+    }
+    fprintf(file, "%ld\n", (long)getpid());
+    fclose(file);
+}
+#else
+static void
+inbe_ensure_single_instance(void)
+{
+}
+#endif
+
 typedef struct ScreenshotRequest {
     int active;
     int width;
     int height;
     int theme_id;
     int dark_mode;
+    int theme_style;
     char scene[64];
     char output[512];
 } ScreenshotRequest;
@@ -213,13 +356,6 @@ windows_close_logger(void)
 }
 #endif
 
-InbeApp* get_global_inbe_app(void) {
-    return g_inbe_app_ptr;
-}
-
-void set_global_inbe_app(InbeApp *app);
-
-
 #if ANDROID_BUILD
 static AndroidInsets insets;
 
@@ -311,12 +447,6 @@ draw_full_frame(int width, int height)
         (float)width,
         (float)height
     });
-    if(inbe_app.cursor_disabled)
-        SetMouseCursor(MOUSE_CURSOR_NOT_ALLOWED);
-    else if(inbe_app.cursor_clickable)
-        SetMouseCursor(MOUSE_CURSOR_POINTING_HAND);
-    else
-        SetMouseCursor(MOUSE_CURSOR_DEFAULT);
 }
 
 static void
@@ -324,6 +454,16 @@ frame(void)
 {
 #if defined(PLATFORM_WEB)
     SyncWebWindowSize();
+#endif
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /* Memory snapshots at two steady-state points when diagnostics are on. */
+    static int mem_debug_frame_count = 0;
+
+    if(mem_debug_frame_count == 2 || mem_debug_frame_count == 240) {
+        KryonMemReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
+        UIFontMemoryReport(mem_debug_frame_count == 2 ? "frame-2" : "frame-240");
+    }
+    mem_debug_frame_count++;
 #endif
 
     int width = GetScreenWidth();
@@ -373,6 +513,8 @@ frame(void)
     draw_full_frame(width, height);
 #endif
     EndDrawing();
+    app_breaks_hud_update(&inbe_app);
+    app_breaks_window_update(&inbe_app);
 }
 
 static int
@@ -398,7 +540,8 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         .width = config.width,
         .height = config.height,
         .theme_id = THEME_SKY,
-        .dark_mode = 0
+        .dark_mode = 0,
+        .theme_style = THEME_STYLE_SYSTEM
     };
 
     for(int i = 1; i < argc; i++) {
@@ -423,6 +566,9 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         } else if(strcmp(arg, "--screenshot-dark") == 0 && value != NULL) {
             request->dark_mode = parse_int_arg(value, request->dark_mode) != 0;
             i++;
+        } else if(strcmp(arg, "--screenshot-style") == 0 && value != NULL) {
+            request->theme_style = parse_int_arg(value, request->theme_style);
+            i++;
         }
     }
 
@@ -432,6 +578,9 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
         request->width = 320;
     if(request->height < 320)
         request->height = 320;
+    if(request->theme_style < THEME_STYLE_SYSTEM ||
+       request->theme_style > THEME_STYLE_MATERIAL)
+        request->theme_style = THEME_STYLE_SYSTEM;
     if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
         request->theme_id = THEME_SKY;
 }
@@ -497,7 +646,7 @@ screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
     app->theme_id = theme_id;
     app->theme_mode = dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
     app->dark_mode = dark_mode != 0;
-    refresh_theme_colors(app->theme_id, app->dark_mode);
+    app_refresh_theme(app);
 }
 
 static void
@@ -514,9 +663,36 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->habits_guide_seen = 1;
     app->tutorial_seen = 1;
     screenshot_seed_habits(app);
+    app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "background_music") == 0) {
+    if(strcmp(request->scene, "statistics") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.tab = HABIT_TAB_STATISTICS;
+        app->inbe.screen = InbeScreenHabits;
+    } else if(strcmp(request->scene, "profile") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->inbe.screen = InbeScreenProfile;
+    } else if(strcmp(request->scene, "habit_edit") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->inbe.screen = InbeScreenHabitEdit;
+        habit_edit_begin_new(app);
+    } else if(strcmp(request->scene, "language") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->inbe.screen = InbeScreenLanguage;
+    } else if(strcmp(request->scene, "first_run_guide") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_seen = 0;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "first_run_guide_blank") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->exercise_type = EXERCISE_WIM_HOF;
+        app->tutorial_seen = 0;
+        app->tutorial_step = 0;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "background_music") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_MEDITATION;
         app->practice_tab = PRACTICE_TAB_CONFIG;
@@ -553,7 +729,11 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "settings_session") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->settings_tab = SETTINGS_TAB_SESSION;
+        app->settings_tab = SETTINGS_TAB_DEVICE;
+        app->inbe.screen = InbeScreenSettings;
+    } else if(strcmp(request->scene, "settings_notifications") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->settings_tab = SETTINGS_TAB_NOTIFICATIONS;
         app->inbe.screen = InbeScreenSettings;
     } else if(strcmp(request->scene, "data") == 0 ||
               strcmp(request->scene, "profile_data") == 0) {
@@ -574,6 +754,47 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         screenshot_apply_theme(app, THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "patterns") == 0) {
+        app->exercise_type = EXERCISE_PATTERNS;
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        patterns_practice_start(app);
+    } else if(strcmp(request->scene, "patterns_config") == 0) {
+        app->exercise_type = EXERCISE_PATTERNS;
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->practice_tab = PRACTICE_TAB_CONFIG;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "break_exercises") == 0) {
+        app->inbe.screen = InbeScreenBreakExercises;
+    } else if(strcmp(request->scene, "break_settings") == 0) {
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->settings_tab = SETTINGS_TAB_BREAKS;
+        app->breaks_enabled = 1;
+        app->inbe.screen = InbeScreenSettings;
+    } else if(strcmp(request->scene, "break_micro") == 0 ||
+              strcmp(request->scene, "break_rest") == 0 ||
+              strcmp(request->scene, "break_daily") == 0) {
+        int t = strcmp(request->scene, "break_rest") == 0 ? BREAK_REST
+                : strcmp(request->scene, "break_daily") == 0 ? BREAK_DAILY
+                : BREAK_MICRO;
+
+        app->breaks_enabled = 1;
+        app->break_block_mode = 0;
+        app->breaks.timers[t].active_s = app->breaks.timers[t].limit_s;
+        app->breaks.timers[t].state = BreakStateBreaking;
+        app->breaks.timers[t].idle_s = app->breaks.timers[t].duration_s > 0
+                                           ? app->breaks.timers[t].duration_s / 3
+                                           : 0;
+        app->inbe.screen = InbeScreenBreak;
+        if(t == BREAK_REST) {
+            app->break_ex_picked[0] = 0;
+            app->break_ex_picked[1] = 6;
+            app->break_ex_picked[2] = 8;
+            app->break_ex_pick_count = 3;
+            app->breaks.timers[BREAK_REST].idle_s = 200;
+            app->break_ex_offset_s = 0;
+            app->break_ex_paused = 0;
+            app->break_ex_hidden = 0;
+        }
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;
@@ -599,10 +820,8 @@ static int
 run_screenshot_mode(const ScreenshotRequest *request)
 {
     Image capture;
-    char output[512];
-    char cwd[512];
-    char *slash;
     int warmup_frames = 4;
+    int saved;
 
     if(request == NULL || !request->active)
         return 0;
@@ -620,28 +839,32 @@ run_screenshot_mode(const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         inbe_app.tutorial_step = 0;
     }
+    if(getenv("INBE_SHOT_WINDOW") != NULL) {
+        /* Fallback for GL stacks where LoadImageFromScreen reads blank:
+         * hold the warmed-up scene on screen for external capture. */
+        for(;;)
+            frame();
+    }
     capture = LoadImageFromScreen();
     if(capture.data == NULL)
         return 1;
 
-    snprintf(output, sizeof(output), "%s", request->output);
-    snprintf(cwd, sizeof(cwd), "%s", GetWorkingDirectory());
-    slash = strrchr(output, '/');
-    if(slash != NULL) {
-        *slash = '\0';
-        if(ChangeDirectory(output))
-            ExportImage(capture, slash + 1);
-        ChangeDirectory(cwd);
-    } else {
-        ExportImage(capture, output);
-    }
+    saved = ExportImage(capture, request->output);
     UnloadImage(capture);
-    return 1;
+    return saved ? 1 : -1;
 }
 
 int main(int argc, char **argv) {
     ScreenshotRequest screenshot;
+
+#if defined(__GLIBC__)
+    /* Cap glibc's per-thread malloc arenas. The app runs ~19 threads (audio,
+     * tray, sync, SDL) and the default arena ceiling (8 per core) lets each
+     * grow its own heap, inflating idle RSS. Four arenas are plenty here. */
+    mallopt(M_ARENA_MAX, 4);
+#endif
     parse_screenshot_args(argc, argv, &screenshot);
+    install_trace_log_filter();
     if(screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);
         config.width = screenshot.width;
@@ -660,10 +883,35 @@ int main(int argc, char **argv) {
     __android_log_write(ANDROID_LOG_INFO, "INBE_MAIN", "=== MAIN START ===");
 #endif
 
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /*
+     * SDL (the window backend here, plus the tray) disables the OS screensaver
+     * by default. On X11 that suspends/reset the server's idle counter - the
+     * same counter inbe_activity_monitor reads to tell active time from idle
+     * time for break scheduling. With SDL's default the app looks permanently
+     * active and the break timers count down even with nobody at the machine.
+     * Let SDL leave the screensaver alone: a break reminder app has no
+     * business blocking the screen saver anyway. Must be set before
+     * InitWindow() initializes SDL video.
+     */
+#if defined(_WIN32)
+    _putenv("SDL_VIDEO_ALLOW_SCREENSAVER=1");
+#else
+    setenv("SDL_VIDEO_ALLOW_SCREENSAVER", "1", 1);
+#endif
+#endif
+
 #if defined(PLATFORM_WEB)
     SetConfigFlags(GetWebWindowFlags());
 #elif !ANDROID_BUILD
     SetConfigFlags(FLAG_WINDOW_RESIZABLE | FLAG_WINDOW_ALWAYS_RUN);
+#endif
+
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+    /* One live instance per user: a normal launch replaces any existing
+     * one; screenshot mode is one-shot and leaves the running app alone. */
+    if(!screenshot.active)
+        inbe_ensure_single_instance();
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
@@ -691,17 +939,22 @@ int main(int argc, char **argv) {
     }
 
     set_desktop_window_icon();
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /* Disable raylib's built-in ESC-to-exit. We surface close requests through
+     * our own "keep running / quit?" prompt (see app_request_desktop_close),
+     * and ESC is already handled by individual screens via IsKeyPressed. */
+    SetExitKey(0);
+#endif
     InitUIDPI();
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
+    KryonMemReport("after-app-init");
+    UIFontMemoryReport("after-app-init");
 
     #if ANDROID_BUILD
     inbe_app.fullscreen_enabled = 0;
     #endif
-    if(inbe_app.fullscreen_enabled && !IsWindowFullscreen())
-        ToggleFullscreen();
-
     SetTargetFPS(60);
 
 #if defined(PLATFORM_WEB)
@@ -712,9 +965,16 @@ int main(int argc, char **argv) {
     signal(SIGTERM, handle_shutdown_signal);
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     inbe_desktop_tray_init();
+    /* "Start minimized" startup mode: launch straight to the tray; break
+     * windows restore on top when a break fires. */
+    if(inbe_app.desktop_startup_mode == INBE_STARTUP_HIDDEN &&
+       !screenshot.active)
+        inbe_desktop_tray_keep_running();
+    KryonMemReport("after-tray-init");
 #endif
 
-    if(run_screenshot_mode(&screenshot)) {
+    int screenshot_result = run_screenshot_mode(&screenshot);
+    if(screenshot_result != 0) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
         inbe_desktop_tray_shutdown();
 #endif
@@ -722,10 +982,15 @@ int main(int argc, char **argv) {
 #if defined(_WIN32) && !ANDROID_BUILD
         windows_close_logger();
 #endif
-        return 0;
+        return screenshot_result > 0 ? 0 : 1;
     }
 
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
+    /* With a tray, the close button asks whether to keep running in the
+     * background (hiding to tray) or quit. The SDL_QUIT that raylib would
+     * otherwise latch is already swallowed by the tray's event filter, so
+     * WindowShouldClose() can only become true via a stray path; guard the
+     * re-fire so the prompt never pops again while already open. */
     while(!quit) {
         InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
         AppClosePromptResult close_result;
@@ -745,25 +1010,17 @@ int main(int argc, char **argv) {
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
-        if(WindowShouldClose())
+        if(WindowShouldClose() && !inbe_app.close_prompt_open)
             app_request_desktop_close(&inbe_app);
     }
 #else
+    /* No tray: there is nothing to keep running in the background, so a close
+     * request (window button, WM, signal, or a Ctrl+Q/Esc shortcut via
+     * app_request_desktop_quit) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
-        AppClosePromptResult close_result;
         frame();
-        close_result = app_consume_close_prompt_result(&inbe_app);
-        if(close_result == AppClosePromptKeepRunning)
-            MinimizeWindow();
-        else if(close_result == AppClosePromptQuit)
+        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit)
             quit = 1;
-        if(WindowShouldClose()) {
-#if ANDROID_BUILD
-            quit = 1;
-#else
-            app_request_desktop_close(&inbe_app);
-#endif
-        }
     }
 #endif
 
@@ -776,9 +1033,4 @@ int main(int argc, char **argv) {
 #endif
 #endif
     return 0;
-}
-
-void set_global_inbe_app(InbeApp *app) {
-    g_inbe_app_ptr = app;
-    TraceLog(LOG_INFO, "INBE: Global app pointer set to %p", app);
 }

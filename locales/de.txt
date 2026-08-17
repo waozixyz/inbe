@@ -70,6 +70,9 @@ Kein Konto
 [profile_add_friend_button]
 Freund hinzufuegen
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Eingehend
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 START
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Wim-Hof-Atmung
 ---
@@ -115,10 +121,7 @@ Wim-Hof-Atmung
 Meditation
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-In Arbeit
+Sonnengruß
 ---
 [sun_salutation_repetitions_label]
 Wiederholungen
@@ -128,6 +131,15 @@ Starttempo
 ---
 [sun_salutation_end_speed_label]
 Endtempo
+---
+[sun_salutation_figure_label]
+Figur
+---
+[sun_salutation_figure_man]
+Mann
+---
+[sun_salutation_figure_woman]
+Frau
 ---
 [sun_salutation_tempo_preview_label]
 Tempo-Vorschau
@@ -243,6 +255,9 @@ Abgeschlossene Runden vor dem Beenden speichern?
 [cancel_button]
 Abbrechen
 ---
+[skip_button]
+Überspringen
+---
 [ok_button]
 OK
 ---
@@ -294,15 +309,6 @@ Info
 [about_text]
 Ein ruhiger Begleiter fuer Atemuebungen, Gewohnheiten und Synchronisierung.
 ---
-[theme_label]
-Thema
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
 [speed_label]
 Geschwindigkeit
 ---
@@ -351,20 +357,35 @@ Doppeltippe auf den Bildschirm, um zu atmen
 [no_sessions]
 Keine Sitzungen
 ---
-[hold_display_label]
-Atemhalteanzeige
+[cue_volume_label]
+Hinweislautstärke
 ---
-[hold_display_stopwatch]
-Stoppuhr
+[audio_output_label]
+Audioausgabe
 ---
-[hold_display_circle]
-Kreis
+[audio_system_default_label]
+Standard-Systemausgabe
 ---
-[volume_label]
-Lautstärke
+[audio_status_ready]
+Bereit
 ---
-[show_session_return_button_label]
-Zurück-Taste anzeigen
+[audio_status_unavailable]
+Nicht verfügbar
+---
+[audio_test_output_button]
+Ausgabe testen
+---
+[audio_reinitialize_button]
+Audio neu starten
+---
+[audio_output_level_label]
+Ausgabepegel
+---
+[music_volume_label]
+Musiklautstärke
+---
+[retention_marker_label]
+30-s-Retentionsmarkierung
 ---
 [reset_to_defaults_label]
 Auf Standard zurücksetzen
@@ -441,12 +462,6 @@ AUS
 [toggle_on]
 AN
 ---
-[theme_light]
-Hell
----
-[theme_dark]
-Dunkel
----
 [on_screen_keyboard_label]
 Bildschirmtastatur
 ---
@@ -496,15 +511,6 @@ Löschen
 ---
 [meditation_music_attribution]
 Musik von Elijah_K.
----
-[theme_system]
-System
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palette
 ---
 [orientation_label]
 Ausrichtung
@@ -761,13 +767,8 @@ Beste Serie
 ---
 ---
 
-[transition_label]
-Übergang
----
 [theme_picker_title]
 Thema wählen
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -806,11 +807,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Hintergrundmusik
----
 [practice_music_enabled_label]
 Während dieser Übung abspielen
+---
+[appearance_scale_label]
+Skalierung
+---
+[audio_music_none_option]
+Keine
+---
+[audio_import_error_invalid_path]
+Ungültiger Dateipfad
+---
+[audio_import_error_invalid_format]
+Nicht unterstütztes Audioformat
+---
+[audio_import_error_file_not_found]
+Datei nicht gefunden
+---
+[audio_import_error_copy_failed]
+Datei konnte nicht kopiert werden
 ---
 [practice_start_button]
 Praxis starten
@@ -857,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 Yoga-Übungssitzungen.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 Heutige Gewohnheiten gesamt.
 ---
@@ -899,8 +909,8 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 [practice_home_wim_hof_metadata]
 %d Runden | %d Atemzüge
 ---
-[sun_salutation_session_step_title]
-Schritt %d / %d
+[practice_home_patterns_metadata]
+%s | %d Min.
 ---
 [meditation_music_downloading_progress]
 Audio wird geladen... %d%%
@@ -1046,6 +1056,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Zu Health Connect exportieren
+---
+[health_connect_started]
+Health Connect geöffnet
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1054,4 +1202,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+Zeit für eine Mikropause
+---
+[break_micro_body]
+Lockern Sie die Schultern, schauen Sie weg vom Bildschirm und atmen Sie langsam, bis der Balken voll ist.
+---
+[break_rest_title]
+Zeit für eine Ruhepause
+---
+[break_rest_body]
+Stehen Sie auf, strecken Sie sich und lassen Sie die Augen auf etwas Fernem ruhen.
+---
+[break_daily_title]
+Tageslimit erreicht
+---
+[break_daily_body]
+Sie waren den ganzen Tag aktiv. Ziehen Sie in Betracht, für heute aufzuhören.
+---
+[break_time_remaining]
+%s verbleibend
+---
+[break_stay_idle_note]
+Lassen Sie die Tastatur los, damit die Pause gezählt wird
+---
+[break_lock_note]
+Noch %d Sekunden gesperrt
+---
+[break_postpone_button]
+Verschieben
+---
+[break_skip_button]
+Überspringen
+---
+[break_rest_now_button]
+Ruhepause jetzt
+---
+[break_prelude_text]
+Pause steht bevor - entspannen Sie sich kurz
+---
+[settings_tab_breaks]
+Pausen
+---
+[settings_breaks_enabled]
+Pausen-Erinnerungen
+---
+[settings_breaks_status]
+Timer-Status
+---
+[settings_breaks_due_now]
+jetzt fällig
+---
+[settings_breaks_timer_off]
+aus
+---
+[settings_breaks_block_mode]
+Blockierung
+---
+[settings_breaks_block_off]
+Aus
+---
+[settings_breaks_block_input]
+Eingabe blockieren
+---
+[settings_breaks_block_screen]
+Eingabe und Bildschirm blockieren
+---
+[settings_breaks_sounds]
+Pausenklänge
+---
+[settings_breaks_reading_mode]
+Lesemodus
+---
+[settings_breaks_micro_counts]
+Kurzpausen als Aktivität zählen
+---
+[settings_breaks_rest_now]
+Ruhepause jetzt
+---
+[settings_breaks_micro_header]
+Kurzhaltung
+---
+[settings_breaks_rest_header]
+Ruhepause
+---
+[settings_breaks_daily_header]
+Tageslimit
+---
+[settings_breaks_timer_enabled]
+Timer aktivieren
+---
+[settings_breaks_limit]
+Zeit zwischen Pausen
+---
+[settings_breaks_duration]
+Pausendauer
+---
+[settings_breaks_postpone]
+Aufschubzeit
+---
+[settings_breaks_prompts]
+Max. Erinnerungen
+---
+[settings_breaks_show_skip]
+Überspringen-Schaltfläche zeigen
+---
+[settings_breaks_show_postpone]
+Aufschieben-Schaltfläche zeigen
+---
+[settings_breaks_week_stats]
+Letzte 7 Tage (genommen / übersprungen / aufgeschoben)
+---
+[settings_breaks_no_data]
+Noch keine Pausenstatistik
+---
+[settings_breaks_mode]
+Modus
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Leise
+---
+[settings_breaks_mode_suspended]
+Angehalten
+---
+[tray_next_break]
+Nächste Pause %s
+---
+[break_exercises_title]
+Pausenübungen
+---
+[break_exercises_intro]
+Kurze Dehnungen für Ruhepausen. Sie laufen automatisch während Ruhepausen ab.
+---
+[break_ex_shoulder_rolls]
+Schulterkreisen
+---
+[break_ex_shoulder_rolls_s1]
+Rollen Sie die Schultern langsam nach hinten
+---
+[break_ex_shoulder_rolls_s2]
+Halten Sie die Bewegung weich und entspannt
+---
+[break_ex_neck_tilt]
+Nacken-Seitneigung
+---
+[break_ex_neck_tilt_s1]
+Neigen Sie den Kopf zu einer Schulter
+---
+[break_ex_neck_tilt_s2]
+Sanft halten, dann die Seite wechseln
+---
+[break_ex_wrist_fingers]
+Hand- und Fingerdehnung
+---
+[break_ex_wrist_fingers_s1]
+Strecken Sie einen Arm und ziehen Sie die Finger zurück
+---
+[break_ex_wrist_fingers_s2]
+Dehnen Sie das Handgelenk, dann wechseln
+---
+[break_ex_upper_back]
+Oberrückendehnung
+---
+[break_ex_upper_back_s1]
+Falten Sie die Hände und runden Sie den Ober Rücken
+---
+[break_ex_upper_back_s2]
+Ausatmen und die Schultern sinken lassen
+---
+[break_ex_blade_squeeze]
+Schulterblatt-Anspannung
+---
+[break_ex_blade_squeeze_s1]
+Ziehen Sie die Schulterblätter zusammen
+---
+[break_ex_blade_squeeze_s2]
+Kurz halten, dann lösen
+---
+[break_ex_seated_twist]
+Sitzende Rumpfdrehung
+---
+[break_ex_seated_twist_s1]
+Sitzen Sie aufrecht und drehen Sie sich zu einer Seite
+---
+[break_ex_seated_twist_s2]
+Hüfte gerade halten, dann wechseln
+---
+[break_ex_eye_horizon]
+In die Ferne blicken
+---
+[break_ex_eye_horizon_s1]
+Suchen Sie den fernsten Punkt im Raum
+---
+[break_ex_eye_horizon_s2]
+Blick entspannen und atmen
+---
+[break_ex_eye_near_far]
+Nah und fern fokussieren
+---
+[break_ex_eye_near_far_s1]
+Blicken Sie auf Ihren nahen Daumen
+---
+[break_ex_eye_near_far_s2]
+Dann auf etwas Fernes fokussieren
+---
+[break_ex_breath_drop]
+Atem und Schultern lassen
+---
+[break_ex_breath_drop_s1]
+Einatmen und Schultern heben
+---
+[break_ex_breath_drop_s2]
+Ausatmen und sinken lassen
+---
+[break_ex_breath_drop_s3]
+Spüren Sie, wie die Spannung löst
+---
+[break_ex_forearm_desk]
+Unterarm-Dehnung am Tisch
+---
+[break_ex_forearm_desk_s1]
+Handfläche auf den Tisch, Finger nach hinten
+---
+[break_ex_forearm_desk_s2]
+Sanft drücken, bis der Unterarm dehnt
+---
+[notifications_test]
+Testbenachrichtigung senden
+---
+[notification_test_title]
+Testbenachrichtigung
+---
+[notification_test_body]
+Benachrichtigungen von Inner Breeze funktionieren.
+---
+[notification_session_done_title]
+Sitzung abgeschlossen
+---
+[notification_session_done_body]
+Deine Übungssitzung ist abgeschlossen.
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Ruhe
+---
+[break_hud_daily]
+Tag
+---
+[settings_tab_notifications]
+Benachrichtigungen
+---
+[notifications_section]
+Benachrichtigungen
+---
+[notifications_friend_request_label]
+Bei Freundschaftsanfragen benachrichtigen
+---
+[notifications_friend_request_title]
+Freundschaftsanfrage
+---
+[notifications_friend_request_body]
+Du hast eine neue Freundschaftsanfrage
+---
+[reminder_add]
+Erinnerung hinzufügen
+---
+[notifications_push_picker_title]
+Push-Anbieter
+---
+[notifications_push_section]
+Push-Zustellung
+---
+[notifications_push_status_on]
+Verbunden
+---
+[notifications_push_status_off]
+Nicht eingerichtet
+---
+[notifications_push_setup]
+Push einrichten…
+---
+[notifications_reminders_section]
+Erinnerungen
+---
+[reminder_title]
+Erinnerung
 ---

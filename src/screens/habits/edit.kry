@@ -1,0 +1,814 @@
+#module "habit_edit"
+
+#import "screens/habits/habits.h"
+
+static reminder_hour_texts: [24 * 8] char = {0}
+#import "stddef.h"
+#import "stdio.h"
+#import "string.h"
+
+static info_scroll: int = 0
+
+begin_new :: (app: InbeApp*) {
+    default_color: Color = {99, 196, 165, 255}
+    default_name: const char* = nil
+
+    if app == nil {
+        return
+    }
+
+    default_name = GetLocaleText("habit_new_default_name")
+    app->habit_edit = (HabitEditState){
+        .active = 1,
+        .is_new = 1,
+        .index = -1,
+        .color = default_color,
+        .sync_mode = INBE_HABIT_SYNC_NONE
+    }
+    snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s",
+                default_name)
+    app->habit_edit.cursor = (int)strlen(app->habit_edit.text)
+    app->habit_edit.focused = 1
+    app->habits.tab = HABIT_TAB_EDIT
+    app_switch_screen(app, InbeScreenHabits)
+}
+
+begin :: (app: InbeApp*, index: int) {
+    if app == nil || index < 0 || index >= app->habits.count {
+        return
+    }
+
+    app->habit_edit = (HabitEditState){
+        .active = 1,
+        .index = index,
+        .color = app->habits.items[index].color,
+        .sync_mode = app->habits.items[index].sync_mode,
+        .sync_activity = app->habits.items[index].sync_activity,
+        .counter_enabled = app->habits.items[index].counter_enabled,
+        .weekdays = app->habits.items[index].weekdays,
+        .reminder_hour = app->habits.items[index].reminder_hour
+    }
+    snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s",
+                app->habits.items[index].name)
+    snprintf(app->habit_edit.description,
+                sizeof(app->habit_edit.description), "%s",
+                app->habits.items[index].description)
+    app->habit_edit.cursor = (int)strlen(app->habit_edit.text)
+    app->habit_edit.description_cursor =
+        (int)strlen(app->habit_edit.description)
+    app->habits.tab = HABIT_TAB_EDIT
+    app_switch_screen(app, InbeScreenHabits)
+}
+
+cancel :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+
+    app->habit_edit = (HabitEditState){
+        .index = -1,
+        .color = {99, 196, 165, 255},
+        .sync_mode = INBE_HABIT_SYNC_NONE
+    }
+    SetUIFocusTextInputActive(0)
+}
+
+trimmed_text :: (app: InbeApp*) -> const char* #private {
+    start: char* = nil
+    end: char* = nil
+
+    if app == nil {
+        return ""
+    }
+
+    start = app->habit_edit.text
+    while *start == ' ' || *start == '\t' {
+        start++
+    }
+    end = start + strlen(start)
+    while end > start && (end[-1] == ' ' || end[-1] == '\t') {
+        end--
+    }
+    *end = '\0'
+    return start
+}
+
+info_modal :: (title: const char*, message: const char*) -> int #private {
+    frame: UIPanelFrame
+    paragraph: UIParagraphSpec
+    scroll_view: UIScrollView
+    scroll_area: UIScrollArea
+    y := 0
+    modal_h := 0
+    modal_w := 0
+    paragraph_h := 0
+    button_w := ScaleUIPx(112)
+    button_h := ScaleUIPx(36)
+    button_y := 0
+    text_h := 0
+    hover := 0
+    result := 0
+
+    modal_w = view_width - ScaleUIPx(36)
+    if modal_w > ScaleUIPx(420) {
+        modal_w = ScaleUIPx(420)
+    }
+    if modal_w < ScaleUIPx(320) {
+        modal_w = ScaleUIPx(320)
+    }
+    if modal_w > view_width - ScaleUIPx(24) {
+        modal_w = view_width - ScaleUIPx(24)
+    }
+    if modal_w < ScaleUIPx(240) {
+        modal_w = ScaleUIPx(240)
+    }
+
+    paragraph = (UIParagraphSpec){
+        .text = message,
+        .width = modal_w - ScaleUIPx(36),
+        .font = GetUIFontSize(),
+        .line_gap = ScaleUIPx(4)
+    }
+    modal_h = UIGetNodeHeight(UINodeParagraphModal((ParagraphModalMeasureProps){
+        .message = message,
+        .width = modal_w,
+        .button_h = button_h,
+        .extra_lines = 2,
+        .min_height = ScaleUIPx(196)
+    }))
+
+    frame = ModalFrame(modal_w, modal_h, title,
+                             (Texture2D){0}, (Texture2D){0})
+    paragraph.width = frame.content_w
+    paragraph_h = UIGetNodeHeight(UINodeParagraph(paragraph, 0, 0))
+    button_y = frame.y + frame.h - button_h - ScaleUIPx(16)
+    text_h = button_y - frame.content_y - ScaleUIPx(16)
+    if text_h < ScaleUIPx(32) {
+        text_h = ScaleUIPx(32)
+    }
+
+    scroll_area = (UIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)text_h
+        },
+        .content_height = paragraph_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &info_scroll
+    }
+    scroll_view = BeginUIScrollContainer(scroll_area)
+    y = scroll_view.content_y
+    Paragraph(paragraph, scroll_view.content_x, &y)
+    EndUIScrollContainer(scroll_area, scroll_view)
+
+    if GenericButton(0, frame.x + (frame.w - button_w) / 2,
+                           button_y, button_w, button_h,
+                           GetLocaleText("ok_button"),
+                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+        result = 1
+    }
+    if frame.right_clicked {
+        result = 1
+    }
+    if result {
+        info_scroll = 0
+    }
+    return result
+}
+
+commit :: (app: InbeApp*) {
+    name_text: const char* = nil
+    index := 0
+
+    if app == nil || !app->habit_edit.active {
+        return
+    }
+
+    index = app->habit_edit.index
+    if !app->habit_edit.is_new && (index < 0 || index >= app->habits.count) {
+        cancel(app)
+        return
+    }
+
+    name_text = trimmed_text(app)
+    if name_text[0] != '\0' {
+        if app->habit_edit.sync_activity != 0 {
+            app->habit_edit.sync_mode = INBE_HABIT_SYNC_ACTIVITIES
+        } else {
+            app->habit_edit.sync_mode = INBE_HABIT_SYNC_NONE
+        }
+        if app->habit_edit.is_new {
+            created := habits_add_custom(&app->habits, name_text,
+                                         app->habit_edit.color,
+                                         app->habit_edit.sync_mode,
+                                         app->habit_edit.sync_activity)
+            if created >= 0 && created < app->habits.count {
+                app->habits.items[created].counter_enabled =
+                    app->habit_edit.counter_enabled != 0
+                app->habits.items[created].weekdays =
+                    app->habit_edit.weekdays & 0x7f
+                app->habits.items[created].reminder_hour =
+                    app->habit_edit.reminder_hour
+                snprintf(app->habits.items[created].description,
+                            sizeof(app->habits.items[created].description),
+                            "%s", app->habit_edit.description)
+                habits_save(&app->habits)
+            }
+        } else {
+            if habits_name_exists(&app->habits, name_text, index) {
+                cancel(app)
+                return
+            }
+            snprintf(app->habits.items[index].name,
+                        sizeof(app->habits.items[index].name), "%s", name_text)
+            snprintf(app->habits.items[index].description,
+                        sizeof(app->habits.items[index].description), "%s",
+                        app->habit_edit.description)
+            app->habits.items[index].color = app->habit_edit.color
+            app->habits.items[index].color.a = 255
+            app->habits.items[index].sync_mode = app->habit_edit.sync_mode
+            app->habits.items[index].sync_activity =
+                app->habit_edit.sync_activity
+            app->habits.items[index].counter_enabled =
+                app->habit_edit.counter_enabled != 0
+            app->habits.items[index].weekdays =
+                app->habit_edit.weekdays & 0x7f
+            app->habits.items[index].reminder_hour =
+                app->habit_edit.reminder_hour
+            app->habits.selected = index
+            habits_save(&app->habits)
+        }
+        app_auto_sync(app)
+    }
+
+    cancel(app)
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY ? HABIT_TAB_WEEKLY : HABIT_TAB_MONTHLY
+    app->habits.scroll = 0
+    save_settings(app)
+    app_switch_screen(app, InbeScreenHabits)
+}
+
+clamp_cursor :: (text: char*, cursor: int*) #private {
+    len := 0
+
+    if text == nil || cursor == nil {
+        return
+    }
+
+    len = (int)strlen(text)
+    if *cursor < 0 {
+        *cursor = 0
+    }
+    if *cursor > len {
+        *cursor = len
+    }
+}
+
+handle_keyboard :: (app: InbeApp*) #private {
+    if app == nil || !app->habit_edit.active {
+        return
+    }
+    if IsKeyPressed(KEY_ESCAPE) {
+        cancel(app)
+        return
+    }
+}
+
+text_field :: (text: char*, text_size: size_t, cursor: int*,
+                         focused: int*, max_codepoints: int,
+                         font: int) -> TextFieldProps #private {
+    style: UITextInputStyle = {
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
+        .radius = 0.08f,
+        .padding_x = ScaleUIPx(10)
+    }
+
+    return (TextFieldProps){
+        .bounds = {0},
+        .text = text,
+        .text_size = text_size,
+        .cursor_position = cursor,
+        .focused = focused,
+        .max_codepoints = max_codepoints,
+        .font = font,
+        .style = style
+    }
+}
+
+text_area :: (text: char*, text_size: size_t, cursor: int*,
+                          focused: int*, scroll_y: int*, max_codepoints: int,
+                          font: int) -> TextAreaProps #private {
+    style: UITextInputStyle = {
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = GetThemeButton(),
+        .focus_border = GetThemeButtonHover(),
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
+        .radius = 0.08f,
+        .padding_x = ScaleUIPx(10)
+    }
+
+    return (TextAreaProps){
+        .bounds = {0},
+        .text = text,
+        .text_size = text_size,
+        .cursor_position = cursor,
+        .focused = focused,
+        .scroll_y = scroll_y,
+        .max_codepoints = max_codepoints,
+        .font = font,
+        .line_gap = ScaleUIPx(4),
+        .style = style
+    }
+}
+
+color_button :: (app: InbeApp*, x: int, y: int, color: Color,
+                      selected: int) -> int #private {
+    mouse_world := GetScreenToWorld2D(GetMousePosition(), app->camera)
+    radius := ScaleUIPx(13)
+    bounds: Rectangle = {
+        (float)(x - radius - ScaleUIPx(6)),
+        (float)(y - radius - ScaleUIPx(6)),
+        (float)(radius * 2 + ScaleUIPx(12)),
+        (float)(radius * 2 + ScaleUIPx(12))
+    }
+    active := CheckCollisionPointRec(mouse_world, bounds)
+    hovered := active && UIHoverEffectsEnabled()
+
+    DrawCircle(x, y, radius, color)
+    DrawCircleLines(x, y, radius + ScaleUIPx(2),
+                       selected ? GetThemeText()
+                                : DarkenUIColor(GetThemeBackground(), 42))
+    if active {
+        MarkUIClickable()
+        if hovered {
+            DrawCircleLines(x, y, radius + ScaleUIPx(5),
+                               GetThemeButtonHover())
+        }
+        if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+            return 1
+        }
+    }
+    return 0
+}
+
+color_palette_columns :: (content_w: int) -> int #private {
+    option_count := 12
+    button_w := ScaleUIPx(38)
+    gap := ScaleUIPx(4)
+
+    for int columns = option_count; columns > 1; columns-- {
+        total_w := button_w * columns + gap * (columns - 1)
+        if total_w <= content_w {
+            return columns
+        }
+    }
+    return 1
+}
+
+color_palette_height :: (content_w: int) -> int #private {
+    option_count := 12
+    columns := color_palette_columns(content_w)
+    rows := (option_count + columns - 1) / columns
+
+    return (rows - 1) * ScaleUIPx(42) + ScaleUIPx(34)
+}
+
+action_delete_width :: (content_w: int) -> int #private {
+    width := MeasureUIText(GetLocaleText("habit_delete_button"),
+                           GetUISmallFontSize()) + ScaleUIPx(20)
+    min_w := ScaleUIPx(72)
+    max_w := ScaleUIPx(112)
+
+    if width < min_w {
+        width = min_w
+    }
+    if width > max_w {
+        width = max_w
+    }
+    if width > content_w {
+        width = content_w
+    }
+    return width
+}
+
+action_row_height :: (content_w: int, is_new: int) -> int #private {
+    gap := ScaleUIPx(8)
+    button_h := ScaleUIPx(40)
+    delete_w := 0
+
+    if is_new {
+        return button_h
+    }
+    delete_w = action_delete_width(content_w)
+    if content_w - delete_w - gap < ScaleUIPx(96) {
+        return button_h * 2 + gap
+    }
+    return button_h
+}
+
+scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
+    app := (InbeApp*)user_data
+    height := ScaleUIPx(18)
+
+    height += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){
+        .label = GetLocaleText("habit_name_label"),
+        .field_h = ScaleUIPx(40)
+    }, 0, 0, content_w))
+    height += ScaleUIPx(22) + ScaleUIPx(120) + ScaleUIPx(24)
+    height += ScaleUIPx(32) + color_palette_height(content_w)
+    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+    }
+    height += ScaleUIPx(4)
+    height += ScaleUIPx(6) + UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += ScaleUIPx(34) + ScaleUIPx(10)
+    height += ScaleUIPx(76)
+    height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+    height += ScaleUIPx(10)
+
+    height += action_row_height(content_w,
+                                app == nil || app->habit_edit.is_new)
+    height += ScaleUIPx(24)
+    return height
+}
+
+draw :: (app: InbeApp*) {
+    title: const char* = nil
+    activity_options: [EXERCISE_COUNT] const char* = {0}
+    color_options: [12] Color = {0}
+    top_h := ScaleUIPx(58)
+    bottom_reserved := 0
+    content_x := 0
+    content_w := 0
+    max_w := ScaleUIPx(CONTENT_MAX_W)
+    y := top_h + ScaleUIPx(18)
+    font := GetUIFontSize()
+    label_font := GetUISmallFontSize()
+    field_h := ScaleUIPx(40)
+    desc_field_h := ScaleUIPx(120)
+    hover := 0
+    title_font := 0
+    title_w := 0
+
+    if app == nil {
+        return
+    }
+    bottom_reserved = app_content_bottom_reserved(app)
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        activity_options[i] = practice_activity_label(i)
+    }
+
+    if !app->habit_edit.active {
+        app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY ? HABIT_TAB_WEEKLY : HABIT_TAB_MONTHLY
+        app_switch_screen(app, InbeScreenHabits)
+        return
+    }
+
+    title = app->habit_edit.is_new ? GetLocaleText("habit_new_title") : GetLocaleText("habit_edit_title")
+
+    if app->inbe.screen == InbeScreenHabitEdit {
+        DrawRectangle(0, 0, view_width, top_h, GetThemeBackground())
+        DrawLine(0, top_h - 1, view_width, top_h - 1,
+                    DarkenUIColor(GetThemeButton(), 18))
+        if !app->modal.active &&
+           PaddedIconBtn(0, view_width - ScaleUIPx(52), ScaleUIPx(12),
+                               ScaleUIPx(24), ScaleUIPx(8),
+                               app->icons[UI_ICON_TYPE_X], &hover) {
+            cancel(app)
+            app_switch_screen(app, InbeScreenHabits)
+            return
+        }
+        title_font = GetUITitleFontSize(title, view_width - ScaleUIPx(120))
+        title_w = MeasureUIText(title, title_font)
+        Text(title, (view_width - title_w) / 2,
+                      GetUIControlTextY(title, 0, top_h, title_font),
+                      title_font, GetThemeText())
+        if !app->modal.active &&
+           PaddedIconBtn(0, view_width - ScaleUIPx(100), ScaleUIPx(12),
+                               ScaleUIPx(24), ScaleUIPx(8),
+                               app->icons[UI_ICON_TYPE_CHECK], &hover) {
+            commit(app)
+            return
+        }
+    } else {
+        top_h = habits_screen_top_reserved(app)
+        y = top_h + ScaleUIPx(18)
+    }
+
+    if app->modal.active && app->modal.type == UIModalHabitPracticeListInfo {
+        if info_modal(GetLocaleText("habit_practice_list_title"),
+                                 GetLocaleText("habit_practice_list_info")) {
+            app_close_modal(app)
+        }
+        return
+    }
+
+    if app->modal.active && app->modal.type == UIModalHabitCountingInfo {
+        if info_modal(GetLocaleText("habit_counting_title"),
+                                 GetLocaleText("habit_counting_info")) {
+            app_close_modal(app)
+        }
+        return
+    }
+
+    if app->modal.active && app->modal.type == UIModalConfirmDeleteHabit {
+        modal_result := Modal(GetLocaleText("habit_delete_title"),
+                                    GetLocaleText("habit_delete_message"),
+                                    GetLocaleText("cancel_button"),
+                                    GetLocaleText("delete_button"))
+        if modal_result == 1 {
+            app_close_modal(app)
+        } else if modal_result == 2 {
+            index := app->habit_edit.index
+
+            app_close_modal(app)
+            cancel(app)
+            if index >= 0 && index < app->habits.count {
+                habits_delete(&app->habits, index)
+                app_auto_sync(app)
+            }
+            app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+            app->habits.tab = app->habits.view_mode == HABIT_VIEW_WEEKLY ? HABIT_TAB_WEEKLY : HABIT_TAB_MONTHLY
+            app->habits.scroll = 0
+            save_settings(app)
+            app_switch_screen(app, InbeScreenHabits)
+        }
+        return
+    }
+
+    viewport_h := view_height - top_h - bottom_reserved
+    page: UIScrollPage
+
+    if viewport_h < 0 {
+        viewport_h = 0
+    }
+    page = BeginUIScrollPage((UIScrollPageSpec){
+        .y = top_h,
+        .height = viewport_h,
+        .max_content_width = max_w,
+        .scroll_offset = &app->habits.scroll,
+        .content_height = habit_edit_scroll_content_height,
+        .user_data = app
+    })
+    content_x = page.content_x
+    content_w = page.content_w
+    y = page.content_y + ScaleUIPx(18)
+
+    handle_keyboard(app)
+    if !app->habit_edit.active {
+        EndUIScrollPage(page)
+        return
+    }
+
+    LabelTextField((LabelTextFieldProps){
+        .label = GetLocaleText("habit_name_label"),
+        .field = text_field(app->habit_edit.text,
+                                       sizeof(app->habit_edit.text),
+                                       &app->habit_edit.cursor,
+                                       &app->habit_edit.focused,
+                                       INBE_HABIT_NAME_SIZE - 1,
+                                       font),
+        .field_h = field_h,
+        .label_font = label_font,
+        .label_color = DarkenUIColor(GetThemeText(), 34)
+    }, content_x, y, content_w)
+    clamp_cursor(app->habit_edit.text, &app->habit_edit.cursor)
+    y += UIGetNodeHeight(UINodeLabelTextField((LabelTextFieldProps){.field_h = field_h}, 0, 0, content_w))
+
+    desc_label_h := ScaleUIPx(22)
+    desc_label_gap := 0
+    desc_bottom_gap := ScaleUIPx(24)
+    Text(GetLocaleText("habit_description_label"), content_x, y,
+                  label_font, DarkenUIColor(GetThemeText(), 34))
+    desc_area := text_area(app->habit_edit.description,
+                                    sizeof(app->habit_edit.description),
+                                    &app->habit_edit.description_cursor,
+                                    &app->habit_edit.description_focused,
+                                    &app->habit_edit.description_scroll_y,
+                                    INBE_HABIT_DESCRIPTION_SIZE - 1,
+                                    font)
+    desc_area.bounds = (Rectangle){
+        (float)content_x,
+        (float)(y + desc_label_h + desc_label_gap),
+        (float)content_w,
+        (float)desc_field_h
+    }
+    TextArea(desc_area)
+    clamp_cursor(app->habit_edit.description,
+                               &app->habit_edit.description_cursor)
+    y += desc_label_h + desc_label_gap + desc_field_h + desc_bottom_gap
+
+    Text(GetLocaleText("habit_underline_label"), content_x, y,
+                  label_font, DarkenUIColor(GetThemeText(), 34))
+    y += ScaleUIPx(32)
+    color_options[0] = (Color){224, 92, 92, 255}
+    color_options[1] = (Color){224, 124, 104, 255}
+    color_options[2] = (Color){232, 150, 74, 255}
+    color_options[3] = (Color){210, 180, 72, 255}
+    color_options[4] = (Color){160, 196, 82, 255}
+    color_options[5] = (Color){99, 196, 165, 255}
+    color_options[6] = (Color){74, 186, 198, 255}
+    color_options[7] = (Color){94, 166, 232, 255}
+    color_options[8] = (Color){116, 132, 224, 255}
+    color_options[9] = (Color){180, 132, 220, 255}
+    color_options[10] = (Color){216, 116, 164, 255}
+    color_options[11] = (Color){198, 96, 118, 255}
+
+    color_columns := color_palette_columns(content_w)
+    color_button_w := ScaleUIPx(38)
+    color_gap := ScaleUIPx(4)
+    for int i = 0; i < 12; i++ {
+        row := i / color_columns
+        col := i % color_columns
+        cx := content_x + color_button_w / 2 +
+              col * (color_button_w + color_gap)
+        cy := y + row * ScaleUIPx(42)
+        selected := app->habit_edit.color.r == color_options[i].r &&
+                    app->habit_edit.color.g == color_options[i].g &&
+                    app->habit_edit.color.b == color_options[i].b
+
+        if color_button(app, cx, cy, color_options[i], selected) {
+            app->habit_edit.color = color_options[i]
+        }
+    }
+    y += color_palette_height(content_w)
+
+    if SectionLabel((SectionLabelProps){
+        .label = GetLocaleText("habit_practice_list_title"),
+        .info_button = 1,
+        .color = DarkenUIColor(GetThemeText(), 34)
+    }, content_x, y) {
+        app_open_modal(app, UIModalHabitPracticeListInfo)
+    }
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        enabled := (app->habit_edit.sync_activity &
+                    habit_activity_mask_for(i)) != 0
+
+        if CheckboxRow((CheckboxRowProps){
+            .label = activity_options[i],
+            .value = &enabled
+        }, content_x, y) {
+            if enabled {
+                app->habit_edit.sync_activity =
+                    app->habit_edit.sync_activity | habit_activity_mask_for(i)
+            } else {
+                app->habit_edit.sync_activity =
+                    app->habit_edit.sync_activity & ~habit_activity_mask_for(i)
+            }
+            app->habit_edit.sync_mode = app->habit_edit.sync_activity != 0 ? INBE_HABIT_SYNC_ACTIVITIES : INBE_HABIT_SYNC_NONE
+        }
+        y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+    }
+
+    y += ScaleUIPx(4)
+    if SectionLabel((SectionLabelProps){
+        .label = GetLocaleText("habit_counting_title"),
+        .info_button = 1,
+        .color = DarkenUIColor(GetThemeText(), 34)
+    }, content_x, y) {
+        app_open_modal(app, UIModalHabitCountingInfo)
+    }
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    if CheckboxRow((CheckboxRowProps){
+        .label = GetLocaleText("habit_multiple_counts_label"),
+        .value = &app->habit_edit.counter_enabled
+    }, content_x, y) {
+        app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0
+    }
+    y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+
+    # schedule: weekday chips (all on = every day)
+    y += ScaleUIPx(6)
+    if SectionLabel((SectionLabelProps){
+        .label = GetLocaleText("habit_schedule_title"),
+        .color = DarkenUIColor(GetThemeText(), 34)
+    }, content_x, y) {
+    }
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    day_letters: [7] const char* = {
+        GetLocaleText("habit_day_mon"),
+        GetLocaleText("habit_day_tue"),
+        GetLocaleText("habit_day_wed"),
+        GetLocaleText("habit_day_thu"),
+        GetLocaleText("habit_day_fri"),
+        GetLocaleText("habit_day_sat"),
+        GetLocaleText("habit_day_sun")
+    }
+    chip_gap := ScaleUIPx(6)
+    chip_w := (content_w - chip_gap * 6) / 7
+    if chip_w > ScaleUIPx(64) {
+        chip_w = ScaleUIPx(64)
+    }
+    for int d = 0; d < 7; d++ {
+        on := (app->habit_edit.weekdays & (1 << d)) != 0
+        chip_x := content_x + d * (chip_w + chip_gap)
+        style := on ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, chip_x, y, chip_w, ScaleUIPx(34),
+                                day_letters[d], style, 0, &hover) {
+            app->habit_edit.weekdays =
+                app->habit_edit.weekdays ^ (1 << d)
+            if app->habit_edit.weekdays == 0x7f {
+                # every day selected is the same as no schedule
+                app->habit_edit.weekdays = 0
+            }
+        }
+    }
+    y += ScaleUIPx(34) + ScaleUIPx(10)
+
+    # reminder hour
+    reminder_labels: [25] const char* = {0}
+    reminder_values: [25] int = {0}
+    reminder_labels[0] = GetLocaleText("habit_reminder_off")
+    reminder_values[0] = -1
+    for int h = 0; h < 24; h++ {
+        snprintf(&reminder_hour_texts[h * 8], 8, "%02d:00", h)
+        reminder_labels[h + 1] = &reminder_hour_texts[h * 8]
+        reminder_values[h + 1] = h
+    }
+    reminder_selected := 0
+    for int h = 0; h < 25; h++ {
+        if app->habit_edit.reminder_hour == reminder_values[h] {
+            reminder_selected = h
+        }
+    }
+    Text(GetLocaleText("habit_reminder_label"), content_x, y,
+                  GetUIFontSize(), GetThemeText())
+    if Dropdown(7400, content_x, y + ScaleUIPx(26), content_w,
+                             ScaleUIPx(36), reminder_labels, 25,
+                             &reminder_selected) {
+        app->habit_edit.reminder_hour = reminder_values[reminder_selected]
+    }
+    y += ScaleUIPx(76)
+
+    y += ScaleUIPx(10)
+    if app->habit_edit.is_new {
+        if GenericButton(0, content_x, y, content_w, ScaleUIPx(40),
+                         GetLocaleText("save_button"),
+                         UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+            EndUIScrollPage(page)
+            commit(app)
+            return
+        }
+    } else {
+        action_gap := ScaleUIPx(8)
+        action_h := ScaleUIPx(40)
+        delete_w := action_delete_width(content_w)
+        save_x := content_x + delete_w + action_gap
+        save_w := content_w - delete_w - action_gap
+
+        if save_w < ScaleUIPx(96) {
+            if GenericButton(0, content_x, y, content_w, action_h,
+                             GetLocaleText("save_button"),
+                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                EndUIScrollPage(page)
+                commit(app)
+                return
+            }
+            y += action_h + action_gap
+            if GenericButton(0, content_x, y, delete_w, action_h,
+                             GetLocaleText("habit_delete_button"),
+                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                app_open_modal(app, UIModalConfirmDeleteHabit)
+            }
+        } else {
+            if GenericButton(0, content_x, y, delete_w, action_h,
+                             GetLocaleText("habit_delete_button"),
+                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                app_open_modal(app, UIModalConfirmDeleteHabit)
+            }
+            if GenericButton(0, save_x, y, save_w, action_h,
+                             GetLocaleText("save_button"),
+                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                EndUIScrollPage(page)
+                commit(app)
+                return
+            }
+        }
+    }
+
+    EndUIScrollPage(page)
+}
+
+route habit_edit {
+    title "Edit Habit"
+    group "Habits"
+    page habit_edit
+}
+
+screen habit_edit {
+    args InbeApp *app
+    habit_edit_draw(app)
+}

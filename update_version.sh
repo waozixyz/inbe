@@ -11,6 +11,7 @@ CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
 CLICK_MANIFEST_FILE="packaging/click/manifest.json"
 CLICK_CONTROL_FILE="packaging/click/control"
 CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
+FIREFOX_ADDONS_MANIFEST_FILE="packaging/firefox-addons/manifest.json"
 
 replace_in_file() {
     local expr="$1"
@@ -23,7 +24,7 @@ replace_in_file() {
 }
 
 # Extract all versions from CHANGELOG
-VERSIONS=$(grep '^## \[' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
+VERSIONS=$(grep '^## \[[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\]' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
 
 if [ -z "$VERSIONS" ]; then
     echo "Error: No versions found in $CHANGELOG_FILE"
@@ -103,6 +104,13 @@ if [ -f "$CLICK_METAINFO_FILE" ]; then
     echo "✓ Updated $CLICK_METAINFO_FILE"
 else
     echo "Warning: $CLICK_METAINFO_FILE not found"
+fi
+
+if [ -f "$FIREFOX_ADDONS_MANIFEST_FILE" ]; then
+    replace_in_file "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$FIREFOX_ADDONS_MANIFEST_FILE"
+    echo "✓ Updated $FIREFOX_ADDONS_MANIFEST_FILE"
+else
+    echo "Warning: $FIREFOX_ADDONS_MANIFEST_FILE not found"
 fi
 
 # Create changelog directory

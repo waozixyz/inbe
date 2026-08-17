@@ -1,0 +1,5 @@
+repository: https://github.com/waozixyz/inbe
+metadata_sources:
+    - github
+    - fdroid
+    - playstore

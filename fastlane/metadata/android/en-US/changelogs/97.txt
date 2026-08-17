@@ -1,0 +1,4 @@
+Fixed
+---
+- Fixed a ghost-click bug when closing the sidebar by swiping left on mobile: the pointer release bled through to the newly-shown screen, triggering a stray click on whatever nav item or button was under the release point (e.g. opening About). The release is now consumed before the screen switch.
+- Fixed sidebar navigation returning to the wrong screen: closing the sidebar now remembers and returns to the screen it was opened from, and the return-on-back flag is properly cleared on re-open so it can't loop.

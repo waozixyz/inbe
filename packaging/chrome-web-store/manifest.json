@@ -4,6 +4,9 @@
   "short_name": "Inbe",
   "version": "__APP_VERSION__",
   "description": "Breathing, meditation, habit tracking, and encrypted sync.",
+  "permissions": [
+    "contextMenus"
+  ],
   "content_security_policy": {
     "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   },

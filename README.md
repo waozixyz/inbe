@@ -18,6 +18,23 @@ gmake native
 gmake run
 ```
 
+To debug Inbe against the root Kryon checkout instead of the vendored
+submodule, override `KRYON_DIR`:
+
+```bash
+make run KRYON_DIR=../kryon
+```
+
+On FreeBSD:
+
+```bash
+gmake run KRYON_DIR=../kryon
+```
+
+Use this only for local debugging. Permanent Kryon fixes should be committed in
+the root Kryon repository and then brought into Inbe by updating
+`vendor/kryon`.
+
 Native binaries are written to `build/bin/<platform>/`, for example
 `build/bin/freebsd/inbe-freebsd-x86_64` on FreeBSD.
 
@@ -102,7 +119,26 @@ Web:
 make web
 make site
 make chrome-web-store
+make firefox-addons
 ```
+
+Firefox add-on source-review build:
+
+```bash
+sh scripts/build-firefox-addons-source.sh
+```
+
+The Firefox reviewer build script creates `build/dist/inbe-firefox-addons.zip`
+and runs Mozilla `addons-linter`. Environment requirements and step-by-step
+reviewer notes are documented in `packaging/firefox-addons/README.md`.
+
+Firefox source upload zip:
+
+```bash
+make firefox-addons-source-zip
+```
+
+This creates `build/dist/inbe-firefox-addons-source.zip`.
 
 Linux:
 
@@ -162,13 +198,33 @@ uninstalled.
 - `locales/` - translations
 - `droid/` - Android project
 - `site/` - website
-- `vendor/flint/` - Flint UI/runtime submodule
+- `vendor/kryon/` - Kryon UI/runtime submodule
 
 ## Notes
 
 Inbe stores app data locally in SQLite. Optional sync can mirror user-owned
-data through a Lyra-compatible sync server.
+data through a Ksync-compatible sync server.
+
+## Support
+
+Monero:
+
+```text
+48ms5LfFrPJ2LUvqP9Mm5BhDSnZnqu14jB8XpAukw3jDBKxRAxYvq3k4fEwXY7kCY3LrtycMUayJZR1YJuyvJHCDCcyw6pA
+```
+
+Bitcoin:
+
+```text
+bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5
+```
+
+Lightning:
+
+```text
+waozi@cake.cash
+```
 
 ## License
 
-MIT. See [LICENSE](LICENSE).
+BSD 3-Clause. See [LICENSE](LICENSE).

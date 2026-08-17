@@ -1,0 +1,6 @@
+Changed
+---
+- Fixed Android native builds by embedding the current Noto font sources instead of stale generated `assets/fonts/ui.*` files.
+- Fixed Android UI font loading by enabling TTF/OTF support in the Android raylib build.
+- Updated sun-salutation assets to use pose sheets while keeping the figure setting focused on the man sequence for now.
+- Improved release packaging automation, Linux package targets, and store metadata.

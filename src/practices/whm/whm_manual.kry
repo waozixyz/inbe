@@ -1,0 +1,281 @@
+#import "app.h"
+#import "app/app_settings.h"
+#import "practices/whm/whm_practice.h"
+#import "practices/whm/whm_session.h"
+#import "screens/manual_screen.h"
+#import "screens/practice_screen.h"
+
+static tutorial_keys: [5] const char* = {
+    "tutorial_step_intro",
+    "tutorial_step_method",
+    "tutorial_step_breathe",
+    "tutorial_step_exhale_hold",
+    "tutorial_step_inhale_hold"
+}
+
+WhmManualScrollPageContext :: struct {
+    app: InbeApp*
+    step: int
+}
+
+tutorial_steps_count :: () -> int #private {
+    return 5
+}
+
+manual_text_color_for_background :: (background: Color) -> Color #private {
+    luma := background.r * 299 + background.g * 587 + background.b * 114
+
+    return luma >= 128000 ? BLACK : WHITE
+}
+
+draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radius: int) #private {
+    previous_phase := app->inbe.phase
+    previous_count: [CountSize] char = {0}
+    previous_sectick := app->inbe.sectick
+    previous_r := app->inbe.r
+    text_color := manual_text_color_for_background(GetThemeCircle())
+    seconds := (app->inbe.frame / 60) % 60
+    text: [CountSize] char = {0}
+
+    cpcount(previous_count, app->inbe.count)
+    count_from_int(text, seconds)
+
+    app->inbe.phase = InbePhaseHold
+    cpcount(app->inbe.count, text)
+    app->inbe.sectick = app->inbe.frame % 60
+    app->inbe.r = (float)radius
+    draw_session_progress_circle(app, center_x, center_y, (float)radius)
+    DrawCenteredUIControlText(text, center_x, center_y, UI_TEXT_16, text_color)
+
+    app->inbe.phase = previous_phase
+    cpcount(app->inbe.count, previous_count)
+    app->inbe.sectick = previous_sectick
+    app->inbe.r = previous_r
+}
+
+tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> UIParagraphSpec #private {
+    has_icon := step == 1
+    paragraph := manual_screen_tutorial_paragraph(
+        GetLocaleText(tutorial_keys[step]), content_w)
+
+    paragraph.icon = has_icon ? app->icons[UI_ICON_TYPE_WRENCH] : (Texture2D){0}
+    paragraph.icon_type = has_icon ? UI_ICON_TYPE_WRENCH : UI_ICON_TYPE_NONE
+    paragraph.icon_size = has_icon ? ScaleUIPx(14) : 0
+    return paragraph
+}
+
+tutorial_paragraph_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
+    return UIGetNodeHeight(UINodeParagraph(tutorial_paragraph(app, step, content_w), 0, 0))
+}
+
+draw_tutorial_paragraph :: (app: InbeApp*, step: int, content_x: int, y: int*, content_w: int) #private {
+    Paragraph(tutorial_paragraph(app, step, content_w), content_x, y)
+}
+
+manual_tutorial_content_height :: (app: InbeApp*, step: int, content_w: int) -> int #private {
+    actual_content_h := 0
+
+    if step == 0 {
+        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
+                            tutorial_paragraph_height(app, 0, content_w)
+    } else if step == 1 {
+        actual_content_h += tutorial_paragraph_height(app, 1, content_w)
+    } else if step == 2 {
+        preview_span := content_w < ScaleUIPx(132) ? content_w : ScaleUIPx(132)
+        preview_rmax := preview_span / 2
+        slider_h := ScaleUIPx(40)
+
+        actual_content_h += tutorial_paragraph_height(app, 2, content_w) +
+                            ScaleUIPx(20)
+        if preview_rmax < ScaleUIPx(60) {
+            preview_rmax = ScaleUIPx(60)
+        }
+        if preview_rmax > ScaleUIPx(120) {
+            preview_rmax = ScaleUIPx(120)
+        }
+        actual_content_h += ScaleUIPx(40) +
+                            (int)((float)preview_rmax * 0.72f) +
+                            ScaleUIPx(14)
+        actual_content_h += slider_h + ScaleUIPx(8)
+    } else if step == 3 {
+        hold_preview_radius := ScaleUIPx(54)
+        hold_preview_extent := hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5)
+
+        actual_content_h += hold_preview_extent * 2 + ScaleUIPx(24) +
+                            ScaleUIPx(42) + ScaleUIPx(18)
+        actual_content_h += tutorial_paragraph_height(app, 3, content_w)
+    } else {
+        actual_content_h += ScaleUIPx(170) + ScaleUIPx(22) +
+                            tutorial_paragraph_height(app, 4, content_w)
+    }
+
+    return actual_content_h
+}
+
+whm_manual_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (WhmManualScrollPageContext*)user_data
+
+    return manual_tutorial_content_height(ctx->app, ctx->step, content_w)
+}
+
+whm_manual_close :: (app: InbeApp*, mark_seen: int) {
+    if mark_seen {
+        mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
+    }
+    if app != NULL && app->modal.active && app->modal.type == UIModalPracticeManual {
+        app_close_modal(app)
+        return
+    }
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    app->practice_tab = PRACTICE_TAB_PLAY
+    app_switch_screen(app, InbeScreenStart)
+}
+
+manual_screen_start_exercise :: (app: InbeApp*) #private {
+    mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
+    app->tutorial_step = 0
+    app->manual_scroll = 0
+    session_start(app)
+}
+
+whm_manual_draw_breath_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
+    speed := app->inbe.speed_level
+
+    draw_tutorial_paragraph(app, 2, page.content_x, y, page.content_w)
+    *y += ScaleUIPx(20)
+
+    update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132))
+    apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
+                      int_from_count(app->inbe.maxbreaths),
+                      app->inbe.pause_seconds)
+    app->settings_preview.progressive_speed = 0
+    inbestep(&app->settings_preview)
+    if app->settings_preview.phase != InbePhaseBreathe {
+        reset_settings_preview(app)
+        update_preview_bounds(&app->settings_preview, page.content_w, ScaleUIPx(132))
+        apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
+                          int_from_count(app->inbe.maxbreaths),
+                          app->inbe.pause_seconds)
+        app->settings_preview.progressive_speed = 0
+    }
+    draw_preview_inbe(&app->settings_preview,
+                         page.content_x + page.content_w / 2,
+                         *y + ScaleUIPx(40))
+    *y += (int)(app->settings_preview.rmax * 0.72f) + ScaleUIPx(54)
+
+    if Slider(10, page.content_x, *y, page.content_w,
+                    GetLocaleText("speed_label"), SETTINGS_SPEED_MIN,
+                    SETTINGS_SPEED_MAX, &speed, "", nil) {
+        apply_settings(&app->inbe, speed, app->inbe.max_rounds,
+                          int_from_count(app->inbe.maxbreaths),
+                          app->inbe.pause_seconds)
+        apply_settings(&app->settings_preview, speed, app->inbe.max_rounds,
+                          int_from_count(app->inbe.maxbreaths),
+                          app->inbe.pause_seconds)
+        app->settings_preview.progressive_speed = 0
+        app->settings_dirty = 1
+    }
+}
+
+whm_manual_draw_hold_preview :: (app: InbeApp*, page: UIScrollPage, y: int*) #private {
+    hold_preview_radius := ScaleUIPx(54)
+    hold_preview_extent := hold_preview_radius + ScaleUIPx(8) + ScaleUIPx(5)
+    breath_button_hover := 0
+    center_x := page.content_x + page.content_w / 2
+
+    *y += hold_preview_extent
+    draw_tutorial_hold_preview(app, center_x, *y, hold_preview_radius)
+    *y += hold_preview_extent + ScaleUIPx(24)
+    TextButton(0, center_x, *y, GetLocaleText("breath_button"),
+                        &breath_button_hover)
+    *y += ScaleUIPx(42) + ScaleUIPx(18)
+    draw_tutorial_paragraph(app, 3, page.content_x, y, page.content_w)
+}
+
+whm_manual_draw_page :: (app: InbeApp*, page: UIScrollPage, step: int, y: int*) #private {
+    if step == 0 {
+        img_h := ScaleUIPx(170)
+
+        TutorialImage(app->whm.image_1, "practices/whm/1.png",
+                               page.content_x, *y, page.content_w, img_h)
+        *y += img_h + ScaleUIPx(22)
+        draw_tutorial_paragraph(app, 0, page.content_x, y, page.content_w)
+    } else if step == 1 {
+        draw_tutorial_paragraph(app, 1, page.content_x, y, page.content_w)
+    } else if step == 2 {
+        whm_manual_draw_breath_preview(app, page, y)
+    } else if step == 3 {
+        whm_manual_draw_hold_preview(app, page, y)
+    } else {
+        img_h := ScaleUIPx(170)
+
+        TutorialImage(app->whm.image_2, "practices/whm/2.png",
+                               page.content_x, *y, page.content_w, img_h)
+        *y += img_h + ScaleUIPx(22)
+        draw_tutorial_paragraph(app, 4, page.content_x, y, page.content_w)
+    }
+}
+
+whm_manual_draw :: (app: InbeApp*) {
+    layout := (PracticeManualLayout){0}
+    footer_content_pad := GetUIFontSize() / 2
+    step := app->tutorial_step
+
+    step = manual_screen_guide_update_page(app, tutorial_steps_count(),
+                                           manual_screen_start_exercise,
+                                           whm_manual_close)
+
+    practice_screen_manual_layout(app, UIModalPracticeManual,
+                                     tutorial_steps_count(),
+                                     manual_screen_tutorial_top_gap(),
+                                     footer_content_pad, 0, &layout)
+    if app_draw_close_title_bar(app, GetLocaleText("practice_manual_button"),
+                                layout.title_h) {
+        whm_manual_close(app, 0)
+    }
+
+    responsive_max_w := (int)(view_width * 0.96f)
+    max_content_w := manual_screen_tutorial_max_width()
+    page_ctx := (WhmManualScrollPageContext){app, step}
+    page := (UIScrollPage){0}
+    y := 0
+
+    if responsive_max_w > max_content_w {
+        responsive_max_w = max_content_w
+    }
+    if responsive_max_w < ScaleUIPx(280) {
+        responsive_max_w = ScaleUIPx(280)
+    }
+
+    page = BeginUIScrollPage((UIScrollPageSpec){
+        .y = layout.content_y,
+        .height = layout.content_h,
+        .max_content_width = responsive_max_w,
+        .min_content_width = ScaleUIPx(200),
+        .side_padding = manual_screen_tutorial_side_padding(),
+        .scroll_offset = &app->manual_scroll,
+        .content_height = whm_manual_scroll_page_content_height,
+        .user_data = &page_ctx
+    })
+    y = page.content_y
+    whm_manual_draw_page(app, page, step, &y)
+    EndUIScrollPage(page)
+
+    manual_screen_guide_draw_nav(app, (ManualGuideNav){
+        .page = step,
+        .page_count = tutorial_steps_count(),
+        .y = layout.nav_y,
+        .h = layout.nav_h,
+        .show_left_on_first = 1,
+        .start = manual_screen_start_exercise,
+        .close = whm_manual_close
+    })
+
+    if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+        app->settings_drag_slider = 0
+        if app->settings_dirty {
+            save_settings(app)
+        }
+    }
+}

@@ -142,6 +142,13 @@ check_locale_file(const LocaleKeys *english, const char *path)
             failures++;
         }
     }
+    for(int i = 0; i < translated.count; i++) {
+        if(!keys_contains(english, translated.keys[i])) {
+            fprintf(stderr, "FAIL %s extra key [%s] not in en.txt\n",
+                    path, translated.keys[i]);
+            failures++;
+        }
+    }
 }
 
 static void
@@ -246,8 +253,40 @@ static void
 scan_used_locale_get_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
                                    const char *path)
 {
+    FILE *fp;
+    char line[2048];
+
     scan_used_locale_literal_calls_in_file(english, used, path, "GetLocaleText(");
     scan_used_locale_literal_calls_in_file(english, used, path, "FormatLocaleText(");
+
+    /* Key literals also appear in data tables (break_exercise_* steps are
+     * resolved through helper functions, not direct GetLocaleText calls):
+     * any quoted literal in a source file that names a known English key
+     * counts as used. */
+    fp = fopen(path, "rb");
+    if(fp == NULL)
+        return;
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        char *cursor = line;
+        while((cursor = strchr(cursor, '"')) != NULL) {
+            char key[MAX_KEY_LEN];
+            char *start = cursor + 1;
+            char *end = strchr(start, '"');
+            size_t len;
+
+            if(end == NULL)
+                break;
+            len = (size_t)(end - start);
+            if(len > 0 && len < sizeof(key)) {
+                memcpy(key, start, len);
+                key[len] = '\0';
+                if(keys_contains(english, key))
+                    keys_add(used, key);
+            }
+            cursor = end + 1;
+        }
+    }
+    fclose(fp);
 }
 
 static void
@@ -276,6 +315,8 @@ scan_used_locale_get_calls_in_dir(const LocaleKeys *english, LocaleKeys *used,
         } else if(len > 2 && strcmp(name + len - 2, ".c") == 0) {
             scan_used_locale_get_calls_in_file(english, used, path);
         } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
+            scan_used_locale_get_calls_in_file(english, used, path);
+        } else if(len > 4 && strcmp(name + len - 4, ".kry") == 0) {
             scan_used_locale_get_calls_in_file(english, used, path);
         }
     }
@@ -329,7 +370,19 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "tray_meditation_paused",
         "tray_meditation_left",
         "tray_sun_salutation",
-        "tray_sun_salutation_paused"
+        "tray_sun_salutation_paused",
+        "theme_sky",
+        "theme_ocean",
+        "theme_forest",
+        "theme_sunset",
+        "theme_lavender",
+        "theme_cherry",
+        "theme_dawn",
+        "theme_sage",
+        "theme_sepia",
+        "theme_mono",
+        "theme_mint",
+        "theme_cobalt"
     };
 
     for(size_t i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
@@ -384,6 +437,8 @@ scan_locale_get_calls_in_dir(const LocaleKeys *english, const char *dir_path)
             scan_locale_get_calls_in_file(english, path);
         } else if(len > 2 && strcmp(name + len - 2, ".h") == 0) {
             scan_locale_get_calls_in_file(english, path);
+        } else if(len > 4 && strcmp(name + len - 4, ".kry") == 0) {
+            scan_locale_get_calls_in_file(english, path);
         }
     }
     closedir(dir);
@@ -401,9 +456,9 @@ main(void)
         return 1;
     memset(&used, 0, sizeof(used));
     scan_locale_get_calls_in_dir(&english, "src");
-    scan_locale_get_calls_in_dir(&english, "vendor/flint/src");
+    scan_locale_get_calls_in_dir(&english, "vendor/kryon/src");
     scan_used_locale_get_calls_in_dir(&english, &used, "src");
-    scan_used_locale_get_calls_in_dir(&english, &used, "vendor/flint/src");
+    scan_used_locale_get_calls_in_dir(&english, &used, "vendor/kryon/src");
     add_dynamic_locale_keys(&used);
     check_unused_english_keys(&english, &used);
 

@@ -2,6 +2,51 @@ var statusElement = document.querySelector('#status');
 var progressElement = document.querySelector('#progress');
 var loadingScreen = document.querySelector('#loading-screen');
 
+function storageOriginLooksPersistent() {
+  var protocol = window.location && window.location.protocol;
+
+  return protocol === 'http:' || protocol === 'https:';
+}
+
+function reportStorageOriginProblem() {
+  if (storageOriginLooksPersistent()) return;
+  console.error(
+    'INBE: persistent storage needs an http://localhost or https:// origin. ' +
+    'Opening the web build directly as a file can prevent Firefox IndexedDB/IDBFS saves.'
+  );
+}
+
+function webglAvailable() {
+  var canvas;
+  var gl;
+
+  try {
+    canvas = document.createElement('canvas');
+    gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+  } catch (e) {
+    gl = null;
+  }
+  return !!gl;
+}
+
+window.__inbeLoadApp = function(src) {
+  var script;
+
+  if (!webglAvailable()) {
+    if (statusElement) {
+      statusElement.textContent = 'WebGL is disabled. Enable WebGL in this browser to run Inner Breeze.';
+    }
+    if (progressElement) progressElement.hidden = true;
+    console.error('INBE: WebGL is disabled or unavailable');
+    return;
+  }
+
+  script = document.createElement('script');
+  script.async = true;
+  script.src = src;
+  document.body.appendChild(script);
+};
+
 function hideLoadingScreen() {
   if (!loadingScreen) return;
   window.requestAnimationFrame(function() {
@@ -10,68 +55,100 @@ function hideLoadingScreen() {
 }
 
 function runStorageSync(retryDelay) {
-  if (Module.__inbeStorageSyncing) return;
+  if (Module.__kryonStorageSyncing) return Module.__kryonStorageSyncPromise || Promise.resolve(false);
 
-  Module.__inbeStorageSyncing = true;
-  Module.__inbeStorageSyncPending = false;
-  var shouldLog = !!Module.__inbeStorageSyncLogSuccess;
-  Module.__inbeStorageSyncLogSuccess = false;
+  Module.__kryonStorageSyncing = true;
+  Module.__kryonStorageSyncPending = false;
+  var shouldLog = !!Module.__kryonStorageSyncLogSuccess;
+  Module.__kryonStorageSyncLogSuccess = false;
+  if (!Module.__kryonStorageSyncPromise) {
+    Module.__kryonStorageSyncPromise = new Promise(function(resolve) {
+      Module.__kryonStorageSyncResolve = resolve;
+    });
+  }
+
+  function finishStorageSync(ok) {
+    var resolve = Module.__kryonStorageSyncResolve;
+
+    Module.__kryonStorageSyncResolve = null;
+    Module.__kryonStorageSyncPromise = null;
+    if (resolve) resolve(ok);
+  }
+
+  function drainPendingStorageSync() {
+    if (!Module.__kryonStorageSyncPending) {
+      finishStorageSync(true);
+      return;
+    }
+    if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
+    Module.__kryonStorageSyncTimer = setTimeout(function() {
+      Module.__kryonStorageSyncTimer = 0;
+      runStorageSync(retryDelay);
+    }, retryDelay);
+  }
 
   try {
     FS.syncfs(false, function(err) {
-      Module.__inbeStorageSyncing = false;
-      if (err) console.error('IDBFS save failed:', err);
-      else if (shouldLog) console.log('IDBFS synced');
-
-      if (Module.__inbeStorageSyncPending) {
-        if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-        Module.__inbeStorageSyncTimer = setTimeout(function() {
-          Module.__inbeStorageSyncTimer = 0;
-          runStorageSync(retryDelay);
-        }, retryDelay);
+      Module.__kryonStorageSyncing = false;
+      if (err) {
+        console.error('IDBFS save failed:', err);
+        finishStorageSync(false);
+      } else {
+        if (shouldLog) console.log('IDBFS synced');
+        drainPendingStorageSync();
       }
     });
   } catch (e) {
-    Module.__inbeStorageSyncing = false;
+    Module.__kryonStorageSyncing = false;
     console.error('IDBFS sync error:', e);
-    if (Module.__inbeStorageSyncPending) {
-      if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
-      Module.__inbeStorageSyncTimer = setTimeout(function() {
-        Module.__inbeStorageSyncTimer = 0;
-        runStorageSync(retryDelay);
-      }, retryDelay);
-    }
+    finishStorageSync(false);
   }
+
+  return Module.__kryonStorageSyncPromise || Promise.resolve(false);
 }
 
 function scheduleStorageSync(delay, logSuccess) {
   if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
-  Module.__inbeStorageSyncPending = true;
-  Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
-  if (Module.__inbeStorageSyncTimer) clearTimeout(Module.__inbeStorageSyncTimer);
+  Module.__kryonStorageSyncPending = true;
+  Module.__kryonStorageSyncLogSuccess = Module.__kryonStorageSyncLogSuccess || !!logSuccess;
+  if (Module.__kryonStorageSyncTimer) clearTimeout(Module.__kryonStorageSyncTimer);
 
-  Module.__inbeStorageSyncTimer = setTimeout(function() {
-    Module.__inbeStorageSyncTimer = 0;
+  Module.__kryonStorageSyncTimer = setTimeout(function() {
+    Module.__kryonStorageSyncTimer = 0;
     runStorageSync(delay);
   }, delay);
 }
 
 function flushStorageSync(logSuccess) {
-  if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return;
-  Module.__inbeStorageSyncPending = true;
-  Module.__inbeStorageSyncLogSuccess = Module.__inbeStorageSyncLogSuccess || !!logSuccess;
-  if (Module.__inbeStorageSyncTimer) {
-    clearTimeout(Module.__inbeStorageSyncTimer);
-    Module.__inbeStorageSyncTimer = 0;
+  if (typeof FS === 'undefined' || typeof FS.syncfs !== 'function') return Promise.resolve(false);
+  Module.__kryonStorageSyncPending = true;
+  Module.__kryonStorageSyncLogSuccess = Module.__kryonStorageSyncLogSuccess || !!logSuccess;
+  if (Module.__kryonStorageSyncTimer) {
+    clearTimeout(Module.__kryonStorageSyncTimer);
+    Module.__kryonStorageSyncTimer = 0;
   }
-  runStorageSync(0);
+  return runStorageSync(0);
 }
+
+function flushStorageBeforePageSuspends() {
+  flushStorageSync(false);
+}
+
+window.addEventListener('pagehide', flushStorageBeforePageSuspends);
+window.addEventListener('beforeunload', flushStorageBeforePageSuspends);
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'hidden') flushStorageBeforePageSuspends();
+});
 
 var Module = {
   __inbeRuntimeReady: false,
-  __inbeScheduleStorageSync: scheduleStorageSync,
-  __inbeFlushStorageSync: flushStorageSync,
+  __kryonStorageSyncPromise: null,
+  __kryonStorageSyncResolve: null,
+  __kryonScheduleStorageSync: scheduleStorageSync,
+  __kryonFlushStorageSync: flushStorageSync,
   preRun: [function() {
+    reportStorageOriginProblem();
+
     if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
       console.error('IDBFS unavailable');
       return;
@@ -100,6 +177,7 @@ var Module = {
   postRun: [function() {
     Module.__inbeRuntimeReady = true;
     hideLoadingScreen();
+    runLaunchCommand();
   }],
   locateFile: function(path, prefix) {
     if (path === 'index.wasm' || path === 'index.data') {
@@ -128,6 +206,7 @@ var Module = {
       frame.appendChild(canvas);
     }
     canvas.addEventListener('webglcontextlost', function(e) {
+      flushStorageBeforePageSuspends();
       alert('WebGL context lost. Reload the page to continue.');
       e.preventDefault();
     }, false);
@@ -137,7 +216,7 @@ var Module = {
       var height = canvas.height || rect.height || 1;
 
       e.preventDefault();
-      Module.__inbeContextClick = {
+      Module.__kryonContextClick = {
         x: Math.round((e.clientX - rect.left) * width / Math.max(1, rect.width)),
         y: Math.round((e.clientY - rect.top) * height / Math.max(1, rect.height)),
         time: Date.now()
@@ -174,6 +253,31 @@ var Module = {
   }
 };
 globalThis.Module = Module;
+
+function launchPracticeId(value) {
+  switch (value) {
+    case 'whm':
+      return 0;
+    case 'meditation':
+      return 1;
+    case 'sun_salutation':
+      return 2;
+    default:
+      return -1;
+  }
+}
+
+function runLaunchCommand() {
+  var params = new URLSearchParams(window.location.search || '');
+  var launch = params.get('inbe_launch');
+  var practice = params.get('practice');
+  var practiceId;
+
+  if (launch !== 'start-practice') return;
+  practiceId = launchPracticeId(practice);
+  if (practiceId < 0 || typeof Module._app_web_launch_practice !== 'function') return;
+  Module._app_web_launch_practice(practiceId);
+}
 
 Module.setStatus('Downloading...');
 window.onerror = function() {

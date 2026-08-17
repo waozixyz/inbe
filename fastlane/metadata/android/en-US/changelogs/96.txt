@@ -1,0 +1,3 @@
+Fixed
+---
+- Fixed text corruption and overflow at high UI scale: font-shrink loops in the habits weekly view and WHM progressive-speed editor stepped or compared against scaled pixel values instead of logical font sizes, causing text to shrink too fast or never shrink. Title bars, toasts, and empty text fields now use the scaled line height for vertical centering and container sizing.

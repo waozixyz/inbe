@@ -1,0 +1,166 @@
+#module "settings.theme"
+
+#import "app.h"
+#import "app/app_settings.h"
+#import "app/device_preferences.h"
+#import "src/screens/settings/settings_types.h"
+#import <stdio.h>
+
+ui :: #import "src/screens/settings/settings_ui"
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+
+content_height :: (content_w: int) -> int {
+    unused content_w
+
+    #if WEB {
+        return ScaleUIPx(314) + ScaleUIPx(66)
+    } #else {
+        return ScaleUIPx(298) + ScaleUIPx(66)
+    }
+}
+
+draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
+    result := (UIThemeSettingsResult){0}
+    allow_system_source := 1
+
+    if app == NULL || y == NULL || state == NULL {
+        return
+    }
+
+    #if WEB {
+        allow_system_source = 0
+    }
+
+    draw_scale_row(app, x, w, y)
+
+    settings := (ThemeSettingsProps){
+        .id_base = 101,
+        .x = x,
+        .y = *y,
+        .w = w,
+        .theme_source = &app->theme_source,
+        .theme_mode = &app->theme_mode,
+        .theme_id = &app->theme_id,
+        .theme_style = &app->theme_style,
+        .allow_system_source = allow_system_source,
+        .allow_system_mode = ANDROID_BUILD,
+        .system_theme_label = GetSystemThemeNameCached()
+    }
+
+    if ThemeSettings(settings, &state->menu_state, &result) {
+        #if !ANDROID {
+            if app->theme_source == APP_THEME_SOURCE_SYSTEM {
+                app->theme_mode = APP_THEME_SYSTEM
+            }
+        }
+        app_refresh_theme(app)
+        app->settings_dirty = 1
+        if result.style_changed {
+            save_settings(app)
+        } else {
+            app->settings_save_delay_ticks = 18
+        }
+    }
+    *y += UIGetNodeHeight(UINodeThemeSettings(settings))
+    *y += ScaleUIPx(18)
+}
+
+draw_scale_row :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    scale_value := app->ui_scale_tenths
+    multiplier := scale_value / 10.0f
+    effective := multiplier * GetUIDPIScale()
+    scale_text: [16] char
+    step_w := ScaleUIPx(28)
+    step_gap := ScaleUIPx(8)
+    step_y := *y + ScaleUIPx(28) - ScaleUIPx(14)
+    slider_x := x + step_w + step_gap
+    slider_w := w - (step_w + step_gap) * 2
+    minus_hover := 0
+    plus_hover := 0
+    snprintf(scale_text, sizeof(scale_text), "%.1fx", effective)
+    if TextButton(141, x + step_w / 2, step_y, "-", &minus_hover) {
+        if scale_value > 5 {
+            scale_value = scale_value - 1
+        }
+    }
+    if slider_w < ScaleUIPx(100) {
+        slider_x = x
+        slider_w = w
+    }
+    if Slider(140, slider_x, *y,
+              slider_w, GetLocaleText("appearance_scale_label"),
+              5, 25, &scale_value, "", scale_text) {
+        app->ui_scale_tenths = scale_value
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    if slider_w < w {
+        if TextButton(142, x + w - step_w / 2, step_y, "+", &plus_hover) {
+            if scale_value < 25 {
+                scale_value = scale_value + 1
+            }
+        }
+    }
+    if scale_value != app->ui_scale_tenths {
+        app->ui_scale_tenths = scale_value
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+    *y += ScaleUIPx(66)
+}
+
+settings_screen_draw_theme_picker_modal :: (app: InbeApp*) #export {
+    modal_w := ScaleUIPx(320)
+    modal_h := ScaleUIPx(360)
+    title := GetLocaleText("theme_picker_title")
+    frame := (UIPanelFrame){0}
+    scroll_area := (UIScrollArea){0}
+    scroll_view := (UIScrollView){0}
+    picker_h := 0
+    draw_w := 0
+
+    frame = ModalFrame(modal_w, modal_h, title, (Texture2D){0}, app->icons[UI_ICON_TYPE_X])
+    if frame.right_clicked {
+        app_close_modal(app)
+        return
+    }
+
+    draw_w = frame.content_w
+    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+    scroll_area = (UIScrollArea){
+        .bounds = {
+            (float)frame.content_x,
+            (float)frame.content_y,
+            (float)frame.content_w,
+            (float)frame.content_h
+        },
+        .content_height = picker_h,
+        .content_x = frame.content_x,
+        .content_width = frame.content_w,
+        .scroll_offset = &app->theme_state.theme_picker_scroll,
+        .wheel_step = ScaleUIPx(42),
+        .scrollbar_x = frame.content_x + frame.content_w - ScaleUIPx(8)
+    }
+
+    for int i = 0; i < 3; i++ {
+        measured := MeasureUIScrollContainer(scroll_area)
+        if measured.content_w == draw_w {
+            break
+        }
+        draw_w = measured.content_w
+        scroll_area.content_height = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+    }
+
+    picker_h = UIGetNodeHeight(UINodeThemePicker(0, 0, draw_w))
+    scroll_area.content_height = picker_h
+    scroll_view = BeginUIScrollContainer(scroll_area)
+    if ThemePicker(scroll_view.content_x, scroll_view.content_y, scroll_view.content_w, app->dark_mode, &app->theme_id) {
+        app->theme_id = clampi(app->theme_id, 0, THEME_COUNT - 1)
+        app_refresh_theme(app)
+        app->settings_dirty = 1
+        save_settings(app)
+        app_close_modal(app)
+    }
+    EndUIScrollContainer(scroll_area, scroll_view)
+}

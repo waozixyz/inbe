@@ -31,7 +31,7 @@ SetUIModalCapture(Rectangle bounds)
 }
 
 int
-DrawUIIconButton(UIIconButton button)
+DrawUIIconButton(IconButtonProps button)
 {
     (void)button;
     icon_call_count++;
@@ -53,20 +53,30 @@ ScaleUIPx(int value)
 }
 
 int
+ui_clampi(int value, int min_value, int max_value)
+{
+    if(value < min_value)
+        return min_value;
+    if(value > max_value)
+        return max_value;
+    return value;
+}
+
+int
 GetUIFontSize(void)
 {
     return UI_TEXT_16;
 }
 
 int
-GetUIParagraphHeight(UIParagraph paragraph)
+ui_paragraph_height(UIParagraphSpec paragraph)
 {
     (void)paragraph;
     return 34;
 }
 
 void
-DrawUIParagraph(UIParagraph paragraph, int x, int *y)
+DrawUIParagraph(UIParagraphSpec paragraph, int x, int *y)
 {
     (void)paragraph;
     (void)x;
@@ -139,9 +149,9 @@ void DrawLineEx(Vector2 startPos, Vector2 endPos, float thick, Color color)
     (void)startPos; (void)endPos; (void)thick; (void)color;
 }
 
-#include "../vendor/flint/src/ui/guide.c"
+#include "src/ui/guide.c"
 
-static UIGuideOverlay
+static GuideOverlayProps
 test_guide(int *step)
 {
     static UIGuideStep steps[3] = {
@@ -150,7 +160,7 @@ test_guide(int *step)
         {{20, 120, 80, 30}, "Third"}
     };
 
-    return (UIGuideOverlay){
+    return (GuideOverlayProps){
         .steps = steps,
         .count = 3,
         .step = step,

@@ -240,7 +240,7 @@ make_account_values_variant(int variant, char public_id[65],
 }
 
 static InbeSyncAccountSaveResult
-import_key_and_save(InbeSyncAccount *account, const char *path, int clear_local_data)
+import_key_and_save(KsyncAccount *account, const char *path, int clear_local_data)
 {
     if(!sync_account_import_private_key_preview(account, path))
         return INBE_SYNC_ACCOUNT_SAVE_FAILED;
@@ -256,7 +256,7 @@ test_import_export_clear(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     char *exported;
     FILE *file;
 
@@ -281,7 +281,8 @@ test_import_export_clear(void)
     exported = LoadFileText(export_path);
     check_true("read exported key", exported != NULL);
     if(exported != NULL) {
-        check_true("export uses generic key header",
+        check_true("export uses accepted key header",
+                   strstr(exported, "ksync-account-key-v1\n") == exported ||
                    strstr(exported, "lyra-account-key-v1\n") == exported);
         check_true("export includes public key", strstr(exported, "\npublic_key=") != NULL);
         UnloadFileText(exported);
@@ -329,7 +330,7 @@ test_reject_invalid_keys(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     FILE *file;
 
     make_clean_root(root, sizeof(root), "invalid");
@@ -367,7 +368,7 @@ test_imported_account_backfills_existing_local_data(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
     char *payload;
     int rounds[] = {30, 45, 60};
 
@@ -407,7 +408,7 @@ test_imported_account_backfills_existing_local_data(void)
                    strstr(payload, "\"local_date\":20260621") != NULL &&
                    strstr(payload, "\"count\":5") != NULL);
         check_true("existing local session uploaded",
-                   strstr(payload, "\"sessions\":[{") != NULL &&
+                   strstr(payload, "\"entity_type\":\"session\"") != NULL &&
                    strstr(payload, "\"rounds\":[") != NULL);
         check_true("local settings still excluded",
                    strstr(payload, "\"preferences\"") == NULL &&
@@ -427,7 +428,7 @@ test_logout_preserves_data_owner(void)
     char public_id[65];
     char public_key[2625];
     char private_key[5121];
-    InbeSyncAccount account;
+    KsyncAccount account;
 
     make_clean_root(root, sizeof(root), "logout-owner");
     snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
@@ -458,8 +459,8 @@ test_different_account_requires_clear_local_data(void)
     char public_id_two[65];
     char public_key_two[2625];
     char private_key_two[5121];
-    InbeSyncAccount account;
-    InbeSyncAccount loaded;
+    KsyncAccount account;
+    KsyncAccount loaded;
 
     make_clean_root(root, sizeof(root), "account-switch");
     snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);
@@ -504,6 +505,50 @@ test_different_account_requires_clear_local_data(void)
     remove_tree(root);
 }
 
+static void
+test_social_cache_does_not_block_account_switch(void)
+{
+    char root[512];
+    char key_path_one[1024];
+    char key_path_two[1024];
+    char public_id_one[65];
+    char public_key_one[2625];
+    char private_key_one[5121];
+    char public_id_two[65];
+    char public_key_two[2625];
+    char private_key_two[5121];
+    KsyncAccount account;
+    KsyncAccount loaded;
+
+    make_clean_root(root, sizeof(root), "social-cache-account-switch");
+    snprintf(key_path_one, sizeof(key_path_one), "%s/one.key", root);
+    snprintf(key_path_two, sizeof(key_path_two), "%s/two.key", root);
+    make_account_values_variant(1, public_id_one, public_key_one, private_key_one);
+    make_account_values_variant(2, public_id_two, public_key_two, private_key_two);
+    write_key_file(key_path_one, public_id_one, public_key_one, private_key_one);
+    write_key_file(key_path_two, public_id_two, public_key_two, private_key_two);
+
+    check_true("init social cache switch storage", storage_init(root));
+    check_true("first social cache account",
+               import_key_and_save(&account, key_path_one, 0) ==
+                   INBE_SYNC_ACCOUNT_SAVE_OK);
+    check_true("store social-only cache",
+               storage_set_social_cache_json("friends.list",
+                                             "{\"friends\":[{\"user_id_hash\":\"friend\"}]}"));
+    check_false("social-only cache is not local syncable data",
+                storage_has_local_syncable_data());
+    check_true("logout social cache account", sync_account_clear());
+    check_true("second social cache account saves without clear",
+               import_key_and_save(&account, key_path_two, 0) ==
+                   INBE_SYNC_ACCOUNT_SAVE_OK);
+    check_true("second social cache account stored", sync_account_load(&loaded));
+    check_str("second social cache owner", storage_sync_data_owner_public_id(),
+              public_id_two);
+
+    storage_close();
+    remove_tree(root);
+}
+
 int
 main(void)
 {
@@ -512,6 +557,7 @@ main(void)
     test_imported_account_backfills_existing_local_data();
     test_logout_preserves_data_owner();
     test_different_account_requires_clear_local_data();
+    test_social_cache_does_not_block_account_switch();
 
     if(g_failures != 0) {
         fprintf(stderr, "%d sync account test failure(s)\n", g_failures);

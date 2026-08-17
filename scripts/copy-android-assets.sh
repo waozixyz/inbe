@@ -22,30 +22,24 @@ ASSETS_DIR="$ANDROID_DIR/app/src/main/assets"
 rm -rf "$ASSETS_DIR"
 mkdir -p "$ASSETS_DIR"
 
-# Build fonts only when explicitly requested. Android/F-Droid builds use the
-# committed glyph atlas so they do not need host build tools beyond Gradle.
-if [ "${INBE_REBUILD_FONTS:-0}" = "1" ]; then
-    echo "Building fonts..."
-    mkdir -p assets/fonts
-    OTFCHOP_DIR="${OTFCHOP_DIR:-vendor/otfchop}"
-    if [ ! -x "$OTFCHOP_DIR/otfchop" ]; then
-        OTFCHOP_DIR="vendor/otfchop"
-        make -C "$OTFCHOP_DIR" otfchop
-    fi
-    "$OTFCHOP_DIR/otfchop" "$OTFCHOP_DIR/unifont-17.0.04.otf" locales/*.txt assets/fonts/locales
-else
-    echo "Using versioned fonts..."
-fi
+echo "Using Kryon-generated Noto font subsets..."
 
 mkdir -p build
-sh vendor/flint/scripts/embed-assets.sh build/inbe_embedded_assets.c \
+sh vendor/kryon/scripts/embed-assets.sh build/inbe_embedded_assets.c \
     locales/*.txt \
+    assets/easteregg/art.png \
+    assets/easteregg/waozi.png \
     assets/practices/whm/1.png \
     assets/practices/whm/2.png \
     assets/practices/meditation/1.png \
     assets/practices/*/banner.png \
-    assets/fonts/locales.png \
-    assets/fonts/locales.dat \
+    assets/practices/sunsalutation/poses_man_sheet.png \
+    assets/practices/sunsalutation/poses_woman_sheet.png \
+    assets/fonts/subset/NotoSans-Inbe-Regular.ttf \
+    assets/fonts/subset/NotoSansSC-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansJP-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansKR-Inbe-Regular.otf \
+    assets/fonts/subset/NotoSansTC-Inbe-Regular.otf \
     assets/sounds/*.ogg
 
 echo "Embedded assets generated successfully!"

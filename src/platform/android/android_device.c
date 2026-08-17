@@ -1,6 +1,6 @@
 #include "android_device.h"
 #include "platform.h"
-#include "ui.h"
+#include "kryon.h"
 
 #if ANDROID_BUILD
 #include <android/log.h>

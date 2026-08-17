@@ -13,18 +13,32 @@ if [ -z "$ANDROID_SDK_ROOT" ] && [ -z "$ANDROID_HOME" ]; then
   exit 1
 fi
 
-# Set up persistent writable SDK location
-ORIGINAL_SDK_ROOT="$ANDROID_SDK_ROOT"
-PERSISTENT_SDK_ROOT="$HOME/.android-sdk-writable"
+UNAME_S="$(uname -s)"
+
+# Set up persistent writable SDK location. Android's Linux host tools cannot
+# reliably see FreeBSD home paths through linuxulator, so keep their working SDK
+# under /tmp unless the caller provides a specific location.
+ORIGINAL_SDK_ROOT="${ANDROID_SDK_ROOT:-$ANDROID_HOME}"
+if [ "$UNAME_S" = "FreeBSD" ]; then
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-/tmp/android-sdk}"
+else
+  PERSISTENT_SDK_ROOT="${ANDROID_SDK_WORK_ROOT:-$HOME/.android-sdk-writable}"
+fi
 export ANDROID_SDK_ROOT="$PERSISTENT_SDK_ROOT"
 export ANDROID_HOME="$PERSISTENT_SDK_ROOT"
 
 mkdir -p "$ANDROID_SDK_ROOT"
 
-# Create symlinks for SDK components
+# Reuse SDK components from the original SDK. On FreeBSD, copy them because the
+# Linux binaries may not be able to follow symlinks back into /home.
 for component in build-tools cmake cmdline-tools emulator licenses ndk platforms platform-tools tools; do
   if [ -e "$ORIGINAL_SDK_ROOT/$component" ] && [ ! -e "$ANDROID_SDK_ROOT/$component" ]; then
-    ln -sf "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+    if [ "$UNAME_S" = "FreeBSD" ]; then
+      cp -R "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+      chmod -R u+w "$ANDROID_SDK_ROOT/$component" 2>/dev/null || true
+    else
+      ln -sf "$ORIGINAL_SDK_ROOT/$component" "$ANDROID_SDK_ROOT/$component"
+    fi
   fi
 done
 
@@ -42,21 +56,24 @@ image_dir_ready() {
   [ -d "$dir" ] && { [ -f "$dir/source.properties" ] || [ -f "$dir/system.img" ] || [ -f "$dir/kernel-ranchu" ]; }
 }
 
+image_specs() {
+  cat << EOF
+google_apis_playstore_ps16k x86_64
+google_apis_ps16k x86_64
+google_apis_playstore x86_64
+google_apis x86_64
+default x86_64
+google_apis_playstore_ps16k arm64-v8a
+google_apis_ps16k arm64-v8a
+google_apis_playstore arm64-v8a
+google_apis arm64-v8a
+default arm64-v8a
+EOF
+}
+
 find_system_image() {
-  for spec in \
-    "google_apis_playstore_ps16k x86_64" \
-    "google_apis_ps16k x86_64" \
-    "google_apis_playstore x86_64" \
-    "google_apis x86_64" \
-    "default x86_64" \
-    "google_apis_playstore_ps16k arm64-v8a" \
-    "google_apis_ps16k arm64-v8a" \
-    "google_apis_playstore arm64-v8a" \
-    "google_apis arm64-v8a" \
-    "default arm64-v8a"; do
-    set -- $spec
-    type="$1"
-    abi="$2"
+  while read -r type abi; do
+    [ -n "$type" ] || continue
     for root in "$ANDROID_SDK_ROOT" "$ORIGINAL_SDK_ROOT"; do
       dir="$root/system-images/android-$ANDROID_API/$type/$abi"
       if image_dir_ready "$dir"; then
@@ -67,7 +84,7 @@ find_system_image() {
         return 0
       fi
     done
-  done
+  done < <(image_specs)
   return 1
 }
 
@@ -83,20 +100,8 @@ install_system_image() {
     return 1
   fi
 
-  for spec in \
-    "google_apis_playstore_ps16k x86_64" \
-    "google_apis_ps16k x86_64" \
-    "google_apis_playstore x86_64" \
-    "google_apis x86_64" \
-    "default x86_64" \
-    "google_apis_playstore_ps16k arm64-v8a" \
-    "google_apis_ps16k arm64-v8a" \
-    "google_apis_playstore arm64-v8a" \
-    "google_apis arm64-v8a" \
-    "default arm64-v8a"; do
-    set -- $spec
-    type="$1"
-    abi="$2"
+  while read -r type abi; do
+    [ -n "$type" ] || continue
     package="system-images;android-$ANDROID_API;$type;$abi"
     echo "📦 Installing Android system image: $package"
     if yes | "$SDKMANAGER" --sdk_root="$ANDROID_SDK_ROOT" "$package"; then
@@ -104,7 +109,7 @@ install_system_image() {
         return 0
       fi
     fi
-  done
+  done < <(image_specs)
 
   return 1
 }
@@ -124,7 +129,8 @@ if [ "$SOURCE_DIR" != "$TARGET_DIR" ]; then
     rm -rf "$TARGET_DIR"
   fi
   mkdir -p "$TARGET_DIR"
-  cp -R --no-preserve=mode,ownership "$SOURCE_DIR"/. "$TARGET_DIR"/
+  cp -R "$SOURCE_DIR"/. "$TARGET_DIR"/
+  chmod -R u+w "$TARGET_DIR" 2>/dev/null || true
 fi
 
 ABI_DISPLAY="$ABI_TYPE"

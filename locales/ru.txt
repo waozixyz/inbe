@@ -70,6 +70,9 @@ Sync
 [profile_add_friend_button]
 Добавить друга
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Входящие
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 СТАРТ
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Дыхание Вима Хофа
 ---
@@ -115,10 +121,7 @@ Add item
 Медитация
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-В работе
+Приветствие солнцу
 ---
 [sun_salutation_repetitions_label]
 Повторения
@@ -128,6 +131,15 @@ Sun Salutation
 ---
 [sun_salutation_end_speed_label]
 Конечный темп
+---
+[sun_salutation_figure_label]
+Фигура
+---
+[sun_salutation_figure_man]
+Мужчина
+---
+[sun_salutation_figure_woman]
+Женщина
 ---
 [sun_salutation_tempo_preview_label]
 Предпросмотр темпа
@@ -246,6 +258,9 @@ Finish
 [cancel_button]
 Отмена
 ---
+[skip_button]
+Пропустить
+---
 [ok_button]
 OK
 ---
@@ -296,24 +311,6 @@ OK
 ---
 [about_text]
 Спокойный помощник для дыхания, привычек и синхронизации.
----
-[theme_label]
-Тема
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
-[theme_system]
-Системная
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Палитра
 ---
 [orientation_label]
 Ориентация
@@ -378,20 +375,35 @@ Inner Breeze
 [no_sessions]
 Нет сессий
 ---
-[hold_display_label]
-Отображение задержки
+[cue_volume_label]
+Громкость сигналов
 ---
-[hold_display_stopwatch]
-Секундомер
+[audio_output_label]
+Аудиовыход
 ---
-[hold_display_circle]
-Круг
+[audio_system_default_label]
+Системный выход по умолчанию
 ---
-[volume_label]
-Громкость
+[audio_status_ready]
+Готов
 ---
-[show_session_return_button_label]
-Показывать кнопку возврата
+[audio_status_unavailable]
+Недоступно
+---
+[audio_test_output_button]
+Проверить выход
+---
+[audio_reinitialize_button]
+Перезапустить аудио
+---
+[audio_output_level_label]
+Уровень выхода
+---
+[music_volume_label]
+Громкость музыки
+---
+[retention_marker_label]
+Метка задержки 30 с
 ---
 [reset_to_defaults_label]
 Сбросить настройки
@@ -467,12 +479,6 @@ Inner Breeze
 ---
 [toggle_on]
 ВКЛ
----
-[theme_light]
-Светлая
----
-[theme_dark]
-Темная
 ---
 [on_screen_keyboard_label]
 Экранная клавиатура
@@ -761,13 +767,8 @@ Description
 ---
 ---
 
-[transition_label]
-Переход
----
 [theme_picker_title]
 Выбор темы
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -806,11 +807,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Фоновая музыка
----
 [practice_music_enabled_label]
 Включать во время этой практики
+---
+[appearance_scale_label]
+Масштаб
+---
+[audio_music_none_option]
+Нет
+---
+[audio_import_error_invalid_path]
+Неверный путь к файлу
+---
+[audio_import_error_invalid_format]
+Неподдерживаемый формат аудио
+---
+[audio_import_error_file_not_found]
+Файл не найден
+---
+[audio_import_error_copy_failed]
+Не удалось скопировать файл
 ---
 [practice_start_button]
 Начать практику
@@ -857,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 Сеансы практики йоги.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 Итог привычек за сегодня.
 ---
@@ -899,8 +909,8 @@ Preview only. This tab is not implemented yet.
 [practice_home_wim_hof_metadata]
 %d раундов | %d дыханий
 ---
-[sun_salutation_session_step_title]
-Шаг %d / %d
+[practice_home_patterns_metadata]
+%s | %d мин
 ---
 [meditation_music_downloading_progress]
 Загрузка аудио... %d%%
@@ -1046,6 +1056,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Экспорт в Health Connect
+---
+[health_connect_started]
+Health Connect открыт
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1054,4 +1202,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+Время короткого перерыва
+---
+[break_micro_body]
+Расслабьте плечи, отведите взгляд от экрана и дышите медленно, пока полоса не заполнится.
+---
+[break_rest_title]
+Время отдыха
+---
+[break_rest_body]
+Встаньте, разомнитесь и дайте глазам отдохнуть, глядя вдаль.
+---
+[break_daily_title]
+Дневной лимит достигнут
+---
+[break_daily_body]
+Вы были активны весь день. Подумайте о том, чтобы закончить на сегодня.
+---
+[break_time_remaining]
+Осталось %s
+---
+[break_stay_idle_note]
+Уберите руки от клавиатуры, чтобы перерыв засчитался
+---
+[break_lock_note]
+Заблокировано ещё %d сек.
+---
+[break_postpone_button]
+Отложить
+---
+[break_skip_button]
+Пропустить
+---
+[break_rest_now_button]
+Отдых сейчас
+---
+[break_prelude_text]
+Скоро перерыв - расслабьтесь на минуту
+---
+[settings_tab_breaks]
+Перерывы
+---
+[settings_breaks_enabled]
+Напоминания о перерывах
+---
+[settings_breaks_status]
+Состояние таймеров
+---
+[settings_breaks_due_now]
+сейчас
+---
+[settings_breaks_timer_off]
+выключен
+---
+[settings_breaks_block_mode]
+Блокировка
+---
+[settings_breaks_block_off]
+Выкл.
+---
+[settings_breaks_block_input]
+Блокировать ввод
+---
+[settings_breaks_block_screen]
+Блокировать ввод и экран
+---
+[settings_breaks_sounds]
+Звуки перерывов
+---
+[settings_breaks_reading_mode]
+Режим чтения
+---
+[settings_breaks_micro_counts]
+Считать микроперерывы активностью
+---
+[settings_breaks_rest_now]
+Перерыв сейчас
+---
+[settings_breaks_micro_header]
+Микроперерыв
+---
+[settings_breaks_rest_header]
+Перерыв на отдых
+---
+[settings_breaks_daily_header]
+Дневной лимит
+---
+[settings_breaks_timer_enabled]
+Включить таймер
+---
+[settings_breaks_limit]
+Время между перерывами
+---
+[settings_breaks_duration]
+Длительность перерыва
+---
+[settings_breaks_postpone]
+Время отсрочки
+---
+[settings_breaks_prompts]
+Макс. напоминаний
+---
+[settings_breaks_show_skip]
+Показывать кнопку "Пропустить"
+---
+[settings_breaks_show_postpone]
+Показывать кнопку "Отложить"
+---
+[settings_breaks_week_stats]
+Последние 7 дней (взято / пропущено / отложено)
+---
+[settings_breaks_no_data]
+Статистики пока нет
+---
+[settings_breaks_mode]
+Режим
+---
+[settings_breaks_mode_normal]
+Обычный
+---
+[settings_breaks_mode_quiet]
+Тихий
+---
+[settings_breaks_mode_suspended]
+Приостановлен
+---
+[tray_next_break]
+Следующий перерыв %s
+---
+[break_exercises_title]
+Упражнения для перерывов
+---
+[break_exercises_intro]
+Короткие разминки для перерывов. Запускаются автоматически.
+---
+[break_ex_shoulder_rolls]
+Круги плечами
+---
+[break_ex_shoulder_rolls_s1]
+Медленно вращайте плечами назад
+---
+[break_ex_shoulder_rolls_s2]
+Движение плавное и расслабленное
+---
+[break_ex_neck_tilt]
+Наклон шеи вбок
+---
+[break_ex_neck_tilt_s1]
+Наклоните голову к плечу
+---
+[break_ex_neck_tilt_s2]
+Держите мягко, затем смените сторону
+---
+[break_ex_wrist_fingers]
+Растяжка запястий и пальцев
+---
+[break_ex_wrist_fingers_s1]
+Вытяните руку и потяните пальцы на себя
+---
+[break_ex_wrist_fingers_s2]
+Растяните запястье и смените руку
+---
+[break_ex_upper_back]
+Растяжка верха спины
+---
+[break_ex_upper_back_s1]
+Сцепите руки и округлите спину
+---
+[break_ex_upper_back_s2]
+Выдохните и опустите плечи
+---
+[break_ex_blade_squeeze]
+Сведение лопаток
+---
+[break_ex_blade_squeeze_s1]
+Сведите лопатки вместе
+---
+[break_ex_blade_squeeze_s2]
+Держите недолго и отпустите
+---
+[break_ex_seated_twist]
+Скручивание корпуса сидя
+---
+[break_ex_seated_twist_s1]
+Сядьте ровно и повернитесь в сторону
+---
+[break_ex_seated_twist_s2]
+Бёдра неподвижны, затем смените сторону
+---
+[break_ex_eye_horizon]
+Взгляд вдаль
+---
+[break_ex_eye_horizon_s1]
+Найдите самую дальнюю точку комнаты
+---
+[break_ex_eye_horizon_s2]
+Смягчите взгляд и дышите
+---
+[break_ex_eye_near_far]
+Фокус вблизи и вдали
+---
+[break_ex_eye_near_far_s1]
+Посмотрите на большой палец вблизи
+---
+[break_ex_eye_near_far_s2]
+Затем сфокусируйтесь на далёком
+---
+[break_ex_breath_drop]
+Дыхание и плечи
+---
+[break_ex_breath_drop_s1]
+Вдох - поднимите плечи
+---
+[break_ex_breath_drop_s2]
+Выдох - опустите их
+---
+[break_ex_breath_drop_s3]
+Почувствуйте, как уходит напряжение
+---
+[break_ex_forearm_desk]
+Растяжка предплечья о стол
+---
+[break_ex_forearm_desk_s1]
+Положите ладонь на стол, пальцы назад
+---
+[break_ex_forearm_desk_s2]
+Мягко давите до растяжения
+---
+[notifications_test]
+Отправить тестовое уведомление
+---
+[notification_test_title]
+Тестовое уведомление
+---
+[notification_test_body]
+Уведомления от Inner Breeze работают.
+---
+[notification_session_done_title]
+Сессия завершена
+---
+[notification_session_done_body]
+Ваша тренировочная сессия завершена.
+---
+[break_hud_micro]
+Микро
+---
+[break_hud_rest]
+Отдых
+---
+[break_hud_daily]
+День
+---
+[settings_tab_notifications]
+Уведомления
+---
+[notifications_section]
+Уведомления
+---
+[notifications_friend_request_label]
+Уведомления о заявках в друзья
+---
+[notifications_friend_request_title]
+Заявка в друзья
+---
+[notifications_friend_request_body]
+У вас новая заявка в друзья
+---
+[reminder_add]
+Добавить напоминание
+---
+[notifications_push_picker_title]
+Провайдер push
+---
+[notifications_push_section]
+Доставка push
+---
+[notifications_push_status_on]
+Подключено
+---
+[notifications_push_status_off]
+Не настроено
+---
+[notifications_push_setup]
+Настроить push…
+---
+[notifications_reminders_section]
+Напоминания
+---
+[reminder_title]
+Напоминание
 ---

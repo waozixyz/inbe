@@ -1,0 +1,5 @@
+Changed
+---
+- Reduced bundled font size by switching shipped UI fonts to Kryon-generated Noto subsets.
+- Added Android system font fallback for arbitrary user-entered text while keeping embedded subsets for app UI and non-Android builds.
+- Updated Kryon to provide shared font subsetting tooling and dynamic font fallback loading for downstream apps.

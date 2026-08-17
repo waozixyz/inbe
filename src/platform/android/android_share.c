@@ -1,10 +1,9 @@
 #include "android_share.h"
 #include "platform.h"
 #include "data.h"
-#include "locale.h"
 #include "storage.h"
 #include "version.h"
-#include "flint.h"
+#include "kryon.h"
 #include "miniz.h"
 #include <time.h>
 #include <stdlib.h>

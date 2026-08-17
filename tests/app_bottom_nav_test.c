@@ -15,12 +15,17 @@ static int failures = 0;
 static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
-static UIBottomNav bottom_nav_last;
+static BottomNavProps bottom_nav_last;
 static UIBottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
 static const char *generic_button_clicked_label = NULL;
+static int padded_icon_click_index = -1;
+static int padded_icon_draw_count = 0;
+static int scroll_page_content_w_override = 0;
+static int pointer_release_consumed = 0;
+static Vector2 mouse_position = {0};
 
 static void
 expect(int condition, const char *message)
@@ -43,6 +48,11 @@ reset_state(void)
     reset_settings_preview_count = 0;
     settings_status_clear_count = 0;
     generic_button_clicked_label = NULL;
+    padded_icon_click_index = -1;
+    padded_icon_draw_count = 0;
+    scroll_page_content_w_override = 0;
+    pointer_release_consumed = 0;
+    mouse_position = (Vector2){0};
     view_width = 320;
     view_height = 560;
     app_set_android_bottom_nav_height(0);
@@ -62,6 +72,18 @@ DrawRectangle(int posX, int posY, int width, int height, Color color)
     (void)width;
     (void)height;
     (void)color;
+}
+
+void
+PushUIInspectSource(const char *path, int line)
+{
+    (void)path;
+    (void)line;
+}
+
+void
+PopUIInspectSource(void)
+{
 }
 
 void
@@ -151,10 +173,19 @@ ScaleUIPx(int px)
     return px;
 }
 
-int
-GetUITabBarHeight(void)
+UIWidgetNode
+UINodeTabBar(TabBarProps bar)
 {
-    return 44;
+    UIWidgetNode node = {0};
+    node.bounds.height = 44;
+    (void)bar;
+    return node;
+}
+
+int
+UIGetNodeHeight(UIWidgetNode node)
+{
+    return (int)node.bounds.height;
 }
 
 int
@@ -204,7 +235,7 @@ FormatLocaleText(char *out, size_t out_size, const char *key, ...)
 }
 
 int
-DrawUIHref(UIHref link)
+DrawUIHref(HrefProps link)
 {
     (void)link;
     return 0;
@@ -220,7 +251,7 @@ CheckCollisionPointRec(Vector2 point, Rectangle rec)
 Vector2
 GetMousePosition(void)
 {
-    return (Vector2){0};
+    return mouse_position;
 }
 
 Vector2
@@ -237,14 +268,8 @@ IsMouseButtonPressed(int button)
     return false;
 }
 
-int
-GetUIBottomNavHeight(void)
-{
-    return 52;
-}
-
 UIBottomNavResult
-DrawUIBottomNav(UIBottomNav nav)
+BottomNav(BottomNavProps nav)
 {
     bottom_nav_last = nav;
     if(nav.count > APP_BOTTOM_NAV_CONTENT_MAX + 1)
@@ -261,20 +286,22 @@ DrawUIBottomNav(UIBottomNav nav)
     };
 }
 
+UIWidgetNode
+UINodeBottomNav(BottomNavProps nav)
+{
+    UIWidgetNode node = {0};
+    node.bounds.height = 52;
+    (void)nav;
+    return node;
+}
+
 UISidebarAccountHeaderResult
-DrawUISidebarAccountHeader(UISidebarAccountHeader header)
+SidebarAccountHeader(UISidebarAccountHeaderSpec header)
 {
     (void)header;
     return (UISidebarAccountHeaderResult){
         .height = 138
     };
-}
-
-UIProfilePicturePickerResult
-DrawUIProfilePicturePickerModal(UIProfilePicturePickerModal modal)
-{
-    (void)modal;
-    return (UIProfilePicturePickerResult){0};
 }
 
 UIScrollView
@@ -297,18 +324,11 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 }
 
 int
-DrawUISectionLabel(UISectionLabel label, int x, int y)
+GenericButton(int id, int x, int y, int w, int h,
+              const char *label, UIButtonStyle style, int disabled,
+              int *hover)
 {
-    (void)label;
-    (void)x;
-    (void)y;
-    return 0;
-}
-
-int
-DrawUIGenericButton(int x, int y, int w, int h, const char *label,
-                    UIButtonStyle style, int disabled, int *hover)
-{
+    (void)id;
     (void)x;
     (void)y;
     (void)w;
@@ -324,13 +344,6 @@ DrawUIGenericButton(int x, int y, int w, int h, const char *label,
     return 0;
 }
 
-UIBottomNavConfigResult
-DrawUIBottomNavConfigModal(UIBottomNavConfigModal modal)
-{
-    (void)modal;
-    return (UIBottomNavConfigResult){0};
-}
-
 UIReorderListResult
 UpdateUIReorderList(UIReorderList list)
 {
@@ -344,8 +357,9 @@ UpdateUIReorderList(UIReorderList list)
 }
 
 void
-DrawUIReorderHandle(int x, int y, int w, int h, int active)
+ReorderHandle(int id, int x, int y, int w, int h, int active)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)w;
@@ -354,7 +368,7 @@ DrawUIReorderHandle(int x, int y, int w, int h, int active)
 }
 
 void
-DrawUIReorderPlaceholder(Rectangle bounds)
+ReorderPlaceholder(Rectangle bounds)
 {
     (void)bounds;
 }
@@ -365,7 +379,9 @@ BeginUIScrollPage(UIScrollPageSpec spec)
     return (UIScrollPage){
         .content_x = 16,
         .content_y = spec.y,
-        .content_w = 288,
+        .content_w = scroll_page_content_w_override > 0
+                         ? scroll_page_content_w_override
+                         : 288,
         .content_h = spec.height
     };
 }
@@ -398,8 +414,6 @@ const char *
 settings_screen_tab_label(int tab)
 {
     switch(tab) {
-    case SETTINGS_TAB_SESSION:
-        return "Session";
     case SETTINGS_TAB_DEVICE:
         return "Device";
     case SETTINGS_TAB_THEME:
@@ -418,9 +432,8 @@ GetUISmallFontSize(void)
 }
 
 int
-DrawUIDropdownButton(int id, int x, int y, int w, int h,
-                     const char **options, int option_count,
-                     int *selected_index)
+Dropdown(int id, int x, int y, int w, int h, const char **options,
+         int option_count, int *selected_index)
 {
     (void)id;
     (void)x;
@@ -430,13 +443,6 @@ DrawUIDropdownButton(int id, int x, int y, int w, int h,
     (void)options;
     (void)option_count;
     (void)selected_index;
-    return 0;
-}
-
-int
-DrawUIDropdownMenu(int id)
-{
-    (void)id;
     return 0;
 }
 
@@ -453,9 +459,10 @@ SetUIDropdownClipBottom(int y)
 }
 
 int
-DrawUIPaddedIconBtn(int x, int y, int size, int padding,
-                    Texture2D icon, int *hover)
+PaddedIconBtn(int id, int x, int y, int size, int padding,
+              Texture2D icon, int *hover)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)size;
@@ -463,12 +470,17 @@ DrawUIPaddedIconBtn(int x, int y, int size, int padding,
     (void)icon;
     if(hover != NULL)
         *hover = 0;
+    if(padded_icon_draw_count++ == padded_icon_click_index) {
+        padded_icon_click_index = -1;
+        return 1;
+    }
     return 0;
 }
 
 void
-DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
+IconTexture(int id, int x, int y, int size, Texture2D icon, Color tint)
 {
+    (void)id;
     (void)x;
     (void)y;
     (void)size;
@@ -479,6 +491,22 @@ DrawUIIconTexture(int x, int y, int size, Texture2D icon, Color tint)
 void
 ClearUIInputCaptures(void)
 {
+}
+
+int
+UIPointerReleaseOutside(Rectangle bounds)
+{
+    Vector2 mouse = GetMousePosition();
+
+    return mouse_released &&
+           !pointer_release_consumed &&
+           !CheckCollisionPointRec(mouse, bounds);
+}
+
+void
+UIConsumeRelease(void)
+{
+    pointer_release_consumed = 1;
 }
 
 const char *
@@ -568,7 +596,7 @@ settings_screen_clear_status(void)
 }
 
 int
-sync_account_load(InbeSyncAccount *account)
+sync_account_load(KsyncAccount *account)
 {
     (void)account;
     return 0;
@@ -582,13 +610,20 @@ storage_get_setting_text(const char *key)
 }
 
 void
+app_block_pointer_frame(InbeApp *app)
+{
+    if(app != NULL)
+        app->input_block_frame = app->inbe.frame;
+}
+
+void
 app_open_modal(InbeApp *app, UIModalType type)
 {
     if(app == NULL)
         return;
     app->modal.active = 1;
     app->modal.type = type;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 void
@@ -598,7 +633,7 @@ app_close_modal(InbeApp *app)
         return;
     app->modal.active = 0;
     app->modal.type = UIModalNone;
-    app->modal_input_block_frame = app->inbe.frame;
+    app_block_pointer_frame(app);
 }
 
 int
@@ -615,7 +650,7 @@ profile_social_pending_count(InbeApp *app)
     return 0;
 }
 
-#include "../src/app/app_nav.c"
+#include "../build/kryon/generated/src/app/app_nav.c"
 
 static InbeApp
 test_app(void)
@@ -695,7 +730,7 @@ test_same_frame_modal_close_consumes_bottom_nav_click(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.modal_input_block_frame = app.inbe.frame;
+    app.input_block_frame = app.inbe.frame;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -715,7 +750,7 @@ test_unblocked_bottom_nav_click_still_routes(void)
     InbeApp app = test_app();
 
     reset_state();
-    app.modal_input_block_frame = app.inbe.frame - 1;
+    app.input_block_frame = app.inbe.frame - 1;
     mouse_released = 1;
     bottom_nav_clicked_route = APP_NAV_ROUTE_HABITS;
 
@@ -871,6 +906,52 @@ test_empty_bottom_nav_draws_stack_only_bar(void)
            "empty bottom nav should reserve stack bar space");
 }
 
+
+static void
+test_customize_nav_delete_last_does_not_add_same_frame(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.main_tab = APP_MAIN_TAB_HABITS;
+    app.bottom_nav_route_count = 1;
+    app.bottom_nav_routes[0] = APP_NAV_ROUTE_HABITS;
+    app.bottom_nav_config_route_count = 1;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
+    padded_icon_click_index = 0;
+    generic_button_clicked_label = "customize_nav_add";
+
+    app_draw_customize_nav_page(&app);
+
+    expect(app.bottom_nav_config_route_count == 0,
+           "deleting last customize nav row should not also add a row");
+    expect(app.bottom_nav_route_count == 0,
+           "deleting last customize nav row should save an empty config");
+    expect(save_settings_count == 1,
+           "deleting last customize nav row should save exactly once");
+    expect(generic_button_clicked_label == NULL,
+           "add button click simulation should have been exercised");
+}
+
+
+static void
+test_customize_nav_delete_icon_draws_on_narrow_rows(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    app.inbe.screen = InbeScreenCustomizeNav;
+    app.bottom_nav_config_route_count = 1;
+    app.bottom_nav_config_routes[0] = APP_NAV_ROUTE_HABITS;
+    scroll_page_content_w_override = 180;
+
+    app_draw_customize_nav_page(&app);
+
+    expect(padded_icon_draw_count == 1,
+           "customize nav should draw delete icon on narrow rows");
+}
+
 static void
 test_bottom_nav_config_save_stays_on_customize_screen(void)
 {
@@ -935,6 +1016,26 @@ test_compact_sidebar_close_footer_closes_to_home(void)
 }
 
 static void
+test_consumed_pfp_release_does_not_close_sidebar(void)
+{
+    InbeApp app = test_app();
+
+    reset_state();
+    view_width = 720;
+    app.nav_sidebar_open = 1;
+    app.nav_sidebar_open_frame = app.inbe.frame - 1;
+    app.modal.active = 0;
+    mouse_released = 1;
+    pointer_release_consumed = 1;
+    mouse_position = (Vector2){100, 20};
+
+    app_draw_bottom_nav(&app);
+
+    expect(app.nav_sidebar_open == 1,
+           "consumed pfp picker release must not close sidebar");
+}
+
+static void
 test_sidebar_child_back_returns_to_compact_sidebar(void)
 {
     InbeApp app = test_app();
@@ -991,8 +1092,11 @@ main(void)
     test_file_dialog_hides_bottom_nav();
     test_empty_bottom_nav_draws_stack_only_bar();
     test_bottom_nav_config_save_stays_on_customize_screen();
+    test_customize_nav_delete_last_does_not_add_same_frame();
+    test_customize_nav_delete_icon_draws_on_narrow_rows();
     test_open_main_tab_none_returns_blank_start();
     test_compact_sidebar_close_footer_closes_to_home();
+    test_consumed_pfp_release_does_not_close_sidebar();
     test_sidebar_child_back_returns_to_compact_sidebar();
     test_sidebar_screen_becomes_overlay_when_width_expands();
 

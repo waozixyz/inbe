@@ -1,0 +1,6 @@
+Changed
+---
+- Updated Kryon to the retro-only widget runtime while style selection is paused.
+- Fixed deferred dropdown overlays so Inbe dropdown menus open above later controls.
+- Restored practice carousel left/right navigation and kept session title bars using close buttons.
+- Removed the app-level Animations setting and transition preference storage.

@@ -11,8 +11,8 @@ endif()
 
 set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
-set(FLINT_DIR "${REPO_ROOT}/vendor/flint")
-set(RAYLIB_DIR "${FLINT_DIR}/vendor/raylib/src")
+set(KRYON_DIR "${REPO_ROOT}/vendor/kryon")
+set(RAYLIB_DIR "${KRYON_DIR}/vendor/raylib/src")
 set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
 set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
@@ -28,32 +28,94 @@ foreach(oqs_x86_feature
         BMI1 BMI2 FMA PCLMULQDQ POPCNT SSE SSE2 SSE3 VPCLMULQDQ)
     set(OQS_USE_${oqs_x86_feature}_INSTRUCTIONS OFF CACHE BOOL "" FORCE)
 endforeach()
-add_subdirectory("${FLINT_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
+add_subdirectory("${KRYON_DIR}/vendor/liboqs" "${CMAKE_BINARY_DIR}/liboqs")
 if(NOT TARGET oqs)
     message(FATAL_ERROR "Inbe Android builds require liboqs for sync account crypto")
 endif()
-file(GLOB_RECURSE FLINT_SOURCES CONFIGURE_DEPENDS "${FLINT_DIR}/src/*.c")
-list(REMOVE_ITEM FLINT_SOURCES "${FLINT_DIR}/src/file_dialog/file_dialog.c")
+file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
+list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
+# The src/backend/ software renderer implements raylib-named functions
+# (math, input, drawing) for no-raylib hosts; Android links real raylib, so
+# compiling both is a duplicate-symbol link error. Only krb.c (cartridge
+# tooling) uses the backend API.
+list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/backend/.*")
+# inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
+# KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
+list(REMOVE_ITEM KRYON_SOURCES
+    "${KRYON_DIR}/src/scene/physics_world.c"
+    "${KRYON_DIR}/src/scene/node_body2d.c"
+    "${KRYON_DIR}/src/scene/node_area2d.c"
+    "${KRYON_DIR}/src/scene/node_collision_shape2d.c")
+file(GLOB KRYON_K2C_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/cmd/k2c/*.c")
+list(APPEND KRYON_K2C_SOURCES
+    "${KRYON_DIR}/cmd/kir/kir.c"
+    "${KRYON_DIR}/cmd/kir/kir_parse.c")
+find_program(HOST_CC NAMES cc clang gcc REQUIRED)
+set(KRYON_K2C "${CMAKE_BINARY_DIR}/host-tools/k2c")
+# needs the kir headers on the include path
+set(INBE_KRY_GEN_DIR "${CMAKE_BINARY_DIR}/kryon/generated")
+file(GLOB_RECURSE INBE_KRY_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/*.kry")
+list(SORT INBE_KRY_SOURCES)
+# App-layer sources are cross-platform modules that belong in every build.
+# Glob them so adding an app .c file needs no edit here -- this list had
+# drifted out of sync with the Makefile APP_SRCS more than once.
+file(GLOB APP_C_SOURCES CONFIGURE_DEPENDS "${SRC_DIR}/app/*.c")
+list(SORT APP_C_SOURCES)
+set(INBE_KRY_GENERATED_SOURCES)
+set(INBE_KRY_GENERATED_HEADERS)
+set(INBE_KRY_COMMAND_SOURCES)
+foreach(kry_source ${INBE_KRY_SOURCES})
+    file(RELATIVE_PATH kry_rel "${REPO_ROOT}" "${kry_source}")
+    list(APPEND INBE_KRY_COMMAND_SOURCES "${kry_rel}")
+    get_filename_component(kry_rel_dir "${kry_rel}" DIRECTORY)
+    get_filename_component(kry_name "${kry_rel}" NAME_WE)
+    set(kry_output_c "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.c")
+    set(kry_output_h "${INBE_KRY_GEN_DIR}/${kry_rel_dir}/${kry_name}.h")
+    list(APPEND INBE_KRY_GENERATED_SOURCES "${kry_output_c}")
+    list(APPEND INBE_KRY_GENERATED_HEADERS "${kry_output_h}")
+endforeach()
+set(INBE_KRY_PROJECT_HEADER "${INBE_KRY_GEN_DIR}/kryon_project.h")
+add_custom_command(
+    OUTPUT ${INBE_KRY_GENERATED_SOURCES} ${INBE_KRY_GENERATED_HEADERS} "${INBE_KRY_PROJECT_HEADER}"
+    COMMAND ${CMAKE_COMMAND} -E remove_directory "${INBE_KRY_GEN_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${INBE_KRY_GEN_DIR}"
+    COMMAND "${KRYON_K2C}" --root "${REPO_ROOT}" -o "${INBE_KRY_GEN_DIR}" ${INBE_KRY_COMMAND_SOURCES}
+    DEPENDS ${INBE_KRY_SOURCES} "${KRYON_K2C}"
+    WORKING_DIRECTORY "${REPO_ROOT}"
+    VERBATIM
+)
+add_custom_command(
+    OUTPUT "${KRYON_K2C}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${CMAKE_BINARY_DIR}/host-tools"
+    # VERBATIM escapes embedded quotes, so unquoted -I paths (no spaces here)
+    COMMAND "${HOST_CC}" -Wall -Wextra -O2 -I${KRYON_DIR}/cmd/kir -I${KRYON_DIR}/cmd/k2c -o "${KRYON_K2C}" ${KRYON_K2C_SOURCES}
+    DEPENDS ${KRYON_K2C_SOURCES}
+    VERBATIM
+)
+add_custom_target(inbe_kry_generated DEPENDS
+    ${INBE_KRY_GENERATED_SOURCES}
+    ${INBE_KRY_GENERATED_HEADERS}
+    "${INBE_KRY_PROJECT_HEADER}"
+)
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
 set(INBE_EMBEDDED_INPUTS
     ${INBE_LOCALE_ASSETS}
+    assets/easteregg/art.png
+    assets/easteregg/waozi.png
     assets/practices/whm/1.png
     assets/practices/whm/2.png
     assets/practices/meditation/1.png
     assets/pet/egg1.png
     ${INBE_PRACTICE_BANNER_ASSETS}
-    assets/practices/sunsalutation/pos_0001.png
-    assets/practices/sunsalutation/pos_0002.png
-    assets/practices/sunsalutation/pos_0003.png
-    assets/practices/sunsalutation/pos_0004.png
-    assets/practices/sunsalutation/pos_0005.png
-    assets/practices/sunsalutation/pos_0006.png
-    assets/practices/sunsalutation/pos_0007.png
-    assets/practices/sunsalutation/pos_0008.png
-    assets/fonts/locales.png
-    assets/fonts/locales.dat
+    assets/practices/sunsalutation/poses_man_sheet.png
+    assets/practices/sunsalutation/poses_woman_sheet.png
+    assets/fonts/subset/NotoSans-Inbe-Regular.ttf
+    assets/fonts/subset/NotoSansSC-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansJP-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansKR-Inbe-Regular.otf
+    assets/fonts/subset/NotoSansTC-Inbe-Regular.otf
     ${INBE_SOUND_ASSETS}
 )
 set(INBE_EMBEDDED_DEPS)
@@ -64,8 +126,8 @@ set(INBE_EMBEDDED_ASSETS_C "${CMAKE_BINARY_DIR}/inbe_embedded_assets.c")
 
 add_custom_command(
     OUTPUT "${INBE_EMBEDDED_ASSETS_C}"
-    COMMAND sh "${FLINT_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
-    DEPENDS "${FLINT_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
+    COMMAND sh "${KRYON_DIR}/scripts/embed-assets.sh" "${INBE_EMBEDDED_ASSETS_C}" ${INBE_EMBEDDED_INPUTS}
+    DEPENDS "${KRYON_DIR}/scripts/embed-assets.sh" ${INBE_EMBEDDED_DEPS}
     WORKING_DIRECTORY "${REPO_ROOT}"
     VERBATIM
 )
@@ -98,7 +160,7 @@ target_compile_definitions(raylib PRIVATE
     SUPPORT_FILEFORMAT_GIF=0
     SUPPORT_FILEFORMAT_QOI=0
     SUPPORT_FILEFORMAT_DDS=0
-    SUPPORT_FILEFORMAT_TTF=0
+    SUPPORT_FILEFORMAT_TTF=1
     SUPPORT_FILEFORMAT_JPG=1
     SUPPORT_FILEFORMAT_PNG=1
     SUPPORT_FILEFORMAT_OGG=1
@@ -118,67 +180,24 @@ target_include_directories(raylib PUBLIC
 
 add_library(main SHARED
     "${SRC_DIR}/main.c"
-    "${SRC_DIR}/core/breath_engine.c"
-    "${SRC_DIR}/app/app_sync.c"
-    "${SRC_DIR}/app/app.c"
-    "${SRC_DIR}/app/app_nav.c"
-    "${SRC_DIR}/app/app_settings.c"
-    "${SRC_DIR}/app/device_preferences.c"
-    "${SRC_DIR}/practices/practice_registry.c"
-    "${SRC_DIR}/practices/whm/whm_practice.c"
-    "${SRC_DIR}/practices/whm/whm_session.c"
-    "${SRC_DIR}/practices/whm/whm_manual.c"
-    "${SRC_DIR}/practices/whm/whm_config.c"
-    "${SRC_DIR}/practices/meditation/meditation_practice.c"
-    "${SRC_DIR}/practices/meditation/meditation_session.c"
-    "${SRC_DIR}/practices/meditation/meditation_manual.c"
-    "${SRC_DIR}/practices/meditation/meditation_config.c"
-    "${SRC_DIR}/practices/sun_salutation/sun_salutation_practice.c"
-    "${SRC_DIR}/practices/sun_salutation/sun_salutation_session.c"
-    "${SRC_DIR}/screens/habits_screen.c"
-    "${SRC_DIR}/screens/statistics_screen.c"
-    "${SRC_DIR}/screens/habits/edit.c"
-    "${SRC_DIR}/screens/habits/session.c"
-    "${SRC_DIR}/screens/profile_screen.c"
-    "${SRC_DIR}/screens/profile_social.c"
-    "${SRC_DIR}/screens/pet_screen.c"
-    "${SRC_DIR}/practices/meditation/meditation_music.c"
-    "${SRC_DIR}/storage/data.c"
-    "${SRC_DIR}/storage/db.c"
-    "${SRC_DIR}/storage/import.c"
+    ${APP_C_SOURCES}
     "${SRC_DIR}/storage/storage.c"
-    "${SRC_DIR}/storage/storage_sessions.c"
-    "${SRC_DIR}/storage/sync_review.c"
-    "${SRC_DIR}/storage/sync_account.c"
     "${SRC_DIR}/storage/sync_client.c"
     "${SRC_DIR}/third_party/miniz.c"
     "${SQLITE_AMALGAMATION_C}"
     "${SRC_DIR}/platform/android/android_device.c"
-    "${SRC_DIR}/platform/android/android_import.c"
-    "${SRC_DIR}/platform/android/android_runtime_assets.c"
     "${SRC_DIR}/platform/android/android_share.c"
-    "${SRC_DIR}/screens/practice_screen.c"
-    "${SRC_DIR}/screens/language_screen.c"
-    "${SRC_DIR}/screens/manual_screen.c"
-    "${SRC_DIR}/screens/settings/settings_screen.c"
-    "${SRC_DIR}/screens/settings/settings_ui.c"
-    "${SRC_DIR}/screens/settings/settings_device.c"
-    "${SRC_DIR}/screens/settings/settings_session.c"
-    "${SRC_DIR}/screens/settings/settings_theme.c"
-    "${SRC_DIR}/screens/settings/settings_about.c"
-    "${SRC_DIR}/screens/settings/settings_data.c"
-    "${SRC_DIR}/screens/settings/settings_sync_account.c"
     "${INBE_EMBEDDED_ASSETS_C}"
-    ${FLINT_SOURCES}
+    ${INBE_KRY_GENERATED_SOURCES}
+    ${KRYON_SOURCES}
     "${SRC_DIR}/platform/android/android_insets.c"
-    "${SRC_DIR}/platform/android/android_wakelock.c"
-    "${SRC_DIR}/platform/android/android_timer.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
+add_dependencies(main inbe_kry_generated)
 
 target_include_directories(main PRIVATE
-    "${FLINT_DIR}/include"
-    "${FLINT_DIR}/src"
+    "${KRYON_DIR}/include"
+    "${KRYON_DIR}/src"
     "${SRC_DIR}"
     "${SRC_DIR}/app"
     "${SRC_DIR}/core"
@@ -191,12 +210,15 @@ target_include_directories(main PRIVATE
     "${SRC_DIR}/storage"
     "${SRC_DIR}/platform/android"
     "${SRC_DIR}/third_party"
+    "${INBE_KRY_GEN_DIR}"
+    "${INBE_KRY_GEN_DIR}/src"
     "${NATIVE_APP_GLUE_DIR}"
     "${SQLITE_BUILD_DIR}"
 )
 
 target_compile_definitions(main PRIVATE
     PLATFORM_ANDROID
+    ANDROID_BUILD=1
     _DEFAULT_SOURCE
     _GNU_SOURCE
     _FILE_OFFSET_BITS=64
@@ -208,6 +230,7 @@ target_compile_definitions(main PRIVATE
     SUPPORT_FILEFORMAT_OGG=1
     UI_EMBEDDED_ONLY=1
     HAS_LIBOQS=1
+    KRYON_WITH_PHYSICS=0
 )
 
 target_compile_options(main PRIVATE

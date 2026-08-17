@@ -26,6 +26,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          lfs: true
 
       - name: Cache Test apt packages
         uses: actions/cache@v4
@@ -62,6 +63,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          lfs: true
 
       - name: Cache Web apt packages
         uses: actions/cache@v4
@@ -81,6 +83,11 @@ jobs:
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
 
       - name: Set up Emscripten
         run: |
@@ -121,6 +128,7 @@ jobs:
         with:
           submodules: recursive
           fetch-depth: 0
+          lfs: true
 
       - name: Cache Web apt packages
         uses: actions/cache@v4
@@ -167,8 +175,74 @@ jobs:
           path: build/release/chrome-web-store/*
           if-no-files-found: error
 
-  build-linux:
-    name: Build Linux
+  build-firefox-addons:
+    name: Build Firefox Add-on
+    runs-on: ubuntu-latest
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+          lfs: true
+
+      - name: Cache Web apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: web-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/web-packages.txt') }}
+          restore-keys: |
+            web-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Web Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/web-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Set up Emscripten
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/emscripten-core/emsdk.git "$HOME/emsdk"
+          "$HOME/emsdk/emsdk" install latest
+          "$HOME/emsdk/emsdk" activate latest
+          echo "EMSDK=$HOME/emsdk" >> "$GITHUB_ENV"
+          echo "EM_CONFIG=$HOME/emsdk/.emscripten" >> "$GITHUB_ENV"
+          echo "$HOME/emsdk" >> "$GITHUB_PATH"
+          echo "$HOME/emsdk/upstream/emscripten" >> "$GITHUB_PATH"
+
+      - name: Build Firefox Add-on ZIP
+        run: |
+          set -euo pipefail
+          make package-unpackaged-assets
+          make firefox-addons
+          make firefox-addons-lint
+          mkdir -p build/release/firefox-addons
+          cp build/dist/inbe-firefox-addons.zip build/release/firefox-addons/
+
+      - name: Upload Firefox Add-on Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-firefox-addons
+          path: build/release/firefox-addons/*
+          if-no-files-found: error
+
+  build-linux-appimage:
+    name: Build Linux AppImage
     runs-on: ubuntu-22.04
     needs: test
     env:
@@ -260,10 +334,208 @@ jobs:
           cat /tmp/inbe-appimage.log || true
           exit 1
 
-      - name: Upload Linux Artifact
+      - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux
+          name: release-linux-appimage
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-deb:
+    name: Build Linux Deb
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Debian Package
+        run: |
+          set -euo pipefail
+          make deb
+          mkdir -p build/release/linux
+          find build/dist/deb -maxdepth 1 -type f -name '*.deb' -exec cp {} build/release/linux/ \;
+          deb="$(find build/release/linux -maxdepth 1 -type f -name '*.deb' | head -n 1)"
+          test -n "$deb"
+          dpkg-deb --info "$deb"
+          dpkg-deb --contents "$deb" >/dev/null
+
+      - name: Upload Linux Deb Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-deb
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-rpm:
+    name: Build Linux RPM
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build RPM Package
+        run: |
+          set -euo pipefail
+          make rpm
+          mkdir -p build/release/linux
+          find build/dist/rpm -maxdepth 1 -type f -name '*.rpm' -exec cp {} build/release/linux/ \;
+          rpm_package="$(find build/release/linux -maxdepth 1 -type f -name '*.rpm' | head -n 1)"
+          test -n "$rpm_package"
+          rpm -qip "$rpm_package"
+          rpm -qlp "$rpm_package" >/dev/null
+
+      - name: Upload Linux RPM Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-rpm
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-snap:
+    name: Build Linux Snap
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Snap Package
+        run: |
+          set -euo pipefail
+          make snap
+          mkdir -p build/release/linux
+          find build/dist/snap -maxdepth 1 -type f -name '*.snap' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.snap' -print -quit)"
+
+      - name: Upload Linux Snap Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-snap
+          path: build/release/linux/*
+          if-no-files-found: error
+
+  build-linux-flatpak:
+    name: Build Linux Flatpak
+    runs-on: ubuntu-22.04
+    needs: test
+    env:
+      APT_CACHE_DIR: /tmp/apt-cache
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 0
+
+      - name: Cache Linux apt packages
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.APT_CACHE_DIR }}
+          key: linux-apt-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('.github/apt/linux-packages.txt') }}
+          restore-keys: |
+            linux-apt-${{ runner.os }}-${{ runner.arch }}-
+
+      - name: Install Linux Dependencies
+        run: |
+          set -euo pipefail
+          mapfile -t packages < .github/apt/linux-packages.txt
+          mkdir -p "$APT_CACHE_DIR/partial"
+          sudo apt-get update
+          sudo apt-get \
+            -o Dir::Cache::archives="$APT_CACHE_DIR" \
+            install -y "${packages[@]}"
+          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+
+      - name: Build Flatpak Bundle
+        run: |
+          set -euo pipefail
+          make flatpak
+          mkdir -p build/release/linux
+          find build/dist/flatpak -maxdepth 1 -type f -name '*.flatpak' -exec cp {} build/release/linux/ \;
+          test -n "$(find build/release/linux -maxdepth 1 -type f -name '*.flatpak' -print -quit)"
+
+      - name: Upload Linux Flatpak Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-linux-flatpak
           path: build/release/linux/*
           if-no-files-found: error
 
@@ -328,7 +600,7 @@ jobs:
           path: |
             vendor-builds/windows
             vendor-builds/sqlite
-          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/flint/mk/**', 'vendor/flint/scripts/prepare-raylib-source.sh', 'vendor/flint/tools/generate-flint-compat.sh', 'vendor/flint/vendor/raylib/src/**', 'vendor/flint/vendor/curl/**', 'vendor/sqlite/**') }}
+          key: windows-vendor-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('Makefile', 'vendor/kryon/mk/**', 'vendor/kryon/scripts/prepare-raylib-source.sh', 'vendor/kryon/tools/generate-kryon-compat.sh', 'vendor/kryon/vendor/raylib/src/**', 'vendor/kryon/vendor/curl/**', 'vendor/sqlite/**') }}
           restore-keys: |
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
@@ -389,12 +661,12 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ${{ env.ANDROID_HOME }}/platforms/android-35
+            ${{ env.ANDROID_HOME }}/platforms/android-36
             ${{ env.ANDROID_HOME }}/build-tools/34.0.0
             ${{ env.ANDROID_HOME }}/ndk/25.1.8937393
             ${{ env.ANDROID_HOME }}/ndk/28.2.13676358
             ${{ env.ANDROID_HOME }}/cmake/3.22.1
-          key: android-sdk-${{ runner.os }}-${{ runner.arch }}-api35-bt34-ndk25-ndk28-cmake322
+          key: android-sdk-${{ runner.os }}-${{ runner.arch }}-api36-bt34-ndk25-ndk28-cmake322
           restore-keys: |
             android-sdk-${{ runner.os }}-${{ runner.arch }}-
 
@@ -404,7 +676,7 @@ jobs:
           path: |
             droid/app/.cxx
             droid/app/build/intermediates/cxx
-          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'flint/src/**/*.c', 'flint/include/**/*.h', 'vendor/flint/vendor/raylib/src/**') }}
+          key: android-native-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('droid/app/src/main/cpp/CMakeLists.txt', 'droid/app/build.gradle', 'src/**/*.c', 'src/**/*.h', 'vendor/kryon/src/**/*.c', 'vendor/kryon/include/**/*.h', 'vendor/kryon/vendor/raylib/src/**') }}
           restore-keys: |
             android-native-${{ runner.os }}-${{ runner.arch }}-
 
@@ -413,7 +685,7 @@ jobs:
           set -euo pipefail
           SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-35" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
+          "$SDKMANAGER" "platforms;android-36" "build-tools;34.0.0" "ndk;25.1.8937393" "cmake;3.22.1"
 
       - name: Prepare Android signing key
         env:
@@ -476,7 +748,12 @@ jobs:
     needs:
       - build-web
       - build-chrome-extension
-      - build-linux
+      - build-firefox-addons
+      - build-linux-appimage
+      - build-linux-deb
+      - build-linux-rpm
+      - build-linux-snap
+      - build-linux-flatpak
       - build-freebsd
       - build-windows
       - build-android
@@ -680,30 +957,40 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Check Amazon Appstore Secrets
+        id: amazon_secrets
         run: |
           set -euo pipefail
           for name in AMAZON_CLIENT_ID AMAZON_CLIENT_SECRET AMAZON_APP_ID; do
             if [ -z "${!name:-}" ]; then
-              echo "$name secret is required to publish Amazon Appstore"
-              exit 1
+              echo "::warning::$name secret is not configured; skipping Amazon Appstore publish"
+              echo "configured=false" >> "$GITHUB_OUTPUT"
+              exit 0
             fi
           done
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Download Android Release Artifact
+        if: steps.amazon_secrets.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: release-android
           path: build/release/android
 
       - name: Set up Node
+        if: steps.amazon_secrets.outputs.configured == 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Upload APK to Amazon Appstore
+        if: steps.amazon_secrets.outputs.configured == 'true'
         env:
           AMAZON_RELEASE_FILE: build/release/android/inbe-${{ needs.release.outputs.version }}.apk
-        run: node scripts/upload-amazon-appstore.mjs
+        run: |
+          set -euo pipefail
+          if ! node scripts/upload-amazon-appstore.mjs; then
+            echo "::warning::Amazon Appstore publish failed; release artifacts were still created"
+          fi
 
   publish-chrome-web-store:
     name: Publish Chrome Web Store
@@ -715,6 +1002,7 @@ jobs:
 
     steps:
       - name: Check Chrome Web Store Secrets
+        id: chrome_secrets
         env:
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
@@ -722,25 +1010,31 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${CHROME_CLIENT_ID:-}" ]; then
-            echo "CHROME_CLIENT_ID secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_CLIENT_ID secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if [ -z "${CHROME_CLIENT_SECRET:-}" ]; then
-            echo "CHROME_CLIENT_SECRET secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_CLIENT_SECRET secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
           if [ -z "${CHROME_REFRESH_TOKEN:-}" ]; then
-            echo "CHROME_REFRESH_TOKEN secret is required to publish Chrome Web Store"
-            exit 1
+            echo "::warning::CHROME_REFRESH_TOKEN secret is not configured; skipping Chrome Web Store publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
 
       - name: Download Chrome Extension Artifact
+        if: steps.chrome_secrets.outputs.configured == 'true'
         uses: actions/download-artifact@v4
         with:
           name: release-chrome-web-store
           path: build/release/chrome-web-store
 
       - name: Publish Chrome Extension
+        if: steps.chrome_secrets.outputs.configured == 'true'
         env:
           CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
           CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
@@ -750,22 +1044,40 @@ jobs:
         run: |
           set -euo pipefail
 
-          token_response="$(curl --fail-with-body --silent --show-error \
+          token_response_file="$(mktemp)"
+          token_status="$(curl --silent --show-error \
             --request POST \
             --data-urlencode "client_id=${CHROME_CLIENT_ID}" \
             --data-urlencode "client_secret=${CHROME_CLIENT_SECRET}" \
             --data-urlencode "refresh_token=${CHROME_REFRESH_TOKEN}" \
             --data-urlencode "grant_type=refresh_token" \
+            --output "$token_response_file" \
+            --write-out "%{http_code}" \
             https://oauth2.googleapis.com/token)"
+          token_response="$(cat "$token_response_file")"
+          rm -f "$token_response_file"
+          if [ "$token_status" -lt 200 ] || [ "$token_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store token request failed with HTTP $token_status: $token_response"
+            exit 0
+          fi
 
           access_token="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' <<< "$token_response")"
 
-          upload_response="$(curl --fail-with-body --silent --show-error \
+          upload_response_file="$(mktemp)"
+          upload_status="$(curl --silent --show-error \
             --request PUT \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \
             --upload-file "${CHROME_EXTENSION_ZIP}" \
+            --output "$upload_response_file" \
+            --write-out "%{http_code}" \
             "https://www.googleapis.com/upload/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}")"
+          upload_response="$(cat "$upload_response_file")"
+          rm -f "$upload_response_file"
+          if [ "$upload_status" -lt 200 ] || [ "$upload_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store upload failed with HTTP $upload_status: $upload_response"
+            exit 0
+          fi
 
           python3 - "$upload_response" <<'PY'
           import json
@@ -774,14 +1086,24 @@ jobs:
           response = json.loads(sys.argv[1])
           if response.get("uploadState") != "SUCCESS":
               print(json.dumps(response, indent=2), file=sys.stderr)
-              raise SystemExit("Chrome Web Store upload failed")
+              print("::warning::Chrome Web Store upload was not accepted")
+              raise SystemExit(0)
           PY
 
-          publish_response="$(curl --fail-with-body --silent --show-error \
+          publish_response_file="$(mktemp)"
+          publish_status="$(curl --silent --show-error \
             --request POST \
             --header "Authorization: Bearer ${access_token}" \
             --header "x-goog-api-version: 2" \
+            --output "$publish_response_file" \
+            --write-out "%{http_code}" \
             "https://www.googleapis.com/chromewebstore/v1.1/items/${CHROME_EXTENSION_ID}/publish")"
+          publish_response="$(cat "$publish_response_file")"
+          rm -f "$publish_response_file"
+          if [ "$publish_status" -lt 200 ] || [ "$publish_status" -ge 300 ]; then
+            echo "::warning::Chrome Web Store publish failed with HTTP $publish_status: $publish_response"
+            exit 0
+          fi
 
           python3 - "$publish_response" <<'PY'
           import json
@@ -790,5 +1112,67 @@ jobs:
           response = json.loads(sys.argv[1])
           if "OK" not in response.get("status", []):
               print(json.dumps(response, indent=2), file=sys.stderr)
-              raise SystemExit("Chrome Web Store publish failed")
+              print("::warning::Chrome Web Store publish was not accepted")
+              raise SystemExit(0)
           PY
+
+  publish-firefox-addons:
+    name: Publish Firefox Add-ons
+    runs-on: ubuntu-latest
+    needs:
+      - build-firefox-addons
+      - release
+    if: needs.release.outputs.tag_pushed == 'true'
+
+    steps:
+      - name: Check Firefox Add-ons Secrets
+        id: firefox_secrets
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+        run: |
+          set -euo pipefail
+          if [ -z "${AMO_JWT_ISSUER:-}" ]; then
+            echo "::warning::AMO_JWT_ISSUER secret is not configured; skipping Firefox Add-ons publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ -z "${AMO_JWT_SECRET:-}" ]; then
+            echo "::warning::AMO_JWT_SECRET secret is not configured; skipping Firefox Add-ons publish"
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "configured=true" >> "$GITHUB_OUTPUT"
+
+      - name: Download Firefox Add-on Artifact
+        if: steps.firefox_secrets.outputs.configured == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: release-firefox-addons
+          path: build/release/firefox-addons
+
+      - name: Set up Node
+        if: steps.firefox_secrets.outputs.configured == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Publish Firefox Add-on
+        if: steps.firefox_secrets.outputs.configured == 'true'
+        env:
+          AMO_JWT_ISSUER: ${{ secrets.AMO_JWT_ISSUER }}
+          AMO_JWT_SECRET: ${{ secrets.AMO_JWT_SECRET }}
+          FIREFOX_ADDON_ZIP: build/release/firefox-addons/inbe-firefox-addons.zip
+        run: |
+          set -euo pipefail
+          test -f "$FIREFOX_ADDON_ZIP"
+          mkdir -p build/firefox-addons/source build/firefox-addons/signed
+          unzip -q "$FIREFOX_ADDON_ZIP" -d build/firefox-addons/source
+          if ! npx --yes web-ext sign \
+            --source-dir build/firefox-addons/source \
+            --artifacts-dir build/firefox-addons/signed \
+            --channel listed \
+            --api-key "$AMO_JWT_ISSUER" \
+            --api-secret "$AMO_JWT_SECRET"; then
+            echo "::warning::Firefox Add-ons publish failed; release artifacts were still created"
+          fi

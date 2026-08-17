@@ -1,0 +1,699 @@
+#import "app.h"
+
+#import "app_nav.h" #private
+#import "app/device_preferences.h" #private
+#import "practices/meditation/meditation_music.h" #private
+#import "practices/sun_salutation/sun_salutation_practice.h" #private
+#import "practices/whm/whm_session.h" #private
+#import "storage.h" #private
+#import <stdio.h>
+#import <stdlib.h>
+#import <string.h>
+
+WEB :: #defined(PLATFORM_WEB)
+ANDROID :: ANDROID_BUILD
+DESKTOP :: #defined(PLATFORM_DESKTOP)
+
+SettingsCacheEntry :: struct {
+    key: [64] char
+    value: [256] char
+}
+
+SettingsLoadCache :: struct {
+    entries: SettingsCacheEntry*
+    count: int
+    capacity: int
+}
+
+settings_cache_add :: (key: const char*, value: const char*, user: void*) #private {
+    cache := (SettingsLoadCache*)user
+
+    if cache == nil || key == nil || key[0] == '\0' {
+        return
+    }
+    if cache->count >= cache->capacity {
+        grown: SettingsCacheEntry* = nil
+        new_capacity := cache->capacity > 0 ? cache->capacity * 2 : 128
+        grown = (SettingsCacheEntry*)realloc(cache->entries,
+                     (size_t)new_capacity * sizeof(*grown))
+        if grown == nil {
+            TraceLog(LOG_WARNING,
+                     "INBE: settings cache cannot grow to %d entries",
+                     new_capacity)
+            return
+        }
+        cache->entries = grown
+        cache->capacity = new_capacity
+    }
+    snprintf(cache->entries[cache->count].key,
+                sizeof(cache->entries[cache->count].key), "%s", key)
+    snprintf(cache->entries[cache->count].value,
+                sizeof(cache->entries[cache->count].value), "%s",
+                value != nil ? value : "")
+    cache->count++
+}
+
+settings_cache_get :: (cache: const SettingsLoadCache*, key: const char*) -> const char* #private {
+    if cache == nil || key == nil {
+        return nil
+    }
+    for int i = 0; i < cache->count; i++ {
+        if strcmp(cache->entries[i].key, key) == 0 {
+            return cache->entries[i].value
+        }
+    }
+    return nil
+}
+
+settings_cache_get_int :: (cache: const SettingsLoadCache*, key: const char*,
+                          fallback: int) -> int #private {
+    text := settings_cache_get(cache, key)
+    return text != nil && text[0] != '\0' ? atoi(text) : fallback
+}
+
+exercise_manual_bit :: (exercise_type: int) -> int #private {
+    if exercise_type < 0 || exercise_type >= EXERCISE_COUNT {
+        return 0
+    }
+    return 1 << exercise_type
+}
+
+#if WEB {
+    sync_web_storage :: () #private {
+        FlushWebStorageSync(1)
+    }
+}
+
+load_navigation_mode :: (cache: const SettingsLoadCache*) -> int #private {
+    default_nav: int
+    #if ANDROID {
+        default_nav = NAV_MODE_DROPDOWN
+    } #else {
+        default_nav = NAV_MODE_TABBAR
+    }
+
+    value := settings_cache_get_int(cache, "navigation_mode", default_nav)
+    if value == NAV_MODE_DROPDOWN {
+        return NAV_MODE_DROPDOWN
+    }
+    return NAV_MODE_TABBAR
+}
+
+default_profile_picture_icon :: () -> UIIconType #private {
+    fallback := GetUIProfilePictureIconType(0)
+    return fallback != UI_ICON_TYPE_NONE ? fallback : UI_ICON_TYPE_PROFILE
+}
+
+is_profile_picture_icon :: (type: UIIconType) -> int #private {
+    for int i = 0; i < GetUIProfilePictureIconCount(); i++ {
+        if GetUIProfilePictureIconType(i) == type {
+            return 1
+        }
+    }
+    return 0
+}
+
+load_profile_picture_icon :: (cache: const SettingsLoadCache*) -> UIIconType #private {
+    fallback := default_profile_picture_icon()
+    type := (UIIconType)settings_cache_get_int(cache, "profile_picture_icon",
+                                               fallback)
+
+    return is_profile_picture_icon(type) ? type : fallback
+}
+
+load_bottom_nav_routes :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
+    if app == nil {
+        return
+    }
+    app->bottom_nav_route_count =
+        settings_cache_get_int(cache, "bottom_nav_route_count", 2)
+    app->bottom_nav_routes[0] =
+        settings_cache_get_int(cache, "bottom_nav_route_0", APP_NAV_ROUTE_HABITS)
+    app->bottom_nav_routes[1] =
+        settings_cache_get_int(cache, "bottom_nav_route_1", APP_NAV_ROUTE_PRACTICE)
+    app->bottom_nav_routes[2] =
+        settings_cache_get_int(cache, "bottom_nav_route_2", APP_NAV_ROUTE_NONE)
+    app->bottom_nav_routes[3] =
+        settings_cache_get_int(cache, "bottom_nav_route_3", APP_NAV_ROUTE_NONE)
+    app_sanitize_bottom_nav_routes(app)
+}
+
+default_theme_source :: () -> int #private {
+    #if DESKTOP {
+        return APP_THEME_SOURCE_SYSTEM
+    } #else {
+        return APP_THEME_SOURCE_APP
+    }
+}
+
+apply_settings :: (inbe: Inbe*, speed: int, max_rounds: int,
+                      max_breaths: int, pause_seconds: int) {
+    speed = clampi(speed, SETTINGS_SPEED_MIN, SETTINGS_SPEED_MAX)
+    inbe->speed_level = speed
+    inbe->breath_half_ticks = breath_half_ticks_for_speed(speed)
+    inbe->breath_animation = clampi(inbe->breath_animation,
+                                    InbeBreathAnimationLinear,
+                                    InbeBreathAnimationCount - 1)
+    inbe->progressive_start_speed = clampi(inbe->progressive_start_speed,
+                                           SETTINGS_SPEED_MIN, speed)
+    inbe->max_rounds = clampi(max_rounds, 1, MaxRounds)
+    inbe->pause_seconds = clampi(pause_seconds, SETTINGS_PAUSE_MIN,
+                                 SETTINGS_PAUSE_MAX)
+    count_from_int(inbe->maxbreaths,
+                      clampi(max_breaths, SETTINGS_BREATHS_MIN,
+                             SETTINGS_BREATHS_MAX))
+}
+
+reset_settings_preview :: (app: InbeApp*) {
+    speed := app->inbe.speed_level
+    max_rounds := app->inbe.max_rounds
+    max_breaths := int_from_count(app->inbe.maxbreaths)
+    pause_seconds := app->inbe.pause_seconds
+    play_in_background := app->inbe.play_in_background
+    breath_animation := app->inbe.breath_animation
+    content_w: int
+
+    inbeinit(&app->settings_preview)
+    app->settings_preview.progressive_speed = 0
+    app->settings_preview.play_in_background = play_in_background
+    app->settings_preview.breath_animation = breath_animation
+    GetUICenteredColumn(CONTENT_MAX_W, CONTENT_SIDE_PAD, nil, &content_w)
+    update_preview_bounds(&app->settings_preview, content_w, ScaleUIPx(132))
+    apply_settings(&app->settings_preview, speed, max_rounds, max_breaths,
+                      pause_seconds)
+    session_reset_round_breathe(&app->settings_preview)
+}
+
+save_setting_int :: (key: const char*, value: int) #private {
+    storage_set_setting_int(key, value)
+}
+
+save_settings :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+
+    storage_settings_begin_write()
+    save_setting_int("speed", app->inbe.speed_level)
+    save_setting_int("max_rounds", app->inbe.max_rounds)
+    save_setting_int("max_breaths", int_from_count(app->inbe.maxbreaths))
+    save_setting_int("pause_seconds", app->inbe.pause_seconds)
+    save_setting_int("sound_volume", app->sound_volume)
+    save_setting_int("music_volume", app->music_volume)
+    app_audio_library_save(app)
+    save_setting_int("retention_marker_enabled",
+                        app->retention_marker_enabled ? 1 : 0)
+    save_setting_int("tutorial_seen", app->tutorial_seen ? 1 : 0)
+    save_setting_int("tutorial_step", app->tutorial_step)
+    save_setting_int("habits_guide_seen", app->habits_guide_seen ? 1 : 0)
+    save_setting_int("exercise_manual_seen_mask", app->exercise_manual_seen_mask)
+    save_setting_int("practice_visible_mask", app->practice_visible_mask)
+    save_setting_int("theme", app->theme_id)
+    save_setting_int("theme_source", app->theme_source)
+    save_setting_int("dark_mode", app->dark_mode)
+    save_setting_int("theme_mode", app->theme_mode)
+    save_setting_int("theme_style", app->theme_style)
+    save_setting_int("orientation_mode", app->orientation_mode)
+    save_setting_int("ui_scale", app->ui_scale_tenths)
+    save_setting_int("navigation_mode", app->navigation_mode)
+    save_setting_int("profile_picture_icon", app->profile_picture_icon)
+    save_setting_int("bottom_nav_route_count", app->bottom_nav_route_count)
+    save_setting_int("bottom_nav_route_0", app->bottom_nav_routes[0])
+    save_setting_int("bottom_nav_route_1", app->bottom_nav_routes[1])
+    save_setting_int("bottom_nav_route_2", app->bottom_nav_routes[2])
+    save_setting_int("bottom_nav_route_3", app->bottom_nav_routes[3])
+    save_setting_int("main_tab", app->main_tab)
+    save_setting_int("habits_screen_mode",
+                        app->habits.screen_mode == HABITS_SCREEN_REORDER
+                            ? HABITS_SCREEN_OVERVIEW
+                            : app->habits.screen_mode)
+    save_setting_int("habits_tab", app->habits.tab)
+    save_setting_int("habits_view_mode", app->habits.view_mode)
+    save_setting_int("fullscreen", app->fullscreen_enabled ? 1 : 0)
+    save_setting_int("on_screen_keyboard",
+                        app->on_screen_keyboard_enabled ? 1 : 0)
+    save_setting_int("notification_friend_request",
+                        app->notification_friend_request ? 1 : 0)
+    save_setting_int("reminder_count", app->reminder_count)
+    for int i = 0; i < APP_REMINDER_MAX; i++ {
+        key: [40] char
+        r := &app->reminders[i]
+        if snprintf(key, sizeof(key), "reminder_%d_practice", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->practice : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_hour", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->hour : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_enabled", i) <
+           (int)sizeof(key) {
+            save_setting_int(key,
+                             i < app->reminder_count && r->enabled ? 1 : 0)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_last_day", i) <
+           (int)sizeof(key) {
+            save_setting_int(key, i < app->reminder_count ? r->last_day : 0)
+        }
+    }
+    save_setting_int("progressive_speed", app->inbe.progressive_speed)
+    save_setting_int("progressive_start_speed",
+                        app->inbe.progressive_start_speed)
+    save_setting_int("breath_animation", app->inbe.breath_animation)
+    save_setting_int("advanced_session_controls",
+                        app->advanced_session_controls ? 1 : 0)
+    save_setting_int("double_tap_to_breathe",
+                        app->double_tap_to_breathe ? 1 : 0)
+    save_setting_int("exercise_type", app->exercise_type)
+    save_setting_int("sun_salutation_repetitions",
+                        app->sun_salutation.repetitions)
+    save_setting_int("sun_salutation_start_seconds",
+                        app->sun_salutation.start_seconds)
+    save_setting_int("sun_salutation_end_seconds",
+                        app->sun_salutation.end_seconds)
+    save_setting_int("sun_salutation_figure", app->sun_salutation.figure)
+    save_setting_int("meditation_duration_mode",
+                        app->meditation.duration_mode)
+    save_setting_int("meditation_custom_minutes",
+                        app->meditation.custom_minutes)
+    save_setting_int("meditation_show_extend_controls",
+                        app->meditation.show_extend_controls ? 1 : 0)
+    save_setting_int("meditation_interval_bell",
+                        app->meditation.interval_bell_minutes)
+    save_setting_int("meditation_music_track", app->meditation.music_track)
+    save_setting_int("practice_music_mask",
+                        app->meditation.music_practice_mask)
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        track_key: [48] char
+        practice_music_track_key(i, track_key, sizeof(track_key))
+        save_setting_int(track_key, app->meditation.music_practice_tracks[i])
+    }
+    save_setting_int("play_in_background", app->inbe.play_in_background)
+    save_setting_int("practice_category_tab", app->practice_category_tab)
+    save_setting_int("patterns_preset", app->patterns.preset)
+    save_setting_int("patterns_custom_in", app->patterns.custom[0])
+    save_setting_int("patterns_custom_hold_in", app->patterns.custom[1])
+    save_setting_int("patterns_custom_exhale", app->patterns.custom[2])
+    save_setting_int("patterns_custom_hold_out", app->patterns.custom[3])
+    save_setting_int("patterns_duration_minutes", app->patterns.duration_minutes)
+
+    save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    save_setting_int("desktop_startup_mode", app->desktop_startup_mode)
+    save_setting_int("desktop_close_action", app->desktop_close_action)
+    save_setting_int("break_block_mode", app->break_block_mode)
+    save_setting_int("break_sounds_enabled", app->break_sounds_enabled ? 1 : 0)
+    save_setting_int("break_hud_x", app->break_hud_x)
+    save_setting_int("break_hud_y", app->break_hud_y)
+    save_setting_int("break_exercise_count", app->break_exercise_count)
+    save_setting_int("break_reading_mode", app->breaks.reading_mode ? 1 : 0)
+    save_setting_int("break_micro_counts_as_activity",
+                        app->breaks.micro_counts_as_activity ? 1 : 0)
+    for int t = 0; t < BREAK_TYPE_COUNT; t++ {
+        timer := &app->breaks.timers[t]
+        key: [48] char
+        break_timer_setting_key(t, "enabled", key, sizeof(key))
+        save_setting_int(key, timer->enabled ? 1 : 0)
+        break_timer_setting_key(t, "limit", key, sizeof(key))
+        save_setting_int(key, timer->limit_s)
+        break_timer_setting_key(t, "duration", key, sizeof(key))
+        save_setting_int(key, timer->duration_s)
+        break_timer_setting_key(t, "postpone", key, sizeof(key))
+        save_setting_int(key, timer->postpone_s)
+        break_timer_setting_key(t, "max_prompts", key, sizeof(key))
+        save_setting_int(key, timer->max_prompts)
+        break_timer_setting_key(t, "show_skip", key, sizeof(key))
+        save_setting_int(key, timer->show_skip ? 1 : 0)
+        break_timer_setting_key(t, "show_postpone", key, sizeof(key))
+        save_setting_int(key, timer->show_postpone ? 1 : 0)
+    }
+
+    storage_set_setting_text("language",
+        (app->language_selected && app->language[0] != '\0') ? app->language : "")
+    storage_set_setting_text("habits_selected_id",
+        (app->habits.selected >= 0 && app->habits.selected < app->habits.count)
+            ? app->habits.items[app->habits.selected].id
+            : "")
+    storage_settings_end_write()
+    #if WEB {
+        sync_web_storage()
+    }
+    app->settings_dirty = 0
+    app->settings_save_delay_ticks = 0
+}
+
+load_language_setting :: (app: InbeApp*, settings_missing: int,
+                         cache: const SettingsLoadCache*) #private {
+    language := settings_cache_get(cache, "language")
+
+    app->language_needs_save = 0
+    if language != nil && language[0] != '\0' {
+        snprintf(app->language, sizeof(app->language), "%s", language)
+        app->language_selected = 1
+        if !SetLocale(app->language) {
+            snprintf(app->language, sizeof(app->language), "%s", "en")
+            SetLocale(app->language)
+        }
+    } else {
+        snprintf(app->language, sizeof(app->language), "%s", "en")
+        app->language_selected = settings_missing ? 0 : 1
+        app->language_needs_save = app->language_selected
+        SetLocale(app->language)
+    }
+
+    app->language_index = GetCurrentLocaleIndex()
+    if app->language_index < 0 {
+        app->language_index = 0
+    }
+}
+
+load_bool_setting :: (cache: const SettingsLoadCache*, dst: int*, key: const char*,
+                     fallback: int) #private {
+    *dst = settings_cache_get_int(cache, key, fallback) != 0
+}
+
+load_clamped_setting :: (cache: const SettingsLoadCache*, dst: int*,
+                        key: const char*, fallback: int, min_value: int,
+                        max_value: int) #private {
+    value := settings_cache_get_int(cache, key, fallback)
+    *dst = clampi(value, min_value, max_value)
+}
+
+load_reminders :: (app: InbeApp*, cache: const SettingsLoadCache*) #private {
+    key: [40] char
+
+    if app == nil || cache == nil {
+        return
+    }
+    if settings_cache_get(cache, "reminder_count") == nil {
+        app->reminder_count = 1
+        app->reminders[0].practice = 0
+        app->reminders[0].hour = 8
+        app->reminders[0].enabled = 1
+        app->reminders[0].last_day = 0
+        return
+    }
+    app->reminder_count = clampi(
+        settings_cache_get_int(cache, "reminder_count", 1), 0,
+        APP_REMINDER_MAX)
+    for int i = 0; i < app->reminder_count; i++ {
+        r := &app->reminders[i]
+        r->practice = 0
+        r->hour = 8
+        r->enabled = 1
+        r->last_day = 0
+        if snprintf(key, sizeof(key), "reminder_%d_practice", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->practice, key, 0, 0,
+                                 APP_REMINDER_PRACTICE_COUNT - 1)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_hour", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->hour, key, 8, 0, 23)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_enabled", i) <
+           (int)sizeof(key) {
+            load_bool_setting(cache, &r->enabled, key, 1)
+        }
+        if snprintf(key, sizeof(key), "reminder_%d_last_day", i) <
+           (int)sizeof(key) {
+            load_clamped_setting(cache, &r->last_day, key, 0, 0, 99999999)
+        }
+    }
+}
+
+practice_music_track_key :: (index: int, out: char*, out_size: int) #private {
+    if out == nil || out_size <= 0 {
+        return
+    }
+    if index == EXERCISE_WIM_HOF {
+        snprintf(out, out_size, "%s", "practice_music_track_wim_hof")
+    } else if index == EXERCISE_MEDITATION {
+        snprintf(out, out_size, "%s", "practice_music_track_meditation")
+    } else if index == EXERCISE_SUN_SALUTATION {
+        snprintf(out, out_size, "%s", "practice_music_track_sun_salutation")
+    } else {
+        snprintf(out, out_size, "practice_music_track_%d", index)
+    }
+}
+
+break_timer_setting_key :: (t: int, field: const char*, out: char*, out_size: int) #private {
+    if out == nil || out_size <= 0 {
+        return
+    }
+    if t == BREAK_REST {
+        snprintf(out, out_size, "break_rest_%s", field)
+    } else if t == BREAK_DAILY {
+        snprintf(out, out_size, "break_daily_%s", field)
+    } else {
+        snprintf(out, out_size, "break_micro_%s", field)
+    }
+}
+
+app_load_settings :: (app: InbeApp*) -> int {
+    settings_missing: int
+    speed: int
+    max_rounds: int
+    max_breaths: int
+    pause_seconds: int
+    manual_seen_mask: int
+    music_max: int
+    settings_cache: SettingsLoadCache = {0}
+
+    if app == nil {
+        return 0
+    }
+
+    settings_missing = storage_settings_empty()
+    storage_list_settings(settings_cache_add, &settings_cache)
+
+    speed = settings_cache_get_int(&settings_cache, "speed", DefaultSpeedLevel)
+    max_rounds = settings_cache_get_int(&settings_cache, "max_rounds",
+                                        DefaultMaxRounds)
+    max_breaths = settings_cache_get_int(&settings_cache, "max_breaths",
+                                         DefaultMaxBreaths)
+    pause_seconds = settings_cache_get_int(&settings_cache, "pause_seconds",
+                                           DefaultPauseSeconds)
+
+    load_bool_setting(&settings_cache, &app->tutorial_seen, "tutorial_seen", 0)
+    load_clamped_setting(&settings_cache, &app->tutorial_step,
+                            "tutorial_step", 0, 0, 9999)
+    load_bool_setting(&settings_cache, &app->habits_guide_seen,
+                         "habits_guide_seen", 0)
+    load_bool_setting(&settings_cache, &app->dark_mode, "dark_mode", 0)
+    load_bool_setting(&settings_cache, &app->fullscreen_enabled,
+                         "fullscreen", 0)
+    #if ANDROID || WEB {
+        load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
+                             "on_screen_keyboard", 1)
+    } #else {
+        load_bool_setting(&settings_cache, &app->on_screen_keyboard_enabled,
+                             "on_screen_keyboard", 0)
+    }
+    load_bool_setting(&settings_cache, &app->notification_friend_request,
+                         "notification_friend_request", 1)
+    load_reminders(app, &settings_cache)
+    load_bool_setting(&settings_cache, &app->inbe.progressive_speed,
+                         "progressive_speed", 1)
+    load_bool_setting(&settings_cache, &app->advanced_session_controls,
+                         "advanced_session_controls", 0)
+    load_bool_setting(&settings_cache, &app->double_tap_to_breathe,
+                         "double_tap_to_breathe", 0)
+    load_bool_setting(&settings_cache, &app->meditation.show_extend_controls,
+                         "meditation_show_extend_controls", 1)
+    load_bool_setting(&settings_cache, &app->retention_marker_enabled,
+                         "retention_marker_enabled", 0)
+    load_bool_setting(&settings_cache, &app->breaks_enabled,
+                         "breaks_enabled", app->breaks_enabled)
+    load_clamped_setting(&settings_cache, &app->desktop_startup_mode,
+                            "desktop_startup_mode", 0, 0, INBE_STARTUP_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->desktop_close_action,
+                            "desktop_close_action", 0, 0, INBE_CLOSE_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->break_block_mode,
+                            "break_block_mode", 0, 0, 2)
+    load_bool_setting(&settings_cache, &app->break_sounds_enabled,
+                         "break_sounds_enabled", 1)
+    load_clamped_setting(&settings_cache, &app->break_hud_x,
+                            "break_hud_x", -1, -1, 32767)
+    load_clamped_setting(&settings_cache, &app->break_hud_y,
+                            "break_hud_y", -1, -1, 32767)
+    load_clamped_setting(&settings_cache, &app->break_exercise_count,
+                            "break_exercise_count", 3, 0, 4)
+    load_bool_setting(&settings_cache, &app->breaks.reading_mode,
+                         "break_reading_mode", 0)
+    load_bool_setting(&settings_cache, &app->breaks.micro_counts_as_activity,
+                         "break_micro_counts_as_activity", 0)
+    for int t = 0; t < BREAK_TYPE_COUNT; t++ {
+        timer := &app->breaks.timers[t]
+        key: [48] char
+        break_timer_setting_key(t, "enabled", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->enabled, key,
+                             timer->enabled)
+        break_timer_setting_key(t, "limit", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->limit_s, key,
+                                timer->limit_s, 30, 86400)
+        break_timer_setting_key(t, "duration", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->duration_s, key,
+                                timer->duration_s, 0, 3600)
+        break_timer_setting_key(t, "postpone", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->postpone_s, key,
+                                timer->postpone_s, 10, 3600)
+        break_timer_setting_key(t, "max_prompts", key, sizeof(key))
+        load_clamped_setting(&settings_cache, &timer->max_prompts, key,
+                                timer->max_prompts, 0, 10)
+        break_timer_setting_key(t, "show_skip", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->show_skip, key,
+                             timer->show_skip)
+        break_timer_setting_key(t, "show_postpone", key, sizeof(key))
+        load_bool_setting(&settings_cache, &timer->show_postpone, key,
+                             timer->show_postpone)
+    }
+    #if ANDROID || WEB {
+        app->on_screen_keyboard_enabled = 1
+    }
+
+    load_clamped_setting(&settings_cache, &app->sound_volume, "sound_volume",
+                            100, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
+    load_clamped_setting(&settings_cache, &app->music_volume, "music_volume",
+                            50, SETTINGS_VOLUME_MIN, SETTINGS_VOLUME_MAX)
+    app_audio_library_load(app)
+    music_max = app_audio_music_count(app) - 1
+    if music_max < 0 {
+        music_max = 0
+    }
+    load_clamped_setting(&settings_cache, &app->theme_id, "theme", 0, 0,
+                            THEME_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->theme_source, "theme_source",
+                            default_theme_source(), APP_THEME_SOURCE_APP,
+                            APP_THEME_SOURCE_SYSTEM)
+    load_clamped_setting(&settings_cache, &app->theme_mode, "theme_mode",
+                            APP_THEME_SYSTEM, APP_THEME_SYSTEM, APP_THEME_DARK)
+    load_clamped_setting(&settings_cache, &app->theme_style, "theme_style",
+                            THEME_STYLE_MATERIAL, THEME_STYLE_SYSTEM,
+                            THEME_STYLE_MATERIAL)
+    load_clamped_setting(&settings_cache, &app->orientation_mode,
+                            "orientation_mode", APP_ORIENTATION_SYSTEM,
+                            APP_ORIENTATION_SYSTEM, APP_ORIENTATION_SENSOR)
+    load_clamped_setting(&settings_cache, &app->ui_scale_tenths,
+                            "ui_scale", 10, 5, 25)
+    load_clamped_setting(&settings_cache, &app->main_tab, "main_tab",
+                            APP_MAIN_TAB_PRACTICE, APP_MAIN_TAB_NONE,
+                            APP_MAIN_TAB_PRACTICE)
+    load_clamped_setting(&settings_cache, &app->habits.screen_mode,
+                            "habits_screen_mode", HABITS_SCREEN_OVERVIEW,
+                            HABITS_SCREEN_OVERVIEW, HABITS_SCREEN_DETAIL)
+    load_clamped_setting(&settings_cache, &app->habits.tab, "habits_tab",
+                            HABIT_TAB_WEEKLY, HABIT_TAB_WEEKLY,
+                            HABIT_TAB_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->habits.view_mode,
+                            "habits_view_mode", HABIT_VIEW_WEEKLY,
+                            HABIT_VIEW_CALENDAR, HABIT_VIEW_WEEKLY)
+    load_clamped_setting(&settings_cache, &app->inbe.progressive_start_speed,
+                            "progressive_start_speed",
+                            DefaultProgressiveStartSpeed, SETTINGS_SPEED_MIN,
+                            SETTINGS_SPEED_MAX)
+    load_clamped_setting(&settings_cache, &app->inbe.breath_animation,
+                            "breath_animation", InbeBreathAnimationLinear,
+                            InbeBreathAnimationLinear,
+                            InbeBreathAnimationCount - 1)
+    load_clamped_setting(&settings_cache, &app->exercise_type,
+                            "exercise_type", EXERCISE_WIM_HOF,
+                            EXERCISE_WIM_HOF, EXERCISE_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->sun_salutation.repetitions,
+                            "sun_salutation_repetitions", 3, 2, 12)
+    load_clamped_setting(&settings_cache, &app->sun_salutation.start_seconds,
+                            "sun_salutation_start_seconds", 8, 3, 12)
+    load_clamped_setting(&settings_cache, &app->sun_salutation.end_seconds,
+                            "sun_salutation_end_seconds", 5, 3, 12)
+    load_clamped_setting(&settings_cache, &app->sun_salutation.figure,
+                            "sun_salutation_figure", 0, 0,
+                            SUN_SALUTATION_ACTIVE_FIGURE_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->meditation.duration_mode,
+                            "meditation_duration_mode", 1, 0, 5)
+    load_clamped_setting(&settings_cache, &app->meditation.custom_minutes,
+                            "meditation_custom_minutes", 20, 1, 240)
+    load_clamped_setting(&settings_cache, &app->meditation.interval_bell_minutes,
+                            "meditation_interval_bell", 0, 0, 30)
+    load_clamped_setting(&settings_cache, &app->meditation.music_track,
+                            "meditation_music_track", 0, 0,
+                            music_max)
+    load_clamped_setting(&settings_cache,
+                            &app->meditation.music_practice_mask,
+                            "practice_music_mask", 1 << EXERCISE_MEDITATION,
+                            0, (1 << EXERCISE_COUNT) - 1)
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        track_key: [48] char
+        practice_music_track_key(i, track_key, sizeof(track_key))
+        default_track := i == EXERCISE_MEDITATION ? 0 : INBE_AUDIO_MUSIC_NONE
+        load_clamped_setting(&settings_cache,
+            &app->meditation.music_practice_tracks[i],
+            track_key, default_track, -1, music_max)
+    }
+    for int i = 0; i < EXERCISE_COUNT; i++ {
+        if (app->meditation.music_practice_mask & (1 << i)) == 0 &&
+           app->meditation.music_practice_tracks[i] >= 0 {
+            app->meditation.music_practice_tracks[i] = INBE_AUDIO_MUSIC_NONE
+        }
+    }
+    app_audio_music_sanitize_selection(app)
+    load_clamped_setting(&settings_cache, &app->practice_category_tab,
+                            "practice_category_tab", PRACTICE_CATEGORY_MIND,
+                            0, PRACTICE_CATEGORY_COUNT - 1)
+    load_clamped_setting(&settings_cache, &app->patterns.preset,
+                            "patterns_preset", 0, 0, 4)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[0],
+                            "patterns_custom_in", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[1],
+                            "patterns_custom_hold_in", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[2],
+                            "patterns_custom_exhale", 4, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.custom[3],
+                            "patterns_custom_hold_out", 0, 0, 60)
+    load_clamped_setting(&settings_cache, &app->patterns.duration_minutes,
+                            "patterns_duration_minutes", 5, 0, 120)
+    app->navigation_mode = load_navigation_mode(&settings_cache)
+    app->profile_picture_icon = load_profile_picture_icon(&settings_cache)
+    load_bottom_nav_routes(app, &settings_cache)
+    if app->bottom_nav_route_count <= 0 {
+        app->main_tab = APP_MAIN_TAB_NONE
+    } else if app->main_tab == APP_MAIN_TAB_NONE {
+        app->main_tab = app->bottom_nav_routes[0] == APP_NAV_ROUTE_HABITS
+                            ? APP_MAIN_TAB_HABITS
+                            : APP_MAIN_TAB_PRACTICE
+    }
+
+    manual_seen_mask = settings_cache_get_int(&settings_cache,
+                                              "exercise_manual_seen_mask", -1)
+    if manual_seen_mask < 0 {
+        manual_seen_mask = app->tutorial_seen
+                               ? exercise_manual_bit(EXERCISE_WIM_HOF)
+                               : 0
+    }
+    app->exercise_manual_seen_mask =
+        manual_seen_mask & ((1 << EXERCISE_COUNT) - 1)
+    app->practice_visible_mask =
+        settings_cache_get_int(&settings_cache, "practice_visible_mask",
+                               (1 << EXERCISE_COUNT) - 1)
+    app->practice_visible_mask &= (1 << EXERCISE_COUNT) - 1
+    if app->practice_visible_mask == 0 {
+        app->practice_visible_mask = (1 << EXERCISE_COUNT) - 1
+    }
+
+    load_language_setting(app, settings_missing, &settings_cache)
+
+    if getenv("INBE_FORCE_DARK_MODE") != nil {
+        app->theme_mode = APP_THEME_DARK
+    }
+    app->inbe.play_in_background =
+        settings_cache_get_int(&settings_cache, "play_in_background", 1) != 0
+    TraceLog(LOG_INFO, "INBE: Loaded play_in_background setting = %d",
+                app->inbe.play_in_background)
+    app->backgrounded = 0
+
+    app_device_preferences_init(app)
+    apply_settings(&app->inbe, speed, max_rounds, max_breaths,
+                      pause_seconds)
+    refresh_locale_dependent_text(app)
+
+    free(settings_cache.entries)
+    return settings_missing
+}

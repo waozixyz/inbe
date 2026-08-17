@@ -1,0 +1,127 @@
+#import "app.h"
+#import "stdio.h"
+#import "version.h"
+
+about_link_icon_columns :: (content_w: int) -> int #private {
+    link_count := 5
+    icon_size := ScaleUIPx(32)
+    icon_padding := ScaleUIPx(4)
+    icon_spacing := ScaleUIPx(20)
+    icon_btn_w := icon_size + icon_padding * 2
+    max_columns := link_count
+    min_columns := content_w >= ScaleUIPx(240) ? 3 : 2
+
+    for int columns = max_columns; columns >= min_columns; columns-- {
+        total_w := icon_btn_w * columns + icon_spacing * (columns - 1)
+        if total_w <= content_w {
+            return columns
+        }
+    }
+    return min_columns
+}
+
+about_link_icons_height :: (content_w: int) -> int #private {
+    link_count := 5
+    icon_size := ScaleUIPx(32)
+    icon_padding := ScaleUIPx(4)
+    row_spacing := ScaleUIPx(16)
+    icon_btn_w := icon_size + icon_padding * 2
+    columns := about_link_icon_columns(content_w)
+    rows := (link_count + columns - 1) / columns
+
+    return rows * icon_btn_w + (rows - 1) * row_spacing
+}
+
+settings_about_content_height :: (content_w: int) -> int {
+    description := (UIParagraphSpec){
+        .text = GetLocaleText("about_text"),
+        .width = content_w,
+        .font = GetUIFontSize(),
+        .line_gap = ScaleUIPx(4),
+        .color = DarkenUIColor(GetThemeText(), 35)
+    }
+
+    return ScaleUIPx(194) + UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
+           about_link_icons_height(content_w)
+}
+
+about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
+    link_count := 5
+    icon_size := ScaleUIPx(32)
+    icon_padding := ScaleUIPx(4)
+    icon_spacing := ScaleUIPx(20)
+    icon_btn_w := icon_size + icon_padding * 2
+    columns := about_link_icon_columns(content_w)
+    grid_w := icon_btn_w * columns + icon_spacing * (columns - 1)
+    links_start_x := content_x + (content_w - grid_w) / 2
+    row_spacing := ScaleUIPx(16)
+    icons: [5] Texture2D = {
+        app->icons[UI_ICON_TYPE_PLATFORMS_DISCORD],
+        app->icons[UI_ICON_TYPE_PLATFORMS_TELEGRAM],
+        app->icons[UI_ICON_TYPE_PLATFORMS_GITHUB],
+        app->icons[UI_ICON_TYPE_PAYMENTS_BTC],
+        app->icons[UI_ICON_TYPE_PAYMENTS_MONERO]
+    }
+    urls: [5] const char* = {
+        "https://discord.com/invite/JbGZ4yENDt",
+        "https://t.me/lotusinbe",
+        "https://github.com/waozixyz/inbe",
+        "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet"
+        "&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
+        "&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze"
+        "&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet"
+        "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
+        "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet"
+        "&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
+        "&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze"
+        "&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet"
+        "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
+    }
+
+    for int i = 0; i < link_count; i++ {
+        col := i % columns
+        row := i / columns
+        icon_x := links_start_x + col * (icon_btn_w + icon_spacing) + icon_padding
+        icon_y := *y + row * (icon_btn_w + row_spacing)
+        IconLink(0, icon_x, icon_y, icon_size, icons[i], urls[i])
+    }
+    *y += about_link_icons_height(content_w)
+}
+
+settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
+    version_text: [32] char = {0}
+    title_font := GetUITitleFontSize(GetLocaleText("app_title"), w)
+    font := GetUIFontSize()
+    logo_size := ScaleUIPx(56)
+    text_w := 0
+    muted := DarkenUIColor(GetThemeText(), 35)
+    description := (UIParagraphSpec){0}
+
+    *y += ScaleUIPx(16)
+    IconTexture(0, x + (w - logo_size) / 2, *y, logo_size,
+                         app->icons[UI_ICON_TYPE_APP], WHITE)
+    *y += logo_size + ScaleUIPx(12)
+
+    text_w = MeasureUIText(GetLocaleText("app_title"), title_font)
+    Text(GetLocaleText("app_title"), x + (w - text_w) / 2,
+                  *y, title_font, GetThemeText())
+    *y += ScaleUIPx(34)
+
+    snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
+    text_w = MeasureUIText(version_text, font)
+    Text(version_text, x + (w - text_w) / 2, *y, font, muted)
+    *y += ScaleUIPx(28)
+
+    description = (UIParagraphSpec){
+        .text = GetLocaleText("about_text"),
+        .width = w,
+        .font = font,
+        .line_gap = ScaleUIPx(4),
+        .color = muted
+    }
+    Paragraph(description, x, y)
+    *y += ScaleUIPx(18)
+
+    about_draw_link_icons(app, x, w, y)
+    *y += ScaleUIPx(32)
+}

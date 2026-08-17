@@ -70,6 +70,9 @@ Tidak ada akun
 [profile_add_friend_button]
 Tambah teman
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Masuk
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 MULAI
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Pernapasan Wim Hof
 ---
@@ -115,10 +121,7 @@ Pernapasan Wim Hof
 Meditasi
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-Sedang dikerjakan
+Salam Matahari
 ---
 [sun_salutation_repetitions_label]
 Pengulangan
@@ -128,6 +131,15 @@ Tempo awal
 ---
 [sun_salutation_end_speed_label]
 Tempo akhir
+---
+[sun_salutation_figure_label]
+Figur
+---
+[sun_salutation_figure_man]
+Pria
+---
+[sun_salutation_figure_woman]
+Wanita
 ---
 [sun_salutation_tempo_preview_label]
 Pratinjau tempo
@@ -243,6 +255,9 @@ Simpan ronde yang selesai sebelum keluar?
 [cancel_button]
 Batal
 ---
+[skip_button]
+Lewati
+---
 [ok_button]
 OK
 ---
@@ -294,15 +309,6 @@ Tentang
 [about_text]
 Pendamping tenang untuk pernapasan, kebiasaan, dan sinkronisasi.
 ---
-[theme_label]
-Tema
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
 [speed_label]
 Kecepatan
 ---
@@ -351,20 +357,35 @@ Ketuk layar dua kali untuk bernapas
 [no_sessions]
 Tidak ada sesi
 ---
-[hold_display_label]
-Tampilan tahan napas
+[cue_volume_label]
+Volume isyarat
 ---
-[hold_display_stopwatch]
-Stopwatch
+[audio_output_label]
+Keluaran audio
 ---
-[hold_display_circle]
-Lingkaran
+[audio_system_default_label]
+Keluaran bawaan sistem
 ---
-[volume_label]
-Volume
+[audio_status_ready]
+Siap
 ---
-[show_session_return_button_label]
-Tampilkan tombol kembali
+[audio_status_unavailable]
+Tidak tersedia
+---
+[audio_test_output_button]
+Tes keluaran
+---
+[audio_reinitialize_button]
+Inisialisasi ulang audio
+---
+[audio_output_level_label]
+Level keluaran
+---
+[music_volume_label]
+Volume musik
+---
+[retention_marker_label]
+Penanda retensi 30 dtk
 ---
 [reset_to_defaults_label]
 Reset ke default
@@ -441,12 +462,6 @@ MATI
 [toggle_on]
 NYALA
 ---
-[theme_light]
-Terang
----
-[theme_dark]
-Gelap
----
 [on_screen_keyboard_label]
 Keyboard di layar
 ---
@@ -496,15 +511,6 @@ Hapus
 ---
 [meditation_music_attribution]
 Musik oleh Elijah_K.
----
-[theme_system]
-Sistem
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palet
 ---
 [orientation_label]
 Orientasi
@@ -761,13 +767,8 @@ Rangkaian terbaik
 ---
 ---
 
-[transition_label]
-Transisi
----
 [theme_picker_title]
 Pilih Tema
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -806,11 +807,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Musik latar
----
 [practice_music_enabled_label]
 Putar selama latihan ini
+---
+[appearance_scale_label]
+Skala
+---
+[audio_music_none_option]
+Tidak ada
+---
+[audio_import_error_invalid_path]
+Path berkas tidak valid
+---
+[audio_import_error_invalid_format]
+Format audio tidak didukung
+---
+[audio_import_error_file_not_found]
+Berkas tidak ditemukan
+---
+[audio_import_error_copy_failed]
+Tidak dapat menyalin berkas
 ---
 [practice_start_button]
 Mulai latihan
@@ -857,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 Sesi latihan yoga.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 Total kebiasaan hari ini.
 ---
@@ -899,8 +909,8 @@ Data sesi berasal dari latihan selesai.
 [practice_home_wim_hof_metadata]
 %d ronde | %d napas
 ---
-[sun_salutation_session_step_title]
-Langkah %d / %d
+[practice_home_patterns_metadata]
+%s | %d mnt
 ---
 [meditation_music_downloading_progress]
 Mengunduh audio... %d%%
@@ -1046,6 +1056,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Ekspor ke Health Connect
+---
+[health_connect_started]
+Health Connect dibuka
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1054,4 +1202,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+Saatnya mikro-istirahat
+---
+[break_micro_body]
+Rilekskan bahu, alihkan pandangan dari layar, dan bernapaslah perlahan sampai barisnya penuh.
+---
+[break_rest_title]
+Saatnya istirahat panjang
+---
+[break_rest_body]
+Berdirilah, peregangan, dan biarkan mata beristirahat memandang sesuatu yang jauh.
+---
+[break_daily_title]
+Batas harian tercapai
+---
+[break_daily_body]
+Anda aktif sepanjang hari. Pertimbangkan untuk berhenti hari ini.
+---
+[break_time_remaining]
+%s tersisa
+---
+[break_stay_idle_note]
+Lepaskan keyboard agar istirahat terhitung
+---
+[break_lock_note]
+Terkunci %d detik lagi
+---
+[break_postpone_button]
+Tunda
+---
+[break_skip_button]
+Lewati
+---
+[break_rest_now_button]
+Istirahat panjang sekarang
+---
+[break_prelude_text]
+Istirahat sebentar lagi - santai sejenak
+---
+[settings_tab_breaks]
+Istirahat
+---
+[settings_breaks_enabled]
+Pengingat istirahat
+---
+[settings_breaks_status]
+Status pewaktu
+---
+[settings_breaks_due_now]
+sekarang
+---
+[settings_breaks_timer_off]
+mati
+---
+[settings_breaks_block_mode]
+Pemblokiran
+---
+[settings_breaks_block_off]
+Mati
+---
+[settings_breaks_block_input]
+Blokir masukan
+---
+[settings_breaks_block_screen]
+Blokir masukan dan layar
+---
+[settings_breaks_sounds]
+Suara istirahat
+---
+[settings_breaks_reading_mode]
+Mode membaca
+---
+[settings_breaks_micro_counts]
+Hitung mikro-istirahat sebagai aktivitas
+---
+[settings_breaks_rest_now]
+Istirahat sekarang
+---
+[settings_breaks_micro_header]
+Mikro-istirahat
+---
+[settings_breaks_rest_header]
+Istirahat panjang
+---
+[settings_breaks_daily_header]
+Batas harian
+---
+[settings_breaks_timer_enabled]
+Aktifkan pewaktu
+---
+[settings_breaks_limit]
+Waktu antar istirahat
+---
+[settings_breaks_duration]
+Durasi istirahat
+---
+[settings_breaks_postpone]
+Waktu tunda
+---
+[settings_breaks_prompts]
+Maks. pengingat
+---
+[settings_breaks_show_skip]
+Tampilkan tombol Lewati
+---
+[settings_breaks_show_postpone]
+Tampilkan tombol Tunda
+---
+[settings_breaks_week_stats]
+7 hari terakhir (diambil / dilewati / ditunda)
+---
+[settings_breaks_no_data]
+Belum ada statistik
+---
+[settings_breaks_mode]
+Mode
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Senyap
+---
+[settings_breaks_mode_suspended]
+Ditangguhkan
+---
+[tray_next_break]
+Istirahat berikutnya %s
+---
+[break_exercises_title]
+Latihan istirahat
+---
+[break_exercises_intro]
+Peregangan singkat untuk istirahat. Diputar otomatis.
+---
+[break_ex_shoulder_rolls]
+Putaran bahu
+---
+[break_ex_shoulder_rolls_s1]
+Putar bahu perlahan ke belakang
+---
+[break_ex_shoulder_rolls_s2]
+Jaga gerakan halus dan rileks
+---
+[break_ex_neck_tilt]
+Miringkan leher
+---
+[break_ex_neck_tilt_s1]
+Miringkan kepala ke satu bahu
+---
+[break_ex_neck_tilt_s2]
+Tahan lembut, lalu ganti sisi
+---
+[break_ex_wrist_fingers]
+Peregangan pergelangan dan jari
+---
+[break_ex_wrist_fingers_s1]
+Rentangkan satu lengan dan tarik jari ke belakang
+---
+[break_ex_wrist_fingers_s2]
+Regangkan pergelangan, lalu ganti tangan
+---
+[break_ex_upper_back]
+Peregangan punggung atas
+---
+[break_ex_upper_back_s1]
+Genggam tangan dan bulatkan punggung
+---
+[break_ex_upper_back_s2]
+Hembuskan napas dan turunkan bahu
+---
+[break_ex_blade_squeeze]
+Rapatkan tulang belikat
+---
+[break_ex_blade_squeeze_s1]
+Tarik belikat ke belakang
+---
+[break_ex_blade_squeeze_s2]
+Tahan sebentar, lalu lepas
+---
+[break_ex_seated_twist]
+Puntir badan duduk
+---
+[break_ex_seated_twist_s1]
+Duduk tegak dan putar ke satu sisi
+---
+[break_ex_seated_twist_s2]
+Jaga pinggul tetap, lalu ganti sisi
+---
+[break_ex_eye_horizon]
+Menatap ke kejauhan
+---
+[break_ex_eye_horizon_s1]
+Cari titik terjauh di ruangan
+---
+[break_ex_eye_horizon_s2]
+Lunakkan pandangan dan bernapas
+---
+[break_ex_eye_near_far]
+Fokus dekat dan jauh
+---
+[break_ex_eye_near_far_s1]
+Lihat ibu jari dari dekat
+---
+[break_ex_eye_near_far_s2]
+Lalu fokus ke sesuatu yang jauh
+---
+[break_ex_breath_drop]
+Napas dan bahu
+---
+[break_ex_breath_drop_s1]
+Tarik napas dan angkat bahu
+---
+[break_ex_breath_drop_s2]
+Hembuskan dan biarkan turun
+---
+[break_ex_breath_drop_s3]
+Rasakan ketegangan lepas
+---
+[break_ex_forearm_desk]
+Peregangan lengan bawah
+---
+[break_ex_forearm_desk_s1]
+Letakkan telapak di meja, jari ke belakang
+---
+[break_ex_forearm_desk_s2]
+Tekan perlahan sampai terasa meregang
+---
+[notifications_test]
+Kirim notifikasi uji
+---
+[notification_test_title]
+Notifikasi uji
+---
+[notification_test_body]
+Notifikasi dari Inner Breeze berfungsi.
+---
+[notification_session_done_title]
+Sesi selesai
+---
+[notification_session_done_body]
+Sesi latihan Anda telah selesai.
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Istirahat
+---
+[break_hud_daily]
+Harian
+---
+[settings_tab_notifications]
+Notifikasi
+---
+[notifications_section]
+Notifikasi
+---
+[notifications_friend_request_label]
+Notifikasi permintaan pertemanan
+---
+[notifications_friend_request_title]
+Permintaan pertemanan
+---
+[notifications_friend_request_body]
+Kamu punya permintaan pertemanan baru
+---
+[reminder_add]
+Tambah pengingat
+---
+[notifications_push_picker_title]
+Penyedia push
+---
+[notifications_push_section]
+Pengiriman push
+---
+[notifications_push_status_on]
+Terhubung
+---
+[notifications_push_status_off]
+Belum disiapkan
+---
+[notifications_push_setup]
+Siapkan push…
+---
+[notifications_reminders_section]
+Pengingat
+---
+[reminder_title]
+Pengingat
 ---

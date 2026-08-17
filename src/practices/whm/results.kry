@@ -1,0 +1,12 @@
+#import "app.h"
+
+route results {
+    title "Results"
+    group "Practice"
+    page results
+}
+
+screen results {
+    args InbeApp *app
+    unused app
+}

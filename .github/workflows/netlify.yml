@@ -24,6 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           submodules: recursive
+          lfs: true
 
       - name: Install Packages
         run: |
@@ -82,6 +83,7 @@ jobs:
           site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
           netlify deploy \
             --dir build/site \
+            --no-build \
             --alias "pr-${{ github.event.pull_request.number }}" \
             --message "Preview ${{ github.event.pull_request.number }}" \
             --auth "$auth_token" \
@@ -103,20 +105,36 @@ jobs:
           name: inbe-site
           path: build/site
 
-      - name: Install Netlify CLI
-        run: npm install --global netlify-cli
+      - name: Install Packages
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y zip
+
+      - name: Package Site
+        run: |
+          set -euo pipefail
+          test -f build/site/index.html
+          cd build/site
+          zip -qr ../inbe-site.zip .
+          test -s ../inbe-site.zip
 
       - name: Deploy Production To Netlify
         run: |
           set -euo pipefail
           auth_token="$(printf '%s' "$NETLIFY_AUTH_TOKEN" | tr -d '\r\n')"
           site_id="$(printf '%s' "$NETLIFY_SITE_ID" | tr -d '\r\n')"
-          netlify deploy \
-            --dir build/site \
-            --prod \
-            --message "Production ${{ github.sha }}" \
-            --auth "$auth_token" \
-            --site "$site_id"
+          test -n "$auth_token" || { echo "::error::NETLIFY_AUTH_TOKEN is empty or missing"; exit 1; }
+          test -n "$site_id" || { echo "::error::NETLIFY_SITE_ID is empty or missing"; exit 1; }
+
+          response="$(curl --fail-with-body --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $auth_token" \
+            -H "Content-Type: application/zip" \
+            --data-binary "@build/inbe-site.zip" \
+            "https://api.netlify.com/api/v1/sites/$site_id/deploys")"
+
+          python3 -c 'import json, sys; deploy = json.loads(sys.argv[1]); state = deploy.get("state", ""); url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy.get("id"); print(f"Netlify deploy {state}: {url}"); raise SystemExit(1 if state in ("error", "failed") else 0)' "$response"
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}

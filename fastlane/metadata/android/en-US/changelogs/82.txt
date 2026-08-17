@@ -1,0 +1,5 @@
+Changed
+---
+- Fixed Firefox web persistence, mobile habit deletion, and customizable nav tap handling.
+- Added a blank-home easter egg screen and updated embedded asset lists.
+- Updated release and store packaging automation.

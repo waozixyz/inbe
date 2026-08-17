@@ -4,6 +4,6 @@
 [submodule "vendor/sqlite"]
 	path = vendor/sqlite
 	url = https://github.com/sqlite/sqlite
-[submodule "vendor/flint"]
-	path = vendor/flint
-	url = git@github.com:waozixyz/flint.git
+[submodule "vendor/kryon"]
+	path = vendor/kryon
+	url = https://github.com/kryonlabs/kryon.git

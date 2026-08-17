@@ -1,0 +1,5 @@
+Changed
+---
+- Updated Flint icon integration to use categorized sprite sheets for app UI, language, payments, platforms, tiles, and profile pictures.
+- Updated Inbe to use the new Flint icon categories and removed legacy eye icon usage.
+- Fixed profile picture picker selection so it closes the picker, keeps the sidebar open, and does not click through to sidebar links.

@@ -8,7 +8,9 @@
 .claude/
 .local/
 .codex/
+.zcode
 .agents/
+.kryon-ide-state
 .cache/
 .ccache
 *.wasm
@@ -60,3 +62,4 @@ local.properties
 *.a
 
 /pro/
+.kotlin/

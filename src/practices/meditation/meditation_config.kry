@@ -1,0 +1,190 @@
+#import "app.h"
+#import "practices/meditation/meditation_music.h"
+#import "practices/meditation/meditation_practice.h"
+#import "screens/practice_screen.h"
+#import "stdio.h"
+
+MeditationConfigScrollPageContext :: struct {
+    app: InbeApp*
+}
+
+meditation_config_preset_count :: () -> int #private {
+    return 5
+}
+
+meditation_config_duration_height :: (content_w: int) -> int #private {
+    columns := content_w >= ScaleUIPx(520) ? 3 : 2
+    count := meditation_config_preset_count() + 1
+    rows := (count + columns - 1) / columns
+
+    return ScaleUIPx(30) + rows * ScaleUIPx(42) +
+           (rows - 1) * ScaleUIPx(8) +
+           ScaleUIPx(96) + ScaleUIPx(78) + ScaleUIPx(18) + ScaleUIPx(78)
+}
+
+meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
+    bottom_padding := (practice_screen_subscreen_integrated(app, UIModalPracticeConfig)
+                           ? app_content_bottom_reserved(app)
+                           : 0) +
+                      ScaleUIPx(24)
+
+    return meditation_config_duration_height(content_w) + bottom_padding
+}
+
+meditation_config_save :: (app: InbeApp*) #private {
+    if app == NULL {
+        return
+    }
+    app->settings_dirty = 1
+    save_settings(app)
+}
+
+meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    labels: [6] const char* = {
+        GetLocaleText("duration_5m"),
+        GetLocaleText("duration_15m"),
+        GetLocaleText("duration_30m"),
+        GetLocaleText("duration_1h"),
+        GetLocaleText("duration_2h"),
+        GetLocaleText("meditation_duration_custom")
+    }
+    adjust_labels: [4] const char* = {"-5", "-1", "+1", "+5"}
+    adjust_values: [4] const int = {-5, -1, 1, 5}
+    mode := 0
+    columns := 0
+    gap := ScaleUIPx(8)
+    btn_h := ScaleUIPx(36)
+    btn_w := 0
+    row_y := 0
+    custom_row_y := 0
+    toggle_value := 0
+    hover := 0
+    custom_text: [64] char = {0}
+
+    if app == NULL || y == NULL {
+        return
+    }
+
+    mode = clampi(app->meditation.duration_mode, 0, meditation_config_preset_count())
+    app->meditation.duration_mode = mode
+    app->meditation.custom_minutes = clampi(app->meditation.custom_minutes, 1, 240)
+
+    Text(GetLocaleText("meditation_duration_setting"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    *y += ScaleUIPx(30)
+
+    columns = w >= ScaleUIPx(520) ? 3 : 2
+    btn_w = (w - gap * (columns - 1)) / columns
+    for int i = 0; i < meditation_config_preset_count() + 1; i++ {
+        col := i % columns
+        row := i / columns
+        bx := x + col * (btn_w + gap)
+        by := *y + row * (btn_h + gap)
+        style := i == mode ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
+
+        if GenericButton(0, bx, by, btn_w, btn_h, labels[i],
+                               style, 0, &hover) {
+            app->meditation.duration_mode = i
+            meditation_config_save(app)
+        }
+    }
+
+    row_y = *y + ((meditation_config_preset_count() + 1 + columns - 1) / columns) *
+                 (btn_h + gap)
+    *y = row_y + ScaleUIPx(8)
+
+    custom_row_y = *y
+    snprintf(custom_text, sizeof(custom_text), "%s: %d min",
+                GetLocaleText("meditation_custom_minutes"),
+                app->meditation.custom_minutes)
+    Text(custom_text, x, custom_row_y, GetUIFontSize(), GetThemeText())
+
+    adjust_w := ScaleUIPx(50)
+    adjust_total := adjust_w * 4 + gap * 3
+    adjust_x := x + (w - adjust_total) / 2
+    adjust_y := custom_row_y + ScaleUIPx(34)
+
+    for int i = 0; i < 4; i++ {
+        if GenericButton(0, adjust_x + i * (adjust_w + gap), adjust_y,
+                               adjust_w, btn_h, adjust_labels[i],
+                               UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+            app->meditation.custom_minutes =
+                clampi(app->meditation.custom_minutes + adjust_values[i], 1, 240)
+            app->meditation.duration_mode = meditation_config_preset_count()
+            meditation_config_save(app)
+        }
+    }
+    *y += ScaleUIPx(96)
+
+    Text(GetLocaleText("meditation_extend_controls_label"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    toggle_value = app->meditation.show_extend_controls
+    if Toggle(0, x, *y + ScaleUIPx(26), ScaleUIPx(56), ScaleUIPx(30),
+                          &toggle_value, GetLocaleText("toggle_off"),
+                          GetLocaleText("toggle_on")) {
+        app->meditation.show_extend_controls = toggle_value
+        meditation_config_save(app)
+    }
+    *y += ScaleUIPx(78)
+
+    # interval bell: a soft bell every N minutes (0 = off)
+    Text(GetLocaleText("meditation_interval_bell_label"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    bell_labels: [7] const char* = {
+        GetLocaleText("meditation_interval_bell_off"),
+        "1", "2", "5", "10", "15", "30"
+    }
+    bell_values: [7] const int = {0, 1, 2, 5, 10, 15, 30}
+    bell_selected := 0
+    for int i = 0; i < 7; i++ {
+        if app->meditation.interval_bell_minutes == bell_values[i] {
+            bell_selected = i
+        }
+    }
+    bell_w := (w - gap * 6) / 7
+    if bell_w > ScaleUIPx(72) {
+        bell_w = ScaleUIPx(72)
+    }
+    for int i = 0; i < 7; i++ {
+        bx := x + i * (bell_w + gap)
+        style := i == bell_selected ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, bx, *y + ScaleUIPx(26), bell_w, btn_h,
+                               bell_labels[i], style, 0, &hover) {
+            app->meditation.interval_bell_minutes = bell_values[i]
+            meditation_config_save(app)
+        }
+    }
+    *y += ScaleUIPx(78)
+}
+
+meditation_config_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
+    ctx := (MeditationConfigScrollPageContext*)user_data
+
+    return meditation_config_content_height(ctx->app, content_w)
+}
+
+meditation_config_screen_draw :: (app: InbeApp*) {
+    layout := (PracticeSubscreenLayout){0}
+
+    app->practice_config_tab = 0
+
+    practice_screen_config_layout(app, UIModalPracticeConfig, 0, &layout)
+    practice_screen_handle_config_title(app, GetLocaleText("practice_config_title"),
+                                           UIModalPracticeConfig,
+                                           meditation_practice_leave_config)
+
+    page_ctx := (MeditationConfigScrollPageContext){app}
+    page := BeginUIScrollPage((UIScrollPageSpec){
+        .y = layout.scroll_y,
+        .height = layout.scroll_h,
+        .max_content_width = ScaleUIPx(CONTENT_MAX_W),
+        .min_content_width = ScaleUIPx(320),
+        .scroll_offset = &app->settings_scroll,
+        .content_height = meditation_config_scroll_page_content_height,
+        .user_data = &page_ctx
+    })
+    y := page.content_y
+
+    meditation_config_draw_duration(app, page.content_x, page.content_w, &y)
+    EndUIScrollPage(page)
+}

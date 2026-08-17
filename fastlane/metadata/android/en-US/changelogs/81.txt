@@ -1,0 +1,5 @@
+Changed
+---
+- Added Firefox add-on packaging, release metadata updates, and CI/release automation.
+- Improved web audio asset validation and Firefox/LibreWolf smoke testing.
+- Fixed stale screen-local modal state so hidden modals cannot keep input captured after navigation.

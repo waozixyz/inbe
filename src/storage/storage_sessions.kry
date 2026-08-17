@@ -1,0 +1,655 @@
+#import "storage.h"
+
+#import "core/breath_engine.h" #private
+#import "db.h" #private
+#import <sqlite3.h>
+#import <stdio.h>
+#import <string.h>
+#import <sys/stat.h>
+#import <time.h>
+
+hash_rounds :: (round_times: const int*, round_count: int) -> unsigned int #private {
+    h: unsigned int = 2166136261u
+
+    for int i = 0; i < round_count; i++ {
+        v: unsigned int = (unsigned int)round_times[i]
+
+        h ^= v & 0xffu
+        h *= 16777619u
+        h ^= (v >> 8) & 0xffu
+        h *= 16777619u
+    }
+    return h
+}
+
+make_session_id :: (started_at: long long, round_times: const int*,
+                   round_count: int, out: char*, out_size: size_t) #private {
+    snprintf(out, out_size, "s-%lld-%08x", started_at,
+             hash_rounds(round_times, round_count))
+}
+
+parse_db_id :: (path_or_id: const char*, out: char*, out_size: size_t) -> int #private {
+    if path_or_id == nil || path_or_id[0] == '\0' {
+        return 0
+    }
+    if strncmp(path_or_id, "db:", 3) == 0 {
+        snprintf(out, out_size, "%s", path_or_id + 3)
+    } else {
+        snprintf(out, out_size, "%s", path_or_id)
+    }
+    return out[0] != '\0'
+}
+
+filter_positive_rounds :: (round_times: const int*, round_count: int,
+                          out: int*, out_max: int) -> int #private {
+    saved_count: int = 0
+
+    if round_times == nil || out == nil || round_count < 0 || out_max <= 0 {
+        return 0
+    }
+    for int i = 0; i < round_count && i < out_max; i++ {
+        if round_times[i] > 0 {
+            out[saved_count++] = round_times[i]
+        }
+    }
+    return saved_count
+}
+
+write_session_rounds :: (session_id: const char*, round_times: const int*,
+                        round_count: int, replace: int) -> int #private {
+    stmt: sqlite3_stmt* = nil
+
+    if g_storage.db == nil || session_id == nil || round_times == nil ||
+       round_count <= 0 {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          replace
+                              ? "INSERT OR REPLACE INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)"
+                              : "INSERT INTO session_rounds(session_id,round_index,seconds) VALUES(?1,?2,?3)",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    for int i = 0; i < round_count; i++ {
+        sqlite3_reset(stmt)
+        sqlite3_clear_bindings(stmt)
+        bind_text(stmt, 1, session_id)
+        sqlite3_bind_int(stmt, 2, i)
+        sqlite3_bind_int(stmt, 3, round_times[i])
+        if sqlite3_step(stmt) != SQLITE_DONE {
+            sqlite3_finalize(stmt)
+            return 0
+        }
+    }
+    sqlite3_finalize(stmt)
+    return 1
+}
+
+insert_session_at_ex :: (started_at: long long, local_date: int,
+                            round_times: const int*, round_count: int,
+                            topic: int, activity: int, source: const char*,
+                            out_id: char*, out_id_size: size_t) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+    rc: int
+    inserted: int
+    rhash: unsigned int
+
+    if g_storage.db == nil || round_times == nil || round_count <= 0 ||
+       round_count > MaxRounds {
+        return 0
+    }
+
+    rhash = hash_rounds(round_times, round_count)
+    make_session_id(started_at, round_times, round_count, id, sizeof(id))
+
+    if sqlite3_prepare_v2(g_storage.db,
+                          "INSERT OR IGNORE INTO "
+                          "sessions(id,user_id,started_at,local_date,topic,"
+                          "activity,source,imported_at,rounds_hash,updated_at) "
+                          "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10)",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    bind_text(stmt, 2, g_storage.user_id)
+    sqlite3_bind_int64(stmt, 3, started_at)
+    sqlite3_bind_int(stmt, 4, local_date)
+    sqlite3_bind_int(stmt, 5, topic)
+    sqlite3_bind_int(stmt, 6, activity)
+    bind_text(stmt, 7, source != nil ? source : "app")
+    sqlite3_bind_int64(stmt, 8, now_seconds())
+    sqlite3_bind_int64(stmt, 9, (sqlite3_int64)rhash)
+    sqlite3_bind_int64(stmt, 10, now_seconds())
+    rc = sqlite3_step(stmt)
+    sqlite3_finalize(stmt)
+    if rc != SQLITE_DONE {
+        return 0
+    }
+
+    inserted = sqlite3_changes(g_storage.db) > 0
+    if inserted {
+        if !write_session_rounds(id, round_times, round_count, 1) {
+            return 0
+        }
+        storage_enqueue_sync_session(id)
+    }
+
+    if out_id != nil && out_id_size > 0 {
+        snprintf(out_id, out_id_size, "db:%s", id)
+    }
+    if inserted {
+        storage_materialize_session_habit_days()
+    }
+    storage_schedule_persist()
+    return 1
+}
+
+storage_save_session_for_activity :: (round_times: const int*, round_count: int,
+                                         topic: int, activity: int,
+                                         out_id: char*, out_id_size: size_t) -> int {
+    now: time_t = time(nil)
+    tm: struct tm* = localtime(&now)
+    saved: [MaxRounds] int
+    saved_count: int
+    local_date: int
+
+    if tm == nil {
+        return 0
+    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds)
+    if saved_count <= 0 {
+        return 0
+    }
+    local_date = (tm->tm_year + 1900) * 10000 + (tm->tm_mon + 1) * 100 +
+                 tm->tm_mday
+    return insert_session_at_ex((long long)now, local_date, saved, saved_count,
+                                topic, activity, "app", out_id, out_id_size)
+}
+
+storage_save_session_at_for_activity :: (local_date: int, hour: int,
+                                            minute: int, second: int,
+                                            round_times: const int*,
+                                            round_count: int, topic: int,
+                                            activity: int, out_id: char*,
+                                            out_id_size: size_t) -> int {
+    tm: struct tm
+    started_at: time_t
+    saved: [MaxRounds] int
+    saved_count: int
+
+    if local_date <= 0 {
+        return 0
+    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds)
+    if saved_count <= 0 {
+        return 0
+    }
+
+    memset(&tm, 0, sizeof(tm))
+    tm.tm_year = local_date / 10000 - 1900
+    tm.tm_mon = (local_date / 100) % 100 - 1
+    tm.tm_mday = local_date % 100
+    tm.tm_hour = hour
+    tm.tm_min = minute
+    tm.tm_sec = second
+    tm.tm_isdst = -1
+    started_at = mktime(&tm)
+    if started_at == (time_t)-1 {
+        return 0
+    }
+
+    return insert_session_at_ex((long long)started_at, local_date, saved,
+                                saved_count, topic, activity, "app", out_id,
+                                out_id_size)
+}
+
+storage_save_session :: (round_times: const int*, round_count: int,
+                            out_id: char*, out_id_size: size_t) -> int {
+    return storage_save_session_for_activity(round_times, round_count, 0, 0,
+                                             out_id, out_id_size)
+}
+
+storage_load_session :: (path_or_id: const char*, round_times: int*,
+                            max_rounds: int, year: int*, month: int*,
+                            day: int*, hour: int*, minute: int*,
+                            second: int*) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+    count: int = 0
+    started_at: long long = 0
+    local_date: int = 0
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) || round_times == nil ||
+       max_rounds <= 0 {
+        return 0
+    }
+
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT started_at,local_date FROM sessions WHERE "
+                          "id=?1 AND deleted_at=0",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    if sqlite3_step(stmt) == SQLITE_ROW {
+        started_at = sqlite3_column_int64(stmt, 0)
+        local_date = sqlite3_column_int(stmt, 1)
+    }
+    sqlite3_finalize(stmt)
+    if started_at == 0 {
+        return 0
+    }
+
+    if year {
+        *year = local_date / 10000
+    }
+    if month {
+        *month = (local_date / 100) % 100
+    }
+    if day {
+        *day = local_date % 100
+    }
+    {
+        t: time_t = (time_t)started_at
+        tm: struct tm* = localtime(&t)
+
+        if tm != nil {
+            if hour {
+                *hour = tm->tm_hour
+            }
+            if minute {
+                *minute = tm->tm_min
+            }
+            if second {
+                *second = tm->tm_sec
+            }
+        }
+    }
+
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT seconds FROM session_rounds WHERE "
+                          "session_id=?1 ORDER BY round_index",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    while count < max_rounds && sqlite3_step(stmt) == SQLITE_ROW {
+        round_times[count++] = sqlite3_column_int(stmt, 0)
+    }
+    sqlite3_finalize(stmt)
+    return count
+}
+
+storage_replace_session :: (path_or_id: const char*, round_times: const int*,
+                               round_count: int) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+    saved: [MaxRounds] int
+    saved_count: int
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) || round_times == nil ||
+       round_count < 0 || round_count > MaxRounds {
+        return 0
+    }
+    saved_count = filter_positive_rounds(round_times, round_count, saved, MaxRounds)
+    if saved_count <= 0 {
+        return storage_delete_session(path_or_id)
+    }
+
+    exec_sql("BEGIN IMMEDIATE")
+    if !db_exec_text("DELETE FROM session_rounds WHERE session_id=?1", id) {
+        goto fail
+    }
+    if !write_session_rounds(id, saved, saved_count, 0) {
+        goto fail
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET rounds_hash=?2,updated_at=?3 WHERE id=?1",
+                          -1, &stmt, nil) != SQLITE_OK {
+        goto fail
+    }
+    bind_text(stmt, 1, id)
+    sqlite3_bind_int64(stmt, 2, (sqlite3_int64)hash_rounds(saved, saved_count))
+    sqlite3_bind_int64(stmt, 3, now_seconds())
+    sqlite3_step(stmt)
+    sqlite3_finalize(stmt)
+    storage_enqueue_sync_session(id)
+    exec_sql("COMMIT")
+    storage_materialize_session_habit_days()
+    storage_schedule_persist()
+    return 1
+
+fail:
+    if stmt != nil {
+        sqlite3_finalize(stmt)
+    }
+    exec_sql("ROLLBACK")
+    return 0
+}
+
+storage_rename_session_time :: (path_or_id: const char*, hour: int,
+                                   minute: int) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+    started_at: long long = 0
+    t: time_t
+    tm: struct tm*
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) || hour < 0 || hour > 23 ||
+       minute < 0 || minute > 59 {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db, "SELECT started_at FROM sessions WHERE id=?1",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    if sqlite3_step(stmt) == SQLITE_ROW {
+        started_at = sqlite3_column_int64(stmt, 0)
+    }
+    sqlite3_finalize(stmt)
+    if started_at == 0 {
+        return 0
+    }
+    t = (time_t)started_at
+    tm = localtime(&t)
+    if tm == nil {
+        return 0
+    }
+    tm->tm_hour = hour
+    tm->tm_min = minute
+    t = mktime(tm)
+    if t == (time_t)-1 {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET started_at=?2,updated_at=?3 WHERE id=?1",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    sqlite3_bind_int64(stmt, 2, (sqlite3_int64)t)
+    sqlite3_bind_int64(stmt, 3, now_seconds())
+    sqlite3_step(stmt)
+    sqlite3_finalize(stmt)
+    storage_enqueue_sync_session(id)
+    storage_materialize_session_habit_days()
+    storage_schedule_persist()
+    return 1
+}
+
+storage_delete_session :: (path_or_id: const char*) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET deleted_at=?2,updated_at=?2 WHERE id=?1",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    sqlite3_bind_int64(stmt, 2, now_seconds())
+    sqlite3_step(stmt)
+    sqlite3_finalize(stmt)
+    storage_enqueue_sync_session(id)
+    storage_materialize_session_habit_days()
+    storage_schedule_persist()
+    return 1
+}
+
+storage_discard_session :: (path_or_id: const char*) -> int {
+    id: [INBE_STORAGE_ID_SIZE] char
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) {
+        return 0
+    }
+    if !exec_sql("BEGIN IMMEDIATE") {
+        return 0
+    }
+    if !db_exec_text("DELETE FROM session_rounds WHERE session_id=?1", id) {
+        exec_sql("ROLLBACK")
+        return 0
+    }
+    if !db_exec_text("DELETE FROM sessions WHERE id=?1", id) {
+        exec_sql("ROLLBACK")
+        return 0
+    }
+    if !exec_sql("COMMIT") {
+        exec_sql("ROLLBACK")
+        return 0
+    }
+    storage_materialize_session_habit_days()
+    exec_sql("DELETE FROM sync_outbox")
+    g_storage.pending_sync_outbox_seq = 0
+    storage_schedule_persist()
+    return 1
+}
+
+storage_list_session_records :: (callback: InbeStorageSessionRecordCallback,
+                                    user: void*) {
+    stmt: sqlite3_stmt* = nil
+
+    if callback == nil || g_storage.db == nil {
+        return
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id,started_at,local_date,topic,activity FROM sessions WHERE "
+                          "deleted_at=0 ORDER BY started_at DESC LIMIT 48",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return
+    }
+    while sqlite3_step(stmt) == SQLITE_ROW {
+        dbid: [INBE_STORAGE_ID_SIZE + 4] char
+        rounds: [MaxRounds] int
+        count: int = 0
+        id: const char* = (const char*)sqlite3_column_text(stmt, 0)
+        started_at: long long = sqlite3_column_int64(stmt, 1)
+        local_date: int = sqlite3_column_int(stmt, 2)
+        topic: int = sqlite3_column_int(stmt, 3)
+        activity: int = sqlite3_column_int(stmt, 4)
+        y: int = local_date / 10000
+        m: int = (local_date / 100) % 100
+        d: int = local_date % 100
+        hh: int = 0
+        mm: int = 0
+        ss: int = 0
+        t: time_t = (time_t)started_at
+        tm: struct tm* = localtime(&t)
+
+        if tm != nil {
+            hh = tm->tm_hour
+            mm = tm->tm_min
+            ss = tm->tm_sec
+        }
+        snprintf(dbid, sizeof(dbid), "db:%s", id != nil ? id : "")
+        count = storage_load_session(dbid, rounds, MaxRounds, nil, nil, nil,
+                                     nil, nil, nil)
+        if count > 0 {
+            callback(dbid, y, m, d, hh, mm, ss, topic, activity, rounds, count, user)
+        }
+    }
+    sqlite3_finalize(stmt)
+}
+
+storage_has_any :: () -> int {
+    count: int = storage_session_count()
+
+    if count > 0 {
+        return 1
+    }
+    if g_storage.db == nil {
+        return 0
+    }
+    count = storage_habit_count()
+    if count > 0 {
+        return 1
+    }
+    return db_select_int("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0",
+                         0) > 0
+}
+
+storage_session_count :: () -> int {
+    return db_select_int("SELECT COUNT(*) FROM sessions WHERE deleted_at=0", 0)
+}
+
+storage_total_size :: () -> long long {
+    st: struct stat
+
+    if !storage_has_any() {
+        return 0
+    }
+    if g_storage.db_path[0] != '\0' && stat(g_storage.db_path, &st) == 0 {
+        return (long long)st.st_size
+    }
+    return 0
+}
+
+storage_delete_all_sessions :: () -> long long {
+    stmt: sqlite3_stmt* = nil
+    count: int = storage_session_count()
+    habit_day_count: int = 0
+    habit_count: int = storage_habit_count()
+    deleted_at: long long = now_seconds()
+    changed: int = 0
+
+    if g_storage.db == nil {
+        return 0
+    }
+
+    habit_day_count =
+        db_select_int("SELECT COUNT(*) FROM habit_days WHERE completed!=0 OR count>0", 0)
+    if count <= 0 && habit_day_count <= 0 && habit_count <= 0 {
+        return 0
+    }
+
+    if !storage_has_sync_account() {
+        if !exec_sql("BEGIN IMMEDIATE") {
+            return 0
+        }
+        if !exec_sql("DELETE FROM session_rounds WHERE session_id IN "
+                     "(SELECT id FROM sessions WHERE user_id=(SELECT id FROM users "
+                     "LIMIT 1));"
+                     "DELETE FROM meditation_logs WHERE user_id=(SELECT id FROM users LIMIT 1);"
+                     "DELETE FROM sessions WHERE user_id=(SELECT id FROM users LIMIT 1);"
+                     "DELETE FROM habit_days WHERE habit_id IN "
+                     "(SELECT id FROM habits WHERE user_id=(SELECT id FROM users LIMIT "
+                     "1));"
+                     "DELETE FROM habits WHERE user_id=(SELECT id FROM users LIMIT 1);"
+                     "DELETE FROM sync_outbox;") {
+            exec_sql("ROLLBACK")
+            return 0
+        }
+        set_meta_int64("sync_last_server_version", 0)
+        set_meta_int64("sync_last_upload_at", 0)
+        set_meta_int64("sync_full_upload_done", 0)
+        set_meta_int64("sync_backfill_v2_done", 0)
+        set_meta_int64("sync_habit_name_repair_v1_done", 0)
+        if !exec_sql("COMMIT") {
+            exec_sql("ROLLBACK")
+            return 0
+        }
+        storage_schedule_persist()
+        return count + habit_day_count + habit_count
+    }
+
+    if !exec_sql("BEGIN IMMEDIATE") {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id FROM sessions WHERE user_id=?1 AND deleted_at=0",
+                          -1, &stmt, nil) == SQLITE_OK {
+        bind_text(stmt, 1, g_storage.user_id)
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            storage_enqueue_sync_session((const char*)sqlite3_column_text(stmt, 0))
+        }
+        sqlite3_finalize(stmt)
+        stmt = nil
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT habit_id,local_date FROM habit_days "
+                          "WHERE habit_id IN (SELECT id FROM habits WHERE user_id=?1) "
+                          "AND (completed!=0 OR count>0 OR session_count>0)",
+                          -1, &stmt, nil) == SQLITE_OK {
+        bind_text(stmt, 1, g_storage.user_id)
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            storage_enqueue_sync_habit_day((const char*)sqlite3_column_text(stmt, 0),
+                                           sqlite3_column_int(stmt, 1))
+        }
+        sqlite3_finalize(stmt)
+        stmt = nil
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT id FROM habits WHERE user_id=?1 AND deleted_at=0",
+                          -1, &stmt, nil) == SQLITE_OK {
+        bind_text(stmt, 1, g_storage.user_id)
+        while sqlite3_step(stmt) == SQLITE_ROW {
+            storage_enqueue_sync_habit((const char*)sqlite3_column_text(stmt, 0))
+        }
+        sqlite3_finalize(stmt)
+        stmt = nil
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET deleted_at=?1,updated_at=?1 "
+                          "WHERE user_id=?2 AND deleted_at=0",
+                          -1, &stmt, nil) != SQLITE_OK {
+        goto fail
+    }
+    sqlite3_bind_int64(stmt, 1, deleted_at)
+    bind_text(stmt, 2, g_storage.user_id)
+    if sqlite3_step(stmt) != SQLITE_DONE {
+        goto fail
+    }
+    changed += sqlite3_changes(g_storage.db)
+    sqlite3_finalize(stmt)
+    stmt = nil
+
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE habit_days SET "
+                          "completed=0,count=0,session_count=0,updated_at=?1 "
+                          "WHERE habit_id IN (SELECT id FROM habits WHERE user_id=?2) "
+                          "  AND (completed!=0 OR count>0 OR session_count>0)",
+                          -1, &stmt, nil) != SQLITE_OK {
+        goto fail
+    }
+    sqlite3_bind_int64(stmt, 1, deleted_at)
+    bind_text(stmt, 2, g_storage.user_id)
+    if sqlite3_step(stmt) != SQLITE_DONE {
+        goto fail
+    }
+    changed += sqlite3_changes(g_storage.db)
+    sqlite3_finalize(stmt)
+    stmt = nil
+
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE habits SET deleted_at=?1,updated_at=?1 "
+                          "WHERE user_id=?2 AND deleted_at=0",
+                          -1, &stmt, nil) != SQLITE_OK {
+        goto fail
+    }
+    sqlite3_bind_int64(stmt, 1, deleted_at)
+    bind_text(stmt, 2, g_storage.user_id)
+    if sqlite3_step(stmt) != SQLITE_DONE {
+        goto fail
+    }
+    changed += sqlite3_changes(g_storage.db)
+    sqlite3_finalize(stmt)
+    stmt = nil
+
+    if !exec_sql("COMMIT") {
+        exec_sql("ROLLBACK")
+        return 0
+    }
+    storage_schedule_persist()
+    return changed > 0 ? count + habit_day_count + habit_count : 0
+
+fail:
+    if stmt != nil {
+        sqlite3_finalize(stmt)
+    }
+    exec_sql("ROLLBACK")
+    return 0
+}

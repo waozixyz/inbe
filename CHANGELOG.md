@@ -1,4 +1,198 @@
 # Changelog
+## [Unreleased]
+### Added
+- Breathing Patterns practice: timed-ratio breathing with Box 4-4-4-4, 4-7-8, Coherent 5-0-5-0, Extended-exhale 4-0-6-0 and fully custom patterns, a per-phase editor, duration cap, animated circle with phase cues, pause/resume, and its own tray quick-start. Sessions save like any other practice (stats, habits, CSV export, sync).
+- Practices can replace a break: the break window shows a chip per visible practice below the panel; starting one counts the break as taken and freezes break scheduling for the whole session, so timers restart after the practice ends no matter how long it runs. Break prompts never pop over a running practice.
+- Android: sessions export to Health Connect (Data & export): meditation and breathwork become mindfulness records, sun salutation a yoga exercise session; incremental (only new sessions), with the standard Health Connect permission flow. Devices without Health Connect (or below Android 8) show a toast instead.
+- Android: a "Breathe" home-screen widget, a quick-settings tile, and per-practice launcher shortcuts (Wim Hof / Meditation / Sun salutation / Patterns) that start the practice straight away - including replacing an active break.
+- Interval bells for meditation: chime every 1/2/5/10/15/30 minutes (off by default).
+- Habits: per-habit weekday schedules and reminder times (notification once per scheduled day), cap raised to 32; off-schedule days neither extend nor break streaks and the overview grid dims them.
+- Stats: CSV export of all sessions (Data & export settings).
+- Practices tab: "Show" checkboxes to pick which practices appear in the carousel.
+- Sun salutation is no longer WIP: the figure selector works and the label is gone.
+
+### Changed
+- The pet stub is removed.
+- Android build: AGP 8.9.1 / Gradle 8.11.1 / Kotlin plugin (Health Connect glue is Kotlin); vendored Kryon bumped for the multi-line array-initializer k2c fix.
+
+## [1.9.1] - 2026-08-16
+### Added
+- Breaks render in their own centered always-on-top OS window (desktop): the main window - even hidden to tray - is no longer taken over; Postpone/Skip/Rest-now are clickable in it and right-click opens Break settings.
+- The timer HUD is drag-and-drop movable anywhere on screen, remembers its position across restarts, hides disabled timers entirely, and right-clicking it opens Break settings; it stays visible during a break showing the remaining rest time.
+- Desktop Device settings: startup mode (show window / start minimized to tray) and on-close behavior (ask / always keep running / always quit).
+- Single-instance: launching replaces an existing instance by default (graceful SIGTERM handover via a PID lock; screenshot mode is exempt).
+
+### Changed
+- Micro breaks open their window the moment they are due - the invisible toast-prompt phase is gone (rest/daily keep their prompts).
+- Break exercises are removed for now: breaks are just the countdown and controls; the "Exercises" settings row and the tray entry are gone. Running a practice during a break is planned as the follow-up.
+- Idle memory: source fonts now rasterize once each at the DPI-scaled base size (plus one lazily built tier for large text) instead of caching up to eight per-size rasterizations, and a burst of new glyphs re-rasterizes at most once per frame per font; language-picker fallback fonts seed ASCII only and grow on demand (kryon `ui_text` change).
+- The process no longer links GTK: the system theme reads the desktop's real palette from the theme's gtk.css (kryon `system_theme`), file dialogs shell out to zenity/kdialog/yad (kryon's default backend order), and the GTK tray backend resolves libgtk-3 through kryon's runtime loader only when the tray actually starts. `INBE_NO_TRAY=1` skips the tray entirely (idle RSS drops from ~132 MB to ~103 MB; with the tray it is ~126 MB).
+- glibc malloc arenas are capped at four (the app runs ~19 threads; the default ceiling let per-thread arenas inflate idle RSS).
+- `KRYON_MEM_DEBUG=1` prints RSS/arena snapshots at startup and steady state (`KryonMemReport`), plus per-font rasterization stats (`UIFontMemoryReport`).
+- Vendored Kryon bumped to master (ui_window center/drag/right-click/click-position, per-window XImage buffers, X11 `Time` layout fix; system_theme gtk.css palette).
+
+### Fixed
+- Android updates can once again be delivered through F-Droid.
+- Restored 32-bit Windows downloads.
+- Clicks on extra OS windows (HUD, break window) register correctly: the X11 `Time` field in the event stand-in had the wrong width, shifting button/position reads (right-click and buttons appeared dead).
+- Extra OS windows no longer corrupt the heap when two windows of different sizes alternate (per-window XImage buffers).
+- The Breaks entry shows in the settings sidebar on desktop again (`#if DESKTOP` resolved against an undefined constant, compiling the mobile branch everywhere).
+
+## [1.9.0] - 2026-08-15
+### Added
+- Break reminders, Workrave-style: micro, rest and daily break timers with break exercises, statistics, and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
+- A dedicated Notifications settings tab. Push delivery uses UnifiedPush (no Google services): "Set up push" opens an in-app picker that lists installed distributor apps with their name and icon and registers with the one you pick; the status line reports the real registration state.
+- Reminders are an editable list: add as many as you want, each with a practice dropdown (Wim Hof, Meditation, Sun Salutation), a [-] time [+] stepper, an on/off toggle and delete. Ships with one enabled Wim-Hof 08:00 reminder.
+- A notification when new friend requests arrive over social sync (toggleable, on by default).
+- Screenshot scenes for the first-run guide and the notifications settings, for regression coverage.
+
+### Changed
+- The app is built through the Kir-only k2c pipeline end to end; the legacy kc path and the orphaned wasm4/uxn experimental backends are gone.
+- The 2,400-line app.c is split into focused modules (app_audio, app_fonts, app_web_bridge) and the simple screen dispatch is table-driven.
+- Material theme is the default everywhere.
+- The mobile nav sidebar no longer lists the desktop-only Breaks entry, and its scroll area is sized to the real content height so every entry is reachable on small screens.
+- In-practice completion notifications are always on; the redundant "session complete" setting was removed.
+- Vendored Kryon bumped through the notification, UIWindow and guide fixes.
+
+### Fixed
+- Settings silently stopped persisting across reloads on web (and could drop settings on any platform once enough keys existed): the settings load cache was a fixed 192-entry array that silently discarded entries past the cap, and the notification-era keys pushed the setting count over it. The cache now grows dynamically and logs if its allocation ever fails.
+- First-run guide misalignment on small screens: the highlight anchors now come from the rectangles the draw code actually renders, the practice home reserves the exact space below its card (so it no longer flips into scroll mode when everything fits), the guide never starts on the welcome screen, the Android back key closes it, and its progress persists so it does not return after quitting mid-tour.
+- "Set up push" did nothing: the UnifiedPush configuration ran via JNI on the native render thread, which has no Looper, and the resulting exception aborted registration before it started. It now runs on the UI thread.
+- The reminder time is exactly centered between the - and + buttons and vertically aligned with them.
+- Fresh installs now load the default reminder list (the "no saved list" sentinel was being clamped to an empty list).
+- Android, web and CI build breaks from the Kryon bumps (ui_window NULL on Android, physics exclusion for web, Firefox smoke test under software GL).
+
+## [1.8.23] - 2026-08-13
+### Fixed
+- Properly fixed accented characters (ä ö ü ß é ñ č etc.) typed into text fields rendering in a different, broken font. The active UI font is now dynamic in kryon and renders every glyph its file contains in its own typeface, instead of the brittle per-locale codepoint set that missed any character not present in the current locale's file. (1.8.20 only regenerated the font subset; this is the root-cause fix in kryon.)
+### Changed
+- Bumped the vendored Kryon pointer, and excluded Kryon's 2D physics (Box2D) sources from the Android build (inbe is UI-only) so the APK builds cleanly after the bump.
+
+## [1.8.22] - 2026-08-12
+### Fixed
+- Fixed a ghost-click bug when closing the sidebar by swiping left on mobile: the pointer release bled through to the newly-shown screen, triggering a stray click on whatever nav item or button was under the release point (e.g. opening About). The release is now consumed before the screen switch.
+- Fixed sidebar navigation returning to the wrong screen: closing the sidebar now remembers and returns to the screen it was opened from, and the return-on-back flag is properly cleared on re-open so it can't loop.
+
+## [1.8.21] - 2026-08-12
+### Fixed
+- Fixed text corruption and overflow at high UI scale: font-shrink loops in the habits weekly view and WHM progressive-speed editor stepped or compared against scaled pixel values instead of logical font sizes, causing text to shrink too fast or never shrink. Title bars, toasts, and empty text fields now use the scaled line height for vertical centering and container sizing.
+
+## [1.8.20] - 2026-08-12
+### Fixed
+- Fixed Android default scaling being too small by using the best available DPI estimate (maximum of viewport ratio, device density, and window scale) instead of device density alone, which under-scaled on tall screens.
+- Regenerated the Latin font subset to include accented characters (ä ö ü ß é ñ č etc.) so German, French, Spanish, Czech and other Latin-script languages no longer fall back to a visually different system font.
+- Removed per-frame DPI scale log spam from the embed draw path.
+- Fixed the CI release build by upstreaming the SetUIDeviceDensity hook and other kryon fixes that were only present as uncommitted vendor working-tree edits.
+
+## [1.8.19] - 2026-08-11
+### Added
+- Added a user-facing Scale factor control in Appearance settings, with a slider plus minus/plus steppers, that rescales the whole UI live on top of the device DPI. Shows the effective scale (e.g. 2.0x) and supports shrinking below the default.
+
+### Changed
+- Bumped practice screen metadata/subtitle, statistics metric labels, and About version text to the regular font tier so they stay readable at high scale.
+- Made the per-practice music track setting keys data-driven so future practices persist automatically, and derived the practice music enable mask from the track selection to prevent drift.
+- Updated Kryon Slider widget to allow a caller-supplied value text (e.g. "1.8x") and bumped the vendored Kryon pointer.
+
+## [1.8.18] - 2026-08-10
+### Changed
+- Fixed Android audio/music import failing with "unsupported audio format": the file picker now preserves the original filename and a correct extension derived from the picked file's MIME type, instead of copying to an extension-less cache path.
+- Fixed long custom music titles overlapping the play/pause and remove buttons in Audio settings by fitting them with an ellipsis.
+- Moved background music selection out of per-practice customization and into Audio settings, with one track dropdown per practice (Wim Hof, Meditation, Sun Salutation), each defaulting to "None" except Meditation.
+- Added a download/redownload button and progress indicator for the bundled meditation music pack directly in Audio settings.
+- Showed the "Music by Elijah_K." attribution under a practice's track dropdown only when a bundled track requiring attribution is selected.
+
+## [1.8.17] - 2026-08-10
+### Changed
+- Updated the WHM tutorial hold preview to use the same progress circle rendering as practice sessions.
+- Fixed manual tutorial navigation arrows to use the centered left and right icons.
+- Fixed habit edit Save so it returns directly to the habits overview, with a smaller Delete action for existing habits.
+- Updated Kryon to allow apps to disable automatic default font loading during UI initialization.
+
+## [1.8.16] - 2026-08-10
+### Changed
+- Fixed first-run guide overlay alignment under the Material theme by using style-aware tab and bottom navigation measurements.
+- Fixed Audio settings scroll height calculation so the page sizes to the actual custom sound, music, output, and import controls.
+- Restored Android 6/API 23 native launch compatibility by extracting packaged JNI libraries for older devices.
+- Updated Kryon to the canonical widget API and refreshed the vendored Kryon pointer.
+
+## [1.8.15] - 2026-08-09
+### Changed
+- Updated Kryon to the clean Kryon-owned app API and Material toggle rendering.
+- Improved Material spacing in settings toggle rows.
+- Updated Habits overview, calendar day cells, and weekly rows to use Material-friendly rounded controls.
+- Disabled app audio initialization while running inside Kryon preview.
+
+## [1.8.14] - 2026-08-06
+### Changed
+- Updated Kryon to the retro-only widget runtime while style selection is paused.
+- Fixed deferred dropdown overlays so Inbe dropdown menus open above later controls.
+- Restored practice carousel left/right navigation and kept session title bars using close buttons.
+- Removed the app-level Animations setting and transition preference storage.
+
+## [1.8.13] - 2026-08-05
+### Changed
+- Split cue and music volume controls so short practice cues stay on `sound_volume` while streamed meditation music uses the new persisted `music_volume` setting.
+- Added an optional WHM retention 30-second marker, defaulting off, with controls in the WHM practice session settings.
+- Moved background playback into Device settings and removed the standalone global Session settings tab.
+- Updated practice music/settings UI and importable settings to include the new audio preferences, including a cue-volume test button.
+
+## [1.8.12] - 2026-07-29
+### Changed
+- Fixed the Wim Hof between-round countdown: round 0 always counts down from 3 (the intentional 3-2-1), and rounds 1+ now honor the user's configured "Pause after round" setting. The breath engine now owns the full session state machine, so auto-play and manual round-advance share one path and final-round results are always persisted.
+- Added desktop keyboard shortcuts for quitting the app: `Ctrl+Q` quits from any screen, and `Esc` quits when idle on the home screen (deeper screens keep their existing Esc behavior). On tray-enabled builds these go through the keep-running/quit prompt; without a tray they exit immediately, matching the window close button.
+- Enabled WAL mode for app storage to improve database concurrency and read/write throughput.
+
+## [1.8.11] - 2026-07-27
+### Changed
+- Reduced bundled font size by switching shipped UI fonts to Kryon-generated Noto subsets.
+- Added Android system font fallback for arbitrary user-entered text while keeping embedded subsets for app UI and non-Android builds.
+- Updated Kryon to provide shared font subsetting tooling and dynamic font fallback loading for downstream apps.
+
+## [1.8.10] - 2026-07-26
+### Changed
+- Migrated `src/storage/import.c` to Kry (`import.kry`, transpiled to `import_impl.c`), following the established `db.kry` pattern; the hand-written `import.h` remains the public contract.
+- Bumped the Kryon vendor to `22afa31` plus a one-line fix (`c26b7ec` on the `fix/platform-thread-stddef` branch) adding `#include <stddef.h>` to `platform_thread.c` so the web build can resolve `NULL`. The bump brings persistent text-input focus, a minimal Kry language (sugar verbs removed), and the new `WidgetButton` UI widget used by the practice screen.
+- Fixed the web/emscripten build: `src/storage/sync_account.kry` now imports `<emscripten.h>` for its `#intrinsic "web"` declaration (which expands to `EM_ASM_INT`), matching the other two files using that intrinsic. This had broken the web build since the original Kry migration.
+- Reworked the desktop close behavior: raylib's built-in ESC-to-exit is now disabled on native/desktop (ESC is handled per-screen, and close goes through our own keep-running/quit prompt when a tray is present); without a tray the window close button quits immediately.
+- Habits editor: added description scroll state so long descriptions scroll correctly.
+- Renamed a shadowed `text` parameter in `copy_text_checked` to `input` for clarity (meditation music path).
+- Various screen and settings UI refinements across habits edit, pet, practice, profile, language, manual, and settings screens.
+- Added `.zcode` to `.gitignore`.
+
+### Note
+- Meditation audio asset refresh is held back from this release (requires `git-lfs` to be installed locally before committing); will ship in a follow-up.
+
+## [1.8.9] - 2026-07-17
+### Changed
+- Fixed Android native builds by embedding the current Noto font sources instead of stale generated `assets/fonts/ui.*` files.
+- Fixed Android UI font loading by enabling TTF/OTF support in the Android raylib build.
+- Updated sun-salutation assets to use pose sheets while keeping the figure setting focused on the man sequence for now.
+- Improved release packaging automation, Linux package targets, and store metadata.
+
+## [1.8.8] - 2026-07-13
+### Changed
+- Updated Flint icon integration to use categorized sprite sheets for app UI, language, payments, platforms, tiles, and profile pictures.
+- Updated Inbe to use the new Flint icon categories and removed legacy eye icon usage.
+- Fixed profile picture picker selection so it closes the picker, keeps the sidebar open, and does not click through to sidebar links.
+
+## [1.8.7] - 2026-07-12
+### Changed
+- Fixed Firefox web persistence, mobile habit deletion, and customizable nav tap handling.
+- Added a blank-home easter egg screen and updated embedded asset lists.
+- Updated release and store packaging automation.
+
+## [1.8.6] - 2026-07-11
+### Changed
+- Added Firefox add-on packaging, release metadata updates, and CI/release automation.
+- Improved web audio asset validation and Firefox/LibreWolf smoke testing.
+- Fixed stale screen-local modal state so hidden modals cannot keep input captured after navigation.
+
+## [1.8.5] - 2026-07-11
+### Changed
+- Updated Flint to improve file dialogs, cursor behavior, focus reset, icon slider popups, and shared raylib build locking.
+- Smoothed WHM breath and recovery countdown progress so the ring advances steadily during each breath and countdown.
+- Improved session controls, release-store publishing files, and build packaging metadata.
+
 ## [1.8.4] - 2026-07-11
 ### Changed
 - Reworked Profile configuration navigation to use a full-width dropdown instead of the tab bar.

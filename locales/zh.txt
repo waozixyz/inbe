@@ -70,6 +70,9 @@ Sync
 [profile_add_friend_button]
 添加好友
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 收到
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 开始
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Wim Hof 呼吸
 ---
@@ -115,10 +121,7 @@ Wim Hof 呼吸
 冥想
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-进行中
+拜日式
 ---
 [sun_salutation_repetitions_label]
 重复次数
@@ -128,6 +131,15 @@ Sun Salutation
 ---
 [sun_salutation_end_speed_label]
 结束节奏
+---
+[sun_salutation_figure_label]
+体型
+---
+[sun_salutation_figure_man]
+男性
+---
+[sun_salutation_figure_woman]
+女性
 ---
 [sun_salutation_tempo_preview_label]
 节奏预览
@@ -243,6 +255,9 @@ Finish
 [cancel_button]
 取消
 ---
+[skip_button]
+跳过
+---
 [ok_button]
 确定
 ---
@@ -294,15 +309,6 @@ Finish
 [about_text]
 用于呼吸、习惯和同步的安静伙伴。
 ---
-[theme_label]
-主题
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
 [speed_label]
 速度
 ---
@@ -351,20 +357,35 @@ System
 [no_sessions]
 没有会话
 ---
-[hold_display_label]
-屏息显示
+[cue_volume_label]
+提示音量
 ---
-[hold_display_stopwatch]
-秒表
+[audio_output_label]
+音频输出
 ---
-[hold_display_circle]
-圆圈
+[audio_system_default_label]
+系统默认输出
 ---
-[volume_label]
-音量
+[audio_status_ready]
+就绪
 ---
-[show_session_return_button_label]
-显示返回按钮
+[audio_status_unavailable]
+不可用
+---
+[audio_test_output_button]
+测试输出
+---
+[audio_reinitialize_button]
+重新初始化音频
+---
+[audio_output_level_label]
+输出电平
+---
+[music_volume_label]
+音乐音量
+---
+[retention_marker_label]
+屏息 30 秒标记
 ---
 [reset_to_defaults_label]
 恢复默认
@@ -441,12 +462,6 @@ System
 [toggle_on]
 开
 ---
-[theme_light]
-浅色
----
-[theme_dark]
-深色
----
 [on_screen_keyboard_label]
 屏幕键盘
 ---
@@ -496,15 +511,6 @@ System
 ---
 [meditation_music_attribution]
 音乐来自 Elijah_K。
----
-[theme_system]
-系统
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-调色板
 ---
 [orientation_label]
 方向
@@ -761,13 +767,8 @@ Wim Hof 屏息轮次
 ---
 ---
 
-[transition_label]
-过渡
----
 [theme_picker_title]
 选择主题
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -806,11 +807,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-背景音乐
----
 [practice_music_enabled_label]
 在本练习中播放
+---
+[appearance_scale_label]
+缩放
+---
+[audio_music_none_option]
+无
+---
+[audio_import_error_invalid_path]
+无效的文件路径
+---
+[audio_import_error_invalid_format]
+不支持的音频格式
+---
+[audio_import_error_file_not_found]
+未找到文件
+---
+[audio_import_error_copy_failed]
+无法复制文件
 ---
 [practice_start_button]
 开始练习
@@ -857,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 瑜伽练习课程。
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 今天的习惯总数。
 ---
@@ -899,8 +909,8 @@ Preview only. This tab is not implemented yet.
 [practice_home_wim_hof_metadata]
 %d 轮 | %d 次呼吸
 ---
-[sun_salutation_session_step_title]
-步骤 %d / %d
+[practice_home_patterns_metadata]
+%s | %d分钟
 ---
 [meditation_music_downloading_progress]
 正在下载音频... %d%%
@@ -1046,6 +1056,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+导出到 Health Connect
+---
+[health_connect_started]
+已打开 Health Connect
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1054,4 +1202,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+小憩一下
+---
+[break_micro_body]
+放松肩膀，把视线移开屏幕，慢慢呼吸，直到进度条填满。
+---
+[break_rest_title]
+休息时间到
+---
+[break_rest_body]
+站起来伸展一下，让眼睛看看远处。
+---
+[break_daily_title]
+已达到今日上限
+---
+[break_daily_body]
+你今天一整天都很活跃，考虑就此结束吧。
+---
+[break_time_remaining]
+剩余 %s
+---
+[break_stay_idle_note]
+把手从键盘上移开，休息才会计入
+---
+[break_lock_note]
+还有 %d 秒解锁
+---
+[break_postpone_button]
+稍后
+---
+[break_skip_button]
+跳过
+---
+[break_rest_now_button]
+立即休息
+---
+[break_prelude_text]
+休息即将开始 - 放松一下
+---
+[settings_tab_breaks]
+休息
+---
+[settings_breaks_enabled]
+休息提醒
+---
+[settings_breaks_status]
+计时器状态
+---
+[settings_breaks_due_now]
+即将到来
+---
+[settings_breaks_timer_off]
+关闭
+---
+[settings_breaks_block_mode]
+屏蔽
+---
+[settings_breaks_block_off]
+关闭
+---
+[settings_breaks_block_input]
+屏蔽输入
+---
+[settings_breaks_block_screen]
+屏蔽输入和屏幕
+---
+[settings_breaks_sounds]
+休息提示音
+---
+[settings_breaks_reading_mode]
+阅读模式
+---
+[settings_breaks_micro_counts]
+将小憩计为活动
+---
+[settings_breaks_rest_now]
+立即休息
+---
+[settings_breaks_micro_header]
+小憩
+---
+[settings_breaks_rest_header]
+休息
+---
+[settings_breaks_daily_header]
+每日上限
+---
+[settings_breaks_timer_enabled]
+启用计时器
+---
+[settings_breaks_limit]
+休息间隔
+---
+[settings_breaks_duration]
+休息时长
+---
+[settings_breaks_postpone]
+推迟时间
+---
+[settings_breaks_prompts]
+最大提醒次数
+---
+[settings_breaks_show_skip]
+显示跳过按钮
+---
+[settings_breaks_show_postpone]
+显示推迟按钮
+---
+[settings_breaks_week_stats]
+最近7天（完成/跳过/推迟）
+---
+[settings_breaks_no_data]
+暂无统计数据
+---
+[settings_breaks_mode]
+模式
+---
+[settings_breaks_mode_normal]
+正常
+---
+[settings_breaks_mode_quiet]
+静音
+---
+[settings_breaks_mode_suspended]
+暂停
+---
+[tray_next_break]
+下次休息 %s
+---
+[break_exercises_title]
+休息练习
+---
+[break_exercises_intro]
+为休息准备的简短拉伸，会自动播放。
+---
+[break_ex_shoulder_rolls]
+绕肩
+---
+[break_ex_shoulder_rolls_s1]
+缓慢向后绕动肩膀
+---
+[break_ex_shoulder_rolls_s2]
+保持动作平稳放松
+---
+[break_ex_neck_tilt]
+颈部侧倾
+---
+[break_ex_neck_tilt_s1]
+把头偏向一侧肩膀
+---
+[break_ex_neck_tilt_s2]
+轻柔保持后换边
+---
+[break_ex_wrist_fingers]
+手腕和手指拉伸
+---
+[break_ex_wrist_fingers_s1]
+伸出一臂，把手指向后拉
+---
+[break_ex_wrist_fingers_s2]
+拉伸手腕后换手
+---
+[break_ex_upper_back]
+上背部拉伸
+---
+[break_ex_upper_back_s1]
+双手交扣，弓起上背
+---
+[break_ex_upper_back_s2]
+呼气并让肩膀下沉
+---
+[break_ex_blade_squeeze]
+肩胛骨收紧
+---
+[break_ex_blade_squeeze_s1]
+将肩胛骨向中间收拢
+---
+[break_ex_blade_squeeze_s2]
+稍作停留后放松
+---
+[break_ex_seated_twist]
+坐姿转体
+---
+[break_ex_seated_twist_s1]
+坐直并向一侧转动
+---
+[break_ex_seated_twist_s2]
+保持髋部固定后换边
+---
+[break_ex_eye_horizon]
+望向远处
+---
+[break_ex_eye_horizon_s1]
+找到房间里最远的点
+---
+[break_ex_eye_horizon_s2]
+放松目光并呼吸
+---
+[break_ex_eye_near_far]
+远近聚焦
+---
+[break_ex_eye_near_far_s1]
+近距离看拇指
+---
+[break_ex_eye_near_far_s2]
+然后聚焦远处物体
+---
+[break_ex_breath_drop]
+呼吸与落肩
+---
+[break_ex_breath_drop_s1]
+吸气并抬起肩膀
+---
+[break_ex_breath_drop_s2]
+呼气并让它们落下
+---
+[break_ex_breath_drop_s3]
+感受紧张释放
+---
+[break_ex_forearm_desk]
+前臂桌边拉伸
+---
+[break_ex_forearm_desk_s1]
+手掌贴桌，手指朝后
+---
+[break_ex_forearm_desk_s2]
+轻压直到前臂有拉伸感
+---
+[notifications_test]
+发送测试通知
+---
+[notification_test_title]
+测试通知
+---
+[notification_test_body]
+Inner Breeze 的通知正常工作。
+---
+[notification_session_done_title]
+课程完成
+---
+[notification_session_done_body]
+你的练习课程已完成。
+---
+[break_hud_micro]
+小憩
+---
+[break_hud_rest]
+休息
+---
+[break_hud_daily]
+每日
+---
+[settings_tab_notifications]
+通知
+---
+[notifications_section]
+通知
+---
+[notifications_friend_request_label]
+好友请求通知
+---
+[notifications_friend_request_title]
+好友请求
+---
+[notifications_friend_request_body]
+你收到一个新的好友请求
+---
+[reminder_add]
+添加提醒
+---
+[notifications_push_picker_title]
+推送提供方
+---
+[notifications_push_section]
+推送
+---
+[notifications_push_status_on]
+已连接
+---
+[notifications_push_status_off]
+未设置
+---
+[notifications_push_setup]
+设置推送…
+---
+[notifications_reminders_section]
+提醒
+---
+[reminder_title]
+提醒
 ---

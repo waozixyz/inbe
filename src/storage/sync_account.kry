@@ -1,0 +1,179 @@
+#import "storage/sync_account.h"
+
+#import "platform.h" #private
+#import "storage/data.h" #private
+#import "storage.h" #private
+#import "sync_client.h" #private
+#import "kryon.h" #private
+#import <stdio.h>
+#import <string.h>
+
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
+
+#if ANDROID {
+    #import "android_share.h" #private
+}
+#if WEB {
+    #import <emscripten.h>
+    web_download_file :: (path: const char*, filename: const char*,
+                          mime: const char*) -> int #intrinsic "web"
+}
+
+static sync_public_id_key: const char* = "sync_public_id"
+static sync_public_key_key: const char* = "sync_public_key"
+static sync_private_key_key: const char* = "sync_private_key"
+static sync_account_alias_key: const char* = "sync_account_alias"
+
+account_has_values :: (account: const KsyncAccount*) -> int #private {
+    return HasKsyncAccountValues(account)
+}
+
+sync_account_write_and_reset :: (account: const KsyncAccount*) #private {
+    storage_settings_begin_write()
+    storage_set_setting_text(sync_public_id_key, account != nil ? account->public_id : "")
+    storage_set_setting_text(sync_public_key_key, account != nil ? account->public_key_hex : "")
+    storage_set_setting_text(sync_private_key_key,
+                             account != nil ? account->private_key_hex : "")
+    storage_set_setting_text(sync_account_alias_key, "")
+    sync_client_clear_auth_token()
+    storage_reset_sync_state()
+    storage_settings_end_write()
+}
+
+sync_account_same_owner :: (owner: const char*, account: const KsyncAccount*) -> int #private {
+    return owner != nil && account != nil && strcmp(owner, account->public_id) == 0
+}
+
+sync_sha256_hex :: (data: const uint8_t*, len: size_t, out_hex: [65] char) {
+    KsyncSha256Hex(data, len, out_hex)
+}
+
+sync_account_available :: () -> int {
+    return IsKsyncAccountAvailable()
+}
+
+sync_account_load :: (account: KsyncAccount*) -> int {
+    public_id: const char*
+    public_key: const char*
+    private_key: const char*
+
+    data_init()
+    if account == nil {
+        return 0
+    }
+    memset(account, 0, sizeof(*account))
+
+    public_id = storage_get_setting_text(sync_public_id_key)
+    if public_id != nil {
+        snprintf(account->public_id, sizeof(account->public_id), "%s", public_id)
+    }
+    public_key = storage_get_setting_text(sync_public_key_key)
+    if public_key != nil {
+        snprintf(account->public_key_hex, sizeof(account->public_key_hex), "%s", public_key)
+    }
+    private_key = storage_get_setting_text(sync_private_key_key)
+    if private_key != nil {
+        snprintf(account->private_key_hex, sizeof(account->private_key_hex), "%s", private_key)
+    }
+    return account_has_values(account)
+}
+
+sync_account_generate :: (account: KsyncAccount*) -> int {
+    data_init()
+    if account == nil {
+        return 0
+    }
+    memset(account, 0, sizeof(*account))
+    return CreateKsyncAccount(account)
+}
+
+sync_account_import_private_key_preview :: (account: KsyncAccount*,
+                                               filename: const char*) -> int {
+    data_init()
+    if account == nil || filename == nil || filename[0] == '\0' {
+        return 0
+    }
+    memset(account, 0, sizeof(*account))
+    if !ImportKsyncAccountFile(filename, account) {
+        TraceLog(LOG_WARNING, "SYNC: Private key import failed: invalid key file")
+        return 0
+    }
+    return 1
+}
+
+sync_account_save :: (account: KsyncAccount*,
+                         clear_local_data: int) -> InbeSyncAccountSaveResult {
+    owner: const char*
+
+    data_init()
+    if !account_has_values(account) {
+        return INBE_SYNC_ACCOUNT_SAVE_FAILED
+    }
+
+    owner = storage_sync_data_owner_public_id()
+    if owner != nil && !sync_account_same_owner(owner, account) &&
+       storage_has_local_syncable_data() {
+        if !clear_local_data {
+            return INBE_SYNC_ACCOUNT_SAVE_NEEDS_CLEAR
+        }
+        if !storage_clear_local_syncable_data() {
+            return INBE_SYNC_ACCOUNT_SAVE_FAILED
+        }
+    }
+
+    storage_set_sync_data_owner_public_id(account->public_id)
+    sync_account_write_and_reset(account)
+    return INBE_SYNC_ACCOUNT_SAVE_OK
+}
+
+sync_account_clear :: () -> int {
+    data_init()
+    sync_account_write_and_reset(nil)
+    return 1
+}
+
+sync_account_export_private_key :: (account: const KsyncAccount*,
+                                       filename: const char*) -> int {
+    body: [KSYNC_ACCOUNT_EXPORT_TEXT_SIZE] char = {0}
+    len: int
+
+    if !account_has_values(account) || filename == nil || filename[0] == '\0' {
+        return 0
+    }
+    if !ExportKsyncAccountText(account, body, sizeof(body)) {
+        return 0
+    }
+    len = (int)strlen(body)
+
+    #if ANDROID {
+        return android_share_bytes((const unsigned char*)body, (size_t)len, filename,
+                                   "application/octet-stream")
+    } #else_if WEB {
+        path: [512] char = {0}
+
+        snprintf(path, sizeof(path), "%s/%s", data_root(), filename)
+        if !SaveFileData(path, body, len) {
+            return 0
+        }
+        return web_download_file(path, filename, "application/octet-stream")
+    } #else {
+        if strchr(filename, '/') != nil || strchr(filename, '\\') != nil {
+            return SaveFileData(filename, body, len)
+        }
+        path: [512] char = {0}
+        snprintf(path, sizeof(path), "%s/%s", data_root(), filename)
+        return SaveFileData(path, body, len)
+    }
+}
+
+sync_account_sign_hex :: (message: const uint8_t*, message_len: size_t,
+                             out_signature_hex: char*, out_size: size_t) -> int {
+    account: KsyncAccount
+
+    if !sync_account_load(&account) {
+        return 0
+    }
+    return SignKsyncAccountHex(&account, message, message_len, out_signature_hex,
+                              out_size)
+}

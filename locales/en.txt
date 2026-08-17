@@ -70,6 +70,9 @@ No account
 [profile_add_friend_button]
 Add friend
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Incoming
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 PLAY
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Wim Hof Breathing
 ---
@@ -117,9 +123,6 @@ Meditation
 [exercise_sun_salutation]
 Sun Salutation
 ---
-[sun_salutation_work_in_progress]
-Work in progress
----
 [sun_salutation_repetitions_label]
 Repetitions
 ---
@@ -128,6 +131,15 @@ Start tempo
 ---
 [sun_salutation_end_speed_label]
 End tempo
+---
+[sun_salutation_figure_label]
+Figure
+---
+[sun_salutation_figure_man]
+Man
+---
+[sun_salutation_figure_woman]
+Woman
 ---
 [sun_salutation_tempo_preview_label]
 Tempo preview
@@ -291,32 +303,20 @@ Session
 [settings_tab_device]
 Device
 ---
+[settings_tab_audio]
+Audio
+---
 [settings_section_appearance]
 Appearance
+---
+[appearance_scale_label]
+Scale factor
 ---
 [settings_tab_about]
 About
 ---
 [about_text]
 A quiet breathing companion for practice, habits, and sync.
----
-[theme_label]
-Theme
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
-[theme_system]
-System
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Palette
 ---
 [orientation_label]
 Orientation
@@ -381,20 +381,95 @@ Double tap screen to breathe
 [no_sessions]
 No sessions
 ---
-[hold_display_label]
-Hold display
+[cue_volume_label]
+Cue volume
 ---
-[hold_display_stopwatch]
-Stopwatch
+[audio_output_label]
+Audio output
 ---
-[hold_display_circle]
-Circle
+[audio_system_default_label]
+System default output
 ---
-[volume_label]
-Volume
+[audio_status_ready]
+Ready
 ---
-[show_session_return_button_label]
-Show return button
+[audio_status_unavailable]
+Unavailable
+---
+[audio_test_output_button]
+Test output
+---
+[audio_reinitialize_button]
+Reinitialize audio
+---
+[audio_output_level_label]
+Output level
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_import_error_invalid_path]
+Invalid file path
+---
+[audio_import_error_invalid_format]
+Unsupported audio format
+---
+[audio_import_error_file_not_found]
+File not found
+---
+[audio_import_error_copy_failed]
+Could not copy file
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_music_none_option]
+None
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[music_volume_label]
+Music volume
+---
+[retention_marker_label]
+Retention 30s marker
 ---
 [reset_to_defaults_label]
 Reset to defaults
@@ -471,12 +546,6 @@ OFF
 [toggle_on]
 ON
 ---
-[theme_light]
-Light
----
-[theme_dark]
-Dark
----
 [on_screen_keyboard_label]
 On-screen keyboard
 ---
@@ -538,6 +607,144 @@ Keep Running
 ---
 [desktop_close_quit_button]
 Quit
+---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Export to Health Connect
+---
+[health_connect_started]
+Health Connect opened
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
 ---
 [sync_account_title]
 Account
@@ -799,14 +1006,8 @@ Best streak
 ---
 ---
 ---
-[transition_label]
-Animations
----
 [theme_picker_title]
 Choose Theme
----
-[practice_music_title]
-Background music
 ---
 [practice_music_enabled_label]
 Play during this practice
@@ -856,12 +1057,6 @@ Yoga
 [habit_default_yoga_description]
 Yoga practice sessions.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 Today habit total.
 ---
@@ -898,8 +1093,8 @@ Session data comes from completed practices.
 [practice_home_wim_hof_metadata]
 %d rounds | %d breaths
 ---
-[sun_salutation_session_step_title]
-Step %d / %d
+[practice_home_patterns_metadata]
+%s | %d min
 ---
 [meditation_music_downloading_progress]
 Downloading audio... %d%%
@@ -1053,4 +1248,295 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[break_micro_title]
+Time for a micro-break
+---
+[break_micro_body]
+Relax your shoulders, look away from the screen, and breathe slowly until the bar fills.
+---
+[break_rest_title]
+Time for a rest break
+---
+[break_rest_body]
+Stand up, stretch, and let your eyes rest on something far away.
+---
+[break_daily_title]
+Daily limit reached
+---
+[break_daily_body]
+You have been active all day. Consider finishing up for today.
+---
+[break_time_remaining]
+%s remaining
+---
+[break_stay_idle_note]
+Keep your hands off the keyboard to let the break count
+---
+[break_lock_note]
+Locked for %d more seconds
+---
+[break_postpone_button]
+Postpone
+---
+[break_skip_button]
+Skip
+---
+[break_rest_now_button]
+Rest break now
+---
+[break_prelude_text]
+Break coming up - unwind for a moment
+---
+[settings_tab_breaks]
+Breaks
+---
+[settings_breaks_enabled]
+Break reminders
+---
+[settings_breaks_status]
+Timer status
+---
+[settings_breaks_due_now]
+due now
+---
+[settings_breaks_timer_off]
+off
+---
+[settings_breaks_block_mode]
+Blocking
+---
+[settings_breaks_block_off]
+Off
+---
+[settings_breaks_block_input]
+Block input
+---
+[settings_breaks_block_screen]
+Block input and screen
+---
+[settings_breaks_sounds]
+Break sounds
+---
+[settings_breaks_reading_mode]
+Reading mode
+---
+[settings_breaks_micro_counts]
+Count micro-breaks as activity
+---
+[settings_breaks_rest_now]
+Rest break now
+---
+[settings_breaks_micro_header]
+Micro-break
+---
+[settings_breaks_rest_header]
+Rest break
+---
+[settings_breaks_daily_header]
+Daily limit
+---
+[settings_breaks_timer_enabled]
+Enable timer
+---
+[settings_breaks_limit]
+Time between breaks
+---
+[settings_breaks_duration]
+Break duration
+---
+[settings_breaks_postpone]
+Postpone time
+---
+[settings_breaks_prompts]
+Max prompts
+---
+[settings_breaks_show_skip]
+Show Skip button
+---
+[settings_breaks_show_postpone]
+Show Postpone button
+---
+[settings_breaks_week_stats]
+Last 7 days (taken / skipped / postponed)
+---
+[settings_breaks_no_data]
+No break statistics yet
+---
+[settings_breaks_mode]
+Mode
+---
+[settings_breaks_mode_normal]
+Normal
+---
+[settings_breaks_mode_quiet]
+Quiet
+---
+[settings_breaks_mode_suspended]
+Suspended
+---
+[tray_next_break]
+Next break %s
+---
+[break_exercises_title]
+Break exercises
+---
+[break_exercises_intro]
+Short stretches for rest breaks. They play automatically during rest breaks.
+---
+[break_ex_shoulder_rolls]
+Shoulder rolls
+---
+[break_ex_shoulder_rolls_s1]
+Roll your shoulders slowly backward
+---
+[break_ex_shoulder_rolls_s2]
+Keep the motion smooth and relaxed
+---
+[break_ex_neck_tilt]
+Neck side tilt
+---
+[break_ex_neck_tilt_s1]
+Tilt your head toward one shoulder
+---
+[break_ex_neck_tilt_s2]
+Hold gently, then switch sides
+---
+[break_ex_wrist_fingers]
+Wrist and finger stretch
+---
+[break_ex_wrist_fingers_s1]
+Extend one arm and pull the fingers back
+---
+[break_ex_wrist_fingers_s2]
+Stretch the wrist, then switch hands
+---
+[break_ex_upper_back]
+Upper back stretch
+---
+[break_ex_upper_back_s1]
+Clasp your hands and round your upper back
+---
+[break_ex_upper_back_s2]
+Breathe out and let the shoulders drop
+---
+[break_ex_blade_squeeze]
+Shoulder blade squeeze
+---
+[break_ex_blade_squeeze_s1]
+Draw your shoulder blades together
+---
+[break_ex_blade_squeeze_s2]
+Hold briefly, then release
+---
+[break_ex_seated_twist]
+Seated torso twist
+---
+[break_ex_seated_twist_s1]
+Sit tall and rotate to one side
+---
+[break_ex_seated_twist_s2]
+Keep hips square, then switch sides
+---
+[break_ex_eye_horizon]
+Look into the distance
+---
+[break_ex_eye_horizon_s1]
+Find the farthest point in the room
+---
+[break_ex_eye_horizon_s2]
+Soften your gaze and breathe
+---
+[break_ex_eye_near_far]
+Focus near and far
+---
+[break_ex_eye_near_far_s1]
+Look at your thumb close up
+---
+[break_ex_eye_near_far_s2]
+Then focus on something far away
+---
+[break_ex_breath_drop]
+Breath and shoulder drop
+---
+[break_ex_breath_drop_s1]
+Inhale and lift your shoulders
+---
+[break_ex_breath_drop_s2]
+Exhale and let them fall
+---
+[break_ex_breath_drop_s3]
+Notice the tension release
+---
+[break_ex_forearm_desk]
+Forearm desk stretch
+---
+[break_ex_forearm_desk_s1]
+Place a palm on the desk, fingers back
+---
+[break_ex_forearm_desk_s2]
+Gently press until the forearm stretches
+---
+[notifications_test]
+Send test notification
+---
+[notification_test_title]
+Test notification
+---
+[notification_test_body]
+Notifications from Inner Breeze work.
+---
+[notification_session_done_title]
+Session complete
+---
+[notification_session_done_body]
+Your practice session is complete.
+---
+[break_hud_micro]
+Micro
+---
+[break_hud_rest]
+Rest
+---
+[break_hud_daily]
+Daily
+---
+[settings_tab_notifications]
+Notifications
+---
+[notifications_section]
+Notifications
+---
+[notifications_friend_request_label]
+Friend request notifications
+---
+[notifications_friend_request_title]
+Friend request
+---
+[notifications_friend_request_body]
+You have a new friend request
+---
+[reminder_add]
+Add reminder
+---
+[notifications_push_picker_title]
+Push provider
+---
+[notifications_push_section]
+Push delivery
+---
+[notifications_push_status_on]
+Connected
+---
+[notifications_push_status_off]
+Not set up
+---
+[notifications_push_setup]
+Set up push…
+---
+[notifications_reminders_section]
+Reminders
+---
+[reminder_title]
+Reminder
 ---

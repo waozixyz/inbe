@@ -70,6 +70,9 @@ Zadny ucet
 [profile_add_friend_button]
 Pridat pritele
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 Prichozi
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 SPUSTIT
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 Wim Hofovo dýchání
 ---
@@ -115,10 +121,7 @@ Wim Hofovo dýchání
 Meditace
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-Pracuje se
+Pozdrav slunci
 ---
 [sun_salutation_repetitions_label]
 Opakovani
@@ -128,6 +131,15 @@ Pocatecni tempo
 ---
 [sun_salutation_end_speed_label]
 Koncove tempo
+---
+[sun_salutation_figure_label]
+Postava
+---
+[sun_salutation_figure_man]
+Muz
+---
+[sun_salutation_figure_woman]
+Zena
 ---
 [sun_salutation_tempo_preview_label]
 Nahled tempa
@@ -243,6 +255,9 @@ Uložit dokončená kola před ukončením?
 [cancel_button]
 Zrušit
 ---
+[skip_button]
+Přeskočit
+---
 [ok_button]
 OK
 ---
@@ -294,15 +309,6 @@ O aplikaci
 [about_text]
 Klidny pruvodce pro dychani, navyky a synchronizaci.
 ---
-[theme_label]
-Motiv
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
 [speed_label]
 Rychlost
 ---
@@ -351,20 +357,35 @@ Dvakrát klepněte na obrazovku pro nádech
 [no_sessions]
 Žádná sezení
 ---
-[hold_display_label]
-Zobrazeni zadrze
+[cue_volume_label]
+Hlasitost pokynů
 ---
-[hold_display_stopwatch]
-Stopky
+[audio_output_label]
+Zvukový výstup
 ---
-[hold_display_circle]
-Kruh
+[audio_system_default_label]
+Výchozí systémový výstup
 ---
-[volume_label]
-Hlasitost
+[audio_status_ready]
+Připraveno
 ---
-[show_session_return_button_label]
-Zobrazit tlačítko návratu
+[audio_status_unavailable]
+Nedostupné
+---
+[audio_test_output_button]
+Test výstupu
+---
+[audio_reinitialize_button]
+Znovu inicializovat zvuk
+---
+[audio_output_level_label]
+Úroveň výstupu
+---
+[music_volume_label]
+Hlasitost hudby
+---
+[retention_marker_label]
+Značka retence po 30 s
 ---
 [reset_to_defaults_label]
 Obnovit výchozí
@@ -441,12 +462,6 @@ VYP
 [toggle_on]
 ZAP
 ---
-[theme_light]
-Světlý
----
-[theme_dark]
-Tmavý
----
 [on_screen_keyboard_label]
 Klávesnice na obrazovce
 ---
@@ -496,15 +511,6 @@ Vymazat
 ---
 [meditation_music_attribution]
 Hudba od Elijah_K.
----
-[theme_system]
-Systém
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-Paleta
 ---
 [orientation_label]
 Orientace
@@ -761,13 +767,8 @@ Nejlepší série
 ---
 ---
 
-[transition_label]
-Přechod
----
 [theme_picker_title]
 Vybrat motiv
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -806,11 +807,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-Hudba na pozadí
----
 [practice_music_enabled_label]
 Přehrávat během tohoto cvičení
+---
+[appearance_scale_label]
+Měřítko
+---
+[audio_music_none_option]
+Žádné
+---
+[audio_import_error_invalid_path]
+Neplatná cesta k souboru
+---
+[audio_import_error_invalid_format]
+Nepodporovaný formát zvuku
+---
+[audio_import_error_file_not_found]
+Soubor nenalezen
+---
+[audio_import_error_copy_failed]
+Soubor nelze zkopírovat
 ---
 [practice_start_button]
 Spustit cvičení
@@ -857,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 Jógová cvičení.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 Dnešní počet návyků.
 ---
@@ -899,8 +909,8 @@ Data pocházejí z dokončených cvičení.
 [practice_home_wim_hof_metadata]
 %d kol | %d dechů
 ---
-[sun_salutation_session_step_title]
-Krok %d / %d
+[practice_home_patterns_metadata]
+%s | %d min
 ---
 [meditation_music_downloading_progress]
 Stahování zvuku... %d%%
@@ -1046,6 +1056,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Exportovat do Health Connect
+---
+[health_connect_started]
+Health Connect se otevrelo
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1054,4 +1202,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+Čas na krátkou přestávku
+---
+[break_micro_body]
+Uvolněte ramena, podívejte se pryč od obrazovky a dýchejte pomalu, dokud se pruh nezaplní.
+---
+[break_rest_title]
+Čas na delší přestávku
+---
+[break_rest_body]
+Vstaňte, protáhněte se a nechte oči odpočinout na něčem vzdáleném.
+---
+[break_daily_title]
+Denní limit dosažen
+---
+[break_daily_body]
+Byli jste aktivní celý den. Zvažte, že na dnešek skončíte.
+---
+[break_time_remaining]
+Zbývá %s
+---
+[break_stay_idle_note]
+Nechejte klávesnici v klidu, aby se přestávka počítala
+---
+[break_lock_note]
+Uzamčeno ještě %d sekund
+---
+[break_postpone_button]
+Odložit
+---
+[break_skip_button]
+Přeskočit
+---
+[break_rest_now_button]
+Delší přestávka hned
+---
+[break_prelude_text]
+Přestávka se blíží - na chvíli se uvolněte
+---
+[settings_tab_breaks]
+Přestávky
+---
+[settings_breaks_enabled]
+Připomínky přestávek
+---
+[settings_breaks_status]
+Stav časovačů
+---
+[settings_breaks_due_now]
+nyní
+---
+[settings_breaks_timer_off]
+vypnuto
+---
+[settings_breaks_block_mode]
+Blokování
+---
+[settings_breaks_block_off]
+Vypnuto
+---
+[settings_breaks_block_input]
+Blokovat vstup
+---
+[settings_breaks_block_screen]
+Blokovat vstup a obrazovku
+---
+[settings_breaks_sounds]
+Zvuky přestávek
+---
+[settings_breaks_reading_mode]
+Režim čtení
+---
+[settings_breaks_micro_counts]
+Počítat mikropřestávky jako aktivitu
+---
+[settings_breaks_rest_now]
+Přestávka hned
+---
+[settings_breaks_micro_header]
+Mikropřestávka
+---
+[settings_breaks_rest_header]
+Delší přestávka
+---
+[settings_breaks_daily_header]
+Denní limit
+---
+[settings_breaks_timer_enabled]
+Zapnout časovač
+---
+[settings_breaks_limit]
+Čas mezi přestávkami
+---
+[settings_breaks_duration]
+Délka přestávky
+---
+[settings_breaks_postpone]
+Čas odložení
+---
+[settings_breaks_prompts]
+Max. upozornění
+---
+[settings_breaks_show_skip]
+Zobrazit tlačítko Přeskočit
+---
+[settings_breaks_show_postpone]
+Zobrazit tlačítko Odložit
+---
+[settings_breaks_week_stats]
+Posledních 7 dní (absolvováno / přeskočeno / odloženo)
+---
+[settings_breaks_no_data]
+Zatím žádné statistiky
+---
+[settings_breaks_mode]
+Režim
+---
+[settings_breaks_mode_normal]
+Normální
+---
+[settings_breaks_mode_quiet]
+Tichý
+---
+[settings_breaks_mode_suspended]
+Pozastaveno
+---
+[tray_next_break]
+Další přestávka %s
+---
+[break_exercises_title]
+Cvičení při přestávkách
+---
+[break_exercises_intro]
+Krátká protažení pro přestávky. Přehrávají se automaticky.
+---
+[break_ex_shoulder_rolls]
+Kroužení rameny
+---
+[break_ex_shoulder_rolls_s1]
+Kroužte rameny pomalu dozadu
+---
+[break_ex_shoulder_rolls_s2]
+Pohyb ponechte plynulý a uvolněný
+---
+[break_ex_neck_tilt]
+Naklonění krku
+---
+[break_ex_neck_tilt_s1]
+Nakloňte hlavu k rameni
+---
+[break_ex_neck_tilt_s2]
+Chvíli vydržte a změňte stranu
+---
+[break_ex_wrist_fingers]
+Protažení zápěstí a prstů
+---
+[break_ex_wrist_fingers_s1]
+Natažte paži a zatáhněte prsty dozadu
+---
+[break_ex_wrist_fingers_s2]
+Protahejte zápěstí a změňte ruku
+---
+[break_ex_upper_back]
+Protažení horních zad
+---
+[break_ex_upper_back_s1]
+Propleťte ruce a zakulacte horní část zad
+---
+[break_ex_upper_back_s2]
+Vydechněte a nechte ramena klesnout
+---
+[break_ex_blade_squeeze]
+Stahování lopatek
+---
+[break_ex_blade_squeeze_s1]
+Stáhněte lopatky k sobě
+---
+[break_ex_blade_squeeze_s2]
+Chvíli držte a uvolněte
+---
+[break_ex_seated_twist]
+Sezení s otočením trupu
+---
+[break_ex_seated_twist_s1]
+Sedte si rovně a otočte se na jednu stranu
+---
+[break_ex_seated_twist_s2]
+Boky nechte vpředu a změňte stranu
+---
+[break_ex_eye_horizon]
+Pohled do dálky
+---
+[break_ex_eye_horizon_s1]
+Najděte nejvzdálenější bod v místnosti
+---
+[break_ex_eye_horizon_s2]
+Rozostřete pohled a dýchejte
+---
+[break_ex_eye_near_far]
+Ostření zblízka i z dálky
+---
+[break_ex_eye_near_far_s1]
+Podívejte se zblízka na palec
+---
+[break_ex_eye_near_far_s2]
+Pak zaostřete na vzdálený předmět
+---
+[break_ex_breath_drop]
+Dech a ramena
+---
+[break_ex_breath_drop_s1]
+Vdechněte a zvedněte ramena
+---
+[break_ex_breath_drop_s2]
+Vydechněte a nechte je spadnout
+---
+[break_ex_breath_drop_s3]
+Všimněte si uvolnění napětí
+---
+[break_ex_forearm_desk]
+Protažení předloktí o stůl
+---
+[break_ex_forearm_desk_s1]
+Položte dlaň na stůl, prsty dozadu
+---
+[break_ex_forearm_desk_s2]
+Lehce tlačte, až se předloktí protáhne
+---
+[notifications_test]
+Odeslat testovací notifikaci
+---
+[notification_test_title]
+Testovací notifikace
+---
+[notification_test_body]
+Notifikace z Inner Breeze fungují.
+---
+[notification_session_done_title]
+Relace dokončena
+---
+[notification_session_done_body]
+Vaše cvičení bylo dokončeno.
+---
+[break_hud_micro]
+Mikro
+---
+[break_hud_rest]
+Odpočinek
+---
+[break_hud_daily]
+Den
+---
+[settings_tab_notifications]
+Notifikace
+---
+[notifications_section]
+Oznámení
+---
+[notifications_friend_request_label]
+Upozornit na žádosti o přátelství
+---
+[notifications_friend_request_title]
+Žádost o přátelství
+---
+[notifications_friend_request_body]
+Máš novou žádost o přátelství
+---
+[reminder_add]
+Přidat připomínku
+---
+[notifications_push_picker_title]
+Poskytovatel push
+---
+[notifications_push_section]
+Doručení push
+---
+[notifications_push_status_on]
+Připojeno
+---
+[notifications_push_status_off]
+Nenastaveno
+---
+[notifications_push_setup]
+Nastavit push…
+---
+[notifications_reminders_section]
+Připomínky
+---
+[reminder_title]
+Připomínka
 ---

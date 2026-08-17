@@ -6,7 +6,7 @@ set -e
 # platforms clip icons into a shape and need a full-bleed background.
 
 SKY_BLUE="#87CEEB"
-SOURCE_IMAGE="${1:-vendor/flint/icons/inbe.png}"
+SOURCE_IMAGE="${1:-vendor/kryon/icons/inbe.png}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 

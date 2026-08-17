@@ -10,15 +10,27 @@ import android.content.pm.PackageManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.res.Configuration;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.drawable.Drawable;
 import android.graphics.Insets;
 import android.net.Uri;
+import android.widget.Toast;
+import android.app.AlertDialog;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+import org.unifiedpush.android.connector.UnifiedPush;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+import android.webkit.MimeTypeMap;
 import android.view.DisplayCutout;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.util.DisplayMetrics;
 import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
@@ -33,13 +45,19 @@ import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.UnknownHostException;
 import java.net.URL;
+import java.util.Arrays;
 
 public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
     private static final int REQUEST_IMPORT_ZIP = 1001;
     private static final int REQUEST_POST_NOTIFICATIONS = 1002;
+    private static final int REQUEST_HEALTH_CONNECT = HealthConnectExport.REQUEST_CODE;
     private static final String DOWNLOAD_CHANNEL_ID = "runtime_downloads";
     private static final int DOWNLOAD_NOTIFICATION_ID = 2001;
+
+    /** Fired by the home-screen widget, the quick-settings tile and the launcher shortcuts. */
+    public static final String ACTION_START_PRACTICE = "xyz.waozi.inbe.action.START_PRACTICE";
+    public static final String EXTRA_PRACTICE_ID = "practice_id";
 
     static {
         System.loadLibrary("main");
@@ -53,9 +71,14 @@ public class MainActivity extends NativeActivity {
     private boolean autoPausedForLifecycle = false;
     private boolean notificationPermissionRequestInFlight = false;
     private int lastDeleteRepeatCount = -1;
+    private int pendingImportKind = 0;
+    String lastHealthConnectPath = null;
+    private boolean pendingStartPractice = false;
+    private int pendingStartPracticeId = -1;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
+    private native void nativeSetDeviceDensity(float density);
     private native void nativeSetSystemDark(int dark);
     private native void nativeSetOrientation(int orientation);
     private native void nativeWakeLockReady();
@@ -63,8 +86,8 @@ public class MainActivity extends NativeActivity {
     private native int nativeGetPlayInBackground();
     private native int nativePauseSession();
     private native void nativeResumeSession();
-    private native void nativeImportSelectedFile(String path);
-    private native void nativeImportCancelled();
+    private native void nativeImportSelectedFile(int kind, String path);
+    private native void nativeImportCancelled(int kind);
     private native void nativeRuntimeAssetDownloadSucceeded(long handle, long bytes, int httpStatus);
     private native void nativeRuntimeAssetDownloadProgress(long handle, long bytes, long totalBytes);
     private native void nativeRuntimeAssetDownloadFailed(long handle, int httpStatus, String error);
@@ -72,6 +95,7 @@ public class MainActivity extends NativeActivity {
     private native void nativeTextInputBackspace();
     private native void nativeTextInputEnter();
     private native void nativeInvalidateGraphicsResources();
+    private native boolean nativeStartPractice(int practiceId);
 
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -253,7 +277,7 @@ public class MainActivity extends NativeActivity {
                     connection.setInstanceFollowRedirects(true);
                     connection.setConnectTimeout(15000);
                     connection.setReadTimeout(30000);
-                    connection.setRequestProperty("User-Agent", "flint-runtime-assets/1");
+                    connection.setRequestProperty("User-Agent", "kryon-runtime-assets/1");
                     status = connection.getResponseCode();
 
                     if (status < 200 || status >= 300) {
@@ -307,22 +331,24 @@ public class MainActivity extends NativeActivity {
         return SyncNetwork.webSocketWait(TAG, urlText, headers);
     }
 
-    public void openImportPicker(final String mimeTypesCsv) {
+    public void openImportPicker(final String mimeTypesCsv, final int kind) {
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
                 try {
                     Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
                     intent.addCategory(Intent.CATEGORY_OPENABLE);
-                    intent.setType("*/*");
                     String[] mimeTypes = parseMimeTypes(mimeTypesCsv);
+                    intent.setType(primaryMimeType(mimeTypes));
                     if (mimeTypes.length > 0) {
                         intent.putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes);
                     }
+                    pendingImportKind = kind;
+                    Log.d(TAG, "Opening import picker - kind=" + kind + ", mimeTypes=" + mimeTypesCsv + ", parsed=" + Arrays.toString(mimeTypes));
                     startActivityForResult(intent, REQUEST_IMPORT_ZIP);
                 } catch (Exception e) {
                     Log.e(TAG, "Failed to open import picker", e);
-                    nativeImportCancelled();
+                    nativeImportCancelled(kind);
                 }
             }
         });
@@ -344,46 +370,305 @@ public class MainActivity extends NativeActivity {
         return result.toArray(new String[0]);
     }
 
+    private static String primaryMimeType(String[] mimeTypes) {
+        if (mimeTypes == null || mimeTypes.length == 0) {
+            return "*/*";
+        }
+        for (String mimeType : mimeTypes) {
+            if (mimeType != null && mimeType.endsWith("/*")) {
+                return mimeType;
+            }
+        }
+        return mimeTypes[0] != null && !mimeTypes[0].isEmpty()
+            ? mimeTypes[0]
+            : "*/*";
+    }
+
+    private String extensionForUri(Uri uri) {
+        if (uri == null) return null;
+
+        // Prefer the MIME type reported by the content resolver; it is the most
+        // reliable signal for content:// URIs and maps unambiguously to an ext.
+        String mimeType = null;
+        try {
+            mimeType = getContentResolver().getType(uri);
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to resolve MIME type for uri=" + uri, e);
+        }
+        String ext = mimeType != null ? extensionForMimeType(mimeType) : null;
+        if (ext != null && !ext.isEmpty()) return ext;
+
+        // Fall back to whatever extension the URI itself exposes. For Media Store
+        // documents this is usually absent, but it covers file:// and some providers.
+        String uriExt = MimeTypeMap.getFileExtensionFromUrl(uri.getLastPathSegment());
+        return (uriExt != null && !uriExt.isEmpty()) ? uriExt : null;
+    }
+
+    private static String extensionForMimeType(String mimeType) {
+        if (mimeType == null) return null;
+        String ext = MimeTypeMap.getSingleton().getExtensionFromMimeType(mimeType);
+        if (ext != null && !ext.isEmpty()) return ext;
+
+        // Handle audio types the system map does not always resolve.
+        switch (mimeType) {
+            case "audio/mpeg":
+            case "audio/mp3":
+                return "mp3";
+            case "audio/ogg":
+            case "application/ogg":
+                return "ogg";
+            case "audio/flac":
+                return "flac";
+            case "audio/mp4":
+            case "audio/x-m4a":
+            case "audio/m4a":
+                return "m4a";
+            case "audio/opus":
+            case "audio/x-opus+ogg":
+                return "opus";
+            case "audio/x-wav":
+            case "audio/wav":
+                return "wav";
+            default:
+                return null;
+        }
+    }
+
+    private String displayNameForUri(Uri uri) {
+        if (uri == null) return null;
+
+        // Query the provider's DISPLAY_NAME column; this is the canonical way to
+        // get the original filesystem filename for a content:// URI.
+        try (android.database.Cursor cursor = getContentResolver().query(
+                uri, new String[]{android.provider.OpenableColumns.DISPLAY_NAME},
+                null, null, null)) {
+            if (cursor != null && cursor.moveToFirst()) {
+                int idx = cursor.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME);
+                if (idx >= 0) {
+                    String name = cursor.getString(idx);
+                    if (name != null && !name.isEmpty()) return name;
+                }
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "Failed to query display name for uri=" + uri, e);
+        }
+
+        // Fall back to the URI's last path segment (useful for file:// URIs).
+        String last = uri.getLastPathSegment();
+        return (last != null && !last.isEmpty()) ? last : null;
+    }
+
+    private static String sanitizeFileName(String name) {
+        if (name == null || name.isEmpty()) return null;
+        // Strip path separators / parent refs so a crafted name can't escape the
+        // import directory, and trim surrounding whitespace.
+        String cleaned = name.replaceAll("[\\\\/]", "_").trim();
+        return cleaned.isEmpty() ? null : cleaned;
+    }
+
+    /**
+     * Called from native settings (Data & export): run the Health Connect
+     * permission flow and insert the sessions Java-side.
+     */
+    public void healthConnectExport(final String csvPath) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                HealthConnectExport.start(MainActivity.this, csvPath);
+            }
+        });
+    }
+
+    private void handleStartPracticeIntent(Intent intent) {
+        if (intent == null || !ACTION_START_PRACTICE.equals(intent.getAction())) {
+            return;
+        }
+        int practiceId = intent.getIntExtra(EXTRA_PRACTICE_ID, -1);
+        if (practiceId < 0) {
+            // Static-shortcut extras arrive as strings; widget/tile extras are ints.
+            String raw = intent.getStringExtra(EXTRA_PRACTICE_ID);
+            if (raw != null) {
+                try {
+                    practiceId = Integer.parseInt(raw);
+                } catch (NumberFormatException e) {
+                    practiceId = -1;
+                }
+            }
+        }
+        if (nativeStartPractice(practiceId)) {
+            pendingStartPractice = false;
+        } else {
+            // The native app is not up yet (cold launch from the widget);
+            // retry once the window gains focus after initialization.
+            pendingStartPractice = true;
+            pendingStartPracticeId = practiceId;
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
 
+        if (requestCode == REQUEST_HEALTH_CONNECT) {
+            HealthConnectExport.handleResult(this, resultCode, data, lastHealthConnectPath);
+            return;
+        }
+
         if (requestCode != REQUEST_IMPORT_ZIP) return;
 
         if (resultCode != RESULT_OK || data == null || data.getData() == null) {
-            nativeImportCancelled();
+            Log.d(TAG, "Import cancelled - kind=" + pendingImportKind + ", resultCode=" + resultCode + ", data=" + (data != null));
+            nativeImportCancelled(pendingImportKind);
             return;
         }
 
         Uri uri = data.getData();
+        Log.d(TAG, "File selected for import - kind=" + pendingImportKind + ", uri=" + uri);
+
         File importDir = new File(getCacheDir(), "imports");
-        File importFile = new File(importDir, "inbe-import");
+        String extension = extensionForUri(uri);
+        String displayName = sanitizeFileName(displayNameForUri(uri));
+        String importName;
+        if (displayName != null) {
+            // Use the real filesystem name. If it already carries the right
+            // extension (per MIME type) keep it; otherwise append the MIME-derived
+            // extension so native validation accepts it.
+            boolean hasExt = displayName.lastIndexOf('.') > 0
+                    && extension != null
+                    && !extension.isEmpty()
+                    && displayName.toLowerCase().endsWith("." + extension.toLowerCase());
+            importName = hasExt ? displayName : displayName + "."
+                    + (extension != null && !extension.isEmpty() ? extension : "bin");
+        } else {
+            importName = "inbe-import-" + pendingImportKind
+                    + (extension != null && !extension.isEmpty() ? "." + extension : "");
+        }
+        File importFile = new File(importDir, importName);
 
         try {
             if (!importDir.exists() && !importDir.mkdirs()) {
-                nativeImportSelectedFile("");
+                Log.e(TAG, "Failed to create import directory");
+                nativeImportSelectedFile(pendingImportKind, "");
                 return;
             }
 
             try (InputStream input = getContentResolver().openInputStream(uri);
                  FileOutputStream output = new FileOutputStream(importFile)) {
                 if (input == null) {
-                    nativeImportSelectedFile("");
+                    Log.e(TAG, "Failed to open input stream for uri=" + uri);
+                    nativeImportSelectedFile(pendingImportKind, "");
                     return;
                 }
 
                 byte[] buffer = new byte[8192];
                 int read;
+                long totalBytes = 0;
                 while ((read = input.read(buffer)) != -1) {
                     output.write(buffer, 0, read);
+                    totalBytes += read;
                 }
+                Log.d(TAG, "File copied successfully - kind=" + pendingImportKind + ", path=" + importFile.getAbsolutePath() + ", size=" + totalBytes + " bytes");
             }
 
-            nativeImportSelectedFile(importFile.getAbsolutePath());
+            String mimeType = getContentResolver().getType(uri);
+            Log.d(TAG, "Calling nativeImportSelectedFile - kind=" + pendingImportKind + ", path=" + importFile.getAbsolutePath() + ", mimeType=" + mimeType);
+            nativeImportSelectedFile(pendingImportKind, importFile.getAbsolutePath());
         } catch (Exception e) {
             Log.e(TAG, "Failed to import selected file", e);
-            nativeImportSelectedFile("");
+            nativeImportSelectedFile(pendingImportKind, "");
         }
+    }
+
+    /**
+     * Called from native settings: set up UnifiedPush. With no distributor
+     * installed, offer Sunup on F-Droid; with several, let the user pick.
+     */
+    public boolean isUnifiedPushRegistered() {
+        return PushServiceImpl.getEndpoint(this) != null;
+    }
+
+    public String[] getUnifiedPushDistributors() {
+        final List<String> distributors = UnifiedPush.getDistributors(this);
+        return distributors.toArray(new String[0]);
+    }
+
+    public String[] getUnifiedPushDistributorLabels() {
+        PackageManager pm = getPackageManager();
+        List<String> labels = new ArrayList<>();
+        for (String pkg : UnifiedPush.getDistributors(this)) {
+            try {
+                labels.add(pm.getApplicationLabel(
+                        pm.getApplicationInfo(pkg, 0)).toString());
+            } catch (PackageManager.NameNotFoundException e) {
+                labels.add(pkg);
+            }
+        }
+        return labels.toArray(new String[0]);
+    }
+
+    public String[] getUnifiedPushDistributorIcons() {
+        PackageManager pm = getPackageManager();
+        File dir = new File(getCacheDir(), "push-icons");
+        if (!dir.exists()) {
+            dir.mkdirs();
+        }
+        List<String> paths = new ArrayList<>();
+        List<String> distributors = UnifiedPush.getDistributors(this);
+        for (int i = 0; i < distributors.size(); i++) {
+            File out = new File(dir, "icon_" + i + ".png");
+            try {
+                Drawable drawable = pm.getApplicationIcon(distributors.get(i));
+                Bitmap bmp = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+                Canvas canvas = new Canvas(bmp);
+                drawable.setBounds(0, 0, 96, 96);
+                drawable.draw(canvas);
+                FileOutputStream fos = new FileOutputStream(out);
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+                fos.close();
+                paths.add(out.getAbsolutePath());
+            } catch (Exception e) {
+                Log.w(TAG, "icon export failed for " + distributors.get(i), e);
+                paths.add("");
+            }
+        }
+        return paths.toArray(new String[0]);
+    }
+
+    public void configureUnifiedPushWith(final String pkg) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                requestNotificationPermissionIfNeeded();
+                UnifiedPush.saveDistributor(MainActivity.this, pkg);
+                UnifiedPush.register(MainActivity.this, "inbe", "Inner Breeze", null);
+                Toast.makeText(MainActivity.this,
+                        "Push: registering with " + pkg,
+                        Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    public void configureUnifiedPush() {
+        // Called via JNI from the native render thread; toasts, dialogs and
+        // permission requests need the UI thread's Looper. Only reached when
+        // no distributor is installed at all.
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                if (!UnifiedPush.getDistributors(MainActivity.this).isEmpty()) {
+                    return;
+                }
+                Toast.makeText(MainActivity.this,
+                        "Install a UnifiedPush distributor (e.g. Sunup)",
+                        Toast.LENGTH_LONG).show();
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(
+                            "https://f-droid.org/en/packages/org.unifiedpush.distributor.sunup/")));
+                } catch (Exception e) {
+                    Log.w(TAG, "no activity to open F-Droid");
+                }
+            }
+        });
     }
 
     public void acquireWakeLock() {
@@ -446,6 +731,9 @@ public class MainActivity extends NativeActivity {
 
         // Notify native code that activity is ready for wake lock
         nativeWakeLockReady();
+
+        // Widget/tile/shortcut launch: the intent that started this activity.
+        handleStartPracticeIntent(getIntent());
     }
 
     @Override
@@ -610,6 +898,11 @@ public class MainActivity extends NativeActivity {
 
             nativeSetInsets(statusBar, navBar, cLeft, cTop, cRight, cBottom);
 
+            // Set device density for proper DPI scaling
+            DisplayMetrics metrics = new DisplayMetrics();
+            getWindowManager().getDefaultDisplay().getMetrics(metrics);
+            nativeSetDeviceDensity(metrics.density);
+
         } catch (Exception e) {
             Log.e(TAG, "Error structuralizing window layout properties: " + e.getMessage());
         }
@@ -678,6 +971,7 @@ public class MainActivity extends NativeActivity {
         configureSystemBars();
         requestInsetRefresh();
         syncLifecycleState("onNewIntent");
+        handleStartPracticeIntent(intent);
     }
 
     @Override
@@ -687,6 +981,11 @@ public class MainActivity extends NativeActivity {
         if (hasFocus) {
             configureSystemBars();
             requestInsetRefresh();
+            if (pendingStartPractice) {
+                handleStartPracticeIntent(
+                        new Intent(ACTION_START_PRACTICE)
+                                .putExtra(EXTRA_PRACTICE_ID, pendingStartPracticeId));
+            }
         }
         syncLifecycleState("onWindowFocusChanged");
     }

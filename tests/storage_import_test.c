@@ -1,6 +1,6 @@
-#include "breath_engine.h"
+#include "core/breath_engine.h"
 #include "miniz.h"
-#include "flint.h"
+#include "kryon.h"
 #include "screens/habits_screen.h"
 #include "storage.h"
 #include <sqlite3.h>
@@ -365,8 +365,9 @@ test_sync_backfill_includes_existing_habits(void)
     check_true("reopen backfill sync db", storage_init(root));
     payload = storage_build_sync_payload_json("test-hash", "test-public-key");
     check_true("existing habit included by one-time sync backfill",
-               payload != NULL && strstr(payload, "\"habits\":[{") != NULL &&
-                   strstr(payload, "\"habit_days\"") != NULL);
+               payload != NULL && strstr(payload, "\"ops\":[{") != NULL &&
+                   strstr(payload, "\"entity_type\":\"habit\"") != NULL &&
+                   strstr(payload, "\"payload\":{\"id\"") != NULL);
     storage_free_sync_payload_json(payload);
 
     storage_close();
@@ -418,6 +419,79 @@ test_sync_payload_includes_queued_current_edits(void)
     storage_free_sync_payload_json(payload);
 
     storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_payload_batches_large_outbox(void)
+{
+    char root[512];
+    char db_path[512];
+    sqlite3 *db = NULL;
+    sqlite3_stmt *day_stmt = NULL;
+    sqlite3_stmt *outbox_stmt = NULL;
+    char *payload;
+    const char *response =
+        "{\"server_version\":1,\"server_clock\":1,\"changes\":{\"habits\":[],"
+        "\"habit_days\":[],\"sessions\":[],\"meditation_logs\":[]}}";
+
+    make_clean_root(root, sizeof(root), "sync-large-outbox-batch");
+    check_true("init large outbox db", storage_init(root));
+    storage_close();
+
+    make_path(db_path, sizeof(db_path), root, "inbe.db");
+    check_true("open large outbox raw db", sqlite3_open(db_path, &db) == SQLITE_OK);
+    if(db != NULL) {
+        check_true("insert large outbox habit",
+                   sqlite3_exec(db,
+                                "INSERT INTO "
+                                "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,"
+                                "sync_activity,counter_enabled,sort_order,deleted_at,updated_at) "
+                                "VALUES('batch-habit',(SELECT id FROM users LIMIT 1),'Batch',"
+                                "255,255,255,0,0,1,0,0,1781902800);",
+                                NULL, NULL, NULL) == SQLITE_OK);
+        check_true("prepare large outbox day inserts",
+                   sqlite3_prepare_v2(db,
+                                      "INSERT INTO habit_days(habit_id,local_date,completed,count,"
+                                      "updated_at) "
+                                      "VALUES('batch-habit',?1,1,1,1781902800)",
+                                      -1, &day_stmt, NULL) == SQLITE_OK);
+        check_true("prepare large outbox queue inserts",
+                   sqlite3_prepare_v2(
+                       db,
+                       "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                       "VALUES('habit_day','batch-habit',?1,1781902800)",
+                       -1, &outbox_stmt, NULL) == SQLITE_OK);
+        if(day_stmt != NULL && outbox_stmt != NULL) {
+            for(int i = 0; i < 405; i++) {
+                sqlite3_bind_int(day_stmt, 1, 20260101 + i);
+                check_true("insert large outbox day row", sqlite3_step(day_stmt) == SQLITE_DONE);
+                sqlite3_reset(day_stmt);
+                sqlite3_clear_bindings(day_stmt);
+                sqlite3_bind_int(outbox_stmt, 1, 20260101 + i);
+                check_true("insert large outbox queue row",
+                           sqlite3_step(outbox_stmt) == SQLITE_DONE);
+                sqlite3_reset(outbox_stmt);
+                sqlite3_clear_bindings(outbox_stmt);
+            }
+        }
+        if(day_stmt != NULL)
+            sqlite3_finalize(day_stmt);
+        if(outbox_stmt != NULL)
+            sqlite3_finalize(outbox_stmt);
+        sqlite3_close(db);
+    }
+
+    check_true("reopen large outbox db", storage_init(root));
+    payload = storage_build_sync_payload_json("test-hash", "test-public-key");
+    check_int("large outbox payload is batched",
+              storage_json_array_count_path(payload, "$.ops"), 400);
+    storage_free_sync_payload_json(payload);
+    check_true("apply large outbox batch response", storage_apply_sync_response_json(response));
+    storage_close();
+    check_int("large outbox leaves later rows queued",
+              read_raw_count_query(root, "SELECT COUNT(*) FROM sync_outbox"), 6);
+
     remove_tree(root);
 }
 
@@ -1038,7 +1112,7 @@ test_deleted_linked_session_clears_synced_habit_day(void)
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("initial linked habit day uploaded",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":true") != NULL &&
                    strstr(payload, "\"count\":1") != NULL);
     storage_free_sync_payload_json(payload);
@@ -1056,10 +1130,10 @@ test_deleted_linked_session_clears_synced_habit_day(void)
 
     payload = storage_build_sync_payload_json("test-public-id", "test-public-key");
     check_true("linked session delete uploads session tombstone",
-               payload != NULL && strstr(payload, "\"sessions\":[{\"id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"session\"") != NULL &&
                    strstr(payload, "\"deleted_at\":0") == NULL);
     check_true("linked session delete clears remote habit day",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":false") != NULL &&
                    strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
@@ -1145,6 +1219,43 @@ test_existing_sessions_materialize_after_habit_save(void)
                payload != NULL && strstr(payload, "\"count\":1") != NULL);
     storage_free_sync_payload_json(payload);
 
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_sync_apply_meditation_logs_feed_profile_stats(void)
+{
+    char root[512];
+    int streak = -1;
+    long avg_hold = -1;
+
+    make_clean_root(root, sizeof(root), "meditation-log-profile-stats");
+    check_true("init meditation log profile db", storage_init(root));
+    check_true("apply meditation log profile sync",
+               storage_apply_sync_response_json(
+                   "{\"server_version\":1,\"server_state_hash\":\"h1\","
+                   "\"changes\":{\"habits\":[],\"habit_days\":[],"
+                   "\"sessions\":[{\"id\":\"med-session-1\","
+                   "\"started_at\":\"2026-07-15T00:00:00Z\","
+                   "\"local_date\":20260715,\"topic\":0,\"activity\":1,"
+                   "\"source\":\"sync\",\"rounds_hash\":101,\"deleted_at\":0,"
+                   "\"updated_at\":\"2026-07-15T00:00:00Z\","
+                   "\"rounds\":[{\"round_index\":0,\"hold_seconds\":600}]}],"
+                   "\"meditation_logs\":["
+                   "{\"id\":\"med-log-external\",\"session_id\":\"external-log-session\","
+                   "\"duration_seconds\":1200,"
+                   "\"completed_at\":\"2026-07-14T00:00:00Z\"},"
+                   "{\"id\":\"med-log-duplicate\",\"session_id\":\"med-session-1\","
+                   "\"duration_seconds\":3000,"
+                   "\"completed_at\":\"2026-07-15T00:00:00Z\"}]}}"));
+    check_true("meditation log profile stats call",
+               storage_profile_activity_stats(1, 20260715, &streak, &avg_hold));
+    check_int("meditation log profile streak", streak, 2);
+    check_int("meditation log profile average", (int)avg_hold, 900);
+    check_true("meditation log profile stale day call",
+               storage_profile_activity_stats(1, 20260716, &streak, &avg_hold));
+    check_int("meditation log profile stale day streak", streak, 0);
     storage_close();
     remove_tree(root);
 }
@@ -1500,7 +1611,7 @@ test_deleted_habit_payload_clears_remote_days(void)
                payload != NULL && strstr(payload, deleted_id) != NULL &&
                    strstr(payload, "\"deleted_at\":0") == NULL);
     check_true("deleted habit payload clears habit day",
-               payload != NULL && strstr(payload, "\"habit_days\":[{\"habit_id\"") != NULL &&
+               payload != NULL && strstr(payload, "\"entity_type\":\"habit_day\"") != NULL &&
                    strstr(payload, "\"completed\":false") != NULL &&
                    strstr(payload, "\"count\":0") != NULL);
     storage_free_sync_payload_json(payload);
@@ -1647,6 +1758,10 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
     habit_set_day(&habits, 2, 20260617, 1);
     habits_save(&habits);
     storage_set_setting_int("speed", 7);
+    storage_set_setting_int("sun_salutation_repetitions", 6);
+    storage_set_setting_int("sun_salutation_start_seconds", 9);
+    storage_set_setting_int("sun_salutation_end_seconds", 4);
+    storage_set_setting_int("sun_salutation_figure", 1);
     storage_set_setting_text("language", "en");
     storage_set_setting_text("future_unknown_key", "ignore-me");
     check_true("export multi habit source", storage_export_zip(zip_path));
@@ -1654,7 +1769,7 @@ write_multi_habit_source_database(const char *root, const char *zip_path)
 }
 
 static void
-assert_multi_habits_imported(const char *root, int want_speed)
+assert_multi_habits_imported(const char *root, int want_speed, int expect_settings)
 {
     InbeHabits habits;
     InbeHabit *habit;
@@ -1676,6 +1791,19 @@ assert_multi_habits_imported(const char *root, int want_speed)
     habit = find_habit_ci(&habits, "Cold Shower");
     check_true("multi cold shower day", habit != NULL && habit_completed_day(habit, 20260617));
     check_int("multi import speed setting", storage_get_setting_int("speed", -1), want_speed);
+    if(expect_settings) {
+        check_int("multi import sun reps setting",
+                  storage_get_setting_int("sun_salutation_repetitions", -1), 6);
+        check_int("multi import sun start setting",
+                  storage_get_setting_int("sun_salutation_start_seconds", -1), 9);
+        check_int("multi import sun end setting",
+                  storage_get_setting_int("sun_salutation_end_seconds", -1), 4);
+        check_int("multi import sun figure setting",
+                  storage_get_setting_int("sun_salutation_figure", -1), 1);
+    } else {
+        check_int("multi data-only skips sun figure",
+                  storage_get_setting_int("sun_salutation_figure", -1), -1);
+    }
     check_str("multi import unknown setting", storage_get_setting_text("future_unknown_key"), NULL);
     storage_close();
 }
@@ -1704,14 +1832,14 @@ test_import_modes_preserve_habits_and_settings_choice(void)
     check_true("multi data only import",
                storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_ONLY));
     storage_close();
-    assert_multi_habits_imported(dest_data, 1);
+    assert_multi_habits_imported(dest_data, 1, 0);
 
     check_true("init settings import dest", storage_init(dest_settings));
     storage_set_setting_int("speed", 1);
     check_true("multi data settings import",
                storage_import_zip_ex(zip_path, INBE_STORAGE_IMPORT_DATA_AND_SETTINGS));
     storage_close();
-    assert_multi_habits_imported(dest_settings, 7);
+    assert_multi_habits_imported(dest_settings, 7, 1);
 
     remove_tree(source);
     remove_tree(dest_data);
@@ -1997,6 +2125,7 @@ main(void)
     test_sync_backfill_includes_existing_habits();
     test_sync_payload_excludes_local_settings();
     test_sync_payload_includes_queued_current_edits();
+    test_sync_payload_batches_large_outbox();
     test_sync_outbox_preserves_edits_after_snapshot();
     test_sync_apply_preserves_counter_counts();
     test_sync_apply_clears_acknowledged_outbox_before_equal_timestamp_merge();
@@ -2011,6 +2140,7 @@ main(void)
     test_deleted_linked_session_clears_synced_habit_day();
     test_deleted_linked_session_preserves_manual_habit_count();
     test_existing_sessions_materialize_after_habit_save();
+    test_sync_apply_meditation_logs_feed_profile_stats();
     test_session_metadata();
 
     if(g_failures != 0) {

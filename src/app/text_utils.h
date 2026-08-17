@@ -1,7 +1,7 @@
 #ifndef INBE_TEXT_UTILS_H
 #define INBE_TEXT_UTILS_H
 
-#include "ui_text.h"
+#include "kryon.h"
 
 #include <stddef.h>
 #include <stdio.h>

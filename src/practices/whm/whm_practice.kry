@@ -1,0 +1,39 @@
+#import "app.h"
+#import "practices/whm/whm_practice.h"
+#import "practices/whm/whm_session.h"
+
+whm_practice_init :: (app: InbeApp*) {
+    if app == NULL {
+        return
+    }
+    if app->whm.image_1.id == 0 {
+        app->whm.image_1 = app_load_asset_texture("practices/whm/1.png")
+    }
+    if app->whm.image_2.id == 0 {
+        app->whm.image_2 = app_load_asset_texture("practices/whm/2.png")
+    }
+    if app->whm.banner.id == 0 {
+        app->whm.banner = app_load_asset_texture("practices/whm/banner.png")
+    }
+}
+
+whm_practice_destroy :: (app: InbeApp*) {
+    if app == NULL {
+        return
+    }
+    app_unload_texture(app->whm.image_1)
+    app_unload_texture(app->whm.image_2)
+    app_unload_texture(app->whm.banner)
+}
+
+whm_practice_start :: (app: InbeApp*) {
+    if app == NULL {
+        return
+    }
+    mark_exercise_manual_seen(app, EXERCISE_WIM_HOF)
+    session_start(app)
+}
+
+whm_practice_leave_config :: (app: InbeApp*) {
+    unused app
+}

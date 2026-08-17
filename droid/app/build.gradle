@@ -1,15 +1,19 @@
 plugins {
     id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
 }
 
 android {
     namespace 'xyz.waozi.inbe'
-    compileSdk 35
+    compileSdk 36
     ndkVersion "28.2.13676358"
 
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
+    }
+    kotlinOptions {
+        jvmTarget = '1.8'
     }
 
     def keystorePropsFile = rootProject.file("local.properties")
@@ -18,7 +22,7 @@ android {
         keystoreProps.load(new FileInputStream(keystorePropsFile))
     }
 
-    def getKeystorePath = { -> project.findProperty('keystore.path') ?: keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/flint-release.keystore" }
+    def getKeystorePath = { -> project.findProperty('keystore.path') ?: keystoreProps['keystore.path'] ?: System.getenv("HOME") + "/.android/kryon-release.keystore" }
     def getKeystoreAlias = { -> project.findProperty('keystore.alias') ?: keystoreProps['keystore.alias'] ?: "inbe-key" }
 
     def releasePassword = project.findProperty('keystore.password') ?: ""
@@ -34,9 +38,17 @@ android {
 
     defaultConfig {
         minSdk 21
-        targetSdk 35
-        versionCode 79
-        versionName "1.8.4"
+        targetSdk 36
+        versionCode 100
+        versionName "1.9.1"
+        externalNativeBuild {
+            cmake {
+                if (System.getProperty('os.name').toLowerCase().contains('freebsd')) {
+                    arguments '-DANDROID_HOST_TAG=linux-x86_64',
+                              '-DANDROID_USE_LEGACY_TOOLCHAIN_FILE=ON'
+                }
+            }
+        }
     }
     
 
@@ -53,7 +65,6 @@ android {
     externalNativeBuild {
         cmake {
             path 'src/main/cpp/CMakeLists.txt'
-            version '3.22.1'
         }
     }
 
@@ -72,7 +83,7 @@ android {
 
     packaging {
         jniLibs {
-            useLegacyPackaging = false
+            useLegacyPackaging = true
         }
     }
 }
@@ -87,4 +98,6 @@ gradle.taskGraph.whenReady { taskGraph ->
 
 dependencies {
     implementation 'androidx.core:core:1.12.0'
+    implementation 'org.unifiedpush.android:connector:3.3.3-rc1'
+    implementation 'androidx.health.connect:connect-client:1.1.0'
 }

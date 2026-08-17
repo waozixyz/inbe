@@ -1,15 +1,15 @@
 #ifndef INBE_APP_H
 #define INBE_APP_H
 
-#include "flint.h"
+#include "kryon.h"
 #include "platform.h"
-#include "breath_engine.h"
+#include "core/breath_engine.h"
+#include "breaks/break_engine.h"
+#include "breaks/break_exercises.h"
 #include "app_fwd.h"
 #include "runtime_assets.h"
-#include "ui_transition.h"
-#include "ui_icon_types.h"
 #include "screens/habits_screen.h"
-#include "screens/settings/settings_theme.h"
+#include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
 enum {
@@ -42,11 +42,45 @@ enum {
 };
 
 enum {
-    SETTINGS_TAB_SESSION = 0,
-    SETTINGS_TAB_DEVICE,
+    SETTINGS_TAB_DEVICE = 0,
+    SETTINGS_TAB_AUDIO,
+    SETTINGS_TAB_BREAKS,
+    SETTINGS_TAB_NOTIFICATIONS,
     SETTINGS_TAB_THEME,
     SETTINGS_TAB_ABOUT,
     SETTINGS_TAB_COUNT
+};
+
+enum {
+    INBE_AUDIO_CUE_BREATH_IN = 0,
+    INBE_AUDIO_CUE_BREATH_OUT,
+    INBE_AUDIO_CUE_BELL,
+    INBE_AUDIO_CUE_COUNT
+};
+
+enum {
+    INBE_STARTUP_SHOW = 0,
+    INBE_STARTUP_HIDDEN,
+    INBE_STARTUP_COUNT
+};
+
+enum {
+    INBE_CLOSE_ASK = 0,
+    INBE_CLOSE_KEEP_RUNNING,
+    INBE_CLOSE_QUIT,
+    INBE_CLOSE_COUNT
+};
+
+enum {
+    INBE_AUDIO_BUILTIN_MUSIC_COUNT = 3,
+    INBE_AUDIO_CUSTOM_SOUND_MAX = 8,
+    INBE_AUDIO_CUSTOM_MUSIC_MAX = 16,
+    INBE_AUDIO_LABEL_SIZE = 64,
+    INBE_AUDIO_MUSIC_COUNT_MAX =
+        INBE_AUDIO_BUILTIN_MUSIC_COUNT + INBE_AUDIO_CUSTOM_MUSIC_MAX,
+    /* Sentinel for "no music selected" on a per-practice track slot. A value
+     * of -1 means the practice plays no background music. */
+    INBE_AUDIO_MUSIC_NONE = -1
 };
 
 enum {
@@ -127,7 +161,7 @@ typedef enum AppClosePromptResult {
 typedef struct {
     int active;
     UIModalType type;
-} UIModal;
+} InbeModal;
 
 typedef struct InbeConfig {
 	char title[64];
@@ -137,18 +171,19 @@ typedef struct InbeConfig {
     int title_custom;
 } InbeConfig;
 
-extern InbeConfig config;
+typedef struct InbeAudioLibraryItem {
+    char title[INBE_AUDIO_LABEL_SIZE];
+    char path[FS_PATH_MAX];
+} InbeAudioLibraryItem;
 
-typedef enum HoldDisplayMode {
-    HOLD_DISPLAY_CIRCLE = 0,
-    HOLD_DISPLAY_STOPWATCH = 1,
-} HoldDisplayMode;
+extern InbeConfig config;
 
 typedef enum ExerciseType {
     EXERCISE_WIM_HOF = 0,
     EXERCISE_MEDITATION = 1,
     EXERCISE_SUN_SALUTATION = 2,
-    EXERCISE_COUNT = 3
+    EXERCISE_PATTERNS = 3,
+    EXERCISE_COUNT = 4
 } ExerciseType;
 
 typedef enum AppThemeMode {
@@ -169,15 +204,16 @@ typedef enum AppOrientationMode {
     APP_ORIENTATION_SENSOR = 3,
 } AppOrientationMode;
 
+typedef struct InbeHostApi {
+    void *userdata;
+    void (*request_size)(void *userdata, int width, int height);
+    void (*close)(void *userdata);
+} InbeHostApi;
+
 typedef enum NavigationMode {
     NAV_MODE_TABBAR = 0,
     NAV_MODE_DROPDOWN = 1,
 } NavigationMode;
-
-typedef enum AppTransitionMode {
-    APP_TRANSITION_NONE = 0,
-    APP_TRANSITION_FADE = 1,
-} AppTransitionMode;
 
 typedef enum AppDeviceOrientation {
     APP_DEVICE_ORIENTATION_UNKNOWN = 0,
@@ -196,7 +232,6 @@ typedef enum AppNavRoute {
     APP_NAV_ROUTE_PROFILE = 0,
     APP_NAV_ROUTE_HABITS = 1,
     APP_NAV_ROUTE_PRACTICE = 2,
-    APP_NAV_ROUTE_PET = 3,
     APP_NAV_ROUTE_SETTINGS = 4,
     APP_NAV_ROUTE_STACK = 5,
     APP_NAV_ROUTE_ACCOUNT = 6,
@@ -223,12 +258,18 @@ typedef struct AppRoute {
     int habits_tab;
 } AppRoute;
 
-typedef struct AppContentTransition {
-    int active;
-    int direction;
-    float elapsed_seconds;
-    float duration_seconds;
-} AppContentTransition;
+enum {
+    APP_REMINDER_MAX = 16,
+    APP_REMINDER_PRACTICE_COUNT = 4,
+    APP_PUSH_DISTRIBUTOR_MAX = 4
+};
+
+typedef struct AppReminder {
+    int practice;
+    int hour;
+    int enabled;
+    int last_day;
+} AppReminder;
 
 int app_draw_close_title_bar(InbeApp *app, const char *title, int height);
 int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
@@ -250,6 +291,7 @@ typedef struct MeditationPracticeState {
     int duration_mode;
     int custom_minutes;
     int show_extend_controls;
+    int interval_bell_minutes;  /* 0 = off; bell every N minutes */
     int music_track;
     int music_practice_mask;
     int music_practice_tracks[EXERCISE_COUNT];
@@ -268,13 +310,14 @@ typedef struct MeditationPracticeState {
 
 typedef struct SunSalutationPracticeState {
     Texture2D banner;
-    Texture2D poses[8];
+    Texture2D pose_sheets[2];
     int step;
     int repetition;
     int repetitions;
     int start_seconds;
     int end_seconds;
     int step_ticks;
+    int figure;
 } SunSalutationPracticeState;
 
 typedef struct PetPreviewState {
@@ -291,12 +334,26 @@ typedef struct HabitSessionEditState {
     char text[16];
 } HabitSessionEditState;
 
+typedef struct InbePatterns {
+    int preset;
+    int custom[4];         /* inhale, hold-in, exhale, hold-out seconds */
+    int duration_minutes;  /* 0 = open-ended */
+    int active;
+    int paused;
+    int phase;
+    int phase_second;
+    int frame_ticks;
+    int cycle;
+    int elapsed_seconds;
+} InbePatterns;
+
 typedef struct HabitEditState {
     int active;
     int is_new;
     int index;
     int cursor;
     int description_cursor;
+    int description_scroll_y;
     int focused;
     int description_focused;
     char text[INBE_HABIT_NAME_SIZE];
@@ -305,6 +362,8 @@ typedef struct HabitEditState {
     int sync_mode;
     int sync_activity;
     int counter_enabled;
+    int weekdays;
+    int reminder_hour;
 } HabitEditState;
 
 struct InbeApp {
@@ -313,23 +372,32 @@ struct InbeApp {
     Inbe start_speed_preview;
     int start_speed_preview_speed;
     Camera2D camera;
-    int cursor_clickable;
-    int cursor_disabled;
     Texture2D icons[UI_ICON_TYPE_COUNT];
     int graphics_reload_requested;
+    InbeHostApi host;
 
     WhmPracticeState whm;
     MeditationPracticeState meditation;
     SunSalutationPracticeState sun_salutation;
     PetPreviewState pet;
+    Texture2D easteregg_art;
+    Texture2D easteregg_waozi;
     Texture2D font_shapes_texture;
-    Font locale_font;
-    Font locale_font_8;
     Sound breath_in_sound;
     Sound breath_out_sound;
     Sound bell_sound;
     int audio_ready;
+    int audio_meter_attached;
+    float audio_meter_level;
     int sound_volume;
+    int music_volume;
+    int audio_cue_selected[INBE_AUDIO_CUE_COUNT];
+    int audio_custom_sound_count;
+    int audio_custom_music_count;
+    InbeAudioLibraryItem audio_custom_sounds[INBE_AUDIO_CUSTOM_SOUND_MAX];
+    InbeAudioLibraryItem audio_custom_music[INBE_AUDIO_CUSTOM_MUSIC_MAX];
+    int retention_marker_enabled;
+    int retention_marker_last_bucket;
     int sound_last_screen;
     int sound_last_phase;
     int sound_last_dir;
@@ -342,7 +410,6 @@ struct InbeApp {
     int settings_dirty;
     int settings_save_delay_ticks;
     int settings_tab;
-    int show_session_return_button;
     int profile_view;
     int profile_tab;
     int profile_tab_scroll;
@@ -366,12 +433,22 @@ struct InbeApp {
     int sync_alias_focused;
     int sync_alias_then_backup;
     char sync_alias_input[40];
-    InbeSyncAccount pending_sync_account;
+    KsyncAccount pending_sync_account;
     int pending_sync_account_action;
-    int device_picker_open;
     int device_picker_scroll;
     int fullscreen_enabled;
     int on_screen_keyboard_enabled;
+    int notification_friend_request;
+    int friend_request_last_count;
+    AppReminder reminders[APP_REMINDER_MAX];
+    int reminder_count;
+    int push_picker_open;
+    int push_distributor_count;
+    char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];
+    char push_distributor_labels[APP_PUSH_DISTRIBUTOR_MAX][64];
+    char push_distributor_icons[APP_PUSH_DISTRIBUTOR_MAX][256];
+    Texture2D push_distributor_textures[APP_PUSH_DISTRIBUTOR_MAX];
+    int push_distributor_textures_loaded;
     char language[16];
     int language_selected;
     int language_index;
@@ -387,12 +464,19 @@ struct InbeApp {
     int exercise_manual_seen_mask;
     int practice_visible_mask;
     int practice_home_scroll;
+    Rectangle practice_home_bounds_card;
+    Rectangle practice_home_bounds_start;
+    Rectangle practice_home_bounds_manual;
+    Rectangle practice_home_bounds_config;
+    int practice_home_bounds_valid;
 
     int theme_id;
     int theme_source;
     int dark_mode;
     int theme_mode;
+    int theme_style;
     int orientation_mode;
+    int ui_scale_tenths;
     int navigation_mode;
     int bottom_nav_routes[APP_BOTTOM_NAV_CONTENT_MAX];
     int bottom_nav_route_count;
@@ -402,9 +486,9 @@ struct InbeApp {
     int nav_sidebar_open_frame;
     int nav_sidebar_scroll;
     int nav_sidebar_return_on_back;
+    int nav_sidebar_prior_screen;
     UIIconType profile_picture_icon;
     int profile_picture_picker_scroll;
-    int transition_mode;
     int android_orientation;
     int main_tab;
     InbeHabits habits;
@@ -413,6 +497,9 @@ struct InbeApp {
     char habit_detail_session_path[FS_PATH_MAX];
     HabitSessionEditState habit_session_edit;
     HabitEditState habit_edit;
+    InbePatterns patterns;
+    int habit_reminder_day;      /* yday+year key for once-per-day firing */
+    unsigned int habit_reminded_mask;
     int habit_counter_press_day;
     int habit_counter_press_index;
     int habit_counter_press_frames;
@@ -422,37 +509,64 @@ struct InbeApp {
     int advanced_session_controls;
     int double_tap_to_breathe;
     double breath_tap_last_time;
-    int hold_display_mode;
     int exercise_type;
     int practice_tab;
     int practice_config_tab;
     int practice_category_tab;
     int practice_coming_soon_ticks;
     int previous_screen;
-    UITransition screen_transition;
-    AppContentTransition content_transition;
-    AppRoute route_transition_target;
     int file_dialog_active;
     int session_paused;
     int backgrounded;
     double desktop_background_last_time;
     int results_saved;
-    int modal_input_block_frame;
+    int input_block_frame;
     int close_prompt_open;
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
+    int request_quit;   /* desktop no-tray build: app layer requests exit */
+    int desktop_startup_mode;   /* INBE_STARTUP_* (desktop only) */
+    int desktop_close_action;   /* INBE_CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];
-    int saved_pause_seconds;
     int volume_popup_active;
-    UIModal modal;
+    InbeModal modal;
     int play_circle_hover;
     float play_circle_scale;
     SettingsThemeState theme_state;
+    BreakEngine breaks;
+    int breaks_enabled;
+    int break_prev_screen;
+    int break_block_mode;
+    int break_input_active;
+    int break_sounds_enabled;
+    int break_exercise_count;
+    int break_ex_picked[4];
+    int break_ex_pick_count;
+    int break_ex_offset_s;
+    int break_ex_paused;
+    int break_ex_hidden;
+    int break_fallback_last_input;
+    int break_stats_flush_s;
+    int break_hud_x;             /* persisted HUD position; -1 = default */
+    int break_hud_y;
+    struct UIWindow *break_window; /* centered always-on-top break overlay */
+    int break_window_w;
+    int break_window_h;
+    int break_exercises_scroll;
+    double break_last_update_time;
+    float break_tick_pending;
+    int break_window_taken;
+    UIWindow *break_hud;
+    int break_hud_w;
+    int break_hud_h;
 };
 
+void app_set_host_api(InbeApp *app, InbeHostApi host);
 void app_init(void *app);
 void app_update_draw(void *app, Rectangle viewport);
 void app_destroy(void *app);
+InbeApp *get_global_inbe_app(void);
+void set_global_inbe_app(InbeApp *app);
 void app_switch_screen(InbeApp *app, int screen);
 AppRoute app_current_route(const InbeApp *app);
 void app_switch_route(InbeApp *app, AppRoute route);
@@ -469,12 +583,44 @@ int app_should_use_tab_bar(const InbeApp *app);
 void app_play_breath_cue(InbeApp *app, int dir);
 void app_play_bell_cue(InbeApp *app, float scale);
 void app_play_sound(InbeApp *app, Sound sound, float scale);
+void app_audio_ensure_ready(InbeApp *app);
+int app_audio_reinitialize(InbeApp *app);
+float app_audio_output_level(InbeApp *app);
+int app_bell_cue_playing(InbeApp *app);
+void app_audio_library_load(InbeApp *app);
+void app_audio_library_save(const InbeApp *app);
+void app_audio_reload_cue_sounds(InbeApp *app);
+
+/* Audio import error codes */
+#define AUDIO_IMPORT_SUCCESS 1
+#define AUDIO_IMPORT_ERROR_INVALID_PATH -1
+#define AUDIO_IMPORT_ERROR_INVALID_FORMAT -2
+#define AUDIO_IMPORT_ERROR_FILE_NOT_FOUND -3
+#define AUDIO_IMPORT_ERROR_COPY_FAILED -4
+#define AUDIO_IMPORT_ERROR_UNKNOWN -5
+
+int app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *error_code);
+int app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code);
+int app_audio_import_custom_sound(InbeApp *app, int cue, const char *path);
+int app_audio_import_custom_music(InbeApp *app, const char *path);
+int app_audio_remove_custom_sound(InbeApp *app, int index);
+int app_audio_remove_custom_music(InbeApp *app, int index);
+int app_audio_music_count(const InbeApp *app);
+const char *app_audio_music_label(const InbeApp *app, int index);
+int app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size);
+int app_audio_sound_file_valid(const char *path);
+int app_audio_music_file_valid(const char *path);
+const char *app_audio_cue_default_asset(int cue);
+int app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size);
+void app_audio_music_sanitize_selection(InbeApp *app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);
+void app_block_pointer_frame(InbeApp *app);
 void app_request_desktop_close(InbeApp *app);
+void app_request_desktop_quit(InbeApp *app);
 AppClosePromptResult app_consume_close_prompt_result(InbeApp *app);
 SessionExitModalResult app_draw_session_exit_modal(int can_save,
                                                    const char *save_message,
@@ -494,6 +640,6 @@ void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
 
 #include "app_nav.h"
-#include "app_settings.h"
+#include "app/app_settings.h"
 
 #endif

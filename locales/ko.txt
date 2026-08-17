@@ -70,6 +70,9 @@ Sync
 [profile_add_friend_button]
 친구 추가
 ---
+[profile_friend_invalid]
+Enter @alias or a public ID
+---
 [profile_incoming_title]
 받은 요청
 ---
@@ -108,6 +111,9 @@ Add item
 [play_button]
 시작
 ---
+[pause_button]
+Pause
+---
 [exercise_wim_hof]
 윔 호프 호흡법
 ---
@@ -115,10 +121,7 @@ Add item
 명상
 ---
 [exercise_sun_salutation]
-Sun Salutation
----
-[sun_salutation_work_in_progress]
-작업 중
+태양 경배
 ---
 [sun_salutation_repetitions_label]
 반복 횟수
@@ -128,6 +131,15 @@ Sun Salutation
 ---
 [sun_salutation_end_speed_label]
 종료 템포
+---
+[sun_salutation_figure_label]
+인물
+---
+[sun_salutation_figure_man]
+남성
+---
+[sun_salutation_figure_woman]
+여성
 ---
 [sun_salutation_tempo_preview_label]
 템포 미리보기
@@ -243,6 +255,9 @@ Finish
 [cancel_button]
 취소
 ---
+[skip_button]
+건너뛰기
+---
 [ok_button]
 확인
 ---
@@ -293,24 +308,6 @@ Finish
 ---
 [about_text]
 호흡, 습관, 동기화를 위한 조용한 동반자입니다.
----
-[theme_label]
-테마
----
-[theme_mode_label]
-Theme mode
----
-[theme_follow_device]
-System
----
-[theme_system]
-시스템
----
-[theme_inner_breeze]
-Inner Breeze
----
-[theme_palette_label]
-팔레트
 ---
 [orientation_label]
 화면 방향
@@ -375,20 +372,35 @@ Inner Breeze
 [no_sessions]
 세션 없음
 ---
-[hold_display_label]
-홀드 표시
+[cue_volume_label]
+안내음 음량
 ---
-[hold_display_stopwatch]
-스톱워치
+[audio_output_label]
+오디오 출력
 ---
-[hold_display_circle]
-원형
+[audio_system_default_label]
+시스템 기본 출력
 ---
-[volume_label]
-음량
+[audio_status_ready]
+준비됨
 ---
-[show_session_return_button_label]
-돌아가기 버튼 표시
+[audio_status_unavailable]
+사용 불가
+---
+[audio_test_output_button]
+출력 테스트
+---
+[audio_reinitialize_button]
+오디오 다시 초기화
+---
+[audio_output_level_label]
+출력 레벨
+---
+[music_volume_label]
+음악 음량
+---
+[retention_marker_label]
+보유 30초 표시음
 ---
 [reset_to_defaults_label]
 기본값으로 재설정
@@ -464,12 +476,6 @@ Inner Breeze
 ---
 [toggle_on]
 켜짐
----
-[theme_light]
-라이트
----
-[theme_dark]
-다크
 ---
 [on_screen_keyboard_label]
 화면 키보드
@@ -760,13 +766,8 @@ Description
 ---
 ---
 
-[transition_label]
-전환
----
 [theme_picker_title]
 테마 선택
-[skip_button]
-Skip
 ---
 [sync_public_id_full_title]
 Full Public ID
@@ -805,11 +806,26 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_title]
-배경 음악
----
 [practice_music_enabled_label]
 이 연습 중 재생
+---
+[appearance_scale_label]
+배율
+---
+[audio_music_none_option]
+없음
+---
+[audio_import_error_invalid_path]
+잘못된 파일 경로
+---
+[audio_import_error_invalid_format]
+지원되지 않는 오디오 형식
+---
+[audio_import_error_file_not_found]
+파일을 찾을 수 없음
+---
+[audio_import_error_copy_failed]
+파일을 복사할 수 없음
 ---
 [practice_start_button]
 연습 시작
@@ -856,12 +872,6 @@ Yoga
 [habit_default_yoga_description]
 요가 연습 세션.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 오늘의 습관 합계입니다.
 ---
@@ -898,8 +908,8 @@ Preview only. This tab is not implemented yet.
 [practice_home_wim_hof_metadata]
 %d 라운드 | %d 호흡
 ---
-[sun_salutation_session_step_title]
-단계 %d / %d
+[practice_home_patterns_metadata]
+%s | %d분
 ---
 [meditation_music_downloading_progress]
 오디오 다운로드 중... %d%%
@@ -1045,6 +1055,144 @@ Show Inner Breeze
 [tray_hide_inner_breeze]
 Hide Inner Breeze
 ---
+[desktop_startup_mode_label]
+Startup
+---
+[desktop_startup_mode_normal]
+Show window
+---
+[desktop_startup_mode_minimized]
+Start minimized to tray
+---
+[desktop_close_action_label]
+On window close
+---
+[desktop_close_action_ask]
+Ask
+---
+[desktop_close_action_keep_running]
+Keep running
+---
+[desktop_close_action_quit]
+Quit
+---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
+[practice_show_label]
+Show
+---
+[export_csv_button]
+Export CSV
+---
+[export_health_connect_button]
+Health Connect로 내보내기
+---
+[health_connect_started]
+Health Connect를 열었습니다
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
+[habit_schedule_title]
+Schedule
+---
+[habit_day_mon]
+Mon
+---
+[habit_day_tue]
+Tue
+---
+[habit_day_wed]
+Wed
+---
+[habit_day_thu]
+Thu
+---
+[habit_day_fri]
+Fri
+---
+[habit_day_sat]
+Sat
+---
+[habit_day_sun]
+Sun
+---
+[habit_reminder_label]
+Remind me at
+---
+[habit_reminder_off]
+Off
+---
+[habit_reminder_title]
+Time for a habit
+---
+[exercise_patterns]
+Breathing Patterns
+---
+[patterns_title]
+Breathing Patterns
+---
+[patterns_preset_label]
+Pattern
+---
+[patterns_preset_box]
+Box
+---
+[patterns_preset_478]
+4-7-8
+---
+[patterns_preset_coherent]
+Coherent
+---
+[patterns_preset_extended_exhale]
+Extended exhale
+---
+[patterns_preset_custom]
+Custom
+---
+[patterns_custom_label]
+Custom pattern (seconds)
+---
+[patterns_duration_label]
+Duration (minutes)
+---
+[patterns_duration_open]
+Open
+---
+[patterns_phase_inhale]
+Inhale
+---
+[patterns_phase_hold_in]
+Hold
+---
+[patterns_phase_exhale]
+Exhale
+---
+[patterns_phase_hold_out]
+Hold
+---
+[patterns_cycle_label]
+Cycle
+---
+[patterns_pause_button]
+Pause
+---
+[patterns_resume_button]
+Resume
+---
+[patterns_save_elapsed_message]
+Save the elapsed time before exiting?
+---
+[patterns_under_minute_exit_message]
+Session under one minute.
+---
+[tray_break_settings]
+Break Settings...
+---
 [tray_start_practice]
 Start Practice
 ---
@@ -1053,4 +1201,343 @@ Quit Inner Breeze
 ---
 [tray_mark_complete]
 Mark Complete
+---
+[settings_tab_audio]
+Audio
+---
+[audio_breath_in_label]
+Breath in sound
+---
+[audio_breath_out_label]
+Breath out sound
+---
+[audio_bell_label]
+Bell sound
+---
+[audio_builtin_label]
+Built-in
+---
+[audio_import_title]
+Import audio
+---
+[audio_import_sound_button]
+Import sound
+---
+[audio_import_music_button]
+Import music
+---
+[audio_imported]
+Audio imported
+---
+[audio_import_failed]
+Could not import audio
+---
+[audio_preview_failed]
+Could not preview audio
+---
+[audio_import_cancelled]
+Audio import cancelled
+---
+[audio_custom_sounds_title]
+Custom sounds
+---
+[audio_music_title]
+Music
+---
+[audio_custom_music_title]
+Custom music
+---
+[remove_button]
+Remove
+---
+[break_micro_title]
+짧은 휴식 시간입니다
+---
+[break_micro_body]
+어깨를 풀고 화면에서 눈을 떼고, 바가 채워질 때까지 천천히 호흡하세요.
+---
+[break_rest_title]
+긴 휴식 시간입니다
+---
+[break_rest_body]
+일어나서 스트레칭을 하고 먼 곳을 바라보며 눈을 쉬게 하세요.
+---
+[break_daily_title]
+일일 한도에 도달했습니다
+---
+[break_daily_body]
+하루 종일 활동했습니다. 오늘은 여기서 마무리하는 것을 고려하세요.
+---
+[break_time_remaining]
+%s 남음
+---
+[break_stay_idle_note]
+휴식으로 계산되려면 키보드에서 손을 떼세요
+---
+[break_lock_note]
+%d초 더 잠김
+---
+[break_postpone_button]
+나중에
+---
+[break_skip_button]
+건너뛰기
+---
+[break_rest_now_button]
+지금 긴 휴식
+---
+[break_prelude_text]
+곧 휴식이 시작됩니다 - 잠시 몸을 푸세요
+---
+[settings_tab_breaks]
+휴식
+---
+[settings_breaks_enabled]
+휴식 알림
+---
+[settings_breaks_status]
+타이머 상태
+---
+[settings_breaks_due_now]
+곧
+---
+[settings_breaks_timer_off]
+꺼짐
+---
+[settings_breaks_block_mode]
+차단
+---
+[settings_breaks_block_off]
+끄기
+---
+[settings_breaks_block_input]
+입력 차단
+---
+[settings_breaks_block_screen]
+입력 및 화면 차단
+---
+[settings_breaks_sounds]
+휴식 소리
+---
+[settings_breaks_reading_mode]
+읽기 모드
+---
+[settings_breaks_micro_counts]
+짧은 휴식을 활동으로 계산
+---
+[settings_breaks_rest_now]
+지금 휴식
+---
+[settings_breaks_micro_header]
+짧은 휴식
+---
+[settings_breaks_rest_header]
+긴 휴식
+---
+[settings_breaks_daily_header]
+일일 한도
+---
+[settings_breaks_timer_enabled]
+타이머 켜기
+---
+[settings_breaks_limit]
+휴식 간격
+---
+[settings_breaks_duration]
+휴식 시간
+---
+[settings_breaks_postpone]
+미루기 시간
+---
+[settings_breaks_prompts]
+최대 알림 수
+---
+[settings_breaks_show_skip]
+건너뛰기 버튼 표시
+---
+[settings_breaks_show_postpone]
+나중에 버튼 표시
+---
+[settings_breaks_week_stats]
+최근 7일 (완료 / 건너뜀 / 미룸)
+---
+[settings_breaks_no_data]
+아직 통계가 없습니다
+---
+[settings_breaks_mode]
+모드
+---
+[settings_breaks_mode_normal]
+보통
+---
+[settings_breaks_mode_quiet]
+조용히
+---
+[settings_breaks_mode_suspended]
+일시 중지
+---
+[tray_next_break]
+다음 휴식 %s
+---
+[break_exercises_title]
+휴식 운동
+---
+[break_exercises_intro]
+휴식용 짧은 스트레치. 자동으로 재생됩니다.
+---
+[break_ex_shoulder_rolls]
+어깨 돌리기
+---
+[break_ex_shoulder_rolls_s1]
+어깨를 천천히 뒤로 돌리세요
+---
+[break_ex_shoulder_rolls_s2]
+부드럽고 편안하게 유지하세요
+---
+[break_ex_neck_tilt]
+목 옆으로 기울이기
+---
+[break_ex_neck_tilt_s1]
+머리를 한쪽 어깨로 기울이세요
+---
+[break_ex_neck_tilt_s2]
+부드럽게 유지한 뒤 반대쪽
+---
+[break_ex_wrist_fingers]
+손목·손가락 스트레치
+---
+[break_ex_wrist_fingers_s1]
+한 팔을 뻗고 손가락을 뒤로 당기세요
+---
+[break_ex_wrist_fingers_s2]
+손목을 스트레치하고 손을 바꾸세요
+---
+[break_ex_upper_back]
+등 상부 스트레치
+---
+[break_ex_upper_back_s1]
+손을 모으고 등을 둥글게 하세요
+---
+[break_ex_upper_back_s2]
+내쉬며 어깨를 내리세요
+---
+[break_ex_blade_squeeze]
+견갑골 모으기
+---
+[break_ex_blade_squeeze_s1]
+견갑골을 서로 모으세요
+---
+[break_ex_blade_squeeze_s2]
+잠시 유지한 뒤 푸세요
+---
+[break_ex_seated_twist]
+앉아서 몸 비틀기
+---
+[break_ex_seated_twist_s1]
+바르게 앉아 한쪽으로 돌리세요
+---
+[break_ex_seated_twist_s2]
+골반은 고정하고 쪽을 바꾸세요
+---
+[break_ex_eye_horizon]
+멀리 보기
+---
+[break_ex_eye_horizon_s1]
+방에서 가장 먼 지점을 찾으세요
+---
+[break_ex_eye_horizon_s2]
+시선을 부드럽게 하고 호흡하세요
+---
+[break_ex_eye_near_far]
+가까이·멀리 초점
+---
+[break_ex_eye_near_far_s1]
+엄지를 가까이에서 보세요
+---
+[break_ex_eye_near_far_s2]
+그다음 먼 곳에 초점을 맞추세요
+---
+[break_ex_breath_drop]
+호흡과 어깨
+---
+[break_ex_breath_drop_s1]
+들이쉬며 어깨를 올리세요
+---
+[break_ex_breath_drop_s2]
+내쉬며 내리세요
+---
+[break_ex_breath_drop_s3]
+긴장이 풀리는 것을 느끼세요
+---
+[break_ex_forearm_desk]
+책상에서 팔꿈치 스트레치
+---
+[break_ex_forearm_desk_s1]
+손바닥을 책상에, 손가락은 뒤로
+---
+[break_ex_forearm_desk_s2]
+팔이 스트레치될 때까지 부드럽게 누르세요
+---
+[notifications_test]
+테스트 알림 보내기
+---
+[notification_test_title]
+테스트 알림
+---
+[notification_test_body]
+Inner Breeze 알림이 작동합니다.
+---
+[notification_session_done_title]
+세션 완료
+---
+[notification_session_done_body]
+연습 세션이 완료되었습니다.
+---
+[break_hud_micro]
+짧은
+---
+[break_hud_rest]
+휴식
+---
+[break_hud_daily]
+일일
+---
+[settings_tab_notifications]
+알림
+---
+[notifications_section]
+알림
+---
+[notifications_friend_request_label]
+친구 요청 알림
+---
+[notifications_friend_request_title]
+친구 요청
+---
+[notifications_friend_request_body]
+새 친구 요청이 있습니다
+---
+[reminder_add]
+알림 추가
+---
+[notifications_push_picker_title]
+푸시 공급자
+---
+[notifications_push_section]
+푸시 전달
+---
+[notifications_push_status_on]
+연결됨
+---
+[notifications_push_status_off]
+설정 안 됨
+---
+[notifications_push_setup]
+푸시 설정…
+---
+[notifications_reminders_section]
+알림
+---
+[reminder_title]
+알림
 ---

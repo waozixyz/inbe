@@ -1,7 +1,7 @@
 #ifndef INBE_STORAGE_H
 #define INBE_STORAGE_H
 
-#include "flint.h"
+#include "kryon.h"
 #include <stddef.h>
 
 enum {
@@ -49,6 +49,7 @@ void storage_close(void);
 const char *storage_db_path(void);
 
 int storage_get_setting_int(const char *key, int fallback);
+int storage_list_settings(void (*callback)(const char *key, const char *value, void *user), void *user);
 const char *storage_get_setting_text(const char *key);
 void storage_set_setting_int(const char *key, int value);
 void storage_set_setting_text(const char *key, const char *value);
@@ -57,6 +58,12 @@ void storage_settings_end_write(void);
 int storage_settings_empty(void);
 int storage_get_social_cache_json(const char *kind, char *out, size_t out_size);
 int storage_set_social_cache_json(const char *kind, const char *json);
+int storage_json_array_count_path(const char *json, const char *path);
+int storage_json_array_object_text(const char *json, const char *array_path,
+                                   int index, const char *key,
+                                   char *out, size_t out_size);
+double storage_json_array_object_number(const char *json, const char *array_path,
+                                        int index, const char *key);
 
 int storage_save_session(const int *round_times, int round_count,
                               char *out_id, size_t out_id_size);
@@ -113,6 +120,8 @@ int storage_habit_day_save(const char *habit_id, int local_date, int completed, 
 void storage_mark_habits_initialized(void);
 
 int storage_export_zip(const char *path);
+int storage_export_sessions_csv(const char *path);
+int storage_export_health_connect_csv(const char *path);
 int storage_import_zip(const char *path);
 int storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
 int storage_inspect_import(const char *path, InbeStorageImportInfo *info);

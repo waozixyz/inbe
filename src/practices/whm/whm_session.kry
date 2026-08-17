@@ -1,0 +1,1298 @@
+#import "app/app_notifications"
+#import "practices/whm/whm_session.h"
+
+#import "app_nav.h" #private
+#import "platform.h" #private
+#import "data.h" #private
+#import "practices/meditation/meditation_music.h" #private
+#import "practices/practice_registry.h" #private
+#import <math.h>
+#import <stdio.h>
+#import <string.h>
+
+ANDROID :: ANDROID_BUILD
+#if ANDROID {
+    #import "android_timer.h" #private
+    #import "android_wakelock.h" #private
+}
+
+route session {
+    title "Wim Hof Session"
+    group "Practice"
+    page session
+}
+
+screen session {
+    args InbeApp *app
+    hover: int = 0
+    practice_draw_active_breathing(app, view_width / 2, view_height / 2)
+    practice_update_active_breathing(app, view_width / 2, view_height / 2, &hover)
+}
+
+static whm_background_remainder_ms: int = 0
+#if ANDROID {
+    static whm_last_notification_text: [96] char = ""
+}
+text_color_for_background :: (background: Color) -> Color #private {
+    luma: int = background.r * 299 + background.g * 587 + background.b * 114
+
+    return luma >= 128000 ? BLACK : WHITE
+}
+
+set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
+    int old_rmin
+    int old_rmax
+    int old_span
+    int new_span
+
+    if inbe == nil {
+        return
+    }
+
+    if rmin < 8 {
+        rmin = 8
+    }
+    if rmax < rmin + 8 {
+        rmax = rmin + 8
+    }
+
+    old_rmin = inbe->rmin
+    old_rmax = inbe->rmax
+    old_span = old_rmax - old_rmin
+    new_span = rmax - rmin
+
+    if old_span > 0 {
+        t: float = (float)(inbe->r - old_rmin) / (float)old_span
+
+        if t < 0.0f {
+            t = 0.0f
+        }
+        if t > 1.0f {
+            t = 1.0f
+        }
+
+        inbe->r = rmin + t * (float)new_span
+    } else {
+        inbe->r = rmin
+    }
+
+    inbe->rmin = rmin
+    inbe->rmax = rmax
+    if inbe->r < rmin {
+        inbe->r = rmin
+    }
+    if inbe->r > rmax {
+        inbe->r = rmax
+    }
+}
+
+session_update_circle_bounds_for_view :: (inbe: Inbe*, top_reserve: int, bottom_reserve: int) {
+    available_w: int = view_width - CIRCLE_SIDE_PAD * 2
+    available_h: int = view_height - top_reserve - bottom_reserve - CIRCLE_SIDE_PAD * 2
+    int rmax
+    int rmin
+
+    if available_w < 0 {
+        available_w = 0
+    }
+    if available_h < 0 {
+        available_h = 0
+    }
+
+    rmax = available_w / 2
+    if available_h / 2 < rmax {
+        rmax = available_h / 2
+    }
+    if rmax < 24 {
+        rmax = 24
+    }
+
+    rmin = rmax / 2
+    if rmin < 16 {
+        rmin = 16
+    }
+    if rmin > rmax - 8 {
+        rmin = rmax - 8
+    }
+    set_circle_bounds(inbe, rmin, rmax)
+}
+
+update_preview_bounds :: (inbe: Inbe*, content_w: int, content_h: int) {
+    span: int = content_w
+    int rmax
+    int rmin
+
+    if content_h > 0 && content_h < span {
+        span = content_h
+    }
+
+    rmax = span / 2
+    if rmax < ScaleUIPx(60) {
+        rmax = ScaleUIPx(60)
+    }
+    if rmax > ScaleUIPx(120) {
+        rmax = ScaleUIPx(120)
+    }
+    rmin = rmax / 2
+    if rmin < ScaleUIPx(24) {
+        rmin = ScaleUIPx(24)
+    }
+    if rmin > rmax - ScaleUIPx(10) {
+        rmin = rmax - ScaleUIPx(10)
+    }
+    set_circle_bounds(inbe, rmin, rmax)
+}
+
+session_reset_round_breathe :: (inbe: Inbe*) {
+    inbe->phase = InbePhaseBreathe
+    inbe->dir = 0
+    inbe->r = inbe->rmin
+    inbe->breath_frame = 0
+    inbe->breathtick = 0
+    inbe->sectick = 0
+    inbe->halftick = 0
+    cpcount(inbe->count, "000")
+}
+
+reset_round_start :: (inbe: Inbe*) #private {
+    session_reset_round_breathe(inbe)
+    if inbe->pause_seconds > 0 {
+        inbe->phase = InbePhaseStarting
+    }
+}
+
+remember_sound_state :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+
+    if app->inbe.screen != InbeScreenSession ||
+       app->inbe.phase != InbePhaseHold {
+        app->retention_marker_last_bucket = 0
+    }
+    app->sound_last_screen = app->inbe.screen
+    app->sound_last_phase = app->inbe.phase
+    app->sound_last_dir = app->inbe.dir
+    cpcount(app->sound_last_count, app->inbe.count)
+}
+
+update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
+    seconds: int
+    bucket: int
+
+    if app == nil {
+        return
+    }
+    if !app->retention_marker_enabled ||
+       app->inbe.phase != InbePhaseHold {
+        app->retention_marker_last_bucket = 0
+        return
+    }
+    if phase_changed {
+        app->retention_marker_last_bucket = 0
+    }
+
+    seconds = int_from_count(app->inbe.count)
+    bucket = seconds / 30
+    if bucket <= 0 || bucket <= app->retention_marker_last_bucket {
+        return
+    }
+
+    app->retention_marker_last_bucket = bucket
+    app_play_bell_cue(app, 0.45f)
+}
+
+#if ANDROID {
+session_update_notification :: (app: InbeApp*) #private {
+    text: [96] char = ""
+    int count
+
+    if app == nil {
+        return
+    }
+
+    if app->inbe.screen == InbeScreenResults {
+        FormatLocaleText(text, sizeof(text), "notification_results")
+    } else if app->inbe.screen == InbeScreenSession {
+        count = int_from_count(app->inbe.count)
+        switch app->inbe.phase {
+        case InbePhaseBreathe:
+            FormatLocaleText(text, sizeof(text), "notification_breathing_count", count)
+            break
+        case InbePhaseHold:
+            FormatLocaleText(text, sizeof(text), "notification_hold_seconds", count)
+            break
+        case InbePhaseRecover:
+            FormatLocaleText(text, sizeof(text), "notification_breath_in_seconds", count)
+            break
+        case InbePhaseStarting:
+            notification_pause: int = inbe_effective_pause_seconds(&app->inbe)
+            FormatLocaleText(text, sizeof(text), "notification_starting_seconds",
+                          notification_pause > 0
+                              ? notification_pause - app->inbe.sectick / 60
+                              : 0)
+            break
+        case InbePhaseNext:
+        default:
+            break
+        }
+    } else {
+        return
+    }
+
+    if strcmp(text, whm_last_notification_text) == 0 {
+        return
+    }
+
+    snprintf(whm_last_notification_text, sizeof(whm_last_notification_text), "%s", text)
+    android_wakelock_update_session_notification(text)
+}
+}
+
+update_session_sounds :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+
+    if app->inbe.screen != InbeScreenSession ||
+       (app->session_paused && !(app->backgrounded && app->inbe.play_in_background)) {
+        remember_sound_state(app)
+        return
+    }
+
+    screen_changed: int = app->sound_last_screen != InbeScreenSession
+    phase_changed: int = app->sound_last_phase != app->inbe.phase
+    dir_changed: int = app->sound_last_dir != app->inbe.dir
+    count_changed: int = !(app->sound_last_count[0] == app->inbe.count[0] &&
+                          app->sound_last_count[1] == app->inbe.count[1] &&
+                          app->sound_last_count[2] == app->inbe.count[2])
+
+    if app->inbe.phase == InbePhaseBreathe {
+        if screen_changed || phase_changed || dir_changed {
+            app_play_breath_cue(app, app->inbe.dir)
+        }
+        if count_changed {
+            count_value: int = int_from_count(app->inbe.count)
+            maxbreaths_value: int = int_from_count(app->inbe.maxbreaths)
+            if count_value == maxbreaths_value - 1 {
+                app_play_bell_cue(app, 0.8f)
+            }
+        }
+    } else if phase_changed {
+        if app->inbe.phase == InbePhaseNext && app->sound_last_phase == InbePhaseRecover {
+            app_play_breath_cue(app, 1)
+        }
+    }
+
+    update_retention_marker(app, phase_changed)
+    remember_sound_state(app)
+}
+
+session_background_start :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+    whm_background_remainder_ms = 0
+#if ANDROID {
+    whm_last_notification_text[0] = '\0'
+}
+    remember_sound_state(app)
+}
+
+session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+    int elapsed_total
+    int frame_count
+
+    if app == nil || elapsed_ms <= 0 {
+        return
+    }
+    if app->inbe.screen != InbeScreenSession || app->session_paused {
+        return
+    }
+
+    elapsed_total = elapsed_ms + whm_background_remainder_ms
+    if elapsed_total > 5 * 60 * 1000 {
+        elapsed_total = 5 * 60 * 1000
+    }
+
+    frame_count = (elapsed_total * 60) / 1000
+    whm_background_remainder_ms = elapsed_total - (frame_count * 1000) / 60
+
+    for int i = 0; i < frame_count && app->inbe.screen == InbeScreenSession; i++ {
+        inbestep(&app->inbe)
+        if inbe_just_completed(&app->inbe) {
+            session_complete(app)
+            break
+        }
+        practice_update_session_sounds(app)
+#if ANDROID {
+        session_update_notification(app)
+}
+    }
+}
+
+session_start :: (app: InbeApp*) {
+    speed: int = app->inbe.speed_level
+    max_rounds: int = app->inbe.max_rounds
+    max_breaths: int = int_from_count(app->inbe.maxbreaths)
+    pause_seconds: int = app->inbe.pause_seconds
+    progressive_speed: int = app->inbe.progressive_speed
+    progressive_start_speed: int = app->inbe.progressive_start_speed
+    play_in_background: int = app->inbe.play_in_background
+
+    inbeinit(&app->inbe)
+    app->inbe.progressive_speed = progressive_speed
+    app->inbe.progressive_start_speed = progressive_start_speed
+    app->inbe.play_in_background = play_in_background
+    apply_settings(&app->inbe, speed, max_rounds, max_breaths, pause_seconds)
+    session_update_circle_bounds_for_view(&app->inbe, UIGetNodeHeight(UINodeTitleBar(0)), ScaleUIPx(56) + 80)
+    app_switch_screen(app, InbeScreenSession)
+    app->session_paused = 0
+    app->results_saved = 0
+    app->results_path[0] = '\0'
+    app->retention_marker_last_bucket = 0
+    remember_sound_state(app)
+
+#if ANDROID {
+    android_keep_screen_on()
+}
+    TraceLog(LOG_INFO, "INBE: Starting session - play_in_background = %d", app->inbe.play_in_background)
+    meditation_music_start_session(app)
+    practice_background_start(app, PRACTICE_WHM)
+#if ANDROID {
+    whm_last_notification_text[0] = '\0'
+    session_update_notification(app)
+}
+}
+
+collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> int #private {
+    int rounds
+    count: int = 0
+
+    if app == nil || round_times == nil || max_rounds <= 0 {
+        return 0
+    }
+
+    rounds = app->inbe.round + 1
+    if rounds < 1 {
+        rounds = 1
+    }
+    if rounds > app->inbe.max_rounds {
+        rounds = app->inbe.max_rounds
+    }
+    if rounds > max_rounds {
+        rounds = max_rounds
+    }
+
+    for int i = 0; i < rounds; i++ {
+        seconds: int = int_from_count(app->inbe.results[i])
+        if seconds > 0 {
+            round_times[count++] = seconds
+        }
+    }
+
+    return count
+}
+
+session_ensure_results_saved :: (app: InbeApp*) -> int {
+    int round_times[MaxRounds]
+    int rounds
+
+    if app == nil {
+        return 0
+    }
+    if app->results_saved {
+        return 1
+    }
+
+    rounds = collect_result_rounds(app, round_times, MaxRounds)
+    if rounds <= 0 {
+        return 0
+    }
+
+    if data_save_session_path_for_activity(round_times, rounds,
+                                           0,
+                                           app != nil ? app->exercise_type : 0,
+                                           app->results_path, sizeof(app->results_path)) {
+        app->results_saved = 1
+        sync_habits_for_activity(app, app->exercise_type)
+        app_auto_sync(app)
+        TraceLog(LOG_INFO, "INBE: session saved successfully")
+        return 1
+    }
+
+    TraceLog(LOG_WARNING, "INBE: session save failed")
+    return 0
+}
+
+session_discard_saved_results :: (app: InbeApp*) {
+    if app == nil {
+        return
+    }
+
+    if app->results_saved && app->results_path[0] != '\0' {
+        if data_discard_session(app->results_path) {
+            app->results_saved = 0
+            app->results_path[0] = '\0'
+        }
+    }
+}
+
+session_has_completed_rounds :: (app: InbeApp*) -> int {
+    int round_times[MaxRounds]
+    return collect_result_rounds(app, round_times, MaxRounds) > 0
+}
+
+finish_hold :: (app: InbeApp*) #private {
+    inbe_end_hold(&app->inbe)
+    app_play_breath_cue(app, 0)
+}
+
+finish_round :: (app: InbeApp*) #private {
+    app->inbe.breathtick = 0
+    app->inbe.sectick = 0
+    cpcount(app->inbe.count, "000")
+
+    if app->inbe.round < app->inbe.max_rounds - 1 {
+        app->inbe.round++
+        reset_round_start(&app->inbe)
+    } else {
+        inbe_clear_completed(&app->inbe)
+        session_complete(app)
+    }
+}
+
+session_complete :: (app: InbeApp*) #private {
+    if session_ensure_results_saved(app) {
+        meditation_music_stop(app)
+#if ANDROID {
+        android_allow_screen_off()
+        stop_android_background_session(app)
+}
+        app_notifications_send_session_complete(app)
+        app_switch_screen(app, InbeScreenResults)
+    } else {
+        app_init(app)
+    }
+}
+
+clear_round_results_from :: (app: InbeApp*, first_round: int) #private {
+    if app == nil {
+        return
+    }
+
+    if first_round < 0 {
+        first_round = 0
+    }
+    if first_round >= MaxRounds {
+        return
+    }
+
+    for int i = first_round; i < MaxRounds; i++ {
+        cpcount(app->inbe.results[i], "000")
+    }
+    app->results_saved = 0
+    app->results_path[0] = '\0'
+}
+
+session_round_has_starting_step :: (app: InbeApp*) -> int #private {
+    if app == nil {
+        return 0
+    }
+
+    return app->inbe.round == 0 || app->inbe.pause_seconds > 0
+}
+
+session_enter_starting_step :: (app: InbeApp*) #private {
+    app->inbe.phase = InbePhaseStarting
+    app->inbe.dir = 0
+    app->inbe.r = app->inbe.rmin
+    app->inbe.breath_frame = 0
+    app->inbe.breathtick = 0
+    app->inbe.sectick = 0
+    app->inbe.halftick = 0
+    cpcount(app->inbe.count, "000")
+}
+
+session_enter_previous_round_last_step :: (app: InbeApp*) #private {
+    if app->inbe.round <= 0 {
+        return
+    }
+
+    clear_round_results_from(app, app->inbe.round)
+    app->inbe.round--
+    app->inbe.phase = InbePhaseNext
+    app->inbe.dir = 0
+    app->inbe.r = app->inbe.rmax
+    app->inbe.breath_frame = 0
+    app->inbe.breathtick = 0
+    app->inbe.sectick = 0
+    app->inbe.halftick = 0
+    cpcount(app->inbe.count, "000")
+}
+
+session_step_back :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+
+    switch app->inbe.phase {
+    case InbePhaseStarting:
+        if app->inbe.round > 0 {
+            session_enter_previous_round_last_step(app)
+        }
+        else {
+            session_enter_starting_step(app)
+        }
+        break
+    case InbePhaseBreathe:
+        clear_round_results_from(app, app->inbe.round)
+        if session_round_has_starting_step(app) {
+            session_enter_starting_step(app)
+        }
+        else if app->inbe.round > 0 {
+            session_enter_previous_round_last_step(app)
+        }
+        else {
+            session_reset_round_breathe(&app->inbe)
+        }
+        break
+    case InbePhaseHold:
+        clear_round_results_from(app, app->inbe.round)
+        session_reset_round_breathe(&app->inbe)
+        break
+    case InbePhaseRecover:
+        app->inbe.phase = InbePhaseHold
+        app->inbe.dir = 0
+        app->inbe.r = app->inbe.rmin
+        app->inbe.breath_frame = 0
+        app->inbe.breathtick = 0
+        app->inbe.sectick = 0
+        app->inbe.halftick = 0
+        cpcount(app->inbe.count, app->inbe.results[app->inbe.round])
+        clear_round_results_from(app, app->inbe.round)
+        break
+    case InbePhaseNext:
+        app->inbe.phase = InbePhaseRecover
+        app->inbe.dir = 0
+        app->inbe.r = app->inbe.rmax
+        app->inbe.breath_frame = 0
+        app->inbe.breathtick = 0
+        app->inbe.sectick = 0
+        app->inbe.halftick = 0
+        count_from_int(app->inbe.count, 14)
+        break
+    }
+
+    remember_sound_state(app)
+}
+
+session_step_forward :: (app: InbeApp*) #private {
+    switch app->inbe.phase {
+    case InbePhaseStarting:
+        session_reset_round_breathe(&app->inbe)
+        break
+    case InbePhaseBreathe:
+        app->inbe.phase = InbePhaseHold
+        app->inbe.r = app->inbe.rmin
+        app->inbe.breath_frame = 0
+        app->inbe.breathtick = 0
+        app->inbe.sectick = 0
+        cpcount(app->inbe.count, "000")
+        break
+    case InbePhaseHold:
+        finish_hold(app)
+        break
+    case InbePhaseRecover:
+        app->inbe.phase = InbePhaseNext
+        app->inbe.breath_frame = 0
+        app->inbe.sectick = 0
+        cpcount(app->inbe.count, "000")
+        break
+    case InbePhaseNext:
+        finish_round(app)
+        break
+    }
+}
+
+draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
+    char text[CountSize]
+    int count
+    font: int = UI_TEXT_24
+    text_color: Color = text_color_for_background(GetThemeCircle())
+
+    if app->inbe.phase == InbePhaseStarting {
+        total_seconds: int = inbe_effective_pause_seconds(&app->inbe)
+        int remaining
+
+        if total_seconds <= 0 {
+            remaining = 0
+        }
+        else {
+            remaining = total_seconds - app->inbe.sectick / 60
+            if remaining < 1 {
+                remaining = 1
+            }
+        }
+        snprintf(text, sizeof(text), "%d", remaining)
+        DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
+        return
+    }
+
+    if app->inbe.phase == InbePhaseRecover {
+        if app->inbe.r < app->inbe.rmax {
+            DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
+            return
+        }
+
+        count = int_from_count(app->inbe.count)
+        if count < 15 {
+            count_from_int(text, 15 - count)
+            DrawCenteredUIControlText(text, center_x, center_y, font, text_color)
+            return
+        }
+        DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
+        return
+    }
+
+    if app->inbe.phase == InbePhaseNext {
+        DrawCenteredUIControlText("000", center_x, center_y, font, text_color)
+        return
+    }
+
+    DrawCenteredUIControlText(app->inbe.count, center_x, center_y, font, text_color)
+}
+
+color_with_alpha :: (color: Color, alpha: unsigned char) -> Color #private {
+    color.a = alpha
+    return color
+}
+
+session_circle_progress :: (app: InbeApp*, total_ticks: int*, progress: float*,
+                           countdown: int*) #private {
+    total: int = int_from_count(app->inbe.maxbreaths)
+    amount: float = 0.0f
+    is_countdown: int = 0
+    total_seconds: int = 0
+    total_frames: int = 0
+    frame_in_minute: int = 0
+    count: int = 0
+
+    if total < 1 {
+        total = 1
+    }
+
+    if total_ticks == nil || progress == nil || countdown == nil {
+        return
+    }
+
+    switch app->inbe.phase {
+    case InbePhaseStarting:
+        total_seconds = inbe_effective_pause_seconds(&app->inbe)
+        total_frames = total_seconds * 60
+
+        total = total_seconds > 0 ? total_seconds : 1
+        if total_frames > 0 {
+            amount = (float)app->inbe.sectick / (float)total_frames
+        }
+        is_countdown = 1
+        break
+    case InbePhaseBreathe:
+        amount = ((float)clampi(int_from_count(app->inbe.count), 0, total) +
+                  current_breath_progress(&app->inbe)) / (float)total
+        break
+    case InbePhaseHold:
+        total_frames = 60 * 60
+        frame_in_minute = (int_from_count(app->inbe.count) * 60 + app->inbe.sectick) %
+                          total_frames
+
+        total = 60
+        amount = (float)frame_in_minute / (float)total_frames
+        break
+    case InbePhaseRecover:
+        count = int_from_count(app->inbe.count)
+
+        total = 15
+        if app->inbe.r >= app->inbe.rmax {
+            amount = ((float)clampi(count, 0, total) +
+                      (float)clampi(app->inbe.sectick, 0, 59) / 60.0f) /
+                     (float)total
+        }
+        is_countdown = 1
+        break
+    case InbePhaseNext:
+    default:
+        amount = 0.0f
+        break
+    }
+
+    if amount < 0.0f {
+        amount = 0.0f
+    }
+    if amount > 1.0f {
+        amount = 1.0f
+    }
+
+    *total_ticks = total
+    *progress = amount
+    *countdown = is_countdown
+}
+
+draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, radius: float) {
+    total_ticks: int = 1
+    countdown: int = 0
+    progress: float = 0.0f
+    gap: int = ScaleUIPx(5)
+    int band_width
+    int thickness
+    float inner_radius
+    float outer_radius
+    circle: Color = GetThemeCircle()
+    contrast: Color = text_color_for_background(circle)
+    Color band_bg
+    Color band_fill
+    Color tick_done
+    Color tick_pending
+    Color ring
+
+    if app == nil {
+        return
+    }
+
+    session_circle_progress(app, &total_ticks, &progress, &countdown)
+
+    if total_ticks <= 20 {
+        band_width = ScaleUIPx(14)
+    }
+    else if total_ticks <= 40 {
+        band_width = ScaleUIPx(11)
+    }
+    else {
+        band_width = ScaleUIPx(8)
+    }
+    if band_width < 5 {
+        band_width = 5
+    }
+
+    thickness = total_ticks <= 40 ? ScaleUIPx(3) : ScaleUIPx(2)
+    if thickness < 1 {
+        thickness = 1
+    }
+
+    outer_radius = radius - (float)gap
+    inner_radius = outer_radius - (float)band_width
+    if inner_radius < radius * 0.66f {
+        inner_radius = radius * 0.66f
+    }
+    if outer_radius <= inner_radius {
+        return
+    }
+
+    band_bg = color_with_alpha(contrast, 30)
+    band_fill = color_with_alpha(contrast, 72)
+    tick_pending = color_with_alpha(contrast, 96)
+    tick_done = color_with_alpha(contrast, 235)
+    ring = color_with_alpha(contrast, 175)
+
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, radius, circle)
+    DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
+             0.0f, 360.0f, 128, band_bg)
+    if countdown {
+        if progress < 1.0f {
+            DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius,
+                     outer_radius, -450.0f, -90.0f - 360.0f * progress,
+                     128, band_fill)
+        }
+    } else if progress > 0.0f {
+        DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius, outer_radius,
+                 -90.0f, -90.0f + 360.0f * progress, 128, band_fill)
+    }
+    DrawRing((Vector2){(float)center_x, (float)center_y}, inner_radius - 0.75f,
+             inner_radius + 0.75f, 0.0f, 360.0f, 128, ring)
+    DrawRing((Vector2){(float)center_x, (float)center_y}, outer_radius - 0.75f,
+             outer_radius + 0.75f, 0.0f, 360.0f, 128, ring)
+
+    for int i = 0; i < total_ticks; i++ {
+        tick_progress: float = (float)i / (float)total_ticks
+        direction: float = countdown ? -1.0f : 1.0f
+        angle: float = -PI * 0.5f +
+                      direction * ((float)i * 2.0f * PI) / (float)total_ticks
+        s: float = sinf(angle)
+        c: float = cosf(angle)
+        if countdown && i == 0 {
+            tick_progress = 1.0f
+        }
+        tick_colored: int = countdown ? tick_progress > progress + 0.0001f
+                                     : tick_progress <= progress + 0.0001f
+        start: Vector2 = {
+            (float)center_x + c * inner_radius,
+            (float)center_y + s * inner_radius
+        }
+        end: Vector2 = {
+            (float)center_x + c * outer_radius,
+            (float)center_y + s * outer_radius
+        }
+
+        DrawLineEx(start, end, (float)thickness,
+                   tick_colored ? tick_done : tick_pending)
+    }
+}
+
+session_draw_inbe :: (app: InbeApp*, center_x: int, center_y: int) {
+    radius: float = draw_radius(&app->inbe)
+
+    draw_session_progress_circle(app, center_x, center_y, radius)
+    draw_session_counter(app, center_x, center_y)
+}
+
+session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> int {
+    mouse_world: Vector2 = GetScreenToWorld2D(GetMousePosition(), app->camera)
+    active: int = 0
+    hovered: int = 0
+    clicked: int = 0
+    released: int = IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
+    play_text: const char* = GetLocaleText("play_button")
+    practice_text: const char* = practice_label(app->exercise_type)
+    font: int = UI_TEXT_16
+    practice_font: int = GetUIFontSize()
+    int practice_w
+    int practice_y
+    scale: float = 1.0f
+
+    radius: int = ScaleUIPx(44)
+
+
+    dx: float = mouse_world.x - center_x
+    dy: float = mouse_world.y - center_y
+    dist_sq: float = dx * dx + dy * dy
+
+    if dist_sq <= radius * radius && !UIInputCapturesClick(mouse_world) {
+        active = 1
+        hovered = UIHoverEffectsEnabled()
+        app->play_circle_hover = hovered
+    } else {
+        app->play_circle_hover = 0
+    }
+
+
+    target_scale: float = hovered ? 1.08f : 1.0f
+    app->play_circle_scale += (target_scale - app->play_circle_scale) * 0.2f
+    if app->play_circle_scale < 1.0f {
+        app->play_circle_scale = 1.0f
+    }
+    if app->play_circle_scale > 1.08f {
+        app->play_circle_scale = 1.08f
+    }
+
+    scale = app->play_circle_scale
+
+
+    if active && released {
+        clicked = 1
+    }
+
+    scaled_radius: int = (int)(radius * scale)
+    practice_w = MeasureUIText(practice_text, practice_font)
+    if practice_w > view_width - ScaleUIPx(48) {
+        practice_font = GetUISmallFontSize()
+    }
+    practice_w = MeasureUIText(practice_text, practice_font)
+    practice_y = center_y - scaled_radius - ScaleUIPx(42)
+    if practice_y < ScaleUIPx(8) {
+        practice_y = ScaleUIPx(8)
+    }
+    Text(practice_text, center_x - practice_w / 2,
+                    GetUIControlTextY(practice_text, practice_y, ScaleUIPx(32), practice_font),
+                    practice_font, GetThemeText())
+
+    DrawCircle(center_x, center_y, scaled_radius, GetThemeCircle())
+    DrawCircleLines(center_x, center_y, scaled_radius, GetThemeText())
+
+
+    DrawCenteredUIControlText(play_text, center_x, center_y, font,  text_color_for_background(GetThemeCircle()))
+
+    if active {
+        MarkUIClickable()
+    }
+
+    return clicked
+}
+
+draw_session_status :: (app: InbeApp*, center_x: int, center_y: int) #private {
+    unused app
+    unused center_x
+    unused center_y
+}
+
+session_round_label :: (app: InbeApp*, text: char*, text_size: size_t) #private {
+    if text == nil || text_size == 0 {
+        return
+    }
+    FormatLocaleText(text, text_size, "session_round_label", app->inbe.round + 1)
+}
+
+session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int) -> int #private {
+    hover: int = 0
+    close_icon: int = ScaleUIPx(18)
+    close_padding: int = ScaleUIPx(6)
+    close_total: int = close_icon + close_padding * 2
+    close_x: int = view_width - close_total - ScaleUIPx(12)
+    close_y: int = (height - close_total) / 2
+    side_reserved: int = view_width - close_x + ScaleUIPx(8)
+    font: int = UI_TEXT_24
+    max_w: int = view_width - side_reserved * 2
+    int title_w
+
+    if title == nil {
+        title = ""
+    }
+    if close_y < 0 {
+        close_y = 0
+    }
+    if max_w < ScaleUIPx(48) {
+        max_w = view_width - ScaleUIPx(16)
+    }
+    title_w = MeasureUIText(title, font)
+    while font > GetUIFontSize() && title_w > max_w {
+        font--
+        title_w = MeasureUIText(title, font)
+    }
+
+    TitleBar("", height)
+    Text(title, (view_width - title_w) / 2,
+               GetUIControlTextY(title, 0, height, font), font, GetThemeText())
+    if app != nil && !app->modal.active &&
+       PaddedIconBtn(0, close_x, close_y, close_icon, close_padding,
+                           app->icons[UI_ICON_TYPE_X], &hover) {
+        return 1
+    }
+    return 0
+}
+
+draw_preview_inbe :: (inbe: Inbe*, center_x: int, center_y: int) {
+    r: float = draw_radius(inbe) * 0.72f
+    DrawCircleV((Vector2){(float)center_x, (float)center_y}, r, GetThemeCircle())
+    DrawRing((Vector2){(float)center_x, (float)center_y}, r - 0.75f, r + 0.75f,
+             0.0f, 360.0f, 96, GetThemeText())
+}
+
+sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
+    vol: int = app->sound_volume
+    if vol <= 0 {
+        return app->icons[UI_ICON_TYPE_SOUND0]
+    }
+    if vol <= 25 {
+        return app->icons[UI_ICON_TYPE_SOUND1]
+    }
+    if vol <= 75 {
+        return app->icons[UI_ICON_TYPE_SOUND2]
+    }
+    return app->icons[UI_ICON_TYPE_SOUND3]
+}
+
+stop_android_background_session :: (app: InbeApp*) #private {
+    meditation_music_stop(app)
+    practice_active_background_stop(app)
+}
+
+session_request_exit :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    if app->session_paused {
+        stop_android_background_session(app)
+        app_init(app)
+        return
+    }
+    app_open_modal(app, UIModalConfirmExitSession)
+}
+
+session_handle_exit_modal :: (app: InbeApp*) -> int #private {
+    SessionExitModalResult result
+
+    if app == nil || !app->modal.active ||
+       app->modal.type != UIModalConfirmExitSession {
+        return 0
+    }
+
+    result = app_draw_session_exit_modal(
+        session_has_completed_rounds(app),
+        GetLocaleText("save_completed_rounds_message"),
+        GetLocaleText("all_progress_lost_message"))
+    if result == SessionExitModalCancel {
+        app_close_modal(app)
+    } else if result == SessionExitModalSave || result == SessionExitModalDiscard {
+        if result == SessionExitModalSave {
+            session_ensure_results_saved(app)
+        }
+        stop_android_background_session(app)
+        app_close_modal(app)
+        app_init(app)
+    }
+    return 1
+}
+
+session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
+    breath_max_y: int = view_height - ScaleUIPx(44)
+    title_h: int = UIGetNodeHeight(UINodeTitleBar(0))
+    char title[32]
+
+    session_round_label(app, title, sizeof(title))
+    if session_draw_round_title_bar(app, title, title_h) {
+        session_request_exit(app)
+        return
+    }
+
+    if session_handle_exit_modal(app) {
+        return
+    }
+
+    if IconSliderPopup((IconSliderPopupProps){
+           .id = 500,
+           .x = view_width - ScaleUIPx(76),
+           .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
+           .icon_size = ScaleUIPx(18),
+           .icon_padding = ScaleUIPx(5),
+           .icon = sound_icon_for_volume(app),
+           .open = &app->volume_popup_active,
+           .value = &app->sound_volume,
+           .min = SETTINGS_VOLUME_MIN,
+           .max = SETTINGS_VOLUME_MAX,
+           .popup_width = ScaleUIPx(40),
+           .popup_height = ScaleUIPx(176)
+       }) {
+        app->settings_dirty = 1
+        update_session_sounds(app)
+        save_settings(app)
+    }
+
+    if app->advanced_session_controls {
+        min_view_dim: int = view_width < view_height ? view_width : view_height
+        controls: [3] UIIconRowItem = {
+            {app->icons[UI_ICON_TYPE_BACKWARD], 0},
+            {app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE], 0},
+            {app->icons[UI_ICON_TYPE_FORWARD], 0}
+        }
+        row: UIIconRowResult = BottomIconRow((BottomIconRowProps){
+            .center_x = center_x,
+            .view_width = view_width,
+            .view_height = view_height,
+            .count = 3,
+            .items = controls,
+            .icon_size = ScaleUIPx(24),
+            .icon_padding = ScaleUIPx(10),
+            .gap = ScaleUIPx(12),
+            .side_margin = ScaleUIPx(24),
+            .bottom_margin = ScaleUIPx(6),
+            .max_button_width = min_view_dim / 6,
+            .min_icon_size = ScaleUIPx(16),
+            .min_icon_padding = ScaleUIPx(6),
+            .min_gap = ScaleUIPx(8)
+        })
+
+        breath_max_y = row.y - ScaleUIPx(44)
+        if row.clicked_index == 0 {
+            session_step_back(app)
+        }
+        else if row.clicked_index == 1 {
+            app->session_paused = !app->session_paused
+        }
+        else if row.clicked_index == 2 {
+            session_step_forward(app)
+        }
+    }
+
+    draw_session_status(app, center_x, center_y)
+
+    if !app->session_paused && !app->backgrounded {
+#if ANDROID {
+        pthread_mutex_t*timer_mutex = android_timer_get_mutex()
+        if timer_mutex {
+            pthread_mutex_lock(timer_mutex)
+            inbestep(&app->inbe)
+            update_session_sounds(app)
+            pthread_mutex_unlock(timer_mutex)
+        } else {
+            inbestep(&app->inbe)
+            update_session_sounds(app)
+        }
+        session_update_notification(app)
+} #else {
+        inbestep(&app->inbe)
+        update_session_sounds(app)
+}
+    }
+
+    if inbe_just_completed(&app->inbe) {
+        session_complete(app)
+        return
+    }
+
+    if app->inbe.phase != InbePhaseHold {
+        app->breath_tap_last_time = 0.0
+    }
+
+    if app->inbe.phase == InbePhaseHold {
+        breath_label: const char* = GetLocaleText("breath_button")
+        breath_font: int = UI_TEXT_16
+        breath_w: int = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72)
+        breath_h: int = GetUITextLineHeight(breath_font) + ScaleUIPx(28)
+        breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(42)
+        int breath_x
+        breath_hover: int = 0
+
+        if app->double_tap_to_breathe {
+            hint: const char* = GetLocaleText("double_tap_to_breathe_hint")
+            hint_font: int = GetUIFontSize()
+            hint_w: int = MeasureUIText(hint, hint_font)
+            hint_y: int = center_y + app->inbe.rmax + ScaleUIPx(12)
+
+            if hint_y > breath_max_y {
+                hint_y = breath_max_y
+            }
+            Text(hint, center_x - hint_w / 2, hint_y, hint_font,
+                            GetThemeText())
+            if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
+                now: double = GetTime()
+                if app->breath_tap_last_time > 0.0 &&
+                   now - app->breath_tap_last_time <= 0.35 {
+                    app->breath_tap_last_time = 0.0
+                    finish_hold(app)
+                } else {
+                    app->breath_tap_last_time = now
+                }
+            }
+            return
+        }
+
+        if breath_w < ScaleUIPx(184) {
+            breath_w = ScaleUIPx(184)
+        }
+        if breath_w > view_width - ScaleUIPx(24) {
+            breath_w = view_width - ScaleUIPx(24)
+        }
+        if breath_y > breath_max_y {
+            breath_y = breath_max_y
+        }
+        breath_x = center_x - breath_w / 2
+        if GenericButton(0, breath_x, breath_y, breath_w, breath_h,
+                                  breath_label, UI_BUTTON_STYLE_PRIMARY, 0,
+                                  &breath_hover) {
+            finish_hold(app)
+        }
+        if hover != nil {
+            *hover = breath_hover
+        }
+    }
+}
+
+session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
+    int box_x
+    box_y: int = ScaleUIPx(78)
+    int box_w
+    row_y: int = ScaleUIPx(215)
+    row_h: int = ScaleUIPx(32)
+    total: int = 0
+    best: int = -1
+    int round_times[MaxRounds]
+    rounds: int = collect_result_rounds(app, round_times, MaxRounds)
+    discard_hover: int = 0
+    save_hover: int = 0
+    action_y: int = view_height - ScaleUIPx(40)
+    int title_font
+    int title_w
+
+    unused center_y
+
+    if rounds <= 0 {
+        app_init(app)
+        return
+    }
+
+    responsive_max_w: int = (int)(view_width * 0.96f)
+    min_content_w: int = ScaleUIPx(320)
+    if responsive_max_w < min_content_w {
+        responsive_max_w = min_content_w
+    }
+    GetUICenteredColumn(responsive_max_w, GetUIPageSidePadding(), &box_x, &box_w)
+
+    title_font = GetUITitleFontSize(GetLocaleText("results_title"), view_width - ScaleUIPx(48))
+    title_w = MeasureUIText(GetLocaleText("results_title"), title_font)
+    Text(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText())
+
+    for int i = 0; i < rounds; i++ {
+        seconds: int = round_times[i]
+        total += seconds
+        if best < 0 || seconds > best {
+            best = seconds
+        }
+    }
+    if best < 0 {
+        best = 0
+    }
+
+    {
+        char lines[3][64]
+        UIInfoRow rows[3]
+        summary_font: int = UI_TEXT_16
+
+        FormatLocaleText(lines[0], sizeof(lines[0]), "results_rounds", rounds)
+        FormatLocaleText(lines[1], sizeof(lines[1]), "results_best", best)
+        FormatLocaleText(lines[2], sizeof(lines[2]), "results_avg",
+                      rounds > 0 ? total / rounds : 0)
+        if view_width < 420 && MeasureUIText(lines[2], summary_font) > box_w - ScaleUIPx(20) {
+            snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0)
+        }
+        for int i = 0; i < 3; i++ {
+            rows[i] = (UIInfoRow){lines[i], summary_font, GetThemeText()}
+        }
+        InfoRows((InfoRowsProps){
+            .x = box_x,
+            .y = box_y,
+            .width = box_w,
+            .row_height = ScaleUIPx(29),
+            .rows = rows,
+            .row_count = 3,
+            .background = DarkenUIColor(GetThemeBackground(), 6),
+            .separator = DarkenUIColor(GetThemeBackground(), 30),
+            .default_text = GetThemeText()
+        })
+    }
+
+    DrawLeftUIControlTextInRect(GetLocaleText("round_times_title"),
+                                    (Rectangle){(float)box_x, (float)ScaleUIPx(181),
+                                                (float)box_w, (float)ScaleUIPx(28)},
+                                    GetUIFontSize(), DarkenUIColor(GetThemeText(), 20))
+    for int i = 0; i < rounds; i++ {
+        char row[48]
+        UIInfoRow info_row
+        row_font: int = GetUIFontSize()
+        FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
+        info_row = (UIInfoRow){row, row_font, GetThemeText()}
+        InfoRows((InfoRowsProps){
+            .x = box_x,
+            .y = row_y - 1,
+            .width = box_w,
+            .row_height = row_h,
+            .rows = &info_row,
+            .row_count = 1,
+            .background = DarkenUIColor(GetThemeBackground(), 4),
+            .separator = DarkenUIColor(GetThemeBackground(), 26),
+            .default_text = GetThemeText()
+        })
+        row_y += row_h
+    }
+
+    if TextButton(0, center_x - box_w / 4, action_y, GetLocaleText("discard_button"), &discard_hover) {
+        session_discard_saved_results(app)
+        app_init(app)
+    }
+    if TextButton(0, center_x + box_w / 4, action_y, GetLocaleText("save_results_button"), &save_hover) {
+        if session_ensure_results_saved(app) {
+            app_init(app)
+        }
+    }
+    if discard_hover || save_hover {
+        *hover = 1
+    }
+}

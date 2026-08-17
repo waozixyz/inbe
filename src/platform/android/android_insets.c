@@ -5,11 +5,13 @@
 #include "android_timer.h"
 #include "android_wakelock.h"
 #include "app.h"
-#include "breath_engine.h"
+#include "core/breath_engine.h"
 #include <string.h>
 #include <stdio.h>
 
-#include "flint.h"
+#include "kryon.h"
+#include "breaks/app_breaks.h"
+#include "practices/practice_registry.h"
 #include <pthread.h>
 #include <jni.h>
 #include <android/log.h>
@@ -60,6 +62,15 @@ static void nativeSetInsets(JNIEnv *env, jobject thiz,
     current_insets.cutout_bottom = cutout_bottom;
     insets_initialized = 1;
     pthread_mutex_unlock(&insets_mutex);
+}
+
+static void nativeSetDeviceDensity(JNIEnv *env, jobject thiz, jfloat density)
+{
+    (void)env;
+    (void)thiz;
+
+    extern void SetUIDeviceDensity(float);
+    SetUIDeviceDensity(density);
 }
 
 static jint nativeGetPlayInBackground(JNIEnv *env, jobject thiz)
@@ -128,16 +139,51 @@ static void nativeResumeSession(JNIEnv *env, jobject thiz)
 
 static void nativeInvalidateGraphicsResources(JNIEnv *env, jobject thiz)
 {
-	(void)env;
-	(void)thiz;
+    (void)env;
+    (void)thiz;
 
-	InbeApp *inbe_app = get_global_inbe_app();
-	if(inbe_app != NULL)
-		app_request_graphics_reload(inbe_app);
+    InbeApp *inbe_app = get_global_inbe_app();
+    if(inbe_app != NULL)
+        app_request_graphics_reload(inbe_app);
+}
+
+/* Widget / quick-settings tile / launcher shortcut entry point. Runs on
+ * the UI thread like the other Java-spurred natives; the render loop
+ * picks the new screen up on its next frame. A pending break is replaced
+ * by the practice (same semantics as the desktop break-window chips). */
+static jboolean nativeStartPractice(JNIEnv *env, jobject thiz, jint practice_id)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    (void)env;
+    (void)thiz;
+    if(app == NULL)
+        return JNI_FALSE;
+
+    if(practice_id >= 0)
+        app->exercise_type = practice_clamp_id(practice_id);
+    if(app->modal.active)
+        app_close_modal(app);
+    {
+        int active_break = break_engine_active_break(&app->breaks);
+        const PracticeDefinition *practice;
+
+        if(active_break >= 0) {
+            app_breaks_start_practice(app, active_break, app->exercise_type);
+            return JNI_TRUE;
+        }
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->practice_tab = PRACTICE_TAB_PLAY;
+        practice = practice_get(app->exercise_type);
+        if(practice != NULL && practice->start != NULL)
+            practice->start(app);
+    }
+    return JNI_TRUE;
 }
 
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
+    {"nativeSetDeviceDensity", "(F)V", (void*)nativeSetDeviceDensity},
     {"nativeWakeLockReady", "()V", (void*)android_wakelock_set_activity_impl},
     {"nativeSetBackgroundActive", "(Z)V", (void*)nativeSetBackgroundActive},
     {"nativeGetPlayInBackground", "()I", (void*)nativeGetPlayInBackground},
@@ -145,8 +191,8 @@ static const JNINativeMethod g_methods[] = {
     {"nativeResumeSession", "()V", (void*)nativeResumeSession},
     {"nativeSetSystemDark", "(I)V", (void*)android_device_native_set_system_dark},
     {"nativeSetOrientation", "(I)V", (void*)android_device_native_set_orientation},
-    {"nativeImportSelectedFile", "(Ljava/lang/String;)V", (void*)android_import_native_selected},
-    {"nativeImportCancelled", "()V", (void*)android_import_native_cancelled},
+    {"nativeImportSelectedFile", "(ILjava/lang/String;)V", (void*)android_import_native_selected},
+    {"nativeImportCancelled", "(I)V", (void*)android_import_native_cancelled},
     {"nativeRuntimeAssetDownloadSucceeded", "(JJI)V", (void*)android_runtime_asset_native_succeeded},
     {"nativeRuntimeAssetDownloadProgress", "(JJJ)V", (void*)android_runtime_asset_native_progress},
     {"nativeRuntimeAssetDownloadFailed", "(JILjava/lang/String;)V", (void*)android_runtime_asset_native_failed},
@@ -154,6 +200,7 @@ static const JNINativeMethod g_methods[] = {
     {"nativeTextInputBackspace", "()V", (void*)android_device_native_text_input_backspace},
     {"nativeTextInputEnter", "()V", (void*)android_device_native_text_input_enter},
     {"nativeInvalidateGraphicsResources", "()V", (void*)nativeInvalidateGraphicsResources},
+    {"nativeStartPractice", "(I)Z", (void*)nativeStartPractice},
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -212,4 +259,18 @@ int android_insets_is_initialized(void) {
     result = insets_initialized;
     pthread_mutex_unlock(&insets_mutex);
     return result;
+}
+
+int android_get_system_top_reserved(void) {
+    int status_bar;
+    int cutout_top;
+
+    pthread_mutex_lock(&insets_mutex);
+    status_bar = current_insets.status_bar;
+    cutout_top = current_insets.cutout_top;
+    pthread_mutex_unlock(&insets_mutex);
+
+    // Return the max of status bar and camera cutout, ensuring non-negative
+    int system_top = status_bar > cutout_top ? status_bar : cutout_top;
+    return system_top > 0 ? system_top : 0;
 }
