@@ -79,14 +79,7 @@ jobs:
       - name: Language screen — native vs cartridge, 0 pixel tolerance
         run: |
           set +e
-          xvfb-run -a --server-args="-screen 0 1280x1024x24" sh -c '
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe xcompmgr >/tmp/xcompmgr.log 2>&1 &
-            comp_pid=$!
-            sleep 2
-            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe KRB_EXACT_XWD=1 sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
-            rc=$?
-            kill $comp_pid 2>/dev/null
-            exit $rc'
+          LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe xvfb-run -a --server-args="-screen 0 1280x1024x24" sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
 
           rc=$?
           cp /tmp/kryon-krb-native.*/native.png /tmp/native.png 2>/dev/null || true
