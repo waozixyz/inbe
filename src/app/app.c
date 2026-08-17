@@ -16,7 +16,6 @@
 #include "platform/inbe_desktop_tray.h"
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
-#include "screens/pet_screen.h"
 #include "screens/break_overlay.h"
 #include "screens/break_exercises_screen.h"
 #include "breaks/app_breaks.h"
@@ -92,7 +91,6 @@ static const InbeRouteBinding inbe_route_bindings[] = {
     {"manual", InbeScreenManual},
     {"profile", InbeScreenProfile},
     {"habits", InbeScreenHabits},
-    {"pet", InbeScreenPet},
     {"customize_nav", InbeScreenCustomizeNav},
     {"nav_sidebar", InbeScreenNavSidebar},
     {"habit_edit", InbeScreenHabitEdit},
@@ -1219,12 +1217,6 @@ handle_back_button(InbeApp *app)
                                   : InbeScreenStart);
         break;
 
-    case InbeScreenPet:
-        app_switch_screen(app, app->main_tab == APP_MAIN_TAB_HABITS
-                                  ? InbeScreenHabits
-                                  : InbeScreenStart);
-        break;
-
     case InbeScreenCustomizeNav:
         if(app_return_to_nav_sidebar_if_needed(app))
             break;
@@ -1434,7 +1426,6 @@ static const struct {
 } g_simple_screens[] = {
     { InbeScreenSettings,         app_draw_settings_screen },
     { InbeScreenProfile,          app_draw_profile_screen },
-    { InbeScreenPet,              pet_screen_draw },
     { InbeScreenCustomizeNav,     app_draw_customize_nav_screen },
     { InbeScreenNavSidebar,       NULL },
     { InbeScreenLanguage,         language_screen_draw },

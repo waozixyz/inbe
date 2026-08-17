@@ -872,12 +872,6 @@ Yoga
 [habit_default_yoga_description]
 요가 연습 세션.
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 오늘의 습관 합계입니다.
 ---

@@ -873,12 +873,6 @@ Yoga
 [habit_default_yoga_description]
 瑜伽练习课程。
 ---
-[pet_gamification_title]
-Gamification in progress...
----
-[pet_gamification_subtitle]
-Preview only. This tab is not implemented yet.
----
 [habits_guide_overview_progress]
 今天的习惯总数。
 ---
