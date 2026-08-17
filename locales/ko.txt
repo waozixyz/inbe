@@ -285,6 +285,15 @@ Finish
 [ok_button]
 확인
 ---
+[retry_button]
+다시 시도
+---
+[audio_import_music_for_practice_button]
+이 연습용 음악 가져오기
+---
+[audio_imported_and_selected]
+음악을 가져와 선택했습니다
+---
 [save_button]
 저장
 ---
@@ -1244,9 +1253,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

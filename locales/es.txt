@@ -285,6 +285,15 @@ Omitir
 [ok_button]
 Aceptar
 ---
+[retry_button]
+Reintentar
+---
+[audio_import_music_for_practice_button]
+Importar música para esta práctica
+---
+[audio_imported_and_selected]
+Música importada y seleccionada
+---
 [save_button]
 Guardar
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

@@ -46,8 +46,10 @@
 #endif
 
 #if ANDROID_BUILD
+#include <android/log.h>
 #include "android_wakelock.h"
 #include "android_device.h"
+#include "android_insets.h"
 #endif
 
 #if defined(PLATFORM_WEB) || ANDROID_BUILD
@@ -1343,10 +1345,15 @@ draw_global_modal(InbeApp *app)
     if(app->modal.type == UIModalMeditationNetworkError) {
         modal_result = Modal(GetLocaleText("meditation_music_network_error_title"),
                                      GetLocaleText("meditation_music_network_error_message"),
-                                     GetLocaleText("ok_button"),
-                                     GetLocaleText("ok_button"));
-        if(modal_result != 0) {
+                                     GetLocaleText("cancel_button"),
+                                     GetLocaleText("retry_button"));
+        if(modal_result == 1) {
+            TraceLog(LOG_INFO, "AUDIO: Network error download cancelled");
             app_close_modal(app);
+        } else if(modal_result == 2) {
+            TraceLog(LOG_INFO, "AUDIO: Network error download retry requested");
+            app_close_modal(app);
+            meditation_music_start_download(app);
         }
     }
     if(app->modal.type == UIModalThemePicker)
@@ -1461,6 +1468,54 @@ updateapp(InbeApp *app)
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
     int bottom_input_reserved = 0;
+
+#if ANDROID_BUILD
+    {
+        int practice_id = android_take_pending_practice_start();
+        if(practice_id >= 0) {
+            int active_break;
+            const PracticeDefinition *practice;
+
+            app->exercise_type = practice_clamp_id(practice_id);
+            if(app->modal.active)
+                app_close_modal(app);
+            active_break = break_engine_active_break(&app->breaks);
+            if(active_break >= 0) {
+                app_breaks_start_practice(app, active_break, app->exercise_type);
+            } else {
+                app->main_tab = APP_MAIN_TAB_PRACTICE;
+                app->practice_tab = PRACTICE_TAB_PLAY;
+                practice = practice_get(app->exercise_type);
+                TraceLog(LOG_WARNING,
+                         "AUDIO_E2E: main-thread start practice=%d track=%d mask=%d",
+                         app->exercise_type,
+                         app->meditation.music_practice_tracks[app->exercise_type],
+                         app->meditation.music_practice_mask);
+                __android_log_print(ANDROID_LOG_WARN, "INBE_AUDIO_E2E",
+                                    "main-thread start practice=%d track=%d mask=%d",
+                                    app->exercise_type,
+                                    app->meditation.music_practice_tracks[app->exercise_type],
+                                    app->meditation.music_practice_mask);
+                if(practice != NULL && practice->start != NULL)
+                    practice->start(app);
+                TraceLog(LOG_WARNING,
+                         "AUDIO_E2E: music loaded=%d playing=%d test=%d volume=%d",
+                         app->meditation.music_loaded,
+                         app->meditation.music_playing,
+                         app->meditation.music_test_playing,
+                         app->music_volume);
+                __android_log_print(ANDROID_LOG_WARN, "INBE_AUDIO_E2E",
+                                    "music loaded=%d playing=%d test=%d volume=%d valid=%d stream=%d",
+                                    app->meditation.music_loaded,
+                                    app->meditation.music_playing,
+                                    app->meditation.music_test_playing,
+                                    app->music_volume,
+                                    IsMusicValid(app->meditation.music),
+                                    IsMusicStreamPlaying(app->meditation.music));
+            }
+        }
+    }
+#endif
 
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
     app_update_desktop_background_state(app);
@@ -1775,8 +1830,7 @@ app_destroy(void *vapp)
     CloseUIWindow(app->break_hud);
     app->break_hud = NULL;
 
-    if(app->settings_dirty || app->settings_save_delay_ticks > 0)
-        save_settings(app);
+    save_settings(app);
     habits_flush_save(app);
 
     if(!IsUIInspectActive())

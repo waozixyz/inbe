@@ -328,6 +328,11 @@ save_settings :: (app: InbeApp*) {
         break_timer_setting_key(t, "show_postpone", key, sizeof(key))
         save_setting_int(key, timer->show_postpone ? 1 : 0)
     }
+    save_setting_int("break_daily_state_day", app->breaks.day_key)
+    save_setting_int("break_daily_state_active",
+                     app->breaks.timers[BREAK_DAILY].active_s)
+    save_setting_int("break_daily_state_skipped",
+                     app->breaks.timers[BREAK_DAILY].skipped_today ? 1 : 0)
 
     storage_set_setting_text("language",
         (app->language_selected && app->language[0] != '\0') ? app->language : "")
@@ -549,6 +554,14 @@ app_load_settings :: (app: InbeApp*) -> int {
         load_bool_setting(&settings_cache, &timer->show_postpone, key,
                              timer->show_postpone)
     }
+    load_clamped_setting(&settings_cache, &app->breaks.day_key,
+                         "break_daily_state_day", 0, 0, 999999999)
+    load_clamped_setting(&settings_cache,
+                         &app->breaks.timers[BREAK_DAILY].active_s,
+                         "break_daily_state_active", 0, 0, 86400)
+    load_bool_setting(&settings_cache,
+                      &app->breaks.timers[BREAK_DAILY].skipped_today,
+                      "break_daily_state_skipped", 0)
     #if ANDROID || WEB {
         app->on_screen_keyboard_enabled = 1
     }

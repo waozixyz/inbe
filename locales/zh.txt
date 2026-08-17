@@ -285,6 +285,15 @@ Finish
 [ok_button]
 确定
 ---
+[retry_button]
+重试
+---
+[audio_import_music_for_practice_button]
+为此练习导入音乐
+---
+[audio_imported_and_selected]
+音乐已导入并选择
+---
 [save_button]
 保存
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

@@ -31,6 +31,10 @@ sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
     return app->icons[UI_ICON_TYPE_SOUND3]
 }
 
+music_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
+    return app->icons[UI_ICON_TYPE_MUSIC]
+}
+
 start :: (app: InbeApp*, seconds: int) #private {
     if app == nil {
         return
@@ -422,13 +426,31 @@ draw_sound_controls :: (app: InbeApp*) #private {
 
     if IconSliderPopup((IconSliderPopupProps){
         .id = 501,
-        .x = view_width - ScaleUIPx(76),
+        .x = ScaleUIPx(8),
         .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
         .icon_size = ScaleUIPx(18),
         .icon_padding = ScaleUIPx(5),
         .icon = sound_icon_for_volume(app),
         .open = &app->volume_popup_active,
         .value = &app->sound_volume,
+        .min = SETTINGS_VOLUME_MIN,
+        .max = SETTINGS_VOLUME_MAX,
+        .popup_width = ScaleUIPx(40),
+        .popup_height = ScaleUIPx(176)
+    }) {
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+
+    if IconSliderPopup((IconSliderPopupProps){
+        .id = 503,
+        .x = ScaleUIPx(48),
+        .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
+        .icon_size = ScaleUIPx(18),
+        .icon_padding = ScaleUIPx(5),
+        .icon = music_icon_for_volume(app),
+        .open = &app->music_volume_popup_active,
+        .value = &app->music_volume,
         .min = SETTINGS_VOLUME_MIN,
         .max = SETTINGS_VOLUME_MAX,
         .popup_width = ScaleUIPx(40),

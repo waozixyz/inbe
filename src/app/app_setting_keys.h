@@ -84,6 +84,9 @@
     X("break_daily_postpone") \
     X("break_daily_max_prompts") \
     X("break_daily_show_skip") \
-    X("break_daily_show_postpone")
+    X("break_daily_show_postpone") \
+    X("break_daily_state_day") \
+    X("break_daily_state_active") \
+    X("break_daily_state_skipped")
 
 #endif

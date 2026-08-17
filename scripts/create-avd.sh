@@ -57,6 +57,11 @@ image_dir_ready() {
 }
 
 image_specs() {
+  if [ -n "${ANDROID_SYSTEM_IMAGE_TYPE:-}" ]; then
+    printf '%s x86_64\n%s arm64-v8a\n' "$ANDROID_SYSTEM_IMAGE_TYPE" "$ANDROID_SYSTEM_IMAGE_TYPE"
+    return
+  fi
+
   cat << EOF
 google_apis_playstore_ps16k x86_64
 google_apis_ps16k x86_64
@@ -89,16 +94,31 @@ find_system_image() {
 }
 
 install_system_image() {
-  if command -v sdkmanager >/dev/null 2>&1; then
-    SDKMANAGER=sdkmanager
-  elif [ -x "$ANDROID_SDK_ROOT/cmdline-tools/11.0/bin/sdkmanager" ]; then
-    SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/11.0/bin/sdkmanager"
-  elif [ -x "$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager" ]; then
-    SDKMANAGER="$ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager"
-  else
+  SDKMANAGER=""
+  for candidate in \
+    "$ANDROID_SDK_ROOT/cmdline-tools/latest-2/bin/sdkmanager" \
+    "$ORIGINAL_SDK_ROOT/cmdline-tools/latest-2/bin/sdkmanager"; do
+    if [ -x "$candidate" ]; then
+      SDKMANAGER="$candidate"
+      break
+    fi
+  done
+  if [ -z "$SDKMANAGER" ]; then
+    while IFS= read -r candidate; do
+      [ -x "$candidate" ] && SDKMANAGER="$candidate"
+    done < <(find -L "$ANDROID_SDK_ROOT/cmdline-tools" "$ORIGINAL_SDK_ROOT/cmdline-tools" \
+      -mindepth 3 -maxdepth 3 -type f -path '*/bin/sdkmanager' 2>/dev/null | sort -V)
+  fi
+
+  if [ -z "$SDKMANAGER" ] && command -v sdkmanager >/dev/null 2>&1; then
+    SDKMANAGER="$(command -v sdkmanager)"
+  fi
+  if [ -z "$SDKMANAGER" ]; then
     echo "❌ Error: sdkmanager not found"
     return 1
   fi
+
+  echo "📦 Using sdkmanager: $SDKMANAGER"
 
   while read -r type abi; do
     [ -n "$type" ] || continue
@@ -164,8 +184,8 @@ hw.lcd.height=2960
 hw.lcd.width=1440
 hw.gpu.enabled=yes
 hw.gpu.mode=host
-hw.ramSize=4096
-vm.heapSize=1024
+hw.ramSize=${ANDROID_AVD_RAM_MB:-4096}
+vm.heapSize=${ANDROID_AVD_HEAP_MB:-1024}
 hw.sdCard=yes
 hw.sdCard.size=2048MB
 disk.cachePartition=yes

@@ -44,6 +44,7 @@ static volatile struct {
 } current_insets = {0};
 static pthread_mutex_t insets_mutex = PTHREAD_MUTEX_INITIALIZER;
 static volatile int insets_initialized = 0;
+static int pending_practice_start = -1;
 
 static void nativeSetInsets(JNIEnv *env, jobject thiz,
     jint status_bar, jint nav_bar,
@@ -160,24 +161,71 @@ static jboolean nativeStartPractice(JNIEnv *env, jobject thiz, jint practice_id)
     if(app == NULL)
         return JNI_FALSE;
 
-    if(practice_id >= 0)
-        app->exercise_type = practice_clamp_id(practice_id);
-    if(app->modal.active)
-        app_close_modal(app);
-    {
-        int active_break = break_engine_active_break(&app->breaks);
-        const PracticeDefinition *practice;
+    pthread_mutex_lock(&insets_mutex);
+    pending_practice_start = practice_id >= 0
+        ? practice_clamp_id(practice_id)
+        : practice_clamp_id(app->exercise_type);
+    pthread_mutex_unlock(&insets_mutex);
+    return JNI_TRUE;
+}
 
-        if(active_break >= 0) {
-            app_breaks_start_practice(app, active_break, app->exercise_type);
-            return JNI_TRUE;
-        }
-        app->main_tab = APP_MAIN_TAB_PRACTICE;
-        app->practice_tab = PRACTICE_TAB_PLAY;
-        practice = practice_get(app->exercise_type);
-        if(practice != NULL && practice->start != NULL)
-            practice->start(app);
+int android_take_pending_practice_start(void)
+{
+    int practice_id;
+
+    pthread_mutex_lock(&insets_mutex);
+    practice_id = pending_practice_start;
+    pending_practice_start = -1;
+    pthread_mutex_unlock(&insets_mutex);
+    return practice_id;
+}
+
+static jboolean
+nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
+                                  jint practice_id)
+{
+    InbeApp *app = get_global_inbe_app();
+    const char *native_path;
+    int error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
+    int track;
+
+    (void)thiz;
+    if(app == NULL || path == NULL)
+        return JNI_FALSE;
+    native_path = (*env)->GetStringUTFChars(env, path, NULL);
+    if(native_path == NULL)
+        return JNI_FALSE;
+    app_audio_ensure_ready(app);
+    if(!app_audio_import_custom_music_ex(app, native_path, &error_code)) {
+        TraceLog(LOG_ERROR, "AUDIO_E2E: import failed error=%d path=%s",
+                 error_code, native_path);
+        (*env)->ReleaseStringUTFChars(env, path, native_path);
+        return JNI_FALSE;
     }
+    (*env)->ReleaseStringUTFChars(env, path, native_path);
+
+    practice_id = practice_clamp_id(practice_id);
+    track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1;
+    app->meditation.music_practice_tracks[practice_id] = track;
+    app->meditation.music_track = track;
+    app_audio_music_sanitize_selection(app);
+    app->sound_volume = 0;
+    app->music_volume = 100;
+    save_settings(app);
+    TraceLog(LOG_INFO,
+             "AUDIO_E2E: imported and selected track=%d practice=%d path=%s",
+             track, (int)practice_id, app->audio_custom_music[track - INBE_AUDIO_BUILTIN_MUSIC_COUNT].path);
+    return JNI_TRUE;
+}
+
+static jboolean nativeDebugStartMusicDownload(JNIEnv *env, jobject thiz)
+{
+    InbeApp *app = get_global_inbe_app();
+    (void)env;
+    (void)thiz;
+    if(app == NULL)
+        return JNI_FALSE;
+    meditation_music_start_download(app);
     return JNI_TRUE;
 }
 
@@ -201,6 +249,8 @@ static const JNINativeMethod g_methods[] = {
     {"nativeTextInputEnter", "()V", (void*)android_device_native_text_input_enter},
     {"nativeInvalidateGraphicsResources", "()V", (void*)nativeInvalidateGraphicsResources},
     {"nativeStartPractice", "(I)Z", (void*)nativeStartPractice},
+    {"nativeDebugImportMusicForPractice", "(Ljava/lang/String;I)Z", (void*)nativeDebugImportMusicForPractice},
+    {"nativeDebugStartMusicDownload", "()Z", (void*)nativeDebugStartMusicDownload},
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -234,6 +284,7 @@ JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
 void android_insets_init(void) {
     pthread_mutex_lock(&insets_mutex);
     memset((void *)&current_insets, 0, sizeof(current_insets));
+    pending_practice_start = -1;
     insets_initialized = 0;
     pthread_mutex_unlock(&insets_mutex);
 }

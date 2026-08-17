@@ -1,4 +1,16 @@
 # Changelog
+## [1.9.3] - 2026-08-17
+### Added
+- Custom MP3 music can be imported and selected independently for Wim Hof, Meditation and Sun Salutation practices.
+
+### Changed
+- Running sessions now provide separate top-left controls for sound effects and background-music volume.
+
+### Fixed
+- Custom MP3 tracks now decode and play during Wim Hof sessions, including after restarting the app; previewing music no longer starts a practice.
+- Music download failures now offer clear Cancel and Retry actions instead of ambiguous buttons.
+- Daily break progress and skipped state persist across app restarts and reset only at the configured daily boundary.
+
 ## [1.9.2] - 2026-08-17
 ### Added
 - Breathing Patterns with Box, 4-7-8, coherent, extended-exhale and custom timed breathing sessions.

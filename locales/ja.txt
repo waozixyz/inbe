@@ -285,6 +285,15 @@ Finish
 [ok_button]
 OK
 ---
+[retry_button]
+再試行
+---
+[audio_import_music_for_practice_button]
+この練習用の音楽をインポート
+---
+[audio_imported_and_selected]
+音楽をインポートして選択しました
+---
 [save_button]
 保存
 ---
@@ -1247,9 +1256,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

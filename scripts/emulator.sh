@@ -3,6 +3,7 @@
 set -e
 
 AVD_NAME="${AVD_NAME:-inbe-test}"
+EMULATOR_PORT="${ANDROID_EMULATOR_PORT:-}"
 UNAME_S="$(uname -s)"
 KERNEL_R="$(uname -r 2>/dev/null || true)"
 SOFT_EMULATOR=0
@@ -64,6 +65,32 @@ if [ ! -x "$ADB_CMD" ]; then
   ADB_CMD="$(command -v adb)"
 fi
 
+if [ -n "$EMULATOR_PORT" ]; then
+  EMULATOR_SERIAL="emulator-$EMULATOR_PORT"
+  ADB_ARGS=(-s "$EMULATOR_SERIAL")
+  PORT_ARGS=(-port "$EMULATOR_PORT")
+else
+  EMULATOR_SERIAL=""
+  ADB_ARGS=(-e)
+  PORT_ARGS=()
+fi
+
+if [ -n "${ANDROID_EMULATOR_AUDIO_BACKEND:-}" ]; then
+  AUDIO_ARGS=(-audio "$ANDROID_EMULATOR_AUDIO_BACKEND")
+elif [ "$SOFT_EMULATOR" -eq 1 ]; then
+  AUDIO_ARGS=(-no-audio)
+else
+  AUDIO_ARGS=()
+fi
+
+if [ -n "${ANDROID_EMULATOR_RAM_MB:-}" ]; then
+  MEMORY_ARGS=(-memory "$ANDROID_EMULATOR_RAM_MB")
+  QEMU_MEMORY_ARGS=(-m "$ANDROID_EMULATOR_RAM_MB")
+else
+  MEMORY_ARGS=()
+  QEMU_MEMORY_ARGS=()
+fi
+
 EMULATOR_CMD="${ANDROID_SDK_ROOT}/emulator/emulator"
 if [ ! -x "$EMULATOR_CMD" ]; then
   EMULATOR_CMD="$(command -v emulator)"
@@ -77,7 +104,11 @@ if [ "$UNAME_S" = "FreeBSD" ] && command -v brandelf >/dev/null 2>&1; then
 fi
 
 # Check if emulator is already running
-if "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
+if [ -n "$EMULATOR_SERIAL" ] && "$ADB_CMD" devices | grep -q "^$EMULATOR_SERIAL[[:space:]]*device"; then
+  echo "✅ Emulator already running"
+  "$ADB_CMD" devices
+  exit 0
+elif [ -z "$EMULATOR_SERIAL" ] && "$ADB_CMD" devices | grep -q '^emulator-[0-9][0-9]*[[:space:]]*device'; then
   echo "✅ Emulator already running"
   "$ADB_CMD" devices
   exit 0
@@ -100,7 +131,9 @@ export ANDROID_SDK_ROOT="$ANDROID_SDK_ROOT"
 if [ "$SOFT_EMULATOR" -eq 1 ]; then
   LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
     -no-window \
-    -no-audio \
+    "${AUDIO_ARGS[@]}" \
+    "${PORT_ARGS[@]}" \
+    "${MEMORY_ARGS[@]}" \
     -gpu off \
     -no-accel \
     -no-snapshot-load \
@@ -108,12 +141,15 @@ if [ "$SOFT_EMULATOR" -eq 1 ]; then
     -verbose > /tmp/emulator.log 2>&1 &
 else
   LD_LIBRARY_PATH="$EMULATOR_LD_LIBRARY_PATH${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}" "$EMULATOR_CMD" @"$AVD_NAME" \
+    "${AUDIO_ARGS[@]}" \
+    "${PORT_ARGS[@]}" \
+    "${MEMORY_ARGS[@]}" \
     -gpu host \
     -skin 1440x2960 \
     -no-snapshot-load \
     -no-boot-anim \
     -verbose \
-    -qemu -enable-kvm > /tmp/emulator.log 2>&1 &
+    -qemu "${QEMU_MEMORY_ARGS[@]}" -enable-kvm > /tmp/emulator.log 2>&1 &
 fi
 
 echo "⏳ Waiting for boot (this may take a while)..."
@@ -123,8 +159,8 @@ if [ "$SOFT_EMULATOR" -eq 1 ]; then
 fi
 elapsed=0
 
-timeout 20 "$ADB_CMD" -e wait-for-device >/dev/null 2>&1 || true
-while ! "$ADB_CMD" -e shell getprop sys.boot_completed 2>/dev/null | grep -q "1"; do
+timeout 20 "$ADB_CMD" "${ADB_ARGS[@]}" wait-for-device >/dev/null 2>&1 || true
+while ! "$ADB_CMD" "${ADB_ARGS[@]}" shell getprop sys.boot_completed 2>/dev/null | grep -q "1"; do
   if [ $elapsed -ge $timeout_seconds ]; then
     echo "❌ Timeout waiting for boot. Check /tmp/emulator.log"
     exit 1
@@ -148,20 +184,20 @@ done
 echo "✅ Pixel 8 Pro emulator ready!"
 
 echo "🎯 Enabling punch-hole display cutout overlay if available..."
-if "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.hole"; then
-  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.hole || true
-elif "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.corner"; then
-  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.corner || true
-elif "$ADB_CMD" -e shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.tall"; then
-  "$ADB_CMD" -e shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.tall || true
+if "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.hole"; then
+  "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.hole || true
+elif "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.corner"; then
+  "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.corner || true
+elif "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay list 2>/dev/null | grep -q "com.android.internal.display.cutout.emulation.tall"; then
+  "$ADB_CMD" "${ADB_ARGS[@]}" shell cmd overlay enable --user 0 com.android.internal.display.cutout.emulation.tall || true
 else
   echo "   No display cutout emulation overlay found on this image"
 fi
 
 echo ""
 echo "📱 Device info:"
-"$ADB_CMD" -e shell getprop ro.product.model
-"$ADB_CMD" -e shell getprop ro.build.version.release
-"$ADB_CMD" -e shell getprop ro.build.version.sdk
+"$ADB_CMD" "${ADB_ARGS[@]}" shell getprop ro.product.model
+"$ADB_CMD" "${ADB_ARGS[@]}" shell getprop ro.build.version.release
+"$ADB_CMD" "${ADB_ARGS[@]}" shell getprop ro.build.version.sdk
 echo ""
 echo "   Connect with: $ADB_CMD -e shell"

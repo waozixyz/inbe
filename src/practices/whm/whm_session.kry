@@ -990,6 +990,10 @@ sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
     return app->icons[UI_ICON_TYPE_SOUND3]
 }
 
+music_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
+    return app->icons[UI_ICON_TYPE_MUSIC]
+}
+
 stop_android_background_session :: (app: InbeApp*) #private {
     meditation_music_stop(app)
     practice_active_background_stop(app)
@@ -1049,7 +1053,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 
     if IconSliderPopup((IconSliderPopupProps){
            .id = 500,
-           .x = view_width - ScaleUIPx(76),
+           .x = ScaleUIPx(8),
            .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
            .icon_size = ScaleUIPx(18),
            .icon_padding = ScaleUIPx(5),
@@ -1063,6 +1067,24 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
        }) {
         app->settings_dirty = 1
         update_session_sounds(app)
+        save_settings(app)
+    }
+
+    if IconSliderPopup((IconSliderPopupProps){
+           .id = 502,
+           .x = ScaleUIPx(48),
+           .y = (title_h - (ScaleUIPx(18) + ScaleUIPx(5) * 2)) / 2,
+           .icon_size = ScaleUIPx(18),
+           .icon_padding = ScaleUIPx(5),
+           .icon = music_icon_for_volume(app),
+           .open = &app->music_volume_popup_active,
+           .value = &app->music_volume,
+           .min = SETTINGS_VOLUME_MIN,
+           .max = SETTINGS_VOLUME_MAX,
+           .popup_width = ScaleUIPx(40),
+           .popup_height = ScaleUIPx(176)
+       }) {
+        app->settings_dirty = 1
         save_settings(app)
     }
 

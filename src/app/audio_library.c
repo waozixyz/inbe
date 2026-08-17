@@ -362,6 +362,7 @@ int
 app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code)
 {
     int index;
+    Music probe;
 
     if(error_code)
         *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
@@ -379,6 +380,19 @@ app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code
                               app_audio_music_file_valid, error_code);
     if(index < 0)
         return 0;
+    probe = LoadMusicStream(app->audio_custom_music[index].path);
+    if(!IsMusicValid(probe)) {
+        TraceLog(LOG_ERROR, "AUDIO: Imported music could not be decoded: %s",
+                 app->audio_custom_music[index].path);
+        remove(app->audio_custom_music[index].path);
+        memset(&app->audio_custom_music[index], 0,
+               sizeof(app->audio_custom_music[index]));
+        app->audio_custom_music_count = index;
+        if(error_code)
+            *error_code = AUDIO_IMPORT_ERROR_INVALID_FORMAT;
+        return 0;
+    }
+    UnloadMusicStream(probe);
     app->meditation.music_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
     app_audio_music_sanitize_selection(app);
     app_audio_library_save(app);

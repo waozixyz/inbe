@@ -285,6 +285,15 @@ Salta
 [ok_button]
 OK
 ---
+[retry_button]
+Riprova
+---
+[audio_import_music_for_practice_button]
+Importa musica per questa pratica
+---
+[audio_imported_and_selected]
+Musica importata e selezionata
+---
 [save_button]
 Salva
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

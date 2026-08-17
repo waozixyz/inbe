@@ -285,6 +285,15 @@ Abbrechen
 [ok_button]
 OK
 ---
+[retry_button]
+Erneut versuchen
+---
+[audio_import_music_for_practice_button]
+Musik für diese Übung importieren
+---
+[audio_imported_and_selected]
+Musik importiert und ausgewählt
+---
 [save_button]
 Speichern
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

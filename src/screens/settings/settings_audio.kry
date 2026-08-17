@@ -53,11 +53,13 @@ static audio_preview_sound: Sound = {0}
 static audio_preview_music: Music = {0}
 static audio_preview_music_loaded: int = 0
 static audio_status_action: int = SETTINGS_AUDIO_ACTION_NONE
+static audio_status_practice: int = -1
 static audio_status_type: int = 0
 static audio_status: [256] char = ""
 
 #if ANDROID || WEB {
     static audio_import_action: int = SETTINGS_AUDIO_ACTION_NONE
+    static audio_import_practice: int = -1
     static audio_dialog_origin: SettingsAudioDialogOrigin = {0}
 }
 
@@ -115,12 +117,13 @@ settings_audio_file_dialog_available :: () -> int #private {
     }
 }
 
-settings_audio_dialog_begin :: (app: InbeApp*, action: int) #private {
+settings_audio_dialog_begin :: (app: InbeApp*, action: int, practice: int) #private {
     #if ANDROID || WEB {
         if app == nil {
             return
         }
         audio_import_action = action
+        audio_import_practice = practice
         app->file_dialog_active = 1
         audio_dialog_origin.active = 1
         audio_dialog_origin.screen = app->inbe.screen
@@ -143,6 +146,7 @@ settings_audio_dialog_finish :: (app: InbeApp*) -> int #private {
         }
         audio_dialog_origin.active = 0
         audio_import_action = SETTINGS_AUDIO_ACTION_NONE
+        audio_import_practice = -1
         if app != nil {
             app->file_dialog_active = 0
         }
@@ -383,10 +387,30 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
     return 0
 }
 
-settings_audio_start_import :: (app: InbeApp*, action: int) #private {
+settings_audio_select_imported_music :: (app: InbeApp*, action: int,
+                                         practice: int) #private {
+    if app == nil || action != SETTINGS_AUDIO_ACTION_MUSIC ||
+       practice < 0 || practice >= practice_count() ||
+       app->audio_custom_music_count <= 0 {
+        return
+    }
+    track := INBE_AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1
+    app->meditation.music_practice_tracks[practice] = track
+    app->meditation.music_track = track
+    app_audio_music_sanitize_selection(app)
+    save_settings(app)
+    settings_audio_set_status_success(action,
+        GetLocaleText("audio_imported_and_selected"))
+    TraceLog(LOG_INFO,
+        "AUDIO: Imported custom music and selected track %d for practice %d",
+        track, practice)
+}
+
+settings_audio_start_import :: (app: InbeApp*, action: int, practice: int) #private {
     settings_audio_stop_preview(app)
+    audio_status_practice = practice
     #if ANDROID {
-        settings_audio_dialog_begin(app, action)
+        settings_audio_dialog_begin(app, action, practice)
         if android_import_open_picker_for(audio_android_kind(action),
                                           android_audio_mime_types) {
             settings_audio_set_status_success(action, GetLocaleText("audio_import_title"))
@@ -400,7 +424,7 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         }
         InitFileDialog(&audio_web_dialog)
         audio_web_dialog_ready = 1
-        settings_audio_dialog_begin(app, action)
+        settings_audio_dialog_begin(app, action, practice)
         BeginLoadFilteredFileDialog(&audio_web_dialog,
                                     GetLocaleText("audio_import_title"),
                                     settings_audio_import_filter(action))
@@ -413,7 +437,9 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
         }
         InitFileDialog(&dlg)
         if LoadFileDialog(&dlg, GetLocaleText("audio_import_title")) {
-            audio_import_path(app, action, GetFileDialogPath(&dlg))
+            if audio_import_path(app, action, GetFileDialogPath(&dlg)) {
+                settings_audio_select_imported_music(app, action, practice)
+            }
         } else {
             settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
         }
@@ -421,6 +447,7 @@ settings_audio_start_import :: (app: InbeApp*, action: int) #private {
     } #else {
         unused app
         unused action
+        unused practice
         settings_audio_set_status_error(action, GetLocaleText("audio_import_failed"))
     }
 }
@@ -430,6 +457,7 @@ settings_audio_handle_import :: (app: InbeApp*) {
         path: [FS_PATH_MAX] char = {0}
         result: int
         action := audio_import_action
+        practice := audio_import_practice
 
         if action == SETTINGS_AUDIO_ACTION_NONE {
             return
@@ -444,11 +472,14 @@ settings_audio_handle_import :: (app: InbeApp*) {
             settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
             return
         }
-        audio_import_path(app, action, path)
+        if audio_import_path(app, action, path) {
+            settings_audio_select_imported_music(app, action, practice)
+        }
     } #else_if WEB {
         result: int
         path: const char*
         action: int
+        practice := audio_import_practice
 
         if !audio_web_dialog_ready || !audio_web_dialog.active {
             return
@@ -462,7 +493,9 @@ settings_audio_handle_import :: (app: InbeApp*) {
         if result == 0 {
             settings_audio_set_status_error(action, GetLocaleText("audio_import_cancelled"))
         } else {
-            audio_import_path(app, action, path)
+            if audio_import_path(app, action, path) {
+                settings_audio_select_imported_music(app, action, practice)
+            }
         }
         CloseFileDialog(&audio_web_dialog)
         audio_web_dialog_ready = 0
@@ -592,8 +625,8 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
             }
         }
     }
-    height += practice_total_h
-    height += settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_MUSIC)
+    height += practice_total_h +
+              practice_n * settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_MUSIC)
 
     if custom_music_count > 0 {
         height += ScaleUIPx(30) + ScaleUIPx(42) * custom_music_count
@@ -603,14 +636,17 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
     return height
 }
 
-draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int) #private {
+draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
     hover := 0
-    if GenericButton(880 + action, x, *y, w, ScaleUIPx(36), label,
+    button_id := 880 + action + (practice >= 0 ? (practice + 1) * 16 : 0)
+    if GenericButton(button_id, x, *y, w, ScaleUIPx(36), label,
                            UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
-        settings_audio_start_import(app, action)
+        settings_audio_start_import(app, action, practice)
     }
     *y += ScaleUIPx(42)
-    settings_audio_draw_status(x, y, action)
+    if action != SETTINGS_AUDIO_ACTION_MUSIC || practice == audio_status_practice {
+        settings_audio_draw_status(x, y, action)
+    }
     *y += ScaleUIPx(6)
 }
 
@@ -653,7 +689,7 @@ draw_cue_selector :: (app: InbeApp*, x: int, w: int, y: int*, cue: int,
     }
     *y += ScaleUIPx(76)
     draw_import_button(app, x, w, y, GetLocaleText("audio_import_sound_button"),
-                       action)
+                       action, -1)
 }
 
 draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
@@ -766,10 +802,10 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         *y += ScaleUIPx(48)
         draw_music_attribution(x, w, app->meditation.music_practice_tracks[p], y)
         *y += ScaleUIPx(6)
+        draw_import_button(app, x, w, y,
+                           GetLocaleText("audio_import_music_for_practice_button"),
+                           SETTINGS_AUDIO_ACTION_MUSIC, p)
     }
-
-    draw_import_button(app, x, w, y, GetLocaleText("audio_import_music_button"),
-                       SETTINGS_AUDIO_ACTION_MUSIC)
 
     if app->audio_custom_music_count <= 0 {
         return

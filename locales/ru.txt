@@ -288,6 +288,15 @@ Finish
 [ok_button]
 OK
 ---
+[retry_button]
+Повторить
+---
+[audio_import_music_for_practice_button]
+Импортировать музыку для этой практики
+---
+[audio_imported_and_selected]
+Музыка импортирована и выбрана
+---
 [save_button]
 Сохранить
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

@@ -285,6 +285,15 @@ Přeskočit
 [ok_button]
 OK
 ---
+[retry_button]
+Zkusit znovu
+---
+[audio_import_music_for_practice_button]
+Importovat hudbu pro toto cvičení
+---
+[audio_imported_and_selected]
+Hudba importována a vybrána
+---
 [save_button]
 Uložit
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

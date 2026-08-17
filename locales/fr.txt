@@ -285,6 +285,15 @@ Ignorer
 [ok_button]
 OK
 ---
+[retry_button]
+Réessayer
+---
+[audio_import_music_for_practice_button]
+Importer de la musique pour cette pratique
+---
+[audio_imported_and_selected]
+Musique importée et sélectionnée
+---
 [save_button]
 Enregistrer
 ---
@@ -1244,9 +1253,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

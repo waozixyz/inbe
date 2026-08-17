@@ -57,7 +57,10 @@ public class MainActivity extends NativeActivity {
 
     /** Fired by the home-screen widget, the quick-settings tile and the launcher shortcuts. */
     public static final String ACTION_START_PRACTICE = "xyz.waozi.inbe.action.START_PRACTICE";
+    public static final String ACTION_AUDIO_E2E_IMPORT = "xyz.waozi.inbe.action.AUDIO_E2E_IMPORT";
+    public static final String ACTION_AUDIO_E2E_DOWNLOAD = "xyz.waozi.inbe.action.AUDIO_E2E_DOWNLOAD";
     public static final String EXTRA_PRACTICE_ID = "practice_id";
+    public static final String EXTRA_AUDIO_FILE_NAME = "audio_file_name";
 
     static {
         System.loadLibrary("main");
@@ -96,6 +99,8 @@ public class MainActivity extends NativeActivity {
     private native void nativeTextInputEnter();
     private native void nativeInvalidateGraphicsResources();
     private native boolean nativeStartPractice(int practiceId);
+    private native boolean nativeDebugImportMusicForPractice(String path, int practiceId);
+    private native boolean nativeDebugStartMusicDownload();
 
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -505,6 +510,32 @@ public class MainActivity extends NativeActivity {
         }
     }
 
+    private void handleAudioE2EIntent(Intent intent) {
+        boolean debuggable = (getApplicationInfo().flags &
+            android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        if (!debuggable || intent == null ||
+            (!ACTION_AUDIO_E2E_IMPORT.equals(intent.getAction()) &&
+             !ACTION_AUDIO_E2E_DOWNLOAD.equals(intent.getAction()))) {
+            return;
+        }
+        if (ACTION_AUDIO_E2E_DOWNLOAD.equals(intent.getAction())) {
+            Log.i(TAG, "AUDIO_E2E: download " +
+                (nativeDebugStartMusicDownload() ? "started" : "failed"));
+            return;
+        }
+        String fileName = sanitizeFileName(intent.getStringExtra(EXTRA_AUDIO_FILE_NAME));
+        int practiceId = intent.getIntExtra(EXTRA_PRACTICE_ID, 0);
+        if (fileName == null) {
+            Log.e(TAG, "AUDIO_E2E: invalid fixture file name");
+            return;
+        }
+        File file = new File(getFilesDir(), fileName);
+        boolean imported = file.isFile() &&
+            nativeDebugImportMusicForPractice(file.getAbsolutePath(), practiceId);
+        Log.i(TAG, "AUDIO_E2E: import " + (imported ? "ready" : "failed") +
+            " practice=" + practiceId + " path=" + file.getAbsolutePath());
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -734,6 +765,7 @@ public class MainActivity extends NativeActivity {
 
         // Widget/tile/shortcut launch: the intent that started this activity.
         handleStartPracticeIntent(getIntent());
+        handleAudioE2EIntent(getIntent());
     }
 
     @Override
@@ -972,6 +1004,7 @@ public class MainActivity extends NativeActivity {
         requestInsetRefresh();
         syncLifecycleState("onNewIntent");
         handleStartPracticeIntent(intent);
+        handleAudioE2EIntent(intent);
     }
 
     @Override

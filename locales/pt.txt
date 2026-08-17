@@ -285,6 +285,15 @@ Pular
 [ok_button]
 OK
 ---
+[retry_button]
+Tentar novamente
+---
+[audio_import_music_for_practice_button]
+Importar música para esta prática
+---
+[audio_imported_and_selected]
+Música importada e selecionada
+---
 [save_button]
 Salvar
 ---
@@ -1245,9 +1254,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

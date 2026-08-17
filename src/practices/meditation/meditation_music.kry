@@ -510,13 +510,13 @@ load_track :: (app: InbeApp*, track: int) -> int #private {
 
     meditation_music_unload(app)
     if !app_audio_music_path(app, track, path, sizeof(path)) ||
-       !audio_file_looks_valid(path) {
+       !app_audio_music_file_valid(path) {
         set_status(app, "Track is not installed")
         return 0
     }
 
     app->meditation.music = LoadMusicStream(path)
-    if app->meditation.music.ctxData == nil {
+    if !IsMusicValid(app->meditation.music) {
         TraceLog(LOG_ERROR, "AUDIO: Could not load meditation track: %s", path)
         set_status(app, "Could not load track")
         app->meditation.music_loaded = 0
@@ -552,10 +552,6 @@ test_track :: (app: InbeApp*) #private {
     }
 
     PlayMusicStream(app->meditation.music)
-    if !IsMusicStreamPlaying(app->meditation.music) {
-        TraceLog(LOG_ERROR,
-                    "AUDIO: PlayMusicStream returned but test music is not playing")
-    }
     app->meditation.music_playing = 1
     app->meditation.music_test_playing = 1
     set_status(app, "Playing test audio")
@@ -579,10 +575,6 @@ meditation_music_start_session :: (app: InbeApp*) {
         return
     }
     PlayMusicStream(app->meditation.music)
-    if !IsMusicStreamPlaying(app->meditation.music) {
-        TraceLog(LOG_ERROR,
-                    "AUDIO: PlayMusicStream returned but session music is not playing")
-    }
     app->meditation.music_playing = 1
     app->meditation.music_test_playing = 0
 }
@@ -618,6 +610,8 @@ meditation_music_update :: (app: InbeApp*) {
         if is_network_download_error(&app->meditation.music_download) {
             set_status(app, GetLocaleText("meditation_music_network_error_title"))
             if !app->meditation.music_network_error_notified && !app->modal.active {
+                TraceLog(LOG_INFO,
+                    "AUDIO: Showing network error dialog with Cancel and Retry")
                 app_open_modal(app, UIModalMeditationNetworkError)
                 app->meditation.music_network_error_notified = 1
             }

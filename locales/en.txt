@@ -288,6 +288,15 @@ Skip
 [ok_button]
 OK
 ---
+[retry_button]
+Retry
+---
+[audio_import_music_for_practice_button]
+Import music for this practice
+---
+[audio_imported_and_selected]
+Music imported and selected
+---
 [save_button]
 Save
 ---
@@ -446,9 +455,6 @@ Import audio
 ---
 [audio_import_sound_button]
 Import sound
----
-[audio_import_music_button]
-Import music
 ---
 [audio_imported]
 Audio imported

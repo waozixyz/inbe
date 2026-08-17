@@ -538,6 +538,7 @@ struct InbeApp {
     int desktop_close_action;   /* INBE_CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];
     int volume_popup_active;
+    int music_volume_popup_active;
     InbeModal modal;
     int play_circle_hover;
     float play_circle_scale;
