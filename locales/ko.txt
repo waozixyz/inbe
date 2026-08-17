@@ -911,8 +911,6 @@ Yoga
 [practice_home_patterns_metadata]
 %s | %d분
 ---
-%d 라운드 | %d 호흡
----
 [meditation_music_downloading_progress]
 오디오 다운로드 중... %d%%
 ---
@@ -1089,6 +1087,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Health Connect로 내보내기
+---
+[health_connect_started]
+Health Connect를 열었습니다
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

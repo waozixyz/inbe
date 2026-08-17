@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="widget_breathe_label">Breathe</string>
+    <string name="widget_breathe_app">Inner Breeze</string>
+    <string name="widget_breathe_action">Breathe</string>
+    <string name="tile_breathe_label">Breathe</string>
+    <string name="shortcut_whm">Wim Hof</string>
+    <string name="shortcut_meditation">Meditation</string>
+    <string name="shortcut_sun_salutation">Sun salutation</string>
+    <string name="shortcut_patterns">Breathing patterns</string>
+    <string name="health_connect_unavailable">Health Connect is not available on this device</string>
+    <string name="health_connect_cancelled">Health Connect export cancelled</string>
+    <string name="health_connect_denied">Health Connect permission was denied</string>
+    <string name="health_connect_nothing_new">No new sessions to export</string>
+    <string name="health_connect_exported">Exported %1$d sessions to Health Connect</string>
+    <string name="health_connect_failed">Health Connect export failed</string>
+    <string name="health_connect_title_meditation">Meditation</string>
+    <string name="health_connect_title_breathing">Breathing exercise</string>
+    <string name="health_connect_title_yoga">Sun salutation</string>
+    <string name="health_connect_title_patterns">Breathing patterns</string>
+</resources>

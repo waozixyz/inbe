@@ -641,6 +641,12 @@ Show
 [export_csv_button]
 Export CSV
 ---
+[export_health_connect_button]
+Export to Health Connect
+---
+[health_connect_started]
+Health Connect opened
+---
 [export_csv_dialog_title]
 Export sessions as CSV
 ---
@@ -1089,8 +1095,6 @@ Session data comes from completed practices.
 ---
 [practice_home_patterns_metadata]
 %s | %d min
----
-%d rounds | %d breaths
 ---
 [meditation_music_downloading_progress]
 Downloading audio... %d%%

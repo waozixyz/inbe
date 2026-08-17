@@ -912,8 +912,6 @@ Data sesi berasal dari latihan selesai.
 [practice_home_patterns_metadata]
 %s | %d mnt
 ---
-%d ronde | %d napas
----
 [meditation_music_downloading_progress]
 Mengunduh audio... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Ekspor ke Health Connect
+---
+[health_connect_started]
+Health Connect dibuka
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

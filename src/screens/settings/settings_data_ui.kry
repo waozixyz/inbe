@@ -10,6 +10,7 @@
 #import "storage.h"
 #import "sync_account.h"
 #import "android_import.h"
+#import "platform/android/android_health"
 #import "stdio.h"
 #import "stdlib.h"
 #import "string.h"
@@ -309,11 +310,16 @@ content_height :: (content_w: int) -> int {
 
     unused content_w
 
+    health_row := 0
+    #if ANDROID {
+        health_row = data_button_h + ScaleUIPx(12)
+    }
     return ScaleUIPx(SETTINGS_DATA_TOP_PADDING) +
            data_button_h + ScaleUIPx(12) +
            data_button_h + ScaleUIPx(12) +
            data_button_h + ScaleUIPx(12) +
            data_button_h + ScaleUIPx(12) +
+           health_row +
            ScaleUIPx(42) +
            ScaleUIPx(40)
 }
@@ -350,6 +356,16 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
         export_csv(app)
     }
     *y += data_button_h + ScaleUIPx(12)
+
+    #if ANDROID {
+        hover_health: int = 0
+        if GenericButton(0, x, *y, w, data_button_h,
+                               GetLocaleText("export_health_connect_button"),
+                               UI_BUTTON_STYLE_SECONDARY, 0, &hover_health) {
+            export_health_connect(app)
+        }
+        *y += data_button_h + ScaleUIPx(12)
+    }
 
     if !has_account {
         if GenericButton(0, x, *y, w, data_button_h,
@@ -668,6 +684,27 @@ export_csv :: (app: InbeApp*) #private {
     } #else {
         unused app
         settings_screen_set_status_error(GetLocaleText("export_failed"))
+    }
+}
+
+# One-way push of finished sessions into Android's Health Connect:
+# meditation becomes a mindfulness session, the breathwork practices
+# become yoga exercise sessions. Java owns permissions, the incremental
+# marker and the result toasts.
+export_health_connect :: (app: InbeApp*) #private {
+    #if ANDROID {
+        if !data_has_any() {
+            settings_screen_set_status_error(GetLocaleText("no_data_to_export"))
+            return
+        }
+        if platform_android_health_export() {
+            settings_screen_set_status_success(
+                GetLocaleText("health_connect_started"), nil)
+        } else {
+            settings_screen_set_status_error(GetLocaleText("export_failed"))
+        }
+    } #else {
+        unused app
     }
 }
 

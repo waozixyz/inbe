@@ -912,8 +912,6 @@ Yoga
 [practice_home_patterns_metadata]
 %s | %d мин
 ---
-%d раундов | %d дыханий
----
 [meditation_music_downloading_progress]
 Загрузка аудио... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Экспорт в Health Connect
+---
+[health_connect_started]
+Health Connect открыт
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

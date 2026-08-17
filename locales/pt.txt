@@ -912,8 +912,6 @@ Os dados vêm de práticas concluídas.
 [practice_home_patterns_metadata]
 %s | %d min
 ---
-%d rodadas | %d respirações
----
 [meditation_music_downloading_progress]
 Baixando áudio... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Exportar para o Health Connect
+---
+[health_connect_started]
+Health Connect aberto
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

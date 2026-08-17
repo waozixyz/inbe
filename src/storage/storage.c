@@ -2888,3 +2888,50 @@ storage_export_sessions_csv(const char *path)
     sqlite3_finalize(stmt);
     return ok;
 }
+
+/* Minimal session list for Health Connect: epoch start/end plus the
+ * activity id. Duration prefers meditation_logs (activity 1) and falls
+ * back to the sum of session_rounds (breathwork, sun salutation,
+ * patterns). */
+int
+storage_export_health_connect_csv(const char *path)
+{
+    static const char *query =
+        "SELECT s.started_at, s.activity, "
+        "COALESCE((SELECT m.duration_seconds FROM meditation_logs m "
+        "          WHERE m.session_id = s.id), "
+        "(SELECT SUM(r.seconds) FROM session_rounds r "
+        "          WHERE r.session_id = s.id), 0) "
+        "FROM sessions s WHERE s.deleted_at IS NULL "
+        "ORDER BY s.started_at";
+    FILE *file;
+    sqlite3_stmt *stmt;
+    int rows = 0;
+
+    if(path == NULL || path[0] == '\0' || g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, query, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+
+    file = fopen(path, "wb");
+    if(file == NULL) {
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+    fputs("start,end,practice\n", file);
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        long long start = sqlite3_column_int64(stmt, 0);
+        int activity = sqlite3_column_int(stmt, 1);
+        long long duration = sqlite3_column_int64(stmt, 2);
+
+        if(start <= 0 || duration <= 0)
+            continue;
+        fprintf(file, "%lld,%lld,%d\n", start, start + duration, activity);
+        rows++;
+    }
+    if(ferror(file) != 0)
+        rows = 0;
+    fclose(file);
+    sqlite3_finalize(stmt);
+    return rows > 0;
+}

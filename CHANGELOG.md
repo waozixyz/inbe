@@ -3,6 +3,8 @@
 ### Added
 - Breathing Patterns practice: timed-ratio breathing with Box 4-4-4-4, 4-7-8, Coherent 5-0-5-0, Extended-exhale 4-0-6-0 and fully custom patterns, a per-phase editor, duration cap, animated circle with phase cues, pause/resume, and its own tray quick-start. Sessions save like any other practice (stats, habits, CSV export, sync).
 - Practices can replace a break: the break window shows a chip per visible practice below the panel; starting one counts the break as taken and freezes break scheduling for the whole session, so timers restart after the practice ends no matter how long it runs. Break prompts never pop over a running practice.
+- Android: sessions export to Health Connect (Data & export): meditation and breathwork become mindfulness records, sun salutation a yoga exercise session; incremental (only new sessions), with the standard Health Connect permission flow. Devices without Health Connect (or below Android 8) show a toast instead.
+- Android: a "Breathe" home-screen widget, a quick-settings tile, and per-practice launcher shortcuts (Wim Hof / Meditation / Sun salutation / Patterns) that start the practice straight away - including replacing an active break.
 - Interval bells for meditation: chime every 1/2/5/10/15/30 minutes (off by default).
 - Habits: per-habit weekday schedules and reminder times (notification once per scheduled day), cap raised to 32; off-schedule days neither extend nor break streaks and the overview grid dims them.
 - Stats: CSV export of all sessions (Data & export settings).
@@ -11,6 +13,7 @@
 
 ### Changed
 - The pet stub is removed.
+- Android build: AGP 8.9.1 / Gradle 8.11.1 / Kotlin plugin (Health Connect glue is Kotlin); vendored Kryon bumped for the multi-line array-initializer k2c fix.
 
 ## [1.9.1] - 2026-08-16
 ### Added

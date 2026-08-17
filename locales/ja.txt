@@ -914,8 +914,6 @@ Yoga
 [practice_home_patterns_metadata]
 %s | %d分
 ---
-%d ラウンド | %d 呼吸
----
 [meditation_music_downloading_progress]
 音声をダウンロード中... %d%%
 ---
@@ -1092,6 +1090,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Health Connectにエクスポート
+---
+[health_connect_started]
+Health Connectを開きました
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

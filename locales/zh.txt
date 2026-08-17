@@ -912,8 +912,6 @@ Yoga
 [practice_home_patterns_metadata]
 %s | %d分钟
 ---
-%d 轮 | %d 次呼吸
----
 [meditation_music_downloading_progress]
 正在下载音频... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+导出到 Health Connect
+---
+[health_connect_started]
+已打开 Health Connect
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

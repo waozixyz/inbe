@@ -912,8 +912,6 @@ Sitzungsdaten kommen aus abgeschlossenen Übungen.
 [practice_home_patterns_metadata]
 %s | %d Min.
 ---
-%d Runden | %d Atemzüge
----
 [meditation_music_downloading_progress]
 Audio wird geladen... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Zu Health Connect exportieren
+---
+[health_connect_started]
+Health Connect geöffnet
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

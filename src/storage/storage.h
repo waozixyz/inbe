@@ -121,6 +121,7 @@ void storage_mark_habits_initialized(void);
 
 int storage_export_zip(const char *path);
 int storage_export_sessions_csv(const char *path);
+int storage_export_health_connect_csv(const char *path);
 int storage_import_zip(const char *path);
 int storage_import_zip_ex(const char *path, InbeStorageImportMode mode);
 int storage_inspect_import(const char *path, InbeStorageImportInfo *info);

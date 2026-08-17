@@ -912,8 +912,6 @@ Data pocházejí z dokončených cvičení.
 [practice_home_patterns_metadata]
 %s | %d min
 ---
-%d kol | %d dechů
----
 [meditation_music_downloading_progress]
 Stahování zvuku... %d%%
 ---
@@ -1090,6 +1088,12 @@ Show
 ---
 [export_csv_button]
 Export CSV
+---
+[export_health_connect_button]
+Exportovat do Health Connect
+---
+[health_connect_started]
+Health Connect se otevrelo
 ---
 [export_csv_dialog_title]
 Export sessions as CSV

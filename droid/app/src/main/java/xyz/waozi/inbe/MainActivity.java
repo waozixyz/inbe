@@ -51,8 +51,13 @@ public class MainActivity extends NativeActivity {
     private static final String TAG = "InbeMainActivity";
     private static final int REQUEST_IMPORT_ZIP = 1001;
     private static final int REQUEST_POST_NOTIFICATIONS = 1002;
+    private static final int REQUEST_HEALTH_CONNECT = HealthConnectExport.REQUEST_CODE;
     private static final String DOWNLOAD_CHANNEL_ID = "runtime_downloads";
     private static final int DOWNLOAD_NOTIFICATION_ID = 2001;
+
+    /** Fired by the home-screen widget, the quick-settings tile and the launcher shortcuts. */
+    public static final String ACTION_START_PRACTICE = "xyz.waozi.inbe.action.START_PRACTICE";
+    public static final String EXTRA_PRACTICE_ID = "practice_id";
 
     static {
         System.loadLibrary("main");
@@ -67,6 +72,9 @@ public class MainActivity extends NativeActivity {
     private boolean notificationPermissionRequestInFlight = false;
     private int lastDeleteRepeatCount = -1;
     private int pendingImportKind = 0;
+    String lastHealthConnectPath = null;
+    private boolean pendingStartPractice = false;
+    private int pendingStartPracticeId = -1;
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
@@ -87,6 +95,7 @@ public class MainActivity extends NativeActivity {
     private native void nativeTextInputBackspace();
     private native void nativeTextInputEnter();
     private native void nativeInvalidateGraphicsResources();
+    private native boolean nativeStartPractice(int practiceId);
 
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -457,9 +466,53 @@ public class MainActivity extends NativeActivity {
         return cleaned.isEmpty() ? null : cleaned;
     }
 
+    /**
+     * Called from native settings (Data & export): run the Health Connect
+     * permission flow and insert the sessions Java-side.
+     */
+    public void healthConnectExport(final String csvPath) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                HealthConnectExport.start(MainActivity.this, csvPath);
+            }
+        });
+    }
+
+    private void handleStartPracticeIntent(Intent intent) {
+        if (intent == null || !ACTION_START_PRACTICE.equals(intent.getAction())) {
+            return;
+        }
+        int practiceId = intent.getIntExtra(EXTRA_PRACTICE_ID, -1);
+        if (practiceId < 0) {
+            // Static-shortcut extras arrive as strings; widget/tile extras are ints.
+            String raw = intent.getStringExtra(EXTRA_PRACTICE_ID);
+            if (raw != null) {
+                try {
+                    practiceId = Integer.parseInt(raw);
+                } catch (NumberFormatException e) {
+                    practiceId = -1;
+                }
+            }
+        }
+        if (nativeStartPractice(practiceId)) {
+            pendingStartPractice = false;
+        } else {
+            // The native app is not up yet (cold launch from the widget);
+            // retry once the window gains focus after initialization.
+            pendingStartPractice = true;
+            pendingStartPracticeId = practiceId;
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == REQUEST_HEALTH_CONNECT) {
+            HealthConnectExport.handleResult(this, resultCode, data, lastHealthConnectPath);
+            return;
+        }
 
         if (requestCode != REQUEST_IMPORT_ZIP) return;
 
@@ -678,6 +731,9 @@ public class MainActivity extends NativeActivity {
 
         // Notify native code that activity is ready for wake lock
         nativeWakeLockReady();
+
+        // Widget/tile/shortcut launch: the intent that started this activity.
+        handleStartPracticeIntent(getIntent());
     }
 
     @Override
@@ -915,6 +971,7 @@ public class MainActivity extends NativeActivity {
         configureSystemBars();
         requestInsetRefresh();
         syncLifecycleState("onNewIntent");
+        handleStartPracticeIntent(intent);
     }
 
     @Override
@@ -924,6 +981,11 @@ public class MainActivity extends NativeActivity {
         if (hasFocus) {
             configureSystemBars();
             requestInsetRefresh();
+            if (pendingStartPractice) {
+                handleStartPracticeIntent(
+                        new Intent(ACTION_START_PRACTICE)
+                                .putExtra(EXTRA_PRACTICE_ID, pendingStartPracticeId));
+            }
         }
         syncLifecycleState("onWindowFocusChanged");
     }
