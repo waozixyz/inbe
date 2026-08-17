@@ -1,0 +1,23 @@
+Added
+---
+- Breathing Patterns with Box, 4-7-8, coherent, extended-exhale and custom timed breathing sessions.
+- Android Health Connect export for meditation, breathwork and sun-salutation sessions.
+- Android home-screen widget, quick-settings tile and launcher shortcuts for starting practices.
+- Interval bells for meditation: chime every 1/2/5/10/15/30 minutes (off by default).
+- Weekday schedules and reminder times for habits, with support for up to 32 habits.
+- CSV export of session history from Data & export settings.
+- Practices can be started directly from a break and count as taking that break.
+Changed
+---
+- Profile now uses clear top-level tabs for profile details, sync, data, friends and leaderboard.
+- Leaderboard shows all useful statistics together in one sortable table; average hold appears only for Wim Hof sessions.
+- The default Meditation habit now tracks sessions from Wim Hof, Meditation and Breathing Patterns.
+- Breathing Patterns has a cleaner layout, smoother animation and keeps running when the app loses focus.
+- Refreshed the Breathing Patterns and Meditation artwork while retaining the original Wim Hof banner.
+- Simplified the Meditation screen and removed the redundant how-to section.
+Fixed
+---
+- Profile and leaderboard loading states no longer display misleading zero values while data is loading.
+- Fixed delayed or stale leaderboard results, duplicate Wim Hof entries and unreadable selected-button text.
+- Fixed profile name display, text-field focus styling and profile picture icon colors.
+- Fixed a corrupted notification-icon context menu and removed redundant tray and Practice-screen Show controls.

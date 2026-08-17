@@ -1,19 +1,27 @@
 # Changelog
-## [Unreleased]
+## [1.9.2] - 2026-08-17
 ### Added
-- Breathing Patterns practice: timed-ratio breathing with Box 4-4-4-4, 4-7-8, Coherent 5-0-5-0, Extended-exhale 4-0-6-0 and fully custom patterns, a per-phase editor, duration cap, animated circle with phase cues, pause/resume, and its own tray quick-start. Sessions save like any other practice (stats, habits, CSV export, sync).
-- Practices can replace a break: the break window shows a chip per visible practice below the panel; starting one counts the break as taken and freezes break scheduling for the whole session, so timers restart after the practice ends no matter how long it runs. Break prompts never pop over a running practice.
-- Android: sessions export to Health Connect (Data & export): meditation and breathwork become mindfulness records, sun salutation a yoga exercise session; incremental (only new sessions), with the standard Health Connect permission flow. Devices without Health Connect (or below Android 8) show a toast instead.
-- Android: a "Breathe" home-screen widget, a quick-settings tile, and per-practice launcher shortcuts (Wim Hof / Meditation / Sun salutation / Patterns) that start the practice straight away - including replacing an active break.
+- Breathing Patterns with Box, 4-7-8, coherent, extended-exhale and custom timed breathing sessions.
+- Android Health Connect export for meditation, breathwork and sun-salutation sessions.
+- Android home-screen widget, quick-settings tile and launcher shortcuts for starting practices.
 - Interval bells for meditation: chime every 1/2/5/10/15/30 minutes (off by default).
-- Habits: per-habit weekday schedules and reminder times (notification once per scheduled day), cap raised to 32; off-schedule days neither extend nor break streaks and the overview grid dims them.
-- Stats: CSV export of all sessions (Data & export settings).
-- Practices tab: "Show" checkboxes to pick which practices appear in the carousel.
-- Sun salutation is no longer WIP: the figure selector works and the label is gone.
+- Weekday schedules and reminder times for habits, with support for up to 32 habits.
+- CSV export of session history from Data & export settings.
+- Practices can be started directly from a break and count as taking that break.
 
 ### Changed
-- The pet stub is removed.
-- Android build: AGP 8.9.1 / Gradle 8.11.1 / Kotlin plugin (Health Connect glue is Kotlin); vendored Kryon bumped for the multi-line array-initializer k2c fix.
+- Profile now uses clear top-level tabs for profile details, sync, data, friends and leaderboard.
+- Leaderboard shows all useful statistics together in one sortable table; average hold appears only for Wim Hof sessions.
+- The default Meditation habit now tracks sessions from Wim Hof, Meditation and Breathing Patterns.
+- Breathing Patterns has a cleaner layout, smoother animation and keeps running when the app loses focus.
+- Refreshed the Breathing Patterns and Meditation artwork while retaining the original Wim Hof banner.
+- Simplified the Meditation screen and removed the redundant how-to section.
+
+### Fixed
+- Profile and leaderboard loading states no longer display misleading zero values while data is loading.
+- Fixed delayed or stale leaderboard results, duplicate Wim Hof entries and unreadable selected-button text.
+- Fixed profile name display, text-field focus styling and profile picture icon colors.
+- Fixed a corrupted notification-icon context menu and removed redundant tray and Practice-screen Show controls.
 
 ## [1.9.1] - 2026-08-16
 ### Added
