@@ -80,10 +80,10 @@ jobs:
         run: |
           set +e
           xvfb-run -a --server-args="-screen 0 1280x1024x24" sh -c '
-            xcompmgr >/tmp/xcompmgr.log 2>&1 &
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe xcompmgr >/tmp/xcompmgr.log 2>&1 &
             comp_pid=$!
             sleep 2
-            KRB_EXACT_XWD=1 sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
+            LIBGL_ALWAYS_SOFTWARE=1 GALLIUM_DRIVER=softpipe KRB_EXACT_XWD=1 sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
             rc=$?
             kill $comp_pid 2>/dev/null
             exit $rc'
