@@ -107,20 +107,13 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
     # possibly hidden to tray - is left completely alone. Only the keyboard
     # block for strict block modes is applied on top.
     #if DESKTOP {
-        # Wayland intentionally does not permit an application to create our
-        # X11 overlay window or grab keyboard input globally.  Use the normal
-        # app window as a first-class break surface instead: restore it from
-        # the tray, focus it, and route it through the existing interactive
-        # break overlay.  This keeps prompts, timers, skip/postpone, and
-        # practice actions working without relying on XWayland.
+        # Wayland intentionally does not permit a global keyboard grab, but
+        # Kryon's SDL UIWindow backend can create a real secondary Wayland
+        # surface for the break just like the X11 backend did.
         if inbe_activity_is_wayland() {
-            if app->inbe.screen != InbeScreenBreak {
-                app->break_prev_screen = app->inbe.screen
-                ClearWindowState(FLAG_WINDOW_HIDDEN)
-                RestoreWindow()
-                SetWindowFocused()
-                app_switch_screen(app, InbeScreenBreak)
-            }
+            ClearWindowState(FLAG_WINDOW_HIDDEN)
+            RestoreWindow()
+            SetWindowFocused()
         } else if app->break_block_mode >= 1 {
             inbe_break_set_input_blocked(1)
         }
@@ -138,11 +131,7 @@ break_engine_close_window :: (app: InbeApp*) #private {
         app->break_window = nil
     }
     #if DESKTOP {
-        if inbe_activity_is_wayland() {
-            if app->inbe.screen == InbeScreenBreak {
-                app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
-            }
-        } else {
+        if !inbe_activity_is_wayland() {
             inbe_break_set_input_blocked(0)
         }
     }
@@ -154,12 +143,6 @@ break_engine_close_window :: (app: InbeApp*) #private {
 app_breaks_window_update :: (app: InbeApp*) {
 #if !ANDROID && !WEB {
     if app == nil {
-        return
-    }
-    # Native Wayland uses the main-window break route selected in
-    # break_engine_open_window.  OpenUIWindow is intentionally X11-only on
-    # Linux, so never attempt to construct an unusable auxiliary surface.
-    if inbe_activity_is_wayland() {
         return
     }
     # Never show the break window over a running practice: a practice
