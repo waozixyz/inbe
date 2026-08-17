@@ -72,7 +72,7 @@ jobs:
           make -C vendor/kryon build/linux-x86_64/bin/k2b                build/linux-x86_64/bin/krb-run                KRY_SW_SRCS="src/krb/krb.c src/backend/kry_backend.c src/backend/kry_sw.c src/backend/kry_backend_rec.c"
       - name: Language screen — native vs cartridge, 0 pixel tolerance
         run: |
-          xvfb-run -a --server-args="-screen 0 1280x1024x24"             sh vendor/kryon/tests/krb_exact_native_test.sh               build/bin/linux/inbe-linux-x86_64 language               vendor/kryon/examples/20_inbe_language.kry
+          xvfb-run -a --server-args="-screen 0 1280x1024x24"             sh vendor/kryon/tests/krb_exact_native_test.sh               build/bin/linux/inbe-linux-x86_64 language               vendor/kryon/examples/20_inbe_language.kry "/home/wao/Projects/inbe"
 
   build-chrome-extension:
     name: Build Chrome Extension
