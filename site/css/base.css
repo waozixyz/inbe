@@ -1,9 +1,3 @@
-@font-face {
-	font-family: departure;
-	src: url('/web-assets/fonts/DepartureMono-Regular.otf');
-	font-display: swap;
-}
-
 :root {
 	--bg: #f3f1ea;
 	--surface: #fdfcf8;
@@ -33,7 +27,7 @@
 	--ink: var(--ink-strong);
 	--muted: var(--ink-soft);
 	--panel-shadow: rgba(0, 0, 0, 0.10);
-	--font-main: departure, ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+	--font-main: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 	--radius: 10px;
 	--radius-sm: 6px;
 	--maxw: 1080px;
