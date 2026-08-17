@@ -53,6 +53,27 @@ jobs:
       - name: Run Tests
         run: make test
 
+  krb-native-exactness:
+    # Cartridge-vs-native screenshot gate: kryon's krb_exact_native_test.sh
+    # renders the same screen as a .krb cartridge and as this C build, then
+    # pixel-compares with zero tolerance. xvfb gives the working GL readback
+    # this dev box lacks.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb
+      - name: Build native
+        run: make native
+      - name: Build kryon cartridge tooling
+        run: |
+          make -C vendor/kryon build/linux-x86_64/bin/k2b                build/linux-x86_64/bin/krb-run                KRY_SW_SRCS="src/krb/krb.c src/backend/kry_backend.c src/backend/kry_sw.c src/backend/kry_backend_rec.c"
+      - name: Language screen — native vs cartridge, 0 pixel tolerance
+        run: |
+          xvfb-run -a --server-args="-screen 0 1280x1024x24"             sh vendor/kryon/tests/krb_exact_native_test.sh               build/bin/linux/inbe-linux-x86_64 language               vendor/kryon/examples/20_inbe_language.kry
+
   build-chrome-extension:
     name: Build Chrome Extension
     runs-on: ubuntu-latest
