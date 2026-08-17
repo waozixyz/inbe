@@ -1086,6 +1086,9 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
+[practice_show_label]
+Show
+---
 [tray_break_settings]
 Break Settings...
 ---

@@ -525,7 +525,47 @@ practice_home_content_height :: (content_w: int, user_data: void*) -> int #priva
     y += practice_home_title_height(app) + ScaleUIPx(10)
     y += practice_home_card_height(app, y, app_content_bottom_reserved(app),
                                   content_w)
-    return y + practice_home_below_card_height(app, content_w)
+    y += practice_home_below_card_height(app, content_w)
+    return y + practice_home_visibility_height(app)
+}
+
+# "Show" row: per-practice checkboxes that drive the carousel visibility
+# (at least one stays on).
+practice_home_visibility_height :: (app: const InbeApp*) -> int #private {
+    rows := 0
+
+    if app == NULL || practice_count() <= 1 {
+        return 0
+    }
+    rows = (practice_count() + 1) / 2
+    return ScaleUIPx(26) + rows * ScaleUIPx(30) + ScaleUIPx(10)
+}
+
+practice_draw_home_visibility :: (app: InbeApp*, x: int, y: int, w: int) #private {
+    row_h := ScaleUIPx(30)
+
+    if app == NULL || practice_home_visibility_height(app) <= 0 {
+        return
+    }
+
+    Text(GetLocaleText("practice_show_label"), x, y,
+                  GetUISmallFontSize(), GetThemeText())
+    y += ScaleUIPx(26)
+
+    two_cols := w >= ScaleUIPx(360)
+    col_w := w
+    if two_cols {
+        col_w = w / 2
+    }
+    for int i = 0; i < practice_count(); i++ {
+        col := two_cols ? i % 2 : 0
+        row := two_cols ? i / 2 : i
+        visible := practice_is_visible(app, i)
+        if Checkbox(7300 + i, x + col * col_w, y + row * row_h,
+                              practice_label(i), &visible) {
+            practice_set_visible(app, i, visible)
+        }
+    }
 }
 
 practice_screen_draw_home :: (app: InbeApp*) {
@@ -935,6 +975,7 @@ page start(app: InbeApp*) {
         }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
+        y += btn_h + gap
     } else {
         if practice->draw_manual != NULL {
             app->practice_home_bounds_manual = (Rectangle){(float)x, (float)y,
@@ -960,10 +1001,14 @@ page start(app: InbeApp*) {
             }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }
+            y += btn_h + gap
         }
     }
+
+    practice_draw_home_visibility(app, x, y + ScaleUIPx(6), content_w)
 
     if use_scroll {
         EndUIScrollPage(page)
     }
 }
+
