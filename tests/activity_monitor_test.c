@@ -37,8 +37,9 @@ test_idle_matches_availability(void)
     int available = inbe_activity_available();
     long idle = inbe_activity_get_idle_ms();
 
-    printf("activity monitor: %s\n",
-           available ? "system-wide (X idle counter)" : "unavailable");
+    printf("activity monitor: %s%s\n",
+           available ? "system-wide (X idle counter)" : "unavailable",
+           inbe_activity_is_wayland() ? " (Wayland session)" : "");
 
     if(available) {
         expect(idle >= 0, "available monitor reports a non-negative idle");

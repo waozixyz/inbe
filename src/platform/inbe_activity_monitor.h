@@ -19,6 +19,12 @@
 /* Idempotent; also called lazily by the getters. Cheap when unsupported. */
 void inbe_activity_monitor_init(void);
 
+/* 1 when this process runs in a native Wayland desktop session.  This is
+ * deliberately separate from availability: Wayland may gain a system idle
+ * provider in the future, while X11-only auxiliary windows and input grabs
+ * must remain disabled under Wayland regardless. */
+int inbe_activity_is_wayland(void);
+
 /* 1 when system-wide idle detection works on this platform/session. */
 int inbe_activity_available(void);
 

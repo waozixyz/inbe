@@ -35,6 +35,13 @@ break_day_key :: () -> int #private {
     return key
 }
 
+break_persist_daily_state :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    app->settings_dirty = 1
+}
+
 break_fallback_input_seen :: () -> int #private {
     wheel := (int)(GetMouseWheelMove() * 1000.0f)
     if wheel != 0 {
@@ -100,7 +107,21 @@ break_engine_open_window :: (app: InbeApp*, t: int) #private {
     # possibly hidden to tray - is left completely alone. Only the keyboard
     # block for strict block modes is applied on top.
     #if DESKTOP {
-        if app->break_block_mode >= 1 {
+        # Wayland intentionally does not permit an application to create our
+        # X11 overlay window or grab keyboard input globally.  Use the normal
+        # app window as a first-class break surface instead: restore it from
+        # the tray, focus it, and route it through the existing interactive
+        # break overlay.  This keeps prompts, timers, skip/postpone, and
+        # practice actions working without relying on XWayland.
+        if inbe_activity_is_wayland() {
+            if app->inbe.screen != InbeScreenBreak {
+                app->break_prev_screen = app->inbe.screen
+                ClearWindowState(FLAG_WINDOW_HIDDEN)
+                RestoreWindow()
+                SetWindowFocused()
+                app_switch_screen(app, InbeScreenBreak)
+            }
+        } else if app->break_block_mode >= 1 {
             inbe_break_set_input_blocked(1)
         }
     }
@@ -117,7 +138,13 @@ break_engine_close_window :: (app: InbeApp*) #private {
         app->break_window = nil
     }
     #if DESKTOP {
-        inbe_break_set_input_blocked(0)
+        if inbe_activity_is_wayland() {
+            if app->inbe.screen == InbeScreenBreak {
+                app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
+            }
+        } else {
+            inbe_break_set_input_blocked(0)
+        }
     }
 }
 
@@ -127,6 +154,12 @@ break_engine_close_window :: (app: InbeApp*) #private {
 app_breaks_window_update :: (app: InbeApp*) {
 #if !ANDROID && !WEB {
     if app == nil {
+        return
+    }
+    # Native Wayland uses the main-window break route selected in
+    # break_engine_open_window.  OpenUIWindow is intentionally X11-only on
+    # Linux, so never attempt to construct an unusable auxiliary surface.
+    if inbe_activity_is_wayland() {
         return
     }
     # Never show the break window over a running practice: a practice
@@ -356,6 +389,7 @@ app_breaks_update :: (app: InbeApp*) {
     if break_engine_set_day(&app->breaks, day) {
         storage_break_flush_day(&app->breaks)
         break_engine_reset_day_stats(&app->breaks)
+        break_persist_daily_state(app)
         app->break_stats_flush_s = 0
     }
 
@@ -367,6 +401,7 @@ app_breaks_update :: (app: InbeApp*) {
     if app->break_stats_flush_s >= BreakStatsFlushS {
         app->break_stats_flush_s = 0
         storage_break_flush_day(&app->breaks)
+        break_persist_daily_state(app)
     }
 
     for int i = 0; i < BreakEventQueueMax; i++ {
@@ -384,11 +419,13 @@ app_breaks_update :: (app: InbeApp*) {
             break_play_cue(app, 1.0f)
         } else if event == BreakEventTaken || event == BreakEventNatural {
             break_engine_close_window(app)
+            break_persist_daily_state(app)
             if t != BREAK_DAILY {
                 break_play_cue(app, 1.2f)
             }
         } else if event == BreakEventSkipped || event == BreakEventPostponed {
             break_engine_close_window(app)
+            break_persist_daily_state(app)
         }
     }
 }

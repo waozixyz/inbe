@@ -3,9 +3,14 @@
 #if defined(__linux__) || defined(__FreeBSD__)
 
 #include <dlfcn.h>
+#include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#if defined(KRYON_NOTIFICATION_GDBUS)
+#include <gio/gio.h>
+#endif
 
 /*
  * Minimal X declarations for the dlopen'd calls. Types mirror the X headers
@@ -52,6 +57,93 @@ static int g_inited;
 static int g_available;
 static int g_blocked;
 
+#if defined(KRYON_NOTIFICATION_GDBUS)
+enum {
+    InbeWaylandIdleNone = 0,
+    InbeWaylandIdleMutter,
+    InbeWaylandIdleScreenSaver
+};
+static GDBusConnection *g_wayland_bus;
+static int g_wayland_idle_backend;
+
+static long
+wayland_idle_call(const char *bus_name, const char *object_path,
+                  const char *interface_name, const char *method)
+{
+    GError *error = NULL;
+    GVariant *reply;
+    GVariant *value;
+    guint64 idle = 0;
+
+    if(g_wayland_bus == NULL)
+        return -1;
+    reply = g_dbus_connection_call_sync(g_wayland_bus, bus_name, object_path,
+                                        interface_name, method, NULL,
+                                        NULL,
+                                        G_DBUS_CALL_FLAGS_NONE, 500, NULL,
+                                        &error);
+    if(reply == NULL) {
+        if(error != NULL)
+            g_error_free(error);
+        return -1;
+    }
+    if(g_variant_n_children(reply) != 1) {
+        g_variant_unref(reply);
+        return -1;
+    }
+    value = g_variant_get_child_value(reply, 0);
+    if(g_variant_is_of_type(value, G_VARIANT_TYPE_UINT64))
+        idle = g_variant_get_uint64(value);
+    else if(g_variant_is_of_type(value, G_VARIANT_TYPE_UINT32))
+        idle = g_variant_get_uint32(value);
+    else {
+        g_variant_unref(value);
+        g_variant_unref(reply);
+        return -1;
+    }
+    g_variant_unref(value);
+    g_variant_unref(reply);
+    return idle > LONG_MAX ? LONG_MAX : (long)idle;
+}
+
+static void
+wayland_idle_init(void)
+{
+    GError *error = NULL;
+
+    g_wayland_bus = g_bus_get_sync(G_BUS_TYPE_SESSION, NULL, &error);
+    if(g_wayland_bus == NULL) {
+        if(error != NULL)
+            g_error_free(error);
+        return;
+    }
+
+    if(wayland_idle_call("org.gnome.Mutter.IdleMonitor",
+                         "/org/gnome/Mutter/IdleMonitor/Core",
+                         "org.gnome.Mutter.IdleMonitor", "GetIdletime") >= 0) {
+        g_wayland_idle_backend = InbeWaylandIdleMutter;
+        return;
+    }
+    if(wayland_idle_call("org.freedesktop.ScreenSaver", "/ScreenSaver",
+                         "org.freedesktop.ScreenSaver", "GetSessionIdleTime") >= 0) {
+        g_wayland_idle_backend = InbeWaylandIdleScreenSaver;
+    }
+}
+
+static long
+wayland_idle_get_ms(void)
+{
+    if(g_wayland_idle_backend == InbeWaylandIdleMutter)
+        return wayland_idle_call("org.gnome.Mutter.IdleMonitor",
+                                 "/org/gnome/Mutter/IdleMonitor/Core",
+                                 "org.gnome.Mutter.IdleMonitor", "GetIdletime");
+    if(g_wayland_idle_backend == InbeWaylandIdleScreenSaver)
+        return wayland_idle_call("org.freedesktop.ScreenSaver", "/ScreenSaver",
+                                 "org.freedesktop.ScreenSaver", "GetSessionIdleTime");
+    return -1;
+}
+#endif
+
 static void *
 resolve(void *handle, const char *name)
 {
@@ -80,6 +172,7 @@ static int
 session_is_wayland(void)
 {
     const char *type = getenv("XDG_SESSION_TYPE");
+    const char *wayland_display = getenv("WAYLAND_DISPLAY");
 
     /*
      * XWayland's idle counter only sees input delivered to X clients, so a
@@ -87,7 +180,14 @@ session_is_wayland(void)
      * the X counter on real X sessions (or when the session type is unset,
      * e.g. started from a tty).
      */
-    return type != NULL && strcmp(type, "wayland") == 0;
+    return (type != NULL && strcmp(type, "wayland") == 0) ||
+           (wayland_display != NULL && wayland_display[0] != '\0');
+}
+
+int
+inbe_activity_is_wayland(void)
+{
+    return session_is_wayland();
 }
 
 void
@@ -101,8 +201,13 @@ inbe_activity_monitor_init(void)
         return;
     g_inited = 1;
 
-    if(session_is_wayland())
+    if(session_is_wayland()) {
+#if defined(KRYON_NOTIFICATION_GDBUS)
+        wayland_idle_init();
+        g_available = g_wayland_idle_backend != InbeWaylandIdleNone;
+#endif
         return;
+    }
 
     g_x11 = load_library(x11_names);
     g_xss = load_library(xss_names);
@@ -148,6 +253,11 @@ inbe_activity_get_idle_ms(void)
 
     if(!inbe_activity_available())
         return -1;
+
+#if defined(KRYON_NOTIFICATION_GDBUS)
+    if(session_is_wayland())
+        return wayland_idle_get_ms();
+#endif
 
     info = g_ss_alloc();
     if(info == NULL)
@@ -203,6 +313,12 @@ inbe_break_input_blocked(void)
 void
 inbe_activity_monitor_init(void)
 {
+}
+
+int
+inbe_activity_is_wayland(void)
+{
+    return 0;
 }
 
 int
