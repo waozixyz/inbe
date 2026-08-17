@@ -666,7 +666,17 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "language") == 0) {
+    if(strcmp(request->scene, "statistics") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.tab = HABIT_TAB_STATISTICS;
+        app->inbe.screen = InbeScreenHabits;
+    } else if(strcmp(request->scene, "profile") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->inbe.screen = InbeScreenProfile;
+    } else if(strcmp(request->scene, "habit_edit") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->inbe.screen = InbeScreenHabitEdit;
+    } else if(strcmp(request->scene, "language") == 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
         app->inbe.screen = InbeScreenLanguage;
     } else if(strcmp(request->scene, "first_run_guide") == 0) {
