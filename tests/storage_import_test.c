@@ -1261,6 +1261,45 @@ test_sync_apply_meditation_logs_feed_profile_stats(void)
 }
 
 static void
+test_profile_week_stats_combines_habits_and_practices(void)
+{
+    char root[512];
+    InbeHabits habits;
+    int rounds[] = {45};
+    int active_days = -1;
+    int practice_sessions = -1;
+
+    make_clean_root(root, sizeof(root), "profile-week-stats");
+    check_true("init profile week db", storage_init(root));
+    memset(&habits, 0, sizeof(habits));
+    habits_add_default_set(&habits);
+    habits_save(&habits);
+
+    check_true("save profile session today",
+               storage_save_session_at_for_activity(20260715, 9, 0, 0,
+                                                    rounds, 1, 0, 0, NULL, 0));
+    check_true("save profile session earlier",
+               storage_save_session_at_for_activity(20260713, 9, 0, 0,
+                                                    rounds, 1, 0, 1, NULL, 0));
+    check_true("save profile session outside week",
+               storage_save_session_at_for_activity(20260708, 9, 0, 0,
+                                                    rounds, 1, 0, 0, NULL, 0));
+    check_true("save profile habit distinct day",
+               storage_habit_day_save(habits.items[0].id, 20260714, 1, 1));
+    check_true("save profile habit overlapping day",
+               storage_habit_day_save(habits.items[0].id, 20260713, 1, 1));
+
+    check_true("profile week stats call",
+               storage_profile_week_stats(20260715, &active_days,
+                                          &practice_sessions));
+    check_int("profile week active days", active_days, 3);
+    check_int("profile week practice sessions", practice_sessions, 2);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 metadata_history_callback(const char *id, int year, int month, int day, int hour, int minute,
                           int second, int topic, int activity, const int *rounds, int round_count,
                           void *user)
@@ -2141,6 +2180,7 @@ main(void)
     test_deleted_linked_session_preserves_manual_habit_count();
     test_existing_sessions_materialize_after_habit_save();
     test_sync_apply_meditation_logs_feed_profile_stats();
+    test_profile_week_stats_combines_habits_and_practices();
     test_session_metadata();
 
     if(g_failures != 0) {

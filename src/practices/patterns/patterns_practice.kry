@@ -105,6 +105,9 @@ patterns_practice_init :: (app: InbeApp*) {
     if app == nil {
         return
     }
+    if app->patterns.banner.id == 0 {
+        app->patterns.banner = app_load_asset_texture("practices/patterns/banner.png")
+    }
     app->patterns.preset = PATTERNS_PRESET_BOX
     for int i = 0; i < 4; i++ {
         app->patterns.custom[i] = preset_ratio(PATTERNS_PRESET_BOX, i)
@@ -113,7 +116,11 @@ patterns_practice_init :: (app: InbeApp*) {
 }
 
 patterns_practice_destroy :: (app: InbeApp*) {
-    unused app
+    if app == nil {
+        return
+    }
+    app_unload_texture(app->patterns.banner)
+    app->patterns.banner = (Texture2D){0}
 }
 
 patterns_practice_start :: (app: InbeApp*) {
@@ -125,6 +132,7 @@ patterns_practice_start :: (app: InbeApp*) {
     app->patterns.phase = PATTERNS_PHASE_INHALE
     app->patterns.phase_second = 0
     app->patterns.frame_ticks = 0
+    app->patterns.second_accumulator = 0.0
     app->patterns.cycle = 0
     app->patterns.elapsed_seconds = 0
     app_close_modal(app)
@@ -246,6 +254,18 @@ advance_second :: (app: InbeApp*) #private {
        app->patterns.elapsed_seconds >=
        app->patterns.duration_minutes * 60 {
         finish_session(app)
+    }
+}
+
+patterns_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
+    if app == nil || elapsed_ms <= 0 ||
+       app->inbe.screen != InbeScreenPatterns || app->patterns.paused {
+        return
+    }
+    app->patterns.second_accumulator += (double)elapsed_ms / 1000.0
+    while app->patterns.second_accumulator >= 1.0 && app->patterns.active {
+        app->patterns.second_accumulator -= 1.0
+        advance_second(app)
     }
 }
 
@@ -433,7 +453,8 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     if phase_len <= 0 {
         phase_len = 1
     }
-    progress := (float)app->patterns.phase_second / (float)phase_len
+    progress := ((float)app->patterns.phase_second +
+                 (float)app->patterns.second_accumulator) / (float)phase_len
     if app->patterns.phase == PATTERNS_PHASE_INHALE {
         pattern_circle_draw(app, center_x, center_y, 0.25 + progress * 0.75)
     } else if app->patterns.phase == PATTERNS_PHASE_EXHALE {
@@ -447,7 +468,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     label := GetLocaleText(phase_label_key(app->patterns.phase))
     label_w := MeasureUIText(label, UI_TEXT_16)
     Text(label, center_x - label_w / 2,
-                  center_y - ScaleUIPx(120), UI_TEXT_16, GetThemeText())
+                  center_y - ScaleUIPx(16), UI_TEXT_16, GetThemeText())
 
     left := ratio[app->patterns.phase] - app->patterns.phase_second
     if left < 1 {
@@ -456,16 +477,13 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     snprintf(time_text, sizeof(time_text), "%d", left)
     phase_time_w := MeasureUIText(time_text, UI_TEXT_24)
     Text(time_text, center_x - phase_time_w / 2,
-                  center_y - ScaleUIPx(84), UI_TEXT_24,
-                  DarkenUIColor(GetThemeText(), 30))
+                  center_y + ScaleUIPx(12), UI_TEXT_24, GetThemeText())
 
-    snprintf(time_text, sizeof(time_text), "%d", app->patterns.cycle + 1)
+    snprintf(time_text, sizeof(time_text), "%s %d",
+             GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
     cycle_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(GetLocaleText("patterns_cycle_label"), center_x - cycle_w / 2 - ScaleUIPx(24),
-                  center_y + ScaleUIPx(110), UI_TEXT_16,
-                  DarkenUIColor(GetThemeText(), 30))
-    Text(time_text, center_x + cycle_w / 2 + ScaleUIPx(8),
-                  center_y + ScaleUIPx(110), UI_TEXT_16, GetThemeText())
+    Text(time_text, center_x - cycle_w / 2, center_y + ScaleUIPx(126),
+                  UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.duration_minutes > 0 {
         remain := app->patterns.duration_minutes * 60 -
@@ -481,11 +499,11 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds % 60)
     }
     total_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(time_text, center_x - total_w / 2, center_y + ScaleUIPx(140),
+    Text(time_text, center_x - total_w / 2, center_y + ScaleUIPx(154),
                   UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.paused {
-        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(170),
+        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(184),
                                ScaleUIPx(120), ScaleUIPx(34),
                                GetLocaleText("patterns_resume_button"),
                                UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
@@ -494,16 +512,23 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         return
     }
     if IsKeyPressed(KEY_SPACE) || GenericButton(0, center_x - ScaleUIPx(60),
-                          center_y + ScaleUIPx(170), ScaleUIPx(120),
+                          center_y + ScaleUIPx(184), ScaleUIPx(120),
                           ScaleUIPx(34), GetLocaleText("patterns_pause_button"),
                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         app->patterns.paused = 1
     }
 
     if !app->backgrounded {
-        app->patterns.frame_ticks++
-        if app->patterns.frame_ticks >= 60 {
-            app->patterns.frame_ticks = 0
+        dt := (double)GetFrameTime()
+        if dt < 0.0 {
+            dt = 0.0
+        }
+        if dt > 0.25 {
+            dt = 0.25
+        }
+        app->patterns.second_accumulator += dt
+        while app->patterns.second_accumulator >= 1.0 && app->patterns.active {
+            app->patterns.second_accumulator -= 1.0
             advance_second(app)
         }
     }
@@ -522,10 +547,9 @@ pattern_circle_draw :: (app: InbeApp*, center_x: int, center_y: int,
     r := (int)((float)min_r + fraction * (float)(max_r - min_r))
     circle := GetThemeCircle()
 
-    DrawCircle(center_x, center_y, (float)(r + ScaleUIPx(8)),
-               DarkenUIColor(GetThemeBackground(), 10))
+    DrawCircle(center_x, center_y, (float)max_r,
+               DarkenUIColor(GetThemeBackground(), 8))
     DrawCircle(center_x, center_y, (float)r, circle)
-    DrawCircleLines(center_x, center_y, (float)max_r, GetThemeText())
     unused app
 }
 

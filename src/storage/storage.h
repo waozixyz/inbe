@@ -88,6 +88,8 @@ int storage_habit_count(void);
 long long storage_total_size(void);
 int storage_profile_activity_stats(int activity, int today_date,
                                    int *streak_out, long *avg_hold_out);
+int storage_profile_week_stats(int today_date, int *active_days_out,
+                               int *practice_sessions_out);
 long long storage_delete_all_sessions(void);
 char *storage_build_sync_payload_json(const char *user_id_hash,
                                            const char *public_key_hex);

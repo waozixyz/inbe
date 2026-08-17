@@ -2,7 +2,10 @@
 #import "app_nav.h"
 
 bottom_nav_route_label :: (route: int) -> const char* #private {
-    if route == APP_NAV_ROUTE_PROFILE || route == APP_NAV_ROUTE_ACCOUNT {
+    if route == APP_NAV_ROUTE_PROFILE {
+        return GetLocaleText("tab_profile")
+    }
+    if route == APP_NAV_ROUTE_ACCOUNT {
         return GetLocaleText("sync_configure_account_button")
     }
     if route == APP_NAV_ROUTE_DATA {
@@ -71,7 +74,9 @@ bottom_nav_route_active :: (app: InbeApp*, route: int) -> int #private {
         return 0
     }
     if route == APP_NAV_ROUTE_PROFILE {
-        return app->inbe.screen == InbeScreenProfile
+        return app->inbe.screen == InbeScreenProfile &&
+               app->profile_view == PROFILE_VIEW_MAIN &&
+               app->profile_tab == PROFILE_TAB_OVERVIEW
     }
     if route == APP_NAV_ROUTE_ACCOUNT {
         return app->inbe.screen == InbeScreenProfile && app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_SYNC

@@ -4,6 +4,30 @@ Inner Breeze
 [tab_profile]
 Profil
 ---
+[profile_name_label]
+Jméno
+---
+[profile_intention_label]
+Můj záměr
+---
+[profile_progress_title]
+Tento týden
+---
+[profile_today_habits]
+Dnešní návyky
+---
+[profile_active_days]
+Aktivní dny
+---
+[profile_days_value]
+%d dní
+---
+[profile_week_practices]
+Cvičení
+---
+[profile_weekly_insight]
+Tento týden jste se zapojili ve %d dnech.
+---
 [tab_habits]
 Návyky
 ---
@@ -1083,8 +1107,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV

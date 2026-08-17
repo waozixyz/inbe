@@ -223,6 +223,8 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("bottom_nav_route_2", app->bottom_nav_routes[2])
     save_setting_int("bottom_nav_route_3", app->bottom_nav_routes[3])
     save_setting_int("main_tab", app->main_tab)
+    storage_set_setting_text("profile_display_name", app->profile_display_name)
+    storage_set_setting_text("profile_intention", app->profile_intention)
     save_setting_int("habits_screen_mode",
                         app->habits.screen_mode == HABITS_SCREEN_REORDER
                             ? HABITS_SCREEN_OVERVIEW
@@ -652,6 +654,14 @@ app_load_settings :: (app: InbeApp*) -> int {
                             "patterns_duration_minutes", 5, 0, 120)
     app->navigation_mode = load_navigation_mode(&settings_cache)
     app->profile_picture_icon = load_profile_picture_icon(&settings_cache)
+    profile_name := settings_cache_get(&settings_cache, "profile_display_name")
+    profile_intention := settings_cache_get(&settings_cache, "profile_intention")
+    snprintf(app->profile_display_name, sizeof(app->profile_display_name), "%s",
+             profile_name != nil ? profile_name : "")
+    snprintf(app->profile_intention, sizeof(app->profile_intention), "%s",
+             profile_intention != nil ? profile_intention : "")
+    app->profile_name_cursor = (int)strlen(app->profile_display_name)
+    app->profile_intention_cursor = (int)strlen(app->profile_intention)
     load_bottom_nav_routes(app, &settings_cache)
     if app->bottom_nav_route_count <= 0 {
         app->main_tab = APP_MAIN_TAB_NONE

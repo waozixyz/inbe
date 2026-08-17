@@ -27,6 +27,7 @@
 #endif
 
 #if defined(_WIN32) && !ANDROID_BUILD
+#include <process.h>
 __declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
                                                 const char *caption, unsigned int type);
 #define MB_OK 0x00000000u
@@ -748,7 +749,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "configure_account") == 0 ||
               strcmp(request->scene, "profile_sync_account") == 0) {
         app->profile_view = PROFILE_VIEW_MAIN;
-        app->profile_tab = PROFILE_TAB_SYNC;
+        app->profile_tab = PROFILE_TAB_OVERVIEW;
         app->inbe.screen = InbeScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, THEME_COBALT, 1);
@@ -856,6 +857,7 @@ run_screenshot_mode(const ScreenshotRequest *request)
 
 int main(int argc, char **argv) {
     ScreenshotRequest screenshot;
+    char screenshot_data_root[256] = {0};
 
 #if defined(__GLIBC__)
     /* Cap glibc's per-thread malloc arenas. The app runs ~19 threads (audio,
@@ -864,6 +866,17 @@ int main(int argc, char **argv) {
     mallopt(M_ARENA_MAX, 4);
 #endif
     parse_screenshot_args(argc, argv, &screenshot);
+    if(screenshot.active) {
+#if defined(_WIN32)
+        snprintf(screenshot_data_root, sizeof(screenshot_data_root),
+                 "build/screenshot-data-%ld", (long)_getpid());
+        _putenv_s("INBE_DATA_ROOT", screenshot_data_root);
+#elif !defined(PLATFORM_WEB) && !ANDROID_BUILD
+        snprintf(screenshot_data_root, sizeof(screenshot_data_root),
+                 "/tmp/inbe-screenshot-%ld", (long)getpid());
+        setenv("INBE_DATA_ROOT", screenshot_data_root, 1);
+#endif
+    }
     install_trace_log_filter();
     if(screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);

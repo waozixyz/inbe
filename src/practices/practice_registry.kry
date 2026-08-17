@@ -125,7 +125,7 @@ static practices: [PRACTICE_COUNT] const PracticeDefinition = {
         .is_active = practice_patterns_is_active,
         .background_start = nil,
         .background_stop = nil,
-        .advance_elapsed = nil,
+        .advance_elapsed = patterns_advance_elapsed,
     },
 }
 

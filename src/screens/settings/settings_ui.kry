@@ -120,6 +120,10 @@ commit_slider_row :: (app: InbeApp*, id: int, x: int, w: int, y: int*, row_h: in
     return changed
 }
 
+audio_meter_height :: () -> int {
+    return ScaleUIPx(18) + ScaleUIPx(10) + ScaleUIPx(8)
+}
+
 draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
     label_font := UI_TEXT_12
     bar_h := ScaleUIPx(10)
@@ -129,7 +133,7 @@ draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) 
     bg := GetThemeBackground()
 
     if w <= 0 {
-        return ScaleUIPx(34)
+        return audio_meter_height()
     }
     if fill_w < 0 {
         fill_w = 0
@@ -150,5 +154,5 @@ draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) 
         DrawRectangle(x + ScaleUIPx(2), y + label_h + ScaleUIPx(2),
                       inner_w, bar_h - ScaleUIPx(4), GetThemeButtonHover())
     }
-    return label_h + bar_h + ScaleUIPx(8)
+    return audio_meter_height()
 }

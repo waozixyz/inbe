@@ -4,6 +4,30 @@
 [tab_profile]
 个人资料
 ---
+[profile_name_label]
+名称
+---
+[profile_intention_label]
+意图
+---
+[profile_progress_title]
+本周
+---
+[profile_today_habits]
+今日习惯
+---
+[profile_active_days]
+活跃天数
+---
+[profile_days_value]
+%d 天
+---
+[profile_week_practices]
+练习次数
+---
+[profile_weekly_insight]
+本周有 %d 天完成习惯。
+---
 [tab_habits]
 习惯
 ---
@@ -1083,8 +1107,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV

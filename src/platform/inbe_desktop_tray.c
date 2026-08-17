@@ -148,7 +148,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     InbeTraySnapshot local_snapshot;
     int item_index = 0;
 
-    if(items == NULL || item_count < 6 ||
+    if(items == NULL || item_count < 5 ||
        start_items == NULL || start_item_count < 4 ||
        habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
        break_items == NULL || break_item_count < 4 ||
@@ -241,12 +241,6 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     };
 
     items[item_index++] = (DesktopTrayMenuItem){
-        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
-        .label = local_snapshot.show_hide_label,
-        .action = GetTrayWindowAction(local_snapshot.window_visible),
-        .enabled = 1
-    };
-    items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
         .label = local_snapshot.start_practice_label,
         .enabled = 1,
@@ -283,7 +277,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
 static void
 ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 {
-    DesktopTrayMenuItem items[6];
+    DesktopTrayMenuItem items[5];
     DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
     DesktopTrayMenuItem break_items[5];
@@ -296,7 +290,7 @@ ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
     memset(break_items, 0, sizeof(break_items));
     memset(break_mode_items, 0, sizeof(break_mode_items));
 
-    count = BuildTrayMenu(snapshot, items, 6, start_items, 3,
+    count = BuildTrayMenu(snapshot, items, 5, start_items, 4,
                           habit_items, INBE_HABIT_MAX,
                           break_items, 4, break_mode_items, 3);
     SetDesktopTrayMenu(items, count);
@@ -309,7 +303,7 @@ int
 inbe_desktop_tray_init(void)
 {
     DesktopTraySpec spec;
-    DesktopTrayMenuItem items[6];
+    DesktopTrayMenuItem items[5];
     DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
     DesktopTrayMenuItem break_items[5];
@@ -328,7 +322,7 @@ inbe_desktop_tray_init(void)
     memset(habit_items, 0, sizeof(habit_items));
     memset(break_items, 0, sizeof(break_items));
     memset(break_mode_items, 0, sizeof(break_mode_items));
-    item_count = BuildTrayMenu(&TraySnapshot, items, 6, start_items, 3,
+    item_count = BuildTrayMenu(&TraySnapshot, items, 5, start_items, 4,
                                habit_items, INBE_HABIT_MAX,
                                break_items, 4, break_mode_items, 3);
 

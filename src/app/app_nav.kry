@@ -278,7 +278,7 @@ app_open_profile_tab :: (app: InbeApp*, tab: int) #private {
     route = app_current_route(app)
     route.screen = InbeScreenProfile
     route.profile_view = PROFILE_VIEW_MAIN
-    route.profile_tab = clampi(tab, PROFILE_TAB_SYNC, PROFILE_TAB_COUNT - 1)
+    route.profile_tab = clampi(tab, PROFILE_TAB_OVERVIEW, PROFILE_TAB_COUNT - 1)
     app->nav_sidebar_return_on_back = return_to_sidebar
     app_switch_route(app, route)
 }
@@ -297,7 +297,9 @@ app_apply_nav_route :: (app: InbeApp*, route: int) {
         app->habits.scroll = 0
     }
 
-    if route == APP_NAV_ROUTE_PROFILE || route == APP_NAV_ROUTE_ACCOUNT {
+    if route == APP_NAV_ROUTE_PROFILE {
+        app_open_profile_tab(app, PROFILE_TAB_OVERVIEW)
+    } else if route == APP_NAV_ROUTE_ACCOUNT {
         app_open_profile_tab(app, PROFILE_TAB_SYNC)
     } else if route == APP_NAV_ROUTE_DATA {
         app_open_profile_tab(app, PROFILE_TAB_DATA)
@@ -367,7 +369,10 @@ app_page_height :: (app: const InbeApp*, full_height: int) -> int {
 }
 
 app_nav_route_label :: (route: int) -> const char* #private {
-    if route == APP_NAV_ROUTE_PROFILE || route == APP_NAV_ROUTE_ACCOUNT {
+    if route == APP_NAV_ROUTE_PROFILE {
+        return GetLocaleText("tab_profile")
+    }
+    if route == APP_NAV_ROUTE_ACCOUNT {
         return GetLocaleText("sync_configure_account_button")
     }
     if route == APP_NAV_ROUTE_DATA {

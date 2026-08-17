@@ -57,6 +57,9 @@ profile_content_height :: (content_w: int, user_data: void*) -> int {
     if app != nil && app->profile_view == PROFILE_VIEW_SYNC_ACCOUNT {
         return ScaleUIPx(12) + profile_sync_content_height(content_w)
     }
+    if app != nil && app->profile_tab == PROFILE_TAB_OVERVIEW {
+        return ScaleUIPx(460)
+    }
     if app != nil && app->profile_tab == PROFILE_TAB_DATA {
         return ScaleUIPx(12) + profile_data_content_height(content_w)
     }
@@ -69,6 +72,179 @@ profile_content_height :: (content_w: int, user_data: void*) -> int {
     }
 
     return ScaleUIPx(12) + profile_sync_content_height(content_w)
+}
+
+profile_text_style :: () -> UITextInputStyle #private {
+    border := DarkenUIColor(GetThemeBackground(), 22)
+    return (UITextInputStyle){
+        .background = DarkenUIColor(GetThemeBackground(), 4),
+        .border = border,
+        .focus_border = border,
+        .text = GetThemeText(),
+        .cursor = GetThemeText(),
+        .radius = 0.12f,
+        .padding_x = ScaleUIPx(10)
+    }
+}
+
+profile_save_identity :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    save_settings(app)
+}
+
+profile_draw_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    account: KsyncAccount = {0}
+    account_text: [80] char = {0}
+    alias: const char* = nil
+    icon_size := ScaleUIPx(54)
+    gap := ScaleUIPx(12)
+    field_x := x + icon_size + gap
+    field_w := w - icon_size - gap
+    field_h := ScaleUIPx(36)
+    name_commit := 0
+    intention_commit := 0
+    name_was_focused := app->profile_name_focused
+    intention_was_focused := app->profile_intention_focused
+    style := profile_text_style()
+
+    if sync_account_load(&account) {
+        alias = storage_get_setting_text("sync_account_alias")
+        if alias != nil && alias[0] != '\0' {
+            snprintf(account_text, sizeof(account_text), "@%s", alias)
+        } else {
+            snprintf(account_text, sizeof(account_text), "%.12s...",
+                     account.public_id)
+        }
+    } else {
+        snprintf(account_text, sizeof(account_text), "%s",
+                 GetLocaleText("profile_no_account"))
+    }
+
+    if IconButton((IconButtonProps){
+        .bounds = {(float)x, (float)(*y + ScaleUIPx(18)),
+                   (float)icon_size, (float)icon_size},
+        .icon = app->icons[app->profile_picture_icon],
+        .icon_size = icon_size - ScaleUIPx(18),
+        .icon_padding = ScaleUIPx(9),
+        .background = DarkenUIColor(GetThemeBackground(), 7),
+        .hover_background = DarkenUIColor(GetThemeBackground(), 14),
+        .border = DarkenUIColor(GetThemeBackground(), 22),
+        .icon_color = WHITE,
+        .radius = 0.5f
+    }) {
+        app->profile_picture_picker_scroll = 0
+        app_open_modal(app, UIModalProfilePicturePicker)
+    }
+
+    Text(account_text, field_x, *y, GetUISmallFontSize(),
+         DarkenUIColor(GetThemeText(), 20))
+    *y += ScaleUIPx(22)
+
+    Text(GetLocaleText("profile_name_label"), field_x, *y,
+         GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
+    TextField((TextFieldProps){
+        .bounds = {field_x, *y + ScaleUIPx(18), field_w, field_h},
+        .text = app->profile_display_name,
+        .text_size = sizeof(app->profile_display_name),
+        .cursor_position = &app->profile_name_cursor,
+        .focused = &app->profile_name_focused,
+        .max_codepoints = 40,
+        .font = GetUIFontSize(),
+        .focus_id = 813,
+        .style = style,
+        .commit_pressed = &name_commit
+    })
+    *y += ScaleUIPx(64)
+
+    Text(GetLocaleText("profile_intention_label"), field_x, *y,
+         GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
+    TextField((TextFieldProps){
+        .bounds = {field_x, *y + ScaleUIPx(18), field_w, field_h},
+        .text = app->profile_intention,
+        .text_size = sizeof(app->profile_intention),
+        .cursor_position = &app->profile_intention_cursor,
+        .focused = &app->profile_intention_focused,
+        .max_codepoints = 90,
+        .font = GetUIFontSize(),
+        .focus_id = 814,
+        .style = style,
+        .commit_pressed = &intention_commit
+    })
+    *y += ScaleUIPx(58)
+
+    if name_commit || intention_commit ||
+       (name_was_focused && !app->profile_name_focused) ||
+       (intention_was_focused && !app->profile_intention_focused) {
+        profile_save_identity(app)
+    }
+}
+
+profile_draw_metric_card :: (x: int, w: int, y: int*, label: const char*,
+                             value: const char*) #private {
+    h := ScaleUIPx(58)
+    value_w := MeasureUIText(value, GetUIFontSize())
+
+    DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w, (float)h},
+                         0.12f, 8, DarkenUIColor(GetThemeBackground(), 7))
+    Text(label, x + ScaleUIPx(12), *y + ScaleUIPx(20), GetUISmallFontSize(),
+         DarkenUIColor(GetThemeText(), 28))
+    Text(value, x + w - value_w - ScaleUIPx(12), *y + ScaleUIPx(17),
+         GetUIFontSize(), GetThemeText())
+    *y += h + ScaleUIPx(8)
+}
+
+profile_draw_overview :: (app: InbeApp*, x: int, w: int, y: int*) #private {
+    today := habits_today_index()
+    due := 0
+    done := 0
+    active_days := 0
+    practice_sessions := 0
+    value: [64] char = {0}
+    insight: [160] char = {0}
+    fitted_insight: [160] char = {0}
+    loading := app_sync_loading()
+
+    profile_draw_identity(app, x, w, y)
+    *y += ScaleUIPx(8)
+    Text(GetLocaleText("profile_progress_title"), x, *y, GetUIFontSize(),
+         GetThemeText())
+    *y += ScaleUIPx(30)
+
+    for int i = 0; i < app->habits.count; i++ {
+        if habit_scheduled_day(&app->habits.items[i], today) {
+            due++
+            if habit_completed_day(&app->habits.items[i], today) {
+                done++
+            }
+        }
+    }
+    storage_profile_week_stats(today, &active_days, &practice_sessions)
+
+    snprintf(value, sizeof(value), loading ? "…" : "%d/%d", done, due)
+    profile_draw_metric_card(x, w, y, GetLocaleText("profile_today_habits"), value)
+    if loading {
+        snprintf(value, sizeof(value), "…")
+    } else {
+        FormatLocaleText(value, sizeof(value), "profile_days_value", active_days)
+    }
+    profile_draw_metric_card(x, w, y, GetLocaleText("profile_active_days"), value)
+    snprintf(value, sizeof(value), loading ? "…" : "%d", practice_sessions)
+    profile_draw_metric_card(x, w, y, GetLocaleText("profile_week_practices"), value)
+
+    if loading {
+        snprintf(insight, sizeof(insight), "%s…",
+                 GetLocaleText("profile_updating_status"))
+    } else {
+        FormatLocaleText(insight, sizeof(insight), "profile_weekly_insight", active_days)
+    }
+    inbe_text_fit_ellipsis(insight, fitted_insight, sizeof(fitted_insight),
+                          w - ScaleUIPx(24), GetUISmallFontSize())
+    Text(fitted_insight, x + ScaleUIPx(12), *y + ScaleUIPx(10),
+         GetUISmallFontSize(), GetThemeText())
+    *y += ScaleUIPx(54)
+
 }
 
 profile_draw_stat_row :: (x: int, w: int, y: int*, label: const char*,
@@ -100,6 +276,9 @@ profile_draw_divider :: (x: int, w: int, y: int) #private {
 }
 
 profile_tab_title :: (tab: int) -> const char* #private {
+    if tab == PROFILE_TAB_OVERVIEW {
+        return GetLocaleText("tab_profile")
+    }
     if tab == PROFILE_TAB_SYNC {
         return GetLocaleText("profile_sync_tab")
     }
@@ -116,37 +295,40 @@ profile_tab_title :: (tab: int) -> const char* #private {
     return GetLocaleText("tab_profile")
 }
 
-profile_draw_tab_dropdown :: (app: InbeApp*, y: int, w: int) -> int {
-    options: [PROFILE_TAB_COUNT] const char* = {0}
-    selected := 0
-    dropdown_w := 0
-    dropdown_x := 0
-    dropdown_h := ScaleUIPx(36)
-    dropdown_y := y + (UIGetNodeHeight(UINodeTabBar((TabBarProps){0})) - dropdown_h) / 2
+profile_draw_tabs :: (app: InbeApp*, y: int, h: int) -> int #private {
+    clicked := -1
+    tab_w := view_width / PROFILE_TAB_COUNT
 
-    if app == nil {
-        return -1
+    DrawRectangle(0, y, view_width, h, DarkenUIColor(GetThemeBackground(), 6))
+    DrawLine(0, y + h - 1, view_width, y + h - 1,
+             DarkenUIColor(GetThemeBackground(), 24))
+    for int i = 0; i < PROFILE_TAB_COUNT; i++ {
+        x := i * tab_w
+        w := i == PROFILE_TAB_COUNT - 1 ? view_width - x : tab_w
+        selected := i == app->profile_tab
+        if OverlayButton((OverlayButtonProps){
+            .bounds = {(float)x, (float)y, (float)w, (float)h},
+            .label = profile_tab_title(i),
+            .font = GetUISmallFontSize(),
+            .background = selected ? DarkenUIColor(GetThemeBackground(), 13)
+                                   : BLANK,
+            .hover_background = DarkenUIColor(GetThemeBackground(), 10),
+            .border = BLANK,
+            .hover_border = BLANK,
+            .text = GetThemeText()
+        }) {
+            clicked = i
+        }
+        if selected {
+            line_w := w - ScaleUIPx(24)
+            if line_w < ScaleUIPx(24) {
+                line_w = ScaleUIPx(24)
+            }
+            DrawRectangle(x + (w - line_w) / 2, y + h - ScaleUIPx(2),
+                          line_w, ScaleUIPx(2), GetThemeText())
+        }
     }
-
-    options[PROFILE_TAB_SYNC] = profile_tab_title(PROFILE_TAB_SYNC)
-    options[PROFILE_TAB_DATA] = profile_tab_title(PROFILE_TAB_DATA)
-    options[PROFILE_TAB_FRIENDS] = profile_tab_title(PROFILE_TAB_FRIENDS)
-    options[PROFILE_TAB_LEADERBOARD] = profile_tab_title(PROFILE_TAB_LEADERBOARD)
-
-    selected = app->profile_tab
-    dropdown_w = w - ScaleUIPx(32)
-    if dropdown_w > ScaleUIPx(CONTENT_MAX_W) {
-        dropdown_w = ScaleUIPx(CONTENT_MAX_W)
-    }
-    if dropdown_w < ScaleUIPx(180) {
-        dropdown_w = w - ScaleUIPx(16)
-    }
-    dropdown_x = (w - dropdown_w) / 2
-
-    Dropdown(812, dropdown_x, dropdown_y, dropdown_w,
-                            dropdown_h, options, PROFILE_TAB_COUNT,
-                            &app->profile_tab)
-    return selected
+    return clicked
 }
 
 profile_draw_fitted_text :: (text: const char*, x: int, y: int, max_w: int,
@@ -267,13 +449,13 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     }
 
     header_h := UIGetNodeHeight(UINodeTitleBar(0))
-    selector_y := header_h + ScaleUIPx(8)
-    content_y := selector_y + UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+    tab_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+    content_y := header_h + (app->profile_view == PROFILE_VIEW_MAIN ? tab_h : 0) +
+                 ScaleUIPx(8)
     content_h := view_height - content_y - app_content_bottom_reserved(app)
     page := (UIScrollPage){0}
     y := 0
-    previous_tab := 0
-    title := GetLocaleText("sync_configure_account_button")
+    title := GetLocaleText("tab_profile")
 
     #if ANDROID {
         settings_data_handle_android_import(app)
@@ -287,10 +469,7 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     }
 
     if app->profile_tab < 0 || app->profile_tab >= PROFILE_TAB_COUNT {
-        app->profile_tab = PROFILE_TAB_SYNC
-    }
-    if app->profile_view == PROFILE_VIEW_MAIN && app->profile_tab == PROFILE_TAB_OVERVIEW {
-        app->profile_tab = PROFILE_TAB_SYNC
+        app->profile_tab = PROFILE_TAB_OVERVIEW
     }
     if app->profile_view == PROFILE_VIEW_DATA {
         title = GetLocaleText("profile_data")
@@ -299,6 +478,9 @@ profile_screen_draw :: (app: InbeApp*) -> int {
     }
 
     if app_draw_close_title_bar(app, title, header_h) {
+        if app->profile_tab == PROFILE_TAB_OVERVIEW {
+            profile_save_identity(app)
+        }
         app->profile_scroll = 0
         app->sync_server_url_focused = 0
         if app_return_to_nav_sidebar_if_needed(app) {
@@ -308,21 +490,24 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         return 1
     }
 
-    previous_tab = profile_draw_tab_dropdown(app, selector_y, view_width)
-    if app->profile_tab != previous_tab {
-        app->profile_view = PROFILE_VIEW_MAIN
-        app->profile_scroll = 0
-        if app->profile_tab == PROFILE_TAB_FRIENDS {
-            profile_social_load_friends_cache(app)
-            app_request_social_refresh(app)
-        } else if app->profile_tab == PROFILE_TAB_LEADERBOARD {
-            profile_social_load_leaderboard_cache(app)
-            app_request_social_refresh(app)
-        }
-    }
-
     if content_h < 0 {
         content_h = 0
+    }
+    if app->profile_view == PROFILE_VIEW_MAIN {
+        clicked_tab := profile_draw_tabs(app, header_h, tab_h)
+        if clicked_tab >= 0 && clicked_tab < PROFILE_TAB_COUNT &&
+           clicked_tab != app->profile_tab {
+            if app->profile_tab == PROFILE_TAB_OVERVIEW {
+                profile_save_identity(app)
+            }
+            app->profile_tab = clicked_tab
+            app->profile_scroll = 0
+            if clicked_tab == PROFILE_TAB_FRIENDS ||
+               clicked_tab == PROFILE_TAB_LEADERBOARD {
+                app->profile_leaderboard_loaded = 0
+                app_request_social_refresh(app)
+            }
+        }
     }
     page = BeginUIScrollPage((UIScrollPageSpec){
         .y = content_y,
@@ -341,6 +526,8 @@ profile_screen_draw :: (app: InbeApp*) -> int {
         profile_draw_data(app, page.content_x, page.content_w, &y)
     } else if app->profile_view == PROFILE_VIEW_HABITS {
         profile_draw_habits(app, page.content_x, page.content_w, &y)
+    } else if app->profile_tab == PROFILE_TAB_OVERVIEW {
+        profile_draw_overview(app, page.content_x, page.content_w, &y)
     } else if app->profile_tab == PROFILE_TAB_DATA {
         profile_draw_data(app, page.content_x, page.content_w, &y)
     } else if app->profile_tab == PROFILE_TAB_FRIENDS {

@@ -4,6 +4,30 @@ Inner Breeze
 [tab_profile]
 Profil
 ---
+[profile_name_label]
+Nama
+---
+[profile_intention_label]
+Niat saya
+---
+[profile_progress_title]
+Minggu ini
+---
+[profile_today_habits]
+Kebiasaan hari ini
+---
+[profile_active_days]
+Hari aktif
+---
+[profile_days_value]
+%d hari
+---
+[profile_week_practices]
+Sesi latihan
+---
+[profile_weekly_insight]
+Anda hadir selama %d hari minggu ini.
+---
 [tab_habits]
 Kebiasaan
 ---
@@ -1083,8 +1107,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV

@@ -92,8 +92,8 @@ enum {
 };
 
 enum {
-    PROFILE_TAB_SYNC = 0,
-    PROFILE_TAB_OVERVIEW = PROFILE_TAB_SYNC,
+    PROFILE_TAB_OVERVIEW = 0,
+    PROFILE_TAB_SYNC,
     PROFILE_TAB_DATA,
     PROFILE_TAB_FRIENDS,
     PROFILE_TAB_LEADERBOARD,
@@ -335,6 +335,7 @@ typedef struct HabitSessionEditState {
 } HabitSessionEditState;
 
 typedef struct InbePatterns {
+    Texture2D banner;
     int preset;
     int custom[4];         /* inhale, hold-in, exhale, hold-out seconds */
     int duration_minutes;  /* 0 = open-ended */
@@ -343,6 +344,7 @@ typedef struct InbePatterns {
     int phase;
     int phase_second;
     int frame_ticks;
+    double second_accumulator;
     int cycle;
     int elapsed_seconds;
 } InbePatterns;
@@ -420,12 +422,19 @@ struct InbeApp {
     int profile_friend_input_cursor;
     int profile_friend_input_focused;
     int profile_friends_loaded;
+    int profile_name_cursor;
+    int profile_name_focused;
+    int profile_intention_cursor;
+    int profile_intention_focused;
+    char profile_display_name[64];
+    char profile_intention[128];
     char profile_friend_input[80];
     char profile_pending_friend_remove_id[80];
     char profile_pending_friend_remove_name[96];
     char profile_friends_json[8192];
     char profile_friend_requests_json[8192];
     char profile_leaderboard_json[8192];
+    char profile_leaderboard_avg_json[8192];
     int sync_server_url_cursor;
     int sync_server_url_focused;
     char sync_server_url[256];
@@ -575,6 +584,8 @@ int app_content_top_reserved(const InbeApp *app);
 int app_toolbar_height(void);
 int app_auto_sync(InbeApp *app);
 void app_request_social_refresh(InbeApp *app);
+int app_social_refresh_loading(void);
+int app_sync_loading(void);
 void app_request_friend_send(InbeApp *app, const char *target);
 void app_request_friend_accept(InbeApp *app, const char *request_id);
 void app_request_friend_decline(InbeApp *app, const char *request_id);

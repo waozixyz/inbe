@@ -12,6 +12,7 @@ void patterns_config_screen_draw(InbeApp *app);
 void patterns_practice_leave_config(InbeApp *app);
 void patterns_draw_screen(InbeApp *app, int center_x, int center_y);
 void patterns_request_exit(InbeApp *app);
+void patterns_advance_elapsed(InbeApp *app, int elapsed_ms);
 void patterns_ratio_text(const InbeApp *app, char *out, size_t out_size);
 
 #endif

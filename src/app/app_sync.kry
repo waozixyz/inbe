@@ -43,6 +43,7 @@ InbeSocialWorkerArgs :: struct {
     practice: [32] char
     metric: [32] char
     leaderboard_key: [96] char
+    leaderboard_avg_key: [96] char
     action: [16] char
     action_value: [96] char
 }
@@ -60,6 +61,8 @@ InbeSocialWorkerResult :: struct {
     friends_json: [8192] char
     leaderboard_json: [8192] char
     leaderboard_key: [96] char
+    leaderboard_avg_json: [8192] char
+    leaderboard_avg_key: [96] char
 }
 
 static g_sync: InbeSyncCoordinator = {0}
@@ -256,11 +259,16 @@ app_social_leaderboard_key :: (out: char*, out_size: size_t,
 app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
                            friends_json: const char*,
                            leaderboard_json: const char*,
-                           leaderboard_key: const char*) #private {
+                           leaderboard_key: const char*,
+                           leaderboard_avg_json: const char*,
+                           leaderboard_avg_key: const char*) #private {
     storage_set_social_cache_json("friends.requests", requests_json)
     storage_set_social_cache_json("friends.list", friends_json)
     if leaderboard_key != nil && leaderboard_key[0] != '\0' {
         storage_set_social_cache_json(leaderboard_key, leaderboard_json)
+    }
+    if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' {
+        storage_set_social_cache_json(leaderboard_avg_key, leaderboard_avg_json)
     }
     if app != nil {
         snprintf(app->profile_friend_requests_json,
@@ -277,6 +285,16 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
                 snprintf(app->profile_leaderboard_json,
                             sizeof(app->profile_leaderboard_json), "%s",
                             leaderboard_json != nil ? leaderboard_json : "{\"rows\":[]}")
+            }
+        }
+        if leaderboard_avg_key != nil && leaderboard_avg_key[0] != '\0' {
+            current_avg_key: [96] char
+            app_social_leaderboard_key(current_avg_key, sizeof(current_avg_key),
+                                          app->profile_leaderboard_practice, 1)
+            if strcmp(current_avg_key, leaderboard_avg_key) == 0 {
+                snprintf(app->profile_leaderboard_avg_json,
+                            sizeof(app->profile_leaderboard_avg_json), "%s",
+                            leaderboard_avg_json != nil ? leaderboard_avg_json : "{\"rows\":[]}")
             }
         }
         app->profile_friends_loaded = 1
@@ -312,6 +330,8 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
         requests_json: [8192] char
         friends_json: [8192] char
         leaderboard_json: [8192] char
+        leaderboard_avg_json: [8192] char
+        leaderboard_avg_result: KsyncSyncResult = KSYNC_SYNC_OK
 
         if args != nil {
             result = app_social_fetch(args->url, args->practice, args->metric,
@@ -319,10 +339,21 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
                                       requests_json, sizeof(requests_json),
                                       friends_json, sizeof(friends_json),
                                       leaderboard_json, sizeof(leaderboard_json))
+            snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "{\"rows\":[]}")
+            if result == KSYNC_SYNC_OK && strcmp(args->practice, "whm") == 0 {
+                avg_metric := strcmp(args->practice, "meditation") == 0 ? "avg_time" : "avg_hold"
+                leaderboard_avg_result = sync_client_get_friend_stats(
+                    args->url, "inbe", args->practice, avg_metric,
+                    leaderboard_avg_json, sizeof(leaderboard_avg_json))
+                if leaderboard_avg_result != KSYNC_SYNC_OK {
+                    result = leaderboard_avg_result
+                }
+            }
         } else {
             snprintf(requests_json, sizeof(requests_json), "{\"incoming\":[],\"outgoing\":[]}")
             snprintf(friends_json, sizeof(friends_json), "{\"friends\":[]}")
             snprintf(leaderboard_json, sizeof(leaderboard_json), "{\"rows\":[]}")
+            snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "{\"rows\":[]}")
         }
 
         sync_lock()
@@ -338,6 +369,12 @@ app_social_apply_result :: (app: InbeApp*, requests_json: const char*,
         snprintf(g_social_result.leaderboard_key,
                     sizeof(g_social_result.leaderboard_key), "%s",
                     args != nil ? args->leaderboard_key : "")
+        snprintf(g_social_result.leaderboard_avg_json,
+                    sizeof(g_social_result.leaderboard_avg_json), "%s",
+                    leaderboard_avg_json)
+        snprintf(g_social_result.leaderboard_avg_key,
+                    sizeof(g_social_result.leaderboard_avg_key), "%s",
+                    args != nil ? args->leaderboard_avg_key : "")
         g_social_result.finished = 1
         g_sync.social_refresh_running = 0
         sync_unlock()
@@ -644,7 +681,12 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         app_social_leaderboard_key(args->leaderboard_key,
                                       sizeof(args->leaderboard_key),
                                       app->profile_leaderboard_practice,
-                                      app->profile_leaderboard_metric)
+                                      PROFILE_LEADERBOARD_STREAK)
+        app_social_leaderboard_key(args->leaderboard_avg_key,
+                                      sizeof(args->leaderboard_avg_key),
+                                      app->profile_leaderboard_practice,
+                                      PROFILE_LEADERBOARD_AVG_HOLD)
+        snprintf(args->metric, sizeof(args->metric), "streak")
         snprintf(args->action, sizeof(args->action), "%s", action)
         snprintf(args->action_value, sizeof(args->action_value), "%s", action_value)
         TraceLog(LOG_INFO, "SYNC: starting background social refresh")
@@ -673,23 +715,37 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         friends_json: [8192] char
         leaderboard_json: [8192] char
         leaderboard_key: [96] char
+        leaderboard_avg_json: [8192] char
+        leaderboard_avg_key: [96] char
         result: KsyncSyncResult
 
         app_social_leaderboard_key(leaderboard_key, sizeof(leaderboard_key),
                                       app->profile_leaderboard_practice,
-                                      app->profile_leaderboard_metric)
+                                      PROFILE_LEADERBOARD_STREAK)
+        app_social_leaderboard_key(leaderboard_avg_key, sizeof(leaderboard_avg_key),
+                                      app->profile_leaderboard_practice,
+                                      PROFILE_LEADERBOARD_AVG_HOLD)
         TraceLog(LOG_INFO, "SYNC: refreshing social cache")
         result = app_social_fetch(url,
                                   app_social_practice_id(app->profile_leaderboard_practice),
-                                  app_social_metric_id(app->profile_leaderboard_practice,
-                                                       app->profile_leaderboard_metric),
+                                  "streak",
                                   action, action_value,
                                   requests_json, sizeof(requests_json),
                                   friends_json, sizeof(friends_json),
                                   leaderboard_json, sizeof(leaderboard_json))
+        snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "{\"rows\":[]}")
+        if result == KSYNC_SYNC_OK &&
+           app->profile_leaderboard_practice == EXERCISE_WIM_HOF {
+            result = sync_client_get_friend_stats(
+                url, "inbe", app_social_practice_id(app->profile_leaderboard_practice),
+                app_social_metric_id(app->profile_leaderboard_practice,
+                                     PROFILE_LEADERBOARD_AVG_HOLD),
+                leaderboard_avg_json, sizeof(leaderboard_avg_json))
+        }
         if result == KSYNC_SYNC_OK {
             app_social_apply_result(app, requests_json, friends_json,
-                                       leaderboard_json, leaderboard_key)
+                                       leaderboard_json, leaderboard_key,
+                                       leaderboard_avg_json, leaderboard_avg_key)
         } else {
             TraceLog(LOG_WARNING, "SYNC: social refresh failed result=%d name=%s",
                         result, GetKsyncSyncResultName(result))
@@ -710,6 +766,8 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
         friends_json: [8192] char
         leaderboard_json: [8192] char
         leaderboard_key: [96] char
+        leaderboard_avg_json: [8192] char
+        leaderboard_avg_key: [96] char
 
         sync_lock()
         finished = g_social_result.finished
@@ -723,6 +781,10 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
                         g_social_result.leaderboard_json)
             snprintf(leaderboard_key, sizeof(leaderboard_key), "%s",
                         g_social_result.leaderboard_key)
+            snprintf(leaderboard_avg_json, sizeof(leaderboard_avg_json), "%s",
+                        g_social_result.leaderboard_avg_json)
+            snprintf(leaderboard_avg_key, sizeof(leaderboard_avg_key), "%s",
+                        g_social_result.leaderboard_avg_key)
             g_social_result.finished = 0
         }
         sync_unlock()
@@ -736,7 +798,8 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
             return
         }
         app_social_apply_result(app, requests_json, friends_json,
-                                   leaderboard_json, leaderboard_key)
+                                   leaderboard_json, leaderboard_key,
+                                   leaderboard_avg_json, leaderboard_avg_key)
         sync_lock()
         if g_sync.social_action_count > 0 {
             g_sync.social_refresh_pending = 1
@@ -751,6 +814,32 @@ app_collect_finished_social_refresh :: (app: InbeApp*) #private {
 app_request_social_refresh :: (app: InbeApp*) {
     app_mark_used(app)
     app_queue_social_refresh()
+}
+
+app_social_refresh_loading :: () -> int {
+    loading := 0
+    #if !WEB {
+        sync_lock()
+        loading = g_sync.social_refresh_pending || g_sync.social_refresh_running ||
+                  g_social_result.finished
+        sync_unlock()
+    } #else {
+        loading = g_sync.social_refresh_pending || g_sync.social_refresh_running ||
+                  g_social_result.finished
+    }
+    return loading
+}
+
+app_sync_loading :: () -> int {
+    loading := 0
+    #if !WEB {
+        sync_lock()
+        loading = g_sync.sync_running
+        sync_unlock()
+    } #else {
+        loading = g_sync.sync_running
+    }
+    return loading
 }
 
 app_request_social_action :: (action: const char*, value: const char*) #private {

@@ -4,6 +4,30 @@ Inner Breeze
 [tab_profile]
 Perfil
 ---
+[profile_name_label]
+Nombre
+---
+[profile_intention_label]
+Mi intención
+---
+[profile_progress_title]
+Esta semana
+---
+[profile_today_habits]
+Hábitos de hoy
+---
+[profile_active_days]
+Días activos
+---
+[profile_days_value]
+%d días
+---
+[profile_week_practices]
+Sesiones de práctica
+---
+[profile_weekly_insight]
+Estuviste presente %d días esta semana.
+---
 [tab_habits]
 Hábitos
 ---
@@ -32,7 +56,7 @@ Amigos
 Clasificacion
 ---
 [profile_metric_streak]
-Racha
+Racha actual
 ---
 [profile_metric_avg_time]
 Tiempo medio
@@ -1083,8 +1107,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV

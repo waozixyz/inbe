@@ -2495,6 +2495,64 @@ storage_profile_activity_stats(int activity, int today_date,
     return 1;
 }
 
+int
+storage_profile_week_stats(int today_date, int *active_days_out,
+                           int *practice_sessions_out)
+{
+    sqlite3_stmt *stmt = NULL;
+    int active_days[7] = {0};
+    int practice_sessions = 0;
+    int active_count = 0;
+
+    if(active_days_out != NULL)
+        *active_days_out = 0;
+    if(practice_sessions_out != NULL)
+        *practice_sessions_out = 0;
+    if(g_storage.db == NULL || today_date <= 0)
+        return 0;
+
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT local_date FROM sessions "
+                          "WHERE user_id=?1 AND deleted_at=0 AND local_date>0",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0),
+                                                    today_date);
+            if(offset >= 0 && offset < 7) {
+                active_days[offset] = 1;
+                practice_sessions++;
+            }
+        }
+        sqlite3_finalize(stmt);
+        stmt = NULL;
+    }
+
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT DISTINCT hd.local_date FROM habit_days hd "
+                          "JOIN habits h ON h.id=hd.habit_id "
+                          "WHERE h.user_id=?1 AND h.deleted_at=0 "
+                          "AND (hd.completed!=0 OR hd.count>0)",
+                          -1, &stmt, NULL) == SQLITE_OK) {
+        bind_text(stmt, 1, g_storage.user_id);
+        while(sqlite3_step(stmt) == SQLITE_ROW) {
+            int offset = storage_profile_day_offset(sqlite3_column_int(stmt, 0),
+                                                    today_date);
+            if(offset >= 0 && offset < 7)
+                active_days[offset] = 1;
+        }
+        sqlite3_finalize(stmt);
+    }
+
+    for(int i = 0; i < 7; i++)
+        active_count += active_days[i];
+    if(active_days_out != NULL)
+        *active_days_out = active_count;
+    if(practice_sessions_out != NULL)
+        *practice_sessions_out = practice_sessions;
+    return 1;
+}
+
 
 int
 storage_habits_empty(void)

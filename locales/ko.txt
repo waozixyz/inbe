@@ -4,6 +4,30 @@ Inner Breeze
 [tab_profile]
 프로필
 ---
+[profile_name_label]
+이름
+---
+[profile_intention_label]
+나의 다짐
+---
+[profile_progress_title]
+이번 주
+---
+[profile_today_habits]
+오늘의 습관
+---
+[profile_active_days]
+활동한 날
+---
+[profile_days_value]
+%d일
+---
+[profile_week_practices]
+연습 세션
+---
+[profile_weekly_insight]
+이번 주에는 %d일 동안 실천했어요.
+---
 [tab_habits]
 습관
 ---
@@ -1082,8 +1106,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV

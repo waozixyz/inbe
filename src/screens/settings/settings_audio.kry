@@ -479,11 +479,6 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
         {GetLocaleText("audio_test_output_button"), UI_BUTTON_STYLE_SECONDARY, 0},
         {GetLocaleText("audio_reinitialize_button"), UI_BUTTON_STYLE_SECONDARY, 0}
     }
-    row := (ButtonRowProps){.x = x, .y = *y, .width = w,
-                            .height = ScaleUIPx(36),
-                            .items = buttons, .count = 2}
-    clicked := ButtonRow(row)
-
     Text(GetLocaleText("audio_output_label"), x, *y,
                GetUIFontSize(), GetThemeText())
     Text(GetLocaleText("audio_system_default_label"), x,
@@ -494,13 +489,18 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
                    DarkenUIColor(GetThemeText(), 28))
     *y += ScaleUIPx(70)
 
+    row := (ButtonRowProps){.x = x, .y = *y, .width = w,
+                            .height = ScaleUIPx(36),
+                            .items = buttons, .count = 2}
+    clicked := ButtonRow(row)
+    *y += GetUIButtonRowHeight(row)
+
     if clicked == 1 {
         app_play_bell_cue(app, 1.0f)
     }
     if clicked == 2 {
         app_audio_reinitialize(app)
     }
-    *y += GetUIButtonRowHeight(row)
     *y += settings_ui_draw_audio_meter(app, x, *y, w,
                                        GetLocaleText("audio_output_level_label"))
     *y += ScaleUIPx(18)
@@ -516,16 +516,15 @@ settings_audio_import_button_height :: (action: int) -> int #private {
 }
 
 settings_audio_output_height :: (content_w: int) -> int #private {
-    audio_button_min := ScaleUIPx(122)
-    audio_button_gap := ScaleUIPx(10)
-    height := ScaleUIPx(70) + ScaleUIPx(46) +
-        ScaleUIPx(18) + ScaleUIPx(10) + ScaleUIPx(8) +
-        ScaleUIPx(18)
-
-    if content_w > 0 && content_w < audio_button_min * 2 + audio_button_gap {
-        height += ScaleUIPx(46)
+    buttons: [2] UIButtonRowItem = {
+        {GetLocaleText("audio_test_output_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("audio_reinitialize_button"), UI_BUTTON_STYLE_SECONDARY, 0}
     }
-    return height
+    row := (ButtonRowProps){.width = content_w, .height = ScaleUIPx(36),
+                            .items = buttons, .count = 2}
+
+    return ScaleUIPx(70) + GetUIButtonRowHeight(row) +
+        settings_ui_audio_meter_height() + ScaleUIPx(18)
 }
 
 settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {

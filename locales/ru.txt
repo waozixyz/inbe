@@ -4,6 +4,30 @@ Inner Breeze
 [tab_profile]
 Профиль
 ---
+[profile_name_label]
+Имя
+---
+[profile_intention_label]
+Моё намерение
+---
+[profile_progress_title]
+На этой неделе
+---
+[profile_today_habits]
+Привычки на сегодня
+---
+[profile_active_days]
+Активные дни
+---
+[profile_days_value]
+%d дн.
+---
+[profile_week_practices]
+Сеансы практики
+---
+[profile_weekly_insight]
+На этой неделе вы уделили себе %d дн.
+---
 [tab_habits]
 Привычки
 ---
@@ -1083,8 +1107,6 @@ Interval bell
 [meditation_interval_bell_off]
 Off
 ---
-[practice_show_label]
-Show
 ---
 [export_csv_button]
 Export CSV
