@@ -34,10 +34,11 @@ if(NOT TARGET oqs)
 endif()
 file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
 list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
-# kry_surface_math.c implements raylib-named math/text helpers for the
-# software backends; Android links real raylib, so compiling both is a
-# duplicate-symbol link error.
-list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/backend/kry_surface_math.c")
+# The src/backend/ software renderer implements raylib-named functions
+# (math, input, drawing) for no-raylib hosts; Android links real raylib, so
+# compiling both is a duplicate-symbol link error. Only krb.c (cartridge
+# tooling) uses the backend API.
+list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/backend/.*")
 # inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
 # KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
 list(REMOVE_ITEM KRYON_SOURCES
