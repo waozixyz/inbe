@@ -40,10 +40,10 @@ text_color_for_background :: (background: Color) -> Color #private {
 }
 
 set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
-    int old_rmin
-    int old_rmax
-    int old_span
-    int new_span
+    old_rmin: int
+    old_rmax: int
+    old_span: int
+    new_span: int
 
     if inbe == nil {
         return
@@ -89,8 +89,8 @@ set_circle_bounds :: (inbe: Inbe*, rmin: int, rmax: int) #private {
 session_update_circle_bounds_for_view :: (inbe: Inbe*, top_reserve: int, bottom_reserve: int) {
     available_w: int = view_width - CIRCLE_SIDE_PAD * 2
     available_h: int = view_height - top_reserve - bottom_reserve - CIRCLE_SIDE_PAD * 2
-    int rmax
-    int rmin
+    rmax: int
+    rmin: int
 
     if available_w < 0 {
         available_w = 0
@@ -119,8 +119,8 @@ session_update_circle_bounds_for_view :: (inbe: Inbe*, top_reserve: int, bottom_
 
 update_preview_bounds :: (inbe: Inbe*, content_w: int, content_h: int) {
     span: int = content_w
-    int rmax
-    int rmin
+    rmax: int
+    rmin: int
 
     if content_h > 0 && content_h < span {
         span = content_h
@@ -205,7 +205,7 @@ update_retention_marker :: (app: InbeApp*, phase_changed: int) #private {
 #if ANDROID {
 session_update_notification :: (app: InbeApp*) #private {
     text: [96] char = ""
-    int count
+    count: int
 
     if app == nil {
         return
@@ -300,8 +300,8 @@ session_background_start :: (app: InbeApp*) {
 }
 
 session_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
-    int elapsed_total
-    int frame_count
+    elapsed_total: int
+    frame_count: int
 
     if app == nil || elapsed_ms <= 0 {
         return
@@ -366,7 +366,7 @@ session_start :: (app: InbeApp*) {
 }
 
 collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> int #private {
-    int rounds
+    rounds: int
     count: int = 0
 
     if app == nil || round_times == nil || max_rounds <= 0 {
@@ -395,8 +395,8 @@ collect_result_rounds :: (app: InbeApp*, round_times: int*, max_rounds: int) -> 
 }
 
 session_ensure_results_saved :: (app: InbeApp*) -> int {
-    int round_times[MaxRounds]
-    int rounds
+    round_times: [MaxRounds] int
+    rounds: int
 
     if app == nil {
         return 0
@@ -439,7 +439,7 @@ session_discard_saved_results :: (app: InbeApp*) {
 }
 
 session_has_completed_rounds :: (app: InbeApp*) -> int {
-    int round_times[MaxRounds]
+    round_times: [MaxRounds] int
     return collect_result_rounds(app, round_times, MaxRounds) > 0
 }
 
@@ -616,14 +616,14 @@ session_step_forward :: (app: InbeApp*) #private {
 }
 
 draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
-    char text[CountSize]
-    int count
+    text: [CountSize] char
+    count: int
     font: int = UI_TEXT_24
     text_color: Color = text_color_for_background(GetThemeCircle())
 
     if app->inbe.phase == InbePhaseStarting {
         total_seconds: int = inbe_effective_pause_seconds(&app->inbe)
-        int remaining
+        remaining: int
 
         if total_seconds <= 0 {
             remaining = 0
@@ -743,17 +743,17 @@ draw_session_progress_circle :: (app: InbeApp*, center_x: int, center_y: int, ra
     countdown: int = 0
     progress: float = 0.0f
     gap: int = ScaleUIPx(5)
-    int band_width
-    int thickness
-    float inner_radius
-    float outer_radius
+    band_width: int
+    thickness: int
+    inner_radius: float
+    outer_radius: float
     circle: Color = GetThemeCircle()
     contrast: Color = text_color_for_background(circle)
-    Color band_bg
-    Color band_fill
-    Color tick_done
-    Color tick_pending
-    Color ring
+    band_bg: Color
+    band_fill: Color
+    tick_done: Color
+    tick_pending: Color
+    ring: Color
 
     if app == nil {
         return
@@ -855,8 +855,8 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     practice_text: const char* = practice_label(app->exercise_type)
     font: int = UI_TEXT_16
     practice_font: int = GetUIFontSize()
-    int practice_w
-    int practice_y
+    practice_w: int
+    practice_y: int
     scale: float = 1.0f
 
     radius: int = ScaleUIPx(44)
@@ -941,7 +941,7 @@ session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int)
     side_reserved: int = view_width - close_x + ScaleUIPx(8)
     font: int = UI_TEXT_24
     max_w: int = view_width - side_reserved * 2
-    int title_w
+    title_w: int
 
     if title == nil {
         title = ""
@@ -1035,7 +1035,7 @@ session_handle_exit_modal :: (app: InbeApp*) -> int #private {
 session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
     breath_max_y: int = view_height - ScaleUIPx(44)
     title_h: int = UIGetNodeHeight(UINodeTitleBar(0))
-    char title[32]
+    title: [32] char
 
     session_round_label(app, title, sizeof(title))
     if session_draw_round_title_bar(app, title, title_h) {
@@ -1138,7 +1138,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         breath_w: int = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72)
         breath_h: int = GetUITextLineHeight(breath_font) + ScaleUIPx(28)
         breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(42)
-        int breath_x
+        breath_x: int
         breath_hover: int = 0
 
         if app->double_tap_to_breathe {
@@ -1187,20 +1187,20 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 }
 
 session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
-    int box_x
+    box_x: int
     box_y: int = ScaleUIPx(78)
-    int box_w
+    box_w: int
     row_y: int = ScaleUIPx(215)
     row_h: int = ScaleUIPx(32)
     total: int = 0
     best: int = -1
-    int round_times[MaxRounds]
+    round_times: [MaxRounds] int
     rounds: int = collect_result_rounds(app, round_times, MaxRounds)
     discard_hover: int = 0
     save_hover: int = 0
     action_y: int = view_height - ScaleUIPx(40)
-    int title_font
-    int title_w
+    title_font: int
+    title_w: int
 
     unused center_y
 
@@ -1264,7 +1264,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
                                                 (float)box_w, (float)ScaleUIPx(28)},
                                     GetUIFontSize(), DarkenUIColor(GetThemeText(), 20))
     for int i = 0; i < rounds; i++ {
-        char row[48]
+        row: [48] char
         UIInfoRow info_row
         row_font: int = GetUIFontSize()
         FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
