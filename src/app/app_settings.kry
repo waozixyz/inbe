@@ -278,6 +278,8 @@ save_settings :: (app: InbeApp*) {
                         app->meditation.custom_minutes)
     save_setting_int("meditation_show_extend_controls",
                         app->meditation.show_extend_controls ? 1 : 0)
+    save_setting_int("meditation_interval_bell",
+                        app->meditation.interval_bell_minutes)
     save_setting_int("meditation_music_track", app->meditation.music_track)
     save_setting_int("practice_music_mask",
                         app->meditation.music_practice_mask)
@@ -603,6 +605,8 @@ app_load_settings :: (app: InbeApp*) -> int {
                             "meditation_duration_mode", 1, 0, 5)
     load_clamped_setting(&settings_cache, &app->meditation.custom_minutes,
                             "meditation_custom_minutes", 20, 1, 240)
+    load_clamped_setting(&settings_cache, &app->meditation.interval_bell_minutes,
+                            "meditation_interval_bell", 0, 0, 30)
     load_clamped_setting(&settings_cache, &app->meditation.music_track,
                             "meditation_music_track", 0, 0,
                             music_max)

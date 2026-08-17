@@ -1082,6 +1082,12 @@ Keep running
 [desktop_close_action_quit]
 Quit
 ---
+[meditation_interval_bell_label]
+Interval bell
+---
+[meditation_interval_bell_off]
+Off
+---
 [tray_break_settings]
 Break Settings...
 ---

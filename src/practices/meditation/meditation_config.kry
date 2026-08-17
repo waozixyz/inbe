@@ -19,7 +19,7 @@ meditation_config_duration_height :: (content_w: int) -> int #private {
 
     return ScaleUIPx(30) + rows * ScaleUIPx(42) +
            (rows - 1) * ScaleUIPx(8) +
-           ScaleUIPx(96) + ScaleUIPx(78) + ScaleUIPx(18)
+           ScaleUIPx(96) + ScaleUIPx(78) + ScaleUIPx(18) + ScaleUIPx(78)
 }
 
 meditation_config_content_height :: (app: InbeApp*, content_w: int) -> int #private {
@@ -124,6 +124,35 @@ meditation_config_draw_duration :: (app: InbeApp*, x: int, w: int, y: int*) #pri
                           GetLocaleText("toggle_on")) {
         app->meditation.show_extend_controls = toggle_value
         meditation_config_save(app)
+    }
+    *y += ScaleUIPx(78)
+
+    # interval bell: a soft bell every N minutes (0 = off)
+    Text(GetLocaleText("meditation_interval_bell_label"), x, *y,
+                  GetUIFontSize(), GetThemeText())
+    bell_labels: [7] const char* = {
+        GetLocaleText("meditation_interval_bell_off"),
+        "1", "2", "5", "10", "15", "30"
+    }
+    bell_values: [7] const int = {0, 1, 2, 5, 10, 15, 30}
+    bell_selected := 0
+    for int i = 0; i < 7; i++ {
+        if app->meditation.interval_bell_minutes == bell_values[i] {
+            bell_selected = i
+        }
+    }
+    bell_w := (w - gap * 6) / 7
+    if bell_w > ScaleUIPx(72) {
+        bell_w = ScaleUIPx(72)
+    }
+    for int i = 0; i < 7; i++ {
+        bx := x + i * (bell_w + gap)
+        style := i == bell_selected ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, bx, *y + ScaleUIPx(26), bell_w, btn_h,
+                               bell_labels[i], style, 0, &hover) {
+            app->meditation.interval_bell_minutes = bell_values[i]
+            meditation_config_save(app)
+        }
     }
     *y += ScaleUIPx(78)
 }

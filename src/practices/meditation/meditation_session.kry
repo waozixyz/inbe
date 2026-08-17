@@ -45,6 +45,7 @@ start :: (app: InbeApp*, seconds: int) #private {
     app->meditation.frame_ticks = 0
     app->meditation.complete_waiting = 0
     background_remainder_ms = 0
+    last_bell_index = 0
     app->session_paused = 0
     app->volume_popup_active = 0
     app_close_modal(app)
@@ -52,6 +53,23 @@ start :: (app: InbeApp*, seconds: int) #private {
     app_play_bell_cue(app, 1.0f)
     meditation_music_start_session(app)
     practice_background_start(app, PRACTICE_MEDITATION)
+}
+
+# Interval bell: ring once for every completed interval while the session
+# runs (foreground tick and background advance both funnel through here).
+static last_bell_index: int = 0
+
+maybe_interval_bell :: (app: InbeApp*) #private {
+    interval := app->meditation.interval_bell_minutes * 60
+
+    if interval <= 0 || app->meditation.complete_waiting {
+        return
+    }
+    index := elapsed_seconds(app) / interval
+    if index > last_bell_index {
+        last_bell_index = index
+        app_play_bell_cue(app, 0.85f)
+    }
 }
 
 meditation_configured_duration_seconds :: (app: const InbeApp*) -> int {
@@ -153,6 +171,7 @@ meditation_advance_elapsed :: (app: InbeApp*, elapsed_ms: int) {
         app->meditation.remaining_seconds = 0
     } else {
         app->meditation.remaining_seconds -= elapsed_seconds
+        maybe_interval_bell(app)
     }
     app->meditation.frame_ticks = 0
 
@@ -523,6 +542,7 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
             app->meditation.frame_ticks = 0
             if app->meditation.remaining_seconds > 0 {
                 app->meditation.remaining_seconds--
+                maybe_interval_bell(app)
             }
             if app->meditation.remaining_seconds <= 0 {
                 timer_complete(app)

@@ -39,6 +39,7 @@
     X("meditation_duration_mode") \
     X("meditation_custom_minutes") \
     X("meditation_show_extend_controls") \
+    X("meditation_interval_bell") \
     X("meditation_music_track") \
     X("practice_music_mask") \
     X("practice_music_track_wim_hof") \

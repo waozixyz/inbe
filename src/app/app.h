@@ -291,6 +291,7 @@ typedef struct MeditationPracticeState {
     int duration_mode;
     int custom_minutes;
     int show_extend_controls;
+    int interval_bell_minutes;  /* 0 = off; bell every N minutes */
     int music_track;
     int music_practice_mask;
     int music_practice_tracks[EXERCISE_COUNT];
