@@ -313,6 +313,7 @@ content_height :: (content_w: int) -> int {
            data_button_h + ScaleUIPx(12) +
            data_button_h + ScaleUIPx(12) +
            data_button_h + ScaleUIPx(12) +
+           data_button_h + ScaleUIPx(12) +
            ScaleUIPx(42) +
            ScaleUIPx(40)
 }
@@ -340,6 +341,13 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
                            GetLocaleText("export_data_button"),
                            UI_BUTTON_STYLE_PRIMARY, 0, &hover_export) {
         export_data(app)
+    }
+    *y += data_button_h + ScaleUIPx(12)
+
+    if GenericButton(0, x, *y, w, data_button_h,
+                           GetLocaleText("export_csv_button"),
+                           UI_BUTTON_STYLE_SECONDARY, 0, &hover_export) {
+        export_csv(app)
     }
     *y += data_button_h + ScaleUIPx(12)
 
@@ -615,6 +623,51 @@ request_delete_all_data :: (app: InbeApp*) #private {
         app_open_modal(app, UIModalConfirmDeleteData)
     } else {
         settings_screen_set_status_error(GetLocaleText("no_data_to_delete"))
+    }
+}
+
+# Plain-text stats: every practice session (incl. meditation) as CSV rows,
+# shareable into spreadsheets / health dashboards.
+export_csv :: (app: InbeApp*) #private {
+    #if ANDROID {
+        csv_path: [128] char
+        snprintf(csv_path, sizeof(csv_path), "%s/inbe-sessions.csv",
+                 data_root())
+        file_dialog_begin(app, SETTINGS_DATA_ACTION_EXPORT)
+        if storage_export_sessions_csv(csv_path) {
+            file_dialog_finish(app)
+            settings_screen_set_status_success(GetLocaleText("exported_label"), nil)
+        } else {
+            file_dialog_finish(app)
+            settings_screen_set_status_error(GetLocaleText("export_failed"))
+        }
+    } #else_if WEB {
+        unused app
+        if storage_export_sessions_csv(web_export_path) &&
+           web_download_file(web_export_path, "inbe-sessions.csv", "text/csv") {
+            settings_screen_set_status_success(GetLocaleText("exported_label"), nil)
+        } else {
+            settings_screen_set_status_error(GetLocaleText("export_failed"))
+        }
+    } #else_if NATIVE_FILE_DIALOG {
+        dlg: FileDialog = {0}
+        InitFileDialog(&dlg)
+        if SaveFileDialog(&dlg, GetLocaleText("export_csv_dialog_title"),
+                          "inbe-sessions.csv") {
+            path := GetFileDialogPath(&dlg)
+            if path != nil && storage_export_sessions_csv(path) {
+                settings_screen_set_status_success(GetLocaleText("exported_label"),
+                                                   GetFileName(path))
+            } else {
+                settings_screen_set_status_error(GetLocaleText("export_failed"))
+            }
+        } else {
+            settings_screen_set_status_error(GetLocaleText("export_cancelled"))
+        }
+        CloseFileDialog(&dlg)
+    } #else {
+        unused app
+        settings_screen_set_status_error(GetLocaleText("export_failed"))
     }
 }
 

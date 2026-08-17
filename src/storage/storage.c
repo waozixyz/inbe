@@ -2811,3 +2811,55 @@ storage_habit_day_save(const char *habit_id, int local_date, int completed, int 
 #if defined(__GNUC__) && !defined(__clang__)
 #pragma GCC diagnostic pop
 #endif
+
+int
+storage_export_sessions_csv(const char *path)
+{
+    static const char *query =
+        "SELECT s.local_date, s.topic, s.source, "
+        "COALESCE((SELECT SUM(r.seconds) FROM session_rounds r "
+        "          WHERE r.session_id = s.id), 0), "
+        "COALESCE((SELECT COUNT(*) FROM session_rounds r "
+        "          WHERE r.session_id = s.id), 0), "
+        "COALESCE((SELECT m.duration_seconds FROM meditation_logs m "
+        "          WHERE m.session_id = s.id), 0) "
+        "FROM sessions s WHERE s.deleted_at IS NULL "
+        "ORDER BY s.local_date, s.started_at";
+    static const char *topic_names[] = {"wim_hof", "sun_salutation"};
+    FILE *file;
+    sqlite3_stmt *stmt;
+    int ok = 0;
+
+    if(path == NULL || path[0] == '\0' || g_storage.db == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db, query, -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+
+    file = fopen(path, "wb");
+    if(file == NULL) {
+        sqlite3_finalize(stmt);
+        return 0;
+    }
+    fputs("date,practice,source,rounds,total_hold_seconds,"
+          "meditation_seconds\n", file);
+    while(sqlite3_step(stmt) == SQLITE_ROW) {
+        const unsigned char *date = sqlite3_column_text(stmt, 0);
+        int topic = sqlite3_column_int(stmt, 1);
+        const unsigned char *source = sqlite3_column_text(stmt, 2);
+        const char *topic_name = topic >= 0 &&
+            (size_t)topic < sizeof(topic_names) / sizeof(topic_names[0])
+            ? topic_names[topic] : "other";
+
+        fprintf(file, "%s,%s,%s,%d,%d,%d\n",
+                date != NULL ? (const char *)date : "",
+                topic_name,
+                source != NULL ? (const char *)source : "",
+                sqlite3_column_int(stmt, 4),
+                sqlite3_column_int(stmt, 3),
+                sqlite3_column_int(stmt, 5));
+    }
+    ok = ferror(file) == 0;
+    fclose(file);
+    sqlite3_finalize(stmt);
+    return ok;
+}

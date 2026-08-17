@@ -1083,6 +1083,12 @@ Off
 [practice_show_label]
 Show
 ---
+[export_csv_button]
+Export CSV
+---
+[export_csv_dialog_title]
+Export sessions as CSV
+---
 [tray_break_settings]
 Break Settings...
 ---
