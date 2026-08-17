@@ -666,7 +666,10 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     app->theme_style = request->theme_style;
     screenshot_apply_theme(app, request->theme_id, request->dark_mode);
 
-    if(strcmp(request->scene, "first_run_guide") == 0) {
+    if(strcmp(request->scene, "language") == 0) {
+        app->main_tab = APP_MAIN_TAB_NONE;
+        app->inbe.screen = InbeScreenLanguage;
+    } else if(strcmp(request->scene, "first_run_guide") == 0) {
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->tutorial_seen = 0;
@@ -739,6 +742,15 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, THEME_COBALT, 1);
         app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->inbe.screen = InbeScreenStart;
+    } else if(strcmp(request->scene, "patterns") == 0) {
+        app->exercise_type = EXERCISE_PATTERNS;
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        patterns_practice_start(app);
+    } else if(strcmp(request->scene, "patterns_config") == 0) {
+        app->exercise_type = EXERCISE_PATTERNS;
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->practice_tab = PRACTICE_TAB_CONFIG;
         app->inbe.screen = InbeScreenStart;
     } else if(strcmp(request->scene, "break_exercises") == 0) {
         app->inbe.screen = InbeScreenBreakExercises;
@@ -815,6 +827,12 @@ run_screenshot_mode(const ScreenshotRequest *request)
         inbe_app.tutorial_step = 0;
     } else if(strcmp(request->scene, "tutorial_meditation") == 0) {
         inbe_app.tutorial_step = 0;
+    }
+    if(getenv("INBE_SHOT_WINDOW") != NULL) {
+        /* Fallback for GL stacks where LoadImageFromScreen reads blank:
+         * hold the warmed-up scene on screen for external capture. */
+        for(;;)
+            frame();
     }
     capture = LoadImageFromScreen();
     if(capture.data == NULL)
