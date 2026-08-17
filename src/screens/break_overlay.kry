@@ -1,6 +1,10 @@
 #import "app.h"
-#import "breaks/app_breaks.h"
 #import "breaks/break_exercises.h"
+pscr :: #import "screens/practice_screen"
+
+# Defined in breaks/app_breaks.kry; declared extern to keep the module
+# graph acyclic (app_breaks imports this module for the overlay window).
+app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) #extern
 
 break_overlay_active :: (app: const InbeApp*) -> int {
     if app == nil {
@@ -31,6 +35,102 @@ break_overlay_draw_bar :: (x: int, y: int, w: int, h: int, fraction: int) #priva
             filled = w
         }
         Rect(x + 1, y + 1, filled, h - 2, fill, fill)
+    }
+}
+
+# Practice chips below the panel: running a practice replaces the break
+# (app_breaks_start_practice takes it and freezes scheduling for the
+# session). Shared by the draw path and both click paths so the geometry
+# has a single source of truth.
+break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
+                                 out_rects: Rectangle*, out_ids: int*) -> int {
+    if app == nil || out_rects == nil || out_ids == nil {
+        return 0
+    }
+    ids: [4] int = {0, 0, 0, 0}
+    widths: [4] int = {0, 0, 0, 0}
+    count := 0
+    for int i = 0; i < practice_count() && count < 4; i++ {
+        if !pscr.practice_is_visible(app, i) {
+            continue
+        }
+        ids[count] = i
+        widths[count] = MeasureUIText(pscr.practice_label(i), UI_TEXT_12) +
+                        ScaleUIPx(24)
+        count++
+    }
+    if count == 0 {
+        return 0
+    }
+
+    panel_w := view_w * 72 / 100
+    if panel_w > ScaleUIPx(560) {
+        panel_w = ScaleUIPx(560)
+    }
+    if panel_w < ScaleUIPx(280) {
+        panel_w = ScaleUIPx(280)
+    }
+    panel_h := view_h * 46 / 100
+    if panel_h > ScaleUIPx(420) {
+        panel_h = ScaleUIPx(420)
+    }
+    if panel_h < ScaleUIPx(240) {
+        panel_h = ScaleUIPx(240)
+    }
+    panel_y := view_h / 2 - panel_h / 2
+
+    avail := panel_w - ScaleUIPx(48)
+    gap := ScaleUIPx(8)
+    chip_h := ScaleUIPx(34)
+    y := panel_y + panel_h + ScaleUIPx(14)
+
+    total := (count - 1) * gap
+    for int i = 0; i < count; i++ {
+        total += widths[i]
+    }
+    if total <= avail {
+        x := view_w / 2 - total / 2
+        for int i = 0; i < count; i++ {
+            out_rects[i] = (Rectangle){(float)x, (float)y,
+                                       (float)widths[i], (float)chip_h}
+            out_ids[i] = ids[i]
+            x += widths[i] + gap
+        }
+        return count
+    }
+
+    cols := count > 1 ? 2 : 1
+    chip_w := (avail - (cols - 1) * gap) / cols
+    row_w := cols * chip_w + (cols - 1) * gap
+    for int i = 0; i < count; i++ {
+        col := i % cols
+        row := i / cols
+        x := view_w / 2 - row_w / 2 + col * (chip_w + gap)
+        out_rects[i] = (Rectangle){(float)x, (float)(y + row * (chip_h + gap)),
+                                   (float)chip_w, (float)chip_h}
+        out_ids[i] = ids[i]
+    }
+    return count
+}
+
+break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
+    rects: [4] Rectangle
+    ids: [4] int = {0, 0, 0, 0}
+    chips := break_overlay_practice_chips(app, w, h, rects, ids)
+
+    if chips <= 0 {
+        return
+    }
+    chip_fill := DarkenUIColor(GetThemeBackground(), 18)
+    chip_border := DarkenUIColor(GetThemeText(), 55)
+    for int i = 0; i < chips; i++ {
+        r := rects[i]
+        Rect((int)r.x, (int)r.y, (int)r.width, (int)r.height,
+             chip_fill, chip_border)
+        label := pscr.practice_label(ids[i])
+        lw := MeasureUIText(label, UI_TEXT_12)
+        Text(label, (int)r.x + ((int)r.width - lw) / 2,
+             (int)r.y + ScaleUIPx(10), UI_TEXT_12, GetThemeText())
     }
 }
 
@@ -177,6 +277,8 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
             return
         }
     }
+
+    break_overlay_draw_practice_chips(app, w, h)
 }
 
 # Main-window route (InbeScreenBreak): the overlay sized to the app view.
@@ -184,9 +286,29 @@ break_overlay_draw :: (app: InbeApp*) {
     if app == nil {
         return
     }
-    if break_engine_active_break(&app->breaks) < 0 {
+    t := break_engine_active_break(&app->breaks)
+    if t < 0 {
         app_switch_screen(app, app->break_prev_screen != 0 ? app->break_prev_screen : InbeScreenStart)
         return
     }
     break_overlay_draw_sized(app, view_width, view_height)
+
+    # Practice chip clicks for this route; the overlay-window route
+    # hit-tests the same geometry in app_breaks_window_click.
+    if IsMouseButtonPressed(MOUSE_BUTTON_LEFT) {
+        mouse := GetMousePosition()
+        if UIInputCapturesClick(mouse) {
+            return
+        }
+        rects: [4] Rectangle
+        ids: [4] int = {0, 0, 0, 0}
+        chips := break_overlay_practice_chips(app, view_width, view_height,
+                                              rects, ids)
+        for int i = 0; i < chips; i++ {
+            if CheckCollisionPointRec(mouse, rects[i]) {
+                app_breaks_start_practice(app, t, ids[i])
+                return
+            }
+        }
+    }
 }

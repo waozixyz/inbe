@@ -181,7 +181,7 @@ break_timer_begin :: (e: BreakEngine*, t: int) #private {
     break_engine_raise(e, BreakEventStart, t)
 }
 
-break_timer_take :: (e: BreakEngine*, t: int, natural: int) #private {
+break_timer_take :: (e: BreakEngine*, t: int, natural: int) {
     timer := &e->timers[t]
     timer->state = BreakStateRunning
     timer->active_s = 0

@@ -2,6 +2,7 @@
 #import "platform/inbe_activity_monitor.h" #private
 #import "platform/inbe_desktop_tray.h" #private
 #import "storage/break_stats.h" #private
+#import "practices/practice_registry.h" #private
 ovl :: #import "screens/break_overlay"
 
 ANDROID :: ANDROID_BUILD
@@ -128,6 +129,13 @@ app_breaks_window_update :: (app: InbeApp*) {
     if app == nil {
         return
     }
+    # Never show the break window over a running practice: a practice
+    # started from a break replaces it, and one started mid-prompt defers
+    # the prompt until the session ends.
+    if practice_active(app) != nil {
+        break_engine_close_window(app)
+        return
+    }
     t := break_engine_active_break(&app->breaks)
     if t < 0 {
         if app->break_window != nil {
@@ -206,6 +214,19 @@ app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
     if timer->lock_buttons_s > 0 {
         return
     }
+
+    # Practice chips below the panel (geometry shared with the draw path).
+    rects: [4] Rectangle
+    ids: [4] int = {0, 0, 0, 0}
+    chips := ovl.break_overlay_practice_chips(app, view_w, view_h, rects, ids)
+    for int i = 0; i < chips; i++ {
+        point := (Vector2){(float)x, (float)y}
+        if CheckCollisionPointRec(point, rects[i]) {
+            app_breaks_start_practice(app, t, ids[i])
+            return
+        }
+    }
+
     panel_w := view_w * 72 / 100
     if panel_w > ScaleUIPx(560) {
         panel_w = ScaleUIPx(560)
@@ -265,7 +286,17 @@ app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
 }
 
 app_breaks_update :: (app: InbeApp*) {
-    if app == nil || !app->breaks_enabled {
+    if app == nil {
+        return
+    }
+    # A running practice session is deliberate rest: freeze break
+    # scheduling until it ends so no prompt pops over the session. The
+    # elapsed-time base is dropped so no catch-up burst runs afterwards.
+    if practice_active(app) != nil {
+        app->break_last_update_time = 0.0f
+        return
+    }
+    if !app->breaks_enabled {
         return
     }
 
@@ -382,6 +413,61 @@ app_breaks_rest_break_now :: (app: InbeApp*) {
             break_engine_open_window(app, t)
         }
     }
+}
+
+#if TRAY {
+break_practice_tray_action :: (practice_id: int) -> int #private {
+    if practice_id == PRACTICE_MEDITATION {
+        return INBE_DESKTOP_TRAY_ACTION_START_MEDITATION
+    }
+    if practice_id == PRACTICE_SUN_SALUTATION {
+        return INBE_DESKTOP_TRAY_ACTION_START_SUN_SALUTATION
+    }
+    if practice_id == PRACTICE_PATTERNS {
+        return INBE_DESKTOP_TRAY_ACTION_START_PATTERNS
+    }
+    return INBE_DESKTOP_TRAY_ACTION_START_WHM
+}
+}
+
+# Running a practice replaces the active break: the break counts as taken
+# right away (timers reset), and because app_breaks_update stays frozen
+# for the whole session the effective restart lands after the practice
+# ends - no matter how its length compares to the break duration.
+app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) {
+    if app == nil {
+        return
+    }
+    if t >= BREAK_MICRO && t <= BREAK_DAILY {
+        break_timer_take(&app->breaks, t, 0)
+        for int i = 0; i < BreakEventQueueMax; i++ {
+            et := 0
+            event := break_engine_take_event(&app->breaks, &et)
+            if event == BreakEventNone {
+                break
+            }
+            if event == BreakEventTaken || event == BreakEventNatural {
+                break_engine_close_window(app)
+            }
+        }
+    }
+    app->exercise_type = practice_clamp_id(practice_id)
+    app->main_tab = APP_MAIN_TAB_PRACTICE
+    app->practice_tab = PRACTICE_TAB_PLAY
+    if app->modal.active {
+        app_close_modal(app)
+    }
+#if TRAY {
+    # The tray path also restores the main window when it was hidden.
+    win_quit := 0
+    inbe_desktop_tray_apply_action(app, break_practice_tray_action(practice_id),
+                                   &win_quit)
+} #else {
+    practice := practice_get(app->exercise_type)
+    if practice->start != nil {
+        practice->start(app)
+    }
+}
 }
 
 app_breaks_exercise_second :: (app: const InbeApp*) -> int {
