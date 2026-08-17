@@ -123,9 +123,6 @@ Wim Hof 呼吸
 [exercise_sun_salutation]
 拜日式
 ---
-[sun_salutation_work_in_progress]
-进行中
----
 [sun_salutation_repetitions_label]
 重复次数
 ---

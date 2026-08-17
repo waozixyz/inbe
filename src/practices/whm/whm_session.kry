@@ -853,14 +853,10 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     released: int = IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
     play_text: const char* = GetLocaleText("play_button")
     practice_text: const char* = practice_label(app->exercise_type)
-    warning_text: const char* = GetLocaleText("sun_salutation_work_in_progress")
     font: int = UI_TEXT_16
     practice_font: int = GetUIFontSize()
-    warning_font: int = GetUISmallFontSize()
     int practice_w
     int practice_y
-    int warning_w
-    int warning_y
     scale: float = 1.0f
 
     radius: int = ScaleUIPx(44)
@@ -914,14 +910,6 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
 
 
     DrawCenteredUIControlText(play_text, center_x, center_y, font,  text_color_for_background(GetThemeCircle()))
-
-    if app->exercise_type == EXERCISE_SUN_SALUTATION {
-        warning_w = MeasureUIText(warning_text, warning_font)
-        warning_y = center_y + scaled_radius + ScaleUIPx(14)
-        Text(warning_text, center_x - warning_w / 2,
-                        GetUIControlTextY(warning_text, warning_y, ScaleUIPx(28), warning_font),
-                        warning_font, GetThemeText())
-    }
 
     if active {
         MarkUIClickable()

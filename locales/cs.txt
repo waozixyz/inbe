@@ -123,9 +123,6 @@ Meditace
 [exercise_sun_salutation]
 Pozdrav slunci
 ---
-[sun_salutation_work_in_progress]
-Pracuje se
----
 [sun_salutation_repetitions_label]
 Opakovani
 ---

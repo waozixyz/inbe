@@ -123,9 +123,6 @@ Méditation
 [exercise_sun_salutation]
 Salutation au soleil
 ---
-[sun_salutation_work_in_progress]
-Travail en cours
----
 [sun_salutation_repetitions_label]
 Repetitions
 ---

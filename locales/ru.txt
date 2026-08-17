@@ -123,9 +123,6 @@ Pause
 [exercise_sun_salutation]
 Приветствие солнцу
 ---
-[sun_salutation_work_in_progress]
-В работе
----
 [sun_salutation_repetitions_label]
 Повторения
 ---

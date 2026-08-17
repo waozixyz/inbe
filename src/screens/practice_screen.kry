@@ -398,7 +398,7 @@ practice_home_action_gap :: (content_w: int) -> int #private {
 }
 
 practice_home_subtitle :: (exercise: int) -> const char* #private {
-    return exercise == EXERCISE_SUN_SALUTATION ? GetLocaleText("sun_salutation_work_in_progress") : NULL
+    return NULL
 }
 
 practice_home_meditation_minutes :: (app: const InbeApp*) -> int #private {

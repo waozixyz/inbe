@@ -123,9 +123,6 @@ Meditasi
 [exercise_sun_salutation]
 Salam Matahari
 ---
-[sun_salutation_work_in_progress]
-Sedang dikerjakan
----
 [sun_salutation_repetitions_label]
 Pengulangan
 ---

@@ -123,9 +123,6 @@ Pause
 [exercise_sun_salutation]
 태양 경배
 ---
-[sun_salutation_work_in_progress]
-작업 중
----
 [sun_salutation_repetitions_label]
 반복 횟수
 ---
