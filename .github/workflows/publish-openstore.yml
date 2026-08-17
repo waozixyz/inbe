@@ -46,7 +46,7 @@ jobs:
           # lives on ports.ubuntu.com. Pin the stock deb822 sources to amd64
           # and add a ports source, otherwise apt-get update 404s on
           # binary-arm64 and the install step fails.
-          sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64, i386/' /etc/apt/sources.list.d/ubuntu.sources
+          sudo sed -i 's/^Types: deb$/Types: deb\nArchitectures: amd64 i386/' /etc/apt/sources.list.d/ubuntu.sources
           printf 'Types: deb\nURIs: http://ports.ubuntu.com/ubuntu-ports\nSuites: noble noble-updates noble-backports noble-security\nComponents: main universe restricted multiverse\nArchitectures: arm64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n' | sudo tee /etc/apt/sources.list.d/ports-arm64.sources >/dev/null
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
