@@ -942,6 +942,8 @@ storage_append_habit_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
                  sqlite3_column_int64(stmt, 9));
     json_append(json, ",\"updated_at\":");
     json_append_epoch(json, sqlite3_column_int64(stmt, 10));
+    json_appendf(json, ",\"weekdays\":%d,\"reminder_hour\":%d",
+                 sqlite3_column_int(stmt, 11), sqlite3_column_int(stmt, 12));
     json_append(json, "}");
 }
 
@@ -1062,7 +1064,7 @@ storage_append_habit_payload_json(JsonBuilder *json, const char *habit_id)
         json,
         "SELECT "
         "id,name,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
-        "enabled,sort_order,deleted_at,updated_at "
+        "enabled,sort_order,deleted_at,updated_at,weekdays,reminder_hour "
         "FROM habits WHERE user_id=?1 AND id=?2",
         habit_id, storage_append_habit_row_json);
 }
@@ -1915,7 +1917,7 @@ storage_apply_sync_habits_json(const char *response_json)
     static const char *habits_sql =
         "INSERT INTO "
         "habits(id,user_id,name,color_r,color_g,color_b,sync_mode,sync_activity,"
-        "counter_enabled,sort_order,deleted_at,updated_at) "
+        "counter_enabled,sort_order,deleted_at,updated_at,weekdays,reminder_hour) "
         "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
         "       COALESCE(json_extract(value,'$.name'),''),"
         "       CAST(COALESCE(json_extract(value,'$.color_r'),0) AS INTEGER),"
@@ -1932,7 +1934,13 @@ storage_apply_sync_habits_json(const char *response_json)
         "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER),"
         "       "
         "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),'0') AS "
-        "INTEGER) "
+        "INTEGER), "
+        "       CAST(COALESCE(json_extract(value,'$.weekdays'),"
+        "                     (SELECT weekdays FROM habits WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.reminder_hour'),"
+        "                     (SELECT reminder_hour FROM habits WHERE "
+        "id=COALESCE(json_extract(value,'$.id'),'')),-1) AS INTEGER) "
         "FROM (SELECT value FROM json_each(?1,'$.changes.habits') "
         "      UNION ALL SELECT value FROM json_each(?1,'$.data.habits')) "
         "WHERE COALESCE(json_extract(value,'$.id'),'')<>'' "
@@ -1943,7 +1951,8 @@ storage_apply_sync_habits_json(const char *response_json)
         "excluded.sync_activity,"
         " counter_enabled=excluded.counter_enabled,sort_order=excluded.sort_"
         "order,deleted_at=excluded.deleted_at,"
-        " updated_at=excluded.updated_at "
+        " updated_at=excluded.updated_at,"
+        " weekdays=excluded.weekdays,reminder_hour=excluded.reminder_hour "
         "WHERE excluded.updated_at > habits.updated_at "
         "OR (excluded.updated_at = habits.updated_at AND NOT EXISTS ("
         " SELECT 1 FROM sync_outbox "
@@ -2513,8 +2522,8 @@ storage_habits_load(void *habits_ptr)
     if(sqlite3_prepare_v2(g_storage.db,
                           "SELECT "
                           "id,name,description,color_r,color_g,color_b,sync_mode,sync_activity,counter_"
-                          "enabled "
-                          "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 10",
+                          "enabled,weekdays,reminder_hour "
+                          "FROM habits WHERE deleted_at=0 ORDER BY sort_order,id LIMIT 32",
                           -1, &stmt, NULL) != SQLITE_OK)
         return 0;
     while(index < INBE_HABIT_MAX && sqlite3_step(stmt) == SQLITE_ROW) {
@@ -2531,6 +2540,10 @@ storage_habits_load(void *habits_ptr)
         habit->sync_mode = sqlite3_column_int(stmt, 6);
         habit->sync_activity = sqlite3_column_int(stmt, 7);
         habit->counter_enabled = sqlite3_column_int(stmt, 8) != 0;
+        habit->weekdays = sqlite3_column_int(stmt, 9);
+        habit->reminder_hour = sqlite3_column_int(stmt, 10);
+        if(habit->reminder_hour > 23)
+            habit->reminder_hour = -1;
         index++;
     }
     sqlite3_finalize(stmt);
@@ -2597,8 +2610,9 @@ storage_habits_save(const void *habits_ptr)
     sqlite3_prepare_v2(g_storage.db,
                        "INSERT INTO "
                        "habits(id,user_id,name,description,color_r,color_g,color_b,sync_mode,sync_"
-                       "activity,counter_enabled,sort_order,deleted_at,updated_at) "
-                       "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,0,?12) "
+                       "activity,counter_enabled,sort_order,deleted_at,updated_at,"
+                       "weekdays,reminder_hour) "
+                       "VALUES(?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,0,?12,?13,?14) "
                        "ON CONFLICT(id) DO UPDATE SET "
                        "user_id=excluded.user_id,"
                        "name=excluded.name,"
@@ -2611,7 +2625,9 @@ storage_habits_save(const void *habits_ptr)
                        "counter_enabled=excluded.counter_enabled,"
                        "sort_order=excluded.sort_order,"
                        "deleted_at=0,"
-                       "updated_at=excluded.updated_at "
+                       "updated_at=excluded.updated_at,"
+                       "weekdays=excluded.weekdays,"
+                       "reminder_hour=excluded.reminder_hour "
                        "WHERE habits.user_id<>excluded.user_id OR "
                        "habits.name<>excluded.name OR "
                        "habits.color_r<>excluded.color_r OR "
@@ -2621,7 +2637,9 @@ storage_habits_save(const void *habits_ptr)
                        "habits.sync_activity<>excluded.sync_activity OR "
                        "habits.counter_enabled<>excluded.counter_enabled OR "
                        "habits.sort_order<>excluded.sort_order OR "
-                       "habits.deleted_at<>0",
+                       "habits.deleted_at<>0 OR "
+                       "habits.weekdays<>excluded.weekdays OR "
+                       "habits.reminder_hour<>excluded.reminder_hour",
                        -1, &habit_stmt, NULL);
     sqlite3_prepare_v2(g_storage.db,
                        "UPDATE habits SET description=?2 "
@@ -2668,6 +2686,10 @@ storage_habits_save(const void *habits_ptr)
         sqlite3_bind_int(habit_stmt, 10, habit->counter_enabled ? 1 : 0);
         sqlite3_bind_int(habit_stmt, 11, i);
         sqlite3_bind_int64(habit_stmt, 12, changed_at);
+        sqlite3_bind_int(habit_stmt, 13, habit->weekdays & 0x7f);
+        sqlite3_bind_int(habit_stmt, 14, habit->reminder_hour >= 0 &&
+                                       habit->reminder_hour <= 23
+                                       ? habit->reminder_hour : -1);
         if(sqlite3_step(habit_stmt) == SQLITE_DONE && sqlite3_changes(g_storage.db) > 0)
             storage_enqueue_sync_habit(habit->id);
         if(desc_stmt != NULL) {

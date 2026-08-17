@@ -14,7 +14,7 @@ enum {
 
 /* Habits-specific constants */
 enum {
-    INBE_HABIT_MAX = 10,
+    INBE_HABIT_MAX = 32,
     INBE_HABIT_ID_SIZE = 40,
     INBE_HABIT_NAME_SIZE = 40,
     INBE_HABIT_DESCRIPTION_SIZE = 256,
@@ -63,6 +63,8 @@ typedef struct InbeHabit {
     int sync_mode;
     int sync_activity;
     int counter_enabled;
+    int weekdays;          /* bit0=Mon .. bit6=Sun; 0 = every day */
+    int reminder_hour;     /* -1 = off, else 0..23 local notification hour */
     InbeHabitDay *days;
     int day_count;
     int day_capacity;
@@ -182,6 +184,9 @@ void draw_habit_day_count_label(int x, int y, int w, int h, int count);
 void draw_habit_link_dot(int x, int y, int w, Color color);
 int habit_session_draw_edit_content(InbeApp *app, HabitLinkedContext *ctx, int content_x, int content_w, int y, int draw);
 int habit_is_linked(const InbeHabit *habit);
+int habit_weekday_bit(int day_index);
+int habit_scheduled_day(const InbeHabit *habit, int day_index);
+int habit_completed_day(const InbeHabit *habit, int day_index);
 void habit_session_cancel_edit(InbeApp *app);
 
 /* Habit session keyboard functions */

@@ -348,6 +348,8 @@ typedef struct HabitEditState {
     int sync_mode;
     int sync_activity;
     int counter_enabled;
+    int weekdays;
+    int reminder_hour;
 } HabitEditState;
 
 struct InbeApp {
@@ -481,6 +483,8 @@ struct InbeApp {
     char habit_detail_session_path[FS_PATH_MAX];
     HabitSessionEditState habit_session_edit;
     HabitEditState habit_edit;
+    int habit_reminder_day;      /* yday+year key for once-per-day firing */
+    unsigned int habit_reminded_mask;
     int habit_counter_press_day;
     int habit_counter_press_index;
     int habit_counter_press_frames;

@@ -351,6 +351,9 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
         mktime(&day_tm)
         day_index = habit_tm_date_index(&day_tm)
         count = statistics_day_count(active, linked_ctx, day_index)
+        scheduled := active == nil || active->weekdays == 0 ||
+                     (active->weekdays &
+                      (1 << ((day_tm.tm_wday + 6) % 7))) != 0
         if i < 30 && count > 0 {
             last_30_done++
         }
@@ -368,6 +371,11 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
             if running_streak > best_streak {
                 best_streak = running_streak
             }
+            if i == current_streak {
+                current_streak++
+            }
+        } else if !scheduled {
+            # off-schedule days neither extend nor break a streak
             if i == current_streak {
                 current_streak++
             }

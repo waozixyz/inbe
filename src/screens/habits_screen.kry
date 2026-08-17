@@ -200,6 +200,25 @@ habits_today_index :: () -> int {
            tm->tm_mday
 }
 
+# Weekday cadence: bit0=Mon .. bit6=Sun; 0 = every day.
+habit_weekday_bit :: (day_index: int) -> int {
+    tm_value := (struct tm){0}
+
+    tm_value.tm_year = day_index / 10000 - 1900
+    tm_value.tm_mon = (day_index / 100) % 100 - 1
+    tm_value.tm_mday = day_index % 100
+    tm_value.tm_hour = 12
+    mktime(&tm_value)
+    return (tm_value.tm_wday + 6) % 7
+}
+
+habit_scheduled_day :: (habit: const InbeHabit*, day_index: int) -> int {
+    if habit == nil || habit->weekdays == 0 {
+        return 1
+    }
+    return (habit->weekdays & (1 << habit_weekday_bit(day_index))) != 0
+}
+
 habit_completed_day :: (habit: const InbeHabit*, day_index: int) -> int {
     index := habit_find_day(habit, day_index)
     return index >= 0 &&
@@ -1623,6 +1642,9 @@ habits_overview_done_today :: (app: InbeApp*) -> int #private {
         linked_ctx: HabitLinkedContext* = nil
         completed: int
 
+        if !habit_scheduled_day(habit, today) {
+            continue
+        }
         if habit_is_linked(habit) {
             memset(&ctx, 0, sizeof(ctx))
             habit_collect_linked_entries(habit, today, &ctx)
@@ -1822,6 +1844,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             day_index: int = habits_overview_day_index(day)
             day_x: int = grid_x + day * (cell + cell_gap)
             future_day: int = day_index > today_index
+            off_schedule: int = !habit_scheduled_day(habit, day_index)
             session_count: int = habits_overview_session_count(habit, day_index)
             has_linked_day: int = session_count > 0
             counting_enabled: int = habit_counting_enabled(habit)
@@ -1844,10 +1867,26 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
                 !UIInputCapturesClick(mouse)
             cell_hover: int = cell_active &&
                 !future_day &&
+                !off_schedule &&
                 UIHoverEffectsEnabled()
 
             if !completed && !future_day && (has_linked_day || count > 0) {
                 completed = 1
+            }
+            if off_schedule && !completed {
+                # outside the habit's weekly schedule: visibly muted
+                if material {
+                    DrawRectangleRounded(cell_bounds, 0.42f, 8,
+                                          Fade(GetThemeSurface(), 0.35f))
+                } else {
+                    DrawRectangle(day_x, row_y, cell, cell,
+                                  Fade(DarkenUIColor(GetThemeBackground(), 7), 0.35f))
+                }
+                if day_index == today_index {
+                    DrawRectangleLinesEx(cell_bounds, 1.0f,
+                                         Fade(GetThemeText(), 0.30f))
+                }
+                continue
             }
             if material {
                 fill = completed

@@ -525,6 +525,14 @@ migrate_schema :: () -> int #export {
        !exec_sql("ALTER TABLE habit_days ADD COLUMN session_count INTEGER NOT NULL DEFAULT 0") {
         return 0
     }
+    if !table_has_column("habits", "weekdays") &&
+       !exec_sql("ALTER TABLE habits ADD COLUMN weekdays INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("habits", "reminder_hour") &&
+       !exec_sql("ALTER TABLE habits ADD COLUMN reminder_hour INTEGER NOT NULL DEFAULT -1") {
+        return 0
+    }
     if !table_has_column("habits", "updated_at") {
         sql: [160] char
 

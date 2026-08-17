@@ -176,7 +176,8 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
         .enabled = 1
     };
 
-    for(int i = 0; i < local_snapshot.count && i < INBE_HABIT_MAX; i++) {
+    for(int i = 0; i < local_snapshot.count && i < INBE_HABIT_MAX &&
+                i < 10; i++) {
         habit_items[i] = (DesktopTrayMenuItem){
             .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
             .label = local_snapshot.habit_labels[i],

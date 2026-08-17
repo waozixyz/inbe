@@ -1,6 +1,8 @@
 #module "habit_edit"
 
 #import "screens/habits/habits.h"
+
+static reminder_hour_texts: [24 * 8] char = {0}
 #import "stddef.h"
 #import "stdio.h"
 #import "string.h"
@@ -42,7 +44,9 @@ begin :: (app: InbeApp*, index: int) {
         .color = app->habits.items[index].color,
         .sync_mode = app->habits.items[index].sync_mode,
         .sync_activity = app->habits.items[index].sync_activity,
-        .counter_enabled = app->habits.items[index].counter_enabled
+        .counter_enabled = app->habits.items[index].counter_enabled,
+        .weekdays = app->habits.items[index].weekdays,
+        .reminder_hour = app->habits.items[index].reminder_hour
     }
     snprintf(app->habit_edit.text, sizeof(app->habit_edit.text), "%s",
                 app->habits.items[index].name)
@@ -204,6 +208,10 @@ commit :: (app: InbeApp*) {
             if created >= 0 && created < app->habits.count {
                 app->habits.items[created].counter_enabled =
                     app->habit_edit.counter_enabled != 0
+                app->habits.items[created].weekdays =
+                    app->habit_edit.weekdays & 0x7f
+                app->habits.items[created].reminder_hour =
+                    app->habit_edit.reminder_hour
                 snprintf(app->habits.items[created].description,
                             sizeof(app->habits.items[created].description),
                             "%s", app->habit_edit.description)
@@ -226,6 +234,10 @@ commit :: (app: InbeApp*) {
                 app->habit_edit.sync_activity
             app->habits.items[index].counter_enabled =
                 app->habit_edit.counter_enabled != 0
+            app->habits.items[index].weekdays =
+                app->habit_edit.weekdays & 0x7f
+            app->habits.items[index].reminder_hour =
+                app->habit_edit.reminder_hour
             app->habits.selected = index
             habits_save(&app->habits)
         }
@@ -418,6 +430,9 @@ scroll_content_height :: (content_w: int, user_data: void*) -> int #private {
         height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     }
     height += ScaleUIPx(4)
+    height += ScaleUIPx(6) + UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    height += ScaleUIPx(34) + ScaleUIPx(10)
+    height += ScaleUIPx(76)
     height += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
     height += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
     height += ScaleUIPx(10)
@@ -674,6 +689,69 @@ draw :: (app: InbeApp*) {
         app->habit_edit.counter_enabled = app->habit_edit.counter_enabled != 0
     }
     y += UIGetNodeHeight(UINodeCheckboxRow((CheckboxRowProps){0}, 0, 0))
+
+    # schedule: weekday chips (all on = every day)
+    y += ScaleUIPx(6)
+    if SectionLabel((SectionLabelProps){
+        .label = GetLocaleText("habit_schedule_title"),
+        .color = DarkenUIColor(GetThemeText(), 34)
+    }, content_x, y) {
+    }
+    y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
+    day_letters: [7] const char* = {
+        GetLocaleText("habit_day_mon"),
+        GetLocaleText("habit_day_tue"),
+        GetLocaleText("habit_day_wed"),
+        GetLocaleText("habit_day_thu"),
+        GetLocaleText("habit_day_fri"),
+        GetLocaleText("habit_day_sat"),
+        GetLocaleText("habit_day_sun")
+    }
+    chip_gap := ScaleUIPx(6)
+    chip_w := (content_w - chip_gap * 6) / 7
+    if chip_w > ScaleUIPx(64) {
+        chip_w = ScaleUIPx(64)
+    }
+    for int d = 0; d < 7; d++ {
+        on := (app->habit_edit.weekdays & (1 << d)) != 0
+        chip_x := content_x + d * (chip_w + chip_gap)
+        style := on ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
+        if GenericButton(0, chip_x, y, chip_w, ScaleUIPx(34),
+                                day_letters[d], style, 0, &hover) {
+            app->habit_edit.weekdays =
+                app->habit_edit.weekdays ^ (1 << d)
+            if app->habit_edit.weekdays == 0x7f {
+                # every day selected is the same as no schedule
+                app->habit_edit.weekdays = 0
+            }
+        }
+    }
+    y += ScaleUIPx(34) + ScaleUIPx(10)
+
+    # reminder hour
+    reminder_labels: [25] const char* = {0}
+    reminder_values: [25] int = {0}
+    reminder_labels[0] = GetLocaleText("habit_reminder_off")
+    reminder_values[0] = -1
+    for int h = 0; h < 24; h++ {
+        snprintf(&reminder_hour_texts[h * 8], 8, "%02d:00", h)
+        reminder_labels[h + 1] = &reminder_hour_texts[h * 8]
+        reminder_values[h + 1] = h
+    }
+    reminder_selected := 0
+    for int h = 0; h < 25; h++ {
+        if app->habit_edit.reminder_hour == reminder_values[h] {
+            reminder_selected = h
+        }
+    }
+    Text(GetLocaleText("habit_reminder_label"), content_x, y,
+                  GetUIFontSize(), GetThemeText())
+    if Dropdown(7400, content_x, y + ScaleUIPx(26), content_w,
+                             ScaleUIPx(36), reminder_labels, 25,
+                             &reminder_selected) {
+        app->habit_edit.reminder_hour = reminder_values[reminder_selected]
+    }
+    y += ScaleUIPx(76)
 
     y += ScaleUIPx(10)
     if app->habit_edit.is_new {

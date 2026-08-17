@@ -4,6 +4,7 @@ WEB :: #defined(PLATFORM_WEB)
 
 #import "app.h"
 #import "screens/profile_social"
+hb :: #import "screens/habits_screen"
 #import "kryon.h" #private
 #import <time.h>
 
@@ -91,6 +92,34 @@ tick :: (app: InbeApp*) {
                               NOTIFICATION_PRIORITY_DEFAULT) {
             r->last_day = day
             save_settings(app)
+        }
+    }
+
+    # per-habit reminders (habit edit screen); 200+ notification ids
+    if app->habit_reminder_day != day {
+        app->habit_reminder_day = day
+        app->habit_reminded_mask = 0
+    }
+    today := hb.habits_today_index()
+    for int i = 0; i < app->habits.count && i < INBE_HABIT_MAX; i++ {
+        habit := &app->habits.items[i]
+        if habit->reminder_hour < 0 || habit->reminder_hour != hour {
+            continue
+        }
+        if (app->habit_reminded_mask & (1 << i)) != 0 {
+            continue
+        }
+        if !hb.habit_scheduled_day(habit, today) {
+            continue
+        }
+        if hb.habit_completed_day(habit, today) {
+            continue
+        }
+        if SendNotificationEx(GetLocaleText("habit_reminder_title"),
+                              habit->name,
+                              "inbe.habit_reminder", 200 + i,
+                              NOTIFICATION_PRIORITY_DEFAULT) {
+            app->habit_reminded_mask = app->habit_reminded_mask | (1 << i)
         }
     }
 }
