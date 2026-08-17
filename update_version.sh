@@ -24,7 +24,7 @@ replace_in_file() {
 }
 
 # Extract all versions from CHANGELOG
-VERSIONS=$(grep '^## \[' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
+VERSIONS=$(grep '^## \[[0-9][0-9]*\.[0-9][0-9]*\.[0-9][0-9]*\]' "$CHANGELOG_FILE" | sed 's/^## \[\([^]]*\)\].*/\1/')
 
 if [ -z "$VERSIONS" ]; then
     echo "Error: No versions found in $CHANGELOG_FILE"

@@ -676,6 +676,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     } else if(strcmp(request->scene, "habit_edit") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->inbe.screen = InbeScreenHabitEdit;
+        habit_edit_begin_new(app);
     } else if(strcmp(request->scene, "language") == 0) {
         app->main_tab = APP_MAIN_TAB_NONE;
         app->inbe.screen = InbeScreenLanguage;

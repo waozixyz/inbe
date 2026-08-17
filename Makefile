@@ -405,6 +405,10 @@ WEB_CFLAGS := $(filter-out -Os,$(COMMON_CFLAGS)) -O1 -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 $(AARCH64_KRYON_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
 WINDOWS_LDFLAGS := -Wl,--gc-sections -static -static-libgcc -mwindows
+# GNU ld's i686 stdcall fixups synthesize undecorated OpenGL aliases. Section
+# GC can discard the decorated target (for example _glReadPixels@28) before
+# the fixup is resolved, so do not enable it for the 32-bit link.
+WIN32_WINDOWS_LDFLAGS := -static -static-libgcc -mwindows
 WINDOWS_LDLIBS := -lgdi32 -lwinmm -lopengl32 -luser32 -lshell32 -lole32 -lcomdlg32 -lcomctl32 -luuid -lwininet -lws2_32 -liphlpapi -lcrypt32 -lsecur32 -lbcrypt -ladvapi32 -lm
 ifneq ($(strip $(MCFGTHREADS)),)
 WIN64_THREAD_LDFLAGS := -L$(MCFGTHREADS)/lib
@@ -1035,7 +1039,7 @@ $(WIN32_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQL
 		$(WIN32_LIBOQS_A) \
 		$(WINDOWS_LDLIBS) \
 		$(WIN32_THREAD_LDFLAGS) \
-		$(WINDOWS_LDFLAGS)
+		$(WIN32_WINDOWS_LDFLAGS)
 	$(WIN32_STRIP) $@
 
 $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)

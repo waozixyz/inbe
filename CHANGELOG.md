@@ -32,6 +32,10 @@
 - Vendored Kryon bumped to master (ui_window center/drag/right-click/click-position, per-window XImage buffers, X11 `Time` layout fix; system_theme gtk.css palette).
 
 ### Fixed
+- F-Droid and clean source checkouts can fetch Kryon without a developer SSH key.
+- The 32-bit Windows release link no longer discards OpenGL stdcall symbols.
+- Removed the local KRB/native pixel-exactness experiment from hosted GitHub Actions.
+- Screenshot setup now initializes the new-habit editor before capturing it.
 - Clicks on extra OS windows (HUD, break window) register correctly: the X11 `Time` field in the event stand-in had the wrong width, shifting button/position reads (right-click and buttons appeared dead).
 - Extra OS windows no longer corrupt the heap when two windows of different sizes alternate (per-window XImage buffers).
 - The Breaks entry shows in the settings sidebar on desktop again (`#if DESKTOP` resolved against an undefined constant, compiling the mobile branch everywhere).

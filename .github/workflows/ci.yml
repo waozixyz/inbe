@@ -53,49 +53,6 @@ jobs:
       - name: Run Tests
         run: make test
 
-  krb-native-exactness:
-    # Cartridge-vs-native screenshot gate: kryon's krb_exact_native_test.sh
-    # renders the same screen as a .krb cartridge and as this C build, then
-    # pixel-compares with zero tolerance. xvfb gives the working GL readback
-    # this dev box lacks.
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          submodules: recursive
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb \
-            build-essential pkg-config zlib1g-dev x11-utils imagemagick xdotool \
-            xcompmgr \
-            libsdl2-dev libdrm-dev libegl1-mesa-dev libgles2-mesa-dev \
-            libgtk-3-dev
-      - name: Build native
-        run: make native
-      - name: Build kryon cartridge tooling
-        run: |
-          make -C vendor/kryon build/linux-x86_64/bin/k2b                build/linux-x86_64/bin/krb-run                KRY_SW_SRCS="src/krb/krb.c src/backend/kry_backend.c src/backend/kry_sw.c src/backend/kry_backend_rec.c"
-      - name: Language screen — native vs cartridge, 0 pixel tolerance
-        run: |
-          set +e
-          xvfb-run -a --server-args="-screen 0 1280x1024x24" sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
-
-
-          rc=$?
-          cp /tmp/kryon-krb-native.*/native.png /tmp/native.png 2>/dev/null || true
-          cp /tmp/kryon-krb-native.*/cart.png /tmp/cart.png 2>/dev/null || true
-          exit $rc
-      - name: Upload comparison frames
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: exactness-frames
-          path: |
-            /tmp/native.png
-            /tmp/cart.png
-          if-no-files-found: ignore
-
   build-chrome-extension:
     name: Build Chrome Extension
     runs-on: ubuntu-latest
