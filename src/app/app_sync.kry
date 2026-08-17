@@ -824,8 +824,7 @@ app_social_refresh_loading :: () -> int {
                   g_social_result.finished
         sync_unlock()
     } #else {
-        loading = g_sync.social_refresh_pending || g_sync.social_refresh_running ||
-                  g_social_result.finished
+        loading = g_sync.social_refresh_pending || g_sync.social_refresh_running
     }
     return loading
 }
