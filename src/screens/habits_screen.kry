@@ -329,7 +329,8 @@ habits_add_default_set :: (habits: InbeHabits*) {
                        GetLocaleText("habit_default_meditation_description"),
                        (Color){126, 183, 230, 255},
                        habit_activity_mask_for(EXERCISE_WIM_HOF) |
-                       habit_activity_mask_for(EXERCISE_MEDITATION))
+                       habit_activity_mask_for(EXERCISE_MEDITATION) |
+                       habit_activity_mask_for(EXERCISE_PATTERNS))
     habits_add_seed(habits,
                        "yoga",
                        GetLocaleText("habit_default_yoga_name"),

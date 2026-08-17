@@ -482,7 +482,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     snprintf(time_text, sizeof(time_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
     cycle_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(time_text, center_x - cycle_w / 2, center_y + ScaleUIPx(126),
+    Text(time_text, center_x - cycle_w / 2, center_y - ScaleUIPx(158),
                   UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.duration_minutes > 0 {
@@ -499,11 +499,11 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds % 60)
     }
     total_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(time_text, center_x - total_w / 2, center_y + ScaleUIPx(154),
+    Text(time_text, center_x - total_w / 2, center_y - ScaleUIPx(132),
                   UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.paused {
-        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(184),
+        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(138),
                                ScaleUIPx(120), ScaleUIPx(34),
                                GetLocaleText("patterns_resume_button"),
                                UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
@@ -512,7 +512,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         return
     }
     if IsKeyPressed(KEY_SPACE) || GenericButton(0, center_x - ScaleUIPx(60),
-                          center_y + ScaleUIPx(184), ScaleUIPx(120),
+                          center_y + ScaleUIPx(138), ScaleUIPx(120),
                           ScaleUIPx(34), GetLocaleText("patterns_pause_button"),
                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
         app->patterns.paused = 1

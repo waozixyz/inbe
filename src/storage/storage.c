@@ -1789,6 +1789,30 @@ storage_migrate_default_habit_ids(void)
 }
 
 int
+storage_migrate_default_meditation_activity_mask(void)
+{
+    static const char *sql =
+        "BEGIN IMMEDIATE;"
+        "UPDATE habits SET sync_activity="
+        "11,updated_at=CAST(strftime('%s','now') AS INTEGER) "
+        "WHERE deleted_at=0 AND sync_mode=1 AND lower(name)='meditation' "
+        "AND color_r=126 AND color_g=183 AND color_b=230 "
+        "AND sync_activity IN (2,3);"
+        "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+        "SELECT 'habit',id,0,CAST(strftime('%s','now') AS INTEGER) FROM habits "
+        "WHERE deleted_at=0 AND sync_mode=1 AND lower(name)='meditation' "
+        "AND color_r=126 AND color_g=183 AND color_b=230 "
+        "AND sync_activity=11 AND changes()>0 "
+        "ON CONFLICT(entity_type,entity_id,local_date) DO UPDATE SET "
+        "queued_at=excluded.queued_at;"
+        "COMMIT;";
+
+    if(g_storage.db == NULL)
+        return 0;
+    return exec_sql(sql);
+}
+
+int
 storage_migrate_habit_ids_to_uuid(void)
 {
     sqlite3_stmt *stmt = NULL;

@@ -1697,7 +1697,7 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
               find_habit_ci(&habits, "Meditation") != NULL
                   ? find_habit_ci(&habits, "Meditation")->sync_activity
                   : -1,
-              (1 << 0) | (1 << 1));
+              (1 << 0) | (1 << 1) | (1 << 3));
     check_int("empty initialized yoga linked mode",
               find_habit_ci(&habits, "Yoga") != NULL ? find_habit_ci(&habits, "Yoga")->sync_mode
                                                      : -1,
@@ -1722,7 +1722,7 @@ test_empty_initialized_habits_seed_meditation_on_startup(void)
               find_habit_ci(&habits, "Meditation") != NULL
                   ? find_habit_ci(&habits, "Meditation")->sync_activity
                   : -1,
-              (1 << 0) | (1 << 1));
+              (1 << 0) | (1 << 1) | (1 << 3));
 
     habits_free(&habits);
     storage_close();
