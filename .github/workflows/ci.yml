@@ -77,7 +77,21 @@ jobs:
           make -C vendor/kryon build/linux-x86_64/bin/k2b                build/linux-x86_64/bin/krb-run                KRY_SW_SRCS="src/krb/krb.c src/backend/kry_backend.c src/backend/kry_sw.c src/backend/kry_backend_rec.c"
       - name: Language screen — native vs cartridge, 0 pixel tolerance
         run: |
-          xvfb-run -a --server-args="-screen 0 1280x1024x24"             sh vendor/kryon/tests/krb_exact_native_test.sh               build/bin/linux/inbe-linux-x86_64 language               vendor/kryon/examples/20_inbe_language.kry "$PWD"
+          set +e
+          xvfb-run -a --server-args="-screen 0 1280x1024x24" sh vendor/kryon/tests/krb_exact_native_test.sh build/bin/linux/inbe-linux-x86_64 language vendor/kryon/examples/20_inbe_language.kry "$PWD"
+          rc=$?
+          cp /tmp/kryon-krb-native.*/native.png /tmp/native.png 2>/dev/null || true
+          cp /tmp/kryon-krb-native.*/cart.png /tmp/cart.png 2>/dev/null || true
+          exit $rc
+      - name: Upload comparison frames
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exactness-frames
+          path: |
+            /tmp/native.png
+            /tmp/cart.png
+          if-no-files-found: ignore
 
   build-chrome-extension:
     name: Build Chrome Extension
