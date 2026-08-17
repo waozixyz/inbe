@@ -1008,7 +1008,7 @@ session_request_exit :: (app: InbeApp*) #private {
 }
 
 session_handle_exit_modal :: (app: InbeApp*) -> int #private {
-    SessionExitModalResult result
+    result: SessionExitModalResult
 
     if app == nil || !app->modal.active ||
        app->modal.type != UIModalConfirmExitSession {
@@ -1232,8 +1232,8 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
     }
 
     {
-        char lines[3][64]
-        UIInfoRow rows[3]
+        lines: [3][64] char
+        rows: [3] UIInfoRow
         summary_font: int = UI_TEXT_16
 
         FormatLocaleText(lines[0], sizeof(lines[0]), "results_rounds", rounds)
@@ -1265,7 +1265,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
                                     GetUIFontSize(), DarkenUIColor(GetThemeText(), 20))
     for int i = 0; i < rounds; i++ {
         row: [48] char
-        UIInfoRow info_row
+        info_row: UIInfoRow
         row_font: int = GetUIFontSize()
         FormatLocaleText(row, sizeof(row), "round_result_label", i + 1, round_times[i])
         info_row = (UIInfoRow){row, row_font, GetThemeText()}
