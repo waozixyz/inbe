@@ -357,11 +357,11 @@ load_language_setting :: (app: InbeApp*, settings_missing: int,
         snprintf(app->language, sizeof(app->language), "%s", language)
         app->language_selected = 1
         if !SetLocale(app->language) {
-            snprintf(app->language, sizeof(app->language), "%s", "en")
+            snprintf(app->language, sizeof(app->language), "%s", GetDefaultLocaleCode())
             SetLocale(app->language)
         }
     } else {
-        snprintf(app->language, sizeof(app->language), "%s", "en")
+        snprintf(app->language, sizeof(app->language), "%s", GetDefaultLocaleCode())
         app->language_selected = settings_missing ? 0 : 1
         app->language_needs_save = app->language_selected
         SetLocale(app->language)
