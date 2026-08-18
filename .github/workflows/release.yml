@@ -17,6 +17,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -41,8 +42,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/test-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -53,6 +57,7 @@ jobs:
   build-web:
     name: Build Web
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -78,8 +83,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/web-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -118,6 +126,7 @@ jobs:
   build-chrome-extension:
     name: Build Chrome Extension
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -143,8 +152,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/web-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -178,6 +190,7 @@ jobs:
   build-firefox-addons:
     name: Build Firefox Add-on
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -203,8 +216,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/web-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -244,6 +260,7 @@ jobs:
   build-linux-appimage:
     name: Build Linux AppImage
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -268,8 +285,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -309,7 +329,7 @@ jobs:
           DISPLAY: ":99"
         run: |
           set -euo pipefail
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get install -y xvfb x11-utils
           appimage="$(find build/release/linux -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
           chmod +x "$appimage"
@@ -344,6 +364,7 @@ jobs:
   build-linux-deb:
     name: Build Linux Deb
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -368,8 +389,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -395,6 +419,7 @@ jobs:
   build-linux-rpm:
     name: Build Linux RPM
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -419,8 +444,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -446,6 +474,7 @@ jobs:
   build-linux-snap:
     name: Build Linux Snap
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -470,8 +499,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -494,6 +526,7 @@ jobs:
   build-linux-flatpak:
     name: Build Linux Flatpak
     runs-on: ubuntu-22.04
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -518,8 +551,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -542,6 +578,7 @@ jobs:
   build-freebsd:
     name: Build FreeBSD Package
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
 
     steps:
@@ -575,6 +612,7 @@ jobs:
   build-windows:
     name: Build Windows
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -609,8 +647,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/windows-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -639,6 +680,7 @@ jobs:
   build-android:
     name: Build Android
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
 
     steps:
@@ -745,6 +787,7 @@ jobs:
   release:
     name: Release
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-web
       - build-chrome-extension
@@ -817,6 +860,7 @@ jobs:
   publish-itch:
     name: Publish itch.io
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-web
       - release
@@ -843,7 +887,7 @@ jobs:
       - name: Install Butler
         run: |
           set -euo pipefail
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get install -y unzip
           curl -fsSL \
             https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default \
@@ -909,6 +953,7 @@ jobs:
   publish-google-play:
     name: Publish Google Play Production
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-android
       - release
@@ -943,6 +988,7 @@ jobs:
   publish-amazon:
     name: Publish Amazon Appstore
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-android
       - release
@@ -995,6 +1041,7 @@ jobs:
   publish-chrome-web-store:
     name: Publish Chrome Web Store
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-chrome-extension
       - release
@@ -1119,6 +1166,7 @@ jobs:
   publish-firefox-addons:
     name: Publish Firefox Add-ons
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs:
       - build-firefox-addons
       - release

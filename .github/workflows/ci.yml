@@ -20,6 +20,7 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -44,8 +45,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/test-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -56,6 +60,7 @@ jobs:
   build-chrome-extension:
     name: Build Chrome Extension
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -81,8 +86,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/web-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -118,6 +126,7 @@ jobs:
   build-firefox-addons:
     name: Build Firefox Add-on
     runs-on: ubuntu-latest
+    timeout-minutes: 60
     needs: test
     env:
       APT_CACHE_DIR: /tmp/apt-cache
@@ -143,8 +152,11 @@ jobs:
           set -euo pipefail
           mapfile -t packages < .github/apt/web-packages.txt
           mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get update
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
           sudo apt-get \
+            -o Acquire::Retries=5 \
+            -o Acquire::http::Timeout=30 \
+            -o Acquire::https::Timeout=30 \
             -o Dir::Cache::archives="$APT_CACHE_DIR" \
             install -y "${packages[@]}"
           sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
@@ -176,12 +188,12 @@ jobs:
       - name: Install Firefox (Mozilla build)
         run: |
           set -euo pipefail
-          sudo apt-get install -y --no-install-recommends xvfb \
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends xvfb \
             libgl1-mesa-dri libgl1 libegl1 mesa-utils || true
-          sudo apt-get install -y --no-install-recommends \
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             libgtk-3-0t64 libx11-xcb1 libxcb-shm0 libasound2t64 libdbus-glib-1-2 \
             libxt6t64 libxtst6 libpci3 || \
-          sudo apt-get install -y --no-install-recommends \
+          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
             libgtk-3-0 libx11-xcb1 libxcb-shm0 libasound2 libdbus-glib-1-2 libxt6 libxtst6 libpci3
           curl -sL "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
             -o "$HOME/firefox.tar.xz"
