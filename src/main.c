@@ -12,6 +12,12 @@
 #include <string.h>
 #include <time.h>
 
+/* From kryon's screenshot backend (src/backend/kry_screenshot.c): the PNG
+ * writer that works on this GL stack, where raylib's ExportImage does not
+ * honor the passed image. */
+int kry_write_png_file(const char *path, const unsigned char *rgba,
+                       int w, int h);
+
 #if defined(__GLIBC__)
 #include <malloc.h>
 #endif
@@ -827,6 +833,10 @@ run_screenshot_mode(const ScreenshotRequest *request)
     if(request == NULL || !request->active)
         return 0;
 
+    /* LoadImageFromScreen only returns a frame while kryon's EndDrawing is
+     * armed for the pre-swap readback; screenshot mode arms it itself so no
+     * wrapper script has to. */
+    setenv("KRYON_SHOT_ARM", "1", 1);
     setup_screenshot_scene(&inbe_app, request);
     if(strcmp(request->scene, "tutorial_whm_step2") == 0)
         warmup_frames = 150;
@@ -850,8 +860,12 @@ run_screenshot_mode(const ScreenshotRequest *request)
     if(capture.data == NULL)
         return 1;
 
-    saved = ExportImage(capture, request->output);
-    UnloadImage(capture);
+    /* raylib's ExportImage does not honor the passed image on this GL
+     * stack; kryon's own writer is the working path. */
+    saved = kry_write_png_file(request->output, capture.data,
+                               capture.width, capture.height) == 0;
+    free(capture.data);
+    capture.data = NULL;
     return saved ? 1 : -1;
 }
 
