@@ -1,0 +1,12 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><title>{{APP_TITLE}}</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>html,body{margin:0;height:100%;background:#0a0a0c}canvas{display:block;margin:0 auto}</style>
+</head><body><canvas id="canvas"></canvas>
+<script>
+/* Embedded webviews can suspend requestAnimationFrame while still running
+   timers; drive frames from timers so the app's RAF-based loop keeps
+   rendering. Real browsers are unaffected. */
+window.requestAnimationFrame = (fn) => setTimeout(() => fn(performance.now()), 16);
+Module = { canvas: document.getElementById('canvas') };
+</script>
+<script src="index.js"></script></body></html>

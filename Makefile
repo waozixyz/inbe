@@ -479,7 +479,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -1280,6 +1280,36 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/w
 	cp -R web-assets $(WEB_DIST_DIR)/
 	cp -R site-icons $(WEB_DIST_DIR)/
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
+
+
+# Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
+# raylib+GLFW — no libraylib.web.a, no WebGL. Sync-account crypto (liboqs)
+# and audio are not carried in this target: scripts/ksync-canvas-shim.c
+# reports sync unavailable and kryon's canvas audio is null-grade.
+WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
+WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
+KRYON_CANVAS_SRCS := $(filter-out $(KRYON_DIR)/src/ksync/% $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
+KSYNC_CANVAS_SHIM := scripts/ksync-canvas-shim.c
+
+web-canvas: $(WEB_CANVAS_TARGET)
+
+$(WEB_CANVAS_DIR):
+	mkdir -p $@
+
+$(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) web-assets/canvas_index.html | $(WEB_CANVAS_DIR)
+	rm -f $(WEB_CANVAS_DIR)/index.data
+	PATH="$${HOME}/emsdk/upstream/emscripten:$$PATH" $(WEB_CC) $(WEB_CFLAGS) \
+		$(APP_INCLUDE) -I$(KRYON_DIR)/include \
+		-I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src -I$(SQLITE_BUILD_DIR) \
+		-DPLATFORM_WEB \
+		-o $(WEB_CANVAS_DIR)/index.js \
+		$(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) \
+		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
+		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
+		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free \
+		--preload-file locales --preload-file assets
+	sed 's/{{APP_TITLE}}/$(APP_TITLE)/' web-assets/canvas_index.html > $@
 
 android-copy-assets:
 	$(MAKE) $(FONT_FILES)
