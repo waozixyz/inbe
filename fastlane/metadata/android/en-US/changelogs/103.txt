@@ -1,0 +1,3 @@
+Fixed
+---
+- Desktop break, timer and other auxiliary windows now render upright and stay visually in sync when more than one window is open.

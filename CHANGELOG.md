@@ -1,4 +1,8 @@
 # Changelog
+## [1.9.4] - 2026-08-17
+### Fixed
+- Desktop break, timer and other auxiliary windows now render upright and stay visually in sync when more than one window is open.
+
 ## [1.9.3] - 2026-08-17
 ### Added
 - Custom MP3 music can be imported and selected independently for Wim Hof, Meditation and Sun Salutation practices.
