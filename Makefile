@@ -195,7 +195,10 @@ KRYON_ICON_FILES := $(foreach dir,$(KRYON_ICON_DIRS),$(wildcard $(KRYON_DIR)/$(d
 KRYON_ICON_ASSETS_C := $(KRYON_DIR)/src/ui/ui_icon_assets.c
 KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
 KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
-KRYON_WEB_SRCS := $(KRYON_SRCS)
+# The raylib web build links the generated raylib wrappers; the canvas
+# backend sources define the same public surface and belong only to the
+# web-canvas target (which drops the wrappers instead).
+KRYON_WEB_SRCS := $(filter-out $(KRYON_DIR)/src/backend/canvas_%.c,$(KRYON_SRCS))
 KRYON_WINDOWS_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_CLICK_SRCS := $(filter-out $(KRYON_DIR)/src/file_dialog/file_dialog.c,$(KRYON_SRCS))
 KRYON_INCLUDE := -I$(KRYON_DIR)/include
