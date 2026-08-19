@@ -9,7 +9,7 @@
     <p>Inner Breeze is a free, open-source practice app for breathing, meditation, and habit tracking.</p>
     <p>It provides guided practice sessions with visual and audio cues, meditation timers, habit counters, session history, import and export, theme customization, and optional sync for habits, sessions, and practice progress.</p>
   </description>
-  <launchable type="desktop-id">inbe.desktop</launchable>
+  <launchable type="desktop-id">xyz.waozi.inbe.desktop</launchable>
   <categories>
     <category>Utility</category>
   </categories>

@@ -590,6 +590,8 @@ app_modal_type_name :: (type: UIModalType) -> const char* #private {
         return "bottom_nav_config"
     case UIModalProfilePicturePicker:
         return "profile_picture_picker"
+    case UIModalDonationReminder:
+        return "donation_reminder"
     default:
         break
     }

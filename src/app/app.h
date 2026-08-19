@@ -137,6 +137,7 @@ typedef enum {
     UIModalConfirmSyncAccountSwitch,
     UIModalBottomNavConfig,
     UIModalProfilePicturePicker,
+    UIModalDonationReminder,
 } UIModalType;
 
 typedef enum InbePendingSyncAccountAction {
@@ -451,6 +452,9 @@ struct InbeApp {
     int friend_request_last_count;
     AppReminder reminders[APP_REMINDER_MAX];
     int reminder_count;
+    int donation_reminder_dismissed;
+    int donation_reminder_last_prompt_month;
+    int donation_reminder_remind_after_day;
     int push_picker_open;
     int push_distributor_count;
     char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];
@@ -628,6 +632,9 @@ int app_audio_cue_path(InbeApp *app, int cue, char *out, size_t out_size);
 void app_audio_music_sanitize_selection(InbeApp *app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
+const char *app_donation_url(void);
+const char *app_bitcoin_donation_url(void);
+const char *app_monero_donation_url(void);
 
 void app_open_modal(InbeApp *app, UIModalType type);
 void app_close_modal(InbeApp *app);

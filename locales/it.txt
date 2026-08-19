@@ -1667,3 +1667,21 @@ Download in corso
 [update_failed]
 Download non riuscito
 ---
+[donation_reminder_title]
+Support Inner Breeze
+---
+[donation_reminder_message]
+Inner Breeze is free and open source. If it helps you, a small donation supports continued work.
+---
+[donation_reminder_donate_button]
+Donate
+---
+[donation_reminder_later_button]
+Remind later
+---
+[donation_reminder_skip_button]
+Skip this month
+---
+[donation_reminder_dismiss_button]
+Dismiss forever
+---

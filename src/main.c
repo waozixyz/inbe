@@ -1,5 +1,7 @@
 #include "kryon.h"
+#if !defined(PLATFORM_WEB)
 #include <SDL2/SDL.h>
+#endif
 #include "app.h"
 #include "breaks/app_breaks.h"
 #include "storage.h"

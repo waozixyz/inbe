@@ -9,7 +9,7 @@ hb :: #import "screens/habits_screen"
 #import <time.h>
 
 init :: (app: InbeApp*) {
-    SetNotificationAppName("inbe")
+    SetNotificationAppName("xyz.waozi.inbe")
     #if !WEB {
         RequestNotificationPermission()
     }

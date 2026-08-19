@@ -107,6 +107,8 @@ APP_ORIGIN := games/inbe
 APP_LICENSE := BSD3CLAUSE
 APP_DESKTOP := $(LINUX_APPIMAGE_DESKTOP)
 APP_ICON := $(LINUX_APPIMAGE_ICON)
+APP_DESKTOP_ID := $(APP_ID)
+APP_ICON_NAME := $(APP_ID)
 APP_ICON_SIZE := 512x512
 APP_METAINFO := $(LINUX_APPIMAGE_APPDATA)
 FREEBSD_PKG_DEPS := curl:ftp/curl gtk3:x11-toolkits/gtk30 hicolor-icon-theme:misc/hicolor-icon-theme libdrm:graphics/libdrm mesa-libs:graphics/mesa-libs sdl2:devel/sdl20 sqlite3:databases/sqlite3
@@ -1091,12 +1093,14 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	else \
 		echo "Not bundling glibc; build interpreter is $$loader"; \
 	fi
-	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/$(APP_NAME).desktop
-	cp $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPDIR)/usr/share/applications/$(APP_NAME).desktop
-	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
-	cp $(LINUX_APPIMAGE_APPDATA) $(LINUX_APPDIR)/usr/share/appdata/$(ANDROID_APP_ID).appdata.xml
-	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_NAME).png
-	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	sed -e 's/^Icon=.*/Icon=$(APP_ICON_NAME)/' $(LINUX_APPIMAGE_DESKTOP) > $(LINUX_APPDIR)/$(APP_DESKTOP_ID).desktop
+	cp $(LINUX_APPDIR)/$(APP_DESKTOP_ID).desktop $(LINUX_APPDIR)/usr/share/applications/$(APP_DESKTOP_ID).desktop
+	sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' \
+		-e 's#<launchable type="desktop-id">[^<]*</launchable>#<launchable type="desktop-id">$(APP_DESKTOP_ID).desktop</launchable>#' \
+		$(LINUX_APPIMAGE_APPDATA) > $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
+	cp $(LINUX_APPDIR)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml $(LINUX_APPDIR)/usr/share/appdata/$(ANDROID_APP_ID).appdata.xml
+	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/$(APP_ICON_NAME).png
+	cp $(LINUX_APPIMAGE_ICON) $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_ICON_NAME).png
 	@# Manually copy critical X11/OpenGL libraries that linuxdeploy might miss
 	@for lib in libX11.so.6 libXext.so.6 libdrm.so.2 libgbm.so.1 libEGL.so.1 libGLESv2.so.2 libGLdispatch.so.0 libglapi.so.0; do \
 		found=$$(find /usr/lib /lib -name "$$lib" 2>/dev/null | head -n 1); \
@@ -1117,8 +1121,8 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|inbe|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
-		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \
-		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png) \
+		--desktop-file $(abspath $(LINUX_APPDIR)/usr/share/applications/$(APP_DESKTOP_ID).desktop) \
+		--icon-file $(abspath $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps/$(APP_ICON_NAME).png) \
 		$$LIBRARY_FLAGS \
 		--output appimage
 	test -f $@
@@ -1140,9 +1144,11 @@ $(DEB_TARGET): $(DEB_TARGET_PREREQS) deb-check | $(DEB_BUILD_DIR) $(DEB_DIST_DIR
 	mkdir -p $(DEB_ROOT)/DEBIAN $(DEB_ROOT)/usr/bin $(DEB_ROOT)/usr/share/applications $(DEB_ROOT)/usr/share/icons/hicolor/512x512/apps $(DEB_ROOT)/usr/share/metainfo
 	cp $(DEB_BIN_INPUT) $(DEB_ROOT)/usr/bin/$(APP_NAME)
 	chmod 755 $(DEB_ROOT)/usr/bin/$(APP_NAME)
-	cp $(LINUX_APPIMAGE_DESKTOP) $(DEB_ROOT)/usr/share/applications/$(APP_NAME).desktop
-	cp $(LINUX_APPIMAGE_ICON) $(DEB_ROOT)/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png
+	sed -e 's/^Icon=.*/Icon=$(APP_ICON_NAME)/' \
+		$(LINUX_APPIMAGE_DESKTOP) > $(DEB_ROOT)/usr/share/applications/$(APP_DESKTOP_ID).desktop
+	cp $(LINUX_APPIMAGE_ICON) $(DEB_ROOT)/usr/share/icons/hicolor/512x512/apps/$(APP_ICON_NAME).png
 	sed -e 's/<release version="[^"]*"/<release version="$(APP_VERSION)"/' \
+		-e 's#<launchable type="desktop-id">[^<]*</launchable>#<launchable type="desktop-id">$(APP_DESKTOP_ID).desktop</launchable>#' \
 		$(LINUX_APPIMAGE_APPDATA) > $(DEB_ROOT)/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml
 	@installed_size=$$(find $(DEB_ROOT)/usr -type f -exec wc -c {} + | awk '$$2 != "total" { bytes += $$1 } END { print int((bytes + 1023) / 1024) }'); \
 	{ \
@@ -1198,14 +1204,14 @@ $(RPM_TARGET): $(RPM_TARGET_PREREQS) rpm-check | $(RPM_BUILD_DIR) $(RPM_DIST_DIR
 		printf '%s\n' 'mkdir -p %{buildroot}/usr/bin %{buildroot}/usr/share/applications %{buildroot}/usr/share/icons/hicolor/512x512/apps %{buildroot}/usr/share/metainfo'; \
 		printf '%s\n' 'cp "$(abspath $(RPM_BIN_INPUT))" %{buildroot}/usr/bin/$(APP_NAME)'; \
 		printf '%s\n' 'chmod 755 %{buildroot}/usr/bin/$(APP_NAME)'; \
-		printf '%s\n' 'cp "$(abspath $(LINUX_APPIMAGE_DESKTOP))" %{buildroot}/usr/share/applications/$(APP_NAME).desktop'; \
-		printf '%s\n' 'cp "$(abspath $(LINUX_APPIMAGE_ICON))" %{buildroot}/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png'; \
-		printf '%s\n' 'sed -e '\''s/<release version="[^"]*"/<release version="$(APP_VERSION)"/'\'' "$(abspath $(LINUX_APPIMAGE_APPDATA))" > %{buildroot}/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml'; \
+		printf '%s\n' 'sed -e '\''s/^Icon=.*/Icon=$(APP_ICON_NAME)/'\'' "$(abspath $(LINUX_APPIMAGE_DESKTOP))" > %{buildroot}/usr/share/applications/$(APP_DESKTOP_ID).desktop'; \
+		printf '%s\n' 'cp "$(abspath $(LINUX_APPIMAGE_ICON))" %{buildroot}/usr/share/icons/hicolor/512x512/apps/$(APP_ICON_NAME).png'; \
+		printf '%s\n' 'sed -e '\''s/<release version="[^"]*"/<release version="$(APP_VERSION)"/'\'' -e '\''s#<launchable type="desktop-id">[^<]*</launchable>#<launchable type="desktop-id">$(APP_DESKTOP_ID).desktop</launchable>#'\'' "$(abspath $(LINUX_APPIMAGE_APPDATA))" > %{buildroot}/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml'; \
 		printf '%s\n' ''; \
 		printf '%s\n' '%files'; \
 		printf '%s\n' '/usr/bin/$(APP_NAME)'; \
-		printf '%s\n' '/usr/share/applications/$(APP_NAME).desktop'; \
-		printf '%s\n' '/usr/share/icons/hicolor/512x512/apps/$(APP_NAME).png'; \
+		printf '%s\n' '/usr/share/applications/$(APP_DESKTOP_ID).desktop'; \
+		printf '%s\n' '/usr/share/icons/hicolor/512x512/apps/$(APP_ICON_NAME).png'; \
 		printf '%s\n' '/usr/share/metainfo/$(ANDROID_APP_ID).metainfo.xml'; \
 	} > $(RPM_SPEC)
 	rpmbuild -bb $(RPM_SPEC) \

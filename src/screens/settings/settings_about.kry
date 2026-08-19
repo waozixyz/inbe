@@ -69,16 +69,8 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
         "https://discord.com/invite/JbGZ4yENDt",
         "https://t.me/lotusinbe",
         "https://github.com/waozixyz/inbe",
-        "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet"
-        "&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
-        "&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze"
-        "&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet"
-        "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff",
-        "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet"
-        "&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
-        "&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze"
-        "&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet"
-        "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff"
+        app_bitcoin_donation_url(),
+        app_monero_donation_url()
     }
 
     for int i = 0; i < link_count; i++ {

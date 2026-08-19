@@ -79,6 +79,9 @@ static AppProfileStats g_app_profile;
 
 static void app_apply_route(InbeApp *app, AppRoute route);
 
+#define DONATION_REMINDER_DELAY_FRAMES 240
+#define DONATION_REMINDER_LATER_DAYS 7
+
 typedef struct InbeRouteBinding {
     const char *id;
     int screen;
@@ -117,6 +120,137 @@ static double
 app_profile_now(void)
 {
     return app_profile_enabled() ? GetTime() : 0.0;
+}
+
+const char *
+app_bitcoin_donation_url(void)
+{
+#if defined(PLATFORM_WEB)
+    return "https://trocador.app/en/anonpay/?ticker_to=btc&network_to=Mainnet"
+           "&address=bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
+           "&donation=True&simple_mode=True&amount=0.001&name=Inner+Breeze"
+           "&email=waotzi@proton.me&ticker_from=btc&network_from=Mainnet"
+           "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff";
+#else
+    return "bitcoin:bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
+           "?amount=0.001&label=Inner%20Breeze"
+           "&message=Donation";
+#endif
+}
+
+const char *
+app_monero_donation_url(void)
+{
+#if defined(PLATFORM_WEB)
+    return "https://trocador.app/en/anonpay/?ticker_to=xmr&network_to=Mainnet"
+           "&address=86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
+           "&donation=True&simple_mode=True&amount=0.1&name=Inner+Breeze"
+           "&email=waotzi@proton.me&ticker_from=xmr&network_from=Mainnet"
+           "&buttonbgcolor=445588&textcolor=ffffff&bgcolor=eaeaffff";
+#else
+    return "monero:86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
+           "?tx_amount=0.1&recipient_name=Inner%20Breeze"
+           "&tx_description=Donation";
+#endif
+}
+
+const char *
+app_donation_url(void)
+{
+    return app_monero_donation_url();
+}
+
+static int
+app_donation_today(int *month_key, int *day_key)
+{
+    time_t now = time(NULL);
+    struct tm *local = localtime(&now);
+
+    if(local == NULL)
+        return 0;
+    if(month_key != NULL)
+        *month_key = (local->tm_year + 1900) * 100 + local->tm_mon + 1;
+    if(day_key != NULL)
+        *day_key = (local->tm_year + 1900) * 366 + local->tm_yday;
+    return 1;
+}
+
+static int
+app_donation_day_after(int days)
+{
+    time_t now = time(NULL);
+    struct tm local;
+    struct tm *source = localtime(&now);
+
+    if(source == NULL)
+        return 0;
+    local = *source;
+    local.tm_mday += days;
+    local.tm_hour = 12;
+    local.tm_min = 0;
+    local.tm_sec = 0;
+    if(mktime(&local) == (time_t)-1)
+        return 0;
+    return (local.tm_year + 1900) * 366 + local.tm_yday;
+}
+
+static void
+app_save_donation_reminder(InbeApp *app)
+{
+    if(app != NULL)
+        save_settings(app);
+}
+
+static void
+app_postpone_donation_reminder(InbeApp *app)
+{
+    int month_key = 0;
+
+    if(app == NULL)
+        return;
+    (void)app_donation_today(&month_key, NULL);
+    app->donation_reminder_remind_after_day =
+        app_donation_day_after(DONATION_REMINDER_LATER_DAYS);
+    if(app->donation_reminder_remind_after_day <= 0)
+        app->donation_reminder_last_prompt_month = month_key;
+    app_save_donation_reminder(app);
+    app_close_modal(app);
+}
+
+static void
+app_handle_donation_reminder_action(InbeApp *app, int action)
+{
+    int month_key = 0;
+
+    if(app == NULL)
+        return;
+    (void)app_donation_today(&month_key, NULL);
+    switch(action) {
+    case 1:
+        OpenURL(app_donation_url());
+        app->donation_reminder_last_prompt_month = month_key;
+        app->donation_reminder_remind_after_day = 0;
+        app_save_donation_reminder(app);
+        app_close_modal(app);
+        break;
+    case 2:
+        app_postpone_donation_reminder(app);
+        break;
+    case 3:
+        app->donation_reminder_last_prompt_month = month_key;
+        app->donation_reminder_remind_after_day = 0;
+        app_save_donation_reminder(app);
+        app_close_modal(app);
+        break;
+    case 4:
+        app->donation_reminder_dismissed = 1;
+        app->donation_reminder_remind_after_day = 0;
+        app_save_donation_reminder(app);
+        app_close_modal(app);
+        break;
+    default:
+        break;
+    }
 }
 
 static void
@@ -553,6 +687,66 @@ app_clear_invalid_screen_local_modal(InbeApp *app)
     if(app_screen_local_modal_valid(app, app->modal.type))
         return;
     app_clear_modal_state(app);
+}
+
+static int
+app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
+                           int habits_guide_active)
+{
+    if(app == NULL)
+        return 0;
+    if(app->donation_reminder_dismissed)
+        return 0;
+    if(app->inbe.frame < DONATION_REMINDER_DELAY_FRAMES)
+        return 0;
+    if(app->modal.active || app->close_prompt_open || app->nav_sidebar_open)
+        return 0;
+    if(first_run_guide_active || habits_guide_active)
+        return 0;
+    if(app->file_dialog_active || app->backgrounded)
+        return 0;
+    if(app->habit_edit.active || app->habit_session_edit.active)
+        return 0;
+    if(app->sync_server_url_focused || app->sync_alias_focused ||
+       app->profile_friend_input_focused || app->profile_name_focused ||
+       app->profile_intention_focused)
+        return 0;
+
+    switch(app->inbe.screen) {
+    case InbeScreenSession:
+    case InbeScreenMeditation:
+    case InbeScreenSunSalutation:
+    case InbeScreenPatterns:
+    case InbeScreenResults:
+    case InbeScreenBreak:
+    case InbeScreenBreakExercises:
+    case InbeScreenHabitEdit:
+    case InbeScreenHabitSessionEdit:
+        return 0;
+    default:
+        break;
+    }
+    return 1;
+}
+
+static void
+app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
+                                 int habits_guide_active)
+{
+    int month_key = 0;
+    int day_key = 0;
+
+    if(!app_donation_reminder_safe(app, first_run_guide_active,
+                                   habits_guide_active))
+        return;
+    if(!app_donation_today(&month_key, &day_key))
+        return;
+    if(app->donation_reminder_last_prompt_month == month_key)
+        return;
+    if(app->donation_reminder_remind_after_day > 0 &&
+       app->donation_reminder_remind_after_day > day_key)
+        return;
+    app_open_modal(app, UIModalDonationReminder);
 }
 
 void
@@ -1330,6 +1524,46 @@ draw_profile_picture_picker_modal(InbeApp *app)
 }
 
 static void
+draw_donation_reminder_modal(InbeApp *app)
+{
+    int modal_result;
+    UIModalAction actions[4];
+
+    if(app == NULL)
+        return;
+
+    actions[0] = (UIModalAction){
+        .label = GetLocaleText("donation_reminder_donate_button"),
+        .style = UI_BUTTON_STYLE_PRIMARY
+    };
+    actions[1] = (UIModalAction){
+        .label = GetLocaleText("donation_reminder_later_button"),
+        .style = UI_BUTTON_STYLE_SECONDARY
+    };
+    actions[2] = (UIModalAction){
+        .label = GetLocaleText("donation_reminder_skip_button"),
+        .style = UI_BUTTON_STYLE_SECONDARY
+    };
+    actions[3] = (UIModalAction){
+        .label = GetLocaleText("donation_reminder_dismiss_button"),
+        .style = UI_BUTTON_STYLE_DANGER
+    };
+    modal_result = ActionModal((ModalProps){
+        .title = GetLocaleText("donation_reminder_title"),
+        .message = GetLocaleText("donation_reminder_message"),
+        .actions = actions,
+        .action_count = 4,
+        .close_icon = app->icons[UI_ICON_TYPE_X],
+        .max_width = 420
+    });
+    if(modal_result == -1) {
+        app_postpone_donation_reminder(app);
+    } else if(modal_result > 0) {
+        app_handle_donation_reminder_action(app, modal_result);
+    }
+}
+
+static void
 draw_global_modal(InbeApp *app)
 {
     int modal_result;
@@ -1344,6 +1578,10 @@ draw_global_modal(InbeApp *app)
     if(settings_data_draw_modals(app))
         return;
 
+    if(app->modal.type == UIModalDonationReminder) {
+        draw_donation_reminder_modal(app);
+        return;
+    }
     if(app->modal.type == UIModalMeditationNetworkError) {
         modal_result = Modal(GetLocaleText("meditation_music_network_error_title"),
                                      GetLocaleText("meditation_music_network_error_message"),
@@ -1537,6 +1775,8 @@ updateapp(InbeApp *app)
     first_run_guide_active = practice_screen_first_run_guide_active(app);
     habits_guide_active = habits_screen_first_run_guide_active(app);
     app_clear_invalid_screen_local_modal(app);
+    app_maybe_open_donation_reminder(app, first_run_guide_active,
+                                     habits_guide_active);
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
