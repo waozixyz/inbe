@@ -837,7 +837,11 @@ run_screenshot_mode(const ScreenshotRequest *request)
     /* LoadImageFromScreen only returns a frame while kryon's EndDrawing is
      * armed for the pre-swap readback; screenshot mode arms it itself so no
      * wrapper script has to. */
+#if defined(_WIN32)
+    _putenv("KRYON_SHOT_ARM=1");
+#else
     setenv("KRYON_SHOT_ARM", "1", 1);
+#endif
     setup_screenshot_scene(&inbe_app, request);
     if(strcmp(request->scene, "tutorial_whm_step2") == 0)
         warmup_frames = 150;
@@ -1049,12 +1053,8 @@ int main(int argc, char **argv) {
      * app_request_desktop_quit) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
         frame();
-        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit) {
-            TraceLog(LOG_WARNING, "DIAGQUIT: shouldclose=%d shutdown=%d request_quit=%d frame=%d",
-                     WindowShouldClose() ? 1 : 0, g_shutdown_requested ? 1 : 0,
-                     inbe_app.request_quit ? 1 : 0, inbe_app.inbe.frame);
+        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit)
             quit = 1;
-        }
     }
 #endif
 
