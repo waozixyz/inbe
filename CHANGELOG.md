@@ -7,6 +7,7 @@
 - Web builds now fall back to the Canvas renderer automatically when WebGL is unavailable, instead of stopping on a WebGL-disabled message.
 - Canvas hover cursors now update consistently while using the Canvas renderer.
 - Break reminders and break settings stay desktop-only and no longer appear in the Web settings sidebar.
+- Desktop break timer windows now stay visible when switching workspaces.
 
 ## [1.9.5] - 2026-08-19
 ### Added

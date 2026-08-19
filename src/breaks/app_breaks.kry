@@ -182,7 +182,8 @@ app_breaks_window_update :: (app: InbeApp*) {
     }
     if app->break_window == nil {
         flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
-                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_CENTER
+                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_CENTER +
+                 UI_WINDOW_STICKY
         app->break_window = OpenUIWindow("Inner Breeze", 0, 0,
                                          win_w, win_h, flags,
                                          DarkenUIColor(GetThemeBackground(), 8),
@@ -646,7 +647,7 @@ app_breaks_hud_update :: (app: InbeApp*) {
     if app->break_hud == nil {
         track := DarkenUIColor(GetThemeBackground(), 18)
         flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
-                 UI_WINDOW_SKIP_TASKBAR
+                 UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_STICKY
         hud_x := ScaleUIPx(8)
         hud_y := ScaleUIPx(8)
         if app->break_hud_x >= 0 && app->break_hud_y >= 0 {
