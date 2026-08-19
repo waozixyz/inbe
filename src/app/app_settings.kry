@@ -234,10 +234,10 @@ save_settings :: (app: InbeApp*) {
                         app->notification_friend_request ? 1 : 0)
     save_setting_int("donation_reminder_dismissed",
                         app->donation_reminder_dismissed ? 1 : 0)
-    save_setting_int("donation_reminder_last_prompt_month",
-                        app->donation_reminder_last_prompt_month)
-    save_setting_int("donation_reminder_remind_after_day",
-                        app->donation_reminder_remind_after_day)
+    save_setting_int("donation_reminder_last_prompt_practice_count",
+                        app->donation_reminder_last_prompt_practice_count)
+    save_setting_int("donation_reminder_next_prompt_practice_count",
+                        app->donation_reminder_next_prompt_practice_count)
     save_setting_int("reminder_count", app->reminder_count)
     for int i = 0; i < APP_REMINDER_MAX; i++ {
         key: [40] char
@@ -301,7 +301,8 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("patterns_custom_hold_out", app->patterns.custom[3])
     save_setting_int("patterns_duration_minutes", app->patterns.duration_minutes)
 
-    save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    save_setting_int("breaks_enabled",
+                        DESKTOP && app->breaks_enabled ? 1 : 0)
     save_setting_int("desktop_startup_mode", app->desktop_startup_mode)
     save_setting_int("desktop_close_action", app->desktop_close_action)
     save_setting_int("break_block_mode", app->break_block_mode)
@@ -503,13 +504,26 @@ app_load_settings :: (app: InbeApp*) -> int {
     load_bool_setting(&settings_cache, &app->donation_reminder_dismissed,
                          "donation_reminder_dismissed", 0)
     load_clamped_setting(&settings_cache,
-                            &app->donation_reminder_last_prompt_month,
-                            "donation_reminder_last_prompt_month", 0, 0,
-                            999999)
+                            &app->donation_reminder_last_prompt_practice_count,
+                            "donation_reminder_last_prompt_practice_count",
+                            0, 0, 999999999)
     load_clamped_setting(&settings_cache,
-                            &app->donation_reminder_remind_after_day,
-                            "donation_reminder_remind_after_day", 0, 0,
-                            999999999)
+                            &app->donation_reminder_next_prompt_practice_count,
+                            "donation_reminder_next_prompt_practice_count",
+                            0, 0, 999999999)
+    if settings_cache_get(&settings_cache,
+                          "donation_reminder_last_prompt_practice_count") == nil &&
+       settings_cache_get_int(&settings_cache,
+                              "donation_reminder_last_prompt_month", 0) > 0 {
+        app->donation_reminder_last_prompt_practice_count =
+            storage_session_count()
+        if app->donation_reminder_next_prompt_practice_count <=
+           app->donation_reminder_last_prompt_practice_count {
+            app->donation_reminder_next_prompt_practice_count =
+                app->donation_reminder_last_prompt_practice_count +
+                DONATION_REMINDER_PRACTICE_INTERVAL
+        }
+    }
     load_reminders(app, &settings_cache)
     load_bool_setting(&settings_cache, &app->inbe.progressive_speed,
                          "progressive_speed", 1)
@@ -523,6 +537,9 @@ app_load_settings :: (app: InbeApp*) -> int {
                          "retention_marker_enabled", 0)
     load_bool_setting(&settings_cache, &app->breaks_enabled,
                          "breaks_enabled", app->breaks_enabled)
+    #if !DESKTOP {
+        app->breaks_enabled = 0
+    }
     load_clamped_setting(&settings_cache, &app->desktop_startup_mode,
                             "desktop_startup_mode", 0, 0, INBE_STARTUP_COUNT - 1)
     load_clamped_setting(&settings_cache, &app->desktop_close_action,

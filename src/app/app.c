@@ -80,7 +80,6 @@ static AppProfileStats g_app_profile;
 static void app_apply_route(InbeApp *app, AppRoute route);
 
 #define DONATION_REMINDER_DELAY_FRAMES 240
-#define DONATION_REMINDER_LATER_DAYS 7
 
 typedef struct InbeRouteBinding {
     const char *id;
@@ -160,55 +159,6 @@ app_donation_url(void)
     return app_monero_donation_url();
 }
 
-static int
-app_donation_today(int *month_key, int *day_key)
-{
-    time_t now = time(NULL);
-    struct tm *source = localtime(&now);
-    struct tm local;
-
-    if(source == NULL)
-        return 0;
-    local = *source;
-    if(month_key != NULL)
-        *month_key = (local.tm_year + 1900) * 100 + local.tm_mon + 1;
-    if(day_key != NULL)
-        *day_key = (local.tm_year + 1900) * 366 + local.tm_yday;
-    return 1;
-}
-
-static int
-app_donation_day_after(int days)
-{
-    time_t now = time(NULL);
-    struct tm local;
-    struct tm *source = localtime(&now);
-
-    if(source == NULL)
-        return 0;
-    local = *source;
-    local.tm_mday += days;
-    local.tm_hour = 12;
-    local.tm_min = 0;
-    local.tm_sec = 0;
-    if(mktime(&local) == (time_t)-1)
-        return 0;
-    return (local.tm_year + 1900) * 366 + local.tm_yday;
-}
-
-static int
-app_donation_current_month_key(void)
-{
-    time_t now = time(NULL);
-    struct tm *source = localtime(&now);
-    struct tm local;
-
-    if(source == NULL)
-        return 0;
-    local = *source;
-    return (local.tm_year + 1900) * 100 + local.tm_mon + 1;
-}
-
 static void
 app_save_donation_reminder(InbeApp *app)
 {
@@ -217,50 +167,39 @@ app_save_donation_reminder(InbeApp *app)
 }
 
 static void
-app_postpone_donation_reminder(InbeApp *app)
+app_record_donation_reminder_seen(InbeApp *app)
 {
-    int month_key;
+    int practice_count;
 
     if(app == NULL)
         return;
-    month_key = app_donation_current_month_key();
-    app->donation_reminder_remind_after_day =
-        app_donation_day_after(DONATION_REMINDER_LATER_DAYS);
-    if(app->donation_reminder_remind_after_day <= 0 && month_key > 0)
-        app->donation_reminder_last_prompt_month = month_key;
+    practice_count = storage_session_count();
+    if(practice_count < DONATION_REMINDER_PRACTICE_INTERVAL)
+        practice_count = DONATION_REMINDER_PRACTICE_INTERVAL;
+    app->donation_reminder_last_prompt_practice_count = practice_count;
+    app->donation_reminder_next_prompt_practice_count =
+        practice_count + DONATION_REMINDER_PRACTICE_INTERVAL;
     app_save_donation_reminder(app);
-    app_close_modal(app);
 }
 
 static void
 app_handle_donation_reminder_action(InbeApp *app, int action)
 {
-    int month_key = 0;
-
     if(app == NULL)
         return;
-    (void)app_donation_today(&month_key, NULL);
     switch(action) {
     case 1:
         OpenURL(app_donation_url());
-        app->donation_reminder_last_prompt_month = month_key;
-        app->donation_reminder_remind_after_day = 0;
-        app_save_donation_reminder(app);
+        app_record_donation_reminder_seen(app);
         app_close_modal(app);
         break;
     case 2:
-        app_postpone_donation_reminder(app);
-        break;
-    case 3:
-        app->donation_reminder_last_prompt_month = month_key;
-        app->donation_reminder_remind_after_day = 0;
-        app_save_donation_reminder(app);
+        app_record_donation_reminder_seen(app);
         app_close_modal(app);
         break;
-    case 4:
+    case 3:
         app->donation_reminder_dismissed = 1;
-        app->donation_reminder_remind_after_day = 0;
-        app_save_donation_reminder(app);
+        app_record_donation_reminder_seen(app);
         app_close_modal(app);
         break;
     default:
@@ -748,18 +687,23 @@ static void
 app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
                                  int habits_guide_active)
 {
-    int month_key = 0;
-    int day_key = 0;
+    int practice_count;
+    int next_prompt_count;
 
     if(!app_donation_reminder_safe(app, first_run_guide_active,
                                    habits_guide_active))
         return;
-    if(!app_donation_today(&month_key, &day_key))
+    practice_count = storage_session_count();
+    if(practice_count < DONATION_REMINDER_PRACTICE_INTERVAL)
         return;
-    if(app->donation_reminder_last_prompt_month == month_key)
-        return;
-    if(app->donation_reminder_remind_after_day > 0 &&
-       app->donation_reminder_remind_after_day > day_key)
+    next_prompt_count = app->donation_reminder_next_prompt_practice_count;
+    if(next_prompt_count <= 0) {
+        next_prompt_count = app->donation_reminder_last_prompt_practice_count +
+                            DONATION_REMINDER_PRACTICE_INTERVAL;
+        if(next_prompt_count < DONATION_REMINDER_PRACTICE_INTERVAL)
+            next_prompt_count = DONATION_REMINDER_PRACTICE_INTERVAL;
+    }
+    if(practice_count < next_prompt_count)
         return;
     app_open_modal(app, UIModalDonationReminder);
 }
@@ -1542,7 +1486,7 @@ static void
 draw_donation_reminder_modal(InbeApp *app)
 {
     int modal_result;
-    UIModalAction actions[4];
+    UIModalAction actions[3];
 
     if(app == NULL)
         return;
@@ -1552,14 +1496,10 @@ draw_donation_reminder_modal(InbeApp *app)
         .style = UI_BUTTON_STYLE_PRIMARY
     };
     actions[1] = (UIModalAction){
-        .label = GetLocaleText("donation_reminder_later_button"),
-        .style = UI_BUTTON_STYLE_SECONDARY
-    };
-    actions[2] = (UIModalAction){
         .label = GetLocaleText("donation_reminder_skip_button"),
         .style = UI_BUTTON_STYLE_SECONDARY
     };
-    actions[3] = (UIModalAction){
+    actions[2] = (UIModalAction){
         .label = GetLocaleText("donation_reminder_dismiss_button"),
         .style = UI_BUTTON_STYLE_DANGER
     };
@@ -1567,12 +1507,13 @@ draw_donation_reminder_modal(InbeApp *app)
         .title = GetLocaleText("donation_reminder_title"),
         .message = GetLocaleText("donation_reminder_message"),
         .actions = actions,
-        .action_count = 4,
+        .action_count = 3,
         .close_icon = app->icons[UI_ICON_TYPE_X],
         .max_width = 420
     });
     if(modal_result == -1) {
-        app_postpone_donation_reminder(app);
+        app_record_donation_reminder_seen(app);
+        app_close_modal(app);
     } else if(modal_result > 0) {
         app_handle_donation_reminder_action(app, modal_result);
     }

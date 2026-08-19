@@ -19,6 +19,7 @@ SettingsScrollPageContext :: struct {
 theme_panel :: #import "src/screens/settings/settings_theme"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+DESKTOP :: !ANDROID && !WEB
 
 state {
     unified_status: [256] char = ""
@@ -93,7 +94,7 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
     if tab == SETTINGS_TAB_AUDIO {
         return settings_audio_content_height(app, content_w)
     }
-    if tab == SETTINGS_TAB_BREAKS {
+    if tab == SETTINGS_TAB_BREAKS && DESKTOP {
         return settings_breaks_content_height(app, content_w)
     }
     if tab == SETTINGS_TAB_NOTIFICATIONS {
@@ -122,7 +123,7 @@ settings_screen_tab_label :: (tab: int) -> const char* {
     if tab == SETTINGS_TAB_AUDIO {
         return GetLocaleText("settings_tab_audio")
     }
-    if tab == SETTINGS_TAB_BREAKS {
+    if tab == SETTINGS_TAB_BREAKS && DESKTOP {
         return GetLocaleText("settings_tab_breaks")
     }
     if tab == SETTINGS_TAB_NOTIFICATIONS {
@@ -167,7 +168,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
         app->settings_tab = SETTINGS_TAB_DEVICE
     }
-    #if ANDROID {
+    #if !DESKTOP {
         if app->settings_tab == SETTINGS_TAB_BREAKS {
             app->settings_tab = SETTINGS_TAB_DEVICE
         }
@@ -204,7 +205,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
         settings_audio_draw(app, page.content_x, page.content_w, &y)
     } else if app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_draw(app, page.content_x, page.content_w, &y, &device_state)
-    } else if app->settings_tab == SETTINGS_TAB_BREAKS {
+    } else if app->settings_tab == SETTINGS_TAB_BREAKS && DESKTOP {
         settings_breaks_draw(app, page.content_x, page.content_w, &y)
     } else if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
         settings_notifications_draw(app, page.content_x, page.content_w, &y)

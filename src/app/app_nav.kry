@@ -7,6 +7,8 @@
 #import "screens/settings/settings_screen.h" #private
 #import <stdio.h>
 
+ANDROID :: ANDROID_BUILD
+WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
 
 #enum {
