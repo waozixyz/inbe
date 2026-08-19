@@ -113,6 +113,20 @@ DrawUIText(const char *text, int x, int y, int font_size, Color color)
     (void)color;
 }
 
+void
+BeginUIClip(int x, int y, int w, int h)
+{
+    (void)x;
+    (void)y;
+    (void)w;
+    (void)h;
+}
+
+void
+EndUIClip(void)
+{
+}
+
 bool
 IsKeyPressed(int key)
 {
