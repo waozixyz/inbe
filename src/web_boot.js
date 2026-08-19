@@ -29,10 +29,17 @@ function webglAvailable() {
   return !!gl;
 }
 
+function selectedRenderer() {
+  return window.__inbeRenderer === 'canvas' ? 'canvas' : 'raylib';
+}
+
 window.__inbeLoadApp = function(src) {
   var script;
+  var renderer = selectedRenderer();
 
-  if (!webglAvailable()) {
+  Module.__inbeRenderer = renderer;
+
+  if (renderer !== 'canvas' && !webglAvailable()) {
     if (statusElement) {
       statusElement.textContent = 'WebGL is disabled. Enable WebGL in this browser to run Inner Breeze.';
     }
@@ -142,6 +149,7 @@ document.addEventListener('visibilitychange', function() {
 
 var Module = {
   __inbeRuntimeReady: false,
+  __inbeRenderer: selectedRenderer(),
   __kryonStorageSyncPromise: null,
   __kryonStorageSyncResolve: null,
   __kryonScheduleStorageSync: scheduleStorageSync,

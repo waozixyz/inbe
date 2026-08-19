@@ -15,6 +15,12 @@ const root = resolve(process.argv[2] || 'build/dist/web');
 const browserSetting = process.env.WEB_SMOKE_BROWSER || 'auto';
 const browserArgs = (process.env.WEB_SMOKE_BROWSER_ARGS || '').split(/\s+/).filter(Boolean);
 const timeoutMs = Number(process.env.WEB_SMOKE_TIMEOUT_MS || 90000);
+const rendererSetting = (process.env.WEB_SMOKE_RENDERER || '').toLowerCase();
+const renderer = rendererSetting || (root.endsWith('web-canvas') ? 'canvas' : 'raylib');
+if (!['raylib', 'canvas'].includes(renderer)) {
+  console.error(`web smoke: FAIL: unknown WEB_SMOKE_RENDERER=${JSON.stringify(renderer)}`);
+  process.exit(1);
+}
 const allowWebglDisabled = process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED
   ? !/^(0|false|no)$/i.test(process.env.WEB_SMOKE_ALLOW_WEBGL_DISABLED)
   : false;
@@ -330,7 +336,7 @@ function fatalBidiEvent(event) {
 
 async function waitForHealthyPage(client) {
   const start = Date.now();
-  let sawRaylib = false;
+  let sawApp = false;
   let lastState = null;
   let healthySince = 0;
 
@@ -342,22 +348,42 @@ async function waitForHealthyPage(client) {
         throw new Error(`${fatal}; recent=${recent}`);
       }
       if (/PLATFORM: WEB: Initialized successfully|INBE: Global app pointer set/.test(eventText(event)))
-        sawRaylib = true;
+        sawApp = true;
     }
 
     const result = await client.send('Runtime.evaluate', {
       expression: `(() => {
+        const renderer = ${JSON.stringify(renderer)};
         const canvas = document.querySelector('canvas');
         const status = document.querySelector('#status')?.textContent || '';
         if (/WebGL is disabled/.test(status)) return { ok: ${allowWebglDisabled ? 'true' : 'false'}, disabledWebgl: true, status };
         if (!canvas) return { ok: false, reason: 'missing canvas', status };
+        const M = globalThis.Module;
+        if (renderer === 'canvas') {
+          const ctx = canvas.getContext('2d');
+          const width = canvas.width || canvas.clientWidth;
+          const height = canvas.height || canvas.clientHeight;
+          return {
+            ok: width > 0 && height > 0 && !!ctx,
+            renderer,
+            width,
+            height,
+            loadingClass: document.querySelector('#loading-screen')?.className || '',
+            moduleLoaded: !!M,
+            runtimeReady: !!(M && M.__inbeRuntimeReady),
+            moduleRenderer: M && M.__inbeRenderer,
+            moduleStatus: (M && M.setStatus && M.setStatus.last && M.setStatus.last.text) || '',
+            mainStarted: /Global app pointer set/.test((M && M.__inbeLastLog) || ''),
+            runDependencies: M && (typeof M.monitorRunDependencies === 'function') ? M.totalDependencies : undefined
+          };
+        }
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (!gl) return { ok: false, reason: 'missing webgl', status };
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
-        const M = globalThis.Module;
         return {
           ok: width > 0 && height > 0,
+          renderer,
           width,
           height,
           loadingClass: document.querySelector('#loading-screen')?.className || '',
@@ -372,7 +398,7 @@ async function waitForHealthyPage(client) {
     });
     const value = result.result?.value;
     lastState = value;
-    if (sawRaylib && value?.ok && value?.runtimeReady) {
+    if ((sawApp || value?.mainStarted) && value?.ok && value?.runtimeReady) {
       if (!healthySince)
         healthySince = Date.now();
       if (Date.now() - healthySince >= 1500)
@@ -413,14 +439,30 @@ async function waitForHealthyBidiPage(client, context) {
         const status = document.querySelector('#status')?.textContent || '';
         if (/WebGL is disabled/.test(status)) return { ok: ${allowWebglDisabled ? 'true' : 'false'}, disabledWebgl: true, status };
         if (!canvas) return { ok: false, reason: 'missing canvas', status };
+        const boot = Array.from(document.querySelectorAll('script')).some(script => /index\\.js/.test(script.src || ''));
+        const M = globalThis.Module;
+        if (${JSON.stringify(renderer)} === 'canvas') {
+          const ctx = canvas.getContext('2d');
+          const width = canvas.width || canvas.clientWidth;
+          const height = canvas.height || canvas.clientHeight;
+          return {
+            ok: width > 0 && height > 0 && !!ctx && boot && !!(M && M.__inbeRuntimeReady),
+            renderer: 'canvas',
+            width,
+            height,
+            boot,
+            runtimeReady: !!(M && M.__inbeRuntimeReady),
+            moduleRenderer: M && M.__inbeRenderer,
+            hasOnboardingHook: !!(M && M._app_web_test_onboarding_state)
+          };
+        }
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
         if (!gl) return { ok: false, reason: 'missing webgl', status };
         const width = gl.drawingBufferWidth;
         const height = gl.drawingBufferHeight;
-        const boot = Array.from(document.querySelectorAll('script')).some(script => /index\\.js/.test(script.src || ''));
-        const M = globalThis.Module;
         return {
           ok: width > 0 && height > 0 && boot && !!(M && M.__inbeRuntimeReady),
+          renderer: 'raylib',
           width,
           height,
           boot,
@@ -639,6 +681,25 @@ async function verifySyncKeyImport(client) {
     throw new Error(`web sync key import did not save account settings; code=${result.result?.value}`);
 }
 
+async function verifySyncKeyUnavailable(client) {
+  const result = await client.send('Runtime.evaluate', {
+    expression: `(() => {
+      if (typeof Module._app_web_test_import_sync_key !== 'function')
+        return { ok: false, reason: 'missing sync import test hook' };
+      if (typeof Module._app_web_test_sync_key_state !== 'function')
+        return { ok: false, reason: 'missing sync state test hook' };
+      Module._app_web_test_import_sync_key();
+      const code = Module._app_web_test_sync_key_state();
+      return { ok: code !== 1, code };
+    })()`,
+    returnByValue: true
+  });
+  const state = result.result?.value || {};
+  if (!state.ok)
+    throw new Error(state.reason || `canvas sync unexpectedly available; code=${state.code}`);
+  console.log(`web smoke: canvas sync unavailable as expected (code=${state.code})`);
+}
+
 async function verifyAppSettingsReloadPersistenceBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
@@ -726,6 +787,27 @@ async function verifySyncKeyImportBidi(client, context) {
     throw new Error(`Firefox web sync key import did not save account settings; code=${state.code}`);
 }
 
+async function verifySyncKeyUnavailableBidi(client, context) {
+  const result = await client.send('script.evaluate', {
+    target: { context },
+    awaitPromise: false,
+    resultOwnership: 'none',
+    expression: `JSON.stringify((() => {
+      if (typeof Module._app_web_test_import_sync_key !== 'function')
+        return { ok: false, reason: 'missing sync import test hook' };
+      if (typeof Module._app_web_test_sync_key_state !== 'function')
+        return { ok: false, reason: 'missing sync state test hook' };
+      Module._app_web_test_import_sync_key();
+      const code = Module._app_web_test_sync_key_state();
+      return { ok: code !== 1, code };
+    })())`
+  });
+  const state = JSON.parse(result.result?.value || '{}');
+  if (!state.ok)
+    throw new Error(state.reason || `canvas sync unexpectedly available; code=${state.code}`);
+  console.log(`web smoke: canvas sync unavailable as expected (code=${state.code})`);
+}
+
 let chrome;
 let client;
 let failure;
@@ -734,17 +816,26 @@ let failure;
  * WebGL context, and a cycling requestAnimationFrame loop. Catches "boots to
  * a black screen" that console-error checks cannot see. Runs in the page, so
  * the same expression serves both the CDP and the Firefox BiDi paths. */
-const RENDER_LIVE_EXPRESSION = `(async () => JSON.stringify(await (async () => {
+function renderLiveExpression(rendererKind) {
+  return `(async () => JSON.stringify(await (async () => {
   const canvas = document.querySelector('canvas');
   if (!canvas)
     return { ok: false, reason: 'no canvas element' };
   if (canvas.clientWidth === 0 || canvas.clientHeight === 0)
     return { ok: false, reason: 'canvas has zero display size' };
-  const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
-  if (!gl)
-    return { ok: false, reason: 'no WebGL context' };
-  if (!gl.getParameter(gl.VERSION))
-    return { ok: false, reason: 'WebGL context unresponsive' };
+  const renderer = ${JSON.stringify(rendererKind)};
+  let ctx = null;
+  if (renderer === 'canvas') {
+    ctx = canvas.getContext('2d');
+    if (!ctx)
+      return { ok: false, reason: 'no Canvas2D context' };
+  } else {
+    const gl = canvas.getContext('webgl2') || canvas.getContext('webgl');
+    if (!gl)
+      return { ok: false, reason: 'no WebGL context' };
+    if (!gl.getParameter(gl.VERSION))
+      return { ok: false, reason: 'WebGL context unresponsive' };
+  }
   let frames = 0;
   await new Promise(resolve => {
     const tick = () => {
@@ -759,12 +850,25 @@ const RENDER_LIVE_EXPRESSION = `(async () => JSON.stringify(await (async () => {
   });
   if (frames < 3)
     return { ok: false, reason: 'render loop not cycling (rAF frames=' + frames + ')' };
-  return { ok: true, frames };
+  if (renderer === 'canvas') {
+    const w = Math.max(1, Math.min(64, canvas.width || canvas.clientWidth || 1));
+    const h = Math.max(1, Math.min(64, canvas.height || canvas.clientHeight || 1));
+    const data = ctx.getImageData(0, 0, w, h).data;
+    let nonzero = 0;
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i] || data[i + 1] || data[i + 2] || data[i + 3]) nonzero++;
+    }
+    if (!nonzero)
+      return { ok: false, reason: 'Canvas2D pixels are blank' };
+    return { ok: true, renderer, frames, nonzero };
+  }
+  return { ok: true, renderer, frames };
 })()))()`;
+}
 
 async function verifyRenderingLive(client) {
   const result = await client.send('Runtime.evaluate', {
-    expression: RENDER_LIVE_EXPRESSION,
+    expression: renderLiveExpression(renderer),
     awaitPromise: true,
     returnByValue: true
   });
@@ -778,7 +882,7 @@ async function verifyRenderingLiveBidi(client, context) {
     target: { context },
     awaitPromise: true,
     resultOwnership: 'none',
-    expression: RENDER_LIVE_EXPRESSION
+    expression: renderLiveExpression(renderer)
   });
   const state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
@@ -831,7 +935,10 @@ try {
     await waitForHealthyBidiPage(client, context);
     await verifyRenderingLiveBidi(client, context);
     await verifyAppSettingsImmediateBidi(client, context);
-    await verifySyncKeyImportBidi(client, context);
+    if (renderer === 'canvas')
+      await verifySyncKeyUnavailableBidi(client, context);
+    else
+      await verifySyncKeyImportBidi(client, context);
   } else {
     const args = [
       '--headless=new',
@@ -879,9 +986,12 @@ try {
     await verifyRenderingLive(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
-    await verifySyncKeyImport(client);
+    if (renderer === 'canvas')
+      await verifySyncKeyUnavailable(client);
+    else
+      await verifySyncKeyImport(client);
   }
-  console.log('web smoke: PASS');
+  console.log(`web smoke: PASS (${renderer})`);
 } catch (error) {
   failure = error;
 } finally {

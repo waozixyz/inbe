@@ -145,6 +145,12 @@ jobs:
           set -euo pipefail
           make web-smoke-test
 
+      - name: Run Canvas Web Smoke Test
+        run: |
+          set -euo pipefail
+          make web-canvas
+          make web-canvas-smoke-test
+
   build-firefox-addons:
     name: Build Firefox Add-on
     runs-on: ubuntu-latest

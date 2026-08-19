@@ -436,9 +436,14 @@ WINDOWS_DIST := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows.zip
 APPIMAGE_NAME := $(APP_NAME)-linux-$(ARCH).AppImage
 APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
 LINUXDEPLOY ?= linuxdeploy
-WEB_CC ?= emcc
-WEB_AR ?= emar
-WEB_RANLIB ?= emranlib
+WEB_EMSDK_BIN ?= $(HOME)/emsdk/upstream/emscripten
+WEB_CC ?= $(if $(wildcard $(WEB_EMSDK_BIN)/emcc),$(WEB_EMSDK_BIN)/emcc,emcc)
+WEB_AR ?= $(if $(wildcard $(WEB_EMSDK_BIN)/emar),$(WEB_EMSDK_BIN)/emar,emar)
+WEB_RANLIB ?= $(if $(wildcard $(WEB_EMSDK_BIN)/emranlib),$(WEB_EMSDK_BIN)/emranlib,emranlib)
+WEB_EMCMAKE ?= $(if $(wildcard $(WEB_EMSDK_BIN)/emcmake),$(WEB_EMSDK_BIN)/emcmake,emcmake)
+ifneq ($(wildcard $(WEB_EMSDK_BIN)/emcc),)
+export PATH := $(WEB_EMSDK_BIN):$(PATH)
+endif
 include $(KRYON_DIR)/mk/raylib.mk
 KRYON_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_WEB_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
@@ -446,7 +451,7 @@ KRYON_WINDOWS_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_CLICK_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 WEB_CACHE_BUSTER ?= $(shell if git diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then git rev-parse --short HEAD 2>/dev/null; else date +%s; fi)
 WEB_TARGET := $(WEB_DIST_DIR)/index.html
-WEB_APP_SCRIPT := <script>window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
+WEB_APP_SCRIPT := <script>window.__inbeRenderer="raylib";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
@@ -484,7 +489,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: web-canvas all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -557,7 +562,7 @@ click-verify: $(CLICK_TARGET)
 
 web-tools-check:
 	@missing=0; \
-	for tool in "$(WEB_CC)" "$(WEB_AR)" "$(WEB_RANLIB)" emcmake; do \
+	for tool in "$(WEB_CC)" "$(WEB_AR)" "$(WEB_RANLIB)" "$(WEB_EMCMAKE)"; do \
 		if ! command -v "$$tool" >/dev/null 2>&1; then \
 			echo "Missing web build tool: $$tool"; \
 			missing=1; \
@@ -567,7 +572,7 @@ web-tools-check:
 		echo ""; \
 		echo "Install Emscripten for this host or run the web build from an environment where Emscripten is on PATH."; \
 		echo ""; \
-		echo "Required tools: WEB_CC=$(WEB_CC), WEB_AR=$(WEB_AR), WEB_RANLIB=$(WEB_RANLIB), emcmake."; \
+		echo "Required tools: WEB_CC=$(WEB_CC), WEB_AR=$(WEB_AR), WEB_RANLIB=$(WEB_RANLIB), WEB_EMCMAKE=$(WEB_EMCMAKE)."; \
 		exit 1; \
 	fi
 
@@ -1298,11 +1303,12 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/w
 
 
 # Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
-# raylib+GLFW — no libraylib.web.a, no WebGL. Sync-account crypto (liboqs)
-# and audio are not carried in this target: scripts/ksync-canvas-shim.c
-# reports sync unavailable and kryon's canvas audio is null-grade.
+# raylib+GLFW - no libraylib.web.a, no WebGL. Sync-account crypto (liboqs)
+# is not carried in this target: scripts/ksync-canvas-shim.c reports sync
+# unavailable/failure, so the app degrades to local-only mode.
 WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
 WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
+WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 KRYON_CANVAS_SRCS := $(filter-out $(KRYON_DIR)/src/ksync/% $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
 KSYNC_CANVAS_SHIM := scripts/ksync-canvas-shim.c
 
@@ -1311,20 +1317,29 @@ web-canvas: $(WEB_CANVAS_TARGET)
 $(WEB_CANVAS_DIR):
 	mkdir -p $@
 
-$(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) web-assets/canvas_index.html | $(WEB_CANVAS_DIR)
+$(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) src/web_shell.html $(WEB_BOOT_JS) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) | $(WEB_CANVAS_DIR)
 	rm -f $(WEB_CANVAS_DIR)/index.data
-	PATH="$${HOME}/emsdk/upstream/emscripten:$$PATH" $(WEB_CC) $(WEB_CFLAGS) \
+	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) -I$(KRYON_DIR)/include \
 		-I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src -I$(SQLITE_BUILD_DIR) \
+		-DKRYON_BACKEND_CANVAS=1 \
 		-DPLATFORM_WEB \
 		-o $(WEB_CANVAS_DIR)/index.js \
 		$(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) \
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key \
 		--preload-file locales --preload-file assets
-	sed 's/{{APP_TITLE}}/$(APP_TITLE)/' web-assets/canvas_index.html > $@
+	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
+	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js
+	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_CANVAS_DIR)/index_boot.js
+	cp vendor/kryon/web/kryon-web-present.js $(WEB_CANVAS_DIR)/kryon-web-present.js
+	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_CANVAS_DIR)/kryon-web-present.js
+	rm -rf $(WEB_CANVAS_DIR)/web-assets $(WEB_CANVAS_DIR)/site-icons
+	cp -R web-assets $(WEB_CANVAS_DIR)/
+	cp -R site-icons $(WEB_CANVAS_DIR)/
+	cp manifest.json $(WEB_CANVAS_DIR)/webmanifest.json
 
 android-copy-assets:
 	$(MAKE) $(FONT_FILES)
@@ -1547,13 +1562,22 @@ web:
 	cd $(WEB_DIST_DIR) && zip -9 -r $(abspath $(WEB_DIST_ZIP)) .
 
 web-smoke-test: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+
+web-canvas-smoke-test: $(WEB_SMOKE_TEST)
+	WEB_SMOKE_RENDERER=canvas WEB_SMOKE_BROWSER="$(WEB_SMOKE_BROWSER)" node $(WEB_SMOKE_TEST) $(WEB_CANVAS_DIR)
+
+web-compare-test:
+	$(MAKE) $(WEB_TARGET)
+	$(MAKE) web-smoke-test
+	$(MAKE) web-canvas
+	$(MAKE) web-canvas-smoke-test
 
 web-smoke-test-firefox: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_BROWSER="firefox" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="firefox" node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
-	WEB_SMOKE_BROWSER="librewolf" WEB_SMOKE_ALLOW_WEBGL_DISABLED=1 node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
+	WEB_SMOKE_RENDERER=raylib WEB_SMOKE_BROWSER="librewolf" WEB_SMOKE_ALLOW_WEBGL_DISABLED=1 node $(WEB_SMOKE_TEST) $(WEB_DIST_DIR)
 
 site: web
 	sh site/build.sh
