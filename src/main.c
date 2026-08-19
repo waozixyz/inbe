@@ -1,4 +1,5 @@
 #include "kryon.h"
+#include <SDL2/SDL.h>
 #include "app.h"
 #include "breaks/app_breaks.h"
 #include "storage.h"
@@ -969,6 +970,12 @@ int main(int argc, char **argv) {
 #endif
         return 1;
     }
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+    /* raylib asks SDL for MOUSE_CAPTURE at window creation. An active
+     * pointer grab on the main window swallows clicks and drags on every
+     * other window of the process (break HUD), and nothing needs it. */
+    SDL_SetWindowGrab(SDL_GetWindowFromID(1), SDL_FALSE);
+#endif
 
     set_desktop_window_icon();
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
@@ -1034,6 +1041,13 @@ int main(int argc, char **argv) {
             quit = 1;
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
+        /* The core window's X button arrives as SDL_WINDOWEVENT_CLOSE, which
+         * raylib's SDL backend never latches as SDL_QUIT; kryon's window
+         * pump records it and we act on it exactly like a tray close. */
+        if(StealUICoreWindowClose())
+            inbe_desktop_tray_apply_action(&inbe_app,
+                                           INBE_DESKTOP_TRAY_ACTION_CLOSE_REQUEST,
+                                           &quit);
         if(!quit) {
             frame();
             inbe_desktop_tray_update_status(&inbe_app);
@@ -1048,7 +1062,8 @@ int main(int argc, char **argv) {
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
-        if(WindowShouldClose() && !inbe_app.close_prompt_open)
+        if((WindowShouldClose() || StealUICoreWindowClose()) &&
+           !inbe_app.close_prompt_open)
             app_request_desktop_close(&inbe_app);
     }
 #else
@@ -1057,7 +1072,8 @@ int main(int argc, char **argv) {
      * app_request_desktop_quit) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
         frame();
-        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit)
+        if(WindowShouldClose() || StealUICoreWindowClose() ||
+           g_shutdown_requested || inbe_app.request_quit)
             quit = 1;
     }
 #endif

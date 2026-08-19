@@ -596,6 +596,12 @@ screenshot: $(TARGET)
 ## #if defined(PLATFORM_WEB) -- that `make test` (desktop-native) misses.
 ci: test web
 
+## End-to-end desktop window-mode tests on a private Xvfb display: window
+## close across startup/keep-running/ask modes plus break-HUD dragging.
+## Requires Xvfb, xfwm4, xdotool, x11-utils, imagemagick and sqlite3.
+test-desktop-windows:
+	./scripts/test-desktop-windows.sh "$(TARGET)"
+
 test: $(TESTS) font-bundle-check audio-test-fixture-check
 	echo "== Inbe tests =="; \
 	status=0; \
