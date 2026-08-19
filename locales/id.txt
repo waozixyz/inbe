@@ -1652,3 +1652,18 @@ Pembaruan tersedia
 [update_available_toast]
 Versi baru tersedia. Lihat Pengaturan -> Tentang.
 ---
+[update_download]
+Unduh
+---
+[update_restart]
+Mulai ulang untuk memperbarui
+---
+[update_retry]
+Coba lagi
+---
+[update_downloading]
+Mengunduh
+---
+[update_failed]
+Gagal mengunduh
+---

@@ -1652,3 +1652,18 @@ Material
 [update_available_toast]
 有新版本可用。请查看 设置 -> 关于。
 ---
+[update_download]
+下载
+---
+[update_restart]
+重启以更新
+---
+[update_retry]
+重试
+---
+[update_downloading]
+正在下载
+---
+[update_failed]
+下载失败
+---

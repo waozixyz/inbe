@@ -1652,3 +1652,18 @@ Material
 [update_available_toast]
 Доступна новая версия. Смотрите Настройки -> О приложении.
 ---
+[update_download]
+Скачать
+---
+[update_restart]
+Перезапустить для обновления
+---
+[update_retry]
+Повторить
+---
+[update_downloading]
+Загрузка
+---
+[update_failed]
+Не удалось загрузить
+---

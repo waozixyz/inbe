@@ -1651,3 +1651,18 @@ Aero
 [update_available_toast]
 새 버전이 있습니다. 설정 -> 정보를 확인하세요.
 ---
+[update_download]
+다운로드
+---
+[update_restart]
+재시작하여 업데이트
+---
+[update_retry]
+다시 시도
+---
+[update_downloading]
+다운로드 중
+---
+[update_failed]
+다운로드 실패
+---

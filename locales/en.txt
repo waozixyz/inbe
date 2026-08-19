@@ -1650,3 +1650,18 @@ Update available
 [update_available_toast]
 A new version is available. See Settings -> About.
 ---
+[update_download]
+Download
+---
+[update_restart]
+Restart to update
+---
+[update_retry]
+Try again
+---
+[update_downloading]
+Downloading
+---
+[update_failed]
+Download failed
+---

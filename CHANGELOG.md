@@ -1,7 +1,7 @@
 # Changelog
 ## [1.9.5] - 2026-08-19
 ### Added
-- Update notifications on desktop: the app checks once a day for a new release and shows a toast plus a download link in Settings → About. AppImage and Windows users get a direct download link; Linux package, Snap and Flatpak installs are left to the system's own updater.
+- Desktop update notifications: the app checks once a day for a new release and shows a toast plus a row in Settings → About. AppImage and Windows users can download and install the update from there — the download is checksum-verified and, with one click on "Restart to update", replaces the app in place. Linux package, Snap and Flatpak installs are left to the system's own updater, and AppImage builds now also carry AppImageUpdate delta-update information.
 
 ## [1.9.4] - 2026-08-17
 ### Fixed

@@ -1108,7 +1108,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 		LIBRARY_FLAGS=""; \
 		echo "Building on FHS system - linuxdeploy will auto-detect libraries"; \
 	fi; \
-	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) $(LINUXDEPLOY) \
+	cd $(LINUX_APPIMAGE_BUILD_DIR) && env -u SOURCE_DATE_EPOCH ARCH=$(ARCH) LDAI_OUTPUT=$(abspath $(APPIMAGE_TARGET)) LDAI_UPDATE_INFORMATION='gh-releases-zsync|waozixyz|inbe|latest|$(APPIMAGE_NAME)' $(LINUXDEPLOY) \
 		--appdir $(APP_NAME).AppDir \
 		--executable $(abspath $(LINUX_APPDIR)/usr/bin/$(APP_NAME)) \
 		--desktop-file $(abspath $(LINUX_APPIMAGE_DESKTOP)) \

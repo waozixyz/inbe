@@ -41,7 +41,7 @@ settings_about_content_height :: (content_w: int) -> int {
         .line_gap = ScaleUIPx(4),
         .color = DarkenUIColor(GetThemeText(), 35)
     }
-    update_row := inbe_update_available() != 0 ? ScaleUIPx(30) : 0
+    update_row := inbe_update_available() != 0 ? ScaleUIPx(72) : 0
 
     return ScaleUIPx(194) + update_row +
            UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
@@ -116,16 +116,58 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(28)
 
     if inbe_update_available() != 0 {
-        update_text := inbe_update_row_text()
-        update_w := MeasureUIText(update_text, font)
-        Href((HrefProps){
-            .bounds = {(float)(x + (w - update_w) / 2), (float)*y,
-                       (float)update_w, (float)ScaleUIPx(24)},
-            .text = update_text,
-            .href = inbe_update_download_url(),
-            .font = font,
-        })
-        *y += ScaleUIPx(30)
+        if inbe_update_can_self_update() != 0 {
+            /* Self-service channels (AppImage, Windows portable): a row that
+             * walks check -> download -> verified -> restart. */
+            Text(inbe_update_row_text(), x, *y, font, GetThemeText())
+            *y += ScaleUIPx(26)
+            if inbe_update_is_downloading() != 0 {
+                fraction := inbe_update_download_fraction()
+                progress := fraction >= 0.0 ?
+                    (int)(fraction * 100.0 + 0.5) : -1
+                progress_text: [40] char = {0}
+                if progress >= 0 {
+                    snprintf(progress_text, sizeof(progress_text), "%s %d%%",
+                             GetLocaleText("update_downloading"), progress)
+                } else {
+                    snprintf(progress_text, sizeof(progress_text), "%s",
+                             GetLocaleText("update_downloading"))
+                }
+                Text(progress_text, x, *y, UI_TEXT_12,
+                             DarkenUIColor(GetThemeText(), 28))
+                *y += ScaleUIPx(22)
+            } else {
+                buttons: [1] UIButtonRowItem = {
+                    {inbe_update_action_label(), UI_BUTTON_STYLE_SECONDARY, 0}
+                }
+                row := (ButtonRowProps){.x = x, .y = *y, .width = w,
+                                        .height = ScaleUIPx(36),
+                                        .items = buttons, .count = 1}
+                if ButtonRow(row) == 1 {
+                    inbe_update_row_action()
+                }
+                *y += GetUIButtonRowHeight(row)
+            }
+            error_text := inbe_update_error_text()
+            if error_text[0] != '\0' {
+                Text(error_text, x, *y, UI_TEXT_12,
+                             DarkenUIColor(GetThemeText(), 28))
+                *y += ScaleUIPx(20)
+            }
+        } else {
+            /* System-managed or source installs: link out to the release. */
+            update_text := inbe_update_row_text()
+            update_w := MeasureUIText(update_text, font)
+            Href((HrefProps){
+                .bounds = {(float)(x + (w - update_w) / 2), (float)*y,
+                           (float)update_w, (float)ScaleUIPx(24)},
+                .text = update_text,
+                .href = inbe_update_download_url(),
+                .font = font,
+            })
+            *y += ScaleUIPx(30)
+        }
+        *y += ScaleUIPx(8)
     }
 
     description = (UIParagraphSpec){

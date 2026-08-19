@@ -533,7 +533,7 @@ struct InbeApp {
     int close_prompt_open;
     int close_prompt_input_block_frame;
     AppClosePromptResult close_prompt_result;
-    int request_quit;   /* desktop no-tray build: app layer requests exit */
+    int request_quit;   /* app layer requests exit (update restart, quit shortcut) */
     int desktop_startup_mode;   /* INBE_STARTUP_* (desktop only) */
     int desktop_close_action;   /* INBE_CLOSE_* (desktop only) */
     char results_path[FS_PATH_MAX];

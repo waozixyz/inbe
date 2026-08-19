@@ -1651,3 +1651,18 @@ Mise à jour disponible
 [update_available_toast]
 Une nouvelle version est disponible. Voir Paramètres -> À propos.
 ---
+[update_download]
+Télécharger
+---
+[update_restart]
+Redémarrer pour mettre à jour
+---
+[update_retry]
+Réessayer
+---
+[update_downloading]
+Téléchargement
+---
+[update_failed]
+Échec du téléchargement
+---

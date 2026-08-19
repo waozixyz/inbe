@@ -1652,3 +1652,18 @@ Aggiornamento disponibile
 [update_available_toast]
 È disponibile una nuova versione. Vedi Impostazioni -> Informazioni.
 ---
+[update_download]
+Scarica
+---
+[update_restart]
+Riavvia per aggiornare
+---
+[update_retry]
+Riprova
+---
+[update_downloading]
+Download in corso
+---
+[update_failed]
+Download non riuscito
+---

@@ -4,6 +4,7 @@
 #include "storage.h"
 #include "practices/practice_registry.h"
 #include "app/device_preferences.h"
+#include "app/app_update_check.h"
 #include <stdarg.h>
 #include <stddef.h>
 #include <stdio.h>
@@ -1034,6 +1035,8 @@ int main(int argc, char **argv) {
             inbe_desktop_tray_keep_running();
         else if(close_result == AppClosePromptQuit)
             quit = 1;
+        if(inbe_app.request_quit)   /* app layer (e.g. update restart) exits directly */
+            quit = 1;
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
@@ -1046,8 +1049,12 @@ int main(int argc, char **argv) {
      * app_request_desktop_quit) just quits. No prompt. */
     while(!g_shutdown_requested && !quit) {
         frame();
-        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit)
+        if(WindowShouldClose() || g_shutdown_requested || inbe_app.request_quit) {
+            TraceLog(LOG_WARNING, "DIAGQUIT: shouldclose=%d shutdown=%d request_quit=%d frame=%d",
+                     WindowShouldClose() ? 1 : 0, g_shutdown_requested ? 1 : 0,
+                     inbe_app.request_quit ? 1 : 0, inbe_app.inbe.frame);
             quit = 1;
+        }
     }
 #endif
 
@@ -1059,5 +1066,9 @@ int main(int argc, char **argv) {
     windows_close_logger();
 #endif
 #endif
+    /* Desktop self-update: re-exec the staged AppImage after all state is
+     * saved and the window/audio stack is down. */
+    if(inbe_update_apply_at_exit())
+        return 0;
     return 0;
 }

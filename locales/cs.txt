@@ -1652,3 +1652,18 @@ Dostupná aktualizace
 [update_available_toast]
 Je k dispozici nová verze. Podívejte se do Nastavení -> O aplikaci.
 ---
+[update_download]
+Stáhnout
+---
+[update_restart]
+Restartovat a aktualizovat
+---
+[update_retry]
+Zkusit znovu
+---
+[update_downloading]
+Stahování
+---
+[update_failed]
+Stažení se nezdařilo
+---
