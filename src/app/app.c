@@ -7,7 +7,6 @@
 #endif
 
 #include "app.h"
-#include <SDL2/SDL.h>
 #include "app_internal.h"
 #include "app_runtime.h"
 #include "app/app_sync.h"
@@ -1696,23 +1695,6 @@ finish_frame:
     app_draw_close_prompt(app);
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
-    if(app->inbe.frame % 30 == 0 || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
-        int sdl_x = -1, sdl_y = -1;
-        unsigned sdl_btn = 0;
-        SDL_Event peek_ev;
-        int sdl_pending;
-        sdl_btn = SDL_GetMouseState(&sdl_x, &sdl_y);
-        sdl_pending = SDL_PeepEvents(&peek_ev, 1, SDL_PEEKEVENT,
-                                     SDL_FIRSTEVENT, SDL_LASTEVENT);
-        TraceLog(LOG_WARNING, "DIAG: frame=%d screen=%d main_tab=%d ptab=%d pview=%d modal=%d mtype=%d sidebar=%d close=%d ibf=%d navrc=%d mouse=(%.0f,%.0f) sdl_mouse=(%d,%d,%u) peek=%d ev=(%u) hidden=%d minimized=%d focused=%d",
-                 app->inbe.frame, app->inbe.screen, app->main_tab, app->practice_tab,
-                 app->profile_view, app->modal.active, (int)app->modal.type,
-                 app->nav_sidebar_open, app->close_prompt_open, app->input_block_frame,
-                 app->bottom_nav_route_count, GetMousePosition().x, GetMousePosition().y,
-                 sdl_x, sdl_y, sdl_btn, sdl_pending, peek_ev.type,
-                 IsWindowHidden() ? 1 : 0, IsWindowMinimized() ? 1 : 0,
-                 IsWindowFocused() ? 1 : 0);
-    }
     app->inbe.frame++;
 }
 
