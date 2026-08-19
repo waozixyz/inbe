@@ -80,7 +80,8 @@ static AppProfileStats g_app_profile;
 static void app_apply_route(InbeApp *app, AppRoute route);
 
 #define DONATION_REMINDER_DELAY_FRAMES 240
-#define DONATION_REMINDER_LATER_DAYS 7
+#define DONATION_REMINDER_LATER_DAYS 31
+#define DONATION_REMINDER_MIN_SESSIONS 20
 
 typedef struct InbeRouteBinding {
     const char *id;
@@ -226,7 +227,7 @@ app_postpone_donation_reminder(InbeApp *app)
     month_key = app_donation_current_month_key();
     app->donation_reminder_remind_after_day =
         app_donation_day_after(DONATION_REMINDER_LATER_DAYS);
-    if(app->donation_reminder_remind_after_day <= 0 && month_key > 0)
+    if(month_key > 0)
         app->donation_reminder_last_prompt_month = month_key;
     app_save_donation_reminder(app);
     app_close_modal(app);
@@ -714,6 +715,8 @@ app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
         return 0;
     if(app->inbe.frame < DONATION_REMINDER_DELAY_FRAMES)
         return 0;
+    if(storage_session_count() < DONATION_REMINDER_MIN_SESSIONS)
+        return 0;
     if(app->modal.active || app->close_prompt_open || app->nav_sidebar_open)
         return 0;
     if(first_run_guide_active || habits_guide_active)
@@ -761,6 +764,8 @@ app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
     if(app->donation_reminder_remind_after_day > 0 &&
        app->donation_reminder_remind_after_day > day_key)
         return;
+    app->donation_reminder_last_prompt_month = month_key;
+    app_save_donation_reminder(app);
     app_open_modal(app, UIModalDonationReminder);
 }
 
