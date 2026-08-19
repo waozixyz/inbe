@@ -205,6 +205,7 @@ HUD=$(hud_window)
 if [ -n "$HUD" ]; then
     eval $(XD getwindowgeometry --shell "$HUD")
     bx=$X; by=$Y
+    # Drag along a precise path; the window must follow the pointer exactly.
     XD mousemove $((X + 90)) $((Y + 20))
     XD mousedown 1
     for d in 20 40 60; do
@@ -214,8 +215,13 @@ if [ -n "$HUD" ]; then
     XD mouseup 1
     sleep 1.5
     eval $(XD getwindowgeometry --shell "$HUD")
-    if [ $((X + Y)) -ne $((bx + by)) ]; then
-        ok "hud-drag: window moved ($bx,$by -> $X,$Y)"
+    ex=$((bx - 60)); ey=$((by + 20))
+    dx=$((${X#-} - ${ex#-})); [ ${dx#-} -lt 0 ] && dx=$((-dx))
+    dy=$((${Y#-} - ${ey#-})); [ ${dy#-} -lt 0 ] && dy=$((-dy))
+    if [ "$dx" -le 2 ] && [ "$dy" -le 2 ]; then
+        ok "hud-drag: window follows pointer exactly ($bx,$by -> $X,$Y)"
+    elif [ $((X + Y)) -ne $((bx + by)) ]; then
+        bad "hud-drag: moved but off target ($bx,$by -> $X,$Y, want $ex,$ey)"
     else
         bad "hud-drag: window did not move"
     fi
