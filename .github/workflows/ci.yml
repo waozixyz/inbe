@@ -63,6 +63,7 @@ jobs:
             test-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Test Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mapfile -t packages < .github/apt/test-packages.txt

@@ -38,6 +38,7 @@ jobs:
             test-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Test Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mapfile -t packages < .github/apt/test-packages.txt
@@ -281,6 +282,7 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
@@ -324,13 +326,12 @@ jobs:
           test -n "$(find build/release/linux -type f -print -quit)"
 
       - name: Smoke Test Linux AppImage
+        timeout-minutes: 5
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
           DISPLAY: ":99"
         run: |
           set -euo pipefail
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get install -y xvfb x11-utils
           appimage="$(find build/release/linux -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
           chmod +x "$appimage"
           Xvfb "$DISPLAY" -screen 0 800x600x24 >/tmp/inbe-xvfb.log 2>&1 &
@@ -385,6 +386,7 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt
@@ -547,6 +549,7 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
           mapfile -t packages < .github/apt/linux-packages.txt

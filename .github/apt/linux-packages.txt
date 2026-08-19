@@ -23,4 +23,6 @@ patchelf
 pkg-config
 podman
 rpm
+x11-utils
+xvfb
 zip
