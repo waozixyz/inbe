@@ -858,7 +858,8 @@ jobs:
           DEB="$(find build/release/linux -maxdepth 1 -name '*.deb' -print -quit || true)"
           RPM="$(find build/release/linux -maxdepth 1 -name '*.rpm' -print -quit || true)"
           channels=()
-          [ -n "$APPIMAGE" ] && channels+=("--channel" "appimage=$APPIMAGE")
+          [ -n "$APPIMAGE" ] && ARCH_NAME="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+          channels+=("--channel" "appimage-$ARCH_NAME=$APPIMAGE")
           [ -n "$WINZIP" ] && channels+=("--channel" "windows=$WINZIP")
           [ -n "$DEB" ] && channels+=("--channel" "deb=$DEB")
           [ -n "$RPM" ] && channels+=("--channel" "rpm=$RPM")
