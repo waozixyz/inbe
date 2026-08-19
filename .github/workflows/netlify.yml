@@ -27,11 +27,8 @@ jobs:
           lfs: true
 
       - name: Install Packages
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          sudo apt-get update
-          sudo apt-get install -y "${packages[@]}" tcl
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set Up Emscripten
         run: |
