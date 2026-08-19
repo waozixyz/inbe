@@ -139,11 +139,7 @@ load_bottom_nav_routes :: (app: InbeApp*, cache: const SettingsLoadCache*) #priv
 }
 
 default_theme_source :: () -> int #private {
-    #if DESKTOP {
-        return APP_THEME_SOURCE_SYSTEM
-    } #else {
-        return APP_THEME_SOURCE_APP
-    }
+    return APP_THEME_SOURCE_SYSTEM
 }
 
 apply_settings :: (inbe: Inbe*, speed: int, max_rounds: int,

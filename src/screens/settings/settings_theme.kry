@@ -22,14 +22,9 @@ content_height :: (content_w: int) -> int {
 
 draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
     result := (UIThemeSettingsResult){0}
-    allow_system_source := 1
 
     if app == NULL || y == NULL || state == NULL {
         return
-    }
-
-    #if WEB {
-        allow_system_source = 0
     }
 
     draw_scale_row(app, x, w, y)
@@ -43,7 +38,7 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*, state: SettingsThemeState*) {
         .theme_mode = &app->theme_mode,
         .theme_id = &app->theme_id,
         .theme_style = &app->theme_style,
-        .allow_system_source = allow_system_source,
+        .allow_system_source = 1,
         .allow_system_mode = ANDROID_BUILD,
         .system_theme_label = GetSystemThemeNameCached()
     }
