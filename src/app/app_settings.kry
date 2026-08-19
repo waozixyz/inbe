@@ -301,8 +301,11 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("patterns_custom_hold_out", app->patterns.custom[3])
     save_setting_int("patterns_duration_minutes", app->patterns.duration_minutes)
 
-    save_setting_int("breaks_enabled",
-                        DESKTOP && app->breaks_enabled ? 1 : 0)
+    #if DESKTOP {
+        save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    } #else {
+        save_setting_int("breaks_enabled", 0)
+    }
     save_setting_int("desktop_startup_mode", app->desktop_startup_mode)
     save_setting_int("desktop_close_action", app->desktop_close_action)
     save_setting_int("break_block_mode", app->break_block_mode)
