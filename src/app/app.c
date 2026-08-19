@@ -164,14 +164,16 @@ static int
 app_donation_today(int *month_key, int *day_key)
 {
     time_t now = time(NULL);
-    struct tm *local = localtime(&now);
+    struct tm *source = localtime(&now);
+    struct tm local;
 
-    if(local == NULL)
+    if(source == NULL)
         return 0;
+    local = *source;
     if(month_key != NULL)
-        *month_key = (local->tm_year + 1900) * 100 + local->tm_mon + 1;
+        *month_key = (local.tm_year + 1900) * 100 + local.tm_mon + 1;
     if(day_key != NULL)
-        *day_key = (local->tm_year + 1900) * 366 + local->tm_yday;
+        *day_key = (local.tm_year + 1900) * 366 + local.tm_yday;
     return 1;
 }
 
@@ -194,6 +196,19 @@ app_donation_day_after(int days)
     return (local.tm_year + 1900) * 366 + local.tm_yday;
 }
 
+static int
+app_donation_current_month_key(void)
+{
+    time_t now = time(NULL);
+    struct tm *source = localtime(&now);
+    struct tm local;
+
+    if(source == NULL)
+        return 0;
+    local = *source;
+    return (local.tm_year + 1900) * 100 + local.tm_mon + 1;
+}
+
 static void
 app_save_donation_reminder(InbeApp *app)
 {
@@ -204,14 +219,14 @@ app_save_donation_reminder(InbeApp *app)
 static void
 app_postpone_donation_reminder(InbeApp *app)
 {
-    int month_key = 0;
+    int month_key;
 
     if(app == NULL)
         return;
-    (void)app_donation_today(&month_key, NULL);
+    month_key = app_donation_current_month_key();
     app->donation_reminder_remind_after_day =
         app_donation_day_after(DONATION_REMINDER_LATER_DAYS);
-    if(app->donation_reminder_remind_after_day <= 0)
+    if(app->donation_reminder_remind_after_day <= 0 && month_key > 0)
         app->donation_reminder_last_prompt_month = month_key;
     app_save_donation_reminder(app);
     app_close_modal(app);
