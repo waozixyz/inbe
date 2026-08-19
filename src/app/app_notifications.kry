@@ -6,6 +6,7 @@ WEB :: #defined(PLATFORM_WEB)
 #import "screens/profile_social"
 hb :: #import "screens/habits_screen"
 #import "kryon.h" #private
+#import "notification_schedule.h" #private
 #import <time.h>
 
 init :: (app: InbeApp*) {
@@ -86,14 +87,19 @@ tick :: (app: InbeApp*) {
 
     for int i = 0; i < app->reminder_count && i < APP_REMINDER_MAX; i++ {
         r := &app->reminders[i]
-        if !r->enabled || r->last_day == day || r->hour != hour {
-            continue
+        reminder := (KryNotificationReminder){
+            .enabled = r->enabled,
+            .hour = r->hour,
+            .last_day = r->last_day,
+            .tag = "inbe.reminder",
+            .id = 100 + i,
+            .priority = NOTIFICATION_PRIORITY_DEFAULT
         }
-        if SendNotificationEx(GetLocaleText("reminder_title"),
-                              practice_label(r->practice),
-                              "inbe.reminder", 100 + i,
-                              NOTIFICATION_PRIORITY_DEFAULT) {
-            r->last_day = day
+        if KryNotificationSendReminder(&reminder,
+                                       GetLocaleText("reminder_title"),
+                                       practice_label(r->practice),
+                                       day, hour) {
+            r->last_day = reminder.last_day
             save_settings(app)
         }
     }

@@ -681,25 +681,6 @@ async function verifySyncKeyImport(client) {
     throw new Error(`web sync key import did not save account settings; code=${result.result?.value}`);
 }
 
-async function verifySyncKeyUnavailable(client) {
-  const result = await client.send('Runtime.evaluate', {
-    expression: `(() => {
-      if (typeof Module._app_web_test_import_sync_key !== 'function')
-        return { ok: false, reason: 'missing sync import test hook' };
-      if (typeof Module._app_web_test_sync_key_state !== 'function')
-        return { ok: false, reason: 'missing sync state test hook' };
-      Module._app_web_test_import_sync_key();
-      const code = Module._app_web_test_sync_key_state();
-      return { ok: code !== 1, code };
-    })()`,
-    returnByValue: true
-  });
-  const state = result.result?.value || {};
-  if (!state.ok)
-    throw new Error(state.reason || `canvas sync unexpectedly available; code=${state.code}`);
-  console.log(`web smoke: canvas sync unavailable as expected (code=${state.code})`);
-}
-
 async function verifyAppSettingsReloadPersistenceBidi(client, context) {
   await waitForStorageIdleBidi(client, context);
   let result = await client.send('script.evaluate', {
@@ -785,27 +766,6 @@ async function verifySyncKeyImportBidi(client, context) {
   state = JSON.parse(result.result?.value || '{}');
   if (!state.ok)
     throw new Error(`Firefox web sync key import did not save account settings; code=${state.code}`);
-}
-
-async function verifySyncKeyUnavailableBidi(client, context) {
-  const result = await client.send('script.evaluate', {
-    target: { context },
-    awaitPromise: false,
-    resultOwnership: 'none',
-    expression: `JSON.stringify((() => {
-      if (typeof Module._app_web_test_import_sync_key !== 'function')
-        return { ok: false, reason: 'missing sync import test hook' };
-      if (typeof Module._app_web_test_sync_key_state !== 'function')
-        return { ok: false, reason: 'missing sync state test hook' };
-      Module._app_web_test_import_sync_key();
-      const code = Module._app_web_test_sync_key_state();
-      return { ok: code !== 1, code };
-    })())`
-  });
-  const state = JSON.parse(result.result?.value || '{}');
-  if (!state.ok)
-    throw new Error(state.reason || `canvas sync unexpectedly available; code=${state.code}`);
-  console.log(`web smoke: canvas sync unavailable as expected (code=${state.code})`);
 }
 
 let chrome;
@@ -935,10 +895,7 @@ try {
     await waitForHealthyBidiPage(client, context);
     await verifyRenderingLiveBidi(client, context);
     await verifyAppSettingsImmediateBidi(client, context);
-    if (renderer === 'canvas')
-      await verifySyncKeyUnavailableBidi(client, context);
-    else
-      await verifySyncKeyImportBidi(client, context);
+    await verifySyncKeyImportBidi(client, context);
   } else {
     const args = [
       '--headless=new',
@@ -986,10 +943,7 @@ try {
     await verifyRenderingLive(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
-    if (renderer === 'canvas')
-      await verifySyncKeyUnavailable(client);
-    else
-      await verifySyncKeyImport(client);
+    await verifySyncKeyImport(client);
   }
   console.log(`web smoke: PASS (${renderer})`);
 } catch (error) {

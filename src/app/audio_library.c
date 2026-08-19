@@ -1,17 +1,11 @@
 #include "app.h"
+#include "audio_library.h"
 #include "data.h"
 #include "practices/meditation/meditation_practice.h"
 #include "storage.h"
 
-#include <ctype.h>
-#include <errno.h>
 #include <stdio.h>
 #include <string.h>
-#include <sys/stat.h>
-
-#if defined(_WIN32)
-#include <direct.h>
-#endif
 
 static const char *const audio_builtin_music_titles[INBE_AUDIO_BUILTIN_MUSIC_COUNT] = {
     "Deep Meditation",
@@ -37,190 +31,70 @@ static const char *const audio_cue_default_files[INBE_AUDIO_CUE_COUNT] = {
     "bell.ogg"
 };
 
-static int
-audio_mkdir(const char *path)
-{
-    if(path == NULL || path[0] == '\0')
-        return 0;
-    if(DirectoryExists(path))
-        return 1;
-#if defined(_WIN32)
-    if(_mkdir(path) == 0 || errno == EEXIST)
-        return 1;
-#else
-    if(mkdir(path, 0755) == 0 || errno == EEXIST)
-        return 1;
-#endif
-    return DirectoryExists(path) ? 1 : 0;
-}
-
-static int
-audio_ensure_library_dir(const char *kind, char *out, size_t out_size)
-{
-    char root[FS_PATH_MAX];
-
-    if(out == NULL || out_size == 0 || kind == NULL)
-        return 0;
-    snprintf(root, sizeof(root), "%s/audio", data_root());
-    if(!audio_mkdir(root))
-        return 0;
-    snprintf(out, out_size, "%s/%s", root, kind);
-    return audio_mkdir(out);
-}
+#define INBE_AUDIO_MUSIC_EXTENSIONS ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"
+#define INBE_AUDIO_SOUND_EXTENSIONS ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"
 
 int
 app_audio_music_file_valid(const char *path)
 {
-    FILE *file;
-
-    if(path == NULL || path[0] == '\0')
-        return 0;
-    /* Support for: ogg, wav, qoa, xm, mod, mp3, flac, m4a, opus */
-    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"))
-        return 0;
-    file = fopen(path, "rb");
-    if(file == NULL)
-        return 0;
-    fclose(file);
-    return 1;
+    return KryAudioFileValid(path, INBE_AUDIO_MUSIC_EXTENSIONS);
 }
 
 int
 app_audio_sound_file_valid(const char *path)
 {
-    FILE *file;
-
-    if(path == NULL || path[0] == '\0')
-        return 0;
-    /* Support for: ogg, wav, qoa, mp3, flac, m4a, opus */
-    if(!IsFileExtension(path, ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"))
-        return 0;
-    file = fopen(path, "rb");
-    if(file == NULL)
-        return 0;
-    fclose(file);
-    return 1;
+    return KryAudioFileValid(path, INBE_AUDIO_SOUND_EXTENSIONS);
 }
 
 static int
-audio_copy_file(const char *src, const char *dst)
+audio_import_error_from_kryon(int error)
 {
-    FILE *in;
-    FILE *out;
-    unsigned char buf[8192];
-    size_t n;
-    int ok = 1;
-
-    if(src == NULL || dst == NULL || src[0] == '\0' || dst[0] == '\0')
-        return 0;
-    in = fopen(src, "rb");
-    if(in == NULL)
-        return 0;
-    out = fopen(dst, "wb");
-    if(out == NULL) {
-        fclose(in);
-        return 0;
+    switch(error) {
+    case KRY_AUDIO_IMPORT_OK: return AUDIO_IMPORT_SUCCESS;
+    case KRY_AUDIO_IMPORT_INVALID_PATH: return AUDIO_IMPORT_ERROR_INVALID_PATH;
+    case KRY_AUDIO_IMPORT_INVALID_FORMAT: return AUDIO_IMPORT_ERROR_INVALID_FORMAT;
+    case KRY_AUDIO_IMPORT_FILE_NOT_FOUND: return AUDIO_IMPORT_ERROR_FILE_NOT_FOUND;
+    case KRY_AUDIO_IMPORT_COPY_FAILED: return AUDIO_IMPORT_ERROR_COPY_FAILED;
+    case KRY_AUDIO_IMPORT_FULL: return AUDIO_IMPORT_ERROR_UNKNOWN;
+    default: return AUDIO_IMPORT_ERROR_UNKNOWN;
     }
-    while((n = fread(buf, 1, sizeof(buf), in)) > 0) {
-        if(fwrite(buf, 1, n, out) != n) {
-            ok = 0;
-            break;
-        }
-    }
-    if(ferror(in))
-        ok = 0;
-    fclose(out);
-    fclose(in);
-    return ok;
-}
-
-static void
-audio_title_from_path(char out[INBE_AUDIO_LABEL_SIZE], const char *path)
-{
-    const char *name;
-    const char *ext;
-    size_t len;
-
-    if(out == NULL)
-        return;
-    name = GetFileName(path != NULL ? path : "");
-    if(name == NULL || name[0] == '\0')
-        name = "Custom audio";
-    snprintf(out, INBE_AUDIO_LABEL_SIZE, "%s", name);
-    ext = GetFileExtension(out);
-    len = strlen(out);
-    if(ext != NULL && ext[0] == '.' && strlen(ext) < len)
-        out[len - strlen(ext)] = '\0';
-    if(out[0] != '\0')
-        out[0] = (char)toupper((unsigned char)out[0]);
 }
 
 static int
 audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
                   const char *kind, const char *src,
-                  int (*valid)(const char *path), int *error_code)
+                  const char *extensions, int *error_code)
 {
-    char dir[FS_PATH_MAX];
-    char dst[FS_PATH_MAX];
-    char title[INBE_AUDIO_LABEL_SIZE];
-    const char *ext;
+    KryAudioLibraryItem item;
+    int kry_error = KRY_AUDIO_IMPORT_COPY_FAILED;
     int index;
 
     if(error_code)
         *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
 
-    if(items == NULL || count == NULL || valid == NULL ||
+    if(items == NULL || count == NULL || extensions == NULL ||
        *count < 0 || *count >= max_count) {
         if(error_code)
             *error_code = AUDIO_IMPORT_ERROR_UNKNOWN;
         return -1;
     }
 
-    if(src == NULL || src[0] == '\0') {
-        if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_INVALID_PATH;
-        return -1;
-    }
-
-    if(!valid(src)) {
-        if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_INVALID_FORMAT;
-        return -1;
-    }
-
-    if(!audio_ensure_library_dir(kind, dir, sizeof(dir))) {
-        if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_COPY_FAILED;
-        return -1;
-    }
-
-    if(!FileExists(src)) {
-        if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_FILE_NOT_FOUND;
-        return -1;
-    }
-
     index = *count;
-    ext = GetFileExtension(src);
-    if(ext == NULL || ext[0] == '\0')
-        ext = ".ogg";
-    snprintf(dst, sizeof(dst), "%s/custom-%02d%s", dir, index + 1, ext);
-    if(!audio_copy_file(src, dst)) {
+    item = (KryAudioLibraryItem){
+        .title = items[index].title,
+        .title_size = sizeof(items[index].title),
+        .path = items[index].path,
+        .path_size = sizeof(items[index].path)
+    };
+    if(!KryAudioImportItem(item, index, data_root(), kind, extensions, src,
+                           &kry_error)) {
         if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_COPY_FAILED;
+            *error_code = audio_import_error_from_kryon(kry_error);
         return -1;
     }
-
-    if(!valid(dst)) {
-        if(error_code)
-            *error_code = AUDIO_IMPORT_ERROR_INVALID_FORMAT;
-        return -1;
-    }
-
-    audio_title_from_path(title, src);
-    snprintf(items[index].title, sizeof(items[index].title), "%s", title);
-    snprintf(items[index].path, sizeof(items[index].path), "%s", dst);
     *count = index + 1;
+    if(error_code)
+        *error_code = AUDIO_IMPORT_SUCCESS;
     return index;
 }
 
@@ -341,7 +215,7 @@ app_audio_import_custom_sound_ex(InbeApp *app, int cue, const char *path, int *e
                               &app->audio_custom_sound_count,
                               INBE_AUDIO_CUSTOM_SOUND_MAX,
                               "sounds", path,
-                              app_audio_sound_file_valid, error_code);
+                              INBE_AUDIO_SOUND_EXTENSIONS, error_code);
     if(index < 0)
         return 0;
     if(cue >= 0 && cue < INBE_AUDIO_CUE_COUNT)
@@ -377,7 +251,7 @@ app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code
                               &app->audio_custom_music_count,
                               INBE_AUDIO_CUSTOM_MUSIC_MAX,
                               "music", path,
-                              app_audio_music_file_valid, error_code);
+                              INBE_AUDIO_MUSIC_EXTENSIONS, error_code);
     if(index < 0)
         return 0;
     probe = LoadMusicStream(app->audio_custom_music[index].path);

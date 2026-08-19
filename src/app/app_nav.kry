@@ -1,6 +1,7 @@
 #import "app.h"
 #import "app_nav.h"
 
+#import "app_shell.h" #private
 #import "storage.h" #private
 #import "sync_account.h" #private
 #import "screens/profile_social.h" #private
@@ -164,8 +165,10 @@ app_reset_bottom_nav_routes :: (app: InbeApp*) {
 }
 
 app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
-    clean: [APP_BOTTOM_NAV_CONTENT_MAX] int
-    clean_count := 0
+    allowed: [APP_BOTTOM_NAV_CONFIGURABLE_COUNT] const int = {
+        APP_NAV_ROUTE_HABITS,
+        APP_NAV_ROUTE_PRACTICE
+    }
 
     if app == NULL {
         return
@@ -175,28 +178,13 @@ app_sanitize_bottom_nav_routes :: (app: InbeApp*) {
         app_reset_bottom_nav_routes(app)
         return
     }
-    for int i = 0; i < app->bottom_nav_route_count; i++ {
-        route := app->bottom_nav_routes[i]
-        duplicate := 0
-
-        if !app_bottom_nav_configurable_route(route) {
-            continue
-        }
-        for int j = 0; j < clean_count; j++ {
-            if clean[j] == route {
-                duplicate = 1
-                break
-            }
-        }
-        if duplicate {
-            continue
-        }
-        clean[clean_count++] = route
-    }
-    for int i = 0; i < clean_count; i++ {
-        app->bottom_nav_routes[i] = clean[i]
-    }
-    app->bottom_nav_route_count = clean_count
+    app->bottom_nav_route_count =
+        KryRouteListSanitizeSet((KryRouteList){
+            .routes = app->bottom_nav_routes,
+            .count = app->bottom_nav_route_count,
+            .capacity = APP_BOTTOM_NAV_CONTENT_MAX,
+            .empty_route = APP_NAV_ROUTE_NONE
+        }, allowed, APP_BOTTOM_NAV_CONFIGURABLE_COUNT)
 }
 
 app_reconcile_bottom_nav_selection :: (app: InbeApp*) #private {
@@ -779,32 +767,15 @@ app_save_bottom_nav_config :: (app: InbeApp*) #private {
 
 app_move_bottom_nav_config_route :: (app: InbeApp*, from_index: int,
                                     to_index: int) -> int #private {
-    route: int
-
     if app == NULL {
         return 0
     }
-    if from_index < 0 || to_index < 0 ||
-       from_index >= app->bottom_nav_config_route_count ||
-       to_index >= app->bottom_nav_config_route_count ||
-       from_index == to_index {
-        return 0
-    }
-
-    route = app->bottom_nav_config_routes[from_index]
-    if from_index < to_index {
-        for int i = from_index; i < to_index; i++ {
-            app->bottom_nav_config_routes[i] =
-                app->bottom_nav_config_routes[i + 1]
-        }
-    } else {
-        for int i = from_index; i > to_index; i-- {
-            app->bottom_nav_config_routes[i] =
-                app->bottom_nav_config_routes[i - 1]
-        }
-    }
-    app->bottom_nav_config_routes[to_index] = route
-    return 1
+    return KryRouteListMove((KryRouteList){
+        .routes = app->bottom_nav_config_routes,
+        .count = app->bottom_nav_config_route_count,
+        .capacity = APP_BOTTOM_NAV_CONTENT_MAX,
+        .empty_route = APP_NAV_ROUTE_NONE
+    }, from_index, to_index)
 }
 
 app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
@@ -813,21 +784,10 @@ app_first_unused_bottom_nav_route :: (app: const InbeApp*) -> int #private {
         APP_NAV_ROUTE_PRACTICE
     }
 
-    for int i = 0; i < APP_BOTTOM_NAV_CONFIGURABLE_COUNT; i++ {
-        used := 0
-
-        for int j = 0; app != NULL && j < app->bottom_nav_config_route_count; j++ {
-            if app->bottom_nav_config_routes[j] == routes[i] {
-                used = 1
-                break
-            }
-        }
-        if !used {
-            return routes[i]
-        }
-    }
-
-    return APP_NAV_ROUTE_HABITS
+    return KryRouteListFirstUnused(app != NULL ? app->bottom_nav_config_routes : nil,
+                                   app != NULL ? app->bottom_nav_config_route_count : 0,
+                                   routes, APP_BOTTOM_NAV_CONFIGURABLE_COUNT,
+                                   APP_NAV_ROUTE_HABITS)
 }
 
 app_draw_customize_nav_page :: (app: InbeApp*) -> int {

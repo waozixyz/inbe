@@ -710,11 +710,12 @@ $(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(
 		-o $@ \
 		tests/guide_overlay_test.c
 
-$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
+$(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h $(KRYON_DIR)/src/core/app_shell.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
 		tests/app_bottom_nav_test.c \
+		$(KRYON_DIR)/src/core/app_shell.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \
 		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
 
@@ -733,11 +734,12 @@ $(BREAK_ENGINE_TEST): tests/break_engine_test.c $(KRY_GEN_DIR)/src/breaks/break_
 		$(KRY_GEN_DIR)/src/breaks/break_engine.c
 
 # Plain C (no generated code): dlopen-based X idle monitor with stub fallback.
-$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c src/platform/inbe_activity_monitor.h | $(TEST_BIN_DIR)
+$(ACTIVITY_MONITOR_TEST): tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c src/platform/inbe_activity_monitor.h $(KRYON_DIR)/src/platform/kry_activity_monitor.c $(KRYON_DIR)/include/kry_activity_monitor.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-Isrc \
+		-Isrc $(KRYON_INCLUDE) \
 		-o $@ \
 		tests/activity_monitor_test.c src/platform/inbe_activity_monitor.c \
+		$(KRYON_DIR)/src/platform/kry_activity_monitor.c \
 		$(if $(filter linux,$(NATIVE_PLATFORM)),-ldl,)
 
 $(sort $(BUILD_OBJ_DIR) $(NATIVE_OBJ_DIR) $(NATIVE_BIN_DIR) $(NATIVE_DIST_DIR) $(LINUX_BIN_DIR) $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR) $(DEB_BUILD_DIR) $(DEB_DIST_DIR) $(RPM_BUILD_DIR) $(RPM_DIST_DIR) $(SNAP_BUILD_DIR) $(SNAP_DIST_DIR) $(FLATPAK_BUILD_DIR) $(FLATPAK_DIST_DIR) $(CLICK_BIN_DIR) $(CLICK_BUILD_DIR) $(CLICK_DIST_DIR) $(WINDOWS_DIST_DIR) $(ANDROID_BUILD_DIR) $(TEST_BIN_DIR) $(WEB_OBJ_DIR) $(WEB_DIST_DIR) $(CHROME_WEB_STORE_DIR) $(FIREFOX_ADDONS_DIR)):
@@ -1303,29 +1305,30 @@ $(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/w
 
 
 # Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
-# raylib+GLFW - no libraylib.web.a, no WebGL. Sync-account crypto (liboqs)
-# is not carried in this target: scripts/ksync-canvas-shim.c reports sync
-# unavailable/failure, so the app degrades to local-only mode.
+# raylib+GLFW - no libraylib.web.a, no WebGL. The app and support libraries
+# are still Emscripten/WASM, including ksync/liboqs for sync-account parity.
 WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
 WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
 WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
-KRYON_CANVAS_SRCS := $(filter-out $(KRYON_DIR)/src/ksync/% $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
-KSYNC_CANVAS_SHIM := scripts/ksync-canvas-shim.c
+KRYON_CANVAS_SRCS := $(filter-out $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
 
 web-canvas: $(WEB_CANVAS_TARGET)
 
 $(WEB_CANVAS_DIR):
 	mkdir -p $@
 
-$(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) src/web_shell.html $(WEB_BOOT_JS) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) | $(WEB_CANVAS_DIR)
+$(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRY_GEN_STAMP) $(WEB_LIBOQS_A) src/web_shell.html $(WEB_BOOT_JS) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) web-tools-check | $(WEB_CANVAS_DIR)
 	rm -f $(WEB_CANVAS_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) -I$(KRYON_DIR)/include \
 		-I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src -I$(SQLITE_BUILD_DIR) \
+		$(WEB_LIBOQS_INCLUDE) \
 		-DKRYON_BACKEND_CANVAS=1 \
+		-DHAS_LIBOQS=1 \
 		-DPLATFORM_WEB \
 		-o $(WEB_CANVAS_DIR)/index.js \
-		$(WEB_SRC) $(KRYON_CANVAS_SRCS) $(KSYNC_CANVAS_SHIM) $(SQLITE_SRC) \
+		$(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) \
+		$(WEB_LIBOQS_A) \
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \

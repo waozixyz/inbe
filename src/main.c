@@ -4,6 +4,7 @@
 #endif
 #include "app.h"
 #include "breaks/app_breaks.h"
+#include "desktop.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
 #include "app/device_preferences.h"
@@ -149,86 +150,22 @@ handle_shutdown_signal(int signum)
 }
 #endif
 
-/*
- * Single instance: a pid lock file next to the database pins the one live
- * instance. A new launch replaces an existing one by default - the old
- * process gets SIGTERM (its handler saves settings and exits cleanly), and
- * only gets SIGKILL if it hangs. Stale locks (crashed process) are taken
- * over; a recycled pid whose /proc name is not "inbe" is not signalled.
- */
 #if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
-static int
-inbe_lock_process_alive(long pid)
-{
-    char comm[64];
-    FILE *file;
-    size_t len;
-
-    if(pid <= 1 || kill((pid_t)pid, 0) != 0)
-        return 0;
-    snprintf(comm, sizeof(comm), "/proc/%ld/comm", pid);
-    file = fopen(comm, "r");
-    if(file == NULL)
-        return 1; /* no /proc (non-Linux): trust the signal probe */
-    len = fread(comm, 1, sizeof(comm) - 1, file);
-    fclose(file);
-    comm[len] = '\0';
-    return strstr(comm, "inbe") != NULL;
-}
-
 static void
 inbe_ensure_single_instance(void)
 {
-    const char *override_root = getenv("INBE_DATA_ROOT");
-    const char *xdg = getenv("XDG_DATA_HOME");
-    const char *home = getenv("HOME");
-    char root[512];
     char lock_path[600];
-    FILE *file;
-    long other_pid = 0;
-    int i;
+    int acquired;
 
-    if(override_root != NULL && override_root[0] != '\0')
-        snprintf(root, sizeof(root), "%s", override_root);
-    else if(xdg != NULL && xdg[0] != '\0')
-        snprintf(root, sizeof(root), "%s/inbe", xdg);
-    else if(home != NULL && home[0] != '\0')
-        snprintf(root, sizeof(root), "%s/.local/share/inbe", home);
-    else
-        return;
-    mkdir(root, 0755); /* best effort; the app creates it properly later */
-    snprintf(lock_path, sizeof(lock_path), "%s/inbe.lock", root);
-
-    file = fopen(lock_path, "r");
-    if(file != NULL) {
-        if(fscanf(file, "%ld", &other_pid) != 1)
-            other_pid = 0;
-        fclose(file);
-    }
-    if(inbe_lock_process_alive(other_pid)) {
-        TraceLog(LOG_INFO, "INBE: replacing existing instance (pid %ld)",
-                 other_pid);
-        kill((pid_t)other_pid, SIGTERM);
-        for(i = 0; i < 50; i++) {
-            if(kill((pid_t)other_pid, 0) != 0)
-                break;
-            usleep(100 * 1000);
-        }
-        if(kill((pid_t)other_pid, 0) == 0) {
-            TraceLog(LOG_WARNING,
-                     "INBE: old instance %ld did not exit, killing it",
-                     other_pid);
-            kill((pid_t)other_pid, SIGKILL);
-        }
-    }
-
-    file = fopen(lock_path, "w");
-    if(file == NULL) {
-        TraceLog(LOG_WARNING, "INBE: cannot write %s", lock_path);
+    acquired = AcquireDesktopSingleInstanceMode(
+        "xyz.waozi.inbe", DESKTOP_SINGLE_INSTANCE_REPLACE,
+        lock_path, (int)sizeof(lock_path));
+    if(acquired != 1) {
+        TraceLog(LOG_WARNING, "INBE: cannot acquire single-instance lock: %s",
+                 lock_path[0] != '\0' ? lock_path : "unknown path");
         return;
     }
-    fprintf(file, "%ld\n", (long)getpid());
-    fclose(file);
+    TraceLog(LOG_INFO, "INBE: single-instance lock acquired: %s", lock_path);
 }
 #else
 static void
