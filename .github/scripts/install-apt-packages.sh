@@ -22,6 +22,18 @@ codename="$(
 
 # GitHub-hosted Ubuntu runners sometimes use an Azure mirrorlist that stalls.
 # Pin Ubuntu packages to the canonical archive before running apt.
+if [ -f /etc/apt/apt-mirrors.txt ]; then
+  printf '%s\n' 'https://archive.ubuntu.com/ubuntu' | sudo tee /etc/apt/apt-mirrors.txt >/dev/null
+fi
+
+while IFS= read -r -d '' source_file; do
+  sudo sed -i \
+    -e 's|mirror+file:/etc/apt/apt-mirrors.txt|https://archive.ubuntu.com/ubuntu|g' \
+    -e 's|http://azure.archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+    -e 's|http://archive.ubuntu.com/ubuntu|https://archive.ubuntu.com/ubuntu|g' \
+    "$source_file"
+done < <(find /etc/apt -type f \( -name '*.list' -o -name '*.sources' \) -print0)
+
 sudo tee /etc/apt/sources.list.d/ubuntu.sources >/dev/null <<EOF
 Types: deb
 URIs: https://archive.ubuntu.com/ubuntu
