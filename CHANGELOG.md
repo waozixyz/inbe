@@ -1,4 +1,8 @@
 # Changelog
+## [1.9.5] - 2026-08-19
+### Added
+- Update notifications on desktop: the app checks once a day for a new release and shows a toast plus a download link in Settings → About. AppImage and Windows users get a direct download link; Linux package, Snap and Flatpak installs are left to the system's own updater.
+
 ## [1.9.4] - 2026-08-17
 ### Fixed
 - Desktop break, timer and other auxiliary windows now render upright and stay visually in sync when more than one window is open.

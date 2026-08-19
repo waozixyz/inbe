@@ -1646,3 +1646,9 @@ Material
 [theme_system]
 Системная
 ---
+[update_available_row]
+Доступно обновление
+---
+[update_available_toast]
+Доступна новая версия. Смотрите Настройки -> О приложении.
+---

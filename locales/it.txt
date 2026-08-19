@@ -1646,3 +1646,9 @@ Tramonto
 [theme_system]
 Sistema
 ---
+[update_available_row]
+Aggiornamento disponibile
+---
+[update_available_toast]
+È disponibile una nuova versione. Vedi Impostazioni -> Informazioni.
+---

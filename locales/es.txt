@@ -1646,3 +1646,9 @@ Atardecer
 [theme_system]
 Sistema
 ---
+[update_available_row]
+Actualización disponible
+---
+[update_available_toast]
+Hay una nueva versión disponible. Mira Ajustes -> Acerca de.
+---

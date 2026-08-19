@@ -11,6 +11,7 @@
 #include "app_runtime.h"
 #include "app/app_sync.h"
 #include "app/app_settings.h"
+#include "app/app_update_check.h"
 #include "data.h"
 #include "app/app_notifications.h"
 #include "platform/inbe_desktop_tray.h"
@@ -1122,6 +1123,7 @@ app_init(void *vapp) {
         save_settings(app);
     if(!load_locale_font(app))
         TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font -> using built-in default");
+    inbe_update_check_start();
     app->practice_tab = PRACTICE_TAB_PLAY;
     app->practice_config_tab = 0;
     if(app->language_needs_save) {
@@ -1693,6 +1695,14 @@ finish_frame:
     app_draw_close_prompt(app);
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
+    if(app->inbe.frame % 30 == 0 || IsMouseButtonReleased(MOUSE_BUTTON_LEFT)) {
+        TraceLog(LOG_WARNING, "DIAG: frame=%d screen=%d main_tab=%d ptab=%d pview=%d modal=%d mtype=%d sidebar=%d close=%d ibf=%d navrc=%d mouse=(%.0f,%.0f) releaseready=%d",
+                 app->inbe.frame, app->inbe.screen, app->main_tab, app->practice_tab,
+                 app->profile_view, app->modal.active, (int)app->modal.type,
+                 app->nav_sidebar_open, app->close_prompt_open, app->input_block_frame,
+                 app->bottom_nav_route_count, GetMousePosition().x, GetMousePosition().y,
+                 IsMouseButtonReleased(MOUSE_BUTTON_LEFT) ? 1 : 0);
+    }
     app->inbe.frame++;
 }
 
@@ -1741,6 +1751,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
                                   app_content_bottom_reserved(app));
 
     app_device_preferences_update(app);
+    inbe_update_check_poll();
     app_refresh_theme(app);
     SetUITransitionCuesEnabled(0);
 

@@ -1646,3 +1646,9 @@ Západ slunce
 [theme_system]
 Systém
 ---
+[update_available_row]
+Dostupná aktualizace
+---
+[update_available_toast]
+Je k dispozici nová verze. Podívejte se do Nastavení -> O aplikaci.
+---

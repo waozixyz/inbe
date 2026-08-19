@@ -1646,3 +1646,9 @@ Pôr do sol
 [theme_system]
 Sistema
 ---
+[update_available_row]
+Atualização disponível
+---
+[update_available_toast]
+Uma nova versão está disponível. Veja Configurações -> Sobre.
+---

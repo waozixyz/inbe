@@ -1646,3 +1646,9 @@ Senja
 [theme_system]
 Sistem
 ---
+[update_available_row]
+Pembaruan tersedia
+---
+[update_available_toast]
+Versi baru tersedia. Lihat Pengaturan -> Tentang.
+---

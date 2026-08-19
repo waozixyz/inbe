@@ -1,0 +1,3 @@
+Added
+---
+- Update notifications on desktop: the app checks once a day for a new release and shows a toast plus a download link in Settings → About. AppImage and Windows users get a direct download link; Linux package, Snap and Flatpak installs are left to the system's own updater.

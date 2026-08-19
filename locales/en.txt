@@ -1644,3 +1644,9 @@ Sunset
 [theme_system]
 System
 ---
+[update_available_row]
+Update available
+---
+[update_available_toast]
+A new version is available. See Settings -> About.
+---

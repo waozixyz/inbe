@@ -1646,3 +1646,9 @@ Sonnenuntergang
 [theme_system]
 System
 ---
+[update_available_row]
+Update verfügbar
+---
+[update_available_toast]
+Eine neue Version ist verfügbar. Siehe Einstellungen -> Über.
+---

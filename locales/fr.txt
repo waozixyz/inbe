@@ -1645,3 +1645,9 @@ Coucher de soleil
 [theme_system]
 Système
 ---
+[update_available_row]
+Mise à jour disponible
+---
+[update_available_toast]
+Une nouvelle version est disponible. Voir Paramètres -> À propos.
+---

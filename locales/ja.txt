@@ -1648,3 +1648,9 @@ Aero
 [theme_system]
 システム
 ---
+[update_available_row]
+アップデートがあります
+---
+[update_available_toast]
+新しいバージョンがあります。アップデートは設定の画面から確認できます。
+---

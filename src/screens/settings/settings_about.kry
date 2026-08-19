@@ -1,6 +1,7 @@
 #import "app.h"
 #import "stdio.h"
 #import "version.h"
+#import "app_update_check.h"
 
 about_link_icon_columns :: (content_w: int) -> int #private {
     link_count := 5
@@ -40,8 +41,10 @@ settings_about_content_height :: (content_w: int) -> int {
         .line_gap = ScaleUIPx(4),
         .color = DarkenUIColor(GetThemeText(), 35)
     }
+    update_row := inbe_update_available() != 0 ? ScaleUIPx(30) : 0
 
-    return ScaleUIPx(194) + UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
+    return ScaleUIPx(194) + update_row +
+           UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
            about_link_icons_height(content_w)
 }
 
@@ -111,6 +114,19 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     text_w = MeasureUIText(version_text, font)
     Text(version_text, x + (w - text_w) / 2, *y, font, muted)
     *y += ScaleUIPx(28)
+
+    if inbe_update_available() != 0 {
+        update_text := inbe_update_row_text()
+        update_w := MeasureUIText(update_text, font)
+        Href((HrefProps){
+            .bounds = {(float)(x + (w - update_w) / 2), (float)*y,
+                       (float)update_w, (float)ScaleUIPx(24)},
+            .text = update_text,
+            .href = inbe_update_download_url(),
+            .font = font,
+        })
+        *y += ScaleUIPx(30)
+    }
 
     description = (UIParagraphSpec){
         .text = GetLocaleText("about_text"),

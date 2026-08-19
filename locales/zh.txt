@@ -1646,3 +1646,9 @@ Material
 [theme_system]
 系统
 ---
+[update_available_row]
+有可用更新
+---
+[update_available_toast]
+有新版本可用。请查看 设置 -> 关于。
+---

@@ -1645,3 +1645,9 @@ Aero
 [theme_system]
 시스템
 ---
+[update_available_row]
+업데이트 가능
+---
+[update_available_toast]
+새 버전이 있습니다. 설정 -> 정보를 확인하세요.
+---
