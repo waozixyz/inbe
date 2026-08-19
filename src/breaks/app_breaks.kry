@@ -665,9 +665,17 @@ app_breaks_hud_update :: (app: InbeApp*) {
         app->break_hud_h = hud_h
     }
 
-    BeginUIWindow(app->break_hud)
-    app_breaks_hud_draw(app, hud_w, hud_h, row_h, pad)
-    EndUIWindow()
+    # Each EndUIWindow swaps GL contexts and stalls the main context with a
+    # glFinish; doing that every frame keeps a core busy and widens the
+    # multi-window race window for nothing - the HUD content only changes
+    # when a timer tick, drag or click moves it. Present at ~2 Hz instead.
+    now := GetTime()
+    if app->break_hud_last_present <= 0 || now - app->break_hud_last_present >= 0.45 {
+        app->break_hud_last_present = now
+        BeginUIWindow(app->break_hud)
+        app_breaks_hud_draw(app, hud_w, hud_h, row_h, pad)
+        EndUIWindow()
+    }
 
     if IsUIWindowDragged(app->break_hud) {
         GetUIWindowPosition(app->break_hud, &app->break_hud_x,

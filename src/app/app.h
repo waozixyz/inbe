@@ -569,6 +569,7 @@ struct InbeApp {
     UIWindow *break_hud;
     int break_hud_w;
     int break_hud_h;
+    double break_hud_last_present; /* HUD redraw throttle: present at ~2 Hz */
 };
 
 void app_set_host_api(InbeApp *app, InbeHostApi host);

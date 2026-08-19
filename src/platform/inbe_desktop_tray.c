@@ -353,6 +353,12 @@ inbe_desktop_tray_poll_action(void)
     return (InbeDesktopTrayAction)PollDesktopTrayAction();
 }
 
+int
+inbe_desktop_tray_ready(void)
+{
+    return TrayReady;
+}
+
 static void
 RestoreTrayWindow(void)
 {
@@ -363,6 +369,9 @@ RestoreTrayWindow(void)
 static void
 HideTrayWindow(void)
 {
+    /* The window vanishing with the process still running is the single
+     * most confusing failure mode this app has; always say why it hid. */
+    TraceLog(LOG_INFO, "INBE: hiding main window (tray action)");
     SetWindowState(FLAG_WINDOW_HIDDEN);
 }
 
@@ -612,6 +621,7 @@ inbe_desktop_tray_update_status(InbeApp *app)
 #else
 
 int inbe_desktop_tray_init(void) { return 0; }
+int inbe_desktop_tray_ready(void) { return 0; }
 void inbe_desktop_tray_shutdown(void) {}
 InbeDesktopTrayAction inbe_desktop_tray_poll_action(void)
 {

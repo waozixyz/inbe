@@ -34,6 +34,7 @@ typedef enum InbeDesktopTrayAction {
 } InbeDesktopTrayAction;
 
 int inbe_desktop_tray_init(void);
+int inbe_desktop_tray_ready(void);
 void inbe_desktop_tray_shutdown(void);
 InbeDesktopTrayAction inbe_desktop_tray_poll_action(void);
 void inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *quit);

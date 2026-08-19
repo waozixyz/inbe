@@ -998,10 +998,14 @@ int main(int argc, char **argv) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     inbe_desktop_tray_init();
     /* "Start minimized" startup mode: launch straight to the tray; break
-     * windows restore on top when a break fires. */
+     * windows restore on top when a break fires. Hidden startup is only
+     * honored with a live tray - otherwise there is nothing to restore
+     * the window from and the app would be unreachable. */
     if(inbe_app.desktop_startup_mode == INBE_STARTUP_HIDDEN &&
-       !screenshot.active)
+       !screenshot.active && inbe_desktop_tray_ready()) {
+        TraceLog(LOG_INFO, "INBE: starting hidden in the tray (startup mode)");
         inbe_desktop_tray_keep_running();
+    }
     KryonMemReport("after-tray-init");
 #endif
 
