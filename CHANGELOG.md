@@ -1,4 +1,13 @@
 # Changelog
+## [1.9.6] - 2026-08-19
+### Changed
+- Donation reminders now wait until 30 completed practices, repeat only after another 30 practices, and offer Donate, Skip, or Dismiss forever without a separate remind-later option.
+
+### Fixed
+- Web builds now fall back to the Canvas renderer automatically when WebGL is unavailable, instead of stopping on a WebGL-disabled message.
+- Canvas hover cursors now update consistently while using the Canvas renderer.
+- Break reminders and break settings stay desktop-only and no longer appear in the Web settings sidebar.
+
 ## [1.9.5] - 2026-08-19
 ### Added
 - Desktop update notifications: the app checks once a day for a new release and shows a toast plus a row in Settings → About. AppImage and Windows users can download and install the update from there — the download is checksum-verified and, with one click on "Restart to update", replaces the app in place. Linux package, Snap and Flatpak installs are left to the system's own updater, and AppImage builds now also carry AppImageUpdate delta-update information.

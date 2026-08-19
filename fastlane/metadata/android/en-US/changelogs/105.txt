@@ -1,0 +1,8 @@
+Changed
+---
+- Donation reminders now wait until 30 completed practices, repeat only after another 30 practices, and offer Donate, Skip, or Dismiss forever without a separate remind-later option.
+Fixed
+---
+- Web builds now fall back to the Canvas renderer automatically when WebGL is unavailable, instead of stopping on a WebGL-disabled message.
+- Canvas hover cursors now update consistently while using the Canvas renderer.
+- Break reminders and break settings stay desktop-only and no longer appear in the Web settings sidebar.
