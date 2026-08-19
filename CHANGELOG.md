@@ -2,6 +2,7 @@
 ## [1.9.5] - 2026-08-19
 ### Added
 - Desktop update notifications: the app checks once a day for a new release and shows a toast plus a row in Settings → About. AppImage and Windows users can download and install the update from there — the download is checksum-verified and, with one click on "Restart to update", replaces the app in place. Linux package, Snap and Flatpak installs are left to the system's own updater, and AppImage builds now also carry AppImageUpdate delta-update information.
+- Windows releases now also ship a classic installer (inbe-windows-setup) beside the portable zip, and a winget manifest is submitted on each release, so Windows 10/11 users can install and auto-update Inner Breeze through winget.
 
 ## [1.9.4] - 2026-08-17
 ### Fixed

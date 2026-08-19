@@ -482,7 +482,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: web-canvas all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -1509,6 +1509,23 @@ windows:
 	cd $(WINDOWS_BIN_DIR) && zip -9 -j $(abspath $(WINDOWS_DIST)) \
 		$(WIN64_ARCH)/$(WIN64_BINARY_NAME) \
 		$(WIN32_ARCH)/$(WIN32_BINARY_NAME)
+
+WINDOWS_SETUP := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows-setup-$(APP_VERSION).exe
+WINDOWS_SETUP_SCRIPT := packaging/windows/inbe-setup.nsi
+
+windows-setup-check:
+	@command -v makensis >/dev/null || { \
+		echo "makensis is missing. Install NSIS (apt install nsis)."; \
+		exit 1; \
+	}
+
+windows-setup: windows windows-setup-check
+	rm -f $(WINDOWS_SETUP)
+	makensis -DVERSION=$(APP_VERSION) \
+		-DWIN64_EXE=$(abspath $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)/$(WIN64_BINARY_NAME)) \
+		-DWIN32_EXE=$(abspath $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)/$(WIN32_BINARY_NAME)) \
+		-DOUT=$(abspath $(WINDOWS_SETUP)) $(WINDOWS_SETUP_SCRIPT)
+	test -f $(WINDOWS_SETUP)
 
 web:
 	$(MAKE) validate-meditation-audio

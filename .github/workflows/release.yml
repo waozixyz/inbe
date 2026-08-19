@@ -662,12 +662,12 @@ jobs:
             sudo update-alternatives --set i686-w64-mingw32-gcc /usr/bin/i686-w64-mingw32-gcc-win32
           fi
 
-      - name: Build Windows ZIP
+      - name: Build Windows ZIP and Setup
         run: |
           set -euo pipefail
-          make windows
+          make windows windows-setup
           mkdir -p build/release/windows
-          find build/dist/windows -maxdepth 1 -type f -name '*.zip' -exec cp {} build/release/windows/ \;
+          find build/dist/windows -maxdepth 1 -type f \( -name '*.zip' -o -name '*-setup-*.exe' \) -exec cp {} build/release/windows/ \;
           test -n "$(find build/release/windows -type f -print -quit)"
 
       - name: Upload Windows Artifact
@@ -1253,3 +1253,46 @@ jobs:
             --api-secret "$AMO_JWT_SECRET"; then
             echo "::warning::Firefox Add-ons publish failed; release artifacts were still created"
           fi
+
+  publish-winget:
+    name: Publish winget manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    needs: release
+    if: needs.release.outputs.tag_pushed == 'true'
+    env:
+      WINGET_TOKEN: ${{ secrets.WINGET_TOKEN }}
+
+    steps:
+      - name: Check winget Token
+        run: |
+          if [ -z "${WINGET_TOKEN:-}" ]; then
+            echo "WINGET_TOKEN secret not set; skipping winget manifest update"
+            exit 0
+          fi
+
+      - name: Download wingetcreate
+        if: env.WINGET_TOKEN != ''
+        run: |
+          set -euo pipefail
+          curl -fsSL \
+            https://github.com/russellbanks/wingetcreate/releases/latest/download/wingetcreate-linux-x64.tar.gz \
+            -o /tmp/wingetcreate.tar.gz
+          tar -xzf /tmp/wingetcreate.tar.gz -C "$HOME"
+          chmod +x "$HOME/wingetcreate"
+
+      - name: Submit winget manifest update
+        if: env.WINGET_TOKEN != ''
+        run: |
+          set -euo pipefail
+          VERSION='${{ needs.release.outputs.version }}'
+          SETUP_URL="https://github.com/waozixyz/inbe/releases/download/v$VERSION/inbe-windows-setup-$VERSION.exe"
+          if ! curl -fsSL -o /dev/null "$SETUP_URL"; then
+            echo "::warning::setup exe not published yet; skipping winget update"
+            exit 0
+          fi
+          "$HOME/wingetcreate" update xyz.waozi.inbe \
+            --version "$VERSION" \
+            --urls "$SETUP_URL#x64" "$SETUP_URL#x86" \
+            --submit \
+            --token "$WINGET_TOKEN"
