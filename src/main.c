@@ -16,11 +16,13 @@
 #include <string.h>
 #include <time.h>
 
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
 /* From kryon's screenshot backend (src/backend/kry_screenshot.c): the PNG
  * writer that works on this GL stack, where raylib's ExportImage does not
  * honor the passed image. */
 int kry_write_png_file(const char *path, const unsigned char *rgba,
                        int w, int h);
+#endif
 
 #if defined(__GLIBC__)
 #include <malloc.h>
@@ -542,6 +544,16 @@ parse_int_arg(const char *text, int fallback)
     return (int)value;
 }
 
+#if defined(PLATFORM_WEB) || ANDROID_BUILD
+static void
+parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
+{
+    (void)argc;
+    (void)argv;
+    if(request != NULL)
+        *request = (ScreenshotRequest){0};
+}
+#else
 static void
 parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
 {
@@ -595,6 +607,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
         request->theme_id = THEME_SKY;
 }
+#endif
 
 static int
 screenshot_day_index_offset(int offset_days)
@@ -827,6 +840,14 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
     }
 }
 
+#if defined(PLATFORM_WEB) || ANDROID_BUILD
+static int
+run_screenshot_mode(const ScreenshotRequest *request)
+{
+    (void)request;
+    return 0;
+}
+#else
 static int
 run_screenshot_mode(const ScreenshotRequest *request)
 {
@@ -876,6 +897,7 @@ run_screenshot_mode(const ScreenshotRequest *request)
     capture.data = NULL;
     return saved ? 1 : -1;
 }
+#endif
 
 int main(int argc, char **argv) {
     ScreenshotRequest screenshot;
