@@ -28,7 +28,6 @@ InbeUpdateFlow inbe_update_flow(void);
 int inbe_update_can_self_update(void);
 double inbe_update_download_fraction(void);  /* 0..1; -1 while unknown */
 const char *inbe_update_flow_error(void);
-void inbe_update_download_begin(void);
 
 /* Row helpers so the About screen stays logic-free. */
 int inbe_update_is_downloading(void);

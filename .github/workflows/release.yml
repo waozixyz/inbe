@@ -857,50 +857,22 @@ jobs:
           WINZIP="$(find build/release/windows -maxdepth 1 -name '*-windows.zip' -print -quit || true)"
           DEB="$(find build/release/linux -maxdepth 1 -name '*.deb' -print -quit || true)"
           RPM="$(find build/release/linux -maxdepth 1 -name '*.rpm' -print -quit || true)"
-          export VERSION TAG BASE APPIMAGE WINZIP DEB RPM
-          python3 - <<'PY'
-          import datetime, hashlib, json, os, re, sys
-
-          version = os.environ["VERSION"]
-          base = os.environ["BASE"]
-
-          changelog = open("CHANGELOG.md", encoding="utf-8").read()
-          match = re.search(
-              r"^## \[" + re.escape(version) + r"\].*?\n(.*?)(?=^## \[|\Z)",
-              changelog, re.S | re.M)
-          notes = " ".join(match.group(1).split())[:400] if match else ""
-
-          def channel(rel_path):
-              if not rel_path:
-                  return None
-              with open(rel_path, "rb") as f:
-                  data = f.read()
-              return {
-                  "url": base + "/" + os.path.basename(rel_path),
-                  "sha256": hashlib.sha256(data).hexdigest(),
-                  "size": len(data),
-              }
-
-          channels = {}
-          for key, var in (("appimage", "APPIMAGE"), ("windows", "WINZIP"),
-                           ("deb", "DEB"), ("rpm", "RPM")):
-              entry = channel(os.environ.get(var, ""))
-              if entry:
-                  channels[key] = entry
-          if "appimage" not in channels and "windows" not in channels:
-              sys.exit("no self-service release artifacts found for appcast")
-
-          appcast = {
-              "version": version,
-              "date": datetime.date.today().isoformat(),
-              "notes": notes,
-              "notes_url": "https://github.com/waozixyz/inbe/releases/tag/" + os.environ["TAG"],
-              "channels": channels,
-          }
-          with open("build/release/appcast.json", "w", encoding="utf-8") as f:
-              json.dump(appcast, f, indent=2)
-          print(open("build/release/appcast.json", encoding="utf-8").read())
-          PY
+          channels=()
+          [ -n "$APPIMAGE" ] && channels+=("--channel" "appimage=$APPIMAGE")
+          [ -n "$WINZIP" ] && channels+=("--channel" "windows=$WINZIP")
+          [ -n "$DEB" ] && channels+=("--channel" "deb=$DEB")
+          [ -n "$RPM" ] && channels+=("--channel" "rpm=$RPM")
+          if [ ${#channels[@]} -eq 0 ]; then
+            echo "no release artifacts found for the appcast"
+            exit 1
+          fi
+          python3 vendor/kryon/scripts/make_appcast.py \
+            --version "$VERSION" \
+            --base-url "$BASE" \
+            --notes-url "https://github.com/waozixyz/inbe/releases/tag/$TAG" \
+            --changelog CHANGELOG.md \
+            --out build/release/appcast.json \
+            "${channels[@]}"
 
       - name: Create GitHub Release
         if: steps.tag_version.outputs.tag_pushed == 'true'
