@@ -17,9 +17,31 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  guard-submodule-urls:
+    name: Submodule URLs are public HTTPS
+    runs-on: ubuntu-latest
+    steps:
+      # Plain checkout on purpose: the guard must not depend on fetching
+      # the submodules it validates (an SSH URL would break that fetch).
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Reject non-HTTPS submodule URLs
+        run: |
+          set -eu
+          if [ ! -f .gitmodules ]; then echo "no submodules - ok"; exit 0; fi
+          bad=$(grep -nE '^[[:space:]]*url[[:space:]]*=' .gitmodules \
+              | grep -vE '^[0-9]+:[[:space:]]*url[[:space:]]*=[[:space:]]*https://' || true)
+          if [ -n "$bad" ]; then
+            echo "::error::Non-HTTPS submodule URL(s) break fresh clones and CI:$bad"
+            exit 1
+          fi
+          echo "all submodule URLs HTTPS - ok"
+
   test:
     name: Test
     runs-on: ubuntu-latest
+    needs: guard-submodule-urls
     timeout-minutes: 60
     env:
       APT_CACHE_DIR: /tmp/apt-cache
