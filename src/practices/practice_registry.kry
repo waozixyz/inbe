@@ -154,6 +154,23 @@ practice_count :: () -> int {
     return PRACTICE_COUNT
 }
 
+practice_ordered_id :: (index: int) -> int {
+    order: [PRACTICE_COUNT] int = {
+        PRACTICE_WHM,
+        PRACTICE_PATTERNS,
+        PRACTICE_MEDITATION,
+        PRACTICE_SUN_SALUTATION
+    }
+
+    if index < 0 {
+        return PRACTICE_WHM
+    }
+    if index >= PRACTICE_COUNT {
+        return PRACTICE_SUN_SALUTATION
+    }
+    return order[index]
+}
+
 practice_clamp_id :: (id: int) -> int {
     if id < 0 || id >= PRACTICE_COUNT {
         return PRACTICE_WHM

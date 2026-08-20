@@ -51,8 +51,9 @@ practice_is_visible :: (app: const InbeApp*, exercise: int) -> int {
 
 practice_first_visible :: (app: const InbeApp*) -> int #private {
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if practice_is_visible(app, i) {
-            return i
+        id := practice_ordered_id(i)
+        if practice_is_visible(app, id) {
+            return id
         }
     }
     return EXERCISE_WIM_HOF
@@ -86,9 +87,9 @@ practice_activity_for_tab :: (tab: int, index: int) -> int {
         return EXERCISE_WIM_HOF
     }
     if index >= practice_count() {
-        return practice_count() - 1
+        return practice_ordered_id(practice_count() - 1)
     }
-    return index
+    return practice_ordered_id(index)
 }
 
 practice_screen_subscreen_integrated :: (app: const InbeApp*, modal_type: int) -> int {
@@ -198,8 +199,6 @@ practice_card_banner_bottom_padding :: () -> int #private {
 practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
                               exercise: int) {
     radius := practice_card_radius_px()
-    image_dest := dest
-    bottom_padding := practice_card_banner_bottom_padding()
     style: UIPictureStyle
 
     if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
@@ -207,9 +206,6 @@ practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
     }
     if radius < ScaleUIPx(4) {
         radius = ScaleUIPx(4)
-    }
-    if bottom_padding > 0 && image_dest.height > (float)(bottom_padding + radius) {
-        image_dest.height -= (float)bottom_padding
     }
     DrawRectangleRounded(dest, practice_card_roundness(dest), 10, GetThemeBackground())
     style = (UIPictureStyle){
@@ -224,7 +220,7 @@ practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
         .segments = 10,
         .outline_px = 0
     }
-    UIDrawStyledCoverPicture(texture, image_dest, style)
+    UIDrawStyledCoverPicture(texture, dest, style)
     DrawRectangleRoundedLinesEx(dest, practice_card_roundness(dest), 10, ScaleUIPx(1),
                                 Fade(GetThemeText(), 0.22f))
 }
@@ -255,10 +251,24 @@ practice_next_visible :: (app: InbeApp*, dir: int) -> int {
         return EXERCISE_WIM_HOF
     }
     current := practice_clamp_id(app->exercise_type)
-    for int step = 1; step <= EXERCISE_COUNT; step++ {
-        id := (current + dir * step + EXERCISE_COUNT * 2) % EXERCISE_COUNT
-        if practice_is_visible(app, id) {
-            return id
+    current_order := practice_visible_index(app, current)
+    visible_total := practice_visible_count(app)
+
+    if visible_total <= 0 {
+        return current
+    }
+    for int step = 1; step <= visible_total; step++ {
+        visible_index := (current_order + dir * step + visible_total * 2) % visible_total
+        visible_seen := 0
+        for int i = 0; i < EXERCISE_COUNT; i++ {
+            id := practice_ordered_id(i)
+            if !practice_is_visible(app, id) {
+                continue
+            }
+            if visible_seen == visible_index {
+                return id
+            }
+            visible_seen++
         }
     }
     return current
@@ -267,7 +277,8 @@ practice_next_visible :: (app: InbeApp*, dir: int) -> int {
 practice_visible_count :: (app: const InbeApp*) -> int {
     count := 0
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if practice_is_visible(app, i) {
+        id := practice_ordered_id(i)
+        if practice_is_visible(app, id) {
             count++
         }
     }
@@ -277,10 +288,11 @@ practice_visible_count :: (app: const InbeApp*) -> int {
 practice_visible_index :: (app: const InbeApp*, exercise: int) -> int {
     index := 0
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if !practice_is_visible(app, i) {
+        id := practice_ordered_id(i)
+        if !practice_is_visible(app, id) {
             continue
         }
-        if i == exercise {
+        if id == exercise {
             return index
         }
         index++
@@ -341,7 +353,8 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
     mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
 
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if !practice_is_visible(app, i) {
+        id := practice_ordered_id(i)
+        if !practice_is_visible(app, id) {
             continue
         }
         center_x := start_x + dot_index * (hit + gap)
@@ -359,8 +372,8 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
         }
         DrawCircle(center_x, center_y, current_radius, fill)
         DrawCircleLines(center_x, center_y, current_radius + ScaleUIPx(1), stroke)
-        if active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && i != app->exercise_type {
-            practice_select_home_card(app, i)
+        if active && IsMouseButtonReleased(MOUSE_BUTTON_LEFT) && id != app->exercise_type {
+            practice_select_home_card(app, id)
         }
         dot_index++
     }
@@ -398,7 +411,9 @@ practice_home_below_card_height :: (app: const InbeApp*, content_w: int) -> int 
     practice := practice_get(app != NULL ? app->exercise_type : 0)
     gap := ScaleUIPx(12)
     btn_h := ScaleUIPx(42)
-    height := practice_home_carousel_controls_height(app) + ScaleUIPx(10) + btn_h
+    height := practice_card_banner_bottom_padding() +
+              practice_home_carousel_controls_height(app) +
+              ScaleUIPx(10) + btn_h
 
     if practice_home_actions_share_row(practice, content_w) {
         height += gap + btn_h
@@ -648,14 +663,15 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
         return -1
     }
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if !practice_is_visible(app, i) {
+        id := practice_ordered_id(i)
+        if !practice_is_visible(app, id) {
             continue
         }
-        if i == app->exercise_type {
+        if id == app->exercise_type {
             selected_index = tab_count
         }
-        values[tab_count] = i
-        tabs[tab_count] = (UITab){.label = practice_activity_label(i), .icon = (Texture2D){0}, .icon_size = 0, .disabled = app->modal.active}
+        values[tab_count] = id
+        tabs[tab_count] = (UITab){.label = practice_activity_label(id), .icon = (Texture2D){0}, .icon_size = 0, .disabled = app->modal.active}
         tab_count++
     }
     if tab_count <= 0 {
@@ -677,14 +693,15 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
     }
     practice_clamp_activity_to_tab(app)
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        if !practice_is_visible(app, i) {
+        id := practice_ordered_id(i)
+        if !practice_is_visible(app, id) {
             continue
         }
-        if i == app->exercise_type {
+        if id == app->exercise_type {
             activity_index = activity_count
         }
-        exercise_values[activity_count] = i
-        exercise_options[activity_count] = practice_activity_label(i)
+        exercise_values[activity_count] = id
+        exercise_options[activity_count] = practice_activity_label(id)
         activity_count++
     }
     if activity_count <= 0 {
@@ -935,6 +952,7 @@ page start(app: InbeApp*) {
 
     carousel_count = practice_visible_count(app)
     y += card_h
+    y += practice_card_banner_bottom_padding()
     if carousel_count > 1 {
         practice_draw_home_carousel_controls(app, x, y, content_w)
         y += practice_home_carousel_controls_height(app)

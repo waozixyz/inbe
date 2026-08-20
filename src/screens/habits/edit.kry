@@ -1,5 +1,6 @@
 #module "habit_edit"
 
+#import "practices/practice_registry.h"
 #import "screens/habits/habits.h"
 
 static reminder_hour_texts: [24 * 8] char = {0}
@@ -466,7 +467,7 @@ draw :: (app: InbeApp*) {
     }
     bottom_reserved = app_content_bottom_reserved(app)
     for int i = 0; i < EXERCISE_COUNT; i++ {
-        activity_options[i] = practice_activity_label(i)
+        activity_options[i] = practice_activity_label(practice_ordered_id(i))
     }
 
     if !app->habit_edit.active {
@@ -654,8 +655,9 @@ draw :: (app: InbeApp*) {
     y += UIGetNodeHeight(UINodeSectionLabel((SectionLabelProps){0}, 0, 0))
 
     for int i = 0; i < EXERCISE_COUNT; i++ {
+        id := practice_ordered_id(i)
         enabled := (app->habit_edit.sync_activity &
-                    habit_activity_mask_for(i)) != 0
+                    habit_activity_mask_for(id)) != 0
 
         if CheckboxRow((CheckboxRowProps){
             .label = activity_options[i],
@@ -663,10 +665,10 @@ draw :: (app: InbeApp*) {
         }, content_x, y) {
             if enabled {
                 app->habit_edit.sync_activity =
-                    app->habit_edit.sync_activity | habit_activity_mask_for(i)
+                    app->habit_edit.sync_activity | habit_activity_mask_for(id)
             } else {
                 app->habit_edit.sync_activity =
-                    app->habit_edit.sync_activity & ~habit_activity_mask_for(i)
+                    app->habit_edit.sync_activity & ~habit_activity_mask_for(id)
             }
             app->habit_edit.sync_mode = app->habit_edit.sync_activity != 0 ? INBE_HABIT_SYNC_ACTIVITIES : INBE_HABIT_SYNC_NONE
         }
