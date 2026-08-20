@@ -237,6 +237,48 @@ Network unavailable
 [meditation_music_network_error_message]
 Could not reach the meditation music file. Check your internet connection, then try again.
 ---
+[meditation_music_missing_audio]
+Download audio before playing music
+---
+[meditation_music_cache_path_too_long]
+Audio cache path is too long
+---
+[meditation_music_archive_open_failed]
+Failed to open audio archive
+---
+[meditation_music_file_path_too_long]
+Audio file path is too long
+---
+[meditation_music_archive_invalid]
+Audio archive did not contain usable audio
+---
+[meditation_music_installed_count]
+Installed %d audio files
+---
+[meditation_music_installed]
+Audio installed
+---
+[meditation_music_not_installed]
+Audio not installed
+---
+[meditation_music_device_not_ready]
+Audio device is not ready
+---
+[meditation_music_track_not_installed]
+Track is not installed
+---
+[meditation_music_track_load_failed]
+Could not load track
+---
+[meditation_music_test_stopped]
+Test audio stopped
+---
+[meditation_music_test_playing]
+Playing test audio
+---
+[meditation_music_download_failed]
+Audio download failed
+---
 [meditation_music_attribution]
 Music by Elijah_K.
 ---

@@ -237,6 +237,48 @@ Netzwerk nicht verfügbar
 [meditation_music_network_error_message]
 Der Meditations-Musikserver konnte nicht erreicht werden. Prüfe die Android-Netzwerkberechtigungen und deine Internetverbindung und versuche es erneut.
 ---
+[meditation_music_missing_audio]
+Audio herunterladen, bevor Musik abgespielt wird
+---
+[meditation_music_cache_path_too_long]
+Der Audio-Cache-Pfad ist zu lang
+---
+[meditation_music_archive_open_failed]
+Audioarchiv konnte nicht geöffnet werden
+---
+[meditation_music_file_path_too_long]
+Der Audiodateipfad ist zu lang
+---
+[meditation_music_archive_invalid]
+Das Audioarchiv enthielt keine nutzbaren Audiodateien
+---
+[meditation_music_installed_count]
+%d Audiodateien installiert
+---
+[meditation_music_installed]
+Audio installiert
+---
+[meditation_music_not_installed]
+Audio nicht installiert
+---
+[meditation_music_device_not_ready]
+Audiogerät ist nicht bereit
+---
+[meditation_music_track_not_installed]
+Titel ist nicht installiert
+---
+[meditation_music_track_load_failed]
+Titel konnte nicht geladen werden
+---
+[meditation_music_test_stopped]
+Audiotest gestoppt
+---
+[meditation_music_test_playing]
+Audiotest läuft
+---
+[meditation_music_download_failed]
+Audio-Download fehlgeschlagen
+---
 [duration_5m]
 5 Min.
 ---

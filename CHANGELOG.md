@@ -1,4 +1,21 @@
 # Changelog
+## [1.9.6] - 2026-08-20
+### Added
+- Pattern Breathing is now available wherever practice-specific options are shown, including the leaderboard, habits and music assignment.
+- Every practice can now have background music assigned directly from its practice settings.
+
+### Changed
+- Audio settings now use one music import action and show the practices that already have music assigned.
+- Practices are ordered consistently as Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
+- Practice banners now follow the active visual style, sit cleanly inside their rounded borders and keep a small bottom gap from the controls below.
+- The support prompt waits longer before appearing.
+
+### Fixed
+- Leaderboard filtering keeps showing the last loaded rows while fresh data loads, instead of replacing the table with a loading placeholder.
+- Breathing-pattern leaderboards now keep the full friends list visible instead of collapsing to only the current user.
+- Leaderboard streak ties now use the secondary stat when one exists, such as average hold for Wim Hof.
+- Music download, install and playback-test status messages are now translated.
+
 ## [1.9.5] - 2026-08-19
 ### Added
 - Desktop update notifications: the app checks once a day for a new release and shows a toast plus a row in Settings → About. AppImage and Windows users can download and install the update from there — the download is checksum-verified and, with one click on "Restart to update", replaces the app in place. Linux package, Snap and Flatpak installs are left to the system's own updater, and AppImage builds now also carry AppImageUpdate delta-update information.

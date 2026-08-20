@@ -237,6 +237,48 @@ Pause
 [meditation_music_network_error_message]
 Не удалось подключиться к серверу музыки для медитации. Проверьте разрешения сети Android и подключение к интернету, затем попробуйте снова.
 ---
+[meditation_music_missing_audio]
+Скачайте аудио перед воспроизведением музыки
+---
+[meditation_music_cache_path_too_long]
+Путь к кэшу аудио слишком длинный
+---
+[meditation_music_archive_open_failed]
+Не удалось открыть аудиоархив
+---
+[meditation_music_file_path_too_long]
+Путь к аудиофайлу слишком длинный
+---
+[meditation_music_archive_invalid]
+Аудиоархив не содержит пригодного аудио
+---
+[meditation_music_installed_count]
+Установлено аудиофайлов: %d
+---
+[meditation_music_installed]
+Аудио установлено
+---
+[meditation_music_not_installed]
+Аудио не установлено
+---
+[meditation_music_device_not_ready]
+Аудиоустройство не готово
+---
+[meditation_music_track_not_installed]
+Трек не установлен
+---
+[meditation_music_track_load_failed]
+Не удалось загрузить трек
+---
+[meditation_music_test_stopped]
+Проверка аудио остановлена
+---
+[meditation_music_test_playing]
+Воспроизводится тестовое аудио
+---
+[meditation_music_download_failed]
+Не удалось скачать аудио
+---
 [meditation_music_attribution]
 Музыка: Elijah_K.
 ---

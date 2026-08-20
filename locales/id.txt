@@ -237,6 +237,48 @@ Jaringan tidak tersedia
 [meditation_music_network_error_message]
 Tidak dapat membuka file musik meditasi. Periksa koneksi internetmu, lalu coba lagi.
 ---
+[meditation_music_missing_audio]
+Unduh audio sebelum memutar musik
+---
+[meditation_music_cache_path_too_long]
+Jalur cache audio terlalu panjang
+---
+[meditation_music_archive_open_failed]
+Gagal membuka arsip audio
+---
+[meditation_music_file_path_too_long]
+Jalur file audio terlalu panjang
+---
+[meditation_music_archive_invalid]
+Arsip audio tidak berisi audio yang dapat digunakan
+---
+[meditation_music_installed_count]
+%d file audio terpasang
+---
+[meditation_music_installed]
+Audio terpasang
+---
+[meditation_music_not_installed]
+Audio belum terpasang
+---
+[meditation_music_device_not_ready]
+Perangkat audio belum siap
+---
+[meditation_music_track_not_installed]
+Trek belum terpasang
+---
+[meditation_music_track_load_failed]
+Tidak dapat memuat trek
+---
+[meditation_music_test_stopped]
+Tes audio dihentikan
+---
+[meditation_music_test_playing]
+Memutar audio tes
+---
+[meditation_music_download_failed]
+Unduhan audio gagal
+---
 [duration_5m]
 5 mnt
 ---

@@ -113,6 +113,20 @@ DrawUIText(const char *text, int x, int y, int font_size, Color color)
     (void)color;
 }
 
+void
+BeginScissorMode(int x, int y, int width, int height)
+{
+    (void)x;
+    (void)y;
+    (void)width;
+    (void)height;
+}
+
+void
+EndScissorMode(void)
+{
+}
+
 bool
 IsKeyPressed(int key)
 {

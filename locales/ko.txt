@@ -237,6 +237,48 @@ Pause
 [meditation_music_network_error_message]
 명상 음악 서버에 연결할 수 없습니다. Android 네트워크 권한과 인터넷 연결을 확인한 뒤 다시 시도하세요.
 ---
+[meditation_music_missing_audio]
+음악을 재생하기 전에 오디오를 다운로드하세요
+---
+[meditation_music_cache_path_too_long]
+오디오 캐시 경로가 너무 깁니다
+---
+[meditation_music_archive_open_failed]
+오디오 압축 파일을 열지 못했습니다
+---
+[meditation_music_file_path_too_long]
+오디오 파일 경로가 너무 깁니다
+---
+[meditation_music_archive_invalid]
+오디오 압축 파일에 사용할 수 있는 오디오가 없습니다
+---
+[meditation_music_installed_count]
+오디오 파일 %d개 설치됨
+---
+[meditation_music_installed]
+오디오 설치됨
+---
+[meditation_music_not_installed]
+오디오가 설치되지 않음
+---
+[meditation_music_device_not_ready]
+오디오 장치가 준비되지 않았습니다
+---
+[meditation_music_track_not_installed]
+트랙이 설치되지 않았습니다
+---
+[meditation_music_track_load_failed]
+트랙을 불러오지 못했습니다
+---
+[meditation_music_test_stopped]
+오디오 테스트 중지됨
+---
+[meditation_music_test_playing]
+테스트 오디오 재생 중
+---
+[meditation_music_download_failed]
+오디오 다운로드 실패
+---
 [duration_5m]
 5분
 ---

@@ -704,11 +704,12 @@ $(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LO
 		-o $@ \
 		tests/font_glyph_coverage_test.c
 
-$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
+$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/src/ui/ui_clip.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-I$(KRYON_DIR) $(KRYON_INCLUDE) \
 		-o $@ \
-		tests/guide_overlay_test.c
+		tests/guide_overlay_test.c \
+		$(KRYON_DIR)/src/ui/ui_clip.c
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h $(KRYON_DIR)/src/core/app_shell.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \

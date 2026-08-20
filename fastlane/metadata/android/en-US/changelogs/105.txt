@@ -1,0 +1,16 @@
+Added
+---
+- Pattern Breathing is now available wherever practice-specific options are shown, including the leaderboard, habits and music assignment.
+- Every practice can now have background music assigned directly from its practice settings.
+Changed
+---
+- Audio settings now use one music import action and show the practices that already have music assigned.
+- Practices are ordered consistently as Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
+- Practice banners now follow the active visual style, sit cleanly inside their rounded borders and keep a small bottom gap from the controls below.
+- The support prompt waits longer before appearing.
+Fixed
+---
+- Leaderboard filtering keeps showing the last loaded rows while fresh data loads, instead of replacing the table with a loading placeholder.
+- Breathing-pattern leaderboards now keep the full friends list visible instead of collapsing to only the current user.
+- Leaderboard streak ties now use the secondary stat when one exists, such as average hold for Wim Hof.
+- Music download, install and playback-test status messages are now translated.

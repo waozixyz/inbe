@@ -237,6 +237,48 @@ Síť není dostupná
 [meditation_music_network_error_message]
 Nelze načíst soubor s meditační hudbou. Zkontrolujte připojení k internetu a zkuste to znovu.
 ---
+[meditation_music_missing_audio]
+Před přehráním hudby stáhněte audio
+---
+[meditation_music_cache_path_too_long]
+Cesta k mezipaměti audia je příliš dlouhá
+---
+[meditation_music_archive_open_failed]
+Nepodařilo se otevřít archiv audia
+---
+[meditation_music_file_path_too_long]
+Cesta k audio souboru je příliš dlouhá
+---
+[meditation_music_archive_invalid]
+Archiv audia neobsahoval použitelné audio
+---
+[meditation_music_installed_count]
+Nainstalováno %d audio souborů
+---
+[meditation_music_installed]
+Audio nainstalováno
+---
+[meditation_music_not_installed]
+Audio není nainstalováno
+---
+[meditation_music_device_not_ready]
+Audio zařízení není připraveno
+---
+[meditation_music_track_not_installed]
+Skladba není nainstalována
+---
+[meditation_music_track_load_failed]
+Skladbu se nepodařilo načíst
+---
+[meditation_music_test_stopped]
+Test audia zastaven
+---
+[meditation_music_test_playing]
+Přehrává se testovací audio
+---
+[meditation_music_download_failed]
+Stažení audia selhalo
+---
 [duration_5m]
 5 min
 ---

@@ -237,6 +237,48 @@ Rede indisponível
 [meditation_music_network_error_message]
 Não foi possível acessar o arquivo de música de meditação. Verifique sua conexão com a internet e tente novamente.
 ---
+[meditation_music_missing_audio]
+Baixe o áudio antes de tocar música
+---
+[meditation_music_cache_path_too_long]
+O caminho do cache de áudio é longo demais
+---
+[meditation_music_archive_open_failed]
+Não foi possível abrir o arquivo de áudio
+---
+[meditation_music_file_path_too_long]
+O caminho do arquivo de áudio é longo demais
+---
+[meditation_music_archive_invalid]
+O arquivo de áudio não continha áudio utilizável
+---
+[meditation_music_installed_count]
+%d arquivos de áudio instalados
+---
+[meditation_music_installed]
+Áudio instalado
+---
+[meditation_music_not_installed]
+Áudio não instalado
+---
+[meditation_music_device_not_ready]
+O dispositivo de áudio não está pronto
+---
+[meditation_music_track_not_installed]
+A faixa não está instalada
+---
+[meditation_music_track_load_failed]
+Não foi possível carregar a faixa
+---
+[meditation_music_test_stopped]
+Teste de áudio parado
+---
+[meditation_music_test_playing]
+Reproduzindo áudio de teste
+---
+[meditation_music_download_failed]
+Falha no download de áudio
+---
 [duration_5m]
 5 min
 ---
