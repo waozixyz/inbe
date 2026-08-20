@@ -63,6 +63,13 @@ function hideLoadingScreen() {
   });
 }
 
+function markRuntimeReady() {
+  if (Module.__inbeRuntimeReady) return;
+  Module.__inbeRuntimeReady = true;
+  hideLoadingScreen();
+  runLaunchCommand();
+}
+
 function runStorageSync(retryDelay) {
   if (Module.__kryonStorageSyncing) return Module.__kryonStorageSyncPromise || Promise.resolve(false);
 
@@ -185,9 +192,7 @@ var Module = {
     });
   }],
   postRun: [function() {
-    Module.__inbeRuntimeReady = true;
-    hideLoadingScreen();
-    runLaunchCommand();
+    markRuntimeReady();
   }],
   locateFile: function(path, prefix) {
     if (path === 'index.wasm' || path === 'index.data') {
@@ -197,10 +202,14 @@ var Module = {
   },
   print: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+    Module.__inbeLastLog = text;
+    if (/INBE: Global app pointer set/.test(text)) markRuntimeReady();
     console.log(text);
   },
   printErr: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+    Module.__inbeLastLog = text;
+    if (/INBE: Global app pointer set/.test(text)) markRuntimeReady();
     console.error(text);
   },
   canvas: (function() {
