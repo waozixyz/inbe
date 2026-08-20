@@ -177,26 +177,30 @@ practice_card_color_bottom :: (exercise: int) -> Color {
     return (Color){43, 93, 118, 255}
 }
 
-practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle) {
-    src_w := 0.0f
-    src_h := 0.0f
-    scale := 0.0f
-    src := (Rectangle){0}
+practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
+                              exercise: int) {
+    radius := (int)(dest.height * 0.08f)
+    style: UIPictureStyle
 
     if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
         return
     }
-    src_w = (float)texture.width
-    src_h = (float)texture.height
-    scale = dest.width / src_w
-    if src_h * scale < dest.height {
-        scale = dest.height / src_h
+    if radius < ScaleUIPx(4) {
+        radius = ScaleUIPx(4)
     }
-    src.width = dest.width / scale
-    src.height = dest.height / scale
-    src.x = (src_w - src.width) / 2.0f
-    src.y = (src_h - src.height) / 2.0f
-    DrawTexturePro(texture, src, dest, (Vector2){0}, 0.0f, WHITE)
+    style = (UIPictureStyle){
+        .background = GetThemeBackground(),
+        .tonal_overlay = Fade(practice_card_color_bottom(exercise), 0.20f),
+        .surface_overlay = Fade(GetThemeSurface(), 0.16f),
+        .scrim_top = Fade(GetThemeBackground(), 0.02f),
+        .scrim_bottom = Fade(GetThemeBackground(), 0.26f),
+        .outline = Fade(GetThemeText(), 0.22f),
+        .roundness = 0.08f,
+        .radius_px = radius,
+        .segments = 10,
+        .outline_px = ScaleUIPx(1)
+    }
+    UIDrawStyledCoverPicture(texture, dest, style)
 }
 
 practice_card_banner :: (app: const InbeApp*, exercise: int) -> Texture2D {
@@ -896,11 +900,12 @@ page start(app: InbeApp*) {
     app->practice_home_bounds_valid = 1
     banner: Texture2D = practice_card_banner(app, app->exercise_type)
     if banner.id != 0 {
-        practice_draw_card_banner(banner, card)
+        practice_draw_card_banner(banner, card, app->exercise_type)
     } else {
         DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
+        DrawRectangleRoundedLinesEx(card, 0.08f, 10, ScaleUIPx(1),
+                                    Fade(GetThemeText(), 0.22f))
     }
-    DrawRectangleLinesEx(card, ScaleUIPx(2), LightenUIColor(GetThemeBackground(), 55))
 
     carousel_count = practice_visible_count(app)
     y += card_h

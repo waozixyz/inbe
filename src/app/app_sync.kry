@@ -236,6 +236,9 @@ app_social_practice_id :: (practice: int) -> const char* #private {
     if practice == EXERCISE_SUN_SALUTATION {
         return "sun_salutation"
     }
+    if practice == EXERCISE_PATTERNS {
+        return "patterns"
+    }
     return "whm"
 }
 

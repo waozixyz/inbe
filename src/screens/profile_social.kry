@@ -64,6 +64,9 @@ practice_id :: (index: int) -> const char* #private {
     if index == EXERCISE_SUN_SALUTATION {
         return "sun_salutation"
     }
+    if index == EXERCISE_PATTERNS {
+        return "patterns"
+    }
     return "whm"
 }
 
@@ -73,6 +76,9 @@ practice_label :: (index: int) -> const char* #private {
     }
     if index == EXERCISE_SUN_SALUTATION {
         return GetLocaleText("exercise_sun_salutation")
+    }
+    if index == EXERCISE_PATTERNS {
+        return GetLocaleText("exercise_patterns")
     }
     return GetLocaleText("exercise_wim_hof")
 }
@@ -512,13 +518,14 @@ draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
     Text(value, x + w - rank_w, y, font, GetThemeText())
 }
 
-leaderboard_zero_value :: (app: InbeApp*, out: char*, out_size: size_t) #private {
+leaderboard_zero_value :: (app: InbeApp*, metric: int, out: char*,
+                           out_size: size_t) #private {
     if out == nil || out_size == 0 {
         return
     }
     if app != nil &&
        app->profile_leaderboard_practice == EXERCISE_MEDITATION &&
-       app->profile_leaderboard_metric == PROFILE_LEADERBOARD_AVG_HOLD {
+       metric == PROFILE_LEADERBOARD_AVG_HOLD {
         format_leaderboard_time(0, out, out_size)
         return
     }
@@ -578,6 +585,57 @@ row_seen :: (rows: const ProfileLeaderboardDrawRow*, count: int,
     return 0
 }
 
+append_missing_friend_rows :: (app: InbeApp*, rows: ProfileLeaderboardDrawRow*,
+                              count: int*) #private {
+    friend_count := 0
+
+    if app == nil || rows == nil || count == nil {
+        return
+    }
+    if !app->profile_friends_loaded {
+        load_friends_cache(app)
+    }
+
+    friend_count = storage_json_array_count_path(app->profile_friends_json,
+                                                 "$.friends")
+    for int i = 0; i < friend_count && *count < 24; i++ {
+        user_id: [80] char = {0}
+        alias: [48] char = {0}
+
+        if !storage_json_array_object_text(app->profile_friends_json,
+                                           "$.friends", i, "user_id_hash",
+                                           user_id, sizeof(user_id)) {
+            storage_json_array_object_text(app->profile_friends_json,
+                                              "$.friends", i, "id",
+                                              user_id, sizeof(user_id))
+        }
+        if user_id[0] == '\0' || row_seen(rows, *count, user_id) {
+            continue
+        }
+
+        storage_json_array_object_text(app->profile_friends_json,
+                                          "$.friends", i, "alias",
+                                          alias, sizeof(alias))
+        snprintf(rows[*count].user_id, sizeof(rows[*count].user_id), "%s",
+                    user_id)
+        snprintf(rows[*count].alias, sizeof(rows[*count].alias), "%s",
+                    alias)
+        leaderboard_zero_value(app, PROFILE_LEADERBOARD_STREAK,
+                               rows[*count].streak,
+                               sizeof(rows[*count].streak))
+        leaderboard_zero_value(app, PROFILE_LEADERBOARD_AVG_HOLD,
+                               rows[*count].average,
+                               sizeof(rows[*count].average))
+        leaderboard_zero_value(app, app->profile_leaderboard_metric,
+                               rows[*count].value,
+                               sizeof(rows[*count].value))
+        rows[*count].streak_sort = 0.0
+        rows[*count].average_sort = 0.0
+        rows[*count].sort_value = 0.0
+        (*count)++
+    }
+}
+
 row_compare :: (left_ptr: const void*, right_ptr: const void*) -> int #private {
     left := (const ProfileLeaderboardDrawRow*)left_ptr
     right := (const ProfileLeaderboardDrawRow*)right_ptr
@@ -612,9 +670,12 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
                                                app->profile_leaderboard_metric,
                                                self_value,
                                                sizeof(self_value))
+    friend_count := app != nil ? json_array_count(app->profile_friends_json,
+                                                  "friends") : 0
 
     cache_rows = storage_json_array_count_path(json, "$.rows")
-    if app_social_refresh_loading() {
+    has_visible_rows := cache_rows > 0 || friend_count > 0 || has_account
+    if app_social_refresh_loading() && !has_visible_rows {
         spinner_x := x + ScaleUIPx(10)
         spinner_y := *y + ScaleUIPx(9)
         angle := app != nil ? (float)((app->inbe.frame * 5) % 360) : 0.0f
@@ -626,9 +687,7 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
              x + ScaleUIPx(24), *y, small,
              DarkenUIColor(GetThemeText(), 20))
         *y += ScaleUIPx(30)
-        if cache_rows <= 0 {
-            return
-        }
+        return
     }
     for int i = 0; i < cache_rows && rows < 24; i++ {
         alias: [48] char = {0}
@@ -668,8 +727,12 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
         snprintf(draw_rows[rows].value,
                     sizeof(draw_rows[rows].value), "%s", value)
         draw_rows[rows].sort_value = number
+        draw_rows[rows].streak_sort = number
+        draw_rows[rows].average_sort = number
         rows++
     }
+
+    append_missing_friend_rows(app, draw_rows, &rows)
 
     if has_account && !self_seen && rows < 24 {
         alias_text := storage_get_setting_text("sync_account_alias")
@@ -683,6 +746,8 @@ draw_leaderboard_rows :: (app: InbeApp*, json: const char*,
         snprintf(draw_rows[rows].value,
                     sizeof(draw_rows[rows].value), "%s", self_value)
         draw_rows[rows].sort_value = self_sort_value
+        draw_rows[rows].streak_sort = self_sort_value
+        draw_rows[rows].average_sort = self_sort_value
         rows++
     }
 
@@ -732,6 +797,8 @@ leaderboard_row_count :: (app: InbeApp*, json: const char*) -> int #private {
         rows++
     }
 
+    append_missing_friend_rows(app, draw_rows, &rows)
+
     if has_account && !self_seen && rows < 24 {
         snprintf(draw_rows[rows].user_id,
                     sizeof(draw_rows[rows].user_id), "%s",
@@ -778,6 +845,8 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
     account: KsyncAccount
     has_account := sync_account_load(&account) && account.public_id[0] != '\0'
     self_seen := 0
+    friend_count := app != nil ? json_array_count(app->profile_friends_json,
+                                                  "friends") : 0
     columns: [3] const char* = {
         GetLocaleText("profile_friends_title"),
         GetLocaleText("profile_metric_streak"),
@@ -791,16 +860,16 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
     name_w := show_average ? w / 2 : (w * 2) / 3
     value_w := show_average ? (w - name_w) / 2 : w - name_w
 
-    if app_social_refresh_loading() {
+    has_visible_rows := streak_count > 0 || avg_count > 0 ||
+                        friend_count > 0 || has_account
+    if app_social_refresh_loading() && !has_visible_rows {
         angle := (float)((app->inbe.frame * 5) % 360)
         DrawRing((Vector2){(float)(x + ScaleUIPx(10)),
                            (float)(*y + ScaleUIPx(9))},
                  (float)ScaleUIPx(5), (float)ScaleUIPx(7), angle,
                  angle + 270.0f, 24, GetThemeText())
         *y += ScaleUIPx(20)
-        if streak_count <= 0 && avg_count <= 0 {
-            return
-        }
+        return
     }
 
     for int i = 0; i < streak_count && count < 24; i++ {
@@ -847,6 +916,8 @@ draw_combined_leaderboard :: (app: InbeApp*, x: int, w: int,
         }
         count++
     }
+
+    append_missing_friend_rows(app, rows, &count)
 
     if has_account && !self_seen && count < 24 {
         alias_text := storage_get_setting_text("sync_account_alias")
@@ -1000,13 +1071,12 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
         return
     }
 
-    # Patterns do not have a server leaderboard yet.
-    for int i = 0; i < EXERCISE_PATTERNS; i++ {
+    for int i = 0; i < EXERCISE_COUNT; i++ {
         practice_options[i] = practice_label(i)
     }
 
     if app->profile_leaderboard_practice < 0 ||
-       app->profile_leaderboard_practice >= EXERCISE_PATTERNS {
+       app->profile_leaderboard_practice >= EXERCISE_COUNT {
         app->profile_leaderboard_practice = EXERCISE_WIM_HOF
     }
     if app->profile_leaderboard_metric < 0 ||
@@ -1036,7 +1106,7 @@ draw_leaderboard :: (app: InbeApp*, x: int, w: int, y: int*) {
 
     before_practice = app->profile_leaderboard_practice
     Dropdown(811, x, *y, w, ScaleUIPx(36),
-                            practice_options, EXERCISE_PATTERNS,
+                            practice_options, EXERCISE_COUNT,
                             &app->profile_leaderboard_practice)
     if app->profile_leaderboard_practice != before_practice {
         current_metric_count = metric_count(app->profile_leaderboard_practice)
