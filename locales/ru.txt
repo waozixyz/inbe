@@ -1625,8 +1625,6 @@ Inner Breeze
 [theme_sky]
 Небо
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Стиль

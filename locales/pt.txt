@@ -1625,8 +1625,6 @@ Sépia
 [theme_sky]
 Céu
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Estilo

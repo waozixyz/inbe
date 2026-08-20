@@ -1624,8 +1624,6 @@ Inner Breeze
 [theme_sky]
 하늘
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 스타일

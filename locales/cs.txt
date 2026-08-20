@@ -1625,8 +1625,6 @@ Sépie
 [theme_sky]
 Nebe
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Styl

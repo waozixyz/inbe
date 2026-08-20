@@ -1627,8 +1627,6 @@ Inner Breeze
 [theme_sky]
 空
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 スタイル

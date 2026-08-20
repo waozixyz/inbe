@@ -1623,8 +1623,6 @@ Sepia
 [theme_sky]
 Sky
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Style

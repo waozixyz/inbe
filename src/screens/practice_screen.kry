@@ -177,9 +177,23 @@ practice_card_color_bottom :: (exercise: int) -> Color {
     return (Color){43, 93, 118, 255}
 }
 
+practice_card_radius_px :: () -> int #private {
+    return ScaleUIPx(12)
+}
+
+practice_card_roundness :: (bounds: Rectangle) -> float #private {
+    radius := practice_card_radius_px()
+    min_side := bounds.width < bounds.height ? bounds.width : bounds.height
+
+    if min_side <= 0.0f {
+        return 0.0f
+    }
+    return ((float)radius * 2.0f) / min_side
+}
+
 practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
                               exercise: int) {
-    radius := (int)(dest.height * 0.08f)
+    radius := practice_card_radius_px()
     style: UIPictureStyle
 
     if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
@@ -195,7 +209,7 @@ practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
         .scrim_top = Fade(GetThemeBackground(), 0.02f),
         .scrim_bottom = Fade(GetThemeBackground(), 0.26f),
         .outline = Fade(GetThemeText(), 0.22f),
-        .roundness = 0.08f,
+        .roundness = 0.0f,
         .radius_px = radius,
         .segments = 10,
         .outline_px = ScaleUIPx(1)
@@ -903,7 +917,7 @@ page start(app: InbeApp*) {
         practice_draw_card_banner(banner, card, app->exercise_type)
     } else {
         DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
-        DrawRectangleRoundedLinesEx(card, 0.08f, 10, ScaleUIPx(1),
+        DrawRectangleRoundedLinesEx(card, practice_card_roundness(card), 10, ScaleUIPx(1),
                                     Fade(GetThemeText(), 0.22f))
     }
 

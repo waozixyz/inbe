@@ -1625,8 +1625,6 @@ Seppia
 [theme_sky]
 Cielo
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Stile

@@ -1625,8 +1625,6 @@ Sepia
 [theme_sky]
 Langit
 ---
-[theme_style_aero]
-Aero
 ---
 [theme_style_label]
 Gaya
