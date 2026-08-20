@@ -38,18 +38,8 @@ jobs:
             test-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Test Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/test-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/test-packages.txt
 
       - name: Run Tests
         run: make test
@@ -79,18 +69,8 @@ jobs:
             web-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Web Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -148,18 +128,8 @@ jobs:
             web-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Web Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set up Emscripten
         run: |
@@ -212,18 +182,8 @@ jobs:
             web-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Web Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -281,18 +241,8 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/linux-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/linux-packages.txt
 
       - name: Install AppImage Tools
         run: |
@@ -324,13 +274,12 @@ jobs:
           test -n "$(find build/release/linux -type f -print -quit)"
 
       - name: Smoke Test Linux AppImage
+        timeout-minutes: 5
         env:
           APPIMAGE_EXTRACT_AND_RUN: "1"
           DISPLAY: ":99"
         run: |
           set -euo pipefail
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get install -y xvfb x11-utils
           appimage="$(find build/release/linux -maxdepth 1 -type f -name '*.AppImage' | head -n 1)"
           chmod +x "$appimage"
           Xvfb "$DISPLAY" -screen 0 800x600x24 >/tmp/inbe-xvfb.log 2>&1 &
@@ -385,18 +334,8 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/linux-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/linux-packages.txt
 
       - name: Build Debian Package
         run: |
@@ -440,18 +379,8 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/linux-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/linux-packages.txt
 
       - name: Build RPM Package
         run: |
@@ -495,18 +424,8 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/linux-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/linux-packages.txt
 
       - name: Build Snap Package
         run: |
@@ -547,18 +466,8 @@ jobs:
             linux-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Linux Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/linux-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/linux-packages.txt
 
       - name: Build Flatpak Bundle
         run: |
@@ -643,18 +552,10 @@ jobs:
             windows-vendor-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Windows Dependencies
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          mapfile -t packages < .github/apt/windows-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+          .github/scripts/install-apt-packages.sh .github/apt/windows-packages.txt
           if [ -x /usr/bin/x86_64-w64-mingw32-gcc-win32 ]; then
             sudo update-alternatives --set x86_64-w64-mingw32-gcc /usr/bin/x86_64-w64-mingw32-gcc-win32
           fi
@@ -811,6 +712,12 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Checkout Kryon Appcast Tool
+        run: |
+          set -euo pipefail
+          git submodule update --init --depth 1 vendor/kryon
+          test -f vendor/kryon/scripts/make_appcast.py
+
       - name: Download Release Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -825,6 +732,8 @@ jobs:
 
       - name: Create and Push Tag If Version Is New
         id: tag_version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
@@ -836,8 +745,13 @@ jobs:
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag_name=$TAG" >> "$GITHUB_OUTPUT"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
-            echo "Tag $TAG exists, skipping release"
-            echo "tag_pushed=false" >> "$GITHUB_OUTPUT"
+            if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              echo "Tag $TAG and its GitHub release already exist, skipping release"
+              echo "tag_pushed=false" >> "$GITHUB_OUTPUT"
+            else
+              echo "Tag $TAG exists but its GitHub release is missing; publishing release"
+              echo "tag_pushed=true" >> "$GITHUB_OUTPUT"
+            fi
           else
             git config user.name "github-actions[bot]"
             git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -853,13 +767,15 @@ jobs:
           VERSION='${{ steps.tag_version.outputs.version }}'
           TAG="v$VERSION"
           BASE="https://github.com/waozixyz/inbe/releases/download/$TAG"
-          APPIMAGE="$(find build/release/linux -maxdepth 1 -name '*.AppImage' -print -quit || true)"
-          WINZIP="$(find build/release/windows -maxdepth 1 -name '*-windows.zip' -print -quit || true)"
-          DEB="$(find build/release/linux -maxdepth 1 -name '*.deb' -print -quit || true)"
-          RPM="$(find build/release/linux -maxdepth 1 -name '*.rpm' -print -quit || true)"
+          APPIMAGE="$(find build/release -maxdepth 2 -name '*.AppImage' -print -quit || true)"
+          WINZIP="$(find build/release -maxdepth 2 -name '*-windows.zip' -print -quit || true)"
+          DEB="$(find build/release -maxdepth 2 -name '*.deb' -print -quit || true)"
+          RPM="$(find build/release -maxdepth 2 -name '*.rpm' -print -quit || true)"
           channels=()
-          [ -n "$APPIMAGE" ] && ARCH_NAME="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
-          channels+=("--channel" "appimage-$ARCH_NAME=$APPIMAGE")
+          if [ -n "$APPIMAGE" ]; then
+            ARCH_NAME="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
+            channels+=("--channel" "appimage-$ARCH_NAME=$APPIMAGE")
+          fi
           [ -n "$WINZIP" ] && channels+=("--channel" "windows=$WINZIP")
           [ -n "$DEB" ] && channels+=("--channel" "deb=$DEB")
           [ -n "$RPM" ] && channels+=("--channel" "rpm=$RPM")
@@ -906,6 +822,9 @@ jobs:
             exit 1
           fi
 
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
       - name: Download Release Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -914,10 +833,10 @@ jobs:
           merge-multiple: true
 
       - name: Install Butler
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get install -y unzip
+          .github/scripts/install-apt-packages.sh .github/apt/empty-packages.txt unzip
           curl -fsSL \
             https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default \
             -o "$RUNNER_TEMP/butler.zip"

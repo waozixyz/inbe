@@ -1,5 +1,5 @@
 # Changelog
-## [1.9.6] - 2026-08-20
+## [1.9.7] - 2026-08-20
 ### Added
 - Pattern Breathing is now available wherever practice-specific options are shown, including the leaderboard, habits and music assignment.
 - Every practice can now have background music assigned directly from its practice settings.
@@ -8,13 +8,22 @@
 - Audio settings now use one music import action and show the practices that already have music assigned.
 - Practices are ordered consistently as Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
 - Practice banners now follow the active visual style, sit cleanly inside their rounded borders and keep a small bottom gap from the controls below.
-- The support prompt waits longer before appearing.
 
 ### Fixed
 - Leaderboard filtering keeps showing the last loaded rows while fresh data loads, instead of replacing the table with a loading placeholder.
 - Breathing-pattern leaderboards now keep the full friends list visible instead of collapsing to only the current user.
 - Leaderboard streak ties now use the secondary stat when one exists, such as average hold for Wim Hof.
 - Music download, install and playback-test status messages are now translated.
+
+## [1.9.6] - 2026-08-19
+### Changed
+- Donation reminders now wait until 30 completed practices, repeat only after another 30 practices, and offer Donate, Skip, or Dismiss forever without a separate remind-later option.
+
+### Fixed
+- Web builds now fall back to the Canvas renderer automatically when WebGL is unavailable, instead of stopping on a WebGL-disabled message.
+- Canvas hover cursors now update consistently while using the Canvas renderer.
+- Break reminders and break settings stay desktop-only and no longer appear in the Web settings sidebar.
+- Desktop break timer windows now stay visible when switching workspaces.
 
 ## [1.9.5] - 2026-08-19
 ### Added

@@ -19,6 +19,7 @@ SettingsScrollPageContext :: struct {
 theme_panel :: #import "src/screens/settings/settings_theme"
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
+DESKTOP :: !ANDROID && !WEB
 
 state {
     unified_status: [256] char = ""
@@ -93,8 +94,10 @@ settings_tab_content_height :: (app: InbeApp*, tab: int, content_w: int) -> int 
     if tab == SETTINGS_TAB_AUDIO {
         return settings_audio_content_height(app, content_w)
     }
-    if tab == SETTINGS_TAB_BREAKS {
-        return settings_breaks_content_height(app, content_w)
+    #if DESKTOP {
+        if tab == SETTINGS_TAB_BREAKS {
+            return settings_breaks_content_height(app, content_w)
+        }
     }
     if tab == SETTINGS_TAB_NOTIFICATIONS {
         return settings_notifications_content_height(app, content_w)
@@ -122,8 +125,10 @@ settings_screen_tab_label :: (tab: int) -> const char* {
     if tab == SETTINGS_TAB_AUDIO {
         return GetLocaleText("settings_tab_audio")
     }
-    if tab == SETTINGS_TAB_BREAKS {
-        return GetLocaleText("settings_tab_breaks")
+    #if DESKTOP {
+        if tab == SETTINGS_TAB_BREAKS {
+            return GetLocaleText("settings_tab_breaks")
+        }
     }
     if tab == SETTINGS_TAB_NOTIFICATIONS {
         return GetLocaleText("settings_tab_notifications")
@@ -159,6 +164,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     page_ctx := (SettingsScrollPageContext){0}
     page := (UIScrollPage){0}
     y := 0
+    drawn := 0
 
     if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
         app->settings_drag_slider = 0
@@ -167,7 +173,7 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     if app->settings_tab < 0 || app->settings_tab >= SETTINGS_TAB_COUNT {
         app->settings_tab = SETTINGS_TAB_DEVICE
     }
-    #if ANDROID {
+    #if !DESKTOP {
         if app->settings_tab == SETTINGS_TAB_BREAKS {
             app->settings_tab = SETTINGS_TAB_DEVICE
         }
@@ -200,15 +206,27 @@ settings_screen_draw :: (app: InbeApp*) -> int {
     if app->settings_tab == SETTINGS_TAB_THEME {
         theme_panel.draw(app, page.content_x, page.content_w,
                             &y, &app->theme_state)
-    } else if app->settings_tab == SETTINGS_TAB_AUDIO {
+        drawn = 1
+    }
+    if drawn == 0 && app->settings_tab == SETTINGS_TAB_AUDIO {
         settings_audio_draw(app, page.content_x, page.content_w, &y)
-    } else if app->settings_tab == SETTINGS_TAB_DEVICE {
+        drawn = 1
+    }
+    if drawn == 0 && app->settings_tab == SETTINGS_TAB_DEVICE {
         settings_device_draw(app, page.content_x, page.content_w, &y, &device_state)
-    } else if app->settings_tab == SETTINGS_TAB_BREAKS {
-        settings_breaks_draw(app, page.content_x, page.content_w, &y)
-    } else if app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
+        drawn = 1
+    }
+    #if DESKTOP {
+        if drawn == 0 && app->settings_tab == SETTINGS_TAB_BREAKS {
+            settings_breaks_draw(app, page.content_x, page.content_w, &y)
+            drawn = 1
+        }
+    }
+    if drawn == 0 && app->settings_tab == SETTINGS_TAB_NOTIFICATIONS {
         settings_notifications_draw(app, page.content_x, page.content_w, &y)
-    } else {
+        drawn = 1
+    }
+    if drawn == 0 {
         settings_about_draw(app, page.content_x, page.content_w, &y)
     }
 

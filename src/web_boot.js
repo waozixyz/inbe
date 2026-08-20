@@ -1,6 +1,7 @@
 var statusElement = document.querySelector('#status');
 var progressElement = document.querySelector('#progress');
 var loadingScreen = document.querySelector('#loading-screen');
+var canvasFallbackPath = 'canvas/';
 
 function storageOriginLooksPersistent() {
   var protocol = window.location && window.location.protocol;
@@ -41,10 +42,11 @@ window.__inbeLoadApp = function(src) {
 
   if (renderer !== 'canvas' && !webglAvailable()) {
     if (statusElement) {
-      statusElement.textContent = 'WebGL is disabled. Enable WebGL in this browser to run Inner Breeze.';
+      statusElement.textContent = 'Starting Canvas renderer...';
     }
     if (progressElement) progressElement.hidden = true;
-    console.error('INBE: WebGL is disabled or unavailable');
+    console.warn('INBE: WebGL is disabled or unavailable; using Canvas renderer');
+    window.location.replace(canvasFallbackPath + window.location.search + window.location.hash);
     return;
   }
 

@@ -63,18 +63,8 @@ jobs:
             test-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Test Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/test-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/test-packages.txt
 
       - name: Run Tests
         run: make test
@@ -104,18 +94,8 @@ jobs:
             web-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Web Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -176,18 +156,8 @@ jobs:
             web-apt-${{ runner.os }}-${{ runner.arch }}-
 
       - name: Install Web Dependencies
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          mkdir -p "$APT_CACHE_DIR/partial"
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update
-          sudo apt-get \
-            -o Acquire::Retries=5 \
-            -o Acquire::http::Timeout=30 \
-            -o Acquire::https::Timeout=30 \
-            -o Dir::Cache::archives="$APT_CACHE_DIR" \
-            install -y "${packages[@]}"
-          sudo chown -R "$USER:$USER" "$APT_CACHE_DIR"
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
@@ -214,14 +184,15 @@ jobs:
           make firefox-addons-lint
 
       - name: Install Firefox (Mozilla build)
+        timeout-minutes: 15
         run: |
           set -euo pipefail
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends xvfb \
-            libgl1-mesa-dri libgl1 libegl1 mesa-utils || true
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
+          .github/scripts/install-apt-packages.sh .github/apt/empty-packages.txt \
+            xvfb libgl1-mesa-dri libgl1 libegl1 mesa-utils || true
+          .github/scripts/install-apt-packages.sh .github/apt/empty-packages.txt \
             libgtk-3-0t64 libx11-xcb1 libxcb-shm0 libasound2t64 libdbus-glib-1-2 \
             libxt6t64 libxtst6 libpci3 || \
-          sudo apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 install -y --no-install-recommends \
+          .github/scripts/install-apt-packages.sh .github/apt/empty-packages.txt \
             libgtk-3-0 libx11-xcb1 libxcb-shm0 libasound2 libdbus-glib-1-2 libxt6 libxtst6 libpci3
           curl -sL "https://download.mozilla.org/?product=firefox-latest&os=linux64&lang=en-US" \
             -o "$HOME/firefox.tar.xz"

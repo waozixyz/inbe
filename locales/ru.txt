@@ -1725,11 +1725,8 @@ Inner Breeze is free and open source. If it helps you, a small donation supports
 [donation_reminder_donate_button]
 Donate
 ---
-[donation_reminder_later_button]
-Remind later
----
 [donation_reminder_skip_button]
-Skip this month
+Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever

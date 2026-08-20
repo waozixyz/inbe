@@ -454,6 +454,13 @@ WEB_TARGET := $(WEB_DIST_DIR)/index.html
 WEB_APP_SCRIPT := <script>window.__inbeRenderer="raylib";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
 WEB_JS_TARGET := $(WEB_DIST_DIR)/index.js
 WEB_BOOT_JS := src/web_boot.js
+# Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
+# raylib+GLFW - no libraylib.web.a, no WebGL. The app and support libraries
+# are still Emscripten/WASM, including ksync/liboqs for sync-account parity.
+WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
+WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
+WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
+KRYON_CANVAS_SRCS := $(filter-out $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
 WEB_DIST_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-web.zip
 WEB_SMOKE_BROWSER ?= auto
 WEB_SMOKE_TEST := scripts/web-smoke-test.mjs
@@ -1293,25 +1300,18 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQ
 		-lidbfs.js \
 		-lm
 
-$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
+$(WEB_TARGET): src/web_shell.html $(WEB_BOOT_JS) $(WEB_JS_TARGET) $(WEB_CANVAS_TARGET) vendor/kryon/web/kryon-web-present.js manifest.json $(WEB_ASSET_FILES) $(MEDITATION_AUDIO_ZIP) validate-meditation-audio | $(WEB_DIST_DIR)
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_DIST_DIR)/index_boot.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/index_boot.js
 	cp vendor/kryon/web/kryon-web-present.js $(WEB_DIST_DIR)/kryon-web-present.js
 	perl -0pi -e 's/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' $(WEB_DIST_DIR)/kryon-web-present.js
+	rm -rf $(WEB_DIST_DIR)/canvas
+	cp -R $(WEB_CANVAS_DIR) $(WEB_DIST_DIR)/canvas
 	rm -rf $(WEB_DIST_DIR)/web-assets $(WEB_DIST_DIR)/site-icons
 	cp -R web-assets $(WEB_DIST_DIR)/
 	cp -R site-icons $(WEB_DIST_DIR)/
 	cp manifest.json $(WEB_DIST_DIR)/webmanifest.json
-
-
-# Canvas-backend web build: kryon's HTML5 Canvas2D Tier A backend instead of
-# raylib+GLFW - no libraylib.web.a, no WebGL. The app and support libraries
-# are still Emscripten/WASM, including ksync/liboqs for sync-account parity.
-WEB_CANVAS_DIR := $(BUILD_DIST_DIR)/web-canvas
-WEB_CANVAS_TARGET := $(WEB_CANVAS_DIR)/index.html
-WEB_CANVAS_APP_SCRIPT := <script>window.__inbeRenderer="canvas";window.__inbeLoadApp("index.js?v=$(WEB_CACHE_BUSTER)")</script>
-KRYON_CANVAS_SRCS := $(filter-out $(KRYON_RAYLIB_WRAPPERS_C),$(KRYON_SRCS))
 
 web-canvas: $(WEB_CANVAS_TARGET)
 

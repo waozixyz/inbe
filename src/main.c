@@ -725,15 +725,20 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->practice_tab = PRACTICE_TAB_CONFIG;
         app->inbe.screen = InbeScreenStart;
     } else if(strcmp(request->scene, "break_exercises") == 0) {
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
         app->inbe.screen = InbeScreenBreakExercises;
+#endif
     } else if(strcmp(request->scene, "break_settings") == 0) {
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->settings_tab = SETTINGS_TAB_BREAKS;
         app->breaks_enabled = 1;
         app->inbe.screen = InbeScreenSettings;
+#endif
     } else if(strcmp(request->scene, "break_micro") == 0 ||
               strcmp(request->scene, "break_rest") == 0 ||
               strcmp(request->scene, "break_daily") == 0) {
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
         int t = strcmp(request->scene, "break_rest") == 0 ? BREAK_REST
                 : strcmp(request->scene, "break_daily") == 0 ? BREAK_DAILY
                 : BREAK_MICRO;
@@ -756,6 +761,7 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
             app->break_ex_paused = 0;
             app->break_ex_hidden = 0;
         }
+#endif
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
         app->practice_tab = PRACTICE_TAB_MANUAL;

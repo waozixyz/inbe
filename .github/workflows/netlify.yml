@@ -27,11 +27,8 @@ jobs:
           lfs: true
 
       - name: Install Packages
-        run: |
-          set -euo pipefail
-          mapfile -t packages < .github/apt/web-packages.txt
-          sudo apt-get update
-          sudo apt-get install -y "${packages[@]}" tcl
+        timeout-minutes: 15
+        run: .github/scripts/install-apt-packages.sh .github/apt/web-packages.txt
 
       - name: Set Up Emscripten
         run: |
@@ -105,18 +102,12 @@ jobs:
           name: inbe-site
           path: build/site
 
-      - name: Install Packages
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y zip
-
       - name: Package Site
         run: |
           set -euo pipefail
           test -f build/site/index.html
           cd build/site
-          zip -qr ../inbe-site.zip .
+          python3 -m zipfile -c ../inbe-site.zip .
           test -s ../inbe-site.zip
 
       - name: Deploy Production To Netlify
