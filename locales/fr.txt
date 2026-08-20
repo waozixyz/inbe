@@ -94,6 +94,9 @@ Aucun compte
 [profile_add_friend_button]
 Ajouter un ami
 ---
+[profile_friend_input_label]
+Alias ou ID public de l’ami
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 Réessayer
 ---
-[audio_import_music_for_practice_button]
-Importer de la musique pour cette pratique
+[audio_import_music_button]
+Importer de la musique
 ---
 [audio_imported_and_selected]
 Musique importée et sélectionnée
@@ -839,8 +842,8 @@ Meilleure série
 [theme_picker_title]
 Choisir un thème
 ---
-[practice_music_enabled_label]
-Lire pendant cette pratique
+[practice_background_music_label]
+Musique de fond
 ---
 [appearance_scale_label]
 Échelle
@@ -1271,6 +1274,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Pratiques avec musique
+---
+[audio_music_no_practices]
+Aucune pratique n’utilise de musique de fond. Ajoutez-la depuis les réglages d’une pratique.
 ---
 [audio_custom_music_title]
 Custom music

@@ -668,16 +668,15 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
                                                y: int*,
                                                show_installed_download: int,
                                                show_status: int) {
-    toggle_w := ScaleUIPx(56)
-    toggle_h := ScaleUIPx(30)
     button_h := ScaleUIPx(36)
     button_w: int
     hover := 0
     installed: int
-    enabled: int
+    selected_track: int
+    selection: int
     test_label: const char*
     download_status: [96] char
-    track_options: [INBE_AUDIO_MUSIC_COUNT_MAX] const char*
+    track_options: [INBE_AUDIO_MUSIC_COUNT_MAX + 1] const char*
     track_count: int
 
     if app == nil || y == nil {
@@ -686,55 +685,61 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
 
     sanitize_practice_music(app)
     practice = practice_clamp_id(practice)
-    enabled = (app->meditation.music_practice_mask & (1 << practice)) != 0
+    selected_track = app->meditation.music_practice_tracks[practice]
+    if selected_track < 0 {
+        selected_track = INBE_AUDIO_MUSIC_NONE
+        app->meditation.music_practice_tracks[practice] = INBE_AUDIO_MUSIC_NONE
+        app->meditation.music_practice_mask &= ~(1 << practice)
+    } else {
+        app->meditation.music_practice_mask |= 1 << practice
+    }
 
-    Text(GetLocaleText("practice_music_enabled_label"),
+    Text(GetLocaleText("practice_background_music_label"),
                   content_x,
                   *y,
                   GetUIFontSize(),
                   GetThemeText())
-    if Toggle(0, content_x,
-                          *y + ScaleUIPx(26),
-                          toggle_w,
-                          toggle_h,
-                          &enabled,
-                          GetLocaleText("toggle_off"),
-                          GetLocaleText("toggle_on")) {
-        if enabled {
-            app->meditation.music_practice_mask |= 1 << practice
-        } else {
-            app->meditation.music_practice_mask &= ~(1 << practice)
-        }
-        app->settings_dirty = 1
-        meditation_music_unload(app)
-    }
-    *y += ScaleUIPx(76)
-
-    if !enabled {
-        return
-    }
 
     track_count = app_audio_music_count(app)
     if track_count > INBE_AUDIO_MUSIC_COUNT_MAX {
         track_count = INBE_AUDIO_MUSIC_COUNT_MAX
     }
+    track_options[0] = GetLocaleText("audio_music_none_option")
     for int i = 0; i < track_count; i++ {
-        track_options[i] = app_audio_music_label(app, i)
+        track_options[i + 1] = app_audio_music_label(app, i)
+    }
+
+    selection = selected_track == INBE_AUDIO_MUSIC_NONE ? 0 : selected_track + 1
+    if selection < 0 || selection > track_count {
+        selection = 0
     }
     if Dropdown(451 + practice,
                             content_x,
-                            *y,
+                            *y + ScaleUIPx(26),
                             content_w,
                             ScaleUIPx(36),
                             track_options,
-                            track_count,
-                            &app->meditation.music_practice_tracks[practice]) {
+                            track_count + 1,
+                            &selection) {
+        if selection <= 0 {
+            app->meditation.music_practice_tracks[practice] = INBE_AUDIO_MUSIC_NONE
+            app->meditation.music_practice_mask &= ~(1 << practice)
+        } else {
+            app->meditation.music_practice_tracks[practice] = selection - 1
+            app->meditation.music_practice_mask |= 1 << practice
+            app->meditation.music_track =
+                app->meditation.music_practice_tracks[practice]
+        }
         app->settings_dirty = 1
-        app->meditation.music_track =
-            app->meditation.music_practice_tracks[practice]
         meditation_music_unload(app)
+        save_settings(app)
     }
-    *y += ScaleUIPx(48)
+    *y += ScaleUIPx(78)
+
+    selected_track = app->meditation.music_practice_tracks[practice]
+    if selected_track == INBE_AUDIO_MUSIC_NONE {
+        return
+    }
 
     installed = meditation_music_available(app)
     if installed {
@@ -819,8 +824,8 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
                                                   show_installed_download: int,
                                                   show_status: int) -> int {
     installed: int
-    h := ScaleUIPx(76)
-    enabled: int
+    h := ScaleUIPx(78)
+    selected_track: int
 
     if app == nil {
         return 0
@@ -828,12 +833,11 @@ meditation_music_measure_practice_settings :: (app: InbeApp*,
 
     sanitize_practice_music(app)
     practice = practice_clamp_id(practice)
-    enabled = (app->meditation.music_practice_mask & (1 << practice)) != 0
-    if !enabled {
+    selected_track = app->meditation.music_practice_tracks[practice]
+    if selected_track == INBE_AUDIO_MUSIC_NONE {
         return h
     }
 
-    h += ScaleUIPx(48)
     installed = meditation_music_available(app)
     if installed {
         h += ScaleUIPx(48)

@@ -390,12 +390,20 @@ audio_import_path :: (app: InbeApp*, action: int, path: const char*) -> int #pri
 settings_audio_select_imported_music :: (app: InbeApp*, action: int,
                                          practice: int) #private {
     if app == nil || action != SETTINGS_AUDIO_ACTION_MUSIC ||
-       practice < 0 || practice >= practice_count() ||
        app->audio_custom_music_count <= 0 {
         return
     }
     track := INBE_AUDIO_BUILTIN_MUSIC_COUNT + app->audio_custom_music_count - 1
+    if practice < 0 || practice >= practice_count() {
+        app->meditation.music_track = track
+        app_audio_music_sanitize_selection(app)
+        save_settings(app)
+        settings_audio_set_status_success(action, GetLocaleText("audio_imported"))
+        TraceLog(LOG_INFO, "AUDIO: Imported custom music track %d", track)
+        return
+    }
     app->meditation.music_practice_tracks[practice] = track
+    app->meditation.music_practice_mask |= 1 << practice
     app->meditation.music_track = track
     app_audio_music_sanitize_selection(app)
     save_settings(app)
@@ -560,9 +568,24 @@ settings_audio_output_height :: (content_w: int) -> int #private {
         settings_ui_audio_meter_height() + ScaleUIPx(18)
 }
 
+settings_audio_music_assignment_count :: (app: InbeApp*) -> int #private {
+    count := 0
+
+    if app == nil {
+        return 0
+    }
+    for int p = 0; p < practice_count(); p++ {
+        if app->meditation.music_practice_tracks[p] != INBE_AUDIO_MUSIC_NONE {
+            count++
+        }
+    }
+    return count
+}
+
 settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
     custom_sound_count := 0
     custom_music_count := 0
+    music_assignment_count := 0
     height := settings_audio_output_height(content_w)
 
     height += ScaleUIPx(66) * 2
@@ -597,8 +620,10 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
 
     height += ScaleUIPx(30)
     height += ScaleUIPx(36) + ScaleUIPx(12)
+    height += settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_MUSIC)
     if app != nil {
         status := app->meditation.music_download.status
+        music_assignment_count = settings_audio_music_assignment_count(app)
         if !meditation_music_available(app) || status != RUNTIME_ASSET_IDLE {
             if status == RUNTIME_ASSET_DOWNLOADING {
                 height += ScaleUIPx(28) + ScaleUIPx(22)
@@ -607,26 +632,11 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
             }
         }
     }
-    practice_total_h := 0
-    practice_n := practice_count()
-    for int p = 0; p < practice_n; p++ {
-        practice_total_h += ScaleUIPx(30) + ScaleUIPx(48) + ScaleUIPx(6)
-        if app != nil {
-            t := app->meditation.music_practice_tracks[p]
-            if t >= 0 && t < INBE_AUDIO_BUILTIN_MUSIC_COUNT {
-                spec := (UIParagraphSpec){
-                    .text = GetLocaleText("meditation_music_attribution"),
-                    .width = content_w,
-                    .font = UI_TEXT_12,
-                    .color = DarkenUIColor(GetThemeText(), 34),
-                }
-                practice_total_h += UIGetNodeHeight(UINodeParagraph(spec, 0, 0)) +
-                                     ScaleUIPx(10)
-            }
-        }
-    }
-    height += practice_total_h +
-              practice_n * settings_audio_import_button_height(SETTINGS_AUDIO_ACTION_MUSIC)
+    height += ScaleUIPx(30)
+    height += music_assignment_count > 0
+        ? ScaleUIPx(42) * music_assignment_count
+        : ScaleUIPx(24)
+    height += ScaleUIPx(12)
 
     if custom_music_count > 0 {
         height += ScaleUIPx(30) + ScaleUIPx(42) * custom_music_count
@@ -733,18 +743,14 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
 }
 
 draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
-    track_options: [INBE_AUDIO_MUSIC_COUNT_MAX + 1] const char*
     count := app_audio_music_count(app)
     button_w := ScaleUIPx(96)
     preview_w := ScaleUIPx(82)
     gap := ScaleUIPx(8)
 
+    app_audio_music_sanitize_selection(app)
     if count > INBE_AUDIO_MUSIC_COUNT_MAX {
         count = INBE_AUDIO_MUSIC_COUNT_MAX
-    }
-    track_options[0] = GetLocaleText("audio_music_none_option")
-    for int i = 0; i < count; i++ {
-        track_options[i + 1] = app_audio_music_label(app, i)
     }
 
     Text(GetLocaleText("audio_music_title"), x, *y,
@@ -752,60 +758,65 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += ScaleUIPx(30)
 
     draw_music_download(app, x, w, y)
+    draw_import_button(app, x, w, y, GetLocaleText("audio_import_music_button"),
+                       SETTINGS_AUDIO_ACTION_MUSIC, -1)
 
+    Text(GetLocaleText("audio_music_applied_title"), x, *y,
+               GetUIFontSize(), GetThemeText())
+    *y += ScaleUIPx(30)
     practice_total := practice_count()
+    assigned := 0
     for int p = 0; p < practice_total; p++ {
         hover := 0
-        row_label := practice_label(p)
-        dropdown_w := w - preview_w - gap
         current := app->meditation.music_practice_tracks[p]
-        selection := current == INBE_AUDIO_MUSIC_NONE ? 0 : current + 1
-        if selection < 0 {
-            selection = 0
-        }
-        if selection > count {
-            selection = 0
-        }
+        label_w := w - button_w - preview_w - gap * 2
 
-        Text(row_label, x, *y, GetUIFontSize(), GetThemeText())
-        *y += ScaleUIPx(30)
-        if dropdown_w < ScaleUIPx(140) {
-            dropdown_w = w
+        if current == INBE_AUDIO_MUSIC_NONE {
+            continue
         }
-        if Dropdown(451 + p, x, *y, dropdown_w, ScaleUIPx(36),
-                          track_options, count + 1, &selection) {
-            if selection <= 0 {
-                app->meditation.music_practice_tracks[p] = INBE_AUDIO_MUSIC_NONE
-            } else {
-                app->meditation.music_practice_tracks[p] = selection - 1
-            }
-            if app->meditation.music_practice_tracks[p] >= 0 {
-                app->meditation.music_track = app->meditation.music_practice_tracks[p]
-            } else {
-                app->meditation.music_track = 0
-            }
+        if current < 0 || current >= count {
+            continue
+        }
+        assigned++
+        if label_w < ScaleUIPx(80) {
+            label_w = w - button_w - gap
+        }
+        if label_w < ScaleUIPx(40) {
+            label_w = ScaleUIPx(40)
+        }
+        practice_text: [96] char = {0}
+        track_text: [INBE_AUDIO_LABEL_SIZE + 4] char = {0}
+        snprintf(practice_text, sizeof(practice_text), "%s", practice_label(p))
+        inbe_text_fit_ellipsis(app_audio_music_label(app, current), track_text,
+                                   sizeof(track_text), label_w, UI_TEXT_12)
+        Text(practice_text, x, *y + ScaleUIPx(2), UI_TEXT_12, GetThemeText())
+        Text(track_text, x, *y + ScaleUIPx(20), UI_TEXT_12,
+                   DarkenUIColor(GetThemeText(), 28))
+        if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
+                                     preview_w,
+                                     settings_audio_preview_music_playing(current),
+                                     app == nil || !app->audio_ready) {
+            settings_audio_toggle_music_preview(app, current)
+        }
+        if GenericButton(0, x + w - button_w, *y, button_w,
+                               ScaleUIPx(32), GetLocaleText("remove_button"),
+                               UI_BUTTON_STYLE_DANGER, 0, &hover) {
             settings_audio_stop_preview(app)
-            app_audio_music_sanitize_selection(app)
+            app->meditation.music_practice_tracks[p] = INBE_AUDIO_MUSIC_NONE
+            app->meditation.music_practice_mask &= ~(1 << p)
             meditation_music_unload(app)
             app->settings_dirty = 1
             save_settings(app)
+            return
         }
-        if dropdown_w < w && app->meditation.music_practice_tracks[p] >= 0 {
-            track_for_preview := app->meditation.music_practice_tracks[p]
-            if draw_audio_preview_button(x + dropdown_w + gap, *y + ScaleUIPx(2),
-                                         preview_w,
-                                         settings_audio_preview_music_playing(track_for_preview),
-                                         app == nil || !app->audio_ready) {
-                settings_audio_toggle_music_preview(app, track_for_preview)
-            }
-        }
-        *y += ScaleUIPx(48)
-        draw_music_attribution(x, w, app->meditation.music_practice_tracks[p], y)
-        *y += ScaleUIPx(6)
-        draw_import_button(app, x, w, y,
-                           GetLocaleText("audio_import_music_for_practice_button"),
-                           SETTINGS_AUDIO_ACTION_MUSIC, p)
+        *y += ScaleUIPx(42)
     }
+    if assigned == 0 {
+        Text(GetLocaleText("audio_music_no_practices"), x, *y,
+                   UI_TEXT_12, DarkenUIColor(GetThemeText(), 34))
+        *y += ScaleUIPx(24)
+    }
+    *y += ScaleUIPx(12)
 
     if app->audio_custom_music_count <= 0 {
         return

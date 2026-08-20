@@ -348,7 +348,11 @@ config_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx->app->practice_config_tab = 0
     return (SUN_SALUTATION_ACTIVE_FIGURE_COUNT > 1 ? ScaleUIPx(148) + ScaleUIPx(16) : 0) +
            preview_height(content_w) + ScaleUIPx(16) +
-           ScaleUIPx(74) * 3 + bottom_padding
+           ScaleUIPx(74) * 3 +
+           meditation_music_measure_practice_settings(ctx->app,
+                                                      EXERCISE_SUN_SALUTATION,
+                                                      content_w, 0, 1) +
+           bottom_padding
 }
 
 sun_salutation_config_screen_draw :: (app: InbeApp*) {
@@ -459,6 +463,11 @@ sun_salutation_config_screen_draw :: (app: InbeApp*) {
         normalize_settings(app)
         save_settings(app)
     }
+    y += ScaleUIPx(74)
+
+    meditation_music_draw_practice_settings(app, EXERCISE_SUN_SALUTATION,
+                                            page.content_x, page.content_w,
+                                            &y, 0, 1)
 
     EndUIScrollPage(page)
 }

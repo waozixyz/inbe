@@ -191,9 +191,15 @@ practice_card_roundness :: (bounds: Rectangle) -> float #private {
     return ((float)radius * 2.0f) / min_side
 }
 
+practice_card_banner_bottom_padding :: () -> int #private {
+    return ScaleUIPx(6)
+}
+
 practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
                               exercise: int) {
     radius := practice_card_radius_px()
+    image_dest := dest
+    bottom_padding := practice_card_banner_bottom_padding()
     style: UIPictureStyle
 
     if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
@@ -202,6 +208,10 @@ practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
     if radius < ScaleUIPx(4) {
         radius = ScaleUIPx(4)
     }
+    if bottom_padding > 0 && image_dest.height > (float)(bottom_padding + radius) {
+        image_dest.height -= (float)bottom_padding
+    }
+    DrawRectangleRounded(dest, practice_card_roundness(dest), 10, GetThemeBackground())
     style = (UIPictureStyle){
         .background = GetThemeBackground(),
         .tonal_overlay = Fade(practice_card_color_bottom(exercise), 0.20f),
@@ -212,9 +222,11 @@ practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
         .roundness = 0.0f,
         .radius_px = radius,
         .segments = 10,
-        .outline_px = ScaleUIPx(1)
+        .outline_px = 0
     }
-    UIDrawStyledCoverPicture(texture, dest, style)
+    UIDrawStyledCoverPicture(texture, image_dest, style)
+    DrawRectangleRoundedLinesEx(dest, practice_card_roundness(dest), 10, ScaleUIPx(1),
+                                Fade(GetThemeText(), 0.22f))
 }
 
 practice_card_banner :: (app: const InbeApp*, exercise: int) -> Texture2D {

@@ -94,6 +94,9 @@ Sync
 [profile_add_friend_button]
 친구 추가
 ---
+[profile_friend_input_label]
+친구 별칭 또는 공개 ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ Finish
 [retry_button]
 다시 시도
 ---
-[audio_import_music_for_practice_button]
-이 연습용 음악 가져오기
+[audio_import_music_button]
+음악 가져오기
 ---
 [audio_imported_and_selected]
 음악을 가져와 선택했습니다
@@ -839,8 +842,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-이 연습 중 재생
+[practice_background_music_label]
+배경 음악
 ---
 [appearance_scale_label]
 배율
@@ -1271,6 +1274,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+음악을 사용하는 연습
+---
+[audio_music_no_practices]
+배경 음악을 사용하는 연습이 없습니다. 연습 설정에서 추가하세요.
 ---
 [audio_custom_music_title]
 Custom music

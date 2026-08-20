@@ -412,6 +412,10 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
                   GetThemeText())
     *y += ScaleUIPx(30)
 
+    Text(GetLocaleText("profile_friend_input_label"), x, *y,
+                  GetUISmallFontSize(), DarkenUIColor(GetThemeText(), 35))
+    *y += ScaleUIPx(22)
+
     TextField((TextFieldProps){
         .bounds = {x, *y, w, ScaleUIPx(38)},
         .text = app->profile_friend_input,
@@ -480,7 +484,7 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
 }
 
 friends_content_height :: (app: InbeApp*, content_w: int) -> int {
-    h := ScaleUIPx(16) + ScaleUIPx(30) + ScaleUIPx(46) +
+    h := ScaleUIPx(16) + ScaleUIPx(30) + ScaleUIPx(22) + ScaleUIPx(46) +
          ScaleUIPx(34) + ScaleUIPx(22)
     incoming_count := 0
     outgoing_count := 0
@@ -646,10 +650,20 @@ row_compare :: (left_ptr: const void*, right_ptr: const void*) -> int #private {
                       ? left->average_sort : left->streak_sort
     right_value := g_leaderboard_sort_metric == PROFILE_LEADERBOARD_AVG_HOLD
                        ? right->average_sort : right->streak_sort
+    left_secondary := g_leaderboard_sort_metric == PROFILE_LEADERBOARD_AVG_HOLD
+                          ? left->streak_sort : left->average_sort
+    right_secondary := g_leaderboard_sort_metric == PROFILE_LEADERBOARD_AVG_HOLD
+                           ? right->streak_sort : right->average_sort
     if left_value < right_value {
         return 1
     }
     if left_value > right_value {
+        return -1
+    }
+    if left_secondary < right_secondary {
+        return 1
+    }
+    if left_secondary > right_secondary {
         return -1
     }
     return strcmp(left_name, right_name)

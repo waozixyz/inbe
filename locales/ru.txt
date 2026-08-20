@@ -94,6 +94,9 @@ Sync
 [profile_add_friend_button]
 Добавить друга
 ---
+[profile_friend_input_label]
+Псевдоним друга или публичный ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -291,8 +294,8 @@ OK
 [retry_button]
 Повторить
 ---
-[audio_import_music_for_practice_button]
-Импортировать музыку для этой практики
+[audio_import_music_button]
+Импортировать музыку
 ---
 [audio_imported_and_selected]
 Музыка импортирована и выбрана
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-Включать во время этой практики
+[practice_background_music_label]
+Фоновая музыка
 ---
 [appearance_scale_label]
 Масштаб
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Практики с музыкой
+---
+[audio_music_no_practices]
+Ни одна практика не использует фоновую музыку. Добавьте её в настройках практики.
 ---
 [audio_custom_music_title]
 Custom music

@@ -94,6 +94,9 @@ Tidak ada akun
 [profile_add_friend_button]
 Tambah teman
 ---
+[profile_friend_input_label]
+Alias teman atau ID publik
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 Coba lagi
 ---
-[audio_import_music_for_practice_button]
-Impor musik untuk latihan ini
+[audio_import_music_button]
+Impor musik
 ---
 [audio_imported_and_selected]
 Musik diimpor dan dipilih
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-Putar selama latihan ini
+[practice_background_music_label]
+Musik latar
 ---
 [appearance_scale_label]
 Skala
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Latihan dengan musik
+---
+[audio_music_no_practices]
+Belum ada latihan yang memakai musik latar. Tambahkan dari pengaturan latihan.
 ---
 [audio_custom_music_title]
 Custom music

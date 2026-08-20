@@ -94,6 +94,9 @@ Kein Konto
 [profile_add_friend_button]
 Freund hinzufuegen
 ---
+[profile_friend_input_label]
+Freund-Alias oder öffentliche ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 Erneut versuchen
 ---
-[audio_import_music_for_practice_button]
-Musik für diese Übung importieren
+[audio_import_music_button]
+Musik importieren
 ---
 [audio_imported_and_selected]
 Musik importiert und ausgewählt
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-Während dieser Übung abspielen
+[practice_background_music_label]
+Hintergrundmusik
 ---
 [appearance_scale_label]
 Skalierung
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Übungen mit Musik
+---
+[audio_music_no_practices]
+Keine Übung nutzt Hintergrundmusik. Füge sie in den Einstellungen einer Übung hinzu.
 ---
 [audio_custom_music_title]
 Custom music

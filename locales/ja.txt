@@ -94,6 +94,9 @@ Sync
 [profile_add_friend_button]
 フレンドを追加
 ---
+[profile_friend_input_label]
+友達のエイリアスまたは公開ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 再試行
 ---
-[audio_import_music_for_practice_button]
-この練習用の音楽をインポート
+[audio_import_music_button]
+音楽をインポート
 ---
 [audio_imported_and_selected]
 音楽をインポートして選択しました
@@ -842,8 +845,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-この練習中に再生
+[practice_background_music_label]
+バックグラウンド音楽
 ---
 [appearance_scale_label]
 スケール
@@ -1274,6 +1277,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+音楽を使う練習
+---
+[audio_music_no_practices]
+バックグラウンド音楽を使う練習はありません。練習の設定から追加してください。
 ---
 [audio_custom_music_title]
 Custom music

@@ -94,6 +94,9 @@ Sem conta
 [profile_add_friend_button]
 Adicionar amigo
 ---
+[profile_friend_input_label]
+Alias ou ID público do amigo
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 Tentar novamente
 ---
-[audio_import_music_for_practice_button]
-Importar música para esta prática
+[audio_import_music_button]
+Importar música
 ---
 [audio_imported_and_selected]
 Música importada e selecionada
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-Tocar durante esta prática
+[practice_background_music_label]
+Música de fundo
 ---
 [appearance_scale_label]
 Escala
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Práticas com música
+---
+[audio_music_no_practices]
+Nenhuma prática usa música de fundo. Adicione nas configurações de uma prática.
 ---
 [audio_custom_music_title]
 Custom music

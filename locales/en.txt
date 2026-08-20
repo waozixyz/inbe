@@ -94,6 +94,9 @@ No account
 [profile_add_friend_button]
 Add friend
 ---
+[profile_friend_input_label]
+Friend alias or public ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -291,8 +294,8 @@ OK
 [retry_button]
 Retry
 ---
-[audio_import_music_for_practice_button]
-Import music for this practice
+[audio_import_music_button]
+Import music
 ---
 [audio_imported_and_selected]
 Music imported and selected
@@ -488,6 +491,12 @@ Music
 ---
 [audio_music_none_option]
 None
+---
+[audio_music_applied_title]
+Practices using music
+---
+[audio_music_no_practices]
+No practices use background music. Add it from a practice's settings.
 ---
 [audio_custom_music_title]
 Custom music
@@ -1037,8 +1046,8 @@ Best streak
 [theme_picker_title]
 Choose Theme
 ---
-[practice_music_enabled_label]
-Play during this practice
+[practice_background_music_label]
+Background music
 ---
 [practice_start_button]
 Start Practice

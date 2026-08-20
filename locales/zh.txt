@@ -94,6 +94,9 @@ Sync
 [profile_add_friend_button]
 添加好友
 ---
+[profile_friend_input_label]
+好友别名或公开 ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ Finish
 [retry_button]
 重试
 ---
-[audio_import_music_for_practice_button]
-为此练习导入音乐
+[audio_import_music_button]
+导入音乐
 ---
 [audio_imported_and_selected]
 音乐已导入并选择
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-在本练习中播放
+[practice_background_music_label]
+背景音乐
 ---
 [appearance_scale_label]
 缩放
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+使用音乐的练习
+---
+[audio_music_no_practices]
+还没有练习使用背景音乐。请在练习设置中添加。
 ---
 [audio_custom_music_title]
 Custom music

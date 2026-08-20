@@ -94,6 +94,9 @@ Zadny ucet
 [profile_add_friend_button]
 Pridat pritele
 ---
+[profile_friend_input_label]
+Alias přítele nebo veřejné ID
+---
 [profile_friend_invalid]
 Enter @alias or a public ID
 ---
@@ -288,8 +291,8 @@ OK
 [retry_button]
 Zkusit znovu
 ---
-[audio_import_music_for_practice_button]
-Importovat hudbu pro toto cvičení
+[audio_import_music_button]
+Importovat hudbu
 ---
 [audio_imported_and_selected]
 Hudba importována a vybrána
@@ -840,8 +843,8 @@ Save Alias
 Alias saved
 ---
 ---
-[practice_music_enabled_label]
-Přehrávat během tohoto cvičení
+[practice_background_music_label]
+Hudba na pozadí
 ---
 [appearance_scale_label]
 Měřítko
@@ -1272,6 +1275,12 @@ Custom sounds
 ---
 [audio_music_title]
 Music
+---
+[audio_music_applied_title]
+Cvičení s hudbou
+---
+[audio_music_no_practices]
+Žádné cvičení nepoužívá hudbu na pozadí. Přidejte ji v nastavení cvičení.
 ---
 [audio_custom_music_title]
 Custom music
