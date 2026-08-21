@@ -390,6 +390,21 @@ OK
 [about_text]
 Спокойный помощник для дыхания, привычек и синхронизации.
 ---
+[about_donation_message]
+Donation addresses are shown below. Open a wallet directly or use Trocador to donate through an exchange flow.
+---
+[copy_address_button]
+Copy
+---
+[address_copied]
+Address copied
+---
+[open_wallet_button]
+Wallet
+---
+[trocador_button]
+Trocador
+---
 [orientation_label]
 Ориентация
 ---

@@ -4,7 +4,7 @@
 #import "app_update_check.h"
 
 about_link_icon_columns :: (content_w: int) -> int #private {
-    link_count := 5
+    link_count := 3
     icon_size := ScaleUIPx(32)
     icon_padding := ScaleUIPx(4)
     icon_spacing := ScaleUIPx(20)
@@ -22,7 +22,7 @@ about_link_icon_columns :: (content_w: int) -> int #private {
 }
 
 about_link_icons_height :: (content_w: int) -> int #private {
-    link_count := 5
+    link_count := 3
     icon_size := ScaleUIPx(32)
     icon_padding := ScaleUIPx(4)
     row_spacing := ScaleUIPx(16)
@@ -43,13 +43,13 @@ settings_about_content_height :: (content_w: int) -> int {
     }
     update_row := inbe_update_available() != 0 ? ScaleUIPx(72) : 0
 
-    return ScaleUIPx(194) + update_row +
+    return ScaleUIPx(248) + update_row +
            UIGetNodeHeight(UINodeParagraph(description, 0, 0)) +
            about_link_icons_height(content_w)
 }
 
 about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
-    link_count := 5
+    link_count := 3
     icon_size := ScaleUIPx(32)
     icon_padding := ScaleUIPx(4)
     icon_spacing := ScaleUIPx(20)
@@ -58,19 +58,15 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
     grid_w := icon_btn_w * columns + icon_spacing * (columns - 1)
     links_start_x := content_x + (content_w - grid_w) / 2
     row_spacing := ScaleUIPx(16)
-    icons: [5] Texture2D = {
+    icons: [3] Texture2D = {
         app->icons[UI_ICON_TYPE_PLATFORMS_DISCORD],
         app->icons[UI_ICON_TYPE_PLATFORMS_TELEGRAM],
         app->icons[UI_ICON_TYPE_PLATFORMS_GITHUB],
-        app->icons[UI_ICON_TYPE_PAYMENTS_BTC],
-        app->icons[UI_ICON_TYPE_PAYMENTS_MONERO]
     }
-    urls: [5] const char* = {
+    urls: [3] const char* = {
         "https://discord.com/invite/JbGZ4yENDt",
         "https://t.me/lotusinbe",
         "https://github.com/waozixyz/inbe",
-        app_bitcoin_donation_url(),
-        app_monero_donation_url()
     }
 
     for int i = 0; i < link_count; i++ {
@@ -81,6 +77,24 @@ about_draw_link_icons :: (app: InbeApp*, content_x: int, content_w: int, y: int*
         IconLink(0, icon_x, icon_y, icon_size, icons[i], urls[i])
     }
     *y += about_link_icons_height(content_w)
+}
+
+about_draw_donate_button :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
+    hover := 0
+    button_h := ScaleUIPx(38)
+    button_w := ScaleUIPx(220)
+
+    if button_w > content_w {
+        button_w = content_w
+    }
+
+    if GenericButton(0, content_x + (content_w - button_w) / 2, *y,
+                           button_w, button_h,
+                           GetLocaleText("donation_reminder_donate_button"),
+                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+        app_open_modal(app, UIModalAboutDonation)
+    }
+    *y += button_h
 }
 
 settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
@@ -173,5 +187,7 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(18)
 
     about_draw_link_icons(app, x, w, y)
+    *y += ScaleUIPx(18)
+    about_draw_donate_button(app, x, w, y)
     *y += ScaleUIPx(32)
 }

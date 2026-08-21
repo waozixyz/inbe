@@ -138,6 +138,7 @@ typedef enum {
     UIModalConfirmSyncAccountSwitch,
     UIModalBottomNavConfig,
     UIModalProfilePicturePicker,
+    UIModalAboutDonation,
     UIModalDonationReminder,
 } UIModalType;
 
@@ -632,6 +633,12 @@ void app_audio_music_sanitize_selection(InbeApp *app);
 Texture2D app_load_asset_texture(const char *name);
 void app_unload_texture(Texture2D texture);
 const char *app_donation_url(void);
+const char *app_bitcoin_donation_address(void);
+const char *app_monero_donation_address(void);
+const char *app_bitcoin_wallet_url(void);
+const char *app_monero_wallet_url(void);
+const char *app_bitcoin_trocador_url(void);
+const char *app_monero_trocador_url(void);
 const char *app_bitcoin_donation_url(void);
 const char *app_monero_donation_url(void);
 
