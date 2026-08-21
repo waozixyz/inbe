@@ -2032,7 +2032,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
             DrawRectangle(0, 0, view_width, view_height, GetThemeBackground());
             profile_update_start = app_profile_now();
             updateapp(app);
-            DrawUIOverlays();
+            Overlays();
             app_profile_accum(&g_app_profile.update_total,
                               &g_app_profile.update_max,
                               profile_update_start);

@@ -265,7 +265,7 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
             snprintf(locked_label, sizeof(locked_label), GetLocaleText("break_lock_note"), timer->lock_buttons_s)
             DrawCenteredUIControlText(locked_label, button_x + button_w / 2, button_y + ScaleUIPx(16), UI_TEXT_12, muted)
         } else {
-            if DrawUITextButton(button_x, button_y, GetLocaleText("break_postpone_button"), &hover) {
+            if TextButton(4101, button_x, button_y, GetLocaleText("break_postpone_button"), &hover) {
                 break_engine_postpone(&app->breaks, t)
                 return
             }
@@ -275,7 +275,7 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
 
     if timer->show_skip != 0 {
         if !locked {
-            if DrawUITextButton(button_x, button_y, GetLocaleText("break_skip_button"), &hover) {
+            if TextButton(4102, button_x, button_y, GetLocaleText("break_skip_button"), &hover) {
                 break_engine_skip(&app->breaks, t)
                 return
             }
@@ -284,7 +284,7 @@ break_overlay_draw_sized :: (app: InbeApp*, w: int, h: int) {
     }
 
     if t == BREAK_MICRO {
-        if DrawUITextButton(button_x, button_y, GetLocaleText("break_rest_now_button"), &hover) {
+        if TextButton(4103, button_x, button_y, GetLocaleText("break_rest_now_button"), &hover) {
             break_engine_force_break(&app->breaks, BREAK_REST)
             return
         }

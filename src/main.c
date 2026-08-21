@@ -43,6 +43,8 @@ int kry_write_png_file(const char *path, const unsigned char *rgba,
 #include <process.h>
 __declspec(dllimport) LRESULT __stdcall SendMessageW(HWND, UINT, WPARAM, LPARAM);
 __declspec(dllimport) int __stdcall MessageBoxA(HWND, const char *, const char *, UINT);
+__declspec(dllimport) HANDLE __stdcall LoadImageW(HINSTANCE, LPCWSTR, UINT, int, int, UINT);
+__declspec(dllimport) int __stdcall GetSystemMetrics(int);
 #define MB_OK 0u
 #define MB_ICONERROR 0x10u
 #define WIN_ERROR_LOG_CAP 2048
@@ -97,7 +99,7 @@ set_desktop_window_icon(void)
 #if defined(_WIN32)
     {
         HWND window=(HWND)GetWindowHandle(); HMODULE instance=GetModuleHandleW(NULL);
-        LPCWSTR resource=MAKEINTRESOURCEW(INBE_APP_ICON_RESOURCE);
+        LPCWSTR resource=(LPCWSTR)(uintptr_t)INBE_APP_ICON_RESOURCE;
         HICON large=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXICON),GetSystemMetrics(INBE_SM_CYICON),0);
         HICON small=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXSMICON),GetSystemMetrics(INBE_SM_CYSMICON),0);
         if(window){if(large)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_SMALL,(LPARAM)small);}
@@ -202,6 +204,8 @@ typedef struct ScreenshotRequest {
     char scene[64];
     char output[512];
 } ScreenshotRequest;
+
+#define SCREENSHOT_THEME_CURRENT (-1)
 
 #if defined(_WIN32) && !ANDROID_BUILD
 static FILE *win_log_file;
@@ -517,7 +521,7 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     *request = (ScreenshotRequest){
         .width = config.width,
         .height = config.height,
-        .theme_id = THEME_SKY,
+        .theme_id = SCREENSHOT_THEME_CURRENT,
         .dark_mode = 0,
         .theme_style = THEME_STYLE_SYSTEM
     };
@@ -559,8 +563,8 @@ parse_screenshot_args(int argc, char **argv, ScreenshotRequest *request)
     if(request->theme_style < THEME_STYLE_SYSTEM ||
        request->theme_style > THEME_STYLE_MATERIAL)
         request->theme_style = THEME_STYLE_SYSTEM;
-    if(request->theme_id < 0 || request->theme_id >= THEME_COUNT)
-        request->theme_id = THEME_SKY;
+    if(request->theme_id < SCREENSHOT_THEME_CURRENT || request->theme_id >= THEME_COUNT)
+        request->theme_id = SCREENSHOT_THEME_CURRENT;
 }
 #endif
 
@@ -622,6 +626,13 @@ screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
 {
     if(app == NULL)
         return;
+    if(theme_id == SCREENSHOT_THEME_CURRENT) {
+        app->theme_source = APP_THEME_SOURCE_SYSTEM;
+        app->theme_mode = APP_THEME_SYSTEM;
+        app_refresh_theme(app);
+        return;
+    }
+    app->theme_source = APP_THEME_SOURCE_APP;
     app->theme_id = theme_id;
     app->theme_mode = dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
     app->dark_mode = dark_mode != 0;
@@ -758,7 +769,9 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->inbe.screen = InbeScreenProfile;
     } else if(strcmp(request->scene, "cobalt_dark") == 0) {
         screenshot_apply_theme(app, THEME_COBALT, 1);
+        app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->practice_tab = PRACTICE_TAB_PLAY;
         app->inbe.screen = InbeScreenStart;
     } else if(strcmp(request->scene, "patterns") == 0) {
         app->exercise_type = EXERCISE_PATTERNS;

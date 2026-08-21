@@ -24,14 +24,14 @@ SCREENSHOT_STYLE="${SCREENSHOT_STYLE:-2}"
 ANALYSIS_FILE="$OUT_DIR/screenshot-analysis.tsv"
 
 SCENES=(
-  "home:01-practice-home:0:0:Practice home"
-  "patterns:02-pattern-breathing:10:0:Pattern breathing session"
-  "habits_overview:03-habits-overview:7:0:Habits overview"
-  "habits_stats:04-habit-statistics:2:0:Habit statistics"
-  "wim_hof_session:05-wim-hof-session:1:1:Wim Hof session"
-  "meditation_session:06-meditation-session:4:0:Meditation session"
-  "sun_salutation_session:07-sun-salutation-session:3:0:Sun salutation session"
-  "cobalt_dark:08-cobalt-dark-practice:11:1:Cobalt dark practice theme"
+  "home:01-practice-home:-1:0:Practice home"
+  "patterns:02-pattern-breathing:-1:0:Pattern breathing session"
+  "habits_overview:03-habits-overview:-1:0:Habits overview"
+  "habits_stats:04-habit-statistics:-1:0:Habit statistics"
+  "wim_hof_session:05-wim-hof-session:-1:0:Wim Hof session"
+  "meditation_session:06-meditation-session:-1:0:Meditation session"
+  "practice_manual_whm:07-wim-hof-how-to:-1:0:Wim Hof Method how to"
+  "cobalt_dark:08-cobalt-dark-pattern-breathing:11:1:Cobalt dark Pattern Breathing"
 )
 
 BUCKETS=(

@@ -77,10 +77,6 @@ sun_salutation_practice_init :: (app: InbeApp*) {
         return
     }
 
-    if app->sun_salutation.banner.id == 0 {
-        app->sun_salutation.banner =
-            app_load_asset_texture("practices/sunsalutation/banner.png")
-    }
     if app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN].id == 0 {
         app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN] =
             app_load_asset_texture("practices/sunsalutation/poses_man_sheet.png")
@@ -92,10 +88,6 @@ sun_salutation_practice_init :: (app: InbeApp*) {
     if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1].id == 0 {
         app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1] =
             app_load_asset_texture("practices/sunsalutation/transition_02_02_to_03_man_sheet.png")
-    }
-    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][2].id == 0 {
-        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][2] =
-            app_load_asset_texture("practices/sunsalutation/transition_03_03_to_04_man_sheet.png")
     }
     if app->sun_salutation.repetitions < 2 ||
        app->sun_salutation.repetitions > 12 {
@@ -116,9 +108,6 @@ sun_salutation_practice_destroy :: (app: InbeApp*) {
     if app == nil {
         return
     }
-
-    app_unload_texture(app->sun_salutation.banner)
-    app->sun_salutation.banner = (Texture2D){0}
 
     for int i = 0; i < SUN_SALUTATION_FIGURE_COUNT; i++ {
         app_unload_texture(app->sun_salutation.pose_sheets[i])

@@ -302,13 +302,12 @@ SYNC_ACCOUNT_TEST := $(TEST_BIN_DIR)/sync_account_test
 SYNC_REVIEW_TEST := $(TEST_BIN_DIR)/sync_review_test
 FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 FONT_GLYPH_COVERAGE_TEST := $(TEST_BIN_DIR)/font_glyph_coverage_test
-GUIDE_OVERLAY_TEST := $(TEST_BIN_DIR)/guide_overlay_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
 BREATH_TIMING_TEST := $(TEST_BIN_DIR)/breath_timing_test
 BREAK_ENGINE_TEST := $(TEST_BIN_DIR)/break_engine_test
 ACTIVITY_MONITOR_TEST := $(TEST_BIN_DIR)/activity_monitor_test
 SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(GUIDE_OVERLAY_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
 
@@ -360,7 +359,7 @@ SYSTEM_THEME_CFLAGS :=
 SYSTEM_THEME_LDLIBS :=
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png assets/practices/sunsalutation/transition_01_01_to_02_man_sheet.png assets/practices/sunsalutation/transition_02_02_to_03_man_sheet.png assets/practices/sunsalutation/transition_03_03_to_04_man_sheet.png
+IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png assets/practices/sunsalutation/transition_01_01_to_02_man_sheet.png assets/practices/sunsalutation/transition_02_02_to_03_man_sheet.png
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_SUBSET_DIR := assets/fonts/subset
 FONT_SUBSET_CORPUS := locales assets/fonts/input_common.txt
@@ -505,6 +504,7 @@ MEDITATION_AUDIO_TRACKS := \
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
 .PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: no-vendor-edits
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -611,7 +611,7 @@ screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
 
 
-.SILENT: test $(TESTS) font-bundle-check audio-test-fixture-check
+.SILENT: no-vendor-edits test $(TESTS) font-bundle-check audio-test-fixture-check
 
 ## Local parity with the ci.yml gate: unit tests plus the web build (emcc).
 ## Run before pushing to catch web-only breakage -- e.g. code under
@@ -624,7 +624,11 @@ ci: test web
 test-desktop-windows:
 	./scripts/test-desktop-windows.sh "$(TARGET)"
 
-test: $(TESTS) font-bundle-check audio-test-fixture-check
+no-vendor-edits:
+	bash ./scripts/check-no-vendor-edits.sh
+
+test: no-vendor-edits $(TESTS) font-bundle-check audio-test-fixture-check
+	bash ./tests/screenshot_scene_test.sh
 	echo "== Inbe tests =="; \
 	status=0; \
 	for test_bin in $(TESTS); do \
@@ -718,13 +722,6 @@ $(FONT_GLYPH_COVERAGE_TEST): tests/font_glyph_coverage_test.c $(FONT_FILES) $(LO
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
 		-o $@ \
 		tests/font_glyph_coverage_test.c
-
-$(GUIDE_OVERLAY_TEST): tests/guide_overlay_test.c $(KRYON_DIR)/src/ui/guide.c $(KRYON_DIR)/src/ui/ui_clip.c $(KRYON_DIR)/include/ui.h | $(TEST_BIN_DIR)
-	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
-		-I$(KRYON_DIR) $(KRYON_INCLUDE) \
-		-o $@ \
-		tests/guide_overlay_test.c \
-		$(KRYON_DIR)/src/ui/ui_clip.c
 
 $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/app.h $(KRY_GEN_DIR)/src/app/app_nav.c $(KRY_GEN_DIR)/src/app/customize_nav.c $(KRY_GEN_DIR)/src/widgets/bottom_nav.c $(KRYON_DIR)/include/ui.h $(KRYON_DIR)/src/core/app_shell.c $(KRYON_DIR)/include/app_shell.h | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \

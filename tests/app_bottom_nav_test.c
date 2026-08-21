@@ -203,7 +203,7 @@ GetUIControlTextY(const char *text, int y, int h, int font)
 }
 
 void
-DrawUIText(const char *text, int x, int y, int fontSize, Color color)
+UIText(const char *text, int x, int y, int fontSize, Color color)
 {
     (void)text;
     (void)x;
@@ -235,7 +235,7 @@ FormatLocaleText(char *out, size_t out_size, const char *key, ...)
 }
 
 int
-DrawUIHref(HrefProps link)
+UIHref(HrefProps link)
 {
     (void)link;
     return 0;
@@ -393,7 +393,7 @@ EndUIScrollPage(UIScrollPage page)
 }
 
 int
-DrawUIReturnTitleBar(Texture2D return_icon, const char *title, int height)
+UIReturnTitleBar(Texture2D return_icon, const char *title, int height)
 {
     (void)return_icon;
     (void)title;

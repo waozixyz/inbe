@@ -280,12 +280,10 @@ int app_draw_close_dropdown_title_bar(InbeApp *app, UITitleBarDropdown dropdown,
 typedef struct WhmPracticeState {
     Texture2D image_1;
     Texture2D image_2;
-    Texture2D banner;
 } WhmPracticeState;
 
 typedef struct MeditationPracticeState {
     Texture2D image_1;
-    Texture2D banner;
     int duration_seconds;
     int remaining_seconds;
     int frame_ticks;
@@ -311,9 +309,8 @@ typedef struct MeditationPracticeState {
 } MeditationPracticeState;
 
 typedef struct SunSalutationPracticeState {
-    Texture2D banner;
     Texture2D pose_sheets[2];
-    Texture2D transition_sheets[2][3];
+    Texture2D transition_sheets[2][2];
     int step;
     int repetition;
     int repetitions;
@@ -338,7 +335,6 @@ typedef struct HabitSessionEditState {
 } HabitSessionEditState;
 
 typedef struct InbePatterns {
-    Texture2D banner;
     int preset;
     int custom[4];         /* inhale, hold-in, exhale, hold-out seconds */
     int duration_minutes;  /* 0 = open-ended */

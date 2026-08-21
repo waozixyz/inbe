@@ -278,7 +278,7 @@ settings_breaks_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         button_w = ScaleUIPx(200)
     }
     rest_hover := 0
-    if DrawUITextButton(x, *y, GetLocaleText("settings_breaks_rest_now"), &rest_hover) {
+    if TextButton(4201, x, *y, GetLocaleText("settings_breaks_rest_now"), &rest_hover) {
         app_breaks_rest_break_now(app)
     }
     *y += ScaleUIPx(60)

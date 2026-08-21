@@ -156,28 +156,6 @@ practice_screen_handle_config_title :: (app: InbeApp*, title: const char*, modal
     return 1
 }
 
-practice_card_color_top :: (exercise: int) -> Color {
-    id := practice_clamp_id(exercise)
-    if id == EXERCISE_MEDITATION {
-        return (Color){78, 126, 164, 255}
-    }
-    if id == EXERCISE_SUN_SALUTATION {
-        return (Color){213, 134, 72, 255}
-    }
-    return (Color){72, 142, 128, 255}
-}
-
-practice_card_color_bottom :: (exercise: int) -> Color {
-    id := practice_clamp_id(exercise)
-    if id == EXERCISE_MEDITATION {
-        return (Color){52, 74, 122, 255}
-    }
-    if id == EXERCISE_SUN_SALUTATION {
-        return (Color){177, 87, 85, 255}
-    }
-    return (Color){43, 93, 118, 255}
-}
-
 practice_card_radius_px :: () -> int #private {
     return ScaleUIPx(12)
 }
@@ -196,54 +174,40 @@ practice_card_banner_bottom_padding :: () -> int #private {
     return ScaleUIPx(6)
 }
 
-practice_draw_card_banner :: (texture: Texture2D, dest: Rectangle,
-                              exercise: int) {
-    radius := practice_card_radius_px()
-    style: UIPictureStyle
-
-    if texture.id == 0 || texture.width <= 0 || texture.height <= 0 || dest.width <= 0 || dest.height <= 0 {
-        return
-    }
-    if radius < ScaleUIPx(4) {
-        radius = ScaleUIPx(4)
-    }
-    DrawRectangleRounded(dest, practice_card_roundness(dest), 10, GetThemeBackground())
-    style = (UIPictureStyle){
-        .background = GetThemeBackground(),
-        .tonal_overlay = Fade(practice_card_color_bottom(exercise), 0.20f),
-        .surface_overlay = Fade(GetThemeSurface(), 0.16f),
-        .scrim_top = Fade(GetThemeBackground(), 0.02f),
-        .scrim_bottom = Fade(GetThemeBackground(), 0.26f),
-        .outline = Fade(GetThemeText(), 0.22f),
-        .roundness = 0.0f,
-        .radius_px = radius,
-        .segments = 10,
-        .outline_px = 0
-    }
-    UIDrawStyledCoverPicture(texture, dest, style)
-    DrawRectangleRoundedLinesEx(dest, practice_card_roundness(dest), 10, ScaleUIPx(1),
-                                Fade(GetThemeText(), 0.22f))
-}
-
-practice_card_banner :: (app: const InbeApp*, exercise: int) -> Texture2D {
+practice_card_banner_asset_path :: (exercise: int) -> const char* #private {
     id := practice_clamp_id(exercise)
 
-    if app == NULL {
-        return (Texture2D){0}
-    }
     if id == EXERCISE_WIM_HOF {
-        return app->whm.banner
+        return "practices/whm/banner.png"
     }
     if id == EXERCISE_SUN_SALUTATION {
-        return app->sun_salutation.banner
+        return "practices/sunsalutation/banner.png"
     }
     if id == EXERCISE_MEDITATION {
-        return app->meditation.banner
+        return "practices/meditation/banner.png"
     }
     if id == EXERCISE_PATTERNS {
-        return app->patterns.banner
+        return "practices/patterns/banner.png"
     }
-    return (Texture2D){0}
+    return NULL
+}
+
+practice_draw_card_banner :: (asset_path: const char*, dest: Rectangle) {
+    if asset_path == NULL || asset_path[0] == '\0' || dest.width <= 0 || dest.height <= 0 {
+        return
+    }
+    Picture((PictureProps){
+        .asset_path = asset_path,
+        .bounds = dest,
+        .tint = WHITE,
+        .fit = PICTURE_FIT_COVER,
+        .style = (PictureStyle){
+            .enabled = 1,
+            .radius_px = practice_card_radius_px(),
+            .outline = Fade(GetThemeText(), 0.22f),
+            .outline_px = ScaleUIPx(1)
+        }
+    })
 }
 
 practice_next_visible :: (app: InbeApp*, dir: int) -> int {
@@ -941,11 +905,11 @@ page start(app: InbeApp*) {
     card := (Rectangle){(float)x, (float)y, (float)card_w, (float)card_h}
     app->practice_home_bounds_card = card
     app->practice_home_bounds_valid = 1
-    banner: Texture2D = practice_card_banner(app, app->exercise_type)
-    if banner.id != 0 {
-        practice_draw_card_banner(banner, card, app->exercise_type)
+    banner_path := practice_card_banner_asset_path(app->exercise_type)
+    if banner_path != NULL {
+        practice_draw_card_banner(banner_path, card)
     } else {
-        DrawRectangleGradientV(x, y, card_w, card_h, practice_card_color_top(app->exercise_type), practice_card_color_bottom(app->exercise_type))
+        DrawRectangleRounded(card, practice_card_roundness(card), 10, GetThemeSurface())
         DrawRectangleRoundedLinesEx(card, practice_card_roundness(card), 10, ScaleUIPx(1),
                                     Fade(GetThemeText(), 0.22f))
     }

@@ -269,9 +269,6 @@ sun_salutation_transition_index_for_step :: (step: int) -> int #private {
     if step == 1 {
         return 1
     }
-    if step == 2 {
-        return 2
-    }
     return -1
 }
 

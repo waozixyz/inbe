@@ -106,9 +106,6 @@ patterns_practice_init :: (app: InbeApp*) {
     if app == nil {
         return
     }
-    if app->patterns.banner.id == 0 {
-        app->patterns.banner = app_load_asset_texture("practices/patterns/banner.png")
-    }
     app->patterns.preset = PATTERNS_PRESET_BOX
     for int i = 0; i < 4; i++ {
         app->patterns.custom[i] = preset_ratio(PATTERNS_PRESET_BOX, i)
@@ -120,8 +117,6 @@ patterns_practice_destroy :: (app: InbeApp*) {
     if app == nil {
         return
     }
-    app_unload_texture(app->patterns.banner)
-    app->patterns.banner = (Texture2D){0}
 }
 
 patterns_practice_start :: (app: InbeApp*) {

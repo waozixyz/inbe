@@ -242,7 +242,7 @@ app_breaks_window_update :: (app: InbeApp*) {
 }
 
 # Manual hit-test of the break overlay's button row (layout mirrored from
-# break_overlay_draw; DrawUITextButton centers each button on its x).
+# break_overlay_draw; TextButton centers each button on its x).
 app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
                               view_w: int, view_h: int) {
     timer := &app->breaks.timers[t]
