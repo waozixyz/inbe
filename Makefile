@@ -611,7 +611,7 @@ screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
 
 
-.SILENT: no-vendor-edits test $(TESTS) font-bundle-check audio-test-fixture-check
+.SILENT: no-vendor-edits test $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 
 ## Local parity with the ci.yml gate: unit tests plus the web build (emcc).
 ## Run before pushing to catch web-only breakage -- e.g. code under
@@ -627,7 +627,10 @@ test-desktop-windows:
 no-vendor-edits:
 	bash ./scripts/check-no-vendor-edits.sh
 
-test: no-vendor-edits $(TESTS) font-bundle-check audio-test-fixture-check
+embedded-image-assets-check: $(EMBEDDED_ASSETS_C)
+	bash ./tests/embedded_image_assets_test.sh
+
+test: no-vendor-edits $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
 	bash ./tests/screenshot_scene_test.sh
 	echo "== Inbe tests =="; \
 	status=0; \

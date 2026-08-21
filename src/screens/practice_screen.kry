@@ -178,16 +178,16 @@ practice_card_banner_asset_path :: (exercise: int) -> const char* #private {
     id := practice_clamp_id(exercise)
 
     if id == EXERCISE_WIM_HOF {
-        return "practices/whm/banner.png"
+        return "assets/practices/whm/banner.png"
     }
     if id == EXERCISE_SUN_SALUTATION {
-        return "practices/sunsalutation/banner.png"
+        return "assets/practices/sunsalutation/banner.png"
     }
     if id == EXERCISE_MEDITATION {
-        return "practices/meditation/banner.png"
+        return "assets/practices/meditation/banner.png"
     }
     if id == EXERCISE_PATTERNS {
-        return "practices/patterns/banner.png"
+        return "assets/practices/patterns/banner.png"
     }
     return NULL
 }

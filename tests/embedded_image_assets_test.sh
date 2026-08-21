@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+EMBEDDED_C="$ROOT_DIR/build/obj/inbe_embedded_assets.c"
+
+fail() {
+  echo "FAIL $*" >&2
+  exit 1
+}
+
+[[ -f "$EMBEDDED_C" ]] ||
+  fail "embedded asset table missing; run make native or make build/obj/inbe_embedded_assets.c first"
+
+mapfile -t image_paths < <(
+  rg -No '"(assets/)?(practices|easteregg|pet)/[^"]+\.(png|jpg|jpeg)"' \
+    "$ROOT_DIR/src" "$ROOT_DIR/tests" \
+    -g '!vendor/**' |
+    sed -E 's/^.*"([^"]+)".*$/\1/' |
+    sort -u
+)
+
+[[ "${#image_paths[@]}" -gt 0 ]] ||
+  fail "no app image path literals found"
+
+for path in "${image_paths[@]}"; do
+  embedded_path="$path"
+  if [[ "$embedded_path" != assets/* ]]; then
+    embedded_path="assets/$embedded_path"
+  fi
+
+  [[ -f "$ROOT_DIR/$embedded_path" ]] ||
+    fail "image literal '$path' points at missing file '$embedded_path'"
+
+  grep -Fq "{\"$embedded_path\"" "$EMBEDDED_C" ||
+    fail "image literal '$path' is not embedded as '$embedded_path'"
+done
+
+for required in \
+  assets/practices/whm/banner.png \
+  assets/practices/meditation/banner.png \
+  assets/practices/sunsalutation/banner.png \
+  assets/practices/patterns/banner.png; do
+  [[ -f "$ROOT_DIR/$required" ]] ||
+    fail "required practice banner missing: $required"
+  grep -Fq "{\"$required\"" "$EMBEDDED_C" ||
+    fail "required practice banner is not embedded: $required"
+done
+
+echo "PASS embedded image asset contract"
