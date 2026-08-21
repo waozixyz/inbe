@@ -1,4 +1,12 @@
 # Changelog
+## [1.9.9] - 2026-08-21
+### Changed
+- Regenerated Google Play and F-Droid screenshots with the corrected practice artwork, Pattern Breathing, Habits, Wim Hof how-to and Cobalt dark screens.
+
+### Fixed
+- Practice banner images now resolve from the embedded asset table on Android/native builds, preventing missing or faded-looking artwork in packaged releases.
+- The release test gate now checks image literals against the embedded asset table so broken practice artwork paths are caught before publishing.
+
 ## [1.9.8] - 2026-08-21
 ### Added
 - Desktop break reminders now include a Habits action beside the practice launch buttons, so habits can be managed directly from a break window.
