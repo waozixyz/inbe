@@ -79,8 +79,6 @@ static AppProfileStats g_app_profile;
 
 static void app_apply_route(InbeApp *app, AppRoute route);
 
-#define DONATION_REMINDER_DELAY_FRAMES 240
-
 typedef struct InbeRouteBinding {
     const char *id;
     int screen;
@@ -216,6 +214,41 @@ app_record_donation_reminder_seen(InbeApp *app)
     app_save_donation_reminder(app);
 }
 
+static int
+app_donation_reminder_practice_home(const InbeApp *app)
+{
+    return app != NULL &&
+           app->inbe.screen == InbeScreenStart &&
+           app->main_tab == APP_MAIN_TAB_PRACTICE &&
+           app->practice_tab == PRACTICE_TAB_PLAY;
+}
+
+static void
+app_init_donation_reminder_observed_practice_count(InbeApp *app)
+{
+    if(app == NULL ||
+       app->donation_reminder_observed_practice_count_initialized)
+        return;
+    app->donation_reminder_observed_practice_count = storage_session_count();
+    app->donation_reminder_observed_practice_count_initialized = 1;
+}
+
+static int
+app_donation_reminder_next_threshold(const InbeApp *app, int observed_count)
+{
+    int next_prompt_count;
+
+    if(app == NULL)
+        return DONATION_REMINDER_PRACTICE_INTERVAL;
+    next_prompt_count = app->donation_reminder_last_prompt_practice_count +
+                        DONATION_REMINDER_PRACTICE_INTERVAL;
+    if(next_prompt_count < DONATION_REMINDER_PRACTICE_INTERVAL)
+        next_prompt_count = DONATION_REMINDER_PRACTICE_INTERVAL;
+    while(next_prompt_count <= observed_count)
+        next_prompt_count += DONATION_REMINDER_PRACTICE_INTERVAL;
+    return next_prompt_count;
+}
+
 static void
 app_handle_donation_reminder_action(InbeApp *app, int action)
 {
@@ -223,9 +256,8 @@ app_handle_donation_reminder_action(InbeApp *app, int action)
         return;
     switch(action) {
     case 1:
-        OpenURL(app_donation_url());
         app_record_donation_reminder_seen(app);
-        app_close_modal(app);
+        app_open_modal(app, UIModalAboutDonation);
         break;
     case 2:
         app_record_donation_reminder_seen(app);
@@ -685,8 +717,6 @@ app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
         return 0;
     if(app->donation_reminder_dismissed)
         return 0;
-    if(app->inbe.frame < DONATION_REMINDER_DELAY_FRAMES)
-        return 0;
     if(app->modal.active || app->close_prompt_open || app->nav_sidebar_open)
         return 0;
     if(first_run_guide_active || habits_guide_active)
@@ -728,17 +758,30 @@ app_maybe_open_donation_reminder(InbeApp *app, int first_run_guide_active,
                                    habits_guide_active))
         return;
     practice_count = storage_session_count();
-    if(practice_count < DONATION_REMINDER_PRACTICE_INTERVAL)
+    if(!app->donation_reminder_observed_practice_count_initialized) {
+        app->donation_reminder_observed_practice_count = practice_count;
+        app->donation_reminder_observed_practice_count_initialized = 1;
         return;
-    next_prompt_count = app->donation_reminder_next_prompt_practice_count;
-    if(next_prompt_count <= 0) {
-        next_prompt_count = app->donation_reminder_last_prompt_practice_count +
-                            DONATION_REMINDER_PRACTICE_INTERVAL;
-        if(next_prompt_count < DONATION_REMINDER_PRACTICE_INTERVAL)
-            next_prompt_count = DONATION_REMINDER_PRACTICE_INTERVAL;
     }
-    if(practice_count < next_prompt_count)
+    if(practice_count < app->donation_reminder_observed_practice_count) {
+        app->donation_reminder_observed_practice_count = practice_count;
         return;
+    }
+    if(practice_count <= app->donation_reminder_observed_practice_count)
+        return;
+    if(!app_donation_reminder_practice_home(app))
+        return;
+    next_prompt_count = app_donation_reminder_next_threshold(
+        app, app->donation_reminder_observed_practice_count);
+    if(app->donation_reminder_next_prompt_practice_count != next_prompt_count) {
+        app->donation_reminder_next_prompt_practice_count = next_prompt_count;
+        app_save_donation_reminder(app);
+    }
+    if(practice_count < next_prompt_count) {
+        app->donation_reminder_observed_practice_count = practice_count;
+        return;
+    }
+    app->donation_reminder_observed_practice_count = practice_count;
     app_open_modal(app, UIModalDonationReminder);
 }
 
@@ -1347,6 +1390,7 @@ app_init(void *vapp) {
     data_init();
     if(app_load_settings(app))
         save_settings(app);
+    app_init_donation_reminder_observed_practice_count(app);
     if(!load_locale_font(app))
         TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font -> using built-in default");
     inbe_update_check_start();
@@ -1659,8 +1703,18 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(GenericButton(0, x, *y, button_w, button_h,
                      GetLocaleText("copy_address_button"),
                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        SetClipboardText(address);
+#if ANDROID_BUILD
+        int android_copy_ok =
+            android_device_copy_text_and_toast(address,
+                                               GetLocaleText("address_copied"));
+        if(!android_copy_ok) {
+            SetUIClipboardTextValue(address);
+            ShowUIToast(GetLocaleText("address_copied"));
+        }
+#else
+        SetUIClipboardTextValue(address);
         ShowUIToast(GetLocaleText("address_copied"));
+#endif
     }
     if(GenericButton(0, x + button_w + gap, *y, button_w, button_h,
                      GetLocaleText("open_wallet_button"),
@@ -1952,6 +2006,13 @@ updateapp(InbeApp *app)
     int bottom_input_reserved = 0;
 
 #if ANDROID_BUILD
+    {
+        if(android_take_pending_donation_reminder()) {
+            if(app->modal.active)
+                app_close_modal(app);
+            app_open_modal(app, UIModalDonationReminder);
+        }
+    }
     {
         int practice_id = android_take_pending_practice_start();
         if(practice_id >= 0) {

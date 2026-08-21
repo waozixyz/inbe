@@ -26,7 +26,7 @@ enum {
     CONTENT_MAX_W = 440,
     CONTENT_SIDE_PAD = 16,
     CIRCLE_SIDE_PAD = 32,
-    DONATION_REMINDER_PRACTICE_INTERVAL = 30,
+    DONATION_REMINDER_PRACTICE_INTERVAL = 20,
     FS_PATH_MAX = 512
 };
 
@@ -454,6 +454,8 @@ struct InbeApp {
     int donation_reminder_dismissed;
     int donation_reminder_last_prompt_practice_count;
     int donation_reminder_next_prompt_practice_count;
+    int donation_reminder_observed_practice_count;
+    int donation_reminder_observed_practice_count_initialized;
     int push_picker_open;
     int push_distributor_count;
     char push_distributors[APP_PUSH_DISTRIBUTOR_MAX][96];

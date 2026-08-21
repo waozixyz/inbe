@@ -78,6 +78,15 @@ static void
 set_desktop_window_icon(void)
 {
 #if !ANDROID_BUILD && !defined(PLATFORM_WEB)
+#if defined(_WIN32)
+    {
+        HWND window=(HWND)GetWindowHandle(); HMODULE instance=GetModuleHandleW(NULL);
+        LPCWSTR resource=(LPCWSTR)(uintptr_t)INBE_APP_ICON_RESOURCE;
+        HICON large=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXICON),GetSystemMetrics(INBE_SM_CYICON),0);
+        HICON small=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXSMICON),GetSystemMetrics(INBE_SM_CYSMICON),0);
+        if(window){if(large)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_SMALL,(LPARAM)small);}
+    }
+#endif
     const char *path = "assets/app/icon.png";
     const EmbeddedAsset *asset = GetEmbeddedAsset(path);
     Image icon;
@@ -96,15 +105,6 @@ set_desktop_window_icon(void)
     ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     SetWindowIcon(icon);
     UnloadImage(icon);
-#if defined(_WIN32)
-    {
-        HWND window=(HWND)GetWindowHandle(); HMODULE instance=GetModuleHandleW(NULL);
-        LPCWSTR resource=(LPCWSTR)(uintptr_t)INBE_APP_ICON_RESOURCE;
-        HICON large=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXICON),GetSystemMetrics(INBE_SM_CYICON),0);
-        HICON small=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXSMICON),GetSystemMetrics(INBE_SM_CYSMICON),0);
-        if(window){if(large)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_SMALL,(LPARAM)small);}
-    }
-#endif
 #endif
 }
 
@@ -1012,6 +1012,13 @@ int main(int argc, char **argv) {
     app_init(&inbe_app);
     set_global_inbe_app(&inbe_app);
     TraceLog(LOG_INFO, "INBE: Global app pointer set");
+    for(int argi = 1; argi < argc; argi++) {
+        if(strcmp(argv[argi], "--break-now") == 0) {
+            inbe_app.breaks_enabled = 1;
+            break_engine_force_break(&inbe_app.breaks, BREAK_MICRO);
+            TraceLog(LOG_INFO, "INBE: forced micro break from --break-now");
+        }
+    }
     KryonMemReport("after-app-init");
     UIFontMemoryReport("after-app-init");
 

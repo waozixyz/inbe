@@ -1,17 +1,4 @@
 # Changelog
-## [1.9.10] - 2026-08-21
-### Fixed
-- Donation wallet buttons now open Bitcoin and Monero URI intents through Kryon and show a clear toast when no wallet app is installed.
-- Monero and Bitcoin donation links now use minimal address-plus-amount wallet URIs for better compatibility with Cake Wallet and other wallet apps.
-
-## [1.9.9] - 2026-08-21
-### Changed
-- Regenerated Google Play and F-Droid screenshots with the corrected practice artwork, Pattern Breathing, Habits, Wim Hof how-to and Cobalt dark screens.
-
-### Fixed
-- Practice banner images now resolve from the embedded asset table on Android/native builds, preventing missing or faded-looking artwork in packaged releases.
-- The release test gate now checks image literals against the embedded asset table so broken practice artwork paths are caught before publishing.
-
 ## [1.9.8] - 2026-08-21
 ### Added
 - Desktop break reminders now include a Habits action beside the practice launch buttons, so habits can be managed directly from a break window.
@@ -19,10 +6,15 @@
 ### Changed
 - Store screenshots now focus on Android-relevant practice and habit screens, including Pattern Breathing, Meditation, Sun Salutation and multiple Material color themes.
 - Fastlane screenshot exports now use compressed PNG files consistently for Google Play and F-Droid metadata.
+- Regenerated Google Play and F-Droid screenshots with the corrected practice artwork, Pattern Breathing, Habits, Wim Hof how-to and Cobalt dark screens.
 
 ### Fixed
 - Screenshot scene setup now opens the intended Habits overview, Habits statistics, Meditation and Sun Salutation screens.
 - Native screenshot capture now exits cleanly and writes valid PNG rows for downstream image tooling.
+- Practice banner images now resolve from the embedded asset table on Android/native builds, preventing missing or faded-looking artwork in packaged releases.
+- Donation wallet buttons now open Bitcoin and Monero URI intents through Kryon and show a clear toast when no wallet app is installed.
+- Monero and Bitcoin donation links now use minimal address-plus-amount wallet URIs for better compatibility with Cake Wallet and other wallet apps.
+- Web and browser-extension builds are available again after fixing secure donation-link handling.
 
 ## [1.9.7] - 2026-08-20
 ### Added

@@ -45,6 +45,7 @@ static volatile struct {
 static pthread_mutex_t insets_mutex = PTHREAD_MUTEX_INITIALIZER;
 static volatile int insets_initialized = 0;
 static int pending_practice_start = -1;
+static int pending_donation_reminder = 0;
 
 static void nativeSetInsets(JNIEnv *env, jobject thiz,
     jint status_bar, jint nav_bar,
@@ -180,6 +181,17 @@ int android_take_pending_practice_start(void)
     return practice_id;
 }
 
+int android_take_pending_donation_reminder(void)
+{
+    int pending;
+
+    pthread_mutex_lock(&insets_mutex);
+    pending = pending_donation_reminder;
+    pending_donation_reminder = 0;
+    pthread_mutex_unlock(&insets_mutex);
+    return pending;
+}
+
 static jboolean
 nativeDebugImportMusicForPractice(JNIEnv *env, jobject thiz, jstring path,
                                   jint practice_id)
@@ -229,6 +241,20 @@ static jboolean nativeDebugStartMusicDownload(JNIEnv *env, jobject thiz)
     return JNI_TRUE;
 }
 
+static jboolean nativeDebugOpenDonationReminder(JNIEnv *env, jobject thiz)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    (void)env;
+    (void)thiz;
+    if(app == NULL)
+        return JNI_FALSE;
+    pthread_mutex_lock(&insets_mutex);
+    pending_donation_reminder = 1;
+    pthread_mutex_unlock(&insets_mutex);
+    return JNI_TRUE;
+}
+
 static const JNINativeMethod g_methods[] = {
     {"nativeSetInsets", "(IIIIII)V", (void*)nativeSetInsets},
     {"nativeSetDeviceDensity", "(F)V", (void*)nativeSetDeviceDensity},
@@ -251,6 +277,7 @@ static const JNINativeMethod g_methods[] = {
     {"nativeStartPractice", "(I)Z", (void*)nativeStartPractice},
     {"nativeDebugImportMusicForPractice", "(Ljava/lang/String;I)Z", (void*)nativeDebugImportMusicForPractice},
     {"nativeDebugStartMusicDownload", "()Z", (void*)nativeDebugStartMusicDownload},
+    {"nativeDebugOpenDonationReminder", "()Z", (void*)nativeDebugOpenDonationReminder},
 };
 
 JNIEXPORT jint JNI_OnLoad(JavaVM *vm, void *reserved)
@@ -285,6 +312,7 @@ void android_insets_init(void) {
     pthread_mutex_lock(&insets_mutex);
     memset((void *)&current_insets, 0, sizeof(current_insets));
     pending_practice_start = -1;
+    pending_donation_reminder = 0;
     insets_initialized = 0;
     pthread_mutex_unlock(&insets_mutex);
 }

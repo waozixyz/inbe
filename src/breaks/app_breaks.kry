@@ -27,6 +27,8 @@ WIN32 :: #defined(_WIN32)
     BreakCatchupMaxS = 300
 }
 
+last_window_fail_frame :: int = -10000 #global
+
 break_day_key :: () -> int #private {
     now: time_t = time(nil)
     tm: struct tm* = localtime(&now)
@@ -186,6 +188,18 @@ app_breaks_window_update :: (app: InbeApp*) {
     monitor := GetCurrentMonitor()
     win_w := GetMonitorWidth(monitor) * 60 / 100
     win_h := GetMonitorHeight(monitor) * 66 / 100
+    # The Windows RGFW/OpenGL 1.1 compatibility context can reject large
+    # framebuffer objects (notably on VMs and high-DPI displays). Keep the
+    # auxiliary render target inside the broadly supported 1024px range.
+    # The overlay remains DPI-aware within this physical window.
+    #if WIN32 {
+        if win_w > 960 {
+            win_w = 960
+        }
+        if win_h > 640 {
+            win_h = 640
+        }
+    }
     if win_w < ScaleUIPx(340) {
         win_w = ScaleUIPx(340)
     }
@@ -199,6 +213,9 @@ app_breaks_window_update :: (app: InbeApp*) {
         app->break_window = nil
     }
     if app->break_window == nil {
+        if app->inbe.frame - last_window_fail_frame < 300 {
+            return
+        }
         flags := UI_WINDOW_BORDERLESS + UI_WINDOW_ALWAYS_ON_TOP +
                  UI_WINDOW_SKIP_TASKBAR + UI_WINDOW_CENTER +
                  UI_WINDOW_STICKY
@@ -207,6 +224,7 @@ app_breaks_window_update :: (app: InbeApp*) {
                                          DarkenUIColor(GetThemeBackground(), 8),
                                          scale)
         if app->break_window == nil {
+            last_window_fail_frame = app->inbe.frame
             return
         }
         app->break_window_w = win_w
@@ -856,14 +874,6 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
                     tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
                     if tip > 0 {
                         Rect(bar_x + 1 + fraction, row_y + row_h - ScaleUIPx(4),
-                             tip, ScaleUIPx(3), idle_col, idle_col)
-                    }
-                }
-            }
-        }
-    }
-}
-      Rect(bar_x + 1 + fraction, row_y + row_h - ScaleUIPx(4),
                              tip, ScaleUIPx(3), idle_col, idle_col)
                     }
                 }

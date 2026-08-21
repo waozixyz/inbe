@@ -5,6 +5,8 @@ import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.NativeActivity;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
 import android.content.Context;
@@ -24,6 +26,8 @@ import java.util.List;
 import org.unifiedpush.android.connector.UnifiedPush;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.webkit.MimeTypeMap;
 import android.view.DisplayCutout;
@@ -59,6 +63,7 @@ public class MainActivity extends NativeActivity {
     public static final String ACTION_START_PRACTICE = "xyz.waozi.inbe.action.START_PRACTICE";
     public static final String ACTION_AUDIO_E2E_IMPORT = "xyz.waozi.inbe.action.AUDIO_E2E_IMPORT";
     public static final String ACTION_AUDIO_E2E_DOWNLOAD = "xyz.waozi.inbe.action.AUDIO_E2E_DOWNLOAD";
+    public static final String ACTION_DEBUG_DONATION_REMINDER = "xyz.waozi.inbe.DEBUG_DONATION_REMINDER";
     public static final String EXTRA_PRACTICE_ID = "practice_id";
     public static final String EXTRA_AUDIO_FILE_NAME = "audio_file_name";
 
@@ -78,6 +83,9 @@ public class MainActivity extends NativeActivity {
     String lastHealthConnectPath = null;
     private boolean pendingStartPractice = false;
     private int pendingStartPracticeId = -1;
+    private boolean pendingDebugDonationReminder = false;
+    private int pendingDebugDonationReminderRetries = 0;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
 
     private native void nativeSetInsets(int status, int nav,
         int cutoutLeft, int cutoutTop, int cutoutRight, int cutoutBottom);
@@ -101,6 +109,7 @@ public class MainActivity extends NativeActivity {
     private native boolean nativeStartPractice(int practiceId);
     private native boolean nativeDebugImportMusicForPractice(String path, int practiceId);
     private native boolean nativeDebugStartMusicDownload();
+    private native boolean nativeDebugOpenDonationReminder();
 
     private void requestNotificationPermissionIfNeeded() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -536,6 +545,43 @@ public class MainActivity extends NativeActivity {
             " practice=" + practiceId + " path=" + file.getAbsolutePath());
     }
 
+    private void handleDebugDonationReminderIntent(Intent intent) {
+        boolean debuggable = (getApplicationInfo().flags &
+            android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE) != 0;
+        if (!debuggable || intent == null ||
+            !ACTION_DEBUG_DONATION_REMINDER.equals(intent.getAction())) {
+            return;
+        }
+        if (nativeDebugOpenDonationReminder()) {
+            pendingDebugDonationReminder = false;
+            pendingDebugDonationReminderRetries = 0;
+        } else {
+            pendingDebugDonationReminder = true;
+            scheduleDebugDonationReminderRetry();
+        }
+    }
+
+    private void scheduleDebugDonationReminderRetry() {
+        if (!pendingDebugDonationReminder || pendingDebugDonationReminderRetries >= 40) {
+            return;
+        }
+        pendingDebugDonationReminderRetries++;
+        mainHandler.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                if (!pendingDebugDonationReminder) {
+                    return;
+                }
+                if (nativeDebugOpenDonationReminder()) {
+                    pendingDebugDonationReminder = false;
+                    pendingDebugDonationReminderRetries = 0;
+                } else {
+                    scheduleDebugDonationReminderRetry();
+                }
+            }
+        }, 250);
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -745,6 +791,23 @@ public class MainActivity extends NativeActivity {
         });
     }
 
+    public void copyTextAndShowToast(final String text, final String toastText) {
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                ClipboardManager clipboard =
+                    (ClipboardManager)getSystemService(Context.CLIPBOARD_SERVICE);
+                if (clipboard != null) {
+                    clipboard.setPrimaryClip(ClipData.newPlainText("Inner Breeze", text == null ? "" : text));
+                }
+                String message = toastText == null || toastText.isEmpty()
+                    ? "Copied"
+                    : toastText;
+                Toast.makeText(MainActivity.this, message, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         configureSystemBars();
@@ -766,6 +829,7 @@ public class MainActivity extends NativeActivity {
         // Widget/tile/shortcut launch: the intent that started this activity.
         handleStartPracticeIntent(getIntent());
         handleAudioE2EIntent(getIntent());
+        handleDebugDonationReminderIntent(getIntent());
     }
 
     @Override
@@ -1005,6 +1069,7 @@ public class MainActivity extends NativeActivity {
         syncLifecycleState("onNewIntent");
         handleStartPracticeIntent(intent);
         handleAudioE2EIntent(intent);
+        handleDebugDonationReminderIntent(intent);
     }
 
     @Override
@@ -1018,6 +1083,9 @@ public class MainActivity extends NativeActivity {
                 handleStartPracticeIntent(
                         new Intent(ACTION_START_PRACTICE)
                                 .putExtra(EXTRA_PRACTICE_ID, pendingStartPracticeId));
+            }
+            if (pendingDebugDonationReminder) {
+                scheduleDebugDonationReminderRetry();
             }
         }
         syncLifecycleState("onWindowFocusChanged");
