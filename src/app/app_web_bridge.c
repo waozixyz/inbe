@@ -270,6 +270,7 @@ app_web_test_save_onboarding_state(void)
         return;
 
     snprintf(app->language, sizeof(app->language), "%s", "es");
+    app->language_system = 0;
     app->language_selected = 1;
     app->tutorial_seen = 1;
     app->habits_guide_seen = 1;
