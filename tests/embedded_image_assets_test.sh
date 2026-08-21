@@ -12,13 +12,23 @@ fail() {
 [[ -f "$EMBEDDED_C" ]] ||
   fail "embedded asset table missing; run make native or make build/obj/inbe_embedded_assets.c first"
 
-mapfile -t image_paths < <(
-  rg -No '"(assets/)?(practices|easteregg|pet)/[^"]+\.(png|jpg|jpeg)"' \
-    "$ROOT_DIR/src" "$ROOT_DIR/tests" \
-    -g '!vendor/**' |
-    sed -E 's/^.*"([^"]+)".*$/\1/' |
-    sort -u
-)
+if command -v rg >/dev/null 2>&1; then
+  mapfile -t image_paths < <(
+    rg -No '"(assets/)?(practices|easteregg|pet)/[^"]+\.(png|jpg|jpeg)"' \
+      "$ROOT_DIR/src" "$ROOT_DIR/tests" \
+      -g '!vendor/**' |
+      sed -E 's/^.*"([^"]+)".*$/\1/' |
+      sort -u
+  )
+else
+  mapfile -t image_paths < <(
+    find "$ROOT_DIR/src" "$ROOT_DIR/tests" -type f \
+      \( -name '*.kry' -o -name '*.c' -o -name '*.h' -o -name '*.sh' \) -print0 |
+      xargs -0 grep -Eho '"(assets/)?(practices|easteregg|pet)/[^"]+\.(png|jpg|jpeg)"' |
+      sed -E 's/^"([^"]+)"$/\1/' |
+      sort -u
+  )
+fi
 
 [[ "${#image_paths[@]}" -gt 0 ]] ||
   fail "no app image path literals found"
