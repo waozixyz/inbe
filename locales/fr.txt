@@ -474,6 +474,9 @@ Plein écran
 [language_label]
 Langue
 ---
+[language_system_label]
+Utiliser la langue du système
+---
 [language_picker_title]
 Choisir la langue
 ---

@@ -313,6 +313,7 @@ typedef struct MeditationPracticeState {
 typedef struct SunSalutationPracticeState {
     Texture2D banner;
     Texture2D pose_sheets[2];
+    Texture2D transition_sheets[2][3];
     int step;
     int repetition;
     int repetitions;
@@ -464,6 +465,7 @@ struct InbeApp {
     Texture2D push_distributor_textures[APP_PUSH_DISTRIBUTOR_MAX];
     int push_distributor_textures_loaded;
     char language[16];
+    int language_system;
     int language_selected;
     int language_index;
     int language_needs_save;
@@ -654,7 +656,9 @@ void app_reload_after_import(InbeApp *app, int reload_settings);
 void update_preview_bounds(Inbe *inbe, int content_w, int max_h);
 void refresh_theme_colors(int theme_id, int dark_mode);
 void refresh_locale_dependent_text(InbeApp *app);
+void apply_system_language_selection(InbeApp *app, int save_now);
 void apply_language_selection(InbeApp *app, int language_index, int save_now);
+void app_accept_language_selection(InbeApp *app);
 int exercise_manual_seen(InbeApp *app, int exercise_type);
 void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
 void sync_habits_for_activity(InbeApp *app, int exercise_type);

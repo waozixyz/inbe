@@ -561,6 +561,9 @@ Fullscreen
 [language_label]
 Language
 ---
+[language_system_label]
+Use system language
+---
 [language_picker_title]
 Choose Language
 ---

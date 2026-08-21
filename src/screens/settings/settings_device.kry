@@ -20,6 +20,7 @@ settings_device_content_height :: (content_w: int) -> int {
     label_w := content_w > 0 ? content_w : ScaleUIPx(240)
     height := ScaleUIPx(76) + ScaleUIPx(76) + ScaleUIPx(40)
 
+    height += settings_ui_toggle_row_height(GetLocaleText("language_system_label"), label_w)
     height += settings_ui_toggle_row_height(GetLocaleText("play_in_background_label"), label_w)
 
     #if DESKTOP {
@@ -52,6 +53,18 @@ settings_device_draw :: (app: InbeApp*, x: int, w: int, y: int*, state: Settings
         app->on_screen_keyboard_enabled = 1
     } #else {
         keyboard_toggle = app->on_screen_keyboard_enabled
+    }
+
+    language_system := app->language_system
+    if settings_ui_commit_toggle_row(app, x, w, y,
+                                     GetLocaleText("language_system_label"),
+                                     &language_system, 0) {
+        app->language_system = language_system
+        if app->language_system {
+            apply_system_language_selection(app, 1)
+        } else {
+            apply_language_selection(app, app->language_index, 1)
+        }
     }
 
     Text(GetLocaleText("language_label"), x, *y,

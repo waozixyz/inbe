@@ -24,6 +24,8 @@ node_modules
 .claude.json
 .bash_history
 .env
+.env.play
+.secrets/
 /inbe.log
 
 

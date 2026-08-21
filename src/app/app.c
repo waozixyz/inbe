@@ -896,6 +896,40 @@ refresh_locale_dependent_text(InbeApp *app)
         app->language_index = 0;
 }
 
+static void
+apply_language_code(InbeApp *app, const char *code)
+{
+    if(app == NULL)
+        return;
+
+    if(code == NULL || code[0] == '\0')
+        code = "en";
+
+    if(!SetLocale(code)) {
+        code = "en";
+        SetLocale(code);
+    }
+
+    snprintf(app->language, sizeof(app->language), "%s", code);
+    if(!load_locale_font(app))
+        TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font for locale %s", code);
+    refresh_locale_dependent_text(app);
+}
+
+void
+apply_system_language_selection(InbeApp *app, int save_now)
+{
+    if(app == NULL)
+        return;
+
+    app->language_system = 1;
+    app->language_selected = 1;
+    apply_language_code(app, GetDefaultLocaleCode());
+
+    if(save_now)
+        save_settings(app);
+}
+
 void
 apply_language_selection(InbeApp *app, int language_index, int save_now)
 {
@@ -911,18 +945,23 @@ apply_language_selection(InbeApp *app, int language_index, int save_now)
     if(code == NULL || code[0] == '\0')
         code = "en";
 
-    if(!SetLocale(code)) {
-        code = "en";
-        SetLocale(code);
-    }
-
-    snprintf(app->language, sizeof(app->language), "%s", code);
+    app->language_system = 0;
     app->language_selected = 1;
-    if(!load_locale_font(app))
-        TraceLog(LOG_WARNING, "FONT: Failed to load Noto UI font for locale %s", code);
-    refresh_locale_dependent_text(app);
+    apply_language_code(app, code);
 
     if(save_now)
+        save_settings(app);
+}
+
+void
+app_accept_language_selection(InbeApp *app)
+{
+    if(app == NULL)
+        return;
+
+    if(app->language_system || !app->language_selected)
+        apply_system_language_selection(app, 1);
+    else
         save_settings(app);
 }
 
@@ -2026,6 +2065,8 @@ app_destroy(void *vapp)
     InbeApp *app = vapp;
     if (app == NULL) return;
 
+    CloseUIWindow(app->break_window);
+    app->break_window = NULL;
     CloseUIWindow(app->break_hud);
     app->break_hud = NULL;
 

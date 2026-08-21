@@ -474,6 +474,9 @@ Vollbild
 [language_label]
 Sprache
 ---
+[language_system_label]
+Systemsprache verwenden
+---
 [language_picker_title]
 Sprache wählen
 ---

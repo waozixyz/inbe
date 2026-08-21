@@ -213,6 +213,86 @@ draw_pose_image :: (texture: Texture2D, pose_index: int, top_y: int, bottom_y: i
     DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE)
 }
 
+draw_transition_image :: (texture: Texture2D, frame_index: int,
+                          top_y: int, bottom_y: int) #private {
+    src: Rectangle
+    dst: Rectangle
+    max_w: float
+    max_h: float
+    scale: float
+    w: float
+    h: float
+
+    if texture.id == 0 || bottom_y <= top_y {
+        return
+    }
+    if frame_index < 0 {
+        frame_index = 0
+    }
+    if frame_index >= SUN_SALUTATION_TRANSITION_FRAME_COUNT {
+        frame_index = SUN_SALUTATION_TRANSITION_FRAME_COUNT - 1
+    }
+
+    max_w = (float)(view_width - ScaleUIPx(48))
+    max_h = (float)(bottom_y - top_y)
+    scale = max_w / (float)SUN_SALUTATION_POSE_FRAME_W
+    if (float)SUN_SALUTATION_POSE_FRAME_H * scale > max_h {
+        scale = max_h / (float)SUN_SALUTATION_POSE_FRAME_H
+    }
+    if scale <= 0.0f {
+        return
+    }
+
+    w = (float)SUN_SALUTATION_POSE_FRAME_W * scale
+    h = (float)SUN_SALUTATION_POSE_FRAME_H * scale
+    src = (Rectangle){
+        (float)((frame_index % SUN_SALUTATION_TRANSITION_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_W),
+        (float)((frame_index / SUN_SALUTATION_TRANSITION_SHEET_COLS) *
+                SUN_SALUTATION_POSE_FRAME_H),
+        (float)SUN_SALUTATION_POSE_FRAME_W,
+        (float)SUN_SALUTATION_POSE_FRAME_H
+    }
+    dst = (Rectangle){
+        ((float)view_width - w) * 0.5f,
+        (float)top_y + (max_h - h) * 0.5f,
+        w,
+        h
+    }
+    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE)
+}
+
+sun_salutation_transition_index_for_step :: (step: int) -> int #private {
+    if step == 0 {
+        return 0
+    }
+    if step == 1 {
+        return 1
+    }
+    if step == 2 {
+        return 2
+    }
+    return -1
+}
+
+sun_salutation_transition_frame_for_tick :: (step_ticks: int,
+                                            ticks_per_step: int) -> int #private {
+    frame_index: int
+
+    if ticks_per_step <= 0 {
+        return 0
+    }
+    if step_ticks < 0 {
+        step_ticks = 0
+    }
+    frame_index = (step_ticks * SUN_SALUTATION_TRANSITION_FRAME_COUNT) /
+                  ticks_per_step
+    if frame_index >= SUN_SALUTATION_TRANSITION_FRAME_COUNT {
+        frame_index = SUN_SALUTATION_TRANSITION_FRAME_COUNT - 1
+    }
+    return frame_index
+}
+
 draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #private {
     timer_text: [24] char
     elapsed_seconds: int
@@ -269,6 +349,8 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     repetitions: int
     figure: int
     pose_index: int
+    transition_index: int
+    transition_frame: int
     current_step_seconds: int
     ticks_per_step: int
     pause_icon: Texture2D
@@ -381,8 +463,20 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
 
     image_bottom = row.y - ScaleUIPx(18)
     draw_pose_timer(app, current_step_seconds, content_top, image_bottom)
-    draw_pose_image(app->sun_salutation.pose_sheets[figure], pose_index,
-                       content_top + ScaleUIPx(28), image_bottom)
+    transition_index = sun_salutation_transition_index_for_step(step)
+    if transition_index >= 0 &&
+       transition_index < SUN_SALUTATION_TRANSITION_COUNT &&
+       app->sun_salutation.transition_sheets[figure][transition_index].id != 0 {
+        transition_frame =
+            sun_salutation_transition_frame_for_tick(app->sun_salutation.step_ticks,
+                                                     ticks_per_step)
+        draw_transition_image(app->sun_salutation.transition_sheets[figure][transition_index],
+                              transition_frame,
+                              content_top + ScaleUIPx(28), image_bottom)
+    } else {
+        draw_pose_image(app->sun_salutation.pose_sheets[figure], pose_index,
+                           content_top + ScaleUIPx(28), image_bottom)
+    }
 
     if row.clicked_index == 0 {
         step_back(app)

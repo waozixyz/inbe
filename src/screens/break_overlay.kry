@@ -5,6 +5,12 @@ pscr :: #import "screens/practice_screen"
 # Defined in breaks/app_breaks.kry; declared extern to keep the module
 # graph acyclic (app_breaks imports this module for the overlay window).
 app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) #extern
+app_breaks_open_habits :: (app: InbeApp*, t: int) #extern
+
+#enum {
+    BREAK_OVERLAY_HABITS_CHIP_ID = -1
+    BREAK_OVERLAY_CHIP_MAX = 5
+}
 
 break_overlay_active :: (app: const InbeApp*) -> int {
     if app == nil {
@@ -47,10 +53,10 @@ break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
     if app == nil || out_rects == nil || out_ids == nil {
         return 0
     }
-    ids: [4] int = {0, 0, 0, 0}
-    widths: [4] int = {0, 0, 0, 0}
+    ids: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
+    widths: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
     count := 0
-    for int i = 0; i < practice_count() && count < 4; i++ {
+    for int i = 0; i < practice_count() && count < BREAK_OVERLAY_CHIP_MAX - 1; i++ {
         if !pscr.practice_is_visible(app, i) {
             continue
         }
@@ -59,6 +65,10 @@ break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
                         ScaleUIPx(24)
         count++
     }
+    ids[count] = BREAK_OVERLAY_HABITS_CHIP_ID
+    widths[count] = MeasureUIText(GetLocaleText("tab_habits"), UI_TEXT_12) +
+                    ScaleUIPx(24)
+    count++
     if count == 0 {
         return 0
     }
@@ -114,8 +124,8 @@ break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
 }
 
 break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
-    rects: [4] Rectangle
-    ids: [4] int = {0, 0, 0, 0}
+    rects: [BREAK_OVERLAY_CHIP_MAX] Rectangle
+    ids: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
     chips := break_overlay_practice_chips(app, w, h, rects, ids)
 
     if chips <= 0 {
@@ -127,7 +137,9 @@ break_overlay_draw_practice_chips :: (app: InbeApp*, w: int, h: int) #private {
         r := rects[i]
         Rect((int)r.x, (int)r.y, (int)r.width, (int)r.height,
              chip_fill, chip_border)
-        label := pscr.practice_label(ids[i])
+        label := ids[i] == BREAK_OVERLAY_HABITS_CHIP_ID
+            ? GetLocaleText("tab_habits")
+            : pscr.practice_label(ids[i])
         lw := MeasureUIText(label, UI_TEXT_12)
         Text(label, (int)r.x + ((int)r.width - lw) / 2,
              (int)r.y + ScaleUIPx(10), UI_TEXT_12, GetThemeText())
@@ -300,13 +312,17 @@ break_overlay_draw :: (app: InbeApp*) {
         if UIInputCapturesClick(mouse) {
             return
         }
-        rects: [4] Rectangle
-        ids: [4] int = {0, 0, 0, 0}
+        rects: [BREAK_OVERLAY_CHIP_MAX] Rectangle
+        ids: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
         chips := break_overlay_practice_chips(app, view_width, view_height,
                                               rects, ids)
         for int i = 0; i < chips; i++ {
             if CheckCollisionPointRec(mouse, rects[i]) {
-                app_breaks_start_practice(app, t, ids[i])
+                if ids[i] == BREAK_OVERLAY_HABITS_CHIP_ID {
+                    app_breaks_open_habits(app, t)
+                } else {
+                    app_breaks_start_practice(app, t, ids[i])
+                }
                 return
             }
         }

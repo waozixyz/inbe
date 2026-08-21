@@ -17,6 +17,13 @@ typedef struct LocaleKeys {
 
 static int failures = 0;
 
+static const char *const practice_label_keys[] = {
+    "exercise_wim_hof",
+    "exercise_patterns",
+    "exercise_meditation",
+    "exercise_sun_salutation",
+};
+
 static void
 trim_newline(char *text)
 {
@@ -131,11 +138,24 @@ load_locale_keys(const char *path, LocaleKeys *keys)
 }
 
 static void
+check_practice_label_keys(const LocaleKeys *keys, const char *path)
+{
+    for(size_t i = 0; i < sizeof(practice_label_keys) / sizeof(practice_label_keys[0]); i++) {
+        if(!keys_contains(keys, practice_label_keys[i])) {
+            fprintf(stderr, "FAIL %s missing practice label [%s]\n",
+                    path, practice_label_keys[i]);
+            failures++;
+        }
+    }
+}
+
+static void
 check_locale_file(const LocaleKeys *english, const char *path)
 {
     LocaleKeys translated;
 
     load_locale_keys(path, &translated);
+    check_practice_label_keys(&translated, path);
     for(int i = 0; i < english->count; i++) {
         if(!keys_contains(&translated, english->keys[i])) {
             fprintf(stderr, "FAIL %s missing [%s]\n", path, english->keys[i]);
@@ -328,6 +348,7 @@ add_dynamic_locale_keys(LocaleKeys *used)
 {
     static const char *const keys[] = {
         "exercise_wim_hof",
+        "exercise_patterns",
         "exercise_meditation",
         "exercise_sun_salutation",
         "meditation_music_download_button",
@@ -454,6 +475,7 @@ main(void)
 
     if(!load_locale_keys("locales/en.txt", &english))
         return 1;
+    check_practice_label_keys(&english, "locales/en.txt");
     memset(&used, 0, sizeof(used));
     scan_locale_get_calls_in_dir(&english, "src");
     scan_locale_get_calls_in_dir(&english, "vendor/kryon/src");

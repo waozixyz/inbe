@@ -474,6 +474,9 @@ OK
 [language_label]
 言語
 ---
+[language_system_label]
+システムの言語を使用
+---
 [language_picker_title]
 言語を選択
 ---

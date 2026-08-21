@@ -1,10 +1,11 @@
 #include <windows.h>
+#define IDI_APP_ICON 101
 
 IDI_APP_ICON ICON "inbe.ico"
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 1,9,7,0
- PRODUCTVERSION 1,9,7,0
+ FILEVERSION 1,9,8,0
+ PRODUCTVERSION 1,9,8,0
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -21,11 +22,11 @@ BEGIN
         BEGIN
             VALUE "CompanyName", "waozi"
             VALUE "FileDescription", "Inner Breeze"
-            VALUE "FileVersion", "1.9.7"
+            VALUE "FileVersion", "1.9.8"
             VALUE "InternalName", "inbe"
             VALUE "OriginalFilename", "inbe-windows-x86_64.exe"
             VALUE "ProductName", "Inner Breeze"
-            VALUE "ProductVersion", "1.9.7"
+            VALUE "ProductVersion", "1.9.8"
         END
     END
     BLOCK "VarFileInfo"
@@ -33,3 +34,4 @@ BEGIN
         VALUE "Translation", 0x409, 1200
     END
 END
+// end of resource file

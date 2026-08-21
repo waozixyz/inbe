@@ -41,11 +41,20 @@ int kry_write_png_file(const char *path, const unsigned char *rgba,
 
 #if defined(_WIN32) && !ANDROID_BUILD
 #include <process.h>
-__declspec(dllimport) int __stdcall MessageBoxA(void *hwnd, const char *text,
-                                                const char *caption, unsigned int type);
-#define MB_OK 0x00000000u
-#define MB_ICONERROR 0x00000010u
+__declspec(dllimport) LRESULT __stdcall SendMessageW(HWND, UINT, WPARAM, LPARAM);
+__declspec(dllimport) int __stdcall MessageBoxA(HWND, const char *, const char *, UINT);
+#define MB_OK 0u
+#define MB_ICONERROR 0x10u
 #define WIN_ERROR_LOG_CAP 2048
+#define INBE_APP_ICON_RESOURCE 101
+#define INBE_WM_SETICON 0x0080u
+#define INBE_ICON_SMALL 0u
+#define INBE_ICON_BIG 1u
+#define INBE_IMAGE_ICON 1u
+#define INBE_SM_CXICON 11
+#define INBE_SM_CYICON 12
+#define INBE_SM_CXSMICON 49
+#define INBE_SM_CYSMICON 50
 #endif
 
 #if ANDROID_BUILD
@@ -85,6 +94,15 @@ set_desktop_window_icon(void)
     ImageFormat(&icon, PIXELFORMAT_UNCOMPRESSED_R8G8B8A8);
     SetWindowIcon(icon);
     UnloadImage(icon);
+#if defined(_WIN32)
+    {
+        HWND window=(HWND)GetWindowHandle(); HMODULE instance=GetModuleHandleW(NULL);
+        LPCWSTR resource=MAKEINTRESOURCEW(INBE_APP_ICON_RESOURCE);
+        HICON large=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXICON),GetSystemMetrics(INBE_SM_CYICON),0);
+        HICON small=(HICON)LoadImageW(instance,resource,INBE_IMAGE_ICON,GetSystemMetrics(INBE_SM_CXSMICON),GetSystemMetrics(INBE_SM_CYSMICON),0);
+        if(window){if(large)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_BIG,(LPARAM)large);if(small)SendMessageW(window,INBE_WM_SETICON,INBE_ICON_SMALL,(LPARAM)small);}
+    }
+#endif
 #endif
 }
 
@@ -676,12 +694,39 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->inbe.screen = InbeScreenSession;
+    } else if(strcmp(request->scene, "meditation_session") == 0) {
+        const PracticeDefinition *practice;
+
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->exercise_type = EXERCISE_MEDITATION;
+        practice = practice_get(EXERCISE_MEDITATION);
+        if(practice != NULL && practice->start != NULL)
+            practice->start(app);
+    } else if(strcmp(request->scene, "sun_salutation_session") == 0) {
+        const PracticeDefinition *practice;
+
+        app->main_tab = APP_MAIN_TAB_PRACTICE;
+        app->exercise_type = EXERCISE_SUN_SALUTATION;
+        practice = practice_get(EXERCISE_SUN_SALUTATION);
+        if(practice != NULL && practice->start != NULL)
+            practice->start(app);
     } else if(strcmp(request->scene, "calendar_meditation") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+        app->habits.selected = 0;
+        app->habits.tab = HABIT_TAB_MONTHLY;
         app->inbe.screen = InbeScreenHabits;
         app->habits.view_mode = HABIT_VIEW_CALENDAR;
+    } else if(strcmp(request->scene, "habits_overview") == 0) {
+        app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+        app->habits.tab = HABIT_TAB_WEEKLY;
+        app->habits.view_mode = HABIT_VIEW_WEEKLY;
+        app->inbe.screen = InbeScreenHabits;
     } else if(strcmp(request->scene, "habits_stats") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
+        app->habits.screen_mode = HABITS_SCREEN_DETAIL;
+        app->habits.selected = 0;
         app->habits.tab = HABIT_TAB_STATISTICS;
         app->inbe.screen = InbeScreenHabits;
     } else if(strcmp(request->scene, "theme_selection") == 0) {
@@ -836,8 +881,7 @@ run_screenshot_mode(const ScreenshotRequest *request)
      * stack; kryon's own writer is the working path. */
     saved = kry_write_png_file(request->output, capture.data,
                                capture.width, capture.height) == 0;
-    free(capture.data);
-    capture.data = NULL;
+    UnloadImage(capture);
     return saved ? 1 : -1;
 }
 #endif
@@ -1048,6 +1092,8 @@ int main(int argc, char **argv) {
 #if defined(INBE_DESKTOP_TRAY_ENABLED)
     inbe_desktop_tray_shutdown();
 #endif
+    app_destroy(&inbe_app);
+    set_global_inbe_app(NULL);
     CloseWindow();
 #if defined(_WIN32) && !ANDROID_BUILD
     windows_close_logger();

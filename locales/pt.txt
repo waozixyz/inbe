@@ -474,6 +474,9 @@ Tela cheia
 [language_label]
 Idioma
 ---
+[language_system_label]
+Usar idioma do sistema
+---
 [language_picker_title]
 Escolher idioma
 ---

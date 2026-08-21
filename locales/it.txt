@@ -489,6 +489,9 @@ Schermo intero
 [language_label]
 Lingua
 ---
+[language_system_label]
+Usa lingua di sistema
+---
 [language_picker_title]
 Scegli Lingua
 ---

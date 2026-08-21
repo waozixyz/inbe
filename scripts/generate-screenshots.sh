@@ -14,29 +14,31 @@ case "$UNAME_M" in
   *) ARCH="$UNAME_M" ;;
 esac
 BIN="${1:-"$ROOT_DIR/build/bin/$PLATFORM/inbe-$PLATFORM-$ARCH"}"
-OUT_DIR="${SCREENSHOT_OUT_DIR:-"$ROOT_DIR/tmp"}"
+OUT_DIR="${SCREENSHOT_OUT_DIR:-"$ROOT_DIR/build/screenshots"}"
 DATA_BASE="$OUT_DIR/screenshot-data"
+FASTLANE_IMAGES_DIR="${SCREENSHOT_FASTLANE_IMAGES_DIR:-"$ROOT_DIR/fastlane/metadata/android/en-US/images"}"
+FASTLANE_SYNC="${SCREENSHOT_FASTLANE_SYNC:-1}"
+FASTLANE_FORMAT="${SCREENSHOT_FASTLANE_FORMAT:-png}"
+FASTLANE_JPEG_QUALITY="${SCREENSHOT_FASTLANE_JPEG_QUALITY:-92}"
+SCREENSHOT_STYLE="${SCREENSHOT_STYLE:-2}"
+ANALYSIS_FILE="$OUT_DIR/screenshot-analysis.tsv"
 
 SCENES=(
-  "home:01-home:0:0"
-  "background_music:02-background-music:1:0"
-  "practice_config_whm:03-wim-hof-config:2:0"
-  "practice_manual_whm:04-wim-hof-manual:3:0"
-  "wim_hof_session:05-wim-hof-session:11:1"
-  "calendar_meditation:06-calendar-meditation:1:0"
-  "habits_stats:07-habits-statistics:2:1"
-  "data:08-data:0:0"
-  "my_practices:09-my-practices:4:0"
-  "configure_account:10-configure-account:7:1"
-  "settings_session:11-settings-session:0:0"
-  "theme_selection:12-theme-selection:0:0"
+  "home:01-practice-home:0:0:Practice home"
+  "patterns:02-pattern-breathing:10:0:Pattern breathing session"
+  "habits_overview:03-habits-overview:7:0:Habits overview"
+  "habits_stats:04-habit-statistics:2:0:Habit statistics"
+  "wim_hof_session:05-wim-hof-session:1:1:Wim Hof session"
+  "meditation_session:06-meditation-session:4:0:Meditation session"
+  "sun_salutation_session:07-sun-salutation-session:3:0:Sun salutation session"
+  "cobalt_dark:08-cobalt-dark-practice:11:1:Cobalt dark practice theme"
 )
 
 BUCKETS=(
-  "phone:1080:1920"
-  "tablet-7:1920:1080"
-  "tablet-10:2560:1440"
-  "chromebook:2560:1440"
+  "phone:1080:1920:phoneScreenshots"
+  "tablet-7:1920:1080:sevenInchScreenshots"
+  "tablet-10:2560:1440:tenInchScreenshots"
+  "chromebook:2560:1440:"
 )
 
 if [[ ! -x "$BIN" ]]; then
@@ -54,6 +56,18 @@ mkdir -p "$OUT_DIR"
 rm -rf "$OUT_DIR/phone" "$OUT_DIR/tablet-7" "$OUT_DIR/tablet-10" \
        "$OUT_DIR/chromebook" "$DATA_BASE"
 mkdir -p "$DATA_BASE"
+printf 'bucket\tfastlane_dir\torder\tscene\tfile\tfastlane_file\twidth\theight\ttheme\tdark\tstyle\texpected\n' > "$ANALYSIS_FILE"
+
+if [[ "$FASTLANE_SYNC" = "1" ]]; then
+  mkdir -p "$FASTLANE_IMAGES_DIR"
+  for bucket in "${BUCKETS[@]}"; do
+    IFS=: read -r _bucket_name _width _height fastlane_subdir <<<"$bucket"
+    if [[ -n "$fastlane_subdir" ]]; then
+      rm -rf "$FASTLANE_IMAGES_DIR/$fastlane_subdir"
+      mkdir -p "$FASTLANE_IMAGES_DIR/$fastlane_subdir"
+    fi
+  done
+fi
 
 run_app() {
   local width="$1"
@@ -63,8 +77,9 @@ run_app() {
   local output="$5"
   local theme="$6"
   local dark="$7"
+  local style="$8"
 
-  if [[ ! -f "$data_root/inbe.db" ]]; then
+  if [[ "${SCREENSHOT_SEED_DB:-0}" = "1" && ! -f "$data_root/inbe.db" ]]; then
     NOW=$(date +%s)
     USER_ID="local-screenshot-$NOW"
 
@@ -230,7 +245,8 @@ EOF
     --screenshot-width "$width" \
     --screenshot-height "$height" \
     --screenshot-theme "$theme" \
-    --screenshot-dark "$dark"
+    --screenshot-dark "$dark" \
+    --screenshot-style "$style"
   app_status=$?
   set -e
   if [[ "$app_status" -ne 0 && ! -s "$output" ]]; then
@@ -239,19 +255,50 @@ EOF
   fi
 }
 
+sync_fastlane_screenshot() {
+  local input="$1"
+  local output="$2"
+
+  case "$FASTLANE_FORMAT" in
+    jpg|jpeg)
+      if command -v magick >/dev/null 2>&1; then
+        magick "$input" -strip -interlace Plane -quality "$FASTLANE_JPEG_QUALITY" "$output"
+      elif command -v convert >/dev/null 2>&1; then
+        convert "$input" -strip -interlace Plane -quality "$FASTLANE_JPEG_QUALITY" "$output"
+      else
+        echo "ImageMagick is required for JPEG Fastlane exports; falling back to PNG copy." >&2
+        cp "$input" "${output%.*}.png"
+      fi
+      ;;
+    png)
+      if command -v magick >/dev/null 2>&1; then
+        magick "$input" -strip -define png:compression-level=9 "$output"
+      elif command -v convert >/dev/null 2>&1; then
+        convert "$input" -strip -define png:compression-level=9 "$output"
+      else
+        cp "$input" "$output"
+      fi
+      ;;
+    *)
+      echo "Unsupported SCREENSHOT_FASTLANE_FORMAT: $FASTLANE_FORMAT" >&2
+      exit 1
+      ;;
+  esac
+}
+
 count=0
 for bucket in "${BUCKETS[@]}"; do
-  IFS=: read -r bucket_name width height <<<"$bucket"
+  IFS=: read -r bucket_name width height fastlane_subdir <<<"$bucket"
   bucket_dir="$OUT_DIR/$bucket_name"
   mkdir -p "$bucket_dir"
 
   for scene_def in "${SCENES[@]}"; do
-    IFS=: read -r scene slug theme dark <<<"$scene_def"
+    IFS=: read -r scene slug theme dark expected <<<"$scene_def"
     output="$bucket_dir/${slug}-${width}x${height}.png"
     data_root="$DATA_BASE/${bucket_name}-${scene}"
     mkdir -p "$data_root"
-    echo "Generating $bucket_name/$slug ${width}x${height}"
-    run_app "$width" "$height" "$data_root" "$scene" "$output" "$theme" "$dark"
+    echo "Generating $bucket_name/$slug ${width}x${height} [$expected]"
+    run_app "$width" "$height" "$data_root" "$scene" "$output" "$theme" "$dark" "$SCREENSHOT_STYLE"
     if [[ ! -s "$output" ]]; then
       echo "Screenshot was not created: $output" >&2
       exit 1
@@ -266,8 +313,27 @@ for bucket in "${BUCKETS[@]}"; do
     if [[ "$bytes" -gt 8388608 ]]; then
       echo "Warning: $output is larger than 8 MB" >&2
     fi
+    fastlane_file=""
+    if [[ "$FASTLANE_SYNC" = "1" && -n "$fastlane_subdir" ]]; then
+      fastlane_ext="$FASTLANE_FORMAT"
+      [[ "$fastlane_ext" = "jpeg" ]] && fastlane_ext="jpg"
+      fastlane_file="$FASTLANE_IMAGES_DIR/$fastlane_subdir/${slug}.${fastlane_ext}"
+      sync_fastlane_screenshot "$output" "$fastlane_file"
+      fastlane_bytes="$(stat -c %s "$fastlane_file" 2>/dev/null || wc -c <"$fastlane_file")"
+      if [[ "$fastlane_bytes" -gt 8388608 ]]; then
+        echo "Warning: $fastlane_file is larger than 8 MB" >&2
+      fi
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+      "$bucket_name" "$fastlane_subdir" "${slug%%-*}" "$scene" "$output" "$fastlane_file" \
+      "$width" "$height" "$theme" "$dark" "$SCREENSHOT_STYLE" "$expected" \
+      >> "$ANALYSIS_FILE"
     count=$((count + 1))
   done
 done
 
 echo "Wrote $count screenshots to $OUT_DIR"
+if [[ "$FASTLANE_SYNC" = "1" ]]; then
+  echo "Synced Play/F-Droid screenshots to $FASTLANE_IMAGES_DIR"
+fi
+echo "Wrote screenshot analysis to $ANALYSIS_FILE"

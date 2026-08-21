@@ -474,6 +474,9 @@ Celá obrazovka
 [language_label]
 Jazyk
 ---
+[language_system_label]
+Použít jazyk systému
+---
 [language_picker_title]
 Vyberte jazyk
 ---

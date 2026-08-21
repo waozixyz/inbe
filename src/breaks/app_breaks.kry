@@ -3,12 +3,19 @@
 #import "platform/inbe_desktop_tray.h" #private
 #import "storage/break_stats.h" #private
 #import "practices/practice_registry.h" #private
+#import "notification.h" #private
 ovl :: #import "screens/break_overlay"
 
 ANDROID :: ANDROID_BUILD
 WEB :: #defined(PLATFORM_WEB)
 DESKTOP :: !ANDROID && !WEB
 TRAY :: #defined(INBE_DESKTOP_TRAY_ENABLED)
+WIN32 :: #defined(_WIN32)
+
+#if WEB {
+    app_web_extension_host :: () -> int #extern
+    app_web_extension_break_now :: (break_type: int) -> void #extern
+}
 
 #enum {
     BreakActivityThresholdMs = 1000
@@ -102,6 +109,17 @@ break_pick_exercises :: (app: InbeApp*) #private {
 }
 
 break_engine_open_window :: (app: InbeApp*, t: int) #private {
+    #if WIN32 {
+        title: const char* = GetLocaleText("break_micro_title")
+        if t == BREAK_REST {
+            title = GetLocaleText("break_rest_title")
+        } else if t == BREAK_DAILY {
+            title = GetLocaleText("break_daily_title")
+        }
+        SendNotificationEx(title, GetLocaleText("break_prelude_text"),
+                           "inbe.break", 20 + t,
+                           NOTIFICATION_PRIORITY_HIGH)
+    }
     # The break renders only in its own centered always-on-top window
     # (created per-frame in app_breaks_window_update). The main window -
     # possibly hidden to tray - is left completely alone. Only the keyboard
@@ -233,13 +251,17 @@ app_breaks_window_click :: (app: InbeApp*, t: int, x: int, y: int,
     }
 
     # Practice chips below the panel (geometry shared with the draw path).
-    rects: [4] Rectangle
-    ids: [4] int = {0, 0, 0, 0}
+    rects: [5] Rectangle
+    ids: [5] int = {0, 0, 0, 0, 0}
     chips := ovl.break_overlay_practice_chips(app, view_w, view_h, rects, ids)
     for int i = 0; i < chips; i++ {
         point := (Vector2){(float)x, (float)y}
         if CheckCollisionPointRec(point, rects[i]) {
-            app_breaks_start_practice(app, t, ids[i])
+            if ids[i] < 0 {
+                app_breaks_open_habits(app, t)
+            } else {
+                app_breaks_start_practice(app, t, ids[i])
+            }
             return
         }
     }
@@ -426,6 +448,11 @@ app_breaks_rest_break_now :: (app: InbeApp*) {
     if app == nil || !app->breaks_enabled {
         return
     }
+#if WEB {
+    if app_web_extension_host() {
+        app_web_extension_break_now(BREAK_REST)
+    }
+}
     break_engine_force_break(&app->breaks, BREAK_REST)
     for int i = 0; i < BreakEventQueueMax; i++ {
         t := 0
@@ -489,6 +516,47 @@ app_breaks_start_practice :: (app: InbeApp*, t: int, practice_id: int) {
         practice->start(app)
     }
 }
+}
+
+app_breaks_take_active :: (app: InbeApp*, t: int) #private {
+    if app == nil {
+        return
+    }
+    if t >= BREAK_MICRO && t <= BREAK_DAILY {
+        break_timer_take(&app->breaks, t, 0)
+        for int i = 0; i < BreakEventQueueMax; i++ {
+            et := 0
+            event := break_engine_take_event(&app->breaks, &et)
+            if event == BreakEventNone {
+                break
+            }
+            if event == BreakEventTaken || event == BreakEventNatural {
+                break_engine_close_window(app)
+            }
+        }
+    } else {
+        break_engine_close_window(app)
+    }
+}
+
+app_breaks_open_habits :: (app: InbeApp*, t: int) {
+    if app == nil {
+        return
+    }
+    app_breaks_take_active(app, t)
+    if app->modal.active {
+        app_close_modal(app)
+    }
+    app->main_tab = APP_MAIN_TAB_HABITS
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW
+    app->habits.scroll = 0
+    app->habits.focus_selected_tab = 1
+#if DESKTOP {
+    ClearWindowState(FLAG_WINDOW_HIDDEN)
+    RestoreWindow()
+    SetWindowFocused()
+}
+    app_switch_screen(app, InbeScreenHabits)
 }
 
 app_breaks_exercise_second :: (app: const InbeApp*) -> int {
@@ -788,6 +856,14 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
                     tip := (bar_w - 2 - fraction) * timer->idle_s / timer->duration_s
                     if tip > 0 {
                         Rect(bar_x + 1 + fraction, row_y + row_h - ScaleUIPx(4),
+                             tip, ScaleUIPx(3), idle_col, idle_col)
+                    }
+                }
+            }
+        }
+    }
+}
+      Rect(bar_x + 1 + fraction, row_y + row_h - ScaleUIPx(4),
                              tip, ScaleUIPx(3), idle_col, idle_col)
                     }
                 }

@@ -159,6 +159,7 @@ WIN64_CC ?= $(or $(WIN_CC),x86_64-w64-mingw32-gcc)
 WIN64_AR ?= $(or $(WIN_AR),x86_64-w64-mingw32-ar)
 WIN64_RANLIB ?= $(or $(WIN_RANLIB),x86_64-w64-mingw32-ranlib)
 WIN64_STRIP ?= $(or $(WIN_STRIP),x86_64-w64-mingw32-strip)
+WIN64_WINDRES ?= x86_64-w64-mingw32-windres
 WIN64_CMAKE_SYSTEM_PROCESSOR ?= x86_64
 WIN64_CC_PATH := $(shell command -v $(WIN64_CC) 2>/dev/null || printf '%s' $(WIN64_CC))
 WIN64_AR_PATH := $(shell command -v $(WIN64_AR) 2>/dev/null || printf '%s' $(WIN64_AR))
@@ -168,6 +169,7 @@ WIN32_CC ?= i686-w64-mingw32-gcc
 WIN32_AR ?= i686-w64-mingw32-ar
 WIN32_RANLIB ?= i686-w64-mingw32-ranlib
 WIN32_STRIP ?= i686-w64-mingw32-strip
+WIN32_WINDRES ?= i686-w64-mingw32-windres
 WIN32_CMAKE_SYSTEM_PROCESSOR ?= x86
 WIN32_CC_PATH := $(shell command -v $(WIN32_CC) 2>/dev/null || printf '%s' $(WIN32_CC))
 WIN32_AR_PATH := $(shell command -v $(WIN32_AR) 2>/dev/null || printf '%s' $(WIN32_AR))
@@ -188,6 +190,8 @@ WIN32_CURL_A := $(WIN32_CURL_BUILD_DIR)/lib/libcurl.a
 WIN32_LIBOQS_BUILD_DIR := $(VENDOR_BUILD_DIR)/windows/$(WIN32_ARCH)/liboqs
 WIN32_LIBOQS_A := $(WIN32_LIBOQS_BUILD_DIR)/lib/liboqs.a
 WIN32_LIBOQS_INCLUDE := -I$(WIN32_LIBOQS_BUILD_DIR)/include
+WIN64_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN64_ARCH)/inbe.res
+WIN32_RESOURCE := $(BUILD_OBJ_DIR)/windows/$(WIN32_ARCH)/inbe.res
 WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
@@ -356,7 +360,7 @@ SYSTEM_THEME_CFLAGS :=
 SYSTEM_THEME_LDLIBS :=
 
 LOCALE_FILES := $(wildcard locales/*.txt)
-IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png
+IMAGE_FILES := assets/app/icon.png assets/easteregg/art.png assets/easteregg/waozi.png assets/practices/whm/1.png assets/practices/whm/2.png assets/practices/meditation/1.png assets/pet/egg1.png $(wildcard assets/practices/*/banner.png) assets/practices/sunsalutation/poses_man_sheet.png assets/practices/sunsalutation/poses_woman_sheet.png assets/practices/sunsalutation/transition_01_01_to_02_man_sheet.png assets/practices/sunsalutation/transition_02_02_to_03_man_sheet.png assets/practices/sunsalutation/transition_03_03_to_04_man_sheet.png
 SOUND_FILES := $(wildcard assets/sounds/*.ogg)
 FONT_SUBSET_DIR := assets/fonts/subset
 FONT_SUBSET_CORPUS := locales assets/fonts/input_common.txt
@@ -376,6 +380,7 @@ KRY_PROJECT_HDR := $(KRY_GEN_DIR)/kryon_project.h
 KRY_PROJECT_C := $(KRY_GEN_DIR)/kryon_project.c
 KRY_GEN_STAMP := $(KRY_GEN_DIR)/.fresh
 SRC := $(APP_SRCS) $(KRY_GEN_SRCS) $(EMBEDDED_ASSETS_C)
+WINDOWS_SRC := $(filter-out src/platform/inbe_desktop_tray.c,$(SRC)) src/platform/inbe_desktop_tray.c
 KRYON_HOST_APP_SRCS := $(filter-out src/main.c src/platform/inbe_desktop_tray.c,$(APP_SRCS)) $(KRY_GEN_SRCS) $(KRY_PROJECT_C)
 KRYON_HOST_RUNTIME_SRCS := $(KRYON_DIR)/src/core/embedded_assets.c
 KRYON_HOST_SRC := $(KRYON_HOST_APP_SRCS) $(KRYON_HOST_RUNTIME_SRCS) $(EMBEDDED_ASSETS_C)
@@ -405,7 +410,7 @@ APP_RAYLIB_CONFIG := $(filter-out -DSUPPORT_MODULE_RAUDIO=0 -DSUPPORT_FILEFORMAT
 COMMON_CFLAGS := -Wall -Wextra -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DUI_WINDOW_HAVE_SDL
 CFLAGS := $(COMMON_CFLAGS) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(DESKTOP_TRAY_CFLAGS) $(KRYON_NOTIFICATION_CPPFLAGS) $(KRYON_NOTIFICATION_CFLAGS)
 NATIVE_SYSTEM_LDLIBS := $(KRYON_NOTIFICATION_LDLIBS) -lm -lpthread $(if $(filter linux,$(NATIVE_PLATFORM)),-ldl -lrt,) $(SYSTEM_THEME_LDLIBS)
-WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1
+WINDOWS_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DESKTOP_TRAY_ENABLED
 WEB_CFLAGS := $(filter-out -Os -DUI_WINDOW_HAVE_SDL,$(COMMON_CFLAGS)) -O1 -std=gnu99
 CLICK_CFLAGS := -Wall -Wextra -std=c99 -Os -D_DEFAULT_SOURCE -D_GNU_SOURCE -ffunction-sections -fdata-sections -DSUPPORT_FILEFORMAT_JPG=1 -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DUI_EMBEDDED_ONLY=1 -DINBE_DISABLE_KRYON_FILE_DIALOG -DHAS_LIBCURL=1 $(AARCH64_KRYON_CURL_CFLAGS)
 LDFLAGS := -Wl,--gc-sections -s
@@ -468,6 +473,9 @@ WEB_APP_URL ?= https://inbe.waozi.xyz/
 CHROME_WEB_STORE_ZIP := $(BUILD_DIST_DIR)/$(APP_NAME)-chrome-web-store.zip
 CHROME_WEB_STORE_MANIFEST := packaging/chrome-web-store/manifest.json
 CHROME_WEB_STORE_WORKER := packaging/chrome-web-store/service_worker.js
+CHROME_WEB_STORE_EXTENSION_BOOT := packaging/chrome-web-store/extension_boot.js
+CHROME_WEB_STORE_EXTENSION_APP := packaging/chrome-web-store/extension_app.js
+CHROME_WEB_STORE_EXTENSION_CANVAS_APP := packaging/chrome-web-store/extension_canvas_app.js
 CHROME_WEB_STORE_ICON_DIR := packaging/chrome-web-store/icons
 CHROME_WEB_STORE_ICONS := \
 	$(CHROME_WEB_STORE_ICON_DIR)/icon-16.png \
@@ -496,7 +504,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -1028,7 +1036,15 @@ $(CLICK_TARGET): Makefile $(CLICK_BIN_INPUT) $(CLICK_DIR)/inbe.apparmor $(CLICK_
 	fi
 	test -f $@
 
-$(WIN64_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_RESOURCE): windows/inbe.rc windows/inbe.ico
+	mkdir -p $(dir $@)
+	$(WIN64_WINDRES) -Iwindows -O coff $< $@
+
+$(WIN32_RESOURCE): windows/inbe.rc windows/inbe.ico
+	mkdir -p $(dir $@)
+	$(WIN32_WINDRES) -Iwindows -O coff $< $@
+
+$(WIN64_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) $(WIN64_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1039,18 +1055,18 @@ $(WIN64_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQL
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
-		$(SRC) \
+		$(WINDOWS_SRC) \
 		$(KRYON_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN64_RAYLIB_A) \
 		$(WIN64_CURL_A) \
 		$(WIN64_LIBOQS_A) \
-		$(WINDOWS_LDLIBS) \
+		$(WIN64_RESOURCE) $(WINDOWS_LDLIBS) \
 		$(WIN64_THREAD_LDFLAGS) \
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) $(WIN32_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1061,13 +1077,13 @@ $(WIN32_TARGET): Makefile $(SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQL
 		-DPLATFORM_DESKTOP \
 		-DCURL_STATICLIB \
 		-o $@ \
-		$(SRC) \
+		$(WINDOWS_SRC) \
 		$(KRYON_WINDOWS_SRCS) \
 		$(SQLITE_SRC) \
 		$(WIN32_RAYLIB_A) \
 		$(WIN32_CURL_A) \
 		$(WIN32_LIBOQS_A) \
-		$(WINDOWS_LDLIBS) \
+		$(WIN32_RESOURCE) $(WINDOWS_LDLIBS) \
 		$(WIN32_THREAD_LDFLAGS) \
 		$(WIN32_WINDOWS_LDFLAGS)
 	$(WIN32_STRIP) $@
@@ -1296,7 +1312,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQ
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_enable_extension_breaks \
 		-lidbfs.js \
 		-lm
 
@@ -1333,7 +1349,7 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js
@@ -1588,10 +1604,37 @@ site: web
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 
-$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_ICONS) | $(CHROME_WEB_STORE_DIR)
+chrome-web-store-test: chrome-web-store
+	node scripts/chrome-extension-breaks-test.mjs
+	node scripts/chrome-extension-live-test.mjs $(CHROME_WEB_STORE_DIR)
+	unzip -t $(CHROME_WEB_STORE_ZIP) >/dev/null
+	test -f $(CHROME_WEB_STORE_DIR)/web-assets/icons/chromewebstore.png
+	test -f $(CHROME_WEB_STORE_DIR)/extension_boot.js
+	test -f $(CHROME_WEB_STORE_DIR)/canvas/extension_boot.js
+	test -f $(CHROME_WEB_STORE_DIR)/extension_app.js
+	test -f $(CHROME_WEB_STORE_DIR)/canvas/extension_app.js
+	grep -q 'src="extension_boot.js"' $(CHROME_WEB_STORE_DIR)/index.html
+	grep -q 'src="extension_boot.js"' $(CHROME_WEB_STORE_DIR)/canvas/index.html
+	grep -q 'src="extension_app.js"' $(CHROME_WEB_STORE_DIR)/index.html
+	grep -q 'src="extension_app.js"' $(CHROME_WEB_STORE_DIR)/canvas/index.html
+	! grep -q '<script>window.__inbeRenderer' $(CHROME_WEB_STORE_DIR)/index.html
+	! grep -q '<script>window.__inbeRenderer' $(CHROME_WEB_STORE_DIR)/canvas/index.html
+	grep -q 'notifications' $(CHROME_WEB_STORE_DIR)/manifest.json
+
+$(CHROME_WEB_STORE_ZIP): $(WEB_TARGET) $(CHROME_WEB_STORE_MANIFEST) $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_EXTENSION_CANVAS_APP) $(CHROME_WEB_STORE_ICONS) | $(CHROME_WEB_STORE_DIR)
 	rm -rf $(CHROME_WEB_STORE_DIR)
 	mkdir -p $(CHROME_WEB_STORE_DIR)/icons
 	cp -R $(WEB_DIST_DIR)/. $(CHROME_WEB_STORE_DIR)/
+	cp $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_DIR)/extension_boot.js
+	cp $(CHROME_WEB_STORE_EXTENSION_APP) $(CHROME_WEB_STORE_DIR)/extension_app.js
+	perl -0pi -e 's#(<script src="index_boot\.js\?v=[^"]+"></script>)#<script src="extension_boot.js"></script>\n    $$1#' $(CHROME_WEB_STORE_DIR)/index.html
+	perl -0pi -e 's#<script>window\.__inbeRenderer="raylib";window\.__inbeLoadApp\("index\.js\?v=[^"]+"\)</script>#<script src="extension_app.js"></script>#' $(CHROME_WEB_STORE_DIR)/index.html
+	if [ -f $(CHROME_WEB_STORE_DIR)/canvas/index.html ]; then \
+		cp $(CHROME_WEB_STORE_EXTENSION_BOOT) $(CHROME_WEB_STORE_DIR)/canvas/extension_boot.js; \
+		cp $(CHROME_WEB_STORE_EXTENSION_CANVAS_APP) $(CHROME_WEB_STORE_DIR)/canvas/extension_app.js; \
+		perl -0pi -e 's#(<script src="index_boot\.js\?v=[^"]+"></script>)#<script src="extension_boot.js"></script>\n    $$1#' $(CHROME_WEB_STORE_DIR)/canvas/index.html; \
+		perl -0pi -e 's#<script>window\.__inbeRenderer="canvas";window\.__inbeLoadApp\("index\.js\?v=[^"]+"\)</script>#<script src="extension_app.js"></script>#' $(CHROME_WEB_STORE_DIR)/canvas/index.html; \
+	fi
 	sed -e 's#__APP_VERSION__#$(APP_VERSION)#g' \
 		$(CHROME_WEB_STORE_MANIFEST) > $(CHROME_WEB_STORE_DIR)/manifest.json
 	cp $(CHROME_WEB_STORE_WORKER) $(CHROME_WEB_STORE_DIR)/service_worker.js

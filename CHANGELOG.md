@@ -1,4 +1,16 @@
 # Changelog
+## [1.9.8] - 2026-08-21
+### Added
+- Desktop break reminders now include a Habits action beside the practice launch buttons, so habits can be managed directly from a break window.
+
+### Changed
+- Store screenshots now focus on Android-relevant practice and habit screens, including Pattern Breathing, Meditation, Sun Salutation and multiple Material color themes.
+- Fastlane screenshot exports now use compressed PNG files consistently for Google Play and F-Droid metadata.
+
+### Fixed
+- Screenshot scene setup now opens the intended Habits overview, Habits statistics, Meditation and Sun Salutation screens.
+- Native screenshot capture now exits cleanly and writes valid PNG rows for downstream image tooling.
+
 ## [1.9.7] - 2026-08-20
 ### Added
 - Pattern Breathing is now available wherever practice-specific options are shown, including the leaderboard, habits and music assignment.

@@ -474,6 +474,9 @@ Finish
 [language_label]
 语言
 ---
+[language_system_label]
+使用系统语言
+---
 [language_picker_title]
 选择语言
 ---

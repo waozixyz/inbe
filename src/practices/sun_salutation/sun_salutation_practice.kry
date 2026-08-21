@@ -85,6 +85,18 @@ sun_salutation_practice_init :: (app: InbeApp*) {
         app->sun_salutation.pose_sheets[SUN_SALUTATION_FIGURE_MAN] =
             app_load_asset_texture("practices/sunsalutation/poses_man_sheet.png")
     }
+    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0].id == 0 {
+        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][0] =
+            app_load_asset_texture("practices/sunsalutation/transition_01_01_to_02_man_sheet.png")
+    }
+    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1].id == 0 {
+        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][1] =
+            app_load_asset_texture("practices/sunsalutation/transition_02_02_to_03_man_sheet.png")
+    }
+    if app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][2].id == 0 {
+        app->sun_salutation.transition_sheets[SUN_SALUTATION_FIGURE_MAN][2] =
+            app_load_asset_texture("practices/sunsalutation/transition_03_03_to_04_man_sheet.png")
+    }
     if app->sun_salutation.repetitions < 2 ||
        app->sun_salutation.repetitions > 12 {
         app->sun_salutation.repetitions = SUN_SALUTATION_DEFAULT_REPETITIONS
@@ -111,6 +123,10 @@ sun_salutation_practice_destroy :: (app: InbeApp*) {
     for int i = 0; i < SUN_SALUTATION_FIGURE_COUNT; i++ {
         app_unload_texture(app->sun_salutation.pose_sheets[i])
         app->sun_salutation.pose_sheets[i] = (Texture2D){0}
+        for int j = 0; j < SUN_SALUTATION_TRANSITION_COUNT; j++ {
+            app_unload_texture(app->sun_salutation.transition_sheets[i][j])
+            app->sun_salutation.transition_sheets[i][j] = (Texture2D){0}
+        }
     }
 }
 

@@ -12,6 +12,22 @@
 #endif
 
 #if defined(PLATFORM_WEB)
+EM_JS(int, inbe_web_extension_host_js, (void), {
+    if(typeof window === 'undefined')
+        return 0;
+    if(window.__inbeExtension)
+        return 1;
+    return (window.location && window.location.protocol === 'chrome-extension:' &&
+            typeof chrome !== 'undefined' && chrome.runtime) ? 1 : 0;
+});
+
+EM_JS(void, inbe_web_extension_break_now_js, (int break_type), {
+    if (typeof window !== 'undefined' &&
+        typeof window.__inbeExtensionBreakNow === 'function') {
+        window.__inbeExtensionBreakNow(break_type);
+    }
+});
+
 static KsyncAccount web_test_source_account;
 static KsyncAccount web_test_imported_account;
 static KsyncAccount web_test_loaded_account;
@@ -108,6 +124,143 @@ app_web_launch_practice(int practice_id)
 }
 
 EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_host(void)
+{
+    return inbe_web_extension_host_js();
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_extension_break_now(int break_type)
+{
+    if(!app_web_extension_host())
+        return;
+    inbe_web_extension_break_now_js(break_type);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_breaks_enabled(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL || !app_web_extension_host())
+        return 0;
+    return app->breaks_enabled ? 1 : 0;
+}
+
+static BreakTimer *
+web_extension_break_timer(InbeApp *app, int break_type)
+{
+    if(app == NULL || break_type < 0 || break_type >= BREAK_TYPE_COUNT)
+        return NULL;
+    return &app->breaks.timers[break_type];
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_enabled(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL && timer->enabled ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_limit_s(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL ? timer->limit_s : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_duration_s(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL ? timer->duration_s : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_postpone_s(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL ? timer->postpone_s : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_max_prompts(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL ? timer->max_prompts : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_show_skip(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL && timer->show_skip ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_extension_break_timer_show_postpone(int break_type)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer = web_extension_break_timer(app, break_type);
+
+    return timer != NULL && timer->show_postpone ? 1 : 0;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_extension_open_break_settings(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return;
+    app->settings_tab = SETTINGS_TAB_BREAKS;
+    app->main_tab = APP_MAIN_TAB_PRACTICE;
+    if(app->modal.active)
+        app_close_modal(app);
+    app_switch_screen(app, InbeScreenSettings);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_extension_open_habits(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return;
+    app->main_tab = APP_MAIN_TAB_HABITS;
+    app->habits.screen_mode = HABITS_SCREEN_OVERVIEW;
+    app->habits.scroll = 0;
+    app->habits.focus_selected_tab = 1;
+    if(app->modal.active)
+        app_close_modal(app);
+    app_switch_screen(app, InbeScreenHabits);
+}
+
+EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_save_onboarding_state(void)
 {
@@ -190,5 +343,26 @@ app_web_test_import_sync_key(void)
     storage_set_setting_text("sync_account_alias", "");
     storage_settings_end_write();
     web_test_sync_key_import_status = 1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void
+app_web_test_enable_extension_breaks(int limit_s)
+{
+    InbeApp *app = get_global_inbe_app();
+    BreakTimer *timer;
+
+    if(app == NULL || !app_web_extension_host())
+        return;
+    app->breaks_enabled = 1;
+    timer = &app->breaks.timers[BREAK_REST];
+    timer->enabled = 1;
+    timer->limit_s = limit_s > 0 ? limit_s : 60;
+    timer->duration_s = 60;
+    timer->postpone_s = 300;
+    timer->max_prompts = 1;
+    timer->show_skip = 1;
+    timer->show_postpone = 1;
+    save_settings(app);
 }
 #endif

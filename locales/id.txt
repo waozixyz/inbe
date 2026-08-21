@@ -474,6 +474,9 @@ Layar penuh
 [language_label]
 Bahasa
 ---
+[language_system_label]
+Gunakan bahasa sistem
+---
 [language_picker_title]
 Pilih Bahasa
 ---

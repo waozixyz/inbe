@@ -63,11 +63,96 @@ function hideLoadingScreen() {
   });
 }
 
+var extensionBridgeStarted = false;
+var extensionBridgeLastConfig = '';
+
+function extensionRuntime() {
+  var isExtensionPage = window.__inbeExtension ||
+    (window.location && window.location.protocol === 'chrome-extension:');
+  if (!isExtensionPage) return null;
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.sendMessage) return null;
+  return chrome.runtime;
+}
+
+function extensionCallExport(name, args) {
+  if (!Module || !Module.__inbeRuntimeReady) return 0;
+  var fn = Module && Module['_' + name];
+  if (typeof fn !== 'function') return 0;
+  try {
+    return fn.apply(null, args || []);
+  } catch (e) {
+    console.error('Extension bridge callback failed:', name, e);
+    return 0;
+  }
+}
+
+function extensionTimerConfig(type) {
+  return {
+    enabled: !!extensionCallExport('app_web_extension_break_timer_enabled', [type]),
+    limitS: extensionCallExport('app_web_extension_break_timer_limit_s', [type]) | 0,
+    durationS: extensionCallExport('app_web_extension_break_timer_duration_s', [type]) | 0,
+    postponeS: extensionCallExport('app_web_extension_break_timer_postpone_s', [type]) | 0,
+    maxPrompts: extensionCallExport('app_web_extension_break_timer_max_prompts', [type]) | 0,
+    showSkip: !!extensionCallExport('app_web_extension_break_timer_show_skip', [type]),
+    showPostpone: !!extensionCallExport('app_web_extension_break_timer_show_postpone', [type])
+  };
+}
+
+function extensionBreakConfig() {
+  return {
+    enabled: !!extensionCallExport('app_web_extension_breaks_enabled'),
+    timers: [extensionTimerConfig(0), extensionTimerConfig(1), extensionTimerConfig(2)]
+  };
+}
+
+function publishExtensionBreakConfig(force) {
+  var runtime = extensionRuntime();
+  var config;
+  var text;
+
+  if (!runtime || !Module.__inbeRuntimeReady) return;
+  config = extensionBreakConfig();
+  text = JSON.stringify(config);
+  if (!force && text === extensionBridgeLastConfig) return;
+  extensionBridgeLastConfig = text;
+  runtime.sendMessage({ type: 'inbe.breakConfig', config: config }, function() {
+    var lastError = chrome.runtime && chrome.runtime.lastError;
+    if (lastError) console.warn('Inner Breeze extension break sync failed:', lastError.message);
+  });
+}
+
+window.__inbeExtensionBreakNow = function(breakType) {
+  var runtime = extensionRuntime();
+  publishExtensionBreakConfig(true);
+  if (!runtime) return;
+  runtime.sendMessage({ type: 'inbe.breakNow', breakType: breakType | 0 }, function() {
+    var lastError = chrome.runtime && chrome.runtime.lastError;
+    if (lastError) console.warn('Inner Breeze extension rest-now failed:', lastError.message);
+  });
+};
+
+function startExtensionBridge() {
+  if (extensionBridgeStarted || !extensionRuntime()) return;
+  extensionBridgeStarted = true;
+  publishExtensionBreakConfig(true);
+  setInterval(function() {
+    publishExtensionBreakConfig(false);
+  }, 2000);
+}
+
 function markRuntimeReady() {
+  if (!Module.__inbeAppReady) return;
   if (Module.__inbeRuntimeReady) return;
   Module.__inbeRuntimeReady = true;
   hideLoadingScreen();
   runLaunchCommand();
+  startExtensionBridge();
+}
+
+function noteAppReadyFromLog(text) {
+  if (!/INBE: Global app pointer set(?:$| to 0x[0-9a-fA-F]+)/.test(text)) return;
+  Module.__inbeAppReady = true;
+  markRuntimeReady();
 }
 
 function runStorageSync(retryDelay) {
@@ -157,6 +242,7 @@ document.addEventListener('visibilitychange', function() {
 });
 
 var Module = {
+  __inbeAppReady: false,
   __inbeRuntimeReady: false,
   __inbeRenderer: selectedRenderer(),
   __kryonStorageSyncPromise: null,
@@ -203,13 +289,13 @@ var Module = {
   print: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
     Module.__inbeLastLog = text;
-    if (/INBE: Global app pointer set/.test(text)) markRuntimeReady();
+    noteAppReadyFromLog(text);
     console.log(text);
   },
   printErr: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
     Module.__inbeLastLog = text;
-    if (/INBE: Global app pointer set/.test(text)) markRuntimeReady();
+    noteAppReadyFromLog(text);
     console.error(text);
   },
   canvas: (function() {
@@ -292,6 +378,14 @@ function runLaunchCommand() {
   var practice = params.get('practice');
   var practiceId;
 
+  if (launch === 'break-settings') {
+    extensionCallExport('app_web_extension_open_break_settings');
+    return;
+  }
+  if (launch === 'habits') {
+    extensionCallExport('app_web_extension_open_habits');
+    return;
+  }
   if (launch !== 'start-practice') return;
   practiceId = launchPracticeId(practice);
   if (practiceId < 0 || typeof Module._app_web_launch_practice !== 'function') return;

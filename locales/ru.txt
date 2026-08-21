@@ -492,6 +492,9 @@ OK
 [language_label]
 Язык
 ---
+[language_system_label]
+Использовать язык системы
+---
 [language_picker_title]
 Выберите язык
 ---

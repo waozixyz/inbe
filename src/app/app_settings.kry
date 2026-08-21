@@ -14,6 +14,10 @@ WEB :: #defined(PLATFORM_WEB)
 ANDROID :: ANDROID_BUILD
 DESKTOP :: #defined(PLATFORM_DESKTOP)
 
+#if WEB {
+    app_web_extension_host :: () -> int #extern
+}
+
 SettingsCacheEntry :: struct {
     key: [64] char
     value: [256] char
@@ -303,6 +307,9 @@ save_settings :: (app: InbeApp*) {
 
     #if DESKTOP {
         save_setting_int("breaks_enabled", app->breaks_enabled ? 1 : 0)
+    } #elif WEB {
+        save_setting_int("breaks_enabled",
+                         app_web_extension_host() ? (app->breaks_enabled ? 1 : 0) : 0)
     } #else {
         save_setting_int("breaks_enabled", 0)
     }
@@ -341,7 +348,9 @@ save_settings :: (app: InbeApp*) {
                      app->breaks.timers[BREAK_DAILY].skipped_today ? 1 : 0)
 
     storage_set_setting_text("language",
-        (app->language_selected && app->language[0] != '\0') ? app->language : "")
+        (app->language_selected && !app->language_system &&
+         app->language[0] != '\0') ? app->language : "")
+    save_setting_int("language_setup_done", app->language_selected ? 1 : 0)
     storage_set_setting_text("habits_selected_id",
         (app->habits.selected >= 0 && app->habits.selected < app->habits.count)
             ? app->habits.items[app->habits.selected].id
@@ -357,19 +366,24 @@ save_settings :: (app: InbeApp*) {
 load_language_setting :: (app: InbeApp*, settings_missing: int,
                          cache: const SettingsLoadCache*) #private {
     language := settings_cache_get(cache, "language")
+    setup_done := settings_cache_get_int(cache, "language_setup_done",
+                                         settings_missing ? 0 : 1)
 
     app->language_needs_save = 0
     if language != nil && language[0] != '\0' {
         snprintf(app->language, sizeof(app->language), "%s", language)
+        app->language_system = 0
         app->language_selected = 1
         if !SetLocale(app->language) {
             snprintf(app->language, sizeof(app->language), "%s", GetDefaultLocaleCode())
+            app->language_system = 1
+            app->language_needs_save = 1
             SetLocale(app->language)
         }
     } else {
         snprintf(app->language, sizeof(app->language), "%s", GetDefaultLocaleCode())
-        app->language_selected = settings_missing ? 0 : 1
-        app->language_needs_save = app->language_selected
+        app->language_system = 1
+        app->language_selected = setup_done ? 1 : 0
         SetLocale(app->language)
     }
 
@@ -540,7 +554,11 @@ app_load_settings :: (app: InbeApp*) -> int {
                          "retention_marker_enabled", 0)
     load_bool_setting(&settings_cache, &app->breaks_enabled,
                          "breaks_enabled", app->breaks_enabled)
-    #if !DESKTOP {
+    #if WEB {
+        if !app_web_extension_host() {
+            app->breaks_enabled = 0
+        }
+    } #elif !DESKTOP {
         app->breaks_enabled = 0
     }
     load_clamped_setting(&settings_cache, &app->desktop_startup_mode,

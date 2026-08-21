@@ -47,6 +47,7 @@
     X("practice_music_track_sun_salutation") \
     X("play_in_background") \
     X("language") \
+    X("language_setup_done") \
     X("practice_category_tab") \
     X("patterns_preset") \
     X("patterns_custom_in") \
