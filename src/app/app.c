@@ -137,16 +137,14 @@ const char *
 app_bitcoin_wallet_url(void)
 {
     return "bitcoin:bc1qxzcetg50f6epgddc09n82xqn3zswlmk44235y5"
-           "?amount=0.001&label=Inner%20Breeze"
-           "&message=Donation";
+           "?amount=0.001";
 }
 
 const char *
 app_monero_wallet_url(void)
 {
     return "monero:86CbC3d4a2GhT9auh6X99JhmhTMFKVVk8Q9cLrKTHkBu8LLkoNWgkBeAT3YZrvDM6NczYe8brUJNsTiFmwpWDZYnFG5kzSH"
-           "?tx_amount=0.1&recipient_name=Inner%20Breeze"
-           "&tx_description=Donation";
+           "?tx_amount=0.1";
 }
 
 const char *
@@ -1667,7 +1665,8 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(GenericButton(0, x + button_w + gap, *y, button_w, button_h,
                      GetLocaleText("open_wallet_button"),
                      UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
-        OpenURL(wallet_url);
+        if(!OpenURI(wallet_url))
+            ShowUIToast(GetLocaleText("wallet_not_installed_toast"));
     }
     if(GenericButton(0, x + (button_w + gap) * 2, *y, button_w, button_h,
                      GetLocaleText("trocador_button"),
@@ -2176,6 +2175,7 @@ finish_frame:
     if(!global_modal_drawn)
         draw_global_modal(app);
     app_draw_close_prompt(app);
+    DrawUIToast();
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
     app->inbe.frame++;

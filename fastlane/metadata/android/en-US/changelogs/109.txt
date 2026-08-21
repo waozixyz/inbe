@@ -1,0 +1,4 @@
+Fixed
+---
+- Donation wallet buttons now open Bitcoin and Monero URI intents through Kryon and show a clear toast when no wallet app is installed.
+- Monero and Bitcoin donation links now use minimal address-plus-amount wallet URIs for better compatibility with Cake Wallet and other wallet apps.

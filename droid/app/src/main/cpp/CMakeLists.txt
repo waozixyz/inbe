@@ -13,6 +13,11 @@ set(REPO_ROOT "${CMAKE_CURRENT_LIST_DIR}/../../../../..")
 set(SRC_DIR "${REPO_ROOT}/src")
 set(KRYON_DIR "${REPO_ROOT}/vendor/kryon")
 set(RAYLIB_DIR "${KRYON_DIR}/vendor/raylib/src")
+set(KRYON_RAYLIB_GENERATED_DIR "${CMAKE_BINARY_DIR}/kryon/raylib_generated")
+set(KRYON_COMPAT_GENERATED_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/kryon_compat.generated.h")
+set(KRYON_RAYLIB_BACKEND_RENAME_HEADER "${KRYON_RAYLIB_GENERATED_DIR}/raylib_backend_rename.h")
+set(KRYON_RAYLIB_WRAPPERS_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_raylib_wrappers.c")
+set(KRYON_NULL_BACKEND_C "${KRYON_RAYLIB_GENERATED_DIR}/kryon_null_backend.c")
 set(SQLITE_DIR "${REPO_ROOT}/vendor/sqlite")
 set(SQLITE_BUILD_DIR "${CMAKE_BINARY_DIR}/sqlite")
 set(SQLITE_AMALGAMATION_C "${SQLITE_BUILD_DIR}/sqlite3.c")
@@ -34,11 +39,16 @@ if(NOT TARGET oqs)
 endif()
 file(GLOB_RECURSE KRYON_SOURCES CONFIGURE_DEPENDS "${KRYON_DIR}/src/*.c")
 list(REMOVE_ITEM KRYON_SOURCES "${KRYON_DIR}/src/file_dialog/file_dialog.c")
-# The src/backend/ software renderer implements raylib-named functions
-# (math, input, drawing) for no-raylib hosts; Android links real raylib, so
-# compiling both is a duplicate-symbol link error. Only krb.c (cartridge
-# tooling) uses the backend API.
+# The src/backend/ canvas/software renderers implement raylib-named functions
+# for no-raylib hosts; Android links real raylib, so compiling those is a
+# duplicate-symbol link error. Keep Kryon's shared front-end backend glue.
 list(FILTER KRYON_SOURCES EXCLUDE REGEX "${KRYON_DIR}/src/backend/.*")
+list(APPEND KRYON_SOURCES
+    "${KRYON_DIR}/src/backend/kry_event_wait.c"
+    "${KRYON_DIR}/src/backend/kry_input.c"
+    "${KRYON_DIR}/src/backend/kry_instance.c"
+    "${KRYON_DIR}/src/backend/kry_screenshot.c"
+    "${KRYON_DIR}/src/backend/kry_surface_math.c")
 # inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
 # KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
 list(REMOVE_ITEM KRYON_SOURCES
@@ -97,6 +107,30 @@ add_custom_target(inbe_kry_generated DEPENDS
     ${INBE_KRY_GENERATED_HEADERS}
     "${INBE_KRY_PROJECT_HEADER}"
 )
+
+add_custom_command(
+    OUTPUT
+        "${KRYON_COMPAT_GENERATED_HEADER}"
+        "${KRYON_RAYLIB_BACKEND_RENAME_HEADER}"
+        "${KRYON_RAYLIB_WRAPPERS_C}"
+        "${KRYON_NULL_BACKEND_C}"
+    COMMAND ${CMAKE_COMMAND} -E make_directory "${KRYON_RAYLIB_GENERATED_DIR}"
+    COMMAND ${CMAKE_COMMAND} -E env KRYON_COMPAT_AUDIO=0
+        sh "${KRYON_DIR}/tools/generate-kryon-compat.sh"
+        "${RAYLIB_DIR}/raylib.h"
+        "${KRYON_COMPAT_GENERATED_HEADER}"
+        "${KRYON_RAYLIB_BACKEND_RENAME_HEADER}"
+        "${KRYON_RAYLIB_WRAPPERS_C}"
+        "${KRYON_NULL_BACKEND_C}"
+    DEPENDS "${KRYON_DIR}/tools/generate-kryon-compat.sh" "${RAYLIB_DIR}/raylib.h"
+    VERBATIM
+)
+add_custom_target(kryon_raylib_generated DEPENDS
+    "${KRYON_COMPAT_GENERATED_HEADER}"
+    "${KRYON_RAYLIB_BACKEND_RENAME_HEADER}"
+    "${KRYON_RAYLIB_WRAPPERS_C}"
+    "${KRYON_NULL_BACKEND_C}"
+)
 file(GLOB INBE_LOCALE_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/locales/*.txt")
 file(GLOB INBE_SOUND_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/sounds/*.ogg")
 file(GLOB INBE_PRACTICE_BANNER_ASSETS RELATIVE "${REPO_ROOT}" CONFIGURE_DEPENDS "${REPO_ROOT}/assets/practices/*/banner.png")
@@ -148,6 +182,7 @@ add_library(raylib STATIC
     "${RAYLIB_DIR}/rtext.c"
     "${RAYLIB_DIR}/raudio.c"
 )
+add_dependencies(raylib kryon_raylib_generated)
 
 target_compile_definitions(raylib PRIVATE
     PLATFORM_ANDROID
@@ -168,6 +203,7 @@ target_compile_definitions(raylib PRIVATE
 )
 
 target_compile_options(raylib PRIVATE
+    -include "${KRYON_RAYLIB_BACKEND_RENAME_HEADER}"
     -Os
     -ffunction-sections
     -fdata-sections
@@ -190,10 +226,11 @@ add_library(main SHARED
     "${INBE_EMBEDDED_ASSETS_C}"
     ${INBE_KRY_GENERATED_SOURCES}
     ${KRYON_SOURCES}
+    "${KRYON_RAYLIB_WRAPPERS_C}"
     "${SRC_DIR}/platform/android/android_insets.c"
     "${NATIVE_APP_GLUE_DIR}/android_native_app_glue.c"
 )
-add_dependencies(main inbe_kry_generated)
+add_dependencies(main inbe_kry_generated kryon_raylib_generated)
 
 target_include_directories(main PRIVATE
     "${KRYON_DIR}/include"

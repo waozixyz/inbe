@@ -399,6 +399,9 @@ Address copied
 [open_wallet_button]
 Wallet
 ---
+[wallet_not_installed_toast]
+No wallet app installed
+---
 [trocador_button]
 Trocador
 ---

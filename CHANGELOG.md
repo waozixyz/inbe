@@ -1,4 +1,9 @@
 # Changelog
+## [1.9.10] - 2026-08-21
+### Fixed
+- Donation wallet buttons now open Bitcoin and Monero URI intents through Kryon and show a clear toast when no wallet app is installed.
+- Monero and Bitcoin donation links now use minimal address-plus-amount wallet URIs for better compatibility with Cake Wallet and other wallet apps.
+
 ## [1.9.9] - 2026-08-21
 ### Changed
 - Regenerated Google Play and F-Droid screenshots with the corrected practice artwork, Pattern Breathing, Habits, Wim Hof how-to and Cobalt dark screens.
