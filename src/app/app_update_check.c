@@ -80,7 +80,7 @@ update_flow_note_state(void)
              * hear about updates from their package manager. */
             if(kry_update_flow_artifact(flow) != NULL &&
                !shown_available_toast) {
-                ShowUIToast(GetLocaleText("update_available_toast"));
+                ShowToast(GetLocaleText("update_available_toast"));
                 shown_available_toast = 1;
             }
             /* Test/automation hook: fetch immediately instead of waiting

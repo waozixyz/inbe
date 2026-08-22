@@ -94,7 +94,7 @@ draw_entry :: (app: InbeApp*, index: int, x: int, w: int, y: int*) -> int #priva
     }
     snprintf(time_buf, 8, "%02d:00", hour)
 
-    stepper_w := btn * 2 + MeasureUIText(time_buf, GetUIFontSize()) + ScaleUIPx(24)
+    stepper_w := btn * 2 + TextWidth(time_buf, GetUIFontSize()) + ScaleUIPx(24)
     enabled := r->enabled
 
     if Toggle(0, x, *y + (btn - ScaleUIPx(30)) / 2,
@@ -201,9 +201,9 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                  x, *y, GetUIFontSize(), LightenUIColor(GetThemeText(), 40))
         }
         *y += ScaleUIPx(44)
-        if GenericButton(200, x, *y, w, ScaleUIPx(34),
+        if StyledButton(x, *y, w, ScaleUIPx(34),
                          GetLocaleText("notifications_push_setup"),
-                         UI_BUTTON_STYLE_SECONDARY, 0, &push_hover) {
+                         ButtonStyleSecondary, 0, &push_hover) {
             platform_android_push_refresh_distributors(app)
             if app->push_distributor_count > 0 {
                 app->push_picker_open = 1
@@ -226,9 +226,9 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
     *y += ScaleUIPx(16)
 
-    if GenericButton(201, x, *y, w, ScaleUIPx(34),
+    if StyledButton(x, *y, w, ScaleUIPx(34),
                      GetLocaleText("notifications_test"),
-                     UI_BUTTON_STYLE_SECONDARY, 0, &test_hover) {
+                     ButtonStyleSecondary, 0, &test_hover) {
         app_notifications_send_test_notification(app)
     }
     *y += ScaleUIPx(50)
@@ -244,9 +244,9 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
 
     if app->reminder_count < APP_REMINDER_MAX {
-        if GenericButton(210, x, *y, w, ScaleUIPx(34),
+        if StyledButton(x, *y, w, ScaleUIPx(34),
                          GetLocaleText("reminder_add"),
-                         UI_BUTTON_STYLE_SECONDARY, 0, &add_hover) {
+                         ButtonStyleSecondary, 0, &add_hover) {
             r := &app->reminders[app->reminder_count]
             r->practice = 0
             r->hour = 8

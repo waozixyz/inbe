@@ -305,8 +305,8 @@ format_time :: (dst: char*, dst_size: size_t, seconds: int) #private {
 draw_duration_button :: (x: int, y: int, w: int, h: int,
                         label: const char*) -> int #private {
     hover := 0
-    return GenericButton(0, x, y, w, h, label,
-                               UI_BUTTON_STYLE_PRIMARY, 0, &hover)
+    return StyledButton(x, y, w, h, label,
+                               ButtonStylePrimary, 0, &hover)
 }
 
 extend_session :: (app: InbeApp*, seconds: int) #private {
@@ -381,7 +381,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
 
     title_font = GetUITitleFontSize(GetLocaleText("meditation_title"),
                                     modal_w - side * 2)
-    title_w = MeasureUIText(GetLocaleText("meditation_title"), title_font)
+    title_w = TextWidth(GetLocaleText("meditation_title"), title_font)
     Text(GetLocaleText("meditation_title"),
                   modal_x + (modal_w - title_w) / 2,
                   modal_y + ScaleUIPx(16),
@@ -409,12 +409,12 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
 
     cancel_y = modal_y + modal_h - btn_h - ScaleUIPx(16)
     cancel_x = modal_x + (modal_w - cancel_w) / 2
-    if GenericButton(0, cancel_x,
+    if StyledButton(cancel_x,
                            cancel_y,
                            cancel_w,
                            btn_h,
                            GetLocaleText("cancel_button"),
-                           UI_BUTTON_STYLE_SECONDARY,
+                           ButtonStyleSecondary,
                            0,
                            &cancel_hover) {
         app_close_modal(app)
@@ -484,12 +484,12 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
     }
 
     for int i = 0; i < 3; i++ {
-        if GenericButton(0, x + i * (btn_w + gap),
+        if StyledButton(x + i * (btn_w + gap),
                                y,
                                btn_w,
                                btn_h,
                                labels[i],
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                0,
                                &hover) {
             extend_session(app, add_seconds[i])
@@ -507,12 +507,12 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
             finish_x = view_width - ScaleUIPx(12) - finish_w
         }
 
-        if GenericButton(0, finish_x,
+        if StyledButton(finish_x,
                                finish_y,
                                finish_w,
                                btn_h,
                                GetLocaleText("finish_button"),
-                               UI_BUTTON_STYLE_PRIMARY,
+                               ButtonStylePrimary,
                                0,
                                &hover) {
             finish(app)
@@ -522,7 +522,7 @@ draw_extend_controls :: (app: InbeApp*, center_x: int, y: int) #private {
 
 meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     time_text: [32] char
-    font := UI_TEXT_24
+    font := Text24
     max_w: int
     text_w: int
     title_h := UIGetNodeHeight(UINodeTitleBar(0))
@@ -540,10 +540,10 @@ meditation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
 
     format_time(time_text, sizeof(time_text), app->meditation.remaining_seconds)
     max_w = view_width - ScaleUIPx(48)
-    if MeasureUIText(time_text, font) > max_w {
-        font = UI_TEXT_16
+    if TextWidth(time_text, font) > max_w {
+        font = Text16
     }
-    text_w = MeasureUIText(time_text, font)
+    text_w = TextWidth(time_text, font)
     Text(time_text,
                   center_x - text_w / 2,
                   GetUIControlTextY(time_text,

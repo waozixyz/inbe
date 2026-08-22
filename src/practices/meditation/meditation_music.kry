@@ -244,11 +244,11 @@ meditation_music_draw_download_progress :: (app: InbeApp*, x: int, y: int, w: in
     }
 }
 
-attribution_paragraph :: (content_w: int) -> UIParagraphSpec #private {
-    return (UIParagraphSpec){
+attribution_paragraph :: (content_w: int) -> ParagraphSpec #private {
+    return (ParagraphSpec){
         .text = GetLocaleText("meditation_music_attribution"),
         .width = content_w,
-        .font = UI_TEXT_12,
+        .font = Text12,
         .color = DarkenUIColor(GetThemeText(), 34),
     }
 }
@@ -746,16 +746,16 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         } else {
             test_label = GetLocaleText("meditation_music_test_button")
         }
-        button_w = MeasureUIText(test_label, GetUIFontSize()) + ScaleUIPx(24)
+        button_w = TextWidth(test_label, GetUIFontSize()) + ScaleUIPx(24)
         if button_w > content_w {
             button_w = content_w
         }
-        if GenericButton(0, content_x,
+        if StyledButton(content_x,
                                *y,
                                button_w,
                                button_h,
                                test_label,
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                0,
                                &hover) {
             app->meditation.music_track =
@@ -773,16 +773,16 @@ meditation_music_draw_practice_settings :: (app: InbeApp*,
         } else {
             download_label = GetLocaleText("meditation_music_download_button")
         }
-        button_w = MeasureUIText(download_label, GetUIFontSize()) + ScaleUIPx(24)
+        button_w = TextWidth(download_label, GetUIFontSize()) + ScaleUIPx(24)
         if button_w > content_w {
             button_w = content_w
         }
-        if GenericButton(0, content_x,
+        if StyledButton(content_x,
                                *y,
                                button_w,
                                button_h,
                                download_label,
-                               UI_BUTTON_STYLE_PRIMARY,
+                               ButtonStylePrimary,
                                0,
                                &hover) {
             meditation_music_start_download(app)

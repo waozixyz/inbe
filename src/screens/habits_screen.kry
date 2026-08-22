@@ -996,9 +996,9 @@ habits_begin_new_detail :: (app: InbeApp*) {
 }
 
 draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
-    tabs: [HABIT_TAB_COUNT] UITab
-    actions: [1] UITopNavAction
-    nav_result: UITopNavResult
+    tabs: [HABIT_TAB_COUNT] Tab
+    actions: [1] TopNavAction
+    nav_result: TopNavResult
     option_count: int
     habit_offset: int = 0
     draft_new: int
@@ -1055,7 +1055,7 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
         dropdown_h: int = ScaleUIPx(32)
 
         habits_top_dropdown_selected = selected
-        actions[0] = (UITopNavAction){
+        actions[0] = (TopNavAction){
             .icon = app->icons[UI_ICON_TYPE_X],
             .disabled = app->modal.active
         }
@@ -1083,22 +1083,22 @@ draw_habits_top_bar :: (app: InbeApp*, draw_menu: int) {
             habits_select_habit(app, selected_habit)
         }
 
-        tabs[HABIT_TAB_WEEKLY] = (UITab){
+        tabs[HABIT_TAB_WEEKLY] = (Tab){
             .icon = app->icons[UI_ICON_TYPE_WEEKLY],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_MONTHLY] = (UITab){
+        tabs[HABIT_TAB_MONTHLY] = (Tab){
             .icon = app->icons[UI_ICON_TYPE_CALENDAR],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_STATISTICS] = (UITab){
+        tabs[HABIT_TAB_STATISTICS] = (Tab){
             .icon = app->icons[UI_ICON_TYPE_STAT],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active || app->habits.count <= 0
         }
-        tabs[HABIT_TAB_EDIT] = (UITab){
+        tabs[HABIT_TAB_EDIT] = (Tab){
             .icon = app->icons[UI_ICON_TYPE_EDIT],
             .icon_size = ScaleUIPx(20),
             .disabled = app->modal.active
@@ -1190,7 +1190,7 @@ habits_overview_cell_size :: (content_w: int) -> int {
 habits_button_label_fits :: (label: const char*, button_w: int) -> int #private {
     pad: int = ScaleUIPx(20)
 
-    return MeasureUIText(label != nil ? label : "", GetUISmallFontSize()) +
+    return TextWidth(label != nil ? label : "", GetUISmallFontSize()) +
         pad <= button_w
 }
 
@@ -1449,7 +1449,7 @@ habits_overview_progress_anchor :: (app: InbeApp*) -> Rectangle #private {
     snprintf(progress, sizeof(progress),
                 GetLocaleText("habits_done_count_label"),
                 done_count, app != nil ? app->habits.count : 0)
-    text_w = MeasureUIText(progress, font)
+    text_w = TextWidth(progress, font)
     if text_h < font {
         text_h = font
     }
@@ -1751,9 +1751,9 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
         Text(GetLocaleText("habit_empty_title"), content_x, y, font,
                       DarkenUIColor(GetThemeText(), 35))
         y += ScaleUIPx(36)
-        if GenericButton(0, content_x, y, content_w, btn_h,
+        if StyledButton(content_x, y, content_w, btn_h,
                                GetLocaleText("habit_new_button"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                app->habits.count >= INBE_HABIT_MAX,
                                &add_hover) {
             habits_begin_new_detail(app)
@@ -1779,10 +1779,10 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
 
         habits_overview_date_label(day_index, date_label,
                                       sizeof(date_label))
-        text_w = MeasureUIText(date_label, small)
+        text_w = TextWidth(date_label, small)
         if text_w > cell {
             snprintf(date_label, sizeof(date_label), "%d", day_index % 100)
-            text_w = MeasureUIText(date_label, small)
+            text_w = TextWidth(date_label, small)
         }
         Text(date_label, day_x + (cell - text_w) / 2,
                       grid_y, small, DarkenUIColor(GetThemeText(), 34))
@@ -1819,7 +1819,7 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             inbe_text_short_label(habit->name, 3, 1,
                                      short_name, sizeof(short_name))
             label = short_name
-        } else if MeasureUIText(label, small) > label_text_w {
+        } else if TextWidth(label, small) > label_text_w {
             inbe_text_fit_ellipsis(habit->name, fitted_label,
                                       sizeof(fitted_label),
                                       label_text_w, small)
@@ -2014,44 +2014,44 @@ draw_habits_overview :: (app: InbeApp*, content_top: int) {
             EndUIScrollPage(page)
             return
         }
-        more_w = MeasureUIText(more, UI_TEXT_16)
+        more_w = TextWidth(more, Text16)
         Text(more, detail_x + (cell - more_w) / 2,
-                      GetUIControlTextY(more, row_y, cell, UI_TEXT_16),
-                      UI_TEXT_16, GetThemeText())
+                      GetUIControlTextY(more, row_y, cell, Text16),
+                      Text16, GetThemeText())
 
         y += cell + row_gap
     }
 
     y += ScaleUIPx(10)
     if habits_overview_actions_stack(content_w) {
-        if GenericButton(0, content_x, y, content_w, btn_h,
+        if StyledButton(content_x, y, content_w, btn_h,
                                GetLocaleText("habit_new_button"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                app->habits.count >= INBE_HABIT_MAX,
                                &add_hover) {
             habits_begin_new_detail(app)
         }
         y += btn_h + btn_gap
-        if GenericButton(0, content_x, y, content_w, btn_h,
+        if StyledButton(content_x, y, content_w, btn_h,
                                GetLocaleText("habit_reorder_title"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                app->habits.count <= 0,
                                &reorder_hover) {
             habits_enter_reorder(app)
         }
     } else {
         half_w = (content_w - btn_gap) / 2
-        if GenericButton(0, content_x, y, half_w, btn_h,
+        if StyledButton(content_x, y, half_w, btn_h,
                                GetLocaleText("habit_new_button"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                app->habits.count >= INBE_HABIT_MAX,
                                &add_hover) {
             habits_begin_new_detail(app)
         }
-        if GenericButton(0, content_x + half_w + btn_gap,
+        if StyledButton(content_x + half_w + btn_gap,
                                y, half_w, btn_h,
                                GetLocaleText("habit_reorder_title"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                app->habits.count <= 0,
                                &reorder_hover) {
             habits_enter_reorder(app)
@@ -2147,7 +2147,7 @@ draw_habit_link_dot :: (x: int, y: int, w: int, color: Color) {
 draw_habit_day_count_label :: (x: int, y: int, w: int, h: int,
                                   count: int) {
     count_label: [16] char = {0}
-    count_font: int = UI_TEXT_12
+    count_font: int = Text12
     count_w: int
     padding: int = ScaleUIPx(3)
 
@@ -2156,7 +2156,7 @@ draw_habit_day_count_label :: (x: int, y: int, w: int, h: int,
     }
 
     snprintf(count_label, sizeof(count_label), "%d", count)
-    count_w = MeasureUIText(count_label, count_font)
+    count_w = TextWidth(count_label, count_font)
     Text(count_label,
                   x + (w - count_w) / 2,
                   y + h - count_font - padding,
@@ -2181,7 +2181,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
     text_color: Color = disabled
         ? DarkenUIColor(GetThemeText(), 35)
         : GetThemeText()
-    font: int = UI_TEXT_16
+    font: int = Text16
     text_w: int
 
     if app != nil {
@@ -2230,7 +2230,7 @@ habit_calendar_day_cell :: (app: InbeApp*, x: int, y: int, w: int, h: int,
                        DarkenUIColor(fill, hovered ? 42 : 34))
     }
 
-    text_w = MeasureUIText(label, font)
+    text_w = TextWidth(label, font)
     Text(label,
                   x + (w - text_w) / 2,
                   GetUIControlTextY(label, y, h, font),
@@ -2260,19 +2260,19 @@ habit_weekly_draw_text_line :: (text: const char*, x: int, y: int,
     }
 
     font_size = text_size
-    while font_size > UI_TEXT_8 &&
-          MeasureUIText(text, font_size) > w {
+    while font_size > Text8 &&
+          TextWidth(text, font_size) > w {
         font_size -= 1
     }
 
-    if MeasureUIText(text, font_size) > w {
+    if TextWidth(text, font_size) > w {
         inbe_text_fit_ellipsis(text, fitted, sizeof(fitted), w, font_size)
         draw_text = fitted
     }
 
     Text(draw_text,
-                  x + (w - MeasureUIText(draw_text, font_size)) / 2,
-                  GetUITextY(draw_text, y, h, font_size),
+                  x + (w - TextWidth(draw_text, font_size)) / 2,
+                  TextBaselineY(draw_text, y, h, font_size),
                   font_size,
                   color)
 }
@@ -2407,18 +2407,18 @@ habit_weekly_summary_button :: (app: InbeApp*, x: int, y: int,
 
             habit_weekly_draw_text_line(line1, text_x, block_y,
                                            text_w, line1_h,
-                                           UI_TEXT_16, text_color)
+                                           Text16, text_color)
             habit_weekly_draw_text_line(line2, text_x,
                                            block_y + line1_h,
                                            text_w, line2_h,
-                                           UI_TEXT_12,
+                                           Text12,
                                            DarkenUIColor(text_color, 16))
         } else {
             habit_weekly_draw_text_line(line1, text_x,
                                            y + ScaleUIPx(3),
                                            text_w,
                                            h - ScaleUIPx(6),
-                                           UI_TEXT_16, text_color)
+                                           Text16, text_color)
         }
     }
 
@@ -2459,8 +2459,8 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
     button_w: int
     row_h: int = habit_weekly_row_height()
     row_gap: int = ScaleUIPx(GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL ? 10 : 6)
-    day_font: int = UI_TEXT_16
-    date_font: int = UI_TEXT_12
+    day_font: int = Text16
+    date_font: int = Text12
     load_h: int = ScaleUIPx(38)
     load_hover: int = 0
     local: struct tm* = localtime(&now)
@@ -2645,11 +2645,11 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
            !future_day &&
            !has_linked_day {
             count_label: [16] char = {0}
-            count_font: int = UI_TEXT_12
+            count_font: int = Text12
             count_w: int
 
             snprintf(count_label, sizeof(count_label), "%d", count)
-            count_w = MeasureUIText(count_label, count_font)
+            count_w = TextWidth(count_label, count_font)
             Text(count_label,
                           button_x + button_w - count_w - ScaleUIPx(6),
                           y + ScaleUIPx(5),
@@ -2665,9 +2665,9 @@ draw_habits_weekly_view :: (app: InbeApp*, active: InbeHabit*,
     }
 
     y += ScaleUIPx(8)
-    if GenericButton(0, content_x, y, content_w, load_h,
+    if StyledButton(content_x, y, content_w, load_h,
                            GetLocaleText("habit_load_more_button"),
-                           UI_BUTTON_STYLE_SECONDARY,
+                           ButtonStyleSecondary,
                            app->habits.weekly_days >= HABIT_WEEKLY_MAX_DAYS,
                            &load_hover) {
         app->habits.weekly_days += HABIT_WEEKLY_LOAD_DAYS
@@ -2781,11 +2781,11 @@ draw_habits_screen :: (app: InbeApp*) {
     if app->habits.count <= 0 {
         empty_text: const char* = GetLocaleText("habit_empty_title")
         create_text: const char* = GetLocaleText("habit_create_button")
-        empty_font: int = UI_TEXT_16
+        empty_font: int = Text16
         button_w: int = content_w < ScaleUIPx(240) ? content_w : ScaleUIPx(240)
         button_h: int = ScaleUIPx(42)
         empty_y: int = content_top + viewport_h / 2 - ScaleUIPx(46)
-        empty_w: int = MeasureUIText(empty_text, empty_font)
+        empty_w: int = TextWidth(empty_text, empty_font)
         hover_empty_create: int = 0
 
         BeginUIClip((int)app->camera.offset.x,
@@ -2795,10 +2795,10 @@ draw_habits_screen :: (app: InbeApp*) {
                        (int)(viewport_h * app->camera.zoom))
         Text(empty_text, content_x + (content_w - empty_w) / 2,
                       empty_y, empty_font, GetThemeText())
-        if GenericButton(0, content_x + (content_w - button_w) / 2,
+        if StyledButton(content_x + (content_w - button_w) / 2,
                                empty_y + ScaleUIPx(38),
                                button_w, button_h, create_text,
-                               UI_BUTTON_STYLE_PRIMARY, 0,
+                               ButtonStylePrimary, 0,
                                &hover_empty_create) {
             habits_begin_new_detail(app)
         }
@@ -2919,22 +2919,22 @@ draw_habits_screen :: (app: InbeApp*) {
     }
 
     forward_disabled = app->habits.month_offset >= 0
-    if GenericButton(0, content_x, y, ScaleUIPx(44), month_h, "<",
-                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+    if StyledButton(content_x, y, ScaleUIPx(44), month_h, "<",
+                           ButtonStyleSecondary, 0, &hover) {
         app->habits.month_offset--
     }
-    if GenericButton(0, content_x + content_w - ScaleUIPx(44), y,
+    if StyledButton(content_x + content_w - ScaleUIPx(44), y,
                            ScaleUIPx(44), month_h, ">",
-                           UI_BUTTON_STYLE_SECONDARY,
+                           ButtonStyleSecondary,
                            forward_disabled, &hover) {
         app->habits.month_offset++
     }
     Text(month_label,
                   content_x +
                       (content_w -
-                       MeasureUIText(month_label, UI_TEXT_24)) / 2,
-                  GetUIControlTextY(month_label, y, month_h, UI_TEXT_24),
-                  UI_TEXT_24, GetThemeText())
+                       TextWidth(month_label, Text24)) / 2,
+                  GetUIControlTextY(month_label, y, month_h, Text24),
+                  Text24, GetThemeText())
 
     grid_x = content_x
     grid_y = y + month_h + ScaleUIPx(12)

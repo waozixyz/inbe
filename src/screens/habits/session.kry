@@ -98,9 +98,9 @@ draw_round_line :: (line_text: const char*, seconds_text: const char*,
     draw_x = x
 
     Text(prefix, draw_x, text_y, font, GetThemeText())
-    draw_x += MeasureUIText(prefix, font)
+    draw_x += TextWidth(prefix, font)
     Text(seconds_text, draw_x, text_y, font, GetThemeButtonHover())
-    draw_x += MeasureUIText(seconds_text, font)
+    draw_x += TextWidth(seconds_text, font)
     Text(suffix, draw_x, text_y, font, GetThemeText())
 }
 
@@ -137,7 +137,7 @@ handle_physical_keyboard :: (app: InbeApp*,
         return 1
     }
 
-    EditUIText((UITextEdit){
+    EditText((TextEdit){
         .text = app->habit_session_edit.text,
         .text_size = sizeof(app->habit_session_edit.text),
         .cursor_position = &app->habit_session_edit.cursor,
@@ -310,7 +310,7 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                                     ctx->entries[i].round_count)
             }
             summary_x = content_x + ScaleUIPx(76)
-            summary_too_wide := summary_x + MeasureUIText(summary_text, row_font) > trash_x - ScaleUIPx(8)
+            summary_too_wide := summary_x + TextWidth(summary_text, row_font) > trash_x - ScaleUIPx(8)
             if summary_too_wide {
                 summary_x = content_x + ScaleUIPx(62)
             }
@@ -432,8 +432,8 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
             if draw {
                 FormatLocaleText(total_text, sizeof(total_text),
                                     "habit_session_total_count", total_count)
-                if GenericButton(0, minus_x, y, step_w, button_h, "-",
-                                       UI_BUTTON_STYLE_SECONDARY,
+                if StyledButton(minus_x, y, step_w, button_h, "-",
+                                       ButtonStyleSecondary,
                                        total_count <= minimum_count, &hover) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                                 ctx->day_filter, -1,
@@ -447,8 +447,8 @@ draw_edit_content :: (app: InbeApp*, ctx: HabitLinkedContext*,
                               GetUIControlTextY(total_text, y, button_h,
                                                 GetUISmallFontSize()),
                               GetUISmallFontSize(), GetThemeText())
-                if GenericButton(0, plus_x, y, step_w, button_h, "+",
-                                       UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                if StyledButton(plus_x, y, step_w, button_h, "+",
+                                       ButtonStyleSecondary, 0, &hover) {
                     habit_apply_count_action(app, app->habit_detail_index,
                                                 ctx->day_filter, 1,
                                                 minimum_count)
@@ -534,8 +534,8 @@ keyboard_key :: (x: int, y: int, w: int, h: int,
                     label: const char*) -> int {
     hover := 0
 
-    return GenericButton(0, x, y, w, h, label,
-                               UI_BUTTON_STYLE_SECONDARY, 0, &hover)
+    return StyledButton(x, y, w, h, label,
+                               ButtonStyleSecondary, 0, &hover)
 }
 
 clamp_cursor :: (app: InbeApp*) {

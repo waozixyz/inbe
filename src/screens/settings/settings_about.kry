@@ -34,7 +34,7 @@ about_link_icons_height :: (content_w: int) -> int #private {
 }
 
 settings_about_content_height :: (content_w: int) -> int {
-    description := (UIParagraphSpec){
+    description := (ParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = content_w,
         .font = GetUIFontSize(),
@@ -88,10 +88,10 @@ about_draw_donate_button :: (app: InbeApp*, content_x: int, content_w: int, y: i
         button_w = content_w
     }
 
-    if GenericButton(0, content_x + (content_w - button_w) / 2, *y,
+    if StyledButton(content_x + (content_w - button_w) / 2, *y,
                            button_w, button_h,
                            GetLocaleText("donation_reminder_donate_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                           ButtonStylePrimary, 0, &hover) {
         app_open_modal(app, UIModalAboutDonation)
     }
     *y += button_h
@@ -104,20 +104,20 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     logo_size := ScaleUIPx(56)
     text_w := 0
     muted := DarkenUIColor(GetThemeText(), 35)
-    description := (UIParagraphSpec){0}
+    description := (ParagraphSpec){0}
 
     *y += ScaleUIPx(16)
     IconTexture(0, x + (w - logo_size) / 2, *y, logo_size,
                          app->icons[UI_ICON_TYPE_APP], WHITE)
     *y += logo_size + ScaleUIPx(12)
 
-    text_w = MeasureUIText(GetLocaleText("app_title"), title_font)
+    text_w = TextWidth(GetLocaleText("app_title"), title_font)
     Text(GetLocaleText("app_title"), x + (w - text_w) / 2,
                   *y, title_font, GetThemeText())
     *y += ScaleUIPx(34)
 
     snprintf(version_text, sizeof(version_text), "v%s", INBE_VERSION_STRING)
-    text_w = MeasureUIText(version_text, font)
+    text_w = TextWidth(version_text, font)
     Text(version_text, x + (w - text_w) / 2, *y, font, muted)
     *y += ScaleUIPx(28)
 
@@ -139,12 +139,12 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
                     snprintf(progress_text, sizeof(progress_text), "%s",
                              GetLocaleText("update_downloading"))
                 }
-                Text(progress_text, x, *y, UI_TEXT_12,
+                Text(progress_text, x, *y, Text12,
                              DarkenUIColor(GetThemeText(), 28))
                 *y += ScaleUIPx(22)
             } else {
                 buttons: [1] UIButtonRowItem = {
-                    {inbe_update_action_label(), UI_BUTTON_STYLE_SECONDARY, 0}
+                    {inbe_update_action_label(), ButtonStyleSecondary, 0}
                 }
                 row := (ButtonRowProps){.x = x, .y = *y, .width = w,
                                         .height = ScaleUIPx(36),
@@ -156,14 +156,14 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
             }
             error_text := inbe_update_error_text()
             if error_text[0] != '\0' {
-                Text(error_text, x, *y, UI_TEXT_12,
+                Text(error_text, x, *y, Text12,
                              DarkenUIColor(GetThemeText(), 28))
                 *y += ScaleUIPx(20)
             }
         } else {
             /* System-managed or source installs: link out to the release. */
             update_text := inbe_update_row_text()
-            update_w := MeasureUIText(update_text, font)
+            update_w := TextWidth(update_text, font)
             Href((HrefProps){
                 .bounds = {(float)(x + (w - update_w) / 2), (float)*y,
                            (float)update_w, (float)ScaleUIPx(24)},
@@ -176,7 +176,7 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
         *y += ScaleUIPx(8)
     }
 
-    description = (UIParagraphSpec){
+    description = (ParagraphSpec){
         .text = GetLocaleText("about_text"),
         .width = w,
         .font = font,

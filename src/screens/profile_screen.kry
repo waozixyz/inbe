@@ -74,9 +74,9 @@ profile_content_height :: (content_w: int, user_data: void*) -> int {
     return ScaleUIPx(12) + profile_sync_content_height(content_w)
 }
 
-profile_text_style :: () -> UITextInputStyle #private {
+profile_text_style :: () -> TextInputStyle #private {
     border := DarkenUIColor(GetThemeBackground(), 22)
-    return (UITextInputStyle){
+    return (TextInputStyle){
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = border,
         .focus_border = border,
@@ -184,7 +184,7 @@ profile_draw_identity :: (app: InbeApp*, x: int, w: int, y: int*) #private {
 profile_draw_metric_card :: (x: int, w: int, y: int*, label: const char*,
                              value: const char*) #private {
     h := ScaleUIPx(58)
-    value_w := MeasureUIText(value, GetUIFontSize())
+    value_w := TextWidth(value, GetUIFontSize())
 
     DrawRectangleRounded((Rectangle){(float)x, (float)*y, (float)w, (float)h},
                          0.12f, 8, DarkenUIColor(GetThemeBackground(), 7))
@@ -254,7 +254,7 @@ profile_draw_stat_row :: (x: int, w: int, y: int*, label: const char*,
     value_w := 0
 
     Text(label, x, *y, small_font, DarkenUIColor(GetThemeText(), 35))
-    value_w = MeasureUIText(value, font)
+    value_w = TextWidth(value, font)
     Text(value, x + w - value_w, *y - ScaleUIPx(2), font,
                   GetThemeText())
     *y += ScaleUIPx(28)
@@ -373,20 +373,20 @@ profile_draw_habits :: (app: InbeApp*, x: int, w: int, y: int*) {
         if stack_rows {
             row_y += ScaleUIPx(36)
         }
-        if GenericButton(0, stack_rows ? x : x + w - btn_w * 2 - gap,
+        if StyledButton(stack_rows ? x : x + w - btn_w * 2 - gap,
                                row_y, btn_w, btn_h,
                                GetLocaleText("move_up_button"),
-                               UI_BUTTON_STYLE_SECONDARY, i == 0,
+                               ButtonStyleSecondary, i == 0,
                                &up_hover) {
             if habits_move(&app->habits, i, i - 1) {
                 app_auto_sync(app)
             }
             return
         }
-        if GenericButton(0, stack_rows ? x + btn_w + gap : x + w - btn_w,
+        if StyledButton(stack_rows ? x + btn_w + gap : x + w - btn_w,
                                row_y, btn_w, btn_h,
                                GetLocaleText("move_down_button"),
-                               UI_BUTTON_STYLE_SECONDARY,
+                               ButtonStyleSecondary,
                                i == app->habits.count - 1, &down_hover) {
             if habits_move(&app->habits, i, i + 1) {
                 app_auto_sync(app)

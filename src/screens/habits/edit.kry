@@ -96,7 +96,7 @@ trimmed_text :: (app: InbeApp*) -> const char* #private {
 
 info_modal :: (title: const char*, message: const char*) -> int #private {
     frame: UIPanelFrame
-    paragraph: UIParagraphSpec
+    paragraph: ParagraphSpec
     scroll_view: UIScrollView
     scroll_area: UIScrollArea
     y := 0
@@ -124,7 +124,7 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
         modal_w = ScaleUIPx(240)
     }
 
-    paragraph = (UIParagraphSpec){
+    paragraph = (ParagraphSpec){
         .text = message,
         .width = modal_w - ScaleUIPx(36),
         .font = GetUIFontSize(),
@@ -165,10 +165,10 @@ info_modal :: (title: const char*, message: const char*) -> int #private {
     Paragraph(paragraph, scroll_view.content_x, &y)
     EndUIScrollContainer(scroll_area, scroll_view)
 
-    if GenericButton(0, frame.x + (frame.w - button_w) / 2,
+    if StyledButton(frame.x + (frame.w - button_w) / 2,
                            button_y, button_w, button_h,
                            GetLocaleText("ok_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                           ButtonStylePrimary, 0, &hover) {
         result = 1
     }
     if frame.right_clicked {
@@ -282,7 +282,7 @@ handle_keyboard :: (app: InbeApp*) #private {
 text_field :: (text: char*, text_size: size_t, cursor: int*,
                          focused: int*, max_codepoints: int,
                          font: int) -> TextFieldProps #private {
-    style: UITextInputStyle = {
+    style: TextInputStyle = {
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
         .focus_border = GetThemeButtonHover(),
@@ -307,7 +307,7 @@ text_field :: (text: char*, text_size: size_t, cursor: int*,
 text_area :: (text: char*, text_size: size_t, cursor: int*,
                           focused: int*, scroll_y: int*, max_codepoints: int,
                           font: int) -> TextAreaProps #private {
-    style: UITextInputStyle = {
+    style: TextInputStyle = {
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
         .focus_border = GetThemeButtonHover(),
@@ -384,7 +384,7 @@ color_palette_height :: (content_w: int) -> int #private {
 }
 
 action_delete_width :: (content_w: int) -> int #private {
-    width := MeasureUIText(GetLocaleText("habit_delete_button"),
+    width := TextWidth(GetLocaleText("habit_delete_button"),
                            GetUISmallFontSize()) + ScaleUIPx(20)
     min_w := ScaleUIPx(72)
     max_w := ScaleUIPx(112)
@@ -491,7 +491,7 @@ draw :: (app: InbeApp*) {
             return
         }
         title_font = GetUITitleFontSize(title, view_width - ScaleUIPx(120))
-        title_w = MeasureUIText(title, title_font)
+        title_w = TextWidth(title, title_font)
         Text(title, (view_width - title_w) / 2,
                       GetUIControlTextY(title, 0, top_h, title_font),
                       title_font, GetThemeText())
@@ -717,8 +717,8 @@ draw :: (app: InbeApp*) {
     for int d = 0; d < 7; d++ {
         on := (app->habit_edit.weekdays & (1 << d)) != 0
         chip_x := content_x + d * (chip_w + chip_gap)
-        style := on ? UI_BUTTON_STYLE_PRIMARY : UI_BUTTON_STYLE_SECONDARY
-        if GenericButton(0, chip_x, y, chip_w, ScaleUIPx(34),
+        style := on ? ButtonStylePrimary : ButtonStyleSecondary
+        if StyledButton(chip_x, y, chip_w, ScaleUIPx(34),
                                 day_letters[d], style, 0, &hover) {
             app->habit_edit.weekdays =
                 app->habit_edit.weekdays ^ (1 << d)
@@ -757,9 +757,9 @@ draw :: (app: InbeApp*) {
 
     y += ScaleUIPx(10)
     if app->habit_edit.is_new {
-        if GenericButton(0, content_x, y, content_w, ScaleUIPx(40),
+        if StyledButton(content_x, y, content_w, ScaleUIPx(40),
                          GetLocaleText("save_button"),
-                         UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                         ButtonStylePrimary, 0, &hover) {
             EndUIScrollPage(page)
             commit(app)
             return
@@ -772,28 +772,28 @@ draw :: (app: InbeApp*) {
         save_w := content_w - delete_w - action_gap
 
         if save_w < ScaleUIPx(96) {
-            if GenericButton(0, content_x, y, content_w, action_h,
+            if StyledButton(content_x, y, content_w, action_h,
                              GetLocaleText("save_button"),
-                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                             ButtonStylePrimary, 0, &hover) {
                 EndUIScrollPage(page)
                 commit(app)
                 return
             }
             y += action_h + action_gap
-            if GenericButton(0, content_x, y, delete_w, action_h,
+            if StyledButton(content_x, y, delete_w, action_h,
                              GetLocaleText("habit_delete_button"),
-                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                             ButtonStyleDanger, 0, &hover) {
                 app_open_modal(app, UIModalConfirmDeleteHabit)
             }
         } else {
-            if GenericButton(0, content_x, y, delete_w, action_h,
+            if StyledButton(content_x, y, delete_w, action_h,
                              GetLocaleText("habit_delete_button"),
-                             UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                             ButtonStyleDanger, 0, &hover) {
                 app_open_modal(app, UIModalConfirmDeleteHabit)
             }
-            if GenericButton(0, save_x, y, save_w, action_h,
+            if StyledButton(save_x, y, save_w, action_h,
                              GetLocaleText("save_button"),
-                             UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                             ButtonStylePrimary, 0, &hover) {
                 EndUIScrollPage(page)
                 commit(app)
                 return

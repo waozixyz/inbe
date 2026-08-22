@@ -869,7 +869,7 @@ static void
 app_draw_close_prompt(InbeApp *app)
 {
     int modal_result;
-    UIModalAction actions[2];
+    ModalAction actions[2];
 
     if(app == NULL || !app->close_prompt_open)
         return;
@@ -877,13 +877,13 @@ app_draw_close_prompt(InbeApp *app)
         return;
 
     ClearUIInputCaptures();
-    actions[0] = (UIModalAction){
+    actions[0] = (ModalAction){
         .label = GetLocaleText("desktop_close_keep_running_button"),
-        .style = UI_BUTTON_STYLE_PRIMARY
+        .style = ButtonStylePrimary
     };
-    actions[1] = (UIModalAction){
+    actions[1] = (ModalAction){
         .label = GetLocaleText("desktop_close_quit_button"),
-        .style = UI_BUTTON_STYLE_DANGER
+        .style = ButtonStyleDanger
     };
     modal_result = ActionModal((ModalProps){
         .title = GetLocaleText("desktop_close_prompt_title"),
@@ -1580,12 +1580,12 @@ handle_back_button(InbeApp *app)
 static void
 draw_profile_picture_picker_modal(InbeApp *app)
 {
-    UIProfilePicturePickerResult result;
+    ProfilePicturePickerResult result;
 
     if(app == NULL)
         return;
 
-    result = ProfilePicturePicker((UIProfilePicturePickerModal){
+    result = ProfilePicturePicker((ProfilePicturePickerProps){
         .title = "Profile picture",
         .icons = app->icons,
         .selected_icon_type = &app->profile_picture_icon,
@@ -1599,10 +1599,10 @@ draw_profile_picture_picker_modal(InbeApp *app)
         app_close_modal(app);
 }
 
-static UITextInputStyle
+static TextInputStyle
 app_donation_address_style(void)
 {
-    return (UITextInputStyle){
+    return (TextInputStyle){
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
         .focus_border = GetThemeButtonHover(),
@@ -1616,7 +1616,7 @@ app_donation_address_style(void)
 
 static int
 app_donation_address_box_height(const char *address, int w, int font,
-                                UITextInputStyle style)
+                                TextInputStyle style)
 {
     return UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){
         .bounds = {0, 0, (float)w, 0},
@@ -1634,7 +1634,7 @@ app_donation_coin_section_height(const char *address, int w)
     int address_font = GetUISmallFontSize();
     int button_h = ScaleUIPx(36);
 
-    return GetUITextLineHeight(label_font) +
+    return TextLineHeight(label_font) +
            ScaleUIPx(6) +
            app_donation_address_box_height(address, w, address_font,
                                            app_donation_address_style()) +
@@ -1669,7 +1669,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
     int button_w = (w - gap * 2) / 3;
     int box_h;
     int hover = 0;
-    UITextInputStyle style = app_donation_address_style();
+    TextInputStyle style = app_donation_address_style();
 
     if(y == NULL)
         return;
@@ -1681,7 +1681,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
     snprintf(address_text, address_text_size, "%s", address);
 
     Text(label, x, *y, label_font, GetThemeText());
-    *y += GetUITextLineHeight(label_font) + ScaleUIPx(6);
+    *y += TextLineHeight(label_font) + ScaleUIPx(6);
 
     box_h = app_donation_address_box_height(address, w, address_font, style);
     TextArea((TextAreaProps){
@@ -1700,31 +1700,31 @@ app_draw_donation_coin_section(const char *label, const char *address,
     });
     *y += box_h + ScaleUIPx(8);
 
-    if(GenericButton(0, x, *y, button_w, button_h,
+    if(StyledButton(x, *y, button_w, button_h,
                      GetLocaleText("copy_address_button"),
-                     UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                     ButtonStyleSecondary, 0, &hover)) {
 #if ANDROID_BUILD
         int android_copy_ok =
             android_device_copy_text_and_toast(address,
                                                GetLocaleText("address_copied"));
         if(!android_copy_ok) {
             SetUIClipboardTextValue(address);
-            ShowUIToast(GetLocaleText("address_copied"));
+            ShowToast(GetLocaleText("address_copied"));
         }
 #else
         SetUIClipboardTextValue(address);
-        ShowUIToast(GetLocaleText("address_copied"));
+        ShowToast(GetLocaleText("address_copied"));
 #endif
     }
-    if(GenericButton(0, x + button_w + gap, *y, button_w, button_h,
+    if(StyledButton(x + button_w + gap, *y, button_w, button_h,
                      GetLocaleText("open_wallet_button"),
-                     UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                     ButtonStyleSecondary, 0, &hover)) {
         if(!OpenURI(wallet_url))
-            ShowUIToast(GetLocaleText("wallet_not_installed_toast"));
+            ShowToast(GetLocaleText("wallet_not_installed_toast"));
     }
-    if(GenericButton(0, x + (button_w + gap) * 2, *y, button_w, button_h,
+    if(StyledButton(x + (button_w + gap) * 2, *y, button_w, button_h,
                      GetLocaleText("trocador_button"),
-                     UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
+                     ButtonStylePrimary, 0, &hover)) {
         (void)OpenURI(trocador_url);
     }
 
@@ -1735,7 +1735,7 @@ static void
 draw_about_donation_modal(InbeApp *app)
 {
     UIPanelFrame frame;
-    UIParagraphSpec message;
+    ParagraphSpec message;
     int modal_w;
     int modal_h;
     int content_w;
@@ -1754,7 +1754,7 @@ draw_about_donation_modal(InbeApp *app)
         modal_w = ScaleUIPx(240);
     content_w = modal_w - ScaleUIPx(36);
 
-    message = (UIParagraphSpec){
+    message = (ParagraphSpec){
         .text = GetLocaleText("about_donation_message"),
         .width = content_w,
         .font = GetUISmallFontSize(),
@@ -1809,11 +1809,11 @@ draw_about_donation_modal(InbeApp *app)
     button_w = ScaleUIPx(120);
     if(button_w > frame.content_w)
         button_w = frame.content_w;
-    if(GenericButton(0, frame.x + (frame.w - button_w) / 2,
+    if(StyledButton(frame.x + (frame.w - button_w) / 2,
                      frame.y + frame.h - button_h - ScaleUIPx(16),
                      button_w, button_h,
                      GetLocaleText("close_button"),
-                     UI_BUTTON_STYLE_SECONDARY, 0, &hover)) {
+                     ButtonStyleSecondary, 0, &hover)) {
         app_close_modal(app);
     }
 }
@@ -1822,22 +1822,22 @@ static void
 draw_donation_reminder_modal(InbeApp *app)
 {
     int modal_result;
-    UIModalAction actions[3];
+    ModalAction actions[3];
 
     if(app == NULL)
         return;
 
-    actions[0] = (UIModalAction){
+    actions[0] = (ModalAction){
         .label = GetLocaleText("donation_reminder_donate_button"),
-        .style = UI_BUTTON_STYLE_PRIMARY
+        .style = ButtonStylePrimary
     };
-    actions[1] = (UIModalAction){
+    actions[1] = (ModalAction){
         .label = GetLocaleText("donation_reminder_skip_button"),
-        .style = UI_BUTTON_STYLE_SECONDARY
+        .style = ButtonStyleSecondary
     };
-    actions[2] = (UIModalAction){
+    actions[2] = (ModalAction){
         .label = GetLocaleText("donation_reminder_dismiss_button"),
-        .style = UI_BUTTON_STYLE_DANGER
+        .style = ButtonStyleDanger
     };
     modal_result = ActionModal((ModalProps){
         .title = GetLocaleText("donation_reminder_title"),
@@ -2236,7 +2236,7 @@ finish_frame:
     if(!global_modal_drawn)
         draw_global_modal(app);
     app_draw_close_prompt(app);
-    DrawUIToast();
+    DrawToast();
     app_flush_deferred_settings(app);
     app_observe_direct_route_change(app, frame_route);
     app->inbe.frame++;

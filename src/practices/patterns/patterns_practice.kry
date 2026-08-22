@@ -316,9 +316,9 @@ draw_config :: (app: InbeApp*) #private {
                  GetLocaleText(preset_label_key(i)),
                  ratio[0], ratio[1], ratio[2], ratio[3])
         style := app->patterns.preset == i
-            ? UI_BUTTON_STYLE_PRIMARY
-            : UI_BUTTON_STYLE_SECONDARY
-        if GenericButton(0, x + col * (preset_w + gap),
+            ? ButtonStylePrimary
+            : ButtonStyleSecondary
+        if StyledButton(x + col * (preset_w + gap),
                                y + row * (btn_h + gap), preset_w, btn_h,
                                label, style, 0, &hover) {
             app->patterns.preset = i
@@ -342,9 +342,9 @@ draw_config :: (app: InbeApp*) #private {
             value := app->patterns.custom[i]
             Text(step_labels[i], x, y, GetUIFontSize(), GetThemeText())
             minus_w := ScaleUIPx(46)
-            if GenericButton(0, x + w - minus_w * 2 - gap, y,
+            if StyledButton(x + w - minus_w * 2 - gap, y,
                                    minus_w, btn_h, "-5",
-                                   UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                                   ButtonStyleSecondary, 0, &hover) {
                 app->patterns.custom[i] -= 5
                 if app->patterns.custom[i] < 0 {
                     app->patterns.custom[i] = 0
@@ -352,8 +352,8 @@ draw_config :: (app: InbeApp*) #private {
                 app->settings_dirty = 1
                 save_settings(app)
             }
-            if GenericButton(0, x + w - minus_w, y, minus_w, btn_h,
-                                   "+5", UI_BUTTON_STYLE_SECONDARY, 0,
+            if StyledButton(x + w - minus_w, y, minus_w, btn_h,
+                                   "+5", ButtonStyleSecondary, 0,
                                    &hover) {
                 app->patterns.custom[i] += 5
                 if app->patterns.custom[i] > PATTERNS_MAX_SECONDS {
@@ -365,7 +365,7 @@ draw_config :: (app: InbeApp*) #private {
             value_text: [16] char
             snprintf(value_text, sizeof(value_text), "%d s  ",
                      app->patterns.custom[i])
-            value_w := MeasureUIText(value_text, GetUIFontSize())
+            value_w := TextWidth(value_text, GetUIFontSize())
             Text(value_text, x + w - minus_w * 2 - gap - value_w - ScaleUIPx(8),
                           y, GetUIFontSize(), GetThemeText())
             y += btn_h + gap
@@ -387,9 +387,9 @@ draw_config :: (app: InbeApp*) #private {
         }
         dur_w := (w - gap * 4) / 5
         style := app->patterns.duration_minutes == duration_values[i]
-            ? UI_BUTTON_STYLE_PRIMARY
-            : UI_BUTTON_STYLE_SECONDARY
-        if GenericButton(0, x + i * (dur_w + gap), y, dur_w, btn_h,
+            ? ButtonStylePrimary
+            : ButtonStyleSecondary
+        if StyledButton(x + i * (dur_w + gap), y, dur_w, btn_h,
                                label, style, 0, &hover) {
             app->patterns.duration_minutes = duration_values[i]
             app->settings_dirty = 1
@@ -468,25 +468,25 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     }
 
     label := GetLocaleText(phase_label_key(app->patterns.phase))
-    label_w := MeasureUIText(label, UI_TEXT_16)
+    label_w := TextWidth(label, Text16)
     Text(label, center_x - label_w / 2,
-                  center_y - ScaleUIPx(16), UI_TEXT_16, circle_text)
+                  center_y - ScaleUIPx(16), Text16, circle_text)
 
     left := ratio[app->patterns.phase] - app->patterns.phase_second
     if left < 1 {
         left = 1
     }
     snprintf(time_text, sizeof(time_text), "%d", left)
-    phase_time_w := MeasureUIText(time_text, UI_TEXT_24)
+    phase_time_w := TextWidth(time_text, Text24)
     Text(time_text, center_x - phase_time_w / 2,
-                  center_y + ScaleUIPx(12), UI_TEXT_24, circle_text)
+                  center_y + ScaleUIPx(12), Text24, circle_text)
 
     snprintf(time_text, sizeof(time_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
-    cycle_w := MeasureUIText(time_text, UI_TEXT_16)
+    cycle_w := TextWidth(time_text, Text16)
     top_y = title_h + ScaleUIPx(10)
     Text(time_text, center_x - cycle_w / 2, top_y,
-                  UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
+                  Text16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.duration_minutes > 0 {
         remain := app->patterns.duration_minutes * 60 -
@@ -501,23 +501,23 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds / 60,
                  app->patterns.elapsed_seconds % 60)
     }
-    total_w := MeasureUIText(time_text, UI_TEXT_16)
+    total_w := TextWidth(time_text, Text16)
     Text(time_text, center_x - total_w / 2, top_y + ScaleUIPx(24),
-                  UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
+                  Text16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.paused {
-        if GenericButton(0, center_x - ScaleUIPx(60), center_y + ScaleUIPx(138),
+        if StyledButton(center_x - ScaleUIPx(60), center_y + ScaleUIPx(138),
                                ScaleUIPx(120), ScaleUIPx(34),
                                GetLocaleText("patterns_resume_button"),
-                               UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                               ButtonStylePrimary, 0, &hover) {
             app->patterns.paused = 0
         }
         return
     }
-    if IsKeyPressed(KEY_SPACE) || GenericButton(0, center_x - ScaleUIPx(60),
+    if IsKeyPressed(KEY_SPACE) || StyledButton(center_x - ScaleUIPx(60),
                           center_y + ScaleUIPx(138), ScaleUIPx(120),
                           ScaleUIPx(34), GetLocaleText("patterns_pause_button"),
-                          UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                          ButtonStyleSecondary, 0, &hover) {
         app->patterns.paused = 1
     }
 

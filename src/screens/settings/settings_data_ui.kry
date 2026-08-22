@@ -336,41 +336,41 @@ draw_actions :: (app: InbeApp*, x: int, w: int, y: int*) {
     settings_sync_account_set_import_dialog(start_sync_key_import_dialog)
 
     *y += ScaleUIPx(SETTINGS_DATA_TOP_PADDING)
-    if GenericButton(0, x, *y, w, data_button_h,
+    if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("import_data_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover_import) {
+                           ButtonStylePrimary, 0, &hover_import) {
         import_data(app)
     }
     *y += data_button_h + ScaleUIPx(12)
 
-    if GenericButton(0, x, *y, w, data_button_h,
+    if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("export_data_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover_export) {
+                           ButtonStylePrimary, 0, &hover_export) {
         export_data(app)
     }
     *y += data_button_h + ScaleUIPx(12)
 
-    if GenericButton(0, x, *y, w, data_button_h,
+    if StyledButton(x, *y, w, data_button_h,
                            GetLocaleText("export_csv_button"),
-                           UI_BUTTON_STYLE_SECONDARY, 0, &hover_export) {
+                           ButtonStyleSecondary, 0, &hover_export) {
         export_csv(app)
     }
     *y += data_button_h + ScaleUIPx(12)
 
     #if ANDROID {
         hover_health: int = 0
-        if GenericButton(0, x, *y, w, data_button_h,
+        if StyledButton(x, *y, w, data_button_h,
                                GetLocaleText("export_health_connect_button"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &hover_health) {
+                               ButtonStyleSecondary, 0, &hover_health) {
             export_health_connect(app)
         }
         *y += data_button_h + ScaleUIPx(12)
     }
 
     if !has_account {
-        if GenericButton(0, x, *y, w, data_button_h,
+        if StyledButton(x, *y, w, data_button_h,
                                GetLocaleText("clear_local_data_button"),
-                               UI_BUTTON_STYLE_DANGER, 0, &hover_delete) {
+                               ButtonStyleDanger, 0, &hover_delete) {
             request_delete_all_data(app)
         }
         *y += data_button_h + ScaleUIPx(12)
@@ -735,34 +735,34 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
     btn_y = frame.y + frame.h - ScaleUIPx(24) - btn_h * 2 - row_gap
     btn_w = (frame.content_w - row_gap) / 2
 
-    if GenericButton(0, frame.content_x,
+    if StyledButton(frame.content_x,
                            btn_y,
                            btn_w,
                            btn_h,
                            GetLocaleText("cancel_button"),
-                           UI_BUTTON_STYLE_SECONDARY,
+                           ButtonStyleSecondary,
                            0,
                            &hover) {
         return 1
     }
 
-    if GenericButton(0, frame.content_x + btn_w + row_gap,
+    if StyledButton(frame.content_x + btn_w + row_gap,
                            btn_y,
                            btn_w,
                            btn_h,
                            GetLocaleText("import_data_only_button"),
-                           UI_BUTTON_STYLE_PRIMARY,
+                           ButtonStylePrimary,
                            0,
                            &hover) {
         return 2
     }
 
-    if GenericButton(0, frame.content_x,
+    if StyledButton(frame.content_x,
                            btn_y + btn_h + row_gap,
                            frame.content_w,
                            btn_h,
                            GetLocaleText("import_data_settings_button"),
-                           UI_BUTTON_STYLE_PRIMARY,
+                           ButtonStylePrimary,
                            0,
                            &hover) {
         return 3
@@ -774,7 +774,7 @@ draw_import_choice_modal :: (app: InbeApp*) -> int {
 draw_sync_review_modal :: (app: InbeApp*) -> int {
     frame: UIPanelFrame
     diff_detail: char* = nil
-    intro: UIParagraphSpec
+    intro: ParagraphSpec
     intro_y: int
     intro_h: int
     modal_w: int
@@ -816,7 +816,7 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
                              GetLocaleText("sync_review_needed"),
                              (Texture2D){0},
                              (Texture2D){0})
-    intro = (UIParagraphSpec){
+    intro = (ParagraphSpec){
         .text = GetLocaleText("sync_review_message"),
         .width = frame.content_w,
         .font = GetUISmallFontSize(),
@@ -899,24 +899,24 @@ draw_sync_review_modal :: (app: InbeApp*) -> int {
                   GetUISmallFontSize(),
                   (Color){74, 170, 112, 255})
 
-    if GenericButton(0, frame.content_x,
+    if StyledButton(frame.content_x,
                            btn_y,
                            (frame.content_w - gap) / 2,
                            btn_h,
                            GetLocaleText("sync_review_keep_local_button"),
-                           UI_BUTTON_STYLE_SECONDARY,
+                           ButtonStyleSecondary,
                            0,
                            &hover) {
         free(diff_detail)
         return 1
     }
 
-    if GenericButton(0, frame.content_x + (frame.content_w + gap) / 2,
+    if StyledButton(frame.content_x + (frame.content_w + gap) / 2,
                            btn_y,
                            (frame.content_w - gap) / 2,
                            btn_h,
                            GetLocaleText("sync_review_use_remote_button"),
-                           UI_BUTTON_STYLE_PRIMARY,
+                           ButtonStylePrimary,
                            0,
                            &hover) {
         free(diff_detail)

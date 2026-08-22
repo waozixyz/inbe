@@ -32,8 +32,8 @@ static g_leaderboard_sort_metric: int = PROFILE_LEADERBOARD_STREAK
 
 static sync_server_url_key: const char* = "sync_server_url"
 
-text_style :: () -> UITextInputStyle #private {
-    return (UITextInputStyle){
+text_style :: () -> TextInputStyle #private {
+    return (TextInputStyle){
         .background = DarkenUIColor(GetThemeBackground(), 6),
         .border = DarkenUIColor(GetThemeBackground(), 34),
         .focus_border = GetThemeButton(),
@@ -361,20 +361,20 @@ draw_json_people :: (json: const char*, array_key: const char*,
         if with_actions {
             btn_w := (w - ScaleUIPx(8)) / 2
 
-            if GenericButton(0, x, *y + ScaleUIPx(22), btn_w,
+            if StyledButton(x, *y + ScaleUIPx(22), btn_w,
                                    ScaleUIPx(30),
                                    GetLocaleText("profile_friend_accept_button"),
-                                   UI_BUTTON_STYLE_PRIMARY, 0,
+                                   ButtonStylePrimary, 0,
                                    &hover_accept) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_accept(app, id)
                 settings_screen_set_status_success(
                     GetLocaleText("profile_updating_status"), nil)
             }
-            if GenericButton(0, x + btn_w + ScaleUIPx(8),
+            if StyledButton(x + btn_w + ScaleUIPx(8),
                                    *y + ScaleUIPx(22), btn_w, ScaleUIPx(30),
                                    GetLocaleText("profile_friend_decline_button"),
-                                   UI_BUTTON_STYLE_SECONDARY, 0,
+                                   ButtonStyleSecondary, 0,
                                    &hover_decline) &&
                sync_url(url, sizeof(url)) {
                 app_request_friend_decline(app, id)
@@ -432,9 +432,9 @@ draw_friends :: (app: InbeApp*, x: int, w: int, y: int*) {
     })
     *y += ScaleUIPx(46)
 
-    if (GenericButton(0, x, *y, w, btn_h,
+    if (StyledButton(x, *y, w, btn_h,
                             GetLocaleText("profile_add_friend_button"),
-                            UI_BUTTON_STYLE_PRIMARY,
+                            ButtonStylePrimary,
                             app->profile_friend_input[0] == '\0',
                             &hover_add) || commit) &&
        app->profile_friend_input[0] != '\0' {
@@ -518,7 +518,7 @@ friends_content_height :: (app: InbeApp*, content_w: int) -> int {
 
 draw_leaderboard_value :: (x: int, w: int, y: int, value: const char*,
                           font: int) #private {
-    rank_w := MeasureUIText(value, font)
+    rank_w := TextWidth(value, font)
 
     Text(value, x + w - rank_w, y, font, GetThemeText())
 }

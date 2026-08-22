@@ -2,8 +2,8 @@
 
 #import "app.h"
 
-label_paragraph :: (label: const char*, w: int) -> UIParagraphSpec #private {
-    return (UIParagraphSpec){.text = label, .width = w}
+label_paragraph :: (label: const char*, w: int) -> ParagraphSpec #private {
+    return (ParagraphSpec){.text = label, .width = w}
 }
 
 toggle_switch_width :: () -> int {
@@ -12,8 +12,8 @@ toggle_switch_width :: () -> int {
     }
 
     font := GetUIFontSize()
-    off_w := MeasureUIText(GetLocaleText("toggle_off"), font)
-    on_w := MeasureUIText(GetLocaleText("toggle_on"), font)
+    off_w := TextWidth(GetLocaleText("toggle_off"), font)
+    on_w := TextWidth(GetLocaleText("toggle_on"), font)
     half := (off_w > on_w ? off_w : on_w) + ScaleUIPx(16)
 
     return half * 2 + ScaleUIPx(6)
@@ -125,7 +125,7 @@ audio_meter_height :: () -> int {
 }
 
 draw_audio_meter :: (app: InbeApp*, x: int, y: int, w: int, label: const char*) -> int {
-    label_font := UI_TEXT_12
+    label_font := Text12
     bar_h := ScaleUIPx(10)
     label_h := ScaleUIPx(18)
     level := app_audio_output_level(app)

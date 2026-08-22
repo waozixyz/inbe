@@ -121,8 +121,8 @@ bottom_nav_should_draw :: (app: InbeApp*) -> int #private {
 app_draw_bottom_nav :: (app: InbeApp*) {
     routes := (int[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
     route_count := 0
-    items := (UIBottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
-    result := (UIBottomNavResult){0}
+    items := (BottomNavItem[APP_BOTTOM_NAV_CONTENT_MAX + 1]){0}
+    result := (BottomNavResult){0}
 
     if app_android_bottom_nav_height() > 0 {
         DrawRectangle(0, view_height - app_android_bottom_nav_height(), view_width, app_android_bottom_nav_height(), BLACK)
@@ -144,7 +144,7 @@ app_draw_bottom_nav :: (app: InbeApp*) {
         if app->input_block_frame != app->inbe.frame || !IsMouseButtonReleased(MOUSE_BUTTON_LEFT) {
             for int i = 0; i < route_count; i++ {
                 route := routes[i]
-                items[i] = (UIBottomNavItem){route, bottom_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
+                items[i] = (BottomNavItem){route, bottom_nav_route_label(route), bottom_nav_route_icon(app, route), bottom_nav_route_active(app, route), app->modal.active}
             }
             result = BottomNav((BottomNavProps){.view_width = view_width, .view_height = view_height, .bottom_margin = app_android_bottom_nav_height(), .count = route_count, .items = items})
             if result.clicked_route != APP_NAV_ROUTE_NONE {

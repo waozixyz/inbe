@@ -325,10 +325,10 @@ settings_audio_toggle_music_preview :: (app: InbeApp*, index: int) #private {
 draw_audio_preview_button :: (x: int, y: int, w: int, playing: int,
                               disabled: int) -> int #private {
     hover := 0
-    return GenericButton(0, x, y, w, ScaleUIPx(32),
+    return StyledButton(x, y, w, ScaleUIPx(32),
                                playing ? GetLocaleText("pause_button")
                                        : GetLocaleText("play_button"),
-                               UI_BUTTON_STYLE_SECONDARY, disabled, &hover)
+                               ButtonStyleSecondary, disabled, &hover)
 }
 
 audio_action_to_cue :: (action: int) -> int #private {
@@ -517,15 +517,15 @@ settings_audio_draw_output :: (app: InbeApp*, x: int, w: int, y: int*) #private 
         GetLocaleText("audio_status_ready") :
         GetLocaleText("audio_status_unavailable")
     buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("audio_reinitialize_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        {GetLocaleText("audio_test_output_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("audio_reinitialize_button"), ButtonStyleSecondary, 0}
     }
     Text(GetLocaleText("audio_output_label"), x, *y,
                GetUIFontSize(), GetThemeText())
     Text(GetLocaleText("audio_system_default_label"), x,
-               *y + ScaleUIPx(26), UI_TEXT_12,
+               *y + ScaleUIPx(26), Text12,
                DarkenUIColor(GetThemeText(), 28))
-    Text(status_label, x, *y + ScaleUIPx(46), UI_TEXT_12,
+    Text(status_label, x, *y + ScaleUIPx(46), Text12,
                app->audio_ready ? GetThemeButtonHover() :
                    DarkenUIColor(GetThemeText(), 28))
     *y += ScaleUIPx(70)
@@ -558,8 +558,8 @@ settings_audio_import_button_height :: (action: int) -> int #private {
 
 settings_audio_output_height :: (content_w: int) -> int #private {
     buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("audio_test_output_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("audio_reinitialize_button"), UI_BUTTON_STYLE_SECONDARY, 0}
+        {GetLocaleText("audio_test_output_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("audio_reinitialize_button"), ButtonStyleSecondary, 0}
     }
     row := (ButtonRowProps){.width = content_w, .height = ScaleUIPx(36),
                             .items = buttons, .count = 2}
@@ -649,8 +649,8 @@ settings_audio_content_height :: (app: InbeApp*, content_w: int) -> int {
 draw_import_button :: (app: InbeApp*, x: int, w: int, y: int*, label: const char*, action: int, practice: int) #private {
     hover := 0
     button_id := 880 + action + (practice >= 0 ? (practice + 1) * 16 : 0)
-    if GenericButton(button_id, x, *y, w, ScaleUIPx(36), label,
-                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+    if StyledButton(x, *y, w, ScaleUIPx(36), label,
+                           ButtonStyleSecondary, 0, &hover) {
         settings_audio_start_import(app, action, practice)
     }
     *y += ScaleUIPx(42)
@@ -721,16 +721,16 @@ draw_custom_sound_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
             label_w = w - button_w - gap
         }
         Text(app->audio_custom_sounds[i].title, x, *y + ScaleUIPx(8),
-                   UI_TEXT_12, GetThemeText())
+                   Text12, GetThemeText())
         if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
                                      preview_w,
                                      settings_audio_preview_custom_sound_playing(i),
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_custom_sound_preview(app, i)
         }
-        if GenericButton(0, x + w - button_w, *y, button_w,
+        if StyledButton(x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
-                               UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                               ButtonStyleDanger, 0, &hover) {
             settings_audio_stop_preview(app)
             app_audio_remove_custom_sound(app, i)
             app->settings_dirty = 1
@@ -788,9 +788,9 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         track_text: [INBE_AUDIO_LABEL_SIZE + 4] char = {0}
         snprintf(practice_text, sizeof(practice_text), "%s", practice_label(p))
         inbe_text_fit_ellipsis(app_audio_music_label(app, current), track_text,
-                                   sizeof(track_text), label_w, UI_TEXT_12)
-        Text(practice_text, x, *y + ScaleUIPx(2), UI_TEXT_12, GetThemeText())
-        Text(track_text, x, *y + ScaleUIPx(20), UI_TEXT_12,
+                                   sizeof(track_text), label_w, Text12)
+        Text(practice_text, x, *y + ScaleUIPx(2), Text12, GetThemeText())
+        Text(track_text, x, *y + ScaleUIPx(20), Text12,
                    DarkenUIColor(GetThemeText(), 28))
         if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
                                      preview_w,
@@ -798,9 +798,9 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_music_preview(app, current)
         }
-        if GenericButton(0, x + w - button_w, *y, button_w,
+        if StyledButton(x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
-                               UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                               ButtonStyleDanger, 0, &hover) {
             settings_audio_stop_preview(app)
             app->meditation.music_practice_tracks[p] = INBE_AUDIO_MUSIC_NONE
             app->meditation.music_practice_mask &= ~(1 << p)
@@ -813,7 +813,7 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     }
     if assigned == 0 {
         Text(GetLocaleText("audio_music_no_practices"), x, *y,
-                   UI_TEXT_12, DarkenUIColor(GetThemeText(), 34))
+                   Text12, DarkenUIColor(GetThemeText(), 34))
         *y += ScaleUIPx(24)
     }
     *y += ScaleUIPx(12)
@@ -836,17 +836,17 @@ draw_music_list :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         }
         fitted: [INBE_AUDIO_LABEL_SIZE + 4] char = {0}
         inbe_text_fit_ellipsis(app->audio_custom_music[i].title, fitted,
-                                   sizeof(fitted), label_w, UI_TEXT_12)
-        Text(fitted, x, *y + ScaleUIPx(8), UI_TEXT_12, GetThemeText())
+                                   sizeof(fitted), label_w, Text12)
+        Text(fitted, x, *y + ScaleUIPx(8), Text12, GetThemeText())
         if draw_audio_preview_button(x + w - button_w - preview_w - gap, *y,
                                      preview_w,
                                      settings_audio_preview_music_playing(track_index),
                                      app == nil || !app->audio_ready) {
             settings_audio_toggle_music_preview(app, track_index)
         }
-        if GenericButton(0, x + w - button_w, *y, button_w,
+        if StyledButton(x + w - button_w, *y, button_w,
                                ScaleUIPx(32), GetLocaleText("remove_button"),
-                               UI_BUTTON_STYLE_DANGER, 0, &hover) {
+                               ButtonStyleDanger, 0, &hover) {
             settings_audio_stop_preview(app)
             app_audio_remove_custom_music(app, i)
             app->settings_dirty = 1
@@ -871,12 +871,12 @@ draw_music_download :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     } else {
         download_label = GetLocaleText("meditation_music_download_button")
     }
-    button_w := MeasureUIText(download_label, GetUIFontSize()) + ScaleUIPx(24)
+    button_w := TextWidth(download_label, GetUIFontSize()) + ScaleUIPx(24)
     if button_w > w {
         button_w = w
     }
-    if GenericButton(0, x, *y, button_w, button_h, download_label,
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+    if StyledButton(x, *y, button_w, button_h, download_label,
+                           ButtonStylePrimary, 0, &hover) {
         meditation_music_start_download(app)
     }
     *y += button_h + ScaleUIPx(12)
@@ -907,10 +907,10 @@ draw_music_attribution :: (x: int, w: int, track: int, y: int*) #private {
     if track < 0 || track >= INBE_AUDIO_BUILTIN_MUSIC_COUNT {
         return
     }
-    spec := (UIParagraphSpec){
+    spec := (ParagraphSpec){
         .text = GetLocaleText("meditation_music_attribution"),
         .width = w,
-        .font = UI_TEXT_12,
+        .font = Text12,
         .color = DarkenUIColor(GetThemeText(), 34),
     }
     Paragraph(spec, x, y)

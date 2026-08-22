@@ -37,11 +37,11 @@ break_exercises_screen_draw :: (app: InbeApp*) {
     page = BeginUIScrollPage((UIScrollPageSpec){.y = ScaleUIPx(48), .height = content_h - ScaleUIPx(48), .max_content_width = ScaleUIPx(560), .min_content_width = ScaleUIPx(280), .scroll_offset = &app->break_exercises_scroll})
     y = page.content_y
 
-    Text(GetLocaleText("break_exercises_intro"), page.content_x, y, UI_TEXT_12, muted)
+    Text(GetLocaleText("break_exercises_intro"), page.content_x, y, Text12, muted)
     y += ScaleUIPx(26)
 
     for int i = 0; i < BREAK_EXERCISE_COUNT; i++ {
-        paragraph := (UIParagraphSpec){0}
+        paragraph := (ParagraphSpec){0}
         duration := break_exercise_total_s(i)
         step_count := 0
         header: [96] char
@@ -65,7 +65,7 @@ break_exercises_screen_draw :: (app: InbeApp*) {
             line: [160] char
             snprintf(line, sizeof(line), "%s%s", marker,
                      break_exercises_step_text(i, s))
-            paragraph = (UIParagraphSpec){.text = line, .width = page.content_w - ScaleUIPx(12), .font = UI_TEXT_12, .line_gap = ScaleUIPx(3), .color = color}
+            paragraph = (ParagraphSpec){.text = line, .width = page.content_w - ScaleUIPx(12), .font = Text12, .line_gap = ScaleUIPx(3), .color = color}
             Paragraph(paragraph, page.content_x + ScaleUIPx(6), &y)
             y += ScaleUIPx(6)
         }

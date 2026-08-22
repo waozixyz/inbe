@@ -312,7 +312,7 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
     }
     snprintf(timer_text, sizeof(timer_text), "%ds / %ds", elapsed_seconds, seconds)
 
-    text_w = MeasureUIText(timer_text, font)
+    text_w = TextWidth(timer_text, font)
     x = (view_width - text_w) / 2
     y = top_y + ScaleUIPx(4)
     Text(timer_text, x, y, font, muted)
@@ -338,8 +338,8 @@ draw_pose_timer :: (app: InbeApp*, seconds: int, top_y: int, bottom_y: int) #pri
 }
 
 sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
-    controls: [3] UIIconRowItem
-    row: UIIconRowResult
+    controls: [3] IconRowItem
+    row: IconRowResult
     step_label: const char*
     step: int
     repetition: int
@@ -425,7 +425,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         return
     }
 
-    controls[0] = (UIIconRowItem){
+    controls[0] = (IconRowItem){
         app->icons[UI_ICON_TYPE_BACKWARD],
         step <= 0 && repetition <= 0
     }
@@ -433,11 +433,11 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     if app->session_paused {
         pause_icon = app->icons[UI_ICON_TYPE_PLAY]
     }
-    controls[1] = (UIIconRowItem){
+    controls[1] = (IconRowItem){
         pause_icon,
         0
     }
-    controls[2] = (UIIconRowItem){
+    controls[2] = (IconRowItem){
         app->icons[UI_ICON_TYPE_FORWARD],
         0
     }

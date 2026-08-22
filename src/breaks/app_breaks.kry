@@ -814,12 +814,12 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
         time_x := hud_w - pad
         next := break_timer_next_due_s(&app->breaks, t)
 
-        Text(labels[t], bar_x, row_y + ScaleUIPx(2), UI_TEXT_12, muted)
+        Text(labels[t], bar_x, row_y + ScaleUIPx(2), Text12, muted)
 
         if next < 0 {
             line := "off"
-            Text(line, time_x - MeasureUIText(line, UI_TEXT_12), row_y + ScaleUIPx(2),
-                 UI_TEXT_12, muted)
+            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
+                 Text12, muted)
         } else if timer->state == BreakStateBreaking {
             # active break: count down the remaining rest time (this is the
             # wait that resets the timer once it completes)
@@ -829,8 +829,8 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
             }
             line: [16] char
             break_format_duration(line, sizeof(line), left)
-            Text(line, time_x - MeasureUIText(line, UI_TEXT_12), row_y + ScaleUIPx(2),
-                 UI_TEXT_12, fill)
+            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
+                 Text12, fill)
             if timer->duration_s > 0 {
                 fraction := timer->idle_s * (bar_w - 2) / timer->duration_s
                 if fraction > bar_w - 2 {
@@ -851,8 +851,8 @@ app_breaks_hud_draw :: (app: InbeApp*, hud_w: int, hud_h: int, row_h: int, pad: 
                 break_format_duration(line, sizeof(line), next)
             }
             color := next == 0 ? overdue : GetThemeText()
-            Text(line, time_x - MeasureUIText(line, UI_TEXT_12), row_y + ScaleUIPx(2),
-                 UI_TEXT_12, color)
+            Text(line, time_x - TextWidth(line, Text12), row_y + ScaleUIPx(2),
+                 Text12, color)
 
             if timer->limit_s > 0 {
                 fraction := timer->active_s * (bar_w - 2) / timer->limit_s

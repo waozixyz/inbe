@@ -29,7 +29,7 @@ meditation_manual_close :: (app: InbeApp*, mark_seen: int) {
 
 draw_intro_page :: (app: InbeApp*, content_x: int, content_w: int, y: int*) #private {
     img_h := ScaleUIPx(190)
-    paragraph := (UIParagraphSpec){0}
+    paragraph := (ParagraphSpec){0}
 
     TutorialImage(app->meditation.image_1,
                            "practices/meditation/1.png",

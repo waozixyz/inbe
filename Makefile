@@ -201,6 +201,8 @@ KRYON_ICON_FILES := $(foreach dir,$(KRYON_ICON_DIRS),$(wildcard $(KRYON_DIR)/$(d
 KRYON_ICON_ASSETS_C := $(KRYON_DIR)/src/ui/ui_icon_assets.c
 KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
 KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
+KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
+KRYON_SRCS := $(filter-out $(KRYON_LIBDRAW_SRCS),$(KRYON_SRCS))
 # The raylib web build links the generated raylib wrappers; the canvas
 # backend sources define the same public surface and belong only to the
 # web-canvas target (which drops the wrappers instead).
@@ -353,8 +355,8 @@ endif
 endif
 
 # No in-process GTK anywhere else either: the system theme uses kryon's
-# built-in palettes, and native file dialogs shell out to zenity/kdialog/yad
-# (kryon's default backend order) instead of opening a GTK dialog in-process.
+# built-in palettes, and native file dialogs prefer xdg-desktop-portal through
+# GIO before falling back to zenity/kdialog/yad.
 SYSTEM_THEME_CFLAGS :=
 SYSTEM_THEME_LDLIBS :=
 

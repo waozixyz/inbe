@@ -40,7 +40,7 @@ language_screen_draw :: (app: InbeApp*) {
     }
 
     title_font = GetUITitleFontSize(GetLocaleText("language_picker_title"), content_w)
-    title_w = MeasureUIText(GetLocaleText("language_picker_title"), title_font)
+    title_w = TextWidth(GetLocaleText("language_picker_title"), title_font)
     Text(GetLocaleText("language_picker_title"), view_width / 2 - title_w / 2, ScaleUIPx(28), title_font, GetThemeText())
     Text(GetLocaleText("language_label"), dropdown_x, dropdown_y - ScaleUIPx(24), label_font, GetThemeText())
     if TextButton(0, button_x, button_y, GetLocaleText("next_button"), &next_hover) {

@@ -618,7 +618,7 @@ session_step_forward :: (app: InbeApp*) #private {
 draw_session_counter :: (app: InbeApp*, center_x: int, center_y: int) #private {
     text: [CountSize] char
     count: int
-    font: int = UI_TEXT_24
+    font: int = Text24
     text_color: Color = text_color_for_background(GetThemeCircle())
 
     if app->inbe.phase == InbePhaseStarting {
@@ -853,7 +853,7 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     released: int = IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
     play_text: const char* = GetLocaleText("play_button")
     practice_text: const char* = practice_label(app->exercise_type)
-    font: int = UI_TEXT_16
+    font: int = Text16
     practice_font: int = GetUIFontSize()
     practice_w: int
     practice_y: int
@@ -892,11 +892,11 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
     }
 
     scaled_radius: int = (int)(radius * scale)
-    practice_w = MeasureUIText(practice_text, practice_font)
+    practice_w = TextWidth(practice_text, practice_font)
     if practice_w > view_width - ScaleUIPx(48) {
         practice_font = GetUISmallFontSize()
     }
-    practice_w = MeasureUIText(practice_text, practice_font)
+    practice_w = TextWidth(practice_text, practice_font)
     practice_y = center_y - scaled_radius - ScaleUIPx(42)
     if practice_y < ScaleUIPx(8) {
         practice_y = ScaleUIPx(8)
@@ -939,7 +939,7 @@ session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int)
     close_x: int = view_width - close_total - ScaleUIPx(12)
     close_y: int = (height - close_total) / 2
     side_reserved: int = view_width - close_x + ScaleUIPx(8)
-    font: int = UI_TEXT_24
+    font: int = Text24
     max_w: int = view_width - side_reserved * 2
     title_w: int
 
@@ -952,10 +952,10 @@ session_draw_round_title_bar :: (app: InbeApp*, title: const char*, height: int)
     if max_w < ScaleUIPx(48) {
         max_w = view_width - ScaleUIPx(16)
     }
-    title_w = MeasureUIText(title, font)
+    title_w = TextWidth(title, font)
     while font > GetUIFontSize() && title_w > max_w {
         font--
-        title_w = MeasureUIText(title, font)
+        title_w = TextWidth(title, font)
     }
 
     TitleBar("", height)
@@ -1090,12 +1090,12 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 
     if app->advanced_session_controls {
         min_view_dim: int = view_width < view_height ? view_width : view_height
-        controls: [3] UIIconRowItem = {
+        controls: [3] IconRowItem = {
             {app->icons[UI_ICON_TYPE_BACKWARD], 0},
             {app->session_paused ? app->icons[UI_ICON_TYPE_PLAY] : app->icons[UI_ICON_TYPE_PAUSE], 0},
             {app->icons[UI_ICON_TYPE_FORWARD], 0}
         }
-        row: UIIconRowResult = BottomIconRow((BottomIconRowProps){
+        row: IconRowResult = BottomIconRow((BottomIconRowProps){
             .center_x = center_x,
             .view_width = view_width,
             .view_height = view_height,
@@ -1156,9 +1156,9 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
 
     if app->inbe.phase == InbePhaseHold {
         breath_label: const char* = GetLocaleText("breath_button")
-        breath_font: int = UI_TEXT_16
-        breath_w: int = MeasureUIText(breath_label, breath_font) + ScaleUIPx(72)
-        breath_h: int = GetUITextLineHeight(breath_font) + ScaleUIPx(28)
+        breath_font: int = Text16
+        breath_w: int = TextWidth(breath_label, breath_font) + ScaleUIPx(72)
+        breath_h: int = TextLineHeight(breath_font) + ScaleUIPx(28)
         breath_y: int = center_y + app->inbe.rmax - ScaleUIPx(42)
         breath_x: int
         breath_hover: int = 0
@@ -1166,7 +1166,7 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         if app->double_tap_to_breathe {
             hint: const char* = GetLocaleText("double_tap_to_breathe_hint")
             hint_font: int = GetUIFontSize()
-            hint_w: int = MeasureUIText(hint, hint_font)
+            hint_w: int = TextWidth(hint, hint_font)
             hint_y: int = center_y + app->inbe.rmax + ScaleUIPx(12)
 
             if hint_y > breath_max_y {
@@ -1197,8 +1197,8 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
             breath_y = breath_max_y
         }
         breath_x = center_x - breath_w / 2
-        if GenericButton(0, breath_x, breath_y, breath_w, breath_h,
-                                  breath_label, UI_BUTTON_STYLE_PRIMARY, 0,
+        if StyledButton(breath_x, breath_y, breath_w, breath_h,
+                                  breath_label, ButtonStylePrimary, 0,
                                   &breath_hover) {
             finish_hold(app)
         }
@@ -1239,7 +1239,7 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
     GetUICenteredColumn(responsive_max_w, GetUIPageSidePadding(), &box_x, &box_w)
 
     title_font = GetUITitleFontSize(GetLocaleText("results_title"), view_width - ScaleUIPx(48))
-    title_w = MeasureUIText(GetLocaleText("results_title"), title_font)
+    title_w = TextWidth(GetLocaleText("results_title"), title_font)
     Text(GetLocaleText("results_title"), center_x - title_w / 2, ScaleUIPx(34), title_font, GetThemeText())
 
     for int i = 0; i < rounds; i++ {
@@ -1256,13 +1256,13 @@ session_draw_results_screen :: (app: InbeApp*, center_x: int, center_y: int, hov
     {
         lines: [3][64] char
         rows: [3] UIInfoRow
-        summary_font: int = UI_TEXT_16
+        summary_font: int = Text16
 
         FormatLocaleText(lines[0], sizeof(lines[0]), "results_rounds", rounds)
         FormatLocaleText(lines[1], sizeof(lines[1]), "results_best", best)
         FormatLocaleText(lines[2], sizeof(lines[2]), "results_avg",
                       rounds > 0 ? total / rounds : 0)
-        if view_width < 420 && MeasureUIText(lines[2], summary_font) > box_w - ScaleUIPx(20) {
+        if view_width < 420 && TextWidth(lines[2], summary_font) > box_w - ScaleUIPx(20) {
             snprintf(lines[2], sizeof(lines[2]), "%ds", rounds > 0 ? total / rounds : 0)
         }
         for int i = 0; i < 3; i++ {

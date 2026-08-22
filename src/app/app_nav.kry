@@ -421,7 +421,7 @@ app_sidebar_button :: (app: InbeApp*, x: int, y: int*, w: int,
     h := ScaleUIPx(38)
     disabled := app != NULL && app->modal.active
 
-    if GenericButton(0, x, *y, w, h, label, UI_BUTTON_STYLE_SECONDARY,
+    if StyledButton(x, *y, w, h, label, ButtonStyleSecondary,
                            disabled || route == APP_NAV_ROUTE_NONE, &hover) {
         app_apply_nav_route(app, route)
         return 1
@@ -458,8 +458,8 @@ app_sidebar_settings_button :: (app: InbeApp*, x: int, y: int*, w: int,
     h := ScaleUIPx(38)
     disabled := app != NULL && app->modal.active
 
-    if GenericButton(0, x, *y, w, h, settings_screen_tab_label(tab),
-                           UI_BUTTON_STYLE_SECONDARY, disabled, &hover) {
+    if StyledButton(x, *y, w, h, settings_screen_tab_label(tab),
+                           ButtonStyleSecondary, disabled, &hover) {
         app_open_settings_tab(app, tab)
         return 1
     }
@@ -516,7 +516,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
     friends_count := has_account ? profile_social_friends_count(app) : 0
     pending_count := has_account ? profile_social_pending_count(app) : 0
     friends_text: [64] char
-    header: UISidebarAccountHeaderResult
+    header: SidebarAccountHeaderResult
 
     if pending_count > 0 {
         FormatLocaleText(friends_text, sizeof(friends_text), "profile_friends_pending_summary", friends_count, pending_count)
@@ -525,7 +525,7 @@ app_draw_sidebar_profile_header :: (app: InbeApp*, x: int, y: int*, w: int,
                     GetLocaleText("profile_friends_summary"), friends_count)
     }
 
-    header = SidebarAccountHeader((UISidebarAccountHeaderSpec){
+    header = SidebarAccountHeader((SidebarAccountHeaderProps){
         .x = x,
         .y = *y,
         .width = w,
@@ -710,9 +710,9 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
         return
     }
     y += ScaleUIPx(10)
-    if GenericButton(0, area.content_x, y, area.content_width, ScaleUIPx(40),
+    if StyledButton(area.content_x, y, area.content_width, ScaleUIPx(40),
                            GetLocaleText("customize_nav_button"),
-                           UI_BUTTON_STYLE_PRIMARY, app->modal.active, &hover) {
+                           ButtonStylePrimary, app->modal.active, &hover) {
         app_open_bottom_nav_config(app)
         EndUIScrollContainer(area, view)
         return
@@ -722,9 +722,9 @@ app_draw_nav_sidebar :: (app: InbeApp*) {
 
     DrawLine(sidebar_x, view_height - footer_h, sidebar_x + sidebar_w,
                 view_height - footer_h, DarkenUIColor(GetThemeSurface(), 28))
-    if GenericButton(0, sidebar_x + pad, close_y, sidebar_w - pad * 2,
+    if StyledButton(sidebar_x + pad, close_y, sidebar_w - pad * 2,
                            close_h, GetLocaleText("close_button"),
-                           UI_BUTTON_STYLE_SECONDARY, app->modal.active,
+                           ButtonStyleSecondary, app->modal.active,
                            &close_hover) {
         app_close_nav_sidebar(app)
         app_block_pointer_frame(app)
@@ -946,9 +946,9 @@ app_draw_customize_nav_page :: (app: InbeApp*) -> int {
 
     if draw_count < APP_BOTTOM_NAV_CONFIGURABLE_COUNT {
         add_hover := 0
-        if GenericButton(0, page.content_x, y, page.content_w, button_h,
+        if StyledButton(page.content_x, y, page.content_w, button_h,
                                GetLocaleText("customize_nav_add"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &add_hover) &&
+                               ButtonStyleSecondary, 0, &add_hover) &&
            action == APP_NAV_CONFIG_ACTION_NONE {
             action = APP_NAV_CONFIG_ACTION_ADD
         }

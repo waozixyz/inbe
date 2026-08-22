@@ -45,7 +45,7 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     app->inbe.sectick = app->inbe.frame % 60
     app->inbe.r = (float)radius
     draw_session_progress_circle(app, center_x, center_y, (float)radius)
-    DrawCenteredUIControlText(text, center_x, center_y, UI_TEXT_16, text_color)
+    DrawCenteredUIControlText(text, center_x, center_y, Text16, text_color)
 
     app->inbe.phase = previous_phase
     cpcount(app->inbe.count, previous_count)
@@ -53,7 +53,7 @@ draw_tutorial_hold_preview :: (app: InbeApp*, center_x: int, center_y: int, radi
     app->inbe.r = previous_r
 }
 
-tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> UIParagraphSpec #private {
+tutorial_paragraph :: (app: InbeApp*, step: int, content_w: int) -> ParagraphSpec #private {
     has_icon := step == 1
     paragraph := manual_screen_tutorial_paragraph(
         GetLocaleText(tutorial_keys[step]), content_w)

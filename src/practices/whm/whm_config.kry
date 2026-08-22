@@ -73,11 +73,11 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
                    DarkenUIColor(GetThemeSurface(), 40))
 
     title = GetLocaleText("progressive_start_speed_editor_title")
-    title_w = MeasureUIText(title, title_font)
+    title_w = TextWidth(title, title_font)
     title_max_w = modal_w - close_w * 2 - ScaleUIPx(24)
-    while title_font > UI_TEXT_12 && title_w > title_max_w {
+    while title_font > Text12 && title_w > title_max_w {
         title_font--
-        title_w = MeasureUIText(title, title_font)
+        title_w = TextWidth(title, title_font)
     }
     Text(title, modal_x + (modal_w - title_w) / 2, title_y,
                   title_font, GetThemeText())
@@ -111,13 +111,13 @@ whm_draw_progressive_start_speed_editor :: (app: InbeApp*) #private {
 
 whm_draw_subtab_bar :: (y: int, h: int, tab_names: const char**,
                        tab_count: int, selected_tab: int) -> int #private {
-    tabs: [8] UISubtab = {0}
+    tabs: [8] Subtab = {0}
 
     if tab_count <= 0 || tab_count > 8 {
         return -1
     }
     for int i = 0; i < tab_count; i++ {
-        tabs[i] = (UISubtab){0}
+        tabs[i] = (Subtab){0}
         tabs[i].label = tab_names[i]
         tabs[i].disabled = 0
     }
@@ -207,7 +207,7 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
     y += ScaleUIPx(66)
 
     if app->inbe.progressive_speed {
-        modify_w := MeasureUIText(GetLocaleText("modify_start_speed_button"),
+        modify_w := TextWidth(GetLocaleText("modify_start_speed_button"),
                                   GetUIFontSize()) + ScaleUIPx(24)
         modify_hover := 0
 
@@ -222,9 +222,9 @@ whm_config_draw_breathing_tab :: (app: InbeApp*, content_x: int, content_w: int,
                 app->inbe.progressive_start_speed
             app->settings_dirty = 1
         }
-        if GenericButton(0, content_x, y, modify_w, ScaleUIPx(36),
+        if StyledButton(content_x, y, modify_w, ScaleUIPx(36),
                                GetLocaleText("modify_start_speed_button"),
-                               UI_BUTTON_STYLE_SECONDARY, 0, &modify_hover) {
+                               ButtonStyleSecondary, 0, &modify_hover) {
             app_open_modal(app, UIModalEditProgressiveStartSpeed)
         }
         y += ScaleUIPx(58)
@@ -244,7 +244,7 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     retention_marker_enabled := app->retention_marker_enabled
     toggle_w := ScaleUIPx(56)
     toggle_h := ScaleUIPx(30)
-    reset_w := MeasureUIText(GetLocaleText("reset_to_defaults_label"),
+    reset_w := TextWidth(GetLocaleText("reset_to_defaults_label"),
                              GetUIFontSize()) + ScaleUIPx(24)
     reset_h := ScaleUIPx(36)
     reset_hover := 0
@@ -313,9 +313,9 @@ whm_config_draw_session_tab :: (app: InbeApp*, content_x: int, content_w: int,
     if reset_w > content_w {
         reset_w = content_w
     }
-    if GenericButton(0, content_x + content_w - reset_w, y, reset_w, reset_h,
+    if StyledButton(content_x + content_w - reset_w, y, reset_w, reset_h,
                            GetLocaleText("reset_to_defaults_label"),
-                           UI_BUTTON_STYLE_SECONDARY, 0, &reset_hover) {
+                           ButtonStyleSecondary, 0, &reset_hover) {
         speed = DefaultSpeedLevel
         max_rounds = DefaultMaxRounds
         max_breaths = DefaultMaxBreaths

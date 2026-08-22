@@ -51,7 +51,7 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
         return 0
     }
 
-    link_h = GetUITextHeight(text, font) + ScaleUIPx(8)
+    link_h = TextHeight(text, font) + ScaleUIPx(8)
     if link_h < ScaleUIPx(28) {
         link_h = ScaleUIPx(28)
     }
@@ -67,7 +67,7 @@ draw_public_id_link :: (text: const char*, x: int, w: int, y: int*, font: int) -
 }
 
 draw_public_id_field :: (text: const char*, x: int, w: int, y: int*, font: int,
-                        style: UITextInputStyle) #private {
+                        style: TextInputStyle) #private {
     field_h: int
 
     if text == nil || y == nil {
@@ -285,7 +285,7 @@ save_prepared :: (app: InbeApp*, account: KsyncAccount*,
 
 draw_account_id :: (app: InbeApp*, account: const KsyncAccount*,
                    x: int, w: int, y: int*, small_font: int,
-                   style: UITextInputStyle) #private {
+                   style: TextInputStyle) #private {
     alias := storage_get_setting_text(sync_account_alias_key)
     display: [96] char
 
@@ -433,8 +433,8 @@ clear_remote_confirmed :: (app: InbeApp*) {
     settings_screen_set_status_success(GetLocaleText("sync_remote_data_cleared"), nil)
 }
 
-text_style :: () -> UITextInputStyle #private {
-    return (UITextInputStyle){
+text_style :: () -> TextInputStyle #private {
+    return (TextInputStyle){
         .background = DarkenUIColor(GetThemeBackground(), 4),
         .border = GetThemeButton(),
         .focus_border = GetThemeButtonHover(),
@@ -446,7 +446,7 @@ text_style :: () -> UITextInputStyle #private {
 }
 
 button_min_width :: (label: const char*) -> int #private {
-    return MeasureUIText(label != nil ? label : "", GetUISmallFontSize()) +
+    return TextWidth(label != nil ? label : "", GetUISmallFontSize()) +
            ScaleUIPx(20)
 }
 
@@ -506,7 +506,7 @@ draw_adaptive_button_row :: (row: ButtonRowProps, height_out: int*) -> int #priv
             button_x := row.x + i * (button_w + gap)
             draw_w := i == count - 1 ? row.x + row.width - button_x : button_w
 
-            if GenericButton(0, button_x, draw_y, draw_w, row.height,
+            if StyledButton(button_x, draw_y, draw_w, row.height,
                                    row.items[item_index].label,
                                    row.items[item_index].style,
                                    row.items[item_index].disabled,
@@ -566,8 +566,8 @@ config_content_height :: (content_w: int) -> int {
 
     if !has_account {
         buttons: [2] UIButtonRowItem = {
-            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_create_account_button"), ButtonStylePrimary, 0},
+            {GetLocaleText("sync_import_key_button"), ButtonStylePrimary, 0},
         }
 
         h += ScaleUIPx(12)
@@ -591,16 +591,16 @@ config_content_height :: (content_w: int) -> int {
     h += btn_h + ScaleUIPx(12)
 
     buttons_main: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonStyleSecondary, 0},
     }
     h += adaptive_button_row_height(buttons_main, 3, content_w, btn_h, gap)
     h += ScaleUIPx(12)
 
     buttons_danger: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0},
+        {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), ButtonStyleDanger, 0},
     }
     h += adaptive_button_row_height(buttons_danger, 2, content_w, btn_h, gap)
     h += ScaleUIPx(12)
@@ -622,9 +622,9 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(26)
 
     if !has_account {
-        if GenericButton(0, x, *y, w, btn_h,
+        if StyledButton(x, *y, w, btn_h,
                                GetLocaleText("sync_create_account_button"),
-                               UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                               ButtonStylePrimary, 0, &hover) {
             create_account(app, &account)
         }
         *y += btn_h + ScaleUIPx(18)
@@ -638,9 +638,9 @@ draw :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(4)
 
     buttons: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonStylePrimary, 0},
     }
     row_h := 0
     clicked := draw_adaptive_button_row((ButtonRowProps){
@@ -691,8 +691,8 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
 
     if !has_account {
         buttons: [2] UIButtonRowItem = {
-            {GetLocaleText("sync_create_account_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-            {GetLocaleText("sync_import_key_button"), UI_BUTTON_STYLE_PRIMARY, 0},
+            {GetLocaleText("sync_create_account_button"), ButtonStylePrimary, 0},
+            {GetLocaleText("sync_import_key_button"), ButtonStylePrimary, 0},
         }
         row_h := 0
         clicked: int
@@ -751,19 +751,19 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     }
     *y += btn_h + ScaleUIPx(12)
 
-    if GenericButton(0, x, *y, w, btn_h,
+    if StyledButton(x, *y, w, btn_h,
                            server_connected(app)
                                ? GetLocaleText("sync_connected_button")
                                : GetLocaleText("sync_connect_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                           ButtonStylePrimary, 0, &hover) {
         run_connect(app)
     }
     *y += btn_h + ScaleUIPx(12)
 
     buttons_main: [3] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_alias_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_backup_key_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_copy_id_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_alias_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_backup_key_button"), ButtonStyleSecondary, 0},
     }
     row_h_main := 0
     clicked_main := draw_adaptive_button_row((ButtonRowProps){
@@ -788,8 +788,8 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     *y += ScaleUIPx(12)
 
     buttons_danger: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_logout_button"), UI_BUTTON_STYLE_SECONDARY, 0},
-        {GetLocaleText("sync_clear_remote_data_button"), UI_BUTTON_STYLE_DANGER, 0},
+        {GetLocaleText("sync_logout_button"), ButtonStyleSecondary, 0},
+        {GetLocaleText("sync_clear_remote_data_button"), ButtonStyleDanger, 0},
     }
     row_h_danger := 0
     clicked_danger := draw_adaptive_button_row((ButtonRowProps){
@@ -825,12 +825,12 @@ draw_backup_modal :: (app: InbeApp*) -> int {
     y: int
     modal_h: int
     button_y: int
-    warning: UIParagraphSpec
+    warning: ParagraphSpec
 
     memset(&account, 0, sizeof(account))
     sync_account_load(&account)
 
-    warning = (UIParagraphSpec){
+    warning = (ParagraphSpec){
         .text = GetLocaleText("sync_backup_warning"),
         .width = ScaleUIPx(336) - ScaleUIPx(36),
     }
@@ -854,15 +854,15 @@ draw_backup_modal :: (app: InbeApp*) -> int {
     if button_y + btn_h * 2 + gap + pad_bottom > frame.y + frame.h {
         button_y = frame.y + frame.h - pad_bottom - btn_h * 2 - gap
     }
-    if GenericButton(0, frame.content_x, button_y, frame.content_w, btn_h,
+    if StyledButton(frame.content_x, button_y, frame.content_w, btn_h,
                            GetLocaleText("sync_save_key_file_button"),
-                           UI_BUTTON_STYLE_PRIMARY, 0, &hover) {
+                           ButtonStylePrimary, 0, &hover) {
         return start_sync_key_export(app, &account)
     }
-    if GenericButton(0, frame.content_x, button_y + btn_h + gap,
+    if StyledButton(frame.content_x, button_y + btn_h + gap,
                            frame.content_w, btn_h,
                            GetLocaleText("close_button"),
-                           UI_BUTTON_STYLE_SECONDARY, 0, &hover) {
+                           ButtonStyleSecondary, 0, &hover) {
         return 1
     }
 
@@ -908,7 +908,7 @@ draw_alias_modal :: (app: InbeApp*) -> int {
                   DarkenUIColor(GetThemeText(), 20))
     y += ScaleUIPx(40)
 
-    at_w = MeasureUIText("@", GetUIFontSize()) + ScaleUIPx(12)
+    at_w = TextWidth("@", GetUIFontSize()) + ScaleUIPx(12)
     Text("@", frame.content_x,
                   GetUIControlTextY("@", y, btn_h, GetUIFontSize()),
                   GetUIFontSize(), GetThemeText())
@@ -936,14 +936,14 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     buttons: [2] UIButtonRowItem = {
         {
             GetLocaleText(app->sync_alias_then_backup ? "skip_button" : "close_button"),
-            UI_BUTTON_STYLE_SECONDARY,
+            ButtonStyleSecondary,
             0,
         },
         {
             GetLocaleText(has_alias
                           ? "sync_alias_save_button"
                           : "sync_alias_register_button"),
-            UI_BUTTON_STYLE_PRIMARY,
+            ButtonStylePrimary,
             !alias_valid(app->sync_alias_input) || unchanged_alias,
         },
     }
@@ -1015,8 +1015,8 @@ draw_public_id_modal :: (app: InbeApp*) -> int {
     y += ScaleUIPx(18)
 
     buttons: [2] UIButtonRowItem = {
-        {GetLocaleText("sync_copy_id_button"), UI_BUTTON_STYLE_PRIMARY, 0},
-        {GetLocaleText("close_button"), UI_BUTTON_STYLE_SECONDARY, 0},
+        {GetLocaleText("sync_copy_id_button"), ButtonStylePrimary, 0},
+        {GetLocaleText("close_button"), ButtonStyleSecondary, 0},
     }
     clicked := draw_adaptive_button_row((ButtonRowProps){
         .x = frame.content_x,

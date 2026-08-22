@@ -411,19 +411,19 @@ practice_draw_home_title :: (app: InbeApp*, x: int, y: int, w: int) #private {
 
     practice_home_metadata(app, metadata, sizeof(metadata))
     title_font = GetUITitleFontSize(title, w)
-    title_w = MeasureUIText(title, title_font)
+    title_w = TextWidth(title, title_font)
     Text(title, x + (w - title_w) / 2,
                GetUIControlTextY(title, y, ScaleUIPx(34), title_font),
                title_font, GetThemeText())
     metadata_font = GetUIFontSize()
-    metadata_w = MeasureUIText(metadata, metadata_font)
+    metadata_w = TextWidth(metadata, metadata_font)
     Text(metadata, x + (w - metadata_w) / 2,
                GetUIControlTextY(metadata, y + ScaleUIPx(34),
                                  ScaleUIPx(18), metadata_font),
                metadata_font, DarkenUIColor(GetThemeText(), 22))
     if subtitle != NULL {
         subtitle_font := GetUIFontSize()
-        subtitle_w := MeasureUIText(subtitle, subtitle_font)
+        subtitle_w := TextWidth(subtitle, subtitle_font)
         Text(subtitle, x + (w - subtitle_w) / 2,
                    GetUIControlTextY(subtitle, y + ScaleUIPx(56),
                                      ScaleUIPx(18), subtitle_font),
@@ -435,8 +435,8 @@ practice_home_action_row_widths :: (content_w: int, manual_w: int*, config_w: in
     font := GetUISmallFontSize()
     pad := ScaleUIPx(8)
     gap := practice_home_action_gap(content_w)
-    manual_min := MeasureUIText(GetLocaleText("practice_manual_button"), font) + pad * 2
-    config_min := MeasureUIText(GetLocaleText("practice_configure_button"), font) + pad * 2
+    manual_min := TextWidth(GetLocaleText("practice_manual_button"), font) + pad * 2
+    config_min := TextWidth(GetLocaleText("practice_configure_button"), font) + pad * 2
     half_w := 0
     available_w := 0
 
@@ -542,7 +542,7 @@ practice_screen_open_tab :: (app: InbeApp*, tab: int) {
 }
 
 practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private {
-    tabs := (UITab[EXERCISE_COUNT]){0}
+    tabs := (Tab[EXERCISE_COUNT]){0}
     values := (int[EXERCISE_COUNT]){0}
     tab_count := 0
     selected_index := 0
@@ -557,7 +557,7 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
             selected_index = tab_count
         }
         values[tab_count] = id
-        tabs[tab_count] = (UITab){.label = practice_activity_label(id), .icon = (Texture2D){0}, .icon_size = 0, .disabled = app->modal.active}
+        tabs[tab_count] = (Tab){.label = practice_activity_label(id), .icon = (Texture2D){0}, .icon_size = 0, .disabled = app->modal.active}
         tab_count++
     }
     if tab_count <= 0 {
@@ -848,7 +848,7 @@ page start(app: InbeApp*) {
         .bounds = app->practice_home_bounds_start,
         .label = GetLocaleText("practice_start_button"),
         .font = GetUIFontSize(),
-        .style = UI_BUTTON_STYLE_PRIMARY,
+        .style = ButtonStylePrimary,
     }) {
         if practice->start != NULL {
             practice->start(app)
@@ -865,7 +865,7 @@ page start(app: InbeApp*) {
             .bounds = app->practice_home_bounds_manual,
             .label = GetLocaleText("practice_manual_button"),
             .font = GetUIFontSize(),
-            .style = UI_BUTTON_STYLE_SECONDARY,
+            .style = ButtonStyleSecondary,
         }) {
             practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
         }
@@ -876,7 +876,7 @@ page start(app: InbeApp*) {
             .bounds = app->practice_home_bounds_config,
             .label = GetLocaleText("practice_configure_button"),
             .font = GetUIFontSize(),
-            .style = UI_BUTTON_STYLE_SECONDARY,
+            .style = ButtonStyleSecondary,
         }) {
             practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
         }
@@ -889,7 +889,7 @@ page start(app: InbeApp*) {
                 .bounds = app->practice_home_bounds_manual,
                 .label = GetLocaleText("practice_manual_button"),
                 .font = GetUIFontSize(),
-                .style = UI_BUTTON_STYLE_SECONDARY,
+                .style = ButtonStyleSecondary,
             }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_MANUAL)
             }
@@ -902,7 +902,7 @@ page start(app: InbeApp*) {
                 .bounds = app->practice_home_bounds_config,
                 .label = GetLocaleText("practice_configure_button"),
                 .font = GetUIFontSize(),
-                .style = UI_BUTTON_STYLE_SECONDARY,
+                .style = ButtonStyleSecondary,
             }) {
                 practice_screen_open_tab(app, PRACTICE_TAB_CONFIG)
             }

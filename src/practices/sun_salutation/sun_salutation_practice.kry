@@ -193,7 +193,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
     }
     thumb_h = thumb_w
 
-    label_w = MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_label"),
+    label_w = TextWidth(GetLocaleText("sun_salutation_tempo_preview_label"),
                             label_font)
     Text(GetLocaleText("sun_salutation_tempo_preview_label"),
                   x + (w - label_w) / 2,
@@ -248,7 +248,7 @@ draw_preview :: (app: InbeApp*, x: int, y: int, w: int) #private {
     }
 
     row_y = y + thumb_h * 2 + ScaleUIPx(26)
-    if MeasureUIText(GetLocaleText("sun_salutation_tempo_preview_hint"),
+    if TextWidth(GetLocaleText("sun_salutation_tempo_preview_hint"),
                      small_font) <= w {
         Text(GetLocaleText("sun_salutation_tempo_preview_hint"),
                       x,
@@ -274,7 +274,7 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
         return 0
     }
 
-    label_w = MeasureUIText(GetLocaleText("sun_salutation_figure_label"),
+    label_w = TextWidth(GetLocaleText("sun_salutation_figure_label"),
                             label_font)
     Text(GetLocaleText("sun_salutation_figure_label"),
                   x + (w - label_w) / 2,
@@ -314,7 +314,7 @@ draw_figure_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private 
         } else {
             label = GetLocaleText("sun_salutation_figure_woman")
         }
-        text_w = MeasureUIText(label, small_font)
+        text_w = TextWidth(label, small_font)
 
         DrawRectangleRec(bounds, bg)
         DrawRectangleLinesEx(bounds, selected ? 2.0f : 1.0f, border)

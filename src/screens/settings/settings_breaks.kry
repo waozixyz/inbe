@@ -34,7 +34,7 @@ settings_breaks_content_height :: (app: InbeApp*, content_w: int) -> int {
     }
     for int t = 0; t < 3; t++ {
         header := GetLocaleText(timer_keys[t])
-        height += ScaleUIPx(44) + UIGetNodeHeight(UINodeParagraph((UIParagraphSpec){.text = header, .width = label_w}, 0, 0))
+        height += ScaleUIPx(44) + UIGetNodeHeight(UINodeParagraph((ParagraphSpec){.text = header, .width = label_w}, 0, 0))
         height += settings_breaks_timer_row_h(GetLocaleText("settings_breaks_timer_enabled"), label_w)
         height += settings_breaks_slider_h()
         height += settings_breaks_slider_h()
@@ -78,8 +78,8 @@ settings_breaks_draw_status :: (app: InbeApp*, x: int, w: int, y: int*) #private
         } else {
             break_format_duration(line, sizeof(line), next)
         }
-        Text(names[t], x, *y, UI_TEXT_12, muted)
-        Text(line, bar_x - ScaleUIPx(8) - MeasureUIText(line, UI_TEXT_12), *y, UI_TEXT_12, GetThemeText())
+        Text(names[t], x, *y, Text12, muted)
+        Text(line, bar_x - ScaleUIPx(8) - TextWidth(line, Text12), *y, Text12, GetThemeText())
 
         track := DarkenUIColor(GetThemeBackground(), 26)
         border := DarkenUIColor(GetThemeText(), 60)
@@ -197,7 +197,7 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
     *y += ScaleUIPx(30)
     if count <= 0 {
         muted := DarkenUIColor(GetThemeText(), 40)
-        Text(GetLocaleText("settings_breaks_no_data"), x, *y, UI_TEXT_12, muted)
+        Text(GetLocaleText("settings_breaks_no_data"), x, *y, Text12, muted)
         *y += ScaleUIPx(24)
         return
     }
@@ -221,7 +221,7 @@ settings_breaks_draw_week :: (app: InbeApp*, x: int, w: int, y: int*) #private {
         name := t == BREAK_REST ? GetLocaleText("break_rest_title") : t == BREAK_DAILY ? GetLocaleText("break_daily_title") : GetLocaleText("break_micro_title")
         snprintf(line, sizeof(line), "%s  %d / %d / %d",
                  name, taken[t], skipped[t], postponed[t])
-        Text(line, x, *y, UI_TEXT_12, muted)
+        Text(line, x, *y, Text12, muted)
         *y += ScaleUIPx(20)
     }
     *y += ScaleUIPx(12)

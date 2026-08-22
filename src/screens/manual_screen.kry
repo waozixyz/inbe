@@ -43,8 +43,8 @@ manual_screen_tutorial_max_width :: () -> int {
     return ScaleUIPx(480)
 }
 
-manual_screen_tutorial_paragraph :: (text: const char*, content_w: int) -> UIParagraphSpec {
-    return (UIParagraphSpec){.text = text, .width = content_w, .font = manual_screen_tutorial_body_font(), .line_gap = manual_screen_tutorial_line_gap()}
+manual_screen_tutorial_paragraph :: (text: const char*, content_w: int) -> ParagraphSpec {
+    return (ParagraphSpec){.text = text, .width = content_w, .font = manual_screen_tutorial_body_font(), .line_gap = manual_screen_tutorial_line_gap()}
 }
 
 manual_screen_guide_update_page :: (app: InbeApp*, page_count: int, start: ManualGuideStartFn, close: ManualGuideCloseFn) -> int {
@@ -93,7 +93,7 @@ manual_screen_guide_draw_nav :: (app: InbeApp*, nav: ManualGuideNav) {
     button_pad := ScaleUIPx(7)
     side_pad := ScaleUIPx(10)
     button_y := nav.y + (nav.h - button_size) / 2
-    page_font := UI_TEXT_16
+    page_font := Text16
     page_label: [32] char = {0}
 
     if nav.h <= 0 {

@@ -36,7 +36,6 @@
 				<a href="#features">Features</a>
 				<a href="#safety">Safety</a>
 				<a class="is-external" href="https://waozi.xyz">Waozi ↗</a>
-				<a class="btn btn-primary" href="/build/web/index.html">Run Web</a>
 			</nav>
 		</div>
 	</header>
@@ -50,51 +49,177 @@
 					<p class="hero-sub">calm breathing, meditation sessions, habit tracking, themes, and local-first progress history</p>
 					<p class="version">${version}</p>
 					<div class="hero-cta">
-						<a class="btn btn-primary" href="/build/web/index.html">Run Web</a>
+						<a class="btn btn-primary" href="#downloads">Download</a>
 						<a class="btn" href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">View source</a>
 					</div>
 				</div>
-				<div class="hero-panel" id="downloads">
+				<div class="hero-panel">
 					<div class="hero-panel-bar">
 						<span class="tl"></span><span class="tl"></span><span class="tl"></span>
-						<span class="title">downloads</span>
+						<span class="title">quick start</span>
 					</div>
 					<div class="hero-panel-body">
-						<nav aria-label="Platform downloads" class="platform-buttons">
-							<a href="/build/web/index.html" class="platform-btn web">
+						<div class="quick-start-panel">
+							<div>
+								<h2>Start a session now.</h2>
+								<p>Run Inner Breeze in the browser, install from a store, or jump to every package format below.</p>
+							</div>
+						</div>
+						<nav aria-label="Quick download options" class="quick-start-actions">
+							<a class="quick-store-link is-primary" href="/build/web/index.html">
 								<img src="/web-assets/icons/wasm.png" alt="">
 								<span>Run Web</span>
 							</a>
-							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" class="platform-btn android" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/droid.png" alt="">
-								<span>Android</span>
-							</a>
-							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" class="platform-btn windows" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/win.png" alt="">
-								<span>Windows</span>
-							</a>
-							<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" class="platform-btn linux" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/tux.png" alt="">
-								<span>Linux</span>
-							</a>
-							<a href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" class="platform-btn android" target="_blank" rel="noopener">
+							<a class="quick-store-link" href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" target="_blank" rel="noopener">
 								<img src="/web-assets/icons/playstore.png" alt="">
 								<span>Play Store</span>
 							</a>
-							<a href="https://chromewebstore.google.com/detail/inner-breeze/lballhghblaenelehneigekpofgcaifa?pli=1" class="platform-btn web" target="_blank" rel="noopener">
-								<img src="/web-assets/icons/chromewebstore.png" alt="">
-								<span>Chrome Web Store</span>
-							</a>
-							<a href="https://f-droid.org/packages/xyz.waozi.inbe/" class="platform-btn android" target="_blank" rel="noopener">
+							<a class="quick-store-link" href="https://f-droid.org/packages/xyz.waozi.inbe/" target="_blank" rel="noopener">
 								<img src="/web-assets/icons/fdroid.png" alt="">
 								<span>F-Droid</span>
 							</a>
-							<a href="https://waozi.itch.io/inbe" class="platform-btn web" target="_blank" rel="noopener">
+							<a class="quick-store-link" href="https://chromewebstore.google.com/detail/inner-breeze/lballhghblaenelehneigekpofgcaifa?pli=1" target="_blank" rel="noopener">
+								<img src="/web-assets/icons/chromewebstore.png" alt="">
+								<span>Chrome Web Store</span>
+							</a>
+							<a class="quick-store-link" href="https://waozi.itch.io/inbe" target="_blank" rel="noopener">
 								<img src="/web-assets/icons/itch.png" alt="">
 								<span>itch.io</span>
 							</a>
+							<a class="quick-store-link" href="#downloads">
+								<img src="/web-assets/icons/download.png" alt="">
+								<span>All downloads</span>
+							</a>
 						</nav>
 					</div>
+				</div>
+			</section>
+
+			<section class="downloads-section" id="downloads" aria-labelledby="downloads-title">
+				<div class="downloads-heading">
+					<p class="section-eyebrow">Download</p>
+					<h2 id="downloads-title">Choose your Inner Breeze build.</h2>
+					<p>Version ${version}. Pick the package for your system. Source code and release notes are on <a href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">GitHub</a>.</p>
+				</div>
+				<div class="downloads-board">
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/wasm.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Web</h3>
+							<p>Launch in the browser, or download the web bundle.</p>
+							<nav aria-label="Web downloads" class="download-pills">
+								<a class="is-primary" href="/build/web/index.html">Hosted app</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-web.zip" target="_blank" rel="noopener">Web bundle</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-chrome-web-store.zip" target="_blank" rel="noopener">Chrome package</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-firefox-addons.zip" target="_blank" rel="noopener">Firefox Add-on</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/droid.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Android</h3>
+							<p>Direct Android release files.</p>
+							<nav aria-label="Android downloads" class="download-pills">
+								<a class="is-primary" href="https://play.google.com/store/apps/details?id=xyz.waozi.inbe" target="_blank" rel="noopener">Play Store</a>
+								<a href="https://f-droid.org/packages/xyz.waozi.inbe/" target="_blank" rel="noopener">F-Droid</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.apk" target="_blank" rel="noopener">APK</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}.aab" target="_blank" rel="noopener">AAB</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/win.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Windows</h3>
+							<p>Installer and portable desktop build.</p>
+							<nav aria-label="Windows downloads" class="download-pills">
+								<a class="is-primary" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows-setup-${version}.exe" target="_blank" rel="noopener">.exe x64</a>
+								<a href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-windows.zip" target="_blank" rel="noopener">.zip x64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/debian.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Debian / Ubuntu</h3>
+							<p>Native Debian packages by CPU architecture.</p>
+							<nav aria-label="Debian and Ubuntu downloads" class="download-pills">
+								<a class="is-primary" data-release-asset="inbe_${version}_amd64.deb" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_amd64.deb" target="_blank" rel="noopener">.deb amd64</a>
+								<a hidden data-release-asset="inbe_${version}_arm64.deb" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_arm64.deb" target="_blank" rel="noopener">.deb arm64</a>
+								<a hidden data-release-asset="inbe_${version}_riscv64.deb" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_riscv64.deb" target="_blank" rel="noopener">.deb riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/fedora.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Fedora / Red Hat</h3>
+							<p>RPM packages by CPU architecture.</p>
+							<nav aria-label="Fedora and Red Hat downloads" class="download-pills">
+								<a class="is-primary" data-release-asset="inbe-${version}-1.x86_64.rpm" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-1.x86_64.rpm" target="_blank" rel="noopener">.rpm x86_64</a>
+								<a hidden data-release-asset="inbe-${version}-1.aarch64.rpm" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-1.aarch64.rpm" target="_blank" rel="noopener">.rpm aarch64</a>
+								<a hidden data-release-asset="inbe-${version}-1.riscv64.rpm" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-1.riscv64.rpm" target="_blank" rel="noopener">.rpm riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/tux.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Flatpak / Snap / AppImage</h3>
+							<p>Portable Linux package formats by architecture.</p>
+							<nav aria-label="Portable Linux downloads" class="download-pills">
+								<a hidden data-release-asset="inbe-linux-x86_64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" target="_blank" rel="noopener">AppImage x86_64</a>
+								<a hidden data-release-asset="inbe-linux-aarch64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-aarch64.AppImage" target="_blank" rel="noopener">AppImage aarch64</a>
+								<a hidden data-release-asset="inbe-linux-riscv64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-riscv64.AppImage" target="_blank" rel="noopener">AppImage riscv64</a>
+								<a class="is-primary" data-release-asset="inbe-${version}-x86_64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-x86_64.flatpak" target="_blank" rel="noopener">Flatpak x86_64</a>
+								<a hidden data-release-asset="inbe-${version}-aarch64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-aarch64.flatpak" target="_blank" rel="noopener">Flatpak aarch64</a>
+								<a hidden data-release-asset="inbe-${version}-riscv64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-riscv64.flatpak" target="_blank" rel="noopener">Flatpak riscv64</a>
+								<a data-release-asset="inbe_${version}_x86_64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_x86_64.snap" target="_blank" rel="noopener">Snap x86_64</a>
+								<a hidden data-release-asset="inbe_${version}_arm64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_arm64.snap" target="_blank" rel="noopener">Snap arm64</a>
+								<a hidden data-release-asset="inbe_${version}_riscv64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_riscv64.snap" target="_blank" rel="noopener">Snap riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/freebsd.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>FreeBSD</h3>
+							<p>Native FreeBSD packages by CPU architecture.</p>
+							<nav aria-label="FreeBSD downloads" class="download-pills">
+								<a class="is-primary" data-release-asset="inbe-${version}-freebsd-x86_64.pkg" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-freebsd-x86_64.pkg" target="_blank" rel="noopener">.pkg x86_64</a>
+								<a hidden data-release-asset="inbe-${version}-freebsd-arm64.pkg" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-freebsd-arm64.pkg" target="_blank" rel="noopener">.pkg arm64</a>
+								<a hidden data-release-asset="inbe-${version}-freebsd-riscv64.pkg" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-freebsd-riscv64.pkg" target="_blank" rel="noopener">.pkg riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/github.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Source</h3>
+							<p>Code, release notes, and every release asset.</p>
+							<nav aria-label="Source links" class="download-pills">
+								<a class="is-primary" href="https://github.com/waozixyz/inbe" target="_blank" rel="noopener">Repository</a>
+								<a href="https://github.com/waozixyz/inbe/releases/tag/v${version}" target="_blank" rel="noopener">Release ${version}</a>
+							</nav>
+						</div>
+					</article>
 				</div>
 			</section>
 
@@ -151,5 +276,29 @@
 		</main>
 		<footer><p>&copy; 2026 <a href="https://waozi.xyz">Waozi</a> | <a href="/privacy.html">Privacy Policy</a></p></footer>
 	</div>
+	<script>
+		(function() {
+			var releaseLinks = Array.prototype.slice.call(document.querySelectorAll("[data-release-asset]"));
+			if (!releaseLinks.length || !window.fetch) return;
+			fetch("https://api.github.com/repos/waozixyz/inbe/releases/tags/v${version}", { headers: { "Accept": "application/vnd.github+json" } })
+				.then(function(response) {
+					if (!response.ok) throw new Error("release lookup failed");
+					return response.json();
+				})
+				.then(function(release) {
+					var assets = {};
+					(release.assets || []).forEach(function(asset) {
+						assets[asset.name] = asset.browser_download_url;
+					});
+					releaseLinks.forEach(function(link) {
+						var assetName = link.getAttribute("data-release-asset");
+						var url = assets[assetName];
+						link.hidden = !url;
+						if (url) link.href = url;
+					});
+				})
+				.catch(function() {});
+		})();
+	</script>
 </body>
 </html>
