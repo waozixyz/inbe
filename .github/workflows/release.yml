@@ -1059,8 +1059,8 @@ jobs:
           token_response="$(cat "$token_response_file")"
           rm -f "$token_response_file"
           if [ "$token_status" -lt 200 ] || [ "$token_status" -ge 300 ]; then
-            echo "::warning::Chrome Web Store token request failed with HTTP $token_status: $token_response"
-            exit 0
+            echo "::error::Chrome Web Store token request failed with HTTP $token_status: $token_response"
+            exit 1
           fi
 
           access_token="$(python3 -c 'import json, sys; print(json.load(sys.stdin)["access_token"])' <<< "$token_response")"
@@ -1077,8 +1077,8 @@ jobs:
           upload_response="$(cat "$upload_response_file")"
           rm -f "$upload_response_file"
           if [ "$upload_status" -lt 200 ] || [ "$upload_status" -ge 300 ]; then
-            echo "::warning::Chrome Web Store upload failed with HTTP $upload_status: $upload_response"
-            exit 0
+            echo "::error::Chrome Web Store upload failed with HTTP $upload_status: $upload_response"
+            exit 1
           fi
 
           python3 - "$upload_response" <<'PY'
@@ -1088,8 +1088,8 @@ jobs:
           response = json.loads(sys.argv[1])
           if response.get("uploadState") != "SUCCESS":
               print(json.dumps(response, indent=2), file=sys.stderr)
-              print("::warning::Chrome Web Store upload was not accepted")
-              raise SystemExit(0)
+              print("::error::Chrome Web Store upload was not accepted")
+              raise SystemExit(1)
           PY
 
           publish_response_file="$(mktemp)"
@@ -1103,8 +1103,8 @@ jobs:
           publish_response="$(cat "$publish_response_file")"
           rm -f "$publish_response_file"
           if [ "$publish_status" -lt 200 ] || [ "$publish_status" -ge 300 ]; then
-            echo "::warning::Chrome Web Store publish failed with HTTP $publish_status: $publish_response"
-            exit 0
+            echo "::error::Chrome Web Store publish failed with HTTP $publish_status: $publish_response"
+            exit 1
           fi
 
           python3 - "$publish_response" <<'PY'
@@ -1114,8 +1114,8 @@ jobs:
           response = json.loads(sys.argv[1])
           if "OK" not in response.get("status", []):
               print(json.dumps(response, indent=2), file=sys.stderr)
-              print("::warning::Chrome Web Store publish was not accepted")
-              raise SystemExit(0)
+              print("::error::Chrome Web Store publish was not accepted")
+              raise SystemExit(1)
           PY
 
   publish-firefox-addons:
