@@ -1,4 +1,11 @@
 # Changelog
+## [1.9.9] - 2026-08-22
+### Fixed
+- The practice screen now always shows all four practices: Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
+- Android installs now fail with clear device, ABI and signing diagnostics instead of stalling or choosing the wrong target silently.
+- Pattern Breathing now plays the inhale and exhale cues in the correct direction.
+- Pattern Breathing keeps the phase text readable against bright breathing circles and shows the cycle and session timer at the top of the session screen.
+
 ## [1.9.8] - 2026-08-21
 ### Added
 - Desktop break reminders now include a Habits action beside the practice launch buttons, so habits can be managed directly from a break window.

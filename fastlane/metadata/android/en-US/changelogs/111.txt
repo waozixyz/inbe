@@ -1,0 +1,6 @@
+Fixed
+---
+- The practice screen now always shows all four practices: Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
+- Android installs now fail with clear device, ABI and signing diagnostics instead of stalling or choosing the wrong target silently.
+- Pattern Breathing now plays the inhale and exhale cues in the correct direction.
+- Pattern Breathing keeps the phase text readable against bright breathing circles and shows the cycle and session timer at the top of the session screen.

@@ -30,52 +30,6 @@ PracticeManualLayout :: struct {
 
 PracticeLeaveConfigFn :: void (*)(InbeApp*) #type
 
-practice_visible_mask_all :: () -> int {
-    return (1 << EXERCISE_COUNT) - 1
-}
-
-practice_sanitize_visible_mask :: (mask_arg: int) -> int #private {
-    mask := mask_arg & practice_visible_mask_all()
-    return mask != 0 ? mask : practice_visible_mask_all()
-}
-
-practice_is_visible :: (app: const InbeApp*, exercise: int) -> int {
-    mask := 0
-
-    if exercise < 0 || exercise >= EXERCISE_COUNT {
-        return 0
-    }
-    mask = practice_sanitize_visible_mask(app != NULL ? app->practice_visible_mask : 0)
-    return (mask & (1 << exercise)) != 0
-}
-
-practice_first_visible :: (app: const InbeApp*) -> int #private {
-    for int i = 0; i < EXERCISE_COUNT; i++ {
-        id := practice_ordered_id(i)
-        if practice_is_visible(app, id) {
-            return id
-        }
-    }
-    return EXERCISE_WIM_HOF
-}
-
-practice_set_visible :: (app: InbeApp*, exercise: int, visible: int) {
-    mask := 0
-
-    if app == NULL || exercise < 0 || exercise >= EXERCISE_COUNT {
-        return
-    }
-    mask = practice_sanitize_visible_mask(app->practice_visible_mask)
-    if visible {
-        mask = mask | (1 << exercise)
-    } else if (mask & ~(1 << exercise)) != 0 {
-        mask = mask & ~(1 << exercise)
-    }
-    app->practice_visible_mask = practice_sanitize_visible_mask(mask)
-    practice_clamp_activity_to_tab(app)
-    save_settings(app)
-}
-
 practice_activity_count_for_tab :: (tab: int) -> int {
     unused tab
     return practice_count()
@@ -210,66 +164,44 @@ practice_draw_card_banner :: (asset_path: const char*, dest: Rectangle) {
     })
 }
 
-practice_next_visible :: (app: InbeApp*, dir: int) -> int {
+practice_next_ordered :: (app: InbeApp*, dir: int) -> int {
     if app == NULL {
         return EXERCISE_WIM_HOF
     }
     current := practice_clamp_id(app->exercise_type)
-    current_order := practice_visible_index(app, current)
-    visible_total := practice_visible_count(app)
+    current_order := practice_ordered_index(app, current)
+    total := practice_count()
 
-    if visible_total <= 0 {
+    if total <= 0 {
         return current
     }
-    for int step = 1; step <= visible_total; step++ {
-        visible_index := (current_order + dir * step + visible_total * 2) % visible_total
-        visible_seen := 0
-        for int i = 0; i < EXERCISE_COUNT; i++ {
-            id := practice_ordered_id(i)
-            if !practice_is_visible(app, id) {
-                continue
-            }
-            if visible_seen == visible_index {
-                return id
-            }
-            visible_seen++
-        }
-    }
+    next_index := (current_order + dir + total * 2) % total
+    return practice_ordered_id(next_index)
     return current
 }
 
-practice_visible_count :: (app: const InbeApp*) -> int {
-    count := 0
-    for int i = 0; i < EXERCISE_COUNT; i++ {
-        id := practice_ordered_id(i)
-        if practice_is_visible(app, id) {
-            count++
-        }
-    }
-    return count
+practice_home_count :: (app: const InbeApp*) -> int {
+    unused app
+    return practice_count()
 }
 
-practice_visible_index :: (app: const InbeApp*, exercise: int) -> int {
-    index := 0
-    for int i = 0; i < EXERCISE_COUNT; i++ {
+practice_ordered_index :: (app: const InbeApp*, exercise: int) -> int {
+    unused app
+    for int i = 0; i < practice_count(); i++ {
         id := practice_ordered_id(i)
-        if !practice_is_visible(app, id) {
-            continue
-        }
         if id == exercise {
-            return index
+            return i
         }
-        index++
     }
     return 0
 }
 
 practice_home_dots_height :: (app: const InbeApp*) -> int #private {
-    return practice_visible_count(app) > 1 ? ScaleUIPx(28) : 0
+    return practice_home_count(app) > 1 ? ScaleUIPx(28) : 0
 }
 
 practice_home_carousel_controls_height :: (app: const InbeApp*) -> int #private {
-    return practice_visible_count(app) > 1 ? ScaleUIPx(52) : 0
+    return practice_home_count(app) > 1 ? ScaleUIPx(52) : 0
 }
 
 practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
@@ -294,7 +226,7 @@ practice_select_home_card :: (app: InbeApp*, exercise: int) #private {
 }
 
 practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
-    count := practice_visible_count(app)
+    count := practice_home_count(app)
     active_index := 0
     radius := ScaleUIPx(4)
     active_radius := ScaleUIPx(5)
@@ -310,17 +242,14 @@ practice_draw_home_dots :: (app: InbeApp*, x: int, y: int, w: int) #private {
         return
     }
 
-    active_index = practice_visible_index(app, app->exercise_type)
+    active_index = practice_ordered_index(app, app->exercise_type)
     total_w = count * hit + (count - 1) * gap
     start_x = x + (w - total_w) / 2 + hit / 2
     center_y = y + ScaleUIPx(14)
     mouse_world = GetScreenToWorld2D(GetMousePosition(), app->camera)
 
-    for int i = 0; i < EXERCISE_COUNT; i++ {
+    for int i = 0; i < practice_count(); i++ {
         id := practice_ordered_id(i)
-        if !practice_is_visible(app, id) {
-            continue
-        }
         center_x := start_x + dot_index * (hit + gap)
         current_radius := dot_index == active_index ? active_radius : radius
         hit_bounds := (Rectangle){(float)(center_x - hit / 2), (float)(center_y - hit / 2), (float)hit, (float)hit}
@@ -363,11 +292,11 @@ practice_draw_home_carousel_controls :: (app: InbeApp*, x: int, y: int, w: int) 
         dots_w = w
     }
     if IconButton((IconButtonProps){.bounds = {(float)x, (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_LEFT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
-        practice_select_home_card(app, practice_next_visible(app, -1))
+        practice_select_home_card(app, practice_next_ordered(app, -1))
     }
     practice_draw_home_dots(app, dots_x, y + (row_h - practice_home_dots_height(app)) / 2, dots_w)
     if IconButton((IconButtonProps){.bounds = {(float)(x + w - arrow), (float)arrow_y, (float)arrow, (float)arrow}, .icon = app->icons[UI_ICON_TYPE_RIGHT], .icon_size = arrow - ScaleUIPx(18), .icon_padding = ScaleUIPx(9), .background = arrow_bg, .hover_background = arrow_hover, .border = arrow_border, .icon_color = arrow_icon, .radius = 0.22f}) {
-        practice_select_home_card(app, practice_next_visible(app, 1))
+        practice_select_home_card(app, practice_next_ordered(app, 1))
     }
 }
 
@@ -562,11 +491,7 @@ practice_clamp_activity_to_tab :: (app: InbeApp*) {
     if app == NULL {
         return
     }
-    app->practice_visible_mask = practice_sanitize_visible_mask(app->practice_visible_mask)
     app->exercise_type = practice_clamp_id(app->exercise_type)
-    if !practice_is_visible(app, app->exercise_type) {
-        app->exercise_type = practice_first_visible(app)
-    }
 }
 
 practice_screen_open_tab :: (app: InbeApp*, tab: int) {
@@ -626,11 +551,8 @@ practice_screen_draw_desktop_tab_bar :: (app: InbeApp*, y: int) -> int #private 
     if app == NULL {
         return -1
     }
-    for int i = 0; i < EXERCISE_COUNT; i++ {
+    for int i = 0; i < practice_count(); i++ {
         id := practice_ordered_id(i)
-        if !practice_is_visible(app, id) {
-            continue
-        }
         if id == app->exercise_type {
             selected_index = tab_count
         }
@@ -656,11 +578,8 @@ practice_screen_draw_top_bar :: (app: InbeApp*, draw_menu: int) {
         return
     }
     practice_clamp_activity_to_tab(app)
-    for int i = 0; i < EXERCISE_COUNT; i++ {
+    for int i = 0; i < practice_count(); i++ {
         id := practice_ordered_id(i)
-        if !practice_is_visible(app, id) {
-            continue
-        }
         if id == app->exercise_type {
             activity_index = activity_count
         }
@@ -914,7 +833,7 @@ page start(app: InbeApp*) {
                                     Fade(GetThemeText(), 0.22f))
     }
 
-    carousel_count = practice_visible_count(app)
+    carousel_count = practice_home_count(app)
     y += card_h
     y += practice_card_banner_bottom_padding()
     if carousel_count > 1 {

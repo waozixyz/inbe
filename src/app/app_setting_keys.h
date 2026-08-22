@@ -55,7 +55,6 @@
     X("patterns_custom_exhale") \
     X("patterns_custom_hold_out") \
     X("patterns_duration_minutes") \
-    X("practice_visible_mask") \
     X("breaks_enabled") \
     X("desktop_startup_mode") \
     X("desktop_close_action") \

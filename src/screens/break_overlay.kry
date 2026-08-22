@@ -57,11 +57,9 @@ break_overlay_practice_chips :: (app: InbeApp*, view_w: int, view_h: int,
     widths: [BREAK_OVERLAY_CHIP_MAX] int = {0, 0, 0, 0, 0}
     count := 0
     for int i = 0; i < practice_count() && count < BREAK_OVERLAY_CHIP_MAX - 1; i++ {
-        if !pscr.practice_is_visible(app, i) {
-            continue
-        }
-        ids[count] = i
-        widths[count] = MeasureUIText(pscr.practice_label(i), UI_TEXT_12) +
+        id := practice_ordered_id(i)
+        ids[count] = id
+        widths[count] = MeasureUIText(pscr.practice_label(id), UI_TEXT_12) +
                         ScaleUIPx(24)
         count++
     }

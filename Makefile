@@ -1479,18 +1479,14 @@ android-copy-bundle: | $(ANDROID_BUILD_DIR)
 	fi
 
 android-install: android-debug
-	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	APK=droid/app/build/outputs/apk/debug/app-$${ABI}-debug.apk; \
-	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/debug/app-debug.apk; fi; \
-	$(ADB) install -r "$$APK"; \
-	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+	ADB='$(ADB)' sh scripts/android-install-apk.sh \
+		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
+		droid/app/build/outputs/apk/debug debug
 
 android-install-release: android-release
-	@ABI=$$($(ADB) shell getprop ro.product.cpu.abi | tr -d '\r'); \
-	APK=droid/app/build/outputs/apk/release/app-$${ABI}-release.apk; \
-	if [ ! -f "$$APK" ]; then APK=droid/app/build/outputs/apk/release/app-release.apk; fi; \
-	$(ADB) install -r "$$APK"; \
-	$(ADB) shell am start -n $(ANDROID_APP_ID)/$(ANDROID_ACTIVITY)
+	ADB='$(ADB)' sh scripts/android-install-apk.sh \
+		"$(ANDROID_APP_ID)" "$(ANDROID_ACTIVITY)" \
+		droid/app/build/outputs/apk/release release
 
 android-avd:
 	@if [ "$(UNAME_S)" = "FreeBSD" ]; then \

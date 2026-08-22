@@ -241,9 +241,9 @@ advance_second :: (app: InbeApp*) #private {
             }
         }
         if app->patterns.phase == PATTERNS_PHASE_EXHALE {
-            app_play_breath_cue(app, 0)
-        } else if app->patterns.phase == PATTERNS_PHASE_INHALE {
             app_play_breath_cue(app, 1)
+        } else if app->patterns.phase == PATTERNS_PHASE_INHALE {
+            app_play_breath_cue(app, 0)
         }
     }
     if app->patterns.duration_minutes > 0 &&
@@ -436,6 +436,8 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     time_text: [32] char
     hover := 0
     title_h := UIGetNodeHeight(UINodeTabBar((TabBarProps){0}))
+    circle_text := pattern_text_color_for_background(GetThemeCircle())
+    top_y := 0
 
     if app == nil {
         return
@@ -468,7 +470,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     label := GetLocaleText(phase_label_key(app->patterns.phase))
     label_w := MeasureUIText(label, UI_TEXT_16)
     Text(label, center_x - label_w / 2,
-                  center_y - ScaleUIPx(16), UI_TEXT_16, GetThemeText())
+                  center_y - ScaleUIPx(16), UI_TEXT_16, circle_text)
 
     left := ratio[app->patterns.phase] - app->patterns.phase_second
     if left < 1 {
@@ -477,12 +479,13 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     snprintf(time_text, sizeof(time_text), "%d", left)
     phase_time_w := MeasureUIText(time_text, UI_TEXT_24)
     Text(time_text, center_x - phase_time_w / 2,
-                  center_y + ScaleUIPx(12), UI_TEXT_24, GetThemeText())
+                  center_y + ScaleUIPx(12), UI_TEXT_24, circle_text)
 
     snprintf(time_text, sizeof(time_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)
     cycle_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(time_text, center_x - cycle_w / 2, center_y - ScaleUIPx(158),
+    top_y = title_h + ScaleUIPx(10)
+    Text(time_text, center_x - cycle_w / 2, top_y,
                   UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.duration_minutes > 0 {
@@ -499,7 +502,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
                  app->patterns.elapsed_seconds % 60)
     }
     total_w := MeasureUIText(time_text, UI_TEXT_16)
-    Text(time_text, center_x - total_w / 2, center_y - ScaleUIPx(132),
+    Text(time_text, center_x - total_w / 2, top_y + ScaleUIPx(24),
                   UI_TEXT_16, DarkenUIColor(GetThemeText(), 30))
 
     if app->patterns.paused {
@@ -551,6 +554,14 @@ pattern_circle_draw :: (app: InbeApp*, center_x: int, center_y: int,
                DarkenUIColor(GetThemeBackground(), 8))
     DrawCircle(center_x, center_y, (float)r, circle)
     unused app
+}
+
+pattern_text_color_for_background :: (background: Color) -> Color #private {
+    luma := background.r * 299 + background.g * 587 + background.b * 114
+    if luma > 150000 {
+        return BLACK
+    }
+    return WHITE
 }
 
 route patterns {

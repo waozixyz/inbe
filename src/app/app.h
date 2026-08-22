@@ -477,7 +477,6 @@ struct InbeApp {
     int habits_guide_step;
     int habits_guide_seen;
     int exercise_manual_seen_mask;
-    int practice_visible_mask;
     int practice_home_scroll;
     Rectangle practice_home_bounds_card;
     Rectangle practice_home_bounds_start;
