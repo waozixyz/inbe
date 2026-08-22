@@ -503,7 +503,14 @@ jobs:
           release: "14.3"
           usesh: true
           prepare: |
-            pkg install -y gmake cmake pkgconf sdl2 gtk3 curl sqlite3 mesa-libs libdrm hicolor-icon-theme desktop-file-utils
+            for attempt in 1 2 3; do
+              pkg install -y gmake cmake pkgconf sdl2 gtk3 curl sqlite3 mesa-libs libdrm hicolor-icon-theme desktop-file-utils && break
+              if [ "$attempt" -eq 3 ]; then
+                exit 1
+              fi
+              pkg update -f
+              sleep 10
+            done
           run: |
             set -eu
             gmake package-freebsd
