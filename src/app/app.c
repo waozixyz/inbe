@@ -1329,7 +1329,7 @@ app_draw_blank_home_easteregg(InbeApp *app)
     if(logo_hover) {
         MarkUIClickable();
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
-            OpenURL("https://waozi.xyz");
+            (void)OpenURI("https://waozi.xyz");
     }
     DrawTexturePro(logo, src, dst, (Vector2){0}, 0.0f,
                    logo_hover ? (Color){210, 210, 210, 255}
@@ -1725,7 +1725,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
     if(GenericButton(0, x + (button_w + gap) * 2, *y, button_w, button_h,
                      GetLocaleText("trocador_button"),
                      UI_BUTTON_STYLE_PRIMARY, 0, &hover)) {
-        OpenURL(trocador_url);
+        (void)OpenURI(trocador_url);
     }
 
     *y += button_h + ScaleUIPx(18);
