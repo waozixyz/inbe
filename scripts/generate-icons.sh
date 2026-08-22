@@ -5,10 +5,14 @@ set -e
 # Generates transparent icons by default, plus maskable/adaptive variants where
 # platforms clip icons into a shape and need a full-bleed background.
 
-SKY_BLUE="#87CEEB"
-SOURCE_IMAGE="${1:-vendor/kryon/icons/inbe.png}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SKY_BLUE="#87CEEB"
+SOURCE_IMAGE="${1:-$PROJECT_ROOT/assets/app/source-icon.png}"
+
+if [[ "$SOURCE_IMAGE" != /* ]]; then
+    SOURCE_IMAGE="$PROJECT_ROOT/$SOURCE_IMAGE"
+fi
 
 echo "🔨 Inner Breeze Icon Generator"
 echo "=============================="
@@ -108,6 +112,8 @@ generate_transparent 192 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-xxxhdpi/ic
 # Android adaptive icons use a full-bleed background plus a transparent foreground.
 write_android_background
 generate_transparent 432 "$PROJECT_ROOT/droid/app/src/main/res/drawable/ic_launcher_foreground.png"
+generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/ic_launcher_foreground.png"
+generate_transparent 108 "$PROJECT_ROOT/droid/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round_foreground.png"
 
 echo "✅ Android icons generated"
 
@@ -133,6 +139,7 @@ echo "🐧 Generating Linux AppImage icon..."
 
 # AppImage desktop icons are PNGs and support transparency.
 generate_transparent 256 "$PROJECT_ROOT/packaging/linux/appimage/inbe.png"
+generate_transparent 256 "$PROJECT_ROOT/packaging/snap/snap/gui/inbe.png"
 
 echo "✅ Linux AppImage icon generated"
 
@@ -164,6 +171,7 @@ generate_transparent 180 "$PROJECT_ROOT/site-icons/apple-touch-icon.png"
 
 # Favicon PNG supports transparency.
 generate_transparent 32 "$PROJECT_ROOT/site-icons/favicon-32x32.png"
+generate_transparent 64 "$PROJECT_ROOT/web-assets/icons/inbe.png"
 
 echo "✅ Web/PWA icons generated"
 
@@ -174,9 +182,10 @@ echo "Generated icons:"
 echo "  📱 Android: mipmap PNGs + adaptive drawable foreground/background"
 echo "  🪟 Windows: windows/inbe.ico (256, 192, 32 resolutions)"
 echo "  🖥️ App:     assets/app/icon.png (64x64 transparent runtime icon)"
-echo "  🐧 Linux:   packaging/linux/appimage/inbe.png (256x256 transparent)"
+echo "  🐧 Linux:   packaging/linux/appimage/inbe.png + snap/gui/inbe.png (256x256)"
 echo "  🏪 Store:   fastlane/metadata/android/en-US/images/icon.png (512x512)"
 echo "  🌐 Chrome:  packaging/chrome-web-store/icons/ (16, 32, 48, 128)"
 echo "  🌐 Web:    site-icons/ (transparent + maskable PWA icons)"
+echo "            web-assets/icons/inbe.png (64x64)"
 echo
 echo "💡 Tip: Review generated icons before committing to version control."
