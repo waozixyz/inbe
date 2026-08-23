@@ -212,7 +212,7 @@ android_device_native_text_input_commit(JNIEnv *env, jobject thiz, jint codepoin
 {
     (void)env;
     (void)thiz;
-    QueueUITextInputCodepoint((int)codepoint);
+    QueueTextInputCodepoint((int)codepoint);
 }
 
 void
@@ -220,7 +220,7 @@ android_device_native_text_input_backspace(JNIEnv *env, jobject thiz)
 {
     (void)env;
     (void)thiz;
-    QueueUITextInputBackspace();
+    QueueTextInputBackspace();
 }
 
 void
@@ -228,7 +228,7 @@ android_device_native_text_input_enter(JNIEnv *env, jobject thiz)
 {
     (void)env;
     (void)thiz;
-    QueueUITextInputEnter();
+    QueueTextInputEnter();
 }
 
 #else

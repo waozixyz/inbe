@@ -1367,7 +1367,7 @@ app_init(void *vapp) {
     }
     TraceLog(LOG_INFO, "INBE: DPI scale=%.2f (viewport %dx%d)", GetUIDPIScale(), view_width, view_height);
 #if ANDROID_BUILD
-    SetUITextInputPlatformCallback(android_device_set_soft_keyboard_visible);
+    SetTextInputPlatformCallback(android_device_set_soft_keyboard_visible);
 #endif
 
     inbeinit(&app->inbe);
