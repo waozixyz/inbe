@@ -205,6 +205,9 @@ KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
 KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
 KRYON_SRCS := $(filter-out $(KRYON_LIBDRAW_SRCS),$(KRYON_SRCS))
+ifneq ($(KRYON_BACKEND),libdraw)
+KRYON_SRCS := $(filter-out $(KRYON_DIR)/src/platform/plan9/%.c,$(KRYON_SRCS))
+endif
 # The raylib web build links the generated raylib wrappers; the canvas
 # backend sources define the same public surface and belong only to the
 # web-canvas target (which drops the wrappers instead).
