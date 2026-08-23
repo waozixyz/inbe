@@ -443,6 +443,7 @@ WIN32_TARGET := $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)/$(WIN32_BINARY_NAME)
 WINDOWS_DIST := $(WINDOWS_DIST_DIR)/$(APP_NAME)-windows.zip
 APPIMAGE_NAME := $(APP_NAME)-linux-$(ARCH).AppImage
 APPIMAGE_TARGET := $(LINUX_DIST_DIR)/$(APPIMAGE_NAME)
+APPIMAGE_INTERPRETER ?= $(if $(filter x86_64 amd64,$(ARCH)),/lib64/ld-linux-x86-64.so.2,$(if $(filter aarch64 arm64,$(ARCH)),/lib/ld-linux-aarch64.so.1,))
 LINUXDEPLOY ?= linuxdeploy
 WEB_EMSDK_BIN ?= $(HOME)/emsdk/upstream/emscripten
 WEB_CC ?= $(if $(wildcard $(WEB_EMSDK_BIN)/emcc),$(WEB_EMSDK_BIN)/emcc,emcc)
@@ -527,7 +528,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site site-release-assets-check chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
 .PHONY: no-vendor-edits
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
@@ -1113,6 +1114,10 @@ $(WIN32_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAM
 	$(WIN32_STRIP) $@
 
 $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP) $(LINUX_APPIMAGE_ICON) $(LINUX_APPIMAGE_APPDATA) | $(LINUX_DIST_DIR) $(LINUX_APPIMAGE_BUILD_DIR)
+	@test -n "$(strip $(APPIMAGE_INTERPRETER))" || { \
+		echo "No AppImage interpreter is configured for ARCH=$(ARCH)"; \
+		exit 1; \
+	}
 	@command -v linuxdeploy-plugin-appimage >/dev/null || { \
 		echo "linuxdeploy-plugin-appimage is missing. Install it or put it on PATH."; \
 		exit 1; \
@@ -1130,7 +1135,7 @@ $(APPIMAGE_TARGET): $(TARGET) $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPIMAGE_DESKTOP)
 	rm -f $(LINUX_DIST_DIR)/*.AppImage
 	mkdir -p $(LINUX_APPDIR)/usr/bin $(LINUX_APPDIR)/usr/lib $(LINUX_APPDIR)/usr/share/applications $(LINUX_APPDIR)/usr/share/icons/hicolor/512x512/apps $(LINUX_APPDIR)/usr/share/metainfo $(LINUX_APPDIR)/usr/share/appdata
 	cp $(TARGET) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
-	patchelf --set-interpreter /lib64/ld-linux-x86-64.so.2 $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
+	patchelf --set-interpreter $(APPIMAGE_INTERPRETER) $(LINUX_APPDIR)/usr/bin/$(APP_NAME)
 	cp $(LINUX_APPIMAGE_APPRUN) $(LINUX_APPDIR)/AppRun
 	chmod +x $(LINUX_APPDIR)/AppRun
 	@loader=$$(LC_ALL=C readelf -l $(TARGET) | sed -n 's#.*Requesting program interpreter: \(.*\)]#\1#p'); \
@@ -1621,6 +1626,9 @@ web-smoke-test-librewolf: $(WEB_SMOKE_TEST)
 
 site: web
 	sh site/build.sh
+
+site-release-assets-check:
+	sh scripts/check-site-release-assets.sh
 
 chrome-web-store: $(CHROME_WEB_STORE_ZIP)
 

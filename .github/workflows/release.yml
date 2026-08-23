@@ -219,9 +219,19 @@ jobs:
 
   build-linux-appimage:
     name: Build Linux AppImage
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+            tool_arch: x86_64
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
+            tool_arch: aarch64
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -249,11 +259,11 @@ jobs:
           set -euo pipefail
           mkdir -p "$HOME/.local/bin"
           curl -L -o "$HOME/.local/bin/linuxdeploy" \
-            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+            https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.tool_arch }}.AppImage
           curl -L -o "$HOME/.local/bin/linuxdeploy-plugin-appimage" \
-            https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-x86_64.AppImage
+            https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-appimage-${{ matrix.tool_arch }}.AppImage
           curl -L -o "$HOME/.local/bin/appimagetool" \
-            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+            https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-${{ matrix.tool_arch }}.AppImage
           chmod +x "$HOME/.local/bin/linuxdeploy" "$HOME/.local/bin/linuxdeploy-plugin-appimage" "$HOME/.local/bin/appimagetool"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
@@ -306,15 +316,23 @@ jobs:
       - name: Upload Linux AppImage Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux-appimage
+          name: release-linux-appimage-${{ matrix.arch }}
           path: build/release/linux/*
           if-no-files-found: error
 
   build-linux-deb:
     name: Build Linux Deb
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-22.04
+          - arch: arm64
+            runner: ubuntu-22.04-arm
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -351,15 +369,23 @@ jobs:
       - name: Upload Linux Deb Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux-deb
+          name: release-linux-deb-${{ matrix.arch }}
           path: build/release/linux/*
           if-no-files-found: error
 
   build-linux-rpm:
     name: Build Linux RPM
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -396,15 +422,23 @@ jobs:
       - name: Upload Linux RPM Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux-rpm
+          name: release-linux-rpm-${{ matrix.arch }}
           path: build/release/linux/*
           if-no-files-found: error
 
   build-linux-snap:
     name: Build Linux Snap
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -438,15 +472,23 @@ jobs:
       - name: Upload Linux Snap Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux-snap
+          name: release-linux-snap-${{ matrix.arch }}
           path: build/release/linux/*
           if-no-files-found: error
 
   build-linux-flatpak:
     name: Build Linux Flatpak
-    runs-on: ubuntu-22.04
+    runs-on: ${{ matrix.runner }}
     timeout-minutes: 60
     needs: test
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-22.04
+          - arch: aarch64
+            runner: ubuntu-22.04-arm
     env:
       APT_CACHE_DIR: /tmp/apt-cache
 
@@ -480,7 +522,7 @@ jobs:
       - name: Upload Linux Flatpak Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: release-linux-flatpak
+          name: release-linux-flatpak-${{ matrix.arch }}
           path: build/release/linux/*
           if-no-files-found: error
 
@@ -710,6 +752,7 @@ jobs:
       - build-android
     outputs:
       tag_pushed: ${{ steps.tag_version.outputs.tag_pushed }}
+      release_upload: ${{ steps.tag_version.outputs.release_upload }}
       tag_name: ${{ steps.tag_version.outputs.tag_name }}
       version: ${{ steps.tag_version.outputs.version }}
 
@@ -736,6 +779,19 @@ jobs:
         run: |
           set -euo pipefail
           test -n "$(find build/release -type f -print -quit)"
+          VERSION=$(sed -n 's/^#define INBE_VERSION_STRING "\([^"]*\)".*/\1/p' src/core/version.h)
+          if [ -z "$VERSION" ]; then
+            echo "Could not read INBE_VERSION_STRING"
+            exit 1
+          fi
+          missing=0
+          while IFS= read -r file; do
+            if [ ! -f "build/release/$file" ]; then
+              echo "::error::missing release artifact: $file"
+              missing=1
+            fi
+          done < <(scripts/list-expected-release-assets.sh "$VERSION")
+          exit "$missing"
 
       - name: Create and Push Tag If Version Is New
         id: tag_version
@@ -753,11 +809,22 @@ jobs:
           echo "tag_name=$TAG" >> "$GITHUB_OUTPUT"
           if git rev-parse "$TAG" >/dev/null 2>&1; then
             if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-              echo "Tag $TAG and its GitHub release already exist, skipping release"
+              gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json assets --jq '.assets[].name' | sort -u > existing-release-assets.txt
+              scripts/list-expected-release-assets.sh "$VERSION" | sort -u > expected-release-assets.txt
+              comm -23 expected-release-assets.txt existing-release-assets.txt > missing-release-assets.txt
+              if [ -s missing-release-assets.txt ]; then
+                echo "Tag $TAG exists; uploading missing GitHub release assets"
+                sed 's/^/missing asset: /' missing-release-assets.txt
+                echo "release_upload=true" >> "$GITHUB_OUTPUT"
+              else
+                echo "Tag $TAG and its GitHub release already have the expected assets, skipping release upload"
+                echo "release_upload=false" >> "$GITHUB_OUTPUT"
+              fi
               echo "tag_pushed=false" >> "$GITHUB_OUTPUT"
             else
               echo "Tag $TAG exists but its GitHub release is missing; publishing release"
               echo "tag_pushed=true" >> "$GITHUB_OUTPUT"
+              echo "release_upload=true" >> "$GITHUB_OUTPUT"
             fi
           else
             git config user.name "github-actions[bot]"
@@ -765,27 +832,40 @@ jobs:
             git tag -a "$TAG" -m "Release $VERSION"
             git push origin "$TAG"
             echo "tag_pushed=true" >> "$GITHUB_OUTPUT"
+            echo "release_upload=true" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Generate Update Appcast
-        if: steps.tag_version.outputs.tag_pushed == 'true'
+        if: steps.tag_version.outputs.release_upload == 'true'
         run: |
           set -euo pipefail
           VERSION='${{ steps.tag_version.outputs.version }}'
           TAG="v$VERSION"
           BASE="https://github.com/waozixyz/inbe/releases/download/$TAG"
-          APPIMAGE="$(find build/release -maxdepth 2 -name '*.AppImage' -print -quit || true)"
           WINZIP="$(find build/release -maxdepth 2 -name '*-windows.zip' -print -quit || true)"
-          DEB="$(find build/release -maxdepth 2 -name '*.deb' -print -quit || true)"
-          RPM="$(find build/release -maxdepth 2 -name '*.rpm' -print -quit || true)"
           channels=()
-          if [ -n "$APPIMAGE" ]; then
-            ARCH_NAME="$(dpkg --print-architecture 2>/dev/null || echo amd64)"
-            channels+=("--channel" "appimage-$ARCH_NAME=$APPIMAGE")
-          fi
+          for appimage in build/release/inbe-linux-*.AppImage; do
+            [ -f "$appimage" ] || continue
+            case "$(basename "$appimage")" in
+              inbe-linux-x86_64.AppImage) channel=appimage-amd64 ;;
+              inbe-linux-aarch64.AppImage) channel=appimage-arm64 ;;
+              *) channel=appimage-$(basename "$appimage" .AppImage | sed 's/^inbe-linux-//') ;;
+            esac
+            channels+=("--channel" "$channel=$appimage")
+          done
           [ -n "$WINZIP" ] && channels+=("--channel" "windows=$WINZIP")
-          [ -n "$DEB" ] && channels+=("--channel" "deb=$DEB")
-          [ -n "$RPM" ] && channels+=("--channel" "rpm=$RPM")
+          for deb in build/release/*.deb; do
+            [ -f "$deb" ] || continue
+            arch="${deb##*_}"
+            arch="${arch%.deb}"
+            channels+=("--channel" "deb-$arch=$deb")
+          done
+          for rpm in build/release/*.rpm; do
+            [ -f "$rpm" ] || continue
+            arch="${rpm##*.}"
+            arch="${arch%.rpm}"
+            channels+=("--channel" "rpm-$arch=$rpm")
+          done
           if [ ${#channels[@]} -eq 0 ]; then
             echo "no release artifacts found for the appcast"
             exit 1
@@ -799,11 +879,12 @@ jobs:
             "${channels[@]}"
 
       - name: Create GitHub Release
-        if: steps.tag_version.outputs.tag_pushed == 'true'
+        if: steps.tag_version.outputs.release_upload == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.tag_version.outputs.tag_name }}
           files: build/release/*
+          overwrite_files: true
           generate_release_notes: true
           draft: false
         env:

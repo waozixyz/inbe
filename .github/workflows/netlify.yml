@@ -49,6 +49,7 @@ jobs:
           test -f build/site/build/web/index.html
           test -f build/site/build/web/index.js
           test -f build/site/build/web/index.wasm
+          make site-release-assets-check
 
       - name: Upload Site Artifact
         uses: actions/upload-artifact@v4
