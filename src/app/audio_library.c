@@ -80,12 +80,11 @@ audio_import_item(InbeAudioLibraryItem *items, int *count, int max_count,
     }
 
     index = *count;
-    item = (KryAudioLibraryItem){
-        .title = items[index].title,
-        .title_size = sizeof(items[index].title),
-        .path = items[index].path,
-        .path_size = sizeof(items[index].path)
-    };
+    memset(&item, 0, sizeof(item));
+    item.title = items[index].title;
+    item.title_size = sizeof(items[index].title);
+    item.path = items[index].path;
+    item.path_size = sizeof(items[index].path);
     if(!KryAudioImportItem(item, index, data_root(), kind, extensions, src,
                            &kry_error)) {
         if(error_code)
@@ -131,6 +130,8 @@ audio_save_item(const InbeAudioLibraryItem *item, const char *prefix, int index)
 void
 app_audio_library_load(InbeApp *app)
 {
+    int i;
+
     if(app == NULL)
         return;
 
@@ -140,7 +141,7 @@ app_audio_library_load(InbeApp *app)
         app->audio_custom_sound_count = 0;
     if(app->audio_custom_sound_count > INBE_AUDIO_CUSTOM_SOUND_MAX)
         app->audio_custom_sound_count = INBE_AUDIO_CUSTOM_SOUND_MAX;
-    for(int i = 0; i < app->audio_custom_sound_count; i++)
+    for(i = 0; i < app->audio_custom_sound_count; i++)
         audio_load_item(&app->audio_custom_sounds[i], "audio_custom_sound", i);
 
     app->audio_custom_music_count =
@@ -149,10 +150,10 @@ app_audio_library_load(InbeApp *app)
         app->audio_custom_music_count = 0;
     if(app->audio_custom_music_count > INBE_AUDIO_CUSTOM_MUSIC_MAX)
         app->audio_custom_music_count = INBE_AUDIO_CUSTOM_MUSIC_MAX;
-    for(int i = 0; i < app->audio_custom_music_count; i++)
+    for(i = 0; i < app->audio_custom_music_count; i++)
         audio_load_item(&app->audio_custom_music[i], "audio_custom_music", i);
 
-    for(int i = 0; i < INBE_AUDIO_CUE_COUNT; i++) {
+    for(i = 0; i < INBE_AUDIO_CUE_COUNT; i++) {
         int selected = storage_get_setting_int(audio_cue_setting_keys[i], 0);
         if(selected < 0 || selected > app->audio_custom_sound_count)
             selected = 0;
@@ -163,11 +164,13 @@ app_audio_library_load(InbeApp *app)
 void
 app_audio_library_save(const InbeApp *app)
 {
+    int i;
+
     if(app == NULL)
         return;
 
     storage_set_setting_int("audio_custom_sound_count", app->audio_custom_sound_count);
-    for(int i = 0; i < INBE_AUDIO_CUSTOM_SOUND_MAX; i++) {
+    for(i = 0; i < INBE_AUDIO_CUSTOM_SOUND_MAX; i++) {
         if(i < app->audio_custom_sound_count) {
             audio_save_item(&app->audio_custom_sounds[i], "audio_custom_sound", i);
         } else {
@@ -177,7 +180,7 @@ app_audio_library_save(const InbeApp *app)
     }
 
     storage_set_setting_int("audio_custom_music_count", app->audio_custom_music_count);
-    for(int i = 0; i < INBE_AUDIO_CUSTOM_MUSIC_MAX; i++) {
+    for(i = 0; i < INBE_AUDIO_CUSTOM_MUSIC_MAX; i++) {
         if(i < app->audio_custom_music_count) {
             audio_save_item(&app->audio_custom_music[i], "audio_custom_music", i);
         } else {
@@ -186,7 +189,7 @@ app_audio_library_save(const InbeApp *app)
         }
     }
 
-    for(int i = 0; i < INBE_AUDIO_CUE_COUNT; i++)
+    for(i = 0; i < INBE_AUDIO_CUE_COUNT; i++)
         storage_set_setting_int(audio_cue_setting_keys[i], app->audio_cue_selected[i]);
 }
 
@@ -276,14 +279,17 @@ app_audio_import_custom_music_ex(InbeApp *app, const char *path, int *error_code
 int
 app_audio_remove_custom_sound(InbeApp *app, int index)
 {
+    int i;
+    int cue;
+
     if(app == NULL || index < 0 || index >= app->audio_custom_sound_count)
         return 0;
-    for(int i = index; i + 1 < app->audio_custom_sound_count; i++)
+    for(i = index; i + 1 < app->audio_custom_sound_count; i++)
         app->audio_custom_sounds[i] = app->audio_custom_sounds[i + 1];
     app->audio_custom_sound_count--;
     memset(&app->audio_custom_sounds[app->audio_custom_sound_count], 0,
            sizeof(app->audio_custom_sounds[0]));
-    for(int cue = 0; cue < INBE_AUDIO_CUE_COUNT; cue++) {
+    for(cue = 0; cue < INBE_AUDIO_CUE_COUNT; cue++) {
         if(app->audio_cue_selected[cue] == index + 1)
             app->audio_cue_selected[cue] = 0;
         else if(app->audio_cue_selected[cue] > index + 1)
@@ -298,11 +304,12 @@ int
 app_audio_remove_custom_music(InbeApp *app, int index)
 {
     int removed_track = INBE_AUDIO_BUILTIN_MUSIC_COUNT + index;
+    int i;
 
     if(app == NULL || index < 0 || index >= app->audio_custom_music_count)
         return 0;
     meditation_music_unload(app);
-    for(int i = index; i + 1 < app->audio_custom_music_count; i++)
+    for(i = index; i + 1 < app->audio_custom_music_count; i++)
         app->audio_custom_music[i] = app->audio_custom_music[i + 1];
     app->audio_custom_music_count--;
     memset(&app->audio_custom_music[app->audio_custom_music_count], 0,
@@ -311,7 +318,7 @@ app_audio_remove_custom_music(InbeApp *app, int index)
         app->meditation.music_track = 0;
     else if(app->meditation.music_track > removed_track)
         app->meditation.music_track--;
-    for(int i = 0; i < EXERCISE_COUNT; i++) {
+    for(i = 0; i < EXERCISE_COUNT; i++) {
         if(app->meditation.music_practice_tracks[i] == removed_track)
             app->meditation.music_practice_tracks[i] = 0;
         else if(app->meditation.music_practice_tracks[i] > removed_track)
@@ -422,6 +429,7 @@ app_audio_music_sanitize_selection(InbeApp *app)
 {
     int count;
     int mask;
+    int i;
 
     if(app == NULL)
         return;
@@ -434,7 +442,7 @@ app_audio_music_sanitize_selection(InbeApp *app)
      * drift out of sync: a bit is set iff that practice has a valid track
      * (i.e. not INBE_AUDIO_MUSIC_NONE). */
     mask = 0;
-    for(int i = 0; i < EXERCISE_COUNT; i++) {
+    for(i = 0; i < EXERCISE_COUNT; i++) {
         int track = app->meditation.music_practice_tracks[i];
         /* INBE_AUDIO_MUSIC_NONE (-1) is valid and means "no music". Any other
          * out-of-range value is clamped to None rather than 0 so a stale index

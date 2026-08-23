@@ -374,6 +374,7 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
     InbeApp *app = vapp;
     AppRoute route;
     int screen = -1;
+    size_t i;
 
     if(app == NULL || route_info == NULL || route_info->id == NULL)
         return;
@@ -381,8 +382,7 @@ ApplyRoute(void *vapp, const AppRouteInfo *route_info)
         session_start(app);
         return;
     }
-    for(size_t i = 0;
-        i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
+    for(i = 0; i < sizeof(inbe_route_bindings) / sizeof(inbe_route_bindings[0]);
         i++) {
         if(strcmp(inbe_route_bindings[i].id, route_info->id) == 0) {
             screen = inbe_route_bindings[i].screen;
@@ -606,6 +606,7 @@ int
 app_content_top_reserved(const InbeApp *app)
 {
     int system_top = 0;
+    TabBarProps tabs;
 
 #if ANDROID_BUILD
     // Include system status bar and camera cutout on Android
@@ -613,8 +614,10 @@ app_content_top_reserved(const InbeApp *app)
     system_top = android_get_system_top_reserved();
 #endif
 
-    if(app != NULL && app->inbe.screen == InbeScreenStart)
-        return system_top + UIGetNodeHeight(UINodeTabBar((TabBarProps){0}));
+    if(app != NULL && app->inbe.screen == InbeScreenStart) {
+        memset(&tabs, 0, sizeof(tabs));
+        return system_top + UIGetNodeHeight(UINodeTabBar(tabs));
+    }
     return system_top + app_toolbar_height();
 }
 
@@ -870,6 +873,7 @@ app_draw_close_prompt(InbeApp *app)
 {
     int modal_result;
     ModalAction actions[2];
+    ModalProps props;
 
     if(app == NULL || !app->close_prompt_open)
         return;
@@ -877,22 +881,19 @@ app_draw_close_prompt(InbeApp *app)
         return;
 
     ClearUIInputCaptures();
-    actions[0] = (ModalAction){
-        .label = GetLocaleText("desktop_close_keep_running_button"),
-        .style = ButtonStylePrimary
-    };
-    actions[1] = (ModalAction){
-        .label = GetLocaleText("desktop_close_quit_button"),
-        .style = ButtonStyleDanger
-    };
-    modal_result = ActionModal((ModalProps){
-        .title = GetLocaleText("desktop_close_prompt_title"),
-        .message = GetLocaleText("desktop_close_prompt_message"),
-        .actions = actions,
-        .action_count = 2,
-        .close_icon = app->icons[UI_ICON_TYPE_X],
-        .max_width = 420
-    });
+    memset(actions, 0, sizeof(actions));
+    actions[0].label = GetLocaleText("desktop_close_keep_running_button");
+    actions[0].style = ButtonStylePrimary;
+    actions[1].label = GetLocaleText("desktop_close_quit_button");
+    actions[1].style = ButtonStyleDanger;
+    memset(&props, 0, sizeof(props));
+    props.title = GetLocaleText("desktop_close_prompt_title");
+    props.message = GetLocaleText("desktop_close_prompt_message");
+    props.actions = actions;
+    props.action_count = 2;
+    props.close_icon = app->icons[UI_ICON_TYPE_X];
+    props.max_width = 420;
+    modal_result = ActionModal(props);
     if(modal_result == -1) {
         app->close_prompt_open = 0;
     } else if(modal_result == 1) {
@@ -936,6 +937,9 @@ mark_exercise_manual_seen(InbeApp *app, int exercise_type)
 static void
 app_reload_graphics_resources(InbeApp *app)
 {
+    int i;
+    Texture2D empty;
+
     if(app == NULL || !app->graphics_reload_requested)
         return;
 
@@ -945,14 +949,15 @@ app_reload_graphics_resources(InbeApp *app)
 
     TraceLog(LOG_INFO, "ANDROID: Reloading graphics resources");
 
-    for(int i = 0; i < UI_ICON_TYPE_COUNT; i++)
-        app->icons[i] = (Texture2D){0};
+    memset(&empty, 0, sizeof(empty));
+    for(i = 0; i < UI_ICON_TYPE_COUNT; i++)
+        app->icons[i] = empty;
     LoadAllUIIconTextures(app->icons);
     SetUIIcons(app->icons[UI_ICON_TYPE_GEAR], app->icons[UI_ICON_TYPE_X]);
 
-    app->easteregg_art = (Texture2D){0};
-    app->easteregg_waozi = (Texture2D){0};
-    app->font_shapes_texture = (Texture2D){0};
+    app->easteregg_art = empty;
+    app->easteregg_waozi = empty;
+    app->font_shapes_texture = empty;
     discard_locale_font_cpu(app);
     if(!load_locale_font(app))
         TraceLog(LOG_WARNING, "FONT: Failed to reload Noto UI font");
@@ -1098,6 +1103,7 @@ app_restore_habits_view_settings(InbeApp *app)
     int screen_mode;
     int habit_tab;
     int view_mode;
+    int i;
 
     if(app == NULL)
         return;
@@ -1114,7 +1120,7 @@ app_restore_habits_view_settings(InbeApp *app)
 
     selected_id = storage_get_setting_text("habits_selected_id");
     if(selected_id != NULL && selected_id[0] != '\0') {
-        for(int i = 0; i < app->habits.count; i++) {
+        for(i = 0; i < app->habits.count; i++) {
             if(strcmp(app->habits.items[i].id, selected_id) == 0) {
                 app->habits.selected = i;
                 break;
@@ -1138,6 +1144,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
     int scroll = 0;
     int weekly_days = 0;
     int hold_stats_range_days = 0;
+    int i;
     if(app == NULL)
         return;
 
@@ -1170,7 +1177,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         app_restore_habits_view_settings(app);
     if(!reload_settings) {
         app->habits.selected = -1;
-        for(int i = 0; i < app->habits.count; i++) {
+        for(i = 0; i < app->habits.count; i++) {
             if(selected_habit_id[0] != '\0' &&
                strcmp(app->habits.items[i].id, selected_habit_id) == 0) {
                 app->habits.selected = i;
@@ -1180,7 +1187,7 @@ app_reload_after_import(InbeApp *app, int reload_settings)
         if(app->habits.selected < 0 && selected >= 0 && selected < app->habits.count)
             app->habits.selected = selected;
         app->habit_detail_index = -1;
-        for(int i = 0; i < app->habits.count; i++) {
+        for(i = 0; i < app->habits.count; i++) {
             if(detail_habit_id[0] != '\0' &&
                strcmp(app->habits.items[i].id, detail_habit_id) == 0) {
                 app->habit_detail_index = i;
@@ -1220,8 +1227,14 @@ load_pixel_texture_from_asset(const char *path)
     Image image;
     Texture2D texture = {0};
 
-    if(asset == NULL || asset->data == NULL || asset->size == 0)
+    if(asset == NULL || asset->data == NULL || asset->size == 0) {
+#if defined(KRYON_PLATFORM_PLAN9)
+        texture = LoadTexture(path);
+        if(texture.id != 0)
+            SetTextureFilter(texture, TEXTURE_FILTER_POINT);
+#endif
         return texture;
+    }
 
     image = LoadImageFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
     if(image.data == NULL)
@@ -1264,6 +1277,8 @@ app_draw_blank_home_easteregg(InbeApp *app)
     Rectangle src;
     Rectangle dst;
     Vector2 mouse;
+    Vector2 origin;
+    Color logo_tint;
     float scale;
     float logo_size;
     float logo_scale;
@@ -1288,14 +1303,17 @@ app_draw_blank_home_easteregg(InbeApp *app)
     if((float)available_h / (float)texture.height > scale)
         scale = (float)available_h / (float)texture.height;
 
-    src = (Rectangle){0, 0, (float)texture.width, (float)texture.height};
-    dst = (Rectangle){
-        ((float)view_width - (float)texture.width * scale) * 0.5f,
-        ((float)available_h - (float)texture.height * scale) * 0.5f,
-        (float)texture.width * scale,
-        (float)texture.height * scale
-    };
-    DrawTexturePro(texture, src, dst, (Vector2){0}, 0.0f, WHITE);
+    src.x = 0;
+    src.y = 0;
+    src.width = (float)texture.width;
+    src.height = (float)texture.height;
+    dst.x = ((float)view_width - (float)texture.width * scale) * 0.5f;
+    dst.y = ((float)available_h - (float)texture.height * scale) * 0.5f;
+    dst.width = (float)texture.width * scale;
+    dst.height = (float)texture.height * scale;
+    origin.x = 0;
+    origin.y = 0;
+    DrawTexturePro(texture, src, dst, origin, 0.0f, WHITE);
 
     if(app->easteregg_waozi.id == 0)
         app->easteregg_waozi = app_load_asset_texture("easteregg/waozi.png");
@@ -1316,13 +1334,14 @@ app_draw_blank_home_easteregg(InbeApp *app)
         logo_size = (float)available_h;
     logo_scale = logo_size / (float)logo.width;
 
-    src = (Rectangle){0, 0, (float)logo.width, (float)logo.height};
-    dst = (Rectangle){
-        ((float)view_width - (float)logo.width * logo_scale) * 0.5f,
-        ((float)available_h - (float)logo.height * logo_scale) * 0.5f,
-        (float)logo.width * logo_scale,
-        (float)logo.height * logo_scale
-    };
+    src.x = 0;
+    src.y = 0;
+    src.width = (float)logo.width;
+    src.height = (float)logo.height;
+    dst.x = ((float)view_width - (float)logo.width * logo_scale) * 0.5f;
+    dst.y = ((float)available_h - (float)logo.height * logo_scale) * 0.5f;
+    dst.width = (float)logo.width * logo_scale;
+    dst.height = (float)logo.height * logo_scale;
     mouse = GetScreenToWorld2D(GetMousePosition(), app->camera);
     logo_hover = CheckCollisionPointRec(mouse, dst) &&
                  !UIInputCapturesClick(mouse);
@@ -1331,14 +1350,24 @@ app_draw_blank_home_easteregg(InbeApp *app)
         if(IsMouseButtonReleased(MOUSE_BUTTON_LEFT))
             (void)OpenURI("https://waozi.xyz");
     }
-    DrawTexturePro(logo, src, dst, (Vector2){0}, 0.0f,
-                   logo_hover ? (Color){210, 210, 210, 255}
-                              : (Color){150, 150, 150, 255});
+    if(logo_hover) {
+        logo_tint.r = 210;
+        logo_tint.g = 210;
+        logo_tint.b = 210;
+        logo_tint.a = 255;
+    } else {
+        logo_tint.r = 150;
+        logo_tint.g = 150;
+        logo_tint.b = 150;
+        logo_tint.a = 255;
+    }
+    DrawTexturePro(logo, src, dst, origin, 0.0f, logo_tint);
 }
 
 void
 app_init(void *vapp) {
     InbeApp *app = vapp;
+    int i;
     if(app == 0)
         return;
 
@@ -1405,7 +1434,8 @@ app_init(void *vapp) {
     habits_init(&app->habits);
     app_restore_habits_view_settings(app);
     app->habit_detail_index = -1;
-    app->habit_session_edit = (HabitSessionEditState){.round = -1};
+    memset(&app->habit_session_edit, 0, sizeof(app->habit_session_edit));
+    app->habit_session_edit.round = -1;
     app->inbe.screen = app->main_tab == APP_MAIN_TAB_HABITS
                            ? InbeScreenHabits
                            : InbeScreenStart;
@@ -1414,20 +1444,22 @@ app_init(void *vapp) {
     if(!app_running_in_kryon_preview())
         init_audio(app);
 #endif
-    for(int i = 0; i < practice_count(); i++) {
+    for(i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->init != NULL)
             practice->init(app);
     }
-    app->camera = (Camera2D){0};
+    memset(&app->camera, 0, sizeof(app->camera));
     app->play_circle_hover = 0;
     app->play_circle_scale = 1.0f;
     app->settings_tab = SETTINGS_TAB_DEVICE;
-    app->habit_edit = (HabitEditState){
-        .index = -1,
-        .color = {99, 196, 165, 255},
-        .sync_mode = INBE_HABIT_SYNC_NONE
-    };
+    memset(&app->habit_edit, 0, sizeof(app->habit_edit));
+    app->habit_edit.index = -1;
+    app->habit_edit.color.r = 99;
+    app->habit_edit.color.g = 196;
+    app->habit_edit.color.b = 165;
+    app->habit_edit.color.a = 255;
+    app->habit_edit.sync_mode = INBE_HABIT_SYNC_NONE;
     practice_update_session_sounds(app);
     reset_settings_preview(app);
     inbeinit(&app->start_speed_preview);
@@ -1441,7 +1473,7 @@ app_init(void *vapp) {
         app->inbe.screen = InbeScreenLanguage;
     else
         app->inbe.screen = InbeScreenStart;
-    app->modal = (InbeModal){0};
+    memset(&app->modal, 0, sizeof(app->modal));
     app->meditation.duration_seconds = 0;
     app->meditation.remaining_seconds = 0;
     app->meditation.frame_ticks = 0;
@@ -1581,18 +1613,19 @@ static void
 draw_profile_picture_picker_modal(InbeApp *app)
 {
     ProfilePicturePickerResult result;
+    ProfilePicturePickerProps props;
 
     if(app == NULL)
         return;
 
-    result = ProfilePicturePicker((ProfilePicturePickerProps){
-        .title = "Profile picture",
-        .icons = app->icons,
-        .selected_icon_type = &app->profile_picture_icon,
-        .close_icon = app->icons[UI_ICON_TYPE_X],
-        .max_width = 520,
-        .scroll_offset = &app->profile_picture_picker_scroll
-    });
+    memset(&props, 0, sizeof(props));
+    props.title = "Profile picture";
+    props.icons = app->icons;
+    props.selected_icon_type = &app->profile_picture_icon;
+    props.close_icon = app->icons[UI_ICON_TYPE_X];
+    props.max_width = 520;
+    props.scroll_offset = &app->profile_picture_picker_scroll;
+    result = ProfilePicturePicker(props);
     if(result.changed)
         save_settings(app);
     if(result.closed)
@@ -1602,29 +1635,33 @@ draw_profile_picture_picker_modal(InbeApp *app)
 static TextInputStyle
 app_donation_address_style(void)
 {
-    return (TextInputStyle){
-        .background = DarkenUIColor(GetThemeBackground(), 4),
-        .border = GetThemeButton(),
-        .focus_border = GetThemeButtonHover(),
-        .text = GetThemeText(),
-        .cursor = GetThemeText(),
-        .radius = 0.08f,
-        .padding_x = ScaleUIPx(10),
-        .padding_y = ScaleUIPx(8),
-    };
+    TextInputStyle style;
+
+    memset(&style, 0, sizeof(style));
+    style.background = DarkenUIColor(GetThemeBackground(), 4);
+    style.border = GetThemeButton();
+    style.focus_border = GetThemeButtonHover();
+    style.text = GetThemeText();
+    style.cursor = GetThemeText();
+    style.radius = 0.08f;
+    style.padding_x = ScaleUIPx(10);
+    style.padding_y = ScaleUIPx(8);
+    return style;
 }
 
 static int
 app_donation_address_box_height(const char *address, int w, int font,
                                 TextInputStyle style)
 {
-    return UIGetNodeHeight(UINodeReadonlyTextBox((ReadonlyTextBoxProps){
-        .bounds = {0, 0, (float)w, 0},
-        .text = address,
-        .font = font,
-        .style = style,
-        .line_gap = ScaleUIPx(2),
-    }));
+    ReadonlyTextBoxProps props;
+
+    memset(&props, 0, sizeof(props));
+    props.bounds.width = (float)w;
+    props.text = address;
+    props.font = font;
+    props.style = style;
+    props.line_gap = ScaleUIPx(2);
+    return UIGetNodeHeight(UINodeReadonlyTextBox(props));
 }
 
 static int
@@ -1670,6 +1707,7 @@ app_draw_donation_coin_section(const char *label, const char *address,
     int box_h;
     int hover = 0;
     TextInputStyle style = app_donation_address_style();
+    TextAreaProps text_area;
 
     if(y == NULL)
         return;
@@ -1684,20 +1722,23 @@ app_draw_donation_coin_section(const char *label, const char *address,
     *y += TextLineHeight(label_font) + ScaleUIPx(6);
 
     box_h = app_donation_address_box_height(address, w, address_font, style);
-    TextArea((TextAreaProps){
-        .bounds = {(float)x, (float)*y, (float)w, (float)box_h},
-        .text = address_text,
-        .text_size = address_text_size,
-        .cursor_position = cursor,
-        .focused = focused,
-        .scroll_y = scroll,
-        .font = address_font,
-        .line_gap = ScaleUIPx(2),
-        .focus_id = focus_id,
-        .style = style,
-        .read_only = 1,
-        .wrap = 1,
-    });
+    memset(&text_area, 0, sizeof(text_area));
+    text_area.bounds.x = (float)x;
+    text_area.bounds.y = (float)*y;
+    text_area.bounds.width = (float)w;
+    text_area.bounds.height = (float)box_h;
+    text_area.text = address_text;
+    text_area.text_size = address_text_size;
+    text_area.cursor_position = cursor;
+    text_area.focused = focused;
+    text_area.scroll_y = scroll;
+    text_area.font = address_font;
+    text_area.line_gap = ScaleUIPx(2);
+    text_area.focus_id = focus_id;
+    text_area.style = style;
+    text_area.read_only = 1;
+    text_area.wrap = 1;
+    TextArea(text_area);
     *y += box_h + ScaleUIPx(8);
 
     if(StyledButton(x, *y, button_w, button_h,
@@ -1743,6 +1784,7 @@ draw_about_donation_modal(InbeApp *app)
     int button_w;
     int button_h = ScaleUIPx(36);
     int hover = 0;
+    Texture2D empty_icon;
 
     if(app == NULL)
         return;
@@ -1754,13 +1796,12 @@ draw_about_donation_modal(InbeApp *app)
         modal_w = ScaleUIPx(240);
     content_w = modal_w - ScaleUIPx(36);
 
-    message = (ParagraphSpec){
-        .text = GetLocaleText("about_donation_message"),
-        .width = content_w,
-        .font = GetUISmallFontSize(),
-        .line_gap = ScaleUIPx(4),
-        .color = DarkenUIColor(GetThemeText(), 28),
-    };
+    memset(&message, 0, sizeof(message));
+    message.text = GetLocaleText("about_donation_message");
+    message.width = content_w;
+    message.font = GetUISmallFontSize();
+    message.line_gap = ScaleUIPx(4);
+    message.color = DarkenUIColor(GetThemeText(), 28);
     modal_h = ScaleUIPx(58) +
               UIGetNodeHeight(UINodeParagraph(message, 0, 0)) +
               ScaleUIPx(14) +
@@ -1770,9 +1811,10 @@ draw_about_donation_modal(InbeApp *app)
                                                content_w) +
               button_h + ScaleUIPx(16);
 
+    memset(&empty_icon, 0, sizeof(empty_icon));
     frame = ModalFrame(modal_w, modal_h,
                        GetLocaleText("donation_reminder_title"),
-                       (Texture2D){0}, app->icons[UI_ICON_TYPE_X]);
+                       empty_icon, app->icons[UI_ICON_TYPE_X]);
     if(frame.right_clicked) {
         app_close_modal(app);
         return;
@@ -1823,30 +1865,26 @@ draw_donation_reminder_modal(InbeApp *app)
 {
     int modal_result;
     ModalAction actions[3];
+    ModalProps props;
 
     if(app == NULL)
         return;
 
-    actions[0] = (ModalAction){
-        .label = GetLocaleText("donation_reminder_donate_button"),
-        .style = ButtonStylePrimary
-    };
-    actions[1] = (ModalAction){
-        .label = GetLocaleText("donation_reminder_skip_button"),
-        .style = ButtonStyleSecondary
-    };
-    actions[2] = (ModalAction){
-        .label = GetLocaleText("donation_reminder_dismiss_button"),
-        .style = ButtonStyleDanger
-    };
-    modal_result = ActionModal((ModalProps){
-        .title = GetLocaleText("donation_reminder_title"),
-        .message = GetLocaleText("donation_reminder_message"),
-        .actions = actions,
-        .action_count = 3,
-        .close_icon = app->icons[UI_ICON_TYPE_X],
-        .max_width = 420
-    });
+    memset(actions, 0, sizeof(actions));
+    actions[0].label = GetLocaleText("donation_reminder_donate_button");
+    actions[0].style = ButtonStylePrimary;
+    actions[1].label = GetLocaleText("donation_reminder_skip_button");
+    actions[1].style = ButtonStyleSecondary;
+    actions[2].label = GetLocaleText("donation_reminder_dismiss_button");
+    actions[2].style = ButtonStyleDanger;
+    memset(&props, 0, sizeof(props));
+    props.title = GetLocaleText("donation_reminder_title");
+    props.message = GetLocaleText("donation_reminder_message");
+    props.actions = actions;
+    props.action_count = 3;
+    props.close_icon = app->icons[UI_ICON_TYPE_X];
+    props.max_width = 420;
+    modal_result = ActionModal(props);
     if(modal_result == -1) {
         app_record_donation_reminder_seen(app);
         app_close_modal(app);
@@ -1996,6 +2034,7 @@ updateapp(InbeApp *app)
     int center_x = view_width / 2;
     int frame_view_height = view_height;
     int center_y;
+    int i;
     int hover = 0;
     AppRoute frame_route = app_current_route(app);
     int first_run_guide_active = 0;
@@ -2004,6 +2043,8 @@ updateapp(InbeApp *app)
     int global_modal_drawn = 0;
     int content_input_clip_active = 0;
     int bottom_input_reserved = 0;
+    Rectangle input_rect;
+    Rectangle input_clip_rect;
 
 #if ANDROID_BUILD
     {
@@ -2066,7 +2107,7 @@ updateapp(InbeApp *app)
     app_breaks_update(app);
     app_update_nav_sidebar_mode(app);
     app_notifications_tick(app);
-    for(int i = 0; i < practice_count(); i++) {
+    for(i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->update != NULL)
             practice->update(app);
@@ -2083,21 +2124,27 @@ updateapp(InbeApp *app)
     practice_fullscreen_modal =
         app->modal.active &&
         app->modal.type == UIModalEditProgressiveStartSpeed;
+    input_rect.x = 0;
+    input_rect.y = 0;
+    input_rect.width = (float)view_width;
+    input_rect.height = (float)view_height;
     if(app->nav_sidebar_open)
-        PushUIInputCapture((Rectangle){0, 0, (float)view_width,
-                                       (float)view_height}, 0);
+        PushUIInputCapture(input_rect, 0);
     if(app->modal.active)
         BeginUIModalLayer();
     if(app->close_prompt_open || first_run_guide_active || habits_guide_active) {
-        PushUIInputCapture((Rectangle){0, 0, (float)view_width, (float)view_height}, 0);
+        PushUIInputCapture(input_rect, 0);
     }
 
     view_height = app_page_height(app, view_height);
     center_y = view_height / 2;
     bottom_input_reserved = app_content_bottom_reserved(app);
     if(bottom_input_reserved > 0 && bottom_input_reserved < view_height) {
-        PushUIInputClip((Rectangle){0, 0, (float)view_width,
-                                       (float)(view_height - bottom_input_reserved)});
+        input_clip_rect.x = 0;
+        input_clip_rect.y = 0;
+        input_clip_rect.width = (float)view_width;
+        input_clip_rect.height = (float)(view_height - bottom_input_reserved);
+        PushUIInputClip(input_clip_rect);
         content_input_clip_active = 1;
     }
     if(IsKeyPressed(KEY_BACK)
@@ -2322,7 +2369,7 @@ app_update_draw(void *vapp, Rectangle viewport) {
     view_width = content_w;
     view_height = full_height;
     SetUIViewSize(view_width, view_height);
-    app->camera = (Camera2D){0};
+    memset(&app->camera, 0, sizeof(app->camera));
     app->camera.zoom = 1.0f;
     app->camera.offset.x = IsUIInspectActive() ? 0.0f : viewport.x + content_x;
     app->camera.offset.y = IsUIInspectActive() ? 0.0f : viewport.y;
@@ -2372,6 +2419,8 @@ void
 app_destroy(void *vapp)
 {
     InbeApp *app = vapp;
+    int i;
+
     if (app == NULL) return;
 
     CloseUIWindow(app->break_window);
@@ -2392,7 +2441,7 @@ app_destroy(void *vapp)
         unload_locale_font(app);
 
     unload_cue_sounds(app);
-    for(int i = 0; i < practice_count(); i++) {
+    for(i = 0; i < practice_count(); i++) {
         const PracticeDefinition *practice = practice_get(i);
         if(practice->destroy != NULL)
             practice->destroy(app);

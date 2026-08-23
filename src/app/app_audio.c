@@ -190,14 +190,17 @@ app_audio_output_level(InbeApp *app)
 void
 unload_cue_sounds(InbeApp *app)
 {
+    Sound empty;
+
     if(app == NULL)
         return;
     SafeUnloadSound(app->breath_in_sound);
     SafeUnloadSound(app->breath_out_sound);
     SafeUnloadSound(app->bell_sound);
-    app->breath_in_sound = (Sound){0};
-    app->breath_out_sound = (Sound){0};
-    app->bell_sound = (Sound){0};
+    memset(&empty, 0, sizeof(empty));
+    app->breath_in_sound = empty;
+    app->breath_out_sound = empty;
+    app->bell_sound = empty;
 }
 
 static Sound

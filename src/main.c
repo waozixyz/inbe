@@ -74,6 +74,47 @@ extern struct android_app *GetAndroidApp(void);
 #include <emscripten/emscripten.h>
 #endif
 
+#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
+enum {
+    INBE_DESKTOP_SINGLE_INSTANCE_PATH_MAX = 600
+};
+
+static const char *INBE_DESKTOP_APP_ID = "xyz.waozi.inbe";
+static const char *INBE_DESKTOP_APP_NAME = "inbe";
+static const char *INBE_DESKTOP_DISPLAY_NAME = "Inner Breeze";
+static const char *INBE_DESKTOP_SUMMARY =
+    "Syncable breathing, meditation, and habit practice app.";
+
+static void
+inbe_init_desktop_identity(void)
+{
+    DesktopAppInfo info = {
+        INBE_DESKTOP_APP_ID,
+        INBE_DESKTOP_APP_NAME,
+        INBE_DESKTOP_DISPLAY_NAME,
+        INBE_DESKTOP_SUMMARY,
+        INBE_DESKTOP_APP_ID,
+        INBE_DESKTOP_APP_ID,
+        0
+    };
+
+    InitDesktopApp(&info);
+#if defined(_WIN32)
+    _putenv("SDL_APP_NAME=Inner Breeze");
+#else
+    setenv("SDL_APP_NAME", INBE_DESKTOP_DISPLAY_NAME, 1);
+    setenv("SDL_VIDEO_X11_WMCLASS", INBE_DESKTOP_APP_ID, 1);
+    setenv("SDL_VIDEO_WAYLAND_WMCLASS", INBE_DESKTOP_APP_ID, 1);
+    setenv("SDL_VIDEO_WAYLAND_APP_ID", INBE_DESKTOP_APP_ID, 1);
+#endif
+}
+#else
+static void
+inbe_init_desktop_identity(void)
+{
+}
+#endif
+
 static void
 set_desktop_window_icon(void)
 {
@@ -174,11 +215,11 @@ handle_shutdown_signal(int signum)
 static void
 inbe_ensure_single_instance(void)
 {
-    char lock_path[600];
+    char lock_path[INBE_DESKTOP_SINGLE_INSTANCE_PATH_MAX];
     int acquired;
 
     acquired = AcquireDesktopSingleInstanceMode(
-        "xyz.waozi.inbe", DESKTOP_SINGLE_INSTANCE_REPLACE,
+        INBE_DESKTOP_APP_ID, DESKTOP_SINGLE_INSTANCE_REPLACE,
         lock_path, (int)sizeof(lock_path));
     if(acquired != 1) {
         TraceLog(LOG_WARNING, "INBE: cannot acquire single-instance lock: %s",
@@ -922,6 +963,8 @@ int main(int argc, char **argv) {
 #endif
     }
     install_trace_log_filter();
+    if(!screenshot.active)
+        inbe_init_desktop_identity();
     if(screenshot.active) {
         SetTraceLogLevel(LOG_WARNING);
         config.width = screenshot.width;

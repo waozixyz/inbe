@@ -29,13 +29,36 @@ register_ui_font_source(const char *name, const char *path,
         return 0;
 
     asset = GetEmbeddedAsset(path);
-    if(asset == NULL)
+    if(asset == NULL) {
+#if defined(KRYON_PLATFORM_PLAN9)
+        return RegisterUIFontFileSource(name, path, codepoints, codepoint_count);
+#else
         return 0;
+#endif
+    }
 
     return RegisterUIFontSource(name, GetEmbeddedAssetExtension(path),
                                 asset->data, asset->size,
                                 codepoints, codepoint_count);
 }
+
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+static int
+register_desktop_system_ui_font(void)
+{
+    char font_path[512];
+
+    if(!GetSystemUIFontFile(font_path, (int)sizeof(font_path)))
+        return 0;
+    if(!RegisterUIFontFileSource("ui", font_path, NULL, 0)) {
+        TraceLog(LOG_WARNING, "INBE: failed to load system UI font: %s",
+                 font_path);
+        return 0;
+    }
+    TraceLog(LOG_INFO, "INBE: using system UI font: %s", font_path);
+    return 1;
+}
+#endif
 
 #if ANDROID_BUILD
 /* Android system fonts act as cross-font fallback for scripts the bundled
@@ -106,6 +129,7 @@ load_locale_font(InbeApp *app)
     const char *code;
     const char *font_path;
     const EmbeddedAsset *font_asset;
+    int system_font_active = 0;
     int ok = 0;
 
     if(app == NULL)
@@ -116,15 +140,35 @@ load_locale_font(InbeApp *app)
         code = "en";
     font_path = ui_font_asset_for_locale(code);
     font_asset = GetEmbeddedAsset(font_path);
+#if !defined(KRYON_PLATFORM_PLAN9)
     if(font_asset == NULL)
         return 0;
+#endif
 
     if(!IsUIInspectActive())
         ClearUIFonts();
-    if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
-                             font_asset->data, font_asset->size,
-                             NULL, 0))
-        goto done;
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+    system_font_active = register_desktop_system_ui_font();
+#endif
+    if(system_font_active && font_asset != NULL) {
+        (void)RegisterUIFontSource("ui-locale", GetEmbeddedAssetExtension(font_path),
+                                   font_asset->data, font_asset->size,
+                                   NULL, 0);
+    } else {
+        if(font_asset != NULL) {
+            if(!RegisterUIFontSource("ui", GetEmbeddedAssetExtension(font_path),
+                                     font_asset->data, font_asset->size,
+                                     NULL, 0))
+                goto done;
+        } else {
+#if defined(KRYON_PLATFORM_PLAN9)
+            if(!RegisterUIFontFileSource("ui", font_path, NULL, 0))
+                goto done;
+#else
+            goto done;
+#endif
+        }
+    }
 #if ANDROID_BUILD
     register_android_system_font_fallbacks();
 #endif

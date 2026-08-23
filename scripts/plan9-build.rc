@@ -1,0 +1,87 @@
+#!/bin/rc
+
+rfork e
+
+root=/sys/src/inbe
+kroot=/sys/src/kryon
+list=$root/build/plan9/generated-c-files.txt
+obj=$root/build/plan9/obj
+bin=$root/build/plan9/inbe
+tmp=/tmp/inbe-plan9-build.$pid
+
+if(! test -f $list){
+	echo 'missing '^$list^'; run scripts/prepare-plan9-generated-c.py on the host first' >[1=2]
+	exit missing
+}
+
+if(! cd $root)
+	exit cd
+
+if(! test -d $obj)
+	mkdir $obj
+if(test -d $tmp)
+	rm -rf $tmp
+mkdir $tmp
+
+includes=('-I/sys/src/kryon/src/platform/plan9/include' '-I/sys/src/kryon/include' '-I/sys/src/kryon/src' '-I/sys/src/kryon/src/ui' '-I/sys/src/kryon/vendor/raylib/src/external' '-I/sys/src/inbe/build/plan9/include' '-I/sys/src/inbe/src' '-I/sys/src/inbe/src/app' '-I/sys/src/inbe/src/core' '-I/sys/src/inbe/src/screens' '-I/sys/src/inbe/src/screens/settings' '-I/sys/src/inbe/src/practices' '-I/sys/src/inbe/src/practices/whm' '-I/sys/src/inbe/src/practices/meditation' '-I/sys/src/inbe/src/practices/sun_salutation' '-I/sys/src/inbe/src/storage' '-I/sys/src/inbe/src/platform' '-I/sys/src/inbe/src/platform/android' '-I/sys/src/inbe/src/third_party' '-I/sys/src/inbe/vendor-builds/sqlite' '-I/sys/src/inbe/build/plan9/generated' '-I/sys/src/inbe/build/plan9/generated/src')
+
+defs=('-DANDROID_BUILD=0' '-DPLATFORM_DESKTOP=1' '-DKRYON_BACKEND_LIBDRAW=1' '-DKRYON_PLATFORM_PLAN9=1' '-DKRYON_NATIVE_PLAN9=1' '-DUI_EMBEDDED_ONLY=1' '-DMINIZ_NO_ZLIB_COMPATIBLE_NAMES=1' '-DINBE_DISABLE_KRYON_FILE_DIALOG=1' '-DSQLITE_OS_OTHER=1' '-DSQLITE_THREADSAFE=0' '-DSQLITE_OMIT_LOAD_EXTENSION=1' '-DSQLITE_OMIT_WAL=1' '-DSQLITE_TEMP_STORE=3')
+
+objs=()
+
+fn objpath {
+	echo $obj/`{echo $1 | sed 's@^/sys/src/inbe/@@; s@/@_@g; s@\.c$@.8@'}
+}
+
+fn tmppath {
+	echo $tmp/`{echo $1 | sed 's@^/sys/src/inbe/@@; s@/@_@g; s@\.c$@.i@'}
+}
+
+fn compile {
+	f=$1
+	src=$f
+	o=`{objpath $f}
+	i=`{tmppath $f}
+	if(! ~ $INBE_PLAN9_REBUILD 1 && ! ~ $f src/platform/plan9/* && test -f $o){
+		echo keep $f
+		objs=($objs $o)
+	}
+	if not {
+		echo cpp $f
+		if(! cpp -+ $includes $defs $src > $i){
+			echo failed cpp $f >[1=2]
+			rm -rf $tmp
+			exit cpp
+		}
+		echo 8c $f
+		if(! 8c -FTVw -o $o -c $i){
+			echo failed 8c $f >[1=2]
+			rm -rf $tmp
+			exit 8c
+		}
+		objs=($objs $o)
+	}
+}
+
+generated=`{cat $list}
+appsrc=(src/platform/plan9/inbe_plan9_main.c src/platform/plan9/inbe_plan9_assets.c src/platform/plan9/sqlite3_stub.c src/platform/plan9/storage_import_stub.c src/platform/plan9/meditation_music_stub.c src/app/app.c src/app/app_audio.c src/app/app_fonts.c src/app/audio_library.c src/app/app_update_check.c src/app/app_update_zip.c src/app/app_web_bridge.c src/platform/inbe_activity_monitor.c src/storage/storage.c src/storage/sync_client.c)
+
+for(f in $generated) {
+	if(~ $f build/plan9/generated/src/storage/import.c build/plan9/generated/src/practices/meditation/meditation_music.c)
+		echo skip $f
+	if not
+		compile $f
+}
+
+for(f in $appsrc)
+	compile $f
+
+echo 8l $bin
+if(! 8l -o $bin $objs -lkryon -ldraw -lmemdraw -lmemlayer -lbio -lregexp -lString){
+	echo failed 8l >[1=2]
+	rm -rf $tmp
+	exit 8l
+}
+
+rm -rf $tmp
+echo built $bin
