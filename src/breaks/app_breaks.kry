@@ -436,7 +436,7 @@ app_breaks_update :: (app: InbeApp*) {
         }
 
         if event == BreakEventPrompt {
-            ShowUIToastFor(GetLocaleText("break_prelude_text"), BreakPreludeToastS)
+            ShowToastFor(GetLocaleText("break_prelude_text"), BreakPreludeToastS)
             break_play_cue(app, 0.8f)
         } else if event == BreakEventStart {
             break_engine_open_window(app, t)
