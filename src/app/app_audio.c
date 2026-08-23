@@ -7,6 +7,29 @@
 static volatile int g_audio_meter_peak_milli;
 static void SafeUnloadSound(Sound sound);
 
+#if defined(KRYON_PLATFORM_PLAN9)
+static Sound
+load_sound_file_asset(const char *path)
+{
+    Wave wave;
+    Sound sound;
+
+    memset(&sound, 0, sizeof(sound));
+    wave = LoadWave(path);
+    if(wave.data == NULL)
+        return sound;
+    WaveFormat(&wave, 44100, 16, 2);
+    sound = LoadSoundFromWave(wave);
+    UnloadWave(wave);
+    if(sound.frameCount == 0)
+        TraceLog(LOG_ERROR, "AUDIO: Failed to create sound from file asset: %s", path);
+    else
+        TraceLog(LOG_INFO, "AUDIO: Loaded sound file asset %s (%d frames)",
+                 path, (int)sound.frameCount);
+    return sound;
+}
+#endif
+
 static Sound
 load_sound_asset(const char *name)
 {
@@ -18,14 +41,22 @@ load_sound_asset(const char *name)
     snprintf(path, sizeof(path), "assets/sounds/%s", name);
     asset = GetEmbeddedAsset(path);
     if(asset == NULL || asset->data == NULL || asset->size == 0) {
+#if defined(KRYON_PLATFORM_PLAN9)
+        return load_sound_file_asset(path);
+#else
         TraceLog(LOG_ERROR, "AUDIO: Missing embedded sound asset: %s", path);
         return sound;
+#endif
     }
 
     wave = LoadWaveFromMemory(GetEmbeddedAssetExtension(path), asset->data, (int)asset->size);
     if(wave.data == NULL) {
+#if defined(KRYON_PLATFORM_PLAN9)
+        return load_sound_file_asset(path);
+#else
         TraceLog(LOG_ERROR, "AUDIO: Failed to decode embedded sound asset: %s", path);
         return sound;
+#endif
     }
 
     WaveFormat(&wave, 44100, 16, 2);
@@ -34,7 +65,8 @@ load_sound_asset(const char *name)
     if(sound.frameCount == 0)
         TraceLog(LOG_ERROR, "AUDIO: Failed to create sound from embedded asset: %s", path);
     else
-        TraceLog(LOG_INFO, "AUDIO: Loaded sound asset %s (%u frames)", path, sound.frameCount);
+        TraceLog(LOG_INFO, "AUDIO: Loaded sound asset %s (%d frames)",
+                 path, (int)sound.frameCount);
     return sound;
 }
 

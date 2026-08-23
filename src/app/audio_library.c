@@ -26,9 +26,15 @@ static const char *const audio_cue_setting_keys[INBE_AUDIO_CUE_COUNT] = {
 };
 
 static const char *const audio_cue_default_files[INBE_AUDIO_CUE_COUNT] = {
+#if defined(KRYON_PLATFORM_PLAN9)
+    "breath-in.wav",
+    "breath-out.wav",
+    "bell.wav"
+#else
     "breath-in.ogg",
     "breath-out.ogg",
     "bell.ogg"
+#endif
 };
 
 #define INBE_AUDIO_MUSIC_EXTENSIONS ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"
