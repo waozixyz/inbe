@@ -6,6 +6,7 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 root_dir=$(dirname -- "$script_dir")
 out_dir="$root_dir/build/site"
 web_dir="$root_dir/build/dist/web"
+kryon_dir=${KRYON_DIR:-"$root_dir/vendor/kryon"}
 
 read_version() {
 	awk '
@@ -43,6 +44,18 @@ copy_dir_contents() {
 	require_path "$src"
 	mkdir -p "$dst"
 	cp -R "$src"/. "$dst"/
+}
+
+sync_shared_web_icons() {
+	sync_script="$kryon_dir/scripts/sync-icons.sh"
+	require_path "$sync_script"
+	sh "$sync_script" --group platforms --flat "$root_dir/web-assets/icons" \
+		appimage chromewebstore debian droid fdroid fedora flatpak freebsd \
+		github itch playstore snap tux win
+	sh "$sync_script" --group language --flat "$root_dir/web-assets/icons" \
+		ray uxn wasm wasm4
+	sh "$sync_script" --group tiles --flat "$root_dir/web-assets/icons" tile2
+	sh "$sync_script" --group proj --flat "$root_dir/web-assets/icons" inbe
 }
 
 expand_template_file() {
@@ -199,6 +212,7 @@ write_site_imports "$asset_version"
 copy_template_dir "$script_dir/static" "$out_dir" "$version" "$asset_version"
 expand_template_file "$script_dir/index.html" "$out_dir/index.html" "$version" "$asset_version"
 
+sync_shared_web_icons
 copy_dir_contents "$root_dir/web-assets" "$out_dir/web-assets"
 copy_dir_contents "$root_dir/site-icons" "$out_dir/site-icons"
 

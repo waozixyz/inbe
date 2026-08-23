@@ -198,11 +198,16 @@ WEB_RAYLIB_BUILD_DIR := $(VENDOR_BUILD_DIR)/web/raylib
 WEB_RAYLIB_A := $(WEB_RAYLIB_BUILD_DIR)/libraylib.web.a
 RAYLIB_SOURCES := $(shell find $(RAYLIB_DIR) -type f \( -name '*.c' -o -name '*.h' \))
 
-KRYON_ICON_DIRS := icons language payments platforms tiles pfp
-KRYON_ICON_FILES := $(foreach dir,$(KRYON_ICON_DIRS),$(wildcard $(KRYON_DIR)/$(dir)/*.png))
+KRYON_ICON_DIR := icons
+KRYON_ICON_FILES := $(shell find $(KRYON_DIR)/$(KRYON_ICON_DIR) -path '*/review/*' -prune -o -type f -name '*.png' -print 2>/dev/null | LC_ALL=C sort)
 KRYON_ICON_ASSETS_C := $(KRYON_DIR)/src/ui/ui_icon_assets.c
 KRYON_ICON_STAMP := $(BUILD_OBJ_DIR)/kryon-icons.sha256
 KRYON_SRCS := $(filter-out $(KRYON_ICON_ASSETS_C),$(shell find $(KRYON_DIR)/src -type f -name '*.c' | LC_ALL=C sort)) $(KRYON_ICON_ASSETS_C)
+KRYON_SYNC_ICONS := $(KRYON_DIR)/scripts/sync-icons.sh
+WEB_SHARED_PLATFORM_ICONS := appimage chromewebstore debian droid fdroid fedora flatpak freebsd github itch playstore snap tux win
+WEB_SHARED_LANGUAGE_ICONS := ray uxn wasm wasm4
+WEB_SHARED_TILE_ICONS := tile2
+WEB_SHARED_PROJECT_ICONS := inbe
 KRYON_LIBDRAW_SRCS := $(filter $(KRYON_DIR)/src/backend/libdraw_%.c,$(KRYON_SRCS))
 KRYON_SRCS := $(filter-out $(KRYON_LIBDRAW_SRCS),$(KRYON_SRCS))
 ifneq ($(KRYON_BACKEND),libdraw)
@@ -531,7 +536,7 @@ MEDITATION_AUDIO_TRACKS := \
 
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
-.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site site-release-assets-check chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons
+.PHONY: web-canvas web-canvas-smoke-test web-compare-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site site-release-assets-check chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons sync-web-icons
 .PHONY: no-vendor-edits
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
@@ -799,7 +804,7 @@ $(EMBEDDED_ASSETS_C): Makefile $(EMBEDDED_ASSET_FILES) $(KRYON_DIR)/scripts/embe
 
 $(KRYON_ICON_STAMP): FORCE $(KRYON_ICON_FILES) | $(BUILD_OBJ_DIR)
 	@tmp="$@.tmp"; \
-	for dir in $(KRYON_ICON_DIRS); do find "$(KRYON_DIR)/$$dir" -maxdepth 1 -type f -name '*.png' 2>/dev/null; done | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
+	find "$(KRYON_DIR)/$(KRYON_ICON_DIR)" -path '*/review/*' -prune -o -type f -name '*.png' -print 2>/dev/null | LC_ALL=C sort | while IFS= read -r file; do sha256sum "$$file"; done > "$$tmp"; \
 	if ! cmp -s "$$tmp" "$@"; then mv "$$tmp" "$@"; else rm "$$tmp"; fi
 
 $(KRYON_ICON_ASSETS_C): $(KRYON_ICON_ASSETS_DEPS)
@@ -811,7 +816,13 @@ $(KRYON_ICON_ASSETS_C): $(KRYON_ICON_ASSETS_DEPS)
 		fi; \
 		exit 0; \
 	fi
-	cd $(KRYON_DIR) && sh scripts/embed-icons.sh "$(KRYON_ICON_DIRS)" src/ui/ui_icon_assets.c
+	cd $(KRYON_DIR) && sh scripts/embed-icons.sh "$(KRYON_ICON_DIR)" src/ui/ui_icon_assets.c
+
+sync-web-icons: $(KRYON_SYNC_ICONS)
+	sh $(KRYON_SYNC_ICONS) --group platforms --flat web-assets/icons $(WEB_SHARED_PLATFORM_ICONS)
+	sh $(KRYON_SYNC_ICONS) --group language --flat web-assets/icons $(WEB_SHARED_LANGUAGE_ICONS)
+	sh $(KRYON_SYNC_ICONS) --group tiles --flat web-assets/icons $(WEB_SHARED_TILE_ICONS)
+	sh $(KRYON_SYNC_ICONS) --group proj --flat web-assets/icons $(WEB_SHARED_PROJECT_ICONS)
 
 $(WEB_RAYLIB_A): web-tools-check
 $(WEB_LIBOQS_A): web-tools-check
@@ -1344,7 +1355,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQ
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
 		-lidbfs.js \
 		-lm
 
@@ -1381,7 +1392,7 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js
@@ -1604,6 +1615,7 @@ windows-setup: windows windows-setup-check
 
 web:
 	$(MAKE) validate-meditation-audio
+	$(MAKE) sync-web-icons
 	$(MAKE) $(WEB_TARGET)
 	$(MAKE) web-smoke-test
 	rm -f $(WEB_DIST_ZIP)
