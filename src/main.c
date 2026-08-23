@@ -1,5 +1,5 @@
 #include "kryon.h"
-#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD && defined(UI_WINDOW_HAVE_SDL)
 #include <SDL2/SDL.h>
 #endif
 #include "app.h"
@@ -29,7 +29,7 @@ int kry_write_png_file(const char *path, const unsigned char *rgba,
 #include <malloc.h>
 #endif
 
-#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD && defined(UI_WINDOW_HAVE_SDL)
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
@@ -994,7 +994,7 @@ int main(int argc, char **argv) {
 #endif
         return 1;
     }
-#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD
+#if !defined(PLATFORM_WEB) && !defined(_WIN32) && !ANDROID_BUILD && defined(UI_WINDOW_HAVE_SDL)
     /* raylib asks SDL for MOUSE_CAPTURE at window creation. An active
      * pointer grab on the main window swallows clicks and drags on every
      * other window of the process (break HUD), and nothing needs it. */

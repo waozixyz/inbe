@@ -151,6 +151,8 @@ VERSION_FILE := src/core/version.h
 APP_VERSION := $(shell awk '/INBE_VERSION_STRING/ { print $$3; exit }' $(VERSION_FILE) 2>/dev/null | tr -d '"')
 
 KRYON_DIR ?= vendor/kryon
+KRYON_BACKEND ?= raylib
+PLAN9PORT_DIR ?= /mnt/storage/Projects/plan9port
 RAYLIB_DIR = $(KRYON_DIR)/vendor/raylib/src
 RAYLIB_BUILD_DIR := $(NATIVE_VENDOR_BUILD_DIR)/raylib
 RAYLIB_A := $(RAYLIB_BUILD_DIR)/libraylib.a
@@ -451,7 +453,27 @@ ifneq ($(wildcard $(WEB_EMSDK_BIN)/emcc),)
 export PATH := $(WEB_EMSDK_BIN):$(PATH)
 endif
 include $(KRYON_DIR)/mk/raylib.mk
+KRYON_NATIVE_BACKEND_DEPS :=
+KRYON_NATIVE_BACKEND_LIBS :=
+KRYON_NATIVE_CFLAGS := $(CFLAGS)
+KRYON_NATIVE_BACKEND_CFLAGS :=
+KRYON_NATIVE_BACKEND_LDLIBS :=
+ifeq ($(KRYON_BACKEND),raylib)
 KRYON_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
+KRYON_NATIVE_BACKEND_DEPS := $(RAYLIB_A)
+KRYON_NATIVE_BACKEND_LIBS := $(RAYLIB_A)
+KRYON_NATIVE_BACKEND_CFLAGS := $(RAY_CFLAGS)
+KRYON_NATIVE_BACKEND_LDLIBS := $(RAY_LDLIBS)
+else ifeq ($(KRYON_BACKEND),libdraw)
+KRYON_SRCS += $(KRYON_LIBDRAW_SRCS)
+KRYON_NATIVE_CFLAGS := $(filter-out -DUI_WINDOW_HAVE_SDL,$(COMMON_CFLAGS)) -std=c99 $(RUNTIME_ASSET_CFLAGS) $(SYSTEM_THEME_CFLAGS) $(KRYON_NOTIFICATION_CPPFLAGS) $(KRYON_NOTIFICATION_CFLAGS)
+KRYON_NATIVE_BACKEND_CFLAGS := -DKRYON_BACKEND_LIBDRAW=1 -I$(PLAN9PORT_DIR)/include -idirafter $(RAYLIB_DIR)/external
+KRYON_NATIVE_BACKEND_LDLIBS := -L$(PLAN9PORT_DIR)/lib -ldraw -lmemdraw -lmux -lthread -l9 -lpthread -lm
+DESKTOP_TRAY_CFLAGS :=
+DESKTOP_TRAY_LDLIBS :=
+else
+$(error Unknown KRYON_BACKEND '$(KRYON_BACKEND)' (expected raylib or libdraw))
+endif
 KRYON_WEB_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_WINDOWS_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
 KRYON_CLICK_SRCS += $(KRYON_RAYLIB_WRAPPERS_C)
@@ -595,7 +617,7 @@ web-tools-check:
 
 vendor-prebuilds: vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows
 
-vendor-prebuilds-native: $(RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK)
+vendor-prebuilds-native: $(KRYON_NATIVE_BACKEND_DEPS) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK)
 
 vendor-prebuilds-web: web-tools-check $(WEB_RAYLIB_A) $(SQLITE_AMALGAMATION_C) $(SQLITE_AMALGAMATION_H) $(WEB_LIBOQS_A)
 
@@ -913,13 +935,13 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_MINIMAL_BUILD=$(KRYON_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
-$(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(RAYLIB_A) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
-	$(CC) $(CFLAGS) \
+$(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRYON_NATIVE_BACKEND_DEPS) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
+	$(CC) $(KRYON_NATIVE_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
 		$(SQLITE_INCLUDE) \
 		$(LIBOQS_INCLUDE) \
-		$(RAY_CFLAGS) \
+		$(KRYON_NATIVE_BACKEND_CFLAGS) \
 		-DHAS_LIBOQS=1 \
 		-DSUPPORT_MODULE_RAUDIO=1 \
 		-DSUPPORT_FILEFORMAT_OGG=1 \
@@ -928,9 +950,9 @@ $(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQL
 		$(SRC) \
 		$(KRYON_SRCS) \
 		$(SQLITE_SRC) \
-		$(RAYLIB_A) \
+		$(KRYON_NATIVE_BACKEND_LIBS) \
 		$(LIBOQS_A) \
-		$(RAY_LDLIBS) \
+		$(KRYON_NATIVE_BACKEND_LDLIBS) \
 		$(RUNTIME_ASSET_LDLIBS) \
 		$(DESKTOP_TRAY_LDLIBS) \
 		$(NATIVE_SYSTEM_LDLIBS) \
@@ -1679,6 +1701,7 @@ NEEDS_DEB_NATIVE := $(if $(strip $(DEB_BIN_SOURCE)),,$(if $(filter linux,$(NATIV
 NEEDS_RPM_NATIVE := $(if $(strip $(RPM_BIN_SOURCE)),,$(if $(filter linux,$(NATIVE_PLATFORM)),$(filter rpm package-rpm,$(MAKECMDGOALS))))
 NEEDS_NATIVE_ENV := $(if $(MAKECMDGOALS),$(filter all native install install-user stage package-freebsd run run-fresh dist appimage vendor-prebuilds vendor-prebuilds-native,$(MAKECMDGOALS)) $(NEEDS_DEB_NATIVE) $(NEEDS_RPM_NATIVE),native)
 ifneq ($(strip $(NEEDS_NATIVE_ENV)),)
+ifeq ($(KRYON_BACKEND),raylib)
 ifeq ($(strip $(RAY_CFLAGS)),)
 $(error RAY_CFLAGS is not set. Install pkg-config metadata for $(RAY_PKGS), or set RAY_CFLAGS explicitly)
 endif
@@ -1693,6 +1716,15 @@ $(error RAY_SDL_INCLUDE_DIR is not set. Install SDL2 development files or set RA
 endif
 ifeq ($(strip $(RAY_RAYLIB_CONFIG)),)
 $(error RAY_RAYLIB_CONFIG is not set. Set RAY_RAYLIB_CONFIG explicitly)
+endif
+endif
+ifeq ($(KRYON_BACKEND),libdraw)
+ifeq ($(wildcard $(PLAN9PORT_DIR)/include/draw.h),)
+$(error plan9port draw.h is missing. Set PLAN9PORT_DIR to a plan9port install with include/draw.h)
+endif
+ifeq ($(wildcard $(PLAN9PORT_DIR)/lib/libdraw.a),)
+$(error plan9port libdraw.a is missing. Set PLAN9PORT_DIR to a plan9port install with lib/libdraw.a)
+endif
 endif
 ifeq ($(strip $(KRYON_CURL_LDLIBS)),)
 $(error libcurl metadata is missing. Install libcurl pkg-config metadata or set KRYON_CURL_CFLAGS/KRYON_CURL_LDLIBS explicitly)
