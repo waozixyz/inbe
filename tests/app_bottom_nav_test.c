@@ -16,7 +16,7 @@ static int mouse_released = 0;
 static int bottom_nav_draw_count = 0;
 static int bottom_nav_clicked_route = APP_NAV_ROUTE_NONE;
 static BottomNavProps bottom_nav_last;
-static UIBottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
+static BottomNavItem bottom_nav_items_last[APP_BOTTOM_NAV_CONTENT_MAX + 1];
 static int save_settings_count = 0;
 static int reset_settings_preview_count = 0;
 static int settings_status_clear_count = 0;
@@ -268,7 +268,7 @@ IsMouseButtonPressed(int button)
     return false;
 }
 
-UIBottomNavResult
+BottomNavResult
 BottomNav(BottomNavProps nav)
 {
     bottom_nav_last = nav;
@@ -278,7 +278,7 @@ BottomNav(BottomNavProps nav)
         bottom_nav_items_last[i] = nav.items[i];
     bottom_nav_last.items = bottom_nav_items_last;
     bottom_nav_draw_count++;
-    return (UIBottomNavResult){
+    return (BottomNavResult){
         .clicked_route = bottom_nav_clicked_route,
         .clicked_index = bottom_nav_clicked_route == APP_NAV_ROUTE_NONE ? -1 : 0,
         .y = 508,
@@ -295,11 +295,11 @@ UINodeBottomNav(BottomNavProps nav)
     return node;
 }
 
-UISidebarAccountHeaderResult
-SidebarAccountHeader(UISidebarAccountHeaderSpec header)
+SidebarAccountHeaderResult
+SidebarAccountHeader(SidebarAccountHeaderProps header)
 {
     (void)header;
-    return (UISidebarAccountHeaderResult){
+    return (SidebarAccountHeaderResult){
         .height = 138
     };
 }
@@ -324,11 +324,9 @@ EndUIScrollContainer(UIScrollArea area, UIScrollView view)
 }
 
 int
-GenericButton(int id, int x, int y, int w, int h,
-              const char *label, UIButtonStyle style, int disabled,
-              int *hover)
+StyledButton(int x, int y, int w, int h, const char *label,
+             ButtonStyle style, int disabled, int *hover)
 {
-    (void)id;
     (void)x;
     (void)y;
     (void)w;
