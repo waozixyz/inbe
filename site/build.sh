@@ -49,18 +49,23 @@ expand_template_file() {
 	src=$1
 	dst=$2
 	version=$3
+	asset_version=$4
 	mkdir -p "$(dirname -- "$dst")"
-	sed "s#\\\${version}#$version#g" "$src" > "$dst"
+	sed \
+		-e "s#\\\${version}#$version#g" \
+		-e "s#\\\${asset_version}#$asset_version#g" \
+		"$src" > "$dst"
 }
 
 copy_template_file() {
 	template_src=$1
 	template_dst=$2
 	template_version=$3
+	template_asset_version=$4
 
 	case ${template_src##*.} in
 		html|htm|txt|xml|json|css|js)
-			expand_template_file "$template_src" "$template_dst" "$template_version"
+			expand_template_file "$template_src" "$template_dst" "$template_version" "$template_asset_version"
 			;;
 		*)
 			copy_path "$template_src" "$template_dst"
@@ -72,6 +77,7 @@ copy_template_dir() {
 	template_src_dir=$1
 	template_dst_dir=$2
 	template_version=$3
+	template_asset_version=$4
 
 	require_path "$template_src_dir"
 	find "$template_src_dir" -type d -print | while IFS= read -r dir_path; do
@@ -80,16 +86,18 @@ copy_template_dir() {
 	done
 	find "$template_src_dir" -type f -print | while IFS= read -r file_path; do
 		rel=${file_path#"$template_src_dir"/}
-		copy_template_file "$file_path" "$template_dst_dir/$rel" "$template_version"
+		copy_template_file "$file_path" "$template_dst_dir/$rel" "$template_version" "$template_asset_version"
 	done
 }
 
 write_site_imports() {
-	cat > "$out_dir/style.css" <<'EOF'
-@import url('/css/base.css');
-@import url('/css/components.css');
-@import url('/theme.css');
-EOF
+	asset_version=$1
+	: > "$out_dir/style.css"
+	{
+		printf "@import url('/css/base.css?v=%s');\n" "$asset_version"
+		printf "@import url('/css/components.css?v=%s');\n" "$asset_version"
+		printf "@import url('/theme.css?v=%s');\n" "$asset_version"
+	} >> "$out_dir/style.css"
 }
 
 write_web_app_csp_html() {
@@ -173,15 +181,23 @@ version=$(read_version) || {
 	printf 'Error: could not read app version from %s\n' "$root_dir/src/core/version.h" >&2
 	exit 1
 }
+asset_version=${SITE_ASSET_VERSION:-}
+if [ -z "$asset_version" ]; then
+	if git -C "$root_dir" diff --quiet --ignore-submodules HEAD -- 2>/dev/null; then
+		asset_version=$(git -C "$root_dir" rev-parse --short HEAD 2>/dev/null || date +%s)
+	else
+		asset_version=$(date +%s)
+	fi
+fi
 
 rm -rf "$out_dir"
 mkdir -p "$out_dir"
 
 copy_dir_contents "$script_dir/css" "$out_dir/css"
 copy_path "$script_dir/themes/inbe.css" "$out_dir/theme.css"
-write_site_imports
-copy_template_dir "$script_dir/static" "$out_dir" "$version"
-expand_template_file "$script_dir/index.html" "$out_dir/index.html" "$version"
+write_site_imports "$asset_version"
+copy_template_dir "$script_dir/static" "$out_dir" "$version" "$asset_version"
+expand_template_file "$script_dir/index.html" "$out_dir/index.html" "$version" "$asset_version"
 
 copy_dir_contents "$root_dir/web-assets" "$out_dir/web-assets"
 copy_dir_contents "$root_dir/site-icons" "$out_dir/site-icons"
@@ -208,6 +224,9 @@ for path in \
 	web-assets/icons/inbe.png \
 	web-assets/icons/github.png \
 	web-assets/icons/itch.png \
+	web-assets/icons/appimage.png \
+	web-assets/icons/flatpak.png \
+	web-assets/icons/snap.png \
 	build/web/index.html \
 	build/web/index.js \
 	build/web/index.wasm \

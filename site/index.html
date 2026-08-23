@@ -6,9 +6,9 @@
 	<title>Inner Breeze - Breathing, Meditation, and Habits</title>
 	<meta name="description" content="Inner Breeze is a free, open-source breathing and meditation app with Wim Hof breathing, meditation timers, optional background music, habit tracking, themes, and local-first history.">
 	<link rel="canonical" href="https://inbe.waozi.xyz/">
-	<link href="/css/base.css" rel="stylesheet">
-	<link href="/css/components.css" rel="stylesheet">
-	<link href="/theme.css" rel="stylesheet">
+	<link href="/css/base.css?v=${asset_version}" rel="stylesheet">
+	<link href="/css/components.css?v=${asset_version}" rel="stylesheet">
+	<link href="/theme.css?v=${asset_version}" rel="stylesheet">
 	<link rel="manifest" href="/manifest.json">
 	<link rel="icon" type="image/png" sizes="32x32" href="/site-icons/favicon-32x32.png">
 	<link rel="apple-touch-icon" href="/site-icons/apple-touch-icon.png">
@@ -175,18 +175,40 @@
 					</article>
 					<article class="download-platform">
 						<div class="download-platform-icon">
-							<img src="/web-assets/icons/tux.png" alt="">
+							<img src="/web-assets/icons/appimage.png" alt="">
 						</div>
 						<div class="download-platform-body">
-							<h3>Flatpak / Snap / AppImage</h3>
-							<p>Portable Linux package formats by architecture.</p>
-							<nav aria-label="Portable Linux downloads" class="download-pills">
+							<h3>AppImage</h3>
+							<p>Portable Linux app bundle by CPU architecture.</p>
+							<nav aria-label="AppImage downloads" class="download-pills">
 								<a hidden data-release-asset="inbe-linux-x86_64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-x86_64.AppImage" target="_blank" rel="noopener">AppImage x86_64</a>
 								<a hidden data-release-asset="inbe-linux-aarch64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-aarch64.AppImage" target="_blank" rel="noopener">AppImage aarch64</a>
 								<a hidden data-release-asset="inbe-linux-riscv64.AppImage" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-linux-riscv64.AppImage" target="_blank" rel="noopener">AppImage riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/flatpak.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Flatpak</h3>
+							<p>Sandboxed Linux packages by CPU architecture.</p>
+							<nav aria-label="Flatpak downloads" class="download-pills">
 								<a class="is-primary" data-release-asset="inbe-${version}-x86_64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-x86_64.flatpak" target="_blank" rel="noopener">Flatpak x86_64</a>
 								<a hidden data-release-asset="inbe-${version}-aarch64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-aarch64.flatpak" target="_blank" rel="noopener">Flatpak aarch64</a>
 								<a hidden data-release-asset="inbe-${version}-riscv64.flatpak" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe-${version}-riscv64.flatpak" target="_blank" rel="noopener">Flatpak riscv64</a>
+							</nav>
+						</div>
+					</article>
+					<article class="download-platform">
+						<div class="download-platform-icon">
+							<img src="/web-assets/icons/snap.png" alt="">
+						</div>
+						<div class="download-platform-body">
+							<h3>Snap</h3>
+							<p>Snap packages by CPU architecture.</p>
+							<nav aria-label="Snap downloads" class="download-pills">
 								<a data-release-asset="inbe_${version}_x86_64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_x86_64.snap" target="_blank" rel="noopener">Snap x86_64</a>
 								<a hidden data-release-asset="inbe_${version}_arm64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_arm64.snap" target="_blank" rel="noopener">Snap arm64</a>
 								<a hidden data-release-asset="inbe_${version}_riscv64.snap" href="https://github.com/waozixyz/inbe/releases/download/v${version}/inbe_${version}_riscv64.snap" target="_blank" rel="noopener">Snap riscv64</a>
