@@ -14,9 +14,15 @@ static const char *const audio_builtin_music_titles[INBE_AUDIO_BUILTIN_MUSIC_COU
 };
 
 static const char *const audio_builtin_music_files[INBE_AUDIO_BUILTIN_MUSIC_COUNT] = {
+#if defined(KRYON_PLATFORM_PLAN9)
+    "Elijah_K/deep-meditation.wav",
+    "Elijah_K/path-of-meditation.wav",
+    "Elijah_K/truth-of-silence.wav"
+#else
     "Elijah_K/deep-meditation.ogg",
     "Elijah_K/path-of-meditation.ogg",
     "Elijah_K/truth-of-silence.ogg"
+#endif
 };
 
 static const char *const audio_cue_setting_keys[INBE_AUDIO_CUE_COUNT] = {
@@ -37,8 +43,13 @@ static const char *const audio_cue_default_files[INBE_AUDIO_CUE_COUNT] = {
 #endif
 };
 
+#if defined(KRYON_PLATFORM_PLAN9)
+#define INBE_AUDIO_MUSIC_EXTENSIONS ".wav"
+#define INBE_AUDIO_SOUND_EXTENSIONS ".wav"
+#else
 #define INBE_AUDIO_MUSIC_EXTENSIONS ".ogg;.wav;.qoa;.xm;.mod;.mp3;.flac;.m4a;.opus"
 #define INBE_AUDIO_SOUND_EXTENSIONS ".ogg;.wav;.qoa;.mp3;.flac;.m4a;.opus"
+#endif
 
 int
 app_audio_music_file_valid(const char *path)
@@ -395,7 +406,7 @@ app_audio_music_path(const InbeApp *app, int index, char *out, size_t out_size)
     out[0] = '\0';
     if(index >= 0 && index < INBE_AUDIO_BUILTIN_MUSIC_COUNT) {
         char candidate[FS_PATH_MAX];
-#if defined(DEBUG_LOCAL_ASSETS)
+#if defined(DEBUG_LOCAL_ASSETS) || defined(KRYON_PLATFORM_PLAN9)
         snprintf(candidate, sizeof(candidate), "unpackaged_assets/audio/%s",
                  audio_builtin_music_files[index]);
         if(app_audio_music_file_valid(candidate)) {
