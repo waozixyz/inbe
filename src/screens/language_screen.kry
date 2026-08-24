@@ -68,7 +68,5 @@ route language {
 }
 
 language :: (app: InbeApp*) #ui {
-    Screen root: {
     language_screen_draw(app)
-    }
 }
