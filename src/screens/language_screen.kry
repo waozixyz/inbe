@@ -61,7 +61,8 @@ route language {
     page language
 }
 
-screen language {
-    args InbeApp *app
+language :: (app: InbeApp*) #ui {
+    Screen root: {
     language_screen_draw(app)
+    }
 }

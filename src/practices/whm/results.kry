@@ -6,7 +6,8 @@ route results {
     page results
 }
 
-screen results {
-    args InbeApp *app
+results :: (app: InbeApp*) #ui {
+    Screen root: {
     unused app
+    }
 }

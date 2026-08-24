@@ -11,6 +11,8 @@ CHANGELOG_DIR="fastlane/metadata/android/en-US/changelogs"
 CLICK_MANIFEST_FILE="packaging/click/manifest.json"
 CLICK_CONTROL_FILE="packaging/click/control"
 CLICK_METAINFO_FILE="packaging/click/inbe.metainfo.xml"
+LINUX_APPDATA_FILE="packaging/linux/appimage/inbe.appdata.xml"
+SNAP_METAINFO_FILE="packaging/snap/snap/gui/inbe.metainfo.xml"
 FIREFOX_ADDONS_MANIFEST_FILE="packaging/firefox-addons/manifest.json"
 
 replace_in_file() {
@@ -34,6 +36,17 @@ fi
 
 # Get latest version for gradle update
 LATEST_VERSION=$(echo "$VERSIONS" | head -n 1)
+LATEST_DATE=$(awk -v ver="$LATEST_VERSION" '
+    $0 ~ "^## \\[" ver "\\] - " {
+        sub("^## \\[" ver "\\] - ", "")
+        print
+        exit
+    }
+' "$CHANGELOG_FILE")
+
+if [ -z "$LATEST_DATE" ]; then
+    LATEST_DATE=$(date +%F)
+fi
 
 # Get current gradle values
 CURRENT_NAME=$(grep "versionName" "$GRADLE_FILE" | sed 's/.*"\([^"]*\)".*/\1/')
@@ -100,11 +113,20 @@ else
 fi
 
 if [ -f "$CLICK_METAINFO_FILE" ]; then
-    replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$(date +%F)\"/" "$CLICK_METAINFO_FILE"
+    replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$LATEST_DATE\"/" "$CLICK_METAINFO_FILE"
     echo "✓ Updated $CLICK_METAINFO_FILE"
 else
     echo "Warning: $CLICK_METAINFO_FILE not found"
 fi
+
+for METAINFO_FILE in "$LINUX_APPDATA_FILE" "$SNAP_METAINFO_FILE"; do
+    if [ -f "$METAINFO_FILE" ]; then
+        replace_in_file "s/<release version=\"[^\"]*\" date=\"[^\"]*\"/<release version=\"$LATEST_VERSION\" date=\"$LATEST_DATE\"/" "$METAINFO_FILE"
+        echo "✓ Updated $METAINFO_FILE"
+    else
+        echo "Warning: $METAINFO_FILE not found"
+    fi
+done
 
 if [ -f "$FIREFOX_ADDONS_MANIFEST_FILE" ]; then
     replace_in_file "s/^\([[:space:]]*\"version\": \)\"[^\"]*\"/\1\"$LATEST_VERSION\"/" "$FIREFOX_ADDONS_MANIFEST_FILE"

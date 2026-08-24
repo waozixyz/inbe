@@ -570,7 +570,8 @@ route patterns {
     page patterns
 }
 
-screen patterns {
-    args InbeApp *app
+patterns :: (app: InbeApp*) #ui {
+    Screen root: {
     patterns_draw_screen(app, view_width / 2, view_height / 2)
+    }
 }

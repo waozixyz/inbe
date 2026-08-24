@@ -1669,6 +1669,47 @@ habits_overview_done_today :: (app: InbeApp*) -> int #private {
     return done
 }
 
+habits_overview_test_click_point :: (app: InbeApp*, out_x: int*,
+                                    out_y: int*) -> int {
+    content_x: int
+    content_w: int
+    content_y: int
+    label_w: int
+    cell: int
+    material: int = GetEffectiveThemeStyle() == THEME_STYLE_MATERIAL
+    cell_gap: int = ScaleUIPx(material ? 6 : 4)
+    grid_total_w: int
+    overview_x: int
+    grid_x: int
+    grid_y: int
+    day_columns: int
+    total_columns: int
+
+    if app == nil || out_x == nil || out_y == nil ||
+       app->inbe.screen != InbeScreenHabits ||
+       app->habits.screen_mode != HABITS_SCREEN_OVERVIEW ||
+       app->habits.count <= 0 {
+        return 0
+    }
+
+    habits_overview_scroll_metrics(app, &content_x, &content_y, &content_w)
+    label_w = habits_overview_label_width(content_w)
+    cell = habits_overview_cell_size(content_w)
+    day_columns = habits_overview_day_columns(content_w)
+    if day_columns <= 0 || cell <= 0 {
+        return 0
+    }
+    total_columns = day_columns + HABITS_OVERVIEW_DETAIL_COLUMNS
+    grid_total_w = label_w + cell_gap * total_columns + cell * total_columns
+    overview_x = content_x + (content_w - grid_total_w) / 2
+    grid_x = overview_x + label_w
+    grid_y = content_y + ScaleUIPx(12) + ScaleUIPx(28) + ScaleUIPx(20)
+
+    *out_x = grid_x + cell / 2
+    *out_y = grid_y + cell / 2
+    return 1
+}
+
 habits_overview_cell_clicked :: (app: InbeApp*, x: int, y: int,
                                 w: int, h: int, disabled: int) -> int #private {
     mouse: Vector2
@@ -3065,7 +3106,8 @@ route habits {
     page habits
 }
 
-screen habits {
-    args InbeApp *app
+habits :: (app: InbeApp*) #ui {
+    Screen root: {
     draw_habits_screen(app)
+    }
 }

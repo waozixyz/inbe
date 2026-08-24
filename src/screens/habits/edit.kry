@@ -810,7 +810,8 @@ route habit_edit {
     page habit_edit
 }
 
-screen habit_edit {
-    args InbeApp *app
+habit_edit :: (app: InbeApp*) #ui {
+    Screen root: {
     habit_edit_draw(app)
+    }
 }

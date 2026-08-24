@@ -651,7 +651,8 @@ route habit_session_edit {
     page habit_session_edit
 }
 
-screen habit_session_edit {
-    args InbeApp *app
+habit_session_edit :: (app: InbeApp*) #ui {
+    Screen root: {
     habit_session_draw_edit_screen(app)
+    }
 }

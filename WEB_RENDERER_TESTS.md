@@ -7,6 +7,7 @@ Inbe has two web renderer paths:
 | `make web` | raylib/WebGL | Shipping web build with liboqs sync support. |
 | `make web-canvas` | Kryon Canvas2D | No-WebGL fallback build using Kryon's Canvas backend. The app still uses Emscripten/WASM for C code and support libraries. |
 | `make web-compare-test` | both | Builds both renderers and runs the browser smoke suite against each. |
+| `make web-side-by-side-test` | both | Builds both renderers, runs both smoke tests, then serves a split-page manual comparison view. |
 
 The shared smoke test is `scripts/web-smoke-test.mjs`. It is renderer-aware:
 
@@ -18,3 +19,13 @@ The shared smoke test is `scripts/web-smoke-test.mjs`. It is renderer-aware:
 Current known gap:
 
 - The shared smoke test verifies account crypto/import parity, rendering, storage, and app settings persistence. It does not yet run a real local sync server transaction for either renderer.
+
+For manual visual comparison, run:
+
+```bash
+make web-side-by-side-test
+```
+
+The script prints a local URL with raylib/WebGL on the left and Canvas2D on the
+right. Use `scripts/web-side-by-side-test.sh --no-serve` for CI-style
+build-and-smoke validation without starting the comparison server.

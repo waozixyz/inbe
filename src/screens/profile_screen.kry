@@ -558,7 +558,8 @@ route profile {
     page profile
 }
 
-screen profile {
-    args InbeApp *app
+profile :: (app: InbeApp*) #ui {
+    Screen root: {
     unused profile_screen_draw(app)
+    }
 }

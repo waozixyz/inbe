@@ -480,7 +480,7 @@ practice_home_content_height :: (content_w: int, user_data: void*) -> int #priva
 }
 
 practice_screen_draw_home :: (app: InbeApp*) {
-    start_kry_draw(app)
+    start(app)
 }
 
 practice_activity_label :: (exercise: int) -> const char* {
@@ -760,7 +760,8 @@ route start {
     page start
 }
 
-page start(app: InbeApp*) {
+start :: (app: InbeApp*) #ui {
+    Screen root: {
     guard app == NULL
 
     practice := (const PracticeDefinition*)NULL
@@ -912,5 +913,6 @@ page start(app: InbeApp*) {
 
     if use_scroll {
         EndUIScrollPage(page)
+    }
     }
 }

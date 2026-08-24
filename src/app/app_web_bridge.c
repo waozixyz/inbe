@@ -347,6 +347,28 @@ app_web_test_import_sync_key(void)
 }
 
 EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_habits_click_x(void)
+{
+    InbeApp *app = get_global_inbe_app();
+    int x = 0;
+    int y = 0;
+
+    return habits_overview_test_click_point(app, &x, &y) ? x : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_habits_click_y(void)
+{
+    InbeApp *app = get_global_inbe_app();
+    int x = 0;
+    int y = 0;
+
+    return habits_overview_test_click_point(app, &x, &y) ? y : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
 void
 app_web_test_enable_extension_breaks(int limit_s)
 {

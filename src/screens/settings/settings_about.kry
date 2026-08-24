@@ -108,7 +108,7 @@ settings_about_draw :: (app: InbeApp*, x: int, w: int, y: int*) {
 
     *y += ScaleUIPx(16)
     IconTexture(0, x + (w - logo_size) / 2, *y, logo_size,
-                         app->icons[UI_ICON_TYPE_APP], WHITE)
+                         app->icons[UI_ICON_TYPE_PROJ_INBE], WHITE)
     *y += logo_size + ScaleUIPx(12)
 
     text_w = TextWidth(GetLocaleText("app_title"), title_font)

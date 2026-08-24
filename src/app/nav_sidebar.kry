@@ -6,7 +6,8 @@ route nav_sidebar {
     page nav_sidebar
 }
 
-screen nav_sidebar {
-    args InbeApp *app
+nav_sidebar :: (app: InbeApp*) #ui {
+    Screen root: {
     unused app
+    }
 }

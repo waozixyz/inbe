@@ -5,5 +5,7 @@ Comment=Syncable breathing, meditation, and habit practice app
 Exec=inbe
 Icon=xyz.waozi.inbe
 Categories=Utility;
+Keywords=breathing;meditation;habits;wellness;mindfulness;focus;breaks;
 Terminal=false
 StartupNotify=true
+StartupWMClass=xyz.waozi.inbe

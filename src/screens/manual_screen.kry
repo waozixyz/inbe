@@ -178,7 +178,8 @@ route manual {
     page manual
 }
 
-screen manual {
-    args InbeApp *app
+manual :: (app: InbeApp*) #ui {
+    Screen root: {
     manual_screen_draw(app)
+    }
 }

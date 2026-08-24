@@ -254,7 +254,8 @@ route settings {
     page settings
 }
 
-screen settings {
-    args InbeApp *app
+settings :: (app: InbeApp*) #ui {
+    Screen root: {
     unused settings_screen_draw(app)
+    }
 }

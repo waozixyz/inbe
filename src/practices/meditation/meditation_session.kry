@@ -35,7 +35,7 @@ music_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
     return app->icons[UI_ICON_TYPE_MUSIC]
 }
 
-start :: (app: InbeApp*, seconds: int) #private {
+meditation_start_seconds :: (app: InbeApp*, seconds: int) #private {
     if app == nil {
         return
     }
@@ -91,7 +91,7 @@ meditation_configured_duration_seconds :: (app: const InbeApp*) -> int {
 }
 
 meditation_start_configured :: (app: InbeApp*) {
-    start(app, meditation_configured_duration_seconds(app))
+    meditation_start_seconds(app, meditation_configured_duration_seconds(app))
 }
 
 finish :: (app: InbeApp*) #private {
@@ -393,7 +393,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
         x := modal_x + side + i * (btn_w + gap)
 
         if draw_duration_button(x, row_y, btn_w, btn_h, labels[i]) {
-            start(app, duration_presets[i])
+            meditation_start_seconds(app, duration_presets[i])
         }
     }
 
@@ -403,7 +403,7 @@ meditation_draw_setup_modal :: (app: InbeApp*) {
         x := modal_x + side + (i - 3) * (two_w + gap)
 
         if draw_duration_button(x, row_y, two_w, btn_h, labels[i]) {
-            start(app, duration_presets[i])
+            meditation_start_seconds(app, duration_presets[i])
         }
     }
 
@@ -579,7 +579,8 @@ route meditation {
     page meditation
 }
 
-screen meditation {
-    args InbeApp *app
+meditation :: (app: InbeApp*) #ui {
+    Screen root: {
     meditation_draw_screen(app, view_width / 2, view_height / 2)
+    }
 }

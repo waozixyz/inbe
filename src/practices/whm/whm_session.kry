@@ -22,11 +22,12 @@ route session {
     page session
 }
 
-screen session {
-    args InbeApp *app
+session :: (app: InbeApp*) #ui {
+    Screen root: {
     hover: int = 0
     practice_draw_active_breathing(app, view_width / 2, view_height / 2)
     practice_update_active_breathing(app, view_width / 2, view_height / 2, &hover)
+    }
 }
 
 static whm_background_remainder_ms: int = 0

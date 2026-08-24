@@ -172,6 +172,7 @@ int habit_counter_day_action(InbeApp *app, int habit_index, int day_index,
                              int allow_left_increment);
 int habit_weekly_visible_days(InbeHabits *habits);
 int habits_scroll_page_content_height(int content_w, void *user_data);
+int habits_overview_test_click_point(InbeApp *app, int *out_x, int *out_y);
 void draw_habits_weekly_view(InbeApp *app, InbeHabit *active, int selected,
                              HabitLinkedContext *linked_ctx,
                              int content_x, int content_w, int y,

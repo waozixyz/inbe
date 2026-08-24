@@ -5,6 +5,7 @@ import { createReadStream, mkdtempSync, rmSync, existsSync, accessSync, constant
 import { tmpdir } from 'node:os';
 import { join, normalize, resolve, sep } from 'node:path';
 import { spawn } from 'node:child_process';
+import { inflateSync } from 'node:zlib';
 
 if (typeof WebSocket === 'undefined') {
   console.error('web smoke: FAIL: this script needs the global WebSocket API. Use Node >= 21, or pass --experimental-websocket on Node 20.');
@@ -304,9 +305,16 @@ function eventText(event) {
   return '';
 }
 
+function isBenignAsyncifyUnwind(text) {
+  return /\$(__main_argc_argv|dynCall_[A-Za-z0-9_]+)/.test(text) &&
+    /\b(callUserCallback|doRewind|MainLoop_runner)\b/.test(text);
+}
+
 function fatalEvent(event) {
   const text = eventText(event);
   if (event.method === 'Runtime.exceptionThrown' && text.includes('transaction.oncomplete'))
+    return '';
+  if (event.method === 'Runtime.exceptionThrown' && isBenignAsyncifyUnwind(text))
     return '';
   if (event.method === 'Runtime.exceptionThrown' || event.method === 'Page.javascriptDialogOpening')
     return text;
@@ -334,6 +342,10 @@ function fatalBidiEvent(event) {
   return '';
 }
 
+function isTransientTargetNavigationError(error) {
+  return /Inspected target navigated or closed|Execution context was destroyed|Cannot find context with specified id/.test(error?.message || '');
+}
+
 async function waitForHealthyPage(client) {
   const start = Date.now();
   let sawApp = false;
@@ -351,8 +363,10 @@ async function waitForHealthyPage(client) {
         sawApp = true;
     }
 
-    const result = await client.send('Runtime.evaluate', {
-      expression: `(() => {
+    let result;
+    try {
+      result = await client.send('Runtime.evaluate', {
+        expression: `(() => {
         const renderer = ${JSON.stringify(renderer)};
         const canvas = document.querySelector('canvas');
         const status = document.querySelector('#status')?.textContent || '';
@@ -394,8 +408,16 @@ async function waitForHealthyPage(client) {
           runDependencies: M && (typeof M.monitorRunDependencies === 'function') ? M.totalDependencies : undefined
         };
       })()`,
-      returnByValue: true
-    });
+        returnByValue: true
+      });
+    } catch (error) {
+      if (!isTransientTargetNavigationError(error))
+        throw error;
+      lastState = { ok: false, reason: error.message };
+      healthySince = 0;
+      await delay(100);
+      continue;
+    }
     const value = result.result?.value;
     lastState = value;
     if ((sawApp || value?.mainStarted) && value?.ok && value?.runtimeReady) {
@@ -768,6 +790,316 @@ async function verifySyncKeyImportBidi(client, context) {
     throw new Error(`Firefox web sync key import did not save account settings; code=${state.code}`);
 }
 
+async function pageJson(client, expression, awaitPromise = false) {
+  const result = await client.send('Runtime.evaluate', {
+    expression,
+    awaitPromise,
+    returnByValue: true
+  });
+  const value = result.result?.value;
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value);
+    } catch {}
+  }
+  return value;
+}
+
+function installHabitsLifecycleWatchExpression() {
+  return `(() => {
+    window.__inbeSmokeLifecycle = { beforeunload: 0, pagehide: 0, visibilityHidden: 0 };
+    if (!window.__inbeSmokeLifecycleInstalled) {
+      window.__inbeSmokeLifecycleInstalled = true;
+      window.addEventListener('beforeunload', () => { window.__inbeSmokeLifecycle.beforeunload++; });
+      window.addEventListener('pagehide', () => { window.__inbeSmokeLifecycle.pagehide++; });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'hidden')
+          window.__inbeSmokeLifecycle.visibilityHidden++;
+      });
+    }
+    return true;
+  })()`;
+}
+
+function startHabitsFrameProbeExpression(frameCount) {
+  return `(() => {
+    const canvas = document.querySelector('canvas');
+    const frames = ${frameCount};
+    window.__inbeSmokeFrameProbe = new Promise(resolve => {
+      const samples = [];
+      let frame = 0;
+      function sample() {
+        const result = { frame, ok: false, bright: 0, total: 0, reason: '' };
+        try {
+          if (!canvas) {
+            result.reason = 'missing canvas';
+          } else if (canvas.clientWidth <= 0 || canvas.clientHeight <= 0) {
+            result.reason = 'zero-size canvas';
+          } else {
+            const w = 32;
+            const h = 32;
+            const copy = document.createElement('canvas');
+            copy.width = w;
+            copy.height = h;
+            const ctx = copy.getContext('2d', { willReadFrequently: true });
+            ctx.drawImage(canvas, 0, 0, w, h);
+            const data = ctx.getImageData(0, 0, w, h).data;
+            let bright = 0;
+            let alpha = 0;
+            for (let i = 0; i < data.length; i += 4) {
+              if (data[i + 3] > 0)
+                alpha++;
+              if (data[i + 3] > 0 && data[i] + data[i + 1] + data[i + 2] > 18)
+                bright++;
+            }
+            result.bright = bright;
+            result.alpha = alpha;
+            result.total = w * h;
+            result.ok = bright > result.total * 0.05;
+            if (!result.ok)
+              result.reason = 'blank or black canvas frame';
+          }
+        } catch (error) {
+          result.reason = error && error.message ? error.message : String(error);
+        }
+        samples.push(result);
+        frame++;
+        if (frame >= frames) {
+          const bad = samples.find(sample => !sample.ok);
+          resolve({ ok: !bad, bad, samples: samples.slice(0, 3).concat(samples.slice(-3)) });
+        } else {
+          requestAnimationFrame(sample);
+        }
+      }
+      requestAnimationFrame(sample);
+    });
+    return true;
+  })()`;
+}
+
+async function openHabitsOverview(client) {
+  const state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
+    if (typeof Module._app_web_test_save_onboarding_state === 'function')
+      Module._app_web_test_save_onboarding_state();
+    if (typeof Module._app_web_extension_open_habits !== 'function')
+      return { ok: false, reason: 'missing habits launch hook' };
+    Module._app_web_extension_open_habits();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return {
+      ok: typeof Module._app_web_test_habits_click_x === 'function' &&
+          typeof Module._app_web_test_habits_click_y === 'function',
+      reason: 'missing habits click hook'
+    };
+  })()))()`, true);
+  if (!state?.ok)
+    throw new Error(state?.reason || 'failed to open habits overview');
+}
+
+async function habitsClickTarget(client) {
+  const target = await pageJson(client, `(() => JSON.stringify((() => {
+    const canvas = Module.canvas || document.querySelector('canvas');
+    if (!canvas)
+      return { ok: false, reason: 'missing canvas' };
+    const rect = canvas.getBoundingClientRect();
+    const rawX = Module._app_web_test_habits_click_x();
+    const rawY = Module._app_web_test_habits_click_y();
+    const basisW = canvas.width || rect.width || 1;
+    const basisH = canvas.height || rect.height || 1;
+    const x = rect.left + rawX * rect.width / basisW;
+    const y = rect.top + rawY * rect.height / basisH;
+    return {
+      ok: rawX >= 0 && rawY >= 0 && x >= rect.left && y >= rect.top &&
+          x <= rect.right && y <= rect.bottom,
+      reason: 'invalid habits click target',
+      x,
+      y,
+      rawX,
+      rawY,
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+      canvas: { width: canvas.width, height: canvas.height }
+    };
+  })()))()`);
+  if (!target?.ok)
+    throw new Error(`${target?.reason || 'failed to compute habits click target'}; state=${JSON.stringify(target)}`);
+  return target;
+}
+
+function readPngBrightness(base64) {
+  const png = Buffer.from(base64, 'base64');
+  const signature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  if (png.length < signature.length || !png.subarray(0, signature.length).equals(signature))
+    throw new Error('screenshot is not a PNG');
+
+  let offset = signature.length;
+  let width = 0;
+  let height = 0;
+  let colorType = -1;
+  const idat = [];
+  while (offset + 8 <= png.length) {
+    const length = png.readUInt32BE(offset);
+    const type = png.toString('ascii', offset + 4, offset + 8);
+    const dataStart = offset + 8;
+    const dataEnd = dataStart + length;
+    if (dataEnd + 4 > png.length)
+      throw new Error('truncated PNG chunk');
+    if (type === 'IHDR') {
+      width = png.readUInt32BE(dataStart);
+      height = png.readUInt32BE(dataStart + 4);
+      const bitDepth = png[dataStart + 8];
+      colorType = png[dataStart + 9];
+      if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6))
+        throw new Error(`unsupported PNG format bitDepth=${bitDepth} colorType=${colorType}`);
+    } else if (type === 'IDAT') {
+      idat.push(png.subarray(dataStart, dataEnd));
+    } else if (type === 'IEND') {
+      break;
+    }
+    offset = dataEnd + 4;
+  }
+  if (width <= 0 || height <= 0 || !idat.length)
+    throw new Error('PNG is missing IHDR/IDAT data');
+
+  const bpp = colorType === 6 ? 4 : 3;
+  const stride = width * bpp;
+  const inflated = inflateSync(Buffer.concat(idat));
+  let input = 0;
+  let bright = 0;
+  const total = width * height;
+  let previous = Buffer.alloc(stride);
+  let current = Buffer.alloc(stride);
+
+  for (let y = 0; y < height; y++) {
+    const filter = inflated[input++];
+    for (let x = 0; x < stride; x++) {
+      const raw = inflated[input++];
+      const left = x >= bpp ? current[x - bpp] : 0;
+      const up = previous[x] || 0;
+      const upLeft = x >= bpp ? previous[x - bpp] : 0;
+      let value = raw;
+      if (filter === 1) {
+        value += left;
+      } else if (filter === 2) {
+        value += up;
+      } else if (filter === 3) {
+        value += Math.floor((left + up) / 2);
+      } else if (filter === 4) {
+        const p = left + up - upLeft;
+        const pa = Math.abs(p - left);
+        const pb = Math.abs(p - up);
+        const pc = Math.abs(p - upLeft);
+        value += pa <= pb && pa <= pc ? left : (pb <= pc ? up : upLeft);
+      } else if (filter !== 0) {
+        throw new Error(`unsupported PNG filter ${filter}`);
+      }
+      current[x] = value & 255;
+    }
+    for (let x = 0; x < width; x++) {
+      const pixel = x * bpp;
+      if (current[pixel] + current[pixel + 1] + current[pixel + 2] > 18)
+        bright++;
+    }
+    const swap = previous;
+    previous = current;
+    current = swap;
+  }
+
+  return { bright, total, width, height, ok: bright > total * 0.05 };
+}
+
+async function captureScreenshotProbe(client, samples) {
+  const frames = [];
+  for (let frame = 0; frame < samples; frame++) {
+    const screenshot = await client.send('Page.captureScreenshot', {
+      format: 'png',
+      fromSurface: true
+    });
+    const state = readPngBrightness(screenshot.data);
+    frames.push({ frame, ...state });
+    if (!state.ok)
+      return { ok: false, bad: frames[frames.length - 1], samples: frames.slice(0, 3).concat(frames.slice(-3)) };
+    await delay(25);
+  }
+  return { ok: true, samples: frames.slice(0, 3).concat(frames.slice(-3)) };
+}
+
+async function verifyHabitsClickDoesNotReload(client) {
+  await waitForStorageIdle(client);
+  await openHabitsOverview(client);
+  await verifyRenderingLive(client);
+  await client.send('Page.setLifecycleEventsEnabled', { enabled: true }).catch(() => {});
+  await pageJson(client, installHabitsLifecycleWatchExpression());
+  const target = await habitsClickTarget(client);
+  const marker = `habits-click-${Date.now()}`;
+  const before = await pageJson(client, `(() => {
+    window.__inbeSmokeModule = Module;
+    Module.__inbeSmokeMarker = ${JSON.stringify(marker)};
+    return {
+      href: location.href,
+      ready: !!Module.__inbeRuntimeReady,
+      loadingClass: document.querySelector('#loading-screen')?.className || '',
+      lifecycle: window.__inbeSmokeLifecycle
+    };
+  })()`);
+  const firstEvent = client.events.length;
+  if (renderer === 'canvas')
+    await pageJson(client, startHabitsFrameProbeExpression(30));
+
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x: target.x,
+    y: target.y
+  });
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mousePressed',
+    x: target.x,
+    y: target.y,
+    button: 'left',
+    clickCount: 1
+  });
+  await delay(50);
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseReleased',
+    x: target.x,
+    y: target.y,
+    button: 'left',
+    clickCount: 1
+  });
+
+  const probe = renderer === 'canvas'
+    ? await pageJson(client, 'window.__inbeSmokeFrameProbe.then(value => JSON.stringify(value))', true)
+    : await captureScreenshotProbe(client, 12);
+  await delay(250);
+  const after = await pageJson(client, `(() => ({
+    href: location.href,
+    ready: !!Module.__inbeRuntimeReady,
+    sameModule: window.__inbeSmokeModule === Module,
+    sameMarker: Module.__inbeSmokeMarker === ${JSON.stringify(marker)},
+    loadingClass: document.querySelector('#loading-screen')?.className || '',
+    lifecycle: window.__inbeSmokeLifecycle
+  }))()`);
+  const events = client.events.slice(firstEvent);
+  const navigationEvents = events
+    .filter(event => event.method === 'Page.frameNavigated' ||
+      event.method === 'Page.frameStartedNavigating' ||
+      event.method === 'Page.domContentEventFired' ||
+      event.method === 'Page.loadEventFired' ||
+      (event.method === 'Page.lifecycleEvent' && event.params?.name === 'init'))
+    .map(event => event.method + (event.params?.name ? `:${event.params.name}` : ''));
+
+  if (navigationEvents.length)
+    throw new Error(`habits click triggered page navigation/reload events: ${navigationEvents.join(', ')}`);
+  if (before.href !== after.href)
+    throw new Error(`habits click changed location: before=${before.href} after=${after.href}`);
+  if (!after.ready || !after.sameModule || !after.sameMarker)
+    throw new Error(`habits click replaced or reset the app runtime: ${JSON.stringify(after)}`);
+  if ((after.lifecycle?.beforeunload || 0) > 0 || (after.lifecycle?.pagehide || 0) > 0)
+    throw new Error(`habits click fired unload lifecycle handlers: ${JSON.stringify(after.lifecycle)}`);
+  if (!/is-hidden/.test(after.loadingClass))
+    throw new Error(`habits click showed loading overlay: ${JSON.stringify(after.loadingClass)}`);
+  if (!probe?.ok)
+    throw new Error(`habits click produced a blank canvas frame: ${JSON.stringify(probe?.bad || probe)}`);
+}
+
 let chrome;
 let client;
 let failure;
@@ -944,6 +1276,7 @@ try {
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
     await verifySyncKeyImport(client);
+    await verifyHabitsClickDoesNotReload(client);
   }
   console.log(`web smoke: PASS (${renderer})`);
 } catch (error) {

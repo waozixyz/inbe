@@ -493,7 +493,8 @@ route sun_salutation {
     page sun_salutation
 }
 
-screen sun_salutation {
-    args InbeApp *app
+sun_salutation :: (app: InbeApp*) #ui {
+    Screen root: {
     sun_salutation_draw_screen(app, view_width / 2, view_height / 2)
+    }
 }
