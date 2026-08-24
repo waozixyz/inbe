@@ -256,6 +256,17 @@ def expose_weak_declarations_for_plan9(text: str) -> str:
     )
 
 
+SCREEN_ROOT_RE = re.compile(
+    r'\s*PushUIInspectSource\("[^"]+",\s*[0-9]+\);\n'
+    r'\s*Screen\(\(ColumnProps\)\{\s*\.key\s*=\s*Key\("[^"]+/root"\)\s*\}\);\n'
+    r'\s*PopUIInspectSource\(\);\n'
+)
+
+
+def drop_screen_root_wrappers_for_plan9(text: str) -> tuple[str, int]:
+    return SCREEN_ROOT_RE.subn("\n", text)
+
+
 def rewrite_for_declarations(text: str) -> tuple[str, int]:
     out: list[str] = []
     rewritten = 0
@@ -531,6 +542,7 @@ def prepare(root: Path, generated: Path, out_dir: Path, dump_dir: Path, file_lis
         text = src.read_text(encoding="utf-8", errors="replace")
         rewritten_text = inject_plan9_generated_header(text)
         rewritten_text = expose_weak_declarations_for_plan9(rewritten_text)
+        rewritten_text, screen_roots = drop_screen_root_wrappers_for_plan9(rewritten_text)
         file_unresolved = 0
         if "__auto_type" in text:
             dump = dump_dir / (str(rel).replace(os.sep, "__") + ".original")
@@ -547,7 +559,7 @@ def prepare(root: Path, generated: Path, out_dir: Path, dump_dir: Path, file_lis
         rewritten_text, for_decls = rewrite_for_declarations(rewritten_text)
         dst.write_text(rewritten_text, encoding="utf-8")
         unresolved += file_unresolved
-        if "__auto_type" in text or compounds > 0 or for_decls > 0:
+        if "__auto_type" in text or screen_roots > 0 or compounds > 0 or for_decls > 0:
             rewritten += 1
 
     listed = write_file_list(root, out_dir, file_list)
