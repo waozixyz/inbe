@@ -44,14 +44,20 @@ language_screen_draw :: (app: InbeApp*) {
     Text(GetLocaleText("language_picker_title"), view_width / 2 - title_w / 2, ScaleUIPx(28), title_font, GetThemeText())
     Text(GetLocaleText("language_label"), dropdown_x, dropdown_y - ScaleUIPx(24), label_font, GetThemeText())
     if TextButton(0, button_x, button_y, GetLocaleText("next_button"), &next_hover) {
-        app_accept_language_selection(app)
+        if app->language_system || !app->language_selected {
+            apply_system_language_selection(app, 0)
+        }
+        app->settings_dirty = 1
+        app->settings_save_delay_ticks = 6
         app->main_tab = APP_MAIN_TAB_PRACTICE
         app->practice_tab = PRACTICE_TAB_PLAY
         app_switch_screen(app, InbeScreenStart)
     }
 
     if selection_changed {
-        apply_language_selection(app, *selected_index, 1)
+        apply_language_selection(app, *selected_index, 0)
+        app->settings_dirty = 1
+        app->settings_save_delay_ticks = 18
     }
 }
 
