@@ -466,7 +466,7 @@ def write_plan9_include_wrappers(include_dir: Path) -> None:
     (include_dir / "inbe_plan9_generated.h").write_text(
         """#ifndef INBE_PLAN9_GENERATED_H
 #define INBE_PLAN9_GENERATED_H
-#include "ui_tree.h"
+#include "ui.h"
 extern int view_width;
 extern int view_height;
 #endif
