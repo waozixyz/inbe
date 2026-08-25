@@ -1,0 +1,8 @@
+Added
+---
+- Completed practices now show a results screen with session details and a mood check-in before returning home.
+- Statistics now include mood-after-practice trends for saved sessions.
+Fixed
+---
+- Android bottom navigation icons now render correctly on affected devices instead of disappearing or being clipped.
+- Android no longer opens the soft keyboard when the app starts.

@@ -29,6 +29,7 @@
             android:exported="true"
             android:launchMode="singleTask"
             android:theme="@android:style/Theme.DeviceDefault.NoActionBar"
+            android:windowSoftInputMode="stateAlwaysHidden|adjustNothing"
             android:windowLayoutInDisplayCutoutMode="never">
             <meta-data
                 android:name="android.app.lib_name"

@@ -191,7 +191,7 @@ public class MainActivity extends NativeActivity {
 
                 if (visible) {
                     view.requestFocus();
-                    imm.showSoftInput(view, InputMethodManager.SHOW_FORCED);
+                    imm.showSoftInput(view, InputMethodManager.SHOW_IMPLICIT);
                 } else {
                     imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
                 }

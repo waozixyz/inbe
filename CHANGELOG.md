@@ -1,4 +1,13 @@
 # Changelog
+## [1.9.10] - 2026-08-25
+### Added
+- Completed practices now show a results screen with session details and a mood check-in before returning home.
+- Statistics now include mood-after-practice trends for saved sessions.
+
+### Fixed
+- Android bottom navigation icons now render correctly on affected devices instead of disappearing or being clipped.
+- Android no longer opens the soft keyboard when the app starts.
+
 ## [1.9.9] - 2026-08-22
 ### Fixed
 - The practice screen now always shows all four practices: Wim Hof, Pattern Breathing, Meditation and Sun Salutation.
