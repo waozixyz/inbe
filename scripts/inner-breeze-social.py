@@ -15,6 +15,13 @@ DEFAULT_DRAFT = ROOT / ".local" / "social-posts" / "latest-draft.txt"
 DEFAULT_CONFIG = ROOT / "social-posts.local.json"
 DEFAULT_RELEASE_REPO = "waozixyz/inbe"
 DEFAULT_SITE_URL = "https://inbe.waozi.xyz/"
+DEFAULT_X_COMPOSE_URL = "https://x.com/compose/post"
+DEFAULT_X_DRAFT = ROOT / ".local" / "social-posts" / "latest-x-draft.txt"
+DEFAULT_X_ATTACHMENTS = ROOT / ".local" / "social-posts" / "latest-x-attachments.txt"
+DEFAULT_FEATURE_SCREENSHOTS = [
+    ROOT / "build" / "screenshots" / "results" / "all-results-pages.png",
+    ROOT / "build" / "screenshots" / "phone" / "04-habit-statistics-1080x1920.png",
+]
 
 
 def fail(message):
@@ -145,6 +152,73 @@ def build_draft(args):
     return 0
 
 
+def build_x_text(args):
+    version, _, bullets = read_latest_changelog(args.version)
+    release_url = args.release_url or f"https://github.com/{DEFAULT_RELEASE_REPO}/releases/tag/v{version}"
+
+    text = (
+        f"Inner Breeze {version} is out.\n\n"
+        "New: results screen with mood check-in, mood trends in Habits, "
+        "and Android bottom nav/keyboard fixes.\n\n"
+        f"{release_url}"
+    )
+    if len(text) <= 280:
+        return text
+
+    highlights = [shorten(bullet, 70) for bullet in bullets[:2]]
+    text = (
+        f"Inner Breeze {version} is out.\n\n"
+        f"{'; '.join(highlights)}\n\n"
+        f"{release_url}"
+    )
+    if len(text) > 280:
+        raise ValueError("generated X post text is longer than 280 characters")
+    return text
+
+
+def build_x_draft(args):
+    text = build_x_text(args)
+    out = Path(args.out).expanduser().resolve()
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(text + "\n", encoding="utf-8")
+    print(f"Wrote X draft to {out}")
+    print()
+    print(text)
+    return 0
+
+
+def write_x_bundle(args):
+    text = load_x_post_text(args)
+    if len(text) > 280:
+        raise ValueError(f"X post text is {len(text)} characters; keep it at 280 or below")
+
+    screenshots = resolve_screenshot_paths(args.screenshot) if args.screenshot else default_existing_screenshots()
+    if args.require_screenshot and not screenshots:
+        raise FileNotFoundError("no feature screenshots found; generate screenshots first or pass --screenshot")
+
+    DEFAULT_X_DRAFT.parent.mkdir(parents=True, exist_ok=True)
+    DEFAULT_X_DRAFT.write_text(text + "\n", encoding="utf-8")
+    DEFAULT_X_ATTACHMENTS.write_text("".join(f"{path}\n" for path in screenshots), encoding="utf-8")
+    return text, screenshots
+
+
+def default_existing_screenshots():
+    return [path for path in DEFAULT_FEATURE_SCREENSHOTS if path.exists()]
+
+
+def resolve_screenshot_paths(paths):
+    resolved = []
+    for path_text in paths:
+        path = Path(path_text).expanduser()
+        if not path.is_absolute():
+            path = ROOT / path
+        path = path.resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"screenshot missing: {path}")
+        resolved.append(path)
+    return resolved
+
+
 def load_post_text(args):
     if args.text:
         return args.text
@@ -160,6 +234,17 @@ def load_post_text(args):
     )
     build_draft(draft_args)
     return DEFAULT_DRAFT.read_text(encoding="utf-8").strip()
+
+
+def load_x_post_text(args):
+    if args.text:
+        return args.text
+    if args.text_file:
+        return Path(args.text_file).expanduser().read_text(encoding="utf-8").strip()
+    text = build_x_text(args)
+    DEFAULT_X_DRAFT.parent.mkdir(parents=True, exist_ok=True)
+    DEFAULT_X_DRAFT.write_text(text + "\n", encoding="utf-8")
+    return text
 
 
 def load_config(path):
@@ -250,6 +335,31 @@ def selenium_post(args):
     return 0
 
 
+def x_manual(args):
+    text, screenshots = write_x_bundle(args)
+    print(text)
+    if screenshots:
+        print()
+        for path in screenshots:
+            print(f"attachment: {path}")
+    print()
+    print(f"Draft: {DEFAULT_X_DRAFT}")
+    print(f"Attachments: {DEFAULT_X_ATTACHMENTS}")
+
+    if args.dry_run:
+        print("Dry run: did not open Chromium.")
+        return 0
+
+    launch_args = argparse.Namespace(
+        browser=args.browser,
+        profile_dir=args.profile_dir,
+        url=[args.url],
+        remote_debugging_port=0,
+    )
+    return launch_chromium(launch_args)
+    return 0
+
+
 def add_common_browser_args(parser):
     parser.add_argument("--profile-dir", default=str(DEFAULT_PROFILE_DIR), help="persistent Chromium user-data-dir")
     parser.add_argument("--browser", default="", help="Chrome/Chromium binary path or command")
@@ -271,6 +381,12 @@ def main(argv):
     draft.add_argument("--out", default=str(DEFAULT_DRAFT), help="draft output path")
     draft.set_defaults(func=build_draft)
 
+    x_draft = subcommands.add_parser("x-draft", help="write a short X release post from CHANGELOG.md")
+    x_draft.add_argument("--version", default="", help="version from CHANGELOG.md; defaults to the newest entry")
+    x_draft.add_argument("--release-url", default="", help="release URL; defaults to the GitHub tag URL")
+    x_draft.add_argument("--out", default=str(DEFAULT_X_DRAFT), help="draft output path")
+    x_draft.set_defaults(func=build_x_draft)
+
     post = subcommands.add_parser("post", help="fill configured social composers with the release post")
     add_common_browser_args(post)
     post.add_argument("--config", default=str(DEFAULT_CONFIG), help="local JSON target config")
@@ -286,6 +402,18 @@ def main(argv):
     post.add_argument("--submit", action="store_true", help="click each configured submit button")
     post.add_argument("--dry-run", action="store_true", help="print the post text only")
     post.set_defaults(func=selenium_post)
+
+    xpost = subcommands.add_parser("x-post", help="prepare the latest X release post and open the saved profile")
+    add_common_browser_args(xpost)
+    xpost.add_argument("--url", default=DEFAULT_X_COMPOSE_URL)
+    xpost.add_argument("--version", default="", help="version from CHANGELOG.md; defaults to the newest entry")
+    xpost.add_argument("--release-url", default="", help="release URL; defaults to the GitHub tag URL")
+    xpost.add_argument("--text", default="", help="post text")
+    xpost.add_argument("--text-file", default="", help="file containing post text")
+    xpost.add_argument("--screenshot", action="append", help="screenshot path to attach; may be repeated")
+    xpost.add_argument("--require-screenshot", action=argparse.BooleanOptionalAction, default=True)
+    xpost.add_argument("--dry-run", action="store_true", help="print post text and attachments only")
+    xpost.set_defaults(func=x_manual)
 
     args = parser.parse_args(argv)
     try:
