@@ -140,9 +140,38 @@ jobs:
             -H "Authorization: Bearer $auth_token" \
             -H "Content-Type: application/zip" \
             --data-binary "@build/inbe-site.zip" \
-            "https://api.netlify.com/api/v1/sites/$site_id/deploys")"
+            "https://api.netlify.com/api/v1/sites/$site_id/deploys?production=true")"
 
-          python3 -c 'import json, sys; deploy = json.loads(sys.argv[1]); state = deploy.get("state", ""); url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy.get("id"); print(f"Netlify deploy {state}: {url}"); raise SystemExit(1 if state in ("error", "failed") else 0)' "$response"
+          python3 - "$response" "$auth_token" <<'PY'
+          import json
+          import sys
+          import time
+          import urllib.request
+
+          deploy = json.loads(sys.argv[1])
+          token = sys.argv[2]
+          deploy_id = deploy.get("id", "")
+          if not deploy_id:
+              print("Netlify deploy response did not include an id", file=sys.stderr)
+              raise SystemExit(1)
+
+          headers = {"Authorization": f"Bearer {token}"}
+          for _ in range(90):
+              state = deploy.get("state", "")
+              url = deploy.get("ssl_url") or deploy.get("url") or deploy.get("deploy_ssl_url") or deploy.get("deploy_url") or deploy_id
+              print(f"Netlify deploy {state}: {url}")
+              if state == "ready":
+                  raise SystemExit(0)
+              if state in ("error", "failed", "rejected"):
+                  raise SystemExit(1)
+              request = urllib.request.Request(f"https://api.netlify.com/api/v1/deploys/{deploy_id}", headers=headers)
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  deploy = json.loads(response.read().decode("utf-8"))
+              time.sleep(2)
+
+          print("Netlify deploy did not become ready within 180 seconds", file=sys.stderr)
+          raise SystemExit(1)
+          PY
         env:
           NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
           NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
