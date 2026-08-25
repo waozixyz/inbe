@@ -62,6 +62,7 @@ for package in "${raw_packages[@]}" "$@"; do
 done
 
 mkdir -p "$APT_CACHE_DIR/partial"
+sudo rm -rf /var/lib/apt/lists/*
 sudo apt-get \
   -o Acquire::Retries=3 \
   -o Acquire::http::Timeout=20 \

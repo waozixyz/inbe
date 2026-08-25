@@ -49,6 +49,7 @@ list(APPEND KRYON_SOURCES
     "${KRYON_DIR}/src/backend/kry_input.c"
     "${KRYON_DIR}/src/backend/kry_instance.c"
     "${KRYON_DIR}/src/backend/kry_screenshot.c"
+    "${KRYON_DIR}/src/backend/kry_sw_png.c"
     "${KRYON_DIR}/src/backend/kry_surface_math.c")
 # inbe is a UI-only app: drop the 2D physics subsystem (Box2D). Mirror the
 # KRYON_PHYSICS_SRCS filter the desktop Makefile applies via vendor.mk.
