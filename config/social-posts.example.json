@@ -1,0 +1,10 @@
+{
+  "targets": [
+    {
+      "name": "example",
+      "url": "https://example.com/compose",
+      "body_selector": "textarea[name='text']",
+      "submit_selector": "button[type='submit']"
+    }
+  ]
+}
