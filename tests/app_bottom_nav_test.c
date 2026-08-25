@@ -182,6 +182,25 @@ UINodeTabBar(TabBarProps bar)
     return node;
 }
 
+KeyID
+Key(const char *text)
+{
+    (void)text;
+    return 1;
+}
+
+NodeId
+Screen(ColumnProps props)
+{
+    (void)props;
+    return 1;
+}
+
+void
+End(void)
+{
+}
+
 int
 UIGetNodeHeight(UIWidgetNode node)
 {
