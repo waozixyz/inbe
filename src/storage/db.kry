@@ -263,6 +263,12 @@ schema_create :: () -> int #export {
         " source TEXT NOT NULL,"
         " imported_at INTEGER NOT NULL,"
         " rounds_hash INTEGER NOT NULL,"
+        " mood_before INTEGER NOT NULL DEFAULT 0,"
+        " mood_after INTEGER NOT NULL DEFAULT 0,"
+        " energy INTEGER NOT NULL DEFAULT 0,"
+        " stress INTEGER NOT NULL DEFAULT 0,"
+        " note TEXT NOT NULL DEFAULT '',"
+        " tags TEXT NOT NULL DEFAULT '',"
         " deleted_at INTEGER NOT NULL DEFAULT 0,"
         " updated_at INTEGER NOT NULL DEFAULT 0,"
         " UNIQUE(user_id,started_at,rounds_hash)"
@@ -552,6 +558,30 @@ migrate_schema :: () -> int #export {
         if !exec_sql(sql) {
             return 0
         }
+    }
+    if !table_has_column("sessions", "mood_before") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN mood_before INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("sessions", "mood_after") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN mood_after INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("sessions", "energy") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN energy INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("sessions", "stress") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN stress INTEGER NOT NULL DEFAULT 0") {
+        return 0
+    }
+    if !table_has_column("sessions", "note") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN note TEXT NOT NULL DEFAULT ''") {
+        return 0
+    }
+    if !table_has_column("sessions", "tags") &&
+       !exec_sql("ALTER TABLE sessions ADD COLUMN tags TEXT NOT NULL DEFAULT ''") {
+        return 0
     }
     if !exec_sql(
            "CREATE TABLE IF NOT EXISTS sync_outbox("

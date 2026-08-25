@@ -854,6 +854,15 @@ Patrón semanal
 [habit_stats_practice_time]
 Tiempo de práctica
 ---
+[habit_stats_mood_title]
+Ánimo después de practicar
+---
+[habit_stats_mood_average]
+Ánimo promedio
+---
+[habit_stats_mood_checkins]
+Registros
+---
 [habit_stats_best_hold]
 Mejor retención
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Listo
+---
+[results_duration]
+Duración %s
+---
+[results_pattern]
+Patrón %s
+---
+[results_cycles]
+%d ciclos
+---
+[results_repetitions]
+%d repeticiones
+---
+[results_saved_status]
+Guardado en el historial
+---
+[results_unsaved_status]
+No guardado (menos de un minuto)
+---
+[results_mood_title]
+¿Cómo te sentiste?
 ---

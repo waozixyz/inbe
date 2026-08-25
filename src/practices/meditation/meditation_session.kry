@@ -95,12 +95,13 @@ meditation_start_configured :: (app: InbeApp*) {
 }
 
 finish :: (app: InbeApp*) #private {
-    app_notifications_send_session_complete(app)
     duration: int
+    result_path: [FS_PATH_MAX] char = {0}
 
     if app == nil {
         return
     }
+    app_notifications_send_session_complete(app)
 
     duration = app->meditation.duration_seconds
     if duration >= 60 {
@@ -110,8 +111,8 @@ finish :: (app: InbeApp*) #private {
                                                1,
                                                0,
                                                EXERCISE_MEDITATION,
-                                               nil,
-                                               0) {
+                                               result_path,
+                                               sizeof(result_path)) {
             sync_habits_for_activity(app, EXERCISE_MEDITATION)
             app_auto_sync(app)
         }
@@ -130,7 +131,9 @@ finish :: (app: InbeApp*) #private {
     app->volume_popup_active = 0
     meditation_music_stop(app)
     practice_active_background_stop(app)
-    app_switch_screen(app, InbeScreenStart)
+    app_prepare_session_results(app, EXERCISE_MEDITATION, duration, 0, nil,
+                                nil, 0, result_path)
+    app_switch_screen(app, InbeScreenResults)
 }
 
 timer_complete :: (app: InbeApp*) #private {

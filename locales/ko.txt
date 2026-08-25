@@ -853,6 +853,15 @@ Description
 [habit_stats_practice_time]
 연습 시간
 ---
+[habit_stats_mood_title]
+연습 후 기분
+---
+[habit_stats_mood_average]
+평균 기분
+---
+[habit_stats_mood_checkins]
+체크인
+---
 [habit_stats_best_hold]
 최고 숨 참기
 ---
@@ -1750,4 +1759,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+완료
+---
+[results_duration]
+시간 %s
+---
+[results_pattern]
+패턴 %s
+---
+[results_cycles]
+%d회 사이클
+---
+[results_repetitions]
+%d회 반복
+---
+[results_saved_status]
+기록에 저장됨
+---
+[results_unsaved_status]
+저장되지 않음(1분 미만)
+---
+[results_mood_title]
+기분이 어땠나요?
 ---

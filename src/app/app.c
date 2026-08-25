@@ -34,6 +34,7 @@
 #include "practices/meditation/meditation_practice.h"
 #include "practices/whm/whm_session.h"
 #include "sync_account.h"
+#include "../../vendor/kryon/src/ui/ui_internal.h"
 
 #include <limits.h>
 #include <stdio.h>
@@ -76,6 +77,25 @@ typedef struct AppProfileStats {
 } AppProfileStats;
 
 static AppProfileStats g_app_profile;
+
+int
+TextButton(int id, int x, int y, const char *label, int *hover)
+{
+    (void)id;
+    return RenderTextButton(x, y, label, hover);
+}
+
+int
+LocaleDropdown(int id, int x, int y, int w, int h, int *selected_index)
+{
+    return DrawUILocaleDropdown(id, x, y, w, h, selected_index);
+}
+
+void
+ReadonlyTextBox(ReadonlyTextBoxProps props)
+{
+    DrawUIReadonlyTextBox(props);
+}
 
 static void app_apply_route(InbeApp *app, AppRoute route);
 
@@ -1425,6 +1445,7 @@ app_init(void *vapp) {
     inbe_update_check_start();
     app->practice_tab = PRACTICE_TAB_PLAY;
     app->practice_config_tab = 0;
+    memset(&app->session_result, 0, sizeof(app->session_result));
     if(app->language_needs_save) {
         save_settings(app);
         app->language_needs_save = 0;

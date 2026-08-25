@@ -176,6 +176,12 @@ data_discard_session :: (path: const char*) -> int {
     return storage_discard_session(path)
 }
 
+data_save_session_checkin :: (path: const char*,
+                                 checkin: const InbeStorageSessionCheckin*) -> int {
+    data_init()
+    return storage_save_session_checkin(path, checkin)
+}
+
 data_has_any :: () -> int {
     data_init()
     return storage_has_any()

@@ -465,12 +465,16 @@ finish_round :: (app: InbeApp*) #private {
 
 session_complete :: (app: InbeApp*) #private {
     if session_ensure_results_saved(app) {
+        round_times: [MaxRounds] int
+        rounds := collect_result_rounds(app, round_times, MaxRounds)
         meditation_music_stop(app)
 #if ANDROID {
         android_allow_screen_off()
         stop_android_background_session(app)
 }
         app_notifications_send_session_complete(app)
+        app_prepare_session_results(app, EXERCISE_WIM_HOF, 0, 0, nil,
+                                    round_times, rounds, app->results_path)
         app_switch_screen(app, InbeScreenResults)
     } else {
         app_init(app)

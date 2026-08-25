@@ -12,6 +12,10 @@
 #include "screens/settings/settings_types.h"
 #include "storage/sync_account.h"
 
+int TextButton(int id, int x, int y, const char *label, int *hover);
+int LocaleDropdown(int id, int x, int y, int w, int h, int *selected_index);
+void ReadonlyTextBox(ReadonlyTextBoxProps props);
+
 enum {
     SETTINGS_SPEED_MIN = 1,
     SETTINGS_SPEED_MAX = 8,
@@ -368,6 +372,19 @@ typedef struct HabitEditState {
     int reminder_hour;
 } HabitEditState;
 
+typedef struct InbeSessionResult {
+    int active;
+    int activity;
+    int primary_value;
+    int secondary_value;
+    int saved;
+    int mood;
+    int round_count;
+    int round_values[MaxRounds];
+    char detail[96];
+    char path[FS_PATH_MAX];
+} InbeSessionResult;
+
 struct InbeApp {
     Inbe inbe;
     Inbe settings_preview;
@@ -534,6 +551,7 @@ struct InbeApp {
     int backgrounded;
     double desktop_background_last_time;
     int results_saved;
+    InbeSessionResult session_result;
     int input_block_frame;
     int close_prompt_open;
     int close_prompt_input_block_frame;
@@ -667,6 +685,10 @@ int exercise_manual_seen(InbeApp *app, int exercise_type);
 void mark_exercise_manual_seen(InbeApp *app, int exercise_type);
 void sync_habits_for_activity(InbeApp *app, int exercise_type);
 void draw_preview_inbe(Inbe *inbe, int center_x, int center_y);
+void app_prepare_session_results(InbeApp *app, int activity, int primary_value,
+                                 int secondary_value, const char *detail,
+                                 const int *round_values, int round_count,
+                                 const char *saved_path);
 
 #include "app_nav.h"
 #include "app/app_settings.h"

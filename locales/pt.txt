@@ -854,6 +854,15 @@ Padrão por dia da semana
 [habit_stats_practice_time]
 Tempo de prática
 ---
+[habit_stats_mood_title]
+Humor após a prática
+---
+[habit_stats_mood_average]
+Humor médio
+---
+[habit_stats_mood_checkins]
+Check-ins
+---
 [habit_stats_best_hold]
 Melhor retenção
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Concluído
+---
+[results_duration]
+Duração %s
+---
+[results_pattern]
+Padrão %s
+---
+[results_cycles]
+%d ciclos
+---
+[results_repetitions]
+%d repetições
+---
+[results_saved_status]
+Salvo no histórico
+---
+[results_unsaved_status]
+Não salvo (menos de um minuto)
+---
+[results_mood_title]
+Como você se sentiu?
 ---

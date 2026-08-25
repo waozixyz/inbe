@@ -854,6 +854,15 @@ Wochentagsmuster
 [habit_stats_practice_time]
 Übungszeit
 ---
+[habit_stats_mood_title]
+Stimmung nach der Übung
+---
+[habit_stats_mood_average]
+Durchschnittliche Stimmung
+---
+[habit_stats_mood_checkins]
+Check-ins
+---
 [habit_stats_best_hold]
 Beste Atemhaltezeit
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Fertig
+---
+[results_duration]
+Dauer %s
+---
+[results_pattern]
+Muster %s
+---
+[results_cycles]
+%d Zyklen
+---
+[results_repetitions]
+%d Wiederholungen
+---
+[results_saved_status]
+In der Historie gespeichert
+---
+[results_unsaved_status]
+Nicht gespeichert (unter einer Minute)
+---
+[results_mood_title]
+Wie hast du dich gefühlt?
 ---

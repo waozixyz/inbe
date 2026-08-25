@@ -854,6 +854,15 @@ Description
 [habit_stats_practice_time]
 Время практики
 ---
+[habit_stats_mood_title]
+Настроение после практики
+---
+[habit_stats_mood_average]
+Среднее настроение
+---
+[habit_stats_mood_checkins]
+Отметки
+---
 [habit_stats_best_hold]
 Лучшая задержка
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Готово
+---
+[results_duration]
+Длительность %s
+---
+[results_pattern]
+Паттерн %s
+---
+[results_cycles]
+%d циклов
+---
+[results_repetitions]
+%d повторений
+---
+[results_saved_status]
+Сохранено в истории
+---
+[results_unsaved_status]
+Не сохранено (меньше одной минуты)
+---
+[results_mood_title]
+Как вы себя чувствовали?
 ---

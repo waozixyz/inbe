@@ -854,6 +854,15 @@ Pola hari
 [habit_stats_practice_time]
 Waktu latihan
 ---
+[habit_stats_mood_title]
+Suasana hati setelah latihan
+---
+[habit_stats_mood_average]
+Suasana hati rata-rata
+---
+[habit_stats_mood_checkins]
+Check-in
+---
 [habit_stats_best_hold]
 Tahan terbaik
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Selesai
+---
+[results_duration]
+Durasi %s
+---
+[results_pattern]
+Pola %s
+---
+[results_cycles]
+%d siklus
+---
+[results_repetitions]
+%d pengulangan
+---
+[results_saved_status]
+Disimpan ke riwayat
+---
+[results_unsaved_status]
+Tidak disimpan (kurang dari satu menit)
+---
+[results_mood_title]
+Bagaimana perasaan Anda?
 ---

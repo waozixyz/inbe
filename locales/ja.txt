@@ -856,6 +856,15 @@ Description
 [habit_stats_practice_time]
 練習時間
 ---
+[habit_stats_mood_title]
+練習後の気分
+---
+[habit_stats_mood_average]
+平均気分
+---
+[habit_stats_mood_checkins]
+チェックイン
+---
 [habit_stats_best_hold]
 最長息止め
 ---
@@ -1753,4 +1762,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+完了
+---
+[results_duration]
+時間 %s
+---
+[results_pattern]
+パターン %s
+---
+[results_cycles]
+%d サイクル
+---
+[results_repetitions]
+%d 回
+---
+[results_saved_status]
+履歴に保存しました
+---
+[results_unsaved_status]
+保存されませんでした（1分未満）
+---
+[results_mood_title]
+気分はどうでしたか？
 ---

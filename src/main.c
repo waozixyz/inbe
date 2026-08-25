@@ -651,14 +651,20 @@ screenshot_seed_habits(InbeApp *app)
     for(int day = 6; day >= 0; day--) {
         int progress = 6 - day;
         int local_date = screenshot_day_index_offset(day);
+        char session_path[FS_PATH_MAX] = {0};
+        InbeStorageSessionCheckin checkin = {0};
         int rounds[] = {
             32 + progress * 4,
             37 + progress * 4,
             41 + progress * 5
         };
-        storage_save_session_at_for_activity(local_date, 7, 15 + progress, 0,
-                                             rounds, 3, 0, EXERCISE_WIM_HOF,
-                                             NULL, 0);
+        if(storage_save_session_at_for_activity(local_date, 7, 15 + progress, 0,
+                                                rounds, 3, 0, EXERCISE_WIM_HOF,
+                                                session_path,
+                                                sizeof(session_path))) {
+            checkin.mood_after = 3 + (progress % 3);
+            storage_save_session_checkin(session_path, &checkin);
+        }
     }
 }
 
@@ -678,6 +684,39 @@ screenshot_apply_theme(InbeApp *app, int theme_id, int dark_mode)
     app->theme_mode = dark_mode ? APP_THEME_DARK : APP_THEME_LIGHT;
     app->dark_mode = dark_mode != 0;
     app_refresh_theme(app);
+}
+
+static void
+screenshot_setup_result_scene(InbeApp *app, int activity)
+{
+    if(app == NULL)
+        return;
+
+    app->main_tab = APP_MAIN_TAB_PRACTICE;
+    app->exercise_type = activity;
+    app->inbe.screen = InbeScreenResults;
+
+    if(activity == EXERCISE_WIM_HOF) {
+        int rounds[] = {48, 61, 74, 69};
+        app_prepare_session_results(app, EXERCISE_WIM_HOF, 0, 0, NULL,
+                                    rounds, 4, "db:screenshot-whm");
+        app->session_result.mood = 4;
+    } else if(activity == EXERCISE_MEDITATION) {
+        app_prepare_session_results(app, EXERCISE_MEDITATION, 15 * 60, 0,
+                                    NULL, NULL, 0,
+                                    "db:screenshot-meditation");
+        app->session_result.mood = 5;
+    } else if(activity == EXERCISE_SUN_SALUTATION) {
+        app_prepare_session_results(app, EXERCISE_SUN_SALUTATION, 6, 0,
+                                    NULL, NULL, 0,
+                                    "db:screenshot-sun-salutation");
+        app->session_result.mood = 4;
+    } else if(activity == EXERCISE_PATTERNS) {
+        app_prepare_session_results(app, EXERCISE_PATTERNS, 8 * 60, 48,
+                                    "4-7-8", NULL, 0,
+                                    "db:screenshot-patterns");
+        app->session_result.mood = 5;
+    }
 }
 
 static void
@@ -746,6 +785,8 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->exercise_type = EXERCISE_WIM_HOF;
         app->inbe.screen = InbeScreenSession;
+    } else if(strcmp(request->scene, "wim_hof_results") == 0) {
+        screenshot_setup_result_scene(app, EXERCISE_WIM_HOF);
     } else if(strcmp(request->scene, "meditation_session") == 0) {
         const PracticeDefinition *practice;
 
@@ -754,6 +795,8 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         practice = practice_get(EXERCISE_MEDITATION);
         if(practice != NULL && practice->start != NULL)
             practice->start(app);
+    } else if(strcmp(request->scene, "meditation_results") == 0) {
+        screenshot_setup_result_scene(app, EXERCISE_MEDITATION);
     } else if(strcmp(request->scene, "sun_salutation_session") == 0) {
         const PracticeDefinition *practice;
 
@@ -762,6 +805,8 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         practice = practice_get(EXERCISE_SUN_SALUTATION);
         if(practice != NULL && practice->start != NULL)
             practice->start(app);
+    } else if(strcmp(request->scene, "sun_salutation_results") == 0) {
+        screenshot_setup_result_scene(app, EXERCISE_SUN_SALUTATION);
     } else if(strcmp(request->scene, "calendar_meditation") == 0) {
         app->main_tab = APP_MAIN_TAB_HABITS;
         app->habits.screen_mode = HABITS_SCREEN_DETAIL;
@@ -818,6 +863,8 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         patterns_practice_start(app);
+    } else if(strcmp(request->scene, "patterns_results") == 0) {
+        screenshot_setup_result_scene(app, EXERCISE_PATTERNS);
     } else if(strcmp(request->scene, "patterns_config") == 0) {
         app->exercise_type = EXERCISE_PATTERNS;
         app->main_tab = APP_MAIN_TAB_PRACTICE;

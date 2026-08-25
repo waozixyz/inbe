@@ -351,6 +351,9 @@ Save
 [discard_button]
 Discard
 ---
+[done_button]
+Done
+---
 [all_progress_lost_message]
 All progress will be lost.
 ---
@@ -1095,6 +1098,15 @@ Weekday pattern
 [habit_stats_practice_time]
 Practice time
 ---
+[habit_stats_mood_title]
+Mood after practice
+---
+[habit_stats_mood_average]
+Average mood
+---
+[habit_stats_mood_checkins]
+Check-ins
+---
 [habit_stats_best_hold]
 Best hold
 ---
@@ -1183,6 +1195,27 @@ Session data comes from completed practices.
 ---
 [results_rounds]
 %d rounds
+---
+[results_duration]
+Duration %s
+---
+[results_pattern]
+Pattern %s
+---
+[results_cycles]
+%d cycles
+---
+[results_repetitions]
+%d repetitions
+---
+[results_saved_status]
+Saved to history
+---
+[results_unsaved_status]
+Not saved (under one minute)
+---
+[results_mood_title]
+How did you feel?
 ---
 [practice_home_minutes]
 %d min

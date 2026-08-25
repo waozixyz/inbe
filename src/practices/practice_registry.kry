@@ -4,6 +4,9 @@
 #import "practices/patterns/patterns_practice.h"
 #import "practices/whm/whm_practice.h"
 #import "practices/whm/whm_session.h"
+#import "data.h"
+#import "stdio.h"
+#import "string.h"
 
 ANDROID :: ANDROID_BUILD
 
@@ -20,6 +23,10 @@ PracticeId :: enum {
     PRACTICE_SUN_SALUTATION = 2
     PRACTICE_PATTERNS = 3
     PRACTICE_COUNT = 4
+}
+
+#enum {
+    SESSION_RESULT_MOOD_COUNT = 5
 }
 
 PracticeVoidFn :: void (*)(InbeApp*) #type
@@ -304,6 +311,434 @@ practice_update_active_breathing :: (app: InbeApp*, center_x: int, center_y: int
     session_update_screen(app, center_x, center_y, hover)
 }
 
+session_result_format_duration :: (seconds: int, out: char*, out_size: size_t) #private {
+    if out == nil || out_size == 0 {
+        return
+    }
+    if seconds < 0 {
+        seconds = 0
+    }
+    if seconds >= 3600 {
+        snprintf(out, out_size, "%dh %02dm", seconds / 3600,
+                 (seconds % 3600) / 60)
+    } else if seconds >= 60 {
+        snprintf(out, out_size, "%dm %02ds", seconds / 60, seconds % 60)
+    } else {
+        snprintf(out, out_size, "%ds", seconds)
+    }
+}
+
+app_prepare_session_results :: (app: InbeApp*, activity: int,
+                                primary_value: int, secondary_value: int,
+                                detail: const char*, round_values: const int*,
+                                round_count: int, saved_path: const char*) {
+    result: InbeSessionResult*
+
+    if app == nil {
+        return
+    }
+    result = &app->session_result
+    memset(result, 0, sizeof(*result))
+    result->active = 1
+    result->activity = practice_clamp_id(activity)
+    result->primary_value = primary_value
+    result->secondary_value = secondary_value
+    if detail != nil {
+        snprintf(result->detail, sizeof(result->detail), "%s", detail)
+    }
+    if round_values != nil && round_count > 0 {
+        if round_count > MaxRounds {
+            round_count = MaxRounds
+        }
+        result->round_count = round_count
+        for int i = 0; i < round_count; i++ {
+            result->round_values[i] = round_values[i]
+        }
+    }
+    if saved_path != nil && saved_path[0] != '\0' {
+        result->saved = 1
+        snprintf(result->path, sizeof(result->path), "%s", saved_path)
+    }
+}
+
+session_result_discard :: (app: InbeApp*) #private {
+    if app == nil {
+        return
+    }
+    if app->session_result.saved && app->session_result.path[0] != '\0' {
+        data_discard_session(app->session_result.path)
+    }
+    memset(&app->session_result, 0, sizeof(app->session_result))
+    app_switch_screen(app, InbeScreenStart)
+}
+
+session_result_done :: (app: InbeApp*) #private {
+    checkin: InbeStorageSessionCheckin = {0}
+
+    if app == nil {
+        return
+    }
+    if app->session_result.saved && app->session_result.path[0] != '\0' &&
+       app->session_result.mood > 0 {
+        checkin.mood_after = app->session_result.mood
+        data_save_session_checkin(app->session_result.path, &checkin)
+    }
+    memset(&app->session_result, 0, sizeof(app->session_result))
+    app_switch_screen(app, InbeScreenStart)
+}
+
+session_result_draw_pixel :: (x: int, y: int, w: int, h: int,
+                              color: Color) #private {
+    DrawRectangle(x, y, w, h, color)
+}
+
+session_result_text_for_background :: (background: Color) -> Color #private {
+    luma: int = background.r * 299 + background.g * 587 + background.b * 114
+
+    return luma >= 128000 ? BLACK : WHITE
+}
+
+session_result_mood_color :: (mood: int) -> Color #private {
+    if mood <= 1 {
+        return (Color){226, 83, 78, 255}
+    } else if mood == 2 {
+        return (Color){238, 139, 70, 255}
+    } else if mood == 3 {
+        return (Color){235, 202, 77, 255}
+    } else if mood == 4 {
+        return (Color){108, 199, 104, 255}
+    }
+    return (Color){73, 194, 192, 255}
+}
+
+session_result_draw_mood_face :: (mood: int, cx: int, cy: int,
+                                  size: int, selected: int) #private {
+    unit := size / 12
+    if unit < 2 {
+        unit = 2
+    }
+    face := unit * 12
+    x := cx - face / 2
+    y := cy - face / 2
+    fill := session_result_mood_color(mood)
+    stroke := DarkenUIColor(fill, 45)
+    detail := (Color){38, 40, 48, 255}
+    shine := (Color){255, 255, 255, 170}
+
+    unused selected
+
+    DrawRectangle(x + unit * 3, y, unit * 6, unit, stroke)
+    DrawRectangle(x + unit * 2, y + unit, unit * 8, unit, stroke)
+    DrawRectangle(x + unit, y + unit * 2, unit * 10, unit, stroke)
+    DrawRectangle(x, y + unit * 3, unit * 12, unit * 6, stroke)
+    DrawRectangle(x + unit, y + unit * 9, unit * 10, unit, stroke)
+    DrawRectangle(x + unit * 2, y + unit * 10, unit * 8, unit, stroke)
+    DrawRectangle(x + unit * 3, y + unit * 11, unit * 6, unit, stroke)
+
+    DrawRectangle(x + unit * 3, y + unit, unit * 6, unit, fill)
+    DrawRectangle(x + unit * 2, y + unit * 2, unit * 8, unit, fill)
+    DrawRectangle(x + unit, y + unit * 3, unit * 10, unit * 6, fill)
+    DrawRectangle(x + unit * 2, y + unit * 9, unit * 8, unit, fill)
+    DrawRectangle(x + unit * 3, y + unit * 10, unit * 6, unit, fill)
+    session_result_draw_pixel(x + unit * 3, y + unit * 2, unit * 2, unit, shine)
+
+    if mood <= 1 {
+        session_result_draw_pixel(x + unit * 2, y + unit * 3, unit * 3, unit, detail)
+        session_result_draw_pixel(x + unit * 7, y + unit * 3, unit * 3, unit, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 4, unit, unit, detail)
+        session_result_draw_pixel(x + unit * 8, y + unit * 4, unit, unit, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 8, unit, unit, detail)
+        session_result_draw_pixel(x + unit * 4, y + unit * 7, unit * 4, unit, detail)
+        session_result_draw_pixel(x + unit * 8, y + unit * 8, unit, unit, detail)
+    } else if mood == 2 {
+        session_result_draw_pixel(x + unit * 3, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 7, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 8, unit, unit, detail)
+        session_result_draw_pixel(x + unit * 4, y + unit * 7, unit * 4, unit, detail)
+        session_result_draw_pixel(x + unit * 8, y + unit * 8, unit, unit, detail)
+    } else if mood == 3 {
+        session_result_draw_pixel(x + unit * 3, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 7, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 8, unit * 6, unit, detail)
+    } else if mood == 4 {
+        session_result_draw_pixel(x + unit * 3, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 7, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 2, y + unit * 7, unit, unit, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 8, unit * 6, unit, detail)
+        session_result_draw_pixel(x + unit * 9, y + unit * 7, unit, unit, detail)
+    } else {
+        session_result_draw_pixel(x + unit * 3, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 7, y + unit * 4, unit * 2, unit * 2, detail)
+        session_result_draw_pixel(x + unit * 3, y + unit * 7, unit * 6, unit * 3, detail)
+        session_result_draw_pixel(x + unit * 4, y + unit * 7, unit * 4, unit, WHITE)
+        session_result_draw_pixel(x + unit * 4, y + unit * 9, unit * 4, unit, (Color){236, 108, 128, 255})
+    }
+}
+
+session_result_draw_mood_picker :: (app: InbeApp*, x: int, y: int, w: int,
+                                    hover: int*) -> int #private {
+    title_h := ScaleUIPx(28)
+    button_h := ScaleUIPx(64)
+    gap := ScaleUIPx(8)
+    item_w := (w - gap * (SESSION_RESULT_MOOD_COUNT - 1)) /
+              SESSION_RESULT_MOOD_COUNT
+    mouse := GetScreenToWorld2D(GetMousePosition(), app->camera)
+
+    DrawLeftUIControlTextInRect(GetLocaleText("results_mood_title"),
+                                (Rectangle){(float)x, (float)y,
+                                            (float)w, (float)title_h},
+                                GetUIFontSize(),
+                                DarkenUIColor(GetThemeText(), 20))
+    y += title_h + ScaleUIPx(8)
+
+    for int i = 0; i < SESSION_RESULT_MOOD_COUNT; i++ {
+        bx := x + i * (item_w + gap)
+        bw := i == SESSION_RESULT_MOOD_COUNT - 1 ? x + w - bx : item_w
+        bounds := (Rectangle){(float)bx, (float)y, (float)bw, (float)button_h}
+        active := CheckCollisionPointRec(mouse, bounds) &&
+                  !UIInputCapturesClick(mouse)
+        selected := app->session_result.mood == i + 1
+        mood_color := session_result_mood_color(i + 1)
+        fill := selected ? LightenUIColor(GetThemeSurface(), 5)
+                         : DarkenUIColor(GetThemeBackground(), 7)
+        border := selected ? GetThemeButton()
+                           : Fade(GetThemeText(), 0.26f)
+
+        if active {
+            MarkUIClickable()
+            if UIHoverEffectsEnabled() {
+                fill = selected ? LightenUIColor(GetThemeSurface(), 10)
+                                : DarkenUIColor(GetThemeBackground(), 3)
+            }
+            if IsMouseButtonReleased(MOUSE_BUTTON_LEFT) &&
+               !UIInputCapturesClick(mouse) {
+                app->session_result.mood = i + 1
+            }
+            if hover != nil {
+                *hover = 1
+            }
+        }
+
+        DrawRectangleRounded(bounds, 0.18f, 10, fill)
+        if selected {
+            DrawRectangleRounded(bounds, 0.18f, 10, Fade(mood_color, 0.16f))
+        } else if active && UIHoverEffectsEnabled() {
+            DrawRectangleRounded(bounds, 0.18f, 10,
+                                 Fade(GetThemeButtonHover(), 0.08f))
+        }
+        DrawRectangleRoundedLinesEx(bounds, 0.18f, 10,
+                                    selected ? (float)ScaleUIPx(2) : 1.0f,
+                                    border)
+        session_result_draw_mood_face(i + 1, bx + bw / 2,
+                                      y + button_h / 2,
+                                      ScaleUIPx(32), selected)
+    }
+    return title_h + ScaleUIPx(8) + button_h
+}
+
 practice_draw_results :: (app: InbeApp*, center_x: int, center_y: int, hover: int*) {
-    session_draw_results_screen(app, center_x, center_y, hover)
+    result: InbeSessionResult*
+    box_x: int
+    box_w: int
+    title_font: int
+    title_w: int
+    summary_rows: [8] UIInfoRow
+    summary_text: [8][80] char
+    summary_count: int
+    row_y: int
+    content_top: int = ScaleUIPx(82)
+    done_hover: int = 0
+    discard_hover: int = 0
+    button_y: int
+    button_h: int
+    gap: int
+    button_w: int
+
+    unused center_y
+
+    if app == nil {
+        return
+    }
+    result = &app->session_result
+    if !result->active {
+        session_draw_results_screen(app, center_x, center_y, hover)
+        return
+    }
+
+    responsive_max_w: int = (int)(view_width * 0.94f)
+    if responsive_max_w < ScaleUIPx(300) {
+        responsive_max_w = ScaleUIPx(300)
+    }
+    if responsive_max_w > ScaleUIPx(520) {
+        responsive_max_w = ScaleUIPx(520)
+    }
+    GetUICenteredColumn(responsive_max_w, GetUIPageSidePadding(), &box_x, &box_w)
+
+    title_font = GetUITitleFontSize(GetLocaleText("results_title"),
+                                    view_width - ScaleUIPx(48))
+    title_w = TextWidth(GetLocaleText("results_title"), title_font)
+    Text(GetLocaleText("results_title"), center_x - title_w / 2,
+         ScaleUIPx(28), title_font, GetThemeText())
+
+    summary_count = 0
+    snprintf(summary_text[summary_count], sizeof(summary_text[summary_count]),
+             "%s", practice_label(result->activity))
+    summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                              GetUIFontSize(), GetThemeText()}
+    summary_count++
+    if result->activity == EXERCISE_WIM_HOF {
+        total := 0
+        best := 0
+        avg := 0
+
+        for int i = 0; i < result->round_count; i++ {
+            seconds := result->round_values[i]
+            total += seconds
+            if seconds > best {
+                best = seconds
+            }
+        }
+        avg = result->round_count > 0 ? total / result->round_count : 0
+        FormatLocaleText(summary_text[summary_count],
+                         sizeof(summary_text[summary_count]),
+                         "results_rounds", result->round_count)
+        summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                  GetUIFontSize(),
+                                                  GetThemeText()}
+        summary_count++
+        FormatLocaleText(summary_text[summary_count],
+                         sizeof(summary_text[summary_count]),
+                         "results_best", best)
+        summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                  GetUIFontSize(),
+                                                  GetThemeText()}
+        summary_count++
+        FormatLocaleText(summary_text[summary_count],
+                         sizeof(summary_text[summary_count]),
+                         "results_avg", avg)
+        summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                  GetUIFontSize(),
+                                                  GetThemeText()}
+        summary_count++
+    } else if result->activity == EXERCISE_MEDITATION ||
+              result->activity == EXERCISE_PATTERNS {
+        duration: [32] char
+        session_result_format_duration(result->primary_value, duration,
+                                       sizeof(duration))
+        FormatLocaleText(summary_text[summary_count],
+                         sizeof(summary_text[summary_count]),
+                         "results_duration", duration)
+        summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                  GetUIFontSize(),
+                                                  GetThemeText()}
+        summary_count++
+        if result->activity == EXERCISE_PATTERNS && result->detail[0] != '\0' {
+            FormatLocaleText(summary_text[summary_count],
+                             sizeof(summary_text[summary_count]),
+                             "results_pattern", result->detail)
+            summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                      GetUIFontSize(),
+                                                      GetThemeText()}
+            summary_count++
+        }
+        if result->activity == EXERCISE_PATTERNS && result->secondary_value > 0 {
+            FormatLocaleText(summary_text[summary_count],
+                             sizeof(summary_text[summary_count]),
+                             "results_cycles", result->secondary_value)
+            summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                      GetUIFontSize(),
+                                                      GetThemeText()}
+            summary_count++
+        }
+    } else if result->activity == EXERCISE_SUN_SALUTATION {
+        FormatLocaleText(summary_text[summary_count],
+                         sizeof(summary_text[summary_count]),
+                         "results_repetitions", result->primary_value)
+        summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                                  GetUIFontSize(),
+                                                  GetThemeText()}
+        summary_count++
+    }
+    snprintf(summary_text[summary_count], sizeof(summary_text[summary_count]),
+             "%s", GetLocaleText(result->saved ? "results_saved_status"
+                                                : "results_unsaved_status"))
+    summary_rows[summary_count] = (UIInfoRow){summary_text[summary_count],
+                                              Text16,
+                                              DarkenUIColor(GetThemeText(), 18)}
+    summary_count++
+    InfoRows((InfoRowsProps){
+        .x = box_x,
+        .y = content_top,
+        .width = box_w,
+        .row_height = ScaleUIPx(31),
+        .rows = summary_rows,
+        .row_count = summary_count,
+        .background = DarkenUIColor(GetThemeBackground(), 6),
+        .separator = DarkenUIColor(GetThemeBackground(), 30),
+        .default_text = GetThemeText()
+    })
+    row_y = content_top + summary_count * ScaleUIPx(31) + ScaleUIPx(18)
+
+    row_y += session_result_draw_mood_picker(app, box_x, row_y, box_w, hover)
+    row_y += ScaleUIPx(18)
+
+    if result->activity == EXERCISE_WIM_HOF && result->round_count > 0 {
+        round_gap := ScaleUIPx(8)
+        round_col_w := (box_w - round_gap) / 2
+        round_h := ScaleUIPx(27)
+
+        DrawLeftUIControlTextInRect(GetLocaleText("round_times_title"),
+                                    (Rectangle){(float)box_x, (float)row_y,
+                                                (float)box_w, (float)ScaleUIPx(26)},
+                                    GetUIFontSize(),
+                                    DarkenUIColor(GetThemeText(), 20))
+        row_y += ScaleUIPx(30)
+        for int i = 0; i < result->round_count; i++ {
+            row: [48] char
+            col := i % 2
+            grid_row := i / 2
+            cell_x := box_x + col * (round_col_w + round_gap)
+            cell_y := row_y + grid_row * (round_h + round_gap)
+
+            FormatLocaleText(row, sizeof(row), "round_result_label", i + 1,
+                             result->round_values[i])
+            DrawRectangle(cell_x, cell_y, round_col_w, round_h,
+                          DarkenUIColor(GetThemeBackground(), 4))
+            DrawLeftUIControlTextInRect(row,
+                                        (Rectangle){(float)(cell_x + ScaleUIPx(12)),
+                                                    (float)cell_y,
+                                                    (float)(round_col_w - ScaleUIPx(24)),
+                                                    (float)round_h},
+                                        Text16, GetThemeText())
+        }
+        row_y += ((result->round_count + 1) / 2) * (round_h + round_gap) +
+                 ScaleUIPx(16)
+    }
+
+    button_h = ScaleUIPx(46)
+    gap = ScaleUIPx(12)
+    button_y = view_height - ScaleUIPx(28) - button_h
+    if result->saved {
+        button_w = (box_w - gap) / 2
+        if StyledButton(box_x, button_y, button_w, button_h,
+                        GetLocaleText("discard_button"),
+                        ButtonStyleSecondary, 0, &discard_hover) {
+            session_result_discard(app)
+        }
+        if StyledButton(box_x + button_w + gap, button_y,
+                        box_w - button_w - gap, button_h,
+                        GetLocaleText("done_button"),
+                        ButtonStylePrimary, 0, &done_hover) {
+            session_result_done(app)
+        }
+    } else {
+        if StyledButton(box_x, button_y, box_w, button_h,
+                        GetLocaleText("done_button"),
+                        ButtonStylePrimary, 0, &done_hover) {
+            session_result_done(app)
+        }
+    }
+    if hover != nil && (done_hover || discard_hover) {
+        *hover = 1
+    }
 }

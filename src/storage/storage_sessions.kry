@@ -281,6 +281,150 @@ storage_load_session :: (path_or_id: const char*, round_times: int*,
     return count
 }
 
+storage_save_session_checkin :: (path_or_id: const char*,
+                                    checkin: const InbeStorageSessionCheckin*) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+
+    if !parse_db_id(path_or_id, id, sizeof(id)) || checkin == nil {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "UPDATE sessions SET mood_before=?2,mood_after=?3,"
+                          "energy=?4,stress=?5,note=?6,tags=?7,updated_at=?8 "
+                          "WHERE id=?1 AND deleted_at=0",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    sqlite3_bind_int(stmt, 2, checkin->mood_before)
+    sqlite3_bind_int(stmt, 3, checkin->mood_after)
+    sqlite3_bind_int(stmt, 4, checkin->energy)
+    sqlite3_bind_int(stmt, 5, checkin->stress)
+    bind_text(stmt, 6, checkin->note)
+    bind_text(stmt, 7, checkin->tags)
+    sqlite3_bind_int64(stmt, 8, now_seconds())
+    sqlite3_step(stmt)
+    changed := sqlite3_changes(g_storage.db) > 0
+    sqlite3_finalize(stmt)
+    if changed {
+        storage_enqueue_sync_session(id)
+        storage_schedule_persist()
+    }
+    return changed
+}
+
+storage_load_session_checkin :: (path_or_id: const char*,
+                                    checkin: InbeStorageSessionCheckin*) -> int {
+    stmt: sqlite3_stmt* = nil
+    id: [INBE_STORAGE_ID_SIZE] char
+
+    if checkin != nil {
+        memset(checkin, 0, sizeof(*checkin))
+    }
+    if !parse_db_id(path_or_id, id, sizeof(id)) || checkin == nil {
+        return 0
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT mood_before,mood_after,energy,stress,note,tags "
+                          "FROM sessions WHERE id=?1 AND deleted_at=0",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, id)
+    if sqlite3_step(stmt) != SQLITE_ROW {
+        sqlite3_finalize(stmt)
+        return 0
+    }
+    checkin->mood_before = sqlite3_column_int(stmt, 0)
+    checkin->mood_after = sqlite3_column_int(stmt, 1)
+    checkin->energy = sqlite3_column_int(stmt, 2)
+    checkin->stress = sqlite3_column_int(stmt, 3)
+    snprintf(checkin->note, sizeof(checkin->note), "%s",
+             sqlite3_column_text(stmt, 4) != nil
+                 ? (const char*)sqlite3_column_text(stmt, 4) : "")
+    snprintf(checkin->tags, sizeof(checkin->tags), "%s",
+             sqlite3_column_text(stmt, 5) != nil
+                 ? (const char*)sqlite3_column_text(stmt, 5) : "")
+    sqlite3_finalize(stmt)
+    return 1
+}
+
+storage_mood_stats :: (activity_mask: int, days: int,
+                          stats: InbeStorageMoodStats*) -> int {
+    stmt: sqlite3_stmt* = nil
+    cutoff: long long = 0
+    after_total: long long = 0
+    lift_total: long long = 0
+    energy_total: long long = 0
+    stress_total: long long = 0
+    lift_count: int = 0
+    energy_count: int = 0
+    stress_count: int = 0
+
+    if stats != nil {
+        memset(stats, 0, sizeof(*stats))
+    }
+    if g_storage.db == nil || stats == nil {
+        return 0
+    }
+    if days > 0 {
+        cutoff = now_seconds() - (long long)days * 86400
+    }
+    if sqlite3_prepare_v2(g_storage.db,
+                          "SELECT mood_before,mood_after,energy,stress "
+                          "FROM sessions WHERE user_id=?1 AND deleted_at=0 "
+                          "AND mood_after BETWEEN 1 AND 5 "
+                          "AND (?2=0 OR (activity>=0 AND activity<30 "
+                          "AND ((1 << activity) & ?2)<>0)) "
+                          "AND (?3=0 OR started_at>=?3)",
+                          -1, &stmt, nil) != SQLITE_OK {
+        return 0
+    }
+    bind_text(stmt, 1, g_storage.user_id)
+    sqlite3_bind_int(stmt, 2, activity_mask)
+    sqlite3_bind_int64(stmt, 3, cutoff)
+    while sqlite3_step(stmt) == SQLITE_ROW {
+        before := sqlite3_column_int(stmt, 0)
+        after := sqlite3_column_int(stmt, 1)
+        energy := sqlite3_column_int(stmt, 2)
+        stress := sqlite3_column_int(stmt, 3)
+
+        if after < 1 || after > 5 {
+            continue
+        }
+        stats->counts[after - 1]++
+        stats->total++
+        after_total += after
+        if before >= 1 && before <= 5 {
+            lift_total += after - before
+            lift_count++
+        }
+        if energy >= 1 && energy <= 5 {
+            energy_total += energy
+            energy_count++
+        }
+        if stress >= 1 && stress <= 5 {
+            stress_total += stress
+            stress_count++
+        }
+    }
+    sqlite3_finalize(stmt)
+    if stats->total > 0 {
+        stats->average_after_x100 = (int)((after_total * 100) / stats->total)
+    }
+    if lift_count > 0 {
+        stats->average_lift_x100 = (int)((lift_total * 100) / lift_count)
+    }
+    if energy_count > 0 {
+        stats->average_energy_x100 = (int)((energy_total * 100) / energy_count)
+    }
+    if stress_count > 0 {
+        stats->average_stress_x100 = (int)((stress_total * 100) / stress_count)
+    }
+    return stats->total
+}
+
 storage_replace_session :: (path_or_id: const char*, round_times: const int*,
                                round_count: int) -> int {
     stmt: sqlite3_stmt* = nil

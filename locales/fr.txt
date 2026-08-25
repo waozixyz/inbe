@@ -890,6 +890,15 @@ Rythme par jour
 [habit_stats_practice_time]
 Temps de pratique
 ---
+[habit_stats_mood_title]
+Humeur après la pratique
+---
+[habit_stats_mood_average]
+Humeur moyenne
+---
+[habit_stats_mood_checkins]
+Bilans
+---
 [habit_stats_best_hold]
 Meilleure rétention
 ---
@@ -1750,4 +1759,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Terminé
+---
+[results_duration]
+Durée %s
+---
+[results_pattern]
+Rythme %s
+---
+[results_cycles]
+%d cycles
+---
+[results_repetitions]
+%d répétitions
+---
+[results_saved_status]
+Enregistré dans l'historique
+---
+[results_unsaved_status]
+Non enregistré (moins d'une minute)
+---
+[results_mood_title]
+Comment vous sentiez-vous ?
 ---

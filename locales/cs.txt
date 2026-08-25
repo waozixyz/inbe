@@ -854,6 +854,15 @@ Vzorec podle dnů v týdnu
 [habit_stats_practice_time]
 Čas cvičení
 ---
+[habit_stats_mood_title]
+Nálada po cvičení
+---
+[habit_stats_mood_average]
+Průměrná nálada
+---
+[habit_stats_mood_checkins]
+Záznamy
+---
 [habit_stats_best_hold]
 Nejlepší zádrž
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Hotovo
+---
+[results_duration]
+Délka %s
+---
+[results_pattern]
+Vzor %s
+---
+[results_cycles]
+%d cyklů
+---
+[results_repetitions]
+%d opakování
+---
+[results_saved_status]
+Uloženo do historie
+---
+[results_unsaved_status]
+Neuloženo (méně než jedna minuta)
+---
+[results_mood_title]
+Jak jste se cítili?
 ---

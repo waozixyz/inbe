@@ -854,6 +854,15 @@ Wim Hof 屏息轮次
 [habit_stats_practice_time]
 练习时间
 ---
+[habit_stats_mood_title]
+练习后的心情
+---
+[habit_stats_mood_average]
+平均心情
+---
+[habit_stats_mood_checkins]
+打卡
+---
 [habit_stats_best_hold]
 最佳屏息
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+完成
+---
+[results_duration]
+时长 %s
+---
+[results_pattern]
+模式 %s
+---
+[results_cycles]
+%d 个循环
+---
+[results_repetitions]
+%d 次重复
+---
+[results_saved_status]
+已保存到历史记录
+---
+[results_unsaved_status]
+未保存（少于一分钟）
+---
+[results_mood_title]
+你感觉怎么样？
 ---

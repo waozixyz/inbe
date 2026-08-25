@@ -2,6 +2,7 @@
 #import "app.h"
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
+#import "practices/practice_registry.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "stdio.h"
 
@@ -20,12 +21,13 @@ exit_to_start :: (app: InbeApp*) #private {
 }
 
 finish :: (app: InbeApp*) #private {
-    app_notifications_send_session_complete(app)
     repetitions := 0
+    result_path: [FS_PATH_MAX] char = {0}
 
     if app == nil {
         return
     }
+    app_notifications_send_session_complete(app)
 
     repetitions = app->sun_salutation.repetitions
     if repetitions < 1 {
@@ -33,11 +35,19 @@ finish :: (app: InbeApp*) #private {
     }
     if data_save_session_path_for_activity(&repetitions, 1, 0,
                                            EXERCISE_SUN_SALUTATION,
-                                           nil, 0) {
+                                           result_path, sizeof(result_path)) {
         sync_habits_for_activity(app, EXERCISE_SUN_SALUTATION)
         app_auto_sync(app)
     }
-    exit_to_start(app)
+    app->sun_salutation.step = 0
+    app->sun_salutation.repetition = 0
+    app->sun_salutation.step_ticks = 0
+    app->session_paused = 0
+    meditation_music_stop(app)
+    app_close_modal(app)
+    app_prepare_session_results(app, EXERCISE_SUN_SALUTATION, repetitions, 0,
+                                nil, nil, 0, result_path)
+    app_switch_screen(app, InbeScreenResults)
 }
 
 sun_salutation_practice_start :: (app: InbeApp*) {

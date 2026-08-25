@@ -10,6 +10,24 @@ enum {
     INBE_SYNC_PROTOCOL_VERSION = 3
 };
 
+typedef struct InbeStorageSessionCheckin {
+    int mood_before;
+    int mood_after;
+    int energy;
+    int stress;
+    char note[256];
+    char tags[160];
+} InbeStorageSessionCheckin;
+
+typedef struct InbeStorageMoodStats {
+    int total;
+    int counts[5];
+    int average_after_x100;
+    int average_lift_x100;
+    int average_energy_x100;
+    int average_stress_x100;
+} InbeStorageMoodStats;
+
 typedef void (*InbeStorageSessionRecordCallback)(const char *id,
                                                  int year, int month, int day,
                                                  int hour, int minute, int second,
@@ -81,6 +99,12 @@ int storage_discard_session(const char *id);
 int storage_load_session(const char *id, int *round_times, int max_rounds,
                               int *year, int *month, int *day,
                               int *hour, int *minute, int *second);
+int storage_save_session_checkin(const char *id,
+                                 const InbeStorageSessionCheckin *checkin);
+int storage_load_session_checkin(const char *id,
+                                 InbeStorageSessionCheckin *checkin);
+int storage_mood_stats(int activity_mask, int days,
+                       InbeStorageMoodStats *stats);
 void storage_list_session_records(InbeStorageSessionRecordCallback callback, void *user);
 int storage_has_any(void);
 int storage_session_count(void);

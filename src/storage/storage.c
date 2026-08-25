@@ -992,7 +992,7 @@ storage_append_session_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
 {
     const char *id = (const char *)sqlite3_column_text(stmt, 0);
     long long started_at = sqlite3_column_int64(stmt, 1);
-    long long updated_at = sqlite3_column_int64(stmt, 8);
+    long long updated_at = sqlite3_column_int64(stmt, 14);
 
     json_append(json, "{");
     json_append_key_string(json, "id", id);
@@ -1004,7 +1004,15 @@ storage_append_session_row_json(JsonBuilder *json, sqlite3_stmt *stmt)
     json_append_key_string(json, "source", (const char *)sqlite3_column_text(stmt, 5));
     json_append(json, ",");
     json_append_key_string(json, "rounds_hash", (const char *)sqlite3_column_text(stmt, 6));
-    json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 7));
+    json_appendf(json,
+                 ",\"mood_before\":%d,\"mood_after\":%d,\"energy\":%d,"
+                 "\"stress\":%d,",
+                 sqlite3_column_int(stmt, 7), sqlite3_column_int(stmt, 8),
+                 sqlite3_column_int(stmt, 9), sqlite3_column_int(stmt, 10));
+    json_append_key_string(json, "note", (const char *)sqlite3_column_text(stmt, 11));
+    json_append(json, ",");
+    json_append_key_string(json, "tags", (const char *)sqlite3_column_text(stmt, 12));
+    json_appendf(json, ",\"deleted_at\":%lld,\"updated_at\":", sqlite3_column_int64(stmt, 13));
     json_append_epoch(json, updated_at > 0 ? updated_at : started_at);
     json_append(json, ",");
     storage_append_session_rounds_json(json, id);
@@ -1088,7 +1096,8 @@ storage_append_session_payload_json(JsonBuilder *json, const char *session_id)
         json,
         "SELECT "
         "id,started_at,local_date,topic,activity,source,"
-        "rounds_hash,deleted_at,updated_at "
+        "rounds_hash,mood_before,mood_after,energy,stress,note,tags,"
+        "deleted_at,updated_at "
         "FROM sessions WHERE user_id=?1 AND id=?2",
         session_id, storage_append_session_row_json);
 }
@@ -2022,7 +2031,8 @@ storage_apply_sync_sessions_json(const char *response_json)
     static const char *sessions_sql =
         "INSERT INTO "
         "sessions(id,user_id,started_at,local_date,topic,activity,source,"
-        "imported_at,rounds_hash,deleted_at,updated_at) "
+        "imported_at,rounds_hash,mood_before,mood_after,energy,stress,note,tags,"
+        "deleted_at,updated_at) "
         "SELECT COALESCE(json_extract(value,'$.id'),''),?2,"
         "       "
         "CAST(COALESCE(strftime('%s',json_extract(value,'$.started_at')),'0') AS "
@@ -2035,6 +2045,12 @@ storage_apply_sync_sessions_json(const char *response_json)
         "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
         "strftime('%s',json_extract(value,'$.started_at')),'0') AS INTEGER),"
         "       CAST(COALESCE(json_extract(value,'$.rounds_hash'),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.mood_before'),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.mood_after'),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.energy'),0) AS INTEGER),"
+        "       CAST(COALESCE(json_extract(value,'$.stress'),0) AS INTEGER),"
+        "       COALESCE(json_extract(value,'$.note'),''),"
+        "       COALESCE(json_extract(value,'$.tags'),''),"
         "       CAST(COALESCE(json_extract(value,'$.deleted_at'),0) AS INTEGER),"
         "       "
         "CAST(COALESCE(strftime('%s',json_extract(value,'$.updated_at')),"
@@ -2047,6 +2063,9 @@ storage_apply_sync_sessions_json(const char *response_json)
         "excluded.local_date,"
         " topic=excluded.topic,activity=excluded.activity,source=excluded.source,"
         " imported_at=excluded.imported_at,rounds_hash=excluded.rounds_hash,"
+        " mood_before=excluded.mood_before,mood_after=excluded.mood_after,"
+        " energy=excluded.energy,stress=excluded.stress,note=excluded.note,"
+        " tags=excluded.tags,"
         "deleted_at=excluded.deleted_at,"
         " updated_at=excluded.updated_at "
         "WHERE excluded.updated_at > sessions.updated_at "

@@ -22,6 +22,7 @@ StatisticsGraphPoint :: struct {
 
 StatisticsScrollPageContext :: struct {
     linked_count: int
+    mood_count: int
 }
 
 statistics_day_count :: (habit: const InbeHabit*, linked_ctx: const HabitLinkedContext*, day_index: int) -> int {
@@ -119,6 +120,90 @@ statistics_draw_section_title :: (title: const char*, x: int, y: int, w: int) ->
     return height
 }
 
+statistics_mood_color :: (mood: int) -> Color #private {
+    if mood <= 1 {
+        return (Color){226, 83, 78, 255}
+    } else if mood == 2 {
+        return (Color){238, 139, 70, 255}
+    } else if mood == 3 {
+        return (Color){235, 202, 77, 255}
+    } else if mood == 4 {
+        return (Color){108, 199, 104, 255}
+    }
+    return (Color){73, 194, 192, 255}
+}
+
+statistics_format_average :: (out: char*, out_size: size_t, value_x100: int,
+                              suffix: const char*) #private {
+    sign: [2] char = {0}
+    value := value_x100
+
+    if out == nil || out_size == 0 {
+        return
+    }
+    if value < 0 {
+        sign[0] = '-'
+        value = -value
+    }
+    snprintf(out, out_size, "%s%d.%02d%s", sign, value / 100, value % 100,
+             suffix != nil ? suffix : "")
+}
+
+statistics_draw_mood_panel :: (content_x: int, y: int, content_w: int,
+                               stats: const InbeStorageMoodStats*,
+                               accent: Color) -> int #private {
+    panel_h := ScaleUIPx(156)
+    metrics_gap := ScaleUIPx(8)
+    metric_h := ScaleUIPx(58)
+    metric_w := (content_w - metrics_gap) / 2
+    bars_y := y + ScaleUIPx(78)
+    bars_h := ScaleUIPx(54)
+    slot_w := content_w / 5
+    value: [32] char = {0}
+
+    if stats == nil || stats->total <= 0 {
+        return 0
+    }
+
+    y += statistics_draw_section_title(GetLocaleText("habit_stats_mood_title"),
+                                       content_x, y, content_w) + ScaleUIPx(10)
+    statistics_format_average(value, sizeof(value), stats->average_after_x100,
+                              "/5")
+    statistics_draw_metric(content_x, y, metric_w, metric_h,
+                           GetLocaleText("habit_stats_mood_average"), value,
+                           accent)
+    snprintf(value, sizeof(value), "%d", stats->total)
+    statistics_draw_metric(content_x + metric_w + metrics_gap, y,
+                           content_w - metric_w - metrics_gap, metric_h,
+                           GetLocaleText("habit_stats_mood_checkins"), value,
+                           LightenUIColor(accent, 20))
+
+    DrawRectangle(content_x, bars_y, content_w, bars_h,
+                  DarkenUIColor(GetThemeBackground(), 7))
+    for int i = 0; i < 5; i++ {
+        count := stats->counts[i]
+        bar_h := count > 0 ? (count * (bars_h - ScaleUIPx(24))) / stats->total
+                           : ScaleUIPx(3)
+        x := content_x + i * slot_w + ScaleUIPx(7)
+        w := slot_w - ScaleUIPx(14)
+        bar_y := bars_y + bars_h - bar_h - ScaleUIPx(18)
+        label: [4] char = {0}
+
+        if w < ScaleUIPx(4) {
+            w = ScaleUIPx(4)
+        }
+        DrawRectangle(x, bar_y, w, bar_h,
+                      count > 0 ? statistics_mood_color(i + 1)
+                                : DarkenUIColor(GetThemeBackground(), 24))
+        snprintf(label, sizeof(label), "%d", i + 1)
+        Text(label, x + (w - TextWidth(label, Text12)) / 2,
+             bars_y + bars_h - ScaleUIPx(16), Text12,
+             DarkenUIColor(GetThemeText(), 18))
+    }
+
+    return panel_h
+}
+
 statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -> int #private {
     labels: [2] const char* = {"1W", "1M"}
     values: [2] const int = {7, 31}
@@ -163,15 +248,16 @@ statistics_draw_hold_range_selector :: (app: InbeApp*, x: int, y: int, w: int) -
     return clicked
 }
 
-statistics_content_height :: (linked_count: int) -> int #private {
-    return ScaleUIPx(linked_count > 0 ? 710 : 420)
+statistics_content_height :: (linked_count: int, mood_count: int) -> int #private {
+    return ScaleUIPx(linked_count > 0 ? 710 : 420) +
+           (mood_count > 0 ? ScaleUIPx(188) : 0)
 }
 
 statistics_scroll_page_content_height :: (content_w: int, user_data: void*) -> int #private {
     ctx := (StatisticsScrollPageContext*)user_data
 
     unused content_w
-    return statistics_content_height(ctx->linked_count)
+    return statistics_content_height(ctx->linked_count, ctx->mood_count)
 }
 
 statistics_draw_hold_graph :: (app: InbeApp*, linked_ctx: const HabitLinkedContext*, content_x: int, y: int, content_w: int, today_tm: const struct tm*, filter: int, accent: Color) #private {
@@ -332,6 +418,13 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
     metric_w := 0
     value: [64] char = {0}
     has_wim_hof_rounds := statistics_has_wim_hof_rounds(linked_ctx)
+    mood_stats: InbeStorageMoodStats = {0}
+    mood_count := 0
+
+    if active != nil && active->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
+       active->sync_activity != 0 {
+        mood_count = storage_mood_stats(active->sync_activity, 0, &mood_stats)
+    }
 
     if now_tm != NULL {
         today_tm = *now_tm
@@ -391,6 +484,11 @@ statistics_draw_view :: (app: InbeApp*, active: InbeHabit*, linked_ctx: HabitLin
     statistics_draw_metric(content_x + metric_w + metrics_gap, y, content_w - metric_w - metrics_gap, metric_h, GetLocaleText("habit_stats_last_30_days"), value, LightenUIColor(active->color, 24))
     y += metric_h + ScaleUIPx(22)
 
+    if mood_count > 0 {
+        y += statistics_draw_mood_panel(content_x, y, content_w, &mood_stats,
+                                        active->color) + ScaleUIPx(22)
+    }
+
     if has_wim_hof_rounds {
         y += statistics_draw_section_title(GetLocaleText("habit_stats_wim_hof_hold_rounds"), content_x, y, content_w) + ScaleUIPx(10)
         statistics_draw_hold_range_selector(app, content_x, y, ScaleUIPx(118))
@@ -447,6 +545,8 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     linked_ctx := (HabitLinkedContext*)NULL
     page_ctx := (StatisticsScrollPageContext){0}
     page := (UIScrollPage){0}
+    page_mood_stats: InbeStorageMoodStats = {0}
+    page_mood_count := 0
 
     if app->habits.count <= 0 {
         return
@@ -466,7 +566,13 @@ draw_statistics_content :: (app: InbeApp*, content_top: int) {
     if scroll_h < 0 {
         scroll_h = 0
     }
-    page_ctx = (StatisticsScrollPageContext){linked_ctx != NULL ? linked_ctx->count : 0}
+    if active != NULL && active->sync_mode == INBE_HABIT_SYNC_ACTIVITIES &&
+       active->sync_activity != 0 {
+        page_mood_count = storage_mood_stats(active->sync_activity, 0,
+                                             &page_mood_stats)
+    }
+    page_ctx.linked_count = linked_ctx != NULL ? linked_ctx->count : 0
+    page_ctx.mood_count = page_mood_count
     page = BeginUIScrollPage((UIScrollPageSpec){.y = scroll_y, .height = scroll_h, .max_content_width = max_w, .scroll_offset = &app->habits.scroll, .content_height = statistics_scroll_page_content_height, .user_data = &page_ctx})
     statistics_draw_view(app, active, linked_ctx, page.content_x, page.content_w, page.content_y + ScaleUIPx(8))
     EndUIScrollPage(page)

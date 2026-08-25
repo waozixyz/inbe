@@ -854,6 +854,15 @@ Schema settimanale
 [habit_stats_practice_time]
 Tempo di pratica
 ---
+[habit_stats_mood_title]
+Umore dopo la pratica
+---
+[habit_stats_mood_average]
+Umore medio
+---
+[habit_stats_mood_checkins]
+Check-in
+---
 [habit_stats_best_hold]
 Migliore apnea
 ---
@@ -1751,4 +1760,28 @@ Skip this time
 ---
 [donation_reminder_dismiss_button]
 Dismiss forever
+---
+[done_button]
+Fine
+---
+[results_duration]
+Durata %s
+---
+[results_pattern]
+Schema %s
+---
+[results_cycles]
+%d cicli
+---
+[results_repetitions]
+%d ripetizioni
+---
+[results_saved_status]
+Salvato nella cronologia
+---
+[results_unsaved_status]
+Non salvato (meno di un minuto)
+---
+[results_mood_title]
+Come ti sei sentito?
 ---

@@ -3,6 +3,7 @@
 
 #include <stddef.h>
 #include "core/breath_engine.h"
+#include "storage.h"
 
 typedef enum DataImportMode {
     DATA_IMPORT_DATA_ONLY = 0,
@@ -30,6 +31,8 @@ int data_replace_session(const char *path, const int *round_times, int round_cou
 int data_rename_session(const char *old_path, const char *new_path);
 int data_delete_session(const char *path);
 int data_discard_session(const char *path);
+int data_save_session_checkin(const char *path,
+                              const InbeStorageSessionCheckin *checkin);
 int data_has_any(void);
 long long data_get_total_size(void);
 int data_get_session_count(void);
