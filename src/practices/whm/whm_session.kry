@@ -1125,8 +1125,11 @@ session_update_screen :: (app: InbeApp*, center_x: int, center_y: int, hover: in
         }
         session_update_notification(app)
 } #else {
-        inbestep(&app->inbe)
-        update_session_sounds(app)
+        elapsed_ms: int = (int)(GetFrameTime() * 1000.0f + 0.5f)
+        if elapsed_ms < 1 {
+            elapsed_ms = 1
+        }
+        session_advance_elapsed(app, elapsed_ms)
 }
     }
 
