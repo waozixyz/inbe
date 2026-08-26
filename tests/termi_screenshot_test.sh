@@ -16,15 +16,10 @@ esac
 
 BIN="${1:-"$ROOT_DIR/build/bin/$PLATFORM/inbe-$PLATFORM-$ARCH"}"
 OUT_DIR="${TERMI_SCREENSHOT_OUT_DIR:-"$ROOT_DIR/build/termi-screenshots"}"
-SCENE="${TERMI_SCREENSHOT_SCENE:-wim_hof_session}"
+SCENES="${TERMI_SCREENSHOT_SCENE:-home wim_hof_session}"
 TITLE="inbe-termi-shot-$$"
-DATA_ROOT="$OUT_DIR/data-$SCENE"
-XWD_1="$OUT_DIR/$SCENE-1.xwd"
-XWD_2="$OUT_DIR/$SCENE-2.xwd"
-PNG_1="$OUT_DIR/$SCENE-1.png"
-PNG_2="$OUT_DIR/$SCENE-2.png"
 
-for tool in xvfb-run xterm xdotool xwd convert python3; do
+for tool in Xvfb xterm xdotool xwd convert python3; do
   if ! command -v "$tool" >/dev/null 2>&1; then
     echo "termi screenshot test: missing required tool: $tool" >&2
     exit 1
@@ -38,11 +33,47 @@ if [[ ! -x "$BIN" ]]; then
 fi
 
 mkdir -p "$OUT_DIR"
+
+XVFB_DISPLAY_NUM="${TERMI_XVFB_DISPLAY:-$((200 + ($$ % 1000)))}"
+while [[ -e "/tmp/.X11-unix/X$XVFB_DISPLAY_NUM" || -e "/tmp/.X$XVFB_DISPLAY_NUM-lock" ]]; do
+  XVFB_DISPLAY_NUM=$((XVFB_DISPLAY_NUM + 1))
+done
+XVFB_LOG="$OUT_DIR/xvfb.log"
+Xvfb ":$XVFB_DISPLAY_NUM" -screen 0 1280x1024x24 >"$XVFB_LOG" 2>&1 &
+XVFB_PID=$!
+trap 'kill "$XVFB_PID" 2>/dev/null || true' EXIT INT TERM
+
+for _ in $(seq 1 50); do
+  if [[ -S "/tmp/.X11-unix/X$XVFB_DISPLAY_NUM" ]]; then
+    break
+  fi
+  if ! kill -0 "$XVFB_PID" 2>/dev/null; then
+    echo "termi screenshot test: Xvfb exited early" >&2
+    sed -n '1,80p' "$XVFB_LOG" >&2 || true
+    exit 1
+  fi
+  sleep 0.1
+done
+
+if [[ ! -S "/tmp/.X11-unix/X$XVFB_DISPLAY_NUM" ]]; then
+  echo "termi screenshot test: Xvfb display was not created" >&2
+  sed -n '1,80p' "$XVFB_LOG" >&2 || true
+  exit 1
+fi
+export DISPLAY=":$XVFB_DISPLAY_NUM"
+
+for SCENE in $SCENES; do
+DATA_ROOT="$OUT_DIR/data-$SCENE"
+XWD_1="$OUT_DIR/$SCENE-1.xwd"
+XWD_2="$OUT_DIR/$SCENE-2.xwd"
+PNG_1="$OUT_DIR/$SCENE-1.png"
+PNG_2="$OUT_DIR/$SCENE-2.png"
+
 rm -rf "$DATA_ROOT"
 mkdir -p "$DATA_ROOT"
 rm -f "$XWD_1" "$XWD_2" "$PNG_1" "$PNG_2"
 
-xvfb-run -a bash -s -- "$BIN" "$TITLE" "$DATA_ROOT" "$XWD_1" "$XWD_2" "$SCENE" <<'CAPTURE'
+bash -s -- "$BIN" "$TITLE" "$DATA_ROOT" "$XWD_1" "$XWD_2" "$SCENE" <<'CAPTURE'
 set -euo pipefail
 
 bin="$1"
@@ -187,9 +218,11 @@ changed_pct = changed / (first["width"] * first["height"])
 
 print(
     "termi screenshot ok: "
+    f"{first['path']}: "
     f"{first['width']}x{first['height']}, "
     f"colors={first['unique']}, "
     f"black={first['black_pct']:.1%}, "
     f"changed={changed_pct:.1%}"
 )
 PY
+done
