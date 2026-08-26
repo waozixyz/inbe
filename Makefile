@@ -550,7 +550,7 @@ MEDITATION_AUDIO_TRACKS := \
 include $(KRYON_DIR)/mk/package-freebsd.mk
 
 .PHONY: web-canvas web-canvas-smoke-test web-compare-test web-side-by-side-test all native kryon-host install install-user uninstall stage package-freebsd deb package-deb deb-check rpm package-rpm rpm-check snap package-snap snap-cache-clean flatpak package-flatpak podman-check validate-desktop run tui run-tui run-termi run-termi-direct run-fresh screenshot test ci dist appimage click click-verify vendor-prebuilds vendor-prebuilds-native vendor-prebuilds-web vendor-prebuilds-windows font-subsets font-bundle-check clean clean-linux clean-native clean-vendor-builds windows-setup windows-setup-check android-avd android-audio-e2e android-check-keystore android-copy-assets android-copy-debug-apks android-copy-release-apks android-copy-bundle android-smoke android-local-properties android-debug android-release android-bundle android-install android-install-release android-clean android-rebuild validate-meditation-audio package-unpackaged-assets windows-runtime-assets-check windows windows64 windows32 web web-tools-check web-smoke-test web-smoke-test-firefox web-smoke-test-librewolf site site-release-assets-check chrome-web-store chrome-web-store-test firefox-addons firefox-addons-lint firefox-addons-source-zip verify-firefox-addons sync-web-icons social-install social-login social-draft social-x-draft social-post social-x-post social-x-post-dry-run social-post-dry-run
-.PHONY: no-vendor-edits
+.PHONY: no-vendor-edits test-tui-screenshot test-termi-screenshot test-termi-screenshot-direct
 .NOTPARALLEL: dist windows windows64 windows32 android-release android-bundle click deb package-deb rpm package-rpm snap package-snap flatpak package-flatpak
 
 all: native
@@ -687,6 +687,12 @@ social-post-dry-run:
 
 screenshot: $(TARGET)
 	./scripts/generate-screenshots.sh "$(TARGET)"
+
+test-tui-screenshot test-termi-screenshot:
+	@$(MAKE) --no-print-directory KRYON_BACKEND=termi test-termi-screenshot-direct
+
+test-termi-screenshot-direct: $(TARGET)
+	bash ./tests/termi_screenshot_test.sh "$(TARGET)"
 
 
 .SILENT: no-vendor-edits test $(TESTS) font-bundle-check audio-test-fixture-check embedded-image-assets-check
