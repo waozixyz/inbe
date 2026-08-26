@@ -197,7 +197,15 @@ filtered_trace_log(int log_level, const char *text, va_list args)
 static void
 install_trace_log_filter(void)
 {
+#if defined(KRYON_BACKEND_TERMI)
+    if(getenv("INBE_TERMI_LOG") != NULL) {
+        SetTraceLogCallback(filtered_trace_log);
+        return;
+    }
+    SetTraceLogLevel(LOG_NONE);
+#else
     SetTraceLogCallback(filtered_trace_log);
+#endif
 }
 
 #if !defined(PLATFORM_WEB)
@@ -217,6 +225,9 @@ inbe_ensure_single_instance(void)
 {
     char lock_path[INBE_DESKTOP_SINGLE_INSTANCE_PATH_MAX];
     int acquired;
+
+    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL)
+        return;
 
     acquired = AcquireDesktopSingleInstanceMode(
         INBE_DESKTOP_APP_ID, DESKTOP_SINGLE_INSTANCE_REPLACE,
@@ -1010,6 +1021,8 @@ int main(int argc, char **argv) {
 #endif
     }
     install_trace_log_filter();
+    if(getenv("INBE_NO_SINGLE_INSTANCE") != NULL)
+        SetSingleInstance(0);
     if(!screenshot.active)
         inbe_init_desktop_identity();
     if(screenshot.active) {

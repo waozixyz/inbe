@@ -14,7 +14,7 @@ make run
 Run the terminal backend with one command:
 
 ```bash
-make run-termi
+make tui
 ```
 
 On FreeBSD, use GNU Make:
