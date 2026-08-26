@@ -572,6 +572,7 @@ $(KRY_GEN_STAMP): Makefile $(K2C) $(KRY_SRCS)
 	mkdir -p $(KRY_GEN_DIR)
 	$(K2C) --root $(abspath .) -o $(KRY_GEN_DIR) $(abspath $(KRY_SRCS))
 	touch $@
+	find $(KRY_GEN_DIR) -type f \( -name '*.c' -o -name '*.h' \) -exec touch -r $@ {} +
 
 $(KRY_GEN_SRCS) $(KRY_GEN_HDRS) $(KRY_PROJECT_HDR) $(KRY_PROJECT_C): $(KRY_GEN_STAMP)
 
@@ -994,7 +995,7 @@ $(WIN32_LIBOQS_A): $(LIBOQS_DIR)/CMakeLists.txt
 		-DOQS_MINIMAL_BUILD=$(KRYON_LIBOQS_MINIMAL_BUILD)
 	$(CMAKE) --build $(WIN32_LIBOQS_BUILD_DIR) --target oqs
 
-$(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRYON_NATIVE_BACKEND_DEPS) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
+$(TARGET): Makefile $(SRC) $(KRYON_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(KRYON_NATIVE_BACKEND_DEPS) $(LIBOQS_A) $(CURL_PROTOCOL_CHECK) | $(NATIVE_BIN_DIR)
 	$(CC) $(KRYON_NATIVE_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1037,7 +1038,7 @@ $(KRYON_HOST_TARGET): Makefile $(KRYON_HOST_SRC) $(SQLITE_SRC) $(SQLITE_AMALGAMA
 		-Wl,--allow-shlib-undefined \
 		$(LDFLAGS)
 
-$(CLICK_BIN): Makefile $(SRC) $(KRYON_CLICK_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
+$(CLICK_BIN): Makefile $(SRC) $(KRYON_CLICK_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(CLICK_RAYLIB_A) $(CLICK_LIBOQS_A) | $(CLICK_BIN_DIR)
 	$(AARCH64_CC) $(CLICK_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1127,7 +1128,7 @@ $(WIN32_RESOURCE): windows/inbe.rc windows/inbe.ico
 	mkdir -p $(dir $@)
 	$(WIN32_WINDRES) -Iwindows -O coff $< $@
 
-$(WIN64_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) $(WIN64_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
+$(WIN64_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN64_RAYLIB_A) $(WIN64_CURL_A) $(WIN64_LIBOQS_A) $(WIN64_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN64_ARCH)
 	$(WIN64_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1149,7 +1150,7 @@ $(WIN64_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAM
 		$(WINDOWS_LDFLAGS)
 	$(WIN64_STRIP) $@
 
-$(WIN32_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) $(WIN32_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
+$(WIN32_TARGET): Makefile $(WINDOWS_SRC) $(KRYON_WINDOWS_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WIN32_RAYLIB_A) $(WIN32_CURL_A) $(WIN32_LIBOQS_A) $(WIN32_RESOURCE) | $(WINDOWS_BIN_DIR)/$(WIN32_ARCH)
 	$(WIN32_CC) $(WINDOWS_CFLAGS) \
 		$(APP_INCLUDE) \
 		$(KRYON_INCLUDE) \
@@ -1372,7 +1373,7 @@ $(FLATPAK_TARGET): Makefile $(FLATPAK_MANIFEST) | $(FLATPAK_BUILD_DIR) $(FLATPAK
 		sh -lc 'set -eu; rm -rf .flatpak-builder $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; flatpak-builder --disable-rofiles-fuse --force-clean --repo=$(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir $(FLATPAK_MANIFEST) || { rm -rf $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir vendor-builds/linux build/bin/linux; make vendor-prebuilds-native; make native; flatpak build-init $(FLATPAK_BUILD_DIR)/build-dir $(APP_ID) org.gnome.Sdk org.gnome.Platform 46; install -D -m755 "$$(find build/bin/linux -maxdepth 1 -type f -name '\''inbe-linux-*'\'' | head -n 1)" $(FLATPAK_BUILD_DIR)/build-dir/files/bin/inbe; install -D -m644 packaging/linux/appimage/inbe.desktop $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; sed -i '\''s/^Icon=.*/Icon=$(APP_ID)/'\'' $(FLATPAK_BUILD_DIR)/build-dir/files/share/applications/$(APP_ID).desktop; install -D -m644 packaging/linux/appimage/inbe.png $(FLATPAK_BUILD_DIR)/build-dir/files/share/icons/hicolor/512x512/apps/$(APP_ID).png; install -D -m644 packaging/linux/appimage/inbe.appdata.xml $(FLATPAK_BUILD_DIR)/build-dir/files/share/metainfo/$(APP_ID).metainfo.xml; flatpak build-finish --share=ipc --share=network --socket=fallback-x11 --socket=wayland --socket=pulseaudio --device=dri --filesystem=home $(FLATPAK_BUILD_DIR)/build-dir; flatpak build-export $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_BUILD_DIR)/build-dir; }; flatpak build-bundle $(FLATPAK_BUILD_DIR)/repo $(FLATPAK_TARGET) $(APP_ID)'
 	test -f $@
 
-$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(KRYON_ICON_STAMP) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
+$(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(FONT_FILES) $(EMBEDDED_ASSETS_C) $(WEB_RAYLIB_A) $(WEB_LIBOQS_A) web-tools-check | $(WEB_DIST_DIR)
 	rm -f $(WEB_DIST_DIR)/index.data
 	$(WEB_CC) $(WEB_CFLAGS) \
 		$(APP_INCLUDE) \
