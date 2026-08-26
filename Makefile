@@ -653,7 +653,7 @@ tui run-tui run-termi:
 	@$(MAKE) --no-print-directory KRYON_BACKEND=termi run-termi-direct
 
 run-termi-direct: $(TARGET)
-	@INBE_NO_TRAY=1 INBE_NO_SINGLE_INSTANCE=1 ./$(TARGET)
+	@./$(TARGET)
 
 run-fresh: $(TARGET)
 	@root=$$(mktemp -d /tmp/inbe-fresh.XXXXXX); \
