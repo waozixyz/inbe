@@ -11,6 +11,12 @@ make native
 make run
 ```
 
+Run the terminal backend with one command:
+
+```bash
+make run-termi
+```
+
 On FreeBSD, use GNU Make:
 
 ```bash
