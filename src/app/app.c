@@ -385,6 +385,7 @@ DestroyApp(void *vapp)
     if(app == NULL)
         return;
     app_destroy(app);
+    free(app);
     set_global_inbe_app(NULL);
 }
 
@@ -2477,7 +2478,7 @@ app_destroy(void *vapp)
         app->audio_ready = 0;
     }
 
-    free(app);
+    memset(app, 0, sizeof(*app));
 }
 
 int
