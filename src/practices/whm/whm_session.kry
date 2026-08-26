@@ -851,11 +851,8 @@ session_draw_inbe :: (app: InbeApp*, center_x: int, center_y: int) {
 }
 
 session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> int {
-    mouse_world: Vector2 = GetScreenToWorld2D(GetMousePosition(), app->camera)
-    active: int = 0
     hovered: int = 0
     clicked: int = 0
-    released: int = IsMouseButtonReleased(MOUSE_BUTTON_LEFT)
     play_text: const char* = GetLocaleText("play_button")
     practice_text: const char* = practice_label(app->exercise_type)
     font: int = Text16
@@ -866,18 +863,9 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
 
     radius: int = ScaleUIPx(44)
 
-
-    dx: float = mouse_world.x - center_x
-    dy: float = mouse_world.y - center_y
-    dist_sq: float = dx * dx + dy * dy
-
-    if dist_sq <= radius * radius && !UIInputCapturesClick(mouse_world) {
-        active = 1
-        hovered = UIHoverEffectsEnabled()
-        app->play_circle_hover = hovered
-    } else {
-        app->play_circle_hover = 0
-    }
+    clicked = UIHandleCircleClick((Vector2){(float)center_x, (float)center_y},
+                                  (float)radius, 0, &hovered)
+    app->play_circle_hover = hovered
 
 
     target_scale: float = hovered ? 1.08f : 1.0f
@@ -891,10 +879,6 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
 
     scale = app->play_circle_scale
 
-
-    if active && released {
-        clicked = 1
-    }
 
     scaled_radius: int = (int)(radius * scale)
     practice_w = TextWidth(practice_text, practice_font)
@@ -915,10 +899,6 @@ session_draw_start_preview :: (app: InbeApp*, center_x: int, center_y: int) -> i
 
 
     DrawCenteredUIControlText(play_text, center_x, center_y, font,  text_color_for_background(GetThemeCircle()))
-
-    if active {
-        MarkUIClickable()
-    }
 
     return clicked
 }
