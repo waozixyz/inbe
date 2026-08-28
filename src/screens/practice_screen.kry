@@ -701,11 +701,12 @@ practice_screen_dismiss_first_run_guide :: (app: InbeApp*) {
     app->tutorial_seen = 1
     app->tutorial_step = 0
     save_settings(app)
+    sync_web_storage_critical()
 }
 
 practice_screen_first_run_guide_active :: (app: const InbeApp*) -> int {
     account := (KsyncAccount){0}
-    return app != NULL && !app->tutorial_seen && app->tutorial_step == 0 && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !sync_account_load(&account)
+    return app != NULL && !app->tutorial_seen && !app->modal.active && app->exercise_type != EXERCISE_SUN_SALUTATION && app->inbe.screen == InbeScreenStart && app->main_tab != APP_MAIN_TAB_NONE && !sync_account_load(&account)
 }
 
 practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
@@ -715,7 +716,21 @@ practice_screen_prepare_first_run_guide :: (app: InbeApp*) {
     app->practice_tab = PRACTICE_TAB_PLAY
 }
 
+practice_home_rect_valid :: (rect: Rectangle) -> int #private {
+    return rect.width > 0 && rect.height > 0
+}
+
 practice_home_action_guide_anchor :: (manual: Rectangle, config: Rectangle) -> Rectangle #private {
+    manual_valid := practice_home_rect_valid(manual)
+    config_valid := practice_home_rect_valid(config)
+
+    if !manual_valid {
+        return config_valid ? config : (Rectangle){0}
+    }
+    if !config_valid {
+        return manual
+    }
+
     left := manual.x < config.x ? manual.x : config.x
     top := manual.y < config.y ? manual.y : config.y
     right := manual.x + manual.width
@@ -748,6 +763,7 @@ practice_screen_draw_first_run_guide :: (app: InbeApp*) {
     result = GuideOverlay((GuideOverlayProps){.steps = steps, .count = 3, .step = &app->tutorial_step, .view_width = view_width, .view_height = view_height, .reserved_top = app_content_top_reserved(app), .reserved_bottom = app_content_bottom_reserved(app), .max_width = ScaleUIPx(300), .close_icon = app->icons[UI_ICON_TYPE_X], .back_icon = app->icons[UI_ICON_TYPE_BACKWARD], .next_icon = app->icons[UI_ICON_TYPE_FORWARD], .done_icon = app->icons[UI_ICON_TYPE_CHECK]})
     if result.changed {
         save_settings(app)
+        sync_web_storage_critical()
     }
     if result.closed || result.finished {
         practice_screen_dismiss_first_run_guide(app)
@@ -786,6 +802,9 @@ start :: (app: InbeApp*) #ui {
 
     practice_clamp_activity_to_tab(app)
     app->practice_home_bounds_valid = 0
+    app->practice_home_bounds_start = (Rectangle){0}
+    app->practice_home_bounds_manual = (Rectangle){0}
+    app->practice_home_bounds_config = (Rectangle){0}
     bottom_reserved = app_content_bottom_reserved(app)
     scroll_y = 0
     scroll_h = view_height - scroll_y - bottom_reserved

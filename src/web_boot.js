@@ -171,6 +171,11 @@ function runStorageSync(retryDelay) {
   function finishStorageSync(ok) {
     var resolve = Module.__kryonStorageSyncResolve;
 
+    Module.__kryonStorageSyncLastOk = !!ok;
+    if (ok) {
+      Module.__kryonStorageSyncLastError = '';
+      Module.__kryonStorageSyncLastSuccessMs = Date.now();
+    }
     Module.__kryonStorageSyncResolve = null;
     Module.__kryonStorageSyncPromise = null;
     if (resolve) resolve(ok);
@@ -192,6 +197,7 @@ function runStorageSync(retryDelay) {
     FS.syncfs(false, function(err) {
       Module.__kryonStorageSyncing = false;
       if (err) {
+        Module.__kryonStorageSyncLastError = err && err.message ? err.message : String(err);
         console.error('IDBFS save failed:', err);
         finishStorageSync(false);
       } else {
@@ -245,6 +251,10 @@ var Module = {
   __inbeAppReady: false,
   __inbeRuntimeReady: false,
   __inbeRenderer: selectedRenderer(),
+  __kryonStorageMounted: false,
+  __kryonStorageLastOk: false,
+  __kryonStorageLastError: '',
+  __kryonStorageLastSuccessMs: 0,
   __kryonStorageSyncPromise: null,
   __kryonStorageSyncResolve: null,
   __kryonScheduleStorageSync: scheduleStorageSync,
@@ -253,6 +263,7 @@ var Module = {
     reportStorageOriginProblem();
 
     if (typeof FS === 'undefined' || typeof IDBFS === 'undefined') {
+      Module.__kryonStorageLastError = 'idbfs unavailable';
       console.error('IDBFS unavailable');
       return;
     }
@@ -265,15 +276,24 @@ var Module = {
       FS.mount(IDBFS, { root: '/' }, '/home');
     } catch (e) {
       if (e.errno !== 10 && String(e).indexOf('already mounted') === -1) {
+        Module.__kryonStorageLastError = e && e.message ? e.message : String(e);
         console.error('IDBFS mount failed:', e);
         return;
       }
     }
+    Module.__kryonStorageMounted = true;
 
     addRunDependency('inbe-idbfs');
     FS.syncfs(true, function(err) {
-      if (err) console.error('IDBFS init sync failed:', err);
-      else console.log('IDBFS initialized');
+      if (err) {
+        Module.__kryonStorageLastError = err && err.message ? err.message : String(err);
+        console.error('IDBFS init sync failed:', err);
+      } else {
+        Module.__kryonStorageLastOk = true;
+        Module.__kryonStorageLastError = '';
+        Module.__kryonStorageLastSuccessMs = Date.now();
+        console.log('IDBFS initialized');
+      }
       removeRunDependency('inbe-idbfs');
     });
   }],

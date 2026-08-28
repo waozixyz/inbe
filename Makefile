@@ -321,18 +321,21 @@ SYNC_REVIEW_TEST := $(TEST_BIN_DIR)/sync_review_test
 FONT_LOCALE_TEST := $(TEST_BIN_DIR)/font_locale_test
 FONT_GLYPH_COVERAGE_TEST := $(TEST_BIN_DIR)/font_glyph_coverage_test
 APP_BOTTOM_NAV_TEST := $(TEST_BIN_DIR)/app_bottom_nav_test
+HABIT_MODEL_TEST := $(TEST_BIN_DIR)/habit_model_test
+HABIT_SESSIONS_TEST := $(TEST_BIN_DIR)/habit_sessions_test
 BREATH_TIMING_TEST := $(TEST_BIN_DIR)/breath_timing_test
 BREAK_ENGINE_TEST := $(TEST_BIN_DIR)/break_engine_test
 ACTIVITY_MONITOR_TEST := $(TEST_BIN_DIR)/activity_monitor_test
 SETTINGS_KEYS_TEST := $(TEST_BIN_DIR)/settings_keys_test
-TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
+TESTS := $(STORAGE_IMPORT_TEST) $(LOCALE_KEYS_TEST) $(SYNC_URL_TEST) $(SYNC_ACCOUNT_TEST) $(SYNC_REVIEW_TEST) $(FONT_LOCALE_TEST) $(FONT_GLYPH_COVERAGE_TEST) $(APP_BOTTOM_NAV_TEST) $(HABIT_MODEL_TEST) $(HABIT_SESSIONS_TEST) $(BREATH_TIMING_TEST) $(BREAK_ENGINE_TEST) $(ACTIVITY_MONITOR_TEST) $(SETTINGS_KEYS_TEST)
 RUNTIME_ASSET_CFLAGS := -DHAS_LIBCURL=1 $(KRYON_CURL_CFLAGS)
 RUNTIME_ASSET_LDLIBS := $(KRYON_CURL_LDLIBS)
+STORAGE_CORE_SRCS := src/storage/storage.c src/storage/storage_habits.c src/storage/storage_habit_materialize.c src/storage/storage_habit_sync.c
 
 APP_SRCS := \
 	src/main.c \
 	$(sort $(wildcard src/app/*.c)) \
-	src/storage/storage.c \
+	$(STORAGE_CORE_SRCS) \
 	src/storage/sync_client.c \
 	src/third_party/miniz.c \
 	src/platform/inbe_activity_monitor.c \
@@ -762,11 +765,11 @@ font-subsets:
 		FONT_SUBSET_PREFIX=Inbe \
 		FONT_SUBSET_CORPUS="$(abspath locales) $(abspath assets/fonts/input_common.txt)"
 
-$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(STORAGE_IMPORT_TEST): tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/screens/habits_screen.h src/screens/habits/habits.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/storage_import_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/storage_import_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/screens/habits_screen.c $(KRY_GEN_DIR)/src/screens/habits/edit.c $(KRY_GEN_DIR)/src/screens/habits/session.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(LOCALE_KEYS_TEST): tests/locale_keys_test.c $(LOCALE_FILES) | $(TEST_BIN_DIR)
@@ -785,18 +788,18 @@ $(SYNC_URL_TEST): tests/sync_url_test.c src/storage/sync_client.c src/storage/sy
 		tests/sync_url_test.c src/storage/sync_client.c $(KRYON_SYNC_C) $(KRYON_SYNC_TRANSPORT_C) $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) \
 		$(LIBOQS_A) -Wl,--gc-sections $(KRYON_CURL_LDLIBS) $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
+$(SYNC_ACCOUNT_TEST): tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c src/storage/sync_account.h $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(KRYON_SYNC_ACCOUNT_H) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) $(LIBOQS_A) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -DHAS_LIBOQS=1 -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(LIBOQS_INCLUDE) $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_account_test.c tests/test_locale_stub.c $(KRY_GEN_DIR)/src/storage/sync_account.c $(KRYON_SYNC_ACCOUNT_C) $(KRYON_SYNC_CRYPTO_C) $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/third_party/miniz.c $(SQLITE_SRC) \
 		$(LIBOQS_A) -Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
-$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
+$(SYNC_REVIEW_TEST): tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c src/storage/storage.h src/storage/db.h src/storage/import.h $(KRY_GEN_DIR)/src/screens/habits_screen.c src/screens/habits_screen.h src/third_party/miniz.c src/third_party/miniz.h $(SQLITE_SRC) $(SQLITE_AMALGAMATION_H) | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE -D_GNU_SOURCE -DMINIZ_NO_ZLIB_COMPATIBLE_NAMES -ffunction-sections -fdata-sections \
 		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/practices -Isrc/practices/whm -Isrc/practices/meditation -Isrc/storage -Isrc/platform/android -Isrc/third_party $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src $(SQLITE_INCLUDE) \
 		-o $@ \
-		tests/sync_review_test.c tests/test_locale_stub.c src/storage/storage.c $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
+		tests/sync_review_test.c tests/test_locale_stub.c $(STORAGE_CORE_SRCS) $(KRY_GEN_DIR)/src/storage/storage_sessions.c $(KRY_GEN_DIR)/src/storage/sync_review.c $(KRY_GEN_DIR)/src/storage/db.c $(KRY_GEN_DIR)/src/storage/import.c $(KRY_GEN_DIR)/src/habits/habit_model.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/screens/habits_screen.c src/third_party/miniz.c $(SQLITE_SRC) \
 		-Wl,--gc-sections $(NATIVE_SYSTEM_LDLIBS)
 
 $(FONT_LOCALE_TEST): tests/font_locale_test.c src/app/app_font_assets.h $(FONT_FILES) | $(TEST_BIN_DIR)
@@ -818,6 +821,21 @@ $(APP_BOTTOM_NAV_TEST): tests/app_bottom_nav_test.c src/app/app_nav.h src/app/ap
 		$(KRYON_DIR)/src/core/app_shell.c \
 		$(KRY_GEN_DIR)/src/app/customize_nav.c \
 		$(KRY_GEN_DIR)/src/widgets/bottom_nav.c
+
+$(HABIT_MODEL_TEST): tests/habit_model_test.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-o $@ \
+		tests/habit_model_test.c \
+		$(KRY_GEN_DIR)/src/habits/habit_model.c
+
+$(HABIT_SESSIONS_TEST): tests/habit_sessions_test.c $(KRY_GEN_DIR)/src/habits/habit_sessions.c $(KRY_GEN_DIR)/src/habits/habit_model.c src/screens/habits_screen.h src/screens/habits/habits.h | $(TEST_BIN_DIR)
+	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
+		-Isrc -Isrc/app -Isrc/core -Isrc/screens -Isrc/screens/settings -Isrc/storage -Isrc/platform/android $(KRYON_INCLUDE) -I$(KRY_GEN_DIR) -I$(KRY_GEN_DIR)/src \
+		-o $@ \
+		tests/habit_sessions_test.c \
+		$(KRY_GEN_DIR)/src/habits/habit_sessions.c \
+		$(KRY_GEN_DIR)/src/habits/habit_model.c
 
 $(BREATH_TIMING_TEST): tests/breath_timing_test.c $(KRY_GEN_DIR)/src/core/breath_engine.c $(KRY_GEN_DIR)/src/core/types.c | $(TEST_BIN_DIR)
 	$(CC) -Wall -Wextra -std=c99 -D_DEFAULT_SOURCE \
@@ -1406,7 +1424,7 @@ $(WEB_JS_TARGET): Makefile $(WEB_SRC) $(KRYON_WEB_SRCS) $(SQLITE_SRC) $(SQLITE_A
 		-sSTACK_SIZE=33554432 \
 		-sGLOBAL_BASE=67108864 \
 		-sASYNCIFY_STACK_SIZE=1048576 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
 		-lidbfs.js \
 		-lm
 
@@ -1443,7 +1461,7 @@ $(WEB_CANVAS_TARGET): Makefile $(WEB_SRC) $(KRYON_CANVAS_SRCS) $(SQLITE_SRC) $(S
 		-sASYNCIFY -sASYNCIFY_STACK_SIZE=1048576 -fexceptions \
 		-sFORCE_FILESYSTEM=1 -sFETCH=1 -lidbfs.js \
 		-sALLOW_MEMORY_GROWTH=1 -sINITIAL_MEMORY=268435456 -sSTACK_SIZE=33554432 \
-		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
+		-sEXPORTED_FUNCTIONS=_main,_malloc,_free,_app_web_get_play_in_background,_app_web_set_backgrounded,_app_web_background_tick,_app_web_launch_practice,_app_web_extension_host,_app_web_extension_break_now,_app_web_extension_breaks_enabled,_app_web_extension_break_timer_enabled,_app_web_extension_break_timer_limit_s,_app_web_extension_break_timer_duration_s,_app_web_extension_break_timer_postpone_s,_app_web_extension_break_timer_max_prompts,_app_web_extension_break_timer_show_skip,_app_web_extension_break_timer_show_postpone,_app_web_extension_open_break_settings,_app_web_extension_open_habits,_app_web_test_save_onboarding_state,_app_web_test_onboarding_state,_app_web_test_show_first_run_guide,_app_web_test_first_run_guide_active,_app_web_test_first_run_guide_step,_app_web_test_first_run_guide_text_clipped,_app_web_test_first_run_guide_next_x,_app_web_test_first_run_guide_next_y,_app_web_test_first_run_guide_close_x,_app_web_test_first_run_guide_close_y,_app_web_test_first_run_guide_anchor_x,_app_web_test_first_run_guide_anchor_y,_app_web_test_first_run_guide_anchor_w,_app_web_test_first_run_guide_anchor_h,_app_web_test_sync_key_state,_app_web_test_import_sync_key,_app_web_test_habits_click_x,_app_web_test_habits_click_y,_app_web_test_enable_extension_breaks \
 		--preload-file locales --preload-file assets
 	perl -0pe 's#\{\{\{ APP_SCRIPT \}\}\}#$(WEB_CANVAS_APP_SCRIPT)#g; s/WEB_CACHE_BUSTER/$(WEB_CACHE_BUSTER)/g' src/web_shell.html > $@
 	cp $(WEB_BOOT_JS) $(WEB_CANVAS_DIR)/index_boot.js

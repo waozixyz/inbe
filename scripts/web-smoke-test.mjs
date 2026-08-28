@@ -805,6 +805,196 @@ async function pageJson(client, expression, awaitPromise = false) {
   return value;
 }
 
+async function waitAnimationFrames(client, frameCount = 3) {
+  await pageJson(client, `(async () => JSON.stringify(await new Promise(resolve => {
+    let frames = 0;
+    function tick() {
+      frames++;
+      if (frames >= ${frameCount}) resolve({ ok: true, frames });
+      else requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
+    setTimeout(() => resolve({ ok: false, reason: 'timeout', frames }), 5000);
+  })))()`, true);
+}
+
+async function dispatchCanvasClick(client, x, y) {
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseMoved',
+    x,
+    y
+  });
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mousePressed',
+    x,
+    y,
+    button: 'left',
+    clickCount: 1
+  });
+  await delay(50);
+  await client.send('Input.dispatchMouseEvent', {
+    type: 'mouseReleased',
+    x,
+    y,
+    button: 'left',
+    clickCount: 1
+  });
+}
+
+async function firstRunGuideButtonTarget(client, kind) {
+  const suffix = kind === 'close' ? 'close' : 'next';
+  const target = await pageJson(client, `(() => JSON.stringify((() => {
+    const canvas = Module.canvas || document.querySelector('canvas');
+    if (!canvas)
+      return { ok: false, reason: 'missing canvas' };
+    const xFn = Module._app_web_test_first_run_guide_${suffix}_x;
+    const yFn = Module._app_web_test_first_run_guide_${suffix}_y;
+    if (typeof xFn !== 'function' || typeof yFn !== 'function')
+      return { ok: false, reason: 'missing guide ${suffix} hook' };
+    const rawX = xFn();
+    const rawY = yFn();
+    const rect = canvas.getBoundingClientRect();
+    const logicalW = window.__kryCanvas && window.__kryCanvas.w ? window.__kryCanvas.w : rect.width;
+    const logicalH = window.__kryCanvas && window.__kryCanvas.h ? window.__kryCanvas.h : rect.height;
+    const x = rect.left + rawX * rect.width / Math.max(1, logicalW);
+    const y = rect.top + rawY * rect.height / Math.max(1, logicalH);
+    return {
+      ok: rawX >= 0 && rawY >= 0 && x >= rect.left && y >= rect.top &&
+          x <= rect.right && y <= rect.bottom,
+      reason: 'invalid guide ${suffix} target',
+      x,
+      y,
+      rawX,
+      rawY,
+      rect: { left: rect.left, top: rect.top, right: rect.right, bottom: rect.bottom, width: rect.width, height: rect.height },
+      logical: { width: logicalW, height: logicalH },
+      canvas: { width: canvas.width, height: canvas.height }
+    };
+  })()))()`);
+  if (!target?.ok)
+    throw new Error(`${target?.reason || 'failed to compute guide click target'}; state=${JSON.stringify(target)}`);
+  return target;
+}
+
+async function firstRunGuideState(client, requireDebug = true) {
+  const start = Date.now();
+  let state = null;
+
+  while (Date.now() - start < timeoutMs) {
+    state = await pageJson(client, `(() => ({
+      active: Module._app_web_test_first_run_guide_active(),
+      step: Module._app_web_test_first_run_guide_step(),
+      clipped: Module._app_web_test_first_run_guide_text_clipped()
+    }))()`);
+    if (!requireDebug || state?.clipped !== -1)
+      return state;
+    await waitAnimationFrames(client, 1);
+  }
+
+  return state;
+}
+
+async function firstRunGuideActionAnchor(client) {
+  return pageJson(client, `(() => {
+    const canvas = Module.canvas || document.querySelector('canvas');
+    const rect = canvas ? canvas.getBoundingClientRect() : { width: 0, height: 0 };
+    const logicalW = window.__kryCanvas && window.__kryCanvas.w ? window.__kryCanvas.w : rect.width;
+    const logicalH = window.__kryCanvas && window.__kryCanvas.h ? window.__kryCanvas.h : rect.height;
+    return {
+      x: Module._app_web_test_first_run_guide_anchor_x(),
+      y: Module._app_web_test_first_run_guide_anchor_y(),
+      width: Module._app_web_test_first_run_guide_anchor_w(),
+      height: Module._app_web_test_first_run_guide_anchor_h(),
+      logical: { width: logicalW, height: logicalH }
+    };
+  })()`);
+}
+
+async function verifyFirstRunGuideCanvasFlow(client) {
+  if (renderer !== 'canvas')
+    return;
+
+  let state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
+    if (typeof Module._app_web_test_show_first_run_guide !== 'function')
+      return { ok: false, reason: 'missing first-run guide show hook' };
+    if (typeof Module._app_web_test_first_run_guide_active !== 'function' ||
+        typeof Module._app_web_test_first_run_guide_step !== 'function' ||
+        typeof Module._app_web_test_first_run_guide_text_clipped !== 'function')
+      return { ok: false, reason: 'missing first-run guide state hooks' };
+    Module._app_web_test_show_first_run_guide();
+    await Module.__kryonFlushStorageSync(true);
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    return {
+      ok: true,
+      active: Module._app_web_test_first_run_guide_active(),
+      step: Module._app_web_test_first_run_guide_step(),
+      clipped: Module._app_web_test_first_run_guide_text_clipped(),
+      storage: {
+        mounted: !!Module.__kryonStorageMounted,
+        pending: !!Module.__kryonStorageSyncPending,
+        syncing: !!Module.__kryonStorageSyncing,
+        lastOk: !!Module.__kryonStorageSyncLastOk,
+        lastError: Module.__kryonStorageLastError || Module.__kryonStorageSyncLastError || ''
+      }
+    };
+  })()))()`, true);
+  if (!state?.ok || state.active !== 1 || state.step !== 0)
+    throw new Error(`failed to show Spanish first-run guide: ${JSON.stringify(state)}`);
+  if (state.clipped === -1)
+    state = { ok: true, ...(await firstRunGuideState(client)) };
+  if (state.clipped !== 0)
+    throw new Error(`Spanish first-run guide text is clipped: ${JSON.stringify(state)}`);
+
+  const nextTarget = await firstRunGuideButtonTarget(client, 'next');
+  await dispatchCanvasClick(client, nextTarget.x, nextTarget.y);
+  await waitAnimationFrames(client, 3);
+  state = await firstRunGuideState(client);
+  if (state.active !== 1 || state.step !== 1)
+    throw new Error(`guide next click did not advance to 2/3: ${JSON.stringify(state)}`);
+  if (state.clipped !== 0)
+    throw new Error(`Spanish first-run guide text clipped after next: ${JSON.stringify(state)}`);
+
+  const secondNextTarget = await firstRunGuideButtonTarget(client, 'next');
+  await dispatchCanvasClick(client, secondNextTarget.x, secondNextTarget.y);
+  await waitAnimationFrames(client, 3);
+  state = await firstRunGuideState(client);
+  if (state.active !== 1 || state.step !== 2)
+    throw new Error(`guide second next click did not advance to 3/3: ${JSON.stringify(state)}`);
+  if (state.clipped !== 0)
+    throw new Error(`Spanish first-run guide text clipped on 3/3: ${JSON.stringify(state)}`);
+  const anchor = await firstRunGuideActionAnchor(client);
+  if (anchor.x <= 0 || anchor.y <= 0 || anchor.width <= 0 || anchor.height <= 0 ||
+      anchor.height > anchor.logical.height * 0.35 ||
+      anchor.width > anchor.logical.width * 0.98)
+    throw new Error(`guide action anchor is not control-sized: ${JSON.stringify(anchor)}`);
+
+  const closeTarget = await firstRunGuideButtonTarget(client, 'close');
+  await dispatchCanvasClick(client, closeTarget.x, closeTarget.y);
+  await waitAnimationFrames(client, 3);
+  state = await pageJson(client, `(async () => JSON.stringify(await (async () => {
+    await Module.__kryonFlushStorageSync(true);
+    return {
+      active: Module._app_web_test_first_run_guide_active(),
+      step: Module._app_web_test_first_run_guide_step(),
+      onboarding: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state()
+    };
+  })()))()`, true);
+  if (state.active !== 0 || state.onboarding !== 1)
+    throw new Error(`guide close did not persist dismissed state before reload: ${JSON.stringify(state)}`);
+
+  await waitForStorageIdle(client);
+  await client.send('Page.reload', { ignoreCache: true });
+  await waitForHealthyPage(client);
+  await waitAnimationFrames(client, 3);
+  state = await pageJson(client, `(() => ({
+    active: Module._app_web_test_first_run_guide_active(),
+    step: Module._app_web_test_first_run_guide_step(),
+    onboarding: Module._app_web_test_onboarding_state && Module._app_web_test_onboarding_state()
+  }))()`);
+  if (state.active !== 0 || state.onboarding !== 1)
+    throw new Error(`guide reopened after reload: ${JSON.stringify(state)}`);
+}
+
 function installHabitsLifecycleWatchExpression() {
   return `(() => {
     window.__inbeSmokeLifecycle = { beforeunload: 0, pagehide: 0, visibilityHidden: 0 };
@@ -1275,6 +1465,7 @@ try {
     await verifyRenderingLive(client);
     await verifyReloadPersistence(client);
     await verifyAppSettingsReloadPersistence(client);
+    await verifyFirstRunGuideCanvasFlow(client);
     await verifySyncKeyImport(client);
     await verifyHabitsClickDoesNotReload(client);
   }

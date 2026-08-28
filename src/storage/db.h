@@ -22,6 +22,7 @@ typedef struct StorageState {
 extern StorageState g_storage;
 
 long long now_seconds(void);
+long long storage_next_change_time(void);
 int bind_text(sqlite3_stmt *stmt, int index, const char *text);
 long long db_select_int64(const char *sql, long long fallback);
 int db_select_int(const char *sql, int fallback);
@@ -48,6 +49,11 @@ int storage_enqueue_sync_habit_day(const char *habit_id, int local_date);
 int storage_enqueue_sync_session(const char *session_id);
 int storage_has_sync_account(void);
 int storage_materialize_session_habit_days(void);
+int storage_exec_json_user_sql(const char *sql, const char *json);
+int storage_reconcile_remote_habit_ids(const char *response_json);
+int storage_merge_duplicate_habit_names(void);
+int storage_apply_sync_habits_json(const char *response_json);
+int storage_apply_sync_habit_days_json(const char *response_json);
 int storage_migrate_default_habit_ids(void);
 int storage_migrate_default_meditation_activity_mask(void);
 int storage_migrate_habit_ids_to_uuid(void);

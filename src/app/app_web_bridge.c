@@ -4,6 +4,7 @@
 #include "sync_account.h"
 #include "storage.h"
 #include "practices/practice_registry.h"
+#include "screens/practice_screen.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -291,6 +292,197 @@ app_web_test_onboarding_state(void)
 }
 
 EMSCRIPTEN_KEEPALIVE
+void
+app_web_test_show_first_run_guide(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    if(app == NULL)
+        return;
+
+    snprintf(app->language, sizeof(app->language), "%s", "es");
+    app->language_system = 0;
+    app->language_selected = 1;
+    app->tutorial_seen = 0;
+    app->tutorial_step = 0;
+    app->habits_guide_seen = 1;
+    app->main_tab = APP_MAIN_TAB_PRACTICE;
+    app->practice_tab = PRACTICE_TAB_PLAY;
+    app->exercise_type = EXERCISE_WIM_HOF;
+    storage_settings_begin_write();
+    storage_set_setting_text("sync_public_id", "");
+    storage_set_setting_text("sync_public_key", "");
+    storage_set_setting_text("sync_private_key", "");
+    storage_set_setting_text("sync_account_alias", "");
+    storage_set_sync_server_connected(0);
+    storage_settings_end_write();
+    if(app->modal.active)
+        app_close_modal(app);
+    app_switch_screen(app, InbeScreenStart);
+    save_settings(app);
+    FlushWebStorageSyncBlocking(3000, 1);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_active(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    return practice_screen_first_run_guide_active(app);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_step(void)
+{
+    InbeApp *app = get_global_inbe_app();
+
+    return app != NULL ? app->tutorial_step : -1;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_text_clipped(void)
+{
+    UIGuideOverlayDebug debug;
+
+    if(!GetUIGuideOverlayDebug(&debug))
+        return -1;
+    return debug.text_clipped;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_next_x(void)
+{
+    UIGuideOverlayDebug debug;
+
+    if(!GetUIGuideOverlayDebug(&debug))
+        return -1;
+    return (int)(debug.next_button.x + debug.next_button.width * 0.5f);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_next_y(void)
+{
+    UIGuideOverlayDebug debug;
+
+    if(!GetUIGuideOverlayDebug(&debug))
+        return -1;
+    return (int)(debug.next_button.y + debug.next_button.height * 0.5f);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_close_x(void)
+{
+    UIGuideOverlayDebug debug;
+
+    if(!GetUIGuideOverlayDebug(&debug))
+        return -1;
+    return (int)(debug.close_button.x + debug.close_button.width * 0.5f);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_close_y(void)
+{
+    UIGuideOverlayDebug debug;
+
+    if(!GetUIGuideOverlayDebug(&debug))
+        return -1;
+    return (int)(debug.close_button.y + debug.close_button.height * 0.5f);
+}
+
+static int
+web_test_rect_valid(Rectangle rect)
+{
+    return rect.width > 0.0f && rect.height > 0.0f;
+}
+
+static Rectangle
+web_test_first_run_guide_action_anchor(InbeApp *app)
+{
+    Rectangle manual;
+    Rectangle config;
+    Rectangle anchor;
+    int manual_valid;
+    int config_valid;
+    float right;
+    float bottom;
+    float config_right;
+    float config_bottom;
+
+    if(app == NULL)
+        return (Rectangle){0};
+
+    manual = app->practice_home_bounds_manual;
+    config = app->practice_home_bounds_config;
+    manual_valid = web_test_rect_valid(manual);
+    config_valid = web_test_rect_valid(config);
+
+    if(!manual_valid)
+        return config_valid ? config : (Rectangle){0};
+    if(!config_valid)
+        return manual;
+
+    anchor = manual;
+    if(config.x < anchor.x)
+        anchor.x = config.x;
+    if(config.y < anchor.y)
+        anchor.y = config.y;
+    right = manual.x + manual.width;
+    bottom = manual.y + manual.height;
+    config_right = config.x + config.width;
+    config_bottom = config.y + config.height;
+    if(config_right > right)
+        right = config_right;
+    if(config_bottom > bottom)
+        bottom = config_bottom;
+    anchor.width = right - anchor.x;
+    anchor.height = bottom - anchor.y;
+    return anchor;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_anchor_x(void)
+{
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+
+    return (int)anchor.x;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_anchor_y(void)
+{
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+
+    return (int)anchor.y;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_anchor_w(void)
+{
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+
+    return (int)anchor.width;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int
+app_web_test_first_run_guide_anchor_h(void)
+{
+    Rectangle anchor = web_test_first_run_guide_action_anchor(get_global_inbe_app());
+
+    return (int)anchor.height;
+}
+
+EMSCRIPTEN_KEEPALIVE
 int
 app_web_test_sync_key_state(void)
 {
@@ -344,6 +536,7 @@ app_web_test_import_sync_key(void)
     storage_set_setting_text("sync_account_alias", "");
     storage_set_sync_server_connected(0);
     storage_settings_end_write();
+    FlushWebStorageSyncBlocking(3000, 1);
     web_test_sync_key_import_status = 1;
 }
 

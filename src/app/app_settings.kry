@@ -86,6 +86,14 @@ exercise_manual_bit :: (exercise_type: int) -> int #private {
     sync_web_storage :: () #private {
         FlushWebStorageSync(1)
     }
+
+    sync_web_storage_critical :: () -> int {
+        return FlushWebStorageSyncBlocking(3000, 1)
+    }
+} #else {
+    sync_web_storage_critical :: () -> int {
+        return 1
+    }
 }
 
 load_navigation_mode :: (cache: const SettingsLoadCache*) -> int #private {
