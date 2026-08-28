@@ -279,10 +279,9 @@ scan_used_locale_get_calls_in_file(const LocaleKeys *english, LocaleKeys *used,
     scan_used_locale_literal_calls_in_file(english, used, path, "GetLocaleText(");
     scan_used_locale_literal_calls_in_file(english, used, path, "FormatLocaleText(");
 
-    /* Key literals also appear in data tables (break_exercise_* steps are
-     * resolved through helper functions, not direct GetLocaleText calls):
-     * any quoted literal in a source file that names a known English key
-     * counts as used. */
+    /* Key literals also appear in data tables and helper-driven UI, not only
+     * direct GetLocaleText calls: any quoted literal in a source file that
+     * names a known English key counts as used. */
     fp = fopen(path, "rb");
     if(fp == NULL)
         return;
@@ -384,14 +383,28 @@ add_dynamic_locale_keys(LocaleKeys *used)
         "sync_server_unreachable",
         "sync_server_error",
         "sync_status_connected",
-        "sync_status_not_set",
+        "sync_status_disconnected",
         "tray_show_inner_breeze",
         "tray_hide_inner_breeze",
+        "tray_start_practice",
+        "tray_quit_inner_breeze",
+        "tray_break_settings",
         "tray_mark_complete",
+        "tray_wim_hof_paused",
+        "tray_wim_hof_breath",
+        "tray_wim_hof_hold",
+        "tray_wim_hof_breathe_in",
+        "tray_wim_hof_next_round",
+        "tray_wim_hof_starting_seconds",
         "tray_meditation_paused",
         "tray_meditation_left",
         "tray_sun_salutation",
         "tray_sun_salutation_paused",
+        "tray_patterns_left",
+        "tray_patterns_left_paused",
+        "tray_patterns_elapsed",
+        "tray_patterns_elapsed_paused",
+        "tray_next_break",
         "theme_sky",
         "theme_ocean",
         "theme_forest",

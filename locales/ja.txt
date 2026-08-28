@@ -1064,8 +1064,8 @@ Yoga
 [sync_status_connected]
 接続済み
 ---
-[sync_status_not_set]
-未設定
+[sync_status_disconnected]
+未接続
 ---
 [sync_status_queued]
 キュー: %lld
@@ -1109,8 +1109,8 @@ Wim Hof - 吸って %d秒
 [tray_wim_hof_next_round]
 Wim Hof - 次のラウンド
 ---
-[tray_wim_hof_starting]
-Wim Hof - 開始中
+[tray_wim_hof_starting_seconds]
+Wim Hof - 開始まで %d秒
 ---
 [tray_meditation_paused]
 瞑想 - %d:%02d 一時停止
@@ -1119,10 +1119,22 @@ Wim Hof - 開始中
 瞑想 - 残り %d:%02d
 ---
 [tray_sun_salutation]
-太陽礼拝 - ステップ %d、回数 %d/%d
+太陽礼拝 - %s、回数 %d/%d、%d秒/%d秒
 ---
 [tray_sun_salutation_paused]
-太陽礼拝 - ステップ %d、回数 %d/%d 一時停止
+太陽礼拝 - %s、回数 %d/%d、%d秒/%d秒 一時停止
+---
+[tray_patterns_left]
+呼吸パターン - %s %d秒、残り %d:%02d
+---
+[tray_patterns_left_paused]
+呼吸パターン - %s %d秒、残り %d:%02d 一時停止
+---
+[tray_patterns_elapsed]
+呼吸パターン - %s %d秒、時間 %d:%02d
+---
+[tray_patterns_elapsed_paused]
+呼吸パターン - %s %d秒、時間 %d:%02d 一時停止
 ---
 [results_best]
 最速 %ds
@@ -1490,105 +1502,6 @@ Remove
 ---
 [tray_next_break]
 次の休憩 %s
----
-[break_exercises_title]
-休憩エクササイズ
----
-[break_exercises_intro]
-休憩用の簡単なストレッチ。自動的に再生されます。
----
-[break_ex_shoulder_rolls]
-肩の回転
----
-[break_ex_shoulder_rolls_s1]
-肩をゆっくり後ろに回します
----
-[break_ex_shoulder_rolls_s2]
-動きはなめらかに関係なく続けます
----
-[break_ex_neck_tilt]
-首の側屈
----
-[break_ex_neck_tilt_s1]
-頭を片方の肩へ傾けます
----
-[break_ex_neck_tilt_s2]
-やさしく保ち、側を変えます
----
-[break_ex_wrist_fingers]
-手首と指のストレッチ
----
-[break_ex_wrist_fingers_s1]
-片腕を伸ばして指を手前に引きます
----
-[break_ex_wrist_fingers_s2]
-手首を伸ばし、手を変えます
----
-[break_ex_upper_back]
-上背部のストレッチ
----
-[break_ex_upper_back_s1]
-手を組み、背中を丸めます
----
-[break_ex_upper_back_s2]
-息を吐いて肩を下ろします
----
-[break_ex_blade_squeeze]
-肩甲骨の寄せ
----
-[break_ex_blade_squeeze_s1]
-肩甲骨を寄せます
----
-[break_ex_blade_squeeze_s2]
-短く保ち、緩めます
----
-[break_ex_seated_twist]
-座位のねじり
----
-[break_ex_seated_twist_s1]
-背筋を伸ばし、片側に回します
----
-[break_ex_seated_twist_s2]
-腰を固定して側を変えます
----
-[break_ex_eye_horizon]
-遠くを見る
----
-[break_ex_eye_horizon_s1]
-部屋の一番遠い点を探します
----
-[break_ex_eye_horizon_s2]
-視線をやわらげ呼吸します
----
-[break_ex_eye_near_far]
-近くと遠くのピント
----
-[break_ex_eye_near_far_s1]
-親指を近くで見ます
----
-[break_ex_eye_near_far_s2]
-次に遠くの物に焦点を合わせます
----
-[break_ex_breath_drop]
-呼吸と肩
----
-[break_ex_breath_drop_s1]
-吸いながら肩を上げます
----
-[break_ex_breath_drop_s2]
-吐きながら下ろします
----
-[break_ex_breath_drop_s3]
-緊張が解けるのを感じます
----
-[break_ex_forearm_desk]
-前腕のストレッチ
----
-[break_ex_forearm_desk_s1]
-手のひらを机に、指を後ろへ
----
-[break_ex_forearm_desk_s2]
-前腕が伸びるまでやさしく押します
 ---
 [notifications_test]
 テスト通知を送信

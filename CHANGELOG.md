@@ -1,4 +1,15 @@
 # Changelog
+## [1.9.11] - 2026-08-28
+### Changed
+- Practice screens now show only the practices that are currently available.
+- Desktop tray status now shows the active practice and phase in the tooltip where supported, and in the tray menu as a reliable fallback.
+
+### Fixed
+- Sync now runs only after an account is connected to a saved sync server.
+- Existing synced accounts keep their connected state after upgrading, while disconnected accounts no longer start background sync, social refreshes or websocket listeners.
+- Profile Data now distinguishes disconnected sync accounts from missing accounts.
+- Android practice notifications now keep showing the current phase and timer while a practice is running.
+
 ## [1.9.10] - 2026-08-25
 ### Added
 - Completed practices now show a results screen with session details and a mood check-in before returning home.
@@ -113,7 +124,7 @@
 
 ### Changed
 - Micro breaks open their window the moment they are due - the invisible toast-prompt phase is gone (rest/daily keep their prompts).
-- Break exercises are removed for now: breaks are just the countdown and controls; the "Exercises" settings row and the tray entry are gone. Running a practice during a break is planned as the follow-up.
+- Breaks are just the countdown, controls and practice launch actions; the old Exercises settings row and tray entry are gone.
 - Idle memory: source fonts now rasterize once each at the DPI-scaled base size (plus one lazily built tier for large text) instead of caching up to eight per-size rasterizations, and a burst of new glyphs re-rasterizes at most once per frame per font; language-picker fallback fonts seed ASCII only and grow on demand (kryon `ui_text` change).
 - The process no longer links GTK: the system theme reads the desktop's real palette from the theme's gtk.css (kryon `system_theme`), file dialogs shell out to zenity/kdialog/yad (kryon's default backend order), and the GTK tray backend resolves libgtk-3 through kryon's runtime loader only when the tray actually starts. `INBE_NO_TRAY=1` skips the tray entirely (idle RSS drops from ~132 MB to ~103 MB; with the tray it is ~126 MB).
 - glibc malloc arenas are capped at four (the app runs ~19 threads; the default ceiling let per-thread arenas inflate idle RSS).
@@ -129,7 +140,7 @@
 
 ## [1.9.0] - 2026-08-15
 ### Added
-- Break reminders, Workrave-style: micro, rest and daily break timers with break exercises, statistics, and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
+- Break reminders, Workrave-style: micro, rest and daily break timers with statistics and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
 - A dedicated Notifications settings tab. Push delivery uses UnifiedPush (no Google services): "Set up push" opens an in-app picker that lists installed distributor apps with their name and icon and registers with the one you pick; the status line reports the real registration state.
 - Reminders are an editable list: add as many as you want, each with a practice dropdown (Wim Hof, Meditation, Sun Salutation), a [-] time [+] stepper, an on/off toggle and delete. Ships with one enabled Wim-Hof 08:00 reminder.
 - A notification when new friend requests arrive over social sync (toggleable, on by default).

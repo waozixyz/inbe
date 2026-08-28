@@ -1062,8 +1062,8 @@ Akun: %s
 [sync_status_connected]
 terhubung
 ---
-[sync_status_not_set]
-belum diatur
+[sync_status_disconnected]
+terputus
 ---
 [sync_status_queued]
 Antrean: %lld
@@ -1107,8 +1107,8 @@ Wim Hof - Tarik napas %ds
 [tray_wim_hof_next_round]
 Wim Hof - Ronde berikutnya
 ---
-[tray_wim_hof_starting]
-Wim Hof - Mulai
+[tray_wim_hof_starting_seconds]
+Wim Hof - mulai dalam %ds
 ---
 [tray_meditation_paused]
 Meditasi - %d:%02d dijeda
@@ -1117,10 +1117,22 @@ Meditasi - %d:%02d dijeda
 Meditasi - sisa %d:%02d
 ---
 [tray_sun_salutation]
-Salam matahari - Langkah %d, Rep %d/%d
+Salam matahari - %s, Rep %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Salam matahari - Langkah %d, Rep %d/%d dijeda
+Salam matahari - %s, Rep %d/%d, %ds/%ds dijeda
+---
+[tray_patterns_left]
+Pola napas - %s %ds, sisa %d:%02d
+---
+[tray_patterns_left_paused]
+Pola napas - %s %ds, sisa %d:%02d dijeda
+---
+[tray_patterns_elapsed]
+Pola napas - %s %ds, %d:%02d berlalu
+---
+[tray_patterns_elapsed_paused]
+Pola napas - %s %ds, %d:%02d berlalu dijeda
 ---
 [results_best]
 terbaik %ds
@@ -1488,105 +1500,6 @@ Ditangguhkan
 ---
 [tray_next_break]
 Istirahat berikutnya %s
----
-[break_exercises_title]
-Latihan istirahat
----
-[break_exercises_intro]
-Peregangan singkat untuk istirahat. Diputar otomatis.
----
-[break_ex_shoulder_rolls]
-Putaran bahu
----
-[break_ex_shoulder_rolls_s1]
-Putar bahu perlahan ke belakang
----
-[break_ex_shoulder_rolls_s2]
-Jaga gerakan halus dan rileks
----
-[break_ex_neck_tilt]
-Miringkan leher
----
-[break_ex_neck_tilt_s1]
-Miringkan kepala ke satu bahu
----
-[break_ex_neck_tilt_s2]
-Tahan lembut, lalu ganti sisi
----
-[break_ex_wrist_fingers]
-Peregangan pergelangan dan jari
----
-[break_ex_wrist_fingers_s1]
-Rentangkan satu lengan dan tarik jari ke belakang
----
-[break_ex_wrist_fingers_s2]
-Regangkan pergelangan, lalu ganti tangan
----
-[break_ex_upper_back]
-Peregangan punggung atas
----
-[break_ex_upper_back_s1]
-Genggam tangan dan bulatkan punggung
----
-[break_ex_upper_back_s2]
-Hembuskan napas dan turunkan bahu
----
-[break_ex_blade_squeeze]
-Rapatkan tulang belikat
----
-[break_ex_blade_squeeze_s1]
-Tarik belikat ke belakang
----
-[break_ex_blade_squeeze_s2]
-Tahan sebentar, lalu lepas
----
-[break_ex_seated_twist]
-Puntir badan duduk
----
-[break_ex_seated_twist_s1]
-Duduk tegak dan putar ke satu sisi
----
-[break_ex_seated_twist_s2]
-Jaga pinggul tetap, lalu ganti sisi
----
-[break_ex_eye_horizon]
-Menatap ke kejauhan
----
-[break_ex_eye_horizon_s1]
-Cari titik terjauh di ruangan
----
-[break_ex_eye_horizon_s2]
-Lunakkan pandangan dan bernapas
----
-[break_ex_eye_near_far]
-Fokus dekat dan jauh
----
-[break_ex_eye_near_far_s1]
-Lihat ibu jari dari dekat
----
-[break_ex_eye_near_far_s2]
-Lalu fokus ke sesuatu yang jauh
----
-[break_ex_breath_drop]
-Napas dan bahu
----
-[break_ex_breath_drop_s1]
-Tarik napas dan angkat bahu
----
-[break_ex_breath_drop_s2]
-Hembuskan dan biarkan turun
----
-[break_ex_breath_drop_s3]
-Rasakan ketegangan lepas
----
-[break_ex_forearm_desk]
-Peregangan lengan bawah
----
-[break_ex_forearm_desk_s1]
-Letakkan telapak di meja, jari ke belakang
----
-[break_ex_forearm_desk_s2]
-Tekan perlahan sampai terasa meregang
 ---
 [notifications_test]
 Kirim notifikasi uji

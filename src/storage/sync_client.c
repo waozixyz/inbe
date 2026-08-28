@@ -13,6 +13,7 @@
 #define INBE_FRIENDS_PATH "/api/v1/friends"
 #define INBE_FRIEND_REQUESTS_PATH "/api/v1/friends/requests"
 #define INBE_FRIEND_STATS_PATH "/api/v1/friends/stats"
+#define INBE_SYNC_SERVER_URL_KEY "sync_server_url"
 
 static KsyncSyncResult sync_client_bearer_request(const char *base_url,
                                                   const char *method,
@@ -39,6 +40,26 @@ sync_log_http_failure(const char *step, long status, const char *response)
             snippet[i] = ' ';
     }
     TraceLog(LOG_WARNING, "SYNC: %s failed status=%ld response=%s", step, status, snippet);
+}
+
+static int
+sync_client_connected_server(const char *base_url)
+{
+    const char *saved_url;
+    char saved_normalized[256];
+    char requested_normalized[256];
+
+    if(!storage_sync_server_connected())
+        return 0;
+    saved_url = storage_get_setting_text(INBE_SYNC_SERVER_URL_KEY);
+    if(saved_url == NULL || saved_url[0] == '\0')
+        return 0;
+    if(!sync_client_normalize_url(saved_url, saved_normalized, sizeof(saved_normalized)))
+        return 0;
+    if(!sync_client_normalize_url(base_url, requested_normalized,
+                                  sizeof(requested_normalized)))
+        return 0;
+    return strcmp(saved_normalized, requested_normalized) == 0;
 }
 
 int
@@ -239,8 +260,8 @@ sync_client_clear_auth_token(void)
     ClearKsyncSyncAuthToken(&cfg);
 }
 
-KsyncSyncResult
-sync_client_sync(const char *base_url)
+static KsyncSyncResult
+sync_client_run_sync(const char *base_url)
 {
     KsyncAccount account;
     KsyncSyncConfig cfg;
@@ -251,6 +272,20 @@ sync_client_sync(const char *base_url)
         return KSYNC_SYNC_NO_ACCOUNT;
     cfg = sync_kryon_config(base_url, &account);
     return RunKsyncSync(&cfg);
+}
+
+KsyncSyncResult
+sync_client_sync(const char *base_url)
+{
+    if(!sync_client_connected_server(base_url))
+        return KSYNC_SYNC_INVALID_URL;
+    return sync_client_run_sync(base_url);
+}
+
+KsyncSyncResult
+sync_client_connect(const char *base_url)
+{
+    return sync_client_run_sync(base_url);
 }
 
 KsyncSyncResult
@@ -300,6 +335,8 @@ sync_client_bearer_request(const char *base_url, const char *method, const char 
     KsyncSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
+        return KSYNC_SYNC_INVALID_URL;
+    if(!sync_client_connected_server(base_url))
         return KSYNC_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
         return KSYNC_SYNC_NO_ACCOUNT;
@@ -457,6 +494,8 @@ sync_client_wait_for_remote_event(const char *base_url)
 
     if(!sync_client_url_valid(base_url))
         return KSYNC_SYNC_INVALID_URL;
+    if(!sync_client_connected_server(base_url))
+        return KSYNC_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
         return KSYNC_SYNC_NO_ACCOUNT;
     cfg = sync_kryon_config(base_url, &account);
@@ -470,6 +509,8 @@ sync_client_delete_account(const char *base_url)
     KsyncSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
+        return KSYNC_SYNC_INVALID_URL;
+    if(!sync_client_connected_server(base_url))
         return KSYNC_SYNC_INVALID_URL;
     if(!sync_account_load(&account))
         return KSYNC_SYNC_NO_ACCOUNT;
@@ -485,6 +526,8 @@ sync_client_web_start_remote_events(const char *base_url)
     KsyncSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
+        return 0;
+    if(!sync_client_connected_server(base_url))
         return 0;
     if(!sync_account_load(&account))
         return 0;
@@ -505,6 +548,8 @@ sync_client_web_sync_start(const char *base_url)
     KsyncSyncConfig cfg;
 
     if(!sync_client_url_valid(base_url))
+        return 0;
+    if(!sync_client_connected_server(base_url))
         return 0;
     if(!sync_account_load(&account))
         return 0;

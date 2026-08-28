@@ -403,11 +403,13 @@ draw_sync_status :: (x: int, w: int, y: int*) {
     row_y = *y
 
     FormatLocaleText(line, sizeof(line), "sync_status_account",
-                        GetLocaleText(status.has_account
+                        GetLocaleText(status.has_account && status.server_connected
                                       ? "sync_status_connected"
-                                      : "sync_status_not_set"))
+                                      : "sync_status_disconnected"))
     Text(line, x, row_y, font,
-                  status.has_account ? ok_color : body_color)
+                  status.has_account && status.server_connected
+                      ? ok_color
+                      : body_color)
 
     FormatLocaleText(line, sizeof(line), "sync_status_queued",
                         status.queued_changes)

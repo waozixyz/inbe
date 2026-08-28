@@ -18,7 +18,6 @@
 #include "screens/language_screen.h"
 #include "screens/manual_screen.h"
 #include "screens/break_overlay.h"
-#include "screens/break_exercises_screen.h"
 #include "breaks/app_breaks.h"
 #include "screens/profile_screen.h"
 #include "screens/profile_social.h"
@@ -514,10 +513,21 @@ app_current_route(const InbeApp *app)
 }
 
 static int
+app_route_uses_habit_state(int screen)
+{
+    return screen == InbeScreenHabits ||
+           screen == InbeScreenHabitEdit ||
+           screen == InbeScreenHabitSessionEdit;
+}
+
+static int
 app_route_equal(AppRoute a, AppRoute b)
 {
     if(a.screen != b.screen)
         return 0;
+    if(app_route_uses_habit_state(a.screen))
+        return a.habits_screen_mode == b.habits_screen_mode &&
+               a.habits_tab == b.habits_tab;
     switch(a.screen) {
     case InbeScreenStart:
         return a.exercise_type == b.exercise_type &&
@@ -529,9 +539,6 @@ app_route_equal(AppRoute a, AppRoute b)
     case InbeScreenProfile:
         return a.profile_view == b.profile_view &&
                a.profile_tab == b.profile_tab;
-    case InbeScreenHabits:
-        return a.habits_screen_mode == b.habits_screen_mode &&
-               a.habits_tab == b.habits_tab;
     default:
         break;
     }
@@ -761,7 +768,6 @@ app_donation_reminder_safe(const InbeApp *app, int first_run_guide_active,
     case InbeScreenPatterns:
     case InbeScreenResults:
     case InbeScreenBreak:
-    case InbeScreenBreakExercises:
     case InbeScreenHabitEdit:
     case InbeScreenHabitSessionEdit:
         return 0;
@@ -1432,11 +1438,6 @@ app_init(void *vapp) {
 #else
     app->break_sounds_enabled = 0;
 #endif
-    app->break_exercise_count = 3;
-    app->break_ex_pick_count = 0;
-    app->break_ex_offset_s = 0;
-    app->break_ex_paused = 0;
-    app->break_ex_hidden = 0;
     data_init();
     if(app_load_settings(app))
         save_settings(app);
@@ -2047,7 +2048,6 @@ static const struct {
     { InbeScreenHabitEdit,        habit_edit_draw },
     { InbeScreenHabitSessionEdit, habit_session_draw_edit_screen },
     { InbeScreenBreak,            break_overlay_draw },
-    { InbeScreenBreakExercises,   break_exercises_screen_draw },
 };
 
 static void

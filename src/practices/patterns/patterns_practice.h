@@ -14,5 +14,7 @@ void patterns_draw_screen(InbeApp *app, int center_x, int center_y);
 void patterns_request_exit(InbeApp *app);
 void patterns_advance_elapsed(InbeApp *app, int elapsed_ms);
 void patterns_ratio_text(const InbeApp *app, char *out, size_t out_size);
+const char *patterns_phase_label_key(int phase);
+int patterns_phase_remaining_seconds(const InbeApp *app);
 
 #endif

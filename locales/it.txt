@@ -1062,8 +1062,8 @@ Account: %s
 [sync_status_connected]
 connesso
 ---
-[sync_status_not_set]
-non impostato
+[sync_status_disconnected]
+disconnesso
 ---
 [sync_status_queued]
 In coda: %lld
@@ -1107,8 +1107,8 @@ Wim Hof - Inspira %ds
 [tray_wim_hof_next_round]
 Wim Hof - Prossimo round
 ---
-[tray_wim_hof_starting]
-Wim Hof - Avvio
+[tray_wim_hof_starting_seconds]
+Wim Hof - inizia tra %ds
 ---
 [tray_meditation_paused]
 Meditazione - %d:%02d in pausa
@@ -1117,10 +1117,22 @@ Meditazione - %d:%02d in pausa
 Meditazione - %d:%02d rimanenti
 ---
 [tray_sun_salutation]
-Saluto al sole - Passo %d, Rep %d/%d
+Saluto al sole - %s, Rep %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Saluto al sole - Passo %d, Rep %d/%d in pausa
+Saluto al sole - %s, Rep %d/%d, %ds/%ds in pausa
+---
+[tray_patterns_left]
+Schemi respiratori - %s %ds, %d:%02d rimanenti
+---
+[tray_patterns_left_paused]
+Schemi respiratori - %s %ds, %d:%02d rimanenti in pausa
+---
+[tray_patterns_elapsed]
+Schemi respiratori - %s %ds, %d:%02d trascorsi
+---
+[tray_patterns_elapsed_paused]
+Schemi respiratori - %s %ds, %d:%02d trascorsi in pausa
 ---
 [results_best]
 migliore %ds
@@ -1488,105 +1500,6 @@ Sospeso
 ---
 [tray_next_break]
 Prossima pausa %s
----
-[break_exercises_title]
-Esercizi di pausa
----
-[break_exercises_intro]
-Allungamenti brevi per le pause. Si avviano automaticamente.
----
-[break_ex_shoulder_rolls]
-Rotazioni delle spalle
----
-[break_ex_shoulder_rolls_s1]
-Ruota le spalle lentamente all'indietro
----
-[break_ex_shoulder_rolls_s2]
-Mantieni il movimento fluido e rilassato
----
-[break_ex_neck_tilt]
-Inclinazione laterale del collo
----
-[break_ex_neck_tilt_s1]
-Inclina la testa verso una spalla
----
-[break_ex_neck_tilt_s2]
-Tieni dolcemente poi cambia lato
----
-[break_ex_wrist_fingers]
-Allungamento polsi e dita
----
-[break_ex_wrist_fingers_s1]
-Estendi un braccio e tira le dita indietro
----
-[break_ex_wrist_fingers_s2]
-Allunga il polso poi cambia mano
----
-[break_ex_upper_back]
-Allungamento della schiena alta
----
-[break_ex_upper_back_s1]
-Intreccia le mani e arrotonda la schiena
----
-[break_ex_upper_back_s2]
-Espira e lascia scendere le spalle
----
-[break_ex_blade_squeeze]
-Compressione delle scapole
----
-[break_ex_blade_squeeze_s1]
-Avvicina le scapole
----
-[break_ex_blade_squeeze_s2]
-Tieni un attimo poi rilascia
----
-[break_ex_seated_twist]
-Torsione del busto da seduti
----
-[break_ex_seated_twist_s1]
-Siedi dritto e ruota verso un lato
----
-[break_ex_seated_twist_s2]
-Mantieni i fianchi fermi poi cambia
----
-[break_ex_eye_horizon]
-Guardare lontano
----
-[break_ex_eye_horizon_s1]
-Trova il punto più lontano della stanza
----
-[break_ex_eye_horizon_s2]
-Ammorbidisci lo sguardo e respira
----
-[break_ex_eye_near_far]
-Messa a fuoco vicino e lontano
----
-[break_ex_eye_near_far_s1]
-Guarda il pollice da vicino
----
-[break_ex_eye_near_far_s2]
-Poi metti a fuoco qualcosa di lontano
----
-[break_ex_breath_drop]
-Respiro e spalle
----
-[break_ex_breath_drop_s1]
-Inspira e solleva le spalle
----
-[break_ex_breath_drop_s2]
-Espira e lasciale cadere
----
-[break_ex_breath_drop_s3]
-Senti la tensione sciogliersi
----
-[break_ex_forearm_desk]
-Allungamento dell'avambraccio
----
-[break_ex_forearm_desk_s1]
-Posa il palmo sulla scrivania, dita indietro
----
-[break_ex_forearm_desk_s2]
-Premi dolcemente fino ad allungare
 ---
 [notifications_test]
 Invia notifica di prova

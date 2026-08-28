@@ -342,6 +342,7 @@ app_web_test_import_sync_key(void)
     storage_set_setting_text("sync_public_key", imported->public_key_hex);
     storage_set_setting_text("sync_private_key", imported->private_key_hex);
     storage_set_setting_text("sync_account_alias", "");
+    storage_set_sync_server_connected(0);
     storage_settings_end_write();
     web_test_sync_key_import_status = 1;
 }

@@ -2,6 +2,7 @@
 #import "app.h"
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
+#import "practices/practice_audio_controls.h"
 #import "practices/practice_registry.h"
 #import "practices/sun_salutation/sun_salutation_practice.h"
 #import "stdio.h"
@@ -434,6 +435,7 @@ sun_salutation_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         sun_salutation_request_exit(app)
         return
     }
+    practice_draw_audio_controls(app)
 
     controls[0] = (IconRowItem){
         app->icons[UI_ICON_TYPE_BACKWARD],

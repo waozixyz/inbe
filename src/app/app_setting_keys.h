@@ -62,7 +62,6 @@
     X("break_sounds_enabled") \
     X("break_hud_x") \
     X("break_hud_y") \
-    X("break_exercise_count") \
     X("break_reading_mode") \
     X("break_micro_counts_as_activity") \
     X("break_micro_enabled") \

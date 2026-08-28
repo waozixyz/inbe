@@ -1062,8 +1062,8 @@ Stav synchronizace
 [sync_status_connected]
 připojen
 ---
-[sync_status_not_set]
-nenastaven
+[sync_status_disconnected]
+odpojen
 ---
 [sync_status_queued]
 Ve frontě: %lld
@@ -1107,8 +1107,8 @@ Wim Hof - Nádech %ds
 [tray_wim_hof_next_round]
 Wim Hof - Další kolo
 ---
-[tray_wim_hof_starting]
-Wim Hof - Spouštění
+[tray_wim_hof_starting_seconds]
+Wim Hof - Start za %ds
 ---
 [tray_meditation_paused]
 Meditace - %d:%02d pozastaveno
@@ -1117,10 +1117,22 @@ Meditace - %d:%02d pozastaveno
 Meditace - zbývá %d:%02d
 ---
 [tray_sun_salutation]
-Pozdrav slunci - Krok %d, Opak. %d/%d
+Pozdrav slunci - %s, Opak. %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Pozdrav slunci - Krok %d, Opak. %d/%d pozastaveno
+Pozdrav slunci - %s, Opak. %d/%d, %ds/%ds pozastaveno
+---
+[tray_patterns_left]
+Dechove vzory - %s %ds, zbyva %d:%02d
+---
+[tray_patterns_left_paused]
+Dechove vzory - %s %ds, zbyva %d:%02d pozastaveno
+---
+[tray_patterns_elapsed]
+Dechove vzory - %s %ds, %d:%02d uplynulo
+---
+[tray_patterns_elapsed_paused]
+Dechove vzory - %s %ds, %d:%02d uplynulo pozastaveno
 ---
 [results_best]
 nejlépe %ds
@@ -1488,105 +1500,6 @@ Pozastaveno
 ---
 [tray_next_break]
 Další přestávka %s
----
-[break_exercises_title]
-Cvičení při přestávkách
----
-[break_exercises_intro]
-Krátká protažení pro přestávky. Přehrávají se automaticky.
----
-[break_ex_shoulder_rolls]
-Kroužení rameny
----
-[break_ex_shoulder_rolls_s1]
-Kroužte rameny pomalu dozadu
----
-[break_ex_shoulder_rolls_s2]
-Pohyb ponechte plynulý a uvolněný
----
-[break_ex_neck_tilt]
-Naklonění krku
----
-[break_ex_neck_tilt_s1]
-Nakloňte hlavu k rameni
----
-[break_ex_neck_tilt_s2]
-Chvíli vydržte a změňte stranu
----
-[break_ex_wrist_fingers]
-Protažení zápěstí a prstů
----
-[break_ex_wrist_fingers_s1]
-Natažte paži a zatáhněte prsty dozadu
----
-[break_ex_wrist_fingers_s2]
-Protahejte zápěstí a změňte ruku
----
-[break_ex_upper_back]
-Protažení horních zad
----
-[break_ex_upper_back_s1]
-Propleťte ruce a zakulacte horní část zad
----
-[break_ex_upper_back_s2]
-Vydechněte a nechte ramena klesnout
----
-[break_ex_blade_squeeze]
-Stahování lopatek
----
-[break_ex_blade_squeeze_s1]
-Stáhněte lopatky k sobě
----
-[break_ex_blade_squeeze_s2]
-Chvíli držte a uvolněte
----
-[break_ex_seated_twist]
-Sezení s otočením trupu
----
-[break_ex_seated_twist_s1]
-Sedte si rovně a otočte se na jednu stranu
----
-[break_ex_seated_twist_s2]
-Boky nechte vpředu a změňte stranu
----
-[break_ex_eye_horizon]
-Pohled do dálky
----
-[break_ex_eye_horizon_s1]
-Najděte nejvzdálenější bod v místnosti
----
-[break_ex_eye_horizon_s2]
-Rozostřete pohled a dýchejte
----
-[break_ex_eye_near_far]
-Ostření zblízka i z dálky
----
-[break_ex_eye_near_far_s1]
-Podívejte se zblízka na palec
----
-[break_ex_eye_near_far_s2]
-Pak zaostřete na vzdálený předmět
----
-[break_ex_breath_drop]
-Dech a ramena
----
-[break_ex_breath_drop_s1]
-Vdechněte a zvedněte ramena
----
-[break_ex_breath_drop_s2]
-Vydechněte a nechte je spadnout
----
-[break_ex_breath_drop_s3]
-Všimněte si uvolnění napětí
----
-[break_ex_forearm_desk]
-Protažení předloktí o stůl
----
-[break_ex_forearm_desk_s1]
-Položte dlaň na stůl, prsty dozadu
----
-[break_ex_forearm_desk_s2]
-Lehce tlačte, až se předloktí protáhne
 ---
 [notifications_test]
 Odeslat testovací notifikaci

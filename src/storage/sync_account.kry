@@ -36,6 +36,7 @@ sync_account_write_and_reset :: (account: const KsyncAccount*) #private {
     storage_set_setting_text(sync_private_key_key,
                              account != nil ? account->private_key_hex : "")
     storage_set_setting_text(sync_account_alias_key, "")
+    storage_set_sync_server_connected(0)
     sync_client_clear_auth_token()
     storage_reset_sync_state()
     storage_settings_end_write()

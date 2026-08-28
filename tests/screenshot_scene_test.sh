@@ -27,7 +27,7 @@ mapfile -t scenes < <(
 [[ "${#scenes[@]}" -eq 8 ]] ||
   fail "expected 8 Play screenshot scenes, got ${#scenes[@]}"
 
-for forbidden in 'break_exercises' 'rest_break' 'sun_salutation_session' \
+for forbidden in 'rest_break' 'sun_salutation_session' \
                  '07-sun-salutation-session' '08-cobalt-dark-practice'; do
   if printf '%s\n' "${scenes[@]}" | grep -q "$forbidden"; then
     fail "forbidden screenshot scene is still present: $forbidden"

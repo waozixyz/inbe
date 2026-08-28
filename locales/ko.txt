@@ -1061,8 +1061,8 @@ Yoga
 [sync_status_connected]
 연결됨
 ---
-[sync_status_not_set]
-설정 안 됨
+[sync_status_disconnected]
+연결 안 됨
 ---
 [sync_status_queued]
 대기: %lld
@@ -1106,8 +1106,8 @@ Wim Hof - 들이마시기 %d초
 [tray_wim_hof_next_round]
 Wim Hof - 다음 라운드
 ---
-[tray_wim_hof_starting]
-Wim Hof - 시작 중
+[tray_wim_hof_starting_seconds]
+Wim Hof - %d초 후 시작
 ---
 [tray_meditation_paused]
 명상 - %d:%02d 일시정지
@@ -1116,10 +1116,22 @@ Wim Hof - 시작 중
 명상 - %d:%02d 남음
 ---
 [tray_sun_salutation]
-태양 경배 - 단계 %d, 반복 %d/%d
+태양 경배 - %s, 반복 %d/%d, %d초/%d초
 ---
 [tray_sun_salutation_paused]
-태양 경배 - 단계 %d, 반복 %d/%d 일시정지
+태양 경배 - %s, 반복 %d/%d, %d초/%d초 일시정지
+---
+[tray_patterns_left]
+호흡 패턴 - %s %d초, %d:%02d 남음
+---
+[tray_patterns_left_paused]
+호흡 패턴 - %s %d초, %d:%02d 남음 일시정지
+---
+[tray_patterns_elapsed]
+호흡 패턴 - %s %d초, %d:%02d 경과
+---
+[tray_patterns_elapsed_paused]
+호흡 패턴 - %s %d초, %d:%02d 경과 일시정지
 ---
 [results_best]
 최고 %ds
@@ -1487,105 +1499,6 @@ Remove
 ---
 [tray_next_break]
 다음 휴식 %s
----
-[break_exercises_title]
-휴식 운동
----
-[break_exercises_intro]
-휴식용 짧은 스트레치. 자동으로 재생됩니다.
----
-[break_ex_shoulder_rolls]
-어깨 돌리기
----
-[break_ex_shoulder_rolls_s1]
-어깨를 천천히 뒤로 돌리세요
----
-[break_ex_shoulder_rolls_s2]
-부드럽고 편안하게 유지하세요
----
-[break_ex_neck_tilt]
-목 옆으로 기울이기
----
-[break_ex_neck_tilt_s1]
-머리를 한쪽 어깨로 기울이세요
----
-[break_ex_neck_tilt_s2]
-부드럽게 유지한 뒤 반대쪽
----
-[break_ex_wrist_fingers]
-손목·손가락 스트레치
----
-[break_ex_wrist_fingers_s1]
-한 팔을 뻗고 손가락을 뒤로 당기세요
----
-[break_ex_wrist_fingers_s2]
-손목을 스트레치하고 손을 바꾸세요
----
-[break_ex_upper_back]
-등 상부 스트레치
----
-[break_ex_upper_back_s1]
-손을 모으고 등을 둥글게 하세요
----
-[break_ex_upper_back_s2]
-내쉬며 어깨를 내리세요
----
-[break_ex_blade_squeeze]
-견갑골 모으기
----
-[break_ex_blade_squeeze_s1]
-견갑골을 서로 모으세요
----
-[break_ex_blade_squeeze_s2]
-잠시 유지한 뒤 푸세요
----
-[break_ex_seated_twist]
-앉아서 몸 비틀기
----
-[break_ex_seated_twist_s1]
-바르게 앉아 한쪽으로 돌리세요
----
-[break_ex_seated_twist_s2]
-골반은 고정하고 쪽을 바꾸세요
----
-[break_ex_eye_horizon]
-멀리 보기
----
-[break_ex_eye_horizon_s1]
-방에서 가장 먼 지점을 찾으세요
----
-[break_ex_eye_horizon_s2]
-시선을 부드럽게 하고 호흡하세요
----
-[break_ex_eye_near_far]
-가까이·멀리 초점
----
-[break_ex_eye_near_far_s1]
-엄지를 가까이에서 보세요
----
-[break_ex_eye_near_far_s2]
-그다음 먼 곳에 초점을 맞추세요
----
-[break_ex_breath_drop]
-호흡과 어깨
----
-[break_ex_breath_drop_s1]
-들이쉬며 어깨를 올리세요
----
-[break_ex_breath_drop_s2]
-내쉬며 내리세요
----
-[break_ex_breath_drop_s3]
-긴장이 풀리는 것을 느끼세요
----
-[break_ex_forearm_desk]
-책상에서 팔꿈치 스트레치
----
-[break_ex_forearm_desk_s1]
-손바닥을 책상에, 손가락은 뒤로
----
-[break_ex_forearm_desk_s2]
-팔이 스트레치될 때까지 부드럽게 누르세요
 ---
 [notifications_test]
 테스트 알림 보내기

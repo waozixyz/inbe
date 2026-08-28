@@ -1062,8 +1062,8 @@ Cuenta: %s
 [sync_status_connected]
 conectada
 ---
-[sync_status_not_set]
-sin configurar
+[sync_status_disconnected]
+desconectada
 ---
 [sync_status_queued]
 En cola: %lld
@@ -1107,8 +1107,8 @@ Wim Hof - Inhala %ds
 [tray_wim_hof_next_round]
 Wim Hof - Siguiente ronda
 ---
-[tray_wim_hof_starting]
-Wim Hof - Iniciando
+[tray_wim_hof_starting_seconds]
+Wim Hof - empieza en %ds
 ---
 [tray_meditation_paused]
 Meditación - %d:%02d pausada
@@ -1117,10 +1117,22 @@ Meditación - %d:%02d pausada
 Meditación - quedan %d:%02d
 ---
 [tray_sun_salutation]
-Saludo al sol - Paso %d, Rep %d/%d
+Saludo al sol - %s, Rep %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Saludo al sol - Paso %d, Rep %d/%d pausado
+Saludo al sol - %s, Rep %d/%d, %ds/%ds pausado
+---
+[tray_patterns_left]
+Patrones de respiracion - %s %ds, quedan %d:%02d
+---
+[tray_patterns_left_paused]
+Patrones de respiracion - %s %ds, quedan %d:%02d pausado
+---
+[tray_patterns_elapsed]
+Patrones de respiracion - %s %ds, %d:%02d transcurrido
+---
+[tray_patterns_elapsed_paused]
+Patrones de respiracion - %s %ds, %d:%02d transcurrido pausado
 ---
 [results_best]
 mejor %ds
@@ -1488,105 +1500,6 @@ Suspendido
 ---
 [tray_next_break]
 Próximo descanso %s
----
-[break_exercises_title]
-Ejercicios de descanso
----
-[break_exercises_intro]
-Estiramientos cortos para los descansos. Se reproducen automáticamente.
----
-[break_ex_shoulder_rolls]
-Círculos de hombros
----
-[break_ex_shoulder_rolls_s1]
-Rueda los hombros lentamente hacia atrás
----
-[break_ex_shoulder_rolls_s2]
-Mantén el movimiento suave y relajado
----
-[break_ex_neck_tilt]
-Inclinación lateral del cuello
----
-[break_ex_neck_tilt_s1]
-Inclina la cabeza hacia un hombro
----
-[break_ex_neck_tilt_s2]
-Sostén suave y cambia de lado
----
-[break_ex_wrist_fingers]
-Estiramiento de muñeca y dedos
----
-[break_ex_wrist_fingers_s1]
-Extiende un brazo y tira de los dedos hacia atrás
----
-[break_ex_wrist_fingers_s2]
-Estira la muñeca y cambia de mano
----
-[break_ex_upper_back]
-Estiramiento de espalda alta
----
-[break_ex_upper_back_s1]
-Entrelaza las manos y redondea la espalda
----
-[break_ex_upper_back_s2]
-Exhala y deja caer los hombros
----
-[break_ex_blade_squeeze]
-Apriete de escápulas
----
-[break_ex_blade_squeeze_s1]
-Junta las escápulas
----
-[break_ex_blade_squeeze_s2]
-Sostén un momento y suelta
----
-[break_ex_seated_twist]
-Giro de torso sentado
----
-[break_ex_seated_twist_s1]
-Siéntate erguido y gira a un lado
----
-[break_ex_seated_twist_s2]
-Mantén la cadera firme y cambia de lado
----
-[break_ex_eye_horizon]
-Mirar a lo lejos
----
-[break_ex_eye_horizon_s1]
-Busca el punto más lejano de la habitación
----
-[break_ex_eye_horizon_s2]
-Suaviza la mirada y respira
----
-[break_ex_eye_near_far]
-Enfoque cerca y lejos
----
-[break_ex_eye_near_far_s1]
-Mira tu pulgar de cerca
----
-[break_ex_eye_near_far_s2]
-Luego enfoca algo lejano
----
-[break_ex_breath_drop]
-Respiración y hombros
----
-[break_ex_breath_drop_s1]
-Inhala y sube los hombros
----
-[break_ex_breath_drop_s2]
-Exhala y déjalos caer
----
-[break_ex_breath_drop_s3]
-Notas cómo se libera la tensión
----
-[break_ex_forearm_desk]
-Estiramiento de antebrazo
----
-[break_ex_forearm_desk_s1]
-Pon la palma en la mesa, dedos hacia atrás
----
-[break_ex_forearm_desk_s2]
-Presiona suave hasta estirar el antebrazo
 ---
 [notifications_test]
 Enviar notificación de prueba

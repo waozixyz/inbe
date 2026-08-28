@@ -2,6 +2,7 @@
 #import "data.h"
 #import "practices/meditation/meditation_music.h"
 #import "practices/patterns/patterns_practice.h"
+#import "practices/practice_audio_controls.h"
 #import "practices/practice_registry.h"
 #import "screens/practice_screen.h"
 #import <stdio.h>
@@ -147,7 +148,7 @@ patterns_request_exit :: (app: InbeApp*) {
     app_open_modal(app, UIModalConfirmExitSession)
 }
 
-phase_label_key :: (phase: int) -> const char* #private {
+patterns_phase_label_key :: (phase: int) -> const char* {
     if phase == PATTERNS_PHASE_HOLD_IN {
         return "patterns_phase_hold_in"
     }
@@ -158,6 +159,22 @@ phase_label_key :: (phase: int) -> const char* #private {
         return "patterns_phase_hold_out"
     }
     return "patterns_phase_inhale"
+}
+
+patterns_phase_remaining_seconds :: (app: const InbeApp*) -> int {
+    ratio: [4] int
+    phase := app != nil ? app->patterns.phase : PATTERNS_PHASE_INHALE
+    left: int
+
+    if phase < PATTERNS_PHASE_INHALE || phase > PATTERNS_PHASE_HOLD_OUT {
+        phase = PATTERNS_PHASE_INHALE
+    }
+    pattern_ratio(app, ratio)
+    left = ratio[phase] - (app != nil ? app->patterns.phase_second : 0)
+    if left < 1 {
+        left = 1
+    }
+    return left
 }
 
 finish_session :: (app: InbeApp*) #private {
@@ -456,6 +473,7 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
     if handle_exit_modal(app) {
         return
     }
+    practice_draw_audio_controls(app)
 
     pattern_ratio(app, ratio)
     phase_len := ratio[app->patterns.phase]
@@ -474,19 +492,20 @@ patterns_draw_screen :: (app: InbeApp*, center_x: int, center_y: int) {
         pattern_circle_draw(app, center_x, center_y, 0.25)
     }
 
-    label := GetLocaleText(phase_label_key(app->patterns.phase))
-    label_w := TextWidth(label, Text16)
-    Text(label, center_x - label_w / 2,
-                  center_y - ScaleUIPx(16), Text16, circle_text)
+    label := GetLocaleText(patterns_phase_label_key(app->patterns.phase))
+    instruction_font := Text24
+    max_instruction_w := view_width - ScaleUIPx(80)
 
-    left := ratio[app->patterns.phase] - app->patterns.phase_second
-    if left < 1 {
-        left = 1
+    if TextWidth(label, instruction_font) > max_instruction_w {
+        instruction_font = Text16
     }
-    snprintf(time_text, sizeof(time_text), "%d", left)
-    phase_time_w := TextWidth(time_text, Text24)
-    Text(time_text, center_x - phase_time_w / 2,
-                  center_y + ScaleUIPx(12), Text24, circle_text)
+    label_w := TextWidth(label, instruction_font)
+    Text(label, center_x - label_w / 2,
+                  GetUIControlTextY(label,
+                                    center_y - instruction_font,
+                                    instruction_font * 2,
+                                    instruction_font),
+                  instruction_font, circle_text)
 
     snprintf(time_text, sizeof(time_text), "%s %d",
              GetLocaleText("patterns_cycle_label"), app->patterns.cycle + 1)

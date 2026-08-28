@@ -52,6 +52,9 @@ friend_filter :: (codepoint: int, user_data: void*) -> int #private {
 sync_url :: (out: char*, out_size: size_t) -> int {
     saved := storage_get_setting_text(sync_server_url_key)
 
+    if !storage_sync_server_connected() {
+        return 0
+    }
     if saved == nil || saved[0] == '\0' {
         return 0
     }

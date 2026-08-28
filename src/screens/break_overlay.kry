@@ -1,5 +1,4 @@
 #import "app.h"
-#import "breaks/break_exercises.h"
 pscr :: #import "screens/practice_screen"
 
 # Defined in breaks/app_breaks.kry; declared extern to keep the module

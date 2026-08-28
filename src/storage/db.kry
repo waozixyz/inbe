@@ -665,6 +665,7 @@ storage_init :: (root: const char*) -> int #export {
     storage_migrate_default_habit_ids()
     storage_migrate_habit_ids_to_uuid()
     storage_migrate_default_meditation_activity_mask()
+    storage_migrate_sync_server_connected_flag()
     storage_materialize_session_habit_days()
     migrate_legacy_file_sessions_once()
     return 1

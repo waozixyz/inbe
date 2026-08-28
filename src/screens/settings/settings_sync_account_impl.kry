@@ -27,14 +27,6 @@ static sync_account_alias_key: const char* = "sync_account_alias"
 static save_dialog_callback: SettingsSyncKeySaveDialog = nil
 static import_dialog_callback: SettingsSyncKeyImportDialog = nil
 
-ensure_default_server :: () #private {
-    saved := storage_get_setting_text(sync_server_url_key)
-
-    if saved == nil || saved[0] == '\0' {
-        storage_set_setting_text(sync_server_url_key, sync_server_url_default)
-    }
-}
-
 set_save_dialog :: (callback: SettingsSyncKeySaveDialog) {
     save_dialog_callback = callback
 }
@@ -227,6 +219,7 @@ server_save :: (app: InbeApp*) #private {
         return
     }
     storage_set_setting_text(sync_server_url_key, url)
+    storage_set_sync_server_connected(0)
     settings_screen_set_status_success(GetLocaleText("sync_server_saved"), url)
 }
 
@@ -268,16 +261,12 @@ save_prepared :: (app: InbeApp*, account: KsyncAccount*,
 
     app->pending_sync_account_action = InbePendingSyncAccountNone
     memset(&app->pending_sync_account, 0, sizeof(app->pending_sync_account))
-    ensure_default_server()
 
     if action == InbePendingSyncAccountCreate {
         settings_screen_set_status_success(GetLocaleText("sync_account_created"), nil)
-        app_auto_sync(app)
-        open_alias_modal(app, 1)
     } else {
         settings_screen_set_status_success(GetLocaleText("sync_private_key_imported"), nil)
         TraceLog(LOG_INFO, "SYNC: Private key imported")
-        app_auto_sync(app)
     }
 
     return 1
@@ -312,6 +301,9 @@ server_connected :: (app: InbeApp*) -> int #private {
     account: KsyncAccount
 
     if app == nil || !sync_account_load(&account) {
+        return 0
+    }
+    if !storage_sync_server_connected() {
         return 0
     }
     if !sync_client_normalize_url(app->sync_server_url, url, sizeof(url)) {
@@ -367,18 +359,27 @@ create_account :: (app: InbeApp*, account: KsyncAccount*) -> int #private {
 run_connect :: (app: InbeApp*) #private {
     result: KsyncSyncResult
     url: [sizeof(app->sync_server_url)] char
+    account: KsyncAccount
 
     if app == nil {
         return
     }
+    if !sync_account_load(&account) {
+        storage_set_sync_server_connected(0)
+        settings_screen_set_status_error(GetLocaleText("sync_no_account"))
+        return
+    }
     if !server_normalize(app, url, sizeof(url)) {
+        storage_set_sync_server_connected(0)
         settings_screen_set_status_error(GetLocaleText("sync_server_url_invalid"))
         return
     }
 
     storage_set_setting_text(sync_server_url_key, url)
-    result = sync_client_sync(url)
+    storage_set_sync_server_connected(0)
+    result = sync_client_connect(url)
     if result == KSYNC_SYNC_OK {
+        storage_set_sync_server_connected(1)
         app_request_social_refresh(app)
         if storage_sync_review_clear_if_no_visible_diff() {
             app_reload_after_import(app, 0)
@@ -394,6 +395,7 @@ run_connect :: (app: InbeApp*) #private {
             settings_screen_set_status_success(GetLocaleText(result_key(result)), nil)
         }
     } else {
+        storage_set_sync_server_connected(0)
         settings_screen_set_status_error(GetLocaleText(result_key(result)))
     }
 }
@@ -420,7 +422,9 @@ clear_remote_confirmed :: (app: InbeApp*) {
         return
     }
 
-    if server_normalize(app, url, sizeof(url)) {
+    if server_connected(app) &&
+       sync_client_normalize_url(storage_get_setting_text(sync_server_url_key),
+                                 url, sizeof(url)) {
         result = sync_client_delete_account(url)
         if result != KSYNC_SYNC_OK {
             TraceLog(LOG_WARNING, "SYNC: remote account delete failed: %d", result)
@@ -680,7 +684,6 @@ draw_config :: (app: InbeApp*, x: int, w: int, y: int*) {
     if app != nil && app->sync_server_url[0] == '\0' {
         saved: const char* = nil
 
-        ensure_default_server()
         saved = storage_get_setting_text(sync_server_url_key)
         snprintf(app->sync_server_url, sizeof(app->sync_server_url), "%s",
                     saved != nil && saved[0] != '\0'
@@ -962,7 +965,9 @@ draw_alias_modal :: (app: InbeApp*) -> int {
     }
     if clicked == 1 ||
        (commit && alias_valid(app->sync_alias_input) && !unchanged_alias) {
-        if server_normalize(app, url, sizeof(url)) {
+        if server_connected(app) &&
+           sync_client_normalize_url(storage_get_setting_text(sync_server_url_key),
+                                     url, sizeof(url)) {
             alias_result := sync_client_register_alias(url, app->sync_alias_input)
 
             TraceLog(LOG_INFO, "SYNC: saving alias @%s with %s",

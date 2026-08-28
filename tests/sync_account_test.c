@@ -204,6 +204,23 @@ exec_db_sql(const char *label, const char *sql)
     sqlite3_close(db);
 }
 
+static int
+read_db_count(const char *sql)
+{
+    sqlite3 *db = NULL;
+    sqlite3_stmt *stmt = NULL;
+    int count = -1;
+
+    if(sqlite3_open(storage_db_path(), &db) != SQLITE_OK || db == NULL)
+        return count;
+    if(sqlite3_prepare_v2(db, sql, -1, &stmt, NULL) == SQLITE_OK &&
+       sqlite3_step(stmt) == SQLITE_ROW)
+        count = sqlite3_column_int(stmt, 0);
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+    return count;
+}
+
 static void
 make_account_values(char public_id[65], char public_key_hex[2625],
                     char private_key_hex[5121])
@@ -361,6 +378,114 @@ test_reject_invalid_keys(void)
 }
 
 static void
+test_legacy_synced_account_migrates_connected_server(void)
+{
+    char root[512];
+    char key_path[1024];
+    char public_id[65];
+    char public_key[2625];
+    char private_key[5121];
+    KsyncAccount account;
+
+    make_clean_root(root, sizeof(root), "legacy-connected-flag");
+    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    make_account_values(public_id, public_key, private_key);
+    write_key_file(key_path, public_id, public_key, private_key);
+
+    check_true("init legacy connected storage", storage_init(root));
+    check_true("save legacy connected account",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
+    exec_db_sql("prepare legacy connected sync state",
+                "INSERT OR REPLACE INTO meta(key,value) "
+                "VALUES('sync_last_server_version','6638');"
+                "INSERT OR REPLACE INTO meta(key,value) "
+                "VALUES('sync_full_upload_done','1');"
+                "DELETE FROM settings WHERE key='sync_server_connected';");
+    storage_close();
+
+    check_true("reopen legacy connected storage", storage_init(root));
+    check_true("legacy connected flag migrated",
+               storage_get_setting_int("sync_server_connected", 0) == 1);
+    check_true("legacy connected helper", storage_sync_server_connected());
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_unsynced_account_does_not_migrate_connected_server(void)
+{
+    char root[512];
+    char key_path[1024];
+    char public_id[65];
+    char public_key[2625];
+    char private_key[5121];
+    KsyncAccount account;
+
+    make_clean_root(root, sizeof(root), "unsynced-connected-flag");
+    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    make_account_values(public_id, public_key, private_key);
+    write_key_file(key_path, public_id, public_key, private_key);
+
+    check_true("init unsynced connected storage", storage_init(root));
+    check_true("save unsynced connected account",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
+    exec_db_sql("remove unsynced connected flag",
+                "DELETE FROM settings WHERE key='sync_server_connected';");
+    storage_close();
+
+    check_true("reopen unsynced connected storage", storage_init(root));
+    check_true("unsynced account remains disconnected",
+               storage_get_setting_int("sync_server_connected", 0) == 0);
+    check_false("unsynced account helper disconnected",
+                storage_sync_server_connected());
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
+test_disconnected_account_reports_queue_without_connection(void)
+{
+    char root[512];
+    char key_path[1024];
+    char public_id[65];
+    char public_key[2625];
+    char private_key[5121];
+    KsyncAccount account;
+    InbeStorageSyncStatus status;
+
+    make_clean_root(root, sizeof(root), "disconnected-queued");
+    snprintf(key_path, sizeof(key_path), "%s/inbe-sync.key", root);
+    make_account_values(public_id, public_key, private_key);
+    write_key_file(key_path, public_id, public_key, private_key);
+
+    check_true("init disconnected queued storage", storage_init(root));
+    check_true("save disconnected queued account",
+               import_key_and_save(&account, key_path, 0) == INBE_SYNC_ACCOUNT_SAVE_OK);
+    storage_set_setting_text("sync_server_url", "https://api.waozi.xyz");
+    storage_set_sync_server_connected(0);
+    exec_db_sql("insert disconnected queued sync row",
+                "INSERT INTO sync_outbox(entity_type,entity_id,local_date,queued_at) "
+                "VALUES('session','queued-local-session',0,strftime('%s','now'));");
+
+    check_false("disconnected queued server helper",
+                storage_sync_server_connected());
+    check_true("disconnected queued status loads",
+               storage_sync_status(&status));
+    check_true("disconnected queued has account", status.has_account);
+    check_false("disconnected queued not connected", status.server_connected);
+    check_true("disconnected queued count visible", status.queued_changes == 1);
+    check_true("disconnected queued row preserved",
+               read_db_count("SELECT COUNT(*) FROM sync_outbox") == 1);
+
+    storage_close();
+    remove_tree(root);
+}
+
+static void
 test_imported_account_backfills_existing_local_data(void)
 {
     char root[512];
@@ -442,6 +567,8 @@ test_logout_preserves_data_owner(void)
     check_true("logout account", sync_account_clear());
     check_false("credentials removed", sync_account_load(&account));
     check_str("owner after logout", storage_sync_data_owner_public_id(), public_id);
+    check_true("logout clears sync outbox",
+               read_db_count("SELECT COUNT(*) FROM sync_outbox") == 0);
 
     storage_close();
     remove_tree(root);
@@ -554,6 +681,9 @@ main(void)
 {
     test_import_export_clear();
     test_reject_invalid_keys();
+    test_legacy_synced_account_migrates_connected_server();
+    test_unsynced_account_does_not_migrate_connected_server();
+    test_disconnected_account_reports_queue_without_connection();
     test_imported_account_backfills_existing_local_data();
     test_logout_preserves_data_owner();
     test_different_account_requires_clear_local_data();

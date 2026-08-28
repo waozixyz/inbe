@@ -13,7 +13,6 @@
 WEB :: #defined(PLATFORM_WEB)
 
 static inbe_sync_server_url_key: const char* = "sync_server_url"
-static inbe_sync_server_url_default: const char* = "https://api.waozi.xyz"
 static inbe_sync_input_quiet_seconds: const double = 0.45
 
 #enum {
@@ -87,6 +86,21 @@ sync_unlock :: () #private {
     #if !WEB {
         KryMutexUnlock(&g_sync_mutex)
     }
+}
+
+app_clear_disconnected_sync_work :: () #private {
+    #if !WEB {
+        sync_lock()
+    }
+    g_sync.dirty_sync_at = 0.0
+    g_sync.remote_sync_due = 0
+    g_sync.social_refresh_pending = 0
+    g_sync.social_action_head = 0
+    g_sync.social_action_count = 0
+    #if !WEB {
+        sync_unlock()
+    }
+    g_sync_events_url[0] = '\0'
 }
 
 app_queue_social_refresh :: () #private {
@@ -621,20 +635,19 @@ app_apply_pending_sync_refresh :: (app: InbeApp*) #private {
 
 app_sync_url :: (url: char*, url_size: size_t) -> int #private {
     saved_url: const char*
-    account: KsyncAccount
 
     if url == nil || url_size == 0 {
         return 0
     }
     url[0] = '\0'
-    if !sync_account_load(&account) {
+    if !storage_sync_server_connected() {
         return 0
     }
     saved_url = storage_get_setting_text(inbe_sync_server_url_key)
-    if !sync_client_normalize_url(saved_url != nil && saved_url[0] != '\0'
-                                      ? saved_url
-                                      : inbe_sync_server_url_default,
-                                  url, url_size) {
+    if saved_url == nil || saved_url[0] == '\0' {
+        return 0
+    }
+    if !sync_client_normalize_url(saved_url, url, url_size) {
         return 0
     }
     return 1
@@ -656,9 +669,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         args: InbeSocialWorkerArgs*
 
         if !app_sync_url(url, sizeof(url)) {
-            sync_lock()
-            g_sync.social_refresh_pending = g_sync.social_action_count > 0
-            sync_unlock()
+            app_clear_disconnected_sync_work()
             return
         }
         args = malloc(sizeof(*args))
@@ -711,7 +722,7 @@ app_apply_pending_social_refresh :: (app: InbeApp*) #private {
         KryThreadDetach(&thread)
     } #else {
         if !app_sync_url(url, sizeof(url)) {
-            g_sync.social_refresh_pending = g_sync.social_action_count > 0
+            app_clear_disconnected_sync_work()
             return
         }
         app_social_peek_action(action, sizeof(action), action_value,
@@ -847,7 +858,12 @@ app_sync_loading :: () -> int {
 }
 
 app_request_social_action :: (action: const char*, value: const char*) #private {
+    url: [256] char
+
     if action == nil || action[0] == '\0' || value == nil || value[0] == '\0' {
+        return
+    }
+    if !app_sync_url(url, sizeof(url)) {
         return
     }
     #if !WEB {
@@ -975,6 +991,7 @@ app_sync_pump :: (app: InbeApp*) {
     app_apply_pending_sync_refresh(app)
     app_apply_pending_social_refresh(app)
     if !app_sync_url(url, sizeof(url)) {
+        app_clear_disconnected_sync_work()
         return
     }
     app_ensure_sync_events(url)

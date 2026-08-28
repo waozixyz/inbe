@@ -7,7 +7,7 @@ Added
 Changed
 ---
 - Micro breaks open their window the moment they are due - the invisible toast-prompt phase is gone (rest/daily keep their prompts).
-- Break exercises are removed for now: breaks are just the countdown and controls; the "Exercises" settings row and the tray entry are gone. Running a practice during a break is planned as the follow-up.
+- Breaks are just the countdown, controls and practice launch actions; the old Exercises settings row and tray entry are gone.
 - Idle memory: source fonts now rasterize once each at the DPI-scaled base size (plus one lazily built tier for large text) instead of caching up to eight per-size rasterizations, and a burst of new glyphs re-rasterizes at most once per frame per font; language-picker fallback fonts seed ASCII only and grow on demand (kryon `ui_text` change).
 - The process no longer links GTK: the system theme reads the desktop's real palette from the theme's gtk.css (kryon `system_theme`), file dialogs shell out to zenity/kdialog/yad (kryon's default backend order), and the GTK tray backend resolves libgtk-3 through kryon's runtime loader only when the tray actually starts. `INBE_NO_TRAY=1` skips the tray entirely (idle RSS drops from ~132 MB to ~103 MB; with the tray it is ~126 MB).
 - glibc malloc arenas are capped at four (the app runs ~19 threads; the default ceiling let per-thread arenas inflate idle RSS).

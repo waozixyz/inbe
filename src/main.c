@@ -881,10 +881,6 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
         app->main_tab = APP_MAIN_TAB_PRACTICE;
         app->practice_tab = PRACTICE_TAB_CONFIG;
         app->inbe.screen = InbeScreenStart;
-    } else if(strcmp(request->scene, "break_exercises") == 0) {
-#if !defined(PLATFORM_WEB) && !ANDROID_BUILD
-        app->inbe.screen = InbeScreenBreakExercises;
-#endif
     } else if(strcmp(request->scene, "break_settings") == 0) {
 #if !defined(PLATFORM_WEB) && !ANDROID_BUILD
         app->main_tab = APP_MAIN_TAB_PRACTICE;
@@ -908,16 +904,6 @@ setup_screenshot_scene(InbeApp *app, const ScreenshotRequest *request)
                                            ? app->breaks.timers[t].duration_s / 3
                                            : 0;
         app->inbe.screen = InbeScreenBreak;
-        if(t == BREAK_REST) {
-            app->break_ex_picked[0] = 0;
-            app->break_ex_picked[1] = 6;
-            app->break_ex_picked[2] = 8;
-            app->break_ex_pick_count = 3;
-            app->breaks.timers[BREAK_REST].idle_s = 200;
-            app->break_ex_offset_s = 0;
-            app->break_ex_paused = 0;
-            app->break_ex_hidden = 0;
-        }
 #endif
     } else if(strcmp(request->scene, "tutorial_whm_step0") == 0) {
         app->exercise_type = EXERCISE_WIM_HOF;
@@ -1171,8 +1157,10 @@ int main(int argc, char **argv) {
     while(!quit) {
         InbeDesktopTrayAction tray_action = inbe_desktop_tray_poll_action();
         AppClosePromptResult close_result;
-        if(g_shutdown_requested)
+        if(g_shutdown_requested) {
+            TraceLog(LOG_INFO, "INBE: quit requested by shutdown signal");
             quit = 1;
+        }
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
         /* The core window's X button arrives as SDL_WINDOWEVENT_CLOSE, which
@@ -1189,15 +1177,18 @@ int main(int argc, char **argv) {
         close_result = app_consume_close_prompt_result(&inbe_app);
         if(close_result == AppClosePromptKeepRunning)
             inbe_desktop_tray_keep_running();
-        else if(close_result == AppClosePromptQuit)
+        else if(close_result == AppClosePromptQuit) {
+            TraceLog(LOG_INFO, "INBE: quit requested by close prompt");
             quit = 1;
-        if(inbe_app.request_quit)   /* app layer (e.g. update restart) exits directly */
+        }
+        if(inbe_app.request_quit) { /* app layer (e.g. update restart) exits directly */
+            TraceLog(LOG_INFO, "INBE: quit requested by app layer");
             quit = 1;
+        }
         tray_action = inbe_desktop_tray_poll_action();
         if(tray_action != INBE_DESKTOP_TRAY_ACTION_NONE)
             inbe_desktop_tray_apply_action(&inbe_app, tray_action, &quit);
-        if((WindowShouldClose() || StealUICoreWindowClose()) &&
-           !inbe_app.close_prompt_open)
+        if(StealUICoreWindowClose() && !inbe_app.close_prompt_open)
             app_request_desktop_close(&inbe_app);
     }
 #else

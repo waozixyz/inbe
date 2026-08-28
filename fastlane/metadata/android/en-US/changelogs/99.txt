@@ -1,6 +1,6 @@
 Added
 ---
-- Break reminders, Workrave-style: micro, rest and daily break timers with break exercises, statistics, and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
+- Break reminders, Workrave-style: micro, rest and daily break timers with statistics and a desktop timer HUD that lives as a real OS window next to the app (desktop only, off by default, with its own settings tab).
 - A dedicated Notifications settings tab. Push delivery uses UnifiedPush (no Google services): "Set up push" opens an in-app picker that lists installed distributor apps with their name and icon and registers with the one you pick; the status line reports the real registration state.
 - Reminders are an editable list: add as many as you want, each with a practice dropdown (Wim Hof, Meditation, Sun Salutation), a [-] time [+] stepper, an on/off toggle and delete. Ships with one enabled Wim-Hof 08:00 reminder.
 - A notification when new friend requests arrive over social sync (toggleable, on by default).

@@ -44,6 +44,8 @@ storage_migrate_habit_ids_to_uuid(void);
 #define STORAGE_SYNC_PUBLIC_ID_KEY "sync_public_id"
 #define STORAGE_SYNC_PUBLIC_KEY_KEY "sync_public_key"
 #define STORAGE_SYNC_PRIVATE_KEY_KEY "sync_private_key"
+#define STORAGE_SYNC_SERVER_URL_KEY "sync_server_url"
+#define STORAGE_SYNC_SERVER_CONNECTED_KEY "sync_server_connected"
 #define STORAGE_SYNC_LAST_SERVER_HASH_KEY "sync_last_server_state_hash"
 #define STORAGE_SYNC_SERVER_CLOCK_KEY "sync_server_clock"
 #define STORAGE_SYNC_LATEST_PROTOCOL_KEY "sync_latest_protocol"
@@ -366,7 +368,8 @@ storage_reset_sync_state(void)
     set_meta_int64(STORAGE_SYNC_BACKFILL_KEY, 0);
     set_meta_int64(STORAGE_SYNC_HABIT_NAME_REPAIR_KEY, 0);
     exec_sql("DELETE FROM sync_outbox");
-    storage_enqueue_all_sync_state();
+    if(storage_has_sync_account())
+        storage_enqueue_all_sync_state();
     storage_schedule_persist();
 }
 
@@ -633,6 +636,75 @@ storage_set_setting_int(const char *key, int value)
     char text[32];
     snprintf(text, sizeof(text), "%d", value);
     storage_set_setting_text(key, text);
+}
+
+static int
+storage_setting_exists(const char *key)
+{
+    sqlite3_stmt *stmt = NULL;
+    int exists = 0;
+
+    if(g_storage.db == NULL || key == NULL)
+        return 0;
+    if(sqlite3_prepare_v2(g_storage.db,
+                          "SELECT EXISTS(SELECT 1 FROM settings "
+                          "WHERE user_id=?1 AND key=?2)",
+                          -1, &stmt, NULL) != SQLITE_OK)
+        return 0;
+    bind_text(stmt, 1, g_storage.user_id);
+    bind_text(stmt, 2, key);
+    if(sqlite3_step(stmt) == SQLITE_ROW)
+        exists = sqlite3_column_int(stmt, 0) != 0;
+    sqlite3_finalize(stmt);
+    return exists;
+}
+
+static int
+storage_sync_url_looks_valid(const char *url)
+{
+    if(url == NULL || url[0] == '\0')
+        return 0;
+    if(strncmp(url, "https://", 8) == 0)
+        return url[8] != '\0';
+    if(strncmp(url, "http://", 7) == 0)
+        return url[7] != '\0';
+    return 0;
+}
+
+int
+storage_migrate_sync_server_connected_flag(void)
+{
+    const char *url;
+
+    if(g_storage.db == NULL)
+        return 0;
+    if(storage_setting_exists(STORAGE_SYNC_SERVER_CONNECTED_KEY))
+        return 1;
+    if(!storage_has_sync_account())
+        return 1;
+    url = storage_get_setting_text(STORAGE_SYNC_SERVER_URL_KEY);
+    if(!storage_sync_url_looks_valid(url))
+        return 1;
+    if(get_meta_int64("sync_last_server_version", 0) <= 0 &&
+       get_meta_int64("sync_full_upload_done", 0) == 0)
+        return 1;
+
+    storage_set_setting_int(STORAGE_SYNC_SERVER_CONNECTED_KEY, 1);
+    TraceLog(LOG_INFO, "SYNC: migrated existing synced account to connected server state");
+    return 1;
+}
+
+int
+storage_sync_server_connected(void)
+{
+    return storage_has_sync_account() &&
+           storage_get_setting_int(STORAGE_SYNC_SERVER_CONNECTED_KEY, 0) != 0;
+}
+
+void
+storage_set_sync_server_connected(int connected)
+{
+    storage_set_setting_int(STORAGE_SYNC_SERVER_CONNECTED_KEY, connected ? 1 : 0);
 }
 
 static int
@@ -2348,6 +2420,7 @@ storage_sync_status(InbeStorageSyncStatus *status)
         return 0;
 
     status->has_account = storage_has_sync_account();
+    status->server_connected = storage_sync_server_connected();
     status->review_pending = get_meta_int64(STORAGE_SYNC_PENDING_REVIEW_KEY, 0) != 0;
     status->repair_pending = get_meta_int64(STORAGE_SYNC_ZERO_HABIT_DAY_REPAIR_KEY, 0) == 0;
     status->full_upload_done = get_meta_int64("sync_full_upload_done", 0) != 0;

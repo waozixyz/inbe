@@ -9,6 +9,7 @@ int sync_client_url_valid(const char *url);
 int sync_client_normalize_url(const char *input, char *out, size_t out_size);
 int sync_client_normalize_friend_target(const char *target, char *out, size_t out_size);
 KsyncSyncResult sync_client_sync(const char *base_url);
+KsyncSyncResult sync_client_connect(const char *base_url);
 KsyncSyncResult sync_client_register_alias(const char *base_url, const char *alias);
 KsyncSyncResult sync_client_send_friend_request(const char *base_url, const char *target);
 KsyncSyncResult sync_client_get_friend_requests(const char *base_url, char *out, size_t out_size);

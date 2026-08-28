@@ -1061,8 +1061,8 @@ Compte : %s
 [sync_status_connected]
 connecté
 ---
-[sync_status_not_set]
-non défini
+[sync_status_disconnected]
+déconnecté
 ---
 [sync_status_queued]
 En attente : %lld
@@ -1106,8 +1106,8 @@ Wim Hof - Inspirez %ds
 [tray_wim_hof_next_round]
 Wim Hof - Cycle suivant
 ---
-[tray_wim_hof_starting]
-Wim Hof - Démarrage
+[tray_wim_hof_starting_seconds]
+Wim Hof - démarre dans %ds
 ---
 [tray_meditation_paused]
 Méditation - %d:%02d en pause
@@ -1116,10 +1116,22 @@ Méditation - %d:%02d en pause
 Méditation - %d:%02d restantes
 ---
 [tray_sun_salutation]
-Salutation au soleil - Étape %d, Rép %d/%d
+Salutation au soleil - %s, Rép %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Salutation au soleil - Étape %d, Rép %d/%d en pause
+Salutation au soleil - %s, Rép %d/%d, %ds/%ds en pause
+---
+[tray_patterns_left]
+Rythmes respiratoires - %s %ds, %d:%02d restantes
+---
+[tray_patterns_left_paused]
+Rythmes respiratoires - %s %ds, %d:%02d restantes en pause
+---
+[tray_patterns_elapsed]
+Rythmes respiratoires - %s %ds, %d:%02d ecoulees
+---
+[tray_patterns_elapsed_paused]
+Rythmes respiratoires - %s %ds, %d:%02d ecoulees en pause
 ---
 [results_best]
 meilleur %ds
@@ -1487,105 +1499,6 @@ Suspendu
 ---
 [tray_next_break]
 Prochaine pause %s
----
-[break_exercises_title]
-Exercices de pause
----
-[break_exercises_intro]
-Étirements courts pour les pauses. Ils se jouent automatiquement.
----
-[break_ex_shoulder_rolls]
-Rotations des épaules
----
-[break_ex_shoulder_rolls_s1]
-Faites rouler les épaules lentement vers l'arrière
----
-[break_ex_shoulder_rolls_s2]
-Gardez le mouvement fluide et détendu
----
-[break_ex_neck_tilt]
-Inclinaison latérale du cou
----
-[break_ex_neck_tilt_s1]
-Inclinez la tête vers une épaule
----
-[break_ex_neck_tilt_s2]
-Tenez doucement, puis changez de côté
----
-[break_ex_wrist_fingers]
-Étirement poignets et doigts
----
-[break_ex_wrist_fingers_s1]
-Tendez un bras et tirez les doigts vers l'arrière
----
-[break_ex_wrist_fingers_s2]
-Étirez le poignet, puis changez de main
----
-[break_ex_upper_back]
-Étirement du haut du dos
----
-[break_ex_upper_back_s1]
-Croisez les mains et arrondissez le dos
----
-[break_ex_upper_back_s2]
-Expirez et laissez tomber les épaules
----
-[break_ex_blade_squeeze]
-Serrement des omoplates
----
-[break_ex_blade_squeeze_s1]
-Rapprochez vos omoplates
----
-[break_ex_blade_squeeze_s2]
-Tenez un instant, puis relâchez
----
-[break_ex_seated_twist]
-Torsion du buste assis
----
-[break_ex_seated_twist_s1]
-Asseyez-vous droit et tournez d'un côté
----
-[break_ex_seated_twist_s2]
-Gardez le bassin stable, puis changez
----
-[break_ex_eye_horizon]
-Regarder au loin
----
-[break_ex_eye_horizon_s1]
-Trouvez le point le plus lointain de la pièce
----
-[break_ex_eye_horizon_s2]
-Adoucissez le regard et respirez
----
-[break_ex_eye_near_far]
-Focus près et loin
----
-[break_ex_eye_near_far_s1]
-Regardez votre pouce de près
----
-[break_ex_eye_near_far_s2]
-Puis fixez quelque chose de lointain
----
-[break_ex_breath_drop]
-Souffle et épaules
----
-[break_ex_breath_drop_s1]
-Inspirez et montez les épaules
----
-[break_ex_breath_drop_s2]
-Expirez et laissez-les descendre
----
-[break_ex_breath_drop_s3]
-Sentez la tension se relâcher
----
-[break_ex_forearm_desk]
-Étirement de l'avant-bras
----
-[break_ex_forearm_desk_s1]
-Posez la paume sur le bureau, doigts vers l'arrière
----
-[break_ex_forearm_desk_s2]
-Appuyez doucement jusqu'à sentir l'étirement
 ---
 [notifications_test]
 Envoyer une notification de test

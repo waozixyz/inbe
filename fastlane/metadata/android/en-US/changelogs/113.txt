@@ -1,0 +1,10 @@
+Changed
+---
+- Practice screens now show only the practices that are currently available.
+- Desktop tray status now shows the active practice and phase in the tooltip where supported, and in the tray menu as a reliable fallback.
+Fixed
+---
+- Sync now runs only after an account is connected to a saved sync server.
+- Existing synced accounts keep their connected state after upgrading, while disconnected accounts no longer start background sync, social refreshes or websocket listeners.
+- Profile Data now distinguishes disconnected sync accounts from missing accounts.
+- Android practice notifications now keep showing the current phase and timer while a practice is running.

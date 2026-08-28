@@ -318,7 +318,6 @@ save_settings :: (app: InbeApp*) {
     save_setting_int("break_sounds_enabled", app->break_sounds_enabled ? 1 : 0)
     save_setting_int("break_hud_x", app->break_hud_x)
     save_setting_int("break_hud_y", app->break_hud_y)
-    save_setting_int("break_exercise_count", app->break_exercise_count)
     save_setting_int("break_reading_mode", app->breaks.reading_mode ? 1 : 0)
     save_setting_int("break_micro_counts_as_activity",
                         app->breaks.micro_counts_as_activity ? 1 : 0)
@@ -572,8 +571,6 @@ app_load_settings :: (app: InbeApp*) -> int {
                             "break_hud_x", -1, -1, 32767)
     load_clamped_setting(&settings_cache, &app->break_hud_y,
                             "break_hud_y", -1, -1, 32767)
-    load_clamped_setting(&settings_cache, &app->break_exercise_count,
-                            "break_exercise_count", 3, 0, 4)
     load_bool_setting(&settings_cache, &app->breaks.reading_mode,
                          "break_reading_mode", 0)
     load_bool_setting(&settings_cache, &app->breaks.micro_counts_as_activity,

@@ -1271,8 +1271,8 @@ Account: %s
 [sync_status_connected]
 connected
 ---
-[sync_status_not_set]
-not set
+[sync_status_disconnected]
+disconnected
 ---
 [sync_status_queued]
 Queued: %lld
@@ -1316,8 +1316,8 @@ Wim Hof - Breathe in %ds
 [tray_wim_hof_next_round]
 Wim Hof - Next round
 ---
-[tray_wim_hof_starting]
-Wim Hof - Starting
+[tray_wim_hof_starting_seconds]
+Wim Hof - Starting in %ds
 ---
 [tray_meditation_paused]
 Meditation - %d:%02d paused
@@ -1326,10 +1326,22 @@ Meditation - %d:%02d paused
 Meditation - %d:%02d left
 ---
 [tray_sun_salutation]
-Sun Salutation - Step %d, Rep %d/%d
+Sun Salutation - %s, Rep %d/%d, %ds/%ds
 ---
 [tray_sun_salutation_paused]
-Sun Salutation - Step %d, Rep %d/%d paused
+Sun Salutation - %s, Rep %d/%d, %ds/%ds paused
+---
+[tray_patterns_left]
+Breathing Patterns - %s %ds, %d:%02d left
+---
+[tray_patterns_left_paused]
+Breathing Patterns - %s %ds, %d:%02d left paused
+---
+[tray_patterns_elapsed]
+Breathing Patterns - %s %ds, %d:%02d elapsed
+---
+[tray_patterns_elapsed_paused]
+Breathing Patterns - %s %ds, %d:%02d elapsed paused
 ---
 [results_best]
 best %ds
@@ -1510,105 +1522,6 @@ Suspended
 ---
 [tray_next_break]
 Next break %s
----
-[break_exercises_title]
-Break exercises
----
-[break_exercises_intro]
-Short stretches for rest breaks. They play automatically during rest breaks.
----
-[break_ex_shoulder_rolls]
-Shoulder rolls
----
-[break_ex_shoulder_rolls_s1]
-Roll your shoulders slowly backward
----
-[break_ex_shoulder_rolls_s2]
-Keep the motion smooth and relaxed
----
-[break_ex_neck_tilt]
-Neck side tilt
----
-[break_ex_neck_tilt_s1]
-Tilt your head toward one shoulder
----
-[break_ex_neck_tilt_s2]
-Hold gently, then switch sides
----
-[break_ex_wrist_fingers]
-Wrist and finger stretch
----
-[break_ex_wrist_fingers_s1]
-Extend one arm and pull the fingers back
----
-[break_ex_wrist_fingers_s2]
-Stretch the wrist, then switch hands
----
-[break_ex_upper_back]
-Upper back stretch
----
-[break_ex_upper_back_s1]
-Clasp your hands and round your upper back
----
-[break_ex_upper_back_s2]
-Breathe out and let the shoulders drop
----
-[break_ex_blade_squeeze]
-Shoulder blade squeeze
----
-[break_ex_blade_squeeze_s1]
-Draw your shoulder blades together
----
-[break_ex_blade_squeeze_s2]
-Hold briefly, then release
----
-[break_ex_seated_twist]
-Seated torso twist
----
-[break_ex_seated_twist_s1]
-Sit tall and rotate to one side
----
-[break_ex_seated_twist_s2]
-Keep hips square, then switch sides
----
-[break_ex_eye_horizon]
-Look into the distance
----
-[break_ex_eye_horizon_s1]
-Find the farthest point in the room
----
-[break_ex_eye_horizon_s2]
-Soften your gaze and breathe
----
-[break_ex_eye_near_far]
-Focus near and far
----
-[break_ex_eye_near_far_s1]
-Look at your thumb close up
----
-[break_ex_eye_near_far_s2]
-Then focus on something far away
----
-[break_ex_breath_drop]
-Breath and shoulder drop
----
-[break_ex_breath_drop_s1]
-Inhale and lift your shoulders
----
-[break_ex_breath_drop_s2]
-Exhale and let them fall
----
-[break_ex_breath_drop_s3]
-Notice the tension release
----
-[break_ex_forearm_desk]
-Forearm desk stretch
----
-[break_ex_forearm_desk_s1]
-Place a palm on the desk, fingers back
----
-[break_ex_forearm_desk_s2]
-Gently press until the forearm stretches
 ---
 [notifications_test]
 Send test notification

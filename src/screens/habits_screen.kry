@@ -886,6 +886,8 @@ habits_select_detail_tab :: (app: InbeApp*, tab: int) #private {
     }
 
     route = app_current_route(app)
+    route.screen = InbeScreenHabits
+    route.habits_screen_mode = HABITS_SCREEN_DETAIL
     route.habits_tab = tab
     app->habits.scroll = 0
 

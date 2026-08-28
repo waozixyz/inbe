@@ -7,6 +7,7 @@
 #include "breaks/app_breaks.h"
 #include "desktop_tray.h"
 #include "habits_screen.h"
+#include "practices/patterns/patterns_practice.h"
 #include "practices/practice_registry.h"
 #include "practices/sun_salutation/sun_salutation_practice.h"
 
@@ -18,6 +19,7 @@ typedef struct InbeTraySnapshot {
     int count;
     int break_mode;
     int break_reading_mode;
+    char status_label[128];
     char show_hide_label[96];
     char start_practice_label[96];
     char habits_label[96];
@@ -28,7 +30,6 @@ typedef struct InbeTraySnapshot {
     char patterns_label[96];
     char break_label[96];
     char break_rest_now_label[96];
-    char break_exercises_label[96];
     char break_mode_label[96];
     char break_mode_normal_label[96];
     char break_mode_quiet_label[96];
@@ -80,6 +81,161 @@ GetTrayWindowAction(int visible)
     return visible ? INBE_DESKTOP_TRAY_ACTION_HIDE : INBE_DESKTOP_TRAY_ACTION_SHOW;
 }
 
+static int
+TraySunSalutationStepSeconds(const InbeApp *app)
+{
+    int start_seconds;
+    int end_seconds;
+    int repetitions;
+    int repetition;
+
+    if(app == NULL)
+        return SUN_SALUTATION_DEFAULT_START_SECONDS;
+
+    start_seconds = app->sun_salutation.start_seconds;
+    end_seconds = app->sun_salutation.end_seconds;
+    repetitions = app->sun_salutation.repetitions;
+    repetition = app->sun_salutation.repetition;
+
+    if(start_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       start_seconds > SUN_SALUTATION_SECONDS_MAX)
+        start_seconds = SUN_SALUTATION_DEFAULT_START_SECONDS;
+    if(end_seconds < SUN_SALUTATION_SECONDS_MIN ||
+       end_seconds > SUN_SALUTATION_SECONDS_MAX)
+        end_seconds = SUN_SALUTATION_DEFAULT_END_SECONDS;
+    if(start_seconds < end_seconds)
+        end_seconds = start_seconds;
+    if(repetitions < 2)
+        return start_seconds;
+    if(repetition < 0)
+        repetition = 0;
+    if(repetition >= repetitions)
+        repetition = repetitions - 1;
+
+    return start_seconds + ((end_seconds - start_seconds) * repetition) /
+                               (repetitions - 1);
+}
+
+static void
+BuildTrayStatusText(InbeApp *app, char *text, size_t text_size)
+{
+    if(text == NULL || text_size == 0)
+        return;
+
+    snprintf(text, text_size, "Inner Breeze");
+
+    if(app == NULL)
+        return;
+
+    if(app->inbe.screen == InbeScreenSession) {
+        int count = int_from_count(app->inbe.count);
+        int max_breaths = int_from_count(app->inbe.maxbreaths);
+
+        if(app->session_paused) {
+            snprintf(text, text_size, "%s", GetLocaleText("tray_wim_hof_paused"));
+        } else {
+            switch(app->inbe.phase) {
+            case InbePhaseBreathe:
+                FormatLocaleText(text, text_size, "tray_wim_hof_breath",
+                                 count, max_breaths);
+                break;
+            case InbePhaseHold:
+                FormatLocaleText(text, text_size, "tray_wim_hof_hold", count);
+                break;
+            case InbePhaseRecover:
+                count = 15 - count;
+                if(count < 0)
+                    count = 0;
+                FormatLocaleText(text, text_size, "tray_wim_hof_breathe_in",
+                                 count);
+                break;
+            case InbePhaseNext:
+                snprintf(text, text_size, "%s", GetLocaleText("tray_wim_hof_next_round"));
+                break;
+            case InbePhaseStarting:
+            default:
+                {
+                    int pause = app->inbe.round == 0 ? 3 : app->inbe.pause_seconds;
+                    int remaining = pause > 0 ? pause - app->inbe.sectick / 60 : 0;
+                    if(remaining < 0)
+                        remaining = 0;
+                    FormatLocaleText(text, text_size,
+                                     "tray_wim_hof_starting_seconds",
+                                     remaining);
+                }
+                break;
+            }
+        }
+    } else if(app->inbe.screen == InbeScreenMeditation) {
+        int remaining = app->meditation.remaining_seconds;
+        if(remaining < 0)
+            remaining = 0;
+        FormatLocaleText(text, text_size,
+                         app->session_paused ? "tray_meditation_paused"
+                                             : "tray_meditation_left",
+                         remaining / 60, remaining % 60);
+    } else if(app->inbe.screen == InbeScreenSunSalutation) {
+        int step_seconds = TraySunSalutationStepSeconds(app);
+        int elapsed = app->sun_salutation.step_ticks / 60;
+        if(elapsed < 0)
+            elapsed = 0;
+        if(elapsed > step_seconds)
+            elapsed = step_seconds;
+        FormatLocaleText(text, text_size,
+                         app->session_paused ? "tray_sun_salutation_paused"
+                                             : "tray_sun_salutation",
+                         sun_salutation_step_label(app->sun_salutation.step),
+                         app->sun_salutation.repetition + 1,
+                         app->sun_salutation.repetitions,
+                         elapsed,
+                         step_seconds);
+    } else if(app->inbe.screen == InbeScreenPatterns && app->patterns.active) {
+        int phase = app->patterns.phase;
+        int left = patterns_phase_remaining_seconds(app);
+        int session_time;
+
+        if(app->patterns.duration_minutes > 0) {
+            session_time = app->patterns.duration_minutes * 60 -
+                           app->patterns.elapsed_seconds;
+            if(session_time < 0)
+                session_time = 0;
+            FormatLocaleText(text, text_size,
+                             app->patterns.paused ? "tray_patterns_left_paused"
+                                                  : "tray_patterns_left",
+                             GetLocaleText(patterns_phase_label_key(phase)),
+                             left, session_time / 60, session_time % 60);
+        } else {
+            session_time = app->patterns.elapsed_seconds;
+            if(session_time < 0)
+                session_time = 0;
+            FormatLocaleText(text, text_size,
+                             app->patterns.paused ? "tray_patterns_elapsed_paused"
+                                                  : "tray_patterns_elapsed",
+                             GetLocaleText(patterns_phase_label_key(phase)),
+                             left, session_time / 60, session_time % 60);
+        }
+    } else if(app->breaks_enabled) {
+        if(app->breaks.mode == BreakModeSuspended) {
+            snprintf(text, text_size, "%s", GetLocaleText("settings_breaks_mode_suspended"));
+        } else if(app->breaks.mode == BreakModeQuiet) {
+            snprintf(text, text_size, "%s", GetLocaleText("settings_breaks_mode_quiet"));
+        } else {
+            int next_break = -1;
+            for(int t = 0; t < BREAK_TYPE_COUNT; t++) {
+                int due = break_timer_next_due_s(&app->breaks, t);
+                if(due > 0 && (next_break < 0 || due < next_break))
+                    next_break = due;
+            }
+            if(next_break > 0) {
+                char due[16];
+
+                break_format_duration(due, sizeof(due), next_break);
+                FormatLocaleText(text, text_size, "tray_next_break", due);
+            }
+        }
+    }
+}
+
 static void
 FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
 {
@@ -105,8 +261,6 @@ FillTraySnapshotLabels(InbeTraySnapshot *snapshot)
              GetLocaleText("settings_tab_breaks"));
     snprintf(snapshot->break_rest_now_label, sizeof(snapshot->break_rest_now_label), "%s",
              GetLocaleText("settings_breaks_rest_now"));
-    snprintf(snapshot->break_exercises_label, sizeof(snapshot->break_exercises_label), "%s",
-             GetLocaleText("break_exercises_title"));
     snprintf(snapshot->break_mode_label, sizeof(snapshot->break_mode_label), "%s",
              GetLocaleText("settings_breaks_mode"));
     snprintf(snapshot->break_mode_normal_label, sizeof(snapshot->break_mode_normal_label), "%s",
@@ -133,6 +287,7 @@ SeedTraySnapshot(void)
         next.break_mode = app->breaks.mode;
         next.break_reading_mode = app->breaks.reading_mode;
     }
+    BuildTrayStatusText(app, next.status_label, sizeof(next.status_label));
     FillTraySnapshotLabels(&next);
     TraySnapshot = next;
 }
@@ -148,7 +303,7 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     InbeTraySnapshot local_snapshot;
     int item_index = 0;
 
-    if(items == NULL || item_count < 5 ||
+    if(items == NULL || item_count < 7 ||
        start_items == NULL || start_item_count < 4 ||
        habit_items == NULL || habit_item_count < INBE_HABIT_MAX ||
        break_items == NULL || break_item_count < 4 ||
@@ -241,6 +396,16 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
     };
 
     items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_ACTION,
+        .label = local_snapshot.status_label[0] != '\0'
+                     ? local_snapshot.status_label
+                     : "Inner Breeze",
+        .enabled = 0
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
+        .kind = DESKTOP_TRAY_MENU_ITEM_SEPARATOR
+    };
+    items[item_index++] = (DesktopTrayMenuItem){
         .kind = DESKTOP_TRAY_MENU_ITEM_SUBMENU,
         .label = local_snapshot.start_practice_label,
         .enabled = 1,
@@ -277,10 +442,10 @@ BuildTrayMenu(const InbeTraySnapshot *snapshot,
 static void
 ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
 {
-    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem items[7];
     DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
-    DesktopTrayMenuItem break_items[5];
+    DesktopTrayMenuItem break_items[4];
     DesktopTrayMenuItem break_mode_items[3];
     int count;
 
@@ -290,7 +455,7 @@ ApplyTrayMenuSnapshot(const InbeTraySnapshot *snapshot)
     memset(break_items, 0, sizeof(break_items));
     memset(break_mode_items, 0, sizeof(break_mode_items));
 
-    count = BuildTrayMenu(snapshot, items, 5, start_items, 4,
+    count = BuildTrayMenu(snapshot, items, 7, start_items, 4,
                           habit_items, INBE_HABIT_MAX,
                           break_items, 4, break_mode_items, 3);
     SetDesktopTrayMenu(items, count);
@@ -303,10 +468,10 @@ int
 inbe_desktop_tray_init(void)
 {
     DesktopTraySpec spec;
-    DesktopTrayMenuItem items[5];
+    DesktopTrayMenuItem items[7];
     DesktopTrayMenuItem start_items[4];
     DesktopTrayMenuItem habit_items[INBE_HABIT_MAX];
-    DesktopTrayMenuItem break_items[5];
+    DesktopTrayMenuItem break_items[4];
     DesktopTrayMenuItem break_mode_items[3];
     int item_count;
 
@@ -322,7 +487,7 @@ inbe_desktop_tray_init(void)
     memset(habit_items, 0, sizeof(habit_items));
     memset(break_items, 0, sizeof(break_items));
     memset(break_mode_items, 0, sizeof(break_mode_items));
-    item_count = BuildTrayMenu(&TraySnapshot, items, 5, start_items, 4,
+    item_count = BuildTrayMenu(&TraySnapshot, items, 7, start_items, 4,
                                habit_items, INBE_HABIT_MAX,
                                break_items, 4, break_mode_items, 3);
 
@@ -436,6 +601,7 @@ UpdateTrayMenuSnapshot(InbeApp *app)
     next.window_visible = !IsWindowHidden();
     next.break_mode = app->breaks.mode;
     next.break_reading_mode = app->breaks.reading_mode;
+    BuildTrayStatusText(app, next.status_label, sizeof(next.status_label));
     FillTraySnapshotLabels(&next);
 
     today = habits_today_index();
@@ -505,12 +671,6 @@ inbe_desktop_tray_apply_action(InbeApp *app, InbeDesktopTrayAction action, int *
         if(app->breaks_enabled)
             app_breaks_rest_break_now(app);
         break;
-    case INBE_DESKTOP_TRAY_ACTION_BREAK_EXERCISES:
-        if(app->modal.active)
-            app_close_modal(app);
-        RestoreTrayWindow();
-        app_switch_screen(app, InbeScreenBreakExercises);
-        break;
     case INBE_DESKTOP_TRAY_ACTION_BREAK_MODE_NORMAL:
         app_breaks_set_mode(app, BreakModeNormal, 0);
         break;
@@ -547,74 +707,7 @@ inbe_desktop_tray_update_status(InbeApp *app)
 
     UpdateTrayMenuSnapshot(app);
 
-    snprintf(text, sizeof(text), "Inner Breeze");
-    if(app->inbe.screen == InbeScreenSession) {
-        int count = int_from_count(app->inbe.count);
-        int max_breaths = int_from_count(app->inbe.maxbreaths);
-
-        if(app->session_paused) {
-            snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_paused"));
-        } else {
-            switch(app->inbe.phase) {
-            case InbePhaseBreathe:
-                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breath",
-                                 count, max_breaths);
-                break;
-            case InbePhaseHold:
-                FormatLocaleText(text, sizeof(text), "tray_wim_hof_hold", count);
-                break;
-            case InbePhaseRecover:
-                count = 15 - count;
-                if(count < 0)
-                    count = 0;
-                FormatLocaleText(text, sizeof(text), "tray_wim_hof_breathe_in",
-                                 count);
-                break;
-            case InbePhaseNext:
-                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_next_round"));
-                break;
-            case InbePhaseStarting:
-            default:
-                snprintf(text, sizeof(text), "%s", GetLocaleText("tray_wim_hof_starting"));
-                break;
-            }
-        }
-    } else if(app->inbe.screen == InbeScreenMeditation) {
-        int remaining = app->meditation.remaining_seconds;
-        if(remaining < 0)
-            remaining = 0;
-        FormatLocaleText(text, sizeof(text),
-                         app->session_paused ? "tray_meditation_paused"
-                                             : "tray_meditation_left",
-                         remaining / 60, remaining % 60);
-    } else if(app->inbe.screen == InbeScreenSunSalutation) {
-        FormatLocaleText(text, sizeof(text),
-                         app->session_paused ? "tray_sun_salutation_paused"
-                                             : "tray_sun_salutation",
-                         app->sun_salutation.step + 1,
-                         app->sun_salutation.repetition + 1,
-                         app->sun_salutation.repetitions);
-    } else if(app->breaks_enabled) {
-        if(app->breaks.mode == BreakModeSuspended) {
-            snprintf(text, sizeof(text), "%s", GetLocaleText("settings_breaks_mode_suspended"));
-        } else if(app->breaks.mode == BreakModeQuiet) {
-            snprintf(text, sizeof(text), "%s", GetLocaleText("settings_breaks_mode_quiet"));
-        } else {
-            int next_break = -1;
-            for(int t = 0; t < BREAK_TYPE_COUNT; t++) {
-                int due = break_timer_next_due_s(&app->breaks, t);
-                if(due > 0 && (next_break < 0 || due < next_break))
-                    next_break = due;
-            }
-            if(next_break > 0) {
-                char due[16];
-
-                break_format_duration(due, sizeof(due), next_break);
-                FormatLocaleText(text, sizeof(text), "tray_next_break", due);
-            }
-        }
-    }
-
+    BuildTrayStatusText(app, text, sizeof(text));
     SetDesktopTrayStatus(text);
 }
 

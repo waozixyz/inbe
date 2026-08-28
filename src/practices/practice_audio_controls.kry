@@ -1,0 +1,83 @@
+#import "app.h"
+
+#enum {
+    PRACTICE_AUDIO_SOUND_POPUP_ID = 15000
+    PRACTICE_AUDIO_MUSIC_POPUP_ID = 15001
+}
+
+practice_audio_sound_icon_for_volume :: (app: InbeApp*) -> Texture2D #private {
+    vol: int
+
+    if app == nil {
+        return (Texture2D){0}
+    }
+
+    vol = app->sound_volume
+    if vol <= 0 {
+        return app->icons[UI_ICON_TYPE_SOUND0]
+    }
+    if vol <= 25 {
+        return app->icons[UI_ICON_TYPE_SOUND1]
+    }
+    if vol <= 75 {
+        return app->icons[UI_ICON_TYPE_SOUND2]
+    }
+    return app->icons[UI_ICON_TYPE_SOUND3]
+}
+
+practice_audio_music_icon :: (app: InbeApp*) -> Texture2D #private {
+    if app == nil {
+        return (Texture2D){0}
+    }
+    return app->icons[UI_ICON_TYPE_MUSIC]
+}
+
+practice_draw_audio_controls :: (app: InbeApp*) {
+    title_h := UIGetNodeHeight(UINodeTitleBar(0))
+    icon_size := ScaleUIPx(18)
+    icon_padding := ScaleUIPx(5)
+    control_y := (title_h - (icon_size + icon_padding * 2)) / 2
+
+    if app == nil {
+        return
+    }
+    if control_y < 0 {
+        control_y = 0
+    }
+
+    if IconSliderPopup((IconSliderPopupProps){
+        .id = PRACTICE_AUDIO_SOUND_POPUP_ID,
+        .x = ScaleUIPx(8),
+        .y = control_y,
+        .icon_size = icon_size,
+        .icon_padding = icon_padding,
+        .icon = practice_audio_sound_icon_for_volume(app),
+        .open = &app->volume_popup_active,
+        .value = &app->sound_volume,
+        .min = SETTINGS_VOLUME_MIN,
+        .max = SETTINGS_VOLUME_MAX,
+        .popup_width = ScaleUIPx(40),
+        .popup_height = ScaleUIPx(176)
+    }) {
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+
+    if IconSliderPopup((IconSliderPopupProps){
+        .id = PRACTICE_AUDIO_MUSIC_POPUP_ID,
+        .x = ScaleUIPx(48),
+        .y = control_y,
+        .icon_size = icon_size,
+        .icon_padding = icon_padding,
+        .icon = practice_audio_music_icon(app),
+        .open = &app->music_volume_popup_active,
+        .value = &app->music_volume,
+        .min = SETTINGS_VOLUME_MIN,
+        .max = SETTINGS_VOLUME_MAX,
+        .popup_width = ScaleUIPx(40),
+        .popup_height = ScaleUIPx(176)
+    }) {
+        app->settings_dirty = 1
+        save_settings(app)
+    }
+}
